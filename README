@@ -1,0 +1,12 @@
+The FreeDiameter daemon implements the Diameter base protocol.
+Loadable extensions add the logic of Diameter applications or advanced use of the daemon.
+See http://aaa.koganei.wide.ad.jp/ for more information on the project.
+FreeDiameter was previously known as the "waaad" project (WIDE AAA Daemon)
+
+This version is not related to the "freediameter" project from Sun, which seems abandoned.
+
+Author: Sebastien Decugis.
+
+See LICENSE file for legal information on this software.
+
+See INSTALL for information on building and using this software.
