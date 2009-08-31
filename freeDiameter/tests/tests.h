@@ -51,8 +51,6 @@
 #define TEST_TIMEOUT	5	/* 5 seconds */
 #endif /* TEST_TIMEOUT */
 
-static int test_verbosity = 0;
-
 /* Standard includes */
 #include <getopt.h>
 #include <time.h>
@@ -75,9 +73,11 @@ static int test_verbosity = 0;
 	exit(PASS);					\
 }
 
+static int test_verbo = 0;
+
 /* Define the standard check routines */
 #define CHECK( _val, _assert ){				\
-	if (test_verbosity > 0) {			\
+	if (test_verbo > 0) {				\
 		fprintf(stderr,				\
 			"%s:%-4d: CHECK( " #_assert " == "\
 				#_val " )\n",		\
@@ -110,11 +110,11 @@ static inline void parse_cmdline(int argc, char * argv[]) {
 	while ((c = getopt (argc, argv, "dqn")) != -1) {
 		switch (c) {
 			case 'd':	/* Increase verbosity of debug messages.  */
-				test_verbosity++;
+				test_verbo++;
 				break;
 				
-			case 'q':	/* Decrease verbosity then remove debug messages.  */
-				test_verbosity--;
+			case 'q':	/* Decrease verbosity.  */
+				test_verbo--;
 				break;
 			
 			case 'n':	/* Disable the timeout of the test.  */
@@ -125,6 +125,7 @@ static inline void parse_cmdline(int argc, char * argv[]) {
 				return;
 		}
 	}
+	fd_g_debug_lvl = (test_verbo > 0) ? (test_verbo - 1) : 0;
 	if (!no_timeout)
 		alarm(TEST_TIMEOUT);
 }

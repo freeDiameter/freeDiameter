@@ -121,7 +121,6 @@ extern pthread_key_t	fd_log_thname;
  */
 char * fd_log_time ( char * buf, size_t len );
 
-/************************** DEBUG MACROS ************************************/
 
 /* levels definitions */
 #define NONE 0	/* Display no debug message */
@@ -136,16 +135,19 @@ char * fd_log_time ( char * buf, size_t len );
 #define TRACE_LEVEL INFO
 #endif /* TRACE_LEVEL */
 
-/* The level of the file being compiled */
+/* The level of the file being compiled. */
 static int local_debug_level = TRACE_LEVEL;
 
-/* helper macros (pre-processor hacks) */
+/* A global level, changed by configuration or cmd line for example. default is 0. */
+extern int fd_g_debug_lvl;
+
+/* helper macros (pre-processor hacks to allow macro arguments) */
 #define __str( arg )  #arg
 #define _stringize( arg ) __str( arg )
 #define __agr( arg1, arg2 ) arg1 ## arg2
 #define _aggregate( arg1, arg2 ) __agr( arg1, arg2 )
 
-/* Some portability tricks to get nice function name in __PRETTY_FUNCTION__ */
+/* Some portability code to get nice function name in __PRETTY_FUNCTION__ */
 #if __STDC_VERSION__ < 199901L
 # if __GNUC__ >= 2
 #  define __func__ __FUNCTION__
@@ -158,9 +160,9 @@ static int local_debug_level = TRACE_LEVEL;
 #endif /* __PRETTY_FUNCTION__ */
 
 /* Boolean for tracing at a certain level */
-#define TRACE_BOOL(_level_) ( (_level_) <= local_debug_level )
+#define TRACE_BOOL(_level_) ( (_level_) <= local_debug_level + fd_g_debug_lvl )
 
-/* The general debug macro, each call results in two lines of debug messages */
+/* The general debug macro, each call results in two lines of debug messages (change the macro for more compact output) */
 #define TRACE_DEBUG(level,format,args... ) {											\
 	if ( TRACE_BOOL(level) ) {												\
 		char __buf[25];													\
@@ -172,15 +174,15 @@ static int local_debug_level = TRACE_LEVEL;
 	}															\
 }
 
-/* Helper for function entry */
+/* Helper for function entry -- for very detailed trace of the execution */
 #define TRACE_ENTRY(_format,_args... ) \
 	TRACE_DEBUG(FCTS, "->%s (" #_args ") = (" _format ") >", __PRETTY_FUNCTION__, ##_args );
 
-/* Helper for debugging by adding traces */
+/* Helper for debugging by adding traces -- for debuging a specific location of the code */
 #define TRACE_HERE()	\
-	TRACE_DEBUG(INFO, " -- debug checkpoint -- ");
+	TRACE_DEBUG(NONE, " -- debug checkpoint -- ");
 
-/* Helper for tracing the CHECK_* macros bellow */
+/* Helper for tracing the CHECK_* macros bellow -- very very verbose code execution! */
 #define TRACE_DEBUG_ALL( str ) 	\
 	TRACE_DEBUG(CALL, str );
 
@@ -402,7 +404,7 @@ static __inline__ int fd_thr_term(pthread_t * th)
 	return ret;
 }
 
-/* Cleanups for cancellation (all threads should be safely cancelable!) */
+/* Cleanups for cancellation (all threads should be safely cancelable...) */
 static __inline__ void fd_cleanup_mutex( void * mutex )
 {
 	CHECK_POSIX_DO( pthread_mutex_unlock((pthread_mutex_t *)mutex), /* */);
@@ -1273,8 +1275,99 @@ The "parent" parameter can not be NULL. It points to the object (grouped avp or 
 #define ER_DIAMETER_TOO_BUSY			3004
 #define ER_DIAMETER_REDIRECT_INDICATION		3006
 
-/* Iterator on the rules of a parent object */
-int fd_dict_iterate_rules ( struct dict_object *parent, void * data, int (*cb)(void *, struct dict_rule_data *) );
+
+/*============================================================*/
+/*                         SESSIONS                           */
+/*============================================================*/
+
+
+
+/*
+ * The libfreeDiameter does not provide a full support of the sessions state machines as described in the RFC3588.
+ * It only provides a basic support allowing an extension to associate some state with a session identifier, and retrieve 
+ * this data later.
+ *
+ * A session is an opaque object, associated with a value of a Session-Id AVP.
+ * An extension that wants to associate data with the session must first register as session module client 
+ * with the sess_regext function to get an identifier object (sess_reg_t).
+ * 
+ * The module manages tuplets ( sess_id_t *, sess_reg_t *, void *). The following functions are used to manage these tuplets:
+ * sess_data_reg  : associate a pointer with a given session for a given module client.
+ * sess_data_dereg: removes an association.
+ * sess_data_get  : get the pointer associated with an association without changing it.
+ *
+ * Note that creating an association calls sess_link as a side effect, and removing the association calls sess_unlink.
+ *
+ * QUICK TUTORIAL:
+ *  For an extension that wants to implement a session state machine, here is a quick guide.
+ *
+ * First, the extension must define a structure to save the session state, for example appstate_t.
+ *
+ * Since the extension will use the session module, it creates a sess_reg_t by calling sess_regext.
+ *
+ * If the extension behaves as a client, it receives external events that trig the start of a new sessions.
+ * When such event occurs, the extension calls sess_new with the appropriate parameters to create a new session.
+ * It initializes an appstate_t structure with the data of this session and creates an association with sess_data_reg (%).
+ * Then it creates a message (application-specific) to request authentication and/or authorization for the service
+ * and the message is sent.
+ *
+ * Later, assuming that the extension has registered appropriate callbacks in the dispatcher module, when a message
+ * is received, the extension can retrieve the state of the session with the sess_data_get function.
+ *
+ * Finaly, when the extension decides to terminate the session (timer, or as result of a message exchange), it
+ * calls sess_data_dereg in order to destroy the binding in the daemon. When last message refering this session is freed,
+ * the session data is freed.
+ *
+ * (%) A this time, the extension must call sess_unlink in order to counter the effects of the sess_new function.
+ * This allows to have the session destroyed when no more data is associated to it.
+
+
+
+/*============================================================*/
+/*                         DISPATCH                           */
+/*============================================================*/
+
+/* The dispatch process consists in passing a message to some handlers
+ (typically provided by extensions) based on its content (app id, cmd code...) */
+
+/* The dispatch module has two main roles:
+ *  - help determine if a message can be handled locally (during the routing step)
+ *  - pass the message to the callback(s) that will handle it (during the dispatch step)
+ *
+ * These are the possibilities for registering a callback:
+ *
+ * -> For All messages.
+ *  This callback is called for all messages that are handled locally. This should be used only
+ *  internally by the daemon, or for debug purpose.
+ *
+ * -> by AVP value (constants).
+ *  This callback will be called when a message is received and contains a certain AVP with a specified value.
+ *
+ * -> by AVP.
+ *  This callback will be called when the received message contains a certain AVP.
+ *
+ * -> by command-code.
+ *  This callback will be called when the message is a specific command.
+ *
+ * -> by application.
+ *  This callback will be called when the message has a specific application-id.
+ *
+ * ( by vendor: would this be useful? it may be added later)
+ *
+ * Note that several criteria may be selected at the same time, for example command-code AND application id.
+ *
+ * When a callback is called, it receives the message as parameter, and eventually a pointer to 
+ * the AVP in the message when this is appropriate.
+ *
+ * The callback must process the message, and eventually create an answer to it. See the definition
+ * bellow for more information.
+ *
+ * If no callback has handled the message, a default handler will be called with the effect of
+ * requeuing the message for forwarding on the network to another peer (for requests, if possible), or 
+ * discarding the message (for answers).
+ */
+
+
 
 
 /*============================================================*/

@@ -39,6 +39,7 @@
 
 pthread_mutex_t fd_log_lock = PTHREAD_MUTEX_INITIALIZER;
 pthread_key_t	fd_log_thname;
+int fd_g_debug_lvl = 0;
 
 /* Log a debug message */
 void fd_log_debug ( char * format, ... )

@@ -435,7 +435,7 @@ int main(int argc, char *argv[])
 				CHECK( 0, fd_msg_avp_setvalue ( avpi, &value ) );
 				memset(&buf, 0, sizeof(buf)); /* Test that the OS value is really copied */
 				CHECK( 0, fd_msg_update_length ( avpi ) );
-				#if 1
+				#if 0
 				fd_log_debug("AVP octet string, 'This\\0 is a b...'\n");
 				fd_msg_dump_one(0, avpi);
 				#endif
