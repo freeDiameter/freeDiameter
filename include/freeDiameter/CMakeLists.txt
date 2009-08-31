@@ -1,6 +1,6 @@
-#CMake configuration for freediameter include directory
+#CMake configuration for freeDiameter include directory
 
-Project("FreeDiameter include directory" C)
+Project("freeDiameter include directory" C)
 
 ########################
 # Configurable parameters
@@ -73,12 +73,12 @@ CHECK_INCLUDE_FILES (malloc.h HAVE_MALLOC_H)
 
 # The default configuration file name
 IF (NOT DEFAULT_CONF_FILE)
-   SET(DEFAULT_CONF_FILE "freediameter.conf")
+   SET(DEFAULT_CONF_FILE "freeDiameter.conf")
 ENDIF (NOT DEFAULT_CONF_FILE)
 ##########################
 
 # Generate the host.h file
-CONFIGURE_FILE(${CMAKE_CURRENT_SOURCE_DIR}/freediameter-host.h.in ${CMAKE_CURRENT_BINARY_DIR}/freediameter-host.h)
+CONFIGURE_FILE(${CMAKE_CURRENT_SOURCE_DIR}/freeDiameter-host.h.in ${CMAKE_CURRENT_BINARY_DIR}/freeDiameter-host.h)
 
 # Save the FD_LIBS for parent scope
 SET(FD_LIBS ${FD_LIBS} PARENT_SCOPE)

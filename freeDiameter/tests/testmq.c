@@ -35,7 +35,7 @@
 
 #include "tests.h"
 
-/* Structure for testing threashold function */
+/* Structure for testing threshold function */
 static struct thrh_test {
 	struct mqueue * queue; /* pointer to the queue */
 	int		h_calls; /* number of calls of h_cb */

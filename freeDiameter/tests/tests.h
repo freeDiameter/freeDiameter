@@ -33,75 +33,100 @@
 * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.								 *
 *********************************************************************************************************/
 
-#include "libfd.h"
+/* This file contains the definition of our test harness.
+ * The harness is very simple yet.
+ * It may be interessant to go to dejagnu later...
+ *
+ */
+#ifndef _TESTS_H
+#define _TESTS_H
 
-#include <stdarg.h>
+#include "fD.h"
 
-pthread_mutex_t fd_log_lock = PTHREAD_MUTEX_INITIALIZER;
-pthread_key_t	fd_log_thname;
+#include <pthread.h>
+#include <errno.h>
 
-/* Log a debug message */
-void fd_log_debug ( char * format, ... )
-{
-	va_list ap;
-	
-	(void)pthread_mutex_lock(&fd_log_lock);
-	
-	pthread_cleanup_push(fd_cleanup_mutex, &fd_log_lock);
-	
-	va_start(ap, format);
-	vfprintf( stdout, format, ap);
-	va_end(ap);
-	fflush(stdout);
+/* Test timeout duration, unless -n is passed on the command line */
+#ifndef TEST_TIMEOUT
+#define TEST_TIMEOUT	5	/* 5 seconds */
+#endif /* TEST_TIMEOUT */
 
-	pthread_cleanup_pop(0);
-	
-	(void)pthread_mutex_unlock(&fd_log_lock);
+static int test_verbosity = 0;
+
+/* Standard includes */
+#include <getopt.h>
+#include <time.h>
+#include <libgen.h>
+
+/* Define the return code values */
+#define PASS	0
+#define FAIL	1
+
+/* Define the macro to fail a test with a message */
+#define FAILTEST( message... ){				\
+	fprintf(stderr, ## message);			\
+	exit(FAIL);					\
 }
 
-/* Function to set the thread's friendly name */
-void fd_log_threadname ( char * name )
-{
-	void * val = NULL;
-	
-	TRACE_ENTRY("%p(%s)", name, name?:"/");
-	
-	/* First, check if a value is already assigned to the current thread */
-	val = pthread_getspecific(fd_log_thname);
-	if (val != NULL) {
-		TRACE_DEBUG(FULL, "Freeing old thread name: %s", val);
-		free(val);
-	}
-	
-	/* Now create the new string */
-	if (name == NULL) {
-		CHECK_POSIX_DO( pthread_setspecific(fd_log_thname, NULL), /* continue */);
-		return;
-	}
-	
-	CHECK_MALLOC_DO( val = strdup(name), return );
-	
-	CHECK_POSIX_DO( pthread_setspecific(fd_log_thname, val), /* continue */);
-	return;
+/* Define the macro to pass a test */
+#define PASSTEST( ){					\
+	fprintf(stderr, "Test %s passed\n", __FILE__);	\
+	TRACE_DEBUG(INFO, "Test passed");		\
+	exit(PASS);					\
 }
 
-/* Write current time into a buffer */
-char * fd_log_time ( char * buf, size_t len )
-{
-	int ret;
-	size_t offset = 0;
-	struct timespec tp;
-	struct tm tm;
-	
-	/* Get current time */
-	ret = clock_gettime(CLOCK_REALTIME, &tp);
-	if (ret != 0) {
-		snprintf(buf, len, "%s", strerror(ret));
-		return buf;
-	}
-	
-	offset += strftime(buf + offset, len - offset, "%D,%T", localtime_r( &tp.tv_sec , &tm ));
-	offset += snprintf(buf + offset, len - offset, ".%6.6ld", tp.tv_nsec / 1000);
-
-	return buf;
+/* Define the standard check routines */
+#define CHECK( _val, _assert ){				\
+	if (test_verbosity > 0) {			\
+		fprintf(stderr,				\
+			"%s:%-4d: CHECK( " #_assert " == "\
+				#_val " )\n",		\
+			__FILE__, 			\
+			__LINE__);			\
+	}{						\
+	__typeof__ (_val) __ret = (_assert);		\
+	if (__ret != (_val)) {				\
+		FAILTEST( "%s:%d: %s == %lx != %lx\n",	\
+			__FILE__,			\
+			__LINE__,			\
+			#_assert,			\
+			(unsigned long)__ret,		\
+			(unsigned long)(_val));		\
+	}}						\
 }
+
+/* Minimum inits */
+#define INIT_FD() {					\
+	pthread_key_create(&fd_log_thname, free);	\
+	fd_log_threadname(basename(__FILE__));		\
+	CHECK( 0, fd_dict_init(&fd_g_dict) );		\
+	CHECK( 0, fd_dict_base_protocol(fd_g_dict) );	\
+	parse_cmdline(argc, argv);			\
+}
+
+static inline void parse_cmdline(int argc, char * argv[]) {
+	int c;
+	int no_timeout = 0;
+	while ((c = getopt (argc, argv, "dqn")) != -1) {
+		switch (c) {
+			case 'd':	/* Increase verbosity of debug messages.  */
+				test_verbosity++;
+				break;
+				
+			case 'q':	/* Decrease verbosity then remove debug messages.  */
+				test_verbosity--;
+				break;
+			
+			case 'n':	/* Disable the timeout of the test.  */
+				no_timeout = 1;
+				break;
+			
+			default:	/* bug: option not considered.  */
+				return;
+		}
+	}
+	if (!no_timeout)
+		alarm(TEST_TIMEOUT);
+}
+ 
+#endif /* _TESTS_H */

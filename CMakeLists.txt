@@ -1,7 +1,7 @@
 # This file is the source for generating the Makefile for the project, using cmake tool (cmake.org)
 
 # Name of the project, and language
-PROJECT("FreeDiameter" C)
+PROJECT("freeDiameter" C)
 
 # Some subfolders may have tests
 ENABLE_TESTING()
@@ -18,7 +18,7 @@ ADD_DEFINITIONS(-D_GNU_SOURCE)
 # Location for the include files
 INCLUDE_DIRECTORIES(include)
 INCLUDE_DIRECTORIES(${CMAKE_CURRENT_BINARY_DIR}/include)
-SUBDIRS(include/freediameter)
+SUBDIRS(include/freeDiameter)
 
 # some subfolders use yacc and lex parsers
 SET(BISON_GENERATE_DEFINES TRUE)
@@ -33,8 +33,8 @@ ENDIF( NOT BISON_EXECUTABLE OR NOT FLEX_EXECUTABLE )
 # how to do the check with cmake???
 
 # Location for the source code
-SUBDIRS(libfreediameter)
-SUBDIRS(freediameter)
+SUBDIRS(libfreeDiameter)
+SUBDIRS(freeDiameter)
 
 # Do we build the extensions?
 OPTION(IGNORE_ALL_EXTENSIONS "Ignore the extensions completly?")

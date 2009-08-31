@@ -33,27 +33,75 @@
 * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.								 *
 *********************************************************************************************************/
 
-#include "fd.h"
+#include "libfD.h"
 
-/* Entry point */
-int main(int argc, char * argv[])
+#include <stdarg.h>
+
+pthread_mutex_t fd_log_lock = PTHREAD_MUTEX_INITIALIZER;
+pthread_key_t	fd_log_thname;
+
+/* Log a debug message */
+void fd_log_debug ( char * format, ... )
 {
-	/* Initialize the library */
-	CHECK_FCT( fd_lib_init() );
+	va_list ap;
 	
-	/* Name this thread */
-	fd_log_threadname("Main");
+	(void)pthread_mutex_lock(&fd_log_lock);
+	
+	pthread_cleanup_push(fd_cleanup_mutex, &fd_log_lock);
+	
+	va_start(ap, format);
+	vfprintf( stdout, format, ap);
+	va_end(ap);
+	fflush(stdout);
 
-	/* Initialize the dictionary */
-	CHECK_FCT( fd_dict_init(&fd_g_dict) );
+	pthread_cleanup_pop(0);
 	
-	/* Add definitions of the base protocol */
-	CHECK_FCT( fd_dict_base_protocol(fd_g_dict) );
+	(void)pthread_mutex_unlock(&fd_log_lock);
+}
+
+/* Function to set the thread's friendly name */
+void fd_log_threadname ( char * name )
+{
+	void * val = NULL;
 	
-	/* For debug */
-	fd_dict_dump(fd_g_dict);
+	TRACE_ENTRY("%p(%s)", name, name?:"/");
 	
-	TRACE_DEBUG(INFO, "FreeDiameter daemon initialized.");
+	/* First, check if a value is already assigned to the current thread */
+	val = pthread_getspecific(fd_log_thname);
+	if (val != NULL) {
+		TRACE_DEBUG(FULL, "Freeing old thread name: %s", val);
+		free(val);
+	}
 	
-	return 0;
+	/* Now create the new string */
+	if (name == NULL) {
+		CHECK_POSIX_DO( pthread_setspecific(fd_log_thname, NULL), /* continue */);
+		return;
+	}
+	
+	CHECK_MALLOC_DO( val = strdup(name), return );
+	
+	CHECK_POSIX_DO( pthread_setspecific(fd_log_thname, val), /* continue */);
+	return;
+}
+
+/* Write current time into a buffer */
+char * fd_log_time ( char * buf, size_t len )
+{
+	int ret;
+	size_t offset = 0;
+	struct timespec tp;
+	struct tm tm;
+	
+	/* Get current time */
+	ret = clock_gettime(CLOCK_REALTIME, &tp);
+	if (ret != 0) {
+		snprintf(buf, len, "%s", strerror(ret));
+		return buf;
+	}
+	
+	offset += strftime(buf + offset, len - offset, "%D,%T", localtime_r( &tp.tv_sec , &tm ));
+	offset += snprintf(buf + offset, len - offset, ".%6.6ld", tp.tv_nsec / 1000);
+
+	return buf;
 }

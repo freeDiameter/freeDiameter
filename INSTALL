@@ -12,10 +12,10 @@ cmake -DNO_TESTS:BOOL=OFF ../
 make
 make tests
 
-Note: instead of passing options on the command line, you can edit the CCmakeCache.txt file
-or use a CMake front-end (for example cmake-gui)
+Note: instead of passing options on the command line, you can use a CMake front-end (for example cmake-gui)
+or edit the CCmakeCache.txt file directly.
 
-Note that there are dependencies on some external tools that may not be enforced by the configure script.
+Note that there are dependencies on external tools that may not be enforced by the configure script.
 On Ubuntu Intrepid, the following packages were required (aptitude install ...):
  gcc make flex bison libsctp1 libsctp-dev cmake
 
@@ -27,13 +27,13 @@ Then the cmake command had to look like:
 make install has not been tested yet and will probably not behave as expected!
 
 You can also configure which extensions to build with CMake:
-NoExtensions:BOOL=OFF    (or the following are ignored)
+IGNORE_ALL_EXTENSIONS:BOOL=OFF    (or the following are ignored)
 BUILD_APP_TEST:BOOL=ON
 BUILD_RT_ANY:BOOL=ON
 BUILD_RT_DEBUG:BOOL=ON
 BUILD_RT_DEFAULT:BOOL=ON
 BUILD_SAMPLE:BOOL=ON
 
-You can change the default configuration file name:
-DEFAULT_CONF_FILE:STRING=/path/to/some/freediameter.conf
+You can change the default configuration file pathname:
+DEFAULT_CONF_FILE:STRING=/path/to/some/freeDiameter.conf
 

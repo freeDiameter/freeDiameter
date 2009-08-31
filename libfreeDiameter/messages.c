@@ -38,7 +38,7 @@
  * This module allows to manipulate the msg and avp structures that represents a Diameter message in memory.
  */
 
-#include "libfd.h"
+#include "libfD.h"
 
 #include <sys/param.h>
 

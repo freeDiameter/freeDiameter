@@ -33,7 +33,7 @@
 * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.								 *
 *********************************************************************************************************/
 
-#include "libfd.h"
+#include "libfD.h"
 
 /* Names of the base types */
 const char * type_base_name[] = { /* must keep in sync with dict_avp_basetype */
@@ -1289,7 +1289,7 @@ void fd_dict_dump(struct dictionary * dict)
 /*******************************************************************************************************/
 /*******************************************************************************************************/
 
-/* These are the functions exported outside libfreediameter. */
+/* These are the functions exported outside libfreeDiameter. */
 
 /* Get the data associated to an object */
 int fd_dict_gettype ( struct dict_object * object, enum dict_object_type * type)

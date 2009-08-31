@@ -33,13 +33,13 @@
 * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.								 *
 *********************************************************************************************************/
 
-/* This file contains the definitions for internal use in the freediameter daemon */
+/* This file contains the definitions for internal use in the freeDiameter daemon */
 
 #ifndef _FD_H
 #define _FD_H
 
-#include <freediameter/freediameter-host.h>
-#include <freediameter/freediameter.h>
+#include <freeDiameter/freeDiameter-host.h>
+#include <freeDiameter/freeDiameter.h>
 
 /* Create all the dictionary objects defined in the Diameter base RFC. */
 int fd_dict_base_protocol(struct dictionary * dict);

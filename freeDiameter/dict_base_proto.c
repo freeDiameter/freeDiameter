@@ -36,7 +36,7 @@
 /* Diameter Base protocol definitions.
  */
 
-#include "fd.h"
+#include "fD.h"
 
 #include <netinet/in.h>
 #include <sys/socket.h>

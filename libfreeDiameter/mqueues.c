@@ -45,7 +45,7 @@
  *  -> then destroy the queue using meq_del.
  */
 
-#include "libfd.h"
+#include "libfD.h"
 
 /* Definition of a message queue object */
 struct mqueue {
@@ -58,7 +58,7 @@ struct mqueue {
 	int		count;	/* number of objects in the list */
 	int		thrs;	/* number of threads waiting for a new message (when count is 0) */
 	
-	uint16_t	high;	/* High level threshold (see libfreediameter.h for details) */
+	uint16_t	high;	/* High level threshold (see libfreeDiameter.h for details) */
 	uint16_t	low;	/* Low level threshhold */
 	void 		*data;	/* Opaque pointer for threshold callbacks */
 	void		(*h_cb)(struct mqueue *, void **); /* The callbacks */

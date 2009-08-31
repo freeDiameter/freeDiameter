@@ -1,9 +1,9 @@
-The FreeDiameter daemon implements the Diameter base protocol.
-Loadable extensions add the logic of Diameter applications or advanced use of the daemon.
+The freeDiameter daemon implements the Diameter base protocol.
+Loadable extensions add the logic of Diameter applications and advanced use of the daemon.
 See http://aaa.koganei.wide.ad.jp/ for more information on the project.
-FreeDiameter was previously known as the "waaad" project (WIDE AAA Daemon)
+freeDiameter was previously known as the "waaad" project (WIDE AAA Daemon)
 
-This version is not related to the "freediameter" project from Sun, which seems abandoned.
+This project is not related to the "freediameter" project from Sun on sourceforge.
 
 Author: Sebastien Decugis.
 

@@ -33,21 +33,17 @@
 * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.								 *
 *********************************************************************************************************/
 
-#include "libfd.h"
+/* This file contains the definitions for internal use in the libfreeDiameter library */
 
-int fd_lib_init(void)
-{
-	int ret = 0;
-	
-	/* Create the thread key that contains thread name for debug messages */
-	ret = pthread_key_create(&fd_log_thname, free);
-	if (ret != 0) {
-		fprintf(stderr, "Error initializing the libfreediameter library: %s\n", strerror(ret) );
-		return ret;
-	}
-	
-	/* Initialize the end-to-end id counter with random value as described in RFC3588 */
-	fd_msg_eteid_init();
-	
-	return 0;
-}
+#ifndef _LIBFD_H
+#define _LIBFD_H
+
+#include <freeDiameter/freeDiameter-host.h>
+#include <freeDiameter/libfreeDiameter.h>
+
+/* Internal to the library */
+extern const char * type_base_name[];
+void fd_msg_eteid_init(void);
+
+
+#endif /* _LIBFD_H */

@@ -33,23 +33,20 @@
 * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.								 *
 *********************************************************************************************************/
 
-/* This file contains the definitions of functions and types used by the libfreediameter library.
+/* This file contains the definitions of functions and types used by the libfreeDiameter library.
  *
- * This library is meant to be used by both the freediameter daemon and its extensions.
+ * This library is meant to be used by both the freeDiameter daemon and its extensions.
  *
  * It provides the tools to manipulate Diameter messages and related data.
  *
- * This file should always be included as #include <freediameter/libfreediameter.h>
- * Note that this library does not store any state. The daemon must pass the pointer to 
- * the dictionary and other global objects to all extensions that use the libfreediameter 
- * library.
+ * This file should always be included as #include <freeDiameter/libfreeDiameter.h>
  */
 
 #ifndef _LIBFREEDIAMETER_H
 #define _LIBFREEDIAMETER_H
 
 #ifndef FD_IS_CONFIG
-#error "You must include 'freediameter-host.h' before this file."
+#error "You must include 'freeDiameter-host.h' before this file."
 #endif /* FD_IS_CONFIG */
 
 #include <pthread.h>

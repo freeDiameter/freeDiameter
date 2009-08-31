@@ -33,18 +33,27 @@
 * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.								 *
 *********************************************************************************************************/
 
-/* This file contains the definitions for internal use in the libfreediameter library */
+#include "fD.h"
 
-#ifndef _LIBFD_H
-#define _LIBFD_H
+/* Entry point */
+int main(int argc, char * argv[])
+{
+	/* Initialize the library */
+	CHECK_FCT( fd_lib_init() );
+	
+	/* Name this thread */
+	fd_log_threadname("Main");
 
-#include <freediameter/freediameter-host.h>
-#include <freediameter/libfreediameter.h>
-
-/* Internal to the library */
-extern const char * type_base_name[];
-void fd_msg_eteid_init(void);
-
-
-
-#endif /* _LIBFD_H */
+	/* Initialize the dictionary */
+	CHECK_FCT( fd_dict_init(&fd_g_dict) );
+	
+	/* Add definitions of the base protocol */
+	CHECK_FCT( fd_dict_base_protocol(fd_g_dict) );
+	
+	/* For debug */
+	fd_dict_dump(fd_g_dict);
+	
+	TRACE_DEBUG(INFO, "freeDiameter daemon initialized.");
+	
+	return 0;
+}

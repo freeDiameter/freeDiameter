@@ -1,11 +1,11 @@
 # Name of the subproject
-Project("libfreediameter" C)
+Project("libfreeDiameter" C)
 
 SET(PROJECT_COPYRIGHT "Copyright (c) 2008-2009, WIDE Project (www.wide.ad.jp) and NICT (www.nict.go.jp)")
 
 # List of source files for the library
 SET(LFD_SRC
-	libfd.h
+	libfD.h
 	init.c
 	log.c
 	lists.c
@@ -15,11 +15,11 @@ SET(LFD_SRC
 	)
 
 # Build as a shared library
-ADD_LIBRARY(libfreediameter SHARED ${LFD_SRC})
+ADD_LIBRARY(libfreeDiameter SHARED ${LFD_SRC})
 
 # Avoid the liblib name
-SET_TARGET_PROPERTIES(libfreediameter PROPERTIES OUTPUT_NAME "freediameter")
+SET_TARGET_PROPERTIES(libfreeDiameter PROPERTIES OUTPUT_NAME "freeDiameter")
 
 # The library itself needs other libraries 
-TARGET_LINK_LIBRARIES(libfreediameter ${FD_LIBS})
+TARGET_LINK_LIBRARIES(libfreeDiameter ${FD_LIBS})
 

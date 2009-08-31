@@ -37,7 +37,7 @@
 #define _FREEDIAMETER_H
 
 
-#include <freediameter/libfreediameter.h>
+#include <freeDiameter/libfreeDiameter.h>
 
 
 /* The global dictionary */

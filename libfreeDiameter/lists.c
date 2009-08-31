@@ -33,7 +33,7 @@
 * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.								 *
 *********************************************************************************************************/
 
-#include "libfd.h"
+#include "libfD.h"
 
 /* Initialize a list element */
 void fd_list_init ( struct fd_list * list, void * obj )
