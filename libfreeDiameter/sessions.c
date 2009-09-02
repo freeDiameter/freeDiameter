@@ -361,7 +361,7 @@ int fd_sess_new ( struct session ** session, char * diamId, char * opt, size_t o
 		
 		if (opt) {
 			if (optlen)
-				sidlen = snprintf(sid, sidlen, "%s;%u;%u;%*.*s", diamId, sid_h, sid_l, optlen, optlen, opt);
+				sidlen = snprintf(sid, sidlen, "%s;%u;%u;%.*s", diamId, sid_h, sid_l, optlen, opt);
 			else
 				sidlen = snprintf(sid, sidlen, "%s;%u;%u;%s", diamId, sid_h, sid_l, opt);
 		} else {

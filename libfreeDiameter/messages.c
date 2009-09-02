@@ -686,10 +686,10 @@ static void dump_basic_type(union avp_value * value, enum dict_avp_basetype type
 				unsigned char buf[8];
 				memset(buf, 0, sizeof(buf));
 				memcpy(buf, value->os.data, value->os.len < sizeof(buf) ? value->os.len : sizeof(buf) );
-				DUMP_VALUE("l:%d, v:%02.2X %02.2X %02.2X %02.2X  %02.2X %02.2X %02.2X %02.2X  ... ('%-*.*s')", 
+				DUMP_VALUE("l:%d, v:%02.2X %02.2X %02.2X %02.2X  %02.2X %02.2X %02.2X %02.2X  ... ('%.*s')", 
 						value->os.len,
 						buf[0], buf[1], buf[2], buf[3], buf[4], buf[5], buf[6], buf[7], 
-						value->os.len, value->os.len, value->os.data
+						value->os.len, value->os.data
 						);
 			}
 			break;
