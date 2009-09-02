@@ -12,6 +12,7 @@ SET(LFD_SRC
 	dictionary.c
 	messages.c
 	mqueues.c
+	sessions.c
 	)
 
 # Build as a shared library

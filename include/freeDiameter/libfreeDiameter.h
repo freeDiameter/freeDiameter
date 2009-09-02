@@ -141,12 +141,6 @@ static int local_debug_level = TRACE_LEVEL;
 /* A global level, changed by configuration or cmd line for example. default is 0. */
 extern int fd_g_debug_lvl;
 
-/* helper macros (pre-processor hacks to allow macro arguments) */
-#define __str( arg )  #arg
-#define _stringize( arg ) __str( arg )
-#define __agr( arg1, arg2 ) arg1 ## arg2
-#define _aggregate( arg1, arg2 ) __agr( arg1, arg2 )
-
 /* Some portability code to get nice function name in __PRETTY_FUNCTION__ */
 #if __STDC_VERSION__ < 199901L
 # if __GNUC__ >= 2
@@ -285,7 +279,16 @@ extern int fd_g_debug_lvl;
 	CHECK_FCT_DO( __v__ = (__call__), return __v__ );				\
 }
 
-/****************************** Socket helpers ************************************/
+
+/*============================================================*/
+/*                          MACROS                            */
+/*============================================================*/
+
+/* helper macros (pre-processor hacks to allow macro arguments) */
+#define __str( arg )  #arg
+#define _stringize( arg ) __str( arg )
+#define __agr( arg1, arg2 ) arg1 ## arg2
+#define _aggregate( arg1, arg2 ) __agr( arg1, arg2 )
 
 /* Some aliases to socket addresses structures */
 #define sSS	struct sockaddr_storage
@@ -338,9 +341,6 @@ extern int fd_g_debug_lvl;
 #define IN6_ADDR_V4UNMAP( a6 ) 				\
 	(((in_addr_t *)(a6))[3])
 
-/*
- * Other macros 
- */
 
 /* We provide macros to convert 64 bit values to and from network byte-order, on systems where it is not already provided. */
 #ifndef HAVE_NTOHLL	/* Defined in config.h, if the ntohll symbol is defined on the system */
@@ -355,10 +355,10 @@ extern int fd_g_debug_lvl;
 # endif /* HOST_BIG_ENDIAN */
 #endif /* HAVE_NTOHLL */
 
-/* This macro will pad a size to the next multiple of 4. */
+/* This macro will give the next multiple of 4 for an integer (used for padding sizes of AVP). */
 #define PAD4(_x) ((_x) + ( (4 - (_x)) & 3 ) )
 
-/* Useful to display as ASCII some bytes values */
+/* Useful to display as safe ASCII a value (will garbage UTF-8 output...) */
 #define ASCII(_c) ( ((_c < 32) || (_c > 127)) ? ( _c ? '?' : ' ' ) : _c )
 
 /* Compare timespec structures */
@@ -366,11 +366,6 @@ extern int fd_g_debug_lvl;
 	(    ((ts1)->tv_sec  < (ts2)->tv_sec ) 	\
 	  || ((ts1)->tv_nsec < (ts2)->tv_nsec) )
 
-/* Some constants for dumping flags and values */
-#define DUMP_AVPFL_str	"%c%c"
-#define DUMP_AVPFL_val(_val) (_val & AVP_FLAG_VENDOR)?'V':'-' , (_val & AVP_FLAG_MANDATORY)?'M':'-'
-#define DUMP_CMDFL_str	"%c%c%c%c"
-#define DUMP_CMDFL_val(_val) (_val & CMD_FLAG_REQUEST)?'R':'-' , (_val & CMD_FLAG_PROXIABLE)?'P':'-' , (_val & CMD_FLAG_ERROR)?'E':'-' , (_val & CMD_FLAG_RETRANSMIT)?'T':'-'
 
 /*============================================================*/
 /*                          THREADS                           */
@@ -592,35 +587,35 @@ Note: the value of "vendor_name" is copied when the object is created, and the s
 On the other side, when value is retrieved with dict_getval, the string is not copied and MUST NOT be freed. It will
 be freed automatically along with the object itself with call to dict_fini later.
  
-- dict_new:
+- fd_dict_new:
  The "parent" parameter is not used for vendors. 
  Sample code to create a vendor:
  {
 	 int ret;
 	 struct dict_object * myvendor;
 	 struct dict_vendor_data myvendordata = { 23455, "my vendor name" };  -- just an example...
-	 ret = dict_new ( DICT_VENDOR, &myvendordata, NULL, &myvendor );
+	 ret = fd_dict_new ( dict, DICT_VENDOR, &myvendordata, NULL, &myvendor );
  }
 
-- dict_search:
+- fd_dict_search:
  Sample codes to look for a vendor object, by its id or name:
  {
 	 int ret;
 	 struct dict_object * vendor_found;
 	 vendor_id_t vendorid = 23455;
-	 ret = dict_search ( DICT_VENDOR, VENDOR_BY_ID, &vendorid, &vendor_found, ENOENT);
+	 ret = fd_dict_search ( dict, DICT_VENDOR, VENDOR_BY_ID, &vendorid, &vendor_found, ENOENT);
 	 - or -
-	 ret = dict_search ( DICT_VENDOR, VENDOR_BY_NAME, "my vendor name", &vendor_found, ENOENT);
+	 ret = fd_dict_search ( dict, DICT_VENDOR, VENDOR_BY_NAME, "my vendor name", &vendor_found, ENOENT);
  }
  
- - dict_getval:
+ - fd_dict_getval:
  Sample code to retrieve the data from a vendor object:
  {
 	 int ret;
 	 struct dict_object * myvendor;
 	 struct dict_vendor_data myvendordata;
-	 ret = dict_search ( DICT_VENDOR, VENDOR_BY_NAME, "my vendor name", &myvendor, ENOENT);
-	 ret = dict_getval ( myvendor, &myvendordata );
+	 ret = fd_dict_search ( dict, DICT_VENDOR, VENDOR_BY_NAME, "my vendor name", &myvendor, ENOENT);
+	 ret = fd_dict_getval ( myvendor, &myvendordata );
 	 printf("my vendor id: %d\n", myvendordata.vendor_id );
  }
 		 
@@ -661,7 +656,7 @@ The "parent" parameter of dict_new may point to a vendor object to inform of wha
 for standard-track applications, the "parent" parameter should be NULL.
 The vendor associated to an application is retrieved with VENDOR_OF_APPLICATION search criteria on vendors.
 
-- dict_new:
+- fd_dict_new:
  Sample code for application creation:
  {
 	 int ret;
@@ -676,28 +671,28 @@ The vendor associated to an application is retrieved with VENDOR_OF_APPLICATION 
 		 "my vendor's application"
 	 };
 	
-	 ret = dict_new ( DICT_VENDOR, &vendor_data, NULL, &vendor );
-	 ret = dict_new ( DICT_APPLICATION, &app_data, vendor, &appl );
+	 ret = fd_dict_new ( dict, DICT_VENDOR, &vendor_data, NULL, &vendor );
+	 ret = fd_dict_new ( dict, DICT_APPLICATION, &app_data, vendor, &appl );
  }
 
-- dict_search:
+- fd_dict_search:
  Sample code to retrieve the vendor of an application
  {
 	 int ret;
 	 struct dict_object * vendor, * appli;
 	 
-	 ret = dict_search ( DICT_APPLICATION, APPLICATION_BY_NAME, "my vendor's application", &appli, ENOENT);
-	 ret = dict_search ( DICT_VENDOR, VENDOR_OF_APPLICATION, appli, &vendor, ENOENT);
+	 ret = fd_dict_search ( dict, DICT_APPLICATION, APPLICATION_BY_NAME, "my vendor's application", &appli, ENOENT);
+	 ret = fd_dict_search ( dict, DICT_VENDOR, VENDOR_OF_APPLICATION, appli, &vendor, ENOENT);
  }
  
- - dict_getval:
+ - fd_dict_getval:
  Sample code to retrieve the data from an application object:
  {
 	 int ret;
 	 struct dict_object * appli;
 	 struct dict_application_data appl_data;
-	 ret = dict_search ( DICT_APPLICATION, APPLICATION_BY_NAME, "my vendor's application", &appli, ENOENT);
-	 ret = dict_getval ( appli, &appl_data );
+	 ret = fd_dict_search ( dict, DICT_APPLICATION, APPLICATION_BY_NAME, "my vendor's application", &appli, ENOENT);
+	 ret = fd_dict_getval ( appli, &appl_data );
 	 printf("my application id: %s\n", appl_data.application_id );
  }
 
@@ -798,7 +793,7 @@ enum {
 /***
  *  API usage :
 
-- dict_new:
+- fd_dict_new:
  The "parent" parameter may point to an application object, when a type is defined by a Diameter application. 
  
  Sample code:
@@ -812,15 +807,15 @@ enum {
 		 NULL,
 		 NULL
 		};
-	 ret = dict_new ( DICT_TYPE, &mytypedata, NULL, &mytype );
+	 ret = fd_dict_new ( dict, DICT_TYPE, &mytypedata, NULL, &mytype );
  }
 
-- dict_search:
+- fd_dict_search:
  Sample code:
  {
 	 int ret;
 	 struct dict_object * address_type;
-	 ret = dict_search ( DICT_TYPE, TYPE_BY_NAME, "Address", &address_type, ENOENT);
+	 ret = fd_dict_search ( dict, DICT_TYPE, TYPE_BY_NAME, "Address", &address_type, ENOENT);
  }
  
 */
@@ -859,7 +854,7 @@ struct dict_enumval_request {
 /***
  *  API usage :
 
-- dict_new:
+- fd_dict_new:
  The "parent" parameter must point to a derived type object. 
  Sample code to create a type "Boolean" with two constants "True" and "False":
  {
@@ -882,13 +877,13 @@ struct dict_enumval_request {
 		 .enum_name="True",
 		 .enum_value.i32 = -1
 	 	};
-	 ret = dict_new ( DICT_TYPE, &type_boolean_data, NULL, &type_boolean );
-	 ret = dict_new ( DICT_ENUMVAL, &boolean_false, type_boolean, NULL );
-	 ret = dict_new ( DICT_ENUMVAL, &boolean_true , type_boolean, NULL );
+	 ret = fd_dict_new ( dict, DICT_TYPE, &type_boolean_data, NULL, &type_boolean );
+	 ret = fd_dict_new ( dict, DICT_ENUMVAL, &boolean_false, type_boolean, NULL );
+	 ret = fd_dict_new ( dict, DICT_ENUMVAL, &boolean_true , type_boolean, NULL );
 	 
  }
 
-- dict_search:
+- fd_dict_search:
  Sample code to look for a constant name, by its value:
  {
 	 int ret;
@@ -900,10 +895,10 @@ struct dict_enumval_request {
 		 .search.enum_value.i32 = -1
 	 	};
 	 
-	 ret = dict_search ( DICT_ENUMVAL, ENUMVAL_BY_STRUCT, &boolean_by_value, &value_found, ENOENT);
+	 ret = fd_dict_search ( dict, DICT_ENUMVAL, ENUMVAL_BY_STRUCT, &boolean_by_value, &value_found, ENOENT);
  }
  
- - dict_getval:
+ - fd_dict_getval:
  Sample code to retrieve the data from a constant object:
  {
 	 int ret;
@@ -916,8 +911,8 @@ struct dict_enumval_request {
 		 .search.enum_value.i32 = 0
 	 	};
 	 
-	 ret = dict_search ( DICT_ENUMVAL, ENUMVAL_BY_STRUCT, &boolean_by_value, &value_found, ENOENT);
-	 ret = dict_getval ( value_found, &boolean_data );
+	 ret = fd_dict_search ( dict, DICT_ENUMVAL, ENUMVAL_BY_STRUCT, &boolean_by_value, &value_found, ENOENT);
+	 ret = fd_dict_getval ( value_found, &boolean_data );
 	 printf(" Boolean with value 0: %s", boolean_data.enum_name );
  }
 */
@@ -945,6 +940,9 @@ typedef uint32_t	avp_code_t;
 #define	AVP_FLAG_RESERVED7	0x02
 #define	AVP_FLAG_RESERVED8	0x01
 
+/* For dumping flags and values */
+#define DUMP_AVPFL_str	"%c%c"
+#define DUMP_AVPFL_val(_val) (_val & AVP_FLAG_VENDOR)?'V':'-' , (_val & AVP_FLAG_MANDATORY)?'M':'-'
 
 /* Type to hold data associated to an avp */
 struct dict_avp_data {
@@ -982,7 +980,7 @@ The derived type of an AVP can be retrieved with: dict_search ( DICT_TYPE, TYPE_
 
 To create the rules (ABNF) for children of Grouped AVP, see the DICT_RULE related part.
 
-- dict_new:
+- fd_dict_new:
  Sample code for AVP creation:
  {
 	 int ret;
@@ -1007,15 +1005,15 @@ To create the rules (ABNF) for children of Grouped AVP, see the DICT_RULE relate
 	 };
 	
  	 -- Create an AVP with a base type --
-	 ret = dict_new ( DICT_AVP, &user_name_data, NULL, &user_name_avp );
+	 ret = fd_dict_new ( dict, DICT_AVP, &user_name_data, NULL, &user_name_avp );
 	 
 	 -- Create an AVP with a derived type --
-	 ret = dict_search ( DICT_TYPE, TYPE_BY_NAME, "Boolean", &boolean_type, ENOENT);
-	 ret = dict_new ( DICT_AVP, &sample_boolean_data , boolean_type, &sample_boolean_avp );
+	 ret = fd_dict_search ( dict, DICT_TYPE, TYPE_BY_NAME, "Boolean", &boolean_type, ENOENT);
+	 ret = fd_dict_new ( dict, DICT_AVP, &sample_boolean_data , boolean_type, &sample_boolean_avp );
 	 
  }
 
-- dict_search:
+- fd_dict_search:
  Sample code to look for an AVP
  {
 	 int ret;
@@ -1027,20 +1025,20 @@ To create the rules (ABNF) for children of Grouped AVP, see the DICT_RULE relate
 		 .avp_name   = "Sample-Boolean"
 	 	};
 	 
-	 ret = dict_search ( DICT_AVP, AVP_BY_NAME, "User-Name", &avp_username, ENOENT);
+	 ret = fd_dict_search ( dict, DICT_AVP, AVP_BY_NAME, "User-Name", &avp_username, ENOENT);
 	 
-	 ret = dict_search ( DICT_AVP, AVP_BY_NAME_AND_VENDOR, &avpvendorboolean, &avp_sampleboolean, ENOENT);
+	 ret = fd_dict_search ( dict, DICT_AVP, AVP_BY_NAME_AND_VENDOR, &avpvendorboolean, &avp_sampleboolean, ENOENT);
 	 
  }
  
- - dict_getval:
+ - fd_dict_getval:
  Sample code to retrieve the data from an AVP object:
  {
 	 int ret;
 	 struct dict_object * avp_username;
 	 struct dict_avp_data user_name_data;
-	 ret = dict_search ( DICT_AVP, AVP_BY_NAME, "User-Name", &avp_username, ENOENT);
-	 ret = dict_getval ( avp_username, &user_name_data );
+	 ret = fd_dict_search ( dict, DICT_AVP, AVP_BY_NAME, "User-Name", &avp_username, ENOENT);
+	 ret = fd_dict_getval ( avp_username, &user_name_data );
 	 printf("User-Name code: %d\n", user_name_data.avp_code );
  }
 
@@ -1069,6 +1067,10 @@ typedef uint32_t	command_code_t;
 #define CMD_FLAG_RESERVED7	0x02
 #define CMD_FLAG_RESERVED8	0x01
 
+/* For dumping flags and values */
+#define DUMP_CMDFL_str	"%c%c%c%c"
+#define DUMP_CMDFL_val(_val) (_val & CMD_FLAG_REQUEST)?'R':'-' , (_val & CMD_FLAG_PROXIABLE)?'P':'-' , (_val & CMD_FLAG_ERROR)?'E':'-' , (_val & CMD_FLAG_RETRANSMIT)?'T':'-'
+
 /* Type to hold data associated to a command */
 struct dict_cmd_data {
 	command_code_t	 cmd_code;	/* code of the command */
@@ -1096,7 +1098,7 @@ To create the rules for children of commands, see the DICT_RULE related part.
 
 Note that the "Request" and "Answer" commands are two independant objects. This allows to have different rules for each.
 
-- dict_new:
+- fd_dict_new:
  Sample code for command creation:
  {
 	 int ret;
@@ -1109,34 +1111,34 @@ Note that the "Request" and "Answer" commands are two independant objects. This 
 		 CMD_FLAG_REQUEST			// value. Only the "R" flag is constrained here, set.
 	 };
 	
-	 ret = dict_new ( DICT_COMMAND, &ce_data, NULL, &cer );
+	 ret = fd_dict_new (dict,  DICT_COMMAND, &ce_data, NULL, &cer );
 	 
 	 ce_data.cmd_name = "Capabilities-Exchange-Answer";
 	 ce_data.cmd_flag_val = 0;			// Same constraint on "R" flag, but this time it must be cleared.
 
-	 ret = dict_new ( DICT_COMMAND, &ce_data, NULL, &cea );
+	 ret = fd_dict_new ( dict, DICT_COMMAND, &ce_data, NULL, &cea );
  }
 
-- dict_search:
+- fd_dict_search:
  Sample code to look for a command
  {
 	 int ret;
 	 struct dict_object * cer, * cea;
 	 command_code_t	code = 257;
-	 ret = dict_search ( DICT_COMMAND, CMD_BY_NAME, "Capabilities-Exchange-Request", &cer, ENOENT);
-	 ret = dict_search ( DICT_COMMAND, CMD_BY_CODE_R, &code, &cer, ENOENT);
+	 ret = fd_dict_search ( dict, DICT_COMMAND, CMD_BY_NAME, "Capabilities-Exchange-Request", &cer, ENOENT);
+	 ret = fd_dict_search ( dict, DICT_COMMAND, CMD_BY_CODE_R, &code, &cer, ENOENT);
  }
  
- - dict_getval:
+ - fd_dict_getval:
  Sample code to retrieve the data from a command object:
  {
 	 int ret;
 	 struct dict_object * cer;
 	 struct dict_object * cea;
 	 struct dict_cmd_data cea_data;
-	 ret = dict_search ( DICT_COMMAND, CMD_BY_NAME, "Capabilities-Exchange-Request", &cer, ENOENT);
-	 ret = dict_search ( DICT_COMMAND, CMD_ANSWER, cer, &cea, ENOENT);
-	 ret = dict_getval ( cea, &cea_data );
+	 ret = fd_dict_search ( dict, DICT_COMMAND, CMD_BY_NAME, "Capabilities-Exchange-Request", &cer, ENOENT);
+	 ret = fd_dict_search ( dict, DICT_COMMAND, CMD_ANSWER, cer, &cea, ENOENT);
+	 ret = fd_dict_getval ( cea, &cea_data );
 	 printf("Answer to CER: %s\n", cea_data.cmd_name );
  }
 
@@ -1187,7 +1189,7 @@ struct dict_rule_request {
 
 The "parent" parameter can not be NULL. It points to the object (grouped avp or command) to which this rule apply (i.e. for which the ABNF is defined).
 
-- dict_new:
+- fd_dict_new:
  Sample code for rule creation. Let's create the Proxy-Info grouped AVP for example.
  {
 	int ret;
@@ -1202,14 +1204,14 @@ The "parent" parameter can not be NULL. It points to the object (grouped avp or 
 	struct dict_avp_data proxy_state_data = { 33, 0, "Proxy-State",AVP_FLAG_VENDOR | AVP_FLAG_MANDATORY, AVP_FLAG_MANDATORY, AVP_TYPE_OCTETSTRING };
 	
 	-- Create the parent AVP
-	ret = dict_new ( DICT_AVP, &proxy_info_data, NULL, &proxy_info_avp );
+	ret = fd_dict_new ( dict, DICT_AVP, &proxy_info_data, NULL, &proxy_info_avp );
 	
 	-- Create the first child AVP.
-	ret = dict_new ( DICT_TYPE, &di_type_data, NULL, &diameteridentity_type );
-	ret = dict_new ( DICT_AVP, &proxy_host_data, diameteridentity_type, &proxy_host_avp );
+	ret = fd_dict_new ( dict, DICT_TYPE, &di_type_data, NULL, &diameteridentity_type );
+	ret = fd_dict_new ( dict, DICT_AVP, &proxy_host_data, diameteridentity_type, &proxy_host_avp );
 	
 	-- Create the other child AVP
-	ret = dict_new ( DICT_AVP, &proxy_state_data, NULL, &proxy_state_avp );
+	ret = fd_dict_new ( dict, DICT_AVP, &proxy_state_data, NULL, &proxy_state_avp );
 	
 	-- Now we can create the rules. Both children AVP are mandatory.
 	rule_data.rule_position = RULE_REQUIRED;
@@ -1217,13 +1219,13 @@ The "parent" parameter can not be NULL. It points to the object (grouped avp or 
 	rule_data.rule_max = -1;
 	
 	rule_data.rule_avp = proxy_host_avp;
-	ret = dict_new ( DICT_RULE, &rule_data, proxy_info_avp, NULL );
+	ret = fd_dict_new ( dict, DICT_RULE, &rule_data, proxy_info_avp, NULL );
 	
 	rule_data.rule_avp = proxy_state_avp;
-	ret = dict_new ( DICT_RULE, &rule_data, proxy_info_avp, NULL );
+	ret = fd_dict_new ( dict, DICT_RULE, &rule_data, proxy_info_avp, NULL );
 }
 
-- dict_search and dict_getval are similar to previous examples.
+- fd_dict_search and fd_dict_getval are similar to previous examples.
 
 */
 		
@@ -1280,47 +1282,208 @@ The "parent" parameter can not be NULL. It points to the object (grouped avp or 
 /*                         SESSIONS                           */
 /*============================================================*/
 
+/* Modules that want to associate a state with a Session-Id must first register a handler of this type */
+struct session_handler;
+
+/* This opaque structure represents a session associated with a Session-Id */
+struct session;
+
+/* The state information that a module associate with a session -- each module define its own data format */
+typedef void session_state;
+
+/*
+ * FUNCTION:	fd_sess_handler_create
+ *
+ * PARAMETERS:
+ *  handler	: location where the new handler must be stored.
+ *  cleanup	: a callback function that must be called when the session with associated data is destroyed.
+ *
+ * DESCRIPTION: 
+ *  Create a new session handler. This is needed by a module to associate a state with a session object.
+ * The cleanup handler is called when the session timeout expires, or fd_sess_destroy is called. It must free
+ * the state associated with the session, and eventually trig other actions (send a STR, ...).
+ *
+ * RETURN VALUE:
+ *  0      	: The new handler has been created.
+ *  EINVAL 	: A parameter is invalid.
+ *  ENOMEM	: Not enough memory to complete the operation
+ */
+int fd_sess_handler_create_int ( struct session_handler ** handler, void (*cleanup)(char * sid, session_state * state) );
+/* Macro to avoid casting everywhere */
+#define fd_sess_handler_create( _handler, _cleanup ) \
+	fd_sess_handler_create_int( (_handler), (void (*)(char *, session_state *))(_cleanup) )
+
+/*
+ * FUNCTION:	fd_sess_handler_destroy
+ *
+ * PARAMETERS:
+ *  handler	: location of an handler created by fd_sess_handler_create.
+ *
+ * DESCRIPTION: 
+ *  This destroys a session handler (typically called when an application is shutting down).
+ * If sessions states are registered with this handler, the cleanup callback is called on them.
+ *
+ * RETURN VALUE:
+ *  0      	: The handler was destroyed.
+ *  EINVAL 	: A parameter is invalid.
+ *  ENOMEM	: Not enough memory to complete the operation
+ */
+int fd_sess_handler_destroy ( struct session_handler ** handler );
+
 
 
 /*
- * The libfreeDiameter does not provide a full support of the sessions state machines as described in the RFC3588.
- * It only provides a basic support allowing an extension to associate some state with a session identifier, and retrieve 
- * this data later.
+ * FUNCTION:	fd_sess_new
  *
- * A session is an opaque object, associated with a value of a Session-Id AVP.
- * An extension that wants to associate data with the session must first register as session module client 
- * with the sess_regext function to get an identifier object (sess_reg_t).
- * 
- * The module manages tuplets ( sess_id_t *, sess_reg_t *, void *). The following functions are used to manage these tuplets:
- * sess_data_reg  : associate a pointer with a given session for a given module client.
- * sess_data_dereg: removes an association.
- * sess_data_get  : get the pointer associated with an association without changing it.
+ * PARAMETERS:
+ *  session	  : The location where the session object will be created upon success.
+ *  diamId	  : \0-terminated string containing a Diameter Identity.
+ *  opt           : Additional string. Usage is described bellow.
+ *  optlen	  : if opt is \0-terminated, this can be 0. Otherwise, the length of opt.
  *
- * Note that creating an association calls sess_link as a side effect, and removing the association calls sess_unlink.
+ * DESCRIPTION: 
+ *   Create a new session object. The Session-Id string associated with this session is generated as follow:
+ *  If diamId parameter is provided, the string is created according to the RFC: <diamId>;<high32>;<low32>[;opt] where
+ *    diamId is a Diameter Identity.
+ *    high32 and low32 are the parts of a monotonic 64 bits counter initialized to (time, 0) at startup.
+ *    opt is an optional string that can be concatenated to the identifier.
+ *  If diamId is NULL, the string is exactly the content of opt.
  *
- * QUICK TUTORIAL:
- *  For an extension that wants to implement a session state machine, here is a quick guide.
- *
- * First, the extension must define a structure to save the session state, for example appstate_t.
- *
- * Since the extension will use the session module, it creates a sess_reg_t by calling sess_regext.
- *
- * If the extension behaves as a client, it receives external events that trig the start of a new sessions.
- * When such event occurs, the extension calls sess_new with the appropriate parameters to create a new session.
- * It initializes an appstate_t structure with the data of this session and creates an association with sess_data_reg (%).
- * Then it creates a message (application-specific) to request authentication and/or authorization for the service
- * and the message is sent.
- *
- * Later, assuming that the extension has registered appropriate callbacks in the dispatcher module, when a message
- * is received, the extension can retrieve the state of the session with the sess_data_get function.
- *
- * Finaly, when the extension decides to terminate the session (timer, or as result of a message exchange), it
- * calls sess_data_dereg in order to destroy the binding in the daemon. When last message refering this session is freed,
- * the session data is freed.
- *
- * (%) A this time, the extension must call sess_unlink in order to counter the effects of the sess_new function.
- * This allows to have the session destroyed when no more data is associated to it.
+ * RETURN VALUE:
+ *  0      	: The session is created.
+ *  EINVAL 	: A parameter is invalid.
+ *  EALREADY	: A session with the same name already exists (returned in *session)
+ *  ENOMEM	: Not enough memory to complete the operation
+ */
+int fd_sess_new ( struct session ** session, char * diamId, char * opt, size_t optlen );
 
+/*
+ * FUNCTION:	fd_sess_fromsid
+ *
+ * PARAMETERS:
+ *  sid	  	: pointer to a string containing a Session-Id (UTF-8).
+ *  len		: length of the sid string (which does not need to be '\0'-terminated)
+ *  session	: On success, pointer to the session object created / retrieved.
+ *  new		: if not NULL, set to 1 on return if the session object has been created, 0 if it was simply retrieved.
+ *
+ * DESCRIPTION: 
+ *   Retrieve a session object from a Session-Id string. Calling this function makes an implicit call to the
+ *  fd_sess_link function on the returned session. In case no session object was previously existing with this 
+ *  id, a new object is silently created (equivalent to fd_sess_new with flag SESSION_NEW_FULL).
+ *
+ * RETURN VALUE:
+ *  0      	: The session parameter has been updated.
+ *  EINVAL 	: A parameter is invalid.
+ *  ENOMEM	: Not enough memory to complete the operation
+ */
+int fd_sess_fromsid ( char * sid, size_t len, struct session ** session, int * new);
+
+/*
+ * FUNCTION:	fd_sess_getsid
+ *
+ * PARAMETERS:
+ *  session	: Pointer to a session object.
+ *  sid	  	: On success, the location of a (\0-terminated) string is stored here.
+ *
+ * DESCRIPTION: 
+ *   Retrieve the session identifier (Session-Id) corresponding to a session object.
+ *  The returned sid is an UTF-8 string terminated by \0, suitable for calls to strlen and strcpy.
+ *  It may be used for example to set the value of an AVP.
+ *  Note that the sid string is not copied, just its reference... do not free it!
+ *
+ * RETURN VALUE:
+ *  0      	: The sid parameter has been updated.
+ *  EINVAL 	: A parameter is invalid.
+ */
+int fd_sess_getsid ( struct session * session, char ** sid );
+
+/*
+ * FUNCTION:	fd_sess_settimeout
+ *
+ * PARAMETERS:
+ *  session	: The session for which to set the timeout.
+ *  timeout	: The date when the session times out.
+ *
+ * DESCRIPTION: 
+ *   Set the lifetime for a given session object. This function may be 
+ * called several times on the same object to update the timeout value.
+ *   When the timeout date is reached, the cleanup handler of each 
+ * module that registered data with this session is called, then the 
+ * session is cleared.
+ *
+ *   There is a possible race condition between cleanup of the session
+ * and use of its data; applications should ensure that they are not 
+ * using data from a session that is about to expire / expired.
+ *
+ * RETURN VALUE:
+ *  0      	: The session timeout has been updated.
+ *  EINVAL 	: A parameter is invalid.
+ */
+int fd_sess_settimeout( struct session * session, const struct timespec * timeout );
+
+/*
+ * FUNCTION:	fd_sess_destroy
+ *
+ * PARAMETERS:
+ *  session	: Pointer to a session object.
+ *
+ * DESCRIPTION: 
+ *   Destroys a session an all associated data, if any.
+ * Equivalent to a session timeout expired, but the effect is immediate.
+ *
+ * RETURN VALUE:
+ *  0      	: The session no longer exists.
+ *  EINVAL 	: A parameter is invalid.
+ */
+int fd_sess_destroy ( struct session ** session );
+
+
+
+/*
+ * FUNCTION:	fd_sess_state_store
+ *
+ * PARAMETERS:
+ *  handler	: The handler with which the state is registered.
+ *  session	: The session object with which the state is registered.
+ *  state	: An application state (opaque data) to store with the session.
+ *
+ * DESCRIPTION: 
+ *  Stores an application state with a session. This state can later be retrieved
+ * with fd_sess_state_retrieve, or implicitly in the cleanup handler when the session
+ * is destroyed.
+ *
+ * RETURN VALUE:
+ *  0      	: The state has been stored.
+ *  EINVAL 	: A parameter is invalid.
+ *  EALREADY	: Data was already associated with this session and client.
+ *  ENOMEM	: Not enough memory to complete the operation
+ */
+int fd_sess_state_store ( struct session_handler * handler, struct session * session, session_state ** state ); 
+
+/*
+ * FUNCTION:	fd_sess_state_retrieve
+ *
+ * PARAMETERS:
+ *  handler	: The handler with which the state was registered.
+ *  session	: The session object with which the state was registered.
+ *  state	: Location where the state must be saved if it is found.
+ *
+ * DESCRIPTION: 
+ *  Retrieves a state saved by fd_sess_state_store.
+ * After this function has been called, the state is no longer associated with 
+ * the session. A new call to fd_sess_state_store must be performed in order to
+ * store again the data with the session.
+ *
+ * RETURN VALUE:
+ *  0      	: *state is updated (NULL or points to the state if it was found).
+ *  EINVAL 	: A parameter is invalid.
+ */
+int fd_sess_state_retrieve ( struct session_handler * handler, struct session * session, session_state ** state ); 
+
+
+/* For debug */
+void fd_sess_dump(int level, struct session * session);
+void fd_sess_dump_hdl(int level, struct session_handler * handler);
 
 
 /*============================================================*/

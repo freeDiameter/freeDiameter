@@ -11,9 +11,11 @@ ENDIF(TEST_TIMEOUT)
 #############################
 # List the test cases
 SET(TEST_LIST
+	testlist
 	testdict
 	testmesg
 	testmq
+	testsess
 )
 
 #############################

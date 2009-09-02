@@ -97,7 +97,7 @@ static int test_verbo = 0;
 
 /* Minimum inits */
 #define INIT_FD() {					\
-	pthread_key_create(&fd_log_thname, free);	\
+	CHECK( 0, fd_lib_init() );			\
 	fd_log_threadname(basename(__FILE__));		\
 	CHECK( 0, fd_dict_init(&fd_g_dict) );		\
 	CHECK( 0, fd_dict_base_protocol(fd_g_dict) );	\

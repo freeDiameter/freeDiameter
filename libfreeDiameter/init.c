@@ -46,8 +46,9 @@ int fd_lib_init(void)
 		return ret;
 	}
 	
-	/* Initialize the end-to-end id counter with random value as described in RFC3588 */
+	/* Initialize the modules that need it */
 	fd_msg_eteid_init();
+	CHECK_FCT( fd_sess_init() );
 	
 	return 0;
 }

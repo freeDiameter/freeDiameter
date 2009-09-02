@@ -33,24 +33,42 @@
 * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.								 *
 *********************************************************************************************************/
 
-#include "fD.h"
+#include "tests.h"
 
-/* Entry point */
-int main(int argc, char * argv[])
+#define TEST_STR "This is my test string (with extra unused data)"
+#define TEST_STRLEN 22
+
+/* Main test routine */
+int main(int argc, char *argv[])
 {
-	/* Initialize the library */
-	CHECK_FCT( fd_lib_init() );
+	/* First, initialize the daemon modules */
+	INIT_FD();
 	
-	/* Name this thread */
-	fd_log_threadname("Main");
+	/* Check the hash function */
+	{
+		char buf[30];
+		
+		uint32_t hash = fd_hash(TEST_STR, TEST_STRLEN); /* reference value */
+		
+		/* Check that a hash of a substring / surstring is different */
+		CHECK( 1, hash != fd_hash(TEST_STR, TEST_STRLEN - 1) ? 1 : 0 );
+		CHECK( 1, hash != fd_hash(TEST_STR, TEST_STRLEN + 1) ? 1 : 0 );
+		
+		/* Check alignment of the string is not important */
+		memcpy(buf + 4, TEST_STR, TEST_STRLEN);
+		CHECK( hash, fd_hash(buf + 4, TEST_STRLEN) );
+		
+		memcpy(buf + 3, TEST_STR, TEST_STRLEN);
+		CHECK( hash, fd_hash(buf + 3, TEST_STRLEN) );
+		
+		memcpy(buf + 2, TEST_STR, TEST_STRLEN);
+		CHECK( hash, fd_hash(buf + 2, TEST_STRLEN) );
+		
+		memcpy(buf + 1, TEST_STR, TEST_STRLEN);
+		CHECK( hash, fd_hash(buf + 1, TEST_STRLEN) );
+	}
 
-	/* Initialize the dictionary */
-	CHECK_FCT( fd_dict_init(&fd_g_dict) );
+	/* That's all for the tests yet */
+	PASSTEST();
+} 
 	
-	/* Add definitions of the base protocol */
-	CHECK_FCT( fd_dict_base_protocol(fd_g_dict) );
-	
-	TRACE_DEBUG(INFO, "freeDiameter daemon initialized.");
-	
-	return 0;
-}
