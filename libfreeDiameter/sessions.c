@@ -295,12 +295,13 @@ int fd_sess_handler_destroy ( struct session_handler ** handler )
 				/* The list is ordered */
 				if (st->hdl->id < del->id)
 					continue;
-				if (st->hdl->id > del->id)
-					break;
-				/* This state belongs to the handler we are deleting, move the item to the deleted_states list */
-				fd_list_unlink(&st->chain);
-				CHECK_MALLOC( st->sid = strdup(sess->sid) );
-				fd_list_insert_before(&deleted_states, &st->chain);
+				if (st->hdl->id == del->id) {
+					/* This state belongs to the handler we are deleting, move the item to the deleted_states list */
+					fd_list_unlink(&st->chain);
+					CHECK_MALLOC( st->sid = strdup(sess->sid) );
+					fd_list_insert_before(&deleted_states, &st->chain);
+				}
+				break;
 			}
 			CHECK_POSIX(  pthread_mutex_unlock(&sess->stlock)  );
 		}
@@ -399,9 +400,9 @@ int fd_sess_new ( struct session ** session, char * diamId, char * opt, size_t o
 		break;
 	}
 	
-	/* If the session did not exist, we can add it into the hash table */
+	/* If the session did not exist, we can link it in global tables */
 	if (!found) {
-		fd_list_insert_before(li, &sess->chain_h);
+		fd_list_insert_before(li, &sess->chain_h); /* hash table */
 		
 		/* We must also insert in the expiry list */
 		CHECK_POSIX( pthread_mutex_lock( &exp_lock ) );
@@ -409,13 +410,21 @@ int fd_sess_new ( struct session ** session, char * diamId, char * opt, size_t o
 		/* Find the position in that list. We take it in reverse order */
 		for (li = exp_sentinel.prev; li != &exp_sentinel; li = li->prev) {
 			struct session * s = (struct session *)(li->o);
-			
 			if (TS_IS_INFERIOR( &s->timeout, &sess->timeout ) )
 				break;
-			
-			continue;
 		}
 		fd_list_insert_after( li, &sess->expire );
+
+		#if 0
+		if (TRACE_BOOL(ANNOYING)) {	
+			TRACE_DEBUG(FULL, "-- Updated session expiry list --");
+			for (li = exp_sentinel.next; li != &exp_sentinel; li = li->next) {
+				struct session * s = (struct session *)(li->o);
+				fd_sess_dump(FULL, s);
+			}
+			TRACE_DEBUG(FULL, "-- end of expiry list --");
+		}
+		#endif
 		
 		/* We added a new expiring element, we must signal */
 		CHECK_POSIX( pthread_cond_signal(&exp_cond) );
@@ -502,6 +511,17 @@ int fd_sess_settimeout( struct session * session, const struct timespec * timeou
 	/* We added a new expiring element, we must signal */
 	CHECK_POSIX( pthread_cond_signal(&exp_cond) );
 
+	#if 0
+	if (TRACE_BOOL(ANNOYING)) {	
+		TRACE_DEBUG(FULL, "-- Updated session expiry list --");
+		for (li = exp_sentinel.next; li != &exp_sentinel; li = li->next) {
+			struct session * s = (struct session *)(li->o);
+			fd_sess_dump(FULL, s);
+		}
+		TRACE_DEBUG(FULL, "-- end of expiry list --");
+	}
+	#endif
+
 	/* We're done */
 	CHECK_POSIX( pthread_mutex_unlock( &exp_lock ) );
 	
@@ -547,7 +567,7 @@ int fd_sess_destroy ( struct session ** session )
 
 
 /* Save a state information with a session */
-int fd_sess_state_store ( struct session_handler * handler, struct session * session, session_state ** state )
+int fd_sess_state_store_int ( struct session_handler * handler, struct session * session, session_state ** state )
 {
 	struct state *new;
 	struct fd_list * li;
@@ -596,7 +616,7 @@ int fd_sess_state_store ( struct session_handler * handler, struct session * ses
 }
 
 /* Get the data back */
-int fd_sess_state_retrieve ( struct session_handler * handler, struct session * session, session_state ** state )
+int fd_sess_state_retrieve_int ( struct session_handler * handler, struct session * session, session_state ** state )
 {
 	struct fd_list * li;
 	struct state * st = NULL;
@@ -631,29 +651,34 @@ int fd_sess_state_retrieve ( struct session_handler * handler, struct session * 
 }
 
 
-
 /* Dump functions */
 void fd_sess_dump(int level, struct session * session)
 {
 	struct fd_list * li;
+	char buf[30];
+	struct tm tm;
+	
 	if (!TRACE_BOOL(level))
 		return;
 	
-	fd_log_debug("Session @%p:\n", session);
+	fd_log_debug("\t  %*s -- Session @%p --\n", level, "", session);
 	if (!VALIDATE_SI(session)) {
-		fd_log_debug("  Invalid session object\n");
-		return;
-	}
+		fd_log_debug("\t  %*s  Invalid session object\n", level, "");
+	} else {
 		
-	fd_log_debug("  sid '%s', hash %x\n", session->sid, session->hash);
-	fd_log_debug("  timeout %d.%09d\n", session->timeout.tv_sec, session->timeout.tv_nsec);
-	
-	CHECK_POSIX_DO( pthread_mutex_lock(&session->stlock), /* ignore */ );
-	for (li = session->states.next; li != &session->states; li = li->next) {
-		struct state * st = (struct state *)(li->o);
-		fd_log_debug("    handler %d registered data %p\n", st->hdl->id, st->state);
+		fd_log_debug("\t  %*s  sid '%s', hash %x\n", level, "", session->sid, session->hash);
+
+		strftime(buf, sizeof(buf), "%D,%T", localtime_r( &session->timeout.tv_sec , &tm ));
+		fd_log_debug("\t  %*s  timeout %s.%09ld\n", level, "", buf, session->timeout.tv_nsec);
+
+		CHECK_POSIX_DO( pthread_mutex_lock(&session->stlock), /* ignore */ );
+		for (li = session->states.next; li != &session->states; li = li->next) {
+			struct state * st = (struct state *)(li->o);
+			fd_log_debug("\t  %*s    handler %d registered data %p\n", level, "", st->hdl->id, st->state);
+		}
+		CHECK_POSIX_DO( pthread_mutex_unlock(&session->stlock), /* ignore */ );
 	}
-	CHECK_POSIX_DO( pthread_mutex_unlock(&session->stlock), /* ignore */ );
+	fd_log_debug("\t  %*s -- end of session @%p --\n", level, "", session);
 }
 
 void fd_sess_dump_hdl(int level, struct session_handler * handler)
@@ -661,11 +686,11 @@ void fd_sess_dump_hdl(int level, struct session_handler * handler)
 	if (!TRACE_BOOL(level))
 		return;
 	
-	fd_log_debug("Handler @%p:\n", handler);
+	fd_log_debug("\t  %*s -- Handler @%p --\n", level, "", handler);
 	if (!VALIDATE_SH(handler)) {
-		fd_log_debug("  Invalid session handler object\n");
-		return;
+		fd_log_debug("\t  %*s  Invalid session handler object\n", level, "");
+	} else {
+		fd_log_debug("\t  %*s  id %d, cleanup %p\n", level, "", handler->id, handler->cleanup);
 	}
-		
-	fd_log_debug("  id %d, cleanup %p\n", handler->id, handler->cleanup);
+	fd_log_debug("\t  %*s -- end of handler @%p --\n", level, "", handler);
 }	

@@ -364,7 +364,7 @@ extern int fd_g_debug_lvl;
 /* Compare timespec structures */
 #define TS_IS_INFERIOR( ts1, ts2 ) 		\
 	(    ((ts1)->tv_sec  < (ts2)->tv_sec ) 	\
-	  || ((ts1)->tv_nsec < (ts2)->tv_nsec) )
+	  || (((ts1)->tv_sec  == (ts2)->tv_sec ) && ((ts1)->tv_nsec < (ts2)->tv_nsec) ))
 
 
 /*============================================================*/
@@ -1458,7 +1458,9 @@ int fd_sess_destroy ( struct session ** session );
  *  EALREADY	: Data was already associated with this session and client.
  *  ENOMEM	: Not enough memory to complete the operation
  */
-int fd_sess_state_store ( struct session_handler * handler, struct session * session, session_state ** state ); 
+int fd_sess_state_store_int ( struct session_handler * handler, struct session * session, session_state ** state );
+#define fd_sess_state_store( _handler, _session, _state ) \
+	fd_sess_state_store_int( (_handler), (_session), (void *)(_state) )
 
 /*
  * FUNCTION:	fd_sess_state_retrieve
@@ -1478,7 +1480,9 @@ int fd_sess_state_store ( struct session_handler * handler, struct session * ses
  *  0      	: *state is updated (NULL or points to the state if it was found).
  *  EINVAL 	: A parameter is invalid.
  */
-int fd_sess_state_retrieve ( struct session_handler * handler, struct session * session, session_state ** state ); 
+int fd_sess_state_retrieve_int ( struct session_handler * handler, struct session * session, session_state ** state ); 
+#define fd_sess_state_retrieve( _handler, _session, _state ) \
+	fd_sess_state_retrieve_int( (_handler), (_session), (void *)(_state) )
 
 
 /* For debug */

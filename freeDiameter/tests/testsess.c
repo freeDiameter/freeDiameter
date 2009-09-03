@@ -46,7 +46,7 @@ struct mystate {
 	int  *  freed;	/* location where to write the freed status */
 };
 
-void mycleanup( char * sid, struct mystate * data )
+static void mycleanup( char * sid, struct mystate * data )
 {
 	/* sanity */
 	CHECK( 1, sid ? 1 : 0 );
@@ -59,6 +59,20 @@ void mycleanup( char * sid, struct mystate * data )
 	free(data->sid);
 	free(data);
 }
+
+static __inline__ struct mystate * new_state(char * sid, int *freed) 
+{
+	struct mystate *new;
+	new = malloc(sizeof(struct mystate));
+	CHECK( 1, new ? 1 : 0 );
+	memset(new, 0, sizeof(struct mystate));
+	new->eyec = TEST_EYEC;
+	new->sid = strdup(sid);
+	CHECK( 1, new->sid ? 1 : 0 );
+	new->freed = freed;
+	return new;
+}
+	
 
 /* Main test routine */
 int main(int argc, char *argv[])
@@ -77,7 +91,7 @@ int main(int argc, char *argv[])
 		CHECK( 0, fd_sess_handler_create ( &hdl2, mycleanup ) );
 		CHECK( 0, fd_sess_handler_destroy( &hdl2 ) );
 		CHECK( 0, fd_sess_handler_create ( &hdl2, mycleanup ) );
-		#if 1
+		#if 0
 		fd_sess_dump_hdl(0, hdl1);
 		fd_sess_dump_hdl(0, hdl2);
 		#endif
@@ -88,7 +102,7 @@ int main(int argc, char *argv[])
 		/* DiamId is provided, not opt */
 		CHECK( 0, fd_sess_new( &sess1, TEST_DIAM_ID, NULL, 0 ) );
 		CHECK( 0, fd_sess_new( &sess2, TEST_DIAM_ID, NULL, 0 ) );
-		#if 1
+		#if 0
 		fd_sess_dump(0, sess1);
 		fd_sess_dump(0, sess2);
 		#endif
@@ -105,7 +119,7 @@ int main(int argc, char *argv[])
 		/* diamId and opt */
 		CHECK( 0, fd_sess_new( &sess1, TEST_DIAM_ID, TEST_OPT, 0 ) );
 		CHECK( 0, fd_sess_new( &sess2, TEST_DIAM_ID, TEST_OPT, strlen(TEST_OPT) - 1 ) );
-		#if 1
+		#if 0
 		fd_sess_dump(0, sess1);
 		fd_sess_dump(0, sess2);
 		#endif
@@ -129,7 +143,7 @@ int main(int argc, char *argv[])
 		CHECK( EALREADY, fd_sess_new( &sess3, NULL, TEST_SID, strlen(TEST_SID) ) );
 		CHECK( sess3, sess1 );
 		CHECK( 0, fd_sess_new( &sess2, NULL, TEST_SID, strlen(TEST_SID) - 1 ) );
-		#if 1
+		#if 0
 		fd_sess_dump(0, sess1);
 		fd_sess_dump(0, sess2);
 		#endif
@@ -139,18 +153,176 @@ int main(int argc, char *argv[])
 		CHECK( 0, strcmp( str1, TEST_SID ) );
 		
 		CHECK( 0, fd_sess_destroy( &sess2 ) );
+		CHECK( 0, fd_sess_destroy( &sess1 ) );
 	}
 		
+	/* Test fd_sess_fromsid */
+	{
+		CHECK( 0, fd_sess_fromsid( TEST_SID, strlen(TEST_SID), &sess1, &new ) );
+		CHECK( 1, new ? 1 : 0 );
 		
+		CHECK( 0, fd_sess_fromsid( TEST_SID, strlen(TEST_SID), &sess2, &new ) );
+		CHECK( 0, new );
+		CHECK( sess1, sess2 );
+		
+		CHECK( 0, fd_sess_fromsid( TEST_SID, strlen(TEST_SID), &sess3, NULL ) );
+		CHECK( sess1, sess3 );
+		
+		CHECK( 0, fd_sess_destroy( &sess1 ) );
+	}
 	
-/*	
-int fd_sess_new ( struct session ** session, char * diamId, char * opt, size_t optlen );
-int fd_sess_fromsid ( char * sid, size_t len, struct session ** session, int * new);
-int fd_sess_getsid ( struct session * session, char ** sid );
-int fd_sess_settimeout( struct session * session, const struct timespec * timeout );
-int fd_sess_destroy ( struct session ** session );
-*/
+	/* Test timeout function */
+	{
+		struct timespec timeout;
+		
+		CHECK( 0, fd_sess_fromsid( TEST_SID, strlen(TEST_SID), &sess1, &new ) );
+		CHECK( 1, new ? 1 : 0 );
+		
+		CHECK( 0, clock_gettime(CLOCK_REALTIME, &timeout) );
+		CHECK( 0, fd_sess_settimeout( sess1, &timeout) );
+		timeout.tv_sec = 0;
+		timeout.tv_nsec= 50000000; /* 50 ms */
+		CHECK( 0, clock_nanosleep(CLOCK_REALTIME, 0, &timeout, NULL) );
+		
+		CHECK( 0, fd_sess_fromsid( TEST_SID, strlen(TEST_SID), &sess1, &new ) );
+		CHECK( 1, new ? 1 : 0 );
+		
+		CHECK( 0, clock_gettime(CLOCK_REALTIME, &timeout) );
+		timeout.tv_sec += 2678500; /* longer that SESS_DEFAULT_LIFETIME */
+		CHECK( 0, fd_sess_settimeout( sess1, &timeout) );
+		
+		/* Create a second session */
+		CHECK( 0, fd_sess_new( &sess2, TEST_DIAM_ID, NULL, 0 ) );
+		
+		/* We don't really have away to verify the expiry list is in proper order automatically here... */
+		
+		CHECK( 0, fd_sess_destroy( &sess2 ) );
+		CHECK( 0, fd_sess_destroy( &sess1 ) );
+	}
+	
+	
+	/* Test states operations */
+	{
+		struct mystate * ms[6], *tms;
+		int freed[6];
+		int i;
+		struct timespec timeout;
+		
+		/* Create three sessions */
+		CHECK( 0, fd_sess_new( &sess1, TEST_DIAM_ID, NULL, 0 ) );
+		CHECK( 0, fd_sess_new( &sess2, TEST_DIAM_ID, NULL, 0 ) );
+		CHECK( 0, fd_sess_new( &sess3, TEST_DIAM_ID, NULL, 0 ) );
+		
+		/* Create 2 states */
+		CHECK( 0, fd_sess_getsid(sess1, &str1) );
+		freed[0] = 0;
+		ms[0] = new_state(str1, &freed[0]);
+		ms[1] = new_state(str1, NULL);
 
+		tms = ms[0]; /* save a copy */
+		CHECK( 0, fd_sess_state_store ( hdl1, sess1, &ms[0] ) );
+		CHECK( NULL, ms[0] );
+		CHECK( EINVAL, fd_sess_state_store ( hdl1, sess1, NULL ) );
+		CHECK( EALREADY, fd_sess_state_store ( hdl1, sess1, &ms[1] ) );
+		CHECK( 1, ms[1] ? 1 : 0 );
+		
+		#if 0
+		fd_sess_dump(0, sess1);
+		#endif
+		
+		CHECK( 0, fd_sess_state_retrieve( hdl1, sess1, &ms[0] ) );
+		CHECK( tms, ms[0] );
+		CHECK( 0, freed[0] );
+		
+		CHECK( 0, fd_sess_state_retrieve( hdl1, sess2, &tms ) );
+		CHECK( NULL, tms );
+		
+		mycleanup(str1, ms[0]);
+		mycleanup(str1, ms[1]);
+		
+		/* Now create 6 states */
+		memset(&freed[0], 0, sizeof(freed));
+		CHECK( 0, fd_sess_getsid(sess1, &str1) );
+		ms[0] = new_state(str1, &freed[0]);
+		ms[1] = new_state(str1, &freed[1]);
+		CHECK( 0, fd_sess_getsid(sess2, &str1) );
+		ms[2] = new_state(str1, &freed[2]);
+		ms[3] = new_state(str1, &freed[3]);
+		CHECK( 0, fd_sess_getsid(sess3, &str1) );
+		ms[4] = new_state(str1, &freed[4]);
+		ms[5] = new_state(str1, &freed[5]);
+		str2 = strdup(str1);
+		CHECK( 1, str2 ? 1 : 0 );
+		
+		/* Store the six states */
+		CHECK( 0, fd_sess_state_store ( hdl1, sess1, &ms[0] ) );
+		CHECK( 0, fd_sess_state_store ( hdl2, sess1, &ms[1] ) );
+		CHECK( 0, fd_sess_state_store ( hdl1, sess2, &ms[2] ) );
+		CHECK( 0, fd_sess_state_store ( hdl2, sess2, &ms[3] ) );
+		CHECK( 0, fd_sess_state_store ( hdl1, sess3, &ms[4] ) );
+		CHECK( 0, fd_sess_state_store ( hdl2, sess3, &ms[5] ) );
+		
+		#if 0
+		fd_sess_dump(0, sess1);
+		fd_sess_dump(0, sess2);
+		fd_sess_dump(0, sess3);
+		#endif
+		
+		/* Destroy session 3 */
+		CHECK( 0, fd_sess_destroy( &sess3 ) );
+		CHECK( 0, freed[0] );
+		CHECK( 0, freed[1] );
+		CHECK( 0, freed[2] );
+		CHECK( 0, freed[3] );
+		CHECK( 1, freed[4] );
+		CHECK( 1, freed[5] );
+		
+		/* Destroy handler 2 */
+		CHECK( 0, fd_sess_handler_destroy( &hdl2 ) );
+		CHECK( 0, freed[0] );
+		CHECK( 1, freed[1] );
+		CHECK( 0, freed[2] );
+		CHECK( 1, freed[3] );
+		CHECK( 1, freed[4] );
+		CHECK( 1, freed[5] );
+		
+		#if 1
+		fd_sess_dump(0, sess1);
+		fd_sess_dump(0, sess2);
+		#endif
+		
+		/* Create again session 3, check that no data is associated to it */
+		CHECK( 0, fd_sess_fromsid( str2, strlen(str2), &sess3, &new ) );
+		CHECK( 1, new ? 1 : 0 );
+		CHECK( 0, fd_sess_state_retrieve( hdl1, sess3, &tms ) );
+		CHECK( NULL, tms );
+		CHECK( 0, fd_sess_destroy( &sess3 ) );
+		free(str2);
+		
+		/* Timeout does call cleanups */
+		CHECK( 0, clock_gettime(CLOCK_REALTIME, &timeout) );
+		CHECK( 0, fd_sess_settimeout( sess2, &timeout) );
+		#if 1
+		fd_sess_dump(0, sess1);
+		fd_sess_dump(0, sess2);
+		#endif
+		timeout.tv_sec = 0;
+		timeout.tv_nsec= 50000000; /* 50 ms */
+		CHECK( 0, clock_nanosleep(CLOCK_REALTIME, 0, &timeout, NULL) );
+		CHECK( 0, freed[0] );
+		CHECK( 1, freed[1] );
+		CHECK( 1, freed[2] );
+		CHECK( 1, freed[3] );
+		CHECK( 1, freed[4] );
+		CHECK( 1, freed[5] );
+		
+		/* Check the last data can still be retrieved */
+		CHECK( 0, fd_sess_state_retrieve( hdl1, sess1, &tms ) );
+		CHECK( 0, fd_sess_getsid(sess1, &str1) );
+		mycleanup(str1, tms);
+	}
+	
+	
 	/* That's all for the tests yet */
 	PASSTEST();
 } 
