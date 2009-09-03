@@ -241,7 +241,7 @@ int fd_sess_init(void)
 }
 
 /* Create a new handler */
-int fd_sess_handler_create_int ( struct session_handler ** handler, void (*cleanup)(char * sid, session_state * state) )
+int fd_sess_handler_create_internal ( struct session_handler ** handler, void (*cleanup)(char * sid, session_state * state) )
 {
 	struct session_handler *new;
 	
@@ -564,10 +564,36 @@ int fd_sess_destroy ( struct session ** session )
 	return 0;
 }
 
+/* Destroy a session if it is not used */
+int fd_sess_reclaim ( struct session ** session )
+{
+	struct session * sess;
+	
+	TRACE_ENTRY("%p", session);
+	CHECK_PARAMS( session && VALIDATE_SI(*session) );
+	
+	sess = *session;
+	*session = NULL;
+	
+	CHECK_FCT( pthread_mutex_lock( H_LOCK(sess->hash) ) );
+	CHECK_FCT( pthread_mutex_lock( &exp_lock ) );
+	if (FD_IS_LIST_EMPTY(&sess->states)) {
+		fd_list_unlink( &sess->chain_h );
+		fd_list_unlink( &sess->expire );
+		sess->eyec = 0xdead;
+		free(sess->sid);
+		free(sess);
+	}
+	CHECK_FCT( pthread_mutex_unlock( &exp_lock ) );
+	CHECK_FCT( pthread_mutex_unlock( H_LOCK(sess->hash) ) );
+	
+	return 0;
+}
+
 
 
 /* Save a state information with a session */
-int fd_sess_state_store_int ( struct session_handler * handler, struct session * session, session_state ** state )
+int fd_sess_state_store_internal ( struct session_handler * handler, struct session * session, session_state ** state )
 {
 	struct state *new;
 	struct fd_list * li;
@@ -616,7 +642,7 @@ int fd_sess_state_store_int ( struct session_handler * handler, struct session *
 }
 
 /* Get the data back */
-int fd_sess_state_retrieve_int ( struct session_handler * handler, struct session * session, session_state ** state )
+int fd_sess_state_retrieve_internal ( struct session_handler * handler, struct session * session, session_state ** state )
 {
 	struct fd_list * li;
 	struct state * st = NULL;

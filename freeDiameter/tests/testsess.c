@@ -171,6 +171,36 @@ int main(int argc, char *argv[])
 		CHECK( 0, fd_sess_destroy( &sess1 ) );
 	}
 	
+	/* Test fd_sess_reclaim */
+	{
+		struct mystate *tms;
+		
+		CHECK( 0, fd_sess_fromsid( TEST_SID, strlen(TEST_SID), &sess1, &new ) );
+		CHECK( 1, new ? 1 : 0 );
+		
+		CHECK( 0, fd_sess_reclaim( &sess1 ) );
+		CHECK( NULL, sess1 );
+		
+		CHECK( 0, fd_sess_fromsid( TEST_SID, strlen(TEST_SID), &sess1, &new ) );
+		CHECK( 1, new ? 1 : 0 );
+		
+		tms = new_state(TEST_SID, NULL);
+		CHECK( 0, fd_sess_state_store ( hdl1, sess1, &tms ) );
+		
+		CHECK( 0, fd_sess_reclaim( &sess1 ) );
+		CHECK( NULL, sess1 );
+		
+		CHECK( 0, fd_sess_fromsid( TEST_SID, strlen(TEST_SID), &sess1, &new ) );
+		CHECK( 0, new );
+		
+		CHECK( 0, fd_sess_destroy( &sess1 ) );
+		
+		CHECK( 0, fd_sess_fromsid( TEST_SID, strlen(TEST_SID), &sess1, &new ) );
+		CHECK( 1, new ? 1 : 0 );
+		
+		CHECK( 0, fd_sess_destroy( &sess1 ) );
+	}
+	
 	/* Test timeout function */
 	{
 		struct timespec timeout;
