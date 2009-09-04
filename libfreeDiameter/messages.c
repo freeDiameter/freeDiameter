@@ -2137,3 +2137,97 @@ int fd_msg_update_length ( msg_or_avp * object )
 }
 
 /***************************************************************************************************************/
+/* Macro to check if further callbacks must be called */
+#define TEST_ACTION_STOP()					\
+	if ((*msg == NULL) || (*action != DISP_ACT_CONT))	\
+		goto no_error;
+
+/* Call all dispatch callbacks for a given message */
+int fd_msg_dispatch ( struct msg ** msg, struct session * session, enum disp_action *action)
+{
+	struct dictionary  * dict;
+	struct dict_object * app;
+	struct dict_object * cmd;
+	struct avp * avp;
+	struct fd_list * cb_list;
+	int ret = 0;
+	
+	TRACE_ENTRY("%p %p %p", msg, session, action);
+	CHECK_PARAMS( msg && CHECK_MSG(*msg) && action);
+	
+	/* Take the dispatch lock */
+	CHECK_FCT( pthread_rwlock_rdlock(&fd_disp_lock) );
+	pthread_cleanup_push( fd_cleanup_rwlock, &fd_disp_lock );
+	
+	/* First, call the DISP_HOW_ANY callbacks */
+	CHECK_FCT_DO( ret = fd_disp_call_cb_int( NULL, msg, NULL, session, action, NULL, NULL, NULL, NULL ), goto error );
+
+	TEST_ACTION_STOP();
+	
+	/* If we don't know the model at this point, we stop cause we cannot get the dictionary. It's invalid: an error should already have been trigged by ANY callbacks */
+	CHECK_PARAMS_DO(cmd = (*msg)->msg_model, { ret = EINVAL; goto error; } );
+	
+	/* Now resolve message application */
+	CHECK_FCT_DO( ret = fd_dict_getdict( cmd, &dict ), goto error );
+	CHECK_FCT_DO( ret = fd_dict_search( dict, DICT_APPLICATION, APPLICATION_BY_ID, &(*msg)->msg_public.msg_appl, &app, 0 ), goto error );
+	
+	if (app == NULL) {
+		/* In that case, maybe we should answer a DIAMETER_APPLICATION_UNSUPPORTED error ? Do we do this here ? */
+		TRACE_DEBUG(NONE, "Reply DIAMETER_APPLICATION_UNSUPPORTED if it's a request ?");
+	}
+	
+	/* So start browsing the message */
+	CHECK_FCT_DO( ret = fd_msg_browse( *msg, MSG_BRW_FIRST_CHILD, &avp, NULL ), goto error );
+	while (avp != NULL) {
+		/* Sanity */
+		ASSERT( avp->avp_public.avp_value );
+		
+		/* For unknown AVP, we don't have a callback registered, so just skip */
+		if (avp->avp_model) {
+			struct dict_object * type, * enumval;
+			
+			/* Get the list of callback for this AVP */
+			CHECK_FCT_DO( ret = fd_dict_disp_cb(DICT_AVP, avp->avp_model, &cb_list), goto error );
+			
+			/* Check if the AVP has a constant value */
+			CHECK_FCT_DO( ret = fd_dict_search(dict, DICT_TYPE, TYPE_OF_AVP, avp->avp_model, &type, 0), goto error );
+			if (type) {
+				struct dict_enumval_request req;
+				memset(&req, 0, sizeof(struct dict_enumval_request));
+				req.type_obj = type;
+				memcpy( &req.search.enum_value, avp->avp_public.avp_value, sizeof(union avp_value) );
+				CHECK_FCT_DO( ret = fd_dict_search(dict, DICT_ENUMVAL, ENUMVAL_BY_STRUCT, &req, &enumval, 0), goto error );
+			} else {
+				/* No enumerated value in this case */
+				enumval = NULL;
+			}
+			
+			/* Call the callbacks */
+			CHECK_FCT_DO( ret = fd_disp_call_cb_int( cb_list, msg, avp, session, action, app, cmd, avp->avp_model, enumval ), goto error );
+			TEST_ACTION_STOP();
+		}
+		/* Go to next AVP */
+		CHECK_FCT_DO(  ret = fd_msg_browse( avp, MSG_BRW_WALK, &avp, NULL ), goto error );
+	}
+		
+	/* Now call command and application callbacks */
+	CHECK_FCT_DO( ret = fd_dict_disp_cb(DICT_COMMAND, cmd, &cb_list), goto error );
+	CHECK_FCT_DO( ret = fd_disp_call_cb_int( cb_list, msg, NULL, session, action, app, cmd, NULL, NULL ), goto error );
+	TEST_ACTION_STOP();
+	
+	if (app) {
+		CHECK_FCT_DO( ret = fd_dict_disp_cb(DICT_APPLICATION, app, &cb_list), goto error );
+		CHECK_FCT_DO( ret = fd_disp_call_cb_int( cb_list, msg, NULL, session, action, app, cmd, NULL, NULL ), goto error );
+		TEST_ACTION_STOP();
+	}
+	
+	pthread_cleanup_pop(0);
+	
+no_error:
+	CHECK_POSIX(pthread_rwlock_unlock(&fd_disp_lock) );
+	return 0;
+	
+error:
+	CHECK_POSIX_DO(pthread_rwlock_unlock(&fd_disp_lock), /* ignore */ );
+	return ret;
+}

@@ -1507,124 +1507,6 @@ void fd_sess_dump_hdl(int level, struct session_handler * handler);
 
 
 /*============================================================*/
-/*                         DISPATCH                           */
-/*============================================================*/
-
-/* Dispatch module (passing incoming messages to extensions registered callbacks)
- * is split between the library and the daemon.
- *
- * The library provides the support for associating dispatch callbacks with
- * dictionary objects.
- *
- * The daemon is responsible for calling the callbacks for a message when appropriate.
- *
- *
- * The dispatch module has two main roles:
- *  - help determine if a message can be handled locally (during the routing step)
- *        This decision involves only the application-id of the message.
- *  - pass the message to the callback(s) that will handle it (during the dispatch step)
- *
- * These are the possibilities for registering a so-called dispatch callback:
- *
- * -> For All messages.
- *  This callback is called for all messages that are handled locally. This should be used only
- *  for debug purpose.
- *
- * -> by AVP value (constants only).
- *  This callback will be called when a message is received and contains an AVP with a specified enumerated value.
- *
- * -> by AVP.
- *  This callback will be called when the received message contains a certain AVP.
- *
- * -> by command-code.
- *  This callback will be called when the message is a specific command (and 'R' flag).
- *
- * -> by application.
- *  This callback will be called when the message has a specific application-id.
- *
- * ( by vendor: would this be useful? it may be added later)
- */
-enum disp_how {
-	DISP_HOW_ANY = 1,		/* Any message. This should be only used for debug. */
-	DISP_HOW_APPID,			/* Any message with the specified application-id */
-	DISP_HOW_CC,			/* Messages of the specified command-code (request or answer). App id may be specified. */
-	DISP_HOW_AVP,			/* Messages containing a specific AVP. Command-code and App id may be specified. */
-	DISP_HOW_AVP_ENUMVAL		/* Messages containing a specific AVP with a specific enumerated value. Command-code and App id may be specified. */
-};
-/*
- * Several criteria may be selected at the same time, for example command-code AND application id.
- *
- * If several callbacks are registered for the same object, their order is unspecified.
- * The order in which the callbacks are called is:
- *  DISP_HOW_ANY
- *  DISP_HOW_AVP_ENUMVAL & DISP_HOW_AVP
- *  DISP_HOW_CC
- *  DISP_HOW_APPID
- */
-
-/* When a callback is registered, a "when" argument is passed in addition to the disp_how value,
- * to specify which values the criteria must match. */
-struct disp_when {
-	struct dict_object *	app_id;
-	struct dict_object *	command;
-	struct dict_object *	avp;
-	struct dict_object *	value;
-};
-
-/* Here is the details on this "when" argument, depending on the disp_how value.
- *
- * DISP_HOW_ANY.
- *  In this case, "when" must be NULL.
- *
- * DISP_HOW_APPID.
- *  Only the "app_id" field must be set, other fields are ignored. It points to a dictionary object of type DICT_APPLICATION.
- *
- * DISP_HOW_CC.
- *  The "command" field must be defined and point to a dictionary object of type DICT_COMMAND.
- *  The "app_id" may be also set. In the case it is set, it restricts the callback to be called only with this command-code and app id.
- *  The other fields are ignored.
- *
- * DISP_HOW_AVP.
- *  The "avp" field of the structure must be set and point to a dictionary object of type DICT_AVP.
- *  The "app_id" field may be set to restrict the messages matching to a specific app id.
- *  The "command" field may also be set to a valid DICT_COMMAND object.
- *  The content of the "value" field is ignored.
- *
- * DISP_HOW_AVP_ENUMVAL.
- *  All fields have the same constraints and meaning as in DISP_REG_AVP. In addition, the "value" field must be set
- *  and points to a valid DICT_ENUMVAL object. 
- *
- * Here is a sumary of the fields: ( M : must be set; m : may be set; 0 : ignored )
- *  field:     app_id    command     avp    value
- * APPID :       M          0         0       0
- * CC    :       m          M         0       0
- * AVP   :       m          m         M       0
- * ENUMVA:       m          m         M       M
- */
-
-/* The callbacks that are registered have the following prototype:
- *
- *  int dispatch_callback( struct msg ** msg, struct avp * avp, struct session * session, int * is_answer );
- *
- * FUNCTION:	dispatch_callback
- *
- * PARAMETERS:
- *  msg 	: the received message on function entry. may be updated to answer on return (see description)
- *  avp 	: for callbacks registered with DISP_HOW_AVP or DISP_HOW_AVP_ENUMVAL, direct link to the triggering AVP.
- *  session	: if the message contains a Session-Id AVP, the corresponding session object.
- *
- * DESCRIPTION: 
- *   Create a new AVP instance.
- *
- * RETURN VALUE:
- *  0      	: The AVP is created.
- *  EINVAL 	: A parameter is invalid.
- *  (other standard errors may be returned, too, with their standard meaning. Example:
- *    ENOMEM 	: Memory allocation for the new avp failed.)
- */
-
-
-/*============================================================*/
 /*                         MESSAGES                           */
 /*============================================================*/
 
@@ -2193,6 +2075,201 @@ int fd_msg_parse_rules ( msg_or_avp * object, struct dictionary * dict, struct d
  *  EINVAL 	: A parameter is invalid.
  */
 int fd_msg_update_length ( msg_or_avp * object );
+
+
+/*============================================================*/
+/*                         DISPATCH                           */
+/*============================================================*/
+
+/* Dispatch module (passing incoming messages to extensions registered callbacks)
+ * is split between the library and the daemon.
+ *
+ * The library provides the support for associating dispatch callbacks with
+ * dictionary objects.
+ *
+ * The daemon is responsible for calling the callbacks for a message when appropriate.
+ *
+ *
+ * The dispatch module has two main roles:
+ *  - help determine if a message can be handled locally (during the routing step)
+ *        This decision involves only the application-id of the message.
+ *  - pass the message to the callback(s) that will handle it (during the dispatch step)
+ *
+ * The first role is handled by the daemon.
+ *
+ * About the second, these are the possibilities for registering a dispatch callback:
+ *
+ * -> For All messages.
+ *  This callback is called for all messages that are handled locally. This should be used only
+ *  for debug purpose.
+ *
+ * -> by AVP value (constants only).
+ *  This callback will be called when a message is received and contains an AVP with a specified enumerated value.
+ *
+ * -> by AVP.
+ *  This callback will be called when the received message contains a certain AVP.
+ *
+ * -> by command-code.
+ *  This callback will be called when the message is a specific command (and 'R' flag).
+ *
+ * -> by application.
+ *  This callback will be called when the message has a specific application-id.
+ *
+ * ( by vendor: would this be useful? it may be added later)
+ */
+enum disp_how {
+	DISP_HOW_ANY = 1,		/* Any message. This should be only used for debug. */
+	DISP_HOW_APPID,			/* Any message with the specified application-id */
+	DISP_HOW_CC,			/* Messages of the specified command-code (request or answer). App id may be specified. */
+	DISP_HOW_AVP,			/* Messages containing a specific AVP. Command-code and App id may be specified. */
+	DISP_HOW_AVP_ENUMVAL		/* Messages containing a specific AVP with a specific enumerated value. Command-code and App id may be specified. */
+};
+/*
+ * Several criteria may be selected at the same time, for example command-code AND application id.
+ *
+ * If several callbacks are registered for the same object, they are called in the order they were registered.
+ * The order in which the callbacks are called is:
+ *  DISP_HOW_ANY
+ *  DISP_HOW_AVP_ENUMVAL & DISP_HOW_AVP
+ *  DISP_HOW_CC
+ *  DISP_HOW_APPID
+ */
+
+/* When a callback is registered, a "when" argument is passed in addition to the disp_how value,
+ * to specify which values the criteria must match. */
+struct disp_when {
+	struct dict_object *	app;
+	struct dict_object *	command;
+	struct dict_object *	avp;
+	struct dict_object *	value;
+};
+
+/* Note that all the dictionary objects should really belong to the same dictionary!
+ *
+ * Here is the details on this "when" argument, depending on the disp_how value.
+ *
+ * DISP_HOW_ANY.
+ *  In this case, "when" must be NULL.
+ *
+ * DISP_HOW_APPID.
+ *  Only the "app_id" field must be set, other fields are ignored. It points to a dictionary object of type DICT_APPLICATION.
+ *
+ * DISP_HOW_CC.
+ *  The "command" field must be defined and point to a dictionary object of type DICT_COMMAND.
+ *  The "app_id" may be also set. In the case it is set, it restricts the callback to be called only with this command-code and app id.
+ *  The other fields are ignored.
+ *
+ * DISP_HOW_AVP.
+ *  The "avp" field of the structure must be set and point to a dictionary object of type DICT_AVP.
+ *  The "app_id" field may be set to restrict the messages matching to a specific app id.
+ *  The "command" field may also be set to a valid DICT_COMMAND object.
+ *  The content of the "value" field is ignored.
+ *
+ * DISP_HOW_AVP_ENUMVAL.
+ *  All fields have the same constraints and meaning as in DISP_REG_AVP. In addition, the "value" field must be set
+ *  and points to a valid DICT_ENUMVAL object. 
+ *
+ * Here is a sumary of the fields: ( M : must be set; m : may be set; 0 : ignored )
+ *  field:     app_id    command     avp    value
+ * APPID :       M          0         0       0
+ * CC    :       m          M         0       0
+ * AVP   :       m          m         M       0
+ * ENUMVA:       m          m         M       M
+ */
+
+enum disp_action {
+	DISP_ACT_CONT,	/* The next handler should be called, unless *msg == NULL. */
+	DISP_ACT_SEND	/* The updated message must be sent. No further callback is called. */
+};
+/* The callbacks that are registered have the following prototype:
+ *  	int dispatch_callback( struct msg ** msg, struct avp * avp, struct session * session, enum disp_action * action );
+ *
+ * CALLBACK:	dispatch_callback
+ *
+ * PARAMETERS:
+ *  msg 	: the received message on function entry. may be updated to answer on return (see description)
+ *  avp 	: for callbacks registered with DISP_HOW_AVP or DISP_HOW_AVP_ENUMVAL, direct link to the triggering AVP.
+ *  session	: if the message contains a Session-Id AVP, the corresponding session object, NULL otherwise.
+ *  action	: upon return, this tells the daemon what to do next.
+ *
+ * DESCRIPTION: 
+ *   Called when a received message matchs the condition for which the callback was registered.
+ * This callback may do any kind of processing on the message, including:
+ *  - create an answer for a request.
+ *  - proxy a request or message, add / remove the Proxy-Info AVP, then forward the message.
+ *  - update a routing table or start a connection with a new peer, then forward the message.
+ *  - ...
+ * 
+ * When *action == DISP_ACT_SEND on callback return, the msg pointed by *msg is passed to the routing module for sending.
+ * When *action == DISP_ACT_CONT, the next registered callback is called.
+ *  When the last callback gives also DISP_ACT_CONT action value, a default handler is called. It's behavior is as follow:
+ *   - if the message is an answer, it is discarded.
+ *   - if the message is a request, it is passed again to the routing stack, and marked as non-local handling.
+ *
+ * RETURN VALUE:
+ *  0      	: The callback executed successfully and updated *action appropriately.
+ *  !0		: standard errors. In case of error, the message is discarded.
+ */
+
+/* This structure represents a handler for a registered callback, allowing its de-registration */
+struct disp_hdl;
+
+/*
+ * FUNCTION:	fd_disp_register
+ *
+ * PARAMETERS:
+ *  cb 		  : The callback function to register (see dispatch_callback description above).
+ *  how	  	  : How the callback must be registered.
+ *  when          : Values that must match, depending on the how argument.
+ *  handle        : On success, a handler to the registered callback is stored here if not NULL. 
+ *		   This handler can be used to unregister the cb.
+ *
+ * DESCRIPTION: 
+ *   Register a new callback to handle messages delivered locally.
+ *
+ * RETURN VALUE:
+ *  0      	: The callback is registered.
+ *  EINVAL 	: A parameter is invalid.
+ *  ENOMEM	: Not enough memory to complete the operation
+ */
+int fd_disp_register ( int (*cb)( struct msg **, struct avp *, struct session *, enum disp_action *), 
+			enum disp_how how, struct disp_when * when, struct disp_hdl ** handle );
+
+/*
+ * FUNCTION:	fd_disp_unregister
+ *
+ * PARAMETERS:
+ *  handle       : Location of the handle of the callback that must be unregistered.
+ *
+ * DESCRIPTION: 
+ *   Removes a callback previously registered by fd_disp_register.
+ *
+ * RETURN VALUE:
+ *  0      	: The callback is unregistered.
+ *  EINVAL 	: A parameter is invalid.
+ */
+int fd_disp_unregister ( struct disp_hdl ** handle );
+
+/*
+ * FUNCTION:	fd_msg_dispatch
+ *
+ * PARAMETERS:
+ *  msg 	: A msg object that have already been fd_msg_parse_dict.
+ *  session	: The session corresponding to this object, if any.
+ *  action	: Upon return, the action that must be taken on the message
+ *
+ * DESCRIPTION: 
+ *   Call all handlers registered for a given message.
+ *  The session must have already been resolved on entry.
+ *  The msg pointed may be updated during this process.
+ *  Upon return, the action parameter points to what must be done next.
+ *
+ * RETURN VALUE:
+ *  0      	: Success.
+ *  EINVAL 	: A parameter is invalid.
+ *  (other errors)
+ */
+int fd_msg_dispatch ( struct msg ** msg, struct session * session, enum disp_action *action );
 
 
 

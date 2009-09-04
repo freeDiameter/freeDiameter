@@ -110,4 +110,35 @@ int fd_msg_rescode_set( struct msg * msg, struct dictionary * dict, char * resco
 int fd_msg_add_origin ( struct msg * msg, struct dictionary * dict, int osi ); /* Add Origin-Host, Origin-Realm, (if osi) Origin-State-Id AVPS at the end of the message */
 
 
+
+/***************************************/
+/*   Dispatch module, daemon's part    */
+/***************************************/
+
+enum {
+	DISP_APP_AUTH	= 1,
+	DISP_APP_ACCT	= 2
+};
+/*
+ * FUNCTION:	fd_disp_app_support
+ *
+ * PARAMETERS:
+ *  app		: The dictionary object corresponding to the Application.
+ *  vendor	: (Optional) the dictionary object of a Vendor to claim support in Vendor-Specific-Application-Id
+ *  flags	: Combination of DISP_APP_* flags.
+ *
+ * DESCRIPTION: 
+ *   Registers an application to be advertized in CER/CEA exchanges.
+ *  Messages with an application-id matching a registered value are passed to the dispatch module,
+ * while other messages are simply relayed or an error is returned (if local node does not relay)
+ *
+ * RETURN VALUE:
+ *  0      	: The application support is registered.
+ *  EINVAL 	: A parameter is invalid.
+ */
+int fd_disp_app_support ( struct dict_object * app, struct dict_object * vendor, int flags );
+
+/* Note: if we want to support capabilities updates, we'll have to add possibility to remove an app as well... */
+
+
 #endif /* _FREEDIAMETER_H */

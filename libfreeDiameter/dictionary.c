@@ -409,9 +409,11 @@ static void destroy_object(struct dict_object * obj)
 	}
 	
 	/* Unlink all elements from the dispatch list; they will be freed when callback is unregistered */
+	CHECK_POSIX_DO( pthread_rwlock_wrlock(&fd_disp_lock), /* continue */ );
 	while (!FD_IS_LIST_EMPTY(&obj->disp_cbs)) {
 		fd_list_unlink( obj->disp_cbs.next );
 	}
+	CHECK_POSIX_DO( pthread_rwlock_unlock(&fd_disp_lock), /* continue */ );
 	
 	/* Last, destroy the object */
 	free(obj);

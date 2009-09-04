@@ -16,6 +16,7 @@ SET(TEST_LIST
 	testmesg
 	testmq
 	testsess
+	testdisp
 )
 
 #############################

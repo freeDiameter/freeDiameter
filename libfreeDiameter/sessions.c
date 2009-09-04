@@ -104,7 +104,7 @@ struct session {
 /* Sessions hash table, to allow fast sid to session retrieval */
 static struct {
 	struct fd_list	sentinel;	/* sentinel element for this sublist */
-	pthread_mutex_t lock;		/* the mutex for this sublist */
+	pthread_mutex_t lock;		/* the mutex for this sublist -- we might probably change it to rwlock for a little optimization */
 } sess_hash [ 1 << SESS_HASH_SIZE ] ;
 #define H_MASK( __hash ) ((__hash) & (( 1 << SESS_HASH_SIZE ) - 1))
 #define H_LIST( _hash ) (&(sess_hash[H_MASK(_hash)].sentinel))
@@ -112,7 +112,7 @@ static struct {
 
 /* The following are used to generate sid values that are eternaly unique */
 static uint32_t   	sid_h;	/* initialized to the current time in fd_sess_init */
-static uint32_t   	sid_l;	/* incremented each time a session id is created -- could use atomic operation probably */
+static uint32_t   	sid_l;	/* incremented each time a session id is created */
 static pthread_mutex_t 	sid_lock = PTHREAD_MUTEX_INITIALIZER;
 
 /* Expiring sessions management */
@@ -129,7 +129,7 @@ static pthread_t	exp_thr; 	/* The expiry thread that handles cleanup of expired 
 
 /********************************************************************************************************/
 
-/* Initialize a session object. It is not linked now. sid must be already alloc'ed. */
+/* Initialize a session object. It is not linked now. sid must be already malloc'ed. */
 static struct session * new_session(char * sid, size_t sidlen)
 {
 	struct session * sess;
@@ -156,9 +156,6 @@ static struct session * new_session(char * sid, size_t sidlen)
 	return sess;
 }
 	
-
-
-
 /* The expiry thread */
 static void * exp_fct(void * arg)
 {

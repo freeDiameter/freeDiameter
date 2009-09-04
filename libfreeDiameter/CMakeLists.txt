@@ -6,10 +6,11 @@ SET(PROJECT_COPYRIGHT "Copyright (c) 2008-2009, WIDE Project (www.wide.ad.jp) an
 # List of source files for the library
 SET(LFD_SRC
 	libfD.h
-	init.c
-	log.c
-	lists.c
 	dictionary.c
+	dispatch.c
+	init.c
+	lists.c
+	log.c
 	messages.c
 	mqueues.c
 	sessions.c

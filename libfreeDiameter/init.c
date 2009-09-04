@@ -48,6 +48,7 @@ int fd_lib_init(void)
 	
 	/* Initialize the modules that need it */
 	fd_msg_eteid_init();
+	fd_disp_init();
 	CHECK_FCT( fd_sess_init() );
 	
 	return 0;
