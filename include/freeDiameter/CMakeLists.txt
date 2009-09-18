@@ -71,6 +71,9 @@ CHECK_SYMBOL_EXISTS(ntohll "" HAVE_NTOHLL)
 # malloc.h ?
 CHECK_INCLUDE_FILES (malloc.h HAVE_MALLOC_H)
 
+# signalent.h ? -- found in strace distrib; just for nice signal names...
+CHECK_INCLUDE_FILES (signalent.h HAVE_SIGNALENT_H)
+
 # The default configuration file name
 IF (NOT DEFAULT_CONF_FILE)
    SET(DEFAULT_CONF_FILE "freeDiameter.conf")

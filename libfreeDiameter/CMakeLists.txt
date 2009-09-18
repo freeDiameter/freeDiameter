@@ -1,8 +1,6 @@
 # Name of the subproject
 Project("libfreeDiameter" C)
 
-SET(PROJECT_COPYRIGHT "Copyright (c) 2008-2009, WIDE Project (www.wide.ad.jp) and NICT (www.nict.go.jp)")
-
 # List of source files for the library
 SET(LFD_SRC
 	libfD.h
@@ -12,7 +10,7 @@ SET(LFD_SRC
 	lists.c
 	log.c
 	messages.c
-	mqueues.c
+	queues.c
 	sessions.c
 	)
 

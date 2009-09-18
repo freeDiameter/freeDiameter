@@ -66,24 +66,24 @@ int main(int argc, char *argv[])
 		
 		
 		/* Create two vendors */
-		CHECK( 0, fd_dict_new ( fd_g_dict, DICT_VENDOR, &vendor1_data , NULL, &obj1 ) );
-		CHECK( 0, fd_dict_new ( fd_g_dict, DICT_VENDOR, &vendor2_data , NULL, NULL ) );
+		CHECK( 0, fd_dict_new ( fd_g_config->g_dict, DICT_VENDOR, &vendor1_data , NULL, &obj1 ) );
+		CHECK( 0, fd_dict_new ( fd_g_config->g_dict, DICT_VENDOR, &vendor2_data , NULL, NULL ) );
 		
 		/* Check we always retrieve the correct vendor object */
-		CHECK( 0, fd_dict_search ( fd_g_dict, DICT_VENDOR, VENDOR_BY_ID, &vendor_id, &obj2, ENOENT ) );
+		CHECK( 0, fd_dict_search ( fd_g_config->g_dict, DICT_VENDOR, VENDOR_BY_ID, &vendor_id, &obj2, ENOENT ) );
 		CHECK( obj1, obj2);
-		CHECK( 0, fd_dict_search ( fd_g_dict, DICT_VENDOR, VENDOR_BY_NAME, "Vendor test 1", &obj2, ENOENT ) );
+		CHECK( 0, fd_dict_search ( fd_g_config->g_dict, DICT_VENDOR, VENDOR_BY_NAME, "Vendor test 1", &obj2, ENOENT ) );
 		CHECK( obj1, obj2);
 		
 		/* Check the error conditions */
-		CHECK( 0, fd_dict_search ( fd_g_dict, DICT_VENDOR, VENDOR_BY_ID, &vendor_id, NULL, ENOENT ) );
+		CHECK( 0, fd_dict_search ( fd_g_config->g_dict, DICT_VENDOR, VENDOR_BY_ID, &vendor_id, NULL, ENOENT ) );
 		
 		vendor_id = 735673; /* Not defined */
-		CHECK( ENOENT, fd_dict_search ( fd_g_dict, DICT_VENDOR, VENDOR_BY_ID, &vendor_id, NULL, ENOENT ) );
-		CHECK( ENOENT, fd_dict_search ( fd_g_dict, DICT_VENDOR, VENDOR_BY_NAME, "Vendor test 3", NULL, ENOENT ) );
-		CHECK( ENOENT, fd_dict_search ( fd_g_dict, DICT_VENDOR, VENDOR_BY_ID, &vendor_id, &obj2, ENOENT ) );
-		CHECK( ENOENT, fd_dict_search ( fd_g_dict, DICT_VENDOR, VENDOR_BY_NAME, "Vendor test 3", &obj2, ENOENT ) );
-		CHECK( ENOTSUP, fd_dict_search ( fd_g_dict, DICT_VENDOR, VENDOR_BY_NAME, "Vendor test 3", &obj2, ENOTSUP ) );
+		CHECK( ENOENT, fd_dict_search ( fd_g_config->g_dict, DICT_VENDOR, VENDOR_BY_ID, &vendor_id, NULL, ENOENT ) );
+		CHECK( ENOENT, fd_dict_search ( fd_g_config->g_dict, DICT_VENDOR, VENDOR_BY_NAME, "Vendor test 3", NULL, ENOENT ) );
+		CHECK( ENOENT, fd_dict_search ( fd_g_config->g_dict, DICT_VENDOR, VENDOR_BY_ID, &vendor_id, &obj2, ENOENT ) );
+		CHECK( ENOENT, fd_dict_search ( fd_g_config->g_dict, DICT_VENDOR, VENDOR_BY_NAME, "Vendor test 3", &obj2, ENOENT ) );
+		CHECK( ENOTSUP, fd_dict_search ( fd_g_config->g_dict, DICT_VENDOR, VENDOR_BY_NAME, "Vendor test 3", &obj2, ENOTSUP ) );
 		
 		/* Check the get_* functions */
 		CHECK( 0, fd_dict_getval ( obj1, &vendor1_data ) );
@@ -93,10 +93,10 @@ int main(int argc, char *argv[])
 		CHECK( EINVAL, fd_dict_getval ( (struct dict_object *)"not an object", &vendor1_data ) );
 		
 		/* Create the application with vendor1 as parent */
-		CHECK( EINVAL, fd_dict_new ( fd_g_dict, DICT_APPLICATION, &app1_data , (struct dict_object *)"bad object", &obj2 ) );
-		CHECK( 0, fd_dict_new ( fd_g_dict, DICT_APPLICATION, &app1_data , obj1, &obj2 ) );
+		CHECK( EINVAL, fd_dict_new ( fd_g_config->g_dict, DICT_APPLICATION, &app1_data , (struct dict_object *)"bad object", &obj2 ) );
+		CHECK( 0, fd_dict_new ( fd_g_config->g_dict, DICT_APPLICATION, &app1_data , obj1, &obj2 ) );
 		
-		CHECK( 0, fd_dict_search ( fd_g_dict, DICT_VENDOR, VENDOR_OF_APPLICATION, obj2, &obj3, ENOENT ) );
+		CHECK( 0, fd_dict_search ( fd_g_config->g_dict, DICT_VENDOR, VENDOR_OF_APPLICATION, obj2, &obj3, ENOENT ) );
 		CHECK( obj1, obj3);
 		
 		/* Creating and searching the other objects is already done in dictionary initialization */
@@ -111,20 +111,20 @@ int main(int argc, char *argv[])
 		struct dict_rule_data rule_data = { NULL, RULE_REQUIRED, -1, -1 };
 		struct dict_avp_data example_avp_data = { 999999, 0, "Example-AVP", AVP_FLAG_VENDOR , 0, AVP_TYPE_GROUPED };
 
-		CHECK( 0, fd_dict_search ( fd_g_dict, DICT_AVP, AVP_BY_NAME, "Origin-Host", &origin_host_avp, ENOENT ) );
-		CHECK( 0, fd_dict_search ( fd_g_dict, DICT_AVP, AVP_BY_NAME, "Session-Id", &session_id_avp, ENOENT ) );
+		CHECK( 0, fd_dict_search ( fd_g_config->g_dict, DICT_AVP, AVP_BY_NAME, "Origin-Host", &origin_host_avp, ENOENT ) );
+		CHECK( 0, fd_dict_search ( fd_g_config->g_dict, DICT_AVP, AVP_BY_NAME, "Session-Id", &session_id_avp, ENOENT ) );
 		
-		CHECK( 0, fd_dict_new ( fd_g_dict, DICT_AVP, &example_avp_data , NULL, &example_avp_avp ) );
+		CHECK( 0, fd_dict_new ( fd_g_config->g_dict, DICT_AVP, &example_avp_data , NULL, &example_avp_avp ) );
 		
 		rule_data.rule_avp = origin_host_avp;
 		rule_data.rule_min = 1;
 		rule_data.rule_max = 1;
-		CHECK( 0, fd_dict_new ( fd_g_dict, DICT_RULE, &rule_data, example_avp_avp, NULL ) );
+		CHECK( 0, fd_dict_new ( fd_g_config->g_dict, DICT_RULE, &rule_data, example_avp_avp, NULL ) );
 		
 		rule_data.rule_avp = session_id_avp;
 		rule_data.rule_min = 1;
 		rule_data.rule_max = -1;
-		CHECK( 0, fd_dict_new ( fd_g_dict, DICT_RULE, &rule_data, example_avp_avp, NULL ) );
+		CHECK( 0, fd_dict_new ( fd_g_config->g_dict, DICT_RULE, &rule_data, example_avp_avp, NULL ) );
 		
 		CHECK( 0, fd_dict_iterate_rules ( example_avp_avp, &nbr, iter_test) );
 		CHECK( 2, nbr );

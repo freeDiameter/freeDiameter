@@ -41,8 +41,24 @@
 #include <freeDiameter/freeDiameter-host.h>
 #include <freeDiameter/freeDiameter.h>
 
+/* Events codespace for fd_g_config->g_fifo_main */
+enum {
+	FM_TERMINATE = 1000	/* request to terminate */
+};
+
+/* Configuration */
+int fd_conf_init();
+void fd_conf_dump();
+int fd_conf_parse();
+int fddparse(struct fd_config * conf); /* yacc generated */
+
+/* Extensions */
+int fd_ext_init();
+int fd_ext_add( char * filename, char * conffile );
+int fd_ext_load();
+int fd_ext_fini(void);
+
 /* Create all the dictionary objects defined in the Diameter base RFC. */
 int fd_dict_base_protocol(struct dictionary * dict);
-
 
 #endif /* _FD_H */

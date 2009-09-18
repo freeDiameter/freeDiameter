@@ -33,37 +33,52 @@
 * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.								 *
 *********************************************************************************************************/
 
-/* Configuration from compile-time */
-#ifndef FD_IS_CONFIG
-#define FD_IS_CONFIG
+/* Sample extension to test extensions mechanism in freeDiameter */
+#include <freeDiameter/extension.h>
 
-#cmakedefine HAVE_NTOHLL
-#cmakedefine HAVE_MALLOC_H
-#cmakedefine HAVE_SIGNALENT_H
+static int sample_main(char * conffile);
 
-#cmakedefine HOST_BIG_ENDIAN @HOST_BIG_ENDIAN@
+/* Define the entry point. A convenience macro is provided */
+EXTENSION_ENTRY("sample", sample_main);
 
-#cmakedefine DISABLE_SCTP
+/* The extension-specific initialization code */
+static int sample_main(char * conffile)
+{
+	TRACE_ENTRY("%p", conffile);
+	
+	fprintf(stdout, "I am extension " __FILE__ " running on host %s\n", fd_g_config->diam_id);
+	
+	if (conffile) {
+		fprintf(stdout, "I should parse my configuration file there: %s\n", conffile);
+	} else {
+		fprintf(stdout, "I received no configuration file to parse\n");
+	}
+	
+	/* Use the dictionary for test */
+	log_debug("Let's create that 'Example-AVP'...\n");
+	{
+		struct dict_object * origin_host_avp = NULL;
+		struct dict_object * session_id_avp = NULL;
+		struct dict_object * example_avp_avp = NULL;
+		struct dict_rule_data rule_data = { NULL, RULE_REQUIRED, 0, -1, 1 };
+		struct dict_avp_data example_avp_data = { 999999, 0, "Example-AVP", AVP_FLAG_VENDOR , 0, AVP_TYPE_GROUPED };
 
-#cmakedefine FD_PROJECT_BINARY "@FD_PROJECT_BINARY@"
-#cmakedefine FD_PROJECT_NAME "@FD_PROJECT_NAME@"
-#cmakedefine FD_PROJECT_VERSION_MAJOR @FD_PROJECT_VERSION_MAJOR@
-#ifndef FD_PROJECT_VERSION_MAJOR
-# define FD_PROJECT_VERSION_MAJOR 0
-#endif /*FD_PROJECT_VERSION_MAJOR*/
-#cmakedefine FD_PROJECT_VERSION_MINOR @FD_PROJECT_VERSION_MINOR@
-#ifndef FD_PROJECT_VERSION_MINOR
-# define FD_PROJECT_VERSION_MINOR 0
-#endif /*FD_PROJECT_VERSION_MINOR*/
-#cmakedefine FD_PROJECT_VERSION_REV   @FD_PROJECT_VERSION_REV@
-#ifndef FD_PROJECT_VERSION_REV
-# define FD_PROJECT_VERSION_REV 0
-#endif /*FD_PROJECT_VERSION_REV*/
-/* HG_VERSION */
-/* PACKAGE_HG_REVISION */
-#cmakedefine FD_PROJECT_COPYRIGHT "@FD_PROJECT_COPYRIGHT@"
-
-#cmakedefine DEFAULT_CONF_FILE "@DEFAULT_CONF_FILE@"
-
-
-#endif /* FD_IS_CONFIG */
+		CHECK_FCT( fd_dict_search ( fd_g_config->g_dict, DICT_AVP, AVP_BY_NAME, "Origin-Host", &origin_host_avp, ENOENT));
+		CHECK_FCT( fd_dict_search ( fd_g_config->g_dict, DICT_AVP, AVP_BY_NAME, "Session-Id", &session_id_avp, ENOENT));
+		
+		CHECK_FCT( fd_dict_new ( fd_g_config->g_dict, DICT_AVP, &example_avp_data , NULL, &example_avp_avp ));
+		
+		rule_data.rule_avp = origin_host_avp;
+		rule_data.rule_min = 1;
+		rule_data.rule_max = 1;
+		CHECK_FCT( fd_dict_new ( fd_g_config->g_dict, DICT_RULE, &rule_data, example_avp_avp, NULL ));
+		
+		rule_data.rule_avp = session_id_avp;
+		rule_data.rule_min = 1;
+		rule_data.rule_max = -1;
+		CHECK_FCT( fd_dict_new ( fd_g_config->g_dict, DICT_RULE, &rule_data, example_avp_avp, NULL ));
+	}
+	log_debug("'Example-AVP' created without error\n");
+	
+	return 0;
+}

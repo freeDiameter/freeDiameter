@@ -33,37 +33,31 @@
 * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.								 *
 *********************************************************************************************************/
 
-/* Configuration from compile-time */
-#ifndef FD_IS_CONFIG
-#define FD_IS_CONFIG
+#ifndef _EXTENSION_H
+#define _EXTENSION_H
 
-#cmakedefine HAVE_NTOHLL
-#cmakedefine HAVE_MALLOC_H
-#cmakedefine HAVE_SIGNALENT_H
+/* Include definition of freeDiameter API */
+#include <freeDiameter/freeDiameter-host.h>
+#include <freeDiameter/freeDiameter.h>
 
-#cmakedefine HOST_BIG_ENDIAN @HOST_BIG_ENDIAN@
+/* Macro that define the entry point of the extension */
+#define EXTENSION_ENTRY(_name, _function)						\
+static int extension_loaded = 0;							\
+int fd_ext_init(int major, int minor, char * conffile) {				\
+	if ((major != FD_PROJECT_VERSION_MAJOR)						\
+		|| (minor != FD_PROJECT_VERSION_MINOR)) {				\
+		fprintf(stderr, "This extension (" _name ") was compiled for a different version of freeDiameter.\n");	\
+		TRACE_DEBUG(INFO, "daemon %d.%d != ext %d.%d",				\
+			major, minor,							\
+			FD_PROJECT_VERSION_MAJOR, FD_PROJECT_VERSION_MINOR);		\
+		return EINVAL;								\
+	}										\
+	if (extension_loaded) {								\
+		fprintf(stderr, "Extension (" _name ") cannot be loaded twice!\n");	\
+		return ENOTSUP;								\
+	}										\
+	extension_loaded++;								\
+	return (_function)(conffile);							\
+}														
 
-#cmakedefine DISABLE_SCTP
-
-#cmakedefine FD_PROJECT_BINARY "@FD_PROJECT_BINARY@"
-#cmakedefine FD_PROJECT_NAME "@FD_PROJECT_NAME@"
-#cmakedefine FD_PROJECT_VERSION_MAJOR @FD_PROJECT_VERSION_MAJOR@
-#ifndef FD_PROJECT_VERSION_MAJOR
-# define FD_PROJECT_VERSION_MAJOR 0
-#endif /*FD_PROJECT_VERSION_MAJOR*/
-#cmakedefine FD_PROJECT_VERSION_MINOR @FD_PROJECT_VERSION_MINOR@
-#ifndef FD_PROJECT_VERSION_MINOR
-# define FD_PROJECT_VERSION_MINOR 0
-#endif /*FD_PROJECT_VERSION_MINOR*/
-#cmakedefine FD_PROJECT_VERSION_REV   @FD_PROJECT_VERSION_REV@
-#ifndef FD_PROJECT_VERSION_REV
-# define FD_PROJECT_VERSION_REV 0
-#endif /*FD_PROJECT_VERSION_REV*/
-/* HG_VERSION */
-/* PACKAGE_HG_REVISION */
-#cmakedefine FD_PROJECT_COPYRIGHT "@FD_PROJECT_COPYRIGHT@"
-
-#cmakedefine DEFAULT_CONF_FILE "@DEFAULT_CONF_FILE@"
-
-
-#endif /* FD_IS_CONFIG */
+#endif /* _EXTENSION_H */

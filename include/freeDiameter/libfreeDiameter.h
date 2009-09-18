@@ -36,10 +36,19 @@
 /* This file contains the definitions of functions and types used by the libfreeDiameter library.
  *
  * This library is meant to be used by both the freeDiameter daemon and its extensions.
- *
  * It provides the tools to manipulate Diameter messages and related data.
- *
  * This file should always be included as #include <freeDiameter/libfreeDiameter.h>
+ *
+ * The file contains the following parts:
+ *	DEBUG
+ *	MACROS
+ *	THREADS
+ *	LISTS
+ *	DICTIONARY
+ *	SESSIONS
+ *	MESSAGES
+ *	DISPATCH
+ *	QUEUES
  */
 
 #ifndef _LIBFREEDIAMETER_H
@@ -296,10 +305,10 @@ extern int fd_g_debug_lvl;
 #define sSA4	struct sockaddr_in
 #define sSA6	struct sockaddr_in6
 
-/* Dump one sockaddr */
-#define sSA_DUMP( level, text, sa ) {				\
+/* Dump one sockaddr Node information */
+#define sSA_DUMP_NODE( sa, flag ) {				\
 	sSA * __sa = (sSA *)(sa);				\
-	char *__str, __addrbuf[INET6_ADDRSTRLEN];		\
+	char __addrbuf[INET6_ADDRSTRLEN];			\
 	if (__sa) {						\
 	  int __rc = getnameinfo(__sa, 				\
 	  		sizeof(sSS),				\
@@ -307,16 +316,16 @@ extern int fd_g_debug_lvl;
 			sizeof(__addrbuf),			\
 			NULL,					\
 			0,					\
-			0);					\
+			flag);					\
 	  if (__rc)						\
-	  	__str = (char *)gai_strerror(__rc);		\
+	  	fd_log_debug((char *)gai_strerror(__rc));	\
 	  else							\
-	  	__str = &__addrbuf[0];				\
+	  	fd_log_debug(&__addrbuf[0]);			\
 	} else {						\
-		__str = "(NULL / ANY)";				\
+		fd_log_debug("(NULL / ANY)");			\
 	}							\
-	TRACE_DEBUG(level, text "%s", __str);			\
 }
+/* if needed, add sSA_DUMP_SERVICE */
 
 /* The sockaddr length of a sSS structure */
 #define sSSlen( _ss_ )	\
@@ -2274,65 +2283,65 @@ int fd_msg_dispatch ( struct msg ** msg, struct session * session, enum disp_act
 
 
 /*============================================================*/
-/*                    MESSAGE QUEUES                          */
+/*                     QUEUES                                 */
 /*============================================================*/
 
-/* Management of queues of messages */
+/* Management of FIFO queues of elements */
 
-/* A message queue is an opaque object */
-struct mqueue;
+/* A queue is an opaque object */
+struct fifo;
 
 /*
- * FUNCTION:	fd_mq_new
+ * FUNCTION:	fd_fifo_new
  *
  * PARAMETERS:
- *  queue	: Upon success, a pointer to the new message queue is saved here.
+ *  queue	: Upon success, a pointer to the new queue is saved here.
  *
  * DESCRIPTION: 
- *  Create a new empty message queue.
+ *  Create a new empty queue.
  *
  * RETURN VALUE :
- *  0		: The message queue has been initialized successfully.
+ *  0		: The queue has been initialized successfully.
  *  EINVAL 	: The parameter is invalid.
  *  ENOMEM	: Not enough memory to complete the creation.  
  */
-int fd_mq_new ( struct mqueue ** queue );
+int fd_fifo_new ( struct fifo ** queue );
 
 /*
- * FUNCTION:	fd_mq_del
+ * FUNCTION:	fd_fifo_del
  *
  * PARAMETERS:
- *  queue	: Pointer to an empty message queue to delete.
+ *  queue	: Pointer to an empty queue to delete.
  *
  * DESCRIPTION: 
- *  Destroys a message queue. This is only possible if no thread is waiting for a message,
+ *  Destroys a queue. This is only possible if no thread is waiting for an element,
  * and the queue is empty.
  *
  * RETURN VALUE:
- *  0		: The message queue has been destroyed successfully.
+ *  0		: The queue has been destroyed successfully.
  *  EINVAL 	: The parameter is invalid.
  */
-int fd_mq_del ( struct mqueue  ** queue );
+int fd_fifo_del ( struct fifo  ** queue );
 
 /*
- * FUNCTION:	fd_mq_length
+ * FUNCTION:	fd_fifo_length
  *
  * PARAMETERS:
- *  queue	: The queue from which to retrieve the length.
- *  length	: Upon success, the current number of messages in the queue is stored here.
+ *  queue	: The queue from which to retrieve the number of elements.
+ *  length	: Upon success, the current number of elements in the queue is stored here.
  *
  * DESCRIPTION: 
- *  Retrieve the number of messages pending in a queue.
+ *  Retrieve the number of elements in a queue.
  *
  * RETURN VALUE:
  *  0		: The length of the queue has been written.
  *  EINVAL 	: A parameter is invalid.
  */
-int fd_mq_length ( struct mqueue * queue, int * length );
-int fd_mq_length_noerr ( struct mqueue * queue ); /* alternate with no error checking */
+int fd_fifo_length ( struct fifo * queue, int * length );
+int fd_fifo_length_noerr ( struct fifo * queue ); /* no error checking version */
 
 /*
- * FUNCTION:	fd_mq_setthrhd
+ * FUNCTION:	fd_fifo_setthrhd
  *
  * PARAMETERS:
  *  queue	: The queue for which the thresholds are being set.
@@ -2344,98 +2353,106 @@ int fd_mq_length_noerr ( struct mqueue * queue ); /* alternate with no error che
  *
  * DESCRIPTION: 
  *  This function allows to adjust the number of producer / consumer threads of a queue.
- * If the consumer are slower than the producers, the number of messages in the queue increase.
+ * If the consumer are slower than the producers, the number of elements in the queue increase.
  * By setting a "high" value, we allow a callback to be called when this number is too high.
  * The typical use would be to create an additional consumer thread in this callback.
  * If the queue continues to grow, the callback will be called again when the length is 2 * high, then 3*high, ... N * high
- * (the callback itself may implement a limit on the number of consumers that can be created)
+ * (the callback itself should implement a limit on the number of consumers that can be created)
  * When the queue starts to decrease, and the number of elements go under ((N - 1) * high + low, the l_cb callback is called
- * and would typially stop one of the consumer threads. If the queue continue to reduce, l_cb is again called at (N-2)*high + low,
+ * and would typially stop one of the consumer threads. If the queue continues to reduce, l_cb is again called at (N-2)*high + low,
  * and so on.
  *
  * Since there is no destructor for the data pointer, if cleanup operations are required, they should be performed in
  * l_cb when the length of the queue is becoming < low.
  *
- * Note that the callbacks are called synchronously, during fd_mq_post or fd_mq_get. Their operation should be quick.
+ * Note that the callbacks are called synchronously, during fd_fifo_post or fd_fifo_get. Their operation should be quick.
  *
  * RETURN VALUE:
  *  0		: The thresholds have been set
  *  EINVAL 	: A parameter is invalid.
  */
-int fd_mq_setthrhd ( struct mqueue * queue, void * data, uint16_t high, void (*h_cb)(struct mqueue *, void **), uint16_t low, void (*l_cb)(struct mqueue *, void **) );
+int fd_fifo_setthrhd ( struct fifo * queue, void * data, uint16_t high, void (*h_cb)(struct fifo *, void **), uint16_t low, void (*l_cb)(struct fifo *, void **) );
 
 /*
- * FUNCTION:	fd_mq_post
+ * FUNCTION:	fd_fifo_post
  *
  * PARAMETERS:
- *  queue	: The queue in which the message must be posted.
- *  msg		: The message that is put in the queue.
+ *  queue	: The queue in which the element must be posted.
+ *  item	: The element that is put in the queue.
  *
  * DESCRIPTION: 
- *  A message is added in a queue. Messages are retrieved from the queue (in FIFO order)
- *  with the fd_mq_get, fd_mq_tryget, or fd_mq_timedget functions.
+ *  An element is added in a queue. Elements are retrieved from the queue in FIFO order
+ *  with the fd_fifo_get, fd_fifo_tryget, or fd_fifo_timedget functions.
  *
  * RETURN VALUE:
- *  0		: The message is queued.
+ *  0		: The element is queued.
  *  EINVAL 	: A parameter is invalid.
  *  ENOMEM 	: Not enough memory to complete the operation.
  */
-int fd_mq_post ( struct mqueue * queue, struct msg ** msg );
+int fd_fifo_post_int ( struct fifo * queue, void ** item );
+#define fd_fifo_post(queue, item) \
+	fd_fifo_post_int((queue), (void *)(item))
 
 /*
- * FUNCTION:	fd_mq_get
+ * FUNCTION:	fd_fifo_get
  *
  * PARAMETERS:
- *  queue	: The queue from which the message must be retrieved.
- *  msg		: On return, the first message of the queue is stored here.
+ *  queue	: The queue from which the first element must be retrieved.
+ *  item	: On return, the first element of the queue is stored here.
  *
  * DESCRIPTION: 
- *  This function retrieves a message from a queue. If the queue is empty, the function will block the 
- * thread until a new message is posted to the queue, or until the thread is canceled (in which case the 
+ *  This function retrieves the first element from a queue. If the queue is empty, the function will block the 
+ * thread until a new element is posted to the queue, or until the thread is canceled (in which case the 
  * function does not return).
  *
  * RETURN VALUE:
- *  0		: A new message has been retrieved.
+ *  0		: A new element has been retrieved.
  *  EINVAL 	: A parameter is invalid.
  */
-int fd_mq_get ( struct mqueue * queue, struct msg ** msg );
+int fd_fifo_get_int ( struct fifo * queue, void ** item );
+#define fd_fifo_get(queue, item) \
+	fd_fifo_get_int((queue), (void *)(item))
 
 /*
- * FUNCTION:	fd_mq_tryget
+ * FUNCTION:	fd_fifo_tryget
  *
  * PARAMETERS:
- *  queue	: The queue from which the message must be retrieved.
+ *  queue	: The queue from which the element must be retrieved.
  *  msg		: On return, the message is stored here.
  *
  * DESCRIPTION: 
- *  This function is similar to fd_mq_get, except that it will not block if 
+ *  This function is similar to fd_fifo_get, except that it will not block if 
  * the queue is empty, but return EWOULDBLOCK instead.
  *
  * RETURN VALUE:
- *  0		: A new message has been retrieved.
+ *  0		: A new element has been retrieved.
  *  EINVAL 	: A parameter is invalid.
  *  EWOULDBLOCK : The queue was empty.
  */
-int fd_mq_tryget ( struct mqueue * queue, struct msg ** msg );
+int fd_fifo_tryget_int ( struct fifo * queue, void ** item );
+#define fd_fifo_tryget(queue, item) \
+	fd_fifo_tryget_int((queue), (void *)(item))
 
 /*
- * FUNCTION:	fd_mq_timedget
+ * FUNCTION:	fd_fifo_timedget
  *
  * PARAMETERS:
- *  queue	: The queue from which the message must be retrieved.
- *  msg		: On return, the message is stored here.
- *  abstime	: the absolute time until which we allow waiting for a message.
+ *  queue	: The queue from which the element must be retrieved.
+ *  item	: On return, the element is stored here.
+ *  abstime	: the absolute time until which we allow waiting for an item.
  *
  * DESCRIPTION: 
- *  This function is similar to fd_mq_get, except that it will block if the queue is empty 
+ *  This function is similar to fd_fifo_get, except that it will block if the queue is empty 
  * only until the absolute time abstime (see pthread_cond_timedwait for + info).
  * If the queue is still empty when the time expires, the function returns ETIMEDOUT
  *
  * RETURN VALUE:
- *  0		: A new message has been retrieved.
+ *  0		: A new item has been retrieved.
  *  EINVAL 	: A parameter is invalid.
- *  ETIMEDOUT   : The time out has passed and no message has been received.
+ *  ETIMEDOUT   : The time out has passed and no item has been received.
  */
-int fd_mq_timedget ( struct mqueue * queue, struct msg ** msg, const struct timespec *abstime );
+int fd_fifo_timedget_int ( struct fifo * queue, void ** item, const struct timespec *abstime );
+#define fd_fifo_timedget(queue, item, abstime) \
+	fd_fifo_timedget_int((queue), (void *)(item), (abstime))
 
 #endif /* _LIBFREEDIAMETER_H */

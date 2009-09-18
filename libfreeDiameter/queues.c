@@ -33,7 +33,7 @@
 * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.								 *
 *********************************************************************************************************/
 
-/* Messages queues module.
+/* FIFO queues module.
  *
  * The threads that call these functions must be in the cancellation state PTHREAD_CANCEL_ENABLE and type PTHREAD_CANCEL_DEFERRED.
  * This is the default state and type on thread creation.
@@ -41,54 +41,54 @@
  * In order to destroy properly a queue, the application must:
  *  -> shutdown any process that can add into the queue first.
  *  -> pthread_cancel any thread that could be waiting on the queue.
- *  -> consume any message that is in the queue, using meq_tryget.
- *  -> then destroy the queue using meq_del.
+ *  -> consume any element that is in the queue, using fd_qu_tryget_int.
+ *  -> then destroy the queue using fd_mq_del.
  */
 
 #include "libfD.h"
 
-/* Definition of a message queue object */
-struct mqueue {
-	int		eyec;	/* An eye catcher, also used to check a queue is valid. MQ_EYEC */
+/* Definition of a FIFO queue object */
+struct fifo {
+	int		eyec;	/* An eye catcher, also used to check a queue is valid. FIFO_EYEC */
 	
 	pthread_mutex_t	mtx;	/* Mutex protecting this queue */
 	pthread_cond_t	cond;	/* condition variable of the list */
 	
-	struct fd_list	list;	/* sentinel for the list of messages */
+	struct fd_list	list;	/* sentinel for the list of elements */
 	int		count;	/* number of objects in the list */
-	int		thrs;	/* number of threads waiting for a new message (when count is 0) */
+	int		thrs;	/* number of threads waiting for a new element (when count is 0) */
 	
 	uint16_t	high;	/* High level threshold (see libfreeDiameter.h for details) */
 	uint16_t	low;	/* Low level threshhold */
 	void 		*data;	/* Opaque pointer for threshold callbacks */
-	void		(*h_cb)(struct mqueue *, void **); /* The callbacks */
-	void		(*l_cb)(struct mqueue *, void **);
+	void		(*h_cb)(struct fifo *, void **); /* The callbacks */
+	void		(*l_cb)(struct fifo *, void **);
 	int 		highest;/* The highest count value for which h_cb has been called */
 };
 
 /* The eye catcher value */
-#define MQ_EYEC	0xe7ec1130
+#define FIFO_EYEC	0xe7ec1130
 
 /* Macro to check a pointer */
-#define CHECK_QUEUE( _queue ) (( (_queue) != NULL) && ( (_queue)->eyec == MQ_EYEC) )
+#define CHECK_FIFO( _queue ) (( (_queue) != NULL) && ( (_queue)->eyec == FIFO_EYEC) )
 
 
-/* Create a new message queue */
-int fd_mq_new ( struct mqueue ** queue )
+/* Create a new queue */
+int fd_fifo_new ( struct fifo ** queue )
 {
-	struct mqueue * new;
+	struct fifo * new;
 	
 	TRACE_ENTRY( "%p", queue );
 	
 	CHECK_PARAMS( queue );
 	
 	/* Create a new object */
-	CHECK_MALLOC( new = malloc (sizeof (struct mqueue) )  );
+	CHECK_MALLOC( new = malloc (sizeof (struct fifo) )  );
 	
 	/* Initialize the content */
-	memset(new, 0, sizeof(struct mqueue));
+	memset(new, 0, sizeof(struct fifo));
 	
-	new->eyec = MQ_EYEC;
+	new->eyec = FIFO_EYEC;
 	CHECK_POSIX( pthread_mutex_init(&new->mtx, NULL) );
 	CHECK_POSIX( pthread_cond_init(&new->cond, NULL) );
 	
@@ -99,14 +99,14 @@ int fd_mq_new ( struct mqueue ** queue )
 	return 0;
 }
 
-/* Delete a message queue. It must be unused. */ 
-int fd_mq_del ( struct mqueue  ** queue )
+/* Delete a queue. It must be unused. */ 
+int fd_fifo_del ( struct fifo  ** queue )
 {
-	struct mqueue * q;
+	struct fifo * q;
 	
 	TRACE_ENTRY( "%p", queue );
 
-	CHECK_PARAMS( queue && CHECK_QUEUE( *queue ) );
+	CHECK_PARAMS( queue && CHECK_FIFO( *queue ) );
 	
 	q = *queue;
 	
@@ -138,12 +138,12 @@ int fd_mq_del ( struct mqueue  ** queue )
 }
 
 /* Get the length of the queue */
-int fd_mq_length ( struct mqueue * queue, int * length )
+int fd_fifo_length ( struct fifo * queue, int * length )
 {
 	TRACE_ENTRY( "%p %p", queue, length );
 	
 	/* Check the parameters */
-	CHECK_PARAMS( CHECK_QUEUE( queue ) && length );
+	CHECK_PARAMS( CHECK_FIFO( queue ) && length );
 	
 	/* lock the queue */
 	CHECK_POSIX(  pthread_mutex_lock( &queue->mtx )  );
@@ -159,21 +159,21 @@ int fd_mq_length ( struct mqueue * queue, int * length )
 }
 
 /* alternate version with no error checking */
-int fd_mq_length_noerr ( struct mqueue * queue )
+int fd_fifo_length_noerr ( struct fifo * queue )
 {
-	if ( !CHECK_QUEUE( queue ) )
+	if ( !CHECK_FIFO( queue ) )
 		return 0;
 	
 	return queue->count; /* Let's hope it's read atomically, since we are not locking... */
 }
 
 /* Set the thresholds of the queue */
-int fd_mq_setthrhd ( struct mqueue * queue, void * data, uint16_t high, void (*h_cb)(struct mqueue *, void **), uint16_t low, void (*l_cb)(struct mqueue *, void **) )
+int fd_fifo_setthrhd ( struct fifo * queue, void * data, uint16_t high, void (*h_cb)(struct fifo *, void **), uint16_t low, void (*l_cb)(struct fifo *, void **) )
 {
 	TRACE_ENTRY( "%p %p %hu %p %hu %p", queue, data, high, h_cb, low, l_cb );
 	
 	/* Check the parameters */
-	CHECK_PARAMS( CHECK_QUEUE( queue ) && (high > low) && (queue->data == NULL) );
+	CHECK_PARAMS( CHECK_FIFO( queue ) && (high > low) && (queue->data == NULL) );
 	
 	/* lock the queue */
 	CHECK_POSIX(  pthread_mutex_lock( &queue->mtx )  );
@@ -192,27 +192,27 @@ int fd_mq_setthrhd ( struct mqueue * queue, void * data, uint16_t high, void (*h
 	return 0;
 }
 
-/* Post a new message in the queue */
-int fd_mq_post ( struct mqueue * queue, struct msg ** msg )
+/* Post a new item in the queue */
+int fd_fifo_post_int ( struct fifo * queue, void ** item )
 {
 	struct fd_list * new;
 	int call_cb = 0;
 	
-	TRACE_ENTRY( "%p %p", queue, msg );
+	TRACE_ENTRY( "%p %p", queue, item );
 	
 	/* Check the parameters */
-	CHECK_PARAMS( CHECK_QUEUE( queue ) && msg && *msg );
+	CHECK_PARAMS( CHECK_FIFO( queue ) && item && *item );
 	
 	/* Create a new list item */
 	CHECK_MALLOC(  new = malloc (sizeof (struct fd_list))  );
 	
-	fd_list_init(new, *msg);
-	*msg = NULL;
+	fd_list_init(new, *item);
+	*item = NULL;
 	
 	/* lock the queue */
 	CHECK_POSIX(  pthread_mutex_lock( &queue->mtx )  );
 	
-	/* Add the new message at the end */
+	/* Add the new item at the end */
 	fd_list_insert_before( &queue->list, new);
 	queue->count++;
 	if (queue->high && ((queue->count % queue->high) == 0)) {
@@ -236,24 +236,24 @@ int fd_mq_post ( struct mqueue * queue, struct msg ** msg )
 	return 0;
 }
 
-/* Pop the first message from the queue */
-static struct msg * mq_pop(struct mqueue * queue)
+/* Pop the first item from the queue */
+static void * mq_pop(struct fifo * queue)
 {
-	struct msg * ret = NULL;
+	void * ret = NULL;
 	struct fd_list * li;
 	
 	ASSERT( ! FD_IS_LIST_EMPTY(&queue->list) );
 	
 	fd_list_unlink(li = queue->list.next);
 	queue->count--;
-	ret = (struct msg *)(li->o);
+	ret = li->o;
 	free(li);
 	
 	return ret;
 }
 
 /* Check if the low watermark callback must be called. */
-static int test_l_cb(struct mqueue * queue)
+static __inline__ int test_l_cb(struct fifo * queue)
 {
 	if ((queue->high == 0) || (queue->low == 0) || (queue->l_cb == 0))
 		return 0;
@@ -266,28 +266,28 @@ static int test_l_cb(struct mqueue * queue)
 	return 0;
 }
 
-/* Try poping a message */
-int fd_mq_tryget ( struct mqueue * queue, struct msg ** msg )
+/* Try poping an item */
+int fd_fifo_tryget_int ( struct fifo * queue, void ** item )
 {
 	int wouldblock = 0;
 	int call_cb = 0;
 	
-	TRACE_ENTRY( "%p %p", queue, msg );
+	TRACE_ENTRY( "%p %p", queue, item );
 	
 	/* Check the parameters */
-	CHECK_PARAMS( CHECK_QUEUE( queue ) && msg );
+	CHECK_PARAMS( CHECK_FIFO( queue ) && item );
 	
 	/* lock the queue */
 	CHECK_POSIX(  pthread_mutex_lock( &queue->mtx )  );
 	
 	/* Check queue status */
 	if (queue->count > 0) {
-		/* There are messages in the queue, so pick the first one */
-		*msg = mq_pop(queue);
+		/* There are elements in the queue, so pick the first one */
+		*item = mq_pop(queue);
 		call_cb = test_l_cb(queue);
 	} else {
 		wouldblock = 1;
-		*msg = NULL;
+		*item = NULL;
 	}
 		
 	/* Unlock */
@@ -302,13 +302,13 @@ int fd_mq_tryget ( struct mqueue * queue, struct msg ** msg )
 }
 
 /* This handler is called when a thread is blocked on a queue, and cancelled */
-static void mq_cleanup(void * queue)
+static void fifo_cleanup(void * queue)
 {
-	struct mqueue * q = (struct mqueue *)queue;
+	struct fifo * q = (struct fifo *)queue;
 	TRACE_ENTRY( "%p", queue );
 	
 	/* Check the parameter */
-	if ( ! CHECK_QUEUE( q )) {
+	if ( ! CHECK_FIFO( q )) {
 		TRACE_DEBUG(INFO, "Invalid queue, skipping handler");
 		return;
 	}
@@ -323,17 +323,17 @@ static void mq_cleanup(void * queue)
 	return;
 }
 
-/* The internal function for meq_timedget and meq_get */
-static int mq_tget ( struct mqueue * queue, struct msg ** msg, int istimed, const struct timespec *abstime)
+/* The internal function for fd_fifo_timedget and fd_fifo_get */
+static int fifo_tget ( struct fifo * queue, void ** item, int istimed, const struct timespec *abstime)
 {
 	int timedout = 0;
 	int call_cb = 0;
 	
 	/* Check the parameters */
-	CHECK_PARAMS( CHECK_QUEUE( queue ) && msg && (abstime || !istimed) );
+	CHECK_PARAMS( CHECK_FIFO( queue ) && item && (abstime || !istimed) );
 	
-	/* Initialize the msg value */
-	*msg = NULL;
+	/* Initialize the return value */
+	*item = NULL;
 	
 	/* lock the queue */
 	CHECK_POSIX(  pthread_mutex_lock( &queue->mtx )  );
@@ -341,14 +341,14 @@ static int mq_tget ( struct mqueue * queue, struct msg ** msg, int istimed, cons
 awaken:
 	/* Check queue status */
 	if (queue->count > 0) {
-		/* There are messages in the queue, so pick the first one */
-		*msg = mq_pop(queue);
+		/* There are items in the queue, so pick the first one */
+		*item = mq_pop(queue);
 		call_cb = test_l_cb(queue);
 	} else {
 		int ret = 0;
-		/* We have to wait for a new message */
+		/* We have to wait for a new item */
 		queue->thrs++ ;
-		pthread_cleanup_push( mq_cleanup, queue);
+		pthread_cleanup_push( fifo_cleanup, queue);
 		if (istimed) {
 			ret = pthread_cond_timedwait( &queue->cond, &queue->mtx, abstime );
 		} else {
@@ -378,17 +378,17 @@ awaken:
 	return timedout ? ETIMEDOUT : 0;
 }
 
-/* Get the next available message, block until there is one */
-int fd_mq_get ( struct mqueue * queue, struct msg ** msg )
+/* Get the next available item, block until there is one */
+int fd_fifo_get_int ( struct fifo * queue, void ** item )
 {
-	TRACE_ENTRY( "%p %p", queue, msg );
-	return mq_tget(queue, msg, 0, NULL);
+	TRACE_ENTRY( "%p %p", queue, item );
+	return fifo_tget(queue, item, 0, NULL);
 }
 
-/* Get the next available message, block until there is one, or the timeout expires */
-int fd_mq_timedget ( struct mqueue * queue, struct msg ** msg, const struct timespec *abstime )
+/* Get the next available item, block until there is one, or the timeout expires */
+int fd_fifo_timedget_int ( struct fifo * queue, void ** item, const struct timespec *abstime )
 {
-	TRACE_ENTRY( "%p %p %p", queue, msg, abstime );
-	return mq_tget(queue, msg, 1, abstime);
+	TRACE_ENTRY( "%p %p %p", queue, item, abstime );
+	return fifo_tget(queue, item, 1, abstime);
 }
 

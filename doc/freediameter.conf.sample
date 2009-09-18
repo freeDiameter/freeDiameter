@@ -1,0 +1,132 @@
+# This is a sample configuration file for freeDiameter daemon.
+
+##############################################################
+##  Peer identity and realm 
+
+# The Diameter Identity of this daemon.
+# This must be a valid FQDN that resolves to the local host.
+# Default: hostname's FQDN
+#LocalIdentity = "aaa.koganei.wide.ad.jp";
+
+# The Diameter Realm of this daemon.
+# Default: the domain part of LocalIdentity.
+#LocalRealm = "wide.ad.jp";
+
+##############################################################
+##  Transport protocol configuration
+
+# The port this peer is listening on for incoming connections (TCP and SCTP).
+# Default: 3868
+#LocalPort = 3868;
+
+# The port this peer is listening on for incoming TLS connections (TCP and SCTP).
+# See TLS_old_method for more information.
+# Default: 3869
+#LocalSecPort = 3869;
+
+# Use RFC3588 method for TLS protection, where TLS is negociated after CER/CEA
+# on the same port. This only affects outgoing connections. It can be overwritten
+# on per peer basis.
+# Default: use RFC3588bis method with separate port for TLS.
+#TLS_old_method;
+
+# Disable use of TCP protocol (only SCTP)
+# Default : TCP enabled
+#No_TCP;
+
+# Disable use of SCTP protocol (only TCP)
+# Default : SCTP enabled
+#No_SCTP;
+# This option has no effect if freeDiameter is compiled with DISABLE_SCTP option,
+# in which case the value is forced to "SCTP disabled".
+
+# Prefer TCP over SCTP for establishing new connections.
+# It may be overwritten per peer in peer configuration blocs.
+# Default : SCTP is prefered.
+#Prefer_TCP;
+
+# Default number of streams per SCTP associations.
+# It can be overwritten per peer basis.
+# Default : 30 streams
+#SCTP_streams = 30;
+
+##############################################################
+##  Endpoints configuration
+
+# Disable use of IP addresses (only IPv6)
+# Default : IP enabled
+#No_IP;
+
+# Disable use of IPv6 addresses (only IP)
+# Default : IPv6 enabled
+#No_IPv6;
+
+# Specify local addresses where the server must listen
+# Default : listen on all addresses available.
+#ListenOn = "202.249.37.5";
+#ListenOn = "2001:200:903:2::202:1";
+
+##############################################################
+##  Timers configuration
+
+# The Tc timer of this peer.
+# It is the delay before a new attempt is made to reconnect a disconnected peer.
+# The value is expressed in seconds. The recommended value is 30 seconds.
+# Default: 30
+#TcTimer = 30;
+
+# The Tw timer of this peer.
+# It is the delay before a watchdog message is sent, as described in RFC 3539.
+# The value is expressed in seconds. The default value is 30 seconds. Value must
+# be greater or equal to 6 seconds. See details in the RFC.
+# Default: 30
+#TwTimer = 30;
+
+##############################################################
+##  Applications configuration
+
+# Disable the relaying of Diameter messages?
+# For messages not handled locally, the default behavior is to forward the
+# message to another peer if any is available, according to the routing 
+# algorithms. In addition the "0xffffff" application is advertised in CER/CEA 
+# exchanges.
+# Default: Relaying is enabled.
+#NoRelay;
+
+# Other applications are configured by extensions.
+
+##############################################################
+##  Extensions configuration
+
+#  The freeDiameter daemon merely provides support for
+# Diameter Base Protocol. The specific application behaviors,
+# as well as advanced functions of the daemon, are provided
+# by loadable extensions (plug-ins).
+#  These extensions may in addition receive the name of a 
+# configuration file, the format of which is extension-specific.
+
+# Format:
+#LoadExtension = "/path/to/extension" [ : "/optional/configuration/file" ] ;
+# Exemples:
+#LoadExtension = "extensions/sample.so";
+#LoadExtension = "extensions/sample.so":"conf/sample.conf";
+
+
+
+##############################################################
+# -------- Test configuration ---------
+LocalIdentity = "aaa.koganei.wide.ad.jp";
+LocalRealm = "wide.ad.jp";
+LocalPort = 3866;
+LocalSecPort = 3867;
+TLS_old_method;
+No_IP;
+Prefer_TCP;
+SCTP_streams = 50;
+ListenOn = "202.249.37.5";
+ListenOn = "2001:200:903:2::202:1";
+TcTimer = 60;
+TwTimer = 6;
+NoRelay;
+LoadExtension = "extensions/sample.so";
+LoadExtension = "extensions/sample.so":"conf/sample.conf";

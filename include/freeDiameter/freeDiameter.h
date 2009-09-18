@@ -40,9 +40,77 @@
 #include <freeDiameter/libfreeDiameter.h>
 
 
-/* The global dictionary */
-extern struct dictionary * fd_g_dict;
+/* Structure to hold the configuration of the freeDiameter daemon */
+struct fd_config {
+	int		 eyec;		/* Eye catcher: EYEC_CONFIG */
+	char		*conf_file;	/* Configuration file to parse, default is DEFAULT_CONF_FILE */
+	
+	char   		*diam_id;	/* Diameter Identity of the local peer (FQDN -- UTF-8) */
+	size_t		 diam_id_len;	/* length of the previous string */
+	char		*diam_realm;	/* Diameter realm of the local peer, default to realm part of diam_id */
+	size_t		 diam_realm_len;/* length of the previous string */
+	
+	uint16_t	 loc_port;	/* the local port for legacy Diameter (default: 3868) in host byte order */
+	uint16_t	 loc_port_tls;	/* the local port for Diameter/TLS (default: 3869) in host byte order */
+	uint16_t	 loc_sctp_str;	/* default max number of streams for SCTP associations (def: 30) */
+	struct fd_list	 loc_endpoints;	/* the local endpoints to bind the server to. list of struct fd_endpoint. default is empty (bind all) */
+	struct {
+		unsigned no_ip4 : 1;	/* disable IP */
+		unsigned no_ip6 : 1;	/* disable IPv6 */
+		unsigned no_tcp : 1;	/* disable use of TCP */
+		unsigned no_sctp: 1;	/* disable the use of SCTP */
+		unsigned pr_tcp	: 1;	/* prefer TCP over SCTP */
+		unsigned tls_alg: 1;	/* TLS algorithm for initiated cnx. 0: separate port. 1: inband-security (old) */
+		unsigned no_fwd : 1;	/* the peer does not relay messages (0xffffff app id) */
+	} 		 flags;
+	
+	unsigned int	 timer_tc;	/* The value in seconds of the default Tc timer */
+	unsigned int 	 timer_tw;	/* The value in seconds of the default Tw timer */
+	
+	uint32_t	 or_state_id;	/* The value to use in Origin-State-Id, default to random value */
+	struct dictionary *g_dict;	/* pointer to the global dictionary */
+	struct fifo	  *g_fifo_main;	/* FIFO queue of events in the daemon main (struct fd_event items) */
+};
 
+#define	EYEC_CONFIG	0xC011F16
+
+/* The pointer to access the global configuration, initalized in main */
+extern struct fd_config *fd_g_config;
+
+/* Endpoints */
+struct fd_endpoint {
+	struct fd_list  chain;	/* link in loc_endpoints list */
+	sSS		ss;	/* the socket information. */
+};
+
+/* Events */
+struct fd_event {
+	int	 code; /* codespace depends on the queue */
+	void    *data;
+};
+
+/* send an event */
+static __inline__ int fd_event_send(struct fifo *queue, int code, void * data)
+{
+	struct fd_event * ev;
+	CHECK_MALLOC( ev = malloc(sizeof(struct fd_event)) );
+	ev->code = code;
+	ev->data = data;
+	CHECK_FCT( fd_fifo_post(queue, &ev) );
+	return 0;
+}
+/* receive an event */
+static __inline__ int fd_event_get(struct fifo *queue, int *code, void ** data)
+{
+	struct fd_event * ev;
+	CHECK_FCT( fd_fifo_get(queue, &ev) );
+	if (code)
+		*code = ev->code;
+	if (data)
+		*data = ev->data;
+	free(ev);
+	return 0;
+}
 
 /***************************************/
 /*   Sending a message on the network  */

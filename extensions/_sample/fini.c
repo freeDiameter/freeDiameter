@@ -2,7 +2,7 @@
 * Software License Agreement (BSD License)                                                               *
 * Author: Sebastien Decugis <sdecugis@nict.go.jp>							 *
 *													 *
-* Copyright (c) 2009, WIDE Project and NICT								 *
+* Copyright (c) 2008, WIDE Project and NICT								 *
 * All rights reserved.											 *
 * 													 *
 * Redistribution and use of this software in source and binary forms, with or without modification, are  *
@@ -33,37 +33,13 @@
 * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.								 *
 *********************************************************************************************************/
 
-/* Configuration from compile-time */
-#ifndef FD_IS_CONFIG
-#define FD_IS_CONFIG
+/* Sample extension exit point */
 
-#cmakedefine HAVE_NTOHLL
-#cmakedefine HAVE_MALLOC_H
-#cmakedefine HAVE_SIGNALENT_H
+#include <freeDiameter/extension.h>
 
-#cmakedefine HOST_BIG_ENDIAN @HOST_BIG_ENDIAN@
+void fd_ext_fini(void)
+{
+	log_debug("Extension is terminated... Bye!\n");
+	return ;
+}
 
-#cmakedefine DISABLE_SCTP
-
-#cmakedefine FD_PROJECT_BINARY "@FD_PROJECT_BINARY@"
-#cmakedefine FD_PROJECT_NAME "@FD_PROJECT_NAME@"
-#cmakedefine FD_PROJECT_VERSION_MAJOR @FD_PROJECT_VERSION_MAJOR@
-#ifndef FD_PROJECT_VERSION_MAJOR
-# define FD_PROJECT_VERSION_MAJOR 0
-#endif /*FD_PROJECT_VERSION_MAJOR*/
-#cmakedefine FD_PROJECT_VERSION_MINOR @FD_PROJECT_VERSION_MINOR@
-#ifndef FD_PROJECT_VERSION_MINOR
-# define FD_PROJECT_VERSION_MINOR 0
-#endif /*FD_PROJECT_VERSION_MINOR*/
-#cmakedefine FD_PROJECT_VERSION_REV   @FD_PROJECT_VERSION_REV@
-#ifndef FD_PROJECT_VERSION_REV
-# define FD_PROJECT_VERSION_REV 0
-#endif /*FD_PROJECT_VERSION_REV*/
-/* HG_VERSION */
-/* PACKAGE_HG_REVISION */
-#cmakedefine FD_PROJECT_COPYRIGHT "@FD_PROJECT_COPYRIGHT@"
-
-#cmakedefine DEFAULT_CONF_FILE "@DEFAULT_CONF_FILE@"
-
-
-#endif /* FD_IS_CONFIG */

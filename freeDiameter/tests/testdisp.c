@@ -127,15 +127,15 @@ int main(int argc, char *argv[])
 		struct dict_enumval_data enu1_data = { "ENU test 1", { .u32 = 1 }};
 		struct dict_enumval_data enu2_data = { "ENU test 2", { .u32 = 2 }};
 		
-		CHECK( 0, fd_dict_new ( fd_g_dict, DICT_APPLICATION, &app1_data, NULL, &app1 ) );
-		CHECK( 0, fd_dict_new ( fd_g_dict, DICT_APPLICATION, &app2_data, NULL, &app2 ) );
-		CHECK( 0, fd_dict_new ( fd_g_dict, DICT_COMMAND, &cmd1_data, NULL, &cmd1 ) );
-		CHECK( 0, fd_dict_new ( fd_g_dict, DICT_COMMAND, &cmd2_data, NULL, &cmd2 ) );
-		CHECK( 0, fd_dict_new ( fd_g_dict, DICT_TYPE, &type_data, NULL, &enutype ) );
-		CHECK( 0, fd_dict_new ( fd_g_dict, DICT_AVP, &avp1_data, NULL,    &avp1 ) );
-		CHECK( 0, fd_dict_new ( fd_g_dict, DICT_AVP, &avp2_data, enutype, &avp2 ) );
-		CHECK( 0, fd_dict_new ( fd_g_dict, DICT_ENUMVAL, &enu1_data, enutype, &enu1 ) );
-		CHECK( 0, fd_dict_new ( fd_g_dict, DICT_ENUMVAL, &enu2_data, enutype, &enu2 ) );
+		CHECK( 0, fd_dict_new ( fd_g_config->g_dict, DICT_APPLICATION, &app1_data, NULL, &app1 ) );
+		CHECK( 0, fd_dict_new ( fd_g_config->g_dict, DICT_APPLICATION, &app2_data, NULL, &app2 ) );
+		CHECK( 0, fd_dict_new ( fd_g_config->g_dict, DICT_COMMAND, &cmd1_data, NULL, &cmd1 ) );
+		CHECK( 0, fd_dict_new ( fd_g_config->g_dict, DICT_COMMAND, &cmd2_data, NULL, &cmd2 ) );
+		CHECK( 0, fd_dict_new ( fd_g_config->g_dict, DICT_TYPE, &type_data, NULL, &enutype ) );
+		CHECK( 0, fd_dict_new ( fd_g_config->g_dict, DICT_AVP, &avp1_data, NULL,    &avp1 ) );
+		CHECK( 0, fd_dict_new ( fd_g_config->g_dict, DICT_AVP, &avp2_data, enutype, &avp2 ) );
+		CHECK( 0, fd_dict_new ( fd_g_config->g_dict, DICT_ENUMVAL, &enu1_data, enutype, &enu1 ) );
+		CHECK( 0, fd_dict_new ( fd_g_config->g_dict, DICT_ENUMVAL, &enu2_data, enutype, &enu2 ) );
 	}
 	
 	/* Register first handler, very simple test */

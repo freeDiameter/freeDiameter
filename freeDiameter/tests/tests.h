@@ -74,6 +74,8 @@
 }
 
 static int test_verbo = 0;
+static struct fd_config conf;
+struct fd_config * fd_g_config = &conf;
 
 /* Define the standard check routines */
 #define CHECK( _val, _assert ){				\
@@ -96,12 +98,13 @@ static int test_verbo = 0;
 }
 
 /* Minimum inits */
-#define INIT_FD() {					\
-	CHECK( 0, fd_lib_init() );			\
-	fd_log_threadname(basename(__FILE__));		\
-	CHECK( 0, fd_dict_init(&fd_g_dict) );		\
-	CHECK( 0, fd_dict_base_protocol(fd_g_dict) );	\
-	parse_cmdline(argc, argv);			\
+#define INIT_FD() {						\
+	memset(fd_g_config, 0, sizeof(struct fd_config));	\
+	CHECK( 0, fd_lib_init() );				\
+	fd_log_threadname(basename(__FILE__));			\
+	CHECK( 0, fd_conf_init() );				\
+	CHECK( 0, fd_dict_base_protocol(fd_g_config->g_dict) );	\
+	parse_cmdline(argc, argv);				\
 }
 
 static inline void parse_cmdline(int argc, char * argv[]) {
