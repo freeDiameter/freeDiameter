@@ -96,7 +96,12 @@ int fd_ext_load()
 		TRACE_DEBUG (INFO, "Loading : %s", ext->filename);
 		
 		/* Load the extension */
+#ifndef DEBUG
 		ext->handler = dlopen(ext->filename, RTLD_LAZY | RTLD_GLOBAL);
+#else /* DEBUG */
+		/* We resolve immediatly so it's easier to find problems in ABI */
+		ext->handler = dlopen(ext->filename, RTLD_NOW | RTLD_GLOBAL);
+#endif /* DEBUG */
 		if (ext->handler == NULL) {
 			/* An error occured */
 			TRACE_DEBUG( NONE, "Loading of extension %s failed:\n %s\n", ext->filename, dlerror());

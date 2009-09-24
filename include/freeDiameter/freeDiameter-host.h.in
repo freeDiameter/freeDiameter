@@ -45,6 +45,8 @@
 
 #cmakedefine DISABLE_SCTP
 
+#cmakedefine DEBUG
+
 #cmakedefine FD_PROJECT_BINARY "@FD_PROJECT_BINARY@"
 #cmakedefine FD_PROJECT_NAME "@FD_PROJECT_NAME@"
 #cmakedefine FD_PROJECT_VERSION_MAJOR @FD_PROJECT_VERSION_MAJOR@

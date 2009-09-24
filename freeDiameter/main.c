@@ -246,7 +246,8 @@ end:
 	TRACE_DEBUG(INFO, FD_PROJECT_BINARY " daemon is stopping...");
 	
 	/* cleanups */
-	CHECK_FCT( fd_thr_term(&sig_th) );
+	CHECK_FCT_DO( fd_ext_fini(), /* continue */ );
+	CHECK_FCT_DO( fd_thr_term(&sig_th), /* continue */ );
 	
 	return ret;
 }

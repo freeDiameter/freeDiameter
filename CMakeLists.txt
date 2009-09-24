@@ -22,6 +22,9 @@ SET(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/Modules/")
 
 # All source code should be POSIX 200112L compatible, but some other extensions might be used, so:
 ADD_DEFINITIONS(-D_GNU_SOURCE)
+IF (CMAKE_BUILD_TYPE MATCHES "Debug")
+  SET(DEBUG 1)
+ENDIF (CMAKE_BUILD_TYPE MATCHES "Debug")
 
 # some subfolders use yacc and lex parsers
 SET(BISON_GENERATE_DEFINES TRUE)

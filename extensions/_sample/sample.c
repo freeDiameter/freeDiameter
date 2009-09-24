@@ -55,7 +55,7 @@ static int sample_main(char * conffile)
 	}
 	
 	/* Use the dictionary for test */
-	log_debug("Let's create that 'Example-AVP'...\n");
+	fd_log_debug("Let's create that 'Example-AVP'...\n");
 	{
 		struct dict_object * origin_host_avp = NULL;
 		struct dict_object * session_id_avp = NULL;
@@ -78,7 +78,7 @@ static int sample_main(char * conffile)
 		rule_data.rule_max = -1;
 		CHECK_FCT( fd_dict_new ( fd_g_config->g_dict, DICT_RULE, &rule_data, example_avp_avp, NULL ));
 	}
-	log_debug("'Example-AVP' created without error\n");
+	fd_log_debug("'Example-AVP' created without error\n");
 	
 	return 0;
 }

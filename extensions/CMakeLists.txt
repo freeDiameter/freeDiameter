@@ -2,11 +2,15 @@ PROJECT("freeDiameter extensions" C)
 
 # We want all resulting objects in the same folder
 SET(LIBRARY_OUTPUT_PATH ${CMAKE_CURRENT_BINARY_DIR})
-# And named fdext_XXX instead of libXXX.so
 
-#-- faire une macro ici!
-SET(FD_EXT_PREFIX "fdext_" PARENT_SCOPE)
-SET(FD_EXT_SUFFIX "" PARENT_SCOPE)
+# Use the macro FD_ADD_EXTENSION(name files...) to create an extension
+# It is equivalent to add_library with the appropriate parameters
+# and naming conventions (.fdx : FreeDiameter eXtension)
+MACRO(FD_ADD_EXTENSION EXTNAME)
+  ADD_LIBRARY(${EXTNAME} MODULE ${ARGN})
+  SET_TARGET_PROPERTIES(${EXTNAME} PROPERTIES PREFIX "" )
+  SET_TARGET_PROPERTIES(${EXTNAME} PROPERTIES SUFFIX ".fdx" )
+ENDMACRO(FD_ADD_EXTENSION)
 
 ###########################
 # Extensions section

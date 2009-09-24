@@ -39,7 +39,7 @@
 
 void fd_ext_fini(void)
 {
-	log_debug("Extension is terminated... Bye!\n");
+	fd_log_debug("Extension is terminated... Bye!\n");
 	return ;
 }
 
