@@ -2,7 +2,7 @@
 * Software License Agreement (BSD License)                                                               *
 * Author: Sebastien Decugis <sdecugis@nict.go.jp>							 *
 *													 *
-* Copyright (c) 2008, WIDE Project and NICT								 *
+* Copyright (c) 2009, WIDE Project and NICT								 *
 * All rights reserved.											 *
 * 													 *
 * Redistribution and use of this software in source and binary forms, with or without modification, are  *
@@ -33,13 +33,33 @@
 * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.								 *
 *********************************************************************************************************/
 
-#include <freeDiameter/extension.h>
+#include "fD.h"
 
-/* The function MUST be called this */
-void fd_ext_fini(void)
+/* The global message queues */
+struct fifo * fd_g_incoming = NULL;
+struct fifo * fd_g_outgoing = NULL;
+struct fifo * fd_g_local = NULL;
+
+/* Initialize the message queues. */
+int fd_queues_init(void)
 {
-	/* This code is executed when the daemon is exiting; cleanup management should be placed here */
-	TRACE_DEBUG(INFO, "Extension is terminated... Bye!");
-	return ;
+	TRACE_ENTRY();
+	CHECK_FCT( fd_fifo_new ( &fd_g_incoming ) );
+	CHECK_FCT( fd_fifo_new ( &fd_g_outgoing ) );
+	CHECK_FCT( fd_fifo_new ( &fd_g_local ) );
+	return 0;
 }
 
+/* Destroy the message queues */
+int fd_queues_fini(void)
+{
+	TRACE_ENTRY();
+	
+	/* Stop the providing threads */
+	/* Empty all contents */
+	/* Now, delete the queues */
+	CHECK_FCT( fd_fifo_del ( &fd_g_incoming ) );
+	CHECK_FCT( fd_fifo_del ( &fd_g_outgoing ) );
+	CHECK_FCT( fd_fifo_del ( &fd_g_local ) );
+	return 0;
+}

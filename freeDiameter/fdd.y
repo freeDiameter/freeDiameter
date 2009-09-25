@@ -62,11 +62,11 @@ int fddlex(YYSTYPE *lvalp, YYLTYPE *llocp);
 void yyerror (YYLTYPE *ploc, struct fd_config * conf, char const *s)
 {
 	if (ploc->first_line != ploc->last_line)
-		fprintf(stderr, "%s:%d.%d-%d.%d : %s\n", conf->conf_file, ploc->first_line, ploc->first_column, ploc->last_line, ploc->last_column, s);
+		fprintf(stderr, "%s:%d.%d-%d.%d : %s\n", conf->cnf_file, ploc->first_line, ploc->first_column, ploc->last_line, ploc->last_column, s);
 	else if (ploc->first_column != ploc->last_column)
-		fprintf(stderr, "%s:%d.%d-%d : %s\n", conf->conf_file, ploc->first_line, ploc->first_column, ploc->last_column, s);
+		fprintf(stderr, "%s:%d.%d-%d : %s\n", conf->cnf_file, ploc->first_line, ploc->first_column, ploc->last_column, s);
 	else
-		fprintf(stderr, "%s:%d.%d : %s\n", conf->conf_file, ploc->first_line, ploc->first_column, s);
+		fprintf(stderr, "%s:%d.%d : %s\n", conf->cnf_file, ploc->first_line, ploc->first_column, s);
 }
 
 %}
@@ -110,31 +110,47 @@ void yyerror (YYLTYPE *ploc, struct fd_config * conf, char const *s)
 conffile:		/* Empty is OK */
 			| conffile localidentity
 			| conffile localrealm
+			| conffile tctimer
+			| conffile twtimer
 			| conffile localport
 			| conffile localsecport
+			| conffile sctpstreams
+			| conffile listenon
+			| conffile norelay
 			| conffile noip
 			| conffile noip6
 			| conffile notcp
 			| conffile nosctp
 			| conffile prefertcp
 			| conffile oldtls
-			| conffile sctpstreams
-			| conffile listenon
-			| conffile tctimer
-			| conffile twtimer
-			| conffile norelay
 			| conffile loadext
 			;
 
 localidentity:		LOCALIDENTITY '=' QSTRING ';'
 			{
-				conf->diam_id = $3;
+				conf->cnf_diamid = $3;
 			}
 			;
 
 localrealm:		LOCALREALM '=' QSTRING ';'
 			{
-				conf->diam_realm = $3;
+				conf->cnf_diamrlm = $3;
+			}
+			;
+
+tctimer:		TCTIMER '=' INTEGER ';'
+			{
+				CHECK_PARAMS_DO( ($3 > 0),
+					{ yyerror (&yylloc, conf, "Invalid value"); YYERROR; } );
+				conf->cnf_timer_tc = (unsigned int)$3;
+			}
+			;
+
+twtimer:		TWTIMER '=' INTEGER ';'
+			{
+				CHECK_PARAMS_DO( ($3 > 5),
+					{ yyerror (&yylloc, conf, "Invalid value"); YYERROR; } );
+				conf->cnf_timer_tw = (unsigned int)$3;
 			}
 			;
 
@@ -142,7 +158,7 @@ localport:		LOCALPORT '=' INTEGER ';'
 			{
 				CHECK_PARAMS_DO( ($3 > 0) && ($3 < 1<<16),
 					{ yyerror (&yylloc, conf, "Invalid value"); YYERROR; } );
-				conf->loc_port = (uint16_t)$3;
+				conf->cnf_port = (uint16_t)$3;
 			}
 			;
 
@@ -150,43 +166,7 @@ localsecport:		LOCALSECPORT '=' INTEGER ';'
 			{
 				CHECK_PARAMS_DO( ($3 > 0) && ($3 < 1<<16),
 					{ yyerror (&yylloc, conf, "Invalid value"); YYERROR; } );
-				conf->loc_port_tls = (uint16_t)$3;
-			}
-			;
-
-noip:			NOIP ';'
-			{
-				conf->flags.no_ip4 = 1;
-			}
-			;
-
-noip6:			NOIP6 ';'
-			{
-				conf->flags.no_ip6 = 1;
-			}
-			;
-
-notcp:			NOTCP ';'
-			{
-				conf->flags.no_tcp = 1;
-			}
-			;
-
-nosctp:			NOSCTP ';'
-			{
-				conf->flags.no_sctp = 1;
-			}
-			;
-
-prefertcp:		PREFERTCP ';'
-			{
-				conf->flags.pr_tcp = 1;
-			}
-			;
-
-oldtls:			OLDTLS ';'
-			{
-				conf->flags.tls_alg = 1;
+				conf->cnf_port_tls = (uint16_t)$3;
 			}
 			;
 
@@ -194,7 +174,7 @@ sctpstreams:		SCTPSTREAMS '=' INTEGER ';'
 			{
 				CHECK_PARAMS_DO( ($3 > 0) && ($3 < 1<<16),
 					{ yyerror (&yylloc, conf, "Invalid value"); YYERROR; } );
-				conf->loc_sctp_str = (uint16_t)$3;
+				conf->cnf_sctp_str = (uint16_t)$3;
 			}
 			;
 
@@ -217,29 +197,49 @@ listenon:		LISTENON '=' QSTRING ';'
 				memcpy(&ep->ss, ai->ai_addr, ai->ai_addrlen);
 				free($3);
 				freeaddrinfo(ai);
-				fd_list_insert_before(&conf->loc_endpoints, &ep->chain);
-			}
-			;
-
-tctimer:		TCTIMER '=' INTEGER ';'
-			{
-				CHECK_PARAMS_DO( ($3 > 0),
-					{ yyerror (&yylloc, conf, "Invalid value"); YYERROR; } );
-				conf->timer_tc = (unsigned int)$3;
-			}
-			;
-
-twtimer:		TWTIMER '=' INTEGER ';'
-			{
-				CHECK_PARAMS_DO( ($3 > 5),
-					{ yyerror (&yylloc, conf, "Invalid value"); YYERROR; } );
-				conf->timer_tw = (unsigned int)$3;
+				fd_list_insert_before(&conf->cnf_endpoints, &ep->chain);
 			}
 			;
 
 norelay:		NORELAY ';'
 			{
-				conf->flags.no_fwd = 1;
+				conf->cnf_flags.no_fwd = 1;
+			}
+			;
+
+noip:			NOIP ';'
+			{
+				conf->cnf_flags.no_ip4 = 1;
+			}
+			;
+
+noip6:			NOIP6 ';'
+			{
+				conf->cnf_flags.no_ip6 = 1;
+			}
+			;
+
+notcp:			NOTCP ';'
+			{
+				conf->cnf_flags.no_tcp = 1;
+			}
+			;
+
+nosctp:			NOSCTP ';'
+			{
+				conf->cnf_flags.no_sctp = 1;
+			}
+			;
+
+prefertcp:		PREFERTCP ';'
+			{
+				conf->cnf_flags.pr_tcp = 1;
+			}
+			;
+
+oldtls:			OLDTLS ';'
+			{
+				conf->cnf_flags.tls_alg = 1;
 			}
 			;
 

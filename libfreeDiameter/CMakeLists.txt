@@ -6,11 +6,11 @@ SET(LFD_SRC
 	libfD.h
 	dictionary.c
 	dispatch.c
+	fifo.c
 	init.c
 	lists.c
 	log.c
 	messages.c
-	queues.c
 	sessions.c
 	)
 

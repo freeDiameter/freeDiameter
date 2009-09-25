@@ -50,7 +50,7 @@ int main(int argc, char *argv[])
 		struct dict_object * acr_model = NULL;
 
 		/* Now find the ACR dictionary object */
-		CHECK( 0, fd_dict_search ( fd_g_config->g_dict, DICT_COMMAND, CMD_BY_NAME, "Accounting-Request", &acr_model, ENOENT ) );
+		CHECK( 0, fd_dict_search ( fd_g_config->cnf_dict, DICT_COMMAND, CMD_BY_NAME, "Accounting-Request", &acr_model, ENOENT ) );
 
 		/* Create the instance, using the templates */
 		CHECK( 0, fd_msg_new ( acr_model, 0, &acr ) );
@@ -70,7 +70,7 @@ int main(int argc, char *argv[])
 		struct dict_object * pi_model = NULL;
 
 		/* Now find the ACR dictionary object */
-		CHECK( 0, fd_dict_search ( fd_g_config->g_dict, DICT_AVP, AVP_BY_NAME, "Proxy-Info", &pi_model, ENOENT ) );
+		CHECK( 0, fd_dict_search ( fd_g_config->cnf_dict, DICT_AVP, AVP_BY_NAME, "Proxy-Info", &pi_model, ENOENT ) );
 
 		/* Create the instance, using the templates */
 		CHECK( 0, fd_msg_avp_new ( pi_model, 0, &pi ) );
@@ -132,7 +132,7 @@ int main(int argc, char *argv[])
 		struct dict_object * rr_model = NULL;
 
 		/* Now find the dictionary object */
-		CHECK( 0, fd_dict_search ( fd_g_config->g_dict, DICT_AVP, AVP_BY_NAME, "Route-Record", &rr_model, ENOENT ) );
+		CHECK( 0, fd_dict_search ( fd_g_config->cnf_dict, DICT_AVP, AVP_BY_NAME, "Route-Record", &rr_model, ENOENT ) );
 
 		/* Create the instance, using the templates */
 		CHECK( 0, fd_msg_avp_new ( rr_model, 0, &avp1 ) );
@@ -160,7 +160,7 @@ int main(int argc, char *argv[])
 		struct dict_object * acr_model = NULL;
 
 		/* Now find the ACR dictionary object */
-		CHECK( 0, fd_dict_search ( fd_g_config->g_dict, DICT_COMMAND, CMD_BY_NAME, "Accounting-Request", &acr_model, ENOENT ) );
+		CHECK( 0, fd_dict_search ( fd_g_config->cnf_dict, DICT_COMMAND, CMD_BY_NAME, "Accounting-Request", &acr_model, ENOENT ) );
 
 		/* Create the instance, using the templates */
 		CHECK( 0, fd_msg_new ( acr_model, 0, &acr ) );
@@ -172,25 +172,25 @@ int main(int argc, char *argv[])
 		struct dict_object * vendor;
 		{
 			struct dict_vendor_data vendor_data = { 73565, "Vendor test" };
-			CHECK( 0, fd_dict_new ( fd_g_config->g_dict, DICT_VENDOR, &vendor_data , NULL, &vendor ) );
+			CHECK( 0, fd_dict_new ( fd_g_config->cnf_dict, DICT_VENDOR, &vendor_data , NULL, &vendor ) );
 		}
 		
 		{
 			struct dict_application_data app_data = { 73566, "Application test" };
-			CHECK( 0, fd_dict_new ( fd_g_config->g_dict, DICT_APPLICATION, &app_data , vendor, NULL ) );
+			CHECK( 0, fd_dict_new ( fd_g_config->cnf_dict, DICT_APPLICATION, &app_data , vendor, NULL ) );
 		}
 		
 		{
 			struct dict_avp_data avp_data = { 73567, 0, "AVP Test - no vendor - f32", 0, 0, AVP_TYPE_FLOAT32 };
-			CHECK( 0, fd_dict_new ( fd_g_config->g_dict, DICT_AVP, &avp_data , NULL, NULL ) );
+			CHECK( 0, fd_dict_new ( fd_g_config->cnf_dict, DICT_AVP, &avp_data , NULL, NULL ) );
 		}
 		
 		{ 
 			struct dict_object  * type = NULL;
 			struct dict_type_data type_data = { AVP_TYPE_INTEGER64, "Int64 test" };
 			struct dict_avp_data  avp_data = { 73568, 73565, "AVP Test - i64", AVP_FLAG_VENDOR, AVP_FLAG_VENDOR, AVP_TYPE_INTEGER64 };
-			CHECK( 0, fd_dict_new ( fd_g_config->g_dict, DICT_TYPE, &type_data , NULL, &type ) );
-			CHECK( 0, fd_dict_new ( fd_g_config->g_dict, DICT_AVP, &avp_data , type, NULL ) );
+			CHECK( 0, fd_dict_new ( fd_g_config->cnf_dict, DICT_TYPE, &type_data , NULL, &type ) );
+			CHECK( 0, fd_dict_new ( fd_g_config->cnf_dict, DICT_AVP, &avp_data , type, NULL ) );
 		}
 		
 		{
@@ -201,19 +201,19 @@ int main(int argc, char *argv[])
 			struct dict_enumval_data val3 = { "i32 const test (val -5)",{ .i32 = -5 } };
 			struct dict_avp_data     avp_data = { 73569, 73565, "AVP Test - enumi32", AVP_FLAG_VENDOR, AVP_FLAG_VENDOR, AVP_TYPE_INTEGER32 };
 			
-			CHECK( 0, fd_dict_new ( fd_g_config->g_dict, DICT_TYPE, &type_data , NULL, &type ) );
-			CHECK( 0, fd_dict_new ( fd_g_config->g_dict, DICT_AVP, &avp_data , type, NULL ) );
-			CHECK( 0, fd_dict_new ( fd_g_config->g_dict, DICT_ENUMVAL, &val1 , type, NULL ) );
-			CHECK( 0, fd_dict_new ( fd_g_config->g_dict, DICT_ENUMVAL, &val2 , type, NULL ) );
-			CHECK( 0, fd_dict_new ( fd_g_config->g_dict, DICT_ENUMVAL, &val3 , type, NULL ) );
+			CHECK( 0, fd_dict_new ( fd_g_config->cnf_dict, DICT_TYPE, &type_data , NULL, &type ) );
+			CHECK( 0, fd_dict_new ( fd_g_config->cnf_dict, DICT_AVP, &avp_data , type, NULL ) );
+			CHECK( 0, fd_dict_new ( fd_g_config->cnf_dict, DICT_ENUMVAL, &val1 , type, NULL ) );
+			CHECK( 0, fd_dict_new ( fd_g_config->cnf_dict, DICT_ENUMVAL, &val2 , type, NULL ) );
+			CHECK( 0, fd_dict_new ( fd_g_config->cnf_dict, DICT_ENUMVAL, &val3 , type, NULL ) );
 		}
 			
 		{ 
 			struct dict_object  * type = NULL;
 			struct dict_type_data type_data = { AVP_TYPE_OCTETSTRING, "OS test" };
 			struct dict_avp_data  avp_data = { 73570, 73565, "AVP Test - os", AVP_FLAG_VENDOR, AVP_FLAG_VENDOR, AVP_TYPE_OCTETSTRING };
-			CHECK( 0, fd_dict_new ( fd_g_config->g_dict, DICT_TYPE, &type_data , NULL, &type ) );
-			CHECK( 0, fd_dict_new ( fd_g_config->g_dict, DICT_AVP, &avp_data , type, NULL ) );
+			CHECK( 0, fd_dict_new ( fd_g_config->cnf_dict, DICT_TYPE, &type_data , NULL, &type ) );
+			CHECK( 0, fd_dict_new ( fd_g_config->cnf_dict, DICT_AVP, &avp_data , type, NULL ) );
 		}
 		
 		{
@@ -224,31 +224,31 @@ int main(int argc, char *argv[])
 			struct dict_enumval_data val3 = { "os const test (waa)", { .os = { (unsigned char *)"waaad", 3 } } };
 			struct dict_avp_data     avp_data = { 73571, 73565, "AVP Test - enumos", AVP_FLAG_VENDOR, AVP_FLAG_VENDOR, AVP_TYPE_OCTETSTRING };
 			
-			CHECK( 0, fd_dict_new ( fd_g_config->g_dict, DICT_TYPE, &type_data , NULL, &type ) );
-			CHECK( 0, fd_dict_new ( fd_g_config->g_dict, DICT_AVP, &avp_data , type, NULL ) );
-			CHECK( 0, fd_dict_new ( fd_g_config->g_dict, DICT_ENUMVAL, &val1 , type, NULL ) );
-			CHECK( 0, fd_dict_new ( fd_g_config->g_dict, DICT_ENUMVAL, &val2 , type, NULL ) );
-			CHECK( 0, fd_dict_new ( fd_g_config->g_dict, DICT_ENUMVAL, &val3 , type, NULL ) );
+			CHECK( 0, fd_dict_new ( fd_g_config->cnf_dict, DICT_TYPE, &type_data , NULL, &type ) );
+			CHECK( 0, fd_dict_new ( fd_g_config->cnf_dict, DICT_AVP, &avp_data , type, NULL ) );
+			CHECK( 0, fd_dict_new ( fd_g_config->cnf_dict, DICT_ENUMVAL, &val1 , type, NULL ) );
+			CHECK( 0, fd_dict_new ( fd_g_config->cnf_dict, DICT_ENUMVAL, &val2 , type, NULL ) );
+			CHECK( 0, fd_dict_new ( fd_g_config->cnf_dict, DICT_ENUMVAL, &val3 , type, NULL ) );
 		}
 		
 		{
 			struct dict_object * gavp = NULL;
 			struct dict_avp_data avp_data = { 73572, 73565, "AVP Test - grouped", AVP_FLAG_VENDOR, AVP_FLAG_VENDOR, AVP_TYPE_GROUPED };
 			
-			CHECK( 0, fd_dict_new ( fd_g_config->g_dict, DICT_AVP, &avp_data , NULL, &gavp ) );
+			CHECK( 0, fd_dict_new ( fd_g_config->cnf_dict, DICT_AVP, &avp_data , NULL, &gavp ) );
 			
 			/* Macro to search AVP and create a rule */		
 			#define ADD_RULE( _parent, _vendor, _avpname, _pos, _min, _max, _ord ) {		\
 				struct dict_object * _avp = NULL;						\
 				struct dict_avp_request _req = { (_vendor), 0, (_avpname) };			\
 				struct dict_rule_data _data;							\
-				CHECK( 0, fd_dict_search( fd_g_config->g_dict, DICT_AVP, AVP_BY_NAME_AND_VENDOR, &_req, &_avp, ENOENT));\
+				CHECK( 0, fd_dict_search( fd_g_config->cnf_dict, DICT_AVP, AVP_BY_NAME_AND_VENDOR, &_req, &_avp, ENOENT));\
 				_data.rule_avp = _avp;								\
 				_data.rule_position = (_pos);							\
 				_data.rule_order = (_ord);							\
 				_data.rule_min = (_min);							\
 				_data.rule_max = (_max);							\
-				CHECK( 0, fd_dict_new ( fd_g_config->g_dict, DICT_RULE, &_data , (_parent), NULL ) );	\
+				CHECK( 0, fd_dict_new ( fd_g_config->cnf_dict, DICT_RULE, &_data , (_parent), NULL ) );	\
 			}
 			
 			ADD_RULE(gavp, 73565, "AVP Test - os", RULE_OPTIONAL,   -1, -1,  0);
@@ -260,8 +260,8 @@ int main(int argc, char *argv[])
 			struct dict_object  * command = NULL;
 			struct dict_cmd_data  cmd_data = { 73573, "Test-Command-Request", CMD_FLAG_REQUEST, CMD_FLAG_REQUEST };
 			
-			CHECK( 0, fd_dict_search ( fd_g_config->g_dict, DICT_APPLICATION, APPLICATION_BY_NAME, "Application test", &application, ENOENT ) );
-			CHECK( 0, fd_dict_new ( fd_g_config->g_dict, DICT_COMMAND, &cmd_data , application, &command ) );
+			CHECK( 0, fd_dict_search ( fd_g_config->cnf_dict, DICT_APPLICATION, APPLICATION_BY_NAME, "Application test", &application, ENOENT ) );
+			CHECK( 0, fd_dict_new ( fd_g_config->cnf_dict, DICT_COMMAND, &cmd_data , application, &command ) );
 			ADD_RULE(command, 0,     "AVP Test - no vendor - f32", 	RULE_FIXED_HEAD, -1,  1,  1);
 			ADD_RULE(command, 73565, "AVP Test - i64",		RULE_REQUIRED,   -1, -1,  0);
 			ADD_RULE(command, 73565, "AVP Test - enumi32", 		RULE_OPTIONAL,   -1, -1,  0);
@@ -274,7 +274,7 @@ int main(int argc, char *argv[])
 			struct dict_object  * gavp = NULL;
 			struct dict_avp_data  avp_data = { 73574, 73565, "AVP Test - rules", AVP_FLAG_VENDOR, AVP_FLAG_VENDOR, AVP_TYPE_GROUPED };
 			
-			CHECK( 0, fd_dict_new ( fd_g_config->g_dict, DICT_AVP, &avp_data , NULL, &gavp ) );
+			CHECK( 0, fd_dict_new ( fd_g_config->cnf_dict, DICT_AVP, &avp_data , NULL, &gavp ) );
 			
 			ADD_RULE(gavp,     0, "AVP Test - no vendor - f32", RULE_FIXED_HEAD,   0, 1, 1);
 			ADD_RULE(gavp, 73565, "AVP Test - i64", 	    RULE_FIXED_HEAD,  -1, 1, 2);
@@ -302,11 +302,11 @@ int main(int argc, char *argv[])
 		struct avp         * avp = NULL;
 		union avp_value      value;
 		
-		CHECK( 0, fd_dict_search ( fd_g_config->g_dict, DICT_COMMAND, CMD_BY_NAME, "Test-Command-Request", &cmd_model, ENOENT ) );
+		CHECK( 0, fd_dict_search ( fd_g_config->cnf_dict, DICT_COMMAND, CMD_BY_NAME, "Test-Command-Request", &cmd_model, ENOENT ) );
 		
 		/* Check an error is trigged if the AVP has no value set */
 		{
-			CHECK( 0, fd_dict_search ( fd_g_config->g_dict, DICT_AVP,     AVP_BY_NAME,     "AVP Test - no vendor - f32", &avp_model, ENOENT ) );
+			CHECK( 0, fd_dict_search ( fd_g_config->cnf_dict, DICT_AVP,     AVP_BY_NAME,     "AVP Test - no vendor - f32", &avp_model, ENOENT ) );
 			
 			CHECK( 0, fd_msg_new ( cmd_model, 0, &msg ) );
 			CHECK( 0, fd_msg_avp_new ( avp_model, 0, &avp ) );
@@ -328,7 +328,7 @@ int main(int argc, char *argv[])
 			#define ADD_AVP( _parent, _position, _avpi, _avpvendor, _avpname) {			\
 				struct dict_object * _avp = NULL;						\
 				struct dict_avp_request _req = { (_avpvendor), 0, (_avpname) };			\
-				CHECK( 0, fd_dict_search( fd_g_config->g_dict, DICT_AVP, AVP_BY_NAME_AND_VENDOR, &_req, &_avp, ENOENT));\
+				CHECK( 0, fd_dict_search( fd_g_config->cnf_dict, DICT_AVP, AVP_BY_NAME_AND_VENDOR, &_req, &_avp, ENOENT));\
 				CHECK( 0, fd_msg_avp_new ( _avp, 0, &_avpi ) );					\
 				CHECK( 0, fd_msg_avp_add ( (_parent), (_position), _avpi ) );			\
 			}
@@ -377,11 +377,11 @@ int main(int argc, char *argv[])
 				struct dict_enumval_request request;
 				
 				CHECK( 0, fd_msg_model ( avpi, &avp_model ) );
-				CHECK( 0, fd_dict_search ( fd_g_config->g_dict, DICT_TYPE, TYPE_OF_AVP, avp_model, &type_model, ENOENT ) );
+				CHECK( 0, fd_dict_search ( fd_g_config->cnf_dict, DICT_TYPE, TYPE_OF_AVP, avp_model, &type_model, ENOENT ) );
 				memset(&request, 0, sizeof(request));
 				request.type_obj = type_model;
 				request.search.enum_name = "i32 const test (val 2)";
-				CHECK( 0, fd_dict_search ( fd_g_config->g_dict, DICT_ENUMVAL, ENUMVAL_BY_STRUCT, &request, &value_model, ENOENT ) );
+				CHECK( 0, fd_dict_search ( fd_g_config->cnf_dict, DICT_ENUMVAL, ENUMVAL_BY_STRUCT, &request, &value_model, ENOENT ) );
 				CHECK( 0, fd_dict_getval ( value_model, &request.search ) );
 				CHECK( 0, fd_msg_avp_setvalue ( avpi, &request.search.enum_value ) );
 				#if 0
@@ -398,11 +398,11 @@ int main(int argc, char *argv[])
 				struct dict_enumval_request request;
 				
 				CHECK( 0, fd_msg_model ( avpi, &avp_model ) );
-				CHECK( 0, fd_dict_search ( fd_g_config->g_dict, DICT_TYPE, TYPE_OF_AVP, avp_model, &type_model, ENOENT ) );
+				CHECK( 0, fd_dict_search ( fd_g_config->cnf_dict, DICT_TYPE, TYPE_OF_AVP, avp_model, &type_model, ENOENT ) );
 				memset(&request, 0, sizeof(request));
 				request.type_obj = type_model;
 				request.search.enum_name = "i32 const test (val -5)";
-				CHECK( 0, fd_dict_search ( fd_g_config->g_dict, DICT_ENUMVAL, ENUMVAL_BY_STRUCT, &request, &value_model, ENOENT ) );
+				CHECK( 0, fd_dict_search ( fd_g_config->cnf_dict, DICT_ENUMVAL, ENUMVAL_BY_STRUCT, &request, &value_model, ENOENT ) );
 				CHECK( 0, fd_dict_getval ( value_model, &request.search ) );
 				CHECK( 0, fd_msg_avp_setvalue ( avpi, &request.search.enum_value ) );
 				#if 0
@@ -457,11 +457,11 @@ int main(int argc, char *argv[])
 				struct dict_enumval_request request;
 				
 				CHECK( 0, fd_msg_model ( avpi, &avp_model ) );
-				CHECK( 0, fd_dict_search ( fd_g_config->g_dict, DICT_TYPE, TYPE_OF_AVP, avp_model, &type_model, ENOENT ) );
+				CHECK( 0, fd_dict_search ( fd_g_config->cnf_dict, DICT_TYPE, TYPE_OF_AVP, avp_model, &type_model, ENOENT ) );
 				memset(&request, 0, sizeof(request));
 				request.type_obj = type_model;
 				request.search.enum_name = "os const test (waaad)";
-				CHECK( 0, fd_dict_search ( fd_g_config->g_dict, DICT_ENUMVAL, ENUMVAL_BY_STRUCT, &request, &value_model, ENOENT ) );
+				CHECK( 0, fd_dict_search ( fd_g_config->cnf_dict, DICT_ENUMVAL, ENUMVAL_BY_STRUCT, &request, &value_model, ENOENT ) );
 				CHECK( 0, fd_dict_getval ( value_model, &request.search ) );
 				CHECK( 0, fd_msg_avp_setvalue ( avpi, &request.search.enum_value ) );
 				#if 0
@@ -482,11 +482,11 @@ int main(int argc, char *argv[])
 				struct dict_enumval_request request;
 				
 				CHECK( 0, fd_msg_model ( avpi, &avp_model ) );
-				CHECK( 0, fd_dict_search ( fd_g_config->g_dict, DICT_TYPE, TYPE_OF_AVP, avp_model, &type_model, ENOENT ) );
+				CHECK( 0, fd_dict_search ( fd_g_config->cnf_dict, DICT_TYPE, TYPE_OF_AVP, avp_model, &type_model, ENOENT ) );
 				memset(&request, 0, sizeof(request));
 				request.type_obj = type_model;
 				request.search.enum_name = "os const test (waa)";
-				CHECK( 0, fd_dict_search ( fd_g_config->g_dict, DICT_ENUMVAL, ENUMVAL_BY_STRUCT, &request, &value_model, ENOENT ) );
+				CHECK( 0, fd_dict_search ( fd_g_config->cnf_dict, DICT_ENUMVAL, ENUMVAL_BY_STRUCT, &request, &value_model, ENOENT ) );
 				CHECK( 0, fd_dict_getval ( value_model, &request.search ) );
 				CHECK( 0, fd_msg_avp_setvalue ( avpi, &request.search.enum_value ) );
 				#if 0
@@ -653,7 +653,7 @@ int main(int argc, char *argv[])
 			struct avp_hdr     * avpdata = NULL;
 			
 			/* Now find the ACR dictionary object */
-			CHECK( 0, fd_dict_search ( fd_g_config->g_dict, DICT_AVP, AVP_BY_NAME, "AVP Test - no vendor - f32", &avp_model, ENOENT ) );
+			CHECK( 0, fd_dict_search ( fd_g_config->cnf_dict, DICT_AVP, AVP_BY_NAME, "AVP Test - no vendor - f32", &avp_model, ENOENT ) );
 			
 			CPYBUF();
 			CHECK( 0, fd_msg_parse_buffer( &buf_cpy, 344, &msg) );
@@ -679,7 +679,7 @@ int main(int argc, char *argv[])
 				/* Change the command-code */
 				buf_cpy[5] = 0x11;
 				CHECK( 0, fd_msg_parse_buffer( &buf_cpy, 344, &msg) );
-				CHECK( ENOTSUP, fd_msg_parse_dict( msg, fd_g_config->g_dict ) );
+				CHECK( ENOTSUP, fd_msg_parse_dict( msg, fd_g_config->cnf_dict ) );
 				
 				/* reset */
 				CHECK( 0, fd_msg_free ( msg ) );
@@ -694,7 +694,7 @@ int main(int argc, char *argv[])
 				
 				/* Check that we cannot support this message now */
 				CHECK( 0, fd_msg_parse_buffer( &buf_cpy, 344, &msg) );
-				CHECK( ENOTSUP, fd_msg_parse_dict( msg, fd_g_config->g_dict ) );
+				CHECK( ENOTSUP, fd_msg_parse_dict( msg, fd_g_config->cnf_dict ) );
 				
 				/* reset */
 				CHECK( 0, fd_msg_free ( msg ) );
@@ -708,7 +708,7 @@ int main(int argc, char *argv[])
 				
 				/* Check that we can support this message now */
 				CHECK( 0, fd_msg_parse_buffer( &buf_cpy, 344, &msg) );
-				CHECK( 0, fd_msg_parse_dict( msg, fd_g_config->g_dict ) );
+				CHECK( 0, fd_msg_parse_dict( msg, fd_g_config->cnf_dict ) );
 				
 				#if 0
 				fd_msg_dump_walk(0, msg);
@@ -719,7 +719,7 @@ int main(int argc, char *argv[])
 			}
 			
 			CHECK( 0, fd_msg_parse_buffer( &buf, 344, &msg) );
-			CHECK( 0, fd_msg_parse_dict( msg, fd_g_config->g_dict ) );
+			CHECK( 0, fd_msg_parse_dict( msg, fd_g_config->cnf_dict ) );
 			#if 0
 			fd_msg_dump_walk(0, msg);
 			#endif
@@ -729,7 +729,7 @@ int main(int argc, char *argv[])
 		{
 			struct dict_object * rule;
 			
-			CHECK( 0, fd_msg_parse_rules( msg, fd_g_config->g_dict, &rule ) );
+			CHECK( 0, fd_msg_parse_rules( msg, fd_g_config->cnf_dict, &rule ) );
 			
 			/* Use the "AVP Test - rules" AVP to test the rules */
 			{
@@ -748,26 +748,26 @@ int main(int argc, char *argv[])
 				ADD_AVP( tavp, MSG_BRW_LAST_CHILD, childavp, 73565, "AVP Test - grouped" );
 				
 				/* Check the message is still conform */
-				CHECK( 0, fd_msg_parse_rules( msg, fd_g_config->g_dict, &rule ) );
+				CHECK( 0, fd_msg_parse_rules( msg, fd_g_config->cnf_dict, &rule ) );
 				
 				/* The first avp is optional in fixed position, so remove it and check the message is still OK */
 				CHECK( 0, fd_msg_browse ( tavp, MSG_BRW_FIRST_CHILD, &childavp, NULL) );
 				CHECK( 0, fd_msg_free ( childavp ) );
-				CHECK( 0, fd_msg_parse_rules( msg, fd_g_config->g_dict, &rule ) );
+				CHECK( 0, fd_msg_parse_rules( msg, fd_g_config->cnf_dict, &rule ) );
 				ADD_AVP( tavp, MSG_BRW_FIRST_CHILD, childavp,     0, "AVP Test - no vendor - f32" );
 				
 				
 				/* Now break some rules and check it is detected */
 				#define CHECK_CONFLICT( _msg, _ruleavp, _avpvendor )		{				\
 					struct dict_object * _rule;								\
-					CHECK( EBADMSG,  fd_msg_parse_rules( _msg, fd_g_config->g_dict, &_rule ) );			\
+					CHECK( EBADMSG,  fd_msg_parse_rules( _msg, fd_g_config->cnf_dict, &_rule ) );			\
 					if ((_ruleavp) == NULL) {								\
 						CHECK( NULL, _rule);								\
 					} else {										\
 						struct dict_rule_data   _ruledata;						\
 						struct dict_object *    _avp;							\
 						struct dict_avp_request _req = { (_avpvendor), 0, (_ruleavp) };			\
-						CHECK( 0, fd_dict_search( fd_g_config->g_dict, DICT_AVP, AVP_BY_NAME_AND_VENDOR, &_req, &_avp, ENOENT));	\
+						CHECK( 0, fd_dict_search( fd_g_config->cnf_dict, DICT_AVP, AVP_BY_NAME_AND_VENDOR, &_req, &_avp, ENOENT));	\
 						CHECK( 0, fd_dict_getval( _rule, &_ruledata ) );				\
 						CHECK( _avp, _ruledata.rule_avp );						\
 					}											\
@@ -823,7 +823,7 @@ int main(int argc, char *argv[])
 					ADD_AVP( childavp, MSG_BRW_NEXT, tempavp, 73565, "AVP Test - enumos" );
 					
 					/* The message is still conform */
-					CHECK( 0, fd_msg_parse_rules( msg, fd_g_config->g_dict, &rule ) );
+					CHECK( 0, fd_msg_parse_rules( msg, fd_g_config->cnf_dict, &rule ) );
 					
 					/* Now break the rule */
 					ADD_AVP( childavp, MSG_BRW_NEXT, tempavp, 73565, "AVP Test - enumos" );
@@ -864,10 +864,10 @@ int main(int argc, char *argv[])
 		struct sockaddr_in6 sin6, *psin6;
 		
 		/* Find the CER dictionary object */
-		CHECK( 0, fd_dict_search ( fd_g_config->g_dict, DICT_COMMAND, CMD_BY_NAME, "Capabilities-Exchange-Request", &cer_model, ENOENT ) );
+		CHECK( 0, fd_dict_search ( fd_g_config->cnf_dict, DICT_COMMAND, CMD_BY_NAME, "Capabilities-Exchange-Request", &cer_model, ENOENT ) );
 
 		/* Now find the Host-IP-Address dictionary object */
-		CHECK( 0, fd_dict_search ( fd_g_config->g_dict, DICT_AVP, AVP_BY_NAME, "Host-IP-Address", &hia_model, ENOENT ) );
+		CHECK( 0, fd_dict_search ( fd_g_config->cnf_dict, DICT_AVP, AVP_BY_NAME, "Host-IP-Address", &hia_model, ENOENT ) );
 
 		/* Create the msg instance */
 		CHECK( 0, fd_msg_new ( cer_model, 0, &cer ) );
@@ -944,7 +944,7 @@ int main(int argc, char *argv[])
 		
 		/* Ok, now let's recreate the message */
 		CHECK( 0, fd_msg_parse_buffer( &buf, 64, &cer) );
-		CHECK( 0, fd_msg_parse_dict( cer, fd_g_config->g_dict ) );
+		CHECK( 0, fd_msg_parse_dict( cer, fd_g_config->cnf_dict ) );
 		
 		/* Get the pointers to the first and last AVP */
 		CHECK( 0, fd_msg_browse( cer, MSG_BRW_FIRST_CHILD, &avp4, NULL) );
@@ -971,31 +971,31 @@ int main(int argc, char *argv[])
 	{
 		{
 			struct dict_avp_data avp_data = { 91001, 0, "AVP Test 2 - os", 0, 0, AVP_TYPE_OCTETSTRING };
-			CHECK( 0, fd_dict_new ( fd_g_config->g_dict, DICT_AVP, &avp_data , NULL, NULL ) );
+			CHECK( 0, fd_dict_new ( fd_g_config->cnf_dict, DICT_AVP, &avp_data , NULL, NULL ) );
 		}
 		{
 			struct dict_avp_data avp_data = { 91002, 0, "AVP Test 2 - i32", 0, 0, AVP_TYPE_INTEGER32 };
-			CHECK( 0, fd_dict_new ( fd_g_config->g_dict, DICT_AVP, &avp_data , NULL, NULL ) );
+			CHECK( 0, fd_dict_new ( fd_g_config->cnf_dict, DICT_AVP, &avp_data , NULL, NULL ) );
 		}
 		{
 			struct dict_avp_data avp_data = { 91003, 0, "AVP Test 2 - i64", 0, 0, AVP_TYPE_INTEGER64 };
-			CHECK( 0, fd_dict_new ( fd_g_config->g_dict, DICT_AVP, &avp_data , NULL, NULL ) );
+			CHECK( 0, fd_dict_new ( fd_g_config->cnf_dict, DICT_AVP, &avp_data , NULL, NULL ) );
 		}
 		{
 			struct dict_avp_data avp_data = { 91004, 0, "AVP Test 2 - u32", 0, 0, AVP_TYPE_UNSIGNED32 };
-			CHECK( 0, fd_dict_new ( fd_g_config->g_dict, DICT_AVP, &avp_data , NULL, NULL ) );
+			CHECK( 0, fd_dict_new ( fd_g_config->cnf_dict, DICT_AVP, &avp_data , NULL, NULL ) );
 		}
 		{
 			struct dict_avp_data avp_data = { 91005, 0, "AVP Test 2 - u64", 0, 0, AVP_TYPE_UNSIGNED64 };
-			CHECK( 0, fd_dict_new ( fd_g_config->g_dict, DICT_AVP, &avp_data , NULL, NULL ) );
+			CHECK( 0, fd_dict_new ( fd_g_config->cnf_dict, DICT_AVP, &avp_data , NULL, NULL ) );
 		}
 		{
 			struct dict_avp_data avp_data = { 91006, 0, "AVP Test 2 - f32", 0, 0, AVP_TYPE_FLOAT32 };
-			CHECK( 0, fd_dict_new ( fd_g_config->g_dict, DICT_AVP, &avp_data , NULL, NULL ) );
+			CHECK( 0, fd_dict_new ( fd_g_config->cnf_dict, DICT_AVP, &avp_data , NULL, NULL ) );
 		}
 		{
 			struct dict_avp_data avp_data = { 91007, 0, "AVP Test 2 - f64", 0, 0, AVP_TYPE_FLOAT64 };
-			CHECK( 0, fd_dict_new ( fd_g_config->g_dict, DICT_AVP, &avp_data , NULL, NULL ) );
+			CHECK( 0, fd_dict_new ( fd_g_config->cnf_dict, DICT_AVP, &avp_data , NULL, NULL ) );
 		}
 		
 		{
@@ -1009,7 +1009,7 @@ int main(int argc, char *argv[])
 			struct avp_hdr     * avpdata = NULL;
 			struct msg_hdr     * msgdata = NULL;
 
-			CHECK( 0, fd_dict_search ( fd_g_config->g_dict, DICT_COMMAND, CMD_BY_NAME, "Test-Command-Request", &cmd_model, ENOENT ) );
+			CHECK( 0, fd_dict_search ( fd_g_config->cnf_dict, DICT_COMMAND, CMD_BY_NAME, "Test-Command-Request", &cmd_model, ENOENT ) );
 
 			/* Create a message */
 			CHECK( 0, fd_msg_new ( cmd_model, 0, &msg ) );
@@ -1174,7 +1174,7 @@ int main(int argc, char *argv[])
 			CHECK( 0, fd_msg_free( msg ) );
 			
 			CHECK( 0, fd_msg_parse_buffer( &buf, 148, &msg) );
-			CHECK( 0, fd_msg_parse_dict( msg, fd_g_config->g_dict ) );
+			CHECK( 0, fd_msg_parse_dict( msg, fd_g_config->cnf_dict ) );
 			#if 0
 			fd_msg_dump_walk(0, msg);
 			#endif

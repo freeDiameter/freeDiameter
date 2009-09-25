@@ -170,7 +170,7 @@ extern int fd_g_debug_lvl;
 	if ( TRACE_BOOL(level) ) {												\
 		char __buf[25];													\
 		char * __thn = ((char *)pthread_getspecific(fd_log_thname) ?: "unnamed");					\
-		fd_log_debug("\t | th:%-30s\t%s\tin %s@%s:%d\n"									\
+		fd_log_debug("\t | tid:%-20s\t%s\tin %s@%s:%d\n"								\
 			  "\t%s|%*s" format "\n",  										\
 					__thn, fd_log_time(__buf, sizeof(__buf)), __PRETTY_FUNCTION__, __FILE__, __LINE__,	\
 					(level < FULL)?"@":" ",level, "", ## args); 						\
@@ -2454,5 +2454,8 @@ int fd_fifo_tryget_int ( struct fifo * queue, void ** item );
 int fd_fifo_timedget_int ( struct fifo * queue, void ** item, const struct timespec *abstime );
 #define fd_fifo_timedget(queue, item, abstime) \
 	fd_fifo_timedget_int((queue), (void *)(item), (abstime))
+
+/* Dump a fifo list and optionally its inner elements -- beware of deadlocks! */
+void fd_fifo_dump(int level, char * name, struct fifo * queue, void (*dump_item)(int level, void * item));
 
 #endif /* _LIBFREEDIAMETER_H */

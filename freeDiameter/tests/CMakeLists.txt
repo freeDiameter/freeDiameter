@@ -14,7 +14,7 @@ SET(TEST_LIST
 	testlist
 	testdict
 	testmesg
-	testqueues
+	testfifo
 	testsess
 	testdisp
 )

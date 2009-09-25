@@ -38,6 +38,101 @@
 #include <signal.h>
 #include <getopt.h>
 
+/* forward declarations */
+static void * sig_hdl(void * arg);
+static int main_cmdline(int argc, char *argv[]);
+
+/* The static configuration structure */
+static struct fd_config conf;
+struct fd_config * fd_g_config = &conf;
+
+/* freeDiameter starting point */
+int main(int argc, char * argv[])
+{
+	int ret;
+	pthread_t sig_th;
+	sigset_t sig_all;
+	
+	memset(fd_g_config, 0, sizeof(struct fd_config));
+	sigfillset(&sig_all);
+	CHECK_POSIX(  pthread_sigmask(SIG_BLOCK, &sig_all, NULL)  );
+	
+	/* Initialize the library */
+	CHECK_FCT( fd_lib_init() );
+	
+	/* Name this thread */
+	fd_log_threadname("Main");
+	
+	/* Initialize the config */
+	CHECK_FCT( fd_conf_init() );
+
+	/* Parse the command-line */
+	CHECK_FCT(  main_cmdline(argc, argv)  );
+	
+	/* Allow SIGINT and SIGTERM from this point */
+	CHECK_POSIX(  pthread_create(&sig_th, NULL, sig_hdl, NULL)  );
+	
+	/* Add definitions of the base protocol */
+	CHECK_FCT( fd_dict_base_protocol(fd_g_config->cnf_dict) );
+	
+	/* Initialize other modules */
+	CHECK_FCT(  fd_ext_init()  );
+	CHECK_FCT(  fd_queues_init()  );
+	CHECK_FCT(  fd_msg_init()  );
+	
+	/* Parse the configuration file */
+	CHECK_FCT( fd_conf_parse() );
+	
+	/* Load the dynamic extensions */
+	CHECK_FCT(  fd_ext_load()  );
+	
+	/* Start the peer state machines */
+	
+	
+	/* Now, just wait for events */
+	TRACE_DEBUG(INFO, FD_PROJECT_BINARY " daemon initialized.");
+	fd_conf_dump();
+	while (1) {
+		int code;
+		CHECK_FCT_DO(  fd_event_get(fd_g_config->cnf_main_ev, &code, NULL),  break  );
+		switch (code) {
+			case FDEV_DUMP_DICT:
+				fd_dict_dump(fd_g_config->cnf_dict);
+				break;
+			
+			case FDEV_DUMP_EXT:
+				fd_ext_dump();
+				break;
+			
+			case FDEV_DUMP_QUEUES:
+				fd_fifo_dump(0, "Incoming messages", fd_g_incoming, fd_msg_dump_walk);
+				fd_fifo_dump(0, "Outgoing messages", fd_g_outgoing, fd_msg_dump_walk);
+				fd_fifo_dump(0, "Local messages",    fd_g_local,    fd_msg_dump_walk);
+				break;
+			
+			case FDEV_DUMP_CONFIG:
+				fd_conf_dump();
+				break;
+			
+			
+			case FDEV_TERMINATE:
+				ret = 0;
+				goto end;
+			
+			default:
+				TRACE_DEBUG(INFO, "Unexpected event in the daemon (%d), ignored.\n", code);
+		}
+	}
+	
+end:
+	TRACE_DEBUG(INFO, FD_PROJECT_BINARY " daemon is stopping...");
+	
+	/* cleanups */
+	CHECK_FCT_DO( fd_ext_fini(), /* continue */ );
+	CHECK_FCT_DO( fd_thr_term(&sig_th), /* continue */ );
+	
+	return ret;
+}
 
 /* Display package version */
 static void main_version_core(void)
@@ -121,7 +216,7 @@ static int main_cmdline(int argc, char *argv[])
 
 			case 'c':	/* Read configuration from this file instead of the default location..  */
 				CHECK_PARAMS( optarg );
-				fd_g_config->conf_file = optarg;
+				fd_g_config->cnf_file = optarg;
 				break;
 
 			case 'd':	/* Increase verbosity of debug messages.  */
@@ -158,7 +253,6 @@ const int nsignalstr = sizeof signalstr / sizeof signalstr[0];
 # define SIGNALSTR(sig) ("")
 #endif /* HAVE_SIGNALENT_H */
 
-
 /* signal handler */
 static void * sig_hdl(void * arg)
 {
@@ -175,79 +269,7 @@ static void * sig_hdl(void * arg)
 	CHECK_SYS_DO(  sigwait(&sig_main, &sig), TRACE_DEBUG(INFO, "Error in sigwait function") );
 	
 	TRACE_DEBUG(INFO, "Received signal %s (%d), exiting", SIGNALSTR(sig), sig);
-	CHECK_FCT_DO( fd_event_send(fd_g_config->g_fifo_main, FM_TERMINATE, NULL), exit(2) );
+	CHECK_FCT_DO( fd_event_send(fd_g_config->cnf_main_ev, FDEV_TERMINATE, NULL), exit(2) );
 	return NULL;
 }
 	
-/* The static configuration structure */
-static struct fd_config conf;
-struct fd_config * fd_g_config = &conf;
-
-/* Entry point */
-int main(int argc, char * argv[])
-{
-	int ret;
-	pthread_t sig_th;
-	sigset_t sig_all;
-	
-	memset(fd_g_config, 0, sizeof(struct fd_config));
-	sigfillset(&sig_all);
-	CHECK_POSIX(  pthread_sigmask(SIG_BLOCK, &sig_all, NULL)  );
-	
-	/* Initialize the library */
-	CHECK_FCT( fd_lib_init() );
-	
-	/* Name this thread */
-	fd_log_threadname("Main");
-	
-	/* Initialize the config */
-	CHECK_FCT( fd_conf_init() );
-
-	/* Parse the command-line */
-	CHECK_FCT(  main_cmdline(argc, argv)  );
-	
-	/* Allow SIGINT and SIGTERM from this point */
-	CHECK_POSIX(  pthread_create(&sig_th, NULL, sig_hdl, NULL)  );
-	
-	/* Add definitions of the base protocol */
-	CHECK_FCT( fd_dict_base_protocol(fd_g_config->g_dict) );
-	
-	/* Initialize other modules */
-	CHECK_FCT(  fd_ext_init()  );
-	
-	/* Parse the configuration file */
-	CHECK_FCT( fd_conf_parse() );
-	
-	/* Load the dynamic extensions */
-	CHECK_FCT(  fd_ext_load()  );
-	
-	/* Start the peer state machines */
-	
-	
-	/* Now, just wait for events */
-	TRACE_DEBUG(INFO, FD_PROJECT_BINARY " daemon initialized.");
-	fd_conf_dump();
-	while (1) {
-		int code;
-		CHECK_FCT_DO(  fd_event_get(fd_g_config->g_fifo_main, &code, NULL),  break  );
-		switch (code) {
-			case FM_TERMINATE:
-				ret = 0;
-				goto end;
-			
-			default:
-				TRACE_DEBUG(INFO, "Unexpected event in the daemon (%d), terminating.\n", code);
-				ret = -1;
-				goto end;
-		}
-	}
-	
-end:
-	TRACE_DEBUG(INFO, FD_PROJECT_BINARY " daemon is stopping...");
-	
-	/* cleanups */
-	CHECK_FCT_DO( fd_ext_fini(), /* continue */ );
-	CHECK_FCT_DO( fd_thr_term(&sig_th), /* continue */ );
-	
-	return ret;
-}

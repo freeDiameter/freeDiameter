@@ -99,6 +99,42 @@ int fd_fifo_new ( struct fifo ** queue )
 	return 0;
 }
 
+/* Dump the content of a queue */
+void fd_fifo_dump(int level, char * name, struct fifo * queue, void (*dump_item)(int level, void * item))
+{
+	TRACE_ENTRY("%i %p %p %p", level, name, queue, dump_item);
+	
+	if (!TRACE_BOOL(level))
+		return;
+	
+	fd_log_debug("Dumping queue '%s' (%p):\n", name ?: "?", queue);
+	if (!CHECK_FIFO( queue )) {
+		fd_log_debug("  Queue invalid!\n");
+		if (queue)
+			fd_log_debug("  (%x != %x)\n", queue->eyec, FIFO_EYEC);
+		return;
+	}
+	
+	CHECK_POSIX_DO(  pthread_mutex_lock( &queue->mtx ), /* continue */  );
+	fd_log_debug("  %d elements in queue\n", queue->count);
+	fd_log_debug("  %d threads waiting\n", queue->thrs);
+	fd_log_debug("  thresholds: %d / %d, cb: %p / %p (%p), highest: %d\n",
+			queue->high, queue->low,
+			queue->h_cb, queue->l_cb, queue->data,
+			queue->highest);
+	
+	if (dump_item) {
+		struct fd_list * li;
+		int i = 0;
+		for (li = queue->list.next; li != &queue->list; li = li->next) {
+			fd_log_debug("  [%i] item %p in fifo %p:\n", i++, li->o, queue);
+			(*dump_item)(level, li->o);
+		}
+	}
+	CHECK_POSIX_DO(  pthread_mutex_unlock( &queue->mtx ), /* continue */  );
+	
+}
+
 /* Delete a queue. It must be unused. */ 
 int fd_fifo_del ( struct fifo  ** queue )
 {

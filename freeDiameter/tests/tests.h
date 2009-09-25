@@ -103,7 +103,7 @@ struct fd_config * fd_g_config = &conf;
 	CHECK( 0, fd_lib_init() );				\
 	fd_log_threadname(basename(__FILE__));			\
 	CHECK( 0, fd_conf_init() );				\
-	CHECK( 0, fd_dict_base_protocol(fd_g_config->g_dict) );	\
+	CHECK( 0, fd_dict_base_protocol(fd_g_config->cnf_dict) );	\
 	parse_cmdline(argc, argv);				\
 }
 

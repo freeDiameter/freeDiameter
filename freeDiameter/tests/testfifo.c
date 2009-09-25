@@ -127,9 +127,9 @@ int main(int argc, char *argv[])
 		struct dict_object * cer_model = NULL;
 		struct dict_object * dwr_model = NULL;
 
-		CHECK( 0, fd_dict_search ( fd_g_config->g_dict, DICT_COMMAND, CMD_BY_NAME, "Accounting-Request", 			&acr_model, ENOENT ) );
-		CHECK( 0, fd_dict_search ( fd_g_config->g_dict, DICT_COMMAND, CMD_BY_NAME, "Capabilities-Exchange-Request", 	&cer_model, ENOENT ) );
-		CHECK( 0, fd_dict_search ( fd_g_config->g_dict, DICT_COMMAND, CMD_BY_NAME, "Device-Watchdog-Request",		&dwr_model, ENOENT ) );
+		CHECK( 0, fd_dict_search ( fd_g_config->cnf_dict, DICT_COMMAND, CMD_BY_NAME, "Accounting-Request", 			&acr_model, ENOENT ) );
+		CHECK( 0, fd_dict_search ( fd_g_config->cnf_dict, DICT_COMMAND, CMD_BY_NAME, "Capabilities-Exchange-Request", 	&cer_model, ENOENT ) );
+		CHECK( 0, fd_dict_search ( fd_g_config->cnf_dict, DICT_COMMAND, CMD_BY_NAME, "Device-Watchdog-Request",		&dwr_model, ENOENT ) );
 		CHECK( 0, fd_msg_new ( acr_model, 0, &msg1 ) );
 		CHECK( 0, fd_msg_new ( cer_model, 0, &msg2 ) );
 		CHECK( 0, fd_msg_new ( dwr_model, 0, &msg3 ) );
@@ -214,7 +214,7 @@ int main(int argc, char *argv[])
 		ts.tv_sec += 2; /* Set the timeout to 2 second */
 		
 		/* Create the messages */
-		CHECK( 0, fd_dict_search ( fd_g_config->g_dict, DICT_COMMAND, CMD_BY_NAME, "Device-Watchdog-Request",		&dwr_model, ENOENT ) );
+		CHECK( 0, fd_dict_search ( fd_g_config->cnf_dict, DICT_COMMAND, CMD_BY_NAME, "Device-Watchdog-Request",		&dwr_model, ENOENT ) );
 		for (i = 0; i < NBR_MSG * NBR_THREADS * 2; i++) {
 			CHECK( 0, fd_msg_new ( dwr_model, 0, &msgs[i] ) );
 		}

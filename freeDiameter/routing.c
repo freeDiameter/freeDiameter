@@ -2,7 +2,7 @@
 * Software License Agreement (BSD License)                                                               *
 * Author: Sebastien Decugis <sdecugis@nict.go.jp>							 *
 *													 *
-* Copyright (c) 2008, WIDE Project and NICT								 *
+* Copyright (c) 2009, WIDE Project and NICT								 *
 * All rights reserved.											 *
 * 													 *
 * Redistribution and use of this software in source and binary forms, with or without modification, are  *
@@ -33,13 +33,5 @@
 * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.								 *
 *********************************************************************************************************/
 
-#include <freeDiameter/extension.h>
-
-/* The function MUST be called this */
-void fd_ext_fini(void)
-{
-	/* This code is executed when the daemon is exiting; cleanup management should be placed here */
-	TRACE_DEBUG(INFO, "Extension is terminated... Bye!");
-	return ;
-}
+#include "fD.h"
 

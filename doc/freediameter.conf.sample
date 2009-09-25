@@ -128,5 +128,6 @@ ListenOn = "2001:200:903:2::202:1";
 TcTimer = 60;
 TwTimer = 6;
 NoRelay;
-#LoadExtension = "extensions/sample.fdx";
-LoadExtension = "extensions/sample.fdx":"conf/sample.conf";
+LoadExtension = "extensions/dbg_monitor.fdx";
+LoadExtension = "extensions/dict_nasreq.fdx";
+LoadExtension = "extensions/dict_eap.fdx";

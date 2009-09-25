@@ -17,15 +17,15 @@ ENDMACRO(FD_ADD_EXTENSION)
 
 ####
 # Diameter applications dictionary
-# OPTION(BUILD_DICT_NASREQ "Build NASREQ (RFC4005) Dictionary definitions?" ON)
-# 	IF (BUILD_DICT_NASREQ)
-# 	   SUBDIRS(dict_nasreq)
-# 	ENDIF (BUILD_DICT_NASREQ)
+OPTION(BUILD_DICT_NASREQ "Build NASREQ (RFC4005) Dictionary definitions?" ON)
+	IF (BUILD_DICT_NASREQ)
+	   SUBDIRS(dict_nasreq)
+	ENDIF (BUILD_DICT_NASREQ)
 
-# OPTION(BUILD_DICT_EAP "Build Diameter EAP (RFC4072) Dictionary definitions?" ON)
-# 	IF (BUILD_DICT_EAP)
-# 	   SUBDIRS(dict_eap)
-# 	ENDIF (BUILD_DICT_EAP)
+OPTION(BUILD_DICT_EAP "Build Diameter EAP (RFC4072) Dictionary definitions?" ON)
+	IF (BUILD_DICT_EAP)
+	   SUBDIRS(dict_eap)
+	ENDIF (BUILD_DICT_EAP)
 
 
 
@@ -58,10 +58,15 @@ ENDMACRO(FD_ADD_EXTENSION)
 ####
 # Debug / development extensions
 
-OPTION(BUILD_SAMPLE "Build sample? (Simple extension to demonstrate extension mechanism, for developpers only)" OFF)
+OPTION(BUILD_SAMPLE "Build sample.fdx? (Simple extension to demonstrate extension mechanism, for developpers only)" OFF)
 	IF (BUILD_SAMPLE)
 	   SUBDIRS(_sample)
 	ENDIF (BUILD_SAMPLE)
+
+OPTION(BUILD_MONITOR "Build monitor.fdx? (display periodical debug information on the console)" OFF)
+	IF (BUILD_MONITOR)
+	   SUBDIRS(dbg_monitor)
+	ENDIF (BUILD_MONITOR)
 
 # OPTION(BUILD_RT_ANY "Build rt_any? (Routing extension sending message to any peer available, for testing purpose only)" OFF)
 # 	IF (BUILD_RT_ANY)

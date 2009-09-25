@@ -42,46 +42,58 @@
 
 /* Structure to hold the configuration of the freeDiameter daemon */
 struct fd_config {
-	int		 eyec;		/* Eye catcher: EYEC_CONFIG */
-	char		*conf_file;	/* Configuration file to parse, default is DEFAULT_CONF_FILE */
+	int		 cnf_eyec;	/* Eye catcher: EYEC_CONFIG */
+			#define	EYEC_CONFIG	0xC011F16
 	
-	char   		*diam_id;	/* Diameter Identity of the local peer (FQDN -- UTF-8) */
-	size_t		 diam_id_len;	/* length of the previous string */
-	char		*diam_realm;	/* Diameter realm of the local peer, default to realm part of diam_id */
-	size_t		 diam_realm_len;/* length of the previous string */
+	char		*cnf_file;	/* Configuration file to parse, default is DEFAULT_CONF_FILE */
 	
-	uint16_t	 loc_port;	/* the local port for legacy Diameter (default: 3868) in host byte order */
-	uint16_t	 loc_port_tls;	/* the local port for Diameter/TLS (default: 3869) in host byte order */
-	uint16_t	 loc_sctp_str;	/* default max number of streams for SCTP associations (def: 30) */
-	struct fd_list	 loc_endpoints;	/* the local endpoints to bind the server to. list of struct fd_endpoint. default is empty (bind all) */
+	char   		*cnf_diamid;	/* Diameter Identity of the local peer (FQDN -- UTF-8) */
+	size_t		 cnf_diamid_len;	/* length of the previous string */
+	char		*cnf_diamrlm;	/* Diameter realm of the local peer, default to realm part of diam_id */
+	size_t		 cnf_diamrlm_len;/* length of the previous string */
+	
+	unsigned int	 cnf_timer_tc;	/* The value in seconds of the default Tc timer */
+	unsigned int 	 cnf_timer_tw;	/* The value in seconds of the default Tw timer */
+	
+	uint16_t	 cnf_port;	/* the local port for legacy Diameter (default: 3868) in host byte order */
+	uint16_t	 cnf_port_tls;	/* the local port for Diameter/TLS (default: 3869) in host byte order */
+	uint16_t	 cnf_sctp_str;	/* default max number of streams for SCTP associations (def: 30) */
+	struct fd_list	 cnf_endpoints;	/* the local endpoints to bind the server to. list of struct fd_endpoint. default is empty (bind all) */
+	struct fd_list	 cnf_apps;	/* Applications locally supported (except relay, see flags). Use fd_disp_app_support to add one. list of struct fd_app. */
 	struct {
+		unsigned no_fwd : 1;	/* the peer does not relay messages (0xffffff app id) */
 		unsigned no_ip4 : 1;	/* disable IP */
 		unsigned no_ip6 : 1;	/* disable IPv6 */
 		unsigned no_tcp : 1;	/* disable use of TCP */
 		unsigned no_sctp: 1;	/* disable the use of SCTP */
 		unsigned pr_tcp	: 1;	/* prefer TCP over SCTP */
 		unsigned tls_alg: 1;	/* TLS algorithm for initiated cnx. 0: separate port. 1: inband-security (old) */
-		unsigned no_fwd : 1;	/* the peer does not relay messages (0xffffff app id) */
-	} 		 flags;
+	} 		 cnf_flags;
 	
-	unsigned int	 timer_tc;	/* The value in seconds of the default Tc timer */
-	unsigned int 	 timer_tw;	/* The value in seconds of the default Tw timer */
-	
-	uint32_t	 or_state_id;	/* The value to use in Origin-State-Id, default to random value */
-	struct dictionary *g_dict;	/* pointer to the global dictionary */
-	struct fifo	  *g_fifo_main;	/* FIFO queue of events in the daemon main (struct fd_event items) */
+	uint32_t	 cnf_orstateid;	/* The value to use in Origin-State-Id, default to random value */
+	struct dictionary *cnf_dict;	/* pointer to the global dictionary */
+	struct fifo	  *cnf_main_ev;	/* events for the daemon's main (struct fd_event items) */
 };
-
-#define	EYEC_CONFIG	0xC011F16
-
-/* The pointer to access the global configuration, initalized in main */
-extern struct fd_config *fd_g_config;
+extern struct fd_config *fd_g_config; /* The pointer to access the global configuration, initalized in main */
 
 /* Endpoints */
 struct fd_endpoint {
-	struct fd_list  chain;	/* link in loc_endpoints list */
+	struct fd_list  chain;	/* link in cnf_endpoints list */
 	sSS		ss;	/* the socket information. */
 };
+
+/* Applications */
+struct fd_app {
+	struct fd_list	 chain;	/* link in cnf_apps list. List ordered by appid. */
+	struct {
+		unsigned auth   : 1;
+		unsigned acct   : 1;
+		unsigned common : 1;
+	}		 flags;
+	vendor_id_t	 vndid; /* if not 0, Vendor-Specific-App-Id AVP will be used */
+	application_id_t appid;	/* The identifier of the application */
+};
+	
 
 /* Events */
 struct fd_event {
@@ -89,7 +101,6 @@ struct fd_event {
 	void    *data;
 };
 
-/* send an event */
 static __inline__ int fd_event_send(struct fifo *queue, int code, void * data)
 {
 	struct fd_event * ev;
@@ -99,7 +110,6 @@ static __inline__ int fd_event_send(struct fifo *queue, int code, void * data)
 	CHECK_FCT( fd_fifo_post(queue, &ev) );
 	return 0;
 }
-/* receive an event */
 static __inline__ int fd_event_get(struct fifo *queue, int *code, void ** data)
 {
 	struct fd_event * ev;
@@ -111,6 +121,98 @@ static __inline__ int fd_event_get(struct fifo *queue, int *code, void ** data)
 	free(ev);
 	return 0;
 }
+
+/* Events codespace for fd_g_config->cnf_main_ev */
+enum {
+	FDEV_TERMINATE = 1000,	/* request to terminate */
+	FDEV_DUMP_DICT,		/* Dump the content of the dictionary */
+	FDEV_DUMP_EXT,		/* Dump state of extensions */
+	FDEV_DUMP_QUEUES,	/* Dump the message queues */
+	FDEV_DUMP_CONFIG,	/* Dump the configuration */
+	FDEV_DUMP_PEERS		/* Dump the list of peers */
+};
+
+
+
+/***************************************/
+/*   Peers information                 */
+/***************************************/
+
+/* States of a peer */
+enum peer_state {
+	/* Stable states */
+	STATE_DISABLED = 1,	/* No connexion must be attempted / only this state means that the peer PSM thread is not running */
+	STATE_OPEN,		/* Connexion established */
+	
+	/* Peer state machine */
+	STATE_CLOSED,		/* No connection established, will re-attempt after TcTimer. */
+	STATE_CLOSING,		/* the connection is being shutdown (DPR/DPA in progress) */
+	STATE_WAITCNXACK,	/* Attempting to establish transport-level connection */
+	STATE_WAITCNXACK_ELEC,	/* Received a CER from this same peer on an incoming connection (other peer object), while we were waiting for cnx ack */
+	STATE_WAITCEA,		/* Connection established, CER sent, waiting for CEA */
+	/* STATE_WAITRETURNS_ELEC, */	/* This state is not stable and therefore deprecated:
+				   We have sent a CER on our initiated connection, and received a CER from the remote peer on another connection. Election.
+				   If we win the election, we must disconnect the initiated connection and send a CEA on the other => we go to OPEN state.
+				   If we lose, we disconnect the other connection (receiver) and fallback to WAITCEA state. */
+	
+	/* Failover state machine */
+	STATE_SUSPECT,		/* A DWR was sent and not answered within TwTime. Failover in progress. */
+	STATE_REOPEN		/* Connection has been re-established, waiting for 3 DWR/DWA exchanges before putting back to service */
+};
+extern char *peer_state_str[];
+
+/* Information about a remote peer, used both for query and for creating a new entry */
+struct peer_info {
+	
+	/* This information is always there */
+	char * pi_diamid;	/* UTF-8, \0 terminated. The Diameter Identity of the remote peer */
+	char * pi_realm;	/* idem, its realm. */
+	
+	/* Flags */
+	struct {
+		#define PI_PROT_DEFAULT	0	/* Use the default algorithm configured for the host */
+		#define PI_PROT_TCP	1
+		#define PI_PROT_SCTP	2
+		unsigned	proto :2;
+		
+		#define PI_SEC_DEFAULT	0	/* The default behavior configured for the host */
+		#define PI_SEC_NONE	1	/* Transparent security with this peer (IPsec) */
+		#define PI_SEC_TLS_NEW	2	/* New TLS security (dedicated port protecting also CER/CEA) */
+		#define PI_SEC_TLS_OLD	3	/* Old TLS security (inband on default port) */
+		unsigned	sec :2;
+		
+		#define PI_EXP_DEFAULT	0
+		#define PI_EXP_NONE	1	/* the peer entry does not expire */
+		#define PI_EXP_INACTIVE	2	/* the peer entry expires after pi_lft seconds without activity */
+		#define PI_EXP_LIFETIME	3	/* the peer SA information is destroyed after lft seconds (example: DNS timeout) */
+		unsigned	exp :2;
+		
+		/* Following flags are read-only and received from remote peer */
+		#define PI_INB_NONE	1	/* Remote peer advertised inband-sec-id 0 (None) */
+		#define PI_INB_TLS	2	/* Remote peer advertised inband-sec-id 1 (TLS) */
+		unsigned	inband :2;	/* This is only meaningful with pi_flags.sec == 3 */
+		
+		unsigned	relay :1;	/* The remote peer advertized the relay application */		
+	} pi_flags;
+	
+	/* Additional parameters */
+	uint32_t 	pi_lft;		/* lifetime of entry without activity (except watchdogs) (see pi_flags.exp definition) */
+	uint16_t	pi_streams; 	/* number of streams for SCTP. 0 = default */
+	uint16_t	pi_port; 	/* port to connect to. 0: default. */
+	int		pi_tctimer; 	/* use this value for TcTimer instead of global, if != 0 */
+	int		pi_twtimer; 	/* use this value for TwTimer instead of global, if != 0 */
+	
+	struct fd_list	pi_endpoints;	/* Endpoint(s) of the remote peer (discovered or advertized). list of struct fd_endpoint. DNS resolved if empty. */
+	
+	/* The remaining information is read-only, not used for peer creation */
+	enum peer_state	pi_state;
+	uint32_t	pi_vendorid;	/* Content of the Vendor-Id AVP, or 0 by default */
+	uint32_t	pi_orstate;	/* Origin-State-Id value */
+	char *		pi_prodname;	/* copy of UTF-8 Product-Name AVP (\0 terminated) */
+	uint32_t	pi_firmrev;	/* Content of the Firmware-Revision AVP */
+	struct fd_list	pi_apps;	/* applications advertised by the remote peer, except relay (pi_flags.relay) */
+};
+
 
 /***************************************/
 /*   Sending a message on the network  */
@@ -157,7 +259,6 @@ int fd_msg_send ( struct msg ** pmsg, void (*anscb)(void *, struct msg **), void
  *
  * PARAMETERS:
  *  msg		: A msg object -- it must be an answer.
- *  dict	: dictionary to use for AVP definitions
  *  rescode	: The name of the returned error code (ex: "DIAMETER_INVALID_AVP")
  *  errormsg    : (optional) human-readable error message to put in Error-Message AVP
  *  optavp	: (optional) If provided, the content will be put inside a Failed-AVP
@@ -172,10 +273,10 @@ int fd_msg_send ( struct msg ** pmsg, void (*anscb)(void *, struct msg **), void
  *  0      	: Operation complete.
  *  !0      	: an error occurred.
  */
-int fd_msg_rescode_set( struct msg * msg, struct dictionary * dict, char * rescode, char * errormsg, struct avp * optavp, int type_id );
+int fd_msg_rescode_set( struct msg * msg, char * rescode, char * errormsg, struct avp * optavp, int type_id );
 
-/* The following functions are used to achieve frequent operations on the messages */
-int fd_msg_add_origin ( struct msg * msg, struct dictionary * dict, int osi ); /* Add Origin-Host, Origin-Realm, (if osi) Origin-State-Id AVPS at the end of the message */
+/* Add Origin-Host, Origin-Realm, (if osi) Origin-State-Id AVPS at the end of the message */
+int fd_msg_add_origin ( struct msg * msg, int osi ); 
 
 
 
@@ -183,17 +284,14 @@ int fd_msg_add_origin ( struct msg * msg, struct dictionary * dict, int osi ); /
 /*   Dispatch module, daemon's part    */
 /***************************************/
 
-enum {
-	DISP_APP_AUTH	= 1,
-	DISP_APP_ACCT	= 2
-};
 /*
  * FUNCTION:	fd_disp_app_support
  *
  * PARAMETERS:
  *  app		: The dictionary object corresponding to the Application.
  *  vendor	: (Optional) the dictionary object of a Vendor to claim support in Vendor-Specific-Application-Id
- *  flags	: Combination of DISP_APP_* flags.
+ *  auth	: Support auth app part.
+ *  acct	: Support acct app part.
  *
  * DESCRIPTION: 
  *   Registers an application to be advertized in CER/CEA exchanges.
@@ -204,7 +302,7 @@ enum {
  *  0      	: The application support is registered.
  *  EINVAL 	: A parameter is invalid.
  */
-int fd_disp_app_support ( struct dict_object * app, struct dict_object * vendor, int flags );
+int fd_disp_app_support ( struct dict_object * app, struct dict_object * vendor, int auth, int acct );
 
 /* Note: if we want to support capabilities updates, we'll have to add possibility to remove an app as well... */
 

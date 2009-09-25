@@ -127,15 +127,15 @@ int main(int argc, char *argv[])
 		struct dict_enumval_data enu1_data = { "ENU test 1", { .u32 = 1 }};
 		struct dict_enumval_data enu2_data = { "ENU test 2", { .u32 = 2 }};
 		
-		CHECK( 0, fd_dict_new ( fd_g_config->g_dict, DICT_APPLICATION, &app1_data, NULL, &app1 ) );
-		CHECK( 0, fd_dict_new ( fd_g_config->g_dict, DICT_APPLICATION, &app2_data, NULL, &app2 ) );
-		CHECK( 0, fd_dict_new ( fd_g_config->g_dict, DICT_COMMAND, &cmd1_data, NULL, &cmd1 ) );
-		CHECK( 0, fd_dict_new ( fd_g_config->g_dict, DICT_COMMAND, &cmd2_data, NULL, &cmd2 ) );
-		CHECK( 0, fd_dict_new ( fd_g_config->g_dict, DICT_TYPE, &type_data, NULL, &enutype ) );
-		CHECK( 0, fd_dict_new ( fd_g_config->g_dict, DICT_AVP, &avp1_data, NULL,    &avp1 ) );
-		CHECK( 0, fd_dict_new ( fd_g_config->g_dict, DICT_AVP, &avp2_data, enutype, &avp2 ) );
-		CHECK( 0, fd_dict_new ( fd_g_config->g_dict, DICT_ENUMVAL, &enu1_data, enutype, &enu1 ) );
-		CHECK( 0, fd_dict_new ( fd_g_config->g_dict, DICT_ENUMVAL, &enu2_data, enutype, &enu2 ) );
+		CHECK( 0, fd_dict_new ( fd_g_config->cnf_dict, DICT_APPLICATION, &app1_data, NULL, &app1 ) );
+		CHECK( 0, fd_dict_new ( fd_g_config->cnf_dict, DICT_APPLICATION, &app2_data, NULL, &app2 ) );
+		CHECK( 0, fd_dict_new ( fd_g_config->cnf_dict, DICT_COMMAND, &cmd1_data, NULL, &cmd1 ) );
+		CHECK( 0, fd_dict_new ( fd_g_config->cnf_dict, DICT_COMMAND, &cmd2_data, NULL, &cmd2 ) );
+		CHECK( 0, fd_dict_new ( fd_g_config->cnf_dict, DICT_TYPE, &type_data, NULL, &enutype ) );
+		CHECK( 0, fd_dict_new ( fd_g_config->cnf_dict, DICT_AVP, &avp1_data, NULL,    &avp1 ) );
+		CHECK( 0, fd_dict_new ( fd_g_config->cnf_dict, DICT_AVP, &avp2_data, enutype, &avp2 ) );
+		CHECK( 0, fd_dict_new ( fd_g_config->cnf_dict, DICT_ENUMVAL, &enu1_data, enutype, &enu1 ) );
+		CHECK( 0, fd_dict_new ( fd_g_config->cnf_dict, DICT_ENUMVAL, &enu2_data, enutype, &enu2 ) );
 	}
 	
 	/* Register first handler, very simple test */
@@ -667,6 +667,34 @@ int main(int argc, char *argv[])
 		CHECK( 0, fd_disp_unregister( &hdl[3] ) );
 		CHECK( 0, fd_disp_unregister( &hdl[4] ) );
 	}			
+	
+	/* Test application support advertisement */
+	{
+		struct dict_object * vnd;
+		struct dict_vendor_data vnd_data = { 1, "Vendor test" };
+		struct fd_app * app;
+		
+		CHECK( 0, fd_dict_new ( fd_g_config->cnf_dict, DICT_VENDOR, &vnd_data, NULL, &vnd ) );
+		
+		CHECK( EINVAL, fd_disp_app_support ( vnd, NULL, 1, 0 ) );
+		CHECK( EINVAL, fd_disp_app_support ( app1, NULL, 0, 0 ) );
+		CHECK( 0, fd_disp_app_support ( app1, NULL, 1, 0 ) );
+		CHECK( 0, fd_disp_app_support ( app1, NULL, 0, 1 ) );
+		CHECK( 0, fd_disp_app_support ( app2, vnd, 1, 0 ) );
+		
+		app = (struct fd_app *)(fd_g_config->cnf_apps.next);
+		CHECK( 1, app->appid );
+		CHECK( 1, app->flags.auth );
+		CHECK( 1, app->flags.acct );
+		app = (struct fd_app *)(fd_g_config->cnf_apps.prev);
+		CHECK( 2, app->appid );
+		CHECK( 1, app->flags.auth );
+		CHECK( 0, app->flags.acct );
+		
+		#if 0
+		fd_conf_dump();
+		#endif
+	}
 	
 	/* That's all for the tests yet */
 	PASSTEST();

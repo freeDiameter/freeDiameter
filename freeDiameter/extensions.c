@@ -80,6 +80,20 @@ int fd_ext_add( char * filename, char * conffile )
 	return 0;
 }
 
+/* Dump the list */
+void fd_ext_dump(void)
+{
+	struct fd_list * li;
+	
+	fd_log_debug("Dumping extensions list :\n");
+	
+	for (li = ext_list.next; li != &ext_list; li = li->next)
+	{
+		struct fd_ext_info * ext = (struct fd_ext_info *)li;
+		fd_log_debug(" - '%s'[%s] is %sloaded\n", ext->filename, ext->conffile?:"no conf", ext->handler ? "" : "not ");
+	}
+}
+
 /* Load all extensions in the list */
 int fd_ext_load()
 {

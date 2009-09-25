@@ -2,7 +2,7 @@
 * Software License Agreement (BSD License)                                                               *
 * Author: Sebastien Decugis <sdecugis@nict.go.jp>							 *
 *													 *
-* Copyright (c) 2008, WIDE Project and NICT								 *
+* Copyright (c) 2009, WIDE Project and NICT								 *
 * All rights reserved.											 *
 * 													 *
 * Redistribution and use of this software in source and binary forms, with or without modification, are  *
@@ -33,13 +33,64 @@
 * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.								 *
 *********************************************************************************************************/
 
-#include <freeDiameter/extension.h>
+/* Monitoring extension:
+ - periodically display queues and peers information
+ - upon SIGUSR1, display additional debug information
+ */
 
-/* The function MUST be called this */
+#include <freeDiameter/extension.h>
+#include <signal.h>
+
+static int 	 monitor_main(char * conffile);
+
+EXTENSION_ENTRY("monitor", monitor_main);
+
+/* Function called on receipt of SIGUSR1 */
+static void got_sig(int signal)
+{
+	CHECK_FCT_DO(fd_event_send(fd_g_config->cnf_main_ev, FDEV_DUMP_DICT, NULL), /* continue */);
+	CHECK_FCT_DO(fd_event_send(fd_g_config->cnf_main_ev, FDEV_DUMP_CONFIG, NULL), /* continue */);
+	CHECK_FCT_DO(fd_event_send(fd_g_config->cnf_main_ev, FDEV_DUMP_EXT, NULL), /* continue */);
+}
+/* Thread to display periodical debug information */
+static pthread_t thr;
+static void * mn_thr(void * arg)
+{
+	sigset_t sig;
+	struct sigaction act;
+	fd_log_threadname("Monitor thread");
+	
+	/* Catch signal SIGUSR1 */
+	memset(&act, 0, sizeof(act));
+	act.sa_handler = got_sig;
+	CHECK_SYS_DO( sigaction(SIGUSR1, &act, NULL), /* conitnue */ );
+	sigemptyset(&sig);
+	sigaddset(&sig, SIGUSR1);
+	CHECK_POSIX_DO(  pthread_sigmask(SIG_UNBLOCK, &sig, NULL), /* conitnue */  );
+	
+	/* Loop */
+	while (1) {
+		sleep(60);
+		TRACE_DEBUG(NONE, "Monitor information");
+		CHECK_FCT_DO(fd_event_send(fd_g_config->cnf_main_ev, FDEV_DUMP_QUEUES, NULL), /* continue */);
+		CHECK_FCT_DO(fd_event_send(fd_g_config->cnf_main_ev, FDEV_DUMP_PEERS, NULL), /* continue */);
+		pthread_testcancel();
+	}
+	
+	return NULL;
+}
+
+static int monitor_main(char * conffile)
+{
+	TRACE_ENTRY("%p", conffile);
+	CHECK_POSIX( pthread_create( &thr, NULL, mn_thr, NULL ) );
+	return 0;
+}
+
 void fd_ext_fini(void)
 {
-	/* This code is executed when the daemon is exiting; cleanup management should be placed here */
-	TRACE_DEBUG(INFO, "Extension is terminated... Bye!");
+	TRACE_ENTRY();
+	CHECK_FCT_DO( fd_thr_term(&thr), /* continue */ );
 	return ;
 }
 

@@ -41,11 +41,6 @@
 #include <freeDiameter/freeDiameter-host.h>
 #include <freeDiameter/freeDiameter.h>
 
-/* Events codespace for fd_g_config->g_fifo_main */
-enum {
-	FM_TERMINATE = 1000	/* request to terminate */
-};
-
 /* Configuration */
 int fd_conf_init();
 void fd_conf_dump();
@@ -56,7 +51,19 @@ int fddparse(struct fd_config * conf); /* yacc generated */
 int fd_ext_init();
 int fd_ext_add( char * filename, char * conffile );
 int fd_ext_load();
+void fd_ext_dump(void);
 int fd_ext_fini(void);
+
+/* Messages */
+int fd_msg_init(void);
+
+/* Global message queues */
+extern struct fifo * fd_g_incoming; /* all messages received from other peers, except local messages (CER, ...) */
+extern struct fifo * fd_g_outgoing; /* messages to be sent to other peers on the network following routing procedure */
+extern struct fifo * fd_g_local; /* messages to be handled to local extensions */
+/* Message queues */
+int fd_queues_init(void);
+int fd_queues_fini(void);
 
 /* Create all the dictionary objects defined in the Diameter base RFC. */
 int fd_dict_base_protocol(struct dictionary * dict);

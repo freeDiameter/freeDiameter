@@ -44,18 +44,21 @@ EXTENSION_ENTRY("sample", sample_main);
 /* The extension-specific initialization code */
 static int sample_main(char * conffile)
 {
+	/* The debug macro from main tree can be used the same way */
 	TRACE_ENTRY("%p", conffile);
 	
-	fprintf(stdout, "I am extension " __FILE__ " running on host %s\n", fd_g_config->diam_id);
+	/* This is how we access daemon's global vars */
+	fprintf(stdout, "I am extension " __FILE__ " running on host %s.", fd_g_config->cnf_diamid);
 	
+	/* The configuration file name is received in the conffile var. It's up to extension to parse it */
 	if (conffile) {
 		fprintf(stdout, "I should parse my configuration file there: %s\n", conffile);
 	} else {
 		fprintf(stdout, "I received no configuration file to parse\n");
 	}
 	
-	/* Use the dictionary for test */
-	fd_log_debug("Let's create that 'Example-AVP'...\n");
+	/* Functions from the libfreediameter can also be used as demonstrated here: */
+	TRACE_DEBUG(INFO, "Let's create that 'Example-AVP'...");
 	{
 		struct dict_object * origin_host_avp = NULL;
 		struct dict_object * session_id_avp = NULL;
@@ -63,22 +66,27 @@ static int sample_main(char * conffile)
 		struct dict_rule_data rule_data = { NULL, RULE_REQUIRED, 0, -1, 1 };
 		struct dict_avp_data example_avp_data = { 999999, 0, "Example-AVP", AVP_FLAG_VENDOR , 0, AVP_TYPE_GROUPED };
 
-		CHECK_FCT( fd_dict_search ( fd_g_config->g_dict, DICT_AVP, AVP_BY_NAME, "Origin-Host", &origin_host_avp, ENOENT));
-		CHECK_FCT( fd_dict_search ( fd_g_config->g_dict, DICT_AVP, AVP_BY_NAME, "Session-Id", &session_id_avp, ENOENT));
+		CHECK_FCT( fd_dict_search ( fd_g_config->cnf_dict, DICT_AVP, AVP_BY_NAME, "Origin-Host", &origin_host_avp, ENOENT));
+		CHECK_FCT( fd_dict_search ( fd_g_config->cnf_dict, DICT_AVP, AVP_BY_NAME, "Session-Id", &session_id_avp, ENOENT));
 		
-		CHECK_FCT( fd_dict_new ( fd_g_config->g_dict, DICT_AVP, &example_avp_data , NULL, &example_avp_avp ));
+		CHECK_FCT( fd_dict_new ( fd_g_config->cnf_dict, DICT_AVP, &example_avp_data , NULL, &example_avp_avp ));
 		
 		rule_data.rule_avp = origin_host_avp;
 		rule_data.rule_min = 1;
 		rule_data.rule_max = 1;
-		CHECK_FCT( fd_dict_new ( fd_g_config->g_dict, DICT_RULE, &rule_data, example_avp_avp, NULL ));
+		CHECK_FCT( fd_dict_new ( fd_g_config->cnf_dict, DICT_RULE, &rule_data, example_avp_avp, NULL ));
 		
 		rule_data.rule_avp = session_id_avp;
 		rule_data.rule_min = 1;
 		rule_data.rule_max = -1;
-		CHECK_FCT( fd_dict_new ( fd_g_config->g_dict, DICT_RULE, &rule_data, example_avp_avp, NULL ));
+		CHECK_FCT( fd_dict_new ( fd_g_config->cnf_dict, DICT_RULE, &rule_data, example_avp_avp, NULL ));
+		
+		fd_dict_dump_object(example_avp_avp);
 	}
-	fd_log_debug("'Example-AVP' created without error\n");
+	TRACE_DEBUG(INFO, "'Example-AVP' created without error\n");
 	
+	/* The initialization function returns an error code with the standard POSIX meaning (ENOMEM, and so on) */
 	return 0;
 }
+
+/* See file fini.c for an example of destructor */

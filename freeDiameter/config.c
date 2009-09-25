@@ -42,25 +42,25 @@ int fd_conf_init()
 {
 	TRACE_ENTRY();
 	
-	fd_g_config->eyec = EYEC_CONFIG;
-	fd_g_config->conf_file = DEFAULT_CONF_FILE;
+	fd_g_config->cnf_eyec = EYEC_CONFIG;
+	fd_g_config->cnf_file = DEFAULT_CONF_FILE;
 	
-	fd_g_config->loc_port     = 3868;
-	fd_g_config->loc_port_tls = 3869;
-	fd_g_config->loc_sctp_str = 30;
-	fd_list_init(&fd_g_config->loc_endpoints, NULL);
+	fd_g_config->cnf_timer_tc = 30;
+	fd_g_config->cnf_timer_tw = 30;
 	
+	fd_g_config->cnf_port     = 3868;
+	fd_g_config->cnf_port_tls = 3869;
+	fd_g_config->cnf_sctp_str = 30;
+	fd_list_init(&fd_g_config->cnf_endpoints, NULL);
+	fd_list_init(&fd_g_config->cnf_apps, NULL);
 	#ifdef DISABLE_SCTP
-	fd_g_config->flags.no_sctp = 1;
+	fd_g_config->cnf_flags.no_sctp = 1;
 	#endif /* DISABLE_SCTP */
 	
-	fd_g_config->timer_tc = 30;
-	fd_g_config->timer_tw = 30;
+	fd_g_config->cnf_orstateid = (uint32_t) time(NULL);
 	
-	fd_g_config->or_state_id = (uint32_t) time(NULL);
-	
-	CHECK_FCT( fd_dict_init(&fd_g_config->g_dict) );
-	CHECK_FCT( fd_fifo_new(&fd_g_config->g_fifo_main) );
+	CHECK_FCT( fd_dict_init(&fd_g_config->cnf_dict) );
+	CHECK_FCT( fd_fifo_new(&fd_g_config->cnf_main_ev) );
 	
 	return 0;
 }
@@ -72,39 +72,56 @@ void fd_conf_dump()
 	
 	fd_log_debug("-- Configuration :\n");
 	fd_log_debug("  Debug trace level ...... : %+d\n", fd_g_debug_lvl);
-	fd_log_debug("  Configuration file ..... : %s\n", fd_g_config->conf_file);
-	fd_log_debug("  Diameter Identity ...... : %s (l:%Zi)\n", fd_g_config->diam_id, fd_g_config->diam_id_len);
-	fd_log_debug("  Diameter Realm ......... : %s (l:%Zi)\n", fd_g_config->diam_realm, fd_g_config->diam_realm_len);
-	fd_log_debug("  Local port ............. : %hu\n", fd_g_config->loc_port);
-	fd_log_debug("  Local secure port ...... : %hu\n", fd_g_config->loc_port_tls);
-	fd_log_debug("  Number of SCTP streams . : %hu\n", fd_g_config->loc_sctp_str);
-	if (FD_IS_LIST_EMPTY(&fd_g_config->loc_endpoints)) {
+	fd_log_debug("  Configuration file ..... : %s\n", fd_g_config->cnf_file);
+	fd_log_debug("  Diameter Identity ...... : %s (l:%Zi)\n", fd_g_config->cnf_diamid, fd_g_config->cnf_diamid_len);
+	fd_log_debug("  Diameter Realm ......... : %s (l:%Zi)\n", fd_g_config->cnf_diamrlm, fd_g_config->cnf_diamrlm_len);
+	fd_log_debug("  Tc Timer ............... : %u\n", fd_g_config->cnf_timer_tc);
+	fd_log_debug("  Tw Timer ............... : %u\n", fd_g_config->cnf_timer_tw);
+	fd_log_debug("  Local port ............. : %hu\n", fd_g_config->cnf_port);
+	fd_log_debug("  Local secure port ...... : %hu\n", fd_g_config->cnf_port_tls);
+	fd_log_debug("  Number of SCTP streams . : %hu\n", fd_g_config->cnf_sctp_str);
+	if (FD_IS_LIST_EMPTY(&fd_g_config->cnf_endpoints)) {
 		fd_log_debug("  Local endpoints ........ : Default (use all available)\n");
 	} else {
-		struct fd_list * li = fd_g_config->loc_endpoints.next;
+		struct fd_list * li = fd_g_config->cnf_endpoints.next;
 		fd_log_debug("  Local endpoints ........ : ");
-		while (li != &fd_g_config->loc_endpoints) {
+		while (li != &fd_g_config->cnf_endpoints) {
 			struct fd_endpoint * ep = (struct fd_endpoint *)li;
-			if (li != fd_g_config->loc_endpoints.next) fd_log_debug("                             ");
+			if (li != fd_g_config->cnf_endpoints.next) fd_log_debug("                             ");
 			sSA_DUMP_NODE( &ep->ss, NI_NUMERICHOST );
 			fd_log_debug("\n");
 			li = li->next;
 		}
 	}
-	fd_log_debug("  Flags : - IP ........... : %s\n", fd_g_config->flags.no_ip4 ? "DISABLED" : "Enabled");
-	fd_log_debug("          - IPv6 ......... : %s\n", fd_g_config->flags.no_ip6 ? "DISABLED" : "Enabled");
-	fd_log_debug("          - Relay app .... : %s\n", fd_g_config->flags.no_fwd ? "DISABLED" : "Enabled");
-	fd_log_debug("          - TCP .......... : %s\n", fd_g_config->flags.no_tcp ? "DISABLED" : "Enabled");
+	if (FD_IS_LIST_EMPTY(&fd_g_config->cnf_apps)) {
+		fd_log_debug("  Local applications ..... : (none)\n");
+	} else {
+		struct fd_list * li = fd_g_config->cnf_apps.next;
+		fd_log_debug("  Local applications ..... : ");
+		while (li != &fd_g_config->cnf_apps) {
+			struct fd_app * app = (struct fd_app *)li;
+			if (li != fd_g_config->cnf_apps.next) fd_log_debug("                             ");
+			fd_log_debug("App: %u\t%s%s%s\tVnd: %u\n", 
+					app->appid,
+					app->flags.auth ? "Au" : "--",
+					app->flags.acct ? "Ac" : "--",
+					app->flags.common ? "C" : "-",
+					app->vndid);
+			li = li->next;
+		}
+	}
+	fd_log_debug("  Flags : - IP ........... : %s\n", fd_g_config->cnf_flags.no_ip4 ? "DISABLED" : "Enabled");
+	fd_log_debug("          - IPv6 ......... : %s\n", fd_g_config->cnf_flags.no_ip6 ? "DISABLED" : "Enabled");
+	fd_log_debug("          - Relay app .... : %s\n", fd_g_config->cnf_flags.no_fwd ? "DISABLED" : "Enabled");
+	fd_log_debug("          - TCP .......... : %s\n", fd_g_config->cnf_flags.no_tcp ? "DISABLED" : "Enabled");
 	#ifdef DISABLE_SCTP
 	fd_log_debug("          - SCTP ......... : DISABLED (at compilation)\n");
 	#else /* DISABLE_SCTP */
-	fd_log_debug("          - SCTP ......... : %s\n", fd_g_config->flags.no_sctp ? "DISABLED" : "Enabled");
+	fd_log_debug("          - SCTP ......... : %s\n", fd_g_config->cnf_flags.no_sctp ? "DISABLED" : "Enabled");
 	#endif /* DISABLE_SCTP */
-	fd_log_debug("          - Pref. proto .. : %s\n", fd_g_config->flags.pr_tcp ? "TCP" : "SCTP");
-	fd_log_debug("          - TLS method ... : %s\n", fd_g_config->flags.tls_alg ? "INBAND" : "Separate port");
-	fd_log_debug("  Tc Timer ............... : %u\n", fd_g_config->timer_tc);
-	fd_log_debug("  Tw Timer ............... : %u\n", fd_g_config->timer_tw);
-	fd_log_debug("  Origin-State-Id ........ : %u\n", fd_g_config->or_state_id);
+	fd_log_debug("          - Pref. proto .. : %s\n", fd_g_config->cnf_flags.pr_tcp ? "TCP" : "SCTP");
+	fd_log_debug("          - TLS method ... : %s\n", fd_g_config->cnf_flags.tls_alg ? "INBAND" : "Separate port");
+	fd_log_debug("  Origin-State-Id ........ : %u\n", fd_g_config->cnf_orstateid);
 }
 
 /* Parse the configuration file (using the yacc parser) */
@@ -112,12 +129,12 @@ int fd_conf_parse()
 {
 	extern FILE * fddin;
 	
-	TRACE_DEBUG (FULL, "Parsing configuration file: %s", fd_g_config->conf_file);
+	TRACE_DEBUG (FULL, "Parsing configuration file: %s", fd_g_config->cnf_file);
 	
-	fddin = fopen(fd_g_config->conf_file, "r");
+	fddin = fopen(fd_g_config->cnf_file, "r");
 	if (fddin == NULL) {
 		int ret = errno;
-		fprintf(stderr, "Unable to open configuration file %s for reading: %s\n", fd_g_config->conf_file, strerror(ret));
+		fprintf(stderr, "Unable to open configuration file %s for reading: %s\n", fd_g_config->cnf_file, strerror(ret));
 		return ret;
 	}
 	
@@ -128,7 +145,7 @@ int fd_conf_parse()
 	fclose(fddin);
 	
 	/* Resolve hostname if not provided */
-	if (fd_g_config->diam_id == NULL) {
+	if (fd_g_config->cnf_diamid == NULL) {
 #ifndef HOST_NAME_MAX
 #define HOST_NAME_MAX 1024
 #endif /* HOST_NAME_MAX */
@@ -151,36 +168,36 @@ int fd_conf_parse()
 					buf, gai_strerror(ret));
 			return EINVAL;
 		}
-		CHECK_MALLOC( fd_g_config->diam_id = strdup(info->ai_canonname) );
+		CHECK_MALLOC( fd_g_config->cnf_diamid = strdup(info->ai_canonname) );
 		freeaddrinfo(info);
 	}
 	
 	/* cache the length of the diameter id for the session module */
-	fd_g_config->diam_id_len = strlen(fd_g_config->diam_id);
+	fd_g_config->cnf_diamid_len = strlen(fd_g_config->cnf_diamid);
 	
 	/* Handle the realm part */
-	if (fd_g_config->diam_realm == NULL) {
+	if (fd_g_config->cnf_diamrlm == NULL) {
 		char * start = NULL;
 		
 		/* Check the diameter identity is a fqdn */
-		start = strchr(fd_g_config->diam_id, '.');
+		start = strchr(fd_g_config->cnf_diamid, '.');
 		if ((start == NULL) || (start[1] == '\0')) {
 			fprintf(stderr, "Unable to extract realm from the LocalIdentity '%s'.\n"
 					"Please fix your LocalIdentity setting or provide LocalRealm.\n",
-					fd_g_config->diam_id);
+					fd_g_config->cnf_diamid);
 			return EINVAL;
 		}		
 		
-		CHECK_MALLOC( fd_g_config->diam_realm = strdup( start + 1 )  ); 
+		CHECK_MALLOC( fd_g_config->cnf_diamrlm = strdup( start + 1 )  ); 
 	}
-	fd_g_config->diam_realm_len = strlen(fd_g_config->diam_realm);
+	fd_g_config->cnf_diamrlm_len = strlen(fd_g_config->cnf_diamrlm);
 	
 	/* Validate some flags */
-	if (fd_g_config->flags.no_ip4 && fd_g_config->flags.no_ip6) {
+	if (fd_g_config->cnf_flags.no_ip4 && fd_g_config->cnf_flags.no_ip6) {
 		fprintf(stderr, "IP and IPv6 cannot be disabled at the same time.\n");
 		return EINVAL;
 	}
-	if (fd_g_config->flags.no_tcp && fd_g_config->flags.no_sctp) {
+	if (fd_g_config->cnf_flags.no_tcp && fd_g_config->cnf_flags.no_sctp) {
 		fprintf(stderr, "TCP and SCTP cannot be disabled at the same time.\n");
 		return EINVAL;
 	}

@@ -10,8 +10,11 @@ SET_SOURCE_FILES_PROPERTIES(lex.fdd.c fdd.tab.c PROPERTIES COMPILE_FLAGS "-I ${C
 SET(FD_COMMON_SRC
 	fD.h
 	config.c
+	dispatch.c
 	extensions.c
 	dict_base_proto.c
+	messages.c
+	queues.c
 	)
 
 SET(FD_COMMON_GEN_SRC
