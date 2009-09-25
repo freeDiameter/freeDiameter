@@ -14,6 +14,7 @@ SET(FD_COMMON_SRC
 	extensions.c
 	dict_base_proto.c
 	messages.c
+	peers.c
 	queues.c
 	)
 

@@ -68,4 +68,21 @@ int fd_queues_fini(void);
 /* Create all the dictionary objects defined in the Diameter base RFC. */
 int fd_dict_base_protocol(struct dictionary * dict);
 
+/* Peers */
+struct fd_peer { /* The "real" definition of the peer structure */
+	
+	struct peer_hdr	p_hdr; /* contains all public data */
+	
+	int		p_eyec;	/* Eye catcher, EYEC_PEER */
+	#define EYEC_PEER	0x373C9336
+	
+	/* threads, message queues, socket & callbacks */
+	
+};
+
+int fd_peer_init();
+void fd_peer_dump(int details);
+int fd_peer_start();
+int fd_peer_waitstart();
+
 #endif /* _FD_H */

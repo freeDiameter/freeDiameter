@@ -116,9 +116,8 @@ void fd_fifo_dump(int level, char * name, struct fifo * queue, void (*dump_item)
 	}
 	
 	CHECK_POSIX_DO(  pthread_mutex_lock( &queue->mtx ), /* continue */  );
-	fd_log_debug("  %d elements in queue\n", queue->count);
-	fd_log_debug("  %d threads waiting\n", queue->thrs);
-	fd_log_debug("  thresholds: %d / %d, cb: %p / %p (%p), highest: %d\n",
+	fd_log_debug("   %d elements in queue / %d threads waiting\n", queue->count, queue->thrs);
+	fd_log_debug("   thresholds: %d / %d, cb: %p / %p (%p), highest: %d\n",
 			queue->high, queue->low,
 			queue->h_cb, queue->l_cb, queue->data,
 			queue->highest);

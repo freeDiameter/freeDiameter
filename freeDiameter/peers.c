@@ -33,68 +33,88 @@
 * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.								 *
 *********************************************************************************************************/
 
-/* Monitoring extension:
- - periodically display queues and peers information
- - upon SIGUSR1, display additional debug information
- */
+#include "fD.h"
 
-#include <freeDiameter/extension.h>
-#include <signal.h>
+const char *peer_state_str[] = { "<error>"
+	, "STATE_DISABLED"
+	, "STATE_OPEN"
+	, "STATE_CLOSED"
+	, "STATE_CLOSING"
+	, "STATE_WAITCNXACK"
+	, "STATE_WAITCNXACK_ELEC"
+	, "STATE_WAITCEA"
+	, "STATE_SUSPECT"
+	, "STATE_REOPEN"
+	};
+#define STATE_STR(state) \
+	peer_state_str[ (state) <= STATE_REOPEN ? (state) : 0 ]
 
-static int 	 monitor_main(char * conffile);
+struct fd_list   fd_g_peers;
+pthread_rwlock_t fd_g_peers_rw;
 
-EXTENSION_ENTRY("monitor", monitor_main);
+static int started = 0;
+static pthread_mutex_t  started_mtx = PTHREAD_MUTEX_INITIALIZER;
+static pthread_cond_t   started_cnd = PTHREAD_COND_INITIALIZER;
 
-/* Function called on receipt of SIGUSR1 */
-static void got_sig(int signal)
+/* Wait for start signal */
+int fd_peer_waitstart()
 {
-	CHECK_FCT_DO(fd_event_send(fd_g_config->cnf_main_ev, FDEV_DUMP_DICT, NULL), /* continue */);
-	CHECK_FCT_DO(fd_event_send(fd_g_config->cnf_main_ev, FDEV_DUMP_CONFIG, NULL), /* continue */);
-	CHECK_FCT_DO(fd_event_send(fd_g_config->cnf_main_ev, FDEV_DUMP_EXT, NULL), /* continue */);
-}
-/* Thread to display periodical debug information */
-static pthread_t thr;
-static void * mn_thr(void * arg)
-{
-	sigset_t sig;
-	struct sigaction act;
-	fd_log_threadname("Monitor thread");
-	
-	/* Catch signal SIGUSR1 */
-	memset(&act, 0, sizeof(act));
-	act.sa_handler = got_sig;
-	CHECK_SYS_DO( sigaction(SIGUSR1, &act, NULL), /* conitnue */ );
-	sigemptyset(&sig);
-	sigaddset(&sig, SIGUSR1);
-	CHECK_POSIX_DO(  pthread_sigmask(SIG_UNBLOCK, &sig, NULL), /* conitnue */  );
-	
-	/* Loop */
-	while (1) {
-		#ifdef DEBUG
-		sleep(30);
-		#else /* DEBUG */
-		sleep(3600); /* 1 hour */
-		#endif /* DEBUG */
-		TRACE_DEBUG(NONE, "Monitor information");
-		CHECK_FCT_DO(fd_event_send(fd_g_config->cnf_main_ev, FDEV_DUMP_QUEUES, NULL), /* continue */);
-		CHECK_FCT_DO(fd_event_send(fd_g_config->cnf_main_ev, FDEV_DUMP_PEERS, NULL), /* continue */);
-		pthread_testcancel();
+	CHECK_POSIX( pthread_mutex_lock(&started_mtx) );
+awake:	
+	if (! started) {
+		pthread_cleanup_push( fd_cleanup_mutex, &started_mtx );
+		CHECK_POSIX( pthread_cond_wait(&started_cnd, &started_mtx) );
+		pthread_cleanup_pop( 0 );
+		goto awake;
 	}
-	
-	return NULL;
-}
-
-static int monitor_main(char * conffile)
-{
-	TRACE_ENTRY("%p", conffile);
-	CHECK_POSIX( pthread_create( &thr, NULL, mn_thr, NULL ) );
+	CHECK_POSIX( pthread_mutex_unlock(&started_mtx) );
 	return 0;
 }
 
-void fd_ext_fini(void)
+/* Allow the state machines to start */
+int fd_peer_start()
 {
-	TRACE_ENTRY();
-	CHECK_FCT_DO( fd_thr_term(&thr), /* continue */ );
-	return ;
+	CHECK_POSIX( pthread_mutex_lock(&started_mtx) );
+	started = 1;
+	CHECK_POSIX( pthread_cond_broadcast(&started_cnd) );
+	CHECK_POSIX( pthread_mutex_unlock(&started_mtx) );
+	return 0;
 }
 
+/* Initialize the peers list */
+int fd_peer_init()
+{
+	TRACE_ENTRY();
+	
+	fd_list_init(&fd_g_peers, NULL);
+	CHECK_POSIX( pthread_rwlock_init(&fd_g_peers_rw, NULL) );
+	
+	return 0;
+}
+
+/* Dump the list of peers */
+void fd_peer_dump(int details)
+{
+	struct fd_list * li;
+	
+	fd_log_debug("Dumping list of peers :\n");
+	CHECK_FCT_DO( pthread_rwlock_rdlock(&fd_g_peers_rw), /* continue */ );
+	
+	for (li = fd_g_peers.next; li != &fd_g_peers; li = li->next) {
+		struct fd_peer * np = (struct fd_peer *)li;
+		if (np->p_eyec != EYEC_PEER) {
+			fd_log_debug("  Invalid entry @%p !\n", li);
+			continue;
+		}
+		
+		fd_log_debug("   %s %s", np->p_hdr.info.pi_diamid, STATE_STR(np->p_hdr.info.pi_state));
+		if (details > INFO) {
+			fd_log_debug(" (rlm:%s)", np->p_hdr.info.pi_realm);
+			if (np->p_hdr.info.pi_prodname)
+				fd_log_debug(" ['%s' %u]", np->p_hdr.info.pi_prodname, np->p_hdr.info.pi_firmrev);
+		}
+		fd_log_debug("\n");
+	}
+	
+	CHECK_FCT_DO( pthread_rwlock_unlock(&fd_g_peers_rw), /* continue */ );
+}

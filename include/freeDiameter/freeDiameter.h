@@ -159,7 +159,7 @@ enum peer_state {
 	STATE_SUSPECT,		/* A DWR was sent and not answered within TwTime. Failover in progress. */
 	STATE_REOPEN		/* Connection has been re-established, waiting for 3 DWR/DWA exchanges before putting back to service */
 };
-extern char *peer_state_str[];
+extern const char *peer_state_str[];
 
 /* Information about a remote peer, used both for query and for creating a new entry */
 struct peer_info {
@@ -213,6 +213,73 @@ struct peer_info {
 	struct fd_list	pi_apps;	/* applications advertised by the remote peer, except relay (pi_flags.relay) */
 };
 
+struct peer_hdr {
+	struct fd_list	 chain;	/* List of all the peers, ordered by their Diameter Id */
+	struct peer_info info;	/* The public data */
+	
+	/* This header is followed by more data in the private peer structure definition */
+};
+
+/* the global list of peers. 
+  Since we are not expecting so many connections, we don't use a hash, but it might be changed.
+  The list items are peer_hdr structures (actually, fd_peer, but the cast is OK) */
+extern struct fd_list fd_g_peers;
+extern pthread_rwlock_t fd_g_peers_rw; /* protect the list */
+
+/*
+ * FUNCTION:	fd_peer_add
+ *
+ * PARAMETERS:
+ *  info 	: Information to create the peer.
+ *  cb		: optional, a callback to call (once) when the peer connection is established or failed
+ *  cb_data	: opaque data to pass to the callback.
+ *
+ * DESCRIPTION: 
+ *  Add a peer to the list of peers to which the daemon must maintain a connexion.
+ * If cb is not null, the callback is called when the connection is in OPEN state or
+ * when an error has occurred. The callback should use the pi_state information to 
+ * determine which one it is.
+ *
+ * RETURN VALUE:
+ *  0      	: The peer is added.
+ *  EINVAL 	: A parameter is invalid.
+ *  EEXIST 	: A peer with the same Diameter-Id is already in the list.
+ *  (other standard errors may be returned, too, with their standard meaning. Example:
+ *    ENOMEM 	: Memory allocation for the new object element failed.)
+ */
+int fd_peer_add ( struct peer_info * info, void (*cb)(struct peer_info *, void *), void * cb_data );
+
+/*
+ * FUNCTION:	peer_validate_register
+ *
+ * PARAMETERS:
+ *  peer_validate 	: Callback as defined bellow.
+ *
+ * DESCRIPTION: 
+ *  Add a callback to authorize / reject incoming peer connections.
+ * All registered callbacks are called until a callback sets auth = -1 or auth = 1.
+ * If no callback returns a clear decision, the default behavior is applied (reject unknown connections)
+ *
+ * RETURN VALUE:
+ *  0   : The callback is added.
+ * !0	: An error occurred.
+ */
+int fd_peer_validate_register ( int (*peer_validate)(struct peer_info * /* info */, int * /* auth */) );
+/*
+ * CALLBACK:	peer_validate
+ *
+ * PARAMETERS:
+ *   info     : Structure containing information about the peer attempting the connection.
+ *   auth     : Store there the result if the peer is accepted (1), rejected (-1), or unknown (0).
+ *
+ * DESCRIPTION: 
+ *   This callback is called when a new connection is being established from an unknown peer,
+ *  after the CER is received. An extension must register such callback with peer_validate_register.
+ *
+ * RETURN VALUE:
+ *  0      	: The authorization decision has been written in the location pointed by auth.
+ *  !0 		: An error occurred.
+ */
 
 /***************************************/
 /*   Sending a message on the network  */

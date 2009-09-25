@@ -79,6 +79,7 @@ int main(int argc, char * argv[])
 	CHECK_FCT(  fd_ext_init()  );
 	CHECK_FCT(  fd_queues_init()  );
 	CHECK_FCT(  fd_msg_init()  );
+	CHECK_FCT(  fd_peer_init()  );
 	
 	/* Parse the configuration file */
 	CHECK_FCT( fd_conf_parse() );
@@ -87,7 +88,7 @@ int main(int argc, char * argv[])
 	CHECK_FCT(  fd_ext_load()  );
 	
 	/* Start the peer state machines */
-	
+	CHECK_FCT( fd_peer_start() );
 	
 	/* Now, just wait for events */
 	TRACE_DEBUG(INFO, FD_PROJECT_BINARY " daemon initialized.");
@@ -114,6 +115,9 @@ int main(int argc, char * argv[])
 				fd_conf_dump();
 				break;
 			
+			case FDEV_DUMP_PEERS:
+				fd_peer_dump(FULL);
+				break;
 			
 			case FDEV_TERMINATE:
 				ret = 0;
