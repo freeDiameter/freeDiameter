@@ -111,10 +111,10 @@ qstring		\"[^\"\n]*\"
 			}
 				
 	/* Full words tokens (keywords) */
-(?i:"LocalIdentity")	{ return LOCALIDENTITY;	}
-(?i:"LocalRealm")	{ return LOCALREALM;	}
-(?i:"LocalPort")	{ return LOCALPORT;	}
-(?i:"LocalSecPort")	{ return LOCALSECPORT;	}
+(?i:"Identity")		{ return IDENTITY;	}
+(?i:"Realm")		{ return REALM;   	}
+(?i:"Port")		{ return PORT;    	}
+(?i:"SecPort")		{ return SECPORT;  	}
 (?i:"No_IPv6")		{ return NOIP6;		}
 (?i:"No_IP")		{ return NOIP;		}
 (?i:"No_TCP")		{ return NOTCP;		}
@@ -127,6 +127,9 @@ qstring		\"[^\"\n]*\"
 (?i:"TwTimer")		{ return TWTIMER;	}
 (?i:"NoRelay")		{ return NORELAY;	}
 (?i:"LoadExtension")	{ return LOADEXT;	}
+(?i:"ConnectPeer")	{ return CONNPEER;	}
+(?i:"ConnectTo")	{ return CONNTO;	}
+(?i:"No_TLS")		{ return NOTLS;		}
 
 
 	/* Valid single characters for yyparse */

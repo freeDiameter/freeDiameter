@@ -116,7 +116,7 @@ int main(int argc, char * argv[])
 				break;
 			
 			case FDEV_DUMP_PEERS:
-				fd_peer_dump(FULL);
+				fd_peer_dump_list(FULL);
 				break;
 			
 			case FDEV_TERMINATE:

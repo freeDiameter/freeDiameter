@@ -46,8 +46,6 @@ const char *peer_state_str[] = { "<error>"
 	, "STATE_SUSPECT"
 	, "STATE_REOPEN"
 	};
-#define STATE_STR(state) \
-	peer_state_str[ (state) <= STATE_REOPEN ? (state) : 0 ]
 
 struct fd_list   fd_g_peers;
 pthread_rwlock_t fd_g_peers_rw;
@@ -93,7 +91,7 @@ int fd_peer_init()
 }
 
 /* Dump the list of peers */
-void fd_peer_dump(int details)
+void fd_peer_dump_list(int details)
 {
 	struct fd_list * li;
 	
@@ -107,14 +105,21 @@ void fd_peer_dump(int details)
 			continue;
 		}
 		
-		fd_log_debug("   %s %s", np->p_hdr.info.pi_diamid, STATE_STR(np->p_hdr.info.pi_state));
+		fd_log_debug("   %s\t%s", STATE_STR(np->p_hdr.info.pi_state), np->p_hdr.info.pi_diamid);
 		if (details > INFO) {
-			fd_log_debug(" (rlm:%s)", np->p_hdr.info.pi_realm);
+			fd_log_debug("\t(rlm:%s)", np->p_hdr.info.pi_realm);
 			if (np->p_hdr.info.pi_prodname)
-				fd_log_debug(" ['%s' %u]", np->p_hdr.info.pi_prodname, np->p_hdr.info.pi_firmrev);
+				fd_log_debug("\t['%s' %u]", np->p_hdr.info.pi_prodname, np->p_hdr.info.pi_firmrev);
+			fd_log_debug("\t(from %s)", np->p_dbgorig);
 		}
 		fd_log_debug("\n");
 	}
 	
 	CHECK_FCT_DO( pthread_rwlock_unlock(&fd_g_peers_rw), /* continue */ );
+}
+
+/* Add a new peer entry */
+int fd_peer_add ( struct peer_info * info, char * orig_dbg, void (*cb)(struct peer_info *, void *), void * cb_data )
+{
+	return ENOTSUP;
 }

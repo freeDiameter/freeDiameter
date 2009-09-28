@@ -6,23 +6,23 @@
 # The Diameter Identity of this daemon.
 # This must be a valid FQDN that resolves to the local host.
 # Default: hostname's FQDN
-#LocalIdentity = "aaa.koganei.wide.ad.jp";
+#Identity = "aaa.koganei.wide.ad.jp";
 
 # The Diameter Realm of this daemon.
-# Default: the domain part of LocalIdentity.
-#LocalRealm = "wide.ad.jp";
+# Default: the domain part of Identity.
+#Realm = "wide.ad.jp";
 
 ##############################################################
 ##  Transport protocol configuration
 
 # The port this peer is listening on for incoming connections (TCP and SCTP).
 # Default: 3868
-#LocalPort = 3868;
+#Port = 3868;
 
 # The port this peer is listening on for incoming TLS connections (TCP and SCTP).
 # See TLS_old_method for more information.
 # Default: 3869
-#LocalSecPort = 3869;
+#SecPort = 3869;
 
 # Use RFC3588 method for TLS protection, where TLS is negociated after CER/CEA
 # on the same port. This only affects outgoing connections. It can be overwritten
@@ -93,7 +93,7 @@
 # Default: Relaying is enabled.
 #NoRelay;
 
-# Other applications are configured by extensions.
+# Other applications are configured by loading appropriate extensions.
 
 ##############################################################
 ##  Extensions configuration
@@ -104,21 +104,51 @@
 # by loadable extensions (plug-ins).
 #  These extensions may in addition receive the name of a 
 # configuration file, the format of which is extension-specific.
-
+#
 # Format:
 #LoadExtension = "/path/to/extension" [ : "/optional/configuration/file" ] ;
+#
 # Exemples:
 #LoadExtension = "extensions/sample.so";
 #LoadExtension = "extensions/sample.so":"conf/sample.conf";
 
 
+##############################################################
+##  Peers configuration
+
+#  The local server listens for incoming connections. By default,
+# all unknown connecting peers are rejected. Extensions can override this behavior.
+# 
+#  In addition to incoming connections, the local peer can
+# be configured to establish and maintain connections to some 
+# Diameter nodes and allow connections from these nodes.
+#  This is achieved with the ConnectPeer directive described bellow.
+#
+# Note that the configured Diameter Id MUST match
+# the information received inside CEA, or the connection will be aborted.
+#
+# Format:
+#ConnectPeer = "diameterid" [ { parameter1; parameter2; ...} ] ;
+# Parameters that can be specified in the peer's parameter list:
+#  No_TCP; No_SCTP; No_IP; No_IPv6; Prefer_TCP; TLS_old_method;
+#  No_TLS;       # assume transparent security instead of TLS
+#  Port = 3868;  # The port to connect to
+#  SCTP_streams = 30;
+#  TcTimer = 30;
+#  TwTimer = 30;
+#  ConnectTo = "202.249.37.5";
+#  ConnectTo = "2001:200:903:2::202:1";
+# Examples:
+#ConnectPeer = "aaa.wide.ad.jp";
+#ConnectPeer = "old.diameter.serv" { TcTimer = 60; TLS_old_method; No_SCTP; } ;
+
 
 ##############################################################
 # -------- Test configuration ---------
-LocalIdentity = "aaa.koganei.wide.ad.jp";
-LocalRealm = "wide.ad.jp";
-LocalPort = 3866;
-LocalSecPort = 3867;
+Identity = "aaa.koganei.wide.ad.jp";
+Realm = "wide.ad.jp";
+Port = 3866;
+SecPort = 3867;
 TLS_old_method;
 No_IP;
 Prefer_TCP;
@@ -131,3 +161,4 @@ NoRelay;
 LoadExtension = "extensions/dbg_monitor.fdx";
 LoadExtension = "extensions/dict_nasreq.fdx";
 LoadExtension = "extensions/dict_eap.fdx";
+ConnectPeer = "jules.nautilus6.org" ;

@@ -124,12 +124,12 @@ static __inline__ int fd_event_get(struct fifo *queue, int *code, void ** data)
 
 /* Events codespace for fd_g_config->cnf_main_ev */
 enum {
-	FDEV_TERMINATE = 1000,	/* request to terminate */
-	FDEV_DUMP_DICT,		/* Dump the content of the dictionary */
-	FDEV_DUMP_EXT,		/* Dump state of extensions */
-	FDEV_DUMP_QUEUES,	/* Dump the message queues */
-	FDEV_DUMP_CONFIG,	/* Dump the configuration */
-	FDEV_DUMP_PEERS		/* Dump the list of peers */
+	 FDEV_TERMINATE = 1000	/* request to terminate */
+	,FDEV_DUMP_DICT		/* Dump the content of the dictionary */
+	,FDEV_DUMP_EXT		/* Dump state of extensions */
+	,FDEV_DUMP_QUEUES	/* Dump the message queues */
+	,FDEV_DUMP_CONFIG	/* Dump the configuration */
+	,FDEV_DUMP_PEERS	/* Dump the list of peers */
 };
 
 
@@ -160,32 +160,38 @@ enum peer_state {
 	STATE_REOPEN		/* Connection has been re-established, waiting for 3 DWR/DWA exchanges before putting back to service */
 };
 extern const char *peer_state_str[];
+#define STATE_STR(state) \
+	peer_state_str[ ((unsigned)(state)) <= STATE_REOPEN ? ((unsigned)(state)) : 0 ]
 
 /* Information about a remote peer, used both for query and for creating a new entry */
 struct peer_info {
 	
-	/* This information is always there */
 	char * pi_diamid;	/* UTF-8, \0 terminated. The Diameter Identity of the remote peer */
 	char * pi_realm;	/* idem, its realm. */
 	
-	/* Flags */
 	struct {
-		#define PI_PROT_DEFAULT	0	/* Use the default algorithm configured for the host */
-		#define PI_PROT_TCP	1
-		#define PI_PROT_SCTP	2
-		unsigned	proto :2;
+		#define PI_P3_DEFAULT	0	/* Use the default L3 protocol configured for the host */
+		#define PI_P3_IP	1	/* Use only IP to connect to this peer */
+		#define PI_P3_IPv6	2	/* resp, IPv6 */
+		unsigned	pro3 :2;
 		
-		#define PI_SEC_DEFAULT	0	/* The default behavior configured for the host */
+		#define PI_P4_DEFAULT	0	/* Use the default L4 proto configured for the host */
+		#define PI_P4_TCP	1	/* Only use TCP */
+		#define PI_P4_SCTP	2	/* Only use SCTP */
+		unsigned	pro4 :2;
+		
+		#define PI_ALGPREF_SCTP	0	/* SCTP is initially attempted */
+		#define PI_ALGPREF_TCP	1	/* TCP is initially attempted */
+		unsigned	alg :1;
+		
+		#define PI_SEC_DEFAULT	0	/* New TLS security (dedicated port protecting also CER/CEA) */
 		#define PI_SEC_NONE	1	/* Transparent security with this peer (IPsec) */
-		#define PI_SEC_TLS_NEW	2	/* New TLS security (dedicated port protecting also CER/CEA) */
-		#define PI_SEC_TLS_OLD	3	/* Old TLS security (inband on default port) */
+		#define PI_SEC_TLS_OLD	2	/* Old TLS security (inband on default port) */
 		unsigned	sec :2;
 		
-		#define PI_EXP_DEFAULT	0
-		#define PI_EXP_NONE	1	/* the peer entry does not expire */
-		#define PI_EXP_INACTIVE	2	/* the peer entry expires after pi_lft seconds without activity */
-		#define PI_EXP_LIFETIME	3	/* the peer SA information is destroyed after lft seconds (example: DNS timeout) */
-		unsigned	exp :2;
+		#define PI_EXP_NONE	0	/* the peer entry does not expire */
+		#define PI_EXP_INACTIVE	1	/* the peer entry expires after pi_lft seconds without activity */
+		unsigned	exp :1;
 		
 		/* Following flags are read-only and received from remote peer */
 		#define PI_INB_NONE	1	/* Remote peer advertised inband-sec-id 0 (None) */
@@ -231,6 +237,7 @@ extern pthread_rwlock_t fd_g_peers_rw; /* protect the list */
  *
  * PARAMETERS:
  *  info 	: Information to create the peer.
+ *  orig_dbg	: A string indicating the origin of the peer information, for debug (ex: conf, redirect, ...)
  *  cb		: optional, a callback to call (once) when the peer connection is established or failed
  *  cb_data	: opaque data to pass to the callback.
  *
@@ -247,7 +254,7 @@ extern pthread_rwlock_t fd_g_peers_rw; /* protect the list */
  *  (other standard errors may be returned, too, with their standard meaning. Example:
  *    ENOMEM 	: Memory allocation for the new object element failed.)
  */
-int fd_peer_add ( struct peer_info * info, void (*cb)(struct peer_info *, void *), void * cb_data );
+int fd_peer_add ( struct peer_info * info, char * orig_dbg, void (*cb)(struct peer_info *, void *), void * cb_data );
 
 /*
  * FUNCTION:	peer_validate_register

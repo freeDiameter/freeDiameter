@@ -71,18 +71,89 @@ int fd_dict_base_protocol(struct dictionary * dict);
 /* Peers */
 struct fd_peer { /* The "real" definition of the peer structure */
 	
-	struct peer_hdr	p_hdr; /* contains all public data */
+	/* The public data */
+	struct peer_hdr	 p_hdr;
 	
-	int		p_eyec;	/* Eye catcher, EYEC_PEER */
+	/* Eye catcher, EYEC_PEER */
+	int		 p_eyec;
 	#define EYEC_PEER	0x373C9336
 	
-	/* threads, message queues, socket & callbacks */
+	/* Origin of this peer object, for debug */
+	char		*p_dbgorig;
+	
+	/* Mutex that protect this peer structure */
+	pthread_mutex_t	 p_mtx;
+	
+	/* Reference counter -- freed only when this reaches 0 */
+	unsigned	 p_refcount;
+	
+	/* Chaining in peers sublists */
+	struct fd_list	 p_expiry; 	/* list of expiring peers, ordered by their timeout value */
+	struct fd_list	 p_actives;	/* list of peers in the STATE_OPEN state -- faster routing creation */
+	
+	/* The next hop-by-hop id value for the link */
+	uint32_t	 p_hbh;
+	
+	/* Some flags influencing the peer state machine */
+	struct {
+		unsigned pf_responder	: 1;	/* The local peer is responder on the connection */
+		
+		unsigned pf_dw_pending 	: 1;	/* A DWR message was sent and not answered yet */
+		
+		unsigned pf_cnx_pb	: 1;	/* The peer was disconnected because of watchdogs; must exchange 3 watchdogs before putting back to normal */
+		unsigned pf_reopen_cnt	: 2;	/* remaining DW to be exchanged after re-established connection */
+		
+		/* to be completed */
+		
+	}		 p_flags;
+	
+	/* The events queue, peer state machine thread, timer for states timeouts */
+	struct fifo	*p_events;
+	pthread_t	 p_psm;
+	struct timespec	 p_psm_timer;
+	
+	/* Received message queue, and thread managing reception of messages */
+	struct fifo	*p_recv;
+	pthread_t	 p_inthr;
+	
+	/* Outgoing message queue, and thread managing sending the messages */
+	struct fifo	*p_tosend;
+	pthread_t	 p_outthr;
+	
+	/* Sent requests (for fallback), list of struct sentreq ordered by hbh */
+	struct fd_list	 p_sentreq;
+	
+	/* connection context: socket & other metadata */
+	struct cnxctx	*p_cnxctx;
 	
 };
+#define CHECK_PEER( _p ) \
+	(((_p) != NULL) && (((struct fd_peer *)(_p))->p_eyec == EYEC_PEER))
 
+/* Events codespace for struct fd_peer->p_events */
+enum {
+	/* request to terminate this peer : disconnect, requeue all messages */
+	 FDEVP_TERMINATE = 2000
+	
+	/* Dump all info about this peer in the debug log */
+	,FDEVP_DUMP_ALL
+	
+	/* A message was received in the peer */
+	,FDEVP_MSG_INCOMING
+};
+
+/* Structure to store a sent request */
+struct sentreq {
+	struct fd_list	chain; 	/* the "o" field points directly to the hop-by-hop of the request (uint32_t *)  */
+	struct msg	*req;	/* A request that was sent and not yet answered. */
+};
+
+/* Functions */
 int fd_peer_init();
-void fd_peer_dump(int details);
+void fd_peer_dump_list(int details);
 int fd_peer_start();
 int fd_peer_waitstart();
+
+
 
 #endif /* _FD_H */
