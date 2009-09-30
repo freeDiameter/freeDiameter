@@ -126,6 +126,10 @@ struct fd_peer { /* The "real" definition of the peer structure */
 	/* connection context: socket & other metadata */
 	struct cnxctx	*p_cnxctx;
 	
+	/* Callback on initial connection success / failure */
+	void 		(*p_cb)(struct peer_info *, void *);
+	void 		*p_cb_data;
+	
 };
 #define CHECK_PEER( _p ) \
 	(((_p) != NULL) && (((struct fd_peer *)(_p))->p_eyec == EYEC_PEER))
@@ -150,10 +154,21 @@ struct sentreq {
 
 /* Functions */
 int fd_peer_init();
+int fd_peer_fini();
 void fd_peer_dump_list(int details);
-int fd_peer_start();
-int fd_peer_waitstart();
+/* fd_peer_add declared in freeDiameter.h */
+int fd_peer_rc_decr(struct fd_peer **ptr, int locked);
 
+/* Peer expiry */
+int fd_p_expi_init(void);
+int fd_p_expi_fini(void);
+int fd_p_expi_update(struct fd_peer * peer, int locked );
+int fd_p_expi_unlink(struct fd_peer * peer, int locked );
 
+/* Peer state machine */
+int fd_psm_start();
+int fd_psm_begin(struct fd_peer * peer );
+int fd_psm_terminate(struct fd_peer * peer );
+void fd_psm_abord(struct fd_peer * peer );
 
 #endif /* _FD_H */

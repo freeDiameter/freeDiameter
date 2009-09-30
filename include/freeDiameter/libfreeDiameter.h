@@ -189,6 +189,15 @@ extern int fd_g_debug_lvl;
 #define TRACE_DEBUG_ALL( str ) 	\
 	TRACE_DEBUG(CALL, str );
 
+/* For development only, to keep track of TODO locations in the code */
+#ifndef ERRORS_ON_TODO
+#define TODO( _msg, _args... ) \
+	TRACE_DEBUG(NONE, _msg , ##_args);
+#else /* ERRORS_ON_TODO */
+#define TODO( _msg, _args... ) \
+	"TODO" = _msg ## _args; /* just a stupid compilation error to spot the todo */
+#endif /* ERRORS_ON_TODO */
+
 
 /* Macros to check a return value and branch out in case of error.
  * These macro must be used only when errors are highly improbable, not for expected errors.

@@ -162,3 +162,4 @@ LoadExtension = "extensions/dbg_monitor.fdx";
 LoadExtension = "extensions/dict_nasreq.fdx";
 LoadExtension = "extensions/dict_eap.fdx";
 ConnectPeer = "jules.nautilus6.org" ;
+ConnectPeer = "aaa.nautilus6.org" { No_TLS; No_IP; No_TCP; SCTP_streams = 60; } ;

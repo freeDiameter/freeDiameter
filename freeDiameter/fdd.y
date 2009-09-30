@@ -209,12 +209,13 @@ listenon:		LISTENON '=' QSTRING ';'
 					{ yyerror (&yylloc, conf, "Out of memory"); YYERROR; } );
 				memset(ep, 0, sizeof(struct fd_endpoint));
 				fd_list_init(&ep->chain, NULL);
+				ep->meta.conf = 1;
 				
 				memset(&hints, 0, sizeof(hints));
 				hints.ai_flags = AI_PASSIVE | AI_NUMERICHOST;
 				ret = getaddrinfo($3, NULL, &hints, &ai);
-				if (ret) { yyerror (&yylloc, conf, gai_strerror(ret)); YYERROR; }
-				
+				if (ret) { yyerror (&yylloc, conf, gai_strerror(ret)); free(ep); YYERROR; }
+				ASSERT( ai->ai_addrlen <= sizeof(sSS) );
 				memcpy(&ep->ss, ai->ai_addr, ai->ai_addrlen);
 				free($3);
 				freeaddrinfo(ai);
@@ -425,11 +426,17 @@ peerparams:		/* empty */
 					{ yyerror (&yylloc, conf, "Out of memory"); YYERROR; } );
 				memset(ep, 0, sizeof(struct fd_endpoint));
 				fd_list_init(&ep->chain, NULL);
-				
+				ep->meta.conf = 1;
 				memset(&hints, 0, sizeof(hints));
-				hints.ai_flags = AI_ADDRCONFIG;
+				hints.ai_flags = AI_ADDRCONFIG | AI_NUMERICHOST;
 				ret = getaddrinfo($4, NULL, &hints, &ai);
-				if (ret) { yyerror (&yylloc, conf, gai_strerror(ret)); YYERROR; }
+				if (ret == EAI_NONAME) {
+					/* The name was maybe not numeric, try again */
+					ep->meta.disc = 1;
+					hints.ai_flags &= ~ AI_NUMERICHOST;
+					ret = getaddrinfo($4, NULL, &hints, &ai);
+				}
+				if (ret) { yyerror (&yylloc, conf, gai_strerror(ret)); free(ep); YYERROR; }
 				
 				memcpy(&ep->ss, ai->ai_addr, ai->ai_addrlen);
 				free($4);

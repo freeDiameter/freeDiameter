@@ -88,7 +88,7 @@ int main(int argc, char * argv[])
 	CHECK_FCT(  fd_ext_load()  );
 	
 	/* Start the peer state machines */
-	CHECK_FCT( fd_peer_start() );
+	CHECK_FCT( fd_psm_start() );
 	
 	/* Now, just wait for events */
 	TRACE_DEBUG(INFO, FD_PROJECT_BINARY " daemon initialized.");

@@ -35,36 +35,58 @@
 
 #include "fD.h"
 
-/* The global message queues */
-struct fifo * fd_g_incoming = NULL;
-struct fifo * fd_g_outgoing = NULL;
-struct fifo * fd_g_local = NULL;
+static int started = 0;
+static pthread_mutex_t  started_mtx = PTHREAD_MUTEX_INITIALIZER;
+static pthread_cond_t   started_cnd = PTHREAD_COND_INITIALIZER;
 
-/* Initialize the message queues. */
-int fd_queues_init(void)
+/* Wait for start signal */
+static int fd_psm_waitstart()
 {
-	TRACE_ENTRY();
-	CHECK_FCT( fd_fifo_new ( &fd_g_incoming ) );
-	CHECK_FCT( fd_fifo_new ( &fd_g_outgoing ) );
-	CHECK_FCT( fd_fifo_new ( &fd_g_local ) );
+	TRACE_ENTRY("");
+	CHECK_POSIX( pthread_mutex_lock(&started_mtx) );
+awake:	
+	if (! started) {
+		pthread_cleanup_push( fd_cleanup_mutex, &started_mtx );
+		CHECK_POSIX( pthread_cond_wait(&started_cnd, &started_mtx) );
+		pthread_cleanup_pop( 0 );
+		goto awake;
+	}
+	CHECK_POSIX( pthread_mutex_unlock(&started_mtx) );
 	return 0;
 }
 
-/* Destroy the message queues */
-int fd_queues_fini(void)
+/* Allow the state machines to start */
+int fd_psm_start()
 {
-	TRACE_ENTRY();
-	
-	/* Stop the providing threads */
-	TODO("Stop the providing threads");
-	
-	/* Empty all contents */
-	TODO("Empty all contents (dump to log file ?)");
-	
-	/* Now, delete the queues */
-	CHECK_FCT( fd_fifo_del ( &fd_g_incoming ) );
-	CHECK_FCT( fd_fifo_del ( &fd_g_outgoing ) );
-	CHECK_FCT( fd_fifo_del ( &fd_g_local ) );
-	
+	TRACE_ENTRY("");
+	CHECK_POSIX( pthread_mutex_lock(&started_mtx) );
+	started = 1;
+	CHECK_POSIX( pthread_cond_broadcast(&started_cnd) );
+	CHECK_POSIX( pthread_mutex_unlock(&started_mtx) );
 	return 0;
 }
+
+/* Create the PSM thread of one peer structure */
+int fd_psm_begin(struct fd_peer * peer )
+{
+	TRACE_ENTRY("%p", peer);
+	TODO("");
+	return ENOTSUP;
+}
+
+/* End the PSM (clean ending) */
+int fd_psm_terminate(struct fd_peer * peer )
+{
+	TRACE_ENTRY("%p", peer);
+	TODO("");
+	return ENOTSUP;
+}
+
+/* End the PSM violently */
+void fd_psm_abord(struct fd_peer * peer )
+{
+	TRACE_ENTRY("%p", peer);
+	TODO("");
+	return;
+}
+

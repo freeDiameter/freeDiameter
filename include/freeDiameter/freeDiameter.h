@@ -80,6 +80,15 @@ extern struct fd_config *fd_g_config; /* The pointer to access the global config
 struct fd_endpoint {
 	struct fd_list  chain;	/* link in cnf_endpoints list */
 	sSS		ss;	/* the socket information. */
+	struct {
+		unsigned conf : 1; /* This endpoint is statically configured in a configuration file */
+		unsigned disc : 1; /* This endpoint was resolved from the Diameter Identity or other DNS query */
+		unsigned adv  : 1; /* This endpoint was advertized in Diameter CER/CEA exchange */
+		unsigned ll   : 1; /* Lower layer mechanism provided this endpoint */
+		
+		/* To add: a validity timestamp for DNS records ? How do we retrieve this lifetime from DNS ? */
+
+	}		meta;	/* Additional information about the endpoint */
 };
 
 /* Applications */
@@ -163,11 +172,11 @@ extern const char *peer_state_str[];
 #define STATE_STR(state) \
 	peer_state_str[ ((unsigned)(state)) <= STATE_REOPEN ? ((unsigned)(state)) : 0 ]
 
-/* Information about a remote peer, used both for query and for creating a new entry */
+/* Information about a remote peer. Same structure is used for creating a new entry, but not all fields are meaningful in that case */
 struct peer_info {
 	
-	char * pi_diamid;	/* UTF-8, \0 terminated. The Diameter Identity of the remote peer */
-	char * pi_realm;	/* idem, its realm. */
+	char * 		pi_diamid;	/* UTF-8, \0 terminated. The Diameter Identity of the remote peer */
+	char * 		pi_realm;	/* Its realm, as received in CER/CEA exchange. */
 	
 	struct {
 		#define PI_P3_DEFAULT	0	/* Use the default L3 protocol configured for the host */
@@ -190,7 +199,7 @@ struct peer_info {
 		unsigned	sec :2;
 		
 		#define PI_EXP_NONE	0	/* the peer entry does not expire */
-		#define PI_EXP_INACTIVE	1	/* the peer entry expires after pi_lft seconds without activity */
+		#define PI_EXP_INACTIVE	1	/* the peer entry expires (i.e. is deleted) after pi_lft seconds without activity */
 		unsigned	exp :1;
 		
 		/* Following flags are read-only and received from remote peer */
@@ -198,17 +207,35 @@ struct peer_info {
 		#define PI_INB_TLS	2	/* Remote peer advertised inband-sec-id 1 (TLS) */
 		unsigned	inband :2;	/* This is only meaningful with pi_flags.sec == 3 */
 		
-		unsigned	relay :1;	/* The remote peer advertized the relay application */		
-	} pi_flags;
+		unsigned	relay :1;	/* The remote peer advertized the relay application */
+
+	} 		pi_flags;	/* Some flags */
 	
 	/* Additional parameters */
-	uint32_t 	pi_lft;		/* lifetime of entry without activity (except watchdogs) (see pi_flags.exp definition) */
+	uint32_t 	pi_lft;		/* lifetime of this peer when inactive (see pi_flags.exp definition) */
 	uint16_t	pi_streams; 	/* number of streams for SCTP. 0 = default */
 	uint16_t	pi_port; 	/* port to connect to. 0: default. */
 	int		pi_tctimer; 	/* use this value for TcTimer instead of global, if != 0 */
 	int		pi_twtimer; 	/* use this value for TwTimer instead of global, if != 0 */
 	
-	struct fd_list	pi_endpoints;	/* Endpoint(s) of the remote peer (discovered or advertized). list of struct fd_endpoint. DNS resolved if empty. */
+	struct fd_list	pi_endpoints;	/* Endpoint(s) of the remote peer (configured, discovered, or advertized). list of struct fd_endpoint. DNS resolved if empty. */
+	
+	/* TLS specific data -- the exact data pointed here depends on the security module in use (ex: gnutls, ...) */
+	enum {
+		PI_SEC_GNUTLS = 0,	/* The security module is GNUTLS, this is the default */
+		PI_SEC_OTHER		/* Another security module (TBD) */
+	}		pi_sec_module;
+	union {
+		/* Security data when pi_sec_module == PI_SEC_GNUTLS */
+		struct {
+			void *	CA;	/* Authority to use to validate this peer credentials (a CA or root certificate) -- use default if NULL */
+			void *	cred;	/* The (valid) credentials that the peer has presented */
+		} 	gnutls;
+		/* Security data when pi_sec_module == PI_SEC_OTHER */
+		struct {
+			void * dummy;	/* Something meaningful for the other security module */
+		} 	other;
+	} 		pi_sec_data;
 	
 	/* The remaining information is read-only, not used for peer creation */
 	enum peer_state	pi_state;
@@ -243,9 +270,18 @@ extern pthread_rwlock_t fd_g_peers_rw; /* protect the list */
  *
  * DESCRIPTION: 
  *  Add a peer to the list of peers to which the daemon must maintain a connexion.
- * If cb is not null, the callback is called when the connection is in OPEN state or
+ *
+ *  The content of info parameter is copied, except for the list of endpoints if 
+ * not empty, which is simply moved into the created object. It means that the list
+ * items must have been malloc'd, so that they can be freed.
+ *
+ *  If cb is not null, the callback is called when the connection is in OPEN state or
  * when an error has occurred. The callback should use the pi_state information to 
- * determine which one it is.
+ * determine which one it is. If the first parameter of the called callback is NULL, it 
+ * means that the peer is being destroyed before attempt success / failure. 
+ * cb is called to allow freeing cb_data in  * this case.
+ *
+ *  The orig_dbg string is only useful for easing debug, and can be left to NULL.
  *
  * RETURN VALUE:
  *  0      	: The peer is added.

@@ -35,36 +35,44 @@
 
 #include "fD.h"
 
-/* The global message queues */
-struct fifo * fd_g_incoming = NULL;
-struct fifo * fd_g_outgoing = NULL;
-struct fifo * fd_g_local = NULL;
 
-/* Initialize the message queues. */
-int fd_queues_init(void)
+
+
+/* Initialize peers expiry mechanism */
+int fd_p_expi_init(void)
 {
-	TRACE_ENTRY();
-	CHECK_FCT( fd_fifo_new ( &fd_g_incoming ) );
-	CHECK_FCT( fd_fifo_new ( &fd_g_outgoing ) );
-	CHECK_FCT( fd_fifo_new ( &fd_g_local ) );
-	return 0;
+	TODO("");
+	return ENOTSUP;
 }
 
-/* Destroy the message queues */
-int fd_queues_fini(void)
+/* Finish peers expiry mechanism */
+int fd_p_expi_fini(void)
 {
-	TRACE_ENTRY();
+	TODO("");
+	return ENOTSUP;
+}
+
+/* Add a peer in the expiry list if needed */
+int fd_p_expi_update(struct fd_peer * peer, int locked )
+{
+	TODO("");
 	
-	/* Stop the providing threads */
-	TODO("Stop the providing threads");
+	/* if peer expires */
+		/* add to the expiry list in appropriate position */
+		/* increment peer refcount */
+		/* signal the expiry thread if we added in first position */
 	
-	/* Empty all contents */
-	TODO("Empty all contents (dump to log file ?)");
+	return ENOTSUP;
+}
+
+/* Remove a peer from expiry list if needed */
+int fd_p_expi_unlink(struct fd_peer * peer, int locked )
+{
+	TODO("");
+	/* if peer is in expiry list */
+		/* remove from the list */
+		/* decrement peer refcount */
+		/* no need to signal the expiry thread ... */
 	
-	/* Now, delete the queues */
-	CHECK_FCT( fd_fifo_del ( &fd_g_incoming ) );
-	CHECK_FCT( fd_fifo_del ( &fd_g_outgoing ) );
-	CHECK_FCT( fd_fifo_del ( &fd_g_local ) );
-	
-	return 0;
+	return ENOTSUP;
 }
