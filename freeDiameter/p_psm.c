@@ -35,6 +35,35 @@
 
 #include "fD.h"
 
+const char *peer_state_str[] = { 
+	  "STATE_ZOMBIE"
+	, "STATE_OPEN"
+	, "STATE_CLOSED"
+	, "STATE_CLOSING"
+	, "STATE_WAITCNXACK"
+	, "STATE_WAITCNXACK_ELEC"
+	, "STATE_WAITCEA"
+	, "STATE_SUSPECT"
+	, "STATE_REOPEN"
+	};
+
+const char * fd_pev_str(int event)
+{
+	switch (event) {
+	#define case_str( _val )\
+		case _val : return #_val
+		case_str(FDEVP_TERMINATE);
+		case_str(FDEVP_DUMP_ALL);
+		case_str(FDEVP_MSG_INCOMING);
+		case_str(FDEVP_PSM_TIMEOUT);
+		
+		default:
+			TRACE_DEBUG(FULL, "Unknown event : %d", event);
+			return "Unknown event";
+	}
+}
+
+
 static int started = 0;
 static pthread_mutex_t  started_mtx = PTHREAD_MUTEX_INITIALIZER;
 static pthread_cond_t   started_cnd = PTHREAD_COND_INITIALIZER;
@@ -55,16 +84,121 @@ awake:
 	return 0;
 }
 
-/* Allow the state machines to start */
-int fd_psm_start()
+/* Cancelation cleanup : set ZOMBIE state in the peer */
+void cleanup_state(void * arg) 
 {
-	TRACE_ENTRY("");
-	CHECK_POSIX( pthread_mutex_lock(&started_mtx) );
-	started = 1;
-	CHECK_POSIX( pthread_cond_broadcast(&started_cnd) );
-	CHECK_POSIX( pthread_mutex_unlock(&started_mtx) );
-	return 0;
+	struct fd_peer * peer = (struct fd_peer *)arg;
+	CHECK_PARAMS_DO( CHECK_PEER(peer), return );
+	peer->p_hdr.info.pi_state = STATE_ZOMBIE;
+	return;
 }
+
+/* Set timeout timer of next event */
+static void psm_next_timeout(struct fd_peer * peer, int add_random, int delay)
+{
+	/* Initialize the timer */
+	CHECK_POSIX_DO(  clock_gettime( CLOCK_REALTIME,  &peer->p_psm_timer ), ASSERT(0) );
+	
+	if (add_random) {
+		if (delay > 2)
+			delay -= 2;
+		else
+			delay = 0;
+
+		/* Add a random value between 0 and 4sec */
+		peer->p_psm_timer.tv_sec += random() % 4;
+		peer->p_psm_timer.tv_nsec+= random() % 1000000000L;
+		if (peer->p_psm_timer.tv_nsec > 1000000000L) {
+			peer->p_psm_timer.tv_nsec -= 1000000000L;
+			peer->p_psm_timer.tv_sec ++;
+		}
+	}
+	
+	peer->p_psm_timer.tv_sec += delay;
+	
+#if 0
+	/* temporary for debug */
+	peer->p_psm_timer.tv_sec += 10;
+#endif
+}
+
+static int psm_ev_timedget(struct fd_peer * peer, int *code, void ** data)
+{
+	struct fd_event * ev;
+	int ret = 0;
+	
+	TRACE_ENTRY("%p %p %p", peer, code, data);
+	
+	ret = fd_fifo_timedget(peer->p_events, &ev, &peer->p_psm_timer);
+	if (ret == ETIMEDOUT) {
+		*code = FDEVP_PSM_TIMEOUT;
+		*data = NULL;
+	} else {
+		CHECK_FCT( ret );
+		*code = ev->code;
+		*data = ev->data;
+		free(ev);
+	}
+	
+	return 0;
+}	
+
+/* The state machine thread */
+static void * p_psm_th( void * arg )
+{
+	struct fd_peer * peer = (struct fd_peer *)arg;
+	int created_started = started;
+	
+	CHECK_PARAMS_DO( CHECK_PEER(peer), ASSERT(0) );
+	
+	pthread_cleanup_push( cleanup_state, arg );
+	
+	/* Set the thread name */
+	{
+		char buf[48];
+		sprintf(buf, "PSM/%.*s", sizeof(buf) - 5, peer->p_hdr.info.pi_diamid);
+		fd_log_threadname ( buf );
+	}
+	
+	/* Wait that the PSM are authorized to start in the daemon */
+	CHECK_FCT_DO( fd_psm_waitstart(), goto end );
+	
+	/* The state machine starts in CLOSED state */
+	peer->p_hdr.info.pi_state = STATE_CLOSED;
+	
+	/* Initialize the timer */
+	if (peer->p_flags.pf_responder) {
+		psm_next_timeout(peer, 0, INCNX_TIMEOUT);
+	} else {
+		psm_next_timeout(peer, created_started ? 0 : 1, 0);
+	}
+	
+psm:
+	do {
+		int event;
+		void * ev_data;
+		
+		/* Get next event */
+		CHECK_FCT_DO( psm_ev_timedget(peer, &event, &ev_data), goto end );
+		TRACE_DEBUG(FULL, "'%s'\t<-- '%s'\t(%p)\t'%s'",
+				STATE_STR(peer->p_hdr.info.pi_state),
+				fd_pev_str(event), ev_data,
+				peer->p_hdr.info.pi_diamid);
+		
+		/* Now, the action depends on the current state and the incoming event */
+		
+	
+	} while (1);	
+	
+	
+end:	
+	/* set STATE_ZOMBIE */
+	pthread_cleanup_pop(1);
+	return NULL;
+}	
+	
+	
+
 
 /* Create the PSM thread of one peer structure */
 int fd_psm_begin(struct fd_peer * peer )
@@ -78,15 +212,30 @@ int fd_psm_begin(struct fd_peer * peer )
 int fd_psm_terminate(struct fd_peer * peer )
 {
 	TRACE_ENTRY("%p", peer);
-	TODO("");
-	return ENOTSUP;
+	CHECK_PARAMS( CHECK_PEER(peer) );
+	CHECK_FCT( fd_event_send(peer->p_events, FDEVP_TERMINATE, NULL) );
+	return 0;
 }
 
 /* End the PSM violently */
 void fd_psm_abord(struct fd_peer * peer )
 {
 	TRACE_ENTRY("%p", peer);
-	TODO("");
+	TODO("Cancel PSM thread");
+	TODO("Cancel IN thread");
+	TODO("Cancel OUT thread");
+	TODO("Cleanup the connection");
 	return;
+}
+
+/* Allow the state machines to start */
+int fd_psm_start()
+{
+	TRACE_ENTRY("");
+	CHECK_POSIX( pthread_mutex_lock(&started_mtx) );
+	started = 1;
+	CHECK_POSIX( pthread_cond_broadcast(&started_cnd) );
+	CHECK_POSIX( pthread_mutex_unlock(&started_mtx) );
+	return 0;
 }
 

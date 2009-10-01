@@ -46,9 +46,9 @@ void fd_list_init ( struct fd_list * list, void * obj )
 }
 
 #define CHECK_SINGLE( li ) {			\
-	ASSERT( FD_LIST(li)->next == (li) );	\
-	ASSERT( FD_LIST(li)->prev == (li) );	\
-	ASSERT( FD_LIST(li)->head == (li) );	\
+	ASSERT( ((struct fd_list *)(li))->next == (li) );	\
+	ASSERT( ((struct fd_list *)(li))->prev == (li) );	\
+	ASSERT( ((struct fd_list *)(li))->head == (li) );	\
 }
 
 /* insert after a reference, checks done */

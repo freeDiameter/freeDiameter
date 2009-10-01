@@ -116,7 +116,7 @@ static uint32_t   	sid_l;	/* incremented each time a session id is created */
 static pthread_mutex_t 	sid_lock = PTHREAD_MUTEX_INITIALIZER;
 
 /* Expiring sessions management */
-static struct fd_list	exp_sentinel;	/* list of sessions ordered by their timeout date */
+static struct fd_list	exp_sentinel = FD_LIST_INITIALIZER(exp_sentinel);	/* list of sessions ordered by their timeout date */
 static pthread_mutex_t	exp_lock = PTHREAD_MUTEX_INITIALIZER;	/* lock protecting the list. */
 static pthread_cond_t	exp_cond = PTHREAD_COND_INITIALIZER;	/* condvar used by the expiry mecahinsm. */
 static pthread_t	exp_thr; 	/* The expiry thread that handles cleanup of expired sessions */
@@ -230,8 +230,7 @@ int fd_sess_init(void)
 		CHECK_POSIX(  pthread_mutex_init(&sess_hash[i].lock, NULL)  );
 	}
 	
-	/* Initialize expiry management */
-	fd_list_init( &exp_sentinel, NULL );
+	/* Start session garbage collector (expiry) */
 	CHECK_POSIX(  pthread_create(&exp_thr, NULL, exp_fct, NULL)  );
 	
 	return 0;
@@ -265,7 +264,8 @@ int fd_sess_handler_create_internal ( struct session_handler ** handler, void (*
 int fd_sess_handler_destroy ( struct session_handler ** handler )
 {
 	struct session_handler * del;
-	struct fd_list deleted_states; /* Save the list of states to be cleaned up. We do it after finding them to avoid deadlocks. the "o" field becomes a copy of the sid. */
+	/* place to save the list of states to be cleaned up. We do it after finding them to avoid deadlocks. the "o" field becomes a copy of the sid. */
+	struct fd_list deleted_states = FD_LIST_INITIALIZER( deleted_states );
 	int i;
 	
 	TRACE_ENTRY("%p", handler);
@@ -273,7 +273,6 @@ int fd_sess_handler_destroy ( struct session_handler ** handler )
 	
 	del = *handler;
 	*handler = NULL;
-	fd_list_init(&deleted_states, NULL);
 	
 	del->eyec = 0xdead; /* The handler is not valid anymore for any other operation */
 	
@@ -412,6 +411,11 @@ int fd_sess_new ( struct session ** session, char * diamId, char * opt, size_t o
 		}
 		fd_list_insert_after( li, &sess->expire );
 
+		/* We added a new expiring element, we must signal */
+		if (li == &exp_sentinel) {
+			CHECK_POSIX( pthread_cond_signal(&exp_cond) );
+		}
+		
 		#if 0
 		if (TRACE_BOOL(ANNOYING)) {	
 			TRACE_DEBUG(FULL, "-- Updated session expiry list --");
@@ -422,9 +426,6 @@ int fd_sess_new ( struct session ** session, char * diamId, char * opt, size_t o
 			TRACE_DEBUG(FULL, "-- end of expiry list --");
 		}
 		#endif
-		
-		/* We added a new expiring element, we must signal */
-		CHECK_POSIX( pthread_cond_signal(&exp_cond) );
 		
 		/* We're done */
 		CHECK_POSIX( pthread_mutex_unlock( &exp_lock ) );
@@ -505,8 +506,10 @@ int fd_sess_settimeout( struct session * session, const struct timespec * timeou
 	}
 	fd_list_insert_before( li, &session->expire );
 
-	/* We added a new expiring element, we must signal */
-	CHECK_POSIX( pthread_cond_signal(&exp_cond) );
+	/* We added a new expiring element, we must signal if it was in first position */
+	if (session->expire.prev == &exp_sentinel) {
+		CHECK_POSIX( pthread_cond_signal(&exp_cond) );
+	}
 
 	#if 0
 	if (TRACE_BOOL(ANNOYING)) {	
@@ -586,8 +589,6 @@ int fd_sess_reclaim ( struct session ** session )
 	
 	return 0;
 }
-
-
 
 /* Save a state information with a session */
 int fd_sess_state_store_internal ( struct session_handler * handler, struct session * session, session_state ** state )

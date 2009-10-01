@@ -49,15 +49,7 @@ struct fd_ext_info {
 };
 
 /* list of extensions */
-static struct fd_list ext_list;
-
-/* Initialize the module */
-int fd_ext_init()
-{
-	TRACE_ENTRY();
-	fd_list_init(&ext_list, NULL);
-	return 0;
-}
+static struct fd_list ext_list = FD_LIST_INITIALIZER(ext_list);
 
 /* Add new extension */
 int fd_ext_add( char * filename, char * conffile )

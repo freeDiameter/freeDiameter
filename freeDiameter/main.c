@@ -41,6 +41,8 @@
 /* forward declarations */
 static void * sig_hdl(void * arg);
 static int main_cmdline(int argc, char *argv[]);
+static void main_version(void);
+static void main_help( void );
 
 /* The static configuration structure */
 static struct fd_config conf;
@@ -76,10 +78,9 @@ int main(int argc, char * argv[])
 	CHECK_FCT( fd_dict_base_protocol(fd_g_config->cnf_dict) );
 	
 	/* Initialize other modules */
-	CHECK_FCT(  fd_ext_init()  );
 	CHECK_FCT(  fd_queues_init()  );
 	CHECK_FCT(  fd_msg_init()  );
-	CHECK_FCT(  fd_peer_init()  );
+	CHECK_FCT(  fd_p_expi_init()  );
 	
 	/* Parse the configuration file */
 	CHECK_FCT( fd_conf_parse() );
@@ -132,58 +133,33 @@ end:
 	TRACE_DEBUG(INFO, FD_PROJECT_BINARY " daemon is stopping...");
 	
 	/* cleanups */
-	CHECK_FCT_DO( fd_ext_fini(), /* continue */ );
+	TODO("Stop dispatch thread(s) properly (no cancel yet)");
+	CHECK_FCT_DO( fd_peer_fini(), /* Stop all connections */ );
+	TODO("Stop dispatch & routing threads");
+	CHECK_FCT_DO( fd_ext_fini(), /* Cleaup all extensions */ );
+	TODO("Cleanup queues (dump all remaining messages ?)");
+	
 	CHECK_FCT_DO( fd_thr_term(&sig_th), /* continue */ );
 	
 	return ret;
 }
 
-/* Display package version */
-static void main_version_core(void)
+const char * fd_ev_str(int event)
 {
-	printf("%s, version %d.%d.%d"
-#ifdef HG_VERSION
-		" (r%s"
-# ifdef PACKAGE_HG_REVISION
-		"/%s"
-# endif /* PACKAGE_HG_VERSION */
-		")"
-#endif /* HG_VERSION */
-		"\n", 
-		FD_PROJECT_NAME, FD_PROJECT_VERSION_MAJOR, FD_PROJECT_VERSION_MINOR, FD_PROJECT_VERSION_REV
-#ifdef HG_VERSION
-		, HG_VERSION
-# ifdef PACKAGE_HG_REVISION
-		, PACKAGE_HG_REVISION
-# endif /* PACKAGE_HG_VERSION */
-#endif /* HG_VERSION */
-		);
-}
-
-/* Display package version and general info */
-static void main_version(void)
-{
-	main_version_core();
-	printf( "%s\n", FD_PROJECT_COPYRIGHT);
-	printf( "\nSee " FD_PROJECT_NAME " homepage at http://aaa.koganei.wide.ad.jp/\n"
-		" for information, updates and bug reports on this software.\n");
-}
-
-/* Print command-line options */
-static void main_help( void )
-{
-	main_version_core();
-	printf(	"  This daemon is an implementation of the Diameter protocol\n"
-		"  used for Authentication, Authorization, and Accounting (AAA).\n");
-	printf("\nUsage:  " FD_PROJECT_BINARY " [OPTIONS]...\n");
-	printf( "  -h, --help             Print help and exit\n"
-  		"  -V, --version          Print version and exit\n"
-  		"  -c, --config=filename  Read configuration from this file instead of the \n"
-		"                           default location (%s).\n", DEFAULT_CONF_FILE);
- 	printf( "\nDebug:\n"
-  		"  These options are mostly useful for developers\n"
-  		"  -d, --debug            Increase verbosity of debug messages\n"
-  		"  -q, --quiet            Decrease verbosity then remove debug messages\n");
+	switch (event) {
+	#define case_str( _val )\
+		case _val : return #_val
+		case_str(FDEV_TERMINATE);
+		case_str(FDEV_DUMP_DICT);
+		case_str(FDEV_DUMP_EXT);
+		case_str(FDEV_DUMP_QUEUES);
+		case_str(FDEV_DUMP_CONFIG);
+		case_str(FDEV_DUMP_PEERS);
+		
+		default:
+			TRACE_DEBUG(FULL, "Unknown event : %d", event);
+			return "Unknown event";
+	}
 }
 
 /* Parse the command-line */
@@ -244,7 +220,54 @@ static int main_cmdline(int argc, char *argv[])
 	}
 		
 	return 0;
-	
+}
+
+/* Display package version */
+static void main_version_core(void)
+{
+	printf("%s, version %d.%d.%d"
+#ifdef HG_VERSION
+		" (r%s"
+# ifdef PACKAGE_HG_REVISION
+		"/%s"
+# endif /* PACKAGE_HG_VERSION */
+		")"
+#endif /* HG_VERSION */
+		"\n", 
+		FD_PROJECT_NAME, FD_PROJECT_VERSION_MAJOR, FD_PROJECT_VERSION_MINOR, FD_PROJECT_VERSION_REV
+#ifdef HG_VERSION
+		, HG_VERSION
+# ifdef PACKAGE_HG_REVISION
+		, PACKAGE_HG_REVISION
+# endif /* PACKAGE_HG_VERSION */
+#endif /* HG_VERSION */
+		);
+}
+
+/* Display package version and general info */
+static void main_version(void)
+{
+	main_version_core();
+	printf( "%s\n", FD_PROJECT_COPYRIGHT);
+	printf( "\nSee " FD_PROJECT_NAME " homepage at http://aaa.koganei.wide.ad.jp/\n"
+		" for information, updates and bug reports on this software.\n");
+}
+
+/* Print command-line options */
+static void main_help( void )
+{
+	main_version_core();
+	printf(	"  This daemon is an implementation of the Diameter protocol\n"
+		"  used for Authentication, Authorization, and Accounting (AAA).\n");
+	printf("\nUsage:  " FD_PROJECT_BINARY " [OPTIONS]...\n");
+	printf( "  -h, --help             Print help and exit\n"
+  		"  -V, --version          Print version and exit\n"
+  		"  -c, --config=filename  Read configuration from this file instead of the \n"
+		"                           default location (%s).\n", DEFAULT_CONF_FILE);
+ 	printf( "\nDebug:\n"
+  		"  These options are mostly useful for developers\n"
+  		"  -d, --debug            Increase verbosity of debug messages\n"
+  		"  -q, --quiet            Decrease verbosity then remove debug messages\n");
 }
 
 #ifdef HAVE_SIGNALENT_H

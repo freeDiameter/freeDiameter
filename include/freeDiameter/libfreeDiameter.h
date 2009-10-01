@@ -192,7 +192,7 @@ extern int fd_g_debug_lvl;
 /* For development only, to keep track of TODO locations in the code */
 #ifndef ERRORS_ON_TODO
 #define TODO( _msg, _args... ) \
-	TRACE_DEBUG(NONE, _msg , ##_args);
+	TRACE_DEBUG(NONE, "TODO: " _msg , ##_args);
 #else /* ERRORS_ON_TODO */
 #define TODO( _msg, _args... ) \
 	"TODO" = _msg ## _args; /* just a stupid compilation error to spot the todo */
@@ -445,13 +445,15 @@ struct fd_list {
 	void		*o;    /* additional avialbe pointer used for start of the parento object or other purpose */
 };
 
-#define FD_LIST( _li ) ((struct fd_list *)( _li ))
-
 /* Initialize a list element */
+#define FD_LIST_INITIALIZER( _list_name ) \
+	{ .next = & _list_name, .prev = & _list_name, .head = & _list_name, .o = NULL }
+#define FD_LIST_INITIALIZER_O( _list_name, _obj ) \
+	{ .next = & _list_name, .prev = & _list_name, .head = & _list_name, .o = _obj }
 void fd_list_init ( struct fd_list * list, void *obj );
 
 /* Return boolean, true if the list is empty */
-#define FD_IS_LIST_EMPTY( _list ) (((FD_LIST(_list))->head == (_list)) && ((FD_LIST(_list))->next == (_list)))
+#define FD_IS_LIST_EMPTY( _list ) ((((struct fd_list *)(_list))->head == (_list)) && (((struct fd_list *)(_list))->next == (_list)))
 
 /* Insert an item in a list at known position */
 void fd_list_insert_after  ( struct fd_list * ref, struct fd_list * item );

@@ -140,7 +140,7 @@ enum {
 	,FDEV_DUMP_CONFIG	/* Dump the configuration */
 	,FDEV_DUMP_PEERS	/* Dump the list of peers */
 };
-
+const char * fd_ev_str(int event);
 
 
 /***************************************/
@@ -150,7 +150,7 @@ enum {
 /* States of a peer */
 enum peer_state {
 	/* Stable states */
-	STATE_DISABLED = 1,	/* No connexion must be attempted / only this state means that the peer PSM thread is not running */
+	STATE_ZOMBIE = 0,	/* The threads handling the peer are not running for some reason */
 	STATE_OPEN,		/* Connexion established */
 	
 	/* Peer state machine */
@@ -166,11 +166,11 @@ enum peer_state {
 	
 	/* Failover state machine */
 	STATE_SUSPECT,		/* A DWR was sent and not answered within TwTime. Failover in progress. */
-	STATE_REOPEN		/* Connection has been re-established, waiting for 3 DWR/DWA exchanges before putting back to service */
+	STATE_REOPEN,		/* Connection has been re-established, waiting for 3 DWR/DWA exchanges before putting back to service */
 };
 extern const char *peer_state_str[];
 #define STATE_STR(state) \
-	peer_state_str[ ((unsigned)(state)) <= STATE_REOPEN ? ((unsigned)(state)) : 0 ]
+	(((unsigned)(state)) <= STATE_REOPEN ? peer_state_str[((unsigned)(state)) ] : "<Invalid>")
 
 /* Information about a remote peer. Same structure is used for creating a new entry, but not all fields are meaningful in that case */
 struct peer_info {
@@ -237,7 +237,7 @@ struct peer_info {
 		} 	other;
 	} 		pi_sec_data;
 	
-	/* The remaining information is read-only, not used for peer creation */
+	/* The remaining information must not be modified, and is not used for peer creation */
 	enum peer_state	pi_state;
 	uint32_t	pi_vendorid;	/* Content of the Vendor-Id AVP, or 0 by default */
 	uint32_t	pi_orstate;	/* Origin-State-Id value */

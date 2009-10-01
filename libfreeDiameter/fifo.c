@@ -64,6 +64,7 @@ struct fifo {
 	void		(*h_cb)(struct fifo *, void **); /* The callbacks */
 	void		(*l_cb)(struct fifo *, void **);
 	int 		highest;/* The highest count value for which h_cb has been called */
+	int		highest_ever; /* The max count value this queue has reached (for tweaking) */
 };
 
 /* The eye catcher value */
@@ -117,10 +118,10 @@ void fd_fifo_dump(int level, char * name, struct fifo * queue, void (*dump_item)
 	
 	CHECK_POSIX_DO(  pthread_mutex_lock( &queue->mtx ), /* continue */  );
 	fd_log_debug("   %d elements in queue / %d threads waiting\n", queue->count, queue->thrs);
-	fd_log_debug("   thresholds: %d / %d, cb: %p / %p (%p), highest: %d\n",
-			queue->high, queue->low,
+	fd_log_debug("   thresholds: %d / %d (h:%d), cb: %p,%p (%p), highest: %d\n",
+			queue->high, queue->low, queue->highest, 
 			queue->h_cb, queue->l_cb, queue->data,
-			queue->highest);
+			queue->highest_ever);
 	
 	if (dump_item) {
 		struct fd_list * li;
@@ -250,6 +251,8 @@ int fd_fifo_post_int ( struct fifo * queue, void ** item )
 	/* Add the new item at the end */
 	fd_list_insert_before( &queue->list, new);
 	queue->count++;
+	if (queue->highest_ever < queue->count)
+		queue->highest_ever = queue->count;
 	if (queue->high && ((queue->count % queue->high) == 0)) {
 		call_cb = 1;
 		queue->highest = queue->count;

@@ -35,44 +35,120 @@
 
 #include "fD.h"
 
+static pthread_t       exp_thr;
+static struct fd_list  exp_list = FD_LIST_INITIALIZER( exp_list );
+static pthread_cond_t  exp_cnd  = PTHREAD_COND_INITIALIZER;
+static pthread_mutex_t exp_mtx  = PTHREAD_MUTEX_INITIALIZER;
 
+static void * exp_th_fct(void * arg)
+{
+	fd_log_threadname ( "Peers/expire" );
+	TRACE_ENTRY( "" );
+	
+	CHECK_POSIX_DO( pthread_mutex_lock(&exp_mtx),  goto error );
+	pthread_cleanup_push( fd_cleanup_mutex, &exp_mtx );
+	
+	do {
+		struct timespec	now;
+		struct fd_peer * first;
+		
+		/* Check if there are expiring sessions available */
+		if (FD_IS_LIST_EMPTY(&exp_list)) {
+			/* Just wait for a change or cancelation */
+			CHECK_POSIX_DO( pthread_cond_wait( &exp_cnd, &exp_mtx ), goto error );
+			/* Restart the loop on wakeup */
+			continue;
+		}
+		
+		/* Get the pointer to the peer that expires first */
+		first = (struct fd_peer *)(exp_list.next->o);
+		ASSERT( CHECK_PEER(first) );
+		
+		/* Get the current time */
+		CHECK_SYS_DO(  clock_gettime(CLOCK_REALTIME, &now),  goto error  );
 
+		/* If first peer is not expired, we just wait until it happens */
+		if ( TS_IS_INFERIOR( &now, &first->p_exp_timer ) ) {
+			
+			CHECK_POSIX_DO2(  pthread_cond_timedwait( &exp_cnd, &exp_mtx, &first->p_exp_timer ),  
+					ETIMEDOUT, /* ETIMEDOUT is a normal error, continue */,
+					/* on other error, */ goto error );
+	
+			/* on wakeup, loop */
+			continue;
+		}
+		
+		/* Now, the first peer in the list is expired; signal it */
+		fd_list_unlink( &first->p_expiry );
+		CHECK_FCT_DO( fd_event_send(first->p_events, FDEVP_TERMINATE, NULL), goto error );
+		
+	} while (1);
+	
+	pthread_cleanup_pop( 1 );
+error:
+	TRACE_DEBUG(INFO, "An error occurred in peers module! Expiry thread is terminating...");
+	ASSERT(0);
+	CHECK_FCT_DO(fd_event_send(fd_g_config->cnf_main_ev, FDEV_TERMINATE, NULL), );
+	return NULL;
+}
 
 /* Initialize peers expiry mechanism */
 int fd_p_expi_init(void)
 {
-	TODO("");
-	return ENOTSUP;
+	TRACE_ENTRY();
+	CHECK_FCT( pthread_create( &exp_thr, NULL, exp_th_fct, NULL ) );
+	return 0;
 }
 
 /* Finish peers expiry mechanism */
 int fd_p_expi_fini(void)
 {
-	TODO("");
-	return ENOTSUP;
+	CHECK_FCT_DO( fd_thr_term(&exp_thr), );
+	CHECK_POSIX( pthread_mutex_lock(&exp_mtx) );
+	
+	while (!FD_IS_LIST_EMPTY(&exp_list)) {
+		struct fd_peer * peer = (struct fd_peer *)(exp_list.next->o);
+		fd_list_unlink(&peer->p_expiry );
+	}
+	
+	CHECK_POSIX( pthread_mutex_unlock(&exp_mtx) );
+	return 0;
 }
 
-/* Add a peer in the expiry list if needed */
-int fd_p_expi_update(struct fd_peer * peer, int locked )
+/* Add / requeue a peer in the expiry list */
+int fd_p_expi_update(struct fd_peer * peer )
 {
-	TODO("");
+	TRACE_ENTRY("%p", peer);
+	CHECK_PARAMS( CHECK_PEER(peer) );
+	
+	CHECK_POSIX( pthread_mutex_lock(&exp_mtx) );
+	
+	fd_list_unlink(&peer->p_expiry );
 	
 	/* if peer expires */
-		/* add to the expiry list in appropriate position */
-		/* increment peer refcount */
+	if (peer->p_hdr.info.pi_flags.exp) {
+		struct fd_list * li;
+		
+		/* update the p_exp_timer value */
+		CHECK_SYS(  clock_gettime(CLOCK_REALTIME, &peer->p_exp_timer)  );
+		peer->p_exp_timer.tv_sec += peer->p_hdr.info.pi_lft;
+		
+		/* add to the expiry list in appropriate position (probably around the end) */
+		for (li = exp_list.prev; li != &exp_list; li = li->prev) {
+			struct fd_peer * p = (struct fd_peer *)(li->o);
+			if (TS_IS_INFERIOR( &p->p_exp_timer, &peer->p_exp_timer ) )
+				break;
+		}
+		
+		fd_list_insert_after(li, &peer->p_expiry);
+		
 		/* signal the expiry thread if we added in first position */
+		if (li == &exp_list) {
+			CHECK_POSIX( pthread_cond_signal(&exp_cnd) );
+		}
+	}
 	
-	return ENOTSUP;
+	CHECK_POSIX( pthread_mutex_unlock(&exp_mtx) );
+	return 0;
 }
 
-/* Remove a peer from expiry list if needed */
-int fd_p_expi_unlink(struct fd_peer * peer, int locked )
-{
-	TODO("");
-	/* if peer is in expiry list */
-		/* remove from the list */
-		/* decrement peer refcount */
-		/* no need to signal the expiry thread ... */
-	
-	return ENOTSUP;
-}

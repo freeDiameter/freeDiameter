@@ -43,10 +43,10 @@
 pthread_rwlock_t fd_disp_lock = PTHREAD_RWLOCK_INITIALIZER;
 
 /* List of all registered handlers -- useful if we want to cleanup properly at some point... */
-static struct fd_list all_handlers;
+static struct fd_list all_handlers = FD_LIST_INITIALIZER( all_handlers );
 
 /* List of handlers registered for DISP_HOW_ANY. Other handlers are stored in the dictionary */
-static struct fd_list any_handlers;
+static struct fd_list any_handlers = FD_LIST_INITIALIZER( any_handlers );
 
 /* The structure to store a callback */
 struct disp_hdl {
@@ -63,14 +63,6 @@ struct disp_hdl {
 	( ( ( _hdl ) != NULL ) && ( ((struct disp_hdl *)( _hdl ))->eyec == DISP_EYEC ) )
 
 /**************************************************************************************/
-/* Initialize the module lists */
-void fd_disp_init(void)
-{
-	TRACE_ENTRY();
-	fd_list_init(&all_handlers, NULL);
-	fd_list_init(&any_handlers, NULL);
-	/* if PTHREAD_RWLOCK_INITIALIZER is not supported on all platforms, we may initialize the lock here */
-}
 
 /* Call CBs from a given list (any_handlers if cb_list is NULL) -- must have locked fd_disp_lock before */
 int fd_disp_call_cb_int( struct fd_list * cb_list, struct msg ** msg, struct avp *avp, struct session *sess, enum disp_action *action, 

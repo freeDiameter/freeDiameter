@@ -41,6 +41,26 @@
 #include <freeDiameter/freeDiameter-host.h>
 #include <freeDiameter/freeDiameter.h>
 
+/* Timeout for establishing a connection */
+#ifndef CNX_TIMEOUT
+#define  CNX_TIMEOUT	10	/* in seconds */
+#endif /* CNX_TIMEOUT */
+
+/* Timeout for receiving a CER after incoming connection is established */
+#ifndef INCNX_TIMEOUT
+#define  INCNX_TIMEOUT	 20	/* in seconds */
+#endif /* INCNX_TIMEOUT */
+
+/* Timeout for receiving a CEA after CER is sent */
+#ifndef CEA_TIMEOUT
+#define  CEA_TIMEOUT	10	/* in seconds */
+#endif /* CEA_TIMEOUT */
+
+/* The timeout value to wait for answer to a DPR */
+#ifndef DPR_TIMEOUT
+#define DPR_TIMEOUT 	15	/* in seconds */
+#endif /* DPR_TIMEOUT */
+
 /* Configuration */
 int fd_conf_init();
 void fd_conf_dump();
@@ -48,7 +68,6 @@ int fd_conf_parse();
 int fddparse(struct fd_config * conf); /* yacc generated */
 
 /* Extensions */
-int fd_ext_init();
 int fd_ext_add( char * filename, char * conffile );
 int fd_ext_load();
 void fd_ext_dump(void);
@@ -81,18 +100,10 @@ struct fd_peer { /* The "real" definition of the peer structure */
 	/* Origin of this peer object, for debug */
 	char		*p_dbgorig;
 	
-	/* Mutex that protect this peer structure */
-	pthread_mutex_t	 p_mtx;
-	
-	/* Reference counter -- freed only when this reaches 0 */
-	unsigned	 p_refcount;
-	
 	/* Chaining in peers sublists */
-	struct fd_list	 p_expiry; 	/* list of expiring peers, ordered by their timeout value */
 	struct fd_list	 p_actives;	/* list of peers in the STATE_OPEN state -- faster routing creation */
-	
-	/* The next hop-by-hop id value for the link */
-	uint32_t	 p_hbh;
+	struct fd_list	 p_expiry; 	/* list of expiring peers, ordered by their timeout value */
+	struct timespec	 p_exp_timer;	/* Timestamp where the peer will expire; updated each time activity is seen on the peer (except DW) */
 	
 	/* Some flags influencing the peer state machine */
 	struct {
@@ -108,7 +119,7 @@ struct fd_peer { /* The "real" definition of the peer structure */
 	}		 p_flags;
 	
 	/* The events queue, peer state machine thread, timer for states timeouts */
-	struct fifo	*p_events;
+	struct fifo	*p_events;	/* The mutex of this FIFO list protects also the state and timer information */
 	pthread_t	 p_psm;
 	struct timespec	 p_psm_timer;
 	
@@ -120,10 +131,13 @@ struct fd_peer { /* The "real" definition of the peer structure */
 	struct fifo	*p_tosend;
 	pthread_t	 p_outthr;
 	
+	/* The next hop-by-hop id value for the link, only read & modified by p_outthr */
+	uint32_t	 p_hbh;
+	
 	/* Sent requests (for fallback), list of struct sentreq ordered by hbh */
 	struct fd_list	 p_sentreq;
 	
-	/* connection context: socket & other metadata */
+	/* connection context: socket, callbacks and so on */
 	struct cnxctx	*p_cnxctx;
 	
 	/* Callback on initial connection success / failure */
@@ -144,7 +158,11 @@ enum {
 	
 	/* A message was received in the peer */
 	,FDEVP_MSG_INCOMING
+	
+	/* The PSM state is expired */
+	,FDEVP_PSM_TIMEOUT
 };
+const char * fd_pev_str(int event);
 
 /* Structure to store a sent request */
 struct sentreq {
@@ -153,17 +171,14 @@ struct sentreq {
 };
 
 /* Functions */
-int fd_peer_init();
 int fd_peer_fini();
 void fd_peer_dump_list(int details);
 /* fd_peer_add declared in freeDiameter.h */
-int fd_peer_rc_decr(struct fd_peer **ptr, int locked);
 
 /* Peer expiry */
 int fd_p_expi_init(void);
 int fd_p_expi_fini(void);
-int fd_p_expi_update(struct fd_peer * peer, int locked );
-int fd_p_expi_unlink(struct fd_peer * peer, int locked );
+int fd_p_expi_update(struct fd_peer * peer );
 
 /* Peer state machine */
 int fd_psm_start();

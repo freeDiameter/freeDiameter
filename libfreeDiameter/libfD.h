@@ -44,7 +44,6 @@
 /* Internal to the library */
 extern const char * type_base_name[];
 void fd_msg_eteid_init(void);
-void fd_disp_init(void);
 int fd_sess_init(void);
 
 /* Iterator on the rules of a parent object */

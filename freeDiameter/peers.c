@@ -35,42 +35,29 @@
 
 #include "fD.h"
 
-const char *peer_state_str[] = { "<error>"
-	, "STATE_DISABLED"
-	, "STATE_OPEN"
-	, "STATE_CLOSED"
-	, "STATE_CLOSING"
-	, "STATE_WAITCNXACK"
-	, "STATE_WAITCNXACK_ELEC"
-	, "STATE_WAITCEA"
-	, "STATE_SUSPECT"
-	, "STATE_REOPEN"
-	};
-
-struct fd_list   fd_g_peers;
-pthread_rwlock_t fd_g_peers_rw;
-
-/* Initialize the peers list */
-int fd_peer_init()
-{
-	TRACE_ENTRY();
-	
-	fd_list_init(&fd_g_peers, NULL);
-	CHECK_POSIX( pthread_rwlock_init(&fd_g_peers_rw, NULL) );
-	
-	CHECK_FCT(fd_p_expi_init());
-	
-	return 0;
-}
+struct fd_list   fd_g_peers = FD_LIST_INITIALIZER(fd_g_peers);
+pthread_rwlock_t fd_g_peers_rw = PTHREAD_RWLOCK_INITIALIZER;
 
 /* Terminate peer module (destroy all peers) */
 int fd_peer_fini()
 {
+	struct fd_list * li;
 	TRACE_ENTRY();
 	
 	CHECK_FCT_DO(fd_p_expi_fini(), /* continue */);
 	
-	TODO("Complete this function")
+	TRACE_DEBUG(INFO, "Sending signal to terminate to all peer connections");
+	
+	CHECK_FCT_DO( pthread_rwlock_rdlock(&fd_g_peers_rw), /* continue */ );
+	/* For each peer in the list, ... */
+	for (li = fd_g_peers.next; li != &fd_g_peers; li = li->next) {
+		struct fd_peer * np = (struct fd_peer *)li;
+		CHECK_FCT_DO( fd_psm_terminate(np), /* continue */ );
+	}
+	CHECK_FCT_DO( pthread_rwlock_unlock(&fd_g_peers_rw), /* continue */ );
+	
+	TODO("Give some time to all PSM, then destroy remaining threads");
+	/* fd_psm_abord(struct fd_peer * peer ) */
 	
 	return 0;
 }
@@ -124,11 +111,9 @@ static int fd_sp_reinit(struct fd_peer ** ptr)
 	fd_list_init(&p->p_hdr.chain, p);
 	
 	fd_list_init(&p->p_hdr.info.pi_endpoints, NULL);
-	p->p_hdr.info.pi_state = STATE_DISABLED;
 	fd_list_init(&p->p_hdr.info.pi_apps, NULL);
 	
 	p->p_eyec = EYEC_PEER;
-	CHECK_POSIX( pthread_mutex_init(&p->p_mtx, NULL) );
 	fd_list_init(&p->p_expiry, p);
 	fd_list_init(&p->p_actives, p);
 	p->p_hbh = lrand48();
@@ -165,7 +150,7 @@ static int fd_sp_destroy(struct fd_peer ** ptr)
 	*ptr = NULL;
 	CHECK_PARAMS(p);
 	
-	CHECK_PARAMS( (p->p_refcount == 0) && FD_IS_LIST_EMPTY(&p->p_hdr.chain) );
+	CHECK_PARAMS( FD_IS_LIST_EMPTY(&p->p_hdr.chain) );
 	
 	free_null(p->p_hdr.info.pi_diamid); 
 	free_null(p->p_hdr.info.pi_realm); 
@@ -175,7 +160,6 @@ static int fd_sp_destroy(struct fd_peer ** ptr)
 	free_list( &p->p_hdr.info.pi_apps );
 	
 	free_null(p->p_dbgorig);
-	CHECK_POSIX( pthread_mutex_destroy(&p->p_mtx) );
 	ASSERT(FD_IS_LIST_EMPTY(&p->p_expiry));
 	ASSERT(FD_IS_LIST_EMPTY(&p->p_actives));
 	
@@ -213,7 +197,9 @@ static int fd_sp_destroy(struct fd_peer ** ptr)
 		free(sr);
 	}
 	
-	TRACE_DEBUG(NONE, "TODO: destroy p->p_cnxctx here");
+	if (p->p_cnxctx) {
+		TODO("destroy p->p_cnxctx");
+	}
 	
 	if (p->p_cb)
 		(*p->p_cb)(NULL, p->p_cb_data);
@@ -223,34 +209,6 @@ static int fd_sp_destroy(struct fd_peer ** ptr)
 	return 0;
 }
 
-/* Decrement refcount, delete if 0 */
-int fd_peer_rc_decr(struct fd_peer **ptr, int locked)
-{
-	int count;
-	struct fd_peer *p;
-	TRACE_ENTRY("%p %d", p, locked);
-	
-	CHECK_PARAMS(ptr && CHECK_PEER( *ptr ));
-	p = *ptr;
-	
-	if (!locked) {
-		CHECK_POSIX( pthread_rwlock_rdlock(&fd_g_peers_rw) );
-		CHECK_POSIX( pthread_mutex_lock( &p->p_mtx ) );
-		CHECK_POSIX( pthread_rwlock_unlock(&fd_g_peers_rw) );
-	}
-	
-	count = --(p->p_refcount);
-	
-	if (!locked) {
-		CHECK_POSIX( pthread_mutex_unlock( &p->p_mtx ) );
-	}
-	
-	if (count <= 0) {
-		/* All links have already been removed, we can destroy */
-		CHECK_FCT( fd_sp_destroy(ptr) );
-	}
-	return 0;
-}
 
 /* Add a new peer entry */
 int fd_peer_add ( struct peer_info * info, char * orig_dbg, void (*cb)(struct peer_info *, void *), void * cb_data )
@@ -283,11 +241,12 @@ int fd_peer_add ( struct peer_info * info, char * orig_dbg, void (*cb)(struct pe
 	p->p_hdr.info.pi_twtimer = info->pi_twtimer;
 	
 	/* Move the items from one list to the other */
-	while (!FD_IS_LIST_EMPTY( &info->pi_endpoints ) ) {
-		li = info->pi_endpoints.next;
-		fd_list_unlink(li);
-		fd_list_insert_before(&p->p_hdr.info.pi_endpoints, li);
-	}
+	if (info->pi_endpoints.next)
+		while (!FD_IS_LIST_EMPTY( &info->pi_endpoints ) ) {
+			li = info->pi_endpoints.next;
+			fd_list_unlink(li);
+			fd_list_insert_before(&p->p_hdr.info.pi_endpoints, li);
+		}
 	
 	p->p_hdr.info.pi_sec_module = info->pi_sec_module;
 	memcpy(&p->p_hdr.info.pi_sec_data, &info->pi_sec_data, sizeof(info->pi_sec_data));
@@ -303,7 +262,6 @@ int fd_peer_add ( struct peer_info * info, char * orig_dbg, void (*cb)(struct pe
 	
 	/* Ok, now check if we don't already have an entry with the same Diameter Id, and insert this one */
 	CHECK_POSIX( pthread_rwlock_wrlock(&fd_g_peers_rw) );
-	CHECK_POSIX( pthread_mutex_lock( &p->p_mtx ) );
 	
 	for (li = fd_g_peers.next; li != &fd_g_peers; li = li->next) {
 		struct fd_peer * prev = (struct fd_peer *)li;
@@ -318,20 +276,18 @@ int fd_peer_add ( struct peer_info * info, char * orig_dbg, void (*cb)(struct pe
 	/* We can insert the new peer object */
 	if (! ret) {
 		/* Update expiry list */
-		CHECK_FCT_DO( ret = fd_p_expi_update( p, 1 ), goto out );
+		CHECK_FCT_DO( ret = fd_p_expi_update( p ), goto out );
 		
 		/* Insert the new element in the list */
 		fd_list_insert_before( li, &p->p_hdr.chain );
-		p->p_refcount++;
 	}
 
 out:	
-	CHECK_POSIX( pthread_mutex_unlock( &p->p_mtx ) );
 	CHECK_POSIX( pthread_rwlock_unlock(&fd_g_peers_rw) );
 	if (ret) {
 		CHECK_FCT( fd_sp_destroy(&p) );
 	} else {
-		CHECK_FCT( fd_psm_start(p) );
+		CHECK_FCT( fd_psm_begin(p) );
 	}
 	return ret;
 }
