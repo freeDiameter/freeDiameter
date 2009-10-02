@@ -26,6 +26,10 @@ SET(FD_COMMON_GEN_SRC
 		fdd.tab.h
 	)
 
+# Require GNU TLS for building the daemon
+FIND_PACKAGE(GNUTLS REQUIRED)
+INCLUDE_DIRECTORIES(${GNUTLS_INCLUDE_DIRS})
+SET(FD_LIBS ${FD_LIBS} ${GNUTLS_LIBRARIES})
 
 # Building the executable
 ADD_EXECUTABLE(freeDiameterd ${FD_COMMON_SRC} ${FD_COMMON_GEN_SRC} main.c)

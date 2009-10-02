@@ -35,63 +35,13 @@
 
 #include "fD.h"
 
+/* Global list of peers */
 struct fd_list   fd_g_peers = FD_LIST_INITIALIZER(fd_g_peers);
 pthread_rwlock_t fd_g_peers_rw = PTHREAD_RWLOCK_INITIALIZER;
 
-/* Terminate peer module (destroy all peers) */
-int fd_peer_fini()
-{
-	struct fd_list * li;
-	TRACE_ENTRY();
-	
-	CHECK_FCT_DO(fd_p_expi_fini(), /* continue */);
-	
-	TRACE_DEBUG(INFO, "Sending signal to terminate to all peer connections");
-	
-	CHECK_FCT_DO( pthread_rwlock_rdlock(&fd_g_peers_rw), /* continue */ );
-	/* For each peer in the list, ... */
-	for (li = fd_g_peers.next; li != &fd_g_peers; li = li->next) {
-		struct fd_peer * np = (struct fd_peer *)li;
-		CHECK_FCT_DO( fd_psm_terminate(np), /* continue */ );
-	}
-	CHECK_FCT_DO( pthread_rwlock_unlock(&fd_g_peers_rw), /* continue */ );
-	
-	TODO("Give some time to all PSM, then destroy remaining threads");
-	/* fd_psm_abord(struct fd_peer * peer ) */
-	
-	return 0;
-}
-
-/* Dump the list of peers */
-void fd_peer_dump_list(int details)
-{
-	struct fd_list * li;
-	
-	fd_log_debug("Dumping list of peers :\n");
-	CHECK_FCT_DO( pthread_rwlock_rdlock(&fd_g_peers_rw), /* continue */ );
-	
-	for (li = fd_g_peers.next; li != &fd_g_peers; li = li->next) {
-		struct fd_peer * np = (struct fd_peer *)li;
-		if (np->p_eyec != EYEC_PEER) {
-			fd_log_debug("  Invalid entry @%p !\n", li);
-			continue;
-		}
-		
-		fd_log_debug("   %s\t%s", STATE_STR(np->p_hdr.info.pi_state), np->p_hdr.info.pi_diamid);
-		if (details > INFO) {
-			fd_log_debug("\t(rlm:%s)", np->p_hdr.info.pi_realm);
-			if (np->p_hdr.info.pi_prodname)
-				fd_log_debug("\t['%s' %u]", np->p_hdr.info.pi_prodname, np->p_hdr.info.pi_firmrev);
-			fd_log_debug("\t(from %s)", np->p_dbgorig);
-		}
-		fd_log_debug("\n");
-	}
-	
-	CHECK_FCT_DO( pthread_rwlock_unlock(&fd_g_peers_rw), /* continue */ );
-}
 
 /* Alloc / reinit a peer structure. if *ptr is not NULL, it must already point to a valid struct fd_peer. */
-static int fd_sp_reinit(struct fd_peer ** ptr)
+int fd_peer_alloc(struct fd_peer ** ptr)
 {
 	struct fd_peer *p;
 	
@@ -125,6 +75,86 @@ static int fd_sp_reinit(struct fd_peer ** ptr)
 	return 0;
 }
 
+/* Add a new peer entry */
+int fd_peer_add ( struct peer_info * info, char * orig_dbg, void (*cb)(struct peer_info *, void *), void * cb_data )
+{
+	struct fd_peer *p = NULL;
+	struct fd_list * li;
+	int ret = 0;
+	TRACE_ENTRY("%p %p %p %p", info, orig_dbg, cb, cb_data);
+	CHECK_PARAMS(info && info->pi_diamid);
+	
+	/* Create a structure to contain the new peer information */
+	CHECK_FCT( fd_peer_alloc(&p) );
+	
+	/* Copy the informations from the parameters received */
+	CHECK_MALLOC( p->p_hdr.info.pi_diamid = strdup(info->pi_diamid) );
+	if (info->pi_realm) {
+		CHECK_MALLOC( p->p_hdr.info.pi_realm = strdup(info->pi_realm) );
+	}
+	
+	p->p_hdr.info.pi_flags.pro3 = info->pi_flags.pro3;
+	p->p_hdr.info.pi_flags.pro4 = info->pi_flags.pro4;
+	p->p_hdr.info.pi_flags.alg  = info->pi_flags.alg;
+	p->p_hdr.info.pi_flags.sec  = info->pi_flags.sec;
+	p->p_hdr.info.pi_flags.exp  = info->pi_flags.exp;
+	
+	p->p_hdr.info.pi_lft     = info->pi_lft;
+	p->p_hdr.info.pi_streams = info->pi_streams;
+	p->p_hdr.info.pi_port    = info->pi_port;
+	p->p_hdr.info.pi_tctimer = info->pi_tctimer;
+	p->p_hdr.info.pi_twtimer = info->pi_twtimer;
+	
+	/* Move the items from one list to the other */
+	if (info->pi_endpoints.next)
+		while (!FD_IS_LIST_EMPTY( &info->pi_endpoints ) ) {
+			li = info->pi_endpoints.next;
+			fd_list_unlink(li);
+			fd_list_insert_before(&p->p_hdr.info.pi_endpoints, li);
+		}
+	
+	/* The internal data */
+	if (orig_dbg) {
+		CHECK_MALLOC( p->p_dbgorig = strdup(orig_dbg) );
+	} else {
+		CHECK_MALLOC( p->p_dbgorig = strdup("unknown") );
+	}
+	p->p_cb = cb;
+	p->p_cb_data = cb_data;
+	
+	/* Ok, now check if we don't already have an entry with the same Diameter Id, and insert this one */
+	CHECK_POSIX( pthread_rwlock_wrlock(&fd_g_peers_rw) );
+	
+	for (li = fd_g_peers.next; li != &fd_g_peers; li = li->next) {
+		struct fd_peer * prev = (struct fd_peer *)li;
+		int cmp = strcasecmp( p->p_hdr.info.pi_diamid, prev->p_hdr.info.pi_diamid );
+		if (cmp < 0)
+			continue;
+		if (cmp == 0)
+			ret = EEXIST;
+		break;
+	}
+	
+	/* We can insert the new peer object */
+	if (! ret) {
+		/* Update expiry list */
+		CHECK_FCT_DO( ret = fd_p_expi_update( p ), goto out );
+		
+		/* Insert the new element in the list */
+		fd_list_insert_before( li, &p->p_hdr.chain );
+	}
+
+out:	
+	CHECK_POSIX( pthread_rwlock_unlock(&fd_g_peers_rw) );
+	if (ret) {
+		CHECK_FCT( fd_peer_free(&p) );
+	} else {
+		CHECK_FCT( fd_psm_begin(p) );
+	}
+	return ret;
+}
+
+
 #define free_null( _v ) 	\
 	if (_v) {		\
 		free(_v);	\
@@ -139,7 +169,7 @@ static int fd_sp_reinit(struct fd_peer ** ptr)
 	}
 
 /* Destroy a structure once all cleanups have been performed */
-static int fd_sp_destroy(struct fd_peer ** ptr)
+int fd_peer_free(struct fd_peer ** ptr)
 {
 	struct fd_peer *p;
 	void * t;
@@ -209,85 +239,133 @@ static int fd_sp_destroy(struct fd_peer ** ptr)
 	return 0;
 }
 
-
-/* Add a new peer entry */
-int fd_peer_add ( struct peer_info * info, char * orig_dbg, void (*cb)(struct peer_info *, void *), void * cb_data )
+/* Terminate peer module (destroy all peers) */
+int fd_peer_fini()
 {
-	struct fd_peer *p = NULL;
 	struct fd_list * li;
-	int ret = 0;
-	TRACE_ENTRY("%p %p %p %p", info, orig_dbg, cb, cb_data);
-	CHECK_PARAMS(info && info->pi_diamid);
+	struct fd_list purge = FD_LIST_INITIALIZER(purge); /* Store zombie peers here */
+	int list_empty;
+	struct timespec	wait_until, now;
 	
-	/* Create a structure to contain the new peer information */
-	CHECK_FCT( fd_sp_reinit(&p) );
+	TRACE_ENTRY();
 	
-	/* Copy the informations from the parameters received */
-	CHECK_MALLOC( p->p_hdr.info.pi_diamid = strdup(info->pi_diamid) );
-	if (info->pi_realm) {
-		CHECK_MALLOC( p->p_hdr.info.pi_realm = strdup(info->pi_realm) );
-	}
+	CHECK_FCT_DO(fd_p_expi_fini(), /* continue */);
 	
-	p->p_hdr.info.pi_flags.pro3 = info->pi_flags.pro3;
-	p->p_hdr.info.pi_flags.pro4 = info->pi_flags.pro4;
-	p->p_hdr.info.pi_flags.alg  = info->pi_flags.alg;
-	p->p_hdr.info.pi_flags.sec  = info->pi_flags.sec;
-	p->p_hdr.info.pi_flags.exp  = info->pi_flags.exp;
+	TRACE_DEBUG(INFO, "Sending terminate signal to all peer connections");
 	
-	p->p_hdr.info.pi_lft     = info->pi_lft;
-	p->p_hdr.info.pi_streams = info->pi_streams;
-	p->p_hdr.info.pi_port    = info->pi_port;
-	p->p_hdr.info.pi_tctimer = info->pi_tctimer;
-	p->p_hdr.info.pi_twtimer = info->pi_twtimer;
-	
-	/* Move the items from one list to the other */
-	if (info->pi_endpoints.next)
-		while (!FD_IS_LIST_EMPTY( &info->pi_endpoints ) ) {
-			li = info->pi_endpoints.next;
-			fd_list_unlink(li);
-			fd_list_insert_before(&p->p_hdr.info.pi_endpoints, li);
+	CHECK_FCT_DO( pthread_rwlock_wrlock(&fd_g_peers_rw), /* continue */ );
+	for (li = fd_g_peers.next; li != &fd_g_peers; li = li->next) {
+		struct fd_peer * peer = (struct fd_peer *)li;
+		
+		if (peer->p_hdr.info.pi_state != STATE_ZOMBIE) {
+			CHECK_FCT_DO( fd_psm_terminate(peer), /* continue */ );
+		} else {
+			li = li->prev; /* to avoid breaking the loop */
+			fd_list_unlink(&peer->p_hdr.chain);
+			fd_list_insert_before(&purge, &peer->p_hdr.chain);
 		}
-	
-	p->p_hdr.info.pi_sec_module = info->pi_sec_module;
-	memcpy(&p->p_hdr.info.pi_sec_data, &info->pi_sec_data, sizeof(info->pi_sec_data));
-	
-	/* The internal data */
-	if (orig_dbg) {
-		CHECK_MALLOC( p->p_dbgorig = strdup(orig_dbg) );
-	} else {
-		CHECK_MALLOC( p->p_dbgorig = strdup("unknown") );
 	}
-	p->p_cb = cb;
-	p->p_cb_data = cb_data;
+	list_empty = FD_IS_LIST_EMPTY(&fd_g_peers);
+	CHECK_FCT_DO( pthread_rwlock_unlock(&fd_g_peers_rw), /* continue */ );
 	
-	/* Ok, now check if we don't already have an entry with the same Diameter Id, and insert this one */
-	CHECK_POSIX( pthread_rwlock_wrlock(&fd_g_peers_rw) );
+	if (!list_empty) {
+		CHECK_SYS(  clock_gettime(CLOCK_REALTIME, &now)  );
+		TRACE_DEBUG(INFO, "Waiting for connections shutdown... (%d sec max)", DPR_TIMEOUT);
+		wait_until.tv_sec  = now.tv_sec + DPR_TIMEOUT;
+		wait_until.tv_nsec = now.tv_nsec;
+	}
+	
+	while ((!list_empty) && (TS_IS_INFERIOR(&now, &wait_until))) {
+		
+		/* Allow the PSM(s) to execute */
+		pthread_yield();
+		
+		/* Remove zombie peers */
+		CHECK_FCT_DO( pthread_rwlock_wrlock(&fd_g_peers_rw), /* continue */ );
+		for (li = fd_g_peers.next; li != &fd_g_peers; li = li->next) {
+			struct fd_peer * peer = (struct fd_peer *)li;
+			if (peer->p_hdr.info.pi_state == STATE_ZOMBIE) {
+				li = li->prev; /* to avoid breaking the loop */
+				fd_list_unlink(&peer->p_hdr.chain);
+				fd_list_insert_before(&purge, &peer->p_hdr.chain);
+			}
+		}
+		list_empty = FD_IS_LIST_EMPTY(&fd_g_peers);
+		CHECK_FCT_DO( pthread_rwlock_unlock(&fd_g_peers_rw), /* continue */ );
+	}
+	
+	if (!list_empty) {
+		TRACE_DEBUG(INFO, "Forcing connections shutdown");
+		CHECK_FCT_DO( pthread_rwlock_wrlock(&fd_g_peers_rw), /* continue */ );
+		while (!FD_IS_LIST_EMPTY(&fd_g_peers)) {
+			struct fd_peer * peer = (struct fd_peer *)(fd_g_peers.next);
+			fd_psm_abord(peer);
+			fd_list_unlink(&peer->p_hdr.chain);
+			fd_list_insert_before(&purge, &peer->p_hdr.chain);
+		}
+		CHECK_FCT_DO( pthread_rwlock_unlock(&fd_g_peers_rw), /* continue */ );
+	}
+	
+	/* Free memory objects of all peers */
+	while (!FD_IS_LIST_EMPTY(&purge)) {
+		struct fd_peer * peer = (struct fd_peer *)(purge.next);
+		fd_list_unlink(&peer->p_hdr.chain);
+		fd_peer_free(&peer);
+	}
+	
+	return 0;
+}
+
+/* Dump info of one peer */
+void fd_peer_dump(struct fd_peer * peer, int details)
+{
+	if (peer->p_eyec != EYEC_PEER) {
+		fd_log_debug("  Invalid peer @ %p !\n", peer);
+		return;
+	}
+
+	fd_log_debug(">  %s\t%s", STATE_STR(peer->p_hdr.info.pi_state), peer->p_hdr.info.pi_diamid);
+	if (details > INFO) {
+		fd_log_debug("\t(rlm:%s)", peer->p_hdr.info.pi_realm);
+		if (peer->p_hdr.info.pi_prodname)
+			fd_log_debug("\t['%s' %u]", peer->p_hdr.info.pi_prodname, peer->p_hdr.info.pi_firmrev);
+	}
+	fd_log_debug("\n");
+	if (details > FULL) {
+		/* Dump all info */
+		fd_log_debug("\tEntry origin : %s\n", peer->p_dbgorig);
+		fd_log_debug("\tFlags : %s%s%s%s%s - %s%s%s\n", 
+				peer->p_hdr.info.pi_flags.pro3 == PI_P3_DEFAULT ? "" :
+					(peer->p_hdr.info.pi_flags.pro3 == PI_P3_IP ? "IP." : "IPv6."),
+				peer->p_hdr.info.pi_flags.pro4 == PI_P4_DEFAULT ? "" :
+					(peer->p_hdr.info.pi_flags.pro4 == PI_P4_TCP ? "TCP." : "SCTP."),
+				peer->p_hdr.info.pi_flags.alg ? "PrefTCP." : "",
+				peer->p_hdr.info.pi_flags.sec == PI_SEC_DEFAULT ? "" :
+					(peer->p_hdr.info.pi_flags.sec == PI_SEC_NONE ? "IPSec." : "InbandTLS."),
+				peer->p_hdr.info.pi_flags.exp ? "Expire." : "",
+				peer->p_hdr.info.pi_flags.inband & PI_INB_NONE ? "InbandIPsecOK." : "",
+				peer->p_hdr.info.pi_flags.inband & PI_INB_TLS ?  "InbandTLSOK." : "",
+				peer->p_hdr.info.pi_flags.relay ? "Relay (0xffffff)" : "No relay"
+				);
+		fd_log_debug("\tLifetime : %d sec\n", peer->p_hdr.info.pi_lft);
+		
+		TODO("Dump remaining useful information");
+	}
+}
+
+/* Dump the list of peers */
+void fd_peer_dump_list(int details)
+{
+	struct fd_list * li;
+	
+	fd_log_debug("Dumping list of peers :\n");
+	CHECK_FCT_DO( pthread_rwlock_rdlock(&fd_g_peers_rw), /* continue */ );
 	
 	for (li = fd_g_peers.next; li != &fd_g_peers; li = li->next) {
-		struct fd_peer * prev = (struct fd_peer *)li;
-		int cmp = strcasecmp( p->p_hdr.info.pi_diamid, prev->p_hdr.info.pi_diamid );
-		if (cmp < 0)
-			continue;
-		if (cmp == 0)
-			ret = EEXIST;
-		break;
+		struct fd_peer * np = (struct fd_peer *)li;
+		fd_peer_dump(np, details);
 	}
 	
-	/* We can insert the new peer object */
-	if (! ret) {
-		/* Update expiry list */
-		CHECK_FCT_DO( ret = fd_p_expi_update( p ), goto out );
-		
-		/* Insert the new element in the list */
-		fd_list_insert_before( li, &p->p_hdr.chain );
-	}
-
-out:	
-	CHECK_POSIX( pthread_rwlock_unlock(&fd_g_peers_rw) );
-	if (ret) {
-		CHECK_FCT( fd_sp_destroy(&p) );
-	} else {
-		CHECK_FCT( fd_psm_begin(p) );
-	}
-	return ret;
+	CHECK_FCT_DO( pthread_rwlock_unlock(&fd_g_peers_rw), /* continue */ );
 }
+

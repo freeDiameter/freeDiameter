@@ -36,7 +36,7 @@
 #include "fD.h"
 
 const char *peer_state_str[] = { 
-	  "STATE_ZOMBIE"
+	  "STATE_NEW"
 	, "STATE_OPEN"
 	, "STATE_CLOSED"
 	, "STATE_CLOSING"
@@ -45,6 +45,7 @@ const char *peer_state_str[] = {
 	, "STATE_WAITCEA"
 	, "STATE_SUSPECT"
 	, "STATE_REOPEN"
+	, "STATE_ZOMBIE"
 	};
 
 const char * fd_pev_str(int event)
@@ -122,6 +123,7 @@ static void psm_next_timeout(struct fd_peer * peer, int add_random, int delay)
 #endif
 }
 
+/* Wait for the next event in the PSM, or timeout */
 static int psm_ev_timedget(struct fd_peer * peer, int *code, void ** data)
 {
 	struct fd_event * ev;
@@ -141,13 +143,15 @@ static int psm_ev_timedget(struct fd_peer * peer, int *code, void ** data)
 	}
 	
 	return 0;
-}	
+}
 
-/* The state machine thread */
+/* The state machine thread (controler) */
 static void * p_psm_th( void * arg )
 {
 	struct fd_peer * peer = (struct fd_peer *)arg;
 	int created_started = started;
+	int event;
+	void * ev_data;
 	
 	CHECK_PARAMS_DO( CHECK_PEER(peer), ASSERT(0) );
 	
@@ -160,11 +164,11 @@ static void * p_psm_th( void * arg )
 		fd_log_threadname ( buf );
 	}
 	
-	/* Wait that the PSM are authorized to start in the daemon */
-	CHECK_FCT_DO( fd_psm_waitstart(), goto end );
-	
 	/* The state machine starts in CLOSED state */
 	peer->p_hdr.info.pi_state = STATE_CLOSED;
+	
+	/* Wait that the PSM are authorized to start in the daemon */
+	CHECK_FCT_DO( fd_psm_waitstart(), goto psm_end );
 	
 	/* Initialize the timer */
 	if (peer->p_flags.pf_responder) {
@@ -173,27 +177,68 @@ static void * p_psm_th( void * arg )
 		psm_next_timeout(peer, created_started ? 0 : 1, 0);
 	}
 	
-psm:
-	do {
-		int event;
-		void * ev_data;
-		
-		/* Get next event */
-		CHECK_FCT_DO( psm_ev_timedget(peer, &event, &ev_data), goto end );
-		TRACE_DEBUG(FULL, "'%s'\t<-- '%s'\t(%p)\t'%s'",
-				STATE_STR(peer->p_hdr.info.pi_state),
-				fd_pev_str(event), ev_data,
-				peer->p_hdr.info.pi_diamid);
-		
-		/* Now, the action depends on the current state and the incoming event */
-		
+psm_loop:
+	/* Get next event */
+	CHECK_FCT_DO( psm_ev_timedget(peer, &event, &ev_data), goto psm_end );
+	TRACE_DEBUG(FULL, "'%s'\t<-- '%s'\t(%p)\t'%s'",
+			STATE_STR(peer->p_hdr.info.pi_state),
+			fd_pev_str(event), ev_data,
+			peer->p_hdr.info.pi_diamid);
+
+	/* Now, the action depends on the current state and the incoming event */
+
+	/* The following two states are impossible */
+	ASSERT( peer->p_hdr.info.pi_state != STATE_NEW );
+	ASSERT( peer->p_hdr.info.pi_state != STATE_ZOMBIE );
+
+	/* Purge invalid events */
+	if (!CHECK_EVENT(event)) {
+		TRACE_DEBUG(INFO, "Invalid event received in PSM '%s' : %d", peer->p_hdr.info.pi_diamid, event);
+		goto psm_loop;
+	}
+
+	/* Handle the (easy) debug event now */
+	if (event == FDEVP_DUMP_ALL) {
+		fd_peer_dump(peer, ANNOYING);
+		goto psm_loop;
+	}
+
+	/* Requests to terminate the peer object */
+	if (event == FDEVP_TERMINATE) {
+		switch (peer->p_hdr.info.pi_state) {
+			case STATE_CLOSING:
+			case STATE_WAITCNXACK:
+			case STATE_WAITCNXACK_ELEC:
+			case STATE_WAITCEA:
+			case STATE_SUSPECT:
+				/* In these cases, we just cleanup the peer object and terminate now */
+				TODO("Cleanup the PSM: terminate connection object, ...");
+			case STATE_CLOSED:
+				/* Then we just terminate the PSM */
+				goto psm_end;
+				
+			case STATE_OPEN:
+			case STATE_REOPEN:
+				/* We cannot just close the conenction, we have to send a DPR first */
+				TODO("Send DPR, mark the peer as CLOSING");
+				goto psm_loop;
+		}
+	}
 	
-	} while (1);	
+	/* MSG_RECEIVED: fd_p_expi_update(struct fd_peer * peer ) */
+	/* If timeout or OPEN : call cb if defined */
+
+	/* Default action : the handling has not yet been implemented. */
+	TODO("Missing handler in PSM : '%s'\t<-- '%s'", STATE_STR(peer->p_hdr.info.pi_state), fd_pev_str(event));
+	if (event == FDEVP_PSM_TIMEOUT) {
+		/* We have not handled timeout in this state, let's postpone next alert */
+		psm_next_timeout(peer, 0, 60);
+	}
 	
+	goto psm_loop;
 	
-end:	
-	/* set STATE_ZOMBIE */
-	pthread_cleanup_pop(1);
+psm_end:
+	pthread_cleanup_pop(1); /* set STATE_ZOMBIE */
 	return NULL;
 }	
 	
@@ -204,8 +249,15 @@ end:
 int fd_psm_begin(struct fd_peer * peer )
 {
 	TRACE_ENTRY("%p", peer);
-	TODO("");
-	return ENOTSUP;
+	
+	/* Check the peer and state are OK */
+	CHECK_PARAMS( CHECK_PEER(peer) && (peer->p_hdr.info.pi_state == STATE_NEW) );
+	
+	/* Create the PSM controler thread */
+	CHECK_POSIX( pthread_create( &peer->p_psm, NULL, p_psm_th, peer ) );
+	
+	/* We're done */
+	return 0;
 }
 
 /* End the PSM (clean ending) */
@@ -213,7 +265,11 @@ int fd_psm_terminate(struct fd_peer * peer )
 {
 	TRACE_ENTRY("%p", peer);
 	CHECK_PARAMS( CHECK_PEER(peer) );
-	CHECK_FCT( fd_event_send(peer->p_events, FDEVP_TERMINATE, NULL) );
+	if (peer->p_hdr.info.pi_state != STATE_ZOMBIE) {
+		CHECK_FCT( fd_event_send(peer->p_events, FDEVP_TERMINATE, NULL) );
+	} else {
+		TRACE_DEBUG(FULL, "Peer '%s' was already terminated", peer->p_hdr.info.pi_diamid);
+	}
 	return 0;
 }
 
@@ -224,7 +280,8 @@ void fd_psm_abord(struct fd_peer * peer )
 	TODO("Cancel PSM thread");
 	TODO("Cancel IN thread");
 	TODO("Cancel OUT thread");
-	TODO("Cleanup the connection");
+	TODO("Cleanup the peer connection object");
+	TODO("Cleanup the message queues (requeue)");
 	return;
 }
 

@@ -37,6 +37,12 @@
 
 #include <signal.h>
 #include <getopt.h>
+#include <locale.h>
+
+#ifdef GCRY_THREAD_OPTION_PTHREAD_IMPL
+GCRY_THREAD_OPTION_PTHREAD_IMPL;
+#endif /* GCRY_THREAD_OPTION_PTHREAD_IMPL */
+
 
 /* forward declarations */
 static void * sig_hdl(void * arg);
@@ -61,6 +67,7 @@ int main(int argc, char * argv[])
 	
 	/* Initialize the library */
 	CHECK_FCT( fd_lib_init() );
+	TRACE_DEBUG(INFO, "libfreeDiameter initialized.");
 	
 	/* Name this thread */
 	fd_log_threadname("Main");
@@ -70,6 +77,15 @@ int main(int argc, char * argv[])
 
 	/* Parse the command-line */
 	CHECK_FCT(  main_cmdline(argc, argv)  );
+	
+	/* Initialize gnutls */
+	CHECK_GNUTLS_DO( gnutls_global_init(), return EINVAL );
+	if ( ! gnutls_check_version(GNUTLS_VERSION) ) {
+		fprintf(stderr, "The GNUTLS library is too old; found '%s', need '" GNUTLS_VERSION "'\n", gnutls_check_version(NULL));
+		return EINVAL;
+	} else {
+		TRACE_DEBUG(INFO, "GNUTLS library '%s' initialized.", gnutls_check_version(NULL));
+	}
 	
 	/* Allow SIGINT and SIGTERM from this point */
 	CHECK_POSIX(  pthread_create(&sig_th, NULL, sig_hdl, NULL)  );
@@ -141,6 +157,8 @@ end:
 	
 	CHECK_FCT_DO( fd_thr_term(&sig_th), /* continue */ );
 	
+	gnutls_global_deinit();
+	
 	return ret;
 }
 
@@ -167,21 +185,23 @@ static int main_cmdline(int argc, char *argv[])
 {
 	int c;
 	int option_index = 0;
+	char * locale;
 	
       	struct option long_options[] = {
-		{ "help",	0, NULL, 'h' },
-		{ "version",	0, NULL, 'V' },
-		{ "config",	1, NULL, 'c' },
-		{ "debug",	0, NULL, 'd' },
-		{ "quiet",	0, NULL, 'q' },
-		{ NULL,	0, NULL, 0 }
+		{ "help",	no_argument, 		NULL, 'h' },
+		{ "version",	no_argument, 		NULL, 'V' },
+		{ "config",	required_argument, 	NULL, 'c' },
+		{ "debug",	no_argument, 		NULL, 'd' },
+		{ "quiet",	no_argument, 		NULL, 'q' },
+		{ "dbglocale",	optional_argument, 	NULL, 'l' },
+		{ NULL,		0, 			NULL, 0 }
 	};
 	
 	TRACE_ENTRY("%d %p", argc, argv);
 	
 	/* Loop on arguments */
 	while (1) {
-		c = getopt_long (argc, argv, "hVc:dq", long_options, &option_index);
+		c = getopt_long (argc, argv, "hVc:dql:", long_options, &option_index);
 		if (c == -1) 
 			break;	/* Exit from the loop.  */
 		
@@ -199,6 +219,16 @@ static int main_cmdline(int argc, char *argv[])
 				fd_g_config->cnf_file = optarg;
 				break;
 
+			case 'l':	/* Change the locale.  */
+				locale = setlocale(LC_ALL, optarg?:"");
+				if (locale) {
+					TRACE_DEBUG(INFO, "Locale set to: %s", optarg ?: locale);
+				} else {
+					TRACE_DEBUG(INFO, "Unable to set locale (%s)", optarg);
+					return EINVAL;
+				}
+				break;
+
 			case 'd':	/* Increase verbosity of debug messages.  */
 				fd_g_debug_lvl++;
 				break;
@@ -209,11 +239,11 @@ static int main_cmdline(int argc, char *argv[])
 
 			case '?':	/* Invalid option.  */
 				/* `getopt_long' already printed an error message.  */
-				TRACE_DEBUG(INFO, "getopt_long found an invalid character\n");
+				TRACE_DEBUG(INFO, "getopt_long found an invalid character");
 				return EINVAL;
 
 			default:	/* bug: option not considered.  */
-				TRACE_DEBUG(INFO, "A command-line option is missing in parser: %c\n", c);
+				TRACE_DEBUG(INFO, "A command-line option is missing in parser: %c", c);
 				ASSERT(0);
 				return EINVAL;
 		}
@@ -266,6 +296,7 @@ static void main_help( void )
 		"                           default location (%s).\n", DEFAULT_CONF_FILE);
  	printf( "\nDebug:\n"
   		"  These options are mostly useful for developers\n"
+  		"  -l, --dbglocale        Set the locale for error messages\n"
   		"  -d, --debug            Increase verbosity of debug messages\n"
   		"  -q, --quiet            Decrease verbosity then remove debug messages\n");
 }

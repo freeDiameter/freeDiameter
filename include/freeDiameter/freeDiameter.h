@@ -38,6 +38,24 @@
 
 
 #include <freeDiameter/libfreeDiameter.h>
+#include <gnutls/gnutls.h>
+#include <gnutls/x509.h>
+
+/* GNUTLS version */
+#ifndef GNUTLS_VERSION
+#define GNUTLS_VERSION LIBGNUTLS_VERSION
+#endif /* GNUTLS_VERSION */
+
+/* Check the return value of a GNUTLS function, log and propagate */
+#define CHECK_GNUTLS_DO( __call__, __fallback__ ) {						\
+	int __ret__;										\
+	TRACE_DEBUG_ALL( "Check FCT: " #__call__ );						\
+	__ret__ = (__call__);									\
+	if (__ret__ < 0) {									\
+		TRACE_DEBUG(INFO, "Error in '" #__call__ "':\t%s", gnutls_strerror(__ret__));	\
+		__fallback__;									\
+	}											\
+}
 
 
 /* Structure to hold the configuration of the freeDiameter daemon */
@@ -69,6 +87,11 @@ struct fd_config {
 		unsigned pr_tcp	: 1;	/* prefer TCP over SCTP */
 		unsigned tls_alg: 1;	/* TLS algorithm for initiated cnx. 0: separate port. 1: inband-security (old) */
 	} 		 cnf_flags;
+	
+	struct {
+			/* GNUTLS global state */
+			/* Server credential(s) */
+	} 		 cnf_sec_data;
 	
 	uint32_t	 cnf_orstateid;	/* The value to use in Origin-State-Id, default to random value */
 	struct dictionary *cnf_dict;	/* pointer to the global dictionary */
@@ -150,7 +173,7 @@ const char * fd_ev_str(int event);
 /* States of a peer */
 enum peer_state {
 	/* Stable states */
-	STATE_ZOMBIE = 0,	/* The threads handling the peer are not running for some reason */
+	STATE_NEW = 0,		/* The peer has been just been created, PSM thread not started yet */
 	STATE_OPEN,		/* Connexion established */
 	
 	/* Peer state machine */
@@ -167,10 +190,14 @@ enum peer_state {
 	/* Failover state machine */
 	STATE_SUSPECT,		/* A DWR was sent and not answered within TwTime. Failover in progress. */
 	STATE_REOPEN,		/* Connection has been re-established, waiting for 3 DWR/DWA exchanges before putting back to service */
+	
+	/* Error state */
+	STATE_ZOMBIE		/* The PSM thread is not running anymore; it must be re-started or peer should be deleted. */
+#define STATE_MAX STATE_ZOMBIE
 };
 extern const char *peer_state_str[];
 #define STATE_STR(state) \
-	(((unsigned)(state)) <= STATE_REOPEN ? peer_state_str[((unsigned)(state)) ] : "<Invalid>")
+	(((unsigned)(state)) <= STATE_MAX ? peer_state_str[((unsigned)(state)) ] : "<Invalid>")
 
 /* Information about a remote peer. Same structure is used for creating a new entry, but not all fields are meaningful in that case */
 struct peer_info {
@@ -220,23 +247,6 @@ struct peer_info {
 	
 	struct fd_list	pi_endpoints;	/* Endpoint(s) of the remote peer (configured, discovered, or advertized). list of struct fd_endpoint. DNS resolved if empty. */
 	
-	/* TLS specific data -- the exact data pointed here depends on the security module in use (ex: gnutls, ...) */
-	enum {
-		PI_SEC_GNUTLS = 0,	/* The security module is GNUTLS, this is the default */
-		PI_SEC_OTHER		/* Another security module (TBD) */
-	}		pi_sec_module;
-	union {
-		/* Security data when pi_sec_module == PI_SEC_GNUTLS */
-		struct {
-			void *	CA;	/* Authority to use to validate this peer credentials (a CA or root certificate) -- use default if NULL */
-			void *	cred;	/* The (valid) credentials that the peer has presented */
-		} 	gnutls;
-		/* Security data when pi_sec_module == PI_SEC_OTHER */
-		struct {
-			void * dummy;	/* Something meaningful for the other security module */
-		} 	other;
-	} 		pi_sec_data;
-	
 	/* The remaining information must not be modified, and is not used for peer creation */
 	enum peer_state	pi_state;
 	uint32_t	pi_vendorid;	/* Content of the Vendor-Id AVP, or 0 by default */
@@ -244,6 +254,11 @@ struct peer_info {
 	char *		pi_prodname;	/* copy of UTF-8 Product-Name AVP (\0 terminated) */
 	uint32_t	pi_firmrev;	/* Content of the Firmware-Revision AVP */
 	struct fd_list	pi_apps;	/* applications advertised by the remote peer, except relay (pi_flags.relay) */
+	struct {
+		/* This is inspired from http://www.gnu.org/software/gnutls/manual/gnutls.html#ex_003ax509_002dinfo */
+		const gnutls_datum_t 	*cert_list; 	/* The (valid) credentials that the peer has presented */
+		unsigned int 		 cert_list_size;/* Number of certificates in the list */
+	} 		pi_sec_data;
 };
 
 struct peer_hdr {

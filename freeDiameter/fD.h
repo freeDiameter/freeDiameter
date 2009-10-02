@@ -150,11 +150,11 @@ struct fd_peer { /* The "real" definition of the peer structure */
 
 /* Events codespace for struct fd_peer->p_events */
 enum {
-	/* request to terminate this peer : disconnect, requeue all messages */
-	 FDEVP_TERMINATE = 2000
-	
 	/* Dump all info about this peer in the debug log */
-	,FDEVP_DUMP_ALL
+	 FDEVP_DUMP_ALL = 2000
+	
+	/* request to terminate this peer : disconnect, requeue all messages */
+	,FDEVP_TERMINATE
 	
 	/* A message was received in the peer */
 	,FDEVP_MSG_INCOMING
@@ -163,6 +163,8 @@ enum {
 	,FDEVP_PSM_TIMEOUT
 };
 const char * fd_pev_str(int event);
+#define CHECK_EVENT( _e ) \
+	(((int)(_e) >= FDEVP_DUMP_ALL) && ((int)(_e) <= FDEVP_PSM_TIMEOUT))
 
 /* Structure to store a sent request */
 struct sentreq {
@@ -173,6 +175,9 @@ struct sentreq {
 /* Functions */
 int fd_peer_fini();
 void fd_peer_dump_list(int details);
+void fd_peer_dump(struct fd_peer * peer, int details);
+int fd_peer_alloc(struct fd_peer ** ptr);
+int fd_peer_free(struct fd_peer ** ptr);
 /* fd_peer_add declared in freeDiameter.h */
 
 /* Peer expiry */

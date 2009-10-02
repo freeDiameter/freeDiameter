@@ -35,10 +35,62 @@
 
 #include "fD.h"
 
+/* Delay for garbage collection of expired threads, in seconds */
+#define GC_TIME		60
+
 static pthread_t       exp_thr;
+static pthread_t       gc_thr;
 static struct fd_list  exp_list = FD_LIST_INITIALIZER( exp_list );
 static pthread_cond_t  exp_cnd  = PTHREAD_COND_INITIALIZER;
 static pthread_mutex_t exp_mtx  = PTHREAD_MUTEX_INITIALIZER;
+
+static void * gc_th_fct(void * arg)
+{
+	fd_log_threadname ( "Peers/garbage" );
+	TRACE_ENTRY( "" );
+	
+	do {
+		struct fd_list * li, purge = FD_LIST_INITIALIZER(purge);
+		
+		pthread_testcancel();
+		sleep(GC_TIME);
+		
+		/* Now check in the peers list if any peer can be deleted */
+		CHECK_FCT_DO( pthread_rwlock_wrlock(&fd_g_peers_rw), goto error );
+		
+		for (li = fd_g_peers.next; li != &fd_g_peers; li = li->next) {
+			struct fd_peer * peer = (struct fd_peer *)li;
+			
+			if (peer->p_hdr.info.pi_state != STATE_ZOMBIE)
+				continue;
+			
+			if (peer->p_hdr.info.pi_flags.exp == PI_EXP_NONE)
+				continue; /* This peer was not supposed to expire, keep it in the list */
+			
+			/* Ok, the peer was expired, let's remove it */
+			li = li->prev; /* to avoid breaking the loop */
+			fd_list_unlink(&peer->p_hdr.chain);
+			fd_list_insert_before(&purge, &peer->p_hdr.chain);
+		}
+
+		CHECK_FCT_DO( pthread_rwlock_unlock(&fd_g_peers_rw), goto error );
+		
+		/* Now delete peers that are in the purge list */
+		while (!FD_IS_LIST_EMPTY(&purge)) {
+			struct fd_peer * peer = (struct fd_peer *)(purge.next);
+			fd_list_unlink(&peer->p_hdr.chain);
+			TRACE_DEBUG(INFO, "Garbage Collect: delete zombie peer '%s'", peer->p_hdr.info.pi_diamid);
+			CHECK_FCT_DO( fd_peer_free(&peer), /* Continue... what else to do ? */ );
+		}
+	} while (1);
+	
+error:
+	TRACE_DEBUG(INFO, "An error occurred in peers module! GC thread is terminating...");
+	ASSERT(0);
+	CHECK_FCT_DO(fd_event_send(fd_g_config->cnf_main_ev, FDEV_TERMINATE, NULL), );
+	return NULL;
+}
+
 
 static void * exp_th_fct(void * arg)
 {
@@ -97,6 +149,7 @@ int fd_p_expi_init(void)
 {
 	TRACE_ENTRY();
 	CHECK_FCT( pthread_create( &exp_thr, NULL, exp_th_fct, NULL ) );
+	CHECK_FCT( pthread_create( &gc_thr,  NULL, gc_th_fct,  NULL ) );
 	return 0;
 }
 
@@ -112,6 +165,7 @@ int fd_p_expi_fini(void)
 	}
 	
 	CHECK_POSIX( pthread_mutex_unlock(&exp_mtx) );
+	CHECK_FCT_DO( fd_thr_term(&gc_thr), );
 	return 0;
 }
 
