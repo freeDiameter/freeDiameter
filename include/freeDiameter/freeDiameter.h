@@ -89,8 +89,17 @@ struct fd_config {
 	} 		 cnf_flags;
 	
 	struct {
-			/* GNUTLS global state */
-			/* Server credential(s) */
+		/* Credentials parameters */
+		char *					key_file;
+		char *  				cert_file;
+		char *  				ca_file;
+		char *  				crl_file;
+		char *					prio_string;
+		/* GNUTLS server credential(s) (created from previous files) */
+		gnutls_certificate_credentials_t	credentials;
+		/* Other GNUTLS global parameters */
+		gnutls_priority_t 			prio_cache;
+		gnutls_dh_params_t 			dh_cache;
 	} 		 cnf_sec_data;
 	
 	uint32_t	 cnf_orstateid;	/* The value to use in Origin-State-Id, default to random value */

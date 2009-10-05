@@ -11,7 +11,7 @@ OPTION(DEFAULT_CONF_FILE "Default path to configuration file?" OFF)
 # Disable SCTP support completly ?
 OPTION(DISABLE_SCTP "Disable SCTP support?")
 
-# Disable SCTP support completly ?
+# Find TODO items in the code easily ?
 OPTION(ERRORS_ON_TODO "(development) Generate compilation errors on TODO items ?" OFF)
 
 

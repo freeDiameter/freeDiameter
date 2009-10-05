@@ -38,11 +38,9 @@
 #include <signal.h>
 #include <getopt.h>
 #include <locale.h>
+#include <gcrypt.h>
 
-#ifdef GCRY_THREAD_OPTION_PTHREAD_IMPL
 GCRY_THREAD_OPTION_PTHREAD_IMPL;
-#endif /* GCRY_THREAD_OPTION_PTHREAD_IMPL */
-
 
 /* forward declarations */
 static void * sig_hdl(void * arg);
@@ -79,6 +77,7 @@ int main(int argc, char * argv[])
 	CHECK_FCT(  main_cmdline(argc, argv)  );
 	
 	/* Initialize gnutls */
+	(void) gcry_control (GCRYCTL_SET_THREAD_CBS, &gcry_threads_pthread);
 	CHECK_GNUTLS_DO( gnutls_global_init(), return EINVAL );
 	if ( ! gnutls_check_version(GNUTLS_VERSION) ) {
 		fprintf(stderr, "The GNUTLS library is too old; found '%s', need '" GNUTLS_VERSION "'\n", gnutls_check_version(NULL));

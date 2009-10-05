@@ -121,6 +121,11 @@ void fd_conf_dump()
 	#endif /* DISABLE_SCTP */
 	fd_log_debug("          - Pref. proto .. : %s\n", fd_g_config->cnf_flags.pr_tcp ? "TCP" : "SCTP");
 	fd_log_debug("          - TLS method ... : %s\n", fd_g_config->cnf_flags.tls_alg ? "INBAND" : "Separate port");
+	fd_log_debug("  TLS :   - Certificate .. : %s\n", fd_g_config->cnf_sec_data.cert_file ?: "(none)");
+	fd_log_debug("          - Private key .. : %s\n", fd_g_config->cnf_sec_data.key_file ?: "(none)");
+	fd_log_debug("          - CA ........... : %s\n", fd_g_config->cnf_sec_data.ca_file ?: "(none)");
+	fd_log_debug("          - CRL .......... : %s\n", fd_g_config->cnf_sec_data.crl_file ?: "(none)");
+	fd_log_debug("          - Priority ..... : %s\n", fd_g_config->cnf_sec_data.prio_string ?: "(default)");
 	fd_log_debug("  Origin-State-Id ........ : %u\n", fd_g_config->cnf_orstateid);
 }
 
@@ -201,6 +206,12 @@ int fd_conf_parse()
 		fprintf(stderr, "TCP and SCTP cannot be disabled at the same time.\n");
 		return EINVAL;
 	}
+	
+	/* TLS parameters */
+	CHECK_GNUTLS_DO( gnutls_certificate_allocate_credentials (&fd_g_config->cnf_sec_data.credentials), return ENOMEM );
+	
+	CHECK_GNUTLS_DO( gnutls_dh_params_init (&fd_g_config->cnf_sec_data.dh_cache), return ENOMEM );
+
 	
 	return 0;
 }
