@@ -40,8 +40,6 @@
 #include <locale.h>
 #include <gcrypt.h>
 
-GCRY_THREAD_OPTION_PTHREAD_IMPL;
-
 /* forward declarations */
 static void * sig_hdl(void * arg);
 static int main_cmdline(int argc, char *argv[]);
@@ -51,6 +49,8 @@ static void main_help( void );
 /* The static configuration structure */
 static struct fd_config conf;
 struct fd_config * fd_g_config = &conf;
+
+GCRY_THREAD_OPTION_PTHREAD_IMPL;
 
 /* freeDiameter starting point */
 int main(int argc, char * argv[])
@@ -76,8 +76,9 @@ int main(int argc, char * argv[])
 	/* Parse the command-line */
 	CHECK_FCT(  main_cmdline(argc, argv)  );
 	
-	/* Initialize gnutls */
+	/* Initialize gcrypt and gnutls */
 	(void) gcry_control (GCRYCTL_SET_THREAD_CBS, &gcry_threads_pthread);
+	(void) gcry_control (GCRYCTL_ENABLE_QUICK_RANDOM, 0);
 	CHECK_GNUTLS_DO( gnutls_global_init(), return EINVAL );
 	if ( ! gnutls_check_version(GNUTLS_VERSION) ) {
 		fprintf(stderr, "The GNUTLS library is too old; found '%s', need '" GNUTLS_VERSION "'\n", gnutls_check_version(NULL));

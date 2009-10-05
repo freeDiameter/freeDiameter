@@ -111,13 +111,18 @@ struct peer_info fddpi;
 %token		LOADEXT
 %token		CONNPEER
 %token		CONNTO
+%token		TLS_CRED
+%token		TLS_CA
+%token		TLS_CRL
+%token		TLS_PRIO
+%token		TLS_DH_BITS
 
 
 /* -------------------------------------- */
 %%
 
 	/* The grammar definition - Sections blocs. */
-conffile:		/* Empty is OK */
+conffile:		/* Empty is OK -- for simplicity here, we reject in daemon later */
 			| conffile identity
 			| conffile realm
 			| conffile tctimer
@@ -135,6 +140,11 @@ conffile:		/* Empty is OK */
 			| conffile oldtls
 			| conffile loadext
 			| conffile connpeer
+			| conffile tls_cred
+			| conffile tls_ca
+			| conffile tls_crl
+			| conffile tls_prio
+			| conffile tls_dh
 			| conffile errors
 			{
 				yyerror(&yylloc, conf, "An error occurred while parsing the configuration file");
@@ -444,5 +454,66 @@ peerparams:		/* empty */
 				free($4);
 				freeaddrinfo(ai);
 				fd_list_insert_before(&fddpi.pi_endpoints, &ep->chain);
+			}
+			;
+
+tls_cred:		TLS_CRED '=' QSTRING ',' QSTRING ';'
+			{
+				conf->cnf_sec_data.cert_file = $3;
+				conf->cnf_sec_data.key_file = $5;
+				
+				CHECK_GNUTLS_DO( gnutls_certificate_set_x509_key_file( 
+							conf->cnf_sec_data.credentials,
+							conf->cnf_sec_data.cert_file,
+							conf->cnf_sec_data.key_file,
+							GNUTLS_X509_FMT_PEM),
+						{ yyerror (&yylloc, conf, "Error opening certificate or private key file."); YYERROR; } );
+			}
+			;
+
+tls_ca:			TLS_CA '=' QSTRING ';'
+			{
+				conf->cnf_sec_data.ca_file = $3;
+				CHECK_GNUTLS_DO( gnutls_certificate_set_x509_trust_file( 
+							conf->cnf_sec_data.credentials,
+							conf->cnf_sec_data.ca_file,
+							GNUTLS_X509_FMT_PEM),
+						{ yyerror (&yylloc, conf, "Error setting CA parameters."); YYERROR; } );
+			}
+			;
+			
+tls_crl:		TLS_CRL '=' QSTRING ';'
+			{
+				conf->cnf_sec_data.crl_file = $3;
+				CHECK_GNUTLS_DO( gnutls_certificate_set_x509_crl_file( 
+							conf->cnf_sec_data.credentials,
+							conf->cnf_sec_data.ca_file,
+							GNUTLS_X509_FMT_PEM),
+						{ yyerror (&yylloc, conf, "Error setting CRL parameters."); YYERROR; } );
+			}
+			;
+			
+tls_prio:		TLS_PRIO '=' QSTRING ';'
+			{
+				const char * err_pos = NULL;
+				conf->cnf_sec_data.prio_string = $3;
+				CHECK_GNUTLS_DO( gnutls_priority_init( 
+							&conf->cnf_sec_data.prio_cache,
+							conf->cnf_sec_data.prio_string,
+							&err_pos),
+						{ yyerror (&yylloc, conf, "Error setting Priority parameter.");
+						  fprintf(stderr, "Error at position : %s\n", err_pos);
+						  YYERROR; } );
+			}
+			;
+			
+tls_dh:			TLS_DH_BITS '=' INTEGER ';'
+			{
+				conf->cnf_sec_data.dh_bits = $3;
+				CHECK_GNUTLS_DO( gnutls_dh_params_generate2( 
+							conf->cnf_sec_data.dh_cache,
+							conf->cnf_sec_data.dh_bits),
+						{ yyerror (&yylloc, conf, "Error setting DH Bits parameters."); 
+						 YYERROR; } );
 			}
 			;

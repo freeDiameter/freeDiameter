@@ -130,6 +130,11 @@ qstring		\"[^\"\n]*\"
 (?i:"ConnectPeer")	{ return CONNPEER;	}
 (?i:"ConnectTo")	{ return CONNTO;	}
 (?i:"No_TLS")		{ return NOTLS;		}
+(?i:"TLS_Cred")		{ return TLS_CRED;	}
+(?i:"TLS_CA")		{ return TLS_CA;	}
+(?i:"TLS_CRL")		{ return TLS_CRL;	}
+(?i:"TLS_Prio")		{ return TLS_PRIO;	}
+(?i:"TLS_DH_bits")	{ return TLS_DH_BITS;	}
 
 
 	/* Valid single characters for yyparse */

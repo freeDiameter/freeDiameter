@@ -37,6 +37,13 @@
 
 /* Configuration management */
 
+#ifndef GNUTLS_DEFAULT_PRIORITY
+# define GNUTLS_DEFAULT_PRIORITY "NORMAL"
+#endif /* GNUTLS_DEFAULT_PRIORITY */
+#ifndef GNUTLS_DEFAULT_DHBITS
+# define GNUTLS_DEFAULT_DHBITS 1024
+#endif /* GNUTLS_DEFAULT_DHBITS */
+
 /* Initialize the fd_g_config structure to default values */
 int fd_conf_init()
 {
@@ -62,6 +69,10 @@ int fd_conf_init()
 	CHECK_FCT( fd_dict_init(&fd_g_config->cnf_dict) );
 	CHECK_FCT( fd_fifo_new(&fd_g_config->cnf_main_ev) );
 	
+	/* TLS parameters */
+	CHECK_GNUTLS_DO( gnutls_certificate_allocate_credentials (&fd_g_config->cnf_sec_data.credentials), return ENOMEM );
+	CHECK_GNUTLS_DO( gnutls_dh_params_init (&fd_g_config->cnf_sec_data.dh_cache), return ENOMEM );
+
 	return 0;
 }
 
@@ -110,6 +121,7 @@ void fd_conf_dump()
 			li = li->next;
 		}
 	}
+	
 	fd_log_debug("  Flags : - IP ........... : %s\n", fd_g_config->cnf_flags.no_ip4 ? "DISABLED" : "Enabled");
 	fd_log_debug("          - IPv6 ......... : %s\n", fd_g_config->cnf_flags.no_ip6 ? "DISABLED" : "Enabled");
 	fd_log_debug("          - Relay app .... : %s\n", fd_g_config->cnf_flags.no_fwd ? "DISABLED" : "Enabled");
@@ -121,11 +133,14 @@ void fd_conf_dump()
 	#endif /* DISABLE_SCTP */
 	fd_log_debug("          - Pref. proto .. : %s\n", fd_g_config->cnf_flags.pr_tcp ? "TCP" : "SCTP");
 	fd_log_debug("          - TLS method ... : %s\n", fd_g_config->cnf_flags.tls_alg ? "INBAND" : "Separate port");
-	fd_log_debug("  TLS :   - Certificate .. : %s\n", fd_g_config->cnf_sec_data.cert_file ?: "(none)");
-	fd_log_debug("          - Private key .. : %s\n", fd_g_config->cnf_sec_data.key_file ?: "(none)");
-	fd_log_debug("          - CA ........... : %s\n", fd_g_config->cnf_sec_data.ca_file ?: "(none)");
+	
+	fd_log_debug("  TLS :   - Certificate .. : %s\n", fd_g_config->cnf_sec_data.cert_file ?: "(NONE)");
+	fd_log_debug("          - Private key .. : %s\n", fd_g_config->cnf_sec_data.key_file ?: "(NONE)");
+	fd_log_debug("          - CA (trust) ... : %s\n", fd_g_config->cnf_sec_data.ca_file ?: "(none)");
 	fd_log_debug("          - CRL .......... : %s\n", fd_g_config->cnf_sec_data.crl_file ?: "(none)");
-	fd_log_debug("          - Priority ..... : %s\n", fd_g_config->cnf_sec_data.prio_string ?: "(default)");
+	fd_log_debug("          - Priority ..... : %s\n", fd_g_config->cnf_sec_data.prio_string ?: "(default: '" GNUTLS_DEFAULT_PRIORITY "')");
+	fd_log_debug("          - DH bits ...... : %d\n", fd_g_config->cnf_sec_data.dh_bits ?: GNUTLS_DEFAULT_DHBITS);
+	
 	fd_log_debug("  Origin-State-Id ........ : %u\n", fd_g_config->cnf_orstateid);
 }
 
@@ -148,6 +163,12 @@ int fd_conf_parse()
 	
 	/* close the file */
 	fclose(fddin);
+	
+	/* Check that TLS private key was given */
+	if (! fd_g_config->cnf_sec_data.key_file) {
+		fprintf(stderr, "Missing private key configuration for TLS. Please provide the TLS_cred configuration directive.\n");
+		return EINVAL;
+	}
 	
 	/* Resolve hostname if not provided */
 	if (fd_g_config->cnf_diamid == NULL) {
@@ -207,11 +228,22 @@ int fd_conf_parse()
 		return EINVAL;
 	}
 	
-	/* TLS parameters */
-	CHECK_GNUTLS_DO( gnutls_certificate_allocate_credentials (&fd_g_config->cnf_sec_data.credentials), return ENOMEM );
+	/* Configure TLS default parameters */
+	if (! fd_g_config->cnf_sec_data.prio_string) {
+		const char * err_pos = NULL;
+		CHECK_GNUTLS_DO( gnutls_priority_init( 
+					&fd_g_config->cnf_sec_data.prio_cache,
+					GNUTLS_DEFAULT_PRIORITY,
+					&err_pos),
+				 { TRACE_DEBUG(INFO, "Error in priority string at position : %s", err_pos); return EINVAL; } );
+	}
+	if (! fd_g_config->cnf_sec_data.dh_bits) {
+		CHECK_GNUTLS_DO( gnutls_dh_params_generate2( 
+					fd_g_config->cnf_sec_data.dh_cache,
+					GNUTLS_DEFAULT_DHBITS),
+				 { TRACE_DEBUG(INFO, "Error in DH bits value : %d", GNUTLS_DEFAULT_DHBITS); return EINVAL; } );
+	}
 	
-	CHECK_GNUTLS_DO( gnutls_dh_params_init (&fd_g_config->cnf_sec_data.dh_cache), return ENOMEM );
-
 	
 	return 0;
 }

@@ -17,7 +17,7 @@ or edit the CCmakeCache.txt file directly.
 
 Note that there are dependencies on external tools that may not be enforced by the configure script.
 On Ubuntu Intrepid, the following packages were required (aptitude install ...):
- gcc make flex bison libsctp1 libsctp-dev cmake
+ gcc make flex bison libsctp1 libsctp-dev cmake libgnutls-dev libgcrypt-dev
 
 On FreeBSD the following packages were required:
  cmake flex bison

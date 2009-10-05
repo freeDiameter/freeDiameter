@@ -67,6 +67,53 @@
 #ListenOn = "2001:200:903:2::202:1";
 
 ##############################################################
+##  TLS Configuration
+
+# TLS is managed by the GNUTLS library in the freeDiameter daemon.
+# You may find more information about parameters and special behaviors
+# in the relevant documentation.
+# http://www.gnu.org/software/gnutls/manual/
+
+# Credentials of the local peer
+# The X509 certificate and private key file to use for the local peer.
+# The files must contain PKCS-1 encoded RSA key, in PEM format.
+# (These parameters are passed to gnutls_certificate_set_x509_key_file function)
+# Default : NO DEFAULT
+#TLS_Cred = "<x509 certif file.PEM>" , "<x509 private key file.PEM>";
+
+# Certificate authority / trust anchors
+# The file containing the list of trusted Certificate Authorities (PEM list)
+# (This parameter is passed to gnutls_certificate_set_x509_trust_file function)
+# The directive can appear several times to specify several files.
+# Default : GNUTLS default behavior
+#TLS_CA = "<file.PEM>";
+
+# Certificate Revocation List file
+# The information about revoked certificates.
+# The file contains a list of trusted CRLs in PEM format. They should have been verified before. 
+# (This parameter is passed to gnutls_certificate_set_x509_crl_file function)
+# Default : GNUTLS default behavior
+#TLS_CRL = "<file.PEM>";
+
+# GNU TLS Priority string
+# This string allows to configure the behavior of GNUTLS key exchanges 
+# algorithms. See gnutls_priority_init function documentation for information.
+# You should also refer to the Diameter required TLS support here:
+#   http://tools.ietf.org/html/draft-ietf-dime-rfc3588bis-18#section-13.1
+# Default : "NORMAL"
+# Example: TLS_Prio = "NONE:+VERS-TLS1.1:+AES-128-CBC:+RSA:+SHA1:+COMP-NULL";
+#TLS_Prio = "NORMAL";
+
+# Diffie-Hellman parameters size
+# Set the number of bits for generated DH parameters
+# Valid value should be 768, 1024, 2048, 3072 or 4096.
+# (This parameter is passed to gnutls_dh_params_generate2 function, 
+# it usually should match RSA key size)
+# Default : 1024
+#TLS_DH_Bits = 1024;
+
+
+##############################################################
 ##  Timers configuration
 
 # The Tc timer of this peer.
