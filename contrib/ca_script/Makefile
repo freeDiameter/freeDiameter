@@ -136,7 +136,7 @@ cert:
 revoke:
 	@if [ -z "$(name)" ]; then echo "name must be provided: make revoke name=mn.n6.org"; exit 1; fi
 	@if [ ! -e $(DIR)/clients/certs/$(name).cert ]; \
-		echo "$(DIR)/clients/certs/$(name).cert not found"; \
+		then echo "$(DIR)/clients/certs/$(name).cert not found"; \
 		exit 1; \
 		fi;
 	@openssl ca $(CONFIG) -revoke $(DIR)/clients/certs/$(name).cert;
