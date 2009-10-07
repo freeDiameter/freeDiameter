@@ -336,6 +336,12 @@ extern int fd_g_debug_lvl;
 }
 /* if needed, add sSA_DUMP_SERVICE */
 
+/* A l4 protocol name (TCP / SCTP) */
+#define IPPROTO_NAME( _proto )					\
+	( ((_proto) == IPPROTO_TCP) ? "TCP" :			\
+		(((_proto) == IPPROTO_SCTP) ? "SCTP" :		\
+			"Unknown"))
+
 /* The sockaddr length of a sSS structure */
 #define sSSlen( _ss_ )	\
 	( (socklen_t) ( ((_ss_)->ss_family == AF_INET) ? (sizeof(sSA4)) :		\

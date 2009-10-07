@@ -343,8 +343,8 @@ void fd_peer_dump(struct fd_peer * peer, int details)
 				peer->p_hdr.info.pi_flags.sec == PI_SEC_DEFAULT ? "" :
 					(peer->p_hdr.info.pi_flags.sec == PI_SEC_NONE ? "IPSec." : "InbandTLS."),
 				peer->p_hdr.info.pi_flags.exp ? "Expire." : "",
-				peer->p_hdr.info.pi_flags.inband & PI_INB_NONE ? "InbandIPsecOK." : "",
-				peer->p_hdr.info.pi_flags.inband & PI_INB_TLS ?  "InbandTLSOK." : "",
+				peer->p_hdr.info.pi_flags.inband_none ? "InbandIPsec." : "",
+				peer->p_hdr.info.pi_flags.inband_tls ?  "InbandTLS." : "",
 				peer->p_hdr.info.pi_flags.relay ? "Relay (0xffffff)" : "No relay"
 				);
 		fd_log_debug("\tLifetime : %d sec\n", peer->p_hdr.info.pi_lft);

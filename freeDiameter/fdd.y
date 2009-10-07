@@ -510,10 +510,12 @@ tls_prio:		TLS_PRIO '=' QSTRING ';'
 tls_dh:			TLS_DH_BITS '=' INTEGER ';'
 			{
 				conf->cnf_sec_data.dh_bits = $3;
+				TRACE_DEBUG(FULL, "Generating DH parameters...");
 				CHECK_GNUTLS_DO( gnutls_dh_params_generate2( 
 							conf->cnf_sec_data.dh_cache,
 							conf->cnf_sec_data.dh_bits),
 						{ yyerror (&yylloc, conf, "Error setting DH Bits parameters."); 
 						 YYERROR; } );
+				TRACE_DEBUG(FULL, "DH parameters generated.");
 			}
 			;

@@ -1,5 +1,7 @@
 # This is a sample configuration file for freeDiameter daemon.
 
+# Only the "TLS_Cred" directive is really mandatory in this file.
+
 ##############################################################
 ##  Peer identity and realm 
 
@@ -30,11 +32,11 @@
 # Default: use RFC3588bis method with separate port for TLS.
 #TLS_old_method;
 
-# Disable use of TCP protocol (only SCTP)
+# Disable use of TCP protocol (only listen and connect in SCTP)
 # Default : TCP enabled
 #No_TCP;
 
-# Disable use of SCTP protocol (only TCP)
+# Disable use of SCTP protocol (only listen and connect in TCP)
 # Default : SCTP enabled
 #No_SCTP;
 # This option has no effect if freeDiameter is compiled with DISABLE_SCTP option,
@@ -92,6 +94,7 @@
 # The information about revoked certificates.
 # The file contains a list of trusted CRLs in PEM format. They should have been verified before. 
 # (This parameter is passed to gnutls_certificate_set_x509_crl_file function)
+# Note: currently, openssl CRL seems not supported...
 # Default : GNUTLS default behavior
 #TLS_CRL = "<file.PEM>";
 
@@ -210,3 +213,7 @@ LoadExtension = "extensions/dict_nasreq.fdx";
 LoadExtension = "extensions/dict_eap.fdx";
 ConnectPeer = "jules.nautilus6.org" ;
 ConnectPeer = "aaa.nautilus6.org" { No_TLS; No_IP; No_TCP; SCTP_streams = 60; } ;
+TLS_Cred = "/etc/openssl-ca/clients/certs/fdtest.cert" , "/etc/openssl-ca/clients/privkeys/fdtest.key.pem";
+TLS_CA = "/etc/openssl-ca/public-www/cacert.pem";
+# TLS_CRL = "/etc/openssl-ca/public-www/crl.pem";
+

@@ -8,7 +8,7 @@ cmake ../
 make
 
 You can enable the unary tests by doing:
-cmake -DNO_TESTS:BOOL=OFF ../
+cmake -DSKIP_TESTS:BOOL=OFF ../
 make
 make tests
 
@@ -37,3 +37,5 @@ BUILD_SAMPLE:BOOL=ON
 You can change the default configuration file pathname:
 DEFAULT_CONF_FILE:STRING=/path/to/some/freeDiameter.conf
 
+Build binary with symbols, for debug:
+CMAKE_BUILD_TYPE:STRING=Debug

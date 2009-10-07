@@ -122,6 +122,10 @@ int main(int argc, char * argv[])
 				fd_ext_dump();
 				break;
 			
+			case FDEV_DUMP_SERV:
+				fd_servers_dump();
+				break;
+			
 			case FDEV_DUMP_QUEUES:
 				fd_fifo_dump(0, "Incoming messages", fd_g_incoming, fd_msg_dump_walk);
 				fd_fifo_dump(0, "Outgoing messages", fd_g_outgoing, fd_msg_dump_walk);
@@ -170,6 +174,7 @@ const char * fd_ev_str(int event)
 		case_str(FDEV_TERMINATE);
 		case_str(FDEV_DUMP_DICT);
 		case_str(FDEV_DUMP_EXT);
+		case_str(FDEV_DUMP_SERV);
 		case_str(FDEV_DUMP_QUEUES);
 		case_str(FDEV_DUMP_CONFIG);
 		case_str(FDEV_DUMP_PEERS);

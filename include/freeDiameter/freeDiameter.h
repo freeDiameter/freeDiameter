@@ -117,7 +117,7 @@ extern struct fd_config *fd_g_config; /* The pointer to access the global config
 /* Endpoints */
 struct fd_endpoint {
 	struct fd_list  chain;	/* link in cnf_endpoints list */
-	sSS		ss;	/* the socket information. */
+	sSS		ss;	/* the socket information. List is always ordered by ss value (memcmp) */
 	struct {
 		unsigned conf : 1; /* This endpoint is statically configured in a configuration file */
 		unsigned disc : 1; /* This endpoint was resolved from the Diameter Identity or other DNS query */
@@ -174,11 +174,12 @@ enum {
 	 FDEV_TERMINATE = 1000	/* request to terminate */
 	,FDEV_DUMP_DICT		/* Dump the content of the dictionary */
 	,FDEV_DUMP_EXT		/* Dump state of extensions */
+	,FDEV_DUMP_SERV		/* Dump the server socket status */
 	,FDEV_DUMP_QUEUES	/* Dump the message queues */
 	,FDEV_DUMP_CONFIG	/* Dump the configuration */
 	,FDEV_DUMP_PEERS	/* Dump the list of peers */
 };
-const char * fd_ev_str(int event);
+const char * fd_ev_str(int event); /* defined in freeDiameter/main.c */
 
 
 /***************************************/
@@ -201,6 +202,7 @@ enum peer_state {
 				   We have sent a CER on our initiated connection, and received a CER from the remote peer on another connection. Election.
 				   If we win the election, we must disconnect the initiated connection and send a CEA on the other => we go to OPEN state.
 				   If we lose, we disconnect the other connection (receiver) and fallback to WAITCEA state. */
+	STATE_OPEN_HANDSHAKE,	/* TLS Handshake and validation are in progress in open state */
 	
 	/* Failover state machine */
 	STATE_SUSPECT,		/* A DWR was sent and not answered within TwTime. Failover in progress. */
@@ -210,7 +212,7 @@ enum peer_state {
 	STATE_ZOMBIE		/* The PSM thread is not running anymore; it must be re-started or peer should be deleted. */
 #define STATE_MAX STATE_ZOMBIE
 };
-extern const char *peer_state_str[];
+extern const char *peer_state_str[]; /* defined in freeDiameter/p_psm.c */
 #define STATE_STR(state) \
 	(((unsigned)(state)) <= STATE_MAX ? peer_state_str[((unsigned)(state)) ] : "<Invalid>")
 
@@ -244,10 +246,8 @@ struct peer_info {
 		#define PI_EXP_INACTIVE	1	/* the peer entry expires (i.e. is deleted) after pi_lft seconds without activity */
 		unsigned	exp :1;
 		
-		/* Following flags are read-only and received from remote peer */
-		#define PI_INB_NONE	1	/* Remote peer advertised inband-sec-id 0 (None) */
-		#define PI_INB_TLS	2	/* Remote peer advertised inband-sec-id 1 (TLS) */
-		unsigned	inband :2;	/* This is only meaningful with pi_flags.sec == 3 */
+		unsigned	inband_none :1;	/* This is only meaningful with pi_flags.sec == 3 */
+		unsigned	inband_tls  :1;	/* This is only meaningful with pi_flags.sec == 3 */
 		
 		unsigned	relay :1;	/* The remote peer advertized the relay application */
 
@@ -337,17 +337,29 @@ int fd_peer_add ( struct peer_info * info, char * orig_dbg, void (*cb)(struct pe
  *  0   : The callback is added.
  * !0	: An error occurred.
  */
-int fd_peer_validate_register ( int (*peer_validate)(struct peer_info * /* info */, int * /* auth */) );
+int fd_peer_validate_register ( int (*peer_validate)(struct peer_info * /* info */, int * /* auth */, int (**cb2)(struct peer_info *)) );
 /*
  * CALLBACK:	peer_validate
  *
  * PARAMETERS:
  *   info     : Structure containing information about the peer attempting the connection.
  *   auth     : Store there the result if the peer is accepted (1), rejected (-1), or unknown (0).
+ *   cb2      : If != NULL and in case of PI_SEC_TLS_OLD, another callback to call after handshake (if auth = 1).
  *
  * DESCRIPTION: 
  *   This callback is called when a new connection is being established from an unknown peer,
- *  after the CER is received. An extension must register such callback with peer_validate_register.
+ * after the CER is received. An extension must register such callback with peer_validate_register.
+ *
+ *   If (info->pi_flags.sec == PI_SEC_TLS_OLD) the extension may instruct the daemon explicitely
+ * to not use TLS by clearing info->pi_flags.inband_tls -- only if inband_none is set.
+ *
+ *   If (info->pi_flags.sec == PI_SEC_TLS_OLD) and info->pi_flags.inband_tls is set,
+ * the extension may also need to check the credentials provided during the TLS
+ * exchange (remote certificate). For this purpose, it may set the address of a new callback
+ * to be called once the handshake is completed. This new callback receives the information
+ * structure as parameter (with pi_sec_data set) and returns 0 if the credentials are correct,
+ * or an error code otherwise. If the error code is received, the connection is closed and the 
+ * peer is destroyed.
  *
  * RETURN VALUE:
  *  0      	: The authorization decision has been written in the location pointed by auth.

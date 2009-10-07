@@ -172,6 +172,40 @@ struct sentreq {
 	struct msg	*req;	/* A request that was sent and not yet answered. */
 };
 
+/* The connection context structure */
+struct cnxctx {
+	int 		cc_socket;	/* The socket object of the connection -- <=0 if no socket is created */
+	
+	struct fifo   **cc_events;	/* Location of the events list to send connection events */
+	
+	int 		cc_proto;	/* IPPROTO_TCP or IPPROTO_SCTP */
+	int		cc_tls;		/* Is TLS already started ? */
+	
+	uint16_t	cc_port;	/* Remote port of the connection, when we are client */
+	struct fd_list	cc_ep_remote;	/* The remote address(es) of the connection */
+	struct fd_list	cc_ep_local;	/* The local address(es) of the connection */
+	
+	/* If cc_proto == SCTP */
+	struct	{
+		int		str_out;/* Out streams */
+		int		str_in;	/* In streams */
+		int		pairs;	/* max number of pairs ( = min(in, out)) */
+		int		next;	/* # of stream the next message will be sent to */
+	} 		cc_sctp_para;
+	
+	/* If cc_tls == true */
+	struct {
+		int				 mode; 		/* GNUTLS_CLIENT / GNUTLS_SERVER */
+		gnutls_session_t 		 session;	/* Session object (stream #0 in case of SCTP) */
+	}		cc_tls_para;
+	
+	/* If both conditions */
+	struct {
+		gnutls_session_t 		*res_sessions;	/* Sessions of other pairs of streams, resumed from the first */
+		/* Buffers, threads, ... */
+	}		cc_sctp_tls_para;
+};
+
 /* Functions */
 int fd_peer_fini();
 void fd_peer_dump_list(int details);
@@ -190,5 +224,23 @@ int fd_psm_start();
 int fd_psm_begin(struct fd_peer * peer );
 int fd_psm_terminate(struct fd_peer * peer );
 void fd_psm_abord(struct fd_peer * peer );
+
+/* Server sockets */
+void fd_servers_dump();
+int fd_servers_start();
+void fd_servers_stop();
+
+/* Connection contexts */
+struct cnxctx * fd_cnx_init(int sock, int proto);
+int fd_cnx_handshake(struct cnxctx * conn, int mode);
+
+/* SCTP */
+#ifndef DISABLE_SCTP
+int fd_sctp_create_bind_server( int * socket, uint16_t port );
+int fd_sctp_get_str_info( int socket, int *in, int *out );
+
+#endif /* DISABLE_SCTP */
+
+
 
 #endif /* _FD_H */

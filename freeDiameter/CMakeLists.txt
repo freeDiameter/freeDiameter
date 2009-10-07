@@ -10,6 +10,7 @@ SET_SOURCE_FILES_PROPERTIES(lex.fdd.c fdd.tab.c PROPERTIES COMPILE_FLAGS "-I ${C
 SET(FD_COMMON_SRC
 	fD.h
 	config.c
+	cnxctx.c
 	dispatch.c
 	extensions.c
 	dict_base_proto.c
@@ -18,7 +19,12 @@ SET(FD_COMMON_SRC
 	peers.c
 	p_expiry.c
 	p_psm.c
+	server.c
 	)
+
+IF(NOT DISABLE_SCTP)
+	SET(FD_COMMON_SRC ${FD_COMMON_SRC} sctp.c)
+ENDIF(NOT DISABLE_SCTP)
 
 SET(FD_COMMON_GEN_SRC
 		lex.fdd.c
