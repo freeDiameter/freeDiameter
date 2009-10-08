@@ -135,10 +135,11 @@ void fd_fifo_dump(int level, char * name, struct fifo * queue, void (*dump_item)
 	
 }
 
-/* Delete a queue. It must be unused. */ 
+/* Delete a queue. It must be empty. */ 
 int fd_fifo_del ( struct fifo  ** queue )
 {
 	struct fifo * q;
+	int loops = 0;
 	
 	TRACE_ENTRY( "%p", queue );
 
@@ -148,17 +149,25 @@ int fd_fifo_del ( struct fifo  ** queue )
 	
 	CHECK_POSIX(  pthread_mutex_lock( &q->mtx )  );
 	
-	if ((q->count != 0) || (q->thrs != 0) || (q->data != NULL)) {
-		TRACE_DEBUG(INFO, "The queue cannot be destroyed (%d, %d, %p)", q->count, q->thrs, q->data);
+	/* Ok, now invalidate the queue */
+	q->eyec = 0xdead;
+	
+	if ((q->count != 0) || (q->data != NULL)) {
+		TRACE_DEBUG(INFO, "The queue cannot be destroyed (%d, %p)", q->count, q->data);
 		CHECK_POSIX_DO(  pthread_mutex_unlock( &q->mtx ), /* no fallback */  );
 		return EINVAL;
 	}
 	
+	while (q->thrs) {
+		CHECK_POSIX(  pthread_cond_signal(&q->cond)  );
+		CHECK_POSIX(  pthread_mutex_unlock( &q->mtx ));
+		pthread_yield();
+		CHECK_POSIX(  pthread_mutex_lock( &q->mtx )  );
+		ASSERT( ++loops < 10 ); /* detect infinite loops */
+	}
+	
 	/* sanity check */
 	ASSERT(FD_IS_LIST_EMPTY(&q->list));
-	
-	/* Ok, now invalidate the queue */
-	q->eyec = 0xdead;
 	
 	/* And destroy it */
 	CHECK_POSIX(  pthread_mutex_unlock( &q->mtx )  );
@@ -378,6 +387,13 @@ static int fifo_tget ( struct fifo * queue, void ** item, int istimed, const str
 	
 awaken:
 	/* Check queue status */
+	if (!CHECK_FIFO( queue )) {
+		/* The queue is being destroyed */
+		CHECK_POSIX(  pthread_mutex_unlock( &queue->mtx )  );
+		TRACE_DEBUG(FULL, "The queue is being destroyed -> EPIPE");
+		return EPIPE;
+	}
+		
 	if (queue->count > 0) {
 		/* There are items in the queue, so pick the first one */
 		*item = mq_pop(queue);

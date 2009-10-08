@@ -172,39 +172,6 @@ struct sentreq {
 	struct msg	*req;	/* A request that was sent and not yet answered. */
 };
 
-/* The connection context structure */
-struct cnxctx {
-	int 		cc_socket;	/* The socket object of the connection -- <=0 if no socket is created */
-	
-	struct fifo   **cc_events;	/* Location of the events list to send connection events */
-	
-	int 		cc_proto;	/* IPPROTO_TCP or IPPROTO_SCTP */
-	int		cc_tls;		/* Is TLS already started ? */
-	
-	uint16_t	cc_port;	/* Remote port of the connection, when we are client */
-	struct fd_list	cc_ep_remote;	/* The remote address(es) of the connection */
-	struct fd_list	cc_ep_local;	/* The local address(es) of the connection */
-	
-	/* If cc_proto == SCTP */
-	struct	{
-		int		str_out;/* Out streams */
-		int		str_in;	/* In streams */
-		int		pairs;	/* max number of pairs ( = min(in, out)) */
-		int		next;	/* # of stream the next message will be sent to */
-	} 		cc_sctp_para;
-	
-	/* If cc_tls == true */
-	struct {
-		int				 mode; 		/* GNUTLS_CLIENT / GNUTLS_SERVER */
-		gnutls_session_t 		 session;	/* Session object (stream #0 in case of SCTP) */
-	}		cc_tls_para;
-	
-	/* If both conditions */
-	struct {
-		gnutls_session_t 		*res_sessions;	/* Sessions of other pairs of streams, resumed from the first */
-		/* Buffers, threads, ... */
-	}		cc_sctp_tls_para;
-};
 
 /* Functions */
 int fd_peer_fini();
@@ -232,7 +199,14 @@ void fd_servers_stop();
 
 /* Connection contexts */
 struct cnxctx * fd_cnx_init(int sock, int proto);
+int fd_cnx_start_clear(struct cnxctx * conn);
 int fd_cnx_handshake(struct cnxctx * conn, int mode);
+int fd_cnx_getcred(struct cnxctx * conn, const gnutls_datum_t **cert_list, unsigned int *cert_list_size);
+int fd_cnx_getendpoints(struct cnxctx * conn, struct fd_list * senti);
+char * fd_cnx_getremoteid(struct cnxctx * conn);
+int fd_cnx_receive(struct cnxctx * conn, struct timespec * timeout, unsigned char **buf, size_t * len);
+int fd_cnx_send(struct cnxctx * conn, unsigned char * buf, size_t len);
+void fd_cnx_destroy(struct cnxctx * conn);
 
 /* SCTP */
 #ifndef DISABLE_SCTP

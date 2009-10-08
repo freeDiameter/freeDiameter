@@ -61,12 +61,8 @@ struct server {
 /* Client (connected remote endpoint, not received CER yet) information */
 struct client {
 	struct fd_list	 chain;	/* link in the server's list of clients */
-	
 	struct cnxctx	*conn;	/* Parameters of the connection; sends its events to the ev fifo bellow */
-	
 	struct timespec	 ts;	/* Delay for receiving CER: INCNX_TIMEOUT */
-	struct fifo	*ev;	/* Events of the connection -- allowed: TIMEOUT, ERROR (cnx, tls), MSG_RCV (CER, other=>error) */
-	
 	pthread_t	 cli_thr; /* connection state machine (simplified PSM) */
 };
 
@@ -79,6 +75,47 @@ struct cli_fast {
 };
 
 
+static void * client_simple_psm(void * arg)
+{
+	struct client * c = arg;
+	struct server * s = NULL;
+	
+	TRACE_ENTRY("%p", c);
+	
+	CHECK_PARAMS_DO(c && c->conn && c->chain.head, goto fatal_error );
+	
+	s = c->chain.head->o;
+	
+	/* Name the current thread */
+	{
+		char addr[128];
+		snprintf(addr, sizeof(addr), "Srv %d/Cli %s", s->socket, fd_cnx_getremoteid(c->conn));
+		fd_log_threadname ( addr );
+	}
+	
+	/* Set the timeout to receive the first message */
+	CHECK_SYS_DO( clock_gettime(CLOCK_REALTIME, &c->ts), goto fatal_error );
+	c->ts.tv_sec += INCNX_TIMEOUT;
+	
+	TODO("receive message until c->ts");
+	
+	TODO("Timeout => close");
+	TODO("Message != CER => close");
+	TODO("Message == CER : ");
+	TODO("Search matching peer");
+	TODO("...");
+	
+	/* The end: we have freed the client structure already */
+	TODO("Unlink the client structure");
+	TODO(" pthread_detach(c->cli_thr); ");
+	TODO(" free(c); ");
+	return NULL;
+	
+fatal_error:	/* This has effect to terminate the daemon */
+	CHECK_FCT_DO(fd_event_send(fd_g_config->cnf_main_ev, FDEV_TERMINATE, NULL), );
+	return NULL;
+}
+
 /* This thread is called when a new client had just connected */
 static void * handle_client_fast(void * arg)
 {
@@ -89,50 +126,55 @@ static void * handle_client_fast(void * arg)
 	ASSERT(arg);
 	{
 		char addr[128];
-		int offset = snprintf(addr, sizeof(addr), "Srv %d/Cli %d : ", cf->serv->socket, cf->sock);
+		int offset = snprintf(addr, sizeof(addr), "Srv %d/CliFast %d : ", cf->serv->socket, cf->sock);
 		int rc = getnameinfo((sSA *)&cf->ss, sizeof(sSS), addr + offset, sizeof(addr) - offset, NULL, 0, 0);
 		if (rc)
 			memcpy(addr + offset, gai_strerror(rc), sizeof(addr) - offset);
 		
+		fd_log_threadname ( addr );
+	
 		if (TRACE_BOOL(INFO)) {
 			fd_log_debug( "New connection %s, sock %d, from '%s'\n", cf->serv->serv_name, cf->sock, addr + offset);
 		}
-	
-		fd_log_threadname ( addr );
 	}
 	
 	/* Create a client structure */
-	CHECK_MALLOC_DO( c = malloc(sizeof(struct client)), goto early_error );
+	CHECK_MALLOC_DO( c = malloc(sizeof(struct client)), goto fatal_error );
 	memset(c, 0, sizeof(struct client));
 	fd_list_init(&c->chain, c);
-	c->cli_thr = pthread_self();
 	
 	/* Create the connection context */
-	CHECK_MALLOC_DO( c->conn = fd_cnx_init(cf->sock, cf->serv->proto), goto early_error );
+	CHECK_MALLOC_DO( c->conn = fd_cnx_init(cf->sock, cf->serv->proto), goto fatal_error );
 	
 	/* In case we are a secure server, handshake now */
 	if (cf->serv->secur) {
-		
-		TODO("Continue");
+		CHECK_FCT_DO( fd_cnx_handshake(c->conn, GNUTLS_CLIENT), goto cleanup );
 	}
 	
+	
 	/* Save the client in the list */
-	CHECK_POSIX_DO( pthread_mutex_lock( &cf->serv->clients_mtx ), goto early_error );
+	CHECK_POSIX_DO( pthread_mutex_lock( &cf->serv->clients_mtx ), goto fatal_error );
 	fd_list_insert_before(&cf->serv->clients, &c->chain);
-	CHECK_POSIX_DO( pthread_mutex_unlock( &cf->serv->clients_mtx ), goto error );
+	CHECK_POSIX_DO( pthread_mutex_unlock( &cf->serv->clients_mtx ), goto fatal_error );
 	
+	/* Start the client thread */
+	CHECK_POSIX_DO( pthread_create( &c->cli_thr, NULL, client_simple_psm, c ), goto fatal_error );
 	
+	/* We're done here */
+	free(cf);
+	return NULL;
 	
+cleanup:	/* Clean all objects and return (minor error on the connection)*/
+	if (c && c->conn) {
+		TODO( "Free the c->conn object & gnutls data" );
+	}
 	
-early_error:
-	TRACE_DEBUG(INFO, "Thread is detaching to die");
-	pthread_detach(pthread_self());
-	shutdown(cf->sock, SHUT_RDWR);
+	return NULL;	
+	
+fatal_error:	/* This has effect to terminate the daemon */
+	CHECK_FCT_DO(fd_event_send(fd_g_config->cnf_main_ev, FDEV_TERMINATE, NULL), );
 	free(cf);
 	free(c);
-error:	
-	TRACE_DEBUG(INFO, "Thread is terminating");
-	CHECK_FCT_DO(fd_event_send(fd_g_config->cnf_main_ev, FDEV_TERMINATE, NULL), );
 	return NULL;
 }
 
@@ -141,6 +183,7 @@ static void * serv_th(void * arg)
 {
 	struct server *sv = (struct server *)arg;
 	struct cli_fast cf;
+	pthread_attr_t	attr;
 	
 	CHECK_PARAMS_DO(sv, goto error);
 	fd_log_threadname ( sv->serv_name );
@@ -149,6 +192,8 @@ static void * serv_th(void * arg)
 	memset(&cf, 0, sizeof(struct cli_fast));
 	cf.serv = sv;
 	
+	CHECK_POSIX_DO( pthread_attr_init(&attr), goto error );
+	CHECK_POSIX_DO( pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED), goto error );
 	
 	/* Accept incoming connections */
 	CHECK_SYS_DO(  listen(sv->socket, 5), goto error );
@@ -170,7 +215,7 @@ static void * serv_th(void * arg)
 		memcpy(ncf, &cf, sizeof(struct cli_fast));
 		
 		/* Create the thread to handle the new incoming connection */
-		CHECK_POSIX_DO( pthread_create( &thr /* we don't use it, but NULL is not standard */, NULL, handle_client_fast, ncf), goto error );
+		CHECK_POSIX_DO( pthread_create( &thr, &attr, handle_client_fast, ncf), goto error );
 		
 	} while (1);
 	
@@ -230,8 +275,8 @@ void fd_servers_dump()
 				((sv->serv_status == 1) ? "Thread running" :
 				((sv->serv_status == 2) ? "Thread terminated" :
 							  "Thread status unknown")));
-		/* Dump the endpoints ? */
-		/* Dump the client list ? */
+		/* Dump the client list */
+		TODO("Dump client list");
 	}
 }
 
@@ -250,9 +295,10 @@ int fd_servers_start()
 		/* Create the server on default port */
 		CHECK_FCT( fd_sctp_create_bind_server( &socket, fd_g_config->cnf_port ) );
 		CHECK_MALLOC( sv = new_serv(IPPROTO_SCTP, 0, socket) );
+		TODO("Link");
+		TODO("Start thread");
 		
-		
-		
+		/* Create the server on secure port */
 		
 #endif /* DISABLE_SCTP */
 	}
@@ -260,7 +306,12 @@ int fd_servers_start()
 	/* TCP */
 	if (!fd_g_config->cnf_flags.no_tcp) {
 		
-		
+		if (FD_IS_LIST_EMPTY(&fd_g_config->cnf_endpoints)) {
+			/* if not no_IP : create server for 0.0.0.0 */
+			/* if not no_IP6 : create server for :: */
+		} else {
+			/* Create all endpoints -- check flags */
+		}
 	}
 	
 	return 0;
@@ -269,5 +320,8 @@ int fd_servers_start()
 /* Terminate all the servers */
 void fd_servers_stop()
 {
-	
+	/* Loop on all servers */
+		/* cancel thread */
+		/* shutdown the socket */
+		/* empty list of clients (stop them) */
 }
