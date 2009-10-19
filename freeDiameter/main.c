@@ -50,6 +50,7 @@ static void main_help( void );
 static struct fd_config conf;
 struct fd_config * fd_g_config = &conf;
 
+/* gcrypt functions to support posix threads */
 GCRY_THREAD_OPTION_PTHREAD_IMPL;
 
 /* freeDiameter starting point */
@@ -104,6 +105,9 @@ int main(int argc, char * argv[])
 	/* Load the dynamic extensions */
 	CHECK_FCT(  fd_ext_load()  );
 	
+	/* Start the servers */
+	CHECK_FCT( fd_servers_start() );
+	
 	/* Start the peer state machines */
 	CHECK_FCT( fd_psm_start() );
 	
@@ -153,6 +157,7 @@ end:
 	TRACE_DEBUG(INFO, FD_PROJECT_BINARY " daemon is stopping...");
 	
 	/* cleanups */
+	CHECK_FCT_DO( fd_servers_stop(), /* Stop accepting new connections */ );
 	TODO("Stop dispatch thread(s) properly (no cancel yet)");
 	CHECK_FCT_DO( fd_peer_fini(), /* Stop all connections */ );
 	TODO("Stop dispatch & routing threads");

@@ -54,8 +54,9 @@ const char * fd_pev_str(int event)
 	switch (event) {
 	#define case_str( _val )\
 		case _val : return #_val
-		case_str(FDEVP_TERMINATE);
 		case_str(FDEVP_DUMP_ALL);
+		case_str(FDEVP_TERMINATE);
+		case_str(FDEVP_CNX_MSG_RECV);
 		case_str(FDEVP_MSG_INCOMING);
 		case_str(FDEVP_PSM_TIMEOUT);
 		
@@ -240,6 +241,8 @@ psm_loop:
 	
 psm_end:
 	pthread_cleanup_pop(1); /* set STATE_ZOMBIE */
+	pthread_detach(peer->p_psm);
+	peer->p_psm = (pthread_t)NULL;
 	return NULL;
 }	
 	
@@ -266,6 +269,7 @@ int fd_psm_terminate(struct fd_peer * peer )
 {
 	TRACE_ENTRY("%p", peer);
 	CHECK_PARAMS( CHECK_PEER(peer) );
+	
 	if (peer->p_hdr.info.pi_state != STATE_ZOMBIE) {
 		CHECK_FCT( fd_event_send(peer->p_events, FDEVP_TERMINATE, NULL) );
 	} else {

@@ -46,14 +46,13 @@ static pthread_mutex_t exp_mtx  = PTHREAD_MUTEX_INITIALIZER;
 
 static void * gc_th_fct(void * arg)
 {
-	fd_log_threadname ( "Peers/garbage" );
-	TRACE_ENTRY( "" );
+	fd_log_threadname ( "Peers/garb. col." );
+	TRACE_ENTRY( "%p", arg );
 	
 	do {
 		struct fd_list * li, purge = FD_LIST_INITIALIZER(purge);
 		
-		pthread_testcancel();
-		sleep(GC_TIME);
+		sleep(GC_TIME);	/* sleep is a cancellation point */
 		
 		/* Now check in the peers list if any peer can be deleted */
 		CHECK_FCT_DO( pthread_rwlock_wrlock(&fd_g_peers_rw), goto error );
@@ -95,7 +94,7 @@ error:
 static void * exp_th_fct(void * arg)
 {
 	fd_log_threadname ( "Peers/expire" );
-	TRACE_ENTRY( "" );
+	TRACE_ENTRY( "%p", arg );
 	
 	CHECK_POSIX_DO( pthread_mutex_lock(&exp_mtx),  goto error );
 	pthread_cleanup_push( fd_cleanup_mutex, &exp_mtx );
@@ -123,7 +122,7 @@ static void * exp_th_fct(void * arg)
 		if ( TS_IS_INFERIOR( &now, &first->p_exp_timer ) ) {
 			
 			CHECK_POSIX_DO2(  pthread_cond_timedwait( &exp_cnd, &exp_mtx, &first->p_exp_timer ),  
-					ETIMEDOUT, /* ETIMEDOUT is a normal error, continue */,
+					ETIMEDOUT, /* ETIMEDOUT is a normal return value, continue */,
 					/* on other error, */ goto error );
 	
 			/* on wakeup, loop */

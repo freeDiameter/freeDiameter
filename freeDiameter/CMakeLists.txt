@@ -20,6 +20,7 @@ SET(FD_COMMON_SRC
 	p_expiry.c
 	p_psm.c
 	server.c
+	tcp.c
 	)
 
 IF(NOT DISABLE_SCTP)

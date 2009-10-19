@@ -335,6 +335,7 @@ connpeer:		{
 					
 				/* Now destroy any content in the structure */
 				free(fddpi.pi_diamid);
+				free(fddpi.pi_sec_data.priority);
 				while (!FD_IS_LIST_EMPTY(&fddpi.pi_endpoints)) {
 					struct fd_list * li = fddpi.pi_endpoints.next;
 					fd_list_unlink(li);
@@ -414,15 +415,13 @@ peerparams:		/* empty */
 					{ yyerror (&yylloc, conf, "Invalid value"); YYERROR; } );
 				fddpi.pi_port = (uint16_t)$4;
 			}
-			| peerparams SCTPSTREAMS '=' INTEGER ';'
-			{
-				CHECK_PARAMS_DO( ($4 > 0) && ($4 < 1<<16),
-					{ yyerror (&yylloc, conf, "Invalid value"); YYERROR; } );
-				fddpi.pi_streams = (uint16_t)$4;
-			}
 			| peerparams TCTIMER '=' INTEGER ';'
 			{
 				fddpi.pi_tctimer = $4;
+			}
+			| peerparams TLS_PRIO '=' QSTRING ';'
+			{
+				fddpi.pi_sec_data.priority = $4;
 			}
 			| peerparams TWTIMER '=' INTEGER ';'
 			{

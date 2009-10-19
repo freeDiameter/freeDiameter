@@ -100,10 +100,13 @@ int fd_peer_add ( struct peer_info * info, char * orig_dbg, void (*cb)(struct pe
 	p->p_hdr.info.pi_flags.exp  = info->pi_flags.exp;
 	
 	p->p_hdr.info.pi_lft     = info->pi_lft;
-	p->p_hdr.info.pi_streams = info->pi_streams;
 	p->p_hdr.info.pi_port    = info->pi_port;
 	p->p_hdr.info.pi_tctimer = info->pi_tctimer;
 	p->p_hdr.info.pi_twtimer = info->pi_twtimer;
+	
+	if (info->pi_sec_data.priority) {
+		CHECK_MALLOC( p->p_hdr.info.pi_sec_data.priority = strdup(info->pi_sec_data.priority) );
+	}
 	
 	/* Move the items from one list to the other */
 	if (info->pi_endpoints.next)
@@ -112,6 +115,7 @@ int fd_peer_add ( struct peer_info * info, char * orig_dbg, void (*cb)(struct pe
 			fd_list_unlink(li);
 			fd_list_insert_before(&p->p_hdr.info.pi_endpoints, li);
 		}
+	
 	
 	/* The internal data */
 	if (orig_dbg) {
@@ -228,7 +232,7 @@ int fd_peer_free(struct fd_peer ** ptr)
 	}
 	
 	if (p->p_cnxctx) {
-		TODO("destroy p->p_cnxctx");
+		fd_cnx_destroy(p->p_cnxctx);
 	}
 	
 	if (p->p_cb)
@@ -292,6 +296,7 @@ int fd_peer_fini()
 		}
 		list_empty = FD_IS_LIST_EMPTY(&fd_g_peers);
 		CHECK_FCT_DO( pthread_rwlock_unlock(&fd_g_peers_rw), /* continue */ );
+		CHECK_SYS(  clock_gettime(CLOCK_REALTIME, &now)  );
 	}
 	
 	if (!list_empty) {

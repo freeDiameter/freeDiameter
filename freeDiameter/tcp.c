@@ -34,28 +34,79 @@
 *********************************************************************************************************/
 
 #include "fD.h"
+#include <netinet/tcp.h>
+#include <netinet/ip6.h>
 
-/* Create a socket server and bind it according to daemon s configuration */
-int fd_sctp_create_bind_server( int * sock, struct fd_list * list, uint16_t port )
+/* Set the socket options for TCP sockets, before bind is called */
+static int fd_tcp_setsockopt(int family, int sk)
 {
-	TODO("Create sctp server, using fd_g_config: cnf_endpoints, no_ip4, no_ip6, cnf_sctp_str");
+	int ret = 0;
+	int opt;
 	
-	return ENOTSUP;
+	/* Clear the NODELAY option in case it was set, as requested by rfc3539#section-3.2 */
+	/* Note that this is supposed to be the default, so we could probably remove this call ... */
+	opt = 0;
+	ret = setsockopt(sk, IPPROTO_TCP, TCP_NODELAY, &opt, sizeof(opt));
+	if (ret != 0) {
+		ret = errno;
+		TRACE_DEBUG(INFO, "Unable to set the socket TCP_NODELAY option: %s", strerror(ret));
+		return ret;
+	}
+	
+	/* Under Linux, we may also set the TCP_CONGESTION option to one of the following strings:
+	    - reno (default)
+	    - bic
+	    - cubic
+	    - highspeed
+	    - htcp
+	    - hybla
+	    - illinois
+	    - lp
+	    - scalable
+	    - vegas
+	    - veno
+	    - westwood
+	    - yeah
+	*/
+	
+	/* In case of v6 address, force the v6only option, we use a different socket for v4 */
+	#ifdef IPV6_V6ONLY
+	if (family == AF_INET6) {
+		opt = 1;
+		CHECK_SYS(setsockopt(sk, IPPROTO_IPV6, IPV6_V6ONLY, &opt, sizeof(opt)));
+	}
+	#endif /* IPV6_V6ONLY */
+	
+	
+	/* There are also others sockopt that can be set, but nothing useful for us AFAICT */
+	
+	return 0;
+}
+
+/* Create a socket server and bind it */
+int fd_tcp_create_bind_server( int * sock, sSA * sa, socklen_t salen )
+{
+	TRACE_ENTRY("%p %p %d", sock, sa, salen);
+	
+	CHECK_PARAMS(  sock && sa  );
+	
+	/* Create the socket */
+	CHECK_SYS(  *sock = socket(sa->sa_family, SOCK_STREAM, IPPROTO_TCP)  );
+
+	/* Set the socket options */
+	CHECK_FCT(  fd_tcp_setsockopt(sa->sa_family, *sock)  );
+	
+	/* Bind the socket */
+	CHECK_SYS(  bind( *sock, sa, salen )  );
+			
+	/* We're done */
+	return 0;
 }
 
 /* Allow clients connections on server sockets */
-int fd_sctp_listen( int sock )
+int fd_tcp_listen( int sock )
 {
 	TRACE_ENTRY("%d", sock);
 	CHECK_SYS( listen(sock, 5) );
 	return 0;
 }
-
-/* Retrieve streams information from a connected association */
-int fd_sctp_get_str_info( int socket, int *in, int *out )
-{
-	TODO("Retrieve streams info from the socket");
-	
-	return ENOTSUP;
-}
-

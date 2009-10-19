@@ -119,16 +119,17 @@ extern pthread_key_t	fd_log_thname;
  * FUNCTION:	fd_log_time
  *
  * PARAMETERS:
+ *  ts	 	: The timestamp to log, or NULL for "now"
  *  buf 	: An array where the time must be stored
  *  len		: size of the buffer
  *
  * DESCRIPTION: 
- *  Writes the current timestamp (in human readable format) in a buffer. 
+ *  Writes the timestamp (in human readable format) in a buffer. 
  *
  * RETURN VALUE:
  *  pointer to buf.
  */
-char * fd_log_time ( char * buf, size_t len );
+char * fd_log_time ( struct timespec * ts, char * buf, size_t len );
 
 
 /* levels definitions */
@@ -172,7 +173,7 @@ extern int fd_g_debug_lvl;
 		char * __thn = ((char *)pthread_getspecific(fd_log_thname) ?: "unnamed");					\
 		fd_log_debug("\t | tid:%-20s\t%s\tin %s@%s:%d\n"								\
 			  "\t%s|%*s" format "\n",  										\
-					__thn, fd_log_time(__buf, sizeof(__buf)), __PRETTY_FUNCTION__, __FILE__, __LINE__,	\
+					__thn, fd_log_time(NULL, __buf, sizeof(__buf)), __PRETTY_FUNCTION__, __FILE__, __LINE__,	\
 					(level < FULL)?"@":" ",level, "", ## args); 						\
 	}															\
 }

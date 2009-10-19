@@ -156,11 +156,15 @@ enum {
 	/* request to terminate this peer : disconnect, requeue all messages */
 	,FDEVP_TERMINATE
 	
+	/* A connection object has received a message -- stored in event->data */
+	,FDEVP_CNX_MSG_RECV
+	
 	/* A message was received in the peer */
 	,FDEVP_MSG_INCOMING
 	
 	/* The PSM state is expired */
 	,FDEVP_PSM_TIMEOUT
+	
 };
 const char * fd_pev_str(int event);
 #define CHECK_EVENT( _e ) \
@@ -195,22 +199,34 @@ void fd_psm_abord(struct fd_peer * peer );
 /* Server sockets */
 void fd_servers_dump();
 int fd_servers_start();
-void fd_servers_stop();
+int fd_servers_stop();
 
 /* Connection contexts */
-struct cnxctx * fd_cnx_init(int sock, int proto);
+struct cnxctx * fd_cnx_serv_tcp(uint16_t port, int family, struct fd_endpoint * ep);
+struct cnxctx * fd_cnx_serv_sctp(uint16_t port, struct fd_list * ep_list);
+int fd_cnx_serv_listen(struct cnxctx * conn);
+struct cnxctx * fd_cnx_serv_accept(struct cnxctx * serv);
+struct cnxctx * fd_cnx_cli_connect(int proto, const sSA * sa,  socklen_t addrlen);
+char * fd_cnx_getid(struct cnxctx * conn);
 int fd_cnx_start_clear(struct cnxctx * conn);
-int fd_cnx_handshake(struct cnxctx * conn, int mode);
+int fd_cnx_handshake(struct cnxctx * conn, int mode, char * priority);
 int fd_cnx_getcred(struct cnxctx * conn, const gnutls_datum_t **cert_list, unsigned int *cert_list_size);
-int fd_cnx_getendpoints(struct cnxctx * conn, struct fd_list * senti);
+int fd_cnx_getendpoints(struct cnxctx * conn, struct fd_list * local, struct fd_list * remote);
 char * fd_cnx_getremoteid(struct cnxctx * conn);
 int fd_cnx_receive(struct cnxctx * conn, struct timespec * timeout, unsigned char **buf, size_t * len);
+int fd_cnx_recv_setaltfifo(struct cnxctx * conn, struct fifo * alt_fifo); /* send FDEVP_CNX_MSG_RECV event to the fifo list */
 int fd_cnx_send(struct cnxctx * conn, unsigned char * buf, size_t len);
 void fd_cnx_destroy(struct cnxctx * conn);
 
+/* TCP */
+int fd_tcp_create_bind_server( int * sock, sSA * sa, socklen_t salen );
+int fd_tcp_listen( int sock );
+
 /* SCTP */
 #ifndef DISABLE_SCTP
-int fd_sctp_create_bind_server( int * socket, uint16_t port );
+int fd_sctp_create_bind_server( int * sock, struct fd_list * list, uint16_t port );
+int fd_sctp_listen( int sock );
+
 int fd_sctp_get_str_info( int socket, int *in, int *out );
 
 #endif /* DISABLE_SCTP */

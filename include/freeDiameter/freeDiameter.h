@@ -255,7 +255,6 @@ struct peer_info {
 	
 	/* Additional parameters */
 	uint32_t 	pi_lft;		/* lifetime of this peer when inactive (see pi_flags.exp definition) */
-	uint16_t	pi_streams; 	/* number of streams for SCTP. 0 = default */
 	uint16_t	pi_port; 	/* port to connect to. 0: default. */
 	int		pi_tctimer; 	/* use this value for TcTimer instead of global, if != 0 */
 	int		pi_twtimer; 	/* use this value for TwTimer instead of global, if != 0 */
@@ -270,6 +269,7 @@ struct peer_info {
 	uint32_t	pi_firmrev;	/* Content of the Firmware-Revision AVP */
 	struct fd_list	pi_apps;	/* applications advertised by the remote peer, except relay (pi_flags.relay) */
 	struct {
+		char			*priority;	/* In case the default priority is not appropriate */
 		/* This is inspired from http://www.gnu.org/software/gnutls/manual/gnutls.html#ex_003ax509_002dinfo */
 		const gnutls_datum_t 	*cert_list; 	/* The (valid) credentials that the peer has presented */
 		unsigned int 		 cert_list_size;/* Number of certificates in the list */

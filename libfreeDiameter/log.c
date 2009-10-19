@@ -86,8 +86,8 @@ void fd_log_threadname ( char * name )
 	return;
 }
 
-/* Write current time into a buffer */
-char * fd_log_time ( char * buf, size_t len )
+/* Write time into a buffer */
+char * fd_log_time ( struct timespec * ts, char * buf, size_t len )
 {
 	int ret;
 	size_t offset = 0;
@@ -95,14 +95,17 @@ char * fd_log_time ( char * buf, size_t len )
 	struct tm tm;
 	
 	/* Get current time */
-	ret = clock_gettime(CLOCK_REALTIME, &tp);
-	if (ret != 0) {
-		snprintf(buf, len, "%s", strerror(ret));
-		return buf;
+	if (!ts) {
+		ret = clock_gettime(CLOCK_REALTIME, &tp);
+		if (ret != 0) {
+			snprintf(buf, len, "%s", strerror(ret));
+			return buf;
+		}
+		ts = &tp;
 	}
 	
-	offset += strftime(buf + offset, len - offset, "%D,%T", localtime_r( &tp.tv_sec , &tm ));
-	offset += snprintf(buf + offset, len - offset, ".%6.6ld", tp.tv_nsec / 1000);
+	offset += strftime(buf + offset, len - offset, "%D,%T", localtime_r( &ts->tv_sec , &tm ));
+	offset += snprintf(buf + offset, len - offset, ".%6.6ld", ts->tv_nsec / 1000);
 
 	return buf;
 }

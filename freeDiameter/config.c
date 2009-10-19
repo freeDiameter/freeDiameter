@@ -228,6 +228,25 @@ int fd_conf_parse()
 		return EINVAL;
 	}
 	
+	/* Validate local endpoints */
+	if ((!FD_IS_LIST_EMPTY(&fd_g_config->cnf_endpoints)) && (fd_g_config->cnf_flags.no_ip4 || fd_g_config->cnf_flags.no_ip6)) {
+		struct fd_list * li;
+		for ( li = fd_g_config->cnf_endpoints.next; li != &fd_g_config->cnf_endpoints; li = li->next) {
+			struct fd_endpoint * ep = (struct fd_endpoint *)li;
+			if ( (fd_g_config->cnf_flags.no_ip4 && (ep->ss.ss_family == AF_INET))
+			   ||(fd_g_config->cnf_flags.no_ip6 && (ep->ss.ss_family == AF_INET6)) ) {
+				li = li->prev;
+				fd_list_unlink(&ep->chain);
+				if (TRACE_BOOL(INFO)) {
+					fd_log_debug("Info: Removing local address conflicting with the flags no_IP / no_IP6 : ");
+					sSA_DUMP_NODE( &ep->ss, AI_NUMERICHOST );
+					fd_log_debug("\n");
+				}
+				free(ep);
+			}
+		}
+	}
+	
 	/* Configure TLS default parameters */
 	if (! fd_g_config->cnf_sec_data.prio_string) {
 		const char * err_pos = NULL;
@@ -238,14 +257,17 @@ int fd_conf_parse()
 				 { TRACE_DEBUG(INFO, "Error in priority string at position : %s", err_pos); return EINVAL; } );
 	}
 	if (! fd_g_config->cnf_sec_data.dh_bits) {
-		TRACE_DEBUG(FULL, "Generating DH parameters...");
+		if (TRACE_BOOL(INFO)) {
+			fd_log_debug("Generating Diffie-Hellman parameters of size %d (this takes a few seconds)... ", GNUTLS_DEFAULT_DHBITS);
+		}
 		CHECK_GNUTLS_DO( gnutls_dh_params_generate2( 
 					fd_g_config->cnf_sec_data.dh_cache,
 					GNUTLS_DEFAULT_DHBITS),
 				 { TRACE_DEBUG(INFO, "Error in DH bits value : %d", GNUTLS_DEFAULT_DHBITS); return EINVAL; } );
-		TRACE_DEBUG(FULL, "DH parameters generated.");
+		if (TRACE_BOOL(INFO)) {
+			fd_log_debug("Done!\n");
+		}
 	}
-	
 	
 	return 0;
 }
