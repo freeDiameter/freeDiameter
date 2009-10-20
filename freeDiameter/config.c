@@ -99,7 +99,7 @@ void fd_conf_dump()
 		while (li != &fd_g_config->cnf_endpoints) {
 			struct fd_endpoint * ep = (struct fd_endpoint *)li;
 			if (li != fd_g_config->cnf_endpoints.next) fd_log_debug("                             ");
-			sSA_DUMP_NODE( &ep->ss, NI_NUMERICHOST );
+			sSA_DUMP_NODE( &ep->sa, NI_NUMERICHOST );
 			fd_log_debug("\n");
 			li = li->next;
 		}
@@ -233,13 +233,13 @@ int fd_conf_parse()
 		struct fd_list * li;
 		for ( li = fd_g_config->cnf_endpoints.next; li != &fd_g_config->cnf_endpoints; li = li->next) {
 			struct fd_endpoint * ep = (struct fd_endpoint *)li;
-			if ( (fd_g_config->cnf_flags.no_ip4 && (ep->ss.ss_family == AF_INET))
-			   ||(fd_g_config->cnf_flags.no_ip6 && (ep->ss.ss_family == AF_INET6)) ) {
+			if ( (fd_g_config->cnf_flags.no_ip4 && (ep->sa.sa_family == AF_INET))
+			   ||(fd_g_config->cnf_flags.no_ip6 && (ep->sa.sa_family == AF_INET6)) ) {
 				li = li->prev;
 				fd_list_unlink(&ep->chain);
 				if (TRACE_BOOL(INFO)) {
 					fd_log_debug("Info: Removing local address conflicting with the flags no_IP / no_IP6 : ");
-					sSA_DUMP_NODE( &ep->ss, AI_NUMERICHOST );
+					sSA_DUMP_NODE( &ep->sa, AI_NUMERICHOST );
 					fd_log_debug("\n");
 				}
 				free(ep);
@@ -271,3 +271,43 @@ int fd_conf_parse()
 	
 	return 0;
 }
+
+/* Add an endpoint information in a list */
+int fd_ep_add_merge( struct fd_list * list, sSA * sa, socklen_t sl, int conf, int disc, int adv, int ll )
+{
+	struct fd_endpoint * ep;
+	struct fd_list * li;
+	int cmp = -1;
+	
+	TRACE_ENTRY("%p %p %u %i %i %i %i", list, sa, sl, conf, disc, adv, ll);
+	CHECK_PARAMS( list && sa && (sl <= sizeof(sSS)) && (conf || disc || adv || ll) );
+	
+	/* Search place in the list */
+	for (li = list->next; li != list; li = li->next) {
+		ep = (struct fd_endpoint *)li;
+		
+		cmp = memcmp(&ep->ss, sa, sl);
+		if (cmp >= 0)
+			break;
+	}
+	
+	if (cmp) {
+		/* new item to be added */
+		CHECK_MALLOC( ep = malloc(sizeof(struct fd_endpoint)) );
+		memset(ep, 0, sizeof(struct fd_endpoint));
+		fd_list_init(&ep->chain, NULL);
+		memcpy(&ep->ss, sa, sl);
+		
+		/* Insert in the list */
+		fd_list_insert_before(li, &ep->chain);
+	}
+	
+	/* Merge the flags */
+	ep->meta.conf = conf || ep->meta.conf;
+	ep->meta.disc = disc || ep->meta.disc;
+	ep->meta.adv  =  adv || ep->meta.adv;
+	ep->meta.ll   =   ll || ep->meta.ll;
+	
+	return 0;
+}
+

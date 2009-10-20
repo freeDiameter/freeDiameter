@@ -105,6 +105,8 @@ int main(int argc, char * argv[])
 	/* Load the dynamic extensions */
 	CHECK_FCT(  fd_ext_load()  );
 	
+	fd_conf_dump();
+	
 	/* Start the servers */
 	CHECK_FCT( fd_servers_start() );
 	
@@ -113,7 +115,6 @@ int main(int argc, char * argv[])
 	
 	/* Now, just wait for events */
 	TRACE_DEBUG(INFO, FD_PROJECT_BINARY " daemon initialized.");
-	fd_conf_dump();
 	while (1) {
 		int code;
 		CHECK_FCT_DO(  fd_event_get(fd_g_config->cnf_main_ev, &code, NULL),  break  );

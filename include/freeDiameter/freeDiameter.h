@@ -117,7 +117,12 @@ extern struct fd_config *fd_g_config; /* The pointer to access the global config
 /* Endpoints */
 struct fd_endpoint {
 	struct fd_list  chain;	/* link in cnf_endpoints list */
-	sSS		ss;	/* the socket information. List is always ordered by ss value (memcmp) */
+	union {
+		sSS		ss;	/* the socket information. List is always ordered by ss value (memcmp) */
+		sSA4		sin;
+		sSA6		sin6;
+		sSA		sa;
+	};
 	struct {
 		unsigned conf : 1; /* This endpoint is statically configured in a configuration file */
 		unsigned disc : 1; /* This endpoint was resolved from the Diameter Identity or other DNS query */
@@ -128,6 +133,9 @@ struct fd_endpoint {
 
 	}		meta;	/* Additional information about the endpoint */
 };
+
+/* Add a new entry in a list of endpoints -- merge if the sockaddr was already there */
+int fd_ep_add_merge( struct fd_list * list, sSA * sa, socklen_t sl, int conf, int disc, int adv, int ll );
 
 /* Applications */
 struct fd_app {

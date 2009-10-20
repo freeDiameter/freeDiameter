@@ -221,12 +221,15 @@ void fd_cnx_destroy(struct cnxctx * conn);
 /* TCP */
 int fd_tcp_create_bind_server( int * sock, sSA * sa, socklen_t salen );
 int fd_tcp_listen( int sock );
+int fd_tcp_get_local_ep(int sock, sSS * ss, socklen_t *sl);
+int fd_tcp_get_remote_ep(int sock, sSS * ss, socklen_t *sl);
 
 /* SCTP */
 #ifndef DISABLE_SCTP
 int fd_sctp_create_bind_server( int * sock, struct fd_list * list, uint16_t port );
 int fd_sctp_listen( int sock );
-
+int fd_sctp_get_local_ep(int sock, struct fd_list * list);
+int fd_sctp_get_remote_ep(int sock, struct fd_list * list);
 int fd_sctp_get_str_info( int socket, int *in, int *out );
 
 #endif /* DISABLE_SCTP */

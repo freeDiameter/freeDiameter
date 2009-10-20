@@ -67,6 +67,7 @@
 # Default : listen on all addresses available.
 #ListenOn = "202.249.37.5";
 #ListenOn = "2001:200:903:2::202:1";
+#ListenOn = "fe80::21c:5ff:fe98:7d62%eth0";
 
 ##############################################################
 ##  TLS Configuration
@@ -200,13 +201,11 @@ Realm = "wide.ad.jp";
 Port = 3866;
 SecPort = 3867;
 TLS_old_method;
-No_SCTP;
-Prefer_TCP;
 SCTP_streams = 50;
-#ListenOn = "202.249.37.5";
-#ListenOn = "2001:200:903:2::202:1";
 TcTimer = 60;
 TwTimer = 6;
+ListenOn = "133.243.146.201";
+ListenOn = "fe80::21d:9ff:fe89:7d68%eth0";
 NoRelay;
 LoadExtension = "extensions/dbg_monitor.fdx";
 LoadExtension = "extensions/dict_nasreq.fdx";

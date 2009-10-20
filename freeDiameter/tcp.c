@@ -36,6 +36,7 @@
 #include "fD.h"
 #include <netinet/tcp.h>
 #include <netinet/ip6.h>
+#include <sys/socket.h>
 
 /* Set the socket options for TCP sockets, before bind is called */
 static int fd_tcp_setsockopt(int family, int sk)
@@ -108,5 +109,29 @@ int fd_tcp_listen( int sock )
 {
 	TRACE_ENTRY("%d", sock);
 	CHECK_SYS( listen(sock, 5) );
+	return 0;
+}
+
+/* Get the local name of a TCP socket -- would be nice if it did not return "0.0.0.0"... */
+int fd_tcp_get_local_ep(int sock, sSS * ss, socklen_t *sl)
+{
+	TRACE_ENTRY("%d %p %p", sock, ss, sl);
+	CHECK_PARAMS( ss && sl );
+	
+	*sl = sizeof(sSS);
+	CHECK_SYS(getsockname(sock, (sSA *)ss, sl));
+	
+	return 0;
+}
+
+/* Get the remote name of a TCP socket */
+int fd_tcp_get_remote_ep(int sock, sSS * ss, socklen_t *sl)
+{
+	TRACE_ENTRY("%d %p %p", sock, ss, sl);
+	CHECK_PARAMS( ss && sl );
+	
+	*sl = sizeof(sSS);
+	CHECK_SYS(getpeername(sock, (sSA *)ss, sl));
+	
 	return 0;
 }

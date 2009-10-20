@@ -9,7 +9,10 @@ Project("freeDiameter include directory" C)
 OPTION(DEFAULT_CONF_FILE "Default path to configuration file?" OFF)
 
 # Disable SCTP support completly ?
-OPTION(DISABLE_SCTP "Disable SCTP support?")
+OPTION(DISABLE_SCTP "Disable SCTP support?" OFF)
+IF (NOT DISABLE_SCTP)
+	OPTION(DEBUG_SCTP "Verbose SCTP (for debug)?" OFF)
+ENDIF (NOT DISABLE_SCTP)
 
 # Find TODO items in the code easily ?
 OPTION(ERRORS_ON_TODO "(development) Generate compilation errors on TODO items ?" OFF)

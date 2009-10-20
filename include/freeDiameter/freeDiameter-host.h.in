@@ -44,6 +44,7 @@
 #cmakedefine HOST_BIG_ENDIAN @HOST_BIG_ENDIAN@
 
 #cmakedefine DISABLE_SCTP
+#cmakedefine DEBUG_SCTP
 #cmakedefine ERRORS_ON_TODO
 #cmakedefine DEBUG
 

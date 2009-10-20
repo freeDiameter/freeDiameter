@@ -211,25 +211,16 @@ sctpstreams:		SCTPSTREAMS '=' INTEGER ';'
 
 listenon:		LISTENON '=' QSTRING ';'
 			{
-				struct fd_endpoint * ep;
 				struct addrinfo hints, *ai;
 				int ret;
-				
-				CHECK_MALLOC_DO( ep = malloc(sizeof(struct fd_endpoint)),
-					{ yyerror (&yylloc, conf, "Out of memory"); YYERROR; } );
-				memset(ep, 0, sizeof(struct fd_endpoint));
-				fd_list_init(&ep->chain, NULL);
-				ep->meta.conf = 1;
 				
 				memset(&hints, 0, sizeof(hints));
 				hints.ai_flags = AI_PASSIVE | AI_NUMERICHOST;
 				ret = getaddrinfo($3, NULL, &hints, &ai);
-				if (ret) { yyerror (&yylloc, conf, gai_strerror(ret)); free(ep); YYERROR; }
-				ASSERT( ai->ai_addrlen <= sizeof(sSS) );
-				memcpy(&ep->ss, ai->ai_addr, ai->ai_addrlen);
-				free($3);
+				if (ret) { yyerror (&yylloc, conf, gai_strerror(ret)); YYERROR; }
+				CHECK_FCT_DO( fd_ep_add_merge( &conf->cnf_endpoints, ai->ai_addr, ai->ai_addrlen, 1, 0, 0, 0 ), YYERROR );
 				freeaddrinfo(ai);
-				fd_list_insert_before(&conf->cnf_endpoints, &ep->chain);
+				free($3);
 			}
 			;
 
@@ -429,30 +420,24 @@ peerparams:		/* empty */
 			}
 			| peerparams CONNTO '=' QSTRING ';'
 			{
-				struct fd_endpoint * ep;
 				struct addrinfo hints, *ai;
 				int ret;
+				int disc = 0;
 				
-				CHECK_MALLOC_DO( ep = malloc(sizeof(struct fd_endpoint)),
-					{ yyerror (&yylloc, conf, "Out of memory"); YYERROR; } );
-				memset(ep, 0, sizeof(struct fd_endpoint));
-				fd_list_init(&ep->chain, NULL);
-				ep->meta.conf = 1;
 				memset(&hints, 0, sizeof(hints));
 				hints.ai_flags = AI_ADDRCONFIG | AI_NUMERICHOST;
 				ret = getaddrinfo($4, NULL, &hints, &ai);
 				if (ret == EAI_NONAME) {
 					/* The name was maybe not numeric, try again */
-					ep->meta.disc = 1;
+					disc = 1;
 					hints.ai_flags &= ~ AI_NUMERICHOST;
 					ret = getaddrinfo($4, NULL, &hints, &ai);
 				}
-				if (ret) { yyerror (&yylloc, conf, gai_strerror(ret)); free(ep); YYERROR; }
+				if (ret) { yyerror (&yylloc, conf, gai_strerror(ret)); YYERROR; }
 				
-				memcpy(&ep->ss, ai->ai_addr, ai->ai_addrlen);
+				CHECK_FCT_DO( fd_ep_add_merge( &fddpi.pi_endpoints, ai->ai_addr, ai->ai_addrlen, 1, disc, 0, 0 ), YYERROR );
 				free($4);
 				freeaddrinfo(ai);
-				fd_list_insert_before(&fddpi.pi_endpoints, &ep->chain);
 			}
 			;
 

@@ -328,14 +328,55 @@ extern int fd_g_debug_lvl;
 			0,					\
 			flag);					\
 	  if (__rc)						\
-	  	fd_log_debug((char *)gai_strerror(__rc));	\
+	  	fd_log_debug("%s", (char *)gai_strerror(__rc));	\
 	  else							\
-	  	fd_log_debug(&__addrbuf[0]);			\
+	  	fd_log_debug("%s", &__addrbuf[0]);		\
 	} else {						\
 		fd_log_debug("(NULL / ANY)");			\
 	}							\
 }
-/* if needed, add sSA_DUMP_SERVICE */
+/* Same, for a service */
+#define sSA_DUMP_SERV( sa, flag ) {				\
+	sSA * __sa = (sSA *)(sa);				\
+	char __servbuf[32];					\
+	if (__sa) {						\
+	  int __rc = getnameinfo(__sa, 				\
+	  		sizeof(sSS),				\
+			NULL,					\
+			0,					\
+			__servbuf,				\
+			sizeof(__servbuf),			\
+			flag);					\
+	  if (__rc)						\
+	  	fd_log_debug("%s", (char *)gai_strerror(__rc));	\
+	  else							\
+	  	fd_log_debug("%s", &__servbuf[0]);		\
+	} else {						\
+		fd_log_debug("(unknown)");			\
+	}							\
+}
+/* Combine both */
+#define sSA_DUMP_NODE_SERV( sa, flag ) {				\
+	sSA * __sa = (sSA *)(sa);					\
+	char __addrbuf[INET6_ADDRSTRLEN];				\
+	char __servbuf[32];						\
+	if (__sa) {							\
+	  int __rc = getnameinfo(__sa, 					\
+	  		sizeof(sSS),					\
+			__addrbuf,					\
+			sizeof(__addrbuf),				\
+			__servbuf,					\
+			sizeof(__servbuf),				\
+			flag);						\
+	  if (__rc)							\
+	  	fd_log_debug("%s", (char *)gai_strerror(__rc));		\
+	  else								\
+	  	fd_log_debug("[%s]:%s", &__addrbuf[0],&__servbuf[0]);	\
+	} else {							\
+		fd_log_debug("(NULL / ANY)");				\
+	}								\
+}
+
 
 /* A l4 protocol name (TCP / SCTP) */
 #define IPPROTO_NAME( _proto )					\

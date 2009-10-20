@@ -213,9 +213,11 @@ int fd_cnx_serv_listen(struct cnxctx * conn)
 			CHECK_FCT(fd_tcp_listen(conn->cc_socket));
 			break;
 
+#ifndef DISABLE_SCTP
 		case IPPROTO_SCTP:
 			CHECK_FCT(fd_sctp_listen(conn->cc_socket));
 			break;
+#endif /* DISABLE_SCTP */
 
 		default:
 			CHECK_PARAMS(0);
@@ -399,7 +401,7 @@ int fd_cnx_getcred(struct cnxctx * conn, const gnutls_datum_t **cert_list, unsig
 	return ENOTSUP;
 }
 
-/* Get the list of endpoints (IP addresses) of the local and remote peers on this conenction */
+/* Get the list of endpoints (IP addresses) of the local and remote peers on this connection */
 int fd_cnx_getendpoints(struct cnxctx * conn, struct fd_list * local, struct fd_list * remote)
 {
 	TRACE_ENTRY("%p %p %p", conn, local, remote);
@@ -407,18 +409,54 @@ int fd_cnx_getendpoints(struct cnxctx * conn, struct fd_list * local, struct fd_
 	
 	if (local) {
 		/* Retrieve the local endpoint(s) of the connection */
-		TODO("TCP : getsockname");
-		TODO("SCTP: sctp_getladdrs / _sctp_getboundaddrs (waaad)");
+		switch (conn->cc_proto) {
+			case IPPROTO_TCP: {
+				sSS ss;
+				socklen_t sl;
+				CHECK_FCT(fd_tcp_get_local_ep(conn->cc_socket, &ss, &sl));
+				CHECK_FCT(fd_ep_add_merge( local, (sSA *)&ss, sl, 0, 0, 0, 1 ));
+			}
+			break;
+
+			#ifndef DISABLE_SCTP
+			case IPPROTO_SCTP: {
+				CHECK_FCT(fd_sctp_get_local_ep(conn->cc_socket, local));
+			}
+			break;
+			#endif /* DISABLE_SCTP */
+
+			default:
+				CHECK_PARAMS(0);
+		}
 	}
 	
 	if (remote) {
-		/* Retrieve the peer endpoint(s) of the connection */
-		TODO("TCP : getpeername");
-		TODO("SCTP: sctp_getpaddrs");
+		/* Check we have a full connection object, not a listening socket (with no remote) */
+		CHECK_PARAMS( conn->cc_events );
 		
+		/* Retrieve the peer endpoint(s) of the connection */
+		switch (conn->cc_proto) {
+			case IPPROTO_TCP: {
+				sSS ss;
+				socklen_t sl;
+				CHECK_FCT(fd_tcp_get_remote_ep(conn->cc_socket, &ss, &sl));
+				CHECK_FCT(fd_ep_add_merge( remote, (sSA *)&ss, sl, 0, 0, 0, 1 ));
+			}
+			break;
+
+			#ifndef DISABLE_SCTP
+			case IPPROTO_SCTP: {
+				CHECK_FCT(fd_sctp_get_remote_ep(conn->cc_socket, remote));
+			}
+			break;
+			#endif /* DISABLE_SCTP */
+
+			default:
+				CHECK_PARAMS(0);
+		}
 	}
 
-	return ENOTSUP;
+	return 0;
 }
 
 
