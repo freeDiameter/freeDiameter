@@ -290,7 +290,7 @@ int fd_servers_start()
 			for (li = fd_g_config->cnf_endpoints.next; li != &fd_g_config->cnf_endpoints; li = li->next) {
 				struct fd_endpoint * ep = (struct fd_endpoint *)li;
 				sSA * sa = (sSA *) &ep->ss;
-				if (! ep->meta.conf)
+				if (! (ep->flags & EP_FL_CONF))
 					continue;
 				if (fd_g_config->cnf_flags.no_ip4 && (sa->sa_family == AF_INET))
 					continue;

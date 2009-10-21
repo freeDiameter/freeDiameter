@@ -117,25 +117,23 @@ extern struct fd_config *fd_g_config; /* The pointer to access the global config
 /* Endpoints */
 struct fd_endpoint {
 	struct fd_list  chain;	/* link in cnf_endpoints list */
+	
 	union {
-		sSS		ss;	/* the socket information. List is always ordered by ss value (memcmp) */
+		sSS		ss;	/* the socket information. List is always ordered by ss value (memcmp) -- see fd_ep_add_merge */
 		sSA4		sin;
 		sSA6		sin6;
 		sSA		sa;
 	};
-	struct {
-		unsigned conf : 1; /* This endpoint is statically configured in a configuration file */
-		unsigned disc : 1; /* This endpoint was resolved from the Diameter Identity or other DNS query */
-		unsigned adv  : 1; /* This endpoint was advertized in Diameter CER/CEA exchange */
-		unsigned ll   : 1; /* Lower layer mechanism provided this endpoint */
+	
+#define	EP_FL_CONF	(1 << 0)	/* This endpoint is statically configured in a configuration file */
+#define	EP_FL_DISC	(1 << 1)	/* This endpoint was resolved from the Diameter Identity or other DNS query */
+#define	EP_FL_ADV	(1 << 2)	/* This endpoint was advertized in Diameter CER/CEA exchange */
+#define	EP_FL_LL	(1 << 3)	/* Lower layer mechanism provided this endpoint */
+#define	EP_FL_PRIMARY	(1 << 4)	/* This endpoint is primary in a multihomed SCTP association */
+	uint32_t	flags;		/* Additional information about the endpoint */
 		
-		/* To add: a validity timestamp for DNS records ? How do we retrieve this lifetime from DNS ? */
-
-	}		meta;	/* Additional information about the endpoint */
+	/* To add: a validity timestamp for DNS records ? How do we retrieve this lifetime from DNS ? */
 };
-
-/* Add a new entry in a list of endpoints -- merge if the sockaddr was already there */
-int fd_ep_add_merge( struct fd_list * list, sSA * sa, socklen_t sl, int conf, int disc, int adv, int ll );
 
 /* Applications */
 struct fd_app {
@@ -465,6 +463,16 @@ int fd_msg_add_origin ( struct msg * msg, int osi );
 int fd_disp_app_support ( struct dict_object * app, struct dict_object * vendor, int auth, int acct );
 
 /* Note: if we want to support capabilities updates, we'll have to add possibility to remove an app as well... */
+
+
+/***************************************/
+/*   Endpoints lists helpers           */
+/***************************************/
+
+int fd_ep_add_merge( struct fd_list * list, sSA * sa, socklen_t sl, uint32_t flags );
+int fd_ep_filter( struct fd_list * list, uint32_t flags );
+int fd_ep_clearflags( struct fd_list * list, uint32_t flags );
+
 
 
 #endif /* _FREEDIAMETER_H */

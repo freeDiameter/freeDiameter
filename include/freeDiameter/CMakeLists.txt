@@ -12,6 +12,7 @@ OPTION(DEFAULT_CONF_FILE "Default path to configuration file?" OFF)
 OPTION(DISABLE_SCTP "Disable SCTP support?" OFF)
 IF (NOT DISABLE_SCTP)
 	OPTION(DEBUG_SCTP "Verbose SCTP (for debug)?" OFF)
+	OPTION(SCTP_USE_MAPPED_ADDRESSES "Use v6-mapped v4 addresses in SCTP (workaround some SCTP limitations)?" OFF)
 ENDIF (NOT DISABLE_SCTP)
 
 # Find TODO items in the code easily ?

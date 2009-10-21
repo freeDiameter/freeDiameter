@@ -173,9 +173,15 @@ error:
 	fd_cnx_destroy(cnx);
 	return NULL;
 }
-#ifndef DISABLE_SCTP
+
+/* Same function for SCTP, with a list of local endpoints to bind to */
 struct cnxctx * fd_cnx_serv_sctp(uint16_t port, struct fd_list * ep_list)
 {
+#ifdef DISABLE_SCTP
+	TRACE_DEBUG(INFO, "This function should never been called when SCTP is disabled...");
+	ASSERT(0);
+	CHECK_FCT_DO( ENOTSUP, return NULL);
+#else /* DISABLE_SCTP */
 	struct cnxctx * cnx = NULL;
 	sSS dummy;
 	sSA * sa = (sSA *) &dummy;
@@ -200,8 +206,8 @@ struct cnxctx * fd_cnx_serv_sctp(uint16_t port, struct fd_list * ep_list)
 error:
 	fd_cnx_destroy(cnx);
 	return NULL;
-}
 #endif /* DISABLE_SCTP */
+}
 
 /* Allow clients to connect on the server socket */
 int fd_cnx_serv_listen(struct cnxctx * conn)
@@ -238,12 +244,13 @@ struct cnxctx * fd_cnx_serv_accept(struct cnxctx * serv)
 	TRACE_ENTRY("%p", serv);
 	CHECK_PARAMS_DO(serv, return NULL);
 	
+	/* Accept the new connection -- this is blocking until new client enters or cancellation */
 	CHECK_SYS_DO( cli_sock = accept(serv->cc_socket, (sSA *)&ss, &ss_len), return NULL );
 	
 	if (TRACE_BOOL(INFO)) {
-		fd_log_debug("%s - new client [", fd_cnx_getid(serv));
-		sSA_DUMP_NODE( &ss, AI_NUMERICHOST );
-		fd_log_debug("] connected.\n");
+		fd_log_debug("%s : accepted new client [", fd_cnx_getid(serv));
+		sSA_DUMP_NODE( &ss, NI_NUMERICHOST );
+		fd_log_debug("].\n");
 	}
 	
 	CHECK_MALLOC_DO( cli = fd_cnx_init(1), { shutdown(cli_sock, SHUT_RDWR); return NULL; } );
@@ -258,25 +265,27 @@ struct cnxctx * fd_cnx_serv_accept(struct cnxctx * serv)
 		
 		/* Numeric values for debug */
 		rc = getnameinfo((sSA *)&ss, sizeof(sSS), addrbuf, sizeof(addrbuf), portbuf, sizeof(portbuf), NI_NUMERICHOST | NI_NUMERICSERV);
-		if (rc)
+		if (rc) {
 			snprintf(addrbuf, sizeof(addrbuf), "[err:%s]", gai_strerror(rc));
+			portbuf[0] = '\0';
+		}
 		
-		snprintf(cli->cc_id, sizeof(cli->cc_id), "Client %s [%s]:%s (%d) / serv (%d)", 
+		snprintf(cli->cc_id, sizeof(cli->cc_id), "Incoming %s [%s]:%s (%d) @ serv (%d)", 
 				IPPROTO_NAME(cli->cc_proto), 
 				addrbuf, portbuf, 
 				cli->cc_socket, serv->cc_socket);
 		
-		/* Textual value for log messages */
-		rc = getnameinfo((sSA *)&ss, sizeof(sSS), cli->cc_remid, sizeof(cli->cc_remid), NULL, 0, NI_NUMERICHOST);
+		/* Name for log messages */
+		rc = getnameinfo((sSA *)&ss, sizeof(sSS), cli->cc_remid, sizeof(cli->cc_remid), NULL, 0, 0);
 		if (rc)
 			snprintf(cli->cc_remid, sizeof(cli->cc_remid), "[err:%s]", gai_strerror(rc));
 	}
 
-	/* SCTP-specific handlings */
 #ifndef DISABLE_SCTP
+	/* SCTP-specific handlings */
 	if (cli->cc_proto == IPPROTO_SCTP) {
 		/* Retrieve the number of streams */
-		CHECK_FCT_DO( fd_sctp_get_str_info( cli->cc_socket, &cli->cc_sctp_para.str_in, &cli->cc_sctp_para.str_out ), goto error );
+		CHECK_FCT_DO( fd_sctp_get_str_info( cli->cc_socket, &cli->cc_sctp_para.str_in, &cli->cc_sctp_para.str_out, NULL ), goto error );
 		if (cli->cc_sctp_para.str_out > cli->cc_sctp_para.str_in)
 			cli->cc_sctp_para.pairs = cli->cc_sctp_para.str_out;
 		else
@@ -290,12 +299,121 @@ error:
 	return NULL;
 }
 
-/* Client side: connect to a remote server */
-struct cnxctx * fd_cnx_cli_connect(int proto, const sSA * sa,  socklen_t addrlen)
+/* Client side: connect to a remote server -- cancelable */
+struct cnxctx * fd_cnx_cli_connect_tcp(sSA * sa /* contains the port already */, socklen_t addrlen)
 {
+	int sock;
+	struct cnxctx * cnx = NULL;
+	
+	TRACE_ENTRY("%p %d", sa, addrlen);
+	CHECK_PARAMS_DO( sa && addrlen, return NULL );
+	
+	/* Create the socket and connect, which can take some time and/or fail */
+	CHECK_FCT_DO( fd_tcp_client( &sock, sa, addrlen ), return NULL );
+	
+	if (TRACE_BOOL(INFO)) {
+		fd_log_debug("Connection established to server '");
+		sSA_DUMP_NODE_SERV( sa, NI_NUMERICSERV);
+		fd_log_debug("' (TCP:%d).\n", sock);
+	}
+	
+	/* Once the socket is created successfuly, prepare the remaining of the cnx */
+	CHECK_MALLOC_DO( cnx = fd_cnx_init(1), { shutdown(sock, SHUT_RDWR); return NULL; } );
+	
+	cnx->cc_socket = sock;
+	cnx->cc_proto  = IPPROTO_TCP;
+	
+	/* Generate the names for the object */
+	{
+		char addrbuf[INET6_ADDRSTRLEN];
+		char portbuf[10];
+		int  rc;
+		
+		/* Numeric values for debug */
+		rc = getnameinfo(sa, addrlen, addrbuf, sizeof(addrbuf), portbuf, sizeof(portbuf), NI_NUMERICHOST | NI_NUMERICSERV);
+		if (rc) {
+			snprintf(addrbuf, sizeof(addrbuf), "[err:%s]", gai_strerror(rc));
+			portbuf[0] = '\0';
+		}
+		
+		snprintf(cnx->cc_id, sizeof(cnx->cc_id), "Client of TCP server [%s]:%s (%d)", addrbuf, portbuf, cnx->cc_socket);
+		
+		/* Name for log messages */
+		rc = getnameinfo(sa, addrlen, cnx->cc_remid, sizeof(cnx->cc_remid), NULL, 0, 0);
+		if (rc)
+			snprintf(cnx->cc_remid, sizeof(cnx->cc_remid), "[err:%s]", gai_strerror(rc));
+	}
+	
+	return cnx;
 
-	TODO("...");
+error:
+	fd_cnx_destroy(cnx);
 	return NULL;
+}
+
+/* Same for SCTP, accepts a list of remote addresses to connect to (see sctp_connectx) */
+struct cnxctx * fd_cnx_cli_connect_sctp(int no_ip6, uint16_t port, struct fd_list * list)
+{
+#ifdef DISABLE_SCTP
+	TRACE_DEBUG(INFO, "This function should never been called when SCTP is disabled...");
+	ASSERT(0);
+	CHECK_FCT_DO( ENOTSUP, return NULL);
+#else /* DISABLE_SCTP */
+	int sock;
+	struct cnxctx * cnx = NULL;
+	sSS primary;
+	
+	TRACE_ENTRY("%p", list);
+	CHECK_PARAMS_DO( list && !FD_IS_LIST_EMPTY(list), return NULL );
+	
+	CHECK_FCT_DO( fd_sctp_client( &sock, no_ip6, port, list ), return NULL );
+	
+	/* Once the socket is created successfuly, prepare the remaining of the cnx */
+	CHECK_MALLOC_DO( cnx = fd_cnx_init(1), { shutdown(sock, SHUT_RDWR); return NULL; } );
+	
+	cnx->cc_socket = sock;
+	cnx->cc_proto  = IPPROTO_SCTP;
+	
+	/* Retrieve the number of streams and primary address */
+	CHECK_FCT_DO( fd_sctp_get_str_info( sock, &cnx->cc_sctp_para.str_in, &cnx->cc_sctp_para.str_out, &primary ), goto error );
+	if (cnx->cc_sctp_para.str_out > cnx->cc_sctp_para.str_in)
+		cnx->cc_sctp_para.pairs = cnx->cc_sctp_para.str_out;
+	else
+		cnx->cc_sctp_para.pairs = cnx->cc_sctp_para.str_in;
+	
+	/* Generate the names for the object */
+	{
+		char addrbuf[INET6_ADDRSTRLEN];
+		char portbuf[10];
+		int  rc;
+		
+		/* Numeric values for debug */
+		rc = getnameinfo((sSA *)&primary, sizeof(sSS), addrbuf, sizeof(addrbuf), portbuf, sizeof(portbuf), NI_NUMERICHOST | NI_NUMERICSERV);
+		if (rc) {
+			snprintf(addrbuf, sizeof(addrbuf), "[err:%s]", gai_strerror(rc));
+			portbuf[0] = '\0';
+		}
+		
+		snprintf(cnx->cc_id, sizeof(cnx->cc_id), "Client of SCTP server [%s]:%s (%d)", addrbuf, portbuf, cnx->cc_socket);
+		
+		/* Name for log messages */
+		rc = getnameinfo((sSA *)&primary, sizeof(sSS), cnx->cc_remid, sizeof(cnx->cc_remid), NULL, 0, 0);
+		if (rc)
+			snprintf(cnx->cc_remid, sizeof(cnx->cc_remid), "[err:%s]", gai_strerror(rc));
+	}
+	
+	if (TRACE_BOOL(INFO)) {
+		fd_log_debug("Connection established to server '");
+		sSA_DUMP_NODE_SERV( &primary, NI_NUMERICSERV);
+		fd_log_debug("' (SCTP:%d).\n", sock);
+	}
+	
+	return cnx;
+
+error:
+	fd_cnx_destroy(cnx);
+	return NULL;
+#endif /* DISABLE_SCTP */
 }
 
 /* Return a string describing the connection, for debug */
@@ -414,7 +532,7 @@ int fd_cnx_getendpoints(struct cnxctx * conn, struct fd_list * local, struct fd_
 				sSS ss;
 				socklen_t sl;
 				CHECK_FCT(fd_tcp_get_local_ep(conn->cc_socket, &ss, &sl));
-				CHECK_FCT(fd_ep_add_merge( local, (sSA *)&ss, sl, 0, 0, 0, 1 ));
+				CHECK_FCT(fd_ep_add_merge( local, (sSA *)&ss, sl, EP_FL_LL | EP_FL_PRIMARY));
 			}
 			break;
 
@@ -440,7 +558,7 @@ int fd_cnx_getendpoints(struct cnxctx * conn, struct fd_list * local, struct fd_
 				sSS ss;
 				socklen_t sl;
 				CHECK_FCT(fd_tcp_get_remote_ep(conn->cc_socket, &ss, &sl));
-				CHECK_FCT(fd_ep_add_merge( remote, (sSA *)&ss, sl, 0, 0, 0, 1 ));
+				CHECK_FCT(fd_ep_add_merge( remote, (sSA *)&ss, sl, EP_FL_LL | EP_FL_PRIMARY ));
 			}
 			break;
 
@@ -527,7 +645,3 @@ void fd_cnx_destroy(struct cnxctx * conn)
 	/* Done! */
 	return;
 }
-
-
-
-

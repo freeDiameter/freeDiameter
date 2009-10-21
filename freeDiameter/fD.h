@@ -206,7 +206,8 @@ struct cnxctx * fd_cnx_serv_tcp(uint16_t port, int family, struct fd_endpoint * 
 struct cnxctx * fd_cnx_serv_sctp(uint16_t port, struct fd_list * ep_list);
 int fd_cnx_serv_listen(struct cnxctx * conn);
 struct cnxctx * fd_cnx_serv_accept(struct cnxctx * serv);
-struct cnxctx * fd_cnx_cli_connect(int proto, const sSA * sa,  socklen_t addrlen);
+struct cnxctx * fd_cnx_cli_connect_tcp(sSA * sa, socklen_t addrlen);
+struct cnxctx * fd_cnx_cli_connect_sctp(int no_ip6, uint16_t port, struct fd_list * list);
 char * fd_cnx_getid(struct cnxctx * conn);
 int fd_cnx_start_clear(struct cnxctx * conn);
 int fd_cnx_handshake(struct cnxctx * conn, int mode, char * priority);
@@ -221,6 +222,7 @@ void fd_cnx_destroy(struct cnxctx * conn);
 /* TCP */
 int fd_tcp_create_bind_server( int * sock, sSA * sa, socklen_t salen );
 int fd_tcp_listen( int sock );
+int fd_tcp_client( int *sock, sSA * sa, socklen_t salen );
 int fd_tcp_get_local_ep(int sock, sSS * ss, socklen_t *sl);
 int fd_tcp_get_remote_ep(int sock, sSS * ss, socklen_t *sl);
 
@@ -228,9 +230,10 @@ int fd_tcp_get_remote_ep(int sock, sSS * ss, socklen_t *sl);
 #ifndef DISABLE_SCTP
 int fd_sctp_create_bind_server( int * sock, struct fd_list * list, uint16_t port );
 int fd_sctp_listen( int sock );
+int fd_sctp_client( int *sock, int no_ip6, uint16_t port, struct fd_list * list );
 int fd_sctp_get_local_ep(int sock, struct fd_list * list);
 int fd_sctp_get_remote_ep(int sock, struct fd_list * list);
-int fd_sctp_get_str_info( int socket, int *in, int *out );
+int fd_sctp_get_str_info( int sock, int *in, int *out, sSS *primary );
 
 #endif /* DISABLE_SCTP */
 

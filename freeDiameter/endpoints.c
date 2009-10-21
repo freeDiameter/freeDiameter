@@ -33,41 +33,78 @@
 * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.								 *
 *********************************************************************************************************/
 
-/* Configuration from compile-time */
-#ifndef FD_IS_CONFIG
-#define FD_IS_CONFIG
-
-#cmakedefine HAVE_NTOHLL
-#cmakedefine HAVE_MALLOC_H
-#cmakedefine HAVE_SIGNALENT_H
-
-#cmakedefine HOST_BIG_ENDIAN @HOST_BIG_ENDIAN@
-
-#cmakedefine DISABLE_SCTP
-#cmakedefine DEBUG_SCTP
-#cmakedefine SCTP_USE_MAPPED_ADDRESSES
-#cmakedefine ERRORS_ON_TODO
-#cmakedefine DEBUG
-
-#cmakedefine FD_PROJECT_BINARY "@FD_PROJECT_BINARY@"
-#cmakedefine FD_PROJECT_NAME "@FD_PROJECT_NAME@"
-#cmakedefine FD_PROJECT_VERSION_MAJOR @FD_PROJECT_VERSION_MAJOR@
-#ifndef FD_PROJECT_VERSION_MAJOR
-# define FD_PROJECT_VERSION_MAJOR 0
-#endif /*FD_PROJECT_VERSION_MAJOR*/
-#cmakedefine FD_PROJECT_VERSION_MINOR @FD_PROJECT_VERSION_MINOR@
-#ifndef FD_PROJECT_VERSION_MINOR
-# define FD_PROJECT_VERSION_MINOR 0
-#endif /*FD_PROJECT_VERSION_MINOR*/
-#cmakedefine FD_PROJECT_VERSION_REV   @FD_PROJECT_VERSION_REV@
-#ifndef FD_PROJECT_VERSION_REV
-# define FD_PROJECT_VERSION_REV 0
-#endif /*FD_PROJECT_VERSION_REV*/
-/* HG_VERSION */
-/* PACKAGE_HG_REVISION */
-#cmakedefine FD_PROJECT_COPYRIGHT "@FD_PROJECT_COPYRIGHT@"
-
-#cmakedefine DEFAULT_CONF_FILE "@DEFAULT_CONF_FILE@"
+#include "fD.h"
 
 
-#endif /* FD_IS_CONFIG */
+/* Add an endpoint information in a list */
+int fd_ep_add_merge( struct fd_list * list, sSA * sa, socklen_t sl, uint32_t flags )
+{
+	struct fd_endpoint * ep;
+	struct fd_list * li;
+	int cmp = -1;
+	
+	TRACE_ENTRY("%p %p %u %x", list, sa, sl, flags);
+	CHECK_PARAMS( list && sa && (sl <= sizeof(sSS)) );
+	
+	/* Search place in the list */
+	for (li = list->next; li != list; li = li->next) {
+		ep = (struct fd_endpoint *)li;
+		
+		cmp = memcmp(&ep->ss, sa, sl);
+		if (cmp >= 0)
+			break;
+	}
+	
+	if (cmp) {
+		/* new item to be added */
+		CHECK_MALLOC( ep = malloc(sizeof(struct fd_endpoint)) );
+		memset(ep, 0, sizeof(struct fd_endpoint));
+		fd_list_init(&ep->chain, NULL);
+		memcpy(&ep->ss, sa, sl);
+		
+		/* Insert in the list */
+		fd_list_insert_before(li, &ep->chain);
+	}
+	
+	/* Merge the flags */
+	ep->flags |= flags;
+	
+	return 0;
+}
+
+/* Delete endpoints that do not have a matching flag from a list (0: delete all endpoints) */
+int fd_ep_filter( struct fd_list * list, uint32_t flags )
+{
+	struct fd_list * li;
+	
+	TRACE_ENTRY("%p %x", list, flags);
+	CHECK_PARAMS(list);
+	
+	for (li = list->next; li != list; li = li->next) {
+		struct fd_endpoint * ep = (struct fd_endpoint *)li;
+		
+		if (! (ep->flags & flags)) {
+			li = li->prev;
+			fd_list_unlink(&ep->chain);
+			free(ep);
+		}
+	}
+	
+	return 0;
+}
+
+/* Reset the given flag(s) from all items in the list */
+int fd_ep_clearflags( struct fd_list * list, uint32_t flags )
+{
+	struct fd_list * li;
+	
+	TRACE_ENTRY("%p %x", list, flags);
+	CHECK_PARAMS(list);
+	
+	for (li = list->next; li != list; li = li->next) {
+		struct fd_endpoint * ep = (struct fd_endpoint *)li;
+		ep->flags &= ~flags;
+	}
+	
+	return 0;
+}

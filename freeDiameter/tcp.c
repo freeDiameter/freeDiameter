@@ -112,6 +112,32 @@ int fd_tcp_listen( int sock )
 	return 0;
 }
 
+/* Create a client socket and connect to remote server */
+int fd_tcp_client( int *sock, sSA * sa, socklen_t salen )
+{
+	TRACE_ENTRY("%p %p %d", sock, sa, salen);
+	CHECK_PARAMS( sock && sa && salen );
+	
+	/* Create the socket */
+	CHECK_SYS(  *sock = socket(sa->sa_family, SOCK_STREAM, IPPROTO_TCP)  );
+	
+	/* Cleanup if we are cancelled */
+	pthread_cleanup_push(fd_cleanup_socket, sock);
+	
+	/* Set the socket options */
+	CHECK_FCT(  fd_tcp_setsockopt(sa->sa_family, *sock)  );
+	
+	TRACE_DEBUG_sSA(FULL, "Attempting TCP connection with peer: ", sa, NI_NUMERICHOST | NI_NUMERICSERV, "..." );
+	
+	/* Try connecting to the remote address */
+	CHECK_SYS( connect(*sock, sa, salen) );
+	
+	/* Done! */
+	pthread_cleanup_pop(0);
+	return 0;
+}
+
+
 /* Get the local name of a TCP socket -- would be nice if it did not return "0.0.0.0"... */
 int fd_tcp_get_local_ep(int sock, sSS * ss, socklen_t *sl)
 {

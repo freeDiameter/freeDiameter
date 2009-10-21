@@ -12,6 +12,7 @@ SET(FD_COMMON_SRC
 	config.c
 	cnxctx.c
 	dispatch.c
+	endpoints.c
 	extensions.c
 	dict_base_proto.c
 	messages.c

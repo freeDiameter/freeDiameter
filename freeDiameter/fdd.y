@@ -218,7 +218,7 @@ listenon:		LISTENON '=' QSTRING ';'
 				hints.ai_flags = AI_PASSIVE | AI_NUMERICHOST;
 				ret = getaddrinfo($3, NULL, &hints, &ai);
 				if (ret) { yyerror (&yylloc, conf, gai_strerror(ret)); YYERROR; }
-				CHECK_FCT_DO( fd_ep_add_merge( &conf->cnf_endpoints, ai->ai_addr, ai->ai_addrlen, 1, 0, 0, 0 ), YYERROR );
+				CHECK_FCT_DO( fd_ep_add_merge( &conf->cnf_endpoints, ai->ai_addr, ai->ai_addrlen, EP_FL_CONF ), YYERROR );
 				freeaddrinfo(ai);
 				free($3);
 			}
@@ -429,13 +429,13 @@ peerparams:		/* empty */
 				ret = getaddrinfo($4, NULL, &hints, &ai);
 				if (ret == EAI_NONAME) {
 					/* The name was maybe not numeric, try again */
-					disc = 1;
+					disc = EP_FL_DISC;
 					hints.ai_flags &= ~ AI_NUMERICHOST;
 					ret = getaddrinfo($4, NULL, &hints, &ai);
 				}
 				if (ret) { yyerror (&yylloc, conf, gai_strerror(ret)); YYERROR; }
 				
-				CHECK_FCT_DO( fd_ep_add_merge( &fddpi.pi_endpoints, ai->ai_addr, ai->ai_addrlen, 1, disc, 0, 0 ), YYERROR );
+				CHECK_FCT_DO( fd_ep_add_merge( &fddpi.pi_endpoints, ai->ai_addr, ai->ai_addrlen, EP_FL_CONF | disc ), YYERROR );
 				free($4);
 				freeaddrinfo(ai);
 			}

@@ -335,27 +335,7 @@ extern int fd_g_debug_lvl;
 		fd_log_debug("(NULL / ANY)");			\
 	}							\
 }
-/* Same, for a service */
-#define sSA_DUMP_SERV( sa, flag ) {				\
-	sSA * __sa = (sSA *)(sa);				\
-	char __servbuf[32];					\
-	if (__sa) {						\
-	  int __rc = getnameinfo(__sa, 				\
-	  		sizeof(sSS),				\
-			NULL,					\
-			0,					\
-			__servbuf,				\
-			sizeof(__servbuf),			\
-			flag);					\
-	  if (__rc)						\
-	  	fd_log_debug("%s", (char *)gai_strerror(__rc));	\
-	  else							\
-	  	fd_log_debug("%s", &__servbuf[0]);		\
-	} else {						\
-		fd_log_debug("(unknown)");			\
-	}							\
-}
-/* Combine both */
+/* Same but with the port (service) also */
 #define sSA_DUMP_NODE_SERV( sa, flag ) {				\
 	sSA * __sa = (sSA *)(sa);					\
 	char __addrbuf[INET6_ADDRSTRLEN];				\
@@ -375,6 +355,19 @@ extern int fd_g_debug_lvl;
 	} else {							\
 		fd_log_debug("(NULL / ANY)");				\
 	}								\
+}
+/* Inside a debug trace */
+#define TRACE_DEBUG_sSA(level, prefix, sa, flags, suffix ) {										\
+	if ( TRACE_BOOL(level) ) {												\
+		char __buf[25];													\
+		char * __thn = ((char *)pthread_getspecific(fd_log_thname) ?: "unnamed");					\
+		fd_log_debug("\t | tid:%-20s\t%s\tin %s@%s:%d\n"								\
+			  "\t%s|%*s" prefix ,  											\
+					__thn, fd_log_time(NULL, __buf, sizeof(__buf)), __PRETTY_FUNCTION__, __FILE__, __LINE__,\
+					(level < FULL)?"@":" ",level, ""); 							\
+		sSA_DUMP_NODE_SERV( sa, flags );										\
+		fd_log_debug(suffix "\n");											\
+	}															\
 }
 
 
@@ -480,6 +473,14 @@ static __inline__ void fd_cleanup_buffer( void * buffer )
 {
 	free(buffer);
 }
+static __inline__ void fd_cleanup_socket(void * sockptr)
+{
+	if (sockptr) {
+		shutdown(*(int *)sockptr, SHUT_RDWR);
+		*(int *)sockptr = 0;
+	}
+}
+
 
 /*============================================================*/
 /*                          LISTS                             */

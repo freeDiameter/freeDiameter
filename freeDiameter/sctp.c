@@ -75,15 +75,15 @@ static int fd_setsockopt_prebind(int sk)
 			return ENOTSUP;
 		}
 		
-		TRACE_DEBUG(FULL, "SCTP_EVENTS sctp_data_io_event          : %hhu", event.sctp_data_io_event);
-		TRACE_DEBUG(FULL, "SCTP_EVENTS sctp_association_event      : %hhu", event.sctp_association_event);
-		TRACE_DEBUG(FULL, "SCTP_EVENTS sctp_address_event          : %hhu", event.sctp_address_event);
-		TRACE_DEBUG(FULL, "SCTP_EVENTS sctp_send_failure_event     : %hhu", event.sctp_send_failure_event);
-		TRACE_DEBUG(FULL, "SCTP_EVENTS sctp_peer_error_event       : %hhu", event.sctp_peer_error_event);
-		TRACE_DEBUG(FULL, "SCTP_EVENTS sctp_shutdown_event         : %hhu", event.sctp_shutdown_event);
-		TRACE_DEBUG(FULL, "SCTP_EVENTS sctp_partial_delivery_event : %hhu", event.sctp_partial_delivery_event);
-		TRACE_DEBUG(FULL, "SCTP_EVENTS sctp_adaptation_layer_event : %hhu", event.sctp_adaptation_layer_event);
-		// TRACE_DEBUG(FULL, "SCTP_EVENTS sctp_authentication_event   : %hhu", event.sctp_authentication_event);
+		TRACE_DEBUG(FULL, "SCTP_EVENTS : sctp_data_io_event          : %hhu", event.sctp_data_io_event);
+		TRACE_DEBUG(FULL, "       	 sctp_association_event      : %hhu", event.sctp_association_event);
+		TRACE_DEBUG(FULL, "       	 sctp_address_event	     : %hhu", event.sctp_address_event);
+		TRACE_DEBUG(FULL, "       	 sctp_send_failure_event     : %hhu", event.sctp_send_failure_event);
+		TRACE_DEBUG(FULL, "       	 sctp_peer_error_event       : %hhu", event.sctp_peer_error_event);
+		TRACE_DEBUG(FULL, "       	 sctp_shutdown_event	     : %hhu", event.sctp_shutdown_event);
+		TRACE_DEBUG(FULL, "       	 sctp_partial_delivery_event : %hhu", event.sctp_partial_delivery_event);
+		TRACE_DEBUG(FULL, "       	 sctp_adaptation_layer_event : %hhu", event.sctp_adaptation_layer_event);
+		// TRACE_DEBUG(FULL, "             sctp_authentication_event    : %hhu", event.sctp_authentication_event);
 		#endif /* DEBUG_SCTP */
 		
 	}
@@ -103,10 +103,10 @@ static int fd_setsockopt_prebind(int sk)
 			TRACE_DEBUG(INFO, "Invalid size of socket option: %d / %d", sz, (socklen_t)sizeof(init));
 			return ENOTSUP;
 		}
-		TRACE_DEBUG(FULL, "Def SCTP_INITMSG sinit_num_ostreams   : %hu", init.sinit_num_ostreams);
-		TRACE_DEBUG(FULL, "Def SCTP_INITMSG sinit_max_instreams  : %hu", init.sinit_max_instreams);
-		TRACE_DEBUG(FULL, "Def SCTP_INITMSG sinit_max_attempts   : %hu", init.sinit_max_attempts);
-		TRACE_DEBUG(FULL, "Def SCTP_INITMSG sinit_max_init_timeo : %hu", init.sinit_max_init_timeo);
+		TRACE_DEBUG(FULL, "Def SCTP_INITMSG : sinit_num_ostreams   : %hu", init.sinit_num_ostreams);
+		TRACE_DEBUG(FULL, "                   sinit_max_instreams  : %hu", init.sinit_max_instreams);
+		TRACE_DEBUG(FULL, "                   sinit_max_attempts   : %hu", init.sinit_max_attempts);
+		TRACE_DEBUG(FULL, "                   sinit_max_init_timeo : %hu", init.sinit_max_init_timeo);
 		#endif /* DEBUG_SCTP */
 
 		/* Set the init options -- need to receive SCTP_COMM_UP to confirm the requested parameters */
@@ -119,10 +119,10 @@ static int fd_setsockopt_prebind(int sk)
 		#ifdef DEBUG_SCTP
 		/* Check new values */
 		CHECK_SYS(  getsockopt(sk, IPPROTO_SCTP, SCTP_INITMSG, &init, &sz)  );
-		TRACE_DEBUG(FULL, "New SCTP_INITMSG sinit_num_ostreams   : %hu", init.sinit_num_ostreams);
-		TRACE_DEBUG(FULL, "New SCTP_INITMSG sinit_max_instreams  : %hu", init.sinit_max_instreams);
-		TRACE_DEBUG(FULL, "New SCTP_INITMSG sinit_max_attempts   : %hu", init.sinit_max_attempts);
-		TRACE_DEBUG(FULL, "New SCTP_INITMSG sinit_max_init_timeo : %hu", init.sinit_max_init_timeo);
+		TRACE_DEBUG(FULL, "New SCTP_INITMSG : sinit_num_ostreams   : %hu", init.sinit_num_ostreams);
+		TRACE_DEBUG(FULL, "                   sinit_max_instreams  : %hu", init.sinit_max_instreams);
+		TRACE_DEBUG(FULL, "                   sinit_max_attempts   : %hu", init.sinit_max_attempts);
+		TRACE_DEBUG(FULL, "                   sinit_max_init_timeo : %hu", init.sinit_max_init_timeo);
 		#endif /* DEBUG_SCTP */
 	}
 	
@@ -174,9 +174,9 @@ static int fd_setsockopt_prebind(int sk)
 			TRACE_DEBUG(INFO, "Invalid size of socket option: %d / %d", sz, (socklen_t)sizeof(rtoinfo));
 			return ENOTSUP;
 		}
-		TRACE_DEBUG(FULL, "Def SCTP_RTOINFO srto_initial : %u", rtoinfo.srto_initial);
-		TRACE_DEBUG(FULL, "Def SCTP_RTOINFO srto_max     : %u", rtoinfo.srto_max);
-		TRACE_DEBUG(FULL, "Def SCTP_RTOINFO srto_min     : %u", rtoinfo.srto_min);
+		TRACE_DEBUG(FULL, "Def SCTP_RTOINFO : srto_initial : %u", rtoinfo.srto_initial);
+		TRACE_DEBUG(FULL, "                   srto_max     : %u", rtoinfo.srto_max);
+		TRACE_DEBUG(FULL, "                   srto_min     : %u", rtoinfo.srto_min);
 		#endif /* DEBUG_SCTP */
 
 		rtoinfo.srto_max     = fd_g_config->cnf_timer_tw * 500 - 1000;	/* Maximum retransmit timer (in ms) (set to Tw / 2 - 1) */
@@ -187,9 +187,9 @@ static int fd_setsockopt_prebind(int sk)
 		#ifdef DEBUG_SCTP
 		/* Check new values */
 		CHECK_SYS(  getsockopt(sk, IPPROTO_SCTP, SCTP_RTOINFO, &rtoinfo, &sz)  );
-		TRACE_DEBUG(FULL, "New SCTP_RTOINFO srto_initial : %u", rtoinfo.srto_initial);
-		TRACE_DEBUG(FULL, "New SCTP_RTOINFO srto_max     : %u", rtoinfo.srto_max);
-		TRACE_DEBUG(FULL, "New SCTP_RTOINFO srto_min     : %u", rtoinfo.srto_min);
+		TRACE_DEBUG(FULL, "New SCTP_RTOINFO : srto_initial : %u", rtoinfo.srto_initial);
+		TRACE_DEBUG(FULL, "                   srto_max     : %u", rtoinfo.srto_max);
+		TRACE_DEBUG(FULL, "                   srto_min     : %u", rtoinfo.srto_min);
 		#endif /* DEBUG_SCTP */
 	}
 	#else /* SCTP_RTOINFO */
@@ -213,11 +213,11 @@ static int fd_setsockopt_prebind(int sk)
 			TRACE_DEBUG(INFO, "Invalid size of socket option: %d / %d", sz, (socklen_t)sizeof(assoc));
 			return ENOTSUP;
 		}
-		TRACE_DEBUG(FULL, "Def SCTP_ASSOCINFO sasoc_asocmaxrxt               : %hu", assoc.sasoc_asocmaxrxt);
-		TRACE_DEBUG(FULL, "Def SCTP_ASSOCINFO sasoc_number_peer_destinations : %hu", assoc.sasoc_number_peer_destinations);
-		TRACE_DEBUG(FULL, "Def SCTP_ASSOCINFO sasoc_peer_rwnd                : %u" , assoc.sasoc_peer_rwnd);
-		TRACE_DEBUG(FULL, "Def SCTP_ASSOCINFO sasoc_local_rwnd               : %u" , assoc.sasoc_local_rwnd);
-		TRACE_DEBUG(FULL, "Def SCTP_ASSOCINFO sasoc_cookie_life              : %u" , assoc.sasoc_cookie_life);
+		TRACE_DEBUG(FULL, "Def SCTP_ASSOCINFO : sasoc_asocmaxrxt               : %hu", assoc.sasoc_asocmaxrxt);
+		TRACE_DEBUG(FULL, "                     sasoc_number_peer_destinations : %hu", assoc.sasoc_number_peer_destinations);
+		TRACE_DEBUG(FULL, "                     sasoc_peer_rwnd                : %u" , assoc.sasoc_peer_rwnd);
+		TRACE_DEBUG(FULL, "                     sasoc_local_rwnd               : %u" , assoc.sasoc_local_rwnd);
+		TRACE_DEBUG(FULL, "                     sasoc_cookie_life              : %u" , assoc.sasoc_cookie_life);
 		#endif /* DEBUG_SCTP */
 
 		assoc.sasoc_asocmaxrxt = 5;	/* Maximum retransmission attempts: we want fast detection of errors */
@@ -228,11 +228,11 @@ static int fd_setsockopt_prebind(int sk)
 		#ifdef DEBUG_SCTP
 		/* Check new values */
 		CHECK_SYS(  getsockopt(sk, IPPROTO_SCTP, SCTP_ASSOCINFO, &assoc, &sz)  );
-		TRACE_DEBUG(FULL, "New SCTP_ASSOCINFO sasoc_asocmaxrxt               : %hu", assoc.sasoc_asocmaxrxt);
-		TRACE_DEBUG(FULL, "New SCTP_ASSOCINFO sasoc_number_peer_destinations : %hu", assoc.sasoc_number_peer_destinations);
-		TRACE_DEBUG(FULL, "New SCTP_ASSOCINFO sasoc_peer_rwnd                : %u" , assoc.sasoc_peer_rwnd);
-		TRACE_DEBUG(FULL, "New SCTP_ASSOCINFO sasoc_local_rwnd               : %u" , assoc.sasoc_local_rwnd);
-		TRACE_DEBUG(FULL, "New SCTP_ASSOCINFO sasoc_cookie_life              : %u" , assoc.sasoc_cookie_life);
+		TRACE_DEBUG(FULL, "New SCTP_ASSOCINFO : sasoc_asocmaxrxt               : %hu", assoc.sasoc_asocmaxrxt);
+		TRACE_DEBUG(FULL, "                     sasoc_number_peer_destinations : %hu", assoc.sasoc_number_peer_destinations);
+		TRACE_DEBUG(FULL, "                     sasoc_peer_rwnd                : %u" , assoc.sasoc_peer_rwnd);
+		TRACE_DEBUG(FULL, "                     sasoc_local_rwnd               : %u" , assoc.sasoc_local_rwnd);
+		TRACE_DEBUG(FULL, "                     sasoc_cookie_life              : %u" , assoc.sasoc_cookie_life);
 		#endif /* DEBUG_SCTP */
 	}
 	#else /* SCTP_ASSOCINFO */
@@ -257,8 +257,8 @@ static int fd_setsockopt_prebind(int sk)
 			TRACE_DEBUG(INFO, "Invalid size of socket option: %d / %d", sz, (socklen_t)sizeof(linger));
 			return ENOTSUP;
 		}
-		TRACE_DEBUG(FULL, "Def SO_LINGER l_onoff  : %d", linger.l_onoff);
-		TRACE_DEBUG(FULL, "Def SO_LINGER l_linger : %d", linger.l_linger);
+		TRACE_DEBUG(FULL, "Def SO_LINGER : l_onoff  : %d", linger.l_onoff);
+		TRACE_DEBUG(FULL, "                l_linger : %d", linger.l_linger);
 		#endif /* DEBUG_SCTP */
 		
 		linger.l_onoff	= 0;	/* Do not activate the linger */
@@ -270,8 +270,8 @@ static int fd_setsockopt_prebind(int sk)
 		#ifdef DEBUG_SCTP
 		/* Check new values */
 		CHECK_SYS(  getsockopt(sk, SOL_SOCKET, SO_LINGER, &linger, &sz)  );
-		TRACE_DEBUG(FULL, "New SO_LINGER l_onoff  : %d", linger.l_onoff);
-		TRACE_DEBUG(FULL, "New SO_LINGER l_linger : %d", linger.l_linger);
+		TRACE_DEBUG(FULL, "New SO_LINGER : l_onoff  : %d", linger.l_onoff);
+		TRACE_DEBUG(FULL, "                l_linger : %d", linger.l_linger);
 		#endif /* DEBUG_SCTP */
 	}
 	#else /* SO_LINGER */
@@ -369,8 +369,11 @@ static int fd_setsockopt_prebind(int sk)
 		TRACE_DEBUG(FULL, "Def SCTP_I_WANT_MAPPED_V4_ADDR value : %s", v4mapped ? "true" : "false");
 		#endif /* DEBUG_SCTP */
 
+#ifndef SCTP_USE_MAPPED_ADDRESSES
 		v4mapped = 0;	/* We don't want v4 mapped addresses */
-		v4mapped = 1;	/* but we have to, otherwise the bind fails in linux currently ... (Ok, It'd be better with a cmake test, any volunteer?) */
+#else /* SCTP_USE_MAPPED_ADDRESSES */
+		v4mapped = 1;	/* but we may have to, otherwise the bind fails in some environments */
+#endif /* SCTP_USE_MAPPED_ADDRESSES */
 		
 		/* Set the option to the socket */
 		CHECK_SYS(  setsockopt(sk, IPPROTO_SCTP, SCTP_I_WANT_MAPPED_V4_ADDR, &v4mapped, sizeof(v4mapped))  );
@@ -421,7 +424,7 @@ static int fd_setsockopt_prebind(int sk)
 	   SCTP_GET_ASSOC_ID_LIST	list of these associations
 	*/
 	
-	/* In case of no_ip4, force the v6only option */
+	/* In case of no_ip4, force the v6only option -- is it a valid option for SCTP ? */
 	#ifdef IPV6_V6ONLY
 	if (fd_g_config->cnf_flags.no_ip4) {
 		int opt = 1;
@@ -525,40 +528,61 @@ redo:
 		
 	} else {
 		/* Explicit endpoints to bind to from config */
+		
 		union {
-			sSA  	*sa;
-			sSA4 	*sin;
-			sSA6 	*sin6;
-		} sar; /* build the list of endpoints to bind to */
+			sSA     * sa;
+			sSA4	*sin;
+			sSA6	*sin6;
+			uint8_t *buf;
+		} ptr;
+		union {
+			sSA     * sa;
+			uint8_t * buf;
+		} sar;
 		int count = 0; /* number of sock addr in sar array */
+		size_t offset = 0;
 		struct fd_list * li;
 		
-		sar.sa = NULL;
+		sar.buf = NULL;
 		
 		/* Create a flat array from the list of configured addresses */
 		for (li = list->next; li != list; li = li->next) {
 			struct fd_endpoint * ep = (struct fd_endpoint *)li;
+			size_t sz = 0;
 			
-			if ( ! ep->meta.conf )
+			if (! (ep->flags & EP_FL_CONF))
 				continue;
 			
 			count++;
-			if (fd_g_config->cnf_flags.no_ip6) {
-				ASSERT(ep->sa.sa_family == AF_INET);
-				CHECK_MALLOC( sar.sa = realloc(sar.sa, count * sizeof(sSA4))  );
-				memcpy(&sar.sin[count - 1], &ep->sin, sizeof(sSA4));
-				sar.sin[count - 1].sin_port = htons(port);
+			
+			/* Size of the new SA we are adding (sar may contain a mix of sockaddr_in and sockaddr_in6) */
+#ifndef SCTP_USE_MAPPED_ADDRESSES
+			if (ep->sa.sa_family == AF_INET6)
+#else /* SCTP_USE_MAPPED_ADDRESSES */
+			if (family == AF_INET6)
+#endif /* SCTP_USE_MAPPED_ADDRESSES */
+				sz = sizeof(sSA6);
+			else
+				sz = sizeof(sSA4);
+			
+			/* augment sar to contain the additional info */
+			CHECK_MALLOC( sar.buf = realloc(sar.buf, offset + sz)  );
+			
+			ptr.buf = sar.buf + offset; /* place of the new SA */
+			offset += sz; /* update to end of sar */
+			
+			if (sz == sizeof(sSA4)) {
+				memcpy(ptr.buf, &ep->sin, sz);
+				ptr.sin->sin_port = htons(port);
 			} else {
-				/* Pass all addresses as IPv6, eventually mapped -- we already filtered out IPv4 addresses if no_ip4 flag is set */
-				CHECK_MALLOC( sar.sa = realloc(sar.sa, count * sizeof(sSA6))  );
-				if (ep->sa.sa_family == AF_INET) {
-					memset(&sar.sin6[count - 1], 0, sizeof(sSA6));
-					sar.sin6[count - 1].sin6_family = AF_INET6;
-					IN6_ADDR_V4MAP( &sar.sin6[count - 1].sin6_addr.s6_addr, ep->sin.sin_addr.s_addr );
+				if (ep->sa.sa_family == AF_INET) { /* We must map the address */ 
+					memset(ptr.buf, 0, sz);
+					ptr.sin6->sin6_family = AF_INET6;
+					IN6_ADDR_V4MAP( &ptr.sin6->sin6_addr.s6_addr, ep->sin.sin_addr.s_addr );
 				} else {
-					memcpy(&sar.sin6[count - 1], &ep->sin6, sizeof(sSA6));
+					memcpy(ptr.sin6, &ep->sin6, sz);
 				}
-				sar.sin6[count - 1].sin6_port = htons(port);
+				ptr.sin6->sin6_port = htons(port);
 			}
 		}
 		
@@ -571,17 +595,20 @@ redo:
 		# ifdef DEBUG_SCTP
 		if (TRACE_BOOL(FULL)) {
 			int i;
-			fd_log_debug("Calling sctp_bindx with the following array:\n");
+			ptr.buf = sar.buf;
+			fd_log_debug("Calling sctp_bindx with the following address array:\n");
 			for (i = 0; i < count; i++) {
-				fd_log_debug("    - ");
-				sSA_DUMP_NODE_SERV( (sar.sa[0].sa_family == AF_INET) ? (sSA *)(&sar.sin[i]) : (sSA *)(&sar.sin6[i]), NI_NUMERICHOST | NI_NUMERICSERV );
-				fd_log_debug("\n");
+				TRACE_DEBUG_sSA(FULL, "    - ", ptr.sa, NI_NUMERICHOST | NI_NUMERICSERV, "" );
+				ptr.buf += (ptr.sa->sa_family == AF_INET) ? sizeof(sSA4) : sizeof(sSA6) ;
 			}
 		}
 		#endif /* DEBUG_SCTP */
 		
+		/* Bind to this array */
 		CHECK_SYS(  sctp_bindx(*sock, sar.sa, count, SCTP_BINDX_ADD_ADDR)  );
 		
+		/* We don't need sar anymore */
+		free(sar.buf);
 	}
 	
 	/* Now, the server is bound, set remaining sockopt */
@@ -590,16 +617,18 @@ redo:
 	#ifdef DEBUG_SCTP
 	/* Debug: show all local listening addresses */
 	if (TRACE_BOOL(FULL)) {
-		sSA *sa, *sar;
+		sSA *sar;
+		union {
+			sSA	*sa;
+			uint8_t *buf;
+		} ptr;
 		int sz;
 		
 		CHECK_SYS(  sz = sctp_getladdrs(*sock, 0, &sar)  );
 		
 		fd_log_debug("SCTP server bound on :\n");
-		for (sa = sar; sz-- > 0; sa = (sSA *)(((uint8_t *)sa) + ((sa->sa_family == AF_INET) ? sizeof(sSA4) : sizeof(sSA6)))) {
-			fd_log_debug("    - ");
-			sSA_DUMP_NODE_SERV( sa, NI_NUMERICHOST | NI_NUMERICSERV );
-			fd_log_debug("\n");
+		for (ptr.sa = sar; sz-- > 0; ptr.buf += (ptr.sa->sa_family == AF_INET) ? sizeof(sSA4) : sizeof(sSA6)) {
+			TRACE_DEBUG_sSA(FULL, "    - ", ptr.sa, NI_NUMERICHOST | NI_NUMERICSERV, "" );
 		}
 		sctp_freeladdrs(sar);
 	}
@@ -616,12 +645,143 @@ int fd_sctp_listen( int sock )
 	return 0;
 }
 
-/* Retrieve streams information from a connected association */
-int fd_sctp_get_str_info( int socket, int *in, int *out )
+/* Create a client socket and connect to remote server */
+int fd_sctp_client( int *sock, int no_ip6, uint16_t port, struct fd_list * list )
 {
-	TODO("Retrieve streams info from the socket");
+	int family;
+	int count = 0;
+	size_t offset = 0, sz;
+	union {
+		uint8_t *buf;
+		sSA	*sa;
+	} sar;
+	union {
+		uint8_t *buf;
+		sSA	*sa;
+		sSA4	*sin;
+		sSA6	*sin6;
+	} ptr;
+	struct fd_list * li;
+	int ret;
 	
-	return ENOTSUP;
+	sar.buf = NULL;
+	
+	TRACE_ENTRY("%p %i %hu %p", sock, no_ip6, port, list);
+	CHECK_PARAMS( sock && list && (!FD_IS_LIST_EMPTY(list)) );
+	
+	if (no_ip6) {
+		family = AF_INET;
+	} else {
+		family = AF_INET6;
+	}
+	
+	/* Create the socket */
+	CHECK_SYS( *sock = socket(family, SOCK_STREAM, IPPROTO_SCTP) );
+	
+	/* Cleanup if we are cancelled */
+	pthread_cleanup_push(fd_cleanup_socket, sock);
+	
+	/* Set the socket options */
+	CHECK_FCT_DO( ret = fd_setsockopt_prebind(*sock), goto fail );
+	
+	/* Create the array of addresses for sctp_connectx */
+	for (li = list->next; li != list; li = li->next) {
+		struct fd_endpoint * ep = (struct fd_endpoint *) li;
+		
+		count++;
+		
+		/* Size of the new SA we are adding (sar may contain a mix of sockaddr_in and sockaddr_in6) */
+#ifndef SCTP_USE_MAPPED_ADDRESSES
+		if (ep->sa.sa_family == AF_INET6)
+#else /* SCTP_USE_MAPPED_ADDRESSES */
+		if (family == AF_INET6)
+#endif /* SCTP_USE_MAPPED_ADDRESSES */
+			sz = sizeof(sSA6);
+		else
+			sz = sizeof(sSA4);
+		
+		/* augment sar to contain the additional info */
+		CHECK_MALLOC_DO( sar.buf = realloc(sar.buf, offset + sz), { ret = ENOMEM; goto fail; }  );
+
+		ptr.buf = sar.buf + offset; /* place of the new SA */
+		offset += sz; /* update to end of sar */
+			
+		if (sz == sizeof(sSA4)) {
+			memcpy(ptr.buf, &ep->sin, sz);
+			ptr.sin->sin_port = htons(port);
+		} else {
+			if (ep->sa.sa_family == AF_INET) { /* We must map the address */ 
+				memset(ptr.buf, 0, sz);
+				ptr.sin6->sin6_family = AF_INET6;
+				IN6_ADDR_V4MAP( &ptr.sin6->sin6_addr.s6_addr, ep->sin.sin_addr.s_addr );
+			} else {
+				memcpy(ptr.sin6, &ep->sin6, sz);
+			}
+			ptr.sin6->sin6_port = htons(port);
+		}
+	}
+	
+	/* Try connecting */
+	TRACE_DEBUG(FULL, "Attempting SCTP connection (%d addresses attempted)...", count);
+	CHECK_SYS_DO( sctp_connectx(*sock, sar.sa, count), { ret = errno; goto fail; } );
+	free(sar.buf); sar.buf = NULL;
+	
+	/* Set the remaining sockopts */
+	CHECK_FCT_DO( ret = fd_setsockopt_postbind(*sock, 1), goto fail );
+	
+	/* Done! */
+	pthread_cleanup_pop(0);
+	return 0;
+	
+fail:
+	if (*sock > 0) {
+		shutdown(*sock, SHUT_RDWR);
+		*sock = -1;
+	}
+	free(sar.buf);
+	return ret;
+}
+
+/* Retrieve streams information from a connected association -- optionaly provide the primary address */
+int fd_sctp_get_str_info( int sock, int *in, int *out, sSS *primary )
+{
+	struct sctp_status status;
+	socklen_t sz = sizeof(status);
+	
+	TRACE_ENTRY("%d %p %p %p", sock, in, out, primary);
+	CHECK_PARAMS( (sock > 0) && in && out );
+	
+	/* Read the association parameters */
+	memset(&status, 0, sizeof(status));
+	CHECK_SYS(  getsockopt(sock, IPPROTO_SCTP, SCTP_STATUS, &status, &sz) );
+	if (sz != sizeof(status))
+	{
+		TRACE_DEBUG(INFO, "Invalid size of socket option: %d / %g", sz, sizeof(status));
+		return ENOTSUP;
+	}
+	#ifdef DEBUG_SCTP
+	TRACE_DEBUG(FULL, "SCTP_STATUS : sstat_state                  : %i" , status.sstat_state);
+	TRACE_DEBUG(FULL, "              sstat_rwnd  	              : %u" , status.sstat_rwnd);
+	TRACE_DEBUG(FULL, "		 sstat_unackdata	      : %hu", status.sstat_unackdata);
+	TRACE_DEBUG(FULL, "		 sstat_penddata 	      : %hu", status.sstat_penddata);
+	TRACE_DEBUG(FULL, "		 sstat_instrms  	      : %hu", status.sstat_instrms);
+	TRACE_DEBUG(FULL, "		 sstat_outstrms 	      : %hu", status.sstat_outstrms);
+	TRACE_DEBUG(FULL, "		 sstat_fragmentation_point    : %u" , status.sstat_fragmentation_point);
+	TRACE_DEBUG_sSA(FULL, "		 sstat_primary.spinfo_address : ", &status.sstat_primary.spinfo_address, NI_NUMERICHOST | NI_NUMERICSERV, "" );
+	TRACE_DEBUG(FULL, "		 sstat_primary.spinfo_state   : %d" , status.sstat_primary.spinfo_state);
+	TRACE_DEBUG(FULL, "		 sstat_primary.spinfo_cwnd    : %u" , status.sstat_primary.spinfo_cwnd);
+	TRACE_DEBUG(FULL, "		 sstat_primary.spinfo_srtt    : %u" , status.sstat_primary.spinfo_srtt);
+	TRACE_DEBUG(FULL, "		 sstat_primary.spinfo_rto     : %u" , status.sstat_primary.spinfo_rto);
+	TRACE_DEBUG(FULL, "		 sstat_primary.spinfo_mtu     : %u" , status.sstat_primary.spinfo_mtu);
+	#endif /* DEBUG_SCTP */
+	
+	*in = (int)status.sstat_instrms;
+	*out = (int)status.sstat_outstrms;
+	
+	if (primary)
+		memcpy(primary, &status.sstat_primary.spinfo_address, sizeof(sSS));
+	
+	return 0;
 }
 
 /* Get the list of local endpoints of the socket */
@@ -629,8 +789,6 @@ int fd_sctp_get_local_ep(int sock, struct fd_list * list)
 {
 	union {
 		sSA	*sa;
-		sSA4	*sin;
-		sSA6	*sin6;
 		uint8_t	*buf;
 	} ptr;
 	
@@ -645,24 +803,92 @@ int fd_sctp_get_local_ep(int sock, struct fd_list * list)
 	ptr.sa = data;
 	
 	while (count) {
-		TODO("get the data from ptr");
-		TODO("Increment ptr to the next sa in data");
-		
+		socklen_t sl;
+		switch (ptr.sa->sa_family) {
+			case AF_INET:	sl = sizeof(sSA4); break;
+			case AF_INET6:	sl = sizeof(sSA6); break;
+			default:
+				TRACE_DEBUG(INFO, "Unkown address family returned in sctp_getladdrs: %d", ptr.sa->sa_family);
+		}
+				
+		CHECK_FCT( fd_ep_add_merge( list, ptr.sa, sl, EP_FL_LL ) );
+		ptr.buf += sl;
 		count --;
 	}
 	
-	/* And now, free the list and return */
+	/* Free the list */
 	sctp_freeladdrs(data);
 	
-	return ENOTSUP;
+	/* Now get the primary address, the add function will take care of merging with existing entry */
+	{
+		 
+		struct sctp_status status;
+		socklen_t sz = sizeof(status);
+		int ret;
+		
+		memset(&status, 0, sizeof(status));
+		/* Attempt to use SCTP_STATUS message to retrieve the primary address */
+		ret = getsockopt(sock, IPPROTO_SCTP, SCTP_STATUS, &status, &sz);
+		if (sz != sizeof(status))
+			ret = -1;
+		sz = sizeof(sSS);
+		if (ret < 0)
+		{
+			/* Fallback to getsockname -- not recommended by draft-ietf-tsvwg-sctpsocket-19#section-7.4 */
+			CHECK_SYS(getsockname(sock, (sSA *)&status.sstat_primary.spinfo_address, &sz));
+		}
+			
+		CHECK_FCT( fd_ep_add_merge( list, (sSA *)&status.sstat_primary.spinfo_address, sz, EP_FL_PRIMARY ) );
+	}
+	
+	return 0;
 }
 
 /* Get the list of remote endpoints of the socket */
 int fd_sctp_get_remote_ep(int sock, struct fd_list * list)
 {
-	TODO("SCTP: sctp_getpaddrs");
-		
+	union {
+		sSA	*sa;
+		uint8_t	*buf;
+	} ptr;
 	
-	return ENOTSUP;
+	sSA * data;
+	int count;
+	
+	TRACE_ENTRY("%d %p", sock, list);
+	CHECK_PARAMS(list);
+	
+	/* Read the list on the socket */
+	CHECK_SYS( count = sctp_getpaddrs(sock, 0, &data)  );
+	ptr.sa = data;
+	
+	while (count) {
+		socklen_t sl;
+		switch (ptr.sa->sa_family) {
+			case AF_INET:	sl = sizeof(sSA4); break;
+			case AF_INET6:	sl = sizeof(sSA6); break;
+			default:
+				TRACE_DEBUG(INFO, "Unkown address family returned in sctp_getpaddrs: %d", ptr.sa->sa_family);
+		}
+				
+		CHECK_FCT( fd_ep_add_merge( list, ptr.sa, sl, EP_FL_LL ) );
+		ptr.buf += sl;
+		count --;
+	}
+	
+	/* Free the list */
+	sctp_freepaddrs(data);
+	
+	/* Now get the primary address, the add function will take care of merging with existing entry */
+	{
+		sSS ss;
+		socklen_t sl = sizeof(sSS);
+	
+		CHECK_SYS(getpeername(sock, (sSA *)&ss, &sl));
+		CHECK_FCT( fd_ep_add_merge( list, (sSA *)&ss, sl, EP_FL_PRIMARY ) );
+	}
+	
+	/* Done! */
+	return 0;
 }
 
