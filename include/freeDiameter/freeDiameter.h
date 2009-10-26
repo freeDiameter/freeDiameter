@@ -151,33 +151,13 @@ struct fd_app {
 /* Events */
 struct fd_event {
 	int	 code; /* codespace depends on the queue */
+	size_t 	 size;
 	void    *data;
 };
 
-static __inline__ int fd_event_send(struct fifo *queue, int code, void * data)
-{
-	struct fd_event * ev;
-	CHECK_MALLOC( ev = malloc(sizeof(struct fd_event)) );
-	ev->code = code;
-	ev->data = data;
-	CHECK_FCT( fd_fifo_post(queue, &ev) );
-	return 0;
-}
-static __inline__ int fd_event_get(struct fifo *queue, int *code, void ** data)
-{
-	struct fd_event * ev;
-	CHECK_FCT( fd_fifo_get(queue, &ev) );
-	if (code)
-		*code = ev->code;
-	if (data)
-		*data = ev->data;
-	free(ev);
-	return 0;
-}
-
-/* Events codespace for fd_g_config->cnf_main_ev */
+/* Daemon's codespace: 1000->1999 */
 enum {
-	 FDEV_TERMINATE = 1000	/* request to terminate */
+	 FDEV_TERMINATE	= 1000	/* request to terminate */
 	,FDEV_DUMP_DICT		/* Dump the content of the dictionary */
 	,FDEV_DUMP_EXT		/* Dump state of extensions */
 	,FDEV_DUMP_SERV		/* Dump the server socket status */
@@ -185,6 +165,65 @@ enum {
 	,FDEV_DUMP_CONFIG	/* Dump the configuration */
 	,FDEV_DUMP_PEERS	/* Dump the list of peers */
 };
+
+static __inline__ int fd_event_send(struct fifo *queue, int code, size_t datasz, void * data)
+{
+	struct fd_event * ev;
+	CHECK_MALLOC( ev = malloc(sizeof(struct fd_event)) );
+	ev->code = code;
+	ev->size = datasz;
+	ev->data = data;
+	CHECK_FCT( fd_fifo_post(queue, &ev) );
+	return 0;
+}
+static __inline__ int fd_event_get(struct fifo *queue, int *code, size_t *datasz, void ** data)
+{
+	struct fd_event * ev;
+	CHECK_FCT( fd_fifo_get(queue, &ev) );
+	if (code)
+		*code = ev->code;
+	if (datasz)
+		*datasz = ev->size;
+	if (data)
+		*data = ev->data;
+	free(ev);
+	return 0;
+}
+static __inline__ int fd_event_timedget(struct fifo *queue, struct timespec * timeout, int timeoutcode, int *code, size_t *datasz, void ** data)
+{
+	struct fd_event * ev;
+	int ret = 0;
+	ret = fd_fifo_timedget(queue, &ev, timeout);
+	if (ret == ETIMEDOUT) {
+		if (code)
+			*code = timeoutcode;
+		if (datasz)
+			*datasz = 0;
+		if (data)
+			*data = NULL;
+	} else {
+		CHECK_FCT( ret );
+		if (code)
+			*code = ev->code;
+		if (datasz)
+			*datasz = ev->size;
+		if (data)
+			*data = ev->data;
+		free(ev);
+	}
+	return 0;
+}
+static __inline__ void fd_event_destroy(struct fifo **queue, void (*free_cb)(void * data))
+{
+	struct fd_event * ev;
+	/* Purge all events, and free the associated data if any */
+	while (fd_fifo_tryget( *queue, &ev ) == 0) {
+		(*free_cb)(ev->data);
+		free(ev);
+	}
+	CHECK_FCT_DO( fd_fifo_del(queue), /* continue */ );
+	return ;
+}  
 const char * fd_ev_str(int event); /* defined in freeDiameter/main.c */
 
 

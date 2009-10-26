@@ -86,7 +86,7 @@ static void * gc_th_fct(void * arg)
 error:
 	TRACE_DEBUG(INFO, "An error occurred in peers module! GC thread is terminating...");
 	ASSERT(0);
-	CHECK_FCT_DO(fd_event_send(fd_g_config->cnf_main_ev, FDEV_TERMINATE, NULL), );
+	CHECK_FCT_DO(fd_event_send(fd_g_config->cnf_main_ev, FDEV_TERMINATE, 0, NULL), );
 	return NULL;
 }
 
@@ -131,7 +131,7 @@ static void * exp_th_fct(void * arg)
 		
 		/* Now, the first peer in the list is expired; signal it */
 		fd_list_unlink( &first->p_expiry );
-		CHECK_FCT_DO( fd_event_send(first->p_events, FDEVP_TERMINATE, NULL), goto error );
+		CHECK_FCT_DO( fd_event_send(first->p_events, FDEVP_TERMINATE, 0, NULL), goto error );
 		
 	} while (1);
 	
@@ -139,7 +139,7 @@ static void * exp_th_fct(void * arg)
 error:
 	TRACE_DEBUG(INFO, "An error occurred in peers module! Expiry thread is terminating...");
 	ASSERT(0);
-	CHECK_FCT_DO(fd_event_send(fd_g_config->cnf_main_ev, FDEV_TERMINATE, NULL), );
+	CHECK_FCT_DO(fd_event_send(fd_g_config->cnf_main_ev, FDEV_TERMINATE, 0, NULL), );
 	return NULL;
 }
 

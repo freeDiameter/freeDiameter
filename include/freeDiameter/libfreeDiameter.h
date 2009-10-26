@@ -426,6 +426,26 @@ extern int fd_g_debug_lvl;
 	  || (((ts1)->tv_sec  == (ts2)->tv_sec ) && ((ts1)->tv_nsec < (ts2)->tv_nsec) ))
 
 
+/* Trace a binary buffer content */
+#define TRACE_DEBUG_BUFFER(level, prefix, buf, bufsz, suffix ) {								\
+	if ( TRACE_BOOL(level) ) {												\
+		int __i;													\
+		size_t __sz = (size_t)(bufsz);											\
+		uint8_t * __buf = (uint8_t *)(buf);										\
+		char * __thn = ((char *)pthread_getspecific(fd_log_thname) ?: "unnamed");					\
+		fd_log_debug("\t | tid:%-20s\t%s\tin %s@%s:%d\n"								\
+			  "\t%s|%*s" prefix ,  											\
+					__thn, fd_log_time(NULL, __buf, sizeof(__buf)), __PRETTY_FUNCTION__, __FILE__, __LINE__,\
+					(level < FULL)?"@":" ",level, ""); 							\
+		for (__i = 0; __i < __sz; __i++) {										\
+			fd_log_debug("%02.2hhx", __buf[__i]);									\
+		}														\
+		fd_log_debug(suffix "\n");											\
+	}															\
+}
+
+
+
 /*============================================================*/
 /*                          THREADS                           */
 /*============================================================*/
@@ -507,6 +527,9 @@ void fd_list_init ( struct fd_list * list, void *obj );
 /* Insert an item in a list at known position */
 void fd_list_insert_after  ( struct fd_list * ref, struct fd_list * item );
 void fd_list_insert_before ( struct fd_list * ref, struct fd_list * item );
+
+/* Move a list at the end of another */
+void fd_list_move_end(struct fd_list * ref, struct fd_list * senti);
 
 /* Insert an item in an ordered list -- ordering function provided. If duplicate object found, EEXIST and it is returned in ref_duplicate */
 int fd_list_insert_ordered( struct fd_list * head, struct fd_list * item, int (*cmp_fct)(void *, void *), void ** ref_duplicate);
@@ -2382,6 +2405,23 @@ int fd_fifo_new ( struct fifo ** queue );
  *  EINVAL 	: The parameter is invalid.
  */
 int fd_fifo_del ( struct fifo  ** queue );
+
+/*
+ * FUNCTION:	fd_fifo_move
+ *
+ * PARAMETERS:
+ *  old		: Location of a FIFO that is to be emptied and deleted.
+ *  new		: A FIFO that will receive the old data.
+ *  loc_update	: if non NULL, a place to store the pointer to new FIFO atomically with the move.
+ *
+ * DESCRIPTION: 
+ *  Delete a queue and move its content to another one atomically.
+ *
+ * RETURN VALUE:
+ *  0		: The queue has been destroyed successfully.
+ *  EINVAL 	: A parameter is invalid.
+ */
+int fd_fifo_move ( struct fifo ** old, struct fifo * new, struct fifo ** loc_update );
 
 /*
  * FUNCTION:	fd_fifo_length

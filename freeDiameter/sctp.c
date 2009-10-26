@@ -34,8 +34,15 @@
 *********************************************************************************************************/
 
 #include "fD.h"
+#include "cnxctx.h"
+
 #include <netinet/sctp.h>
 #include <sys/uio.h>
+
+/* Size of buffer to receive ancilliary data. May need to be enlarged if more sockopt are set... */
+#ifndef CMSG_BUF_LEN
+#define CMSG_BUF_LEN	1024
+#endif /* CMSG_BUF_LEN */
 
 /* Pre-binding socket options -- # streams read in config */
 static int fd_setsockopt_prebind(int sk)
@@ -743,7 +750,7 @@ fail:
 }
 
 /* Retrieve streams information from a connected association -- optionaly provide the primary address */
-int fd_sctp_get_str_info( int sock, int *in, int *out, sSS *primary )
+int fd_sctp_get_str_info( int sock, uint16_t *in, uint16_t *out, sSS *primary )
 {
 	struct sctp_status status;
 	socklen_t sz = sizeof(status);
@@ -775,8 +782,8 @@ int fd_sctp_get_str_info( int sock, int *in, int *out, sSS *primary )
 	TRACE_DEBUG(FULL, "		 sstat_primary.spinfo_mtu     : %u" , status.sstat_primary.spinfo_mtu);
 	#endif /* DEBUG_SCTP */
 	
-	*in = (int)status.sstat_instrms;
-	*out = (int)status.sstat_outstrms;
+	*in = status.sstat_instrms;
+	*out = status.sstat_outstrms;
 	
 	if (primary)
 		memcpy(primary, &status.sstat_primary.spinfo_address, sizeof(sSS));
@@ -892,3 +899,218 @@ int fd_sctp_get_remote_ep(int sock, struct fd_list * list)
 	return 0;
 }
 
+/* Send a buffer over a specified stream */
+int fd_sctp_sendstr(int sock, uint16_t strid, uint8_t * buf, size_t len)
+{
+	struct msghdr mhdr;
+	struct iovec  iov;
+	struct {
+		struct cmsghdr 		hdr;
+		struct sctp_sndrcvinfo	sndrcv;
+	} anci;
+	ssize_t ret;
+	
+	TRACE_ENTRY("%d %hu %p %g", sock, strid, buf, len);
+	
+	memset(&mhdr, 0, sizeof(mhdr));
+	memset(&iov,  0, sizeof(iov));
+	memset(&anci, 0, sizeof(anci));
+	
+	/* IO Vector: message data */
+	iov.iov_base = buf;
+	iov.iov_len  = len;
+	
+	/* Anciliary data: specify SCTP stream */
+	anci.hdr.cmsg_len   = sizeof(anci);
+	anci.hdr.cmsg_level = IPPROTO_SCTP;
+	anci.hdr.cmsg_type  = SCTP_SNDRCV;
+	anci.sndrcv.sinfo_stream = strid;
+	/* note : we could store other data also, for example in .sinfo_ppid for remote peer or in .sinfo_context for errors. */
+	
+	/* We don't use mhdr.msg_name here; it could be used to specify an address different from the primary */
+	
+	mhdr.msg_iov    = &iov;
+	mhdr.msg_iovlen = 1;
+	
+	mhdr.msg_control    = &anci;
+	mhdr.msg_controllen = sizeof(anci);
+	
+	#ifdef DEBUG_SCTP
+	TRACE_DEBUG(FULL, "Sending %db data on stream %hu of socket %d", len, strid, sock);
+	#endif /* DEBUG_SCTP */
+	
+	CHECK_SYS( ret = sendmsg(sock, &mhdr, 0) );
+	ASSERT( ret == len ); /* There should not be partial delivery with sendmsg... */
+	
+	return 0;
+}
+
+/* Receive the next data from the socket, or next notification */
+int fd_sctp_recvmeta(int sock, uint16_t * strid, uint8_t ** buf, size_t * len, int *event)
+{
+	ssize_t 		 ret = 0;
+	struct msghdr 		 mhdr;
+	char   			 ancidata[ CMSG_BUF_LEN ];
+	struct iovec 		 iov;
+	uint8_t			*data = NULL;
+	size_t 			 bufsz = 0, datasize = 0;
+	size_t			 mempagesz = sysconf(_SC_PAGESIZE); /* We alloc buffer by memory pages for efficiency */
+	
+	TRACE_ENTRY("%d %p %p %p %p", sock, strid, buf, len, event);
+	CHECK_PARAMS( (sock > 0) && buf && len && event );
+	
+	/* Cleanup out parameters */
+	*buf = NULL;
+	*len = 0;
+	*event = 0;
+	
+	/* Prepare header for receiving message */
+	memset(&mhdr, 0, sizeof(mhdr));
+	mhdr.msg_iov    = &iov;
+	mhdr.msg_iovlen = 1;
+	mhdr.msg_control    = &ancidata;
+	mhdr.msg_controllen = sizeof(ancidata);
+	
+	/* We will loop while all data is not received. */
+incomplete:
+	if (datasize == bufsz) {
+		/* The buffer is full, enlarge it */
+		bufsz += mempagesz;
+		CHECK_MALLOC( data = realloc(data, bufsz) );
+	}
+	/* the new data will be received following the preceding */
+	memset(&iov,  0, sizeof(iov));
+	iov.iov_base = data + datasize ;
+	iov.iov_len  = bufsz - datasize;
+
+	/* Receive data from the socket */
+	pthread_cleanup_push(free, data);
+	ret = recvmsg(sock, &mhdr, 0);
+	pthread_cleanup_pop(0);
+	
+	/* Handle errors */
+	if (ret <= 0) { /* Socket is closed, or an error occurred */
+		CHECK_SYS_DO(ret, /* to log in case of error */);
+		free(data);
+		*event = FDEVP_CNX_ERROR;
+		return 0;
+	}
+	
+	/* Update the size of data we received */
+	datasize += ret;
+
+	/* SCTP provides an indication when we received a full record; loop if it is not the case */
+	if ( ! (mhdr.msg_flags & MSG_EOR) ) {
+		goto incomplete;
+	}
+	
+	/* Handle the case where the data received is a notification */
+	if (mhdr.msg_flags & MSG_NOTIFICATION) {
+		union sctp_notification * notif = (union sctp_notification *) data;
+		
+		switch (notif->sn_header.sn_type) {
+			
+			case SCTP_ASSOC_CHANGE:
+				#ifdef DEBUG_SCTP
+				TRACE_DEBUG(FULL, "Received SCTP_ASSOC_CHANGE notification");
+				TRACE_DEBUG(FULL, "    state : %hu", notif->sn_assoc_change.sac_state);
+				TRACE_DEBUG(FULL, "    error : %hu", notif->sn_assoc_change.sac_error);
+				TRACE_DEBUG(FULL, "    instr : %hu", notif->sn_assoc_change.sac_inbound_streams);
+				TRACE_DEBUG(FULL, "   outstr : %hu", notif->sn_assoc_change.sac_outbound_streams);
+				#endif /* DEBUG_SCTP */
+				
+				*event = FDEVP_CNX_EP_CHANGE;
+				break;
+	
+			case SCTP_PEER_ADDR_CHANGE:
+				#ifdef DEBUG_SCTP
+				TRACE_DEBUG(FULL, "Received SCTP_PEER_ADDR_CHANGE notification");
+				TRACE_DEBUG_sSA(FULL, "    intf_change : ", &(notif->sn_paddr_change.spc_aaddr), NI_NUMERICHOST | NI_NUMERICSERV, "" );
+				TRACE_DEBUG(FULL, "          state : %d", notif->sn_paddr_change.spc_state);
+				TRACE_DEBUG(FULL, "          error : %d", notif->sn_paddr_change.spc_error);
+				#endif /* DEBUG_SCTP */
+				
+				*event = FDEVP_CNX_EP_CHANGE;
+				break;
+	
+			case SCTP_SEND_FAILED:
+				#ifdef DEBUG_SCTP
+				TRACE_DEBUG(FULL, "Received SCTP_SEND_FAILED notification");
+				TRACE_DEBUG(FULL, "    len : %hu", notif->sn_send_failed.ssf_length);
+				TRACE_DEBUG(FULL, "    err : %d",  notif->sn_send_failed.ssf_error);
+				#endif /* DEBUG_SCTP */
+				
+				*event = FDEVP_CNX_ERROR;
+				break;
+			
+			case SCTP_REMOTE_ERROR:
+				#ifdef DEBUG_SCTP
+				TRACE_DEBUG(FULL, "Received SCTP_REMOTE_ERROR notification");
+				TRACE_DEBUG(FULL, "    err : %hu", ntohs(notif->sn_remote_error.sre_error));
+				TRACE_DEBUG(FULL, "    len : %hu", ntohs(notif->sn_remote_error.sre_length));
+				#endif /* DEBUG_SCTP */
+				
+				*event = FDEVP_CNX_ERROR;
+				break;
+	
+			case SCTP_SHUTDOWN_EVENT:
+				#ifdef DEBUG_SCTP
+				TRACE_DEBUG(FULL, "Received SCTP_SHUTDOWN_EVENT notification");
+				#endif /* DEBUG_SCTP */
+				
+				*event = FDEVP_CNX_ERROR;
+				break;
+			
+			default:	
+				TRACE_DEBUG(FULL, "Received unknown notification %d, assume error", notif->sn_header.sn_type);
+				*event = FDEVP_CNX_ERROR;
+		}
+		
+		free(data);
+		return 0;
+	}
+	
+	/* From this point, we have received a message */
+	*event = FDEVP_CNX_MSG_RECV;
+	*buf = data;
+	*len = datasize;
+	
+	if (strid) {
+		struct cmsghdr 		*hdr;
+		struct sctp_sndrcvinfo	*sndrcv;
+		
+		/* Handle the anciliary data */
+		for (hdr = CMSG_FIRSTHDR(&mhdr); hdr; hdr = CMSG_NXTHDR(&mhdr, hdr)) {
+
+			/* We deal only with anciliary data at SCTP level */
+			if (hdr->cmsg_level != IPPROTO_SCTP) {
+				TRACE_DEBUG(FULL, "Received some anciliary data at level %d, skipped", hdr->cmsg_level);
+				continue;
+			}
+			
+			/* Also only interested in SCTP_SNDRCV message for the moment */
+			if (hdr->cmsg_type != SCTP_SNDRCV) {
+				TRACE_DEBUG(FULL, "Anciliary block IPPROTO_SCTP / %d, skipped", hdr->cmsg_type);
+				continue;
+			}
+			
+			sndrcv = (struct sctp_sndrcvinfo *) CMSG_DATA(hdr);
+			#ifdef DEBUG_SCTP
+			TRACE_DEBUG(FULL, "Anciliary block IPPROTO_SCTP / SCTP_SNDRCV");
+			TRACE_DEBUG(FULL, "    sinfo_stream    : %hu", sndrcv->sinfo_stream);
+			TRACE_DEBUG(FULL, "    sinfo_ssn       : %hu", sndrcv->sinfo_ssn);
+			TRACE_DEBUG(FULL, "    sinfo_flags     : %hu", sndrcv->sinfo_flags);
+			/* TRACE_DEBUG(FULL, "    sinfo_pr_policy : %hu", sndrcv->sinfo_pr_policy); */
+			TRACE_DEBUG(FULL, "    sinfo_ppid      : %u" , sndrcv->sinfo_ppid);
+			TRACE_DEBUG(FULL, "    sinfo_context   : %u" , sndrcv->sinfo_context);
+			/* TRACE_DEBUG(FULL, "    sinfo_pr_value  : %u" , sndrcv->sinfo_pr_value); */
+			TRACE_DEBUG(FULL, "    sinfo_tsn       : %u" , sndrcv->sinfo_tsn);
+			TRACE_DEBUG(FULL, "    sinfo_cumtsn    : %u" , sndrcv->sinfo_cumtsn);
+			#endif /* DEBUG_SCTP */
+
+			*strid = sndrcv->sinfo_stream;
+		}
+	}
+	
+	return 0;
+}

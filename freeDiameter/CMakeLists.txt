@@ -9,6 +9,7 @@ SET_SOURCE_FILES_PROPERTIES(lex.fdd.c fdd.tab.c PROPERTIES COMPILE_FLAGS "-I ${C
 # List of source files
 SET(FD_COMMON_SRC
 	fD.h
+	cnxctx.h
 	config.c
 	cnxctx.c
 	dispatch.c
@@ -25,7 +26,7 @@ SET(FD_COMMON_SRC
 	)
 
 IF(NOT DISABLE_SCTP)
-	SET(FD_COMMON_SRC ${FD_COMMON_SRC} sctp.c)
+	SET(FD_COMMON_SRC ${FD_COMMON_SRC} sctp.c sctps.c)
 ENDIF(NOT DISABLE_SCTP)
 
 SET(FD_COMMON_GEN_SRC

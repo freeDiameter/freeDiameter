@@ -116,8 +116,8 @@ int main(int argc, char * argv[])
 	/* Now, just wait for events */
 	TRACE_DEBUG(INFO, FD_PROJECT_BINARY " daemon initialized.");
 	while (1) {
-		int code;
-		CHECK_FCT_DO(  fd_event_get(fd_g_config->cnf_main_ev, &code, NULL),  break  );
+		int code; size_t sz; void * data;
+		CHECK_FCT_DO(  fd_event_get(fd_g_config->cnf_main_ev, &code, &sz, &data),  break  );
 		switch (code) {
 			case FDEV_DUMP_DICT:
 				fd_dict_dump(fd_g_config->cnf_dict);
@@ -338,7 +338,7 @@ static void * sig_hdl(void * arg)
 	CHECK_SYS_DO(  sigwait(&sig_main, &sig), TRACE_DEBUG(INFO, "Error in sigwait function") );
 	
 	TRACE_DEBUG(INFO, "Received signal %s (%d), exiting", SIGNALSTR(sig), sig);
-	CHECK_FCT_DO( fd_event_send(fd_g_config->cnf_main_ev, FDEV_TERMINATE, NULL), exit(2) );
+	CHECK_FCT_DO( fd_event_send(fd_g_config->cnf_main_ev, FDEV_TERMINATE, 0, NULL), exit(2) );
 	return NULL;
 }
 	

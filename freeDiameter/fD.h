@@ -151,13 +151,19 @@ struct fd_peer { /* The "real" definition of the peer structure */
 /* Events codespace for struct fd_peer->p_events */
 enum {
 	/* Dump all info about this peer in the debug log */
-	 FDEVP_DUMP_ALL = 2000
+	 FDEVP_DUMP_ALL = 1500
 	
 	/* request to terminate this peer : disconnect, requeue all messages */
 	,FDEVP_TERMINATE
 	
-	/* A connection object has received a message -- stored in event->data */
+	/* A connection object has received a message. */
 	,FDEVP_CNX_MSG_RECV
+			 
+	/* A connection object has encountered an error (disconnected). */
+	,FDEVP_CNX_ERROR
+	
+	/* Endpoints of a connection have been changed (multihomed SCTP). */
+	,FDEVP_CNX_EP_CHANGE
 	
 	/* A message was received in the peer */
 	,FDEVP_MSG_INCOMING
@@ -209,7 +215,7 @@ struct cnxctx * fd_cnx_serv_accept(struct cnxctx * serv);
 struct cnxctx * fd_cnx_cli_connect_tcp(sSA * sa, socklen_t addrlen);
 struct cnxctx * fd_cnx_cli_connect_sctp(int no_ip6, uint16_t port, struct fd_list * list);
 char * fd_cnx_getid(struct cnxctx * conn);
-int fd_cnx_start_clear(struct cnxctx * conn);
+int fd_cnx_start_clear(struct cnxctx * conn, int loop);
 int fd_cnx_handshake(struct cnxctx * conn, int mode, char * priority);
 int fd_cnx_getcred(struct cnxctx * conn, const gnutls_datum_t **cert_list, unsigned int *cert_list_size);
 int fd_cnx_getendpoints(struct cnxctx * conn, struct fd_list * local, struct fd_list * remote);
@@ -218,25 +224,6 @@ int fd_cnx_receive(struct cnxctx * conn, struct timespec * timeout, unsigned cha
 int fd_cnx_recv_setaltfifo(struct cnxctx * conn, struct fifo * alt_fifo); /* send FDEVP_CNX_MSG_RECV event to the fifo list */
 int fd_cnx_send(struct cnxctx * conn, unsigned char * buf, size_t len);
 void fd_cnx_destroy(struct cnxctx * conn);
-
-/* TCP */
-int fd_tcp_create_bind_server( int * sock, sSA * sa, socklen_t salen );
-int fd_tcp_listen( int sock );
-int fd_tcp_client( int *sock, sSA * sa, socklen_t salen );
-int fd_tcp_get_local_ep(int sock, sSS * ss, socklen_t *sl);
-int fd_tcp_get_remote_ep(int sock, sSS * ss, socklen_t *sl);
-
-/* SCTP */
-#ifndef DISABLE_SCTP
-int fd_sctp_create_bind_server( int * sock, struct fd_list * list, uint16_t port );
-int fd_sctp_listen( int sock );
-int fd_sctp_client( int *sock, int no_ip6, uint16_t port, struct fd_list * list );
-int fd_sctp_get_local_ep(int sock, struct fd_list * list);
-int fd_sctp_get_remote_ep(int sock, struct fd_list * list);
-int fd_sctp_get_str_info( int sock, int *in, int *out, sSS *primary );
-
-#endif /* DISABLE_SCTP */
-
 
 
 #endif /* _FD_H */

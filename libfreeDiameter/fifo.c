@@ -149,14 +149,14 @@ int fd_fifo_del ( struct fifo  ** queue )
 	
 	CHECK_POSIX(  pthread_mutex_lock( &q->mtx )  );
 	
-	/* Ok, now invalidate the queue */
-	q->eyec = 0xdead;
-	
 	if ((q->count != 0) || (q->data != NULL)) {
 		TRACE_DEBUG(INFO, "The queue cannot be destroyed (%d, %p)", q->count, q->data);
 		CHECK_POSIX_DO(  pthread_mutex_unlock( &q->mtx ), /* no fallback */  );
 		return EINVAL;
 	}
+	
+	/* Ok, now invalidate the queue */
+	q->eyec = 0xdead;
 	
 	while (q->thrs) {
 		CHECK_POSIX(  pthread_cond_signal(&q->cond)  );
@@ -178,6 +178,59 @@ int fd_fifo_del ( struct fifo  ** queue )
 	
 	free(q);
 	*queue = NULL;
+	
+	return 0;
+}
+
+/* Move the content of old into new, and update loc_update atomically */
+int fd_fifo_move ( struct fifo ** old, struct fifo * new, struct fifo ** loc_update )
+{
+	struct fifo * q;
+	int loops = 0;
+	
+	TRACE_ENTRY("%p %p %p", old, new, loc_update);
+	CHECK_PARAMS( old && CHECK_FIFO( *old ) && CHECK_FIFO( new ));
+	
+	q = *old;
+	CHECK_PARAMS( ! q->data );
+	if (new->high) {
+		TODO("Implement support for thresholds in fd_fifo_move...");
+	}
+	
+	/* Update loc_update */
+	*old = NULL;
+	if (loc_update)
+		*loc_update = new;
+	
+	/* Lock the queues */
+	CHECK_POSIX(  pthread_mutex_lock( &q->mtx )  );
+	CHECK_POSIX(  pthread_mutex_lock( &new->mtx )  );
+	
+	/* Any waiting thread on the old queue returns an error */
+	q->eyec = 0xdead;
+	while (q->thrs) {
+		CHECK_POSIX(  pthread_cond_signal(&q->cond)  );
+		CHECK_POSIX(  pthread_mutex_unlock( &q->mtx ));
+		pthread_yield();
+		CHECK_POSIX(  pthread_mutex_lock( &q->mtx )  );
+		ASSERT( ++loops < 10 ); /* detect infinite loops */
+	}
+	
+	/* Move all data from old to new */
+	fd_list_move_end( &new->list, &q->list );
+	if (q->count && (!new->count)) {
+		CHECK_POSIX(  pthread_cond_signal(&new->cond)  );
+	}
+	new->count += q->count;
+	
+	/* Destroy old */
+	CHECK_POSIX(  pthread_mutex_unlock( &q->mtx )  );
+	CHECK_POSIX(  pthread_cond_destroy( &q->cond )  );
+	CHECK_POSIX(  pthread_mutex_destroy( &q->mtx )  );
+	free(q);
+	
+	/* Unlock new, we're done */
+	CHECK_POSIX(  pthread_mutex_unlock( &new->mtx )  );
 	
 	return 0;
 }

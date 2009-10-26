@@ -71,6 +71,24 @@ void fd_list_insert_after  ( struct fd_list * ref, struct fd_list * item )
 	list_insert_after(ref, item);
 }
 
+/* Move all elements of list senti at the end of list ref */
+void fd_list_move_end(struct fd_list * ref, struct fd_list * senti)
+{
+	ASSERT(ref->head == ref);
+	ASSERT(senti->head == senti);
+	
+	if (senti->next == senti)
+		return;
+	
+	senti->next->prev = ref->prev;
+	ref->prev->next   = senti->next;
+	senti->prev->next = ref;
+	ref->prev         = senti->prev;
+	senti->prev = senti;
+	senti->next = senti;
+	
+}
+
 /* insert before a reference, checks done */
 static void list_insert_before ( struct fd_list * ref, struct fd_list * item )
 {

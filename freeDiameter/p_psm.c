@@ -57,6 +57,8 @@ const char * fd_pev_str(int event)
 		case_str(FDEVP_DUMP_ALL);
 		case_str(FDEVP_TERMINATE);
 		case_str(FDEVP_CNX_MSG_RECV);
+		case_str(FDEVP_CNX_ERROR);
+		case_str(FDEVP_CNX_EP_CHANGE);
 		case_str(FDEVP_MSG_INCOMING);
 		case_str(FDEVP_PSM_TIMEOUT);
 		
@@ -125,34 +127,13 @@ static void psm_next_timeout(struct fd_peer * peer, int add_random, int delay)
 #endif
 }
 
-/* Wait for the next event in the PSM, or timeout */
-static int psm_ev_timedget(struct fd_peer * peer, int *code, void ** data)
-{
-	struct fd_event * ev;
-	int ret = 0;
-	
-	TRACE_ENTRY("%p %p %p", peer, code, data);
-	
-	ret = fd_fifo_timedget(peer->p_events, &ev, &peer->p_psm_timer);
-	if (ret == ETIMEDOUT) {
-		*code = FDEVP_PSM_TIMEOUT;
-		*data = NULL;
-	} else {
-		CHECK_FCT( ret );
-		*code = ev->code;
-		*data = ev->data;
-		free(ev);
-	}
-	
-	return 0;
-}
-
 /* The state machine thread (controler) */
 static void * p_psm_th( void * arg )
 {
 	struct fd_peer * peer = (struct fd_peer *)arg;
 	int created_started = started;
 	int event;
+	size_t ev_sz;
 	void * ev_data;
 	
 	CHECK_PARAMS_DO( CHECK_PEER(peer), ASSERT(0) );
@@ -181,10 +162,10 @@ static void * p_psm_th( void * arg )
 	
 psm_loop:
 	/* Get next event */
-	CHECK_FCT_DO( psm_ev_timedget(peer, &event, &ev_data), goto psm_end );
-	TRACE_DEBUG(FULL, "'%s'\t<-- '%s'\t(%p)\t'%s'",
+	CHECK_FCT_DO( fd_event_timedget(peer->p_events, &peer->p_psm_timer, FDEVP_PSM_TIMEOUT, &event, &ev_sz, &ev_data), goto psm_end );
+	TRACE_DEBUG(FULL, "'%s'\t<-- '%s'\t(%p,%g)\t'%s'",
 			STATE_STR(peer->p_hdr.info.pi_state),
-			fd_pev_str(event), ev_data,
+			fd_pev_str(event), ev_data, ev_sz,
 			peer->p_hdr.info.pi_diamid);
 
 	/* Now, the action depends on the current state and the incoming event */
@@ -271,7 +252,7 @@ int fd_psm_terminate(struct fd_peer * peer )
 	CHECK_PARAMS( CHECK_PEER(peer) );
 	
 	if (peer->p_hdr.info.pi_state != STATE_ZOMBIE) {
-		CHECK_FCT( fd_event_send(peer->p_events, FDEVP_TERMINATE, NULL) );
+		CHECK_FCT( fd_event_send(peer->p_events, FDEVP_TERMINATE, 0, NULL) );
 	} else {
 		TRACE_DEBUG(FULL, "Peer '%s' was already terminated", peer->p_hdr.info.pi_diamid);
 	}

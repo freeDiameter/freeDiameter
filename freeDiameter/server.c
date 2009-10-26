@@ -119,7 +119,7 @@ static void * client_sm(void * arg)
 			goto cleanup;
 		}
 	} else {
-		CHECK_FCT_DO( fd_cnx_start_clear(c->conn), goto cleanup );
+		CHECK_FCT_DO( fd_cnx_start_clear(c->conn, 0), goto cleanup );
 	}
 	
 	/* Set the timeout to receive the first message */
@@ -134,6 +134,7 @@ static void * client_sm(void * arg)
 	TODO("Search matching peer");
 	TODO("Send event to the peer");
 	
+	TODO("(later) handshake or start_clear(.., 1)");
 	/* The end */
 cleanup:
 	/* Unlink the client structure */
@@ -151,7 +152,7 @@ cleanup:
 	return NULL;
 	
 fatal_error:	/* This has effect to terminate the daemon */
-	CHECK_FCT_DO(fd_event_send(fd_g_config->cnf_main_ev, FDEV_TERMINATE, NULL), );
+	CHECK_FCT_DO(fd_event_send(fd_g_config->cnf_main_ev, FDEV_TERMINATE, 0, NULL), );
 	return NULL;
 }
 
@@ -197,7 +198,7 @@ error:
 		s->status = 2;
 	/* Send error signal to the daemon */
 	TRACE_DEBUG(INFO, "An error occurred in server module! Thread is terminating...");
-	CHECK_FCT_DO(fd_event_send(fd_g_config->cnf_main_ev, FDEV_TERMINATE, NULL), );
+	CHECK_FCT_DO(fd_event_send(fd_g_config->cnf_main_ev, FDEV_TERMINATE, 0, NULL), );
 
 	return NULL;
 }

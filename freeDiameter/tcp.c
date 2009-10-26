@@ -34,6 +34,8 @@
 *********************************************************************************************************/
 
 #include "fD.h"
+#include "cnxctx.h"
+
 #include <netinet/tcp.h>
 #include <netinet/ip6.h>
 #include <sys/socket.h>
