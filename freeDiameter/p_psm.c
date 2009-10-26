@@ -163,7 +163,7 @@ static void * p_psm_th( void * arg )
 psm_loop:
 	/* Get next event */
 	CHECK_FCT_DO( fd_event_timedget(peer->p_events, &peer->p_psm_timer, FDEVP_PSM_TIMEOUT, &event, &ev_sz, &ev_data), goto psm_end );
-	TRACE_DEBUG(FULL, "'%s'\t<-- '%s'\t(%p,%g)\t'%s'",
+	TRACE_DEBUG(FULL, "'%s'\t<-- '%s'\t(%p,%z)\t'%s'",
 			STATE_STR(peer->p_hdr.info.pi_state),
 			fd_pev_str(event), ev_data, ev_sz,
 			peer->p_hdr.info.pi_diamid);

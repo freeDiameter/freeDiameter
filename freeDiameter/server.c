@@ -99,6 +99,10 @@ static void * client_sm(void * arg)
 {
 	struct client * c = arg;
 	struct server * s = NULL;
+	uint8_t       * buf = NULL;
+	size_t 		bufsz;
+	struct msg    * msg = NULL;
+	struct msg_hdr *hdr = NULL;
 	
 	TRACE_ENTRY("%p", c);
 	
@@ -126,11 +130,29 @@ static void * client_sm(void * arg)
 	CHECK_SYS_DO( clock_gettime(CLOCK_REALTIME, &c->ts), goto fatal_error );
 	c->ts.tv_sec += INCNX_TIMEOUT;
 	
-	TODO("receive message until c->ts");
+	/* Receive the first Diameter message on the connection -- cleanup in case of timeout */
+	CHECK_FCT_DO( fd_cnx_receive(c->conn, &c->ts, &buf, &bufsz), goto cleanup );
 	
-	TODO("Timeout => close");
-	TODO("Message != CER => close");
-	TODO("Message == CER : ");
+	TRACE_DEBUG(FULL, "Received %zb from new client '%s'", bufsz, fd_cnx_getid(c->conn));
+	
+	/* Try parsing this message */
+	CHECK_FCT_DO( fd_msg_parse_buffer( &buf, bufsz, &msg ), /* Parsing failed */ goto cleanup );
+	
+	/* We expect a CER, it must parse with our dictionary */
+	CHECK_FCT_DO( fd_msg_parse_dict( msg, fd_g_config->cnf_dict ), /* Parsing failed */ goto cleanup );
+	
+	if (TRACE_BOOL(FULL)) {
+		fd_log_debug("Received Diameter message from new client '%s':\n", fd_cnx_getid(c->conn));
+		fd_msg_dump_walk(FULL, msg);
+	}
+	
+	/* Now check we received a CER */
+	CHECK_FCT_DO( fd_msg_hdr ( msg, &hdr ), goto fatal_error );
+	
+	CHECK_PARAMS_DO( (hdr->msg_appl == 0) && (hdr->msg_flags & CMD_FLAG_REQUEST) && (hdr->msg_code == CC_CAPABILITIES_EXCHANGE),
+		{ fd_log_debug("Connection '%s', expecting CER, received something else, closing...\n", fd_cnx_getid(c->conn)); goto cleanup; } );
+	
+	
 	TODO("Search matching peer");
 	TODO("Send event to the peer");
 	
@@ -145,6 +167,14 @@ cleanup:
 	/* Destroy the connection object if present */
 	if (c->conn)
 		fd_cnx_destroy(c->conn);
+	
+	/* Cleanup the received buffer if any */
+	free(buf);
+	
+	/* Cleanup the parsed message if any */
+	if (msg) {
+		CHECK_FCT_DO( fd_msg_free(msg), /* continue */);
+	}
 	
 	/* Detach the thread, cleanup the client structure */
 	pthread_detach(pthread_self());
