@@ -156,7 +156,7 @@ enum {
 	/* request to terminate this peer : disconnect, requeue all messages */
 	,FDEVP_TERMINATE
 	
-	/* A connection object has received a message. */
+	/* A connection object has received a message. (data contains the buffer) */
 	,FDEVP_CNX_MSG_RECV
 			 
 	/* A connection object has encountered an error (disconnected). */
@@ -165,8 +165,8 @@ enum {
 	/* Endpoints of a connection have been changed (multihomed SCTP). */
 	,FDEVP_CNX_EP_CHANGE
 	
-	/* A message was received in the peer */
-	,FDEVP_MSG_INCOMING
+	/* A new connection has been established (data contains the appropriate info) */
+	,FDEVP_CNX_INCOMING
 	
 	/* The PSM state is expired */
 	,FDEVP_PSM_TIMEOUT
@@ -184,11 +184,12 @@ struct sentreq {
 
 
 /* Functions */
-int fd_peer_fini();
+int  fd_peer_fini();
 void fd_peer_dump_list(int details);
 void fd_peer_dump(struct fd_peer * peer, int details);
-int fd_peer_alloc(struct fd_peer ** ptr);
-int fd_peer_free(struct fd_peer ** ptr);
+int  fd_peer_alloc(struct fd_peer ** ptr);
+int  fd_peer_free(struct fd_peer ** ptr);
+int fd_peer_handle_newCER( struct msg ** cer, struct cnxctx ** cnx, int tls_done );
 /* fd_peer_add declared in freeDiameter.h */
 
 /* Peer expiry */
@@ -197,33 +198,33 @@ int fd_p_expi_fini(void);
 int fd_p_expi_update(struct fd_peer * peer );
 
 /* Peer state machine */
-int fd_psm_start();
-int fd_psm_begin(struct fd_peer * peer );
-int fd_psm_terminate(struct fd_peer * peer );
+int  fd_psm_start();
+int  fd_psm_begin(struct fd_peer * peer );
+int  fd_psm_terminate(struct fd_peer * peer );
 void fd_psm_abord(struct fd_peer * peer );
 
 /* Server sockets */
 void fd_servers_dump();
-int fd_servers_start();
-int fd_servers_stop();
+int  fd_servers_start();
+int  fd_servers_stop();
 
-/* Connection contexts */
+/* Connection contexts -- there are also definitions in cnxctx.h for the relevant files */
 struct cnxctx * fd_cnx_serv_tcp(uint16_t port, int family, struct fd_endpoint * ep);
 struct cnxctx * fd_cnx_serv_sctp(uint16_t port, struct fd_list * ep_list);
-int fd_cnx_serv_listen(struct cnxctx * conn);
+int             fd_cnx_serv_listen(struct cnxctx * conn);
 struct cnxctx * fd_cnx_serv_accept(struct cnxctx * serv);
 struct cnxctx * fd_cnx_cli_connect_tcp(sSA * sa, socklen_t addrlen);
 struct cnxctx * fd_cnx_cli_connect_sctp(int no_ip6, uint16_t port, struct fd_list * list);
-char * fd_cnx_getid(struct cnxctx * conn);
-int fd_cnx_start_clear(struct cnxctx * conn, int loop);
-int fd_cnx_handshake(struct cnxctx * conn, int mode, char * priority);
-int fd_cnx_getcred(struct cnxctx * conn, const gnutls_datum_t **cert_list, unsigned int *cert_list_size);
-int fd_cnx_getendpoints(struct cnxctx * conn, struct fd_list * local, struct fd_list * remote);
-char * fd_cnx_getremoteid(struct cnxctx * conn);
-int fd_cnx_receive(struct cnxctx * conn, struct timespec * timeout, unsigned char **buf, size_t * len);
-int fd_cnx_recv_setaltfifo(struct cnxctx * conn, struct fifo * alt_fifo); /* send FDEVP_CNX_MSG_RECV event to the fifo list */
-int fd_cnx_send(struct cnxctx * conn, unsigned char * buf, size_t len);
-void fd_cnx_destroy(struct cnxctx * conn);
+char *          fd_cnx_getid(struct cnxctx * conn);
+int             fd_cnx_start_clear(struct cnxctx * conn, int loop);
+int             fd_cnx_handshake(struct cnxctx * conn, int mode, char * priority);
+int             fd_cnx_getcred(struct cnxctx * conn, const gnutls_datum_t **cert_list, unsigned int *cert_list_size);
+int             fd_cnx_getendpoints(struct cnxctx * conn, struct fd_list * local, struct fd_list * remote);
+char *          fd_cnx_getremoteid(struct cnxctx * conn);
+int             fd_cnx_receive(struct cnxctx * conn, struct timespec * timeout, unsigned char **buf, size_t * len);
+int             fd_cnx_recv_setaltfifo(struct cnxctx * conn, struct fifo * alt_fifo); /* send FDEVP_CNX_MSG_RECV event to the fifo list */
+int             fd_cnx_send(struct cnxctx * conn, unsigned char * buf, size_t len);
+void            fd_cnx_destroy(struct cnxctx * conn);
 
 
 #endif /* _FD_H */

@@ -130,9 +130,9 @@ int fd_peer_add ( struct peer_info * info, char * orig_dbg, void (*cb)(struct pe
 	CHECK_POSIX( pthread_rwlock_wrlock(&fd_g_peers_rw) );
 	
 	for (li = fd_g_peers.next; li != &fd_g_peers; li = li->next) {
-		struct fd_peer * prev = (struct fd_peer *)li;
-		int cmp = strcasecmp( p->p_hdr.info.pi_diamid, prev->p_hdr.info.pi_diamid );
-		if (cmp < 0)
+		struct fd_peer * next = (struct fd_peer *)li;
+		int cmp = strcasecmp( p->p_hdr.info.pi_diamid, next->p_hdr.info.pi_diamid );
+		if (cmp > 0)
 			continue;
 		if (cmp == 0)
 			ret = EEXIST;
@@ -374,3 +374,69 @@ void fd_peer_dump_list(int details)
 	CHECK_FCT_DO( pthread_rwlock_unlock(&fd_g_peers_rw), /* continue */ );
 }
 
+/* Handle an incoming CER request on a new connection */
+int fd_peer_handle_newCER( struct msg ** cer, struct cnxctx ** cnx, int tls_done )
+{
+	struct msg * msg;
+	struct dict_object *avp_oh_model;
+	avp_code_t code = AC_ORIGIN_HOST;
+	struct avp *avp_oh;
+	struct avp_hdr * avp_hdr;
+	struct fd_list * li;
+	int found = 0;
+	struct fd_peer * peer;
+	
+	TRACE_ENTRY("%p %p %d", cer, cnx, tls_done);
+	CHECK_PARAMS(cer && *cer && cnx && *cnx);
+	
+	msg = *cer; 
+	
+	/* Find the Diameter Identity of the remote peer in the message */
+	CHECK_FCT( fd_dict_search ( fd_g_config->cnf_dict, DICT_AVP, AVP_BY_CODE, &code, &avp_oh_model, ENOENT) );
+	CHECK_FCT( fd_msg_search_avp ( msg, avp_oh_model, &avp_oh ) );
+	CHECK_FCT( fd_msg_avp_hdr ( avp_oh, &avp_hdr ) );
+	
+	/* Search if we already have this peer id in our list */
+	CHECK_POSIX( pthread_rwlock_rdlock(&fd_g_peers_rw) );
+	
+	for (li = fd_g_peers.next; li != &fd_g_peers; li = li->next) {
+		peer = (struct fd_peer *)li;
+		int cmp = strncasecmp( avp_hdr->avp_value->os.data, peer->p_hdr.info.pi_diamid, avp_hdr->avp_value->os.len );
+		if (cmp > 0)
+			continue;
+		if (cmp == 0)
+			found = 1;
+		break;
+	}
+	
+	if (!found) {
+		
+		TODO("Create a new peer entry with this diameter id (pf_responder = 1)");
+		TODO("Upgrade the lock to wr");
+		TODO("Add the new peer in the list");
+		TODO("Release the wr lock");
+		TODO("Start the peer PSM, which will have to validate if this peer is authorized to connect, and so on");
+	}
+		
+	TODO("Send the new connection event to the peer SM with the appropriate data: msg, conn, tls_done, found");
+	/* FDEVP_CNX_INCOMING */
+	
+	/* Reset the "out" parameters, so that they are not cleanup on function return. */
+	*cer = NULL;
+	*cnx = NULL;
+	
+	CHECK_POSIX( pthread_rwlock_unlock(&fd_g_peers_rw) );
+
+	
+	TODO("(later if not tls_done) handshake or start_clear(.., 1) ");
+	
+	return 0;
+}
+
+/* Save a callback to accept / reject incoming unknown peers */
+int fd_peer_validate_register ( int (*peer_validate)(struct peer_info * /* info */, int * /* auth */, int (**cb2)(struct peer_info *)) )
+{
+	
+	TODO("...");
+	return ENOTSUP;
+}

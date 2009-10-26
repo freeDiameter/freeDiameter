@@ -59,7 +59,7 @@ const char * fd_pev_str(int event)
 		case_str(FDEVP_CNX_MSG_RECV);
 		case_str(FDEVP_CNX_ERROR);
 		case_str(FDEVP_CNX_EP_CHANGE);
-		case_str(FDEVP_MSG_INCOMING);
+		case_str(FDEVP_CNX_INCOMING);
 		case_str(FDEVP_PSM_TIMEOUT);
 		
 		default:
@@ -226,9 +226,6 @@ psm_end:
 	peer->p_psm = (pthread_t)NULL;
 	return NULL;
 }	
-	
-	
-
 
 /* Create the PSM thread of one peer structure */
 int fd_psm_begin(struct fd_peer * peer )

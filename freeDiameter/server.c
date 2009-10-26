@@ -138,8 +138,8 @@ static void * client_sm(void * arg)
 	/* Try parsing this message */
 	CHECK_FCT_DO( fd_msg_parse_buffer( &buf, bufsz, &msg ), /* Parsing failed */ goto cleanup );
 	
-	/* We expect a CER, it must parse with our dictionary */
-	CHECK_FCT_DO( fd_msg_parse_dict( msg, fd_g_config->cnf_dict ), /* Parsing failed */ goto cleanup );
+	/* We expect a CER, it must parse with our dictionary and rules */
+	CHECK_FCT_DO( fd_msg_parse_rules( msg, fd_g_config->cnf_dict, NULL ), /* Parsing failed -- trace details ? */ goto cleanup );
 	
 	if (TRACE_BOOL(FULL)) {
 		fd_log_debug("Received Diameter message from new client '%s':\n", fd_cnx_getid(c->conn));
@@ -148,16 +148,13 @@ static void * client_sm(void * arg)
 	
 	/* Now check we received a CER */
 	CHECK_FCT_DO( fd_msg_hdr ( msg, &hdr ), goto fatal_error );
-	
 	CHECK_PARAMS_DO( (hdr->msg_appl == 0) && (hdr->msg_flags & CMD_FLAG_REQUEST) && (hdr->msg_code == CC_CAPABILITIES_EXCHANGE),
 		{ fd_log_debug("Connection '%s', expecting CER, received something else, closing...\n", fd_cnx_getid(c->conn)); goto cleanup; } );
 	
+	/* Finally, pass the information to the peers module which will handle it next */
+	CHECK_FCT_DO( fd_peer_handle_newCER( &msg, &c->conn, s->secur ), goto fatal_error );
 	
-	TODO("Search matching peer");
-	TODO("Send event to the peer");
-	
-	TODO("(later) handshake or start_clear(.., 1)");
-	/* The end */
+	/* The end, we cleanup the client structure */
 cleanup:
 	/* Unlink the client structure */
 	CHECK_POSIX_DO( pthread_mutex_lock(&s->clients_mtx), goto fatal_error );
