@@ -133,7 +133,7 @@ static void * client_sm(void * arg)
 	/* Receive the first Diameter message on the connection -- cleanup in case of timeout */
 	CHECK_FCT_DO( fd_cnx_receive(c->conn, &c->ts, &buf, &bufsz), goto cleanup );
 	
-	TRACE_DEBUG(FULL, "Received %zb from new client '%s'", bufsz, fd_cnx_getid(c->conn));
+	TRACE_DEBUG(FULL, "Received %zdb from new client '%s'", bufsz, fd_cnx_getid(c->conn));
 	
 	/* Try parsing this message */
 	CHECK_FCT_DO( fd_msg_parse_buffer( &buf, bufsz, &msg ), /* Parsing failed */ goto cleanup );

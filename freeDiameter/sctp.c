@@ -763,7 +763,7 @@ int fd_sctp_get_str_info( int sock, uint16_t *in, uint16_t *out, sSS *primary )
 	CHECK_SYS(  getsockopt(sock, IPPROTO_SCTP, SCTP_STATUS, &status, &sz) );
 	if (sz != sizeof(status))
 	{
-		TRACE_DEBUG(INFO, "Invalid size of socket option: %d / %z", sz, sizeof(status));
+		TRACE_DEBUG(INFO, "Invalid size of socket option: %d / %zd", sz, sizeof(status));
 		return ENOTSUP;
 	}
 	#ifdef DEBUG_SCTP
@@ -910,7 +910,7 @@ int fd_sctp_sendstr(int sock, uint16_t strid, uint8_t * buf, size_t len)
 	} anci;
 	ssize_t ret;
 	
-	TRACE_ENTRY("%d %hu %p %z", sock, strid, buf, len);
+	TRACE_ENTRY("%d %hu %p %zd", sock, strid, buf, len);
 	
 	memset(&mhdr, 0, sizeof(mhdr));
 	memset(&iov,  0, sizeof(iov));

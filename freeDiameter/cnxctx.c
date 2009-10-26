@@ -503,7 +503,7 @@ static void * rcvthr_notls_tcp(void * arg)
 		if ((header[0] != DIAMETER_VERSION)	/* defined in <libfreeDiameter.h> */
 		   || (length > DIAMETER_MSG_SIZE_MAX)) { /* to avoid too big mallocs */
 			/* The message is suspect */
-			TRACE_DEBUG(INFO, "Received suspect header [ver: %d, size: %z], assume disconnection", (int)header[0], length);
+			TRACE_DEBUG(INFO, "Received suspect header [ver: %d, size: %zd], assume disconnection", (int)header[0], length);
 			goto error; /* Stop the thread, the recipient of the event will cleanup */
 		}
 
@@ -629,7 +629,7 @@ int fd_tls_rcvthr_core(struct cnxctx * conn, gnutls_session_t session)
 		if ((header[0] != DIAMETER_VERSION)	/* defined in <libfreeDiameter.h> */
 		   || (length > DIAMETER_MSG_SIZE_MAX)) { /* to avoid too big mallocs */
 			/* The message is suspect */
-			TRACE_DEBUG(INFO, "Received suspect header [ver: %d, size: %z], assume disconnection", (int)header[0], length);
+			TRACE_DEBUG(INFO, "Received suspect header [ver: %d, size: %zd], assume disconnection", (int)header[0], length);
 			goto out;
 		}
 
@@ -894,7 +894,7 @@ static int send_simple(struct cnxctx * conn, unsigned char * buf, size_t len)
 {
 	ssize_t ret;
 	size_t sent = 0;
-	TRACE_ENTRY("%p %p %z", conn, buf, len);
+	TRACE_ENTRY("%p %p %zd", conn, buf, len);
 	do {
 		if (conn->cc_tls) {
 			CHECK_GNUTLS_DO( ret = gnutls_record_send (conn->cc_tls_para.session, buf + sent, len - sent), return ENOTCONN );
@@ -909,11 +909,11 @@ static int send_simple(struct cnxctx * conn, unsigned char * buf, size_t len)
 /* Send a message -- this is synchronous -- and we assume it's never called by several threads at the same time, so we don't protect. */
 int fd_cnx_send(struct cnxctx * conn, unsigned char * buf, size_t len)
 {
-	TRACE_ENTRY("%p %p %z", conn, buf, len);
+	TRACE_ENTRY("%p %p %zd", conn, buf, len);
 	
 	CHECK_PARAMS(conn && (conn->cc_socket > 0) && buf && len);
 
-	TRACE_DEBUG(FULL, "Sending %zb %sdata on connection %s", len, conn->cc_tls ? "TLS-protected ":"", conn->cc_id);
+	TRACE_DEBUG(FULL, "Sending %zdb %sdata on connection %s", len, conn->cc_tls ? "TLS-protected ":"", conn->cc_id);
 	
 	switch (conn->cc_proto) {
 		case IPPROTO_TCP:

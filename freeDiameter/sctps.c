@@ -135,7 +135,7 @@ static ssize_t sctps_push(gnutls_transport_ptr_t tr, const void * data, size_t l
 {
 	struct sctps_ctx * ctx = (struct sctps_ctx *) tr;
 	
-	TRACE_ENTRY("%p %p %z", tr, data, len);
+	TRACE_ENTRY("%p %p %zd", tr, data, len);
 	CHECK_PARAMS_DO( tr && data, { errno = EINVAL; return -1; } );
 	
 	CHECK_FCT_DO( fd_sctp_sendstr(ctx->parent->cc_socket, ctx->strid, (uint8_t *)data, len), /* errno is already set */ return -1 );
@@ -150,7 +150,7 @@ static ssize_t sctps_pull(gnutls_transport_ptr_t tr, void * buf, size_t len)
 	size_t pulled = 0;
 	int emptied;
 	
-	TRACE_ENTRY("%p %p %z", tr, buf, len);
+	TRACE_ENTRY("%p %p %zd", tr, buf, len);
 	CHECK_PARAMS_DO( tr && buf, { errno = EINVAL; return -1; } );
 	
 	/* If we don't have data available now, pull new message from the fifo -- this is blocking */
