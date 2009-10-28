@@ -176,6 +176,13 @@ const char * fd_pev_str(int event);
 #define CHECK_EVENT( _e ) \
 	(((int)(_e) >= FDEVP_DUMP_ALL) && ((int)(_e) <= FDEVP_PSM_TIMEOUT))
 
+/* The data structure for FDEVP_CNX_INCOMING events */
+struct cnx_incoming {
+	struct msg	* cer;		/* the CER message received on this connection */
+	struct cnxctx	* cnx;		/* The connection context */
+	int  		  validate;	/* The peer is new, it must be validated (by an extension) or error CEA to be sent */
+};
+
 /* Structure to store a sent request */
 struct sentreq {
 	struct fd_list	chain; 	/* the "o" field points directly to the hop-by-hop of the request (uint32_t *)  */
@@ -189,8 +196,9 @@ void fd_peer_dump_list(int details);
 void fd_peer_dump(struct fd_peer * peer, int details);
 int  fd_peer_alloc(struct fd_peer ** ptr);
 int  fd_peer_free(struct fd_peer ** ptr);
-int fd_peer_handle_newCER( struct msg ** cer, struct cnxctx ** cnx, int tls_done );
+int fd_peer_handle_newCER( struct msg ** cer, struct cnxctx ** cnx );
 /* fd_peer_add declared in freeDiameter.h */
+int fd_peer_validate( struct fd_peer * peer );
 
 /* Peer expiry */
 int fd_p_expi_init(void);
@@ -215,9 +223,11 @@ int             fd_cnx_serv_listen(struct cnxctx * conn);
 struct cnxctx * fd_cnx_serv_accept(struct cnxctx * serv);
 struct cnxctx * fd_cnx_cli_connect_tcp(sSA * sa, socklen_t addrlen);
 struct cnxctx * fd_cnx_cli_connect_sctp(int no_ip6, uint16_t port, struct fd_list * list);
-char *          fd_cnx_getid(struct cnxctx * conn);
 int             fd_cnx_start_clear(struct cnxctx * conn, int loop);
-int             fd_cnx_handshake(struct cnxctx * conn, int mode, char * priority);
+int             fd_cnx_handshake(struct cnxctx * conn, int mode, char * priority, void * alt_creds);
+char *          fd_cnx_getid(struct cnxctx * conn);
+int		fd_cnx_getproto(struct cnxctx * conn);
+int		fd_cnx_getTLS(struct cnxctx * conn);
 int             fd_cnx_getcred(struct cnxctx * conn, const gnutls_datum_t **cert_list, unsigned int *cert_list_size);
 int             fd_cnx_getendpoints(struct cnxctx * conn, struct fd_list * local, struct fd_list * remote);
 char *          fd_cnx_getremoteid(struct cnxctx * conn);

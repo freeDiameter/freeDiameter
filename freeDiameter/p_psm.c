@@ -208,6 +208,32 @@ psm_loop:
 		}
 	}
 	
+	/* A new connection was established and CER containing this peer id was received */
+	if (event == FDEVP_CNX_INCOMING) {
+		struct cnx_incoming * params = ev_data;
+		ASSERT(params);
+		
+		switch (peer->p_hdr.info.pi_state) {
+			case STATE_CLOSED:
+				TODO("Handle the CER, validate the peer if needed (and set expiry), set the alt_fifo in the connection, reply a CEA, eventually handshake, move to OPEN or REOPEN state");
+				break;
+				
+			case STATE_WAITCNXACK:
+			case STATE_WAITCEA:
+				TODO("Election");
+				break;
+				
+			default:
+				TODO("Reply with error CEA");
+				TODO("Close the connection");
+				/* reject_incoming_connection */
+			
+		}
+		
+		free(ev_data);
+		goto psm_loop;
+	}
+	
 	/* MSG_RECEIVED: fd_p_expi_update(struct fd_peer * peer ) */
 	/* If timeout or OPEN : call cb if defined */
 
@@ -222,8 +248,8 @@ psm_loop:
 	
 psm_end:
 	pthread_cleanup_pop(1); /* set STATE_ZOMBIE */
-	pthread_detach(peer->p_psm);
 	peer->p_psm = (pthread_t)NULL;
+	pthread_detach(pthread_self());
 	return NULL;
 }	
 

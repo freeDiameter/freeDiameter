@@ -72,10 +72,16 @@ static void * demuxer(void * arg)
 	uint16_t  strid;
 	
 	TRACE_ENTRY("%p", arg);
-	
 	CHECK_PARAMS_DO(conn && (conn->cc_socket > 0), goto out);
+	
+	/* Set the thread name */
+	{
+		char buf[48];
+		snprintf(buf, sizeof(buf), "Demuxer (%d)", conn->cc_socket);
+		fd_log_threadname ( buf );
+	}
+	
 	ASSERT( conn->cc_proto == IPPROTO_SCTP );
-	ASSERT( conn->cc_tls == 1 );
 	ASSERT( Target_Queue(conn) );
 	ASSERT( conn->cc_sctps_data.array );
 	
@@ -114,10 +120,16 @@ static void * decipher(void * arg)
 	struct cnxctx 	 *cnx;
 	
 	TRACE_ENTRY("%p", arg);
-	
 	CHECK_PARAMS_DO(ctx && ctx->raw_recv && ctx->parent, goto error);
 	cnx = ctx->parent;
 	ASSERT( Target_Queue(cnx) );
+	
+	/* Set the thread name */
+	{
+		char buf[48];
+		snprintf(buf, sizeof(buf), "Decipher (%hu@%d)", ctx->strid, cnx->cc_socket);
+		fd_log_threadname ( buf );
+	}
 	
 	CHECK_FCT_DO(fd_tls_rcvthr_core(cnx, ctx->strid ? ctx->session : cnx->cc_tls_para.session), /* continue */);
 error:
@@ -208,6 +220,7 @@ struct sr_store {
 	struct fd_list	 list;	/* list of sr_data, ordered by key.size then key.data */
 	pthread_rwlock_t lock;
 	struct cnxctx   *parent;
+	/* Add another list to chain in a global list to implement a garbage collector on sessions */
 };
 
 /* Saved master session data for resuming sessions */
@@ -218,7 +231,7 @@ struct sr_data {
 };
 
 /* The level at which we debug session resuming */
-#define SR_LEVEL FULL
+#define SR_LEVEL (FULL + 1)
 
 /* Initialize the store area for a connection */
 static int store_init(struct cnxctx * conn)
@@ -302,9 +315,9 @@ static int sr_store (void *dbf, gnutls_datum_t key, gnutls_datum_t data)
 	int ret = 0;
 	
 	CHECK_PARAMS_DO( sto && key.data && data.data, return -1 );
-	TRACE_DEBUG_BUFFER(SR_LEVEL, "Session store [key ", key.data, key.size < 16 ? key.size : 16, "]");
 	
 	CHECK_POSIX_DO( pthread_rwlock_wrlock(&sto->lock), return -1 );
+	TRACE_DEBUG_BUFFER(SR_LEVEL, "Session store [key ", key.data, key.size, "]");
 	
 	li = find_or_next(sto, key, &match);
 	if (match) {
@@ -312,8 +325,10 @@ static int sr_store (void *dbf, gnutls_datum_t key, gnutls_datum_t data)
 		
 		/* Check the data is the same */
 		if ((data.size != sr->data.size) || memcmp(data.data, sr->data.data, data.size)) {
-			TRACE_DEBUG(INFO, "GnuTLS tried to store a session with same key and different data!");
+			TRACE_DEBUG(SR_LEVEL, "GnuTLS tried to store a session with same key and different data!");
 			ret = -1;
+		} else {
+			TRACE_DEBUG(SR_LEVEL, "GnuTLS tried to store a session with same key and same data, skipped.");
 		}
 		goto out;
 	}
@@ -349,9 +364,9 @@ static int sr_remove (void *dbf, gnutls_datum_t key)
 	int ret = 0;
 	
 	CHECK_PARAMS_DO( sto && key.data, return -1 );
-	TRACE_DEBUG_BUFFER(SR_LEVEL, "Session delete [key ", key.data, key.size < 16 ? key.size : 16, "]");
 	
 	CHECK_POSIX_DO( pthread_rwlock_wrlock(&sto->lock), return -1 );
+	TRACE_DEBUG_BUFFER(SR_LEVEL, "Session delete [key ", key.data, key.size, "]");
 	
 	li = find_or_next(sto, key, &match);
 	if (match) {
@@ -381,9 +396,9 @@ static gnutls_datum_t sr_fetch (void *dbf, gnutls_datum_t key)
 	gnutls_datum_t error = { NULL, 0 };
 
 	CHECK_PARAMS_DO( sto && key.data, return error );
-	TRACE_DEBUG_BUFFER(SR_LEVEL, "Session fetch [key ", key.data, key.size < 16 ? key.size : 16, "]");
 
 	CHECK_POSIX_DO( pthread_rwlock_rdlock(&sto->lock), return error );
+	TRACE_DEBUG_BUFFER(SR_LEVEL, "Session fetch [key ", key.data, key.size, "]");
 	
 	li = find_or_next(sto, key, &match);
 	if (match) {
@@ -393,6 +408,7 @@ static gnutls_datum_t sr_fetch (void *dbf, gnutls_datum_t key)
 		memcpy(res.data, sr->data.data, res.size);
 	}
 out:	
+	TRACE_DEBUG(SR_LEVEL, "Fetched (%p, %d) from store %p", res.data, res.size, sto);
 	CHECK_POSIX_DO( pthread_rwlock_unlock(&sto->lock), return error);
 	return res;
 }
@@ -416,10 +432,24 @@ static void * handshake_resume_th(void * arg)
 	struct sctps_ctx * ctx = (struct sctps_ctx *) arg;
 	TRACE_ENTRY("%p", arg);
 	
+	/* Set the thread name */
+	{
+		char buf[48];
+		snprintf(buf, sizeof(buf), "Handshake resume (%hu@%d)", ctx->strid, ctx->parent->cc_socket);
+		fd_log_threadname ( buf );
+	}
+	
 	TRACE_DEBUG(FULL, "Starting TLS resumed handshake on stream %hu", ctx->strid);
 	CHECK_GNUTLS_DO( gnutls_handshake( ctx->session ), return NULL);
 			
-	/* We can trace success of resuming handshake by using gnutls_session_is_resumed */
+	if (TRACE_BOOL(FULL)) {
+		int resumed = gnutls_session_is_resumed(ctx->session);
+		if (resumed) {
+			fd_log_debug("Session was resumed successfully on stream %hu (conn: '%s')\n", ctx->strid, fd_cnx_getid(ctx->parent));
+		} else {
+			fd_log_debug("Session was NOT resumed (full handshake) on stream %hu (conn: '%s')\n", ctx->strid, fd_cnx_getid(ctx->parent));
+		}
+	}
 			
 	/* Finish */
 	return arg;
@@ -466,7 +496,7 @@ int fd_sctps_init(struct cnxctx * conn)
 }
 
 /* Handshake other streams, after full handshake on the master session */
-int fd_sctps_handshake_others(struct cnxctx * conn, char * priority)
+int fd_sctps_handshake_others(struct cnxctx * conn, char * priority, void * alt_creds)
 {
 	uint16_t i;
 	int errors = 0;
@@ -486,7 +516,7 @@ int fd_sctps_handshake_others(struct cnxctx * conn, char * priority)
 	/* Initialize the session objects and start the handshake in a separate thread */
 	for (i = 1; i < conn->cc_sctp_para.pairs; i++) {
 		/* Set credentials and priority */
-		CHECK_FCT( fd_tls_prepare(&conn->cc_sctps_data.array[i].session, conn->cc_tls_para.mode, priority) );
+		CHECK_FCT( fd_tls_prepare(&conn->cc_sctps_data.array[i].session, conn->cc_tls_para.mode, priority, alt_creds) );
 		
 		/* For the client, copy data from master session; for the server, set session resuming pointers */
 		if (conn->cc_tls_para.mode == GNUTLS_CLIENT) {
@@ -549,6 +579,26 @@ void fd_sctps_stopthreads(struct cnxctx * conn)
 	return;
 }
 
+static void * bye_th(void * arg)
+{
+	struct sctps_ctx * ctx = (struct sctps_ctx *) arg;
+	TRACE_ENTRY("%p", arg);
+	
+	/* Set the thread name */
+	{
+		char buf[48];
+		snprintf(buf, sizeof(buf), "gnutls_bye (%hu@%d)", ctx->strid, ctx->parent->cc_socket);
+		fd_log_threadname ( buf );
+	}
+	
+	CHECK_GNUTLS_DO( gnutls_bye(ctx->session, GNUTLS_SHUT_RDWR), /* Continue */ );
+			
+	/* Finish */
+	return arg;
+}
+
+
+
 /* Destroy a wrapper context */
 void fd_sctps_destroy(struct cnxctx * conn)
 {
@@ -559,11 +609,14 @@ void fd_sctps_destroy(struct cnxctx * conn)
 	/* Terminate all receiving threads in case we did not do it yet */
 	fd_sctps_stopthreads(conn);
 	
-	/* End all TLS sessions -- maybe we should do it in parallel ? */
-	for (i = 0; i < conn->cc_sctp_para.pairs; i++) {
-		CHECK_GNUTLS_DO( gnutls_bye(conn->cc_sctps_data.array[i].session, GNUTLS_SHUT_RDWR), /* Continue */ );
+	/* End all TLS sessions, in parallel */
+	for (i = 1; i < conn->cc_sctp_para.pairs; i++) {
+		CHECK_POSIX_DO( pthread_create( &conn->cc_sctps_data.array[i].thr, NULL, bye_th, &conn->cc_sctps_data.array[i] ), break );
 	}
-	
+	for (--i; i > 0; --i) {
+		CHECK_POSIX_DO( pthread_join( conn->cc_sctps_data.array[i].thr, NULL ), continue );
+	}
+skip:	
 	/* Now, stop the demux thread */
 	CHECK_FCT_DO( fd_thr_term(&conn->cc_rcvthr), /* continue */ );
 	
@@ -571,7 +624,8 @@ void fd_sctps_destroy(struct cnxctx * conn)
 	for (i = 0; i < conn->cc_sctp_para.pairs; i++) {
 		fd_event_destroy( &conn->cc_sctps_data.array[i].raw_recv, free );
 		free(conn->cc_sctps_data.array[i].partial.buf);
-		gnutls_deinit(conn->cc_sctps_data.array[i].session);
+		if (i > 0)
+			gnutls_deinit(conn->cc_sctps_data.array[i].session);
 	}
 	
 	/* Free the array itself now */

@@ -17,6 +17,7 @@ SET(TEST_LIST
 	testfifo
 	testsess
 	testdisp
+	testcnx
 )
 
 #############################

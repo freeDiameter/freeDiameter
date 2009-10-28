@@ -180,7 +180,7 @@ extern int fd_g_debug_lvl;
 
 /* Helper for function entry -- for very detailed trace of the execution */
 #define TRACE_ENTRY(_format,_args... ) \
-	TRACE_DEBUG(FCTS, "->%s (" #_args ") = (" _format ") >", __PRETTY_FUNCTION__, ##_args );
+	TRACE_DEBUG(FCTS, "[enter] %s(" _format ") {" #_args "}", __PRETTY_FUNCTION__, ##_args );
 
 /* Helper for debugging by adding traces -- for debuging a specific location of the code */
 #define TRACE_HERE()	\
@@ -469,7 +469,7 @@ static __inline__ int fd_thr_term(pthread_t * th)
 	CHECK_POSIX_DO( ret = pthread_join(*th, &th_ret), /* continue */ );
 	
 	if (th_ret != NULL) {
-		TRACE_DEBUG(FULL, "The thread returned the following value: %p (ignored)", th_ret);
+		TRACE_DEBUG(ANNOYING, "The thread returned the following value: %p (ignored)", th_ret);
 	}
 	
 	/* Clean the location */

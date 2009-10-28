@@ -44,12 +44,17 @@
 #define CMSG_BUF_LEN	1024
 #endif /* CMSG_BUF_LEN */
 
+/* Level of SCTP-specific traces */
+#ifdef DEBUG_SCTP
+#define SCTP_LEVEL	FULL
+#else /* DEBUG_SCTP */
+#define SCTP_LEVEL	ANNOYING
+#endif /* DEBUG_SCTP */
+
 /* Pre-binding socket options -- # streams read in config */
 static int fd_setsockopt_prebind(int sk)
 {
-	#ifdef DEBUG_SCTP
 	socklen_t sz;
-	#endif /* DEBUG_SCTP */
 	
 	TRACE_ENTRY( "%d", sk);
 	
@@ -73,25 +78,25 @@ static int fd_setsockopt_prebind(int sk)
 		/* Set the option to the socket */
 		CHECK_SYS(  setsockopt(sk, IPPROTO_SCTP, SCTP_EVENTS, &event, sizeof(event)) );
 		
-		#ifdef DEBUG_SCTP
-		sz = sizeof(event);
-		CHECK_SYS(  getsockopt(sk, IPPROTO_SCTP, SCTP_EVENTS, &event, &sz) );
-		if (sz != sizeof(event))
-		{
-			TRACE_DEBUG(INFO, "Invalid size of socket option: %d / %d", sz, (socklen_t)sizeof(event));
-			return ENOTSUP;
+		if (TRACE_BOOL(SCTP_LEVEL)) {
+			sz = sizeof(event);
+			CHECK_SYS(  getsockopt(sk, IPPROTO_SCTP, SCTP_EVENTS, &event, &sz) );
+			if (sz != sizeof(event))
+			{
+				TRACE_DEBUG(INFO, "Invalid size of socket option: %d / %d", sz, (socklen_t)sizeof(event));
+				return ENOTSUP;
+			}
+
+			fd_log_debug( "SCTP_EVENTS : sctp_data_io_event          : %hhu\n", event.sctp_data_io_event);
+			fd_log_debug( "       	     sctp_association_event      : %hhu\n", event.sctp_association_event);
+			fd_log_debug( "       	     sctp_address_event	         : %hhu\n", event.sctp_address_event);
+			fd_log_debug( "       	     sctp_send_failure_event     : %hhu\n", event.sctp_send_failure_event);
+			fd_log_debug( "       	     sctp_peer_error_event       : %hhu\n", event.sctp_peer_error_event);
+			fd_log_debug( "       	     sctp_shutdown_event	 : %hhu\n", event.sctp_shutdown_event);
+			fd_log_debug( "       	     sctp_partial_delivery_event : %hhu\n", event.sctp_partial_delivery_event);
+			fd_log_debug( "       	     sctp_adaptation_layer_event : %hhu\n", event.sctp_adaptation_layer_event);
+			// fd_log_debug( "             sctp_authentication_event    : %hhu\n", event.sctp_authentication_event);
 		}
-		
-		TRACE_DEBUG(FULL, "SCTP_EVENTS : sctp_data_io_event          : %hhu", event.sctp_data_io_event);
-		TRACE_DEBUG(FULL, "       	 sctp_association_event      : %hhu", event.sctp_association_event);
-		TRACE_DEBUG(FULL, "       	 sctp_address_event	     : %hhu", event.sctp_address_event);
-		TRACE_DEBUG(FULL, "       	 sctp_send_failure_event     : %hhu", event.sctp_send_failure_event);
-		TRACE_DEBUG(FULL, "       	 sctp_peer_error_event       : %hhu", event.sctp_peer_error_event);
-		TRACE_DEBUG(FULL, "       	 sctp_shutdown_event	     : %hhu", event.sctp_shutdown_event);
-		TRACE_DEBUG(FULL, "       	 sctp_partial_delivery_event : %hhu", event.sctp_partial_delivery_event);
-		TRACE_DEBUG(FULL, "       	 sctp_adaptation_layer_event : %hhu", event.sctp_adaptation_layer_event);
-		// TRACE_DEBUG(FULL, "             sctp_authentication_event    : %hhu", event.sctp_authentication_event);
-		#endif /* DEBUG_SCTP */
 		
 	}
 	
@@ -100,21 +105,21 @@ static int fd_setsockopt_prebind(int sk)
 		struct sctp_initmsg init;
 		memset(&init, 0, sizeof(init));
 		
-		#ifdef DEBUG_SCTP
-		sz = sizeof(init);
-		
-		/* Read socket defaults */
-		CHECK_SYS(  getsockopt(sk, IPPROTO_SCTP, SCTP_INITMSG, &init, &sz)  );
-		if (sz != sizeof(init))
-		{
-			TRACE_DEBUG(INFO, "Invalid size of socket option: %d / %d", sz, (socklen_t)sizeof(init));
-			return ENOTSUP;
+		if (TRACE_BOOL(SCTP_LEVEL)) {
+			sz = sizeof(init);
+
+			/* Read socket defaults */
+			CHECK_SYS(  getsockopt(sk, IPPROTO_SCTP, SCTP_INITMSG, &init, &sz)  );
+			if (sz != sizeof(init))
+			{
+				TRACE_DEBUG(INFO, "Invalid size of socket option: %d / %d", sz, (socklen_t)sizeof(init));
+				return ENOTSUP;
+			}
+			fd_log_debug( "Def SCTP_INITMSG : sinit_num_ostreams   : %hu\n", init.sinit_num_ostreams);
+			fd_log_debug( "                   sinit_max_instreams  : %hu\n", init.sinit_max_instreams);
+			fd_log_debug( "                   sinit_max_attempts   : %hu\n", init.sinit_max_attempts);
+			fd_log_debug( "                   sinit_max_init_timeo : %hu\n", init.sinit_max_init_timeo);
 		}
-		TRACE_DEBUG(FULL, "Def SCTP_INITMSG : sinit_num_ostreams   : %hu", init.sinit_num_ostreams);
-		TRACE_DEBUG(FULL, "                   sinit_max_instreams  : %hu", init.sinit_max_instreams);
-		TRACE_DEBUG(FULL, "                   sinit_max_attempts   : %hu", init.sinit_max_attempts);
-		TRACE_DEBUG(FULL, "                   sinit_max_init_timeo : %hu", init.sinit_max_init_timeo);
-		#endif /* DEBUG_SCTP */
 
 		/* Set the init options -- need to receive SCTP_COMM_UP to confirm the requested parameters */
 		init.sinit_num_ostreams	  = fd_g_config->cnf_sctp_str;	/* desired number of outgoing streams */
@@ -123,14 +128,14 @@ static int fd_setsockopt_prebind(int sk)
 		/* Set the option to the socket */
 		CHECK_SYS(  setsockopt(sk, IPPROTO_SCTP, SCTP_INITMSG, &init, sizeof(init))  );
 		
-		#ifdef DEBUG_SCTP
-		/* Check new values */
-		CHECK_SYS(  getsockopt(sk, IPPROTO_SCTP, SCTP_INITMSG, &init, &sz)  );
-		TRACE_DEBUG(FULL, "New SCTP_INITMSG : sinit_num_ostreams   : %hu", init.sinit_num_ostreams);
-		TRACE_DEBUG(FULL, "                   sinit_max_instreams  : %hu", init.sinit_max_instreams);
-		TRACE_DEBUG(FULL, "                   sinit_max_attempts   : %hu", init.sinit_max_attempts);
-		TRACE_DEBUG(FULL, "                   sinit_max_init_timeo : %hu", init.sinit_max_init_timeo);
-		#endif /* DEBUG_SCTP */
+		if (TRACE_BOOL(SCTP_LEVEL)) {
+			/* Check new values */
+			CHECK_SYS(  getsockopt(sk, IPPROTO_SCTP, SCTP_INITMSG, &init, &sz)  );
+			fd_log_debug( "New SCTP_INITMSG : sinit_num_ostreams   : %hu\n", init.sinit_num_ostreams);
+			fd_log_debug( "                   sinit_max_instreams  : %hu\n", init.sinit_max_instreams);
+			fd_log_debug( "                   sinit_max_attempts   : %hu\n", init.sinit_max_attempts);
+			fd_log_debug( "                   sinit_max_init_timeo : %hu\n", init.sinit_max_init_timeo);
+		}
 	}
 	
 	/* Set the SCTP_DISABLE_FRAGMENTS option, required for TLS */
@@ -138,28 +143,28 @@ static int fd_setsockopt_prebind(int sk)
 	{
 		int nofrag;
 		
-		#ifdef DEBUG_SCTP
-		sz = sizeof(nofrag);
-		/* Read socket defaults */
-		CHECK_SYS(  getsockopt(sk, IPPROTO_SCTP, SCTP_DISABLE_FRAGMENTS, &nofrag, &sz)  );
-		if (sz != sizeof(nofrag))
-		{
-			TRACE_DEBUG(INFO, "Invalid size of socket option: %d / %d", sz, (socklen_t)sizeof(nofrag));
-			return ENOTSUP;
+		if (TRACE_BOOL(SCTP_LEVEL)) {
+			sz = sizeof(nofrag);
+			/* Read socket defaults */
+			CHECK_SYS(  getsockopt(sk, IPPROTO_SCTP, SCTP_DISABLE_FRAGMENTS, &nofrag, &sz)  );
+			if (sz != sizeof(nofrag))
+			{
+				TRACE_DEBUG(INFO, "Invalid size of socket option: %d / %d", sz, (socklen_t)sizeof(nofrag));
+				return ENOTSUP;
+			}
+			fd_log_debug( "Def SCTP_DISABLE_FRAGMENTS value : %s\n", nofrag ? "true" : "false");
 		}
-		TRACE_DEBUG(FULL, "Def SCTP_DISABLE_FRAGMENTS value : %s", nofrag ? "true" : "false");
-		#endif /* DEBUG_SCTP */
 
 		nofrag = 0;	/* We turn ON the fragmentation */
 		
 		/* Set the option to the socket */
 		CHECK_SYS(  setsockopt(sk, IPPROTO_SCTP, SCTP_DISABLE_FRAGMENTS, &nofrag, sizeof(nofrag))  );
 		
-		#ifdef DEBUG_SCTP
-		/* Check new values */
-		CHECK_SYS(  getsockopt(sk, IPPROTO_SCTP, SCTP_DISABLE_FRAGMENTS, &nofrag, &sz)  );
-		TRACE_DEBUG(FULL, "New SCTP_DISABLE_FRAGMENTS value : %s", nofrag ? "true" : "false");
-		#endif /* DEBUG_SCTP */
+		if (TRACE_BOOL(SCTP_LEVEL)) {
+			/* Check new values */
+			CHECK_SYS(  getsockopt(sk, IPPROTO_SCTP, SCTP_DISABLE_FRAGMENTS, &nofrag, &sz)  );
+			fd_log_debug( "New SCTP_DISABLE_FRAGMENTS value : %s\n", nofrag ? "true" : "false");
+		}
 	}
 	#else /* SCTP_DISABLE_FRAGMENTS */
 	# error "TLS requires support of SCTP_DISABLE_FRAGMENTS"
@@ -172,37 +177,35 @@ static int fd_setsockopt_prebind(int sk)
 		struct sctp_rtoinfo rtoinfo;
 		memset(&rtoinfo, 0, sizeof(rtoinfo));
 
-		#ifdef DEBUG_SCTP
-		sz = sizeof(rtoinfo);
-		/* Read socket defaults */
-		CHECK_SYS(  getsockopt(sk, IPPROTO_SCTP, SCTP_RTOINFO, &rtoinfo, &sz)  );
-		if (sz != sizeof(rtoinfo))
-		{
-			TRACE_DEBUG(INFO, "Invalid size of socket option: %d / %d", sz, (socklen_t)sizeof(rtoinfo));
-			return ENOTSUP;
+		if (TRACE_BOOL(SCTP_LEVEL)) {
+			sz = sizeof(rtoinfo);
+			/* Read socket defaults */
+			CHECK_SYS(  getsockopt(sk, IPPROTO_SCTP, SCTP_RTOINFO, &rtoinfo, &sz)  );
+			if (sz != sizeof(rtoinfo))
+			{
+				TRACE_DEBUG(INFO, "Invalid size of socket option: %d / %d", sz, (socklen_t)sizeof(rtoinfo));
+				return ENOTSUP;
+			}
+			fd_log_debug( "Def SCTP_RTOINFO : srto_initial : %u\n", rtoinfo.srto_initial);
+			fd_log_debug( "                   srto_max     : %u\n", rtoinfo.srto_max);
+			fd_log_debug( "                   srto_min     : %u\n", rtoinfo.srto_min);
 		}
-		TRACE_DEBUG(FULL, "Def SCTP_RTOINFO : srto_initial : %u", rtoinfo.srto_initial);
-		TRACE_DEBUG(FULL, "                   srto_max     : %u", rtoinfo.srto_max);
-		TRACE_DEBUG(FULL, "                   srto_min     : %u", rtoinfo.srto_min);
-		#endif /* DEBUG_SCTP */
 
 		rtoinfo.srto_max     = fd_g_config->cnf_timer_tw * 500 - 1000;	/* Maximum retransmit timer (in ms) (set to Tw / 2 - 1) */
 
 		/* Set the option to the socket */
 		CHECK_SYS(  setsockopt(sk, IPPROTO_SCTP, SCTP_RTOINFO, &rtoinfo, sizeof(rtoinfo))  );
 		
-		#ifdef DEBUG_SCTP
-		/* Check new values */
-		CHECK_SYS(  getsockopt(sk, IPPROTO_SCTP, SCTP_RTOINFO, &rtoinfo, &sz)  );
-		TRACE_DEBUG(FULL, "New SCTP_RTOINFO : srto_initial : %u", rtoinfo.srto_initial);
-		TRACE_DEBUG(FULL, "                   srto_max     : %u", rtoinfo.srto_max);
-		TRACE_DEBUG(FULL, "                   srto_min     : %u", rtoinfo.srto_min);
-		#endif /* DEBUG_SCTP */
+		if (TRACE_BOOL(SCTP_LEVEL)) {
+			/* Check new values */
+			CHECK_SYS(  getsockopt(sk, IPPROTO_SCTP, SCTP_RTOINFO, &rtoinfo, &sz)  );
+			fd_log_debug( "New SCTP_RTOINFO : srto_initial : %u\n", rtoinfo.srto_initial);
+			fd_log_debug( "                   srto_max     : %u\n", rtoinfo.srto_max);
+			fd_log_debug( "                   srto_min     : %u\n", rtoinfo.srto_min);
+		}
 	}
 	#else /* SCTP_RTOINFO */
-	# ifdef DEBUG_SCTP
-	TRACE_DEBUG(FULL, "Skipping SCTP_RTOINFO");
-	# endif /* DEBUG_SCTP */
+	TRACE_DEBUG(SCTP_LEVEL, "Skipping SCTP_RTOINFO");
 	#endif /* SCTP_RTOINFO */
 	
 	/* Set the ASSOCIATION parameters */
@@ -211,41 +214,39 @@ static int fd_setsockopt_prebind(int sk)
 		struct sctp_assocparams assoc;
 		memset(&assoc, 0, sizeof(assoc));
 
-		#ifdef DEBUG_SCTP
-		sz = sizeof(assoc);
-		/* Read socket defaults */
-		CHECK_SYS(  getsockopt(sk, IPPROTO_SCTP, SCTP_ASSOCINFO, &assoc, &sz)  );
-		if (sz != sizeof(assoc))
-		{
-			TRACE_DEBUG(INFO, "Invalid size of socket option: %d / %d", sz, (socklen_t)sizeof(assoc));
-			return ENOTSUP;
+		if (TRACE_BOOL(SCTP_LEVEL)) {
+			sz = sizeof(assoc);
+			/* Read socket defaults */
+			CHECK_SYS(  getsockopt(sk, IPPROTO_SCTP, SCTP_ASSOCINFO, &assoc, &sz)  );
+			if (sz != sizeof(assoc))
+			{
+				TRACE_DEBUG(INFO, "Invalid size of socket option: %d / %d", sz, (socklen_t)sizeof(assoc));
+				return ENOTSUP;
+			}
+			fd_log_debug( "Def SCTP_ASSOCINFO : sasoc_asocmaxrxt               : %hu\n", assoc.sasoc_asocmaxrxt);
+			fd_log_debug( "                     sasoc_number_peer_destinations : %hu\n", assoc.sasoc_number_peer_destinations);
+			fd_log_debug( "                     sasoc_peer_rwnd                : %u\n" , assoc.sasoc_peer_rwnd);
+			fd_log_debug( "                     sasoc_local_rwnd               : %u\n" , assoc.sasoc_local_rwnd);
+			fd_log_debug( "                     sasoc_cookie_life              : %u\n" , assoc.sasoc_cookie_life);
 		}
-		TRACE_DEBUG(FULL, "Def SCTP_ASSOCINFO : sasoc_asocmaxrxt               : %hu", assoc.sasoc_asocmaxrxt);
-		TRACE_DEBUG(FULL, "                     sasoc_number_peer_destinations : %hu", assoc.sasoc_number_peer_destinations);
-		TRACE_DEBUG(FULL, "                     sasoc_peer_rwnd                : %u" , assoc.sasoc_peer_rwnd);
-		TRACE_DEBUG(FULL, "                     sasoc_local_rwnd               : %u" , assoc.sasoc_local_rwnd);
-		TRACE_DEBUG(FULL, "                     sasoc_cookie_life              : %u" , assoc.sasoc_cookie_life);
-		#endif /* DEBUG_SCTP */
 
 		assoc.sasoc_asocmaxrxt = 5;	/* Maximum retransmission attempts: we want fast detection of errors */
 		
 		/* Set the option to the socket */
 		CHECK_SYS(  setsockopt(sk, IPPROTO_SCTP, SCTP_ASSOCINFO, &assoc, sizeof(assoc))  );
 		
-		#ifdef DEBUG_SCTP
-		/* Check new values */
-		CHECK_SYS(  getsockopt(sk, IPPROTO_SCTP, SCTP_ASSOCINFO, &assoc, &sz)  );
-		TRACE_DEBUG(FULL, "New SCTP_ASSOCINFO : sasoc_asocmaxrxt               : %hu", assoc.sasoc_asocmaxrxt);
-		TRACE_DEBUG(FULL, "                     sasoc_number_peer_destinations : %hu", assoc.sasoc_number_peer_destinations);
-		TRACE_DEBUG(FULL, "                     sasoc_peer_rwnd                : %u" , assoc.sasoc_peer_rwnd);
-		TRACE_DEBUG(FULL, "                     sasoc_local_rwnd               : %u" , assoc.sasoc_local_rwnd);
-		TRACE_DEBUG(FULL, "                     sasoc_cookie_life              : %u" , assoc.sasoc_cookie_life);
-		#endif /* DEBUG_SCTP */
+		if (TRACE_BOOL(SCTP_LEVEL)) {
+			/* Check new values */
+			CHECK_SYS(  getsockopt(sk, IPPROTO_SCTP, SCTP_ASSOCINFO, &assoc, &sz)  );
+			fd_log_debug( "New SCTP_ASSOCINFO : sasoc_asocmaxrxt               : %hu\n", assoc.sasoc_asocmaxrxt);
+			fd_log_debug( "                     sasoc_number_peer_destinations : %hu\n", assoc.sasoc_number_peer_destinations);
+			fd_log_debug( "                     sasoc_peer_rwnd                : %u\n" , assoc.sasoc_peer_rwnd);
+			fd_log_debug( "                     sasoc_local_rwnd               : %u\n" , assoc.sasoc_local_rwnd);
+			fd_log_debug( "                     sasoc_cookie_life              : %u\n" , assoc.sasoc_cookie_life);
+		}
 	}
 	#else /* SCTP_ASSOCINFO */
-	# ifdef DEBUG_SCTP
-	TRACE_DEBUG(FULL, "Skipping SCTP_ASSOCINFO");
-	# endif /* DEBUG_SCTP */
+	TRACE_DEBUG(SCTP_LEVEL, "Skipping SCTP_ASSOCINFO");
 	#endif /* SCTP_ASSOCINFO */
 	
 	
@@ -255,18 +256,18 @@ static int fd_setsockopt_prebind(int sk)
 		struct linger linger;
 		memset(&linger, 0, sizeof(linger));
 		
-		#ifdef DEBUG_SCTP
-		sz = sizeof(linger);
-		/* Read socket defaults */
-		CHECK_SYS(  getsockopt(sk, SOL_SOCKET, SO_LINGER, &linger, &sz)  );
-		if (sz != sizeof(linger))
-		{
-			TRACE_DEBUG(INFO, "Invalid size of socket option: %d / %d", sz, (socklen_t)sizeof(linger));
-			return ENOTSUP;
+		if (TRACE_BOOL(SCTP_LEVEL)) {
+			sz = sizeof(linger);
+			/* Read socket defaults */
+			CHECK_SYS(  getsockopt(sk, SOL_SOCKET, SO_LINGER, &linger, &sz)  );
+			if (sz != sizeof(linger))
+			{
+				TRACE_DEBUG(INFO, "Invalid size of socket option: %d / %d", sz, (socklen_t)sizeof(linger));
+				return ENOTSUP;
+			}
+			fd_log_debug( "Def SO_LINGER : l_onoff  : %d\n", linger.l_onoff);
+			fd_log_debug( " 	       l_linger : %d\n", linger.l_linger);
 		}
-		TRACE_DEBUG(FULL, "Def SO_LINGER : l_onoff  : %d", linger.l_onoff);
-		TRACE_DEBUG(FULL, "                l_linger : %d", linger.l_linger);
-		#endif /* DEBUG_SCTP */
 		
 		linger.l_onoff	= 0;	/* Do not activate the linger */
 		linger.l_linger = 0;	/* Return immediately when closing (=> abort) */
@@ -274,17 +275,15 @@ static int fd_setsockopt_prebind(int sk)
 		/* Set the option */
 		CHECK_SYS(  setsockopt(sk, SOL_SOCKET, SO_LINGER, &linger, sizeof(linger))  );
 		
-		#ifdef DEBUG_SCTP
-		/* Check new values */
-		CHECK_SYS(  getsockopt(sk, SOL_SOCKET, SO_LINGER, &linger, &sz)  );
-		TRACE_DEBUG(FULL, "New SO_LINGER : l_onoff  : %d", linger.l_onoff);
-		TRACE_DEBUG(FULL, "                l_linger : %d", linger.l_linger);
-		#endif /* DEBUG_SCTP */
+		if (TRACE_BOOL(SCTP_LEVEL)) {
+			/* Check new values */
+			CHECK_SYS(  getsockopt(sk, SOL_SOCKET, SO_LINGER, &linger, &sz)  );
+			fd_log_debug( "New SO_LINGER : l_onoff  : %d\n", linger.l_onoff);
+			fd_log_debug( "		  l_linger : %d\n", linger.l_linger);
+		}
 	}
 	#else /* SO_LINGER */
-	# ifdef DEBUG_SCTP
-	TRACE_DEBUG(FULL, "Skipping SO_LINGER");
-	# endif /* DEBUG_SCTP */
+	TRACE_DEBUG(SCTP_LEVEL, "Skipping SO_LINGER");
 	#endif /* SO_LINGER */
 	
 	/* Set the NODELAY option (Nagle-like algorithm) */
@@ -292,33 +291,31 @@ static int fd_setsockopt_prebind(int sk)
 	{
 		int nodelay;
 		
-		#ifdef DEBUG_SCTP
-		sz = sizeof(nodelay);
-		/* Read socket defaults */
-		CHECK_SYS(  getsockopt(sk, IPPROTO_SCTP, SCTP_NODELAY, &nodelay, &sz)  );
-		if (sz != sizeof(nodelay))
-		{
-			TRACE_DEBUG(INFO, "Invalid size of socket option: %d / %d", sz, (socklen_t)sizeof(nodelay));
-			return ENOTSUP;
+		if (TRACE_BOOL(SCTP_LEVEL)) {
+			sz = sizeof(nodelay);
+			/* Read socket defaults */
+			CHECK_SYS(  getsockopt(sk, IPPROTO_SCTP, SCTP_NODELAY, &nodelay, &sz)  );
+			if (sz != sizeof(nodelay))
+			{
+				TRACE_DEBUG(INFO, "Invalid size of socket option: %d / %d", sz, (socklen_t)sizeof(nodelay));
+				return ENOTSUP;
+			}
+			fd_log_debug( "Def SCTP_NODELAY value : %s\n", nodelay ? "true" : "false");
 		}
-		TRACE_DEBUG(FULL, "Def SCTP_NODELAY value : %s", nodelay ? "true" : "false");
-		#endif /* DEBUG_SCTP */
 
 		nodelay = 0;	/* We turn ON the Nagle algorithm (probably the default already) */
 		
 		/* Set the option to the socket */
 		CHECK_SYS(  setsockopt(sk, IPPROTO_SCTP, SCTP_NODELAY, &nodelay, sizeof(nodelay))  );
 		
-		#ifdef DEBUG_SCTP
-		/* Check new values */
-		CHECK_SYS(  getsockopt(sk, IPPROTO_SCTP, SCTP_NODELAY, &nodelay, &sz)  );
-		TRACE_DEBUG(FULL, "New SCTP_NODELAY value : %s", nodelay ? "true" : "false");
-		#endif /* DEBUG_SCTP */
+		if (TRACE_BOOL(SCTP_LEVEL)) {
+			/* Check new values */
+			CHECK_SYS(  getsockopt(sk, IPPROTO_SCTP, SCTP_NODELAY, &nodelay, &sz)  );
+			fd_log_debug( "New SCTP_NODELAY value : %s\n", nodelay ? "true" : "false");
+		}
 	}
 	#else /* SCTP_NODELAY */
-	# ifdef DEBUG_SCTP
-	TRACE_DEBUG(FULL, "Skipping SCTP_NODELAY");
-	# endif /* DEBUG_SCTP */
+	TRACE_DEBUG(SCTP_LEVEL, "Skipping SCTP_NODELAY");
 	#endif /* SCTP_NODELAY */
 	
 	/* Set the interleaving option */
@@ -326,17 +323,17 @@ static int fd_setsockopt_prebind(int sk)
 	{
 		int interleave;
 		
-		#ifdef DEBUG_SCTP
-		sz = sizeof(interleave);
-		/* Read socket defaults */
-		CHECK_SYS(  getsockopt(sk, IPPROTO_SCTP, SCTP_FRAGMENT_INTERLEAVE, &interleave, &sz)  );
-		if (sz != sizeof(interleave))
-		{
-			TRACE_DEBUG(INFO, "Invalid size of socket option: %d / %d", sz, (socklen_t)sizeof(interleave));
-			return ENOTSUP;
+		if (TRACE_BOOL(SCTP_LEVEL)) {
+			sz = sizeof(interleave);
+			/* Read socket defaults */
+			CHECK_SYS(  getsockopt(sk, IPPROTO_SCTP, SCTP_FRAGMENT_INTERLEAVE, &interleave, &sz)  );
+			if (sz != sizeof(interleave))
+			{
+				TRACE_DEBUG(INFO, "Invalid size of socket option: %d / %d", sz, (socklen_t)sizeof(interleave));
+				return ENOTSUP;
+			}
+			fd_log_debug( "Def SCTP_FRAGMENT_INTERLEAVE value : %d\n", interleave);
 		}
-		TRACE_DEBUG(FULL, "Def SCTP_FRAGMENT_INTERLEAVE value : %d", interleave);
-		#endif /* DEBUG_SCTP */
 
 		#if 0
 		interleave = 2;	/* Allow partial delivery on several streams at the same time, since we are stream-aware in our security modules */
@@ -347,16 +344,14 @@ static int fd_setsockopt_prebind(int sk)
 		/* Set the option to the socket */
 		CHECK_SYS(  setsockopt(sk, IPPROTO_SCTP, SCTP_FRAGMENT_INTERLEAVE, &interleave, sizeof(interleave))  );
 		
-		#ifdef DEBUG_SCTP
-		/* Check new values */
-		CHECK_SYS(  getsockopt(sk, IPPROTO_SCTP, SCTP_FRAGMENT_INTERLEAVE, &interleave, &sz)  );
-		TRACE_DEBUG(FULL, "New SCTP_FRAGMENT_INTERLEAVE value : %d", interleave);
-		#endif /* DEBUG_SCTP */
+		if (TRACE_BOOL(SCTP_LEVEL)) {
+			/* Check new values */
+			CHECK_SYS(  getsockopt(sk, IPPROTO_SCTP, SCTP_FRAGMENT_INTERLEAVE, &interleave, &sz)  );
+			fd_log_debug( "New SCTP_FRAGMENT_INTERLEAVE value : %d\n", interleave);
+		}
 	}
 	#else /* SCTP_FRAGMENT_INTERLEAVE */
-	# ifdef DEBUG_SCTP
-	TRACE_DEBUG(FULL, "Skipping SCTP_FRAGMENT_INTERLEAVE");
-	# endif /* DEBUG_SCTP */
+	TRACE_DEBUG(SCTP_LEVEL, "Skipping SCTP_FRAGMENT_INTERLEAVE");
 	#endif /* SCTP_FRAGMENT_INTERLEAVE */
 	
 	/* Set the v4 mapped addresses option */
@@ -364,17 +359,17 @@ static int fd_setsockopt_prebind(int sk)
 	{
 		int v4mapped;
 		
-		#ifdef DEBUG_SCTP
-		sz = sizeof(v4mapped);
-		/* Read socket defaults */
-		CHECK_SYS(  getsockopt(sk, IPPROTO_SCTP, SCTP_I_WANT_MAPPED_V4_ADDR, &v4mapped, &sz)  );
-		if (sz != sizeof(v4mapped))
-		{
-			TRACE_DEBUG(INFO, "Invalid size of socket option: %d / %d", sz, (socklen_t)sizeof(v4mapped));
-			return ENOTSUP;
+		if (TRACE_BOOL(SCTP_LEVEL)) {
+			sz = sizeof(v4mapped);
+			/* Read socket defaults */
+			CHECK_SYS(  getsockopt(sk, IPPROTO_SCTP, SCTP_I_WANT_MAPPED_V4_ADDR, &v4mapped, &sz)  );
+			if (sz != sizeof(v4mapped))
+			{
+				TRACE_DEBUG(INFO, "Invalid size of socket option: %d / %d", sz, (socklen_t)sizeof(v4mapped));
+				return ENOTSUP;
+			}
+			fd_log_debug( "Def SCTP_I_WANT_MAPPED_V4_ADDR value : %s\n", v4mapped ? "true" : "false");
 		}
-		TRACE_DEBUG(FULL, "Def SCTP_I_WANT_MAPPED_V4_ADDR value : %s", v4mapped ? "true" : "false");
-		#endif /* DEBUG_SCTP */
 
 #ifndef SCTP_USE_MAPPED_ADDRESSES
 		v4mapped = 0;	/* We don't want v4 mapped addresses */
@@ -385,16 +380,14 @@ static int fd_setsockopt_prebind(int sk)
 		/* Set the option to the socket */
 		CHECK_SYS(  setsockopt(sk, IPPROTO_SCTP, SCTP_I_WANT_MAPPED_V4_ADDR, &v4mapped, sizeof(v4mapped))  );
 		
-		#ifdef DEBUG_SCTP
-		/* Check new values */
-		CHECK_SYS(  getsockopt(sk, IPPROTO_SCTP, SCTP_I_WANT_MAPPED_V4_ADDR, &v4mapped, &sz)  );
-		TRACE_DEBUG(FULL, "New SCTP_I_WANT_MAPPED_V4_ADDR value : %s", v4mapped ? "true" : "false");
-		#endif /* DEBUG_SCTP */
+		if (TRACE_BOOL(SCTP_LEVEL)) {
+			/* Check new values */
+			CHECK_SYS(  getsockopt(sk, IPPROTO_SCTP, SCTP_I_WANT_MAPPED_V4_ADDR, &v4mapped, &sz)  );
+			fd_log_debug( "New SCTP_I_WANT_MAPPED_V4_ADDR value : %s\n", v4mapped ? "true" : "false");
+		}
 	}
 	#else /* SCTP_I_WANT_MAPPED_V4_ADDR */
-	# ifdef DEBUG_SCTP
-	TRACE_DEBUG(FULL, "Skipping SCTP_I_WANT_MAPPED_V4_ADDR");
-	# endif /* DEBUG_SCTP */
+	TRACE_DEBUG(SCTP_LEVEL, "Skipping SCTP_I_WANT_MAPPED_V4_ADDR");
 	#endif /* SCTP_I_WANT_MAPPED_V4_ADDR */
 			   
 			   
@@ -455,35 +448,34 @@ static int fd_setsockopt_postbind(int sk, int bound_to_default)
 	{
 		int asconf;
 		
-		#ifdef DEBUG_SCTP
-		socklen_t sz;
-		
-		sz = sizeof(asconf);
-		/* Read socket defaults */
-		CHECK_SYS(  getsockopt(sk, IPPROTO_SCTP, SCTP_AUTO_ASCONF, &asconf, &sz)  );
-		if (sz != sizeof(asconf))
-		{
-			TRACE_DEBUG(INFO, "Invalid size of socket option: %d / %d", sz, (socklen_t)sizeof(asconf));
-			return ENOTSUP;
+		if (TRACE_BOOL(SCTP_LEVEL)) {
+			socklen_t sz;
+
+			sz = sizeof(asconf);
+			/* Read socket defaults */
+			CHECK_SYS(  getsockopt(sk, IPPROTO_SCTP, SCTP_AUTO_ASCONF, &asconf, &sz)  );
+			if (sz != sizeof(asconf))
+			{
+				TRACE_DEBUG(INFO, "Invalid size of socket option: %d / %d", sz, (socklen_t)sizeof(asconf));
+				return ENOTSUP;
+			}
+			fd_log_debug( "Def SCTP_AUTO_ASCONF value : %s\n", asconf ? "true" : "false");
 		}
-		TRACE_DEBUG(FULL, "Def SCTP_AUTO_ASCONF value : %s", asconf ? "true" : "false");
-		#endif /* DEBUG_SCTP */
 
 		asconf = bound_to_default ? 1 : 0;	/* allow automatic use of added or removed addresses in the association (for bound-all sockets) */
 		
 		/* Set the option to the socket */
 		CHECK_SYS(  setsockopt(sk, IPPROTO_SCTP, SCTP_AUTO_ASCONF, &asconf, sizeof(asconf))  );
 		
-		#ifdef DEBUG_SCTP
-		/* Check new values */
-		CHECK_SYS(  getsockopt(sk, IPPROTO_SCTP, SCTP_AUTO_ASCONF, &asconf, &sz)  );
-		TRACE_DEBUG(FULL, "New SCTP_AUTO_ASCONF value : %s", asconf ? "true" : "false");
-		#endif /* DEBUG_SCTP */
+		if (TRACE_BOOL(SCTP_LEVEL)) {
+			socklen_t sz = sizeof(asconf);
+			/* Check new values */
+			CHECK_SYS(  getsockopt(sk, IPPROTO_SCTP, SCTP_AUTO_ASCONF, &asconf, &sz)  );
+			fd_log_debug( "New SCTP_AUTO_ASCONF value : %s\n", asconf ? "true" : "false");
+		}
 	}
 	#else /* SCTP_AUTO_ASCONF */
-	# ifdef DEBUG_SCTP
-	TRACE_DEBUG(FULL, "Skipping SCTP_AUTO_ASCONF");
-	# endif /* DEBUG_SCTP */
+	TRACE_DEBUG(SCTP_LEVEL, "Skipping SCTP_AUTO_ASCONF");
 	#endif /* SCTP_AUTO_ASCONF */
 	
 	return 0;
@@ -599,8 +591,7 @@ redo:
 			goto redo;
 		}
 		
-		# ifdef DEBUG_SCTP
-		if (TRACE_BOOL(FULL)) {
+		if (TRACE_BOOL(SCTP_LEVEL)) {
 			int i;
 			ptr.buf = sar.buf;
 			fd_log_debug("Calling sctp_bindx with the following address array:\n");
@@ -609,7 +600,6 @@ redo:
 				ptr.buf += (ptr.sa->sa_family == AF_INET) ? sizeof(sSA4) : sizeof(sSA6) ;
 			}
 		}
-		#endif /* DEBUG_SCTP */
 		
 		/* Bind to this array */
 		CHECK_SYS(  sctp_bindx(*sock, sar.sa, count, SCTP_BINDX_ADD_ADDR)  );
@@ -621,9 +611,8 @@ redo:
 	/* Now, the server is bound, set remaining sockopt */
 	CHECK_FCT( fd_setsockopt_postbind(*sock, bind_default) );
 	
-	#ifdef DEBUG_SCTP
 	/* Debug: show all local listening addresses */
-	if (TRACE_BOOL(FULL)) {
+	if (TRACE_BOOL(SCTP_LEVEL)) {
 		sSA *sar;
 		union {
 			sSA	*sa;
@@ -639,7 +628,6 @@ redo:
 		}
 		sctp_freeladdrs(sar);
 	}
-	#endif /* DEBUG_SCTP */
 
 	return 0;
 }
@@ -766,21 +754,23 @@ int fd_sctp_get_str_info( int sock, uint16_t *in, uint16_t *out, sSS *primary )
 		TRACE_DEBUG(INFO, "Invalid size of socket option: %d / %zd", sz, sizeof(status));
 		return ENOTSUP;
 	}
-	#ifdef DEBUG_SCTP
-	TRACE_DEBUG(FULL, "SCTP_STATUS : sstat_state                  : %i" , status.sstat_state);
-	TRACE_DEBUG(FULL, "              sstat_rwnd  	              : %u" , status.sstat_rwnd);
-	TRACE_DEBUG(FULL, "		 sstat_unackdata	      : %hu", status.sstat_unackdata);
-	TRACE_DEBUG(FULL, "		 sstat_penddata 	      : %hu", status.sstat_penddata);
-	TRACE_DEBUG(FULL, "		 sstat_instrms  	      : %hu", status.sstat_instrms);
-	TRACE_DEBUG(FULL, "		 sstat_outstrms 	      : %hu", status.sstat_outstrms);
-	TRACE_DEBUG(FULL, "		 sstat_fragmentation_point    : %u" , status.sstat_fragmentation_point);
-	TRACE_DEBUG_sSA(FULL, "		 sstat_primary.spinfo_address : ", &status.sstat_primary.spinfo_address, NI_NUMERICHOST | NI_NUMERICSERV, "" );
-	TRACE_DEBUG(FULL, "		 sstat_primary.spinfo_state   : %d" , status.sstat_primary.spinfo_state);
-	TRACE_DEBUG(FULL, "		 sstat_primary.spinfo_cwnd    : %u" , status.sstat_primary.spinfo_cwnd);
-	TRACE_DEBUG(FULL, "		 sstat_primary.spinfo_srtt    : %u" , status.sstat_primary.spinfo_srtt);
-	TRACE_DEBUG(FULL, "		 sstat_primary.spinfo_rto     : %u" , status.sstat_primary.spinfo_rto);
-	TRACE_DEBUG(FULL, "		 sstat_primary.spinfo_mtu     : %u" , status.sstat_primary.spinfo_mtu);
-	#endif /* DEBUG_SCTP */
+	if (TRACE_BOOL(SCTP_LEVEL)) {
+		fd_log_debug( "SCTP_STATUS : sstat_state                  : %i\n" , status.sstat_state);
+		fd_log_debug( "              sstat_rwnd  	          : %u\n" , status.sstat_rwnd);
+		fd_log_debug( "		     sstat_unackdata	          : %hu\n", status.sstat_unackdata);
+		fd_log_debug( "		     sstat_penddata 	          : %hu\n", status.sstat_penddata);
+		fd_log_debug( "		     sstat_instrms  	          : %hu\n", status.sstat_instrms);
+		fd_log_debug( "		     sstat_outstrms 	          : %hu\n", status.sstat_outstrms);
+		fd_log_debug( "		     sstat_fragmentation_point    : %u\n" , status.sstat_fragmentation_point);
+		fd_log_debug( "		     sstat_primary.spinfo_address : ");
+		sSA_DUMP_NODE_SERV(&status.sstat_primary.spinfo_address, NI_NUMERICHOST | NI_NUMERICSERV );
+		fd_log_debug( "\n" );
+		fd_log_debug( "		     sstat_primary.spinfo_state   : %d\n" , status.sstat_primary.spinfo_state);
+		fd_log_debug( "		     sstat_primary.spinfo_cwnd    : %u\n" , status.sstat_primary.spinfo_cwnd);
+		fd_log_debug( "		     sstat_primary.spinfo_srtt    : %u\n" , status.sstat_primary.spinfo_srtt);
+		fd_log_debug( "		     sstat_primary.spinfo_rto     : %u\n" , status.sstat_primary.spinfo_rto);
+		fd_log_debug( "		     sstat_primary.spinfo_mtu     : %u\n" , status.sstat_primary.spinfo_mtu);
+	}
 	
 	*in = status.sstat_instrms;
 	*out = status.sstat_outstrms;
@@ -935,9 +925,7 @@ int fd_sctp_sendstr(int sock, uint16_t strid, uint8_t * buf, size_t len)
 	mhdr.msg_control    = &anci;
 	mhdr.msg_controllen = sizeof(anci);
 	
-	#ifdef DEBUG_SCTP
 	TRACE_DEBUG(FULL, "Sending %db data on stream %hu of socket %d", len, strid, sock);
-	#endif /* DEBUG_SCTP */
 	
 	CHECK_SYS( ret = sendmsg(sock, &mhdr, 0) );
 	ASSERT( ret == len ); /* There should not be partial delivery with sendmsg... */
@@ -1004,6 +992,8 @@ incomplete:
 		goto incomplete;
 	}
 	
+	TRACE_DEBUG(FULL, "Received %db data on socket %d", datasize, sock);
+	
 	/* Handle the case where the data received is a notification */
 	if (mhdr.msg_flags & MSG_NOTIFICATION) {
 		union sctp_notification * notif = (union sctp_notification *) data;
@@ -1011,52 +1001,42 @@ incomplete:
 		switch (notif->sn_header.sn_type) {
 			
 			case SCTP_ASSOC_CHANGE:
-				#ifdef DEBUG_SCTP
 				TRACE_DEBUG(FULL, "Received SCTP_ASSOC_CHANGE notification");
-				TRACE_DEBUG(FULL, "    state : %hu", notif->sn_assoc_change.sac_state);
-				TRACE_DEBUG(FULL, "    error : %hu", notif->sn_assoc_change.sac_error);
-				TRACE_DEBUG(FULL, "    instr : %hu", notif->sn_assoc_change.sac_inbound_streams);
-				TRACE_DEBUG(FULL, "   outstr : %hu", notif->sn_assoc_change.sac_outbound_streams);
-				#endif /* DEBUG_SCTP */
+				TRACE_DEBUG(SCTP_LEVEL, "    state : %hu", notif->sn_assoc_change.sac_state);
+				TRACE_DEBUG(SCTP_LEVEL, "    error : %hu", notif->sn_assoc_change.sac_error);
+				TRACE_DEBUG(SCTP_LEVEL, "    instr : %hu", notif->sn_assoc_change.sac_inbound_streams);
+				TRACE_DEBUG(SCTP_LEVEL, "   outstr : %hu", notif->sn_assoc_change.sac_outbound_streams);
 				
 				*event = FDEVP_CNX_EP_CHANGE;
 				break;
 	
 			case SCTP_PEER_ADDR_CHANGE:
-				#ifdef DEBUG_SCTP
 				TRACE_DEBUG(FULL, "Received SCTP_PEER_ADDR_CHANGE notification");
-				TRACE_DEBUG_sSA(FULL, "    intf_change : ", &(notif->sn_paddr_change.spc_aaddr), NI_NUMERICHOST | NI_NUMERICSERV, "" );
-				TRACE_DEBUG(FULL, "          state : %d", notif->sn_paddr_change.spc_state);
-				TRACE_DEBUG(FULL, "          error : %d", notif->sn_paddr_change.spc_error);
-				#endif /* DEBUG_SCTP */
+				TRACE_DEBUG_sSA(SCTP_LEVEL, "    intf_change : ", &(notif->sn_paddr_change.spc_aaddr), NI_NUMERICHOST | NI_NUMERICSERV, "" );
+				TRACE_DEBUG(SCTP_LEVEL, "          state : %d", notif->sn_paddr_change.spc_state);
+				TRACE_DEBUG(SCTP_LEVEL, "          error : %d", notif->sn_paddr_change.spc_error);
 				
 				*event = FDEVP_CNX_EP_CHANGE;
 				break;
 	
 			case SCTP_SEND_FAILED:
-				#ifdef DEBUG_SCTP
 				TRACE_DEBUG(FULL, "Received SCTP_SEND_FAILED notification");
-				TRACE_DEBUG(FULL, "    len : %hu", notif->sn_send_failed.ssf_length);
-				TRACE_DEBUG(FULL, "    err : %d",  notif->sn_send_failed.ssf_error);
-				#endif /* DEBUG_SCTP */
+				TRACE_DEBUG(SCTP_LEVEL, "    len : %hu", notif->sn_send_failed.ssf_length);
+				TRACE_DEBUG(SCTP_LEVEL, "    err : %d",  notif->sn_send_failed.ssf_error);
 				
 				*event = FDEVP_CNX_ERROR;
 				break;
 			
 			case SCTP_REMOTE_ERROR:
-				#ifdef DEBUG_SCTP
 				TRACE_DEBUG(FULL, "Received SCTP_REMOTE_ERROR notification");
-				TRACE_DEBUG(FULL, "    err : %hu", ntohs(notif->sn_remote_error.sre_error));
-				TRACE_DEBUG(FULL, "    len : %hu", ntohs(notif->sn_remote_error.sre_length));
-				#endif /* DEBUG_SCTP */
+				TRACE_DEBUG(SCTP_LEVEL, "    err : %hu", ntohs(notif->sn_remote_error.sre_error));
+				TRACE_DEBUG(SCTP_LEVEL, "    len : %hu", ntohs(notif->sn_remote_error.sre_length));
 				
 				*event = FDEVP_CNX_ERROR;
 				break;
 	
 			case SCTP_SHUTDOWN_EVENT:
-				#ifdef DEBUG_SCTP
 				TRACE_DEBUG(FULL, "Received SCTP_SHUTDOWN_EVENT notification");
-				#endif /* DEBUG_SCTP */
 				
 				*event = FDEVP_CNX_ERROR;
 				break;
@@ -1095,18 +1075,18 @@ incomplete:
 			}
 			
 			sndrcv = (struct sctp_sndrcvinfo *) CMSG_DATA(hdr);
-			#ifdef DEBUG_SCTP
-			TRACE_DEBUG(FULL, "Anciliary block IPPROTO_SCTP / SCTP_SNDRCV");
-			TRACE_DEBUG(FULL, "    sinfo_stream    : %hu", sndrcv->sinfo_stream);
-			TRACE_DEBUG(FULL, "    sinfo_ssn       : %hu", sndrcv->sinfo_ssn);
-			TRACE_DEBUG(FULL, "    sinfo_flags     : %hu", sndrcv->sinfo_flags);
-			/* TRACE_DEBUG(FULL, "    sinfo_pr_policy : %hu", sndrcv->sinfo_pr_policy); */
-			TRACE_DEBUG(FULL, "    sinfo_ppid      : %u" , sndrcv->sinfo_ppid);
-			TRACE_DEBUG(FULL, "    sinfo_context   : %u" , sndrcv->sinfo_context);
-			/* TRACE_DEBUG(FULL, "    sinfo_pr_value  : %u" , sndrcv->sinfo_pr_value); */
-			TRACE_DEBUG(FULL, "    sinfo_tsn       : %u" , sndrcv->sinfo_tsn);
-			TRACE_DEBUG(FULL, "    sinfo_cumtsn    : %u" , sndrcv->sinfo_cumtsn);
-			#endif /* DEBUG_SCTP */
+			if (TRACE_BOOL(SCTP_LEVEL)) {
+				fd_log_debug( "Anciliary block IPPROTO_SCTP / SCTP_SNDRCV\n");
+				fd_log_debug( "    sinfo_stream    : %hu\n", sndrcv->sinfo_stream);
+				fd_log_debug( "    sinfo_ssn       : %hu\n", sndrcv->sinfo_ssn);
+				fd_log_debug( "    sinfo_flags     : %hu\n", sndrcv->sinfo_flags);
+				/* fd_log_debug( "    sinfo_pr_policy : %hu\n", sndrcv->sinfo_pr_policy); */
+				fd_log_debug( "    sinfo_ppid      : %u\n" , sndrcv->sinfo_ppid);
+				fd_log_debug( "    sinfo_context   : %u\n" , sndrcv->sinfo_context);
+				/* fd_log_debug( "    sinfo_pr_value  : %u\n" , sndrcv->sinfo_pr_value); */
+				fd_log_debug( "    sinfo_tsn       : %u\n" , sndrcv->sinfo_tsn);
+				fd_log_debug( "    sinfo_cumtsn    : %u\n" , sndrcv->sinfo_cumtsn);
+			}
 
 			*strid = sndrcv->sinfo_stream;
 		}

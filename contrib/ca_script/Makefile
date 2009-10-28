@@ -32,6 +32,9 @@ L = Koganei
 O = WIDE
 OU = "AAA WG"
 
+#Default lifetime
+DAYS = 365
+
 #Values for the CA
 CA_CN = chavroux.cowaddict.org
 CA_mail = sdecugis@nict.go.jp
@@ -129,6 +132,7 @@ cert:
 		fi;
 	@openssl ca $(CONFIG) -in $(DIR)/clients/csr/$(name).csr \
 		-out $(DIR)/clients/certs/$(name).cert \
+		-days $(DAYS) \
 		-batch
 	@ln -s $(DIR)/clients/certs/$(name).cert $(DIR)/certs/`openssl x509 -noout -hash < $(DIR)/clients/certs/$(name).cert`.0
 

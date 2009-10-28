@@ -45,10 +45,11 @@
 
 #include <pthread.h>
 #include <errno.h>
+#include <gcrypt.h>
 
 /* Test timeout duration, unless -n is passed on the command line */
 #ifndef TEST_TIMEOUT
-#define TEST_TIMEOUT	5	/* 5 seconds */
+#define TEST_TIMEOUT	30	/* in seconds */
 #endif /* TEST_TIMEOUT */
 
 /* Standard includes */
@@ -77,6 +78,9 @@ static int test_verbo = 0;
 static struct fd_config conf;
 struct fd_config * fd_g_config = &conf;
 
+/* gcrypt functions to support posix threads */
+GCRY_THREAD_OPTION_PTHREAD_IMPL;
+
 /* Define the standard check routines */
 #define CHECK( _val, _assert ){				\
 	if (test_verbo > 0) {				\
@@ -98,13 +102,16 @@ struct fd_config * fd_g_config = &conf;
 }
 
 /* Minimum inits */
-#define INIT_FD() {						\
-	memset(fd_g_config, 0, sizeof(struct fd_config));	\
-	CHECK( 0, fd_lib_init() );				\
-	fd_log_threadname(basename(__FILE__));			\
-	CHECK( 0, fd_conf_init() );				\
-	CHECK( 0, fd_dict_base_protocol(fd_g_config->cnf_dict) );	\
-	parse_cmdline(argc, argv);				\
+#define INIT_FD() {								\
+	memset(fd_g_config, 0, sizeof(struct fd_config));			\
+	CHECK( 0, fd_lib_init() );						\
+	fd_log_threadname(basename(__FILE__));					\
+	(void) gcry_control (GCRYCTL_SET_THREAD_CBS, &gcry_threads_pthread);	\
+	(void) gcry_control (GCRYCTL_ENABLE_QUICK_RANDOM, 0);			\
+	CHECK( 0, gnutls_global_init());					\
+	CHECK( 0, fd_conf_init() );						\
+	CHECK( 0, fd_dict_base_protocol(fd_g_config->cnf_dict) );		\
+	parse_cmdline(argc, argv);						\
 }
 
 static inline void parse_cmdline(int argc, char * argv[]) {

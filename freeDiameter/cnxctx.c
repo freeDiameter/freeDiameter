@@ -396,6 +396,20 @@ char * fd_cnx_getid(struct cnxctx * conn)
 	return conn->cc_id;
 }
 
+/* Return the protocol of a connection */
+int fd_cnx_getproto(struct cnxctx * conn)
+{
+	CHECK_PARAMS_DO( conn, return 0 );
+	return conn->cc_proto;
+}
+
+/* Return the TLS state of a connection */
+int fd_cnx_getTLS(struct cnxctx * conn)
+{
+	CHECK_PARAMS_DO( conn, return 0 );
+	return conn->cc_tls;
+}
+
 /* Get the list of endpoints (IP addresses) of the local and remote peers on this connection */
 int fd_cnx_getendpoints(struct cnxctx * conn, struct fd_list * local, struct fd_list * remote)
 {
@@ -473,8 +487,15 @@ static void * rcvthr_notls_tcp(void * arg)
 	struct cnxctx * conn = arg;
 	
 	TRACE_ENTRY("%p", arg);
-	
 	CHECK_PARAMS_DO(conn && (conn->cc_socket > 0), goto out);
+	
+	/* Set the thread name */
+	{
+		char buf[48];
+		snprintf(buf, sizeof(buf), "Receiver (%d) TCP/noTLS)", conn->cc_socket);
+		fd_log_threadname ( buf );
+	}
+	
 	ASSERT( conn->cc_proto == IPPROTO_TCP );
 	ASSERT( conn->cc_tls == 0 );
 	ASSERT( Target_Queue(conn) );
@@ -547,8 +568,15 @@ static void * rcvthr_notls_sctp(void * arg)
 	int	  event;
 	
 	TRACE_ENTRY("%p", arg);
-	
 	CHECK_PARAMS_DO(conn && (conn->cc_socket > 0), goto out);
+	
+	/* Set the thread name */
+	{
+		char buf[48];
+		snprintf(buf, sizeof(buf), "Receiver (%d) SCTP/noTLS)", conn->cc_socket);
+		fd_log_threadname ( buf );
+	}
+	
 	ASSERT( conn->cc_proto == IPPROTO_SCTP );
 	ASSERT( conn->cc_tls == 0 );
 	ASSERT( Target_Queue(conn) );
@@ -606,7 +634,7 @@ end:
 /* The function that receives TLS data and re-builds a Diameter message -- it exits only on error or cancelation */
 int fd_tls_rcvthr_core(struct cnxctx * conn, gnutls_session_t session)
 {
-	/* No guaranty that GnuTLS preserves the message boundaries, so we re-build it as in TCP */
+	/* No guarantee that GnuTLS preserves the message boundaries, so we re-build it as in TCP */
 	do {
 		uint8_t header[4];
 		uint8_t * newmsg;
@@ -615,7 +643,7 @@ int fd_tls_rcvthr_core(struct cnxctx * conn, gnutls_session_t session)
 		size_t	received = 0;
 
 		do {
-			ret = fd_tls_recv_handle_error(conn, conn->cc_tls_para.session, &header[received], sizeof(header) - received);
+			ret = fd_tls_recv_handle_error(conn, session, &header[received], sizeof(header) - received);
 			if (ret == 0) {
 				/* The connection is closed */
 				goto out;
@@ -639,7 +667,7 @@ int fd_tls_rcvthr_core(struct cnxctx * conn, gnutls_session_t session)
 
 		while (received < length) {
 			pthread_cleanup_push(free, newmsg); /* In case we are canceled, clean the partialy built buffer */
-			ret = fd_tls_recv_handle_error(conn, conn->cc_tls_para.session, newmsg + received, length - received);
+			ret = fd_tls_recv_handle_error(conn, session, newmsg + received, length - received);
 			pthread_cleanup_pop(0);
 
 			if (ret == 0) {
@@ -663,8 +691,15 @@ static void * rcvthr_tls_single(void * arg)
 	struct cnxctx * conn = arg;
 	
 	TRACE_ENTRY("%p", arg);
-	
 	CHECK_PARAMS_DO(conn && (conn->cc_socket > 0), goto error);
+	
+	/* Set the thread name */
+	{
+		char buf[48];
+		snprintf(buf, sizeof(buf), "Receiver (%d) TLS/ single stream)", conn->cc_socket);
+		fd_log_threadname ( buf );
+	}
+	
 	ASSERT( conn->cc_tls == 1 );
 	ASSERT( Target_Queue(conn) );
 	
@@ -708,7 +743,7 @@ int fd_cnx_start_clear(struct cnxctx * conn, int loop)
 }
 
 /* Prepare a gnutls session object for handshake */
-int fd_tls_prepare(gnutls_session_t * session, int mode, char * priority)
+int fd_tls_prepare(gnutls_session_t * session, int mode, char * priority, void * alt_creds)
 {
 	/* Create the master session context */
 	CHECK_GNUTLS_DO( gnutls_init (session, mode), return ENOMEM );
@@ -723,7 +758,7 @@ int fd_tls_prepare(gnutls_session_t * session, int mode, char * priority)
 	}
 
 	/* Set the credentials of this side of the connection */
-	CHECK_GNUTLS_DO( gnutls_credentials_set (*session, GNUTLS_CRD_CERTIFICATE, fd_g_config->cnf_sec_data.credentials), return EINVAL );
+	CHECK_GNUTLS_DO( gnutls_credentials_set (*session, GNUTLS_CRD_CERTIFICATE, alt_creds ?: fd_g_config->cnf_sec_data.credentials), return EINVAL );
 
 	/* Request the remote credentials as well */
 	if (mode == GNUTLS_SERVER) {
@@ -734,7 +769,7 @@ int fd_tls_prepare(gnutls_session_t * session, int mode, char * priority)
 }
 
 /* TLS handshake a connection; no need to have called start_clear before. Reception is active if handhsake is successful */
-int fd_cnx_handshake(struct cnxctx * conn, int mode, char * priority)
+int fd_cnx_handshake(struct cnxctx * conn, int mode, char * priority, void * alt_creds)
 {
 	TRACE_ENTRY( "%p %d", conn, mode);
 	CHECK_PARAMS( conn && (!conn->cc_tls) && ( (mode == GNUTLS_CLIENT) || (mode == GNUTLS_SERVER) ) && (!conn->cc_loop) );
@@ -749,7 +784,7 @@ int fd_cnx_handshake(struct cnxctx * conn, int mode, char * priority)
 	conn->cc_loop = 1;
 	
 	/* Prepare the master session credentials and priority */
-	CHECK_FCT( fd_tls_prepare(&conn->cc_tls_para.session, mode, priority) );
+	CHECK_FCT( fd_tls_prepare(&conn->cc_tls_para.session, mode, priority, alt_creds) );
 
 	/* Special case: multi-stream TLS is not natively managed in GNU TLS, we use a wrapper library */
 	if (conn->cc_sctp_para.pairs > 1) {
@@ -800,16 +835,22 @@ int fd_cnx_handshake(struct cnxctx * conn, int mode, char * priority)
 	if (conn->cc_sctp_para.pairs > 1) {
 #ifndef DISABLE_SCTP
 		/* Resume all additional sessions from the master one. */
-		CHECK_FCT(fd_sctps_handshake_others(conn, priority));
+		CHECK_FCT(fd_sctps_handshake_others(conn, priority, alt_creds));
 		
+		/* Mark the connection as protected from here */
+		conn->cc_tls = 1;
+
 		/* Start decrypting the messages from all threads and queuing them in target queue */
 		CHECK_FCT(fd_sctps_startthreads(conn));
 #endif /* DISABLE_SCTP */
 	} else {
+		/* Mark the connection as protected from here */
+		conn->cc_tls = 1;
+
 		/* Start decrypting the data */
 		CHECK_POSIX( pthread_create( &conn->cc_rcvthr, NULL, rcvthr_tls_single, conn ) );
 	}
-
+	
 	return 0;
 }
 

@@ -375,7 +375,7 @@ void fd_peer_dump_list(int details)
 }
 
 /* Handle an incoming CER request on a new connection */
-int fd_peer_handle_newCER( struct msg ** cer, struct cnxctx ** cnx, int tls_done )
+int fd_peer_handle_newCER( struct msg ** cer, struct cnxctx ** cnx )
 {
 	struct msg * msg;
 	struct dict_object *avp_oh_model;
@@ -384,9 +384,11 @@ int fd_peer_handle_newCER( struct msg ** cer, struct cnxctx ** cnx, int tls_done
 	struct avp_hdr * avp_hdr;
 	struct fd_list * li;
 	int found = 0;
+	int ret = 0;
 	struct fd_peer * peer;
+	struct cnx_incoming * ev_data;
 	
-	TRACE_ENTRY("%p %p %d", cer, cnx, tls_done);
+	TRACE_ENTRY("%p %p", cer, cnx);
 	CHECK_PARAMS(cer && *cer && cnx && *cnx);
 	
 	msg = *cer; 
@@ -410,27 +412,48 @@ int fd_peer_handle_newCER( struct msg ** cer, struct cnxctx ** cnx, int tls_done
 	}
 	
 	if (!found) {
+		/* Create a new peer entry for this new remote peer */
+		peer = NULL;
+		CHECK_FCT_DO( ret = fd_peer_alloc(&peer), goto out );
 		
-		TODO("Create a new peer entry with this diameter id (pf_responder = 1)");
-		TODO("Upgrade the lock to wr");
-		TODO("Add the new peer in the list");
-		TODO("Release the wr lock");
-		TODO("Start the peer PSM, which will have to validate if this peer is authorized to connect, and so on");
+		/* Set the peer Diameter Id and the responder flag parameters */
+		CHECK_MALLOC_DO( peer->p_hdr.info.pi_diamid = malloc(avp_hdr->avp_value->os.len + 1), { ret = ENOMEM; goto out; } );
+		CHECK_MALLOC_DO( peer->p_dbgorig = strdup(fd_cnx_getid(*cnx)), { ret = ENOMEM; goto out; } );
+		peer->p_flags.pf_responder = 1;
+		
+		/* Upgrade the lock to write lock */
+		CHECK_POSIX_DO( ret = pthread_rwlock_wrlock(&fd_g_peers_rw), goto out );
+		
+		/* Insert the new peer in the list (the PSM will take care of setting the expiry after validation) */
+		fd_list_insert_before( li, &peer->p_hdr.chain );
+		
+		/* Release the write lock */
+		CHECK_POSIX_DO( ret = pthread_rwlock_unlock(&fd_g_peers_rw), goto out );
+		
+		/* Start the PSM, which will receive the event bellow */
+		CHECK_FCT_DO( ret = fd_psm_begin(peer), goto out );
 	}
 		
-	TODO("Send the new connection event to the peer SM with the appropriate data: msg, conn, tls_done, found");
-	/* FDEVP_CNX_INCOMING */
+	/* Send the new connection event to the PSM */
+	CHECK_MALLOC_DO( ev_data = malloc(sizeof(struct cnx_incoming)), { ret = ENOMEM; goto out; } );
+	memset(ev_data, 0, sizeof(ev_data));
 	
-	/* Reset the "out" parameters, so that they are not cleanup on function return. */
-	*cer = NULL;
-	*cnx = NULL;
+	ev_data->cer = msg;
+	ev_data->cnx = *cnx;
+	ev_data->validate = !found;
 	
+	CHECK_FCT_DO( ret = fd_event_send(peer->p_events, FDEVP_CNX_INCOMING, sizeof(ev_data), ev_data), goto out );
+	
+out:	
 	CHECK_POSIX( pthread_rwlock_unlock(&fd_g_peers_rw) );
 
+	if (ret == 0) {
+		/* Reset the "out" parameters, so that they are not cleanup on function return. */
+		*cer = NULL;
+		*cnx = NULL;
+	}
 	
-	TODO("(later if not tls_done) handshake or start_clear(.., 1) ");
-	
-	return 0;
+	return ret;
 }
 
 /* Save a callback to accept / reject incoming unknown peers */
@@ -438,5 +461,14 @@ int fd_peer_validate_register ( int (*peer_validate)(struct peer_info * /* info 
 {
 	
 	TODO("...");
+	return ENOTSUP;
+}
+
+/* Validate a peer by calling the callbacks in turn -- return 0 if the peer is validated, ! 0 in case of error or if the peer is rejected */
+int fd_peer_validate( struct fd_peer * peer )
+{
+	TODO("Default to reject");
+	TODO("Call all callbacks in turn");
+	TODO("Save cb2 in the peer if needed");
 	return ENOTSUP;
 }

@@ -115,7 +115,7 @@ static void * client_sm(void * arg)
 	
 	/* Handshake if we are a secure server port, or start clear otherwise */
 	if (s->secur) {
-		int ret = fd_cnx_handshake(c->conn, GNUTLS_SERVER, NULL);
+		int ret = fd_cnx_handshake(c->conn, GNUTLS_SERVER, NULL, NULL);
 		if (ret != 0) {
 			if (TRACE_BOOL(INFO)) {
 				fd_log_debug("TLS handshake failed for client '%s', connection aborted.\n", fd_cnx_getid(c->conn));
@@ -152,7 +152,11 @@ static void * client_sm(void * arg)
 		{ fd_log_debug("Connection '%s', expecting CER, received something else, closing...\n", fd_cnx_getid(c->conn)); goto cleanup; } );
 	
 	/* Finally, pass the information to the peers module which will handle it next */
-	CHECK_FCT_DO( fd_peer_handle_newCER( &msg, &c->conn, s->secur ), goto fatal_error );
+	pthread_cleanup_push((void *)fd_cnx_destroy, c->conn);
+	pthread_cleanup_push((void *)fd_msg_free, msg);
+	CHECK_FCT_DO( fd_peer_handle_newCER( &msg, &c->conn ), goto cleanup );
+	pthread_cleanup_pop(0);
+	pthread_cleanup_pop(0);
 	
 	/* The end, we cleanup the client structure */
 cleanup:
