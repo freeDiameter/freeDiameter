@@ -224,6 +224,7 @@ struct cnxctx * fd_cnx_serv_accept(struct cnxctx * serv);
 struct cnxctx * fd_cnx_cli_connect_tcp(sSA * sa, socklen_t addrlen);
 struct cnxctx * fd_cnx_cli_connect_sctp(int no_ip6, uint16_t port, struct fd_list * list);
 int             fd_cnx_start_clear(struct cnxctx * conn, int loop);
+void		fd_cnx_sethostname(struct cnxctx * conn, char * hn);
 int             fd_cnx_handshake(struct cnxctx * conn, int mode, char * priority, void * alt_creds);
 char *          fd_cnx_getid(struct cnxctx * conn);
 int		fd_cnx_getproto(struct cnxctx * conn);

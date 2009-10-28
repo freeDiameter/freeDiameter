@@ -430,6 +430,8 @@ static void set_resume_callbacks(gnutls_session_t session, struct cnxctx * conn)
 static void * handshake_resume_th(void * arg)
 {
 	struct sctps_ctx * ctx = (struct sctps_ctx *) arg;
+	int resumed;
+	
 	TRACE_ENTRY("%p", arg);
 	
 	/* Set the thread name */
@@ -442,16 +444,20 @@ static void * handshake_resume_th(void * arg)
 	TRACE_DEBUG(FULL, "Starting TLS resumed handshake on stream %hu", ctx->strid);
 	CHECK_GNUTLS_DO( gnutls_handshake( ctx->session ), return NULL);
 			
+	resumed = gnutls_session_is_resumed(ctx->session);
+	if (!resumed) {
+		/* Check the credentials here also */
+		CHECK_FCT_DO( fd_tls_verify_credentials(ctx->session, ctx->parent), return NULL );
+	}
 	if (TRACE_BOOL(FULL)) {
-		int resumed = gnutls_session_is_resumed(ctx->session);
 		if (resumed) {
 			fd_log_debug("Session was resumed successfully on stream %hu (conn: '%s')\n", ctx->strid, fd_cnx_getid(ctx->parent));
 		} else {
-			fd_log_debug("Session was NOT resumed (full handshake) on stream %hu (conn: '%s')\n", ctx->strid, fd_cnx_getid(ctx->parent));
+			fd_log_debug("Session was NOT resumed on stream %hu  (full handshake + verif) (conn: '%s')\n", ctx->strid, fd_cnx_getid(ctx->parent));
 		}
 	}
 			
-	/* Finish */
+	/* Finished, OK */
 	return arg;
 }
 

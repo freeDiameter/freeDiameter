@@ -42,7 +42,7 @@
 struct cnxctx {
 	char		cc_id[60];	/* The name of this connection */
 	char		cc_remid[60];	/* Id of remote peer */
-
+	
 	int 		cc_socket;	/* The socket object of the connection -- <=0 if no socket is created */
 
 	int 		cc_proto;	/* IPPROTO_TCP or IPPROTO_SCTP */
@@ -57,6 +57,7 @@ struct cnxctx {
 
 	/* If cc_tls == true */
 	struct {
+		char 				*cn;		/* If not NULL, remote certif will be checked to match this Common Name */
 		int				 mode; 		/* GNUTLS_CLIENT / GNUTLS_SERVER */
 		gnutls_session_t 		 session;	/* Session object (stream #0 in case of SCTP) */
 	}		cc_tls_para;
@@ -79,6 +80,7 @@ struct cnxctx {
 /* TLS */
 int fd_tls_rcvthr_core(struct cnxctx * conn, gnutls_session_t session);
 int fd_tls_prepare(gnutls_session_t * session, int mode, char * priority, void * alt_creds);
+int fd_tls_verify_credentials(gnutls_session_t session, struct cnxctx * conn);
 
 /* TCP */
 int fd_tcp_create_bind_server( int * sock, sSA * sa, socklen_t salen );

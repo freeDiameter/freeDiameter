@@ -64,6 +64,7 @@
 /* Define the macro to fail a test with a message */
 #define FAILTEST( message... ){				\
 	fprintf(stderr, ## message);			\
+	TRACE_DEBUG(INFO, "Test failed");		\
 	exit(FAIL);					\
 }
 
@@ -92,7 +93,7 @@ GCRY_THREAD_OPTION_PTHREAD_IMPL;
 	}{						\
 	__typeof__ (_val) __ret = (_assert);		\
 	if (__ret != (_val)) {				\
-		FAILTEST( "%s:%d: %s == %lx != %lx\n",	\
+		FAILTEST( "%s:%d: CHECK FAILED : %s == %lx != %lx\n",	\
 			__FILE__,			\
 			__LINE__,			\
 			#_assert,			\

@@ -39,6 +39,10 @@
 #define TEST_PORT	3868
 #endif /* TEST_PORT */
 
+#ifndef NB_STREAMS
+#define NB_STREAMS	10
+#endif /* NB_STREAMS */
+
 #ifndef GNUTLS_DEFAULT_PRIORITY
 # define GNUTLS_DEFAULT_PRIORITY "NORMAL"
 #endif /* GNUTLS_DEFAULT_PRIORITY */
@@ -344,6 +348,124 @@ static char expired_priv_data[]="-----BEGIN RSA PRIVATE KEY-----\n"
 				"IuuK18v0KwlUGAfEEmCiNh1e1qkLmD0CnI2QjYAjcLQUhw==\n"
 				"-----END RSA PRIVATE KEY-----\n";
 
+/* Unknown CA certificate :
+				Certificate:
+				    Data:
+        				Version: 3 (0x2)
+        				Serial Number: 1 (0x1)
+        				Signature Algorithm: sha1WithRSAEncryption
+        				Issuer: C=JP, ST=Tokyo, L=Koganei, O=WIDE, OU=AAA WG, CN=chavroux.cowaddict.org/emailAddress=sdecugis@nict.go.jp
+        				Validity
+        				    Not Before: Oct 28 08:04:40 2009 GMT
+        				    Not After : Oct 28 08:04:40 2010 GMT
+        				Subject: C=JP, ST=Tokyo, L=Koganei, O=WIDE, OU=AAA WG, CN=unknown.cs/emailAddress=unknown@ca
+        				Subject Public Key Info:
+        				    Public Key Algorithm: rsaEncryption
+        				    RSA Public Key: (1024 bit)
+                				Modulus (1024 bit):
+                				    00:e6:3a:d5:8a:14:c8:15:d0:f0:5c:03:c3:af:33:
+                				    51:2c:17:b7:65:ac:45:e8:48:2d:ae:70:fd:7c:79:
+                				    3a:c7:80:c8:50:53:d0:19:d8:3a:26:a8:16:4d:4c:
+                				    04:17:09:df:69:9b:59:2b:89:c8:e0:60:bb:1d:37:
+                				    82:d2:3f:17:39:c9:8f:5d:76:e1:0f:6e:08:9a:8f:
+                				    16:4a:ea:83:86:f9:bd:15:14:56:68:87:79:05:f9:
+                				    5f:66:11:bd:22:46:26:64:be:57:16:51:66:41:50:
+                				    ac:f2:b1:ca:d0:38:11:4b:4c:b2:ee:25:36:6e:d3:
+                				    b9:63:72:c4:84:82:1c:2b:27
+                				Exponent: 65537 (0x10001)
+        				X509v3 extensions:
+        				    X509v3 Basic Constraints: 
+                				CA:FALSE
+        				    Netscape Comment: 
+                				OpenSSL Generated Certificate
+        				    X509v3 Subject Key Identifier: 
+                				BA:5A:9D:D2:B0:4B:72:D6:1F:00:11:0B:B5:7B:59:DF:08:38:81:BE
+        				    X509v3 Authority Key Identifier: 
+                				keyid:52:C5:A4:63:B8:DB:AC:F2:92:34:2F:72:56:71:C8:11:8E:76:E6:DF
+
+				    Signature Algorithm: sha1WithRSAEncryption
+        				90:8f:3b:bd:e3:a1:ca:6a:92:a6:fd:f0:64:ae:46:83:32:35:
+        				61:80:57:8b:30:12:70:02:e1:51:d9:87:c8:af:d9:4b:b9:6d:
+        				bf:ab:86:5f:19:1f:dc:af:84:67:bf:3c:bf:33:f3:7c:c6:81:
+        				7b:e4:e9:26:1d:bc:d6:8c:ab:72:94:7f:85:33:95:d9:24:ec:
+        				fd:7b:d2:fd:50:3e:e5:61:4f:75:51:ae:c6:4a:ec:df:cf:aa:
+        				73:a5:08:f7:f3:9a:40:66:48:f0:8e:9b:43:b1:30:f3:e3:c8:
+        				36:3f:68:36:6a:1c:aa:16:40:49:b4:73:9a:71:f1:17:6c:0b:
+        				d3:e1:a7:b7:40:de:2c:3c:36:7c:d4:dd:d6:94:c9:d7:5f:f5:
+        				ae:35:56:e8:cc:65:9c:bb:3d:e8:7a:ca:0e:ed:78:03:41:cb:
+        				fd:80:81:de:f9:de:b2:14:4b:81:24:36:de:29:c1:06:11:86:
+        				8c:a9:b0:0c:c7:57:cf:79:a7:3a:84:0c:27:dc:86:6d:cb:44:
+        				2d:26:dc:7e:fb:17:d6:b2:3d:31:03:d3:f1:ab:5d:91:5d:94:
+        				e4:94:88:70:96:b3:7c:0f:15:fe:c8:c6:4d:99:37:ab:09:0c:
+        				da:ba:b6:0e:fa:5e:bb:4b:ce:04:21:06:09:a9:2c:27:86:76:
+        				cc:ee:73:6f
+*/
+static char notrust_ca_data[] =	"-----BEGIN CERTIFICATE-----\n"
+				"MIIEqjCCA5KgAwIBAgIJAP3UMghSlH9PMA0GCSqGSIb3DQEBBQUAMIGUMQswCQYD\n"
+				"VQQGEwJKUDEOMAwGA1UECAwFVG9reW8xEDAOBgNVBAcMB0tvZ2FuZWkxDTALBgNV\n"
+				"BAoMBFdJREUxDzANBgNVBAsMBkFBQSBXRzEfMB0GA1UEAwwWY2hhdnJvdXguY293\n"
+				"YWRkaWN0Lm9yZzEiMCAGCSqGSIb3DQEJARYTc2RlY3VnaXNAbmljdC5nby5qcDAe\n"
+				"Fw0wOTEwMjgwODAzNDRaFw0xOTEwMjYwODAzNDRaMIGUMQswCQYDVQQGEwJKUDEO\n"
+				"MAwGA1UECAwFVG9reW8xEDAOBgNVBAcMB0tvZ2FuZWkxDTALBgNVBAoMBFdJREUx\n"
+				"DzANBgNVBAsMBkFBQSBXRzEfMB0GA1UEAwwWY2hhdnJvdXguY293YWRkaWN0Lm9y\n"
+				"ZzEiMCAGCSqGSIb3DQEJARYTc2RlY3VnaXNAbmljdC5nby5qcDCCASIwDQYJKoZI\n"
+				"hvcNAQEBBQADggEPADCCAQoCggEBALKW9iSUggF5mbvYe1Xk128Csfiijx+fwH5y\n"
+				"ZqWrHNt0YG/tZSwyCDMWBLXTeuYsntg5y0mcpsrN8v02tvrPiCzDfRPyz3mG68us\n"
+				"DPEEgQ1kqL2Gsti2DUcsdyZcDM+4rgsWRivgOTVyoNimv5f+xgmPYoElkgelLwZK\n"
+				"WxGt1VCebOxP3qZA3hSHWE1hJgL4svful7RD1PbwPzidxJKITyAiJoPKWQA9cjSa\n"
+				"gVzRQ7S4vmYALJn7xe+dMFRcfAK8RMv7/gJF6Rw7zufW0DIZK98KZs6aL0lmMPVk\n"
+				"f31N2uvndf+cjy0n4luwEoXY+TeJZY205lbwHrzR0rH75FSm0RsCAwEAAaOB/DCB\n"
+				"+TAdBgNVHQ4EFgQUUsWkY7jbrPKSNC9yVnHIEY525t8wgckGA1UdIwSBwTCBvoAU\n"
+				"UsWkY7jbrPKSNC9yVnHIEY525t+hgZqkgZcwgZQxCzAJBgNVBAYTAkpQMQ4wDAYD\n"
+				"VQQIDAVUb2t5bzEQMA4GA1UEBwwHS29nYW5laTENMAsGA1UECgwEV0lERTEPMA0G\n"
+				"A1UECwwGQUFBIFdHMR8wHQYDVQQDDBZjaGF2cm91eC5jb3dhZGRpY3Qub3JnMSIw\n"
+				"IAYJKoZIhvcNAQkBFhNzZGVjdWdpc0BuaWN0LmdvLmpwggkA/dQyCFKUf08wDAYD\n"
+				"VR0TBAUwAwEB/zANBgkqhkiG9w0BAQUFAAOCAQEACANo6IR3OQlQaXHJaprVVDvl\n"
+				"oMJC0FRbVCK503sbmWTJL98UqxRdsTZNIL07gXlK0oUKyiNijIXiLG8d5IlUrDxF\n"
+				"H/Vsu6s8k3/PpAUVeiO2oygWqvU5NGvt0jg54MrOJKhYYPWrzbmHty+cAXyoNzOR\n"
+				"+W5RX6HRQgxvZWQq2Ok46VX622R1nNjFmCBYT7I7/gWG+hkbIAoH6d9sULLjpC+B\n"
+				"bI+L/N7ac9/Og8pGIgpUI60Gn5zO93+E+Nhg+1BlcDHGnQD6vFNs8LYp5CCX/Zj1\n"
+				"tWFVXZnx58odaU3M4t9/ZQnkZdx9YJIroETbN0PoqlnSagBjgUvbWwn4YCotCA==\n"
+				"-----END CERTIFICATE-----\n";
+				
+static char notrust_cert_data[]="-----BEGIN CERTIFICATE-----\n"
+				"MIIDhjCCAm6gAwIBAgIBATANBgkqhkiG9w0BAQUFADCBlDELMAkGA1UEBhMCSlAx\n"
+				"DjAMBgNVBAgMBVRva3lvMRAwDgYDVQQHDAdLb2dhbmVpMQ0wCwYDVQQKDARXSURF\n"
+				"MQ8wDQYDVQQLDAZBQUEgV0cxHzAdBgNVBAMMFmNoYXZyb3V4LmNvd2FkZGljdC5v\n"
+				"cmcxIjAgBgkqhkiG9w0BCQEWE3NkZWN1Z2lzQG5pY3QuZ28uanAwHhcNMDkxMDI4\n"
+				"MDgwNDQwWhcNMTAxMDI4MDgwNDQwWjB/MQswCQYDVQQGEwJKUDEOMAwGA1UECAwF\n"
+				"VG9reW8xEDAOBgNVBAcMB0tvZ2FuZWkxDTALBgNVBAoMBFdJREUxDzANBgNVBAsM\n"
+				"BkFBQSBXRzETMBEGA1UEAwwKdW5rbm93bi5jczEZMBcGCSqGSIb3DQEJARYKdW5r\n"
+				"bm93bkBjYTCBnzANBgkqhkiG9w0BAQEFAAOBjQAwgYkCgYEA5jrVihTIFdDwXAPD\n"
+				"rzNRLBe3ZaxF6EgtrnD9fHk6x4DIUFPQGdg6JqgWTUwEFwnfaZtZK4nI4GC7HTeC\n"
+				"0j8XOcmPXXbhD24Imo8WSuqDhvm9FRRWaId5BflfZhG9IkYmZL5XFlFmQVCs8rHK\n"
+				"0DgRS0yy7iU2btO5Y3LEhIIcKycCAwEAAaN7MHkwCQYDVR0TBAIwADAsBglghkgB\n"
+				"hvhCAQ0EHxYdT3BlblNTTCBHZW5lcmF0ZWQgQ2VydGlmaWNhdGUwHQYDVR0OBBYE\n"
+				"FLpandKwS3LWHwARC7V7Wd8IOIG+MB8GA1UdIwQYMBaAFFLFpGO426zykjQvclZx\n"
+				"yBGOdubfMA0GCSqGSIb3DQEBBQUAA4IBAQCQjzu946HKapKm/fBkrkaDMjVhgFeL\n"
+				"MBJwAuFR2YfIr9lLuW2/q4ZfGR/cr4Rnvzy/M/N8xoF75OkmHbzWjKtylH+FM5XZ\n"
+				"JOz9e9L9UD7lYU91Ua7GSuzfz6pzpQj385pAZkjwjptDsTDz48g2P2g2ahyqFkBJ\n"
+				"tHOacfEXbAvT4ae3QN4sPDZ81N3WlMnXX/WuNVbozGWcuz3oesoO7XgDQcv9gIHe\n"
+				"+d6yFEuBJDbeKcEGEYaMqbAMx1fPeac6hAwn3IZty0QtJtx++xfWsj0xA9Pxq12R\n"
+				"XZTklIhwlrN8DxX+yMZNmTerCQzaurYO+l67S84EIQYJqSwnhnbM7nNv\n"
+				"-----END CERTIFICATE-----\n";
+static char notrust_priv_data[]="-----BEGIN RSA PRIVATE KEY-----\n"
+				"MIICXQIBAAKBgQDmOtWKFMgV0PBcA8OvM1EsF7dlrEXoSC2ucP18eTrHgMhQU9AZ\n"
+				"2DomqBZNTAQXCd9pm1kricjgYLsdN4LSPxc5yY9dduEPbgiajxZK6oOG+b0VFFZo\n"
+				"h3kF+V9mEb0iRiZkvlcWUWZBUKzyscrQOBFLTLLuJTZu07ljcsSEghwrJwIDAQAB\n"
+				"AoGAeRec1SGVE5Rvt5XrSK0vFofq2DlCE6hTDpszWFLTDbe4pDdRDybhfw+Nm15O\n"
+				"EGgK8BrbTcEMvKdkAzv9POQeLDE8JImgesHZFxN3jnkK+b762BGRDt57DzvMJsfj\n"
+				"1LBle+UBnZB1CvjrINvu+tNMVPlUpjIstbpMq0D+s01+ijECQQD8MHTv/M+Uc86u\n"
+				"1SFywgs+eQPQ8g0OoTLxzqo6YhW8FtwLjoRCZx2TNQS5gYBuQrixd/yE0Spfv9aS\n"
+				"UtlAaOc1AkEA6bVufggHVHcgiWqS8CHzb6g/GRxQixVshOsoVLMkCSz04zlwIfXF\n"
+				"c03hh5RJVv7jmuBmhHbayujMgvinw75oawJAQb9oXUDt5Wgj1FTgeYi5YbovEoRo\n"
+				"fw3ruDsHCl2UCQt0ptarCJzVixFhf/ORRi3C9RGxFfdqMrhS+qb62N4AmQJBALYU\n"
+				"T1BLiwJoiWXmLTJ/EP0V9Irov2uMtm5cE6DhrJqlduksz8r1gu7RZ3tMsVLg5Iy+\n"
+				"dcCQJOffNa54caQUTZ8CQQDTs/70Nr6F6ktrtmtU/S7lIitpQJCu9u/SPyBYPmFZ\n"
+				"9Axy6Ee66Php+eWDNP4Ln4axrapD0732wD8DcmGDVHij\n"
+				"-----END RSA PRIVATE KEY-----\n";
+
+
 struct fd_list eps = FD_LIST_INITIALIZER(eps);
 
 struct connect_flags {
@@ -414,6 +536,9 @@ int main(int argc, char *argv[])
 	gnutls_datum_t client_priv 	= { client_priv_data, 	sizeof(client_priv_data)  };
 	gnutls_datum_t expired_cert 	= { expired_cert_data, 	sizeof(expired_cert_data) };
 	gnutls_datum_t expired_priv 	= { expired_priv_data, 	sizeof(expired_priv_data) };
+	gnutls_datum_t notrust_ca 	= { notrust_ca_data, 	sizeof(notrust_ca_data)   };
+	gnutls_datum_t notrust_cert 	= { notrust_cert_data, 	sizeof(notrust_cert_data) };
+	gnutls_datum_t notrust_priv 	= { notrust_priv_data, 	sizeof(notrust_priv_data) };
 	
 	struct cnxctx * listener;
 #ifndef DISABLE_SCTP
@@ -430,6 +555,9 @@ int main(int argc, char *argv[])
 	
 	/* First, initialize the daemon modules */
 	INIT_FD();
+	
+	/* Restrain the # of streams */
+	fd_g_config->cnf_sctp_str = NB_STREAMS;
 	
 	/* Set the CA parameter in the config */
 	CHECK_GNUTLS_DO( ret = gnutls_certificate_set_x509_trust_mem( fd_g_config->cnf_sec_data.credentials,
@@ -662,7 +790,7 @@ int main(int argc, char *argv[])
 		CHECK( 0, hf.ret );
 		
 		/* Send a few TLS protected message, and replies */
-		for (i = 0; i < 10; i++) {
+		for (i = 0; i < 2 * NB_STREAMS; i++) {
 			CHECK( 0, fd_cnx_send(server_side, cer_buf, cer_sz));
 			CHECK( 0, fd_cnx_receive(client_side, NULL, &rcv_buf, &rcv_sz));
 			CHECK( cer_sz, rcv_sz );
@@ -743,7 +871,7 @@ int main(int argc, char *argv[])
 		CHECK( 0, hf.ret );
 		
 		/* Send a few TLS protected message, and replies */
-		for (i = 0; i < 100; i++) {
+		for (i = 0; i < 2 * NB_STREAMS; i++) {
 			CHECK( 0, fd_cnx_send(server_side, cer_buf, cer_sz));
 			CHECK( 0, fd_cnx_receive(client_side, NULL, &rcv_buf, &rcv_sz));
 			CHECK( cer_sz, rcv_sz );
@@ -772,7 +900,6 @@ int main(int argc, char *argv[])
 	{
 		struct connect_flags cf;
 		struct handshake_flags hf;
-		int i;
 		
 		memset(&cf, 0, sizeof(cf));
 		cf.proto = IPPROTO_TCP;
@@ -808,7 +935,7 @@ int main(int argc, char *argv[])
 		CHECK( 0, hf.ret );
 		
 		/* Send a few TLS protected message, and replies */
-		for (i = 0; i < 10; i++) {
+		for (i = 0; i < 2 * NB_STREAMS; i++) {
 			CHECK( 0, fd_cnx_send(server_side, cer_buf, cer_sz));
 			CHECK( 0, fd_cnx_receive(client_side, NULL, &rcv_buf, &rcv_sz));
 			CHECK( cer_sz, rcv_sz );
@@ -819,6 +946,299 @@ int main(int argc, char *argv[])
 			CHECK( cer_sz, rcv_sz );
 			CHECK( 0, memcmp( rcv_buf, cer_buf, cer_sz ) );
 		}
+		
+		/* Now close the connection */
+		CHECK( 0, pthread_create(&thr, 0, destroy_thr, client_side) );
+		fd_cnx_destroy(server_side);
+		CHECK( 0, pthread_join(thr, NULL) );
+		
+		/* Free the credentials */
+		gnutls_certificate_free_keys(hf.creds);
+		gnutls_certificate_free_cas(hf.creds);
+		gnutls_certificate_free_credentials(hf.creds);
+	}
+	
+#ifndef DISABLE_SCTP
+	/* SCTP Client / server emulating new Diameter behavior (handshake at connection directly) */
+	{
+		struct connect_flags cf;
+		struct handshake_flags hf;
+		
+		memset(&cf, 0, sizeof(cf));
+		cf.proto = IPPROTO_SCTP;
+		
+		memset(&hf, 0, sizeof(hf));
+		
+		/* Initialize remote certificate */
+		CHECK_GNUTLS_DO( ret = gnutls_certificate_allocate_credentials (&hf.creds), );
+		CHECK( GNUTLS_E_SUCCESS, ret );
+		/* Set the CA */
+		CHECK_GNUTLS_DO( ret = gnutls_certificate_set_x509_trust_mem( hf.creds, &ca, GNUTLS_X509_FMT_PEM), );
+		CHECK( 1, ret );
+		/* Set the key */
+		CHECK_GNUTLS_DO( ret = gnutls_certificate_set_x509_key_mem( hf.creds, &client_cert, &client_priv, GNUTLS_X509_FMT_PEM), );
+		CHECK( GNUTLS_E_SUCCESS, ret );
+		
+		/* Start the client thread */
+		CHECK( 0, pthread_create(&thr, 0, connect_thr, &cf) );
+
+		/* Accept the connection of the client */
+		server_side = fd_cnx_serv_accept(listener_sctp);
+		CHECK( 1, server_side ? 1 : 0 );
+		
+		/* Retrieve the client connection object */
+		CHECK( 0, pthread_join( thr, (void *)&client_side ) );
+		CHECK( 1, client_side ? 1 : 0 );
+		hf.cnx = client_side;
+		
+		/* Start the handshake directly */
+		CHECK( 0, pthread_create(&thr, 0, handshake_thr, &hf) );
+		CHECK( 0, fd_cnx_handshake(server_side, GNUTLS_SERVER, NULL, NULL) );
+		CHECK( 0, pthread_join(thr, NULL) );
+		CHECK( 0, hf.ret );
+		
+		/* Send a few TLS protected message, and replies */
+		for (i = 0; i < 2 * NB_STREAMS; i++) {
+			CHECK( 0, fd_cnx_send(server_side, cer_buf, cer_sz));
+			CHECK( 0, fd_cnx_receive(client_side, NULL, &rcv_buf, &rcv_sz));
+			CHECK( cer_sz, rcv_sz );
+			CHECK( 0, memcmp( rcv_buf, cer_buf, cer_sz ) );
+
+			CHECK( 0, fd_cnx_send(client_side, cer_buf, cer_sz));
+			CHECK( 0, fd_cnx_receive(server_side, NULL, &rcv_buf, &rcv_sz));
+			CHECK( cer_sz, rcv_sz );
+			CHECK( 0, memcmp( rcv_buf, cer_buf, cer_sz ) );
+		}
+		
+		
+		/* Now close the connection */
+		CHECK( 0, pthread_create(&thr, 0, destroy_thr, client_side) );
+		fd_cnx_destroy(server_side);
+		CHECK( 0, pthread_join(thr, NULL) );
+		
+		/* Free the credentials */
+		gnutls_certificate_free_keys(hf.creds);
+		gnutls_certificate_free_cas(hf.creds);
+		gnutls_certificate_free_credentials(hf.creds);
+	}
+#endif /* DISABLE_SCTP */
+	
+	/* Basic operation tested successfully, now test we detect error conditions */
+	
+	/* Untrusted certificate, TCP */
+	{
+		struct connect_flags cf;
+		struct handshake_flags hf;
+		
+		memset(&cf, 0, sizeof(cf));
+		cf.proto = IPPROTO_TCP;
+		
+		memset(&hf, 0, sizeof(hf));
+		
+		/* Initialize remote certificate */
+		CHECK_GNUTLS_DO( ret = gnutls_certificate_allocate_credentials (&hf.creds), );
+		CHECK( GNUTLS_E_SUCCESS, ret );
+		/* Set the CA */
+		CHECK_GNUTLS_DO( ret = gnutls_certificate_set_x509_trust_mem( hf.creds, &notrust_ca, GNUTLS_X509_FMT_PEM), );
+		CHECK_GNUTLS_DO( ret = gnutls_certificate_set_x509_trust_mem( hf.creds, &ca, GNUTLS_X509_FMT_PEM), );
+		CHECK( 1, ret );
+		/* Set the key */
+		CHECK_GNUTLS_DO( ret = gnutls_certificate_set_x509_key_mem( hf.creds, &notrust_cert, &notrust_priv, GNUTLS_X509_FMT_PEM), );
+		CHECK( GNUTLS_E_SUCCESS, ret );
+		
+		/* Start the client thread */
+		CHECK( 0, pthread_create(&thr, 0, connect_thr, &cf) );
+
+		/* Accept the connection of the client */
+		server_side = fd_cnx_serv_accept(listener);
+		CHECK( 1, server_side ? 1 : 0 );
+		
+		/* Retrieve the client connection object */
+		CHECK( 0, pthread_join( thr, (void *)&client_side ) );
+		CHECK( 1, client_side ? 1 : 0 );
+		hf.cnx = client_side;
+		
+		/* Start the handshake directly */
+		CHECK( 0, pthread_create(&thr, 0, handshake_thr, &hf) );
+		CHECK( EINVAL, fd_cnx_handshake(server_side, GNUTLS_SERVER, NULL, NULL) );
+		CHECK( 0, pthread_join(thr, NULL) );
+		
+		/* Now close the connection */
+		CHECK( 0, pthread_create(&thr, 0, destroy_thr, client_side) );
+		fd_cnx_destroy(server_side);
+		CHECK( 0, pthread_join(thr, NULL) );
+		
+		/* Free the credentials */
+		gnutls_certificate_free_keys(hf.creds);
+		gnutls_certificate_free_cas(hf.creds);
+		gnutls_certificate_free_credentials(hf.creds);
+	}
+	
+	/* Same in SCTP */
+#ifndef DISABLE_SCTP
+	{
+		struct connect_flags cf;
+		struct handshake_flags hf;
+		
+		memset(&cf, 0, sizeof(cf));
+		cf.proto = IPPROTO_SCTP;
+		
+		memset(&hf, 0, sizeof(hf));
+		
+		/* Initialize remote certificate */
+		CHECK_GNUTLS_DO( ret = gnutls_certificate_allocate_credentials (&hf.creds), );
+		CHECK( GNUTLS_E_SUCCESS, ret );
+		/* Set the CA */
+		CHECK_GNUTLS_DO( ret = gnutls_certificate_set_x509_trust_mem( hf.creds, &notrust_ca, GNUTLS_X509_FMT_PEM), );
+		CHECK_GNUTLS_DO( ret = gnutls_certificate_set_x509_trust_mem( hf.creds, &ca, GNUTLS_X509_FMT_PEM), );
+		CHECK( 1, ret );
+		/* Set the key */
+		CHECK_GNUTLS_DO( ret = gnutls_certificate_set_x509_key_mem( hf.creds, &notrust_cert, &notrust_priv, GNUTLS_X509_FMT_PEM), );
+		CHECK( GNUTLS_E_SUCCESS, ret );
+		
+		/* Start the client thread */
+		CHECK( 0, pthread_create(&thr, 0, connect_thr, &cf) );
+
+		/* Accept the connection of the client */
+		server_side = fd_cnx_serv_accept(listener_sctp);
+		CHECK( 1, server_side ? 1 : 0 );
+		
+		/* Retrieve the client connection object */
+		CHECK( 0, pthread_join( thr, (void *)&client_side ) );
+		CHECK( 1, client_side ? 1 : 0 );
+		hf.cnx = client_side;
+		
+		/* Start the handshake directly */
+		CHECK( 0, pthread_create(&thr, 0, handshake_thr, &hf) );
+		CHECK( EINVAL, fd_cnx_handshake(server_side, GNUTLS_SERVER, NULL, NULL) );
+		CHECK( 0, pthread_join(thr, NULL) );
+		
+		/* Now close the connection */
+		CHECK( 0, pthread_create(&thr, 0, destroy_thr, client_side) );
+		fd_cnx_destroy(server_side);
+		CHECK( 0, pthread_join(thr, NULL) );
+		
+		/* Free the credentials */
+		gnutls_certificate_free_keys(hf.creds);
+		gnutls_certificate_free_cas(hf.creds);
+		gnutls_certificate_free_credentials(hf.creds);
+	}
+#endif /* DISABLE_SCTP */
+	
+	/* Expired certificate */
+	{
+		struct connect_flags cf;
+		struct handshake_flags hf;
+		
+		memset(&cf, 0, sizeof(cf));
+		cf.proto = IPPROTO_TCP;
+		
+		memset(&hf, 0, sizeof(hf));
+		
+		/* Initialize remote certificate */
+		CHECK_GNUTLS_DO( ret = gnutls_certificate_allocate_credentials (&hf.creds), );
+		CHECK( GNUTLS_E_SUCCESS, ret );
+		/* Set the CA */
+		CHECK_GNUTLS_DO( ret = gnutls_certificate_set_x509_trust_mem( hf.creds, &ca, GNUTLS_X509_FMT_PEM), );
+		CHECK( 1, ret );
+		/* Set the key */
+		CHECK_GNUTLS_DO( ret = gnutls_certificate_set_x509_key_mem( hf.creds, &expired_cert, &expired_priv, GNUTLS_X509_FMT_PEM), );
+		CHECK( GNUTLS_E_SUCCESS, ret );
+		
+		/* Start the client thread */
+		CHECK( 0, pthread_create(&thr, 0, connect_thr, &cf) );
+
+		/* Accept the connection of the client */
+		server_side = fd_cnx_serv_accept(listener);
+		CHECK( 1, server_side ? 1 : 0 );
+		
+		/* Retrieve the client connection object */
+		CHECK( 0, pthread_join( thr, (void *)&client_side ) );
+		CHECK( 1, client_side ? 1 : 0 );
+		hf.cnx = client_side;
+		
+		/* Start the handshake directly */
+		CHECK( 0, pthread_create(&thr, 0, handshake_thr, &hf) );
+		CHECK( EINVAL, fd_cnx_handshake(server_side, GNUTLS_SERVER, NULL, NULL) );
+		CHECK( 0, pthread_join(thr, NULL) );
+		
+		/* Now close the connection */
+		CHECK( 0, pthread_create(&thr, 0, destroy_thr, client_side) );
+		fd_cnx_destroy(server_side);
+		CHECK( 0, pthread_join(thr, NULL) );
+		
+		/* Free the credentials */
+		gnutls_certificate_free_keys(hf.creds);
+		gnutls_certificate_free_cas(hf.creds);
+		gnutls_certificate_free_credentials(hf.creds);
+	}
+	
+	/* Non matching hostname */
+	
+	{
+		struct connect_flags cf;
+		struct handshake_flags hf;
+		
+		memset(&cf, 0, sizeof(cf));
+		cf.proto = IPPROTO_TCP;
+		
+		memset(&hf, 0, sizeof(hf));
+		
+		/* Initialize remote certificate */
+		CHECK_GNUTLS_DO( ret = gnutls_certificate_allocate_credentials (&hf.creds), );
+		CHECK( GNUTLS_E_SUCCESS, ret );
+		/* Set the CA */
+		CHECK_GNUTLS_DO( ret = gnutls_certificate_set_x509_trust_mem( hf.creds, &ca, GNUTLS_X509_FMT_PEM), );
+		CHECK( 1, ret );
+		/* Set the key */
+		CHECK_GNUTLS_DO( ret = gnutls_certificate_set_x509_key_mem( hf.creds, &client_cert, &client_priv, GNUTLS_X509_FMT_PEM), );
+		CHECK( GNUTLS_E_SUCCESS, ret );
+		
+		/* Start the client thread */
+		CHECK( 0, pthread_create(&thr, 0, connect_thr, &cf) );
+
+		/* Accept the connection of the client */
+		server_side = fd_cnx_serv_accept(listener);
+		CHECK( 1, server_side ? 1 : 0 );
+		
+		/* Retrieve the client connection object */
+		CHECK( 0, pthread_join( thr, (void *)&client_side ) );
+		CHECK( 1, client_side ? 1 : 0 );
+		hf.cnx = client_side;
+		
+		/* Set the correct hostname we expect from the client (in the server) */
+		fd_cnx_sethostname(server_side, "client.test");
+		
+		/* Start the handshake, check it is successful */
+		CHECK( 0, pthread_create(&thr, 0, handshake_thr, &hf) );
+		CHECK( 0, fd_cnx_handshake(server_side, GNUTLS_SERVER, NULL, NULL) );
+		CHECK( 0, pthread_join(thr, NULL) );
+		CHECK( 0, hf.ret );
+		
+		/* Now close the connection */
+		CHECK( 0, pthread_create(&thr, 0, destroy_thr, client_side) );
+		fd_cnx_destroy(server_side);
+		CHECK( 0, pthread_join(thr, NULL) );
+		
+		/* Do it again with an invalid hostname */
+		CHECK( 0, pthread_create(&thr, 0, connect_thr, &cf) );
+
+		/* Accept the connection of the client */
+		server_side = fd_cnx_serv_accept(listener);
+		CHECK( 1, server_side ? 1 : 0 );
+		
+		/* Retrieve the client connection object */
+		CHECK( 0, pthread_join( thr, (void *)&client_side ) );
+		CHECK( 1, client_side ? 1 : 0 );
+		hf.cnx = client_side;
+		
+		/* Set the correct hostname we expect from the client (in the server) */
+		fd_cnx_sethostname(server_side, "nomatch.test");
+		
+		/* Start the handshake, check it is successful */
+		CHECK( 0, pthread_create(&thr, 0, handshake_thr, &hf) );
+		CHECK( EINVAL, fd_cnx_handshake(server_side, GNUTLS_SERVER, NULL, NULL) );
+		CHECK( 0, pthread_join(thr, NULL) );
 		
 		/* Now close the connection */
 		CHECK( 0, pthread_create(&thr, 0, destroy_thr, client_side) );

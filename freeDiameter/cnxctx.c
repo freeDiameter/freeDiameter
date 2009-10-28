@@ -403,6 +403,13 @@ int fd_cnx_getproto(struct cnxctx * conn)
 	return conn->cc_proto;
 }
 
+/* Set the hostname to check during handshake */
+void fd_cnx_sethostname(struct cnxctx * conn, char * hn)
+{
+	CHECK_PARAMS_DO( conn, return );
+	conn->cc_tls_para.cn = hn;
+}
+
 /* Return the TLS state of a connection */
 int fd_cnx_getTLS(struct cnxctx * conn)
 {
@@ -768,6 +775,86 @@ int fd_tls_prepare(gnutls_session_t * session, int mode, char * priority, void *
 	return 0;
 }
 
+/* Verify remote credentials after successful handshake (return 0 if OK, EINVAL otherwise) */
+int fd_tls_verify_credentials(gnutls_session_t session, struct cnxctx * conn)
+{
+	int ret, i;
+	const gnutls_datum_t *cert_list;
+	unsigned int cert_list_size;
+	gnutls_x509_crt_t cert;
+	time_t now;
+	
+	/* First, use built-in verification */
+	CHECK_GNUTLS_DO( gnutls_certificate_verify_peers2 (session, &ret), return EINVAL );
+	if (ret) {
+		if (TRACE_BOOL(INFO)) {
+			fd_log_debug("TLS: Remote certificate invalid on socket %d (Remote: '%s')(Connection: '%s') :\n", conn->cc_socket, conn->cc_remid, conn->cc_id);
+			if (ret & GNUTLS_CERT_INVALID)
+				fd_log_debug(" - The certificate is not trusted (unknown CA?)\n");
+			if (ret & GNUTLS_CERT_REVOKED)
+				fd_log_debug(" - The certificate has been revoked.\n");
+			if (ret & GNUTLS_CERT_SIGNER_NOT_FOUND)
+				fd_log_debug(" - The certificate hasn't got a known issuer.\n");
+			if (ret & GNUTLS_CERT_SIGNER_NOT_CA)
+				fd_log_debug(" - The certificate signer is not a CA, or uses version 1, or 3 without basic constraints.\n");
+			if (ret & GNUTLS_CERT_INSECURE_ALGORITHM)
+				fd_log_debug(" - The certificate signature uses a weak algorithm.\n");
+		}
+		return EINVAL;
+	}
+	
+	/* Code from http://www.gnu.org/software/gnutls/manual/gnutls.html#Verifying-peer_0027s-certificate */
+	if (gnutls_certificate_type_get (session) != GNUTLS_CRT_X509)
+		return EINVAL;
+	
+	cert_list = gnutls_certificate_get_peers (session, &cert_list_size);
+	if (cert_list == NULL)
+		return EINVAL;
+	
+	now = time(NULL);
+
+	/* Check validity of all the certificates */
+	for (i = 0; i < cert_list_size; i++)
+	{
+		time_t deadline;
+		
+		CHECK_GNUTLS_DO( gnutls_x509_crt_init (&cert), return EINVAL);
+		CHECK_GNUTLS_DO( gnutls_x509_crt_import (cert, &cert_list[i], GNUTLS_X509_FMT_DER), return EINVAL);
+		
+		deadline = gnutls_x509_crt_get_expiration_time(cert);
+		if ((deadline != (time_t)-1) && (deadline < now)) {
+			if (TRACE_BOOL(INFO)) {
+				fd_log_debug("TLS: Remote certificate invalid on socket %d (Remote: '%s')(Connection: '%s') :\n", conn->cc_socket, conn->cc_remid, conn->cc_id);
+				fd_log_debug(" - The certificate %d in the chain is expired\n", i);
+			}
+			return EINVAL;
+		}
+		
+		deadline = gnutls_x509_crt_get_activation_time(cert);
+		if ((deadline != (time_t)-1) && (deadline > now)) {
+			if (TRACE_BOOL(INFO)) {
+				fd_log_debug("TLS: Remote certificate invalid on socket %d (Remote: '%s')(Connection: '%s') :\n", conn->cc_socket, conn->cc_remid, conn->cc_id);
+				fd_log_debug(" - The certificate %d in the chain is not yet activated\n", i);
+			}
+			return EINVAL;
+		}
+		
+		if ((i == 0) && (conn->cc_tls_para.cn)) {
+			if (!gnutls_x509_crt_check_hostname (cert, conn->cc_tls_para.cn)) {
+				if (TRACE_BOOL(INFO)) {
+					fd_log_debug("TLS: Remote certificate invalid on socket %d (Remote: '%s')(Connection: '%s') :\n", conn->cc_socket, conn->cc_remid, conn->cc_id);
+					fd_log_debug(" - The certificate hostname does not match '%s'\n", conn->cc_tls_para.cn);
+				}
+				return EINVAL;
+			}
+		}
+		
+		gnutls_x509_crt_deinit (cert);
+	}
+
+	return 0;
+}
+
 /* TLS handshake a connection; no need to have called start_clear before. Reception is active if handhsake is successful */
 int fd_cnx_handshake(struct cnxctx * conn, int mode, char * priority, void * alt_creds)
 {
@@ -812,23 +899,7 @@ int fd_cnx_handshake(struct cnxctx * conn, int mode, char * priority, void * alt
 			} );
 
 		/* Now verify the remote credentials are valid -- only simple test here */
-		CHECK_GNUTLS_DO( gnutls_certificate_verify_peers2 (conn->cc_tls_para.session, &ret), return EINVAL );
-		if (ret) {
-			if (TRACE_BOOL(INFO)) {
-				fd_log_debug("TLS: Remote certificate invalid on socket %d (%s) :\n", conn->cc_socket, conn->cc_id);
-				if (ret & GNUTLS_CERT_INVALID)
-					fd_log_debug(" - The certificate is not trusted (unknown CA?)\n");
-				if (ret & GNUTLS_CERT_REVOKED)
-					fd_log_debug(" - The certificate has been revoked.\n");
-				if (ret & GNUTLS_CERT_SIGNER_NOT_FOUND)
-					fd_log_debug(" - The certificate hasn't got a known issuer.\n");
-				if (ret & GNUTLS_CERT_SIGNER_NOT_CA)
-					fd_log_debug(" - The certificate signer is not a CA, or uses version 1, or 3 without basic constraints.\n");
-				if (ret & GNUTLS_CERT_INSECURE_ALGORITHM)
-					fd_log_debug(" - The certificate signature uses a weak algorithm.\n");
-			}
-			return EINVAL;
-		}
+		CHECK_FCT( fd_tls_verify_credentials(conn->cc_tls_para.session, conn) );
 	}
 
 	/* Multi-stream TLS: handshake other streams as well */
