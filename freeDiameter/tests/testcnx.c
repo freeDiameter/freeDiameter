@@ -77,7 +77,58 @@ static char ca_data[] =		"-----BEGIN CERTIFICATE-----\n"
 				"5cA+zZsDK/nWJwxBaW0CxAHX579FElFWlK4+BnzhZRdDhmJDnN5dh4ekJGM6Lg==\n"
 				"-----END CERTIFICATE-----\n";
 				
+/* Client:
+				Certificate:
+				    Data:
+        				Version: 3 (0x2)
+        				Serial Number: 5 (0x5)
+        				Signature Algorithm: sha1WithRSAEncryption
+        				Issuer: C=JP, ST=Tokyo, L=Koganei, O=WIDE, OU=AAA WG, CN=chavroux.cowaddict.org/emailAddress=sdecugis@nict.go.jp
+        				Validity
+        				    Not Before: Oct 27 04:04:05 2009 GMT
+        				    Not After : Oct 25 04:04:05 2019 GMT
+        				Subject: C=JP, ST=Tokyo, L=Koganei, O=WIDE, OU=AAA WG, CN=client.test/emailAddress=client@test
+        				Subject Public Key Info:
+        				    Public Key Algorithm: rsaEncryption
+        				    RSA Public Key: (1024 bit)
+                				Modulus (1024 bit):
+                				    00:bd:eb:50:1e:9d:7a:cd:9d:bb:e7:bc:4e:38:4a:
+                				    b2:cc:9e:b4:89:77:01:ef:d1:c6:19:29:00:fe:ce:
+                				    3c:62:05:13:b1:8c:ff:31:7a:0f:c1:2e:4b:3c:0c:
+                				    40:1e:36:4e:76:da:0a:64:43:fc:1e:ea:0c:97:b2:
+                				    57:9c:9c:8c:90:bd:eb:23:7b:b8:b7:5c:03:ed:6f:
+                				    48:55:8a:88:08:38:c5:cd:33:b7:ab:a8:3a:6f:7f:
+                				    13:10:65:a5:50:b9:f4:8b:cc:2e:e9:79:58:a6:11:
+                				    f0:58:45:41:ef:36:b3:35:cb:14:ec:82:0c:ad:11:
+                				    6a:ea:64:ef:28:a2:6e:47:45
+                				Exponent: 65537 (0x10001)
+        				X509v3 extensions:
+        				    X509v3 Basic Constraints: 
+                				CA:FALSE
+        				    Netscape Comment: 
+                				OpenSSL Generated Certificate
+        				    X509v3 Subject Key Identifier: 
+                				BE:B3:89:4F:9D:8F:6C:20:C4:D0:3E:6A:05:11:82:50:54:49:70:A2
+        				    X509v3 Authority Key Identifier: 
+                				keyid:92:AA:55:9F:B3:77:82:68:89:ED:7E:73:43:66:E4:8B:EE:EA:BF:85
 
+				    Signature Algorithm: sha1WithRSAEncryption
+        				a3:88:f5:15:b5:ad:20:60:a1:85:19:3f:b9:5e:1e:be:31:7f:
+        				84:7a:c2:18:3a:63:6a:67:1f:46:86:4d:10:d6:1d:ad:a2:c8:
+        				0b:95:33:fa:e4:05:f4:b8:70:34:77:f7:85:6e:70:46:ac:39:
+        				54:a9:5f:ea:5e:d1:33:bb:c9:a3:42:81:41:90:25:b5:92:8b:
+        				e8:6e:3e:97:06:dd:9a:cc:29:61:34:5a:d3:1c:5d:ad:d1:a3:
+        				eb:6a:47:b4:d0:c2:17:89:e1:e2:2d:36:18:50:1a:e7:d4:fc:
+        				38:2e:47:0b:39:50:87:2f:aa:07:64:f8:9a:4d:47:01:da:10:
+        				d8:97:c7:a6:13:bc:0e:ca:63:c1:f2:09:fb:f8:6a:a4:5f:08:
+        				b5:ad:ed:4f:71:b9:89:7f:43:27:85:72:e7:8d:a8:4a:cc:f6:
+        				36:ca:8a:ae:82:b5:a8:42:41:99:87:84:7c:f0:90:fd:ca:96:
+        				37:a2:e0:d9:fa:dd:a4:c9:f1:50:b7:e5:e6:8f:af:83:8c:23:
+        				b6:20:cc:66:e3:08:60:13:02:8f:42:3a:07:91:a7:38:b2:72:
+        				16:fd:bd:a9:60:f0:e2:9f:23:f3:c0:99:e3:17:bc:00:7c:b3:
+        				89:9c:ea:fa:3e:f6:69:a1:98:c2:ec:46:da:70:b6:f9:c3:93:
+        				a7:fc:36:dd
+*/
 static char client_cert_data[] ="-----BEGIN CERTIFICATE-----\n"
 				"MIIDiTCCAnGgAwIBAgIBBTANBgkqhkiG9w0BAQUFADCBlDELMAkGA1UEBhMCSlAx\n"
 				"DjAMBgNVBAgMBVRva3lvMRAwDgYDVQQHDAdLb2dhbmVpMQ0wCwYDVQQKDARXSURF\n"
@@ -115,6 +166,58 @@ static char client_priv_data[] ="-----BEGIN RSA PRIVATE KEY-----\n"
 				"JpcQOruJb9XwndqzNbL0dSUePb9gFiBCGKYOyreNTTRTmw==\n"
 				"-----END RSA PRIVATE KEY-----\n";
 				
+/* Server:
+				Certificate:
+				    Data:
+        				Version: 3 (0x2)
+        				Serial Number: 4 (0x4)
+        				Signature Algorithm: sha1WithRSAEncryption
+        				Issuer: C=JP, ST=Tokyo, L=Koganei, O=WIDE, OU=AAA WG, CN=chavroux.cowaddict.org/emailAddress=sdecugis@nict.go.jp
+        				Validity
+        				    Not Before: Oct 27 04:03:39 2009 GMT
+        				    Not After : Oct 25 04:03:39 2019 GMT
+        				Subject: C=JP, ST=Tokyo, L=Koganei, O=WIDE, OU=AAA WG, CN=serv.test/emailAddress=serv@test
+        				Subject Public Key Info:
+        				    Public Key Algorithm: rsaEncryption
+        				    RSA Public Key: (1024 bit)
+                				Modulus (1024 bit):
+                				    00:a6:f7:1c:a9:90:5b:fa:c8:f6:a3:04:0c:d0:8b:
+                				    45:c3:90:f7:2d:c2:c9:d7:bd:66:8a:7c:1c:51:89:
+                				    40:9e:cd:70:57:cb:00:47:a3:e8:76:8b:00:b3:c9:
+                				    c3:0d:b1:b9:2a:08:9f:52:92:82:d3:18:c1:d8:d1:
+                				    b8:1e:fd:71:fe:23:ec:19:e9:6d:9d:fd:ae:88:bc:
+                				    39:44:7a:37:ad:c6:88:d1:64:7c:b1:d4:3c:a9:30:
+                				    c4:de:51:02:c4:48:4f:25:3e:2f:93:ae:25:32:66:
+                				    9a:dc:f4:44:45:ff:7f:12:49:97:0d:01:8d:13:9a:
+                				    d3:8f:9e:2d:62:95:02:0a:c7
+                				Exponent: 65537 (0x10001)
+        				X509v3 extensions:
+        				    X509v3 Basic Constraints: 
+                				CA:FALSE
+        				    Netscape Comment: 
+                				OpenSSL Generated Certificate
+        				    X509v3 Subject Key Identifier: 
+                				0C:33:C4:7F:39:D0:34:FF:F8:61:A1:46:8B:49:1D:A3:57:B3:4D:58
+        				    X509v3 Authority Key Identifier: 
+                				keyid:92:AA:55:9F:B3:77:82:68:89:ED:7E:73:43:66:E4:8B:EE:EA:BF:85
+
+				    Signature Algorithm: sha1WithRSAEncryption
+        				87:f5:49:a6:04:f9:98:9a:f1:1a:68:ce:06:ae:4c:0c:08:eb:
+        				ba:98:e7:3f:df:22:7f:35:88:1d:b7:8a:f3:89:a3:68:0d:53:
+        				45:eb:23:a1:dd:6b:dc:b0:80:58:0c:10:0b:49:74:ea:a8:b6:
+        				8c:2e:c6:73:dc:7a:74:c7:59:3e:79:5a:d2:5c:15:0b:f1:d8:
+        				19:37:2a:c0:22:75:10:3f:4c:e9:a1:e0:eb:b2:9e:09:70:3d:
+        				2a:4c:fe:9c:99:36:4b:aa:6c:e1:8b:9c:aa:e1:29:1f:49:6b:
+        				14:db:12:ae:cf:68:4a:dd:03:e1:3b:ad:79:b4:54:84:1d:bb:
+        				ac:45:c4:85:f1:03:65:65:96:23:ae:e7:97:3c:5c:db:ce:55:
+        				34:5d:c3:73:ec:cd:f6:0f:a5:81:5f:c2:ab:a3:42:fa:36:7f:
+        				83:ef:db:0f:cd:62:0b:ea:d9:4f:73:35:68:5f:23:d5:0a:be:
+        				ff:7f:23:9a:af:0d:a5:f8:3e:3a:f0:63:1c:e1:d2:96:81:cf:
+        				7b:5a:6b:d0:9b:67:56:9e:aa:a9:e8:f1:6c:fb:54:2b:1a:f4:
+        				ef:16:5a:be:1d:a9:c8:d6:cc:f7:42:8c:fe:83:2c:84:8c:80:
+        				fb:1c:88:f6:35:1c:ae:43:72:fa:68:30:9c:25:8b:db:2c:84:
+        				87:76:9d:b9
+*/
 static char server_cert_data[] ="-----BEGIN CERTIFICATE-----\n"
 				"MIIDhDCCAmygAwIBAgIBBDANBgkqhkiG9w0BAQUFADCBlDELMAkGA1UEBhMCSlAx\n"
 				"DjAMBgNVBAgMBVRva3lvMRAwDgYDVQQHDAdLb2dhbmVpMQ0wCwYDVQQKDARXSURF\n"
@@ -152,7 +255,58 @@ static char server_priv_data[] ="-----BEGIN RSA PRIVATE KEY-----\n"
 				"S+tLkMNuruaInWizK+BKYTIJLlQDf5u5NTrw41vye5Hv\n"
 				"-----END RSA PRIVATE KEY-----\n";
 
+/* Expired:
+				Certificate:
+				    Data:
+        				Version: 3 (0x2)
+        				Serial Number: 6 (0x6)
+        				Signature Algorithm: sha1WithRSAEncryption
+        				Issuer: C=JP, ST=Tokyo, L=Koganei, O=WIDE, OU=AAA WG, CN=chavroux.cowaddict.org/emailAddress=sdecugis@nict.go.jp
+        				Validity
+        				    Not Before: Oct 27 04:06:35 2009 GMT
+        				    Not After : Oct 28 04:06:35 2009 GMT
+        				Subject: C=JP, ST=Tokyo, L=Koganei, O=WIDE, OU=AAA WG, CN=expired.test/emailAddress=expired@test
+        				Subject Public Key Info:
+        				    Public Key Algorithm: rsaEncryption
+        				    RSA Public Key: (1024 bit)
+                				Modulus (1024 bit):
+                				    00:e3:17:15:54:85:dc:cf:c7:a0:32:4a:49:7d:55:
+                				    75:9b:29:15:db:7e:87:17:d9:0e:65:44:53:d7:19:
+                				    37:27:c7:c6:fe:c6:dc:72:2b:dc:86:1a:ff:24:6c:
+                				    63:3f:75:9c:0a:14:e1:70:06:79:d4:b9:26:d4:68:
+                				    4c:28:38:ba:34:60:56:02:3d:94:55:4a:1f:4e:5a:
+                				    f0:a5:71:4c:3e:71:69:39:ad:bc:aa:55:35:fb:73:
+                				    5b:5f:6c:30:71:8e:8a:b6:a5:06:cc:ee:dd:29:c7:
+                				    52:0d:a7:9c:0f:a1:ba:52:11:e2:1b:b9:74:6b:08:
+                				    87:11:d2:ec:a9:ac:63:63:4f
+                				Exponent: 65537 (0x10001)
+        				X509v3 extensions:
+        				    X509v3 Basic Constraints: 
+                				CA:FALSE
+        				    Netscape Comment: 
+                				OpenSSL Generated Certificate
+        				    X509v3 Subject Key Identifier: 
+                				1C:AF:66:42:5B:AD:AA:A5:9B:D9:AE:3A:C1:5A:AC:2F:CC:CE:22:6C
+        				    X509v3 Authority Key Identifier: 
+                				keyid:92:AA:55:9F:B3:77:82:68:89:ED:7E:73:43:66:E4:8B:EE:EA:BF:85
 
+				    Signature Algorithm: sha1WithRSAEncryption
+        				60:8f:55:55:59:82:0f:64:cb:b8:11:c8:44:ce:bf:69:07:0d:
+        				be:c2:34:be:42:6a:78:15:39:9f:be:8a:17:d6:43:42:c9:7c:
+        				f1:6d:5d:aa:c3:1b:4d:b0:f0:b6:73:46:2a:87:cd:55:56:a3:
+        				6d:cc:de:a8:28:6a:53:85:9e:e5:68:b7:3c:f5:72:13:7b:d0:
+        				21:f2:91:49:35:e0:37:1e:28:19:d5:1b:cc:e1:32:1e:7f:b0:
+        				86:df:43:a4:47:0f:29:0b:eb:51:60:9a:f5:ca:50:f4:2d:59:
+        				cd:fc:50:9d:29:ed:45:98:de:a2:5c:d1:b5:7a:34:ad:7a:73:
+        				48:8b:a2:9b:89:8e:4a:2e:2a:04:19:d6:62:6a:0d:f0:96:f2:
+        				f0:d0:22:77:3b:7f:b1:2a:f4:3b:17:47:5e:38:07:09:65:ad:
+        				1d:ea:46:69:6a:96:b6:6b:3b:5c:cc:6e:30:d7:cb:53:69:59:
+        				c2:63:78:2b:03:d4:d4:f7:17:29:99:9a:43:ff:78:0a:af:42:
+        				c5:b3:8d:09:38:5b:30:70:28:c1:97:ab:fd:7f:87:9a:ec:f2:
+        				97:44:ff:f5:b9:41:30:d1:c6:32:98:69:34:c4:39:30:6f:e2:
+        				d3:b2:70:97:66:ee:41:f5:ae:0f:09:f0:ed:60:96:67:a9:8a:
+        				cd:d6:95:f2
+*/
 static char expired_cert_data[]="-----BEGIN CERTIFICATE-----\n"
 				"MIIDizCCAnOgAwIBAgIBBjANBgkqhkiG9w0BAQUFADCBlDELMAkGA1UEBhMCSlAx\n"
 				"DjAMBgNVBAgMBVRva3lvMRAwDgYDVQQHDAdLb2dhbmVpMQ0wCwYDVQQKDARXSURF\n"
@@ -268,7 +422,7 @@ int main(int argc, char *argv[])
 	struct cnxctx * server_side;
 	struct cnxctx * client_side;
 	pthread_t thr;
-	int ret;
+	int ret, i;
 	uint8_t * cer_buf;
 	size_t 	  cer_sz;
 	uint8_t * rcv_buf;
@@ -507,21 +661,29 @@ int main(int argc, char *argv[])
 		CHECK( 0, pthread_join(thr, NULL) );
 		CHECK( 0, hf.ret );
 		
-		/* Send a TLS protected message, and a reply */
-		CHECK( 0, fd_cnx_send(server_side, cer_buf, cer_sz));
-		CHECK( 0, fd_cnx_receive(client_side, NULL, &rcv_buf, &rcv_sz));
-		CHECK( cer_sz, rcv_sz );
-		CHECK( 0, memcmp( rcv_buf, cer_buf, cer_sz ) );
+		/* Send a few TLS protected message, and replies */
+		for (i = 0; i < 10; i++) {
+			CHECK( 0, fd_cnx_send(server_side, cer_buf, cer_sz));
+			CHECK( 0, fd_cnx_receive(client_side, NULL, &rcv_buf, &rcv_sz));
+			CHECK( cer_sz, rcv_sz );
+			CHECK( 0, memcmp( rcv_buf, cer_buf, cer_sz ) );
+
+			CHECK( 0, fd_cnx_send(client_side, cer_buf, cer_sz));
+			CHECK( 0, fd_cnx_receive(server_side, NULL, &rcv_buf, &rcv_sz));
+			CHECK( cer_sz, rcv_sz );
+			CHECK( 0, memcmp( rcv_buf, cer_buf, cer_sz ) );
+		}
 		
-		CHECK( 0, fd_cnx_send(client_side, cer_buf, cer_sz));
-		CHECK( 0, fd_cnx_receive(server_side, NULL, &rcv_buf, &rcv_sz));
-		CHECK( cer_sz, rcv_sz );
-		CHECK( 0, memcmp( rcv_buf, cer_buf, cer_sz ) );
 		
 		/* Now close the connection */
 		CHECK( 0, pthread_create(&thr, 0, destroy_thr, client_side) );
 		fd_cnx_destroy(server_side);
 		CHECK( 0, pthread_join(thr, NULL) );
+		
+		/* Free the credentials */
+		gnutls_certificate_free_keys(hf.creds);
+		gnutls_certificate_free_cas(hf.creds);
+		gnutls_certificate_free_credentials(hf.creds);
 	}
 		
 #ifndef DISABLE_SCTP
@@ -580,44 +742,94 @@ int main(int argc, char *argv[])
 		CHECK( 0, pthread_join(thr, NULL) );
 		CHECK( 0, hf.ret );
 		
-		/* Send a few TLS protected message, and a reply */
-		CHECK( 0, fd_cnx_send(server_side, cer_buf, cer_sz));
-		CHECK( 0, fd_cnx_receive(client_side, NULL, &rcv_buf, &rcv_sz));
-		CHECK( cer_sz, rcv_sz );
-		CHECK( 0, memcmp( rcv_buf, cer_buf, cer_sz ) );
+		/* Send a few TLS protected message, and replies */
+		for (i = 0; i < 100; i++) {
+			CHECK( 0, fd_cnx_send(server_side, cer_buf, cer_sz));
+			CHECK( 0, fd_cnx_receive(client_side, NULL, &rcv_buf, &rcv_sz));
+			CHECK( cer_sz, rcv_sz );
+			CHECK( 0, memcmp( rcv_buf, cer_buf, cer_sz ) );
+
+			CHECK( 0, fd_cnx_send(client_side, cer_buf, cer_sz));
+			CHECK( 0, fd_cnx_receive(server_side, NULL, &rcv_buf, &rcv_sz));
+			CHECK( cer_sz, rcv_sz );
+			CHECK( 0, memcmp( rcv_buf, cer_buf, cer_sz ) );
+		}
 		
-		CHECK( 0, fd_cnx_send(client_side, cer_buf, cer_sz));
-		CHECK( 0, fd_cnx_receive(server_side, NULL, &rcv_buf, &rcv_sz));
-		CHECK( cer_sz, rcv_sz );
-		CHECK( 0, memcmp( rcv_buf, cer_buf, cer_sz ) );
-		
-		CHECK( 0, fd_cnx_send(server_side, cer_buf, cer_sz));
-		CHECK( 0, fd_cnx_receive(client_side, NULL, &rcv_buf, &rcv_sz));
-		CHECK( cer_sz, rcv_sz );
-		CHECK( 0, memcmp( rcv_buf, cer_buf, cer_sz ) );
-		
-		CHECK( 0, fd_cnx_send(client_side, cer_buf, cer_sz));
-		CHECK( 0, fd_cnx_receive(server_side, NULL, &rcv_buf, &rcv_sz));
-		CHECK( cer_sz, rcv_sz );
-		CHECK( 0, memcmp( rcv_buf, cer_buf, cer_sz ) );
-		
-		CHECK( 0, fd_cnx_send(server_side, cer_buf, cer_sz));
-		CHECK( 0, fd_cnx_receive(client_side, NULL, &rcv_buf, &rcv_sz));
-		CHECK( cer_sz, rcv_sz );
-		CHECK( 0, memcmp( rcv_buf, cer_buf, cer_sz ) );
-		
-		CHECK( 0, fd_cnx_send(client_side, cer_buf, cer_sz));
-		CHECK( 0, fd_cnx_receive(server_side, NULL, &rcv_buf, &rcv_sz));
-		CHECK( cer_sz, rcv_sz );
-		CHECK( 0, memcmp( rcv_buf, cer_buf, cer_sz ) );
 		
 		/* Now close the connection */
 		CHECK( 0, pthread_create(&thr, 0, destroy_thr, client_side) );
 		fd_cnx_destroy(server_side);
 		CHECK( 0, pthread_join(thr, NULL) );
+		
+		/* Free the credentials */
+		gnutls_certificate_free_keys(hf.creds);
+		gnutls_certificate_free_cas(hf.creds);
+		gnutls_certificate_free_credentials(hf.creds);
 	}
 #endif /* DISABLE_SCTP */
 	
+	/* TCP Client / server emulating new Diameter behavior (handshake at connection directly) */
+	{
+		struct connect_flags cf;
+		struct handshake_flags hf;
+		int i;
+		
+		memset(&cf, 0, sizeof(cf));
+		cf.proto = IPPROTO_TCP;
+		
+		memset(&hf, 0, sizeof(hf));
+		
+		/* Initialize remote certificate */
+		CHECK_GNUTLS_DO( ret = gnutls_certificate_allocate_credentials (&hf.creds), );
+		CHECK( GNUTLS_E_SUCCESS, ret );
+		/* Set the CA */
+		CHECK_GNUTLS_DO( ret = gnutls_certificate_set_x509_trust_mem( hf.creds, &ca, GNUTLS_X509_FMT_PEM), );
+		CHECK( 1, ret );
+		/* Set the key */
+		CHECK_GNUTLS_DO( ret = gnutls_certificate_set_x509_key_mem( hf.creds, &client_cert, &client_priv, GNUTLS_X509_FMT_PEM), );
+		CHECK( GNUTLS_E_SUCCESS, ret );
+		
+		/* Start the client thread */
+		CHECK( 0, pthread_create(&thr, 0, connect_thr, &cf) );
+
+		/* Accept the connection of the client */
+		server_side = fd_cnx_serv_accept(listener);
+		CHECK( 1, server_side ? 1 : 0 );
+		
+		/* Retrieve the client connection object */
+		CHECK( 0, pthread_join( thr, (void *)&client_side ) );
+		CHECK( 1, client_side ? 1 : 0 );
+		hf.cnx = client_side;
+		
+		/* Start the handshake directly */
+		CHECK( 0, pthread_create(&thr, 0, handshake_thr, &hf) );
+		CHECK( 0, fd_cnx_handshake(server_side, GNUTLS_SERVER, NULL, NULL) );
+		CHECK( 0, pthread_join(thr, NULL) );
+		CHECK( 0, hf.ret );
+		
+		/* Send a few TLS protected message, and replies */
+		for (i = 0; i < 10; i++) {
+			CHECK( 0, fd_cnx_send(server_side, cer_buf, cer_sz));
+			CHECK( 0, fd_cnx_receive(client_side, NULL, &rcv_buf, &rcv_sz));
+			CHECK( cer_sz, rcv_sz );
+			CHECK( 0, memcmp( rcv_buf, cer_buf, cer_sz ) );
+
+			CHECK( 0, fd_cnx_send(client_side, cer_buf, cer_sz));
+			CHECK( 0, fd_cnx_receive(server_side, NULL, &rcv_buf, &rcv_sz));
+			CHECK( cer_sz, rcv_sz );
+			CHECK( 0, memcmp( rcv_buf, cer_buf, cer_sz ) );
+		}
+		
+		/* Now close the connection */
+		CHECK( 0, pthread_create(&thr, 0, destroy_thr, client_side) );
+		fd_cnx_destroy(server_side);
+		CHECK( 0, pthread_join(thr, NULL) );
+		
+		/* Free the credentials */
+		gnutls_certificate_free_keys(hf.creds);
+		gnutls_certificate_free_cas(hf.creds);
+		gnutls_certificate_free_credentials(hf.creds);
+	}
 	
 	/* That's all for the tests yet */
 	PASSTEST();

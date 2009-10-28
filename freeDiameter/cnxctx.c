@@ -930,6 +930,37 @@ int fd_cnx_recv_setaltfifo(struct cnxctx * conn, struct fifo * alt_fifo)
 	return 0;
 }
 
+/* Wrapper around gnutls_record_recv to handle some error codes */
+static ssize_t fd_tls_send_handle_error(struct cnxctx * conn, gnutls_session_t session, void * data, size_t sz)
+{
+	ssize_t ret;
+again:	
+	CHECK_GNUTLS_DO( ret = gnutls_record_send(session, data, sz),
+		{
+			switch (ret) {
+				case GNUTLS_E_REHANDSHAKE: 
+					CHECK_GNUTLS_DO( ret = gnutls_handshake(session),
+						{
+							if (TRACE_BOOL(INFO)) {
+								fd_log_debug("TLS re-handshake failed on socket %d (%s) : %s\n", conn->cc_socket, conn->cc_id, gnutls_strerror(ret));
+							}
+							goto end;
+						} );
+
+				case GNUTLS_E_AGAIN:
+				case GNUTLS_E_INTERRUPTED:
+					goto again;
+
+				default:
+					TRACE_DEBUG(INFO, "This TLS error is not handled, assume unrecoverable error");
+			}
+		} );
+end:	
+	return ret;
+}
+
+
+
 /* Send function when no multi-stream is involved, or sending on stream #0 (send() always use stream 0)*/
 static int send_simple(struct cnxctx * conn, unsigned char * buf, size_t len)
 {
@@ -938,7 +969,7 @@ static int send_simple(struct cnxctx * conn, unsigned char * buf, size_t len)
 	TRACE_ENTRY("%p %p %zd", conn, buf, len);
 	do {
 		if (conn->cc_tls) {
-			CHECK_GNUTLS_DO( ret = gnutls_record_send (conn->cc_tls_para.session, buf + sent, len - sent), return ENOTCONN );
+			CHECK_GNUTLS_DO( ret = fd_tls_send_handle_error(conn, conn->cc_tls_para.session, buf + sent, len - sent), return ENOTCONN );
 		} else {
 			CHECK_SYS( ret = send(conn->cc_socket, buf + sent, len - sent, 0) ); /* better to replace with sendmsg for atomic sending? */
 		}
@@ -983,7 +1014,7 @@ int fd_cnx_send(struct cnxctx * conn, unsigned char * buf, size_t len)
 					size_t sent = 0;
 					ASSERT(conn->cc_sctps_data.array != NULL);
 					do {
-						CHECK_GNUTLS_DO( ret = gnutls_record_send (conn->cc_sctps_data.array[conn->cc_sctp_para.next - 1].session, buf + sent, len - sent), { TODO("Handle error (re-handshake, etc.."); return ENOTCONN; } );
+						CHECK_GNUTLS_DO( ret = fd_tls_send_handle_error(conn, conn->cc_sctps_data.array[conn->cc_sctp_para.next].session, buf + sent, len - sent), return ENOTCONN );
 						sent += ret;
 					} while ( sent < len );
 				}
