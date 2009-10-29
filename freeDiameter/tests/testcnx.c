@@ -675,12 +675,14 @@ int main(int argc, char *argv[])
 		CHECK( 0, fd_cnx_receive(client_side, NULL, &rcv_buf, &rcv_sz));
 		CHECK( cer_sz, rcv_sz );
 		CHECK( 0, memcmp( rcv_buf, cer_buf, cer_sz ) );
+		free(rcv_buf);
 		
 		/* Do it in the other direction */
 		CHECK( 0, fd_cnx_send(client_side, cer_buf, cer_sz));
 		CHECK( 0, fd_cnx_receive(server_side, NULL, &rcv_buf, &rcv_sz));
 		CHECK( cer_sz, rcv_sz );
 		CHECK( 0, memcmp( rcv_buf, cer_buf, cer_sz ) );
+		free(rcv_buf);
 		
 		/* Now close the connection */
 		fd_cnx_destroy(client_side);
@@ -715,18 +717,21 @@ int main(int argc, char *argv[])
 		CHECK( 0, fd_cnx_receive(client_side, NULL, &rcv_buf, &rcv_sz));
 		CHECK( cer_sz, rcv_sz );
 		CHECK( 0, memcmp( rcv_buf, cer_buf, cer_sz ) );
+		free(rcv_buf);
 		
 		/* Do it in the other direction */
 		CHECK( 0, fd_cnx_send(client_side, cer_buf, cer_sz));
 		CHECK( 0, fd_cnx_receive(server_side, NULL, &rcv_buf, &rcv_sz));
 		CHECK( cer_sz, rcv_sz );
 		CHECK( 0, memcmp( rcv_buf, cer_buf, cer_sz ) );
+		free(rcv_buf);
 		
 		/* Do it one more time to use another stream */
 		CHECK( 0, fd_cnx_send(client_side, cer_buf, cer_sz));
 		CHECK( 0, fd_cnx_receive(server_side, NULL, &rcv_buf, &rcv_sz));
 		CHECK( cer_sz, rcv_sz );
 		CHECK( 0, memcmp( rcv_buf, cer_buf, cer_sz ) );
+		free(rcv_buf);
 		
 		/* Now close the connection */
 		fd_cnx_destroy(client_side);
@@ -776,12 +781,14 @@ int main(int argc, char *argv[])
 		CHECK( 0, fd_cnx_receive(client_side, NULL, &rcv_buf, &rcv_sz));
 		CHECK( cer_sz, rcv_sz );
 		CHECK( 0, memcmp( rcv_buf, cer_buf, cer_sz ) );
+		free(rcv_buf);
 		
 		/* And the supposed reply */
 		CHECK( 0, fd_cnx_send(client_side, cer_buf, cer_sz));
 		CHECK( 0, fd_cnx_receive(server_side, NULL, &rcv_buf, &rcv_sz));
 		CHECK( cer_sz, rcv_sz );
 		CHECK( 0, memcmp( rcv_buf, cer_buf, cer_sz ) );
+		free(rcv_buf);
 		
 		/* At this point in legacy Diameter we start the handshake */
 		CHECK( 0, pthread_create(&thr, 0, handshake_thr, &hf) );
@@ -795,11 +802,13 @@ int main(int argc, char *argv[])
 			CHECK( 0, fd_cnx_receive(client_side, NULL, &rcv_buf, &rcv_sz));
 			CHECK( cer_sz, rcv_sz );
 			CHECK( 0, memcmp( rcv_buf, cer_buf, cer_sz ) );
+			free(rcv_buf);
 
 			CHECK( 0, fd_cnx_send(client_side, cer_buf, cer_sz));
 			CHECK( 0, fd_cnx_receive(server_side, NULL, &rcv_buf, &rcv_sz));
 			CHECK( cer_sz, rcv_sz );
 			CHECK( 0, memcmp( rcv_buf, cer_buf, cer_sz ) );
+			free(rcv_buf);
 		}
 		
 		
@@ -857,12 +866,14 @@ int main(int argc, char *argv[])
 		CHECK( 0, fd_cnx_receive(client_side, NULL, &rcv_buf, &rcv_sz));
 		CHECK( cer_sz, rcv_sz );
 		CHECK( 0, memcmp( rcv_buf, cer_buf, cer_sz ) );
+		free(rcv_buf);
 		
 		/* And the supposed reply */
 		CHECK( 0, fd_cnx_send(client_side, cer_buf, cer_sz));
 		CHECK( 0, fd_cnx_receive(server_side, NULL, &rcv_buf, &rcv_sz));
 		CHECK( cer_sz, rcv_sz );
 		CHECK( 0, memcmp( rcv_buf, cer_buf, cer_sz ) );
+		free(rcv_buf);
 		
 		/* At this point in legacy Diameter we start the handshake */
 		CHECK( 0, pthread_create(&thr, 0, handshake_thr, &hf) );
@@ -876,11 +887,13 @@ int main(int argc, char *argv[])
 			CHECK( 0, fd_cnx_receive(client_side, NULL, &rcv_buf, &rcv_sz));
 			CHECK( cer_sz, rcv_sz );
 			CHECK( 0, memcmp( rcv_buf, cer_buf, cer_sz ) );
+			free(rcv_buf);
 
 			CHECK( 0, fd_cnx_send(client_side, cer_buf, cer_sz));
 			CHECK( 0, fd_cnx_receive(server_side, NULL, &rcv_buf, &rcv_sz));
 			CHECK( cer_sz, rcv_sz );
 			CHECK( 0, memcmp( rcv_buf, cer_buf, cer_sz ) );
+			free(rcv_buf);
 		}
 		
 		
@@ -940,11 +953,13 @@ int main(int argc, char *argv[])
 			CHECK( 0, fd_cnx_receive(client_side, NULL, &rcv_buf, &rcv_sz));
 			CHECK( cer_sz, rcv_sz );
 			CHECK( 0, memcmp( rcv_buf, cer_buf, cer_sz ) );
+			free(rcv_buf);
 
 			CHECK( 0, fd_cnx_send(client_side, cer_buf, cer_sz));
 			CHECK( 0, fd_cnx_receive(server_side, NULL, &rcv_buf, &rcv_sz));
 			CHECK( cer_sz, rcv_sz );
 			CHECK( 0, memcmp( rcv_buf, cer_buf, cer_sz ) );
+			free(rcv_buf);
 		}
 		
 		/* Now close the connection */
@@ -1003,11 +1018,13 @@ int main(int argc, char *argv[])
 			CHECK( 0, fd_cnx_receive(client_side, NULL, &rcv_buf, &rcv_sz));
 			CHECK( cer_sz, rcv_sz );
 			CHECK( 0, memcmp( rcv_buf, cer_buf, cer_sz ) );
+			free(rcv_buf);
 
 			CHECK( 0, fd_cnx_send(client_side, cer_buf, cer_sz));
 			CHECK( 0, fd_cnx_receive(server_side, NULL, &rcv_buf, &rcv_sz));
 			CHECK( cer_sz, rcv_sz );
 			CHECK( 0, memcmp( rcv_buf, cer_buf, cer_sz ) );
+			free(rcv_buf);
 		}
 		
 		
@@ -1249,6 +1266,247 @@ int main(int argc, char *argv[])
 		gnutls_certificate_free_keys(hf.creds);
 		gnutls_certificate_free_cas(hf.creds);
 		gnutls_certificate_free_credentials(hf.creds);
+	}
+	
+	/* Test the other functions of the module */
+	{
+		struct connect_flags cf;
+		struct handshake_flags hf;
+		char * str;
+		const gnutls_datum_t *cert_list;
+		unsigned int cert_list_size;
+		struct fd_list local, remote;
+		struct fifo * myfifo = NULL;
+		struct timespec now;
+		int ev_code;
+		
+		memset(&cf, 0, sizeof(cf));
+		cf.proto = IPPROTO_TCP;
+		
+		memset(&hf, 0, sizeof(hf));
+		
+		/* Initialize remote certificate */
+		CHECK_GNUTLS_DO( ret = gnutls_certificate_allocate_credentials (&hf.creds), );
+		CHECK( GNUTLS_E_SUCCESS, ret );
+		/* Set the CA */
+		CHECK_GNUTLS_DO( ret = gnutls_certificate_set_x509_trust_mem( hf.creds, &ca, GNUTLS_X509_FMT_PEM), );
+		CHECK( 1, ret );
+		/* Set the key */
+		CHECK_GNUTLS_DO( ret = gnutls_certificate_set_x509_key_mem( hf.creds, &client_cert, &client_priv, GNUTLS_X509_FMT_PEM), );
+		CHECK( GNUTLS_E_SUCCESS, ret );
+		
+		/* Start the client thread */
+		CHECK( 0, pthread_create(&thr, 0, connect_thr, &cf) );
+
+		/* Accept the connection of the client */
+		server_side = fd_cnx_serv_accept(listener);
+		CHECK( 1, server_side ? 1 : 0 );
+		
+		/* Retrieve the client connection object */
+		CHECK( 0, pthread_join( thr, (void *)&client_side ) );
+		CHECK( 1, client_side ? 1 : 0 );
+		hf.cnx = client_side;
+		
+		/* Start the handshake */
+		CHECK( 0, pthread_create(&thr, 0, handshake_thr, &hf) );
+		CHECK( 0, fd_cnx_handshake(server_side, GNUTLS_SERVER, NULL, NULL) );
+		CHECK( 0, pthread_join(thr, NULL) );
+		CHECK( 0, hf.ret );
+		
+		/* Test some simple functions */
+		
+		/* fd_cnx_getid */
+		str = fd_cnx_getid(server_side);
+		CHECK( 1, str ? 1 : 0 );
+		CHECK( 1, (str[0] != '\0') ? 1 : 0 );
+		
+		/* fd_cnx_getproto */
+		i = fd_cnx_getproto(server_side);
+		CHECK( IPPROTO_TCP, i);
+		
+		/* fd_cnx_getTLS */
+		i = fd_cnx_getTLS(server_side);
+		CHECK( 1, i ? 1 : 0 );
+		
+		/* fd_cnx_getcred */
+		CHECK( 0, fd_cnx_getcred(server_side, &cert_list, &cert_list_size) );
+		CHECK( 1, (cert_list_size > 0) ? 1 : 0 );
+		/* We could also verify that the cert_list really contains the client_cert and ca certificates */
+		
+
+		/* fd_cnx_getendpoints */
+		fd_list_init(&local, NULL);		
+		fd_list_init(&remote, NULL);
+		
+		/* Check the function provides the LL endpoint(s) */
+		CHECK( 0, fd_cnx_getendpoints(server_side, &local, &remote) );
+		CHECK( 0, fd_ep_filter( &local, EP_FL_LL ) );
+		CHECK( 0, fd_ep_filter( &remote, EP_FL_LL ) );
+		CHECK( 0, FD_IS_LIST_EMPTY(&local) ? 1 : 0 );
+		CHECK( 0, FD_IS_LIST_EMPTY(&remote) ? 1 : 0 );
+		CHECK( 0, fd_ep_filter( &local, 0 ) );
+		CHECK( 0, fd_ep_filter( &remote, 0 ) );
+		
+		/* Check the function provides 1 primary endpoint */
+		CHECK( 0, fd_cnx_getendpoints(server_side, &local, &remote) );
+		CHECK( 0, fd_ep_filter( &local, EP_FL_PRIMARY ) );
+		CHECK( 0, fd_ep_filter( &remote, EP_FL_PRIMARY ) );
+		CHECK( 0, FD_IS_LIST_EMPTY(&local) ? 1 : 0 );
+		CHECK( 0, FD_IS_LIST_EMPTY(&remote) ? 1 : 0 );
+		CHECK( &local, local.next->next );
+		CHECK( &remote, remote.next->next );
+		
+		/* fd_cnx_getremoteid */
+		str = fd_cnx_getremoteid(server_side);
+		CHECK( 1, str ? 1 : 0 );
+		CHECK( 1, (str[0] != '\0') ? 1 : 0 );
+		
+		/* fd_cnx_recv_setaltfifo */
+		CHECK( 0, fd_cnx_send(client_side, cer_buf, cer_sz));
+		CHECK( 0, fd_fifo_new(&myfifo) );
+		CHECK( 0, fd_cnx_recv_setaltfifo(server_side, myfifo) );
+		CHECK( 0, clock_gettime(CLOCK_REALTIME, &now) );
+		do {
+			CHECK( 0, fd_event_timedget(myfifo, &now, ETIMEDOUT, &ev_code, NULL, (void *)&rcv_buf) );
+			free(rcv_buf);
+		} while (ev_code != FDEVP_CNX_MSG_RECV);
+		fd_event_destroy(&myfifo, free);
+		
+		/* Now close the connection */
+		CHECK( 0, pthread_create(&thr, 0, destroy_thr, client_side) );
+		fd_cnx_destroy(server_side);
+		CHECK( 0, pthread_join(thr, NULL) );
+		
+		/* Free the credentials */
+		gnutls_certificate_free_keys(hf.creds);
+		gnutls_certificate_free_cas(hf.creds);
+		gnutls_certificate_free_credentials(hf.creds);
+	}
+	
+#ifndef DISABLE_SCTP
+	/* And re-test with a SCTP connection */
+	{
+		struct connect_flags cf;
+		struct handshake_flags hf;
+		char * str;
+		const gnutls_datum_t *cert_list;
+		unsigned int cert_list_size;
+		struct fd_list local, remote;
+		struct fifo * myfifo = NULL;
+		struct timespec now;
+		int ev_code;
+		
+		memset(&cf, 0, sizeof(cf));
+		cf.proto = IPPROTO_SCTP;
+		
+		memset(&hf, 0, sizeof(hf));
+		
+		/* Initialize remote certificate */
+		CHECK_GNUTLS_DO( ret = gnutls_certificate_allocate_credentials (&hf.creds), );
+		CHECK( GNUTLS_E_SUCCESS, ret );
+		/* Set the CA */
+		CHECK_GNUTLS_DO( ret = gnutls_certificate_set_x509_trust_mem( hf.creds, &ca, GNUTLS_X509_FMT_PEM), );
+		CHECK( 1, ret );
+		/* Set the key */
+		CHECK_GNUTLS_DO( ret = gnutls_certificate_set_x509_key_mem( hf.creds, &client_cert, &client_priv, GNUTLS_X509_FMT_PEM), );
+		CHECK( GNUTLS_E_SUCCESS, ret );
+		
+		/* Start the client thread */
+		CHECK( 0, pthread_create(&thr, 0, connect_thr, &cf) );
+
+		/* Accept the connection of the client */
+		server_side = fd_cnx_serv_accept(listener_sctp);
+		CHECK( 1, server_side ? 1 : 0 );
+		
+		/* Retrieve the client connection object */
+		CHECK( 0, pthread_join( thr, (void *)&client_side ) );
+		CHECK( 1, client_side ? 1 : 0 );
+		hf.cnx = client_side;
+		
+		/* Start the handshake */
+		CHECK( 0, pthread_create(&thr, 0, handshake_thr, &hf) );
+		CHECK( 0, fd_cnx_handshake(server_side, GNUTLS_SERVER, NULL, NULL) );
+		CHECK( 0, pthread_join(thr, NULL) );
+		CHECK( 0, hf.ret );
+		
+		/* Test some simple functions */
+		
+		/* fd_cnx_getid */
+		str = fd_cnx_getid(server_side);
+		CHECK( 1, str ? 1 : 0 );
+		CHECK( 1, (str[0] != '\0') ? 1 : 0 );
+		
+		/* fd_cnx_getproto */
+		i = fd_cnx_getproto(server_side);
+		CHECK( IPPROTO_SCTP, i);
+		
+		/* fd_cnx_getTLS */
+		i = fd_cnx_getTLS(server_side);
+		CHECK( 1, i ? 1 : 0 );
+		
+		/* fd_cnx_getcred */
+		CHECK( 0, fd_cnx_getcred(server_side, &cert_list, &cert_list_size) );
+		CHECK( 1, (cert_list_size > 0) ? 1 : 0 );
+		/* We could also verify that the cert_list really contains the client_cert and ca certificates */
+		
+
+		/* fd_cnx_getendpoints */
+		fd_list_init(&local, NULL);		
+		fd_list_init(&remote, NULL);
+		
+		/* Check the function provides the LL endpoint(s) */
+		CHECK( 0, fd_cnx_getendpoints(server_side, &local, &remote) );
+		CHECK( 0, fd_ep_filter( &local, EP_FL_LL ) );
+		CHECK( 0, fd_ep_filter( &remote, EP_FL_LL ) );
+		CHECK( 0, FD_IS_LIST_EMPTY(&local) ? 1 : 0 );
+		CHECK( 0, FD_IS_LIST_EMPTY(&remote) ? 1 : 0 );
+		CHECK( 0, fd_ep_filter( &local, 0 ) );
+		CHECK( 0, fd_ep_filter( &remote, 0 ) );
+		
+		/* Check the function provides 1 primary endpoint */
+		CHECK( 0, fd_cnx_getendpoints(server_side, &local, &remote) );
+		CHECK( 0, fd_ep_filter( &local, EP_FL_PRIMARY ) );
+		CHECK( 0, fd_ep_filter( &remote, EP_FL_PRIMARY ) );
+		CHECK( 0, FD_IS_LIST_EMPTY(&local) ? 1 : 0 );
+		CHECK( 0, FD_IS_LIST_EMPTY(&remote) ? 1 : 0 );
+		CHECK( &local, local.next->next );
+		CHECK( &remote, remote.next->next );
+		
+		/* fd_cnx_getremoteid */
+		str = fd_cnx_getremoteid(server_side);
+		CHECK( 1, str ? 1 : 0 );
+		CHECK( 1, (str[0] != '\0') ? 1 : 0 );
+		
+		/* fd_cnx_recv_setaltfifo */
+		CHECK( 0, fd_cnx_send(client_side, cer_buf, cer_sz));
+		CHECK( 0, fd_fifo_new(&myfifo) );
+		CHECK( 0, fd_cnx_recv_setaltfifo(server_side, myfifo) );
+		CHECK( 0, clock_gettime(CLOCK_REALTIME, &now) );
+		do {
+			CHECK( 0, fd_event_timedget(myfifo, &now, ETIMEDOUT, &ev_code, NULL, (void *)&rcv_buf) );
+			free(rcv_buf);
+		} while (ev_code != FDEVP_CNX_MSG_RECV);
+		
+		/* Now close the connection */
+		CHECK( 0, pthread_create(&thr, 0, destroy_thr, client_side) );
+		fd_cnx_destroy(server_side);
+		CHECK( 0, pthread_join(thr, NULL) );
+		
+		fd_event_destroy(&myfifo, free);
+		
+		/* Free the credentials */
+		gnutls_certificate_free_keys(hf.creds);
+		gnutls_certificate_free_cas(hf.creds);
+		gnutls_certificate_free_credentials(hf.creds);
+	}
+#endif /* DISABLE_SCTP */
+	
+	/* Destroy the servers */
+	{
+		fd_cnx_destroy(listener);
+#ifndef DISABLE_SCTP
+		fd_cnx_destroy(listener_sctp);
+#endif /* DISABLE_SCTP */
 	}
 	
 	/* That's all for the tests yet */
