@@ -48,7 +48,7 @@
 #ifdef DEBUG_SCTP
 #define SCTP_LEVEL	FULL
 #else /* DEBUG_SCTP */
-#define SCTP_LEVEL	ANNOYING
+#define SCTP_LEVEL	(FCTS + 1)
 #endif /* DEBUG_SCTP */
 
 /* Pre-binding socket options -- # streams read in config */

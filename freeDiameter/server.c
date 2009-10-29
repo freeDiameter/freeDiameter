@@ -275,6 +275,10 @@ int fd_servers_start()
 		/* Retrieve the list of endpoints if it was empty */
 		if (empty_conf_ep) {
 			(void) fd_cnx_getendpoints(s->conn, &fd_g_config->cnf_endpoints, NULL);
+			if (TRACE_BOOL(FULL)){
+				fd_log_debug("Server bound on the following addresses :\n");
+				fd_ep_dump( 5, &fd_g_config->cnf_endpoints );
+			}
 		}
 		
 		/* Create the server on secure port */

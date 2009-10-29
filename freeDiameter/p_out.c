@@ -35,103 +35,79 @@
 
 #include "fD.h"
 
-
-/* Add an endpoint information in a list */
-int fd_ep_add_merge( struct fd_list * list, sSA * sa, socklen_t sl, uint32_t flags )
+/* Alloc a new hbh for requests, bufferize the message and send on the connection, save in sentreq if provided */
+static int do_send(struct msg ** msg, struct cnxctx * cnx, uint32_t * hbh, struct fd_list * sentreq)
 {
-	struct fd_endpoint * ep;
-	struct fd_list * li;
-	int cmp = -1;
+	TRACE_ENTRY("%p %p %p %p", msg, cnx, hbh, sentreq);
 	
-	TRACE_ENTRY("%p %p %u %x", list, sa, sl, flags);
-	CHECK_PARAMS( list && sa && (sl <= sizeof(sSS)) );
+	TODO("If message is a request");
+		TODO("Alloc new *hbh");
 	
-	/* Search place in the list */
-	for (li = list->next; li != list; li = li->next) {
-		ep = (struct fd_endpoint *)li;
-		
-		cmp = memcmp(&ep->ss, sa, sl);
-		if (cmp >= 0)
-			break;
-	}
+	TODO("Bufferize the message, send it");
 	
-	if (cmp) {
-		/* new item to be added */
-		CHECK_MALLOC( ep = malloc(sizeof(struct fd_endpoint)) );
-		memset(ep, 0, sizeof(struct fd_endpoint));
-		fd_list_init(&ep->chain, NULL);
-		memcpy(&ep->ss, sa, sl);
-		
-		/* Insert in the list */
-		fd_list_insert_before(li, &ep->chain);
-	}
+	TODO("Save in sentreq or free")
 	
-	/* Merge the flags */
-	ep->flags |= flags;
-	
-	return 0;
+	return ENOTSUP;
 }
 
-/* Delete endpoints that do not have a matching flag from a list (0: delete all endpoints) */
-int fd_ep_filter( struct fd_list * list, uint32_t flags )
+/* The code of the "out" thread */
+static void * out_thr(void * arg)
 {
-	struct fd_list * li;
+	TODO("Pick next message in peer->p_tosend");
+	TODO("do_send, log errors");
+	TODO("In case of cancellation, requeue the message");
+	return NULL;
+error:
+	TODO(" Send an event to the peer ");
+	return NULL;
+}
+
+/* Wrapper to sending a message either by out thread (peer in OPEN state) or directly; cnx or peer must be provided */
+int fd_out_send(struct msg ** msg, struct cnxctx * cnx, struct fd_peer * peer)
+{
+	TRACE_ENTRY("%p %p %p", msg, cnx, peer);
+	CHECK_PARAMS( msg && *msg && (cnx || (peer && peer->p_cnxctx)));
 	
-	TRACE_ENTRY("%p %x", list, flags);
-	CHECK_PARAMS(list);
-	
-	for (li = list->next; li != list; li = li->next) {
-		struct fd_endpoint * ep = (struct fd_endpoint *)li;
+	if (peer && (peer->p_hdr.info.pi_state == STATE_OPEN)) {
+		/* Normal case: just queue for the out thread to pick it up */
+		CHECK_FCT( fd_fifo_post(peer->p_tosend, msg) );
 		
-		if (! (ep->flags & flags)) {
-			li = li->prev;
-			fd_list_unlink(&ep->chain);
-			free(ep);
-		}
+	} else {
+		uint32_t *hbh = NULL;
+		
+		/* In other cases, the thread is not running, so we handle the sending directly */
+		if (peer)
+			hbh = &peer->p_hbh;
+
+		if (!cnx)
+			cnx = peer->p_cnxctx;
+
+		/* Do send the message */
+		CHECK_FCT( do_send(msg, cnx, hbh, peer ? &peer->p_sentreq : NULL) );
 	}
 	
 	return 0;
 }
 
-/* Reset the given flag(s) from all items in the list */
-int fd_ep_clearflags( struct fd_list * list, uint32_t flags )
+/* Start the "out" thread that picks messages in p_tosend and send them on p_cnxctx */
+int fd_out_start(struct fd_peer * peer)
 {
-	struct fd_list * li;
+	TRACE_ENTRY("%p", peer);
+	CHECK_PARAMS( CHECK_PEER(peer) && (peer->p_outthr == (pthread_t)NULL) );
 	
-	TRACE_ENTRY("%p %x", list, flags);
-	CHECK_PARAMS(list);
-	
-	for (li = list->next; li != list; li = li->next) {
-		struct fd_endpoint * ep = (struct fd_endpoint *)li;
-		ep->flags &= ~flags;
-	}
+	CHECK_POSIX( pthread_create(&peer->p_outthr, NULL, out_thr, peer) );
 	
 	return 0;
 }
 
-void fd_ep_dump_one( char * prefix, struct fd_endpoint * ep, char * suffix )
+/* Stop that thread */
+int fd_out_stop(struct fd_peer * peer)
 {
-	if (prefix)
-		fd_log_debug("%s", prefix);
+	TRACE_ENTRY("%p", peer);
+	CHECK_PARAMS( CHECK_PEER(peer) );
 	
-	sSA_DUMP_NODE_SERV( &ep->sa, NI_NUMERICHOST | NI_NUMERICSERV );
-	fd_log_debug(" {%s%s%s%s}", 
-			(ep->flags & EP_FL_CONF) 	? "C" : "-",
-			(ep->flags & EP_FL_DISC) 	? "D" : "-",
-			(ep->flags & EP_FL_ADV) 	? "A" : "-",
-			(ep->flags & EP_FL_LL) 		? "L" : "-",
-			(ep->flags & EP_FL_PRIMARY) 	? "P" : "-");
-	if (suffix)
-		fd_log_debug("%s", suffix);
-}
-
-void fd_ep_dump( int indent, struct fd_list * eps )
-{
-	struct fd_list * li;
-	for (li = eps->next; li != eps; li = li->next) {
-		struct fd_endpoint * ep = (struct fd_endpoint *)li;
-		fd_log_debug("%*s", indent, "");
-		fd_ep_dump_one( NULL, ep, "\n" );
-	}
-}
+	CHECK_FCT( fd_thr_term(&peer->p_outthr) );
 	
+	return 0;
+}
+		

@@ -35,40 +35,18 @@
 
 #include "fD.h"
 
-const char *peer_state_str[] = { 
-	  "STATE_NEW"
-	, "STATE_OPEN"
-	, "STATE_CLOSED"
-	, "STATE_CLOSING"
-	, "STATE_WAITCNXACK"
-	, "STATE_WAITCNXACK_ELEC"
-	, "STATE_WAITCEA"
-	, "STATE_OPEN_HANDSHAKE"
-	, "STATE_SUSPECT"
-	, "STATE_REOPEN"
-	, "STATE_ZOMBIE"
-	};
+/* The actual declaration of peer_state_str */
+DECLARE_STATE_STR();
 
-const char * fd_pev_str(int event)
-{
-	switch (event) {
-	#define case_str( _val )\
-		case _val : return #_val
-		case_str(FDEVP_DUMP_ALL);
-		case_str(FDEVP_TERMINATE);
-		case_str(FDEVP_CNX_MSG_RECV);
-		case_str(FDEVP_CNX_ERROR);
-		case_str(FDEVP_CNX_EP_CHANGE);
-		case_str(FDEVP_CNX_INCOMING);
-		case_str(FDEVP_PSM_TIMEOUT);
-		
-		default:
-			TRACE_DEBUG(FULL, "Unknown event : %d", event);
-			return "Unknown event";
-	}
-}
+/* Helper for next macro */
+#define case_str( _val )		\
+	case _val : return #_val
 
+DECLARE_PEV_STR();
 
+/************************************************************************/
+/*                      Delayed startup                                 */
+/************************************************************************/
 static int started = 0;
 static pthread_mutex_t  started_mtx = PTHREAD_MUTEX_INITIALIZER;
 static pthread_cond_t   started_cnd = PTHREAD_COND_INITIALIZER;
@@ -89,13 +67,78 @@ awake:
 	return 0;
 }
 
-/* Cancelation cleanup : set ZOMBIE state in the peer */
-void cleanup_state(void * arg) 
+/* Allow the state machines to start */
+int fd_psm_start()
 {
-	struct fd_peer * peer = (struct fd_peer *)arg;
-	CHECK_PARAMS_DO( CHECK_PEER(peer), return );
-	peer->p_hdr.info.pi_state = STATE_ZOMBIE;
-	return;
+	TRACE_ENTRY("");
+	CHECK_POSIX( pthread_mutex_lock(&started_mtx) );
+	started = 1;
+	CHECK_POSIX( pthread_cond_broadcast(&started_cnd) );
+	CHECK_POSIX( pthread_mutex_unlock(&started_mtx) );
+	return 0;
+}
+
+
+/************************************************************************/
+/*                 Manage the list of active peers                      */
+/************************************************************************/
+
+
+/* Enter/leave OPEN state */
+static int enter_open_state(struct fd_peer * peer)
+{
+	CHECK_POSIX( pthread_rwlock_wrlock(&fd_g_activ_peers_rw) );
+	TODO(" insert in fd_g_activ_peers ");
+	
+	CHECK_POSIX( pthread_rwlock_unlock(&fd_g_activ_peers_rw) );
+	
+	/* Start the thread to handle outgoing messages */
+	CHECK_FCT( fd_out_start(peer) );
+	
+	return ENOTSUP;
+}
+static int leave_open_state(struct fd_peer * peer)
+{
+	TODO("Remove from active list");
+	
+	/* Stop the "out" thread */
+	CHECK_FCT( fd_out_stop(peer) );
+	
+	TODO("Failover pending messages: requeue in global structures");
+	
+	return ENOTSUP;
+}
+
+/************************************************************************/
+/*                      Helpers for state changes                       */
+/************************************************************************/
+/* Change state */
+static int change_state(struct fd_peer * peer, int new_state)
+{
+	int old;
+	
+	TRACE_ENTRY("%p %d(%s)", peer, new_state, STATE_STR(new_state));
+	CHECK_PARAMS( CHECK_PEER(peer) );
+	old = peer->p_hdr.info.pi_state;
+	if (old == new_state)
+		return 0;
+	
+	TRACE_DEBUG(FULL, "'%s'\t-> '%s'\t'%s'",
+			STATE_STR(old),
+			STATE_STR(new_state),
+			peer->p_hdr.info.pi_diamid);
+	
+	if (old == STATE_OPEN) {
+		CHECK_FCT( leave_open_state(peer) );
+	}
+	
+	peer->p_hdr.info.pi_state = new_state;
+	
+	if (new_state == STATE_OPEN) {
+		CHECK_FCT( enter_open_state(peer) );
+	}
+	
+	return 0;
 }
 
 /* Set timeout timer of next event */
@@ -125,6 +168,19 @@ static void psm_next_timeout(struct fd_peer * peer, int add_random, int delay)
 	/* temporary for debug */
 	peer->p_psm_timer.tv_sec += 10;
 #endif
+}
+
+
+/************************************************************************/
+/*                      The PSM thread                                  */
+/************************************************************************/
+/* Cancelation cleanup : set ZOMBIE state in the peer */
+void cleanup_state(void * arg) 
+{
+	struct fd_peer * peer = (struct fd_peer *)arg;
+	CHECK_PARAMS_DO( CHECK_PEER(peer), return );
+	peer->p_hdr.info.pi_state = STATE_ZOMBIE;
+	return;
 }
 
 /* The state machine thread (controler) */
@@ -170,14 +226,24 @@ psm_loop:
 
 	/* Now, the action depends on the current state and the incoming event */
 
-	/* The following two states are impossible */
+	/* The following states are impossible */
 	ASSERT( peer->p_hdr.info.pi_state != STATE_NEW );
 	ASSERT( peer->p_hdr.info.pi_state != STATE_ZOMBIE );
+	ASSERT( peer->p_hdr.info.pi_state != STATE_OPEN_HANDSHAKE ); /* because it exists only between two loops */
 
 	/* Purge invalid events */
-	if (!CHECK_EVENT(event)) {
+	if (!CHECK_PEVENT(event)) {
 		TRACE_DEBUG(INFO, "Invalid event received in PSM '%s' : %d", peer->p_hdr.info.pi_diamid, event);
 		goto psm_loop;
+	}
+
+	/* Call the extension callback if needed */
+	if (peer->p_cb) {
+		/* Check if we must call it */
+			/*  */
+		/* OK */
+		TODO("Call CB");
+		TODO("Clear CB");
 	}
 
 	/* Handle the (easy) debug event now */
@@ -208,6 +274,42 @@ psm_loop:
 		}
 	}
 	
+	/* A message was received */
+	if (event == FDEVP_CNX_MSG_RECV) {
+		TODO("Parse the buffer into a message");
+		/* parse_and_get_local_ccode */
+		TODO("Check if it is a local message (CER, DWR, ...)");
+		TODO("If not, check we are in OPEN state");
+		TODO("Update expiry timer if needed");
+		TODO("Handle the message");
+	}
+	
+	/* The connection object is broken */
+	if (event == FDEVP_CNX_ERROR) {
+		TODO("Destroy the connection object");
+		TODO("Mark the error in the peer (pf_cnx_pb)");
+		TODO("Move to closed state, Requeue all messages to a different connection (failover)");
+		TODO("If pi_flags.exp, terminate the peer");
+	}
+	
+	/* The connection notified a change in endpoints */
+	if (event == FDEVP_CNX_EP_CHANGE) {
+		/* Cleanup the remote LL and primary addresses */
+		CHECK_FCT_DO( fd_ep_filter( &peer->p_hdr.info.pi_endpoints, EP_FL_CONF | EP_FL_DISC | EP_FL_ADV ), /* ignore the error */);
+		CHECK_FCT_DO( fd_ep_clearflags( &peer->p_hdr.info.pi_endpoints, EP_FL_PRIMARY ), /* ignore the error */);
+		
+		/* Get the new ones */
+		CHECK_FCT_DO( fd_cnx_getendpoints(peer->p_cnxctx, NULL, &peer->p_hdr.info.pi_endpoints), /* ignore the error */);
+		
+		if (TRACE_BOOL(ANNOYING)) {
+			fd_log_debug("New remote endpoint(s):\n");
+			fd_ep_dump(6, &peer->p_hdr.info.pi_endpoints);
+		}
+		
+		/* Done */
+		goto psm_loop;
+	}
+	
 	/* A new connection was established and CER containing this peer id was received */
 	if (event == FDEVP_CNX_INCOMING) {
 		struct cnx_incoming * params = ev_data;
@@ -234,10 +336,15 @@ psm_loop:
 		goto psm_loop;
 	}
 	
-	/* MSG_RECEIVED: fd_p_expi_update(struct fd_peer * peer ) */
-	/* If timeout or OPEN : call cb if defined */
-
-	/* Default action : the handling has not yet been implemented. */
+	/* The timeout for the current state has been reached */
+	if (event == FDEVP_PSM_TIMEOUT) {
+		switch (peer->p_hdr.info.pi_state) {
+			
+			
+		}
+	}
+	
+	/* Default action : the handling has not yet been implemented. [for debug only] */
 	TODO("Missing handler in PSM : '%s'\t<-- '%s'", STATE_STR(peer->p_hdr.info.pi_state), fd_pev_str(event));
 	if (event == FDEVP_PSM_TIMEOUT) {
 		/* We have not handled timeout in this state, let's postpone next alert */
@@ -251,8 +358,12 @@ psm_end:
 	peer->p_psm = (pthread_t)NULL;
 	pthread_detach(pthread_self());
 	return NULL;
-}	
+}
 
+
+/************************************************************************/
+/*                      Functions to control the PSM                    */
+/************************************************************************/
 /* Create the PSM thread of one peer structure */
 int fd_psm_begin(struct fd_peer * peer )
 {
@@ -282,26 +393,16 @@ int fd_psm_terminate(struct fd_peer * peer )
 	return 0;
 }
 
-/* End the PSM violently */
+/* End the PSM & cleanup the peer structure */
 void fd_psm_abord(struct fd_peer * peer )
 {
 	TRACE_ENTRY("%p", peer);
 	TODO("Cancel PSM thread");
-	TODO("Cancel IN thread");
 	TODO("Cancel OUT thread");
 	TODO("Cleanup the peer connection object");
 	TODO("Cleanup the message queues (requeue)");
+	TODO("Call p_cb with NULL parameter if needed");
+	
 	return;
-}
-
-/* Allow the state machines to start */
-int fd_psm_start()
-{
-	TRACE_ENTRY("");
-	CHECK_POSIX( pthread_mutex_lock(&started_mtx) );
-	started = 1;
-	CHECK_POSIX( pthread_cond_broadcast(&started_cnd) );
-	CHECK_POSIX( pthread_mutex_unlock(&started_mtx) );
-	return 0;
 }
 

@@ -372,10 +372,16 @@ extern int fd_g_debug_lvl;
 
 
 /* A l4 protocol name (TCP / SCTP) */
+#ifdef DISABLE_SCTP
+#define IPPROTO_NAME( _proto )					\
+	(((_proto) == IPPROTO_TCP) ? "TCP" :			\
+			"Unknown")
+#else /* DISABLE_SCTP */
 #define IPPROTO_NAME( _proto )					\
 	( ((_proto) == IPPROTO_TCP) ? "TCP" :			\
 		(((_proto) == IPPROTO_SCTP) ? "SCTP" :		\
 			"Unknown"))
+#endif /* DISABLE_SCTP */
 
 /* The sockaddr length of a sSS structure */
 #define sSSlen( _ss_ )	\

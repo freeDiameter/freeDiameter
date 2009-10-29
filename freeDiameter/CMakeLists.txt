@@ -20,6 +20,7 @@ SET(FD_COMMON_SRC
 	queues.c
 	peers.c
 	p_expiry.c
+	p_out.c
 	p_psm.c
 	server.c
 	tcp.c

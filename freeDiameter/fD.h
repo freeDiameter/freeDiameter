@@ -41,6 +41,11 @@
 #include <freeDiameter/freeDiameter-host.h>
 #include <freeDiameter/freeDiameter.h>
 
+#ifdef DISABLE_SCTP
+#undef IPPROTO_SCTP
+#define IPPROTO_SCTP	(2 = 4) /* some compilation error to spot the references */
+#endif /* DISABLE_SCTP */
+
 /* Timeout for establishing a connection */
 #ifndef CNX_TIMEOUT
 #define  CNX_TIMEOUT	10	/* in seconds */
@@ -101,7 +106,7 @@ struct fd_peer { /* The "real" definition of the peer structure */
 	char		*p_dbgorig;
 	
 	/* Chaining in peers sublists */
-	struct fd_list	 p_actives;	/* list of peers in the STATE_OPEN state -- faster routing creation */
+	struct fd_list	 p_actives;	/* list of peers in the STATE_OPEN state -- used by routing */
 	struct fd_list	 p_expiry; 	/* list of expiring peers, ordered by their timeout value */
 	struct timespec	 p_exp_timer;	/* Timestamp where the peer will expire; updated each time activity is seen on the peer (except DW) */
 	
@@ -123,10 +128,6 @@ struct fd_peer { /* The "real" definition of the peer structure */
 	pthread_t	 p_psm;
 	struct timespec	 p_psm_timer;
 	
-	/* Received message queue, and thread managing reception of messages */
-	struct fifo	*p_recv;
-	pthread_t	 p_inthr;
-	
 	/* Outgoing message queue, and thread managing sending the messages */
 	struct fifo	*p_tosend;
 	pthread_t	 p_outthr;
@@ -137,10 +138,13 @@ struct fd_peer { /* The "real" definition of the peer structure */
 	/* Sent requests (for fallback), list of struct sentreq ordered by hbh */
 	struct fd_list	 p_sentreq;
 	
-	/* connection context: socket, callbacks and so on */
+	/* connection context: socket and related information */
 	struct cnxctx	*p_cnxctx;
 	
-	/* Callback on initial connection success / failure */
+	/* Callback for peer validation after the handshake */
+	int		(*p_cb2)(struct peer_info *);
+	
+	/* Callback on initial connection success / failure after the peer was added */
 	void 		(*p_cb)(struct peer_info *, void *);
 	void 		*p_cb_data;
 	
@@ -172,9 +176,25 @@ enum {
 	,FDEVP_PSM_TIMEOUT
 	
 };
-const char * fd_pev_str(int event);
-#define CHECK_EVENT( _e ) \
+#define CHECK_PEVENT( _e ) \
 	(((int)(_e) >= FDEVP_DUMP_ALL) && ((int)(_e) <= FDEVP_PSM_TIMEOUT))
+/* The following macro is actually called in p_psm.c -- another solution would be to declare it static inline */
+#define DECLARE_PEV_STR()				\
+const char * fd_pev_str(int event)			\
+{							\
+	switch (event) {				\
+		case_str(FDEVP_DUMP_ALL);		\
+		case_str(FDEVP_TERMINATE);		\
+		case_str(FDEVP_CNX_MSG_RECV);		\
+		case_str(FDEVP_CNX_ERROR);		\
+		case_str(FDEVP_CNX_EP_CHANGE);		\
+		case_str(FDEVP_CNX_INCOMING);		\
+		case_str(FDEVP_PSM_TIMEOUT);		\
+	}						\
+	TRACE_DEBUG(FULL, "Unknown event : %d", event);	\
+	return "Unknown event";				\
+}
+const char * fd_pev_str(int event);
 
 /* The data structure for FDEVP_CNX_INCOMING events */
 struct cnx_incoming {
@@ -210,6 +230,16 @@ int  fd_psm_start();
 int  fd_psm_begin(struct fd_peer * peer );
 int  fd_psm_terminate(struct fd_peer * peer );
 void fd_psm_abord(struct fd_peer * peer );
+
+/* Peer out */
+int fd_out_send(struct msg ** msg, struct cnxctx * cnx, struct fd_peer * peer);
+int fd_out_start(struct fd_peer * peer);
+int fd_out_stop(struct fd_peer * peer);
+
+/* Active peers -- routing process should only ever take the read lock, the write lock is managed by PSMs */
+extern struct fd_list fd_g_activ_peers;
+extern pthread_rwlock_t fd_g_activ_peers_rw; /* protect the list */
+
 
 /* Server sockets */
 void fd_servers_dump();

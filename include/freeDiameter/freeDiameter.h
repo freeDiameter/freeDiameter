@@ -257,7 +257,22 @@ enum peer_state {
 	STATE_ZOMBIE		/* The PSM thread is not running anymore; it must be re-started or peer should be deleted. */
 #define STATE_MAX STATE_ZOMBIE
 };
-extern const char *peer_state_str[]; /* defined in freeDiameter/p_psm.c */
+/* The following macro is called in freeDiameter/p_psm.c */
+#define DECLARE_STATE_STR()		\
+const char *peer_state_str[] = { 	\
+	  "STATE_NEW"			\
+	, "STATE_OPEN"			\
+	, "STATE_CLOSED"		\
+	, "STATE_CLOSING"		\
+	, "STATE_WAITCNXACK"		\
+	, "STATE_WAITCNXACK_ELEC"	\
+	, "STATE_WAITCEA"		\
+	, "STATE_OPEN_HANDSHAKE"	\
+	, "STATE_SUSPECT"		\
+	, "STATE_REOPEN"		\
+	, "STATE_ZOMBIE"		\
+	};
+extern const char *peer_state_str[];
 #define STATE_STR(state) \
 	(((unsigned)(state)) <= STATE_MAX ? peer_state_str[((unsigned)(state)) ] : "<Invalid>")
 
@@ -315,7 +330,7 @@ struct peer_info {
 	struct fd_list	pi_apps;	/* applications advertised by the remote peer, except relay (pi_flags.relay) */
 	struct {
 		char			*priority;	/* In case the default priority is not appropriate */
-		/* This is inspired from http://www.gnu.org/software/gnutls/manual/gnutls.html#ex_003ax509_002dinfo */
+		/* This is inspired from http://www.gnu.org/software/gnutls/manual/gnutls.html#ex_003ax509_002dinfo see there for example of using this data */
 		const gnutls_datum_t 	*cert_list; 	/* The (valid) credentials that the peer has presented */
 		unsigned int 		 cert_list_size;/* Number of certificates in the list */
 	} 		pi_sec_data;
@@ -377,6 +392,7 @@ int fd_peer_add ( struct peer_info * info, char * orig_dbg, void (*cb)(struct pe
  *  Add a callback to authorize / reject incoming peer connections.
  * All registered callbacks are called until a callback sets auth = -1 or auth = 1.
  * If no callback returns a clear decision, the default behavior is applied (reject unknown connections)
+ * The callbacks are called in FILO order of their registration.
  *
  * RETURN VALUE:
  *  0   : The callback is added.
@@ -511,7 +527,7 @@ int fd_disp_app_support ( struct dict_object * app, struct dict_object * vendor,
 int fd_ep_add_merge( struct fd_list * list, sSA * sa, socklen_t sl, uint32_t flags );
 int fd_ep_filter( struct fd_list * list, uint32_t flags );
 int fd_ep_clearflags( struct fd_list * list, uint32_t flags );
-
-
+void fd_ep_dump_one( char * prefix, struct fd_endpoint * ep, char * suffix );
+void fd_ep_dump( int indent, struct fd_list * eps );
 
 #endif /* _FREEDIAMETER_H */

@@ -95,14 +95,8 @@ void fd_conf_dump()
 		fd_log_debug("  Local endpoints ........ : Default (use all available)\n");
 	} else {
 		struct fd_list * li = fd_g_config->cnf_endpoints.next;
-		fd_log_debug("  Local endpoints ........ : ");
-		while (li != &fd_g_config->cnf_endpoints) {
-			struct fd_endpoint * ep = (struct fd_endpoint *)li;
-			if (li != fd_g_config->cnf_endpoints.next) fd_log_debug("                             ");
-			sSA_DUMP_NODE( &ep->sa, NI_NUMERICHOST );
-			fd_log_debug("\n");
-			li = li->next;
-		}
+		fd_log_debug("  Local endpoints ........ : \n");
+		fd_ep_dump( 29, &fd_g_config->cnf_endpoints );
 	}
 	if (FD_IS_LIST_EMPTY(&fd_g_config->cnf_apps)) {
 		fd_log_debug("  Local applications ..... : (none)\n");

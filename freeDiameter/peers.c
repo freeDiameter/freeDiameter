@@ -39,6 +39,14 @@
 struct fd_list   fd_g_peers = FD_LIST_INITIALIZER(fd_g_peers);
 pthread_rwlock_t fd_g_peers_rw = PTHREAD_RWLOCK_INITIALIZER;
 
+/* List of active peers */
+struct fd_list   fd_g_activ_peers = FD_LIST_INITIALIZER(fd_g_activ_peers);	/* peers linked by their p_actives oredered by p_diamid */
+pthread_rwlock_t fd_g_activ_peers_rw = PTHREAD_RWLOCK_INITIALIZER;
+
+/* List of validation callbacks (registered with fd_peer_validate_register) */
+static struct fd_list validators = FD_LIST_INITIALIZER(validators);	/* list items are simple fd_list with "o" pointing to the callback */
+static pthread_rwlock_t validators_rw = PTHREAD_RWLOCK_INITIALIZER;
+
 
 /* Alloc / reinit a peer structure. if *ptr is not NULL, it must already point to a valid struct fd_peer. */
 int fd_peer_alloc(struct fd_peer ** ptr)
@@ -68,7 +76,6 @@ int fd_peer_alloc(struct fd_peer ** ptr)
 	fd_list_init(&p->p_actives, p);
 	p->p_hbh = lrand48();
 	CHECK_FCT( fd_fifo_new(&p->p_events) );
-	CHECK_FCT( fd_fifo_new(&p->p_recv) );
 	CHECK_FCT( fd_fifo_new(&p->p_tosend) );
 	fd_list_init(&p->p_sentreq, p);
 	
@@ -205,21 +212,12 @@ int fd_peer_free(struct fd_peer ** ptr)
 	}
 	CHECK_FCT( fd_fifo_del(&p->p_events) );
 	
-	CHECK_FCT( fd_thr_term(&p->p_inthr) );
-	while ( fd_fifo_tryget(p->p_recv, &t) == 0 ) {
-		struct msg * m = t;
-		TRACE_DEBUG(FULL, "Found message %p in incoming queue of peer %p being destroyed", m, p);
-		/* We simply destroy, the remote peer will re-send to someone else...*/
-		CHECK_FCT(fd_msg_free(m));
-	}
-	CHECK_FCT( fd_fifo_del(&p->p_recv) );
-	
 	CHECK_FCT( fd_thr_term(&p->p_outthr) );
 	while ( fd_fifo_tryget(p->p_tosend, &t) == 0 ) {
 		struct msg * m = t;
 		TRACE_DEBUG(FULL, "Found message %p in outgoing queue of peer %p being destroyed, requeue", m, p);
 		/* We simply requeue in global, the routing thread will re-handle it. */
-		
+		CHECK_FCT(fd_fifo_post(fd_g_outgoing, &m));
 	}
 	CHECK_FCT( fd_fifo_del(&p->p_tosend) );
 	
@@ -317,6 +315,15 @@ int fd_peer_fini()
 		fd_list_unlink(&peer->p_hdr.chain);
 		fd_peer_free(&peer);
 	}
+	
+	/* Now empty the validators list */
+	CHECK_FCT_DO( pthread_rwlock_wrlock(&validators_rw), /* continue */ );
+	while (!FD_IS_LIST_EMPTY( &validators )) {
+		struct fd_list * v = validators.next;
+		fd_list_unlink(v);
+		free(v);
+	}
+	CHECK_FCT_DO( pthread_rwlock_unlock(&validators_rw), /* continue */ );
 	
 	return 0;
 }
@@ -459,16 +466,46 @@ out:
 /* Save a callback to accept / reject incoming unknown peers */
 int fd_peer_validate_register ( int (*peer_validate)(struct peer_info * /* info */, int * /* auth */, int (**cb2)(struct peer_info *)) )
 {
+	struct fd_list * v;
 	
-	TODO("...");
-	return ENOTSUP;
+	TRACE_ENTRY("%p", peer_validate);
+	CHECK_PARAMS(peer_validate);
+	
+	/* Alloc a new entry */
+	CHECK_MALLOC( v = malloc(sizeof(struct fd_list)) );
+	fd_list_init( v, peer_validate );
+	
+	/* Add at the beginning of the list */
+	CHECK_FCT( pthread_rwlock_wrlock(&validators_rw) );
+	fd_list_insert_after(&validators, v);
+	CHECK_FCT( pthread_rwlock_unlock(&validators_rw));
+	
+	/* Done! */
+	return 0;
 }
 
-/* Validate a peer by calling the callbacks in turn -- return 0 if the peer is validated, ! 0 in case of error or if the peer is rejected */
+/* Validate a peer by calling the callbacks in turn -- return 0 if the peer is validated, ! 0 in case of error (>0) or if the peer is rejected (-1) */
 int fd_peer_validate( struct fd_peer * peer )
 {
-	TODO("Default to reject");
-	TODO("Call all callbacks in turn");
-	TODO("Save cb2 in the peer if needed");
-	return ENOTSUP;
+	int ret = 0;
+	struct fd_list * v;
+	
+	CHECK_FCT( pthread_rwlock_rdlock(&validators_rw) );
+	for (v = validators.next; v != &validators; v = v->next) {
+		int auth = 0;
+		pthread_cleanup_push(fd_cleanup_rwlock, &validators_rw);
+		CHECK_FCT_DO( ret = ((int(*)(struct peer_info *, int *, int (**)(struct peer_info *)))(v->o)) (&peer->p_hdr.info, &auth, &peer->p_cb2), goto out );
+		pthread_cleanup_pop(0);
+		if (auth) {
+			ret = (auth > 0) ? 0 : -1;
+			goto out;
+		}
+		peer->p_cb2 = NULL;
+	}
+	
+	/* No callback has given a firm result, the default is to reject */
+	ret = -1;
+out:
+	CHECK_FCT( pthread_rwlock_unlock(&validators_rw));
+	return ret;
 }
