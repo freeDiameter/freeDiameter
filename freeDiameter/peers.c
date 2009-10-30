@@ -77,7 +77,8 @@ int fd_peer_alloc(struct fd_peer ** ptr)
 	p->p_hbh = lrand48();
 	CHECK_FCT( fd_fifo_new(&p->p_events) );
 	CHECK_FCT( fd_fifo_new(&p->p_tosend) );
-	fd_list_init(&p->p_sentreq, p);
+	fd_list_init(&p->p_sr.srs, p);
+	CHECK_POSIX( pthread_mutex_init(&p->p_sr.mtx, NULL) );
 	
 	return 0;
 }
@@ -179,6 +180,27 @@ out:
 		free(__li);						\
 	}
 
+/* Empty the lists of p_tosend and p_sentreq messages */
+void fd_peer_failover_msg(struct fd_peer * peer)
+{
+	struct msg *m;
+	TRACE_ENTRY("%p", peer);
+	CHECK_PARAMS_DO(CHECK_PEER(peer), return);
+	
+	/* Requeue all messages in the "out" queue */
+	while ( fd_fifo_tryget(peer->p_tosend, &m) == 0 ) {
+		CHECK_FCT_DO(fd_fifo_post(fd_g_outgoing, &m), 
+				/* fallback: destroy the message */
+				CHECK_FCT_DO(fd_msg_free(m), /* What can we do more? */));
+	}
+	
+	/* Requeue all routable sent requests */
+	fd_p_sr_failover(&peer->p_sr);
+	
+	/* Done */
+	return;
+}
+
 /* Destroy a structure once all cleanups have been performed */
 int fd_peer_free(struct fd_peer ** ptr)
 {
@@ -196,7 +218,7 @@ int fd_peer_free(struct fd_peer ** ptr)
 	free_null(p->p_hdr.info.pi_diamid); 
 	free_null(p->p_hdr.info.pi_realm); 
 	free_list( &p->p_hdr.info.pi_endpoints );
-	/* Assume the security data is already freed */
+	TODO("Free the security data if any ?");
 	free_null(p->p_hdr.info.pi_prodname);
 	free_list( &p->p_hdr.info.pi_apps );
 	
@@ -213,31 +235,22 @@ int fd_peer_free(struct fd_peer ** ptr)
 	CHECK_FCT( fd_fifo_del(&p->p_events) );
 	
 	CHECK_FCT( fd_thr_term(&p->p_outthr) );
-	while ( fd_fifo_tryget(p->p_tosend, &t) == 0 ) {
-		struct msg * m = t;
-		TRACE_DEBUG(FULL, "Found message %p in outgoing queue of peer %p being destroyed, requeue", m, p);
-		/* We simply requeue in global, the routing thread will re-handle it. */
-		CHECK_FCT(fd_fifo_post(fd_g_outgoing, &m));
-	}
-	CHECK_FCT( fd_fifo_del(&p->p_tosend) );
-	
-	while (!FD_IS_LIST_EMPTY(&p->p_sentreq)) {
-		struct sentreq * sr = (struct sentreq *)(p->p_sentreq.next);
-		fd_list_unlink(&sr->chain);
-		TRACE_DEBUG(FULL, "Found message %p in list of sent requests to peer %p being destroyed, requeue (fallback)", sr->req, p);
-		CHECK_FCT(fd_fifo_post(fd_g_outgoing, &sr->req));
-		free(sr);
-	}
 	
 	if (p->p_cnxctx) {
 		fd_cnx_destroy(p->p_cnxctx);
 	}
 	
+	/* Requeue any remaining message into global structures if possible */
+	fd_peer_failover_msg(p);
+	CHECK_FCT_DO( fd_fifo_del(&p->p_tosend), /* continue */ );
+	CHECK_POSIX_DO( pthread_mutex_destroy(&p->p_sr.mtx), /* continue */);
+	
+	/* If the callback is still around... */
 	if (p->p_cb)
 		(*p->p_cb)(NULL, p->p_cb_data);
 	
+	/* Free the structure */
 	free(p);
-	
 	return 0;
 }
 

@@ -1989,8 +1989,8 @@ int fd_msg_is_routable ( struct msg * msg );
  *  0      	: Operation complete.
  *  !0      	: an error occurred.
  */
-int fd_msg_source_set( struct msg * msg, char * diamid, uint32_t hash, int add_rr, struct dictionary * dict );
-int fd_msg_source_get( struct msg * msg, char ** diamid, uint32_t *hash );
+int fd_msg_source_set( struct msg * msg, char * diamid, int add_rr, struct dictionary * dict );
+int fd_msg_source_get( struct msg * msg, char ** diamid );
 
 /*
  * FUNCTION:	fd_msg_eteid_get
@@ -2137,13 +2137,21 @@ int fd_msg_parse_buffer ( unsigned char ** buffer, size_t buflen, struct msg ** 
  */
 int fd_msg_parse_dict ( msg_or_avp * object, struct dictionary * dict );
 
+/* Parsing Error Information structure */
+struct fd_pei {
+	char *		pei_errcode;	/* name of the error code to use */
+	struct avp *	pei_avp;	/* pointer to invalid or missing AVP (to be freed) */
+	char *		pei_message;	/* Overwrite default message if needed */
+	int		pei_protoerr; 	/* do we set the 'E' bit in the error message ? */
+};
+
 /*
  * FUNCTION:	fd_msg_parse_rules
  *
  * PARAMETERS:
  *  object	: A msg or grouped avp object that must be verified.
  *  dict	: The dictionary containing the rules definitions.
- *  rule	: If not NULL, the first conflicting rule will be saved here if a conflict is found.
+ *  error_info	: If not NULL, the first problem information will be saved here.
  *
  * DESCRIPTION: 
  *   Check that the children of the object do not conflict with the dictionary rules (ABNF compliance).
@@ -2154,7 +2162,8 @@ int fd_msg_parse_dict ( msg_or_avp * object, struct dictionary * dict );
  *  EINVAL 	: The msg or avp object is invalid for this operation.
  *  ENOMEM	: Unable to allocate enough memory to complete the operation.
  */
-int fd_msg_parse_rules ( msg_or_avp * object, struct dictionary * dict, struct dict_object ** rule);
+int fd_msg_parse_rules ( msg_or_avp * object, struct dictionary * dict, struct fd_pei *error_info);
+
 
 
 /*

@@ -491,6 +491,8 @@ int fd_msg_rescode_set( struct msg * msg, char * rescode, char * errormsg, struc
 /* Add Origin-Host, Origin-Realm, (if osi) Origin-State-Id AVPS at the end of the message */
 int fd_msg_add_origin ( struct msg * msg, int osi ); 
 
+/* Parse a message against our dictionary, and in case of error log and eventually build the error reply (on return and EBADMSG, *msg == NULL or *msg is the error message ready to send) */
+int fd_msg_parse_or_error( struct msg ** msg );
 
 
 /***************************************/

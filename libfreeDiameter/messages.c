@@ -123,7 +123,6 @@ struct msg {
 			void * data;
 		}		 msg_cb;		/* Callback to be called when an answer is received, if not NULL */
 	char *			 msg_src_id;		/* Diameter Id of the peer this message was received from. This string is malloc'd and must be freed */
-	uint32_t		 msg_src_hash;		/* Hash of the msg_src_id value */
 };
 
 /* Macro to compute the message header size */
@@ -667,8 +666,8 @@ public:
 		msg->msg_public.msg_hbhid,
 		msg->msg_public.msg_eteid
 		);
-	fd_log_debug(INOBJHDR "intern: rwb:%p rt:%d cb:%p(%p) qry:%p h:%x src:%s\n", 
-			INOBJHDRVAL, msg->msg_rawbuffer, msg->msg_routable, msg->msg_cb.fct, msg->msg_cb.data, msg->msg_query, msg->msg_src_hash, msg->msg_src_id?:"(nil)");
+	fd_log_debug(INOBJHDR "intern: rwb:%p rt:%d cb:%p(%p) qry:%p src:%s\n", 
+			INOBJHDRVAL, msg->msg_rawbuffer, msg->msg_routable, msg->msg_cb.fct, msg->msg_cb.data, msg->msg_query, msg->msg_src_id?:"(nil)");
 }
 
 #define DUMP_VALUE(_format, _parms...)   fd_log_debug(INOBJHDR "value : t:'%s' v:'" _format "'\n", INOBJHDRVAL, typename, ## _parms);
@@ -1076,9 +1075,9 @@ int fd_msg_is_routable ( struct msg * msg )
 }
 
 /* Associate source peer */
-int fd_msg_source_set( struct msg * msg, char * diamid, uint32_t hash, int add_rr, struct dictionary * dict )
+int fd_msg_source_set( struct msg * msg, char * diamid, int add_rr, struct dictionary * dict )
 {
-	TRACE_ENTRY( "%p %p %x %d %p", msg, diamid, hash, add_rr, dict);
+	TRACE_ENTRY( "%p %p %d %p", msg, diamid, add_rr, dict);
 	
 	/* Check we received a valid message */
 	CHECK_PARAMS( CHECK_MSG(msg) && dict );
@@ -1088,13 +1087,11 @@ int fd_msg_source_set( struct msg * msg, char * diamid, uint32_t hash, int add_r
 	
 	/* If the request is to cleanup the source, we are done */
 	if (diamid == NULL) {
-		msg->msg_src_hash = 0;
 		return 0;
 	}
 	
 	/* Otherwise save the new informations */
 	CHECK_MALLOC( msg->msg_src_id = strdup(diamid) );
-	msg->msg_src_hash = hash;
 	
 	if (add_rr) {
 		struct dict_object 	*avp_rr_model;
@@ -1122,9 +1119,9 @@ int fd_msg_source_set( struct msg * msg, char * diamid, uint32_t hash, int add_r
 	return 0;
 }
 
-int fd_msg_source_get( struct msg * msg, char ** diamid, uint32_t *hash )
+int fd_msg_source_get( struct msg * msg, char ** diamid )
 {
-	TRACE_ENTRY( "%p %p %p", msg, diamid, hash);
+	TRACE_ENTRY( "%p %p", msg, diamid);
 	
 	/* Check we received valid parameters */
 	CHECK_PARAMS( CHECK_MSG(msg) );
@@ -1132,8 +1129,6 @@ int fd_msg_source_get( struct msg * msg, char ** diamid, uint32_t *hash )
 	
 	/* Copy the informations */
 	*diamid = msg->msg_src_id;
-	if (hash)
-		*hash = msg->msg_src_hash;
 	
 	/* done */
 	return 0;
@@ -1862,24 +1857,32 @@ static void parserules_stat_avps( struct dict_object * model_avp, struct fd_list
 
 /* We use this structure as parameter for the next function */
 struct parserules_data {
-	struct fd_list     * sentinel;  /* Sentinel of the list of children AVP */
-	struct dict_object * ruleavp;   /* If the rule conflicts, save the rule_avp here (we don't have direct access to the rule but it can be searched) */
+	struct fd_list  * sentinel;  	/* Sentinel of the list of children AVP */
+	struct fd_pei 	* pei;   	/* If the rule conflicts, save the error here */
 };
+
+/* Create an empty AVP of a given model (to use in Failed-AVP) */
+static struct avp * empty_avp(struct dict_object * model_avp)
+{
+	TODO("Create the AVP instance and set a 0 value");
+	return NULL;
+}
 
 /* Check that a list of AVPs is compliant with a given rule -- will be iterated on the list of rules */
 static int parserules_check_one_rule(void * data, struct dict_rule_data *rule)
 {
-	int ret = 0, count, first, last, min;
-	struct parserules_data * pr_data = (struct parserules_data *) data;
+	int count, first, last, min;
+	struct parserules_data * pr_data = data;
 	
 	TRACE_ENTRY("%p %p", data, rule);
 	
-	/* Get statistics of the AVP concerned by this rule in the message instance */
+	/* Get statistics of the AVP concerned by this rule in the parent instance */
 	parserules_stat_avps( rule->rule_avp, pr_data->sentinel, &count, &first, &last);
 	
 	if (TRACE_BOOL(ANNOYING))
 	{
 		struct dict_avp_data avpdata;
+		int ret;
 		ret = fd_dict_getval(rule->rule_avp, &avpdata);
 		
 		TRACE_DEBUG(ANNOYING, "Checking rule: p:%d(%d) m/M:%2d/%2d. Counted %d (first: %d, last:%d) of AVP '%s'", 
@@ -1895,7 +1898,6 @@ static int parserules_check_one_rule(void * data, struct dict_rule_data *rule)
 	}
 	
 	/* Now check the rule is not conflicting */
-	ret = 0;
 	
 	/* Check the "min" value */
 	if ((min = rule->rule_min) == -1) {
@@ -1906,15 +1908,24 @@ static int parserules_check_one_rule(void * data, struct dict_rule_data *rule)
 	}
 	if (count < min) {
 		TRACE_DEBUG(INFO, "Conflicting rule: the number of occurences (%d) is < the rule min (%d).", count, min);
-		ret = EBADMSG;
-		goto end;
+		if (pr_data->pei) {
+			pr_data->pei->pei_errcode = "DIAMETER_MISSING_AVP";
+			pr_data->pei->pei_avp = empty_avp(rule->rule_avp);
+		}
+		return EBADMSG;
 	}
 	
 	/* Check the "max" value */
 	if ((rule->rule_max != -1) && (count > rule->rule_max)) {
 		TRACE_DEBUG(INFO, "Conflicting rule: the number of occurences (%d) is > the rule max (%d).", count, rule->rule_max);
-		ret = EBADMSG;
-		goto end;
+		if (pr_data->pei) {
+			if (rule->rule_max == 0)
+				pr_data->pei->pei_errcode = "DIAMETER_AVP_NOT_ALLOWED";
+			else
+				pr_data->pei->pei_errcode = "DIAMETER_AVP_OCCURS_TOO_MANY_TIMES";
+			pr_data->pei->pei_avp = empty_avp(rule->rule_avp); /* Well we are supposed to return the (max + 1)th instance of the AVP instead... Pfff... */ TODO("Improve...");
+		}
+		return EBADMSG;
 	}
 		
 	/* Check the position and order (if relevant) */
@@ -1928,8 +1939,12 @@ static int parserules_check_one_rule(void * data, struct dict_rule_data *rule)
 			/* Since "0*1<fixed>" is a valid rule specifier, we only reject cases where the AVP appears *after* its fixed position */
 			if (first > rule->rule_order) {
 				TRACE_DEBUG(INFO, "Conflicting rule: the FIXED_HEAD AVP appears first in (%d) position, the rule requires (%d).", first, rule->rule_order);
-				ret = EBADMSG;
-				goto end;
+				if (pr_data->pei) {
+					pr_data->pei->pei_errcode = "DIAMETER_MISSING_AVP";
+					pr_data->pei->pei_message = "AVP was not in its fixed position";
+					pr_data->pei->pei_avp = empty_avp(rule->rule_avp);
+				}
+				return EBADMSG;
 			}
 			break;
 	
@@ -1937,34 +1952,32 @@ static int parserules_check_one_rule(void * data, struct dict_rule_data *rule)
 			/* Since "0*1<fixed>" is a valid rule specifier, we only reject cases where the AVP appears *before* its fixed position */
 			if (last > rule->rule_order) {	/* We have a ">" here because we count in reverse order (i.e. from the end) */
 				TRACE_DEBUG(INFO, "Conflicting rule: the FIXED_TAIL AVP appears last in (%d) position, the rule requires (%d).", last, rule->rule_order);
-				ret = EBADMSG;
-				goto end;
+				if (pr_data->pei) {
+					pr_data->pei->pei_errcode = "DIAMETER_MISSING_AVP";
+					pr_data->pei->pei_message = "AVP was not in its fixed position";
+					pr_data->pei->pei_avp = empty_avp(rule->rule_avp);
+				}
+				return EBADMSG;
 			}
 			break;
 		
 		default:
 			/* What is this position ??? */
 			ASSERT(0);
-			ret = ENOTSUP;
+			return ENOTSUP;
 	}
 	
 	/* We've checked all the parameters */
-end:
-	if (ret == EBADMSG) {
-		pr_data->ruleavp = rule->rule_avp;
-	}
-
-	return ret;
+	return 0;
 }
 
 /* Check the rules recursively */
-static int parserules_do ( struct dictionary * dict, msg_or_avp * object, struct dict_object ** conflict_rule, int mandatory)
+static int parserules_do ( struct dictionary * dict, msg_or_avp * object, struct fd_pei *error_info, int mandatory)
 {
-	int ret = 0;
 	struct parserules_data data;
 	struct dict_object * model = NULL;
 	
-	TRACE_ENTRY("%p %p %p %d", dict, object, conflict_rule, mandatory);
+	TRACE_ENTRY("%p %p %p %d", dict, object, error_info, mandatory);
 	
 	/* object has already been checked and dict-parsed when we are called. */
 	
@@ -1980,6 +1993,10 @@ static int parserules_do ( struct dictionary * dict, msg_or_avp * object, struct
 			/* Commands MUST be supported in the dictionary */
 			if (model == NULL) {
 				TRACE_DEBUG(INFO, "Message with no dictionary model. EBADMSG");
+				if (error_info) {
+					error_info->pei_errcode = "DIAMETER_COMMAND_UNSUPPORTED";
+					error_info->pei_protoerr = 1;
+				}
 				return EBADMSG;
 			}
 		}
@@ -1989,6 +2006,10 @@ static int parserules_do ( struct dictionary * dict, msg_or_avp * object, struct
 			if ( mandatory && (_A(object)->avp_public.avp_flags & AVP_FLAG_MANDATORY)) {
 				/* Return an error in this case */
 				TRACE_DEBUG(INFO, "Mandatory AVP with no dictionary model. EBADMSG");
+				if (error_info) {
+					error_info->pei_errcode = "DIAMETER_AVP_UNSUPPORTED";
+					error_info->pei_avp = object;
+				}
 				return EBADMSG;
 			} else {
 				/* We don't know any rule for this object, so assume OK */
@@ -2018,38 +2039,30 @@ static int parserules_do ( struct dictionary * dict, msg_or_avp * object, struct
 		   || (mandatory && (_A(object)->avp_public.avp_flags & AVP_FLAG_MANDATORY)) )
 			is_child_mand = 1;
 		for (ch = _C(object)->children.next; ch != &_C(object)->children; ch = ch->next) {
-			CHECK_FCT(  parserules_do ( dict, _C(ch->o), conflict_rule, is_child_mand )  );
+			CHECK_FCT(  parserules_do ( dict, _C(ch->o), error_info, is_child_mand )  );
 		}
 	}
 
 	/* Now check all rules of this object */
 	data.sentinel = &_C(object)->children;
-	data.ruleavp  = NULL;
-	ret = fd_dict_iterate_rules ( model, &data, parserules_check_one_rule );
+	data.pei  = error_info;
+	CHECK_FCT( fd_dict_iterate_rules ( model, &data, parserules_check_one_rule ) );
 	
-	/* Save the reference to the eventual conflicting rule; otherwise set to NULL */
-	if (conflict_rule && data.ruleavp) {
-		/* data.ruleavp contains the AVP, and model is the parent */
-		struct dict_object * rule = NULL;
-		struct dict_rule_request req = { model, data.ruleavp };
-		
-		CHECK_FCT_DO( fd_dict_search ( dict, DICT_RULE, RULE_BY_AVP_AND_PARENT, &req, &rule, ENOENT),  rule = NULL );
-		
-		*conflict_rule = rule;
-	}
-	
-	return ret;
+	return 0;
 }
 
-int fd_msg_parse_rules ( msg_or_avp * object, struct dictionary * dict, struct dict_object ** rule)
+int fd_msg_parse_rules ( msg_or_avp * object, struct dictionary * dict, struct fd_pei *error_info)
 {
-	TRACE_ENTRY("%p %p", object, rule);
+	TRACE_ENTRY("%p %p %p", object, dict, error_info);
 	
 	/* Resolve the dictionary objects when missing. This also validates the object. */
 	CHECK_FCT(  fd_msg_parse_dict ( object, dict )  );
 	
+	if (error_info)
+		memset(error_info, 0, sizeof(struct fd_pei));
+	
 	/* Call the recursive function */
-	return parserules_do ( dict, object, rule, 1 ) ;
+	return parserules_do ( dict, object, error_info, 1 ) ;
 }
 
 /***************************************************************************************************************/

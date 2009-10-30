@@ -92,6 +92,12 @@ int fd_queues_fini(void);
 /* Create all the dictionary objects defined in the Diameter base RFC. */
 int fd_dict_base_protocol(struct dictionary * dict);
 
+/* Sentinel for the sent requests list */
+struct sr_list {
+	struct fd_list 	srs;
+	pthread_mutex_t	mtx;
+};
+
 /* Peers */
 struct fd_peer { /* The "real" definition of the peer structure */
 	
@@ -136,7 +142,7 @@ struct fd_peer { /* The "real" definition of the peer structure */
 	uint32_t	 p_hbh;
 	
 	/* Sent requests (for fallback), list of struct sentreq ordered by hbh */
-	struct fd_list	 p_sentreq;
+	struct sr_list	 p_sr;
 	
 	/* connection context: socket and related information */
 	struct cnxctx	*p_cnxctx;
@@ -203,12 +209,6 @@ struct cnx_incoming {
 	int  		  validate;	/* The peer is new, it must be validated (by an extension) or error CEA to be sent */
 };
 
-/* Structure to store a sent request */
-struct sentreq {
-	struct fd_list	chain; 	/* the "o" field points directly to the hop-by-hop of the request (uint32_t *)  */
-	struct msg	*req;	/* A request that was sent and not yet answered. */
-};
-
 
 /* Functions */
 int  fd_peer_fini();
@@ -219,6 +219,7 @@ int  fd_peer_free(struct fd_peer ** ptr);
 int fd_peer_handle_newCER( struct msg ** cer, struct cnxctx ** cnx );
 /* fd_peer_add declared in freeDiameter.h */
 int fd_peer_validate( struct fd_peer * peer );
+void fd_peer_failover_msg(struct fd_peer * peer);
 
 /* Peer expiry */
 int fd_p_expi_init(void);
@@ -235,6 +236,11 @@ void fd_psm_abord(struct fd_peer * peer );
 int fd_out_send(struct msg ** msg, struct cnxctx * cnx, struct fd_peer * peer);
 int fd_out_start(struct fd_peer * peer);
 int fd_out_stop(struct fd_peer * peer);
+
+/* Peer sent requests cache */
+int fd_p_sr_store(struct sr_list * srlist, struct msg **req, uint32_t *hbhloc);
+int fd_p_sr_fetch(struct sr_list * srlist, uint32_t hbh, struct msg **req);
+void fd_p_sr_failover(struct sr_list * srlist);
 
 /* Active peers -- routing process should only ever take the read lock, the write lock is managed by PSMs */
 extern struct fd_list fd_g_activ_peers;

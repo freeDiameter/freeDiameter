@@ -264,3 +264,43 @@ int fd_msg_send ( struct msg ** pmsg, void (*anscb)(void *, struct msg **), void
 	return 0;
 }
 
+/* Parse a message against our dictionary, and in case of error log and eventually build the error reply -- returns the parsing status */
+int fd_msg_parse_or_error( struct msg ** msg )
+{
+	int ret = 0;
+	struct msg * m;
+	struct msg_hdr * hdr = NULL;
+	struct fd_pei	pei;
+	
+	TRACE_ENTRY("%p", msg);
+	
+	CHECK_PARAMS(msg && *msg);
+	m = *msg;
+	
+	/* Parse the message against our dictionary */
+	ret = fd_msg_parse_rules ( m, fd_g_config->cnf_dict, &pei);
+	if (ret != EBADMSG)
+		return ret;
+	
+	fd_log_debug("The following message does not comply to the dictionary and rules (%s):\n", pei.pei_errcode);
+	fd_msg_dump_walk(NONE, m);
+	
+	/* Now create an answer error if the message is a query */
+	CHECK_FCT( fd_msg_hdr(m, &hdr) );
+	
+	if (hdr->msg_flags & CMD_FLAG_REQUEST) {
+		
+		/* Create the error message */
+		CHECK_FCT( fd_msg_new_answer_from_req ( fd_g_config->cnf_dict, msg, pei.pei_protoerr ? MSGFL_ANSW_ERROR : 0 ) );
+		
+		/* Set the error code */
+		CHECK_FCT( fd_msg_rescode_set(*msg, pei.pei_errcode, pei.pei_message, pei.pei_avp, 1 ) );
+		
+	} else {
+		/* Just discard */
+		CHECK_FCT( fd_msg_free( m ) );
+		*msg = NULL;
+	}
+	
+	return ret;
+}

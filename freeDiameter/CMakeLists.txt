@@ -22,6 +22,7 @@ SET(FD_COMMON_SRC
 	p_expiry.c
 	p_out.c
 	p_psm.c
+	p_sr.c
 	server.c
 	tcp.c
 	)
