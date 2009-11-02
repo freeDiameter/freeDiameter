@@ -20,6 +20,8 @@ SET(FD_COMMON_SRC
 	queues.c
 	peers.c
 	p_ce.c
+	p_dw.c
+	p_dp.c
 	p_expiry.c
 	p_out.c
 	p_psm.c

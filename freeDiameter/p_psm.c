@@ -145,7 +145,7 @@ static int leave_open_state(struct fd_peer * peer)
 /*                      Helpers for state changes                       */
 /************************************************************************/
 /* Change state */
-static int change_state(struct fd_peer * peer, int new_state)
+int fd_psm_change_state(struct fd_peer * peer, int new_state)
 {
 	int old;
 	
@@ -170,11 +170,15 @@ static int change_state(struct fd_peer * peer, int new_state)
 		CHECK_FCT( enter_open_state(peer) );
 	}
 	
+	if ((new_state == STATE_CLOSED) && (peer->p_hdr.info.pi_flags.persist == PI_PRST_NONE)) {
+		CHECK_FCT( fd_event_send(peer->p_events, FDEVP_TERMINATE, 0, NULL) );
+	}
+	
 	return 0;
 }
 
 /* Set timeout timer of next event */
-static void psm_next_timeout(struct fd_peer * peer, int add_random, int delay)
+void fd_psm_next_timeout(struct fd_peer * peer, int add_random, int delay)
 {
 	/* Initialize the timer */
 	CHECK_POSIX_DO(  clock_gettime( CLOCK_REALTIME,  &peer->p_psm_timer ), ASSERT(0) );
@@ -202,12 +206,29 @@ static void psm_next_timeout(struct fd_peer * peer, int add_random, int delay)
 #endif
 }
 
+/* Cleanup the peer */
+void fd_psm_cleanup(struct fd_peer * peer)
+{
+	/* Move to CLOSED state */
+	CHECK_FCT_DO( fd_psm_change_state(peer, STATE_CLOSED), /* continue */ );
+	
+	/* Destroy the connection */
+	if (peer->p_cnxctx) {
+		fd_cnx_destroy(peer->p_cnxctx);
+		peer->p_cnxctx = NULL;
+	}
+	
+	/* What else ? */
+	TODO("...");
+	
+}
+
 
 /************************************************************************/
 /*                      The PSM thread                                  */
 /************************************************************************/
 /* Cancelation cleanup : set ZOMBIE state in the peer */
-void cleanup_state(void * arg) 
+void cleanup_setstate(void * arg) 
 {
 	struct fd_peer * peer = (struct fd_peer *)arg;
 	CHECK_PARAMS_DO( CHECK_PEER(peer), return );
@@ -226,7 +247,7 @@ static void * p_psm_th( void * arg )
 	
 	CHECK_PARAMS_DO( CHECK_PEER(peer), ASSERT(0) );
 	
-	pthread_cleanup_push( cleanup_state, arg );
+	pthread_cleanup_push( cleanup_setstate, arg );
 	
 	/* Set the thread name */
 	{
@@ -243,9 +264,9 @@ static void * p_psm_th( void * arg )
 	
 	/* Initialize the timer */
 	if (peer->p_flags.pf_responder) {
-		psm_next_timeout(peer, 0, INCNX_TIMEOUT);
+		fd_psm_next_timeout(peer, 0, INCNX_TIMEOUT);
 	} else {
-		psm_next_timeout(peer, created_started, 0);
+		fd_psm_next_timeout(peer, created_started, 0);
 	}
 	
 psm_loop:
@@ -278,22 +299,23 @@ psm_loop:
 	/* Requests to terminate the peer object */
 	if (event == FDEVP_TERMINATE) {
 		switch (peer->p_hdr.info.pi_state) {
+			case STATE_OPEN:
+			case STATE_REOPEN:
+				/* We cannot just close the conenction, we have to send a DPR first */
+				CHECK_FCT_DO( fd_p_dp_initiate(peer), goto psm_end );
+				goto psm_loop;
+			
+			/*	
 			case STATE_CLOSING:
 			case STATE_WAITCNXACK:
 			case STATE_WAITCNXACK_ELEC:
 			case STATE_WAITCEA:
 			case STATE_SUSPECT:
-				/* In these cases, we just cleanup the peer object and terminate now */
-				TODO("Cleanup the PSM: terminate connection object, ...");
 			case STATE_CLOSED:
-				/* Then we just terminate the PSM */
+			*/
+			default:
+				/* In these cases, we just cleanup the peer object (if needed) and terminate */
 				goto psm_end;
-				
-			case STATE_OPEN:
-			case STATE_REOPEN:
-				/* We cannot just close the conenction, we have to send a DPR first */
-				TODO("Send DPR, mark the peer as CLOSING");
-				goto psm_loop;
 		}
 	}
 	
@@ -310,8 +332,8 @@ psm_loop:
 				goto psm_loop;
 			} );
 		
-		TRACE_DEBUG(FULL, "Received this message from '%s':", peer->p_hdr.info.pi_diamid);
-		fd_msg_dump_walk(FULL, msg);
+		TRACE_DEBUG(FULL, "Received a message (%zdb) from '%s'", ev_sz, peer->p_hdr.info.pi_diamid);
+		fd_msg_dump_walk(FULL + 1, msg);
 	
 		/* Extract the header */
 		CHECK_FCT_DO( fd_msg_hdr(msg, &hdr), goto psm_end );
@@ -332,9 +354,6 @@ psm_loop:
 			CHECK_FCT_DO( fd_msg_answ_associate( msg, req ), goto psm_end );
 		}
 		
-		/* We received a valid message, update the expiry timer */
-		CHECK_FCT_DO( fd_p_expi_update(peer), goto psm_end );
-
 		/* Now handle non-link-local messages */
 		if (fd_msg_is_routable(msg)) {
 			/* If we are not in OPEN state, discard the message */
@@ -343,6 +362,9 @@ psm_loop:
 				fd_msg_dump_walk(NONE, msg);
 				fd_msg_free(msg);
 			} else {
+				/* We received a valid message, update the expiry timer */
+				CHECK_FCT_DO( fd_p_expi_update(peer), goto psm_end );
+
 				/* Set the message source and add the Route-Record */
 				CHECK_FCT_DO( fd_msg_source_set( msg, peer->p_hdr.info.pi_diamid, 1, fd_g_config->cnf_dict ), goto psm_end);
 
@@ -351,7 +373,7 @@ psm_loop:
 				
 				/* Update the peer timer */
 				if (!peer->p_flags.pf_dw_pending) {
-					psm_next_timeout(peer, 1, peer->p_hdr.info.pi_twtimer ?: fd_g_config->cnf_timer_tw);
+					fd_psm_next_timeout(peer, 1, peer->p_hdr.info.pi_twtimer ?: fd_g_config->cnf_timer_tw);
 				}
 			}
 			goto psm_loop;
@@ -373,16 +395,53 @@ psm_loop:
 				} );
 		}
 		
+		ASSERT( hdr->msg_appl == 0 ); /* buggy fd_msg_is_routable() ? */
+		
 		/* Handle the LL message and update the expiry timer appropriately */
-		TODO("...");
+		switch (hdr->msg_code) {
+			case CC_DEVICE_WATCHDOG:
+				CHECK_FCT_DO( fd_p_dw_handle(&msg, peer), goto psm_end );
+				break;
+			
+			case CC_DISCONNECT_PEER:
+				CHECK_FCT_DO( fd_p_dp_handle(&msg, peer), goto psm_end );
+				break;
+			
+			case CC_CAPABILITIES_EXCHANGE:
+				CHECK_FCT_DO( fd_p_ce_handle(&msg, peer), goto psm_end );
+				break;
+			
+			default:
+				/* Unknown / unexpected / invalid message */
+				TODO("Log, return error message if request");
+		};
+		
+		/* At this point the message must have been fully handled already */
+		if (msg) {
+			fd_log_debug("Internal error: unhandled message (discarded)!\n");
+			fd_msg_dump_walk(NONE, msg);
+			fd_msg_free(msg);
+		}
+		
+		goto psm_loop;
 	}
 	
 	/* The connection object is broken */
 	if (event == FDEVP_CNX_ERROR) {
-		TODO("Destroy the connection object");
-		TODO("Mark the error in the peer (pf_cnx_pb)");
-		TODO("Move to closed state, Requeue all messages to a different connection (failover)");
-		TODO("If pi_flags.exp, terminate the peer");
+		/* Cleanup the peer */
+		fd_psm_cleanup(peer);
+		
+		/* Mark the connection problem */
+		peer->p_flags.pf_cnx_pb = 1;
+		
+		/* Move to CLOSED */
+		CHECK_FCT_DO( fd_psm_change_state(peer, STATE_CLOSED), goto psm_end );
+		
+		/* Reset the timer */
+		fd_psm_next_timeout(peer, 1, peer->p_hdr.info.pi_tctimer ?: fd_g_config->cnf_timer_tc);
+		
+		/* Loop */
+		goto psm_loop;
 	}
 	
 	/* The connection notified a change in endpoints */
@@ -408,30 +467,20 @@ psm_loop:
 		struct cnx_incoming * params = ev_data;
 		ASSERT(params);
 		
-		switch (peer->p_hdr.info.pi_state) {
-			case STATE_CLOSED:
-				TODO("Handle the CER, validate the peer if needed (and set expiry), set the alt_fifo in the connection, reply a CEA, eventually handshake, move to OPEN or REOPEN state");
-				/* In case of error : DIAMETER_UNKNOWN_PEER */
-				
-				CHECK_FCT_DO( fd_p_ce_merge(peer, params->cer),
-					{
-						
-					} );
-				
-				break;
-				
-			case STATE_WAITCNXACK:
-			case STATE_WAITCEA:
-				TODO("Election");
-				break;
-				
-			default:
-				TODO("Reply with error CEA");
-				TODO("Close the connection");
-				/* reject_incoming_connection */
-			
+		/* Handle the message */
+		CHECK_FCT_DO( fd_p_ce_handle_newCER(&params->cer, peer, &params->cnx, params->validate), goto psm_end );
+		
+		/* Cleanup if needed */
+		if (params->cnx) {
+			fd_cnx_destroy(params->cnx);
+			params->cnx = NULL;
+		}
+		if (params->cer) {
+			CHECK_FCT_DO( fd_msg_free(params->cer), );
+			params->cer = NULL;
 		}
 		
+		/* Loop */
 		free(ev_data);
 		goto psm_loop;
 	}
@@ -439,8 +488,28 @@ psm_loop:
 	/* The timeout for the current state has been reached */
 	if (event == FDEVP_PSM_TIMEOUT) {
 		switch (peer->p_hdr.info.pi_state) {
-			
-			
+			case STATE_OPEN:
+			case STATE_REOPEN:
+				CHECK_FCT_DO( fd_p_dw_timeout(peer), goto psm_end );
+				break;
+				
+			case STATE_CLOSED:
+				TODO("Initiate a new connection");
+				break;
+				
+			case STATE_CLOSING:
+			case STATE_SUSPECT:
+			case STATE_WAITCNXACK:
+			case STATE_WAITCEA:
+				/* Destroy the connection, restart the timer to a new connection attempt */
+				fd_psm_cleanup(peer);
+				fd_psm_next_timeout(peer, 1, peer->p_hdr.info.pi_tctimer ?: fd_g_config->cnf_timer_tc);
+				CHECK_FCT_DO( fd_psm_change_state(peer, STATE_CLOSED), goto psm_end );
+				break;
+				
+			case STATE_WAITCNXACK_ELEC:
+				TODO("Abort initiating side, handle the receiver side");
+				break;
 		}
 	}
 	
@@ -448,12 +517,13 @@ psm_loop:
 	TODO("Missing handler in PSM : '%s'\t<-- '%s'", STATE_STR(peer->p_hdr.info.pi_state), fd_pev_str(event));
 	if (event == FDEVP_PSM_TIMEOUT) {
 		/* We have not handled timeout in this state, let's postpone next alert */
-		psm_next_timeout(peer, 0, 60);
+		fd_psm_next_timeout(peer, 0, 60);
 	}
 	
 	goto psm_loop;
 
 psm_end:
+	fd_psm_cleanup(peer);
 	pthread_cleanup_pop(1); /* set STATE_ZOMBIE */
 	peer->p_psm = (pthread_t)NULL;
 	pthread_detach(pthread_self());

@@ -35,35 +35,23 @@
 
 #include "fD.h"
 
-/* This file contains code to handle Capabilities Exchange messages (CER and CEA) */
+/* This file contains code to handle Disconnect Peer messages (DPR and DPA) */
 
-int fd_p_ce_handle(struct msg ** msg, struct fd_peer * peer)
+/* Handle a received message */
+int fd_p_dp_handle(struct msg ** msg, struct fd_peer * peer)
 {
-	TODO("Handle depending on CER or CEA and peer state");
+	TODO("Handle depending on DPR or DPA and peer state");
 	
 	return ENOTSUP;
 }
 
-int fd_p_ce_handle_newCER(struct msg ** msg, struct fd_peer * peer, struct cnxctx ** cnx, int valid)
+/* Start disconnection of a peer: send DPR */
+int fd_p_dp_initiate(struct fd_peer * peer)
 {
-	switch (peer->p_hdr.info.pi_state) {
-		case STATE_CLOSED:
-			TODO("Handle the CER, validate the peer if needed (and set expiry), set the alt_fifo in the connection, reply a CEA, eventually handshake, move to OPEN or REOPEN state");
-			/* In case of error : DIAMETER_UNKNOWN_PEER */
-			break;
-
-		case STATE_WAITCNXACK:
-		case STATE_WAITCEA:
-			TODO("Election");
-			break;
-
-		default:
-			TODO("Reply with error CEA");
-			TODO("Close the connection");
-			/* reject_incoming_connection */
-
-	}
-				
+	TODO("Create the DPR message");
+	TODO("Send it");
+	TODO("Mark the peer as CLOSING");
+	TODO("Reset the timer");
 	
 	return ENOTSUP;
 }

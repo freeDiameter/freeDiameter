@@ -231,6 +231,9 @@ int  fd_psm_start();
 int  fd_psm_begin(struct fd_peer * peer );
 int  fd_psm_terminate(struct fd_peer * peer );
 void fd_psm_abord(struct fd_peer * peer );
+void fd_psm_next_timeout(struct fd_peer * peer, int add_random, int delay);
+int fd_psm_change_state(struct fd_peer * peer, int new_state);
+void fd_psm_cleanup(struct fd_peer * peer);
 
 /* Peer out */
 int fd_out_send(struct msg ** msg, struct cnxctx * cnx, struct fd_peer * peer);
@@ -242,8 +245,13 @@ int fd_p_sr_store(struct sr_list * srlist, struct msg **req, uint32_t *hbhloc);
 int fd_p_sr_fetch(struct sr_list * srlist, uint32_t hbh, struct msg **req);
 void fd_p_sr_failover(struct sr_list * srlist);
 
-/* Capabilities Exchange */
-int fd_p_ce_merge(struct fd_peer * peer, struct msg * cer);
+/* Local Link messages (CER/CEA, DWR/DWA, DPR/DPA) */
+int fd_p_ce_handle(struct msg ** msg, struct fd_peer * peer);
+int fd_p_ce_handle_newCER(struct msg ** msg, struct fd_peer * peer, struct cnxctx ** cnx, int valid);
+int fd_p_dw_handle(struct msg ** msg, struct fd_peer * peer);
+int fd_p_dw_timeout(struct fd_peer * peer);
+int fd_p_dp_handle(struct msg ** msg, struct fd_peer * peer);
+int fd_p_dp_initiate(struct fd_peer * peer);
 
 /* Active peers -- routing process should only ever take the read lock, the write lock is managed by PSMs */
 extern struct fd_list fd_g_activ_peers;

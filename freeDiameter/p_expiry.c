@@ -35,8 +35,8 @@
 
 #include "fD.h"
 
-/* Delay for garbage collection of expired threads, in seconds */
-#define GC_TIME		60
+/* Delay for garbage collection of expired peers, in seconds */
+#define GC_TIME		120
 
 static pthread_t       exp_thr;
 static pthread_t       gc_thr;
@@ -63,8 +63,8 @@ static void * gc_th_fct(void * arg)
 			if (peer->p_hdr.info.pi_state != STATE_ZOMBIE)
 				continue;
 			
-			if (peer->p_hdr.info.pi_flags.exp == PI_EXP_NONE)
-				continue; /* This peer was not supposed to expire, keep it in the list */
+			if (peer->p_hdr.info.pi_flags.persist == PI_PRST_ALWAYS)
+				continue; /* This peer was not supposed to terminate, keep it in the list for debug */
 			
 			/* Ok, the peer was expired, let's remove it */
 			li = li->prev; /* to avoid breaking the loop */

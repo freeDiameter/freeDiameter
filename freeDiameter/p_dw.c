@@ -35,35 +35,22 @@
 
 #include "fD.h"
 
-/* This file contains code to handle Capabilities Exchange messages (CER and CEA) */
+/* This file contains code to handle Device Watchdog messages (DWR and DWA) */
 
-int fd_p_ce_handle(struct msg ** msg, struct fd_peer * peer)
+
+/* Handle an incoming message */
+int fd_p_dw_handle(struct msg ** msg, struct fd_peer * peer)
 {
-	TODO("Handle depending on CER or CEA and peer state");
+	TODO("Handle depending on DWR or DWA and peer state");
 	
 	return ENOTSUP;
 }
 
-int fd_p_ce_handle_newCER(struct msg ** msg, struct fd_peer * peer, struct cnxctx ** cnx, int valid)
+/* Handle a timeout in the PSM : send DWR, fail the peer, manage reopen state */
+int fd_p_dw_timeout(struct fd_peer * peer)
 {
-	switch (peer->p_hdr.info.pi_state) {
-		case STATE_CLOSED:
-			TODO("Handle the CER, validate the peer if needed (and set expiry), set the alt_fifo in the connection, reply a CEA, eventually handshake, move to OPEN or REOPEN state");
-			/* In case of error : DIAMETER_UNKNOWN_PEER */
-			break;
-
-		case STATE_WAITCNXACK:
-		case STATE_WAITCEA:
-			TODO("Election");
-			break;
-
-		default:
-			TODO("Reply with error CEA");
-			TODO("Close the connection");
-			/* reject_incoming_connection */
-
-	}
-				
+	TODO("...");
 	
 	return ENOTSUP;
 }
+		

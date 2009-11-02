@@ -317,6 +317,7 @@ connpeer:		{
 				memset(&fddpi, 0, sizeof(fddpi));
 				fd_list_init( &fddpi.pi_endpoints, NULL );
 				fd_list_init( &fddpi.pi_apps, NULL );
+				fddpi.pi_flags.persist = PI_PRST_ALWAYS;
 			}
 			CONNPEER '=' QSTRING peerinfo ';'
 			{

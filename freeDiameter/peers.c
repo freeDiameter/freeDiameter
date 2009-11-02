@@ -101,16 +101,17 @@ int fd_peer_add ( struct peer_info * info, char * orig_dbg, void (*cb)(struct pe
 		CHECK_MALLOC( p->p_hdr.info.pi_realm = strdup(info->pi_realm) );
 	}
 	
-	p->p_hdr.info.pi_flags.pro3 = info->pi_flags.pro3;
-	p->p_hdr.info.pi_flags.pro4 = info->pi_flags.pro4;
-	p->p_hdr.info.pi_flags.alg  = info->pi_flags.alg;
-	p->p_hdr.info.pi_flags.sec  = info->pi_flags.sec;
-	p->p_hdr.info.pi_flags.exp  = info->pi_flags.exp;
+	p->p_hdr.info.pi_flags.pro3 	= info->pi_flags.pro3;
+	p->p_hdr.info.pi_flags.pro4 	= info->pi_flags.pro4;
+	p->p_hdr.info.pi_flags.alg  	= info->pi_flags.alg;
+	p->p_hdr.info.pi_flags.sec  	= info->pi_flags.sec;
+	p->p_hdr.info.pi_flags.exp  	= info->pi_flags.exp;
+	p->p_hdr.info.pi_flags.persist 	= info->pi_flags.persist;
 	
-	p->p_hdr.info.pi_lft     = info->pi_lft;
-	p->p_hdr.info.pi_port    = info->pi_port;
-	p->p_hdr.info.pi_tctimer = info->pi_tctimer;
-	p->p_hdr.info.pi_twtimer = info->pi_twtimer;
+	p->p_hdr.info.pi_lft     	= info->pi_lft;
+	p->p_hdr.info.pi_port    	= info->pi_port;
+	p->p_hdr.info.pi_tctimer 	= info->pi_tctimer;
+	p->p_hdr.info.pi_twtimer 	= info->pi_twtimer;
 	
 	if (info->pi_sec_data.priority) {
 		CHECK_MALLOC( p->p_hdr.info.pi_sec_data.priority = strdup(info->pi_sec_data.priority) );
@@ -440,6 +441,10 @@ int fd_peer_handle_newCER( struct msg ** cer, struct cnxctx ** cnx )
 		CHECK_MALLOC_DO( peer->p_hdr.info.pi_diamid = malloc(avp_hdr->avp_value->os.len + 1), { ret = ENOMEM; goto out; } );
 		CHECK_MALLOC_DO( peer->p_dbgorig = strdup(fd_cnx_getid(*cnx)), { ret = ENOMEM; goto out; } );
 		peer->p_flags.pf_responder = 1;
+		
+		/* Set this peer to expire on inactivity */
+		peer->p_hdr.info.pi_flags.exp 	= PI_EXP_INACTIVE;
+		peer->p_hdr.info.pi_lft		= 3600 * 3;	/* 3 hours without any message */
 		
 		/* Upgrade the lock to write lock */
 		CHECK_POSIX_DO( ret = pthread_rwlock_wrlock(&fd_g_peers_rw), goto out );

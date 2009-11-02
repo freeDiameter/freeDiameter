@@ -247,7 +247,7 @@ enum peer_state {
 				   We have sent a CER on our initiated connection, and received a CER from the remote peer on another connection. Election.
 				   If we win the election, we must disconnect the initiated connection and send a CEA on the other => we go to OPEN state.
 				   If we lose, we disconnect the other connection (receiver) and fallback to WAITCEA state. */
-	STATE_OPEN_HANDSHAKE,	/* TLS Handshake and validation are in progress in open state */
+	STATE_OPEN_HANDSHAKE,	/* TLS Handshake and validation are in progress in open state -- we show the state because it can last a long time */
 	
 	/* Failover state machine */
 	STATE_SUSPECT,		/* A DWR was sent and not answered within TwTime. Failover in progress. */
@@ -305,6 +305,10 @@ struct peer_info {
 		#define PI_EXP_NONE	0	/* the peer entry does not expire */
 		#define PI_EXP_INACTIVE	1	/* the peer entry expires (i.e. is deleted) after pi_lft seconds without activity */
 		unsigned	exp :1;
+		
+		#define PI_PRST_NONE	0	/* the peer entry is deleted after disconnection / error */
+		#define PI_PRST_ALWAYS	1	/* the peer entry is persistant (will be kept as ZOMBIE in case of error) */
+		unsigned	persist :1;
 		
 		unsigned	inband_none :1;	/* This is only meaningful with pi_flags.sec == 3 */
 		unsigned	inband_tls  :1;	/* This is only meaningful with pi_flags.sec == 3 */
