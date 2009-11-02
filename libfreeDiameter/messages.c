@@ -1864,8 +1864,34 @@ struct parserules_data {
 /* Create an empty AVP of a given model (to use in Failed-AVP) */
 static struct avp * empty_avp(struct dict_object * model_avp)
 {
-	TODO("Create the AVP instance and set a 0 value");
-	return NULL;
+	struct avp * avp = NULL;
+	struct dict_avp_data avp_info;
+	union avp_value val;
+	char os[1] = { '\0' };
+	
+	/* Create an instance */
+	CHECK_FCT_DO( fd_msg_avp_new(model_avp, 0, &avp ), return NULL );
+	
+	/* Type of the AVP */
+	CHECK_FCT_DO( fd_dict_getval(model_avp, &avp_info), return NULL );
+	
+	/* Prepare the empty value */
+	memset(&val, 0, sizeof(val));
+	switch (avp_info.avp_basetype) {
+		case AVP_TYPE_OCTETSTRING:
+			val.os.data = os;
+			val.os.len  = sizeof(os);
+		case AVP_TYPE_INTEGER32:
+		case AVP_TYPE_INTEGER64:
+		case AVP_TYPE_UNSIGNED32:
+		case AVP_TYPE_UNSIGNED64:
+		case AVP_TYPE_FLOAT32:
+		case AVP_TYPE_FLOAT64:
+			CHECK_FCT_DO( fd_msg_avp_setvalue(avp, &val), return NULL );
+		/* For AVP_TYPE_GROUPED we don't do anything */
+	}
+	
+	return avp;
 }
 
 /* Check that a list of AVPs is compliant with a given rule -- will be iterated on the list of rules */
@@ -2055,11 +2081,11 @@ int fd_msg_parse_rules ( msg_or_avp * object, struct dictionary * dict, struct f
 {
 	TRACE_ENTRY("%p %p %p", object, dict, error_info);
 	
-	/* Resolve the dictionary objects when missing. This also validates the object. */
-	CHECK_FCT(  fd_msg_parse_dict ( object, dict )  );
-	
 	if (error_info)
 		memset(error_info, 0, sizeof(struct fd_pei));
+	
+	/* Resolve the dictionary objects when missing. This also validates the object. */
+	CHECK_FCT(  fd_msg_parse_dict ( object, dict )  );
 	
 	/* Call the recursive function */
 	return parserules_do ( dict, object, error_info, 1 ) ;
@@ -2186,7 +2212,7 @@ int fd_msg_dispatch ( struct msg ** msg, struct session * session, enum disp_act
 	
 	if (app == NULL) {
 		/* In that case, maybe we should answer a DIAMETER_APPLICATION_UNSUPPORTED error ? Do we do this here ? */
-		TRACE_DEBUG(NONE, "Reply DIAMETER_APPLICATION_UNSUPPORTED if it's a request ?");
+		TODO("Reply DIAMETER_APPLICATION_UNSUPPORTED if it's a request ?");
 	}
 	
 	/* So start browsing the message */

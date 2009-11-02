@@ -242,6 +242,9 @@ int fd_p_sr_store(struct sr_list * srlist, struct msg **req, uint32_t *hbhloc);
 int fd_p_sr_fetch(struct sr_list * srlist, uint32_t hbh, struct msg **req);
 void fd_p_sr_failover(struct sr_list * srlist);
 
+/* Capabilities Exchange */
+int fd_p_ce_merge(struct fd_peer * peer, struct msg * cer);
+
 /* Active peers -- routing process should only ever take the read lock, the write lock is managed by PSMs */
 extern struct fd_list fd_g_activ_peers;
 extern pthread_rwlock_t fd_g_activ_peers_rw; /* protect the list */

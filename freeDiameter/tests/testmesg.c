@@ -282,7 +282,14 @@ int main(int argc, char *argv[])
 			ADD_RULE(gavp, 73565, "AVP Test - os", 	    	    RULE_REQUIRED,     2, 3, 0);
 			ADD_RULE(gavp, 73565, "AVP Test - enumos",     	    RULE_OPTIONAL,     0, 1, 0);
 			ADD_RULE(gavp, 73565, "AVP Test - grouped",         RULE_FIXED_TAIL,  -1, 1, 1);
-			
+			/* ABNF : 
+				< no vendor - f32 >
+				< i64 >
+				< enumi32 >
+			    2*3 { os }
+			     *1 [ enumos ]
+				< grouped >
+						*/
 			#if 0
 			fd_dict_dump_object ( gavp );
 			#endif
@@ -727,9 +734,9 @@ int main(int argc, char *argv[])
 		
 		/* Now test the msg_parse_rule function */
 		{
-			struct dict_object * rule;
+			struct fd_pei pei;
 			
-			CHECK( 0, fd_msg_parse_rules( msg, fd_g_config->cnf_dict, &rule ) );
+			CHECK( 0, fd_msg_parse_rules( msg, fd_g_config->cnf_dict, &pei ) );
 			
 			/* Use the "AVP Test - rules" AVP to test the rules */
 			{
@@ -748,38 +755,50 @@ int main(int argc, char *argv[])
 				ADD_AVP( tavp, MSG_BRW_LAST_CHILD, childavp, 73565, "AVP Test - grouped" );
 				
 				/* Check the message is still conform */
-				CHECK( 0, fd_msg_parse_rules( msg, fd_g_config->cnf_dict, &rule ) );
+				CHECK( 0, fd_msg_parse_rules( msg, fd_g_config->cnf_dict, &pei ) );
 				
 				/* The first avp is optional in fixed position, so remove it and check the message is still OK */
 				CHECK( 0, fd_msg_browse ( tavp, MSG_BRW_FIRST_CHILD, &childavp, NULL) );
 				CHECK( 0, fd_msg_free ( childavp ) );
-				CHECK( 0, fd_msg_parse_rules( msg, fd_g_config->cnf_dict, &rule ) );
+				CHECK( 0, fd_msg_parse_rules( msg, fd_g_config->cnf_dict, &pei ) );
 				ADD_AVP( tavp, MSG_BRW_FIRST_CHILD, childavp,     0, "AVP Test - no vendor - f32" );
 				
 				
 				/* Now break some rules and check it is detected */
-				#define CHECK_CONFLICT( _msg, _ruleavp, _avpvendor )		{				\
-					struct dict_object * _rule;								\
-					CHECK( EBADMSG,  fd_msg_parse_rules( _msg, fd_g_config->cnf_dict, &_rule ) );			\
-					if ((_ruleavp) == NULL) {								\
-						CHECK( NULL, _rule);								\
+				#define CHECK_CONFLICT( _msg, _error, _conflictavp_name, _conflictavp_vnd )		{	\
+					struct fd_pei _pei;									\
+					CHECK( EBADMSG,  fd_msg_parse_rules( _msg, fd_g_config->cnf_dict, &_pei ) );		\
+					if (_error) {										\
+						CHECK( 0, strcmp( _error, _pei.pei_errcode ) );					\
+					}											\
+					if ((_conflictavp_name) == NULL) {							\
+						CHECK( NULL, _pei.pei_avp);							\
 					} else {										\
-						struct dict_rule_data   _ruledata;						\
+						struct dict_avp_request _req = { (_conflictavp_vnd), 0, (_conflictavp_name) };	\
 						struct dict_object *    _avp;							\
-						struct dict_avp_request _req = { (_avpvendor), 0, (_ruleavp) };			\
+						struct dict_object * _conflict;							\
+						CHECK( 1, (_pei.pei_avp) ? 1 : 0 );						\
+						CHECK( 0, fd_msg_model( _pei.pei_avp, &_conflict ) );				\
 						CHECK( 0, fd_dict_search( fd_g_config->cnf_dict, DICT_AVP, AVP_BY_NAME_AND_VENDOR, &_req, &_avp, ENOENT));	\
-						CHECK( 0, fd_dict_getval( _rule, &_ruledata ) );				\
-						CHECK( _avp, _ruledata.rule_avp );						\
+						CHECK( _avp, _conflict );							\
 					}											\
 				}
 
+			/* ABNF : 
+				< no vendor - f32 >
+				< i64 >
+				< enumi32 >
+			    2*3 { os }
+			     *1 [ enumos ]
+				< grouped >
+						*/
 				{
 					/* Test the FIXED_HEAD rules positions: add another AVP before the third */
 					CHECK( 0, fd_msg_browse ( tavp, MSG_BRW_FIRST_CHILD, &tempavp, NULL) ); /* tempavp is the novendor avp */
 					CHECK( 0, fd_msg_browse ( tempavp, MSG_BRW_NEXT, &tempavp, NULL) );     /* tempavp is the i64 avp */
 					ADD_AVP( tempavp, MSG_BRW_NEXT, childavp, 73565, "AVP Test - os" );
 					
-					CHECK_CONFLICT( msg, "AVP Test - enumi32", 73565 );
+					CHECK_CONFLICT( msg, "DIAMETER_MISSING_AVP", "AVP Test - enumi32", 73565 );
 					
 					/* Now remove this AVP */
 					CHECK( 0, fd_msg_free ( childavp ) );
@@ -789,7 +808,7 @@ int main(int argc, char *argv[])
 					CHECK( 0, fd_msg_browse ( tempavp, MSG_BRW_NEXT, &childavp, NULL) );     /* childavp is the enumi32 avp */
 					CHECK( 0, fd_msg_free ( childavp ) );
 					
-					CHECK_CONFLICT( msg, "AVP Test - enumi32", 73565 );
+					CHECK_CONFLICT( msg, "DIAMETER_MISSING_AVP", "AVP Test - enumi32", 73565 );
 					
 					/* Add the AVP back */
 					ADD_AVP( tempavp, MSG_BRW_NEXT, childavp, 73565, "AVP Test - enumi32" );
@@ -800,7 +819,7 @@ int main(int argc, char *argv[])
 					CHECK( 0, fd_msg_browse ( childavp, MSG_BRW_NEXT, &tempavp, NULL) );     /* tempavp is the os avp */
 					CHECK( 0, fd_msg_free ( tempavp ) );
 					
-					CHECK_CONFLICT( msg, "AVP Test - os", 73565 );	/* The rule requires at least 2 AVP, we have only 1 */
+					CHECK_CONFLICT( msg, "DIAMETER_MISSING_AVP", "AVP Test - os", 73565 ); /* The rule requires at least 2 AVP, we have only 1 */
 					
 					/* Now add this AVP */
 					ADD_AVP( childavp, MSG_BRW_NEXT, tempavp, 73565, "AVP Test - os" );
@@ -810,7 +829,7 @@ int main(int argc, char *argv[])
 					ADD_AVP( childavp, MSG_BRW_NEXT, tempavp, 73565, "AVP Test - os" );
 					ADD_AVP( childavp, MSG_BRW_NEXT, tempavp, 73565, "AVP Test - os" );
 					
-					CHECK_CONFLICT( msg, "AVP Test - os", 73565 );	/* The rule requires at most 3 AVP, we have 4 */
+					CHECK_CONFLICT( msg, "DIAMETER_AVP_OCCURS_TOO_MANY_TIMES", "AVP Test - os", 73565 ); /* The rule requires at most 3 AVP, we have 4 */
 					
 					/* Now delete these AVP */
 					CHECK( 0, fd_msg_free ( tempavp ) );
@@ -823,12 +842,12 @@ int main(int argc, char *argv[])
 					ADD_AVP( childavp, MSG_BRW_NEXT, tempavp, 73565, "AVP Test - enumos" );
 					
 					/* The message is still conform */
-					CHECK( 0, fd_msg_parse_rules( msg, fd_g_config->cnf_dict, &rule ) );
+					CHECK( 0, fd_msg_parse_rules( msg, fd_g_config->cnf_dict, &pei ) );
 					
 					/* Now break the rule */
 					ADD_AVP( childavp, MSG_BRW_NEXT, tempavp, 73565, "AVP Test - enumos" );
 					
-					CHECK_CONFLICT( msg, "AVP Test - enumos", 73565 );	/* The rule requires at most 3 AVP, we have 4 */
+					CHECK_CONFLICT( msg, "DIAMETER_AVP_OCCURS_TOO_MANY_TIMES", "AVP Test - enumos", 73565 );
 					
 					/* Now delete this AVP */
 					CHECK( 0, fd_msg_free ( tempavp ) );
@@ -838,7 +857,7 @@ int main(int argc, char *argv[])
 					/* Test the RULE_FIXED_TAIL rules positions: add another AVP at the end */
 					ADD_AVP( tavp, MSG_BRW_LAST_CHILD, childavp, 73565, "AVP Test - os" );
 					
-					CHECK_CONFLICT( msg, "AVP Test - grouped", 73565 );
+					CHECK_CONFLICT( msg, "DIAMETER_MISSING_AVP", "AVP Test - grouped", 73565 );
 					
 					/* Now remove this AVP */
 					CHECK( 0, fd_msg_free ( childavp ) );

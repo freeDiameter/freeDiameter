@@ -19,6 +19,7 @@ SET(FD_COMMON_SRC
 	messages.c
 	queues.c
 	peers.c
+	p_ce.c
 	p_expiry.c
 	p_out.c
 	p_psm.c

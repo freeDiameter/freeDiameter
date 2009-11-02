@@ -154,7 +154,13 @@ int fd_out_send(struct msg ** msg, struct cnxctx * cnx, struct fd_peer * peer)
 			cnx = peer->p_cnxctx;
 
 		/* Do send the message */
-		CHECK_FCT( do_send(msg, cnx, hbh, peer ? &peer->p_sr : NULL) );
+		CHECK_FCT_DO( do_send(msg, cnx, hbh, peer ? &peer->p_sr : NULL),
+			{
+				fd_log_debug("An error occurred while sending this message, it is lost:\n");
+				fd_msg_dump_walk(NONE, *msg);
+				fd_msg_free(*msg);
+				*msg = NULL;
+			} );
 	}
 	
 	return 0;

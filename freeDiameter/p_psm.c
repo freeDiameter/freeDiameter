@@ -358,11 +358,23 @@ psm_loop:
 		}
 		
 		/* Link-local message: They must be understood by our dictionary */
+		{
+			int ret;
+			CHECK_FCT_DO( ret = fd_msg_parse_or_error( &msg ),
+				{
+					if ((ret == EBADMSG) && (msg != NULL)) {
+						/* msg now contains an answer message to send back */
+						CHECK_FCT_DO( fd_out_send(&msg, peer->p_cnxctx, peer), /* In case of error the message has already been dumped */ );
+					}
+					if (msg) {
+						CHECK_FCT_DO( fd_msg_free(msg), /* continue */);
+					}
+					goto psm_loop;
+				} );
+		}
 		
-		TODO("Check if it is a local message (CER, DWR, ...)");
-		TODO("If not, check we are in OPEN state");
-		TODO("Update expiry timer if needed");
-		TODO("Handle the message");
+		/* Handle the LL message and update the expiry timer appropriately */
+		TODO("...");
 	}
 	
 	/* The connection object is broken */
@@ -400,6 +412,12 @@ psm_loop:
 			case STATE_CLOSED:
 				TODO("Handle the CER, validate the peer if needed (and set expiry), set the alt_fifo in the connection, reply a CEA, eventually handshake, move to OPEN or REOPEN state");
 				/* In case of error : DIAMETER_UNKNOWN_PEER */
+				
+				CHECK_FCT_DO( fd_p_ce_merge(peer, params->cer),
+					{
+						
+					} );
+				
 				break;
 				
 			case STATE_WAITCNXACK:
