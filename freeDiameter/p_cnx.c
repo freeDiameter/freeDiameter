@@ -40,13 +40,41 @@
 struct next_conn {
 	struct fd_list	chain;
 	int		proto;	/* Protocol of the next attempt */
-	sSS		ss;	/* The address, only for TCP */
+	union {
+		sSS	ss;	/* The address, only for TCP */
+		sSA4	sin;
+		sSA6	sin6;
+	};
 	uint16_t	port;	/* The port, for SCTP (included in ss for TCP) */
 	int		dotls;	/* Handshake TLS after connection ? */
 };
 
+static __inline__ void failed_connection_attempt(struct fd_peer * peer)
+{
+	/* Simply remove the first item in the list */
+	struct fd_list * li = peer->p_connparams.next;
+	fd_list_unlink(li);
+	free(li);
+}
+
+static void empty_connection_list(struct fd_peer * peer)
+{
+	/* Remove all items */
+	while (!FD_IS_LIST_EMPTY(&peer->p_connparams)) {
+		failed_connection_attempt(peer);
+	}
+}
+
 static int prepare_connection_list(struct fd_peer * peer)
 {
+	struct fd_list * li, *last_prio;
+	struct next_conn   * new; 
+	
+	uint16_t	port_no; /* network order */
+	int		dotls_immediate;
+	
+	TRACE_ENTRY("%p", peer);
+	 
 	/* Resolve peer address(es) if needed */
 	if (FD_IS_LIST_EMPTY(&peer->p_hdr.info.pi_endpoints)) {
 		struct addrinfo hints, *ai, *aip;
@@ -56,7 +84,7 @@ static int prepare_connection_list(struct fd_peer * peer)
 		hints.ai_flags = AI_ADDRCONFIG;
 		ret = getaddrinfo(peer->p_hdr.info.pi_diamid, NULL, &hints, &ai);
 		if (ret) {
-			fd_log_debug("Unable to resolve address for peer '%s' (%s), aborting this connection\n", peer->p_hdr.info.pi_diamid, gai_strerror(ret));
+			fd_log_debug("Unable to resolve address for peer '%s' (%s), aborting\n", peer->p_hdr.info.pi_diamid, gai_strerror(ret));
 			fd_psm_terminate( peer );
 			return 0;
 		}
@@ -76,27 +104,86 @@ static int prepare_connection_list(struct fd_peer * peer)
 						: AF_INET6));
 	}
 	
-	TODO("Prepare the list in peer->p_connparams obeying the flags");
-	
-	TODO("Return an error if the list is empty in the end");
-	
-	return ENOTSUP;
-}
-
-static __inline__ void failed_connection_attempt(struct fd_peer * peer)
-{
-	/* Simply remove the first item in the list */
-	struct fd_list * li = peer->p_connparams.next;
-	fd_list_unlink(li);
-	free(li);
-}
-
-static void empty_connection_list(struct fd_peer * peer)
-{
-	/* Remove all items */
-	while (!FD_IS_LIST_EMPTY(&peer->p_connparams)) {
-		failed_connection_attempt(peer);
+	/* Now check we have at least one address to attempt */
+	if (FD_IS_LIST_EMPTY(&peer->p_hdr.info.pi_endpoints)) {
+		fd_log_debug("No address %savailable to connect to peer '%s', aborting\n", peer->p_hdr.info.config.pic_flags.pro3 ? "in the configured family " : "", peer->p_hdr.info.pi_diamid);
+		fd_psm_terminate( peer );
+		return 0;
 	}
+	
+	/* Cleanup any previous list */
+	empty_connection_list(peer);
+	
+	/* Prepare the parameters */
+	if (peer->p_hdr.info.config.pic_flags.sec != PI_SEC_DEFAULT) {
+		dotls_immediate = 0;
+		port_no = htons(peer->p_hdr.info.config.pic_port ?: fd_g_config->cnf_port);
+	} else {
+		dotls_immediate = 1;
+		port_no = htons(peer->p_hdr.info.config.pic_port ?: fd_g_config->cnf_port_tls);
+	}
+	
+	last_prio = &peer->p_connparams;
+	
+	/* Create TCP parameters unless specified otherwise */
+	if (peer->p_hdr.info.config.pic_flags.pro4 != PI_P4_SCTP) {
+		for (li = peer->p_hdr.info.pi_endpoints.next; li != &peer->p_hdr.info.pi_endpoints; li = li->next) {
+			struct fd_endpoint * ep = (struct fd_endpoint *)li;
+			
+			CHECK_MALLOC( new = malloc(sizeof(struct next_conn)) );
+			memset(new, 0, sizeof(struct next_conn));
+			fd_list_init(&new->chain, new);
+			
+			new->proto = IPPROTO_TCP;
+			
+			memcpy( &new->ss, &ep->ss, sizeof(sSS) );
+			switch (new->ss.ss_family) {
+				case AF_INET:
+					new->sin.sin_port = port_no;
+					break;
+				case AF_INET6:
+					new->sin6.sin6_port = port_no;
+					break;
+				default:
+					free(new);
+					continue; /* Move to the next endpoint */
+			}
+			
+			new->dotls = dotls_immediate;
+			
+			/* Add the new entry to the appropriate position (conf and disc go first) */
+			if (ep->flags & (EP_FL_CONF | EP_FL_DISC)) {
+				fd_list_insert_after(last_prio, &new->chain);
+				last_prio = &new->chain;
+			} else {
+				fd_list_insert_before(&peer->p_connparams, &new->chain);
+			}
+		}
+	}
+	
+	/* Now, add the SCTP entry, if not disabled */
+#ifndef DISABLE_SCTP
+	if (peer->p_hdr.info.config.pic_flags.pro4 != PI_P4_TCP) {
+		struct next_conn   * new;
+		
+		CHECK_MALLOC( new = malloc(sizeof(struct next_conn)) );
+		memset(new, 0, sizeof(struct next_conn));
+		fd_list_init(&new->chain, new);
+
+		new->proto = IPPROTO_SCTP;
+		new->port  = ntohs(port_no); /* back to host byte order... */
+		new->dotls = dotls_immediate;
+
+		/* Add the new entry to the appropriate position (depending on preferences) */
+		if (peer->p_hdr.info.config.pic_flags.alg == PI_ALGPREF_TCP) {
+			fd_list_insert_after(last_prio, &new->chain);
+		} else {
+			fd_list_insert_after(&peer->p_connparams, &new->chain); /* very first position */
+		}
+	}
+#endif /* DISABLE_SCTP */
+	
+	return FD_IS_LIST_EMPTY(&peer->p_connparams) ? EINVAL : 0;
 }
 
 
