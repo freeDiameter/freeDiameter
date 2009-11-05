@@ -68,15 +68,15 @@ int fd_peer_alloc(struct fd_peer ** ptr)
 	
 	fd_list_init(&p->p_hdr.chain, p);
 	
-	fd_list_init(&p->p_hdr.info.pi_endpoints, NULL);
-	fd_list_init(&p->p_hdr.info.pi_apps, NULL);
+	fd_list_init(&p->p_hdr.info.pi_endpoints, p);
+	fd_list_init(&p->p_hdr.info.runtime.pir_apps, p);
 	
 	p->p_eyec = EYEC_PEER;
-	fd_list_init(&p->p_expiry, p);
 	fd_list_init(&p->p_actives, p);
-	p->p_hbh = lrand48();
-	CHECK_FCT( fd_fifo_new(&p->p_events) );
+	fd_list_init(&p->p_expiry, p);
 	CHECK_FCT( fd_fifo_new(&p->p_tosend) );
+	p->p_hbh = lrand48();
+	
 	fd_list_init(&p->p_sr.srs, p);
 	CHECK_POSIX( pthread_mutex_init(&p->p_sr.mtx, NULL) );
 	
@@ -97,34 +97,23 @@ int fd_peer_add ( struct peer_info * info, char * orig_dbg, void (*cb)(struct pe
 	
 	/* Copy the informations from the parameters received */
 	CHECK_MALLOC( p->p_hdr.info.pi_diamid = strdup(info->pi_diamid) );
-	if (info->pi_realm) {
-		CHECK_MALLOC( p->p_hdr.info.pi_realm = strdup(info->pi_realm) );
+	
+	memcpy( &p->p_hdr.info.config, &info->config, sizeof(p->p_hdr.info.config) );
+	/* Duplicate the strings if provided */
+	if (info->config.pic_realm) {
+		CHECK_MALLOC( p->p_hdr.info.config.pic_realm = strdup(info->config.pic_realm) );
+	}
+	if (info->config.pic_priority) {
+		CHECK_MALLOC( p->p_hdr.info.config.pic_realm = strdup(info->config.pic_priority) );
 	}
 	
-	p->p_hdr.info.pi_flags.pro3 	= info->pi_flags.pro3;
-	p->p_hdr.info.pi_flags.pro4 	= info->pi_flags.pro4;
-	p->p_hdr.info.pi_flags.alg  	= info->pi_flags.alg;
-	p->p_hdr.info.pi_flags.sec  	= info->pi_flags.sec;
-	p->p_hdr.info.pi_flags.exp  	= info->pi_flags.exp;
-	p->p_hdr.info.pi_flags.persist 	= info->pi_flags.persist;
-	
-	p->p_hdr.info.pi_lft     	= info->pi_lft;
-	p->p_hdr.info.pi_port    	= info->pi_port;
-	p->p_hdr.info.pi_tctimer 	= info->pi_tctimer;
-	p->p_hdr.info.pi_twtimer 	= info->pi_twtimer;
-	
-	if (info->pi_sec_data.priority) {
-		CHECK_MALLOC( p->p_hdr.info.pi_sec_data.priority = strdup(info->pi_sec_data.priority) );
-	}
-	
-	/* Move the items from one list to the other */
+	/* Move the list of endpoints into the peer */
 	if (info->pi_endpoints.next)
 		while (!FD_IS_LIST_EMPTY( &info->pi_endpoints ) ) {
 			li = info->pi_endpoints.next;
 			fd_list_unlink(li);
 			fd_list_insert_before(&p->p_hdr.info.pi_endpoints, li);
 		}
-	
 	
 	/* The internal data */
 	if (orig_dbg) {
@@ -149,15 +138,15 @@ int fd_peer_add ( struct peer_info * info, char * orig_dbg, void (*cb)(struct pe
 	}
 	
 	/* We can insert the new peer object */
-	if (! ret) {
-		/* Update expiry list */
-		CHECK_FCT_DO( ret = fd_p_expi_update( p ), goto out );
-		
-		/* Insert the new element in the list */
-		fd_list_insert_before( li, &p->p_hdr.chain );
-	}
+	if (! ret)
+		do {
+			/* Update expiry list */
+			CHECK_FCT_DO( ret = fd_p_expi_update( p ), break );
 
-out:	
+			/* Insert the new element in the list */
+			fd_list_insert_before( li, &p->p_hdr.chain );
+		} while (0);
+
 	CHECK_POSIX( pthread_rwlock_unlock(&fd_g_peers_rw) );
 	if (ret) {
 		CHECK_FCT( fd_peer_free(&p) );
@@ -202,7 +191,7 @@ void fd_peer_failover_msg(struct fd_peer * peer)
 	return;
 }
 
-/* Destroy a structure once all cleanups have been performed */
+/* Destroy a structure once cleanups have been performed (fd_psm_abord, ...) */
 int fd_peer_free(struct fd_peer ** ptr)
 {
 	struct fd_peer *p;
@@ -216,33 +205,22 @@ int fd_peer_free(struct fd_peer ** ptr)
 	
 	CHECK_PARAMS( FD_IS_LIST_EMPTY(&p->p_hdr.chain) );
 	
-	free_null(p->p_hdr.info.pi_diamid); 
-	free_null(p->p_hdr.info.pi_realm); 
+	free_null(p->p_hdr.info.pi_diamid);
+	
+	free_null(p->p_hdr.info.config.pic_realm); 
+	free_null(p->p_hdr.info.config.pic_priority); 
+	
+	free_null(p->p_hdr.info.runtime.pir_realm);
+	free_null(p->p_hdr.info.runtime.pir_prodname);
+	free_list( &p->p_hdr.info.runtime.pir_apps );
+	
 	free_list( &p->p_hdr.info.pi_endpoints );
-	TODO("Free the security data if any ?");
-	free_null(p->p_hdr.info.pi_prodname);
-	free_list( &p->p_hdr.info.pi_apps );
 	
 	free_null(p->p_dbgorig);
-	ASSERT(FD_IS_LIST_EMPTY(&p->p_expiry));
-	ASSERT(FD_IS_LIST_EMPTY(&p->p_actives));
 	
-	CHECK_FCT( fd_thr_term(&p->p_psm) );
-	while ( fd_fifo_tryget(p->p_events, &t) == 0 ) {
-		struct fd_event * ev = t;
-		TRACE_DEBUG(FULL, "Found event %d(%p) in queue of peer %p being destroyed", ev->code, ev->data, p);
-		free(ev);
-	}
-	CHECK_FCT( fd_fifo_del(&p->p_events) );
+	fd_list_unlink(&p->p_expiry);
+	fd_list_unlink(&p->p_actives);
 	
-	CHECK_FCT( fd_thr_term(&p->p_outthr) );
-	
-	if (p->p_cnxctx) {
-		fd_cnx_destroy(p->p_cnxctx);
-	}
-	
-	/* Requeue any remaining message into global structures if possible */
-	fd_peer_failover_msg(p);
 	CHECK_FCT_DO( fd_fifo_del(&p->p_tosend), /* continue */ );
 	CHECK_POSIX_DO( pthread_mutex_destroy(&p->p_sr.mtx), /* continue */);
 	
@@ -255,7 +233,7 @@ int fd_peer_free(struct fd_peer ** ptr)
 	return 0;
 }
 
-/* Terminate peer module (destroy all peers) */
+/* Terminate peer module (destroy all peers, first gently, then violently) */
 int fd_peer_fini()
 {
 	struct fd_list * li;
@@ -273,7 +251,7 @@ int fd_peer_fini()
 	for (li = fd_g_peers.next; li != &fd_g_peers; li = li->next) {
 		struct fd_peer * peer = (struct fd_peer *)li;
 		
-		if (peer->p_hdr.info.pi_state != STATE_ZOMBIE) {
+		if (peer->p_hdr.info.runtime.pir_state != STATE_ZOMBIE) {
 			CHECK_FCT_DO( fd_psm_terminate(peer), /* continue */ );
 		} else {
 			li = li->prev; /* to avoid breaking the loop */
@@ -286,8 +264,8 @@ int fd_peer_fini()
 	
 	if (!list_empty) {
 		CHECK_SYS(  clock_gettime(CLOCK_REALTIME, &now)  );
-		TRACE_DEBUG(INFO, "Waiting for connections shutdown... (%d sec max)", DPR_TIMEOUT);
-		wait_until.tv_sec  = now.tv_sec + DPR_TIMEOUT;
+		TRACE_DEBUG(INFO, "Waiting for connections shutdown... (%d sec max)", DPR_TIMEOUT + 1);
+		wait_until.tv_sec  = now.tv_sec + DPR_TIMEOUT + 1;
 		wait_until.tv_nsec = now.tv_nsec;
 	}
 	
@@ -300,7 +278,7 @@ int fd_peer_fini()
 		CHECK_FCT_DO( pthread_rwlock_wrlock(&fd_g_peers_rw), /* continue */ );
 		for (li = fd_g_peers.next; li != &fd_g_peers; li = li->next) {
 			struct fd_peer * peer = (struct fd_peer *)li;
-			if (peer->p_hdr.info.pi_state == STATE_ZOMBIE) {
+			if (peer->p_hdr.info.runtime.pir_state == STATE_ZOMBIE) {
 				li = li->prev; /* to avoid breaking the loop */
 				fd_list_unlink(&peer->p_hdr.chain);
 				fd_list_insert_before(&purge, &peer->p_hdr.chain);
@@ -350,32 +328,28 @@ void fd_peer_dump(struct fd_peer * peer, int details)
 		return;
 	}
 
-	fd_log_debug(">  %s\t%s", STATE_STR(peer->p_hdr.info.pi_state), peer->p_hdr.info.pi_diamid);
+	fd_log_debug(">  %s\t%s", STATE_STR(peer->p_hdr.info.runtime.pir_state), peer->p_hdr.info.pi_diamid);
 	if (details > INFO) {
-		fd_log_debug("\t(rlm:%s)", peer->p_hdr.info.pi_realm);
-		if (peer->p_hdr.info.pi_prodname)
-			fd_log_debug("\t['%s' %u]", peer->p_hdr.info.pi_prodname, peer->p_hdr.info.pi_firmrev);
+		fd_log_debug("\t(rlm:%s)", peer->p_hdr.info.runtime.pir_realm ?: "(unknown)");
+		if (peer->p_hdr.info.runtime.pir_prodname)
+			fd_log_debug("\t['%s' %u]", peer->p_hdr.info.runtime.pir_prodname, peer->p_hdr.info.runtime.pir_firmrev);
 	}
 	fd_log_debug("\n");
 	if (details > FULL) {
 		/* Dump all info */
-		fd_log_debug("\tEntry origin : %s\n", peer->p_dbgorig);
-		fd_log_debug("\tFlags : %s%s%s%s%s - %s%s%s\n", 
-				peer->p_hdr.info.pi_flags.pro3 == PI_P3_DEFAULT ? "" :
-					(peer->p_hdr.info.pi_flags.pro3 == PI_P3_IP ? "IP." : "IPv6."),
-				peer->p_hdr.info.pi_flags.pro4 == PI_P4_DEFAULT ? "" :
-					(peer->p_hdr.info.pi_flags.pro4 == PI_P4_TCP ? "TCP." : "SCTP."),
-				peer->p_hdr.info.pi_flags.alg ? "PrefTCP." : "",
-				peer->p_hdr.info.pi_flags.sec == PI_SEC_DEFAULT ? "" :
-					(peer->p_hdr.info.pi_flags.sec == PI_SEC_NONE ? "IPSec." : "InbandTLS."),
-				peer->p_hdr.info.pi_flags.exp ? "Expire." : "",
-				peer->p_hdr.info.pi_flags.inband_none ? "InbandIPsec." : "",
-				peer->p_hdr.info.pi_flags.inband_tls ?  "InbandTLS." : "",
-				peer->p_hdr.info.pi_flags.relay ? "Relay (0xffffff)" : "No relay"
+		fd_log_debug("\tEntry origin : %s\n", peer->p_dbgorig?: "not set");
+		fd_log_debug("\tConfig flags : %s%s%s%s%s - %s%s%s\n", 
+				peer->p_hdr.info.config.pic_flags.pro3 == PI_P3_DEFAULT ? "" :
+					(peer->p_hdr.info.config.pic_flags.pro3 == PI_P3_IP ? "IP." : "IPv6."),
+				peer->p_hdr.info.config.pic_flags.pro4 == PI_P4_DEFAULT ? "" :
+					(peer->p_hdr.info.config.pic_flags.pro4 == PI_P4_TCP ? "TCP." : "SCTP."),
+				peer->p_hdr.info.config.pic_flags.alg ? "PrefTCP." : "",
+				peer->p_hdr.info.config.pic_flags.sec & PI_SEC_NONE ? "NoTLSok" :"",
+				peer->p_hdr.info.config.pic_flags.sec & PI_SEC_TLS_OLD ? "OldTLS" :"",
+				peer->p_hdr.info.config.pic_flags.exp ? "Expire." : "",
+				peer->p_hdr.info.config.pic_flags.persist ? "Persist." : ""
 				);
-		fd_log_debug("\tLifetime : %d sec\n", peer->p_hdr.info.pi_lft);
-		
-		TODO("Dump remaining useful information");
+		fd_log_debug("\tLifetime : %d sec\n", peer->p_hdr.info.config.pic_lft);
 	}
 }
 
@@ -443,8 +417,8 @@ int fd_peer_handle_newCER( struct msg ** cer, struct cnxctx ** cnx )
 		peer->p_flags.pf_responder = 1;
 		
 		/* Set this peer to expire on inactivity */
-		peer->p_hdr.info.pi_flags.exp 	= PI_EXP_INACTIVE;
-		peer->p_hdr.info.pi_lft		= 3600 * 3;	/* 3 hours without any message */
+		peer->p_hdr.info.config.pic_flags.exp 	= PI_EXP_INACTIVE;
+		peer->p_hdr.info.config.pic_lft		= 3600 * 3;	/* 3 hours without any message */
 		
 		/* Upgrade the lock to write lock */
 		CHECK_POSIX_DO( ret = pthread_rwlock_wrlock(&fd_g_peers_rw), goto out );

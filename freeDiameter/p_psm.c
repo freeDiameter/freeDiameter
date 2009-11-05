@@ -94,7 +94,7 @@ static int enter_open_state(struct fd_peer * peer)
 		CHECK_FCT_DO( (*peer->p_cb2)(&peer->p_hdr.info),
 			{
 				TRACE_DEBUG(FULL, "Validation failed, moving to state CLOSING");
-				peer->p_hdr.info.pi_state = STATE_CLOSING;
+				peer->p_hdr.info.runtime.pir_state = STATE_CLOSING;
 				fd_psm_terminate(peer);
 			} );
 		peer->p_cb2 = NULL;
@@ -122,6 +122,9 @@ static int enter_open_state(struct fd_peer * peer)
 	/* Start the thread to handle outgoing messages */
 	CHECK_FCT( fd_out_start(peer) );
 	
+	/* Update the expiry timer now */
+	CHECK_FCT( fd_p_expi_update(peer) );
+	
 	return 0;
 }
 static int leave_open_state(struct fd_peer * peer)
@@ -144,6 +147,32 @@ static int leave_open_state(struct fd_peer * peer)
 /************************************************************************/
 /*                      Helpers for state changes                       */
 /************************************************************************/
+
+/* Cleanup pending events in the peer */
+void fd_psm_events_free(struct fd_peer * peer)
+{
+	struct fd_event * ev;
+	/* Purge all events, and free the associated data if any */
+	while (fd_fifo_tryget( peer->p_events, &ev ) == 0) {
+		switch (ev->code) {
+			case FDEVP_CNX_ESTABLISHED: {
+				fd_cnx_destroy(ev->data);
+			}
+			break;
+			
+			case FDEVP_CNX_INCOMING: {
+				struct cnx_incoming * evd = ev->data;
+				CHECK_FCT_DO( fd_msg_free(evd->cer), /* continue */);
+				fd_cnx_destroy(evd->cnx);
+			}
+			default:
+				free(ev->data);
+		}
+		free(ev);
+	}
+}
+
+
 /* Change state */
 int fd_psm_change_state(struct fd_peer * peer, int new_state)
 {
@@ -151,7 +180,7 @@ int fd_psm_change_state(struct fd_peer * peer, int new_state)
 	
 	TRACE_ENTRY("%p %d(%s)", peer, new_state, STATE_STR(new_state));
 	CHECK_PARAMS( CHECK_PEER(peer) );
-	old = peer->p_hdr.info.pi_state;
+	old = peer->p_hdr.info.runtime.pir_state;
 	if (old == new_state)
 		return 0;
 	
@@ -164,14 +193,20 @@ int fd_psm_change_state(struct fd_peer * peer, int new_state)
 		CHECK_FCT( leave_open_state(peer) );
 	}
 	
-	peer->p_hdr.info.pi_state = new_state;
+	peer->p_hdr.info.runtime.pir_state = new_state;
 	
 	if (new_state == STATE_OPEN) {
 		CHECK_FCT( enter_open_state(peer) );
 	}
 	
-	if ((new_state == STATE_CLOSED) && (peer->p_hdr.info.pi_flags.persist == PI_PRST_NONE)) {
-		CHECK_FCT( fd_event_send(peer->p_events, FDEVP_TERMINATE, 0, NULL) );
+	if (new_state == STATE_CLOSED) {
+		/* Purge event list */
+		fd_psm_events_free(peer);
+		
+		/* If the peer is not persistant, we destroy it */
+		if (peer->p_hdr.info.config.pic_flags.persist == PI_PRST_NONE) {
+			CHECK_FCT( fd_event_send(peer->p_events, FDEVP_TERMINATE, 0, NULL) );
+		}
 	}
 	
 	return 0;
@@ -209,17 +244,23 @@ void fd_psm_next_timeout(struct fd_peer * peer, int add_random, int delay)
 /* Cleanup the peer */
 void fd_psm_cleanup(struct fd_peer * peer)
 {
-	/* Move to CLOSED state */
+	/* Move to CLOSED state: failover messages, stop OUT thread, unlink peer from active list */
 	CHECK_FCT_DO( fd_psm_change_state(peer, STATE_CLOSED), /* continue */ );
 	
-	/* Destroy the connection */
+	/* Destroy data */
+	CHECK_FCT_DO( fd_thr_term(&peer->p_ini_thr), /* continue */);
 	if (peer->p_cnxctx) {
 		fd_cnx_destroy(peer->p_cnxctx);
 		peer->p_cnxctx = NULL;
 	}
-	
-	/* What else ? */
-	TODO("...");
+	if (peer->p_initiator) {
+		fd_cnx_destroy(peer->p_initiator);
+		peer->p_initiator = NULL;
+	}
+	if (peer->p_receiver) {
+		fd_cnx_destroy(peer->p_receiver);
+		peer->p_receiver = NULL;
+	}
 	
 }
 
@@ -232,7 +273,7 @@ void cleanup_setstate(void * arg)
 {
 	struct fd_peer * peer = (struct fd_peer *)arg;
 	CHECK_PARAMS_DO( CHECK_PEER(peer), return );
-	peer->p_hdr.info.pi_state = STATE_ZOMBIE;
+	peer->p_hdr.info.runtime.pir_state = STATE_ZOMBIE;
 	return;
 }
 
@@ -257,7 +298,7 @@ static void * p_psm_th( void * arg )
 	}
 	
 	/* The state machine starts in CLOSED state */
-	peer->p_hdr.info.pi_state = STATE_CLOSED;
+	peer->p_hdr.info.runtime.pir_state = STATE_CLOSED;
 	
 	/* Wait that the PSM are authorized to start in the daemon */
 	CHECK_FCT_DO( fd_psm_waitstart(), goto psm_end );
@@ -273,16 +314,16 @@ psm_loop:
 	/* Get next event */
 	CHECK_FCT_DO( fd_event_timedget(peer->p_events, &peer->p_psm_timer, FDEVP_PSM_TIMEOUT, &event, &ev_sz, &ev_data), goto psm_end );
 	TRACE_DEBUG(FULL, "'%s'\t<-- '%s'\t(%p,%zd)\t'%s'",
-			STATE_STR(peer->p_hdr.info.pi_state),
+			STATE_STR(peer->p_hdr.info.runtime.pir_state),
 			fd_pev_str(event), ev_data, ev_sz,
 			peer->p_hdr.info.pi_diamid);
 
 	/* Now, the action depends on the current state and the incoming event */
 
 	/* The following states are impossible */
-	ASSERT( peer->p_hdr.info.pi_state != STATE_NEW );
-	ASSERT( peer->p_hdr.info.pi_state != STATE_ZOMBIE );
-	ASSERT( peer->p_hdr.info.pi_state != STATE_OPEN_HANDSHAKE ); /* because it exists only between two loops */
+	ASSERT( peer->p_hdr.info.runtime.pir_state != STATE_NEW );
+	ASSERT( peer->p_hdr.info.runtime.pir_state != STATE_ZOMBIE );
+	ASSERT( peer->p_hdr.info.runtime.pir_state != STATE_OPEN_HANDSHAKE ); /* because it exists only between two loops */
 
 	/* Purge invalid events */
 	if (!CHECK_PEVENT(event)) {
@@ -298,7 +339,7 @@ psm_loop:
 
 	/* Requests to terminate the peer object */
 	if (event == FDEVP_TERMINATE) {
-		switch (peer->p_hdr.info.pi_state) {
+		switch (peer->p_hdr.info.runtime.pir_state) {
 			case STATE_OPEN:
 			case STATE_REOPEN:
 				/* We cannot just close the conenction, we have to send a DPR first */
@@ -324,6 +365,13 @@ psm_loop:
 		struct msg * msg = NULL;
 		struct msg_hdr * hdr;
 		
+		/* If the current state does not allow receiving messages, just drop it */
+		if (peer->p_hdr.info.runtime.pir_state == STATE_CLOSED) {
+			TRACE_DEBUG(FULL, "Purging message in queue while in CLOSED state (%zdb)", ev_sz);
+			free(ev_data);
+			goto psm_loop;
+		}
+		
 		/* Parse the received buffer */
 		CHECK_FCT_DO( fd_msg_parse_buffer( (void *)&ev_data, ev_sz, &msg), 
 			{
@@ -338,13 +386,13 @@ psm_loop:
 		/* Extract the header */
 		CHECK_FCT_DO( fd_msg_hdr(msg, &hdr), goto psm_end );
 		
-		/* If it is an answer, associate with the request */
+		/* If it is an answer, associate with the request or drop */
 		if (!(hdr->msg_flags & CMD_FLAG_REQUEST)) {
 			struct msg * req;
 			/* Search matching request (same hbhid) */
 			CHECK_FCT_DO( fd_p_sr_fetch(&peer->p_sr, hdr->msg_hbhid, &req), goto psm_end );
 			if (req == NULL) {
-				fd_log_debug("Received a Diameter answer message with no corresponding sent request, discarding...\n");
+				fd_log_debug("Received a Diameter answer message with no corresponding sent request, discarding.\n");
 				fd_msg_dump_walk(NONE, msg);
 				fd_msg_free(msg);
 				goto psm_loop;
@@ -356,30 +404,44 @@ psm_loop:
 		
 		/* Now handle non-link-local messages */
 		if (fd_msg_is_routable(msg)) {
-			/* If we are not in OPEN state, discard the message */
-			if (peer->p_hdr.info.pi_state != STATE_OPEN) {
-				fd_log_debug("Received a routable message while not in OPEN state from peer '%s', discarded.\n", peer->p_hdr.info.pi_diamid);
-				fd_msg_dump_walk(NONE, msg);
-				fd_msg_free(msg);
-			} else {
-				/* We received a valid message, update the expiry timer */
-				CHECK_FCT_DO( fd_p_expi_update(peer), goto psm_end );
+			switch (peer->p_hdr.info.runtime.pir_state) {
+				/* To maximize compatibility -- should not be a security issue here */
+				case STATE_REOPEN:
+				case STATE_SUSPECT:
+				case STATE_CLOSING:
+					TRACE_DEBUG(FULL, "Accepted a message while not in OPEN state");
+				/* The standard situation : */
+				case STATE_OPEN:
+					/* We received a valid message, update the expiry timer */
+					CHECK_FCT_DO( fd_p_expi_update(peer), goto psm_end );
 
-				/* Set the message source and add the Route-Record */
-				CHECK_FCT_DO( fd_msg_source_set( msg, peer->p_hdr.info.pi_diamid, 1, fd_g_config->cnf_dict ), goto psm_end);
+					/* Set the message source and add the Route-Record */
+					CHECK_FCT_DO( fd_msg_source_set( msg, peer->p_hdr.info.pi_diamid, 1, fd_g_config->cnf_dict ), goto psm_end);
 
-				/* Requeue to the global incoming queue */
-				CHECK_FCT_DO(fd_fifo_post(fd_g_incoming, &msg), goto psm_end );
-				
-				/* Update the peer timer */
-				if (!peer->p_flags.pf_dw_pending) {
-					fd_psm_next_timeout(peer, 1, peer->p_hdr.info.pi_twtimer ?: fd_g_config->cnf_timer_tw);
-				}
+					/* Requeue to the global incoming queue */
+					CHECK_FCT_DO(fd_fifo_post(fd_g_incoming, &msg), goto psm_end );
+
+					/* Update the peer timer (only in OPEN state) */
+					if ((peer->p_hdr.info.runtime.pir_state == STATE_OPEN) && (!peer->p_flags.pf_dw_pending)) {
+						fd_psm_next_timeout(peer, 1, peer->p_hdr.info.config.pic_twtimer ?: fd_g_config->cnf_timer_tw);
+					}
+					break;
+					
+				/* In other states, we discard the message, it is either old or invalid to send it for the remote peer */
+				case STATE_WAITCNXACK:
+				case STATE_WAITCNXACK_ELEC:
+				case STATE_WAITCEA:
+				case STATE_CLOSED:
+				default:
+					/* In such case, just discard the message */
+					fd_log_debug("Received a routable message while not in OPEN state from peer '%s', discarded.\n", peer->p_hdr.info.pi_diamid);
+					fd_msg_dump_walk(NONE, msg);
+					fd_msg_free(msg);
 			}
 			goto psm_loop;
 		}
 		
-		/* Link-local message: They must be understood by our dictionary */
+		/* Link-local message: They must be understood by our dictionary, otherwise we return an error */
 		{
 			int ret;
 			CHECK_FCT_DO( ret = fd_msg_parse_or_error( &msg ),
@@ -395,25 +457,45 @@ psm_loop:
 				} );
 		}
 		
-		ASSERT( hdr->msg_appl == 0 ); /* buggy fd_msg_is_routable() ? */
-		
 		/* Handle the LL message and update the expiry timer appropriately */
 		switch (hdr->msg_code) {
-			case CC_DEVICE_WATCHDOG:
-				CHECK_FCT_DO( fd_p_dw_handle(&msg, peer), goto psm_end );
+			case CC_CAPABILITIES_EXCHANGE:
+				CHECK_FCT_DO( fd_p_ce_handle(&msg, peer), goto psm_end );
 				break;
 			
 			case CC_DISCONNECT_PEER:
 				CHECK_FCT_DO( fd_p_dp_handle(&msg, peer), goto psm_end );
 				break;
 			
-			case CC_CAPABILITIES_EXCHANGE:
-				CHECK_FCT_DO( fd_p_ce_handle(&msg, peer), goto psm_end );
+			case CC_DEVICE_WATCHDOG:
+				CHECK_FCT_DO( fd_p_dw_handle(&msg, peer), goto psm_end );
 				break;
 			
 			default:
 				/* Unknown / unexpected / invalid message */
-				TODO("Log, return error message if request");
+				fd_log_debug("Received an unknown local message from peer '%s', discarded.\n", peer->p_hdr.info.pi_diamid);
+				fd_msg_dump_walk(NONE, msg);
+				if (hdr->msg_flags & CMD_FLAG_REQUEST) {
+					do {
+						/* Reply with an error code */
+						CHECK_FCT_DO( fd_msg_new_answer_from_req ( fd_g_config->cnf_dict, &msg, MSGFL_ANSW_ERROR ), break );
+
+						/* Set the error code */
+						CHECK_FCT_DO( fd_msg_rescode_set(msg, "DIAMETER_INVALID_HDR_BITS", NULL, NULL, 1 ), break );
+
+						/* Send the answer */
+						CHECK_FCT_DO( fd_out_send(&msg, peer->p_cnxctx, peer), break );
+					} while (0);
+				} else {
+					/* We did ASK for it ??? */
+					fd_log_debug("Invalid PXY flag in header ?\n");
+				}
+				
+				/* Cleanup the message if not done */
+				if (msg) {
+					CHECK_FCT_DO( fd_msg_free(msg), /* continue */);
+					msg = NULL;
+				}
 		};
 		
 		/* At this point the message must have been fully handled already */
@@ -428,24 +510,37 @@ psm_loop:
 	
 	/* The connection object is broken */
 	if (event == FDEVP_CNX_ERROR) {
-		/* Cleanup the peer */
-		fd_psm_cleanup(peer);
-		
-		/* Mark the connection problem */
-		peer->p_flags.pf_cnx_pb = 1;
-		
-		/* Move to CLOSED */
-		CHECK_FCT_DO( fd_psm_change_state(peer, STATE_CLOSED), goto psm_end );
-		
-		/* Reset the timer */
-		fd_psm_next_timeout(peer, 1, peer->p_hdr.info.pi_tctimer ?: fd_g_config->cnf_timer_tc);
-		
-		/* Loop */
-		goto psm_loop;
+		switch (peer->p_hdr.info.runtime.pir_state) {
+			case STATE_WAITCNXACK_ELEC:
+				TODO("Reply CEA on the receiver side and go to OPEN state");
+				goto psm_loop;
+			
+			case STATE_OPEN:
+			case STATE_REOPEN:
+			case STATE_WAITCNXACK:
+			case STATE_WAITCEA:
+			case STATE_SUSPECT:
+			default:
+				/* Mark the connection problem */
+				peer->p_flags.pf_cnx_pb = 1;
+				
+			case STATE_CLOSING:
+				/* Cleanup the peer */
+				fd_psm_cleanup(peer);
+
+				/* Reset the timer */
+				fd_psm_next_timeout(peer, 1, peer->p_hdr.info.config.pic_tctimer ?: fd_g_config->cnf_timer_tc);
+				
+			case STATE_CLOSED:
+				/* Go to the next event */
+				goto psm_loop;
+		}
 	}
 	
 	/* The connection notified a change in endpoints */
 	if (event == FDEVP_CNX_EP_CHANGE) {
+		/* We actually don't care if we are in OPEN state here... */
+		
 		/* Cleanup the remote LL and primary addresses */
 		CHECK_FCT_DO( fd_ep_filter( &peer->p_hdr.info.pi_endpoints, EP_FL_CONF | EP_FL_DISC | EP_FL_ADV ), /* ignore the error */);
 		CHECK_FCT_DO( fd_ep_clearflags( &peer->p_hdr.info.pi_endpoints, EP_FL_PRIMARY ), /* ignore the error */);
@@ -453,8 +548,10 @@ psm_loop:
 		/* Get the new ones */
 		CHECK_FCT_DO( fd_cnx_getendpoints(peer->p_cnxctx, NULL, &peer->p_hdr.info.pi_endpoints), /* ignore the error */);
 		
+		/* We do not support local endpoints change currently, but it could be added here if needed */
+		
 		if (TRACE_BOOL(ANNOYING)) {
-			fd_log_debug("New remote endpoint(s):\n");
+			TRACE_DEBUG(ANNOYING, "New remote endpoint(s):" );
 			fd_ep_dump(6, &peer->p_hdr.info.pi_endpoints);
 		}
 		
@@ -487,14 +584,16 @@ psm_loop:
 	
 	/* The timeout for the current state has been reached */
 	if (event == FDEVP_PSM_TIMEOUT) {
-		switch (peer->p_hdr.info.pi_state) {
+		switch (peer->p_hdr.info.runtime.pir_state) {
 			case STATE_OPEN:
 			case STATE_REOPEN:
 				CHECK_FCT_DO( fd_p_dw_timeout(peer), goto psm_end );
 				break;
 				
 			case STATE_CLOSED:
-				TODO("Initiate a new connection");
+				CHECK_FCT_DO( fd_psm_change_state(peer, STATE_WAITCNXACK), goto psm_end );
+				fd_psm_next_timeout(peer, 0, CNX_TIMEOUT);
+				CHECK_FCT_DO( fd_p_cnx_init(peer), goto psm_end );
 				break;
 				
 			case STATE_CLOSING:
@@ -503,8 +602,7 @@ psm_loop:
 			case STATE_WAITCEA:
 				/* Destroy the connection, restart the timer to a new connection attempt */
 				fd_psm_cleanup(peer);
-				fd_psm_next_timeout(peer, 1, peer->p_hdr.info.pi_tctimer ?: fd_g_config->cnf_timer_tc);
-				CHECK_FCT_DO( fd_psm_change_state(peer, STATE_CLOSED), goto psm_end );
+				fd_psm_next_timeout(peer, 1, peer->p_hdr.info.config.pic_tctimer ?: fd_g_config->cnf_timer_tc);
 				break;
 				
 			case STATE_WAITCNXACK_ELEC:
@@ -514,7 +612,7 @@ psm_loop:
 	}
 	
 	/* Default action : the handling has not yet been implemented. [for debug only] */
-	TODO("Missing handler in PSM : '%s'\t<-- '%s'", STATE_STR(peer->p_hdr.info.pi_state), fd_pev_str(event));
+	TODO("Missing handler in PSM : '%s'\t<-- '%s'", STATE_STR(peer->p_hdr.info.runtime.pir_state), fd_pev_str(event));
 	if (event == FDEVP_PSM_TIMEOUT) {
 		/* We have not handled timeout in this state, let's postpone next alert */
 		fd_psm_next_timeout(peer, 0, 60);
@@ -524,6 +622,7 @@ psm_loop:
 
 psm_end:
 	fd_psm_cleanup(peer);
+	CHECK_FCT_DO( fd_fifo_del(&peer->p_events), /* continue */ );
 	pthread_cleanup_pop(1); /* set STATE_ZOMBIE */
 	peer->p_psm = (pthread_t)NULL;
 	pthread_detach(pthread_self());
@@ -540,7 +639,10 @@ int fd_psm_begin(struct fd_peer * peer )
 	TRACE_ENTRY("%p", peer);
 	
 	/* Check the peer and state are OK */
-	CHECK_PARAMS( CHECK_PEER(peer) && (peer->p_hdr.info.pi_state == STATE_NEW) );
+	CHECK_PARAMS( CHECK_PEER(peer) && (peer->p_hdr.info.runtime.pir_state == STATE_NEW) );
+	
+	/* Create the FIFO for events */
+	CHECK_FCT( fd_fifo_new(&peer->p_events) );
 	
 	/* Create the PSM controler thread */
 	CHECK_POSIX( pthread_create( &peer->p_psm, NULL, p_psm_th, peer ) );
@@ -555,7 +657,7 @@ int fd_psm_terminate(struct fd_peer * peer )
 	TRACE_ENTRY("%p", peer);
 	CHECK_PARAMS( CHECK_PEER(peer) );
 	
-	if (peer->p_hdr.info.pi_state != STATE_ZOMBIE) {
+	if (peer->p_hdr.info.runtime.pir_state != STATE_ZOMBIE) {
 		CHECK_FCT( fd_event_send(peer->p_events, FDEVP_TERMINATE, 0, NULL) );
 	} else {
 		TRACE_DEBUG(FULL, "Peer '%s' was already terminated", peer->p_hdr.info.pi_diamid);
@@ -571,21 +673,13 @@ void fd_psm_abord(struct fd_peer * peer )
 	/* Cancel PSM thread */
 	CHECK_FCT_DO( fd_thr_term(&peer->p_psm), /* continue */ );
 	
-	/* Cancel the OUT thread */
-	CHECK_FCT_DO( fd_out_stop(peer), /* continue */ );
+	/* Cleanup the data */
+	fd_psm_cleanup(peer);
 	
-	/* Cleanup the connection */
-	if (peer->p_cnxctx) {
-		fd_cnx_destroy(peer->p_cnxctx);
-	}
+	/* Destroy the event list */
+	CHECK_FCT_DO( fd_fifo_del(&peer->p_events), /* continue */ );
 	
-	/* Failover the messages */
-	fd_peer_failover_msg(peer);
-	
-	/* Empty the events list, this might leak some memory, but we only do it on exit, so... */
-	fd_event_destroy(&peer->p_events, free);
-	
-	/* More cleanups are performed in fd_peer_free */
+	/* Remaining cleanups are performed in fd_peer_free */
 	return;
 }
 

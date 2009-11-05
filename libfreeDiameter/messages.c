@@ -1062,8 +1062,8 @@ int fd_msg_is_routable ( struct msg * msg )
 	CHECK_PARAMS_DO(  CHECK_MSG(msg),  return 0 /* pretend the message is not routable */ );
 	
 	if ( ! msg->msg_routable ) {
-		/* To define if a message is routable, we rely on the "PXY" command flag yet. */
-		msg->msg_routable = (msg->msg_public.msg_flags & CMD_FLAG_PROXIABLE) ? 1 : 2;
+		/* To define if a message is routable, we rely on the "PXY" flag (for application 0). */
+		msg->msg_routable = ((msg->msg_public.msg_appl != 0) || (msg->msg_public.msg_flags & CMD_FLAG_PROXIABLE)) ? 1 : 2;
 		
 		/* Note : the 'real' criteria according to the Diameter I-D is that the message is 
 		 routable if and only if the "Destination-Realm" AVP is required by the command ABNF.

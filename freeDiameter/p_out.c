@@ -139,7 +139,7 @@ int fd_out_send(struct msg ** msg, struct cnxctx * cnx, struct fd_peer * peer)
 	TRACE_ENTRY("%p %p %p", msg, cnx, peer);
 	CHECK_PARAMS( msg && *msg && (cnx || (peer && peer->p_cnxctx)));
 	
-	if (peer && (peer->p_hdr.info.pi_state == STATE_OPEN)) {
+	if (peer && (peer->p_hdr.info.runtime.pir_state == STATE_OPEN)) {
 		/* Normal case: just queue for the out thread to pick it up */
 		CHECK_FCT( fd_fifo_post(peer->p_tosend, msg) );
 		

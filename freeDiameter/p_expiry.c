@@ -60,10 +60,10 @@ static void * gc_th_fct(void * arg)
 		for (li = fd_g_peers.next; li != &fd_g_peers; li = li->next) {
 			struct fd_peer * peer = (struct fd_peer *)li;
 			
-			if (peer->p_hdr.info.pi_state != STATE_ZOMBIE)
+			if (peer->p_hdr.info.runtime.pir_state != STATE_ZOMBIE)
 				continue;
 			
-			if (peer->p_hdr.info.pi_flags.persist == PI_PRST_ALWAYS)
+			if (peer->p_hdr.info.config.pic_flags.persist == PI_PRST_ALWAYS)
 				continue; /* This peer was not supposed to terminate, keep it in the list for debug */
 			
 			/* Ok, the peer was expired, let's remove it */
@@ -157,13 +157,12 @@ int fd_p_expi_fini(void)
 {
 	CHECK_FCT_DO( fd_thr_term(&exp_thr), );
 	CHECK_POSIX( pthread_mutex_lock(&exp_mtx) );
-	
 	while (!FD_IS_LIST_EMPTY(&exp_list)) {
 		struct fd_peer * peer = (struct fd_peer *)(exp_list.next->o);
 		fd_list_unlink(&peer->p_expiry );
 	}
-	
 	CHECK_POSIX( pthread_mutex_unlock(&exp_mtx) );
+	
 	CHECK_FCT_DO( fd_thr_term(&gc_thr), );
 	return 0;
 }
@@ -179,12 +178,12 @@ int fd_p_expi_update(struct fd_peer * peer )
 	fd_list_unlink(&peer->p_expiry );
 	
 	/* if peer expires */
-	if (peer->p_hdr.info.pi_flags.exp) {
+	if (peer->p_hdr.info.config.pic_flags.exp) {
 		struct fd_list * li;
 		
 		/* update the p_exp_timer value */
 		CHECK_SYS(  clock_gettime(CLOCK_REALTIME, &peer->p_exp_timer)  );
-		peer->p_exp_timer.tv_sec += peer->p_hdr.info.pi_lft;
+		peer->p_exp_timer.tv_sec += peer->p_hdr.info.config.pic_lft;
 		
 		/* add to the expiry list in appropriate position (probably around the end) */
 		for (li = exp_list.prev; li != &exp_list; li = li->prev) {

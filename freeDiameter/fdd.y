@@ -315,9 +315,8 @@ extconf:		/* empty */
 			
 connpeer:		{
 				memset(&fddpi, 0, sizeof(fddpi));
+				fddpi.config.pic_flags.persist = PI_PRST_ALWAYS;
 				fd_list_init( &fddpi.pi_endpoints, NULL );
-				fd_list_init( &fddpi.pi_apps, NULL );
-				fddpi.pi_flags.persist = PI_PRST_ALWAYS;
 			}
 			CONNPEER '=' QSTRING peerinfo ';'
 			{
@@ -327,7 +326,8 @@ connpeer:		{
 					
 				/* Now destroy any content in the structure */
 				free(fddpi.pi_diamid);
-				free(fddpi.pi_sec_data.priority);
+				free(fddpi.config.pic_realm);
+				free(fddpi.config.pic_priority);
 				while (!FD_IS_LIST_EMPTY(&fddpi.pi_endpoints)) {
 					struct fd_list * li = fddpi.pi_endpoints.next;
 					fd_list_unlink(li);
@@ -343,21 +343,21 @@ peerinfo:		/* empty */
 peerparams:		/* empty */
 			| peerparams NOIP ';'
 			{
-				if ((conf->cnf_flags.no_ip6) || (fddpi.pi_flags.pro3 == PI_P3_IP)) { 
+				if ((conf->cnf_flags.no_ip6) || (fddpi.config.pic_flags.pro3 == PI_P3_IP)) { 
 					yyerror (&yylloc, conf, "No_IP conflicts with a No_IPv6 directive.");
 					YYERROR;
 				}
 				got_peer_noip++;
-				fddpi.pi_flags.pro3 = PI_P3_IPv6;
+				fddpi.config.pic_flags.pro3 = PI_P3_IPv6;
 			}
 			| peerparams NOIP6 ';'
 			{
-				if ((conf->cnf_flags.no_ip4) || (fddpi.pi_flags.pro3 == PI_P3_IPv6)) { 
+				if ((conf->cnf_flags.no_ip4) || (fddpi.config.pic_flags.pro3 == PI_P3_IPv6)) { 
 					yyerror (&yylloc, conf, "No_IPv6 conflicts with a No_IP directive.");
 					YYERROR;
 				}
 				got_peer_noipv6++;
-				fddpi.pi_flags.pro3 = PI_P3_IP;
+				fddpi.config.pic_flags.pro3 = PI_P3_IP;
 			}
 			| peerparams NOTCP ';'
 			{
@@ -365,59 +365,55 @@ peerparams:		/* empty */
 					yyerror (&yylloc, conf, "No_TCP cannot be specified in daemon compiled with DISABLE_SCTP option.");
 					YYERROR;
 				#endif
-				if ((conf->cnf_flags.no_sctp) || (fddpi.pi_flags.pro4 == PI_P4_TCP)) { 
+				if ((conf->cnf_flags.no_sctp) || (fddpi.config.pic_flags.pro4 == PI_P4_TCP)) { 
 					yyerror (&yylloc, conf, "No_TCP conflicts with a No_SCTP directive.");
 					YYERROR;
 				}
 				got_peer_notcp++;
-				fddpi.pi_flags.pro4 = PI_P4_SCTP;
+				fddpi.config.pic_flags.pro4 = PI_P4_SCTP;
 			}
 			| peerparams NOSCTP ';'
 			{
-				if ((conf->cnf_flags.no_tcp) || (fddpi.pi_flags.pro4 == PI_P4_SCTP)) { 
+				if ((conf->cnf_flags.no_tcp) || (fddpi.config.pic_flags.pro4 == PI_P4_SCTP)) { 
 					yyerror (&yylloc, conf, "No_SCTP conflicts with a No_TCP directive.");
 					YYERROR;
 				}
 				got_peer_nosctp++;
-				fddpi.pi_flags.pro4 = PI_P4_TCP;
+				fddpi.config.pic_flags.pro4 = PI_P4_TCP;
 			}
 			| peerparams PREFERTCP ';'
 			{
-				fddpi.pi_flags.alg = PI_ALGPREF_TCP;
+				fddpi.config.pic_flags.alg = PI_ALGPREF_TCP;
 			}
 			| peerparams OLDTLS ';'
 			{
-				if (fddpi.pi_flags.sec == PI_SEC_NONE) { 
-					yyerror (&yylloc, conf, "ConnectPeer: TLS_old_method conflicts with No_TLS.");
-					YYERROR;
-				}
-				fddpi.pi_flags.sec = PI_SEC_TLS_OLD;
+				fddpi.config.pic_flags.sec |= PI_SEC_TLS_OLD;
 			}
 			| peerparams NOTLS ';'
 			{
-				if (fddpi.pi_flags.sec == PI_SEC_TLS_OLD) { 
-					yyerror (&yylloc, conf, "ConnectPeer: No_TLS conflicts with TLS_old_method.");
-					YYERROR;
-				}
-				fddpi.pi_flags.sec = PI_SEC_NONE;
+				fddpi.config.pic_flags.sec |= PI_SEC_NONE;
+			}
+			| peerparams REALM '=' QSTRING ';'
+			{
+				fddpi.config.pic_realm = $4;
 			}
 			| peerparams PORT '=' INTEGER ';'
 			{
 				CHECK_PARAMS_DO( ($4 > 0) && ($4 < 1<<16),
-					{ yyerror (&yylloc, conf, "Invalid value"); YYERROR; } );
-				fddpi.pi_port = (uint16_t)$4;
+					{ yyerror (&yylloc, conf, "Invalid port value"); YYERROR; } );
+				fddpi.config.pic_port = (uint16_t)$4;
 			}
 			| peerparams TCTIMER '=' INTEGER ';'
 			{
-				fddpi.pi_tctimer = $4;
-			}
-			| peerparams TLS_PRIO '=' QSTRING ';'
-			{
-				fddpi.pi_sec_data.priority = $4;
+				fddpi.config.pic_tctimer = $4;
 			}
 			| peerparams TWTIMER '=' INTEGER ';'
 			{
-				fddpi.pi_twtimer = $4;
+				fddpi.config.pic_twtimer = $4;
+			}
+			| peerparams TLS_PRIO '=' QSTRING ';'
+			{
+				fddpi.config.pic_priority = $4;
 			}
 			| peerparams CONNTO '=' QSTRING ';'
 			{

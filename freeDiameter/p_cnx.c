@@ -35,35 +35,50 @@
 
 #include "fD.h"
 
-/* This file contains code to handle Capabilities Exchange messages (CER and CEA) */
+/* This file contains code used by a peer state machine to initiate a connection to remote peer */
 
-int fd_p_ce_handle(struct msg ** msg, struct fd_peer * peer)
+
+/* The thread that attempts the connection */
+static void * connect_thr(void * arg)
 {
-	TODO("Handle depending on CER or CEA and peer state");
+	struct fd_peer * peer = arg;
+	struct cnxctx * cnx = NULL;
 	
-	return ENOTSUP;
+	
+	
+	/* Use the flags in the peer to select the protocol */
+	
+	TODO("loop on fd_cnx_cli_connect_tcp or fd_cnx_cli_connect_sctp");
+	
+	
+	/* Now, we have an established connection in cnx */
+	
+	pthread_cleanup_push((void *)fd_cnx_destroy, cnx);
+	
+	/* Handshake if needed (secure port) */
+	
+	
+	
+	/* Upon success, generate FDEVP_CNX_ESTABLISHED */
+	CHECK_FCT_DO( fd_event_send(peer->p_events, FDEVP_CNX_ESTABLISHED, 0, cnx), goto fatal_error );
+	pthread_cleanup_pop(0);
+	
+	return NULL;
+fatal_error:
+	/* Cleanup the connection */
+	fd_cnx_destroy(cnx);
+
+	/* Generate a termination event */
+	CHECK_FCT_DO(fd_event_send(fd_g_config->cnf_main_ev, FDEV_TERMINATE, 0, NULL), );
+	
+	return NULL;
 }
 
-int fd_p_ce_handle_newCER(struct msg ** msg, struct fd_peer * peer, struct cnxctx ** cnx, int valid)
+
+/* Initiate a connection attempt to a remote peer */
+int fd_p_cnx_init(struct fd_peer * peer)
 {
-	switch (peer->p_hdr.info.runtime.pir_state) {
-		case STATE_CLOSED:
-			TODO("Handle the CER, validate the peer if needed (and set expiry), set the alt_fifo in the connection, reply a CEA, eventually handshake, move to OPEN or REOPEN state");
-			/* In case of error : DIAMETER_UNKNOWN_PEER */
-			break;
-
-		case STATE_WAITCNXACK:
-		case STATE_WAITCEA:
-			TODO("Election");
-			break;
-
-		default:
-			TODO("Reply with error CEA");
-			TODO("Close the connection");
-			/* reject_incoming_connection */
-
-	}
-				
-	
-	return ENOTSUP;
+	/* Start the connect thread */
+	CHECK_FCT( pthread_create(&peer->p_ini_thr, NULL, connect_thr, peer) );
+	return 0;
 }

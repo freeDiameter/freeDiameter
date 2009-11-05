@@ -118,14 +118,12 @@ struct fd_peer { /* The "real" definition of the peer structure */
 	
 	/* Some flags influencing the peer state machine */
 	struct {
-		unsigned pf_responder	: 1;	/* The local peer is responder on the connection */
+		unsigned pf_responder	: 1;	/* The peer has been created to handle incoming connection */
 		
 		unsigned pf_dw_pending 	: 1;	/* A DWR message was sent and not answered yet */
 		
 		unsigned pf_cnx_pb	: 1;	/* The peer was disconnected because of watchdogs; must exchange 3 watchdogs before putting back to normal */
 		unsigned pf_reopen_cnt	: 2;	/* remaining DW to be exchanged after re-established connection */
-		
-		/* to be completed */
 		
 	}		 p_flags;
 	
@@ -143,6 +141,14 @@ struct fd_peer { /* The "real" definition of the peer structure */
 	
 	/* Sent requests (for fallback), list of struct sentreq ordered by hbh */
 	struct sr_list	 p_sr;
+	
+	/* Data for transitional states before the peer is in OPEN state */
+	struct {
+		struct cnxctx * p_initiator;	/* Connection before CEA is received */
+		struct cnxctx * p_receiver;	/* Only used in case of election */
+		pthread_t	p_ini_thr;
+	};
+		
 	
 	/* connection context: socket and related information */
 	struct cnxctx	*p_cnxctx;
@@ -175,8 +181,11 @@ enum {
 	/* Endpoints of a connection have been changed (multihomed SCTP). */
 	,FDEVP_CNX_EP_CHANGE
 	
-	/* A new connection has been established (data contains the appropriate info) */
+	/* A new connection (with a CER) has been received */
 	,FDEVP_CNX_INCOMING
+	
+	/* A new connection has been established to the remote peer (event data is the cnxctx object) */
+	,FDEVP_CNX_ESTABLISHED
 	
 	/* The PSM state is expired */
 	,FDEVP_PSM_TIMEOUT
@@ -195,6 +204,7 @@ const char * fd_pev_str(int event)			\
 		case_str(FDEVP_CNX_ERROR);		\
 		case_str(FDEVP_CNX_EP_CHANGE);		\
 		case_str(FDEVP_CNX_INCOMING);		\
+		case_str(FDEVP_CNX_ESTABLISHED);	\
 		case_str(FDEVP_PSM_TIMEOUT);		\
 	}						\
 	TRACE_DEBUG(FULL, "Unknown event : %d", event);	\

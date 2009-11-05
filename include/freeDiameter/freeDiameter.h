@@ -276,68 +276,75 @@ extern const char *peer_state_str[];
 #define STATE_STR(state) \
 	(((unsigned)(state)) <= STATE_MAX ? peer_state_str[((unsigned)(state)) ] : "<Invalid>")
 
-/* Information about a remote peer. Same structure is used for creating a new entry, but not all fields are meaningful in that case */
+/* Information about a remote peer */
 struct peer_info {
 	
-	char * 		pi_diamid;	/* UTF-8, \0 terminated. The Diameter Identity of the remote peer */
-	char * 		pi_realm;	/* Its realm, as received in CER/CEA exchange. */
+	char * 		pi_diamid;	/* UTF-8, \0 terminated. The Diameter Identity of the remote peer. */
 	
 	struct {
-		#define PI_P3_DEFAULT	0	/* Use the default L3 protocol configured for the host */
-		#define PI_P3_IP	1	/* Use only IP to connect to this peer */
-		#define PI_P3_IPv6	2	/* resp, IPv6 */
-		unsigned	pro3 :2;
-		
-		#define PI_P4_DEFAULT	0	/* Use the default L4 proto configured for the host */
-		#define PI_P4_TCP	1	/* Only use TCP */
-		#define PI_P4_SCTP	2	/* Only use SCTP */
-		unsigned	pro4 :2;
-		
-		#define PI_ALGPREF_SCTP	0	/* SCTP is initially attempted */
-		#define PI_ALGPREF_TCP	1	/* TCP is initially attempted */
-		unsigned	alg :1;
-		
-		#define PI_SEC_DEFAULT	0	/* New TLS security (dedicated port protecting also CER/CEA) */
-		#define PI_SEC_NONE	1	/* Transparent security with this peer (IPsec) */
-		#define PI_SEC_TLS_OLD	2	/* Old TLS security (inband on default port) */
-		unsigned	sec :2;
-		
-		#define PI_EXP_NONE	0	/* the peer entry does not expire */
-		#define PI_EXP_INACTIVE	1	/* the peer entry expires (i.e. is deleted) after pi_lft seconds without activity */
-		unsigned	exp :1;
-		
-		#define PI_PRST_NONE	0	/* the peer entry is deleted after disconnection / error */
-		#define PI_PRST_ALWAYS	1	/* the peer entry is persistant (will be kept as ZOMBIE in case of error) */
-		unsigned	persist :1;
-		
-		unsigned	inband_none :1;	/* This is only meaningful with pi_flags.sec == 3 */
-		unsigned	inband_tls  :1;	/* This is only meaningful with pi_flags.sec == 3 */
-		
-		unsigned	relay :1;	/* The remote peer advertized the relay application */
+		struct {
+			#define PI_P3_DEFAULT	0	/* Use any available protocol */
+			#define PI_P3_IP	1	/* Use only IP to connect to this peer */
+			#define PI_P3_IPv6	2	/* resp, IPv6 */
+			unsigned	pro3 :2;
 
-	} 		pi_flags;	/* Some flags */
+			#define PI_P4_DEFAULT	0	/* Attempt any available protocol */
+			#define PI_P4_TCP	1	/* Only use TCP */
+			#define PI_P4_SCTP	2	/* Only use SCTP */
+			unsigned	pro4 :2;
+
+			#define PI_ALGPREF_SCTP	0	/* SCTP is  attempted first (default) */
+			#define PI_ALGPREF_TCP	1	/* TCP is attempted first */
+			unsigned	alg :1;
+
+			#define PI_SEC_DEFAULT	0	/* New TLS security (handshake after connection, protecting also CER/CEA) */
+			#define PI_SEC_NONE	1	/* Transparent security with this peer (IPsec) */
+			#define PI_SEC_TLS_OLD	2	/* Old TLS security (use Inband-Security-Id AVP during CER/CEA) */
+			unsigned	sec :2;		/* Set sec = 3 to authorize use of (Inband-Security-Id == NONE) with this peer, sec = 2 only authorizing TLS */
+
+			#define PI_EXP_NONE	0	/* the peer entry does not expire */
+			#define PI_EXP_INACTIVE	1	/* the peer entry expires (i.e. is deleted) after pi_lft seconds without activity */
+			unsigned	exp :1;
+
+			#define PI_PRST_NONE	0	/* the peer entry is deleted after disconnection / error */
+			#define PI_PRST_ALWAYS	1	/* the peer entry is persistant (will be kept as ZOMBIE in case of error) */
+			unsigned	persist :1;
+			
+		}		pic_flags;	/* Flags influencing the connection to the remote peer */
+		
+		char * 		pic_realm;	/* If configured, the daemon will match the received realm in CER/CEA matches this. */
+		uint16_t	pic_port; 	/* port to connect to. 0: default. */
+		
+		uint32_t 	pic_lft;	/* lifetime of this peer when inactive (see pic_flags.exp definition) */
+		int		pic_tctimer; 	/* use this value for TcTimer instead of global, if != 0 */
+		int		pic_twtimer; 	/* use this value for TwTimer instead of global, if != 0 */
+		
+		char *		pic_priority;	/* Priority string for GnuTLS if we don't use the default */
+		
+	} config;	/* Configured data (static for this peer entry) */
 	
-	/* Additional parameters */
-	uint32_t 	pi_lft;		/* lifetime of this peer when inactive (see pi_flags.exp definition) */
-	uint16_t	pi_port; 	/* port to connect to. 0: default. */
-	int		pi_tctimer; 	/* use this value for TcTimer instead of global, if != 0 */
-	int		pi_twtimer; 	/* use this value for TwTimer instead of global, if != 0 */
+	struct {
+		
+		enum peer_state	pir_state;	/* Current state of the peer in the state machine */
+		
+		char * 		pir_realm;	/* The received realm in CER/CEA. */
+		
+		uint32_t	pir_vendorid;	/* Content of the Vendor-Id AVP, or 0 by default */
+		uint32_t	pir_orstate;	/* Origin-State-Id value */
+		char *		pir_prodname;	/* copy of UTF-8 Product-Name AVP (\0 terminated) */
+		uint32_t	pir_firmrev;	/* Content of the Firmware-Revision AVP */
+		int		pir_relay;	/* The remote peer advertized the relay application */
+		struct fd_list	pir_apps;	/* applications advertised by the remote peer, except relay (pi_flags.relay) */
+		
+		int		pir_proto;	/* The L4 protocol currently used with the peer (IPPROTO_TCP or IPPROTO_SCTP) */
+		const gnutls_datum_t 	*pir_cert_list; 	/* The (valid) credentials that the peer has presented, or NULL if TLS is not used */
+								/* This is inspired from http://www.gnu.org/software/gnutls/manual/gnutls.html#ex_003ax509_002dinfo 
+								   see there for example of using this data */
+		unsigned int 	pir_cert_list_size;		/* Number of certificates in the list */
+		
+	} runtime;	/* Data populated after connection, may change between 2 connections -- not used by fd_peer_add */
 	
 	struct fd_list	pi_endpoints;	/* Endpoint(s) of the remote peer (configured, discovered, or advertized). list of struct fd_endpoint. DNS resolved if empty. */
-	
-	/* The remaining information must not be modified, and is not used for peer creation */
-	enum peer_state	pi_state;
-	uint32_t	pi_vendorid;	/* Content of the Vendor-Id AVP, or 0 by default */
-	uint32_t	pi_orstate;	/* Origin-State-Id value */
-	char *		pi_prodname;	/* copy of UTF-8 Product-Name AVP (\0 terminated) */
-	uint32_t	pi_firmrev;	/* Content of the Firmware-Revision AVP */
-	struct fd_list	pi_apps;	/* applications advertised by the remote peer, except relay (pi_flags.relay) */
-	struct {
-		char			*priority;	/* In case the default priority is not appropriate */
-		/* This is inspired from http://www.gnu.org/software/gnutls/manual/gnutls.html#ex_003ax509_002dinfo see there for example of using this data */
-		const gnutls_datum_t 	*cert_list; 	/* The (valid) credentials that the peer has presented */
-		unsigned int 		 cert_list_size;/* Number of certificates in the list */
-	} 		pi_sec_data;
 };
 
 struct peer_hdr {
