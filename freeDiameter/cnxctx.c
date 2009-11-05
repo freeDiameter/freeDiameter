@@ -1143,6 +1143,8 @@ void fd_cnx_destroy(struct cnxctx * conn)
 	/* Shut the connection down */
 	if (conn->cc_socket > 0) {
 		shutdown(conn->cc_socket, SHUT_RDWR);
+		close(conn->cc_socket);
+		conn->cc_socket = -1;
 	}
 	
 	/* Empty and destroy FIFO list */

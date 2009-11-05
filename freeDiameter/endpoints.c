@@ -93,6 +93,27 @@ int fd_ep_filter( struct fd_list * list, uint32_t flags )
 	return 0;
 }
 
+/* Keep only endpoints of the same family as af */
+int fd_ep_filter_family( struct fd_list * list, int af )
+{
+	struct fd_list * li;
+	
+	TRACE_ENTRY("%p %d", list, af);
+	CHECK_PARAMS(list);
+	
+	for (li = list->next; li != list; li = li->next) {
+		struct fd_endpoint * ep = (struct fd_endpoint *)li;
+		
+		if (ep->sa.sa_family != af) {
+			li = li->prev;
+			fd_list_unlink(&ep->chain);
+			free(ep);
+		}
+	}
+	
+	return 0;
+}
+
 /* Reset the given flag(s) from all items in the list */
 int fd_ep_clearflags( struct fd_list * list, uint32_t flags )
 {

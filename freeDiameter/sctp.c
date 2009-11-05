@@ -640,23 +640,71 @@ int fd_sctp_listen( int sock )
 	return 0;
 }
 
+/* Add addresses from the list that match the flags to the array */
+static int add_addresses_from_list_mask(uint8_t ** array, int * count, size_t * offset, uint16_t port, struct fd_list * list, uint32_t mask, uint32_t val)
+{
+	size_t sz;
+	struct fd_list * li;
+	union {
+		uint8_t *buf;
+		sSA4	*sin;
+		sSA6	*sin6;
+	} ptr;
+	
+	for (li = list->next; li != list; li = li->next) {
+		struct fd_endpoint * ep = (struct fd_endpoint *) li;
+		
+		/* Do the flag match ? */
+		if ((val & mask) != (ep->flags & mask))
+			continue;
+		
+		/* We add this endpoint at the end of array */
+		(*count)++;
+		
+		/* Size of the new SA we are adding (array may contain a mix of sockaddr_in and sockaddr_in6) */
+#ifndef SCTP_USE_MAPPED_ADDRESSES
+		if (ep->sa.sa_family == AF_INET6)
+#else /* SCTP_USE_MAPPED_ADDRESSES */
+		if (family == AF_INET6)
+#endif /* SCTP_USE_MAPPED_ADDRESSES */
+			sz = sizeof(sSA6);
+		else
+			sz = sizeof(sSA4);
+		
+		/* augment array to contain the additional info */
+		CHECK_MALLOC( *array = realloc(*array, (*offset) + sz) );
+
+		ptr.buf = *array + *offset; /* place of the new SA */
+		(*offset) += sz; /* update to end of sar */
+			
+		if (sz == sizeof(sSA4)) {
+			memcpy(ptr.buf, &ep->sin, sz);
+			ptr.sin->sin_port = port;
+		} else {
+			if (ep->sa.sa_family == AF_INET) { /* We must map the address */ 
+				memset(ptr.buf, 0, sz);
+				ptr.sin6->sin6_family = AF_INET6;
+				IN6_ADDR_V4MAP( &ptr.sin6->sin6_addr.s6_addr, ep->sin.sin_addr.s_addr );
+			} else {
+				memcpy(ptr.sin6, &ep->sin6, sz);
+			}
+			ptr.sin6->sin6_port = port;
+		}
+	}
+	
+	return 0;
+}
+
 /* Create a client socket and connect to remote server */
 int fd_sctp_client( int *sock, int no_ip6, uint16_t port, struct fd_list * list )
 {
 	int family;
 	int count = 0;
-	size_t offset = 0, sz;
+	size_t offset = 0;
 	union {
 		uint8_t *buf;
 		sSA	*sa;
 	} sar;
-	union {
-		uint8_t *buf;
-		sSA	*sa;
-		sSA4	*sin;
-		sSA6	*sin6;
-	} ptr;
-	struct fd_list * li;
 	int ret;
 	
 	sar.buf = NULL;
@@ -679,42 +727,10 @@ int fd_sctp_client( int *sock, int no_ip6, uint16_t port, struct fd_list * list 
 	/* Set the socket options */
 	CHECK_FCT_DO( ret = fd_setsockopt_prebind(*sock), goto fail );
 	
-	/* Create the array of addresses for sctp_connectx */
-	for (li = list->next; li != list; li = li->next) {
-		struct fd_endpoint * ep = (struct fd_endpoint *) li;
-		
-		count++;
-		
-		/* Size of the new SA we are adding (sar may contain a mix of sockaddr_in and sockaddr_in6) */
-#ifndef SCTP_USE_MAPPED_ADDRESSES
-		if (ep->sa.sa_family == AF_INET6)
-#else /* SCTP_USE_MAPPED_ADDRESSES */
-		if (family == AF_INET6)
-#endif /* SCTP_USE_MAPPED_ADDRESSES */
-			sz = sizeof(sSA6);
-		else
-			sz = sizeof(sSA4);
-		
-		/* augment sar to contain the additional info */
-		CHECK_MALLOC_DO( sar.buf = realloc(sar.buf, offset + sz), { ret = ENOMEM; goto fail; }  );
-
-		ptr.buf = sar.buf + offset; /* place of the new SA */
-		offset += sz; /* update to end of sar */
-			
-		if (sz == sizeof(sSA4)) {
-			memcpy(ptr.buf, &ep->sin, sz);
-			ptr.sin->sin_port = htons(port);
-		} else {
-			if (ep->sa.sa_family == AF_INET) { /* We must map the address */ 
-				memset(ptr.buf, 0, sz);
-				ptr.sin6->sin6_family = AF_INET6;
-				IN6_ADDR_V4MAP( &ptr.sin6->sin6_addr.s6_addr, ep->sin.sin_addr.s_addr );
-			} else {
-				memcpy(ptr.sin6, &ep->sin6, sz);
-			}
-			ptr.sin6->sin6_port = htons(port);
-		}
-	}
+	/* Create the array of addresses, add first the configured addresses, then the discovered, then the other ones */
+	CHECK_FCT_DO( ret = add_addresses_from_list_mask(&sar.buf, &count, &offset, htons(port), list, EP_FL_CONF, 		EP_FL_CONF	), goto fail );
+	CHECK_FCT_DO( ret = add_addresses_from_list_mask(&sar.buf, &count, &offset, htons(port), list, EP_FL_CONF | EP_FL_DISC, EP_FL_DISC	), goto fail );
+	CHECK_FCT_DO( ret = add_addresses_from_list_mask(&sar.buf, &count, &offset, htons(port), list, EP_FL_CONF | EP_FL_DISC, 0		), goto fail );
 	
 	/* Try connecting */
 	TRACE_DEBUG(FULL, "Attempting SCTP connection (%d addresses attempted)...", count);

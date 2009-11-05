@@ -147,6 +147,7 @@ struct fd_peer { /* The "real" definition of the peer structure */
 		struct cnxctx * p_initiator;	/* Connection before CEA is received */
 		struct cnxctx * p_receiver;	/* Only used in case of election */
 		pthread_t	p_ini_thr;
+		struct fd_list  p_connparams;	/* The list of connection attempts, see p_cnx.c */
 	};
 		
 	
@@ -243,12 +244,16 @@ int  fd_psm_terminate(struct fd_peer * peer );
 void fd_psm_abord(struct fd_peer * peer );
 void fd_psm_next_timeout(struct fd_peer * peer, int add_random, int delay);
 int fd_psm_change_state(struct fd_peer * peer, int new_state);
-void fd_psm_cleanup(struct fd_peer * peer);
+void fd_psm_cleanup(struct fd_peer * peer, int terminate);
 
 /* Peer out */
 int fd_out_send(struct msg ** msg, struct cnxctx * cnx, struct fd_peer * peer);
 int fd_out_start(struct fd_peer * peer);
 int fd_out_stop(struct fd_peer * peer);
+
+/* Initiating connections */
+int fd_p_cnx_init(struct fd_peer * peer);
+void fd_p_cnx_abort(struct fd_peer * peer, int cleanup_all);
 
 /* Peer sent requests cache */
 int fd_p_sr_store(struct sr_list * srlist, struct msg **req, uint32_t *hbhloc);

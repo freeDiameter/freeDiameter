@@ -242,24 +242,31 @@ void fd_psm_next_timeout(struct fd_peer * peer, int add_random, int delay)
 }
 
 /* Cleanup the peer */
-void fd_psm_cleanup(struct fd_peer * peer)
+void fd_psm_cleanup(struct fd_peer * peer, int terminate)
 {
 	/* Move to CLOSED state: failover messages, stop OUT thread, unlink peer from active list */
 	CHECK_FCT_DO( fd_psm_change_state(peer, STATE_CLOSED), /* continue */ );
 	
-	/* Destroy data */
-	CHECK_FCT_DO( fd_thr_term(&peer->p_ini_thr), /* continue */);
+
+	fd_p_cnx_abort(peer, terminate);
+	
 	if (peer->p_cnxctx) {
 		fd_cnx_destroy(peer->p_cnxctx);
 		peer->p_cnxctx = NULL;
 	}
+	
 	if (peer->p_initiator) {
 		fd_cnx_destroy(peer->p_initiator);
 		peer->p_initiator = NULL;
 	}
+	
 	if (peer->p_receiver) {
 		fd_cnx_destroy(peer->p_receiver);
 		peer->p_receiver = NULL;
+	}
+	
+	if (terminate) {
+		CHECK_FCT_DO( fd_fifo_del(&peer->p_events), /* continue */ );
 	}
 	
 }
@@ -526,7 +533,7 @@ psm_loop:
 				
 			case STATE_CLOSING:
 				/* Cleanup the peer */
-				fd_psm_cleanup(peer);
+				fd_psm_cleanup(peer, 0);
 
 				/* Reset the timer */
 				fd_psm_next_timeout(peer, 1, peer->p_hdr.info.config.pic_tctimer ?: fd_g_config->cnf_timer_tc);
@@ -601,7 +608,7 @@ psm_loop:
 			case STATE_WAITCNXACK:
 			case STATE_WAITCEA:
 				/* Destroy the connection, restart the timer to a new connection attempt */
-				fd_psm_cleanup(peer);
+				fd_psm_cleanup(peer, 0);
 				fd_psm_next_timeout(peer, 1, peer->p_hdr.info.config.pic_tctimer ?: fd_g_config->cnf_timer_tc);
 				break;
 				
@@ -621,8 +628,7 @@ psm_loop:
 	goto psm_loop;
 
 psm_end:
-	fd_psm_cleanup(peer);
-	CHECK_FCT_DO( fd_fifo_del(&peer->p_events), /* continue */ );
+	fd_psm_cleanup(peer, 1);
 	pthread_cleanup_pop(1); /* set STATE_ZOMBIE */
 	peer->p_psm = (pthread_t)NULL;
 	pthread_detach(pthread_self());
@@ -674,7 +680,7 @@ void fd_psm_abord(struct fd_peer * peer )
 	CHECK_FCT_DO( fd_thr_term(&peer->p_psm), /* continue */ );
 	
 	/* Cleanup the data */
-	fd_psm_cleanup(peer);
+	fd_psm_cleanup(peer, 1);
 	
 	/* Destroy the event list */
 	CHECK_FCT_DO( fd_fifo_del(&peer->p_events), /* continue */ );

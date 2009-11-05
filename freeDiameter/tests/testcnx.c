@@ -470,6 +470,7 @@ struct fd_list eps = FD_LIST_INITIALIZER(eps);
 
 struct connect_flags {
 	int	proto;
+	int	expect_failure; /* 0 or 1 */
 };
 
 void * connect_thr(void * arg)
@@ -485,14 +486,14 @@ void * connect_thr(void * arg)
 			{
 				struct fd_endpoint * ep = (struct fd_endpoint *)(eps.next);
 				cnx = fd_cnx_cli_connect_tcp( &ep->sa, sSSlen(&ep->ss) );
-				CHECK( 1, cnx ? 1 : 0 );
+				CHECK( 1, (cnx ? 1 : 0) ^ cf->expect_failure );
 			}
 			break;
 #ifndef DISABLE_SCTP
 		case IPPROTO_SCTP:
 			{
 				cnx = fd_cnx_cli_connect_sctp(0, TEST_PORT, &eps);
-				CHECK( 1, cnx ? 1 : 0 );
+				CHECK( 1, (cnx ? 1 : 0) ^ cf->expect_failure );
 			}
 			break;
 #endif /* DISABLE_SCTP */
@@ -1508,6 +1509,36 @@ int main(int argc, char *argv[])
 		fd_cnx_destroy(listener_sctp);
 #endif /* DISABLE_SCTP */
 	}
+	
+	/* Check that connection attempt fails then */
+	{
+		struct connect_flags cf;
+		
+		memset(&cf, 0, sizeof(cf));
+		cf.proto = IPPROTO_TCP;
+		cf.expect_failure = 1;
+		
+		/* Start the client thread, that should fail */
+		CHECK( 0, pthread_create(&thr, 0, connect_thr, &cf) );
+		CHECK( 0, pthread_join( thr, (void *)&client_side ) );
+		CHECK( 0, client_side ? 1 : 0 );
+	}
+		
+#ifndef DISABLE_SCTP
+	{
+		struct connect_flags cf;
+		
+		memset(&cf, 0, sizeof(cf));
+		cf.proto = IPPROTO_SCTP;
+		cf.expect_failure = 1;
+		
+		/* Start the client thread, that should fail */
+		CHECK( 0, pthread_create(&thr, 0, connect_thr, &cf) );
+		CHECK( 0, pthread_join( thr, (void *)&client_side ) );
+		CHECK( 0, client_side ? 1 : 0 );
+	}
+#endif /* DISABLE_SCTP */
+	
 	
 	/* That's all for the tests yet */
 	PASSTEST();
