@@ -38,7 +38,7 @@
 /* This file contains code to handle Disconnect Peer messages (DPR and DPA) */
 
 /* Handle a received message */
-int fd_p_dp_handle(struct msg ** msg, struct fd_peer * peer)
+int fd_p_dp_handle(struct msg ** msg, int req, struct fd_peer * peer)
 {
 	TODO("Handle depending on DPR or DPA and peer state");
 	

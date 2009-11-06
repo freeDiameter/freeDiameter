@@ -39,7 +39,7 @@
 
 
 /* Handle an incoming message */
-int fd_p_dw_handle(struct msg ** msg, struct fd_peer * peer)
+int fd_p_dw_handle(struct msg ** msg, int req, struct fd_peer * peer)
 {
 	TODO("Handle depending on DWR or DWA and peer state");
 	

@@ -247,7 +247,6 @@ void fd_psm_cleanup(struct fd_peer * peer, int terminate)
 	/* Move to CLOSED state: failover messages, stop OUT thread, unlink peer from active list */
 	CHECK_FCT_DO( fd_psm_change_state(peer, STATE_CLOSED), /* continue */ );
 	
-
 	fd_p_cnx_abort(peer, terminate);
 	
 	if (peer->p_cnxctx) {
@@ -467,15 +466,15 @@ psm_loop:
 		/* Handle the LL message and update the expiry timer appropriately */
 		switch (hdr->msg_code) {
 			case CC_CAPABILITIES_EXCHANGE:
-				CHECK_FCT_DO( fd_p_ce_handle(&msg, peer), goto psm_end );
+				CHECK_FCT_DO( fd_p_ce_msgrcv(&msg, (hdr->msg_flags & CMD_FLAG_REQUEST), peer), goto psm_end );
 				break;
 			
 			case CC_DISCONNECT_PEER:
-				CHECK_FCT_DO( fd_p_dp_handle(&msg, peer), goto psm_end );
+				CHECK_FCT_DO( fd_p_dp_handle(&msg, (hdr->msg_flags & CMD_FLAG_REQUEST), peer), goto psm_end );
 				break;
 			
 			case CC_DEVICE_WATCHDOG:
-				CHECK_FCT_DO( fd_p_dw_handle(&msg, peer), goto psm_end );
+				CHECK_FCT_DO( fd_p_dw_handle(&msg, (hdr->msg_flags & CMD_FLAG_REQUEST), peer), goto psm_end );
 				break;
 			
 			default:
@@ -589,6 +588,29 @@ psm_loop:
 		goto psm_loop;
 	}
 	
+	/* A new connection has been established with the remote peer */
+	if (event == FDEVP_CNX_ESTABLISHED) {
+		struct cnxctx * cnx = ev_data;
+		
+		/* Release the resources of the thread */
+		CHECK_POSIX_DO( pthread_join( peer->p_ini_thr, NULL), /* ignore, it is not a big deal */);
+		peer->p_ini_thr = (pthread_t)NULL;
+		
+		switch (peer->p_hdr.info.runtime.pir_state) {
+			case STATE_WAITCNXACK_ELEC:
+			case STATE_WAITCNXACK:
+				fd_p_ce_handle_newcnx(peer, cnx);
+				break;
+				
+			default:
+				/* Just abort the attempt and continue */
+				TRACE_DEBUG(FULL, "Connection attempt successful but current state is %s, closing...", STATE_STR(peer->p_hdr.info.runtime.pir_state));
+				fd_cnx_destroy(cnx);
+		}
+		
+		goto psm_loop;
+	}
+	
 	/* The timeout for the current state has been reached */
 	if (event == FDEVP_PSM_TIMEOUT) {
 		switch (peer->p_hdr.info.runtime.pir_state) {
@@ -613,7 +635,12 @@ psm_loop:
 				break;
 				
 			case STATE_WAITCNXACK_ELEC:
-				TODO("Abort initiating side, handle the receiver side");
+				
+				/* Abort the initiating side */
+				fd_p_cnx_abort(peer, 0);
+				
+				/* Handle receiver side */
+				CHECK_FCT_DO( fd_p_ce_winelection(peer), goto psm_end );
 				break;
 		}
 	}
@@ -621,7 +648,7 @@ psm_loop:
 	/* Default action : the handling has not yet been implemented. [for debug only] */
 	TODO("Missing handler in PSM : '%s'\t<-- '%s'", STATE_STR(peer->p_hdr.info.runtime.pir_state), fd_pev_str(event));
 	if (event == FDEVP_PSM_TIMEOUT) {
-		/* We have not handled timeout in this state, let's postpone next alert */
+		/* We have not handled timeout in this state, let's postpone next alert to avoid flood */
 		fd_psm_next_timeout(peer, 0, 60);
 	}
 	

@@ -261,11 +261,13 @@ int fd_p_sr_fetch(struct sr_list * srlist, uint32_t hbh, struct msg **req);
 void fd_p_sr_failover(struct sr_list * srlist);
 
 /* Local Link messages (CER/CEA, DWR/DWA, DPR/DPA) */
-int fd_p_ce_handle(struct msg ** msg, struct fd_peer * peer);
+int fd_p_ce_msgrcv(struct msg ** msg, int req, struct fd_peer * peer);
 int fd_p_ce_handle_newCER(struct msg ** msg, struct fd_peer * peer, struct cnxctx ** cnx, int valid);
-int fd_p_dw_handle(struct msg ** msg, struct fd_peer * peer);
+int fd_p_ce_handle_newcnx(struct fd_peer * peer, struct cnxctx * initiator);
+int fd_p_ce_winelection(struct fd_peer * peer);
+int fd_p_dw_handle(struct msg ** msg, int req, struct fd_peer * peer);
 int fd_p_dw_timeout(struct fd_peer * peer);
-int fd_p_dp_handle(struct msg ** msg, struct fd_peer * peer);
+int fd_p_dp_handle(struct msg ** msg, int req, struct fd_peer * peer);
 int fd_p_dp_initiate(struct fd_peer * peer);
 
 /* Active peers -- routing process should only ever take the read lock, the write lock is managed by PSMs */
