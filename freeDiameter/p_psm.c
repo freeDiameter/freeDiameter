@@ -329,7 +329,7 @@ psm_loop:
 	/* The following states are impossible */
 	ASSERT( peer->p_hdr.info.runtime.pir_state != STATE_NEW );
 	ASSERT( peer->p_hdr.info.runtime.pir_state != STATE_ZOMBIE );
-	ASSERT( peer->p_hdr.info.runtime.pir_state != STATE_OPEN_HANDSHAKE ); /* because it exists only between two loops */
+	ASSERT( peer->p_hdr.info.runtime.pir_state != STATE_OPEN_HANDSHAKE ); /* because it should exist only between two loops */
 
 	/* Purge invalid events */
 	if (!CHECK_PEVENT(event)) {
@@ -383,6 +383,7 @@ psm_loop:
 			{
 				fd_log_debug("Received invalid data from peer '%s', closing the connection\n", peer->p_hdr.info.pi_diamid);
 				CHECK_FCT_DO( fd_event_send(peer->p_events, FDEVP_CNX_ERROR, 0, NULL), goto psm_end );
+				free(ev_data);
 				goto psm_loop;
 			} );
 		
@@ -418,7 +419,7 @@ psm_loop:
 					TRACE_DEBUG(FULL, "Accepted a message while not in OPEN state");
 				/* The standard situation : */
 				case STATE_OPEN:
-					/* We received a valid message, update the expiry timer */
+					/* We received a valid routable message, update the expiry timer */
 					CHECK_FCT_DO( fd_p_expi_update(peer), goto psm_end );
 
 					/* Set the message source and add the Route-Record */

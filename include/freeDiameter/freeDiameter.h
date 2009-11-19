@@ -247,7 +247,7 @@ enum peer_state {
 				   We have sent a CER on our initiated connection, and received a CER from the remote peer on another connection. Election.
 				   If we win the election, we must disconnect the initiated connection and send a CEA on the other => we go to OPEN state.
 				   If we lose, we disconnect the other connection (receiver) and fallback to WAITCEA state. */
-	STATE_OPEN_HANDSHAKE,	/* TLS Handshake and validation are in progress in open state -- we show the state because it can last a long time */
+	STATE_OPEN_HANDSHAKE,	/* TLS Handshake and validation are in progress in open state -- we use it only for debug purpose, it is never displayed */
 	
 	/* Failover state machine */
 	STATE_SUSPECT,		/* A DWR was sent and not answered within TwTime. Failover in progress. */
