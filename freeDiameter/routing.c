@@ -35,3 +35,7 @@
 
 #include "fD.h"
 
+/* Note: after testing if the message is to be handled locally, we should test for decorated NAI 
+  (draft-ietf-dime-nai-routing-04 section 4.4) */
+/* Note2: if the message is still for local delivery, we should test for duplicate
+  (draft-asveren-dime-dupcons-00). This may conflict with path validation decisions, no clear answer yet */
