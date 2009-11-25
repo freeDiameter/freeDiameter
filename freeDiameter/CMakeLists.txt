@@ -9,6 +9,7 @@ SET_SOURCE_FILES_PROPERTIES(lex.fdd.c fdd.tab.c PROPERTIES COMPILE_FLAGS "-I ${C
 # List of source files
 SET(FD_COMMON_SRC
 	fD.h
+	apps.c
 	cnxctx.h
 	config.c
 	cnxctx.c

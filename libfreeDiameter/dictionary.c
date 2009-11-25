@@ -1528,7 +1528,7 @@ int fd_dict_init ( struct dictionary ** dict)
 	new->dict_vendors.list[0].o = NULL; /* overwrite since element is also sentinel for this list. */
 	
 	
-	/* Initialize the sentinel for applciations */
+	/* Initialize the sentinel for applications */
 	init_object( &new->dict_applications, DICT_APPLICATION );
 	new->dict_applications.data.application.application_name = "Diameter Common Messages";
 	new->dict_applications.list[0].o = NULL; /* overwrite since since element is also sentinel for this list. */

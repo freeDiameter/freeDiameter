@@ -245,6 +245,9 @@ static void * connect_thr(void * arg)
 				fd_ep_filter(&peer->p_hdr.info.pi_endpoints, EP_FL_CONF);
 				return NULL;
 			} );
+	} else {
+		/* Prepare to receive the next message */
+		CHECK_FCT_DO( fd_cnx_start_clear(cnx, 0), goto fatal_error );
 	}
 	
 	/* Upon success, generate FDEVP_CNX_ESTABLISHED */

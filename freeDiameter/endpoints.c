@@ -125,6 +125,11 @@ int fd_ep_clearflags( struct fd_list * list, uint32_t flags )
 	for (li = list->next; li != list; li = li->next) {
 		struct fd_endpoint * ep = (struct fd_endpoint *)li;
 		ep->flags &= ~flags;
+		if (ep->flags == 0) {
+			li = li->prev;
+			fd_list_unlink(&ep->chain);
+			free(ep);
+		}
 	}
 	
 	return 0;

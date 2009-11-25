@@ -35,32 +35,57 @@
 
 #include "fD.h"
 
-/* Add an application into the peer's supported apps */
-int fd_disp_app_support ( struct dict_object * app, struct dict_object * vendor, int auth, int acct )
+/* Merge information into a list of apps */
+int fd_app_merge(struct fd_list * list, application_id_t aid, vendor_id_t vid, int auth, int acct)
 {
-	application_id_t aid = 0;
-	vendor_id_t	 vid = 0;
+	struct fd_list * li;
+	int skip = 0;
 	
-	TRACE_ENTRY("%p %p %d %d", app, vendor, auth, acct);
-	CHECK_PARAMS( app && (auth || acct) );
-	
-	{
-		enum dict_object_type type = 0;
-		struct dict_application_data data;
-		CHECK_FCT( fd_dict_gettype(app, &type) );
-		CHECK_PARAMS( type == DICT_APPLICATION );
-		CHECK_FCT( fd_dict_getval(app, &data) );
-		aid = data.application_id;
+	/* List is ordered by appid. Avoid duplicates */
+	for (li = list; li->next != list; li = li->next) {
+		struct fd_app * na = (struct fd_app *)(li->next);
+		if (na->appid < aid)
+			continue;
+		
+		if (na->appid > aid)
+			break;
+		
+		/* Otherwise, we merge with existing entry -- ignore vendor id in this case */
+		skip = 1;
+		
+		if (auth)
+			na->flags.auth = 1;
+		if (acct)
+			na->flags.acct = 1;
+		break;
 	}
+	
+	if (!skip) {			
+		struct fd_app  * new = NULL;
 
-	if (vendor) {
-		enum dict_object_type type = 0;
-		struct dict_vendor_data data;
-		CHECK_FCT( fd_dict_gettype(vendor, &type) );
-		CHECK_PARAMS( type == DICT_VENDOR );
-		CHECK_FCT( fd_dict_getval(vendor, &data) );
-		vid = data.vendor_id;
+		CHECK_MALLOC( new = malloc(sizeof(struct fd_app)) );
+		memset(new, 0, sizeof(struct fd_app));
+		fd_list_init(&new->chain, NULL);
+		new->flags.auth = (auth ? 1 : 0);
+		new->flags.acct = (acct ? 1 : 0);
+		new->vndid = vid;
+		new->appid = aid;
+		fd_list_insert_after(li, &new->chain);
 	}
 	
-	return fd_app_merge(&fd_g_config->cnf_apps, aid, vid, auth, acct);
+	return 0;
 }
+
+/* Tag any common application between target and reference (into target) */
+int fd_app_find_common(struct fd_list * target, struct fd_list * reference)
+{
+	
+	
+}
+
+/* Return true if at least one app was tagged common, false otherwise */
+int fd_app_gotcommon(struct fd_list * apps)
+{
+	
+}
+

@@ -210,6 +210,9 @@ int fd_dict_base_protocol(struct dictionary * dict)
 		/* relay application */
 		{
 			struct dict_application_data data  = { 0xffffffff, "Relay" 				};
+			#if AI_RELAY != 0xffffffff
+			#error "AI_RELAY definition mismatch"
+			#endif
 			CHECK_dict_new( DICT_APPLICATION, &data , NULL, NULL);
 		}
 	}
@@ -906,8 +909,8 @@ int fd_dict_base_protocol(struct dictionary * dict)
 			
 			struct dict_object 	* 	type;
 			struct dict_type_data	 	tdata = { AVP_TYPE_UNSIGNED32,	"Enumerated*(Inband-Security-Id)"	, NULL, NULL};
-			struct dict_enumval_data 	t_0 = { "NO_INBAND_SECURITY", 		{ .u32 = 0 }};
-			struct dict_enumval_data 	t_1 = { "TLS", 			{ .u32 = 1 }};
+			struct dict_enumval_data 	t_0 = { "NO_INBAND_SECURITY", 		{ .u32 = ACV_ISI_NO_INBAND_SECURITY }};
+			struct dict_enumval_data 	t_1 = { "TLS", 			{ .u32 = ACV_ISI_TLS }};
 			struct dict_avp_data 		data = { 
 					299, 					/* Code */
 					#if AC_INBAND_SECURITY_ID != 299

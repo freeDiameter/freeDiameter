@@ -249,15 +249,7 @@ void fd_psm_cleanup(struct fd_peer * peer, int terminate)
 	
 	fd_p_cnx_abort(peer, terminate);
 	
-	if (peer->p_cnxctx) {
-		fd_cnx_destroy(peer->p_cnxctx);
-		peer->p_cnxctx = NULL;
-	}
-	
-	if (peer->p_initiator) {
-		fd_cnx_destroy(peer->p_initiator);
-		peer->p_initiator = NULL;
-	}
+	fd_p_ce_clear_cnx(peer, NULL);
 	
 	if (peer->p_receiver) {
 		fd_cnx_destroy(peer->p_receiver);
@@ -593,7 +585,7 @@ psm_loop:
 	if (event == FDEVP_CNX_ESTABLISHED) {
 		struct cnxctx * cnx = ev_data;
 		
-		/* Release the resources of the thread */
+		/* Release the resources of the connecting thread */
 		CHECK_POSIX_DO( pthread_join( peer->p_ini_thr, NULL), /* ignore, it is not a big deal */);
 		peer->p_ini_thr = (pthread_t)NULL;
 		
@@ -641,7 +633,7 @@ psm_loop:
 				fd_p_cnx_abort(peer, 0);
 				
 				/* Handle receiver side */
-				CHECK_FCT_DO( fd_p_ce_winelection(peer), goto psm_end );
+				CHECK_FCT_DO( fd_p_ce_process_receiver(peer), goto psm_end );
 				break;
 		}
 	}

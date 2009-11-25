@@ -996,7 +996,7 @@ int fd_cnx_recv_setaltfifo(struct cnxctx * conn, struct fifo * alt_fifo)
 	CHECK_PARAMS( conn && alt_fifo && conn->cc_incoming );
 	
 	/* The magic function does it all */
-	CHECK_FCT( fd_fifo_move( &conn->cc_incoming, alt_fifo, &conn->cc_alt ) );
+	CHECK_FCT( fd_fifo_move( conn->cc_incoming, alt_fifo, &conn->cc_alt ) );
 	
 	return 0;
 }
@@ -1113,6 +1113,9 @@ void fd_cnx_destroy(struct cnxctx * conn)
 	TRACE_ENTRY("%p", conn);
 	
 	CHECK_PARAMS_DO(conn, return);
+	
+	/* Avoid sending further events to the alt fifo */
+	conn->cc_alt = NULL;
 
 	/* In case of TLS, stop receiver thread, then close properly the gnutls session */
 	if ((conn->cc_tls) && (conn->cc_sctp_para.pairs > 1)) {

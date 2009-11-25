@@ -66,6 +66,13 @@
 #define DPR_TIMEOUT 	15	/* in seconds */
 #endif /* DPR_TIMEOUT */
 
+/* The Vendor-Id to advertise in CER/CEA */
+#ifndef MY_VENDOR_ID
+#define MY_VENDOR_ID	0 	/* Reserved value to tell it must be ignored */
+#endif /* MY_VENDOR_ID */
+
+
+
 /* Configuration */
 int fd_conf_init();
 void fd_conf_dump();
@@ -144,9 +151,10 @@ struct fd_peer { /* The "real" definition of the peer structure */
 	
 	/* Data for transitional states before the peer is in OPEN state */
 	struct {
-		struct cnxctx * p_initiator;	/* Connection before CEA is received */
 		struct cnxctx * p_receiver;	/* Only used in case of election */
-		pthread_t	p_ini_thr;
+		struct msg    * p_cer;		/* Only used in case of election */
+		
+		pthread_t	p_ini_thr;	/* Initiator thread for establishing a connection */
 		struct fd_list  p_connparams;	/* The list of connection attempts, see p_cnx.c */
 	};
 		
@@ -264,9 +272,11 @@ void fd_p_sr_failover(struct sr_list * srlist);
 int fd_p_ce_msgrcv(struct msg ** msg, int req, struct fd_peer * peer);
 int fd_p_ce_handle_newCER(struct msg ** msg, struct fd_peer * peer, struct cnxctx ** cnx, int valid);
 int fd_p_ce_handle_newcnx(struct fd_peer * peer, struct cnxctx * initiator);
-int fd_p_ce_winelection(struct fd_peer * peer);
+int fd_p_ce_process_receiver(struct fd_peer * peer);
+void fd_p_ce_clear_cnx(struct fd_peer * peer, struct cnxctx ** cnx_kept);
 int fd_p_dw_handle(struct msg ** msg, int req, struct fd_peer * peer);
 int fd_p_dw_timeout(struct fd_peer * peer);
+int fd_p_dw_reopen(struct fd_peer * peer);
 int fd_p_dp_handle(struct msg ** msg, int req, struct fd_peer * peer);
 int fd_p_dp_initiate(struct fd_peer * peer);
 

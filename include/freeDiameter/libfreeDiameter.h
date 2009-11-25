@@ -717,8 +717,10 @@ be freed automatically along with the object itself with call to dict_fini later
 	 printf("my vendor id: %d\n", myvendordata.vendor_id );
  }
 		 
- 
 */
+		
+/* Special function: */
+uint32_t * fd_dict_get_vendorid_list(struct dictionary * dict);
 	 
 /*
  ***************************************************************************
@@ -1328,6 +1330,9 @@ The "parent" parameter can not be NULL. It points to the object (grouped avp or 
 */
 		
 /* Define some hard-coded values */
+/* Application */
+#define AI_RELAY			0xffffffff
+
 /* Commands Codes */
 #define CC_CAPABILITIES_EXCHANGE	257
 #define CC_RE_AUTH			258
@@ -1368,6 +1373,8 @@ The "parent" parameter can not be NULL. It points to the object (grouped avp or 
 #define AC_ERROR_REPORTING_HOST		294
 #define AC_ORIGIN_REALM			296
 #define AC_INBAND_SECURITY_ID		299
+#define ACV_ISI_NO_INBAND_SECURITY		0
+#define ACV_ISI_TLS				1
 
 /* Error codes */
 #define ER_DIAMETER_SUCCESS			2001
@@ -2425,18 +2432,18 @@ int fd_fifo_del ( struct fifo  ** queue );
  * FUNCTION:	fd_fifo_move
  *
  * PARAMETERS:
- *  old		: Location of a FIFO that is to be emptied and deleted.
+ *  old		: Location of a FIFO that is to be emptied.
  *  new		: A FIFO that will receive the old data.
  *  loc_update	: if non NULL, a place to store the pointer to new FIFO atomically with the move.
  *
  * DESCRIPTION: 
- *  Delete a queue and move its content to another one atomically.
+ *  Empties a queue and move its content to another one atomically.
  *
  * RETURN VALUE:
  *  0		: The queue has been destroyed successfully.
  *  EINVAL 	: A parameter is invalid.
  */
-int fd_fifo_move ( struct fifo ** old, struct fifo * new, struct fifo ** loc_update );
+int fd_fifo_move ( struct fifo * old, struct fifo * new, struct fifo ** loc_update );
 
 /*
  * FUNCTION:	fd_fifo_length

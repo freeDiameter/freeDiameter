@@ -335,6 +335,7 @@ struct peer_info {
 		uint32_t	pir_firmrev;	/* Content of the Firmware-Revision AVP */
 		int		pir_relay;	/* The remote peer advertized the relay application */
 		struct fd_list	pir_apps;	/* applications advertised by the remote peer, except relay (pi_flags.relay) */
+		int		pir_isi;	/* Inband-Security-Id advertised (PI_SEC_* bits) */
 		
 		int		pir_proto;	/* The L4 protocol currently used with the peer (IPPROTO_TCP or IPPROTO_SCTP) */
 		const gnutls_datum_t 	*pir_cert_list; 	/* The (valid) credentials that the peer has presented, or NULL if TLS is not used */
@@ -422,14 +423,15 @@ int fd_peer_validate_register ( int (*peer_validate)(struct peer_info * /* info 
  *   This callback is called when a new connection is being established from an unknown peer,
  * after the CER is received. An extension must register such callback with peer_validate_register.
  *
- *   If (info->pi_flags.sec == PI_SEC_TLS_OLD) the extension may instruct the daemon explicitely
- * to not use TLS by clearing info->pi_flags.inband_tls -- only if inband_none is set.
+ *   The callback can learn if the peer has sent Inband-Security-Id AVPs in runtime.pir_isi fields.
+ * It can also learn if a handshake has already been performed in runtime.pir_cert_list field.
+ * The callback must set the value of config.pic_flags.sec appropriately to allow a connection without TLS.
  *
- *   If (info->pi_flags.sec == PI_SEC_TLS_OLD) and info->pi_flags.inband_tls is set,
+ *   If the old TLS mechanism is used,
  * the extension may also need to check the credentials provided during the TLS
  * exchange (remote certificate). For this purpose, it may set the address of a new callback
  * to be called once the handshake is completed. This new callback receives the information
- * structure as parameter (with pi_sec_data set) and returns 0 if the credentials are correct,
+ * structure as parameter (with pir_cert_list set) and returns 0 if the credentials are correct,
  * or an error code otherwise. If the error code is received, the connection is closed and the 
  * peer is destroyed.
  *
@@ -543,5 +545,13 @@ int fd_ep_filter_family( struct fd_list * list, int af );
 int fd_ep_clearflags( struct fd_list * list, uint32_t flags );
 void fd_ep_dump_one( char * prefix, struct fd_endpoint * ep, char * suffix );
 void fd_ep_dump( int indent, struct fd_list * eps );
+
+/***************************************/
+/*   Applications lists helpers        */
+/***************************************/
+
+int fd_app_merge(struct fd_list * list, application_id_t aid, vendor_id_t vid, int auth, int acct);
+int fd_app_find_common(struct fd_list * target, struct fd_list * reference);
+int fd_app_gotcommon(struct fd_list * apps);
 
 #endif /* _FREEDIAMETER_H */

@@ -53,4 +53,13 @@ int fd_p_dw_timeout(struct fd_peer * peer)
 	
 	return ENOTSUP;
 }
-		
+
+/* Handle DW exchanges after the peer has come alive again */
+int fd_p_dw_reopen(struct fd_peer * peer)
+{
+	TODO("...");
+	
+	return ENOTSUP;
+}
+
+
