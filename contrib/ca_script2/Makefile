@@ -1,43 +1,12 @@
 #!/usr/bin/make -s
 #
-# This file is designed to automatize the CA tasks such as:
-#  -> init  : create the initial CA tree and the CA root certificate.
-#  -> newcsr: create a new private key and csr. $name and $email must be set. C, ST, L, O, OU may be overwitten (exemple: make newcsr C=FR)
-#  -> cert  : sign a pending CSR and generate the certificate. $name must be provided.
-#  -> revoke: revoke a certificate. $name must be provided.
-#  -> gencrl: update/create the CRL.
-#
-# The file should be located in the directory STATIC_DIR as defined below.
-# The DIR directory will contain the data of the CA. It might be placed in /var.
-# The DIR should also be configured in openssl.cnf file under [ CA_default ]->dir.
-#
-# Here are the steps to install the CA scripts in default environment:
-## mkdir /etc/openssl-ca.static
-## cp Makefile openssl.cnf /etc/openssl-ca.static
-# ( configure the default parameters of your CA in /etc/openssl-ca/openssl.cnf ) ##
-## mkdir /etc/openssl-ca
-## make -f /etc/openssl-ca.static/Makefile destroy force=y
-## cd /etc/openssl-ca
-## make init
-## make help
+# This file is inspired from freeDiameter's contrib/ca_script and
+# improved to handle multiple CA in a hierarchical fashion.
 
-DIR = /home/thedoc/testbed.aaa/ca
-STATIC_DIR = /home/thedoc/testbed.aaa/ca
-CONFIG = -config $(DIR)/openssl.cnf
-
-#Defaults for new CSR
-C = JP
-ST = Tokyo
-L = Koganei
-O = WIDE
-OU = "AAA WG"
-
-#Default lifetime
-DAYS = 365
-
-#Values for the CA
-CA_CN = mgr.testbed.aaa
-CA_mail = sdecugis@nict.go.jp
+SCRIPT_DIR = .
+CONFIG = -config $(SCRIPT_DIR)/openssl.cnf
+REMAKE = $(MAKE) -f $(SCRIPT_DIR)/Makefile
+DATA_DIR = ./test
 
 #Disable "make destroy"
 force = 
@@ -49,57 +18,68 @@ all:	help
 # Help message
 help:
 	@echo "\n\
-Default values (can be overwritten on command-line):\n\
-   [C=$(C)] [ST=$(ST)] [L=$(L)] [O=$(O)] [OU=$(OU)]\n\
-   [CA_CN=$(CA_CN)] [CA_mail=$(CA_mail)]\n\n\
 Available commands:\n\
-   make init\n\
-       Creates the initial CA structure in $(DIR)\n\
-   make gencrl\n\
-       Regenerates the CRL. Should be run at least once a month.\n\
-   make newcsr name=foo email=b@r [type=ca]\n\
+   make init topca=name\n\
+       Creates the initial top-level CA structure\n\
+   make new_ca name=caname\n\
+       Creates a new sub-CA that can be used for certificates later.\n\
+   make newcsr name=foo ca=bar\n\
        Create private key and csr in clients subdir (named foo.*)\n\
-   make cert name=foo\n\
-       Signs the CSR foo.csr and creates the certificate foo.cert.\n\
-   make revoke name=foo\n\
-       Revokes the certificate foo.cert and regenerates the CRL.\n\
+   make cert name=foo ca=bar\n\
+       Signs the CSR foo.csr and creates the certificate foo.cert (signed by bar).\n\
+   make revoke name=foo ca=bar\n\
+       Revokes the certificate foo.cert issued by bar and regenerates the CRL.\n\
+   make gencrl ca=bar\n\
+       Regenerates the CRL for CA bar. Should be run at least once a month.\n\
 \n\
-Notes:\n\
-   Content from public-www should be available from Internet. \n\
-   The URL to CRL should be set in openssl.cnf.\n\
-   A cron job should execute make gencrl once a month.\n\
 ";
 	
-# Destroy the CA completly. Use with care.
+# Destroy the CA hierarchy completly. Use with care.
 destroy:
-	@if [ -z "$(force)" ]; then echo "Restart disabled, use: make destroy force=y"; exit 1; fi
-	@if [ ! -d $(STATIC_DIR) ]; then echo "Error in setup"; exit 1; fi
+	@if [ -z "$(force)" ]; then echo "Destroy disabled, use: make destroy force=y"; exit 1; fi
+	@if [ ! -d $(SCRIPT_DIR) ]; then echo "Error in setup"; exit 1; fi
 	@echo "Removing everything (for debug purpose)..."
-	@rm -rf $(DIR)/*
-	@ln -sf $(STATIC_DIR)/Makefile $(DIR)
-	@ln -sf $(STATIC_DIR)/openssl.cnf $(DIR)
-	
+	@rm -rf $(DATA_DIR)/*
 
-# Initialize the CA structure and keys.
-init:
-	@if [ -d $(DIR)/private ]; then echo "CA already initialized."; exit 1; fi
+# Initialize the CA structure
+structure:
+	@if [ -z "$(caname)" ]; then echo "Internal error: caname is missing"; exit 1; fi
+	@if [ -d $(DATA_DIR)/$(caname) ]; then echo "CA $(caname) already exists."; exit 1; fi
 	@echo "Creating CA structure..."
-	@mkdir $(DIR)/crl
-	@mkdir $(DIR)/certs
-	@mkdir $(DIR)/newcerts
-	@mkdir $(DIR)/public-www
-	@mkdir $(DIR)/private
-	@chmod 700 $(DIR)/private
-	@mkdir $(DIR)/clients
-	@mkdir $(DIR)/clients/privkeys
-	@mkdir $(DIR)/clients/csr
-	@mkdir $(DIR)/clients/certs
-	@echo "01" > $(DIR)/serial
-	@touch $(DIR)/index.txt
-	@openssl req $(CONFIG) -new -batch -x509 -days 3650 -nodes -newkey rsa:2048 -out $(DIR)/public-www/cacert.pem \
-		-keyout $(DIR)/private/cakey.pem -subj /C=$(C)/ST=$(ST)/L=$(L)/O=$(O)/OU=$(OU)/CN=$(CA_CN)/emailAddress=$(CA_mail)
-	@ln -s $(DIR)/public-www/cacert.pem $(DIR)/certs/`openssl x509 -noout -hash < $(DIR)/public-www/cacert.pem`.0
-	@$(MAKE) -f $(DIR)/Makefile gencrl
+	@mkdir $(DATA_DIR)/$(caname)/crl
+	@mkdir $(DATA_DIR)/$(caname)/certs
+	@mkdir $(DATA_DIR)/$(caname)/newcerts
+	@mkdir $(DATA_DIR)/$(caname)/public-www
+	@mkdir $(DATA_DIR)/$(caname)/private
+	@chmod 700 $(DATA_DIR)/$(caname)/private
+	@mkdir $(DATA_DIR)/$(caname)/clients
+	@mkdir $(DATA_DIR)/$(caname)/clients/privkeys
+	@mkdir $(DATA_DIR)/$(caname)/clients/csr
+	@mkdir $(DATA_DIR)/$(caname)/clients/certs
+	@echo "01" > $(DATA_DIR)/$(caname)/serial
+	@touch $(DATA_DIR)/$(caname)/index.txt
+	
+# Initialize the top-level CA structure and keys.
+init:
+	@if [ -z "$(topca)" ]; then echo "Please specify the name of the CA in as topca=name.testbed.aaa"; exit 1; fi
+	# Create the folder hierarchy
+	@$(REMAKE) structure caname=$(topca)
+	# Generate the self-signed certificate
+	@CA_ROOT_DIR=$(DATA_DIR)/$(topca) openssl req $(CONFIG) -new -batch -x509 -nodes -newkey rsa:2048 -out $(DATA_DIR)/$(topca)/public-www/cacert.pem \
+		-keyout $(DATA_DIR)/$(topca)/private/cakey.pem -subj /CN=$(topca)
+	# Add the certificate hash
+	@ln -s $(DATA_DIR)/$(topca)/public-www/cacert.pem $(DATA_DIR)/$(topca)/certs/`openssl x509 -noout -hash < $(DATA_DIR)/$(topca)/public-www/cacert.pem`.0
+	@$(REMAKE) gencrl ca=$(topca)
+
+# Create a secondary CA
+newca:
+
+
+
+############
+# En dessous ce n est pas fini...
+
+
 
 # Regenerate the Certificate Revocation List.
 # This list should be available publicly
