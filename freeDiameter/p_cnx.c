@@ -193,17 +193,30 @@ static void * connect_thr(void * arg)
 	struct fd_peer * peer = arg;
 	struct cnxctx * cnx = NULL;
 	struct next_conn * nc = NULL;
+	int rebuilt = 0;
 	
 	TRACE_ENTRY("%p", arg);
 	CHECK_PARAMS_DO( CHECK_PEER(peer), return NULL );
 
+	/* Set the thread name */
+	{
+		char buf[48];
+		sprintf(buf, "ConnTo:%.*s", sizeof(buf) - 8, peer->p_hdr.info.pi_diamid);
+		fd_log_threadname ( buf );
+	}
+	
 	do {
-		/* Rebuild the list if needed, if it is empty */
+		/* Rebuild the list if needed, if it is empty -- but at most once */
 		if (FD_IS_LIST_EMPTY(&peer->p_connparams)) {
-			CHECK_FCT_DO( prepare_connection_list(peer), goto fatal_error );
-			if (FD_IS_LIST_EMPTY(&peer->p_connparams))
-				/* Already logged and peer terminated */
+			if (! rebuilt) {
+				CHECK_FCT_DO( prepare_connection_list(peer), goto fatal_error );
+				rebuilt ++;
+			}
+			if (FD_IS_LIST_EMPTY(&peer->p_connparams)) {
+				/* We encountered an error or we have looped over all the addresses of the peer. */
+				TRACE_DEBUG(INFO, "Unable to connect to the peer %s, aborting attempts for now.", peer->p_hdr.info.pi_diamid);
 				return NULL;
+			}
 		}
 		
 		/* Attempt connection to the first entry */

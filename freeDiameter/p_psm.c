@@ -610,13 +610,13 @@ psm_loop:
 			case STATE_OPEN:
 			case STATE_REOPEN:
 				CHECK_FCT_DO( fd_p_dw_timeout(peer), goto psm_end );
-				break;
+				goto psm_loop;
 				
 			case STATE_CLOSED:
 				CHECK_FCT_DO( fd_psm_change_state(peer, STATE_WAITCNXACK), goto psm_end );
 				fd_psm_next_timeout(peer, 0, CNX_TIMEOUT);
 				CHECK_FCT_DO( fd_p_cnx_init(peer), goto psm_end );
-				break;
+				goto psm_loop;
 				
 			case STATE_CLOSING:
 			case STATE_SUSPECT:
@@ -625,7 +625,7 @@ psm_loop:
 				/* Destroy the connection, restart the timer to a new connection attempt */
 				fd_psm_cleanup(peer, 0);
 				fd_psm_next_timeout(peer, 1, peer->p_hdr.info.config.pic_tctimer ?: fd_g_config->cnf_timer_tc);
-				break;
+				goto psm_loop;
 				
 			case STATE_WAITCNXACK_ELEC:
 				
@@ -634,17 +634,12 @@ psm_loop:
 				
 				/* Handle receiver side */
 				CHECK_FCT_DO( fd_p_ce_process_receiver(peer), goto psm_end );
-				break;
+				goto psm_loop;
 		}
 	}
 	
 	/* Default action : the handling has not yet been implemented. [for debug only] */
 	TODO("Missing handler in PSM : '%s'\t<-- '%s'", STATE_STR(peer->p_hdr.info.runtime.pir_state), fd_pev_str(event));
-	if (event == FDEVP_PSM_TIMEOUT) {
-		/* We have not handled timeout in this state, let's postpone next alert to avoid flood */
-		fd_psm_next_timeout(peer, 0, 60);
-	}
-	
 	goto psm_loop;
 
 psm_end:
