@@ -734,7 +734,11 @@ int fd_sctp_client( int *sock, int no_ip6, uint16_t port, struct fd_list * list 
 	
 	/* Try connecting */
 	TRACE_DEBUG(FULL, "Attempting SCTP connection (%d addresses attempted)...", count);
+#ifdef SCTP_CONNECTX_4_ARGS
 	CHECK_SYS_DO( sctp_connectx(*sock, sar.sa, count, NULL), { ret = errno; goto fail; } );
+#else /* SCTP_CONNECTX_4_ARGS */
+	CHECK_SYS_DO( sctp_connectx(*sock, sar.sa, count), { ret = errno; goto fail; } );
+#endif /* SCTP_CONNECTX_4_ARGS */
 	free(sar.buf); sar.buf = NULL;
 	
 	/* Set the remaining sockopts */

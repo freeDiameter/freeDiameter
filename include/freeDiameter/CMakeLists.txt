@@ -26,6 +26,7 @@ INCLUDE (CheckLibraryExists)
 INCLUDE (CheckFunctionExists)
 INCLUDE (CheckIncludeFiles)
 INCLUDE (CheckSymbolExists) 
+INCLUDE (CheckCSourceCompiles)
 INCLUDE (TestBigEndian)
 
 # We use dlopen and dlclose
@@ -52,15 +53,24 @@ ELSE (HAVE_CLOCK_GETTIME)
 ENDIF (HAVE_CLOCK_GETTIME)
 SET(FD_LIBS ${FD_LIBS} ${CLOCK_GETTIME_LIBS})
 
-# We need the sctp_getladdrs function ( -lsctp )
+# We need the sctp_connectx function among others
 # We need the IPPROTO_SCTP symbol from sys/socket.h, netinet/in.h or netinet/sctp.h
 IF(NOT DISABLE_SCTP)
-	CHECK_FUNCTION_EXISTS(sctp_getladdrs HAVE_NATIVE_SCTP)
+	CHECK_FUNCTION_EXISTS(sctp_connectx HAVE_NATIVE_SCTP)
 	IF(NOT HAVE_NATIVE_SCTP)
 		FIND_PACKAGE(SCTP REQUIRED)
 		INCLUDE_DIRECTORIES(${SCTP_INCLUDE_DIRS})
 		SET(FD_LIBS ${FD_LIBS} ${SCTP_LIBRARIES})
 	ENDIF(NOT HAVE_NATIVE_SCTP)
+	# Now check the number of args of this function, since it changed between Ubuntu 9.04 and 9.10
+   	SET(CHECK_SCTP_CONNECTX_4_ARGS_SOURCE_CODE "
+		#include <netinet/sctp.h>;
+		int main() {
+		   return sctp_connectx(0, NULL, 0, NULL);
+		}
+		")
+	SET(CMAKE_REQUIRED_LIBRARIES ${SCTP_LIBRARIES})
+	CHECK_C_SOURCE_COMPILES("${CHECK_SCTP_CONNECTX_4_ARGS_SOURCE_CODE}" SCTP_CONNECTX_4_ARGS)
 ENDIF(NOT DISABLE_SCTP)
 
 # Check byte ordering
