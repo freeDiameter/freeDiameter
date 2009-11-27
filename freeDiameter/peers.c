@@ -80,6 +80,8 @@ int fd_peer_alloc(struct fd_peer ** ptr)
 	fd_list_init(&p->p_sr.srs, p);
 	CHECK_POSIX( pthread_mutex_init(&p->p_sr.mtx, NULL) );
 	
+	fd_list_init(&p->p_connparams, p);
+	
 	return 0;
 }
 
