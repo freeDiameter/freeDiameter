@@ -51,10 +51,12 @@ struct next_conn {
 
 static __inline__ void failed_connection_attempt(struct fd_peer * peer)
 {
-	/* Simply remove the first item in the list */
-	struct fd_list * li = peer->p_connparams.next;
-	fd_list_unlink(li);
-	free(li);
+	/* Simply remove the first item in the list if not empty */
+	if (! FD_IS_LIST_EMPTY(&peer->p_connparams) ) {
+		struct fd_list * li = peer->p_connparams.next;
+		fd_list_unlink(li);
+		free(li);
+	}
 }
 
 static void empty_connection_list(struct fd_peer * peer)
