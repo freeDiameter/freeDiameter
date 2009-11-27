@@ -46,6 +46,8 @@
 #cmakedefine DISABLE_SCTP
 #cmakedefine DEBUG_SCTP
 #cmakedefine SCTP_USE_MAPPED_ADDRESSES
+#cmakedefine SCTP_CONNECTX_4_ARGS
+
 #cmakedefine ERRORS_ON_TODO
 #cmakedefine DEBUG
 
