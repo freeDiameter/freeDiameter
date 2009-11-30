@@ -879,6 +879,9 @@ int fd_sctp_get_remote_ep(int sock, struct fd_list * list)
 	CHECK_SYS( count = sctp_getpaddrs(sock, 0, &data)  );
 	ptr.sa = data;
 	
+	TRACE_DEBUG(NONE, "DEBUG: count = %d", count);
+	TRACE_DEBUG_BUFFER(NONE, "DEBUG: data = ", ptr.buf, count * sizeof(sSA4), "" );
+	
 	while (count) {
 		socklen_t sl;
 		switch (ptr.sa->sa_family) {
