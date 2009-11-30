@@ -776,7 +776,7 @@ int fd_tls_prepare(gnutls_session_t * session, int mode, char * priority, void *
 }
 
 /* Verify remote credentials after successful handshake (return 0 if OK, EINVAL otherwise) */
-int fd_tls_verify_credentials(gnutls_session_t session, struct cnxctx * conn)
+int fd_tls_verify_credentials(gnutls_session_t session, struct cnxctx * conn, int verbose)
 {
 	int ret, i;
 	const gnutls_datum_t *cert_list;
@@ -785,7 +785,7 @@ int fd_tls_verify_credentials(gnutls_session_t session, struct cnxctx * conn)
 	time_t now;
 	
 	/* Trace the session information -- http://www.gnu.org/software/gnutls/manual/gnutls.html#Obtaining-session-information */
-	if (TRACE_BOOL(FULL)) {
+	if (verbose && TRACE_BOOL(FULL)) {
 		const char *tmp;
 		gnutls_kx_algorithm_t kx;
   		gnutls_credentials_type_t cred;
@@ -888,7 +888,7 @@ int fd_tls_verify_credentials(gnutls_session_t session, struct cnxctx * conn)
 	
 	now = time(NULL);
 	
-	if (TRACE_BOOL(FULL)) {
+	if (verbose && TRACE_BOOL(FULL)) {
 		char serial[40];
 		char dn[128];
 		size_t size;
@@ -1030,7 +1030,7 @@ int fd_cnx_handshake(struct cnxctx * conn, int mode, char * priority, void * alt
 			} );
 
 		/* Now verify the remote credentials are valid -- only simple test here */
-		CHECK_FCT( fd_tls_verify_credentials(conn->cc_tls_para.session, conn) );
+		CHECK_FCT( fd_tls_verify_credentials(conn->cc_tls_para.session, conn, 1) );
 	}
 
 	/* Multi-stream TLS: handshake other streams as well */

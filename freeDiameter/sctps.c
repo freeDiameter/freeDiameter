@@ -447,7 +447,7 @@ static void * handshake_resume_th(void * arg)
 	resumed = gnutls_session_is_resumed(ctx->session);
 	if (!resumed) {
 		/* Check the credentials here also */
-		CHECK_FCT_DO( fd_tls_verify_credentials(ctx->session, ctx->parent), return NULL );
+		CHECK_FCT_DO( fd_tls_verify_credentials(ctx->session, ctx->parent, 0), return NULL );
 	}
 	if (TRACE_BOOL(FULL)) {
 		if (resumed) {

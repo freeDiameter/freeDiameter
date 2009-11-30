@@ -251,16 +251,11 @@ int fd_conf_parse()
 				 { TRACE_DEBUG(INFO, "Error in priority string at position : %s", err_pos); return EINVAL; } );
 	}
 	if (! fd_g_config->cnf_sec_data.dh_bits) {
-		if (TRACE_BOOL(INFO)) {
-			fd_log_debug("Generating Diffie-Hellman parameters of size %d (this takes a few seconds)... ", GNUTLS_DEFAULT_DHBITS);
-		}
+		TRACE_DEBUG(INFO, "Generating Diffie-Hellman parameters of size %d (this takes a few seconds)... ", GNUTLS_DEFAULT_DHBITS);
 		CHECK_GNUTLS_DO( gnutls_dh_params_generate2( 
 					fd_g_config->cnf_sec_data.dh_cache,
 					GNUTLS_DEFAULT_DHBITS),
 				 { TRACE_DEBUG(INFO, "Error in DH bits value : %d", GNUTLS_DEFAULT_DHBITS); return EINVAL; } );
-		if (TRACE_BOOL(INFO)) {
-			fd_log_debug("Done!\n");
-		}
 	}
 	
 	return 0;
