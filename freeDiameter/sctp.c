@@ -1016,12 +1016,12 @@ incomplete:
 		goto incomplete;
 	}
 	
-	TRACE_DEBUG(FULL, "Received %db data on socket %d", datasize, sock);
-	
 	/* Handle the case where the data received is a notification */
 	if (mhdr.msg_flags & MSG_NOTIFICATION) {
 		union sctp_notification * notif = (union sctp_notification *) data;
 		
+		TRACE_DEBUG(FULL, "Received %db data of notification on socket %d", datasize, sock);
+	
 		switch (notif->sn_header.sn_type) {
 			
 			case SCTP_ASSOC_CHANGE:
@@ -1114,6 +1114,9 @@ incomplete:
 
 			*strid = sndrcv->sinfo_stream;
 		}
+		TRACE_DEBUG(FULL, "Received %db data on socket %d, stream %hu", datasize, sock, *strid);
+	} else {
+		TRACE_DEBUG(FULL, "Received %db data on socket %d (stream ignored)", datasize, sock);
 	}
 	
 	return 0;
