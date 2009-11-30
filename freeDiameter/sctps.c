@@ -517,6 +517,13 @@ int fd_sctps_handshake_others(struct cnxctx * conn, char * priority, void * alt_
 	/* For client side, retrieve the master session parameters */
 	if (conn->cc_tls_para.mode == GNUTLS_CLIENT) {
 		CHECK_GNUTLS_DO( gnutls_session_get_data2(conn->cc_tls_para.session, &master_data), return ENOMEM );
+		/* For debug: */
+		if (TRACE_BOOL(SR_LEVEL)) {
+			uint8_t  id[256];
+			size_t	 ids = sizeof(id);
+			CHECK_GNUTLS_DO( gnutls_session_get_id(conn->cc_tls_para.session, id, &ids), /* continue */ );
+			TRACE_DEBUG_BUFFER(SR_LEVEL, "Master session id: [", id, ids, "]");
+		}
 	}
 	
 	/* Initialize the session objects and start the handshake in a separate thread */
