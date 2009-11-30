@@ -869,7 +869,7 @@ int fd_sctp_get_remote_ep(int sock, struct fd_list * list)
 		uint8_t	*buf;
 	} ptr;
 	
-	sSA * data;
+	sSA * data = NULL;
 	int count;
 	
 	TRACE_ENTRY("%d %p", sock, list);
