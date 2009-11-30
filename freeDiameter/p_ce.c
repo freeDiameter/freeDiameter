@@ -659,7 +659,7 @@ int fd_p_ce_msgrcv(struct msg ** msg, int req, struct fd_peer * peer)
 	CHECK_FCT_DO( save_remote_CE_info(*msg, peer, &ec), goto cleanup );
 	
 	/* Dispose of the message, we don't need it anymore */
-	CHECK_FCT( fd_msg_free(*msg), /* continue */ );
+	CHECK_FCT_DO( fd_msg_free(*msg), /* continue */ );
 	*msg = NULL;
 	
 	/* Handshake if needed, start clear otherwise */
