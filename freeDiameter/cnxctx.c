@@ -784,6 +784,81 @@ int fd_tls_verify_credentials(gnutls_session_t session, struct cnxctx * conn)
 	gnutls_x509_crt_t cert;
 	time_t now;
 	
+	/* Trace the session information -- http://www.gnu.org/software/gnutls/manual/gnutls.html#Obtaining-session-information */
+	if (TRACE_BOOL(FULL)) {
+		const char *tmp;
+		gnutls_kx_algorithm_t kx;
+  		gnutls_credentials_type_t cred;
+		
+		fd_log_debug("TLS Session information for connection '%s':\n", conn->cc_id);
+
+		/* print the key exchange's algorithm name */
+		kx = gnutls_kx_get (session);
+		tmp = gnutls_kx_get_name (kx);
+		fd_log_debug("\t - Key Exchange: %s\n", tmp);
+
+		/* Check the authentication type used and switch
+		* to the appropriate. */
+		cred = gnutls_auth_get_type (session);
+		switch (cred)
+		{
+			case GNUTLS_CRD_IA:
+				fd_log_debug("\t - TLS/IA session\n");
+				break;
+
+
+			#ifdef ENABLE_SRP
+			case GNUTLS_CRD_SRP:
+				fd_log_debug("\t - SRP session with username %s\n",
+					gnutls_srp_server_get_username (session));
+				break;
+			#endif
+
+			case GNUTLS_CRD_PSK:
+				/* This returns NULL in server side. */
+				if (gnutls_psk_client_get_hint (session) != NULL)
+					fd_log_debug("\t - PSK authentication. PSK hint '%s'\n",
+						gnutls_psk_client_get_hint (session));
+				/* This returns NULL in client side. */
+				if (gnutls_psk_server_get_username (session) != NULL)
+					fd_log_debug("\t - PSK authentication. Connected as '%s'\n",
+						gnutls_psk_server_get_username (session));
+				break;
+
+			case GNUTLS_CRD_ANON:	/* anonymous authentication */
+				fd_log_debug("\t - Anonymous DH using prime of %d bits\n",
+					gnutls_dh_get_prime_bits (session));
+				break;
+
+			case GNUTLS_CRD_CERTIFICATE:	/* certificate authentication */
+				/* Check if we have been using ephemeral Diffie-Hellman. */
+				if (kx == GNUTLS_KX_DHE_RSA || kx == GNUTLS_KX_DHE_DSS) {
+					fd_log_debug("\t - Ephemeral DH using prime of %d bits\n",
+						gnutls_dh_get_prime_bits (session));
+				}
+		}
+
+		/* print the protocol's name (ie TLS 1.0) */
+		tmp = gnutls_protocol_get_name (gnutls_protocol_get_version (session));
+		fd_log_debug("\t - Protocol: %s\n", tmp);
+
+		/* print the certificate type of the peer. ie X.509 */
+		tmp = gnutls_certificate_type_get_name (gnutls_certificate_type_get (session));
+		fd_log_debug("\t - Certificate Type: %s\n", tmp);
+
+		/* print the compression algorithm (if any) */
+		tmp = gnutls_compression_get_name (gnutls_compression_get (session));
+		fd_log_debug("\t - Compression: %s\n", tmp);
+
+		/* print the name of the cipher used. ie 3DES. */
+		tmp = gnutls_cipher_get_name (gnutls_cipher_get (session));
+		fd_log_debug("\t - Cipher: %s\n", tmp);
+
+		/* Print the MAC algorithms name. ie SHA1 */
+		tmp = gnutls_mac_get_name (gnutls_mac_get (session));
+		fd_log_debug("\t - MAC: %s\n", tmp);
+	}
+	
 	/* First, use built-in verification */
 	CHECK_GNUTLS_DO( gnutls_certificate_verify_peers2 (session, &ret), return EINVAL );
 	if (ret) {
@@ -812,6 +887,62 @@ int fd_tls_verify_credentials(gnutls_session_t session, struct cnxctx * conn)
 		return EINVAL;
 	
 	now = time(NULL);
+	
+	if (TRACE_BOOL(FULL)) {
+		char serial[40];
+		char dn[128];
+		size_t size;
+		unsigned int algo, bits;
+		time_t expiration_time, activation_time;
+		
+		fd_log_debug("TLS Certificate information for connection '%s' (%d certs provided):\n", conn->cc_id, cert_list_size);
+		for (i = 0; i < cert_list_size; i++)
+		{
+
+			CHECK_GNUTLS_DO( gnutls_x509_crt_init (&cert), return EINVAL);
+			CHECK_GNUTLS_DO( gnutls_x509_crt_import (cert, &cert_list[i], GNUTLS_X509_FMT_DER), return EINVAL);
+		
+			fd_log_debug(" Certificate %d info:\n", i);
+
+			expiration_time = gnutls_x509_crt_get_expiration_time (cert);
+			activation_time = gnutls_x509_crt_get_activation_time (cert);
+
+			fd_log_debug("\t - Certificate is valid since: %s", ctime (&activation_time));
+			fd_log_debug("\t - Certificate expires: %s", ctime (&expiration_time));
+
+			/* Print the serial number of the certificate. */
+			size = sizeof (serial);
+			gnutls_x509_crt_get_serial (cert, serial, &size);
+			
+			fd_log_debug("\t - Certificate serial number: ");
+			{
+				int j;
+				for (j = 0; j < size; j++) {
+					fd_log_debug("%02.2hhx", serial[j]);
+				}
+			}
+			fd_log_debug("\n");
+
+			/* Extract some of the public key algorithm's parameters */
+			algo = gnutls_x509_crt_get_pk_algorithm (cert, &bits);
+			fd_log_debug("\t - Certificate public key: %s",
+			      gnutls_pk_algorithm_get_name (algo));
+
+			/* Print the version of the X.509 certificate. */
+			fd_log_debug("\t - Certificate version: #%d\n",
+			      gnutls_x509_crt_get_version (cert));
+
+			size = sizeof (dn);
+			gnutls_x509_crt_get_dn (cert, dn, &size);
+			fd_log_debug("\t - DN: %s\n", dn);
+
+			size = sizeof (dn);
+			gnutls_x509_crt_get_issuer_dn (cert, dn, &size);
+			fd_log_debug("\t - Issuer's DN: %s\n", dn);
+
+			gnutls_x509_crt_deinit (cert);
+		}
+	}
 
 	/* Check validity of all the certificates */
 	for (i = 0; i < cert_list_size; i++)
