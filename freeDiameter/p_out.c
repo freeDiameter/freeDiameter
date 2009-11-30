@@ -57,6 +57,12 @@ static int do_send(struct msg ** msg, struct cnxctx * cnx, uint32_t * hbh, struc
 		*hbh = hdr->msg_hbhid + 1;
 	}
 	
+	/* Log the message */
+	if (TRACE_BOOL(FULL)) {
+		TRACE_DEBUG(FULL, "Sending the following message on connection '%s':", fd_cnx_getid(cnx));
+		fd_msg_dump_walk(FULL, *msg);
+	}
+	
 	/* Create the message buffer */
 	CHECK_FCT(fd_msg_bufferize( *msg, &buf, &sz ));
 	
