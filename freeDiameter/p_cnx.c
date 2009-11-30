@@ -128,7 +128,7 @@ static int prepare_connection_list(struct fd_peer * peer)
 	last_prio = &peer->p_connparams;
 	
 	/* Create TCP parameters unless specified otherwise */
-	if (peer->p_hdr.info.config.pic_flags.pro4 != PI_P4_SCTP) {
+	if ((!fd_g_config->cnf_flags.no_tcp) && (peer->p_hdr.info.config.pic_flags.pro4 != PI_P4_SCTP)) {
 		for (li = peer->p_hdr.info.pi_endpoints.next; li != &peer->p_hdr.info.pi_endpoints; li = li->next) {
 			struct fd_endpoint * ep = (struct fd_endpoint *)li;
 			
@@ -165,7 +165,7 @@ static int prepare_connection_list(struct fd_peer * peer)
 	
 	/* Now, add the SCTP entry, if not disabled */
 #ifndef DISABLE_SCTP
-	if (peer->p_hdr.info.config.pic_flags.pro4 != PI_P4_TCP) {
+	if ((!fd_g_config->cnf_flags.no_sctp) && (peer->p_hdr.info.config.pic_flags.pro4 != PI_P4_TCP)) {
 		struct next_conn   * new;
 		
 		CHECK_MALLOC( new = malloc(sizeof(struct next_conn)) );
