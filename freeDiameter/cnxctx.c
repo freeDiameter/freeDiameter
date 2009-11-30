@@ -925,7 +925,7 @@ int fd_tls_verify_credentials(gnutls_session_t session, struct cnxctx * conn)
 
 			/* Extract some of the public key algorithm's parameters */
 			algo = gnutls_x509_crt_get_pk_algorithm (cert, &bits);
-			fd_log_debug("\t - Certificate public key: %s",
+			fd_log_debug("\t - Certificate public key: %s\n",
 			      gnutls_pk_algorithm_get_name (algo));
 
 			/* Print the version of the X.509 certificate. */
