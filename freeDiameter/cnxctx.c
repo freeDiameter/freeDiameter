@@ -1071,7 +1071,7 @@ int fd_cnx_getcred(struct cnxctx * conn, const gnutls_datum_t **cert_list, unsig
 		return EINVAL;
 	}
 
-	TRACE_DEBUG( FULL, "Remote peer provided %d certificates.\n", *cert_list_size);
+	TRACE_DEBUG( FULL, "Saved certificate chain (%d certificates) in peer structure.", *cert_list_size);
 	
 	return 0;
 }
