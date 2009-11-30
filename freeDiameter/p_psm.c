@@ -408,7 +408,7 @@ psm_loop:
 				case STATE_REOPEN:
 				case STATE_SUSPECT:
 				case STATE_CLOSING:
-					TRACE_DEBUG(FULL, "Accepted a message while not in OPEN state");
+					TRACE_DEBUG(FULL, "Accepted a message while not in OPEN state... ");
 				/* The standard situation : */
 				case STATE_OPEN:
 					/* We received a valid routable message, update the expiry timer */
@@ -628,18 +628,16 @@ psm_loop:
 				goto psm_loop;
 				
 			case STATE_WAITCNXACK_ELEC:
-				
 				/* Abort the initiating side */
 				fd_p_cnx_abort(peer, 0);
-				
-				/* Handle receiver side */
+				/* Process the receiver side */
 				CHECK_FCT_DO( fd_p_ce_process_receiver(peer), goto psm_end );
 				goto psm_loop;
 		}
 	}
 	
 	/* Default action : the handling has not yet been implemented. [for debug only] */
-	TODO("Missing handler in PSM : '%s'\t<-- '%s'", STATE_STR(peer->p_hdr.info.runtime.pir_state), fd_pev_str(event));
+	TODO("Missing handler in PSM for '%s'\t<-- '%s'", STATE_STR(peer->p_hdr.info.runtime.pir_state), fd_pev_str(event));
 	goto psm_loop;
 
 psm_end:

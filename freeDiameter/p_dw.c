@@ -37,29 +37,130 @@
 
 /* This file contains code to handle Device Watchdog messages (DWR and DWA) */
 
+/* Check the value of Origin-State-Id is consistent in a DWR or  DWA -- we just log if it is not the case */
+static void check_state_id(struct msg * msg, struct fd_peer * peer)
+{
+	struct avp * osi;
+	/* Check if the request contains the Origin-State-Id */
+	CHECK_FCT_DO( fd_msg_search_avp ( msg, fd_dict_avp_OSI, &osi ), return );
+	if (osi) {
+		/* Check the value is consistent with the saved one */
+		struct avp_hdr * hdr;
+		CHECK_FCT_DO(  fd_msg_avp_hdr( osi, &hdr ), return  );
+		if (hdr->avp_value == NULL) {
+			/* This is a sanity check */
+			TRACE_DEBUG(NONE, "BUG: Unset value in Origin-State-Id in DWR / DWA");
+			fd_msg_dump_one(NONE, osi);
+			ASSERT(0); /* To check if this really happens, and understand why... */
+		}
+
+		if (peer->p_hdr.info.runtime.pir_orstate != hdr->avp_value->u32) {
+			fd_log_debug("Received a new Origin-State-Id from peer %s! (%x / %x)\n", 
+				peer->p_hdr.info.pi_diamid, 
+				hdr->avp_value->u32,
+				peer->p_hdr.info.runtime.pir_orstate );
+		}
+	}
+}
+
+/* Create and send a DWR */
+static int send_DWR(struct fd_peer * peer)
+{
+	struct msg * msg = NULL;
+	
+	/* Create a new DWR instance */
+	CHECK_FCT( fd_msg_new ( fd_dict_cmd_DWR, MSGFL_ALLOC_ETEID, &msg ) );
+	
+	/* Add the content of the message (only the origin) */
+	CHECK_FCT( fd_msg_add_origin ( msg, 1 ) );
+	
+	/* Now send this message */
+	CHECK_FCT( fd_out_send(&msg, NULL, peer) );
+	
+	/* And mark the pending DW */
+	peer->p_flags.pf_dw_pending = 1;
+	
+	return 0;
+}
 
 /* Handle an incoming message */
 int fd_p_dw_handle(struct msg ** msg, int req, struct fd_peer * peer)
 {
-	TODO("Handle depending on DWR or DWA and peer state");
+	int reset_tmr = 0;
 	
-	return ENOTSUP;
+	TRACE_ENTRY("%p %d %p", msg, req, peer);
+	
+	/* Check the value of OSI for information */
+	check_state_id(*msg, peer);
+	
+	if (req) {
+		/* If we receive a DWR, send back a DWA */
+		CHECK_FCT( fd_msg_new_answer_from_req ( fd_g_config->cnf_dict, msg, 0 ) );
+		CHECK_FCT( fd_msg_rescode_set( *msg, "DIAMETER_SUCCESS", NULL, NULL, 0 ) );
+		CHECK_FCT( fd_msg_add_origin ( *msg, 1 ) );
+		CHECK_FCT( fd_out_send( msg, peer->p_cnxctx, peer) );
+		
+	} else {
+		/* Just discard the DWA */
+		CHECK_FCT_DO( fd_msg_free(*msg), /* continue */ );
+		*msg = NULL;
+		
+		/* And clear the pending DW flag */
+		peer->p_flags.pf_dw_pending = 0;
+	}
+	
+	/* Now update timeout */
+	if (req) {
+		/* Update timeout only if we did not already send a DWR ourselves */
+		reset_tmr = !peer->p_flags.pf_dw_pending;
+	} else {
+		/* Reset the timer */
+		reset_tmr = 1;
+	}
+	if (reset_tmr) {
+		fd_psm_next_timeout(peer, 1, peer->p_hdr.info.config.pic_twtimer ?: fd_g_config->cnf_timer_tw);
+	}
+	
+	/* If we are in REOPEN state, increment the counter */
+	if (peer->p_hdr.info.runtime.pir_state == STATE_REOPEN) {
+		peer->p_flags.pf_reopen_cnt += 1;
+		
+		if (peer->p_flags.pf_reopen_cnt) {
+			/* Send a new DWR */
+			CHECK_FCT( send_DWR(peer) );
+		} else {
+			/* Move to OPEN state */
+			CHECK_FCT( fd_psm_change_state(peer, STATE_OPEN) );
+		}
+	}
+		
+	return 0;
 }
 
-/* Handle a timeout in the PSM : send DWR, fail the peer, manage reopen state */
+/* Handle a timeout in the PSM (OPEN or REOPEN state only) */
 int fd_p_dw_timeout(struct fd_peer * peer)
 {
-	TODO("...");
+	if (peer->p_flags.pf_dw_pending) {
+		/* We have sent a DWR and received no answer during TwTimer */
+		CHECK_FCT( fd_psm_change_state(peer, STATE_SUSPECT) );
+		fd_psm_next_timeout(peer, 0, 2 * (peer->p_hdr.info.config.pic_twtimer ?: fd_g_config->cnf_timer_tw) );
+	} else {
+		/* The timeout has expired, send a DWR */
+		CHECK_FCT( send_DWR(peer) );
+		fd_psm_next_timeout(peer, 0, peer->p_hdr.info.config.pic_twtimer ?: fd_g_config->cnf_timer_tw );
+	}
 	
-	return ENOTSUP;
+	
+	return 0;
 }
 
 /* Handle DW exchanges after the peer has come alive again */
 int fd_p_dw_reopen(struct fd_peer * peer)
 {
-	TODO("...");
+	peer->p_flags.pf_reopen_cnt = 1;
+	CHECK_FCT( send_DWR(peer) );
 	
-	return ENOTSUP;
+	return 0;
 }
 
 

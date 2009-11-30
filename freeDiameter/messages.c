@@ -37,11 +37,14 @@
 
 static struct dict_object * dict_avp_OH  = NULL; /* Origin-Host */
 static struct dict_object * dict_avp_OR  = NULL; /* Origin-Realm */
-static struct dict_object * dict_avp_OSI = NULL; /* Origin-State-Id */
-static struct dict_object * dict_avp_RC  = NULL; /* Result-Code */
 static struct dict_object * dict_avp_EM  = NULL; /* Error-Message */
 static struct dict_object * dict_avp_ERH = NULL; /* Error-Reporting-Host */
 static struct dict_object * dict_avp_FAVP= NULL; /* Failed-AVP */
+static struct dict_object * dict_avp_RC  = NULL; /* Result-Code */
+struct dict_object * fd_dict_avp_OSI = NULL; /* Origin-State-Id */
+struct dict_object * fd_dict_cmd_CER = NULL; /* Capabilities-Exchange-Request */
+struct dict_object * fd_dict_cmd_DWR = NULL; /* Device-Watchdog-Request */
+struct dict_object * fd_dict_cmd_DPR = NULL; /* Disconnect-Peer-Request */
 
 /* Resolve the dictionary objects */
 int fd_msg_init(void)
@@ -51,12 +54,17 @@ int fd_msg_init(void)
 	/* Initialize the dictionary objects that we may use frequently */
 	CHECK_FCT(  fd_dict_search( fd_g_config->cnf_dict, DICT_AVP, AVP_BY_NAME, "Origin-Host",     	&dict_avp_OH  , ENOENT)  );
 	CHECK_FCT(  fd_dict_search( fd_g_config->cnf_dict, DICT_AVP, AVP_BY_NAME, "Origin-Realm",    	&dict_avp_OR  , ENOENT)  );
-	CHECK_FCT(  fd_dict_search( fd_g_config->cnf_dict, DICT_AVP, AVP_BY_NAME, "Origin-State-Id", 	&dict_avp_OSI , ENOENT)  );
+	CHECK_FCT(  fd_dict_search( fd_g_config->cnf_dict, DICT_AVP, AVP_BY_NAME, "Origin-State-Id", 	&fd_dict_avp_OSI , ENOENT)  );
 	
 	CHECK_FCT(  fd_dict_search( fd_g_config->cnf_dict, DICT_AVP, AVP_BY_NAME, "Result-Code",     	&dict_avp_RC  , ENOENT)  );
 	CHECK_FCT(  fd_dict_search( fd_g_config->cnf_dict, DICT_AVP, AVP_BY_NAME, "Error-Message",   	&dict_avp_EM  , ENOENT)  );
 	CHECK_FCT(  fd_dict_search( fd_g_config->cnf_dict, DICT_AVP, AVP_BY_NAME, "Error-Reporting-Host", &dict_avp_ERH , ENOENT)  );
 	CHECK_FCT(  fd_dict_search( fd_g_config->cnf_dict, DICT_AVP, AVP_BY_NAME, "Failed-AVP",      	&dict_avp_FAVP, ENOENT)  );
+	
+	CHECK_FCT( fd_dict_search ( fd_g_config->cnf_dict, DICT_COMMAND, CMD_BY_NAME, "Capabilities-Exchange-Request", &fd_dict_cmd_CER, ENOENT ) );
+	CHECK_FCT( fd_dict_search ( fd_g_config->cnf_dict, DICT_COMMAND, CMD_BY_NAME, "Device-Watchdog-Request", &fd_dict_cmd_DWR, ENOENT ) );
+	CHECK_FCT( fd_dict_search ( fd_g_config->cnf_dict, DICT_COMMAND, CMD_BY_NAME, "Disconnect-Peer-Request", &fd_dict_cmd_DPR, ENOENT ) );
+	
 	
 	return 0;
 }
@@ -99,7 +107,7 @@ int fd_msg_add_origin ( struct msg * msg, int osi )
 	
 	if (osi) {
 		/* Create the Origin-State-Id AVP */
-		CHECK_FCT( fd_msg_avp_new( dict_avp_OSI, 0, &avp_OSI ) );
+		CHECK_FCT( fd_msg_avp_new( fd_dict_avp_OSI, 0, &avp_OSI ) );
 
 		/* Set its value */
 		memset(&val, 0, sizeof(val));

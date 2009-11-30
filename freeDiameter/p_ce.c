@@ -535,13 +535,11 @@ next:
 /* Create a CER message for sending */ 
 static int create_CER(struct fd_peer * peer, struct cnxctx * cnx, struct msg ** cer)
 {
-	struct dict_object * dictobj = NULL;
 	int isi_tls = 0;
 	int isi_none = 0;
 	
 	/* Find CER dictionary object and create an instance */
-	CHECK_FCT( fd_dict_search ( fd_g_config->cnf_dict, DICT_COMMAND, CMD_BY_NAME, "Capabilities-Exchange-Request", &dictobj, ENOENT ) );
-	CHECK_FCT( fd_msg_new ( dictobj, MSGFL_ALLOC_ETEID, cer ) );
+	CHECK_FCT( fd_msg_new ( fd_dict_cmd_CER, MSGFL_ALLOC_ETEID, cer ) );
 	
 	/* Do we need Inband-Security-Id AVPs ? */
 	if (!fd_cnx_getTLS(cnx)) {
