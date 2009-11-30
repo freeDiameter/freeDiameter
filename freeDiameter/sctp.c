@@ -888,14 +888,15 @@ int fd_sctp_get_remote_ep(int sock, struct fd_list * list)
 			case AF_INET:	sl = sizeof(sSA4); break;
 			case AF_INET6:	sl = sizeof(sSA6); break;
 			default:
-				TRACE_DEBUG(INFO, "Unkown address family returned in sctp_getpaddrs: %d", ptr.sa->sa_family);
+				TRACE_DEBUG(INFO, "Unkown address family returned in sctp_getpaddrs: %d, skip", ptr.sa->sa_family);
+				goto next;
 		}
 				
 		CHECK_FCT( fd_ep_add_merge( list, ptr.sa, sl, EP_FL_LL ) );
 		ptr.buf += sl;
 		count --;
 	}
-	
+next:	
 	/* Free the list */
 	sctp_freepaddrs(data);
 	
