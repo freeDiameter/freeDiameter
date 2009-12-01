@@ -235,7 +235,7 @@ void fd_psm_next_timeout(struct fd_peer * peer, int add_random, int delay)
 	
 	peer->p_psm_timer.tv_sec += delay;
 	
-	TRACE_DEBUG(FULL, "Peer timeout reset to %d seconds%s", delay, add_random ? " (+/- 2)", "" );
+	TRACE_DEBUG(FULL, "Peer timeout reset to %d seconds%s", delay, add_random ? " (+/- 2)" : "" );
 	
 #ifdef SLOW_PSM
 	/* temporary for debug */
