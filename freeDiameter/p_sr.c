@@ -57,6 +57,18 @@ static struct fd_list * find_or_next(struct fd_list * srlist, uint32_t hbh, int 
 	return li;
 }
 
+static void srl_dump(const char * text, struct fd_list * srlist)
+{
+	struct fd_list * li;
+	fd_log_debug("%sSentReq list @%p:\n", text, srlist);
+	for (li = srlist->next; li != srlist; li = li->next) {
+		struct sentreq * sr = (struct sentreq *)li;
+		uint32_t * nexthbh = li->o;
+		fd_log_debug(" - Next req (%x):\n", *nexthbh);
+		fd_msg_dump_one(INFO, sr->req);
+	}
+}
+
 /* Store a new sent request */
 int fd_p_sr_store(struct sr_list * srlist, struct msg **req, uint32_t *hbhloc)
 {
@@ -85,6 +97,7 @@ int fd_p_sr_store(struct sr_list * srlist, struct msg **req, uint32_t *hbhloc)
 	/* Save in the list */
 	*req = NULL;
 	fd_list_insert_before(next, &sr->chain);
+	srl_dump("Saved new request, ", &srlist->srs);
 	CHECK_POSIX( pthread_mutex_unlock(&srlist->mtx) );
 	return 0;
 }
@@ -100,6 +113,7 @@ int fd_p_sr_fetch(struct sr_list * srlist, uint32_t hbh, struct msg **req)
 	
 	/* Search the request in the list */
 	CHECK_POSIX( pthread_mutex_lock(&srlist->mtx) );
+	srl_dump("Fetching a request, ", &srlist->srs);
 	sr = (struct sentreq *)find_or_next(&srlist->srs, hbh, &match);
 	if (!match) {
 		TRACE_DEBUG(INFO, "There is no saved request with this hop-by-hop id");
