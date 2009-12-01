@@ -337,6 +337,8 @@ struct peer_info {
 		struct fd_list	pir_apps;	/* applications advertised by the remote peer, except relay (pi_flags.relay) */
 		int		pir_isi;	/* Inband-Security-Id advertised (PI_SEC_* bits) */
 		
+		uint32_t	pir_lastDC;	/* The last Disconnect-Cause value received */
+		
 		int		pir_proto;	/* The L4 protocol currently used with the peer (IPPROTO_TCP or IPPROTO_SCTP) */
 		const gnutls_datum_t 	*pir_cert_list; 	/* The (valid) credentials that the peer has presented, or NULL if TLS is not used */
 								/* This is inspired from http://www.gnu.org/software/gnutls/manual/gnutls.html#ex_003ax509_002dinfo 

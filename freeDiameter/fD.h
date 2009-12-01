@@ -90,6 +90,7 @@ int fd_msg_init(void);
 struct dict_object * fd_dict_avp_OSI; /* Origin-State-Id */
 struct dict_object * fd_dict_cmd_CER; /* Capabilities-Exchange-Request */
 struct dict_object * fd_dict_cmd_DWR; /* Device-Watchdog-Request */
+struct dict_object * fd_dict_avp_DC;  /* Disconnect-Cause */
 struct dict_object * fd_dict_cmd_DPR; /* Disconnect-Peer-Request */
 
 /* Global message queues */
@@ -256,7 +257,7 @@ int fd_p_expi_update(struct fd_peer * peer );
 /* Peer state machine */
 int  fd_psm_start();
 int  fd_psm_begin(struct fd_peer * peer );
-int  fd_psm_terminate(struct fd_peer * peer );
+int  fd_psm_terminate(struct fd_peer * peer, char * reason );
 void fd_psm_abord(struct fd_peer * peer );
 void fd_psm_next_timeout(struct fd_peer * peer, int add_random, int delay);
 int fd_psm_change_state(struct fd_peer * peer, int new_state);
@@ -286,7 +287,7 @@ int fd_p_dw_handle(struct msg ** msg, int req, struct fd_peer * peer);
 int fd_p_dw_timeout(struct fd_peer * peer);
 int fd_p_dw_reopen(struct fd_peer * peer);
 int fd_p_dp_handle(struct msg ** msg, int req, struct fd_peer * peer);
-int fd_p_dp_initiate(struct fd_peer * peer);
+int fd_p_dp_initiate(struct fd_peer * peer, char * reason);
 
 /* Active peers -- routing process should only ever take the read lock, the write lock is managed by PSMs */
 extern struct fd_list fd_g_activ_peers;

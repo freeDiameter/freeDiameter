@@ -254,7 +254,7 @@ int fd_peer_fini()
 		struct fd_peer * peer = (struct fd_peer *)li;
 		
 		if (peer->p_hdr.info.runtime.pir_state != STATE_ZOMBIE) {
-			CHECK_FCT_DO( fd_psm_terminate(peer), /* continue */ );
+			CHECK_FCT_DO( fd_psm_terminate(peer, "REBOOTING"), /* continue */ );
 		} else {
 			li = li->prev; /* to avoid breaking the loop */
 			fd_list_unlink(&peer->p_hdr.chain);

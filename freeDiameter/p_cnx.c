@@ -87,7 +87,7 @@ static int prepare_connection_list(struct fd_peer * peer)
 		ret = getaddrinfo(peer->p_hdr.info.pi_diamid, NULL, &hints, &ai);
 		if (ret) {
 			fd_log_debug("Unable to resolve address for peer '%s' (%s), aborting\n", peer->p_hdr.info.pi_diamid, gai_strerror(ret));
-			fd_psm_terminate( peer );
+			fd_psm_terminate( peer, NULL );
 			return 0;
 		}
 		
@@ -109,7 +109,7 @@ static int prepare_connection_list(struct fd_peer * peer)
 	/* Now check we have at least one address to attempt */
 	if (FD_IS_LIST_EMPTY(&peer->p_hdr.info.pi_endpoints)) {
 		fd_log_debug("No address %savailable to connect to peer '%s', aborting\n", peer->p_hdr.info.config.pic_flags.pro3 ? "in the configured family " : "", peer->p_hdr.info.pi_diamid);
-		fd_psm_terminate( peer );
+		fd_psm_terminate( peer, NULL );
 		return 0;
 	}
 	

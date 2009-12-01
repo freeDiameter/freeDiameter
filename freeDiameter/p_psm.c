@@ -93,9 +93,8 @@ static int enter_open_state(struct fd_peer * peer)
 	if (peer->p_cb2) {
 		CHECK_FCT_DO( (*peer->p_cb2)(&peer->p_hdr.info),
 			{
-				TRACE_DEBUG(FULL, "Validation failed, moving to state CLOSING");
-				peer->p_hdr.info.runtime.pir_state = STATE_CLOSING;
-				fd_psm_terminate(peer);
+				TRACE_DEBUG(FULL, "Validation failed, terminating the connection");
+				fd_psm_terminate(peer, "DO_NOT_WANT_TO_TALK_TO_YOU" );
 			} );
 		peer->p_cb2 = NULL;
 		return 0;
@@ -160,6 +159,10 @@ void fd_psm_events_free(struct fd_peer * peer)
 			}
 			break;
 			
+			case FDEVP_TERMINATE:
+				/* Do not free the string since it is a constant */
+			break;
+			
 			case FDEVP_CNX_INCOMING: {
 				struct cnx_incoming * evd = ev->data;
 				CHECK_FCT_DO( fd_msg_free(evd->cer), /* continue */);
@@ -215,6 +218,8 @@ int fd_psm_change_state(struct fd_peer * peer, int new_state)
 /* Set timeout timer of next event */
 void fd_psm_next_timeout(struct fd_peer * peer, int add_random, int delay)
 {
+	TRACE_DEBUG(FULL, "Peer timeout reset to %d seconds%s", delay, add_random ? " (+/- 2)" : "" );
+	
 	/* Initialize the timer */
 	CHECK_POSIX_DO(  clock_gettime( CLOCK_REALTIME,  &peer->p_psm_timer ), ASSERT(0) );
 	
@@ -234,8 +239,6 @@ void fd_psm_next_timeout(struct fd_peer * peer, int add_random, int delay)
 	}
 	
 	peer->p_psm_timer.tv_sec += delay;
-	
-	TRACE_DEBUG(FULL, "Peer timeout reset to %d seconds%s", delay, add_random ? " (+/- 2)" : "" );
 	
 #ifdef SLOW_PSM
 	/* temporary for debug */
@@ -347,7 +350,7 @@ psm_loop:
 			case STATE_OPEN:
 			case STATE_REOPEN:
 				/* We cannot just close the conenction, we have to send a DPR first */
-				CHECK_FCT_DO( fd_p_dp_initiate(peer), goto psm_end );
+				CHECK_FCT_DO( fd_p_dp_initiate(peer, ev_data), goto psm_end );
 				goto psm_loop;
 			
 			/*	
@@ -470,6 +473,8 @@ psm_loop:
 			
 			case CC_DISCONNECT_PEER:
 				CHECK_FCT_DO( fd_p_dp_handle(&msg, (hdr->msg_flags & CMD_FLAG_REQUEST), peer), goto psm_end );
+				if (peer->p_hdr.info.runtime.pir_state == STATE_CLOSING)
+					goto psm_end;
 				break;
 			
 			case CC_DEVICE_WATCHDOG:
@@ -711,13 +716,13 @@ int fd_psm_begin(struct fd_peer * peer )
 }
 
 /* End the PSM (clean ending) */
-int fd_psm_terminate(struct fd_peer * peer )
+int fd_psm_terminate(struct fd_peer * peer, char * reason )
 {
 	TRACE_ENTRY("%p", peer);
 	CHECK_PARAMS( CHECK_PEER(peer) );
 	
 	if (peer->p_hdr.info.runtime.pir_state != STATE_ZOMBIE) {
-		CHECK_FCT( fd_event_send(peer->p_events, FDEVP_TERMINATE, 0, NULL) );
+		CHECK_FCT( fd_event_send(peer->p_events, FDEVP_TERMINATE, 0, reason) );
 	} else {
 		TRACE_DEBUG(FULL, "Peer '%s' was already terminated", peer->p_hdr.info.pi_diamid);
 	}

@@ -762,7 +762,7 @@ int fd_p_ce_process_receiver(struct fd_peer * peer)
 			CHECK_FCT_DO( (*peer->p_cb2)( &peer->p_hdr.info ),
 				{
 					TRACE_DEBUG(INFO, "Validation callback rejected the peer %s after handshake", peer->p_hdr.info.pi_diamid);
-					CHECK_FCT( fd_psm_terminate( peer ) );
+					CHECK_FCT( fd_psm_terminate( peer, "DO_NOT_WANT_TO_TALK_TO_YOU" ) );
 					return 0;
 				}  );
 		}

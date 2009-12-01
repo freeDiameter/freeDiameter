@@ -44,6 +44,7 @@ static struct dict_object * dict_avp_RC  = NULL; /* Result-Code */
 struct dict_object * fd_dict_avp_OSI = NULL; /* Origin-State-Id */
 struct dict_object * fd_dict_cmd_CER = NULL; /* Capabilities-Exchange-Request */
 struct dict_object * fd_dict_cmd_DWR = NULL; /* Device-Watchdog-Request */
+struct dict_object * fd_dict_avp_DC  = NULL; /* Disconnect-Cause */
 struct dict_object * fd_dict_cmd_DPR = NULL; /* Disconnect-Peer-Request */
 
 /* Resolve the dictionary objects */
@@ -60,6 +61,8 @@ int fd_msg_init(void)
 	CHECK_FCT(  fd_dict_search( fd_g_config->cnf_dict, DICT_AVP, AVP_BY_NAME, "Error-Message",   	&dict_avp_EM  , ENOENT)  );
 	CHECK_FCT(  fd_dict_search( fd_g_config->cnf_dict, DICT_AVP, AVP_BY_NAME, "Error-Reporting-Host", &dict_avp_ERH , ENOENT)  );
 	CHECK_FCT(  fd_dict_search( fd_g_config->cnf_dict, DICT_AVP, AVP_BY_NAME, "Failed-AVP",      	&dict_avp_FAVP, ENOENT)  );
+	
+	CHECK_FCT(  fd_dict_search( fd_g_config->cnf_dict, DICT_AVP, AVP_BY_NAME, "Disconnect-Cause", 	&fd_dict_avp_DC , ENOENT)  );
 	
 	CHECK_FCT( fd_dict_search ( fd_g_config->cnf_dict, DICT_COMMAND, CMD_BY_NAME, "Capabilities-Exchange-Request", &fd_dict_cmd_CER, ENOENT ) );
 	CHECK_FCT( fd_dict_search ( fd_g_config->cnf_dict, DICT_COMMAND, CMD_BY_NAME, "Device-Watchdog-Request", &fd_dict_cmd_DWR, ENOENT ) );
