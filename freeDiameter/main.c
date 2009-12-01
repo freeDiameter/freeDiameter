@@ -60,6 +60,7 @@ int main(int argc, char * argv[])
 	pthread_t sig_th;
 	sigset_t sig_all;
 	
+	/* Block all signals */
 	memset(fd_g_config, 0, sizeof(struct fd_config));
 	sigfillset(&sig_all);
 	CHECK_POSIX(  pthread_sigmask(SIG_BLOCK, &sig_all, NULL)  );

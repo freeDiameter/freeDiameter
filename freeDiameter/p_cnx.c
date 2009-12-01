@@ -217,6 +217,7 @@ static void * connect_thr(void * arg)
 			if (FD_IS_LIST_EMPTY(&peer->p_connparams)) {
 				/* We encountered an error or we have looped over all the addresses of the peer. */
 				TRACE_DEBUG(INFO, "Unable to connect to the peer %s, aborting attempts for now.", peer->p_hdr.info.pi_diamid);
+				CHECK_FCT_DO( fd_event_send(peer->p_events, FDEVP_CNX_FAILED, 0, NULL), goto fatal_error );
 				return NULL;
 			}
 		}

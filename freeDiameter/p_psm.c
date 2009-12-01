@@ -606,6 +606,36 @@ psm_loop:
 		goto psm_loop;
 	}
 	
+	/* A new connection has been established with the remote peer */
+	if (event == FDEVP_CNX_FAILED) {
+		struct cnxctx * cnx = ev_data;
+		
+		/* Release the resources of the connecting thread */
+		CHECK_POSIX_DO( pthread_join( peer->p_ini_thr, NULL), /* ignore, it is not a big deal */);
+		peer->p_ini_thr = (pthread_t)NULL;
+		
+		switch (peer->p_hdr.info.runtime.pir_state) {
+			case STATE_WAITCNXACK_ELEC:
+				/* Abort the initiating side */
+				fd_p_cnx_abort(peer, 0);
+				/* Process the receiver side */
+				CHECK_FCT_DO( fd_p_ce_process_receiver(peer), goto psm_end );
+				break;
+				
+			case STATE_WAITCNXACK:
+				/* Go back to CLOSE */
+				fd_psm_cleanup(peer, 0);
+				fd_psm_next_timeout(peer, 1, peer->p_hdr.info.config.pic_tctimer ?: fd_g_config->cnf_timer_tc);
+				break;
+				
+			default:
+				/* Just ignore */
+				TRACE_DEBUG(FULL, "Connection attempt failed but current state is %s, ignoring...", STATE_STR(peer->p_hdr.info.runtime.pir_state));
+		}
+		
+		goto psm_loop;
+	}
+	
 	/* The timeout for the current state has been reached */
 	if (event == FDEVP_PSM_TIMEOUT) {
 		switch (peer->p_hdr.info.runtime.pir_state) {

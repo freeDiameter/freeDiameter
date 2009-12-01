@@ -200,6 +200,9 @@ enum {
 	/* A new connection has been established to the remote peer (event data is the cnxctx object) */
 	,FDEVP_CNX_ESTABLISHED
 	
+	/* A connection attempt (initiator side) has failed */
+	,FDEVP_CNX_FAILED
+	
 	/* The PSM state is expired */
 	,FDEVP_PSM_TIMEOUT
 	
@@ -218,6 +221,7 @@ const char * fd_pev_str(int event)			\
 		case_str(FDEVP_CNX_EP_CHANGE);		\
 		case_str(FDEVP_CNX_INCOMING);		\
 		case_str(FDEVP_CNX_ESTABLISHED);	\
+		case_str(FDEVP_CNX_FAILED);		\
 		case_str(FDEVP_PSM_TIMEOUT);		\
 	}						\
 	TRACE_DEBUG(FULL, "Unknown event : %d", event);	\
