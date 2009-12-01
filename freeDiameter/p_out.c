@@ -65,24 +65,18 @@ static int do_send(struct msg ** msg, struct cnxctx * cnx, uint32_t * hbh, struc
 	
 	/* Create the message buffer */
 	CHECK_FCT(fd_msg_bufferize( *msg, &buf, &sz ));
+	pthread_cleanup_push( free, buf );
+	
+	/* Save a request before sending so that there is no race condition with the answer */
+	if (msg_is_a_req) {
+		CHECK_FCT_DO( ret = fd_p_sr_store(srl, msg, &hdr->msg_hbhid), { free(buf); return ret; } );
+	}
 	
 	/* Send the message */
-	pthread_cleanup_push( free, buf );
 	CHECK_FCT_DO( ret = fd_cnx_send(cnx, buf, sz), { free(buf); return ret; } );
 	pthread_cleanup_pop(1);
 	
-	/* Save a request */
-	if (msg_is_a_req) {
-		CHECK_FCT_DO( fd_p_sr_store(srl, msg, &hdr->msg_hbhid),
-			{
-				fd_log_debug("The following request was sent successfully but not saved locally:\n" );
-				fd_log_debug("	(as a result the matching answer will be discarded)\n" );
-				fd_msg_dump_walk(NONE, *msg);
-			} );
-				
-	}
-	
-	/* Free answers and unsaved requests */
+	/* Free remaining messages (i.e. answers) */
 	if (*msg) {
 		CHECK_FCT( fd_msg_free(*msg) );
 		*msg = NULL;
