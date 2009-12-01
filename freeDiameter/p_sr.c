@@ -60,12 +60,14 @@ static struct fd_list * find_or_next(struct fd_list * srlist, uint32_t hbh, int 
 static void srl_dump(const char * text, struct fd_list * srlist)
 {
 	struct fd_list * li;
+	if (!TRACE_BOOL(FULL))
+		return;
 	fd_log_debug("%sSentReq list @%p:\n", text, srlist);
 	for (li = srlist->next; li != srlist; li = li->next) {
 		struct sentreq * sr = (struct sentreq *)li;
 		uint32_t * nexthbh = li->o;
 		fd_log_debug(" - Next req (%x):\n", *nexthbh);
-		fd_msg_dump_one(INFO, sr->req);
+		fd_msg_dump_one(FULL + 1, sr->req);
 	}
 }
 
