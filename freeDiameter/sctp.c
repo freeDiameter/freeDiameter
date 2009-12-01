@@ -739,6 +739,11 @@ int fd_sctp_client( int *sock, int no_ip6, uint16_t port, struct fd_list * list 
 #else /* SCTP_CONNECTX_4_ARGS */
 	CHECK_SYS_DO( sctp_connectx(*sock, sar.sa, count), { ret = errno; goto fail; } );
 #endif /* SCTP_CONNECTX_4_ARGS */
+	
+	/*****************
+	 BUG : received "EINVAL" at reconnection attempt... Should probably filter a little what is in list ! 
+	 *****************/
+	
 	free(sar.buf); sar.buf = NULL;
 	
 	/* Set the remaining sockopts */
