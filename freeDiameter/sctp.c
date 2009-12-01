@@ -230,7 +230,7 @@ static int fd_setsockopt_prebind(int sk)
 			fd_log_debug( "                     sasoc_cookie_life              : %u\n" , assoc.sasoc_cookie_life);
 		}
 
-		assoc.sasoc_asocmaxrxt = 5;	/* Maximum retransmission attempts: we want fast detection of errors */
+		assoc.sasoc_asocmaxrxt = 8;	/* Maximum retransmission attempts: we want fast detection of errors */
 		
 		/* Set the option to the socket */
 		CHECK_SYS(  setsockopt(sk, IPPROTO_SCTP, SCTP_ASSOCINFO, &assoc, sizeof(assoc))  );
