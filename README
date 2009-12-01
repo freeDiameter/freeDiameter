@@ -10,3 +10,8 @@ Author: Sebastien Decugis.
 See LICENSE file for legal information on this software.
 
 See INSTALL for information on building and using this software.
+
+--------------
+Known possible bugs:
+ - management of the Host-IP-Address values in CER/CEA may be strange (for TCP and SCTP)
+ 

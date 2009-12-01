@@ -140,6 +140,8 @@ int fd_p_dw_handle(struct msg ** msg, int req, struct fd_peer * peer)
 /* Handle a timeout in the PSM (OPEN or REOPEN state only) */
 int fd_p_dw_timeout(struct fd_peer * peer)
 {
+	TRACE_ENTRY("%p", peer);
+
 	if (peer->p_flags.pf_dw_pending) {
 		/* We have sent a DWR and received no answer during TwTimer */
 		CHECK_FCT( fd_psm_change_state(peer, STATE_SUSPECT) );
@@ -150,14 +152,16 @@ int fd_p_dw_timeout(struct fd_peer * peer)
 		fd_psm_next_timeout(peer, 0, peer->p_hdr.info.config.pic_twtimer ?: fd_g_config->cnf_timer_tw );
 	}
 	
-	
 	return 0;
 }
 
 /* Handle DW exchanges after the peer has come alive again */
 int fd_p_dw_reopen(struct fd_peer * peer)
 {
+	TRACE_ENTRY("%p", peer);
+
 	peer->p_flags.pf_reopen_cnt = 1;
+	peer->p_flags.pf_cnx_pb = 0;
 	CHECK_FCT( send_DWR(peer) );
 	
 	return 0;

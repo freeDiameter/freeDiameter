@@ -703,7 +703,7 @@ static void * rcvthr_tls_single(void * arg)
 	/* Set the thread name */
 	{
 		char buf[48];
-		snprintf(buf, sizeof(buf), "Receiver (%d) TLS/ single stream)", conn->cc_socket);
+		snprintf(buf, sizeof(buf), "Receiver (%d) TLS/single stream", conn->cc_socket);
 		fd_log_threadname ( buf );
 	}
 	

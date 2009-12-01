@@ -235,6 +235,8 @@ void fd_psm_next_timeout(struct fd_peer * peer, int add_random, int delay)
 	
 	peer->p_psm_timer.tv_sec += delay;
 	
+	TRACE_DEBUG(FULL, "Peer timeout reset to %d seconds%s", delay, add_random ? " (+/- 2)", "" );
+	
 #ifdef SLOW_PSM
 	/* temporary for debug */
 	peer->p_psm_timer.tv_sec += 10;
@@ -245,7 +247,9 @@ void fd_psm_next_timeout(struct fd_peer * peer, int add_random, int delay)
 void fd_psm_cleanup(struct fd_peer * peer, int terminate)
 {
 	/* Move to CLOSED state: failover messages, stop OUT thread, unlink peer from active list */
-	CHECK_FCT_DO( fd_psm_change_state(peer, STATE_CLOSED), /* continue */ );
+	if (peer->p_hdr.info.runtime.pir_state != STATE_ZOMBIE) {
+		CHECK_FCT_DO( fd_psm_change_state(peer, STATE_CLOSED), /* continue */ );
+	}
 	
 	fd_p_cnx_abort(peer, terminate);
 	
@@ -513,8 +517,11 @@ psm_loop:
 	if (event == FDEVP_CNX_ERROR) {
 		switch (peer->p_hdr.info.runtime.pir_state) {
 			case STATE_WAITCNXACK_ELEC:
-				TODO("Reply CEA on the receiver side and go to OPEN state");
-				goto psm_loop;
+				/* Abort the initiating side */
+				fd_p_cnx_abort(peer, 0);
+				/* Process the receiver side */
+				CHECK_FCT_DO( fd_p_ce_process_receiver(peer), goto psm_end );
+				break;
 			
 			case STATE_OPEN:
 			case STATE_REOPEN:
@@ -533,9 +540,10 @@ psm_loop:
 				fd_psm_next_timeout(peer, 1, peer->p_hdr.info.config.pic_tctimer ?: fd_g_config->cnf_timer_tc);
 				
 			case STATE_CLOSED:
-				/* Go to the next event */
-				goto psm_loop;
+				/* Just ignore */
+				;
 		}
+		goto psm_loop;
 	}
 	
 	/* The connection notified a change in endpoints */

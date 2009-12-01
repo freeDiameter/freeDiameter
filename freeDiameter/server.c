@@ -141,10 +141,7 @@ static void * client_sm(void * arg)
 	/* We expect a CER, it must parse with our dictionary and rules */
 	CHECK_FCT_DO( fd_msg_parse_rules( msg, fd_g_config->cnf_dict, NULL ), /* Parsing failed -- trace details ? */ goto cleanup );
 	
-	if (TRACE_BOOL(FULL)) {
-		fd_log_debug("Received Diameter message from new client '%s':\n", fd_cnx_getid(c->conn));
-		fd_msg_dump_walk(FULL, msg);
-	}
+	fd_msg_dump_walk(FULL, msg);
 	
 	/* Now check we received a CER */
 	CHECK_FCT_DO( fd_msg_hdr ( msg, &hdr ), goto fatal_error );
