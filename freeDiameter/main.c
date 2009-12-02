@@ -99,6 +99,7 @@ int main(int argc, char * argv[])
 	CHECK_FCT(  fd_queues_init()  );
 	CHECK_FCT(  fd_msg_init()  );
 	CHECK_FCT(  fd_p_expi_init()  );
+	CHECK_FCT(  fd_rt_init()  );
 	
 	/* Parse the configuration file */
 	CHECK_FCT( fd_conf_parse() );
@@ -171,25 +172,6 @@ end:
 	gnutls_global_deinit();
 	
 	return ret;
-}
-
-const char * fd_ev_str(int event)
-{
-	switch (event) {
-	#define case_str( _val )\
-		case _val : return #_val
-		case_str(FDEV_TERMINATE);
-		case_str(FDEV_DUMP_DICT);
-		case_str(FDEV_DUMP_EXT);
-		case_str(FDEV_DUMP_SERV);
-		case_str(FDEV_DUMP_QUEUES);
-		case_str(FDEV_DUMP_CONFIG);
-		case_str(FDEV_DUMP_PEERS);
-		
-		default:
-			TRACE_DEBUG(FULL, "Unknown event : %d", event);
-			return "Unknown event";
-	}
 }
 
 /* Parse the command-line */

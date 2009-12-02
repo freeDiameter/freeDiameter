@@ -114,118 +114,6 @@ struct fd_config {
 };
 extern struct fd_config *fd_g_config; /* The pointer to access the global configuration, initalized in main */
 
-/* Endpoints */
-struct fd_endpoint {
-	struct fd_list  chain;	/* link in cnf_endpoints list */
-	
-	union {
-		sSS		ss;	/* the socket information. List is always ordered by ss value (memcmp) -- see fd_ep_add_merge */
-		sSA4		sin;
-		sSA6		sin6;
-		sSA		sa;
-	};
-	
-#define	EP_FL_CONF	(1 << 0)	/* This endpoint is statically configured in a configuration file */
-#define	EP_FL_DISC	(1 << 1)	/* This endpoint was resolved from the Diameter Identity or other DNS query */
-#define	EP_FL_ADV	(1 << 2)	/* This endpoint was advertized in Diameter CER/CEA exchange */
-#define	EP_FL_LL	(1 << 3)	/* Lower layer mechanism provided this endpoint */
-#define	EP_FL_PRIMARY	(1 << 4)	/* This endpoint is primary in a multihomed SCTP association */
-	uint32_t	flags;		/* Additional information about the endpoint */
-		
-	/* To add: a validity timestamp for DNS records ? How do we retrieve this lifetime from DNS ? */
-};
-
-/* Applications */
-struct fd_app {
-	struct fd_list	 chain;	/* link in cnf_apps list. List ordered by appid. */
-	struct {
-		unsigned auth   : 1;
-		unsigned acct   : 1;
-		unsigned common : 1;
-	}		 flags;
-	vendor_id_t	 vndid; /* if not 0, Vendor-Specific-App-Id AVP will be used */
-	application_id_t appid;	/* The identifier of the application */
-};
-	
-
-/* Events */
-struct fd_event {
-	int	 code; /* codespace depends on the queue */
-	size_t 	 size;
-	void    *data;
-};
-
-/* Daemon's codespace: 1000->1999 */
-enum {
-	 FDEV_TERMINATE	= 1000	/* request to terminate */
-	,FDEV_DUMP_DICT		/* Dump the content of the dictionary */
-	,FDEV_DUMP_EXT		/* Dump state of extensions */
-	,FDEV_DUMP_SERV		/* Dump the server socket status */
-	,FDEV_DUMP_QUEUES	/* Dump the message queues */
-	,FDEV_DUMP_CONFIG	/* Dump the configuration */
-	,FDEV_DUMP_PEERS	/* Dump the list of peers */
-};
-
-static __inline__ int fd_event_send(struct fifo *queue, int code, size_t datasz, void * data)
-{
-	struct fd_event * ev;
-	CHECK_MALLOC( ev = malloc(sizeof(struct fd_event)) );
-	ev->code = code;
-	ev->size = datasz;
-	ev->data = data;
-	CHECK_FCT( fd_fifo_post(queue, &ev) );
-	return 0;
-}
-static __inline__ int fd_event_get(struct fifo *queue, int *code, size_t *datasz, void ** data)
-{
-	struct fd_event * ev;
-	CHECK_FCT( fd_fifo_get(queue, &ev) );
-	if (code)
-		*code = ev->code;
-	if (datasz)
-		*datasz = ev->size;
-	if (data)
-		*data = ev->data;
-	free(ev);
-	return 0;
-}
-static __inline__ int fd_event_timedget(struct fifo *queue, struct timespec * timeout, int timeoutcode, int *code, size_t *datasz, void ** data)
-{
-	struct fd_event * ev;
-	int ret = 0;
-	ret = fd_fifo_timedget(queue, &ev, timeout);
-	if (ret == ETIMEDOUT) {
-		if (code)
-			*code = timeoutcode;
-		if (datasz)
-			*datasz = 0;
-		if (data)
-			*data = NULL;
-	} else {
-		CHECK_FCT( ret );
-		if (code)
-			*code = ev->code;
-		if (datasz)
-			*datasz = ev->size;
-		if (data)
-			*data = ev->data;
-		free(ev);
-	}
-	return 0;
-}
-static __inline__ void fd_event_destroy(struct fifo **queue, void (*free_cb)(void * data))
-{
-	struct fd_event * ev;
-	/* Purge all events, and free the associated data if any */
-	while (fd_fifo_tryget( *queue, &ev ) == 0) {
-		(*free_cb)(ev->data);
-		free(ev);
-	}
-	CHECK_FCT_DO( fd_fifo_del(queue), /* continue */ );
-	return ;
-}  
-const char * fd_ev_str(int event); /* defined in freeDiameter/main.c */
-
 
 /***************************************/
 /*   Peers information                 */
@@ -538,8 +426,57 @@ int fd_disp_app_support ( struct dict_object * app, struct dict_object * vendor,
 
 
 /***************************************/
+/*   Events helpers                    */
+/***************************************/
+
+/* Events */
+struct fd_event {
+	int	 code; /* codespace depends on the queue */
+	size_t 	 size;
+	void    *data;
+};
+
+/* Daemon's codespace: 1000->1999 */
+enum {
+	 FDEV_TERMINATE	= 1000	/* request to terminate */
+	,FDEV_DUMP_DICT		/* Dump the content of the dictionary */
+	,FDEV_DUMP_EXT		/* Dump state of extensions */
+	,FDEV_DUMP_SERV		/* Dump the server socket status */
+	,FDEV_DUMP_QUEUES	/* Dump the message queues */
+	,FDEV_DUMP_CONFIG	/* Dump the configuration */
+	,FDEV_DUMP_PEERS	/* Dump the list of peers */
+};
+
+int fd_event_send(struct fifo *queue, int code, size_t datasz, void * data);
+int fd_event_get(struct fifo *queue, int *code, size_t *datasz, void ** data);
+int fd_event_timedget(struct fifo *queue, struct timespec * timeout, int timeoutcode, int *code, size_t *datasz, void ** data);
+void fd_event_destroy(struct fifo **queue, void (*free_cb)(void * data));
+const char * fd_ev_str(int event);
+
+
+/***************************************/
 /*   Endpoints lists helpers           */
 /***************************************/
+
+struct fd_endpoint {
+	struct fd_list  chain;	/* link in cnf_endpoints list */
+	
+	union {
+		sSS		ss;	/* the socket information. List is always ordered by ss value (memcmp) -- see fd_ep_add_merge */
+		sSA4		sin;
+		sSA6		sin6;
+		sSA		sa;
+	};
+	
+#define	EP_FL_CONF	(1 << 0)	/* This endpoint is statically configured in a configuration file */
+#define	EP_FL_DISC	(1 << 1)	/* This endpoint was resolved from the Diameter Identity or other DNS query */
+#define	EP_FL_ADV	(1 << 2)	/* This endpoint was advertized in Diameter CER/CEA exchange */
+#define	EP_FL_LL	(1 << 3)	/* Lower layer mechanism provided this endpoint */
+#define	EP_FL_PRIMARY	(1 << 4)	/* This endpoint is primary in a multihomed SCTP association */
+	uint32_t	flags;		/* Additional information about the endpoint */
+		
+	/* To add: a validity timestamp for DNS records ? How do we retrieve this lifetime from DNS ? */
+};
 
 int fd_ep_add_merge( struct fd_list * list, sSA * sa, socklen_t sl, uint32_t flags );
 int fd_ep_filter( struct fd_list * list, uint32_t flags );
@@ -552,6 +489,17 @@ void fd_ep_dump( int indent, struct fd_list * eps );
 /*   Applications lists helpers        */
 /***************************************/
 
+struct fd_app {
+	struct fd_list	 chain;	/* link in cnf_apps list. List ordered by appid. */
+	struct {
+		unsigned auth   : 1;
+		unsigned acct   : 1;
+		unsigned common : 1;
+	}		 flags;
+	vendor_id_t	 vndid; /* if not 0, Vendor-Specific-App-Id AVP will be used */
+	application_id_t appid;	/* The identifier of the application */
+};
+	
 int fd_app_merge(struct fd_list * list, application_id_t aid, vendor_id_t vid, int auth, int acct);
 int fd_app_find_common(struct fd_list * target, struct fd_list * reference);
 int fd_app_gotcommon(struct fd_list * apps);

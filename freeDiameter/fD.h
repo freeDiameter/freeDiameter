@@ -104,6 +104,10 @@ int fd_queues_fini(void);
 /* Create all the dictionary objects defined in the Diameter base RFC. */
 int fd_dict_base_protocol(struct dictionary * dict);
 
+/* Routing */
+int fd_rt_init(void);
+int fd_rt_fini(void);
+
 /* Sentinel for the sent requests list */
 struct sr_list {
 	struct fd_list 	srs;

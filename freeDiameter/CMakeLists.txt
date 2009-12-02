@@ -15,6 +15,7 @@ SET(FD_COMMON_SRC
 	cnxctx.c
 	dispatch.c
 	endpoints.c
+	events.c
 	extensions.c
 	dict_base_proto.c
 	messages.c
@@ -28,6 +29,7 @@ SET(FD_COMMON_SRC
 	p_out.c
 	p_psm.c
 	p_sr.c
+	routing.c
 	server.c
 	tcp.c
 	)

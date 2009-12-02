@@ -35,19 +35,84 @@
 
 #include "fD.h"
 
-/* Note: after testing if the message is to be handled locally, we should test for decorated NAI 
-  (draft-ietf-dime-nai-routing-04 section 4.4) */
-/* Note2: if the message is still for local delivery, we should test for duplicate
-  (draft-asveren-dime-dupcons-00). This may conflict with path validation decisions, no clear answer yet */
-
-/* Initialize the routing module */
-int fd_rt_init(void)
+int fd_event_send(struct fifo *queue, int code, size_t datasz, void * data)
 {
-	return ENOTSUP;
+	struct fd_event * ev;
+	CHECK_MALLOC( ev = malloc(sizeof(struct fd_event)) );
+	ev->code = code;
+	ev->size = datasz;
+	ev->data = data;
+	CHECK_FCT( fd_fifo_post(queue, &ev) );
+	return 0;
 }
 
-/* Terminate the routing module */
-int fd_rt_fini(void)
+int fd_event_get(struct fifo *queue, int *code, size_t *datasz, void ** data)
 {
-	return ENOTSUP;
+	struct fd_event * ev;
+	CHECK_FCT( fd_fifo_get(queue, &ev) );
+	if (code)
+		*code = ev->code;
+	if (datasz)
+		*datasz = ev->size;
+	if (data)
+		*data = ev->data;
+	free(ev);
+	return 0;
 }
+
+int fd_event_timedget(struct fifo *queue, struct timespec * timeout, int timeoutcode, int *code, size_t *datasz, void ** data)
+{
+	struct fd_event * ev;
+	int ret = 0;
+	ret = fd_fifo_timedget(queue, &ev, timeout);
+	if (ret == ETIMEDOUT) {
+		if (code)
+			*code = timeoutcode;
+		if (datasz)
+			*datasz = 0;
+		if (data)
+			*data = NULL;
+	} else {
+		CHECK_FCT( ret );
+		if (code)
+			*code = ev->code;
+		if (datasz)
+			*datasz = ev->size;
+		if (data)
+			*data = ev->data;
+		free(ev);
+	}
+	return 0;
+}
+
+void fd_event_destroy(struct fifo **queue, void (*free_cb)(void * data))
+{
+	struct fd_event * ev;
+	/* Purge all events, and free the associated data if any */
+	while (fd_fifo_tryget( *queue, &ev ) == 0) {
+		(*free_cb)(ev->data);
+		free(ev);
+	}
+	CHECK_FCT_DO( fd_fifo_del(queue), /* continue */ );
+	return ;
+} 
+
+const char * fd_ev_str(int event)
+{
+	switch (event) {
+	#define case_str( _val )\
+		case _val : return #_val
+		case_str(FDEV_TERMINATE);
+		case_str(FDEV_DUMP_DICT);
+		case_str(FDEV_DUMP_EXT);
+		case_str(FDEV_DUMP_SERV);
+		case_str(FDEV_DUMP_QUEUES);
+		case_str(FDEV_DUMP_CONFIG);
+		case_str(FDEV_DUMP_PEERS);
+		
+		default:
+			TRACE_DEBUG(FULL, "Unknown event : %d", event);
+			return "Unknown event";
+	}
+}
+
