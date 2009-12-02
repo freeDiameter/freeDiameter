@@ -166,7 +166,6 @@ struct fd_peer { /* The "real" definition of the peer structure */
 		pthread_t	p_ini_thr;	/* Initiator thread for establishing a connection */
 		struct fd_list  p_connparams;	/* The list of connection attempts, see p_cnx.c */
 	};
-		
 	
 	/* connection context: socket and related information */
 	struct cnxctx	*p_cnxctx;

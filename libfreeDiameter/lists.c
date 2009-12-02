@@ -86,7 +86,6 @@ void fd_list_move_end(struct fd_list * ref, struct fd_list * senti)
 	ref->prev         = senti->prev;
 	senti->prev = senti;
 	senti->next = senti;
-	
 }
 
 /* insert before a reference, checks done */

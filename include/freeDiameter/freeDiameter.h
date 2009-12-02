@@ -426,17 +426,66 @@ int fd_disp_app_support ( struct dict_object * app, struct dict_object * vendor,
 
 
 /***************************************/
+/*          Routing module             */
+/***************************************/
+
+/* This file contains the definitions of types and functions involved in the routing decisions in freeDiameter,
+ * and that can be called by extensions. 
+ *
+ * Three different type of messages must be distinguished:
+ *  - Messages received, and the peer is final recipient (IN messages)
+ *  - Messages received, and the peer is not final recipient (FWD messages)
+ *  - Message is locally generated (OUT messages)
+ *
+ * There are three global message queues (in queues.c) and also peers-specific queues (in struct fd_peer).
+ *
+ * (*) IN messages processing details:
+ *   - the message is received from the remote peer, a FDEVP_CNX_MSG_RECV event is generated for the peer.
+ *   - the PSM thread parses the buffer, does some verifications, handles non routable messages (fd_msg_is_routable)
+ *   - routable messages are queued in the fd_g_incoming global queue.
+ *   - a thread (routing-in) picks the message and takes the decision if it is handled locally or forwarded, 
+ *       based on local capabilities (registered by extensions).
+ *   - If the message is handled locally, it is queued in fd_g_local.
+ *   - Another thread (dispatch.c) will handle this message and pass it to registered callbacks (see fd_disp_register in libfreeDiameter.h).
+ *
+ * (*) FWD messages details:
+ *   - The process is the same as for IN messages, until the routing-in threads makes its decision that the message is not handled locally.
+ *   - All callbacks registered with fd_rt_fwd_register are called for the message (see bellow).
+ *     - these callbacks will typically do proxying work. Note that adding the route-record is handled by the daemon.
+ *   - Once all callbacks have been called, the message is queued in the global fd_g_outgoing queue.
+ *   - The remaining processing is the same as for OUT messages, as described bellow.
+ *
+ * (*) OUT messages details:
+ *   - The message are picked from fd_g_outgoing, as result of forwarding process or call to fd_msg_send.
+ *   - The (routing-out) thread builds a list of possible destinations for the message.
+ *     The logic to build this list is as follow:
+ *      - create a list of all known peers in the "OPEN" state.
+ *      - remove from that list all peers that are in a Route-Record AVP of the message, to avoid routing loops.
+ *      - remove also all peers that have previously replied an error message for this message.
+ *   - If the list is empty, create an error UNABLE_TO_DELIVER (note: should we trig dynamic discovery here???) and reply this.
+ *   - Otherwise, call all callbacks registered by function fd_rt_out_register, with the list of peers and the message.
+ *   - Order the resulting list of peers by score (see bellow), and sent the message to the peer with highest (positive) score.
+ *    - in case the peer is no longer in the "OPEN" state, send the message to the second peer in the list.
+ *      - if no peer is in OPEN state anymore, restart the process of creating the list.
+ *   - The peer thread will handle the creation of the Hop-by-hop ID and sending the message.
+ *
+ * This part of the API (routing-api.h) provides the definitions of the rt_out_cb_t and rt_fwd_cb_t callbacks, and the
+ * functions to register and deregister these callbacks.
+ */
+
+
+
+/***************************************/
 /*   Events helpers                    */
 /***************************************/
 
-/* Events */
 struct fd_event {
 	int	 code; /* codespace depends on the queue */
 	size_t 	 size;
 	void    *data;
 };
 
-/* Daemon's codespace: 1000->1999 */
+/* Daemon's codespace: 1000->1999 (1500->1999 defined in fD.h) */
 enum {
 	 FDEV_TERMINATE	= 1000	/* request to terminate */
 	,FDEV_DUMP_DICT		/* Dump the content of the dictionary */

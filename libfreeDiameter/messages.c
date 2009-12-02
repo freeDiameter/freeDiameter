@@ -117,7 +117,7 @@ struct msg {
 	uint8_t			*msg_rawbuffer;		/* data buffer that was received, saved during fd_msg_parse_buffer and freed in fd_msg_parse_dict */
 	int			 msg_routable;		/* Is this a routable message? (0: undef, 1: routable, 2: non routable) */
 	struct msg		*msg_query;		/* the associated query if the message is a received answer */
-	struct fd_list		*msg_rtlist;		/* Routing list for the query */
+	struct rt_data		*msg_rtdata;		/* Routing list for the query */
 	struct {
 			void (*fct)(void *, struct msg **);
 			void * data;
@@ -568,14 +568,8 @@ static int destroy_obj (struct msg_avp_chain * obj )
 		free(_M(obj)->msg_src_id);
 	}
 	
-	if ((obj->type == MSG_MSG) && (_M(obj)->msg_rtlist != NULL)) {
-		while (! FD_IS_LIST_EMPTY(_M(obj)->msg_rtlist) ) {
-			struct fd_list * li = _M(obj)->msg_rtlist->next;
-			fd_list_unlink(li);
-			free(li);
-		}
-
-		free(_M(obj)->msg_rtlist);
+	if ((obj->type == MSG_MSG) && (_M(obj)->msg_rtdata != NULL)) {
+		fd_rtd_free(&_M(obj)->msg_rtdata);
 	}
 	
 	/* free the object */
@@ -1030,26 +1024,26 @@ int fd_msg_anscb_get( struct msg * msg, void (**anscb)(void *, struct msg **), v
 }	
 
 /* Associate routing lists */
-int fd_msg_rt_associate( struct msg * msg, struct fd_list ** list )
+int fd_msg_rt_associate( struct msg * msg, struct rt_data ** rtd )
 {
-	TRACE_ENTRY( "%p %p", msg, list );
+	TRACE_ENTRY( "%p %p", msg, rtd );
 	
-	CHECK_PARAMS(  CHECK_MSG(msg) && list  );
+	CHECK_PARAMS(  CHECK_MSG(msg) && rtd  );
 	
-	msg->msg_rtlist = *list;
-	*list = NULL;
+	msg->msg_rtdata = *rtd;
+	*rtd = NULL;
 	
 	return 0;
 }
 
-int fd_msg_rt_get( struct msg * msg, struct fd_list ** list )
+int fd_msg_rt_get( struct msg * msg, struct rt_data ** rtd )
 {
-	TRACE_ENTRY( "%p %p", msg, list );
+	TRACE_ENTRY( "%p %p", msg, rtd );
 	
-	CHECK_PARAMS(  CHECK_MSG(msg) && list  );
+	CHECK_PARAMS(  CHECK_MSG(msg) && rtd  );
 	
-	*list = msg->msg_rtlist;
-	msg->msg_rtlist = NULL;
+	*rtd = msg->msg_rtdata;
+	msg->msg_rtdata = NULL;
 	
 	return 0;
 }	

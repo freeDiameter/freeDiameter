@@ -1612,6 +1612,43 @@ void fd_sess_dump_hdl(int level, struct session_handler * handler);
 
 
 /*============================================================*/
+/*                         ROUTING                            */
+/*============================================================*/
+
+/* The following functions are helpers for the routing module. 
+  The routing data is stored in the message it-self. */
+
+/* Structure that contains the routing data for a message */
+struct rt_data;
+
+/* Following functions are helpers to create the routing data of a message */
+int  fd_rtd_init(struct rt_data ** rtd);
+void fd_rtd_free(struct rt_data ** rtd);
+
+/* Add a peer to the candidates list */
+int  fd_rtd_candidate_add(struct rt_data * rtd, char * peerid);
+
+/* Remove a peer from the candidates (if it is found) */
+void fd_rtd_candidate_del(struct rt_data * rtd, char * peerid, size_t sz /* if !0, peerid does not need to be \0 terminated */);
+
+/* If a peer returned a protocol error for this message, save it so that we don't try to send it there again */
+int  fd_rtd_error_add(struct rt_data * rtd, char * sentto, uint8_t * origin, size_t originsz, uint32_t rcode);
+
+/* Extract the list of valid candidates, and initialize their scores to 0 */
+void fd_rtd_candidate_extract(struct rt_data * rtd, struct fd_list ** candidates);
+
+/* The extracted list items have the following structure: */
+struct rtd_candidate {
+	struct fd_list	chain;	/* link in the list returned by the previous fct */
+	char *		diamid;	/* the diameter Id of the peer */
+	int		score;	/* the current routing score for this peer, see fd_rt_out_register definition for details */
+};
+
+/* Reorder the list of peers */
+int  fd_rtd_candidate_reorder(struct fd_list * candidates);
+
+
+/*============================================================*/
 /*                         MESSAGES                           */
 /*============================================================*/
 
@@ -1958,8 +1995,8 @@ int fd_msg_anscb_get      ( struct msg * msg, void (**anscb)(void *, struct msg 
  *  0 	  : ok
  *  EINVAL: a parameter is invalid
  */
-int fd_msg_rt_associate( struct msg * msg, struct fd_list ** list );
-int fd_msg_rt_get      ( struct msg * msg, struct fd_list ** list );
+int fd_msg_rt_associate( struct msg * msg, struct rt_data ** rtd );
+int fd_msg_rt_get      ( struct msg * msg, struct rt_data ** rtd );
 
 /*
  * FUNCTION:	fd_msg_is_routable
