@@ -40,12 +40,12 @@
 /* Handle a received message */
 int fd_p_dp_handle(struct msg ** msg, int req, struct fd_peer * peer)
 {
-	int delay = 0;
 	TRACE_ENTRY("%p %d %p", msg, req, peer);
 	
 	if (req) {
 		/* We received a DPR, save the Disconnect-Cause and terminate the connection */
 		struct avp * dc;
+		int delay = peer->p_hdr.info.config.pic_tctimer ?: fd_g_config->cnf_timer_tc;
 		
 		CHECK_FCT_DO( fd_msg_search_avp ( *msg, fd_dict_avp_DC, &dc ), return );
 		if (dc) {
@@ -60,6 +60,21 @@ int fd_p_dp_handle(struct msg ** msg, int req, struct fd_peer * peer)
 			}
 
 			peer->p_hdr.info.runtime.pir_lastDC = hdr->avp_value->u32;
+			
+			switch (hdr->avp_value->u32) {
+				case ACV_DC_REBOOTING:
+				default:
+					/* We use TcTimer to attempt reconnection */
+					break;
+				case ACV_DC_BUSY:
+					/* No need to hammer the overloaded peer */
+					delay *= 10;
+					break;
+				case ACV_DC_NOT_FRIEND:
+					/* He does not want to speak to us... let's retry a lot later maybe */
+					delay *= 200;
+					break;
+			}
 		}
 		if (TRACE_BOOL(INFO)) {
 			if (dc) {
@@ -91,21 +106,25 @@ int fd_p_dp_handle(struct msg ** msg, int req, struct fd_peer * peer)
 		/* Now send the DPA */
 		CHECK_FCT( fd_out_send( msg, NULL, peer) );
 		
+		/* Move to CLOSED state */
+		fd_psm_cleanup(peer, 0);
+		
+		/* Reset the timer for next connection attempt -- we'll retry sooner or later depending on the disconnection cause */
+		fd_psm_next_timeout(peer, 1, delay);
+		
 	} else {
 		/* We received a DPA */
 		if (peer->p_hdr.info.runtime.pir_state != STATE_CLOSING) {
 			TRACE_DEBUG(INFO, "Ignore DPA received in state %s", STATE_STR(peer->p_hdr.info.runtime.pir_state));
 		}
 			
-	}
-	
-	if (*msg) {
-		/* In theory, we should control the Result-Code AVP. But since we will not go back to OPEN state here, let's skip it */
+		/* In theory, we should control the Result-Code AVP. But since we will not go back to OPEN state here anyway, let's skip it */
 		CHECK_FCT_DO( fd_msg_free( *msg ), /* continue */ );
 		*msg = NULL;
+		
+		/* The calling function handles cleaning the PSM and terminating the peer since we return in CLOSING state */
 	}
 	
-	/* The calling function handles cleaning the PSM and terminating the peer */
 	return 0;
 }
 

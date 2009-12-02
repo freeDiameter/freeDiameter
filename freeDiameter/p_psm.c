@@ -538,11 +538,8 @@ psm_loop:
 				peer->p_flags.pf_cnx_pb = 1;
 				
 			case STATE_CLOSING:
-				/* Cleanup the peer */
-				fd_psm_cleanup(peer, 0);
-
-				/* Reset the timer */
-				fd_psm_next_timeout(peer, 1, peer->p_hdr.info.config.pic_tctimer ?: fd_g_config->cnf_timer_tc);
+				/* We sent a DPR so we are terminating, do not wait for DPA */
+				goto psm_end;
 				
 			case STATE_CLOSED:
 				/* Just ignore */
