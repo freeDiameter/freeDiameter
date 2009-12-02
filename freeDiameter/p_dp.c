@@ -163,12 +163,12 @@ int fd_p_dp_initiate(struct fd_peer * peer, char * reason)
 	/* Save the value also in the peer */
 	peer->p_hdr.info.runtime.pir_lastDC = val.u32;
 	
-	/* Now send this message */
-	CHECK_FCT( fd_out_send(&msg, NULL, peer) );
-	
 	/* Update the peer state and timer */
 	CHECK_FCT( fd_psm_change_state(peer, STATE_CLOSING) );
 	fd_psm_next_timeout(peer, 0, DPR_TIMEOUT);
+	
+	/* Now send the DPR message */
+	CHECK_FCT( fd_out_send(&msg, NULL, peer) );
 	
 	return 0;
 }
