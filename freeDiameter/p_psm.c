@@ -679,7 +679,7 @@ psm_loop:
 	}
 	
 	/* Default action : the handling has not yet been implemented. [for debug only] */
-	TODO("Missing handler in PSM for '%s'\t<-- '%s'", STATE_STR(peer->p_hdr.info.runtime.pir_state), fd_pev_str(event));
+	TRACE_DEBUG(INFO, "Missing handler in PSM for '%s'\t<-- '%s'", STATE_STR(peer->p_hdr.info.runtime.pir_state), fd_pev_str(event));
 	goto psm_loop;
 
 psm_end:
