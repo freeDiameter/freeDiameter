@@ -285,6 +285,22 @@ extern pthread_rwlock_t fd_g_peers_rw; /* protect the list */
 int fd_peer_add ( struct peer_info * info, char * orig_dbg, void (*cb)(struct peer_info *, void *), void * cb_data );
 
 /*
+ * FUNCTION:	fd_peer_getbyid
+ *
+ * PARAMETERS:
+ *  diamid 	: A \0 terminated string.
+ *  peer	: The peer is stored here if it exists.
+ *
+ * DESCRIPTION: 
+ *   Search a peer by its Diameter-Id.
+ *
+ * RETURN VALUE:
+ *  0   : *peer has been updated (to NULL if the peer is not found).
+ * !0	: An error occurred.
+ */
+int fd_peer_getbyid( char * diamid, struct peer_hdr ** peer );
+
+/*
  * FUNCTION:	peer_validate_register
  *
  * PARAMETERS:
@@ -480,8 +496,8 @@ struct fd_rt_fwd_hdl;
 /* Message direction for the callback */
 enum fd_rt_fwd_dir {
 	RT_FWD_REQ = 1,	/* The callback will be called on forwarded requests only */
-	RT_FWD_ANS,	/* The callback will be called on answers and errors only */
-	RT_FWD_ALL,	/* The callback will be called on all forwarded messages */
+	RT_FWD_ALL = 2,	/* The callback will be called on all forwarded messages (requests and answers )*/
+	RT_FWD_ANS = 3	/* The callback will be called on answers and errors only */
 };	
 
 /*
@@ -496,6 +512,7 @@ enum fd_rt_fwd_dir {
  *
  * DESCRIPTION: 
  *   Register a new callback for forwarded messages. See explanations above. 
+ * Note that there is no guaranteed order for the callbacks calls.
  *
  * RETURN VALUE:
  *  0      	: The callback is registered.

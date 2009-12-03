@@ -158,6 +158,32 @@ int fd_peer_add ( struct peer_info * info, char * orig_dbg, void (*cb)(struct pe
 	return ret;
 }
 
+/* Search for a peer */
+int fd_peer_getbyid( char * diamid, struct peer_hdr ** peer )
+{
+	struct fd_list * li;
+	
+	TRACE_ENTRY("%p %p", diamid, peer);
+	CHECK_PARAMS( diamid && peer );
+	
+	*peer = NULL;
+	
+	/* Search in the list */
+	CHECK_POSIX( pthread_rwlock_rdlock(&fd_g_peers_rw) );
+	for (li = fd_g_peers.next; li != &fd_g_peers; li = li->next) {
+		struct fd_peer * next = (struct fd_peer *)li;
+		int cmp = strcasecmp( diamid, next->p_hdr.info.pi_diamid );
+		if (cmp > 0)
+			continue;
+		if (cmp == 0)
+			*peer = &next->p_hdr;
+		break;
+	}
+	CHECK_POSIX( pthread_rwlock_unlock(&fd_g_peers_rw) );
+	
+	return 0;
+}
+
 
 #define free_null( _v ) 	\
 	if (_v) {		\
