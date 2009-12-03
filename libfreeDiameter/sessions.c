@@ -99,6 +99,7 @@ struct session {
 	
 	pthread_mutex_t stlock;	/* A lock to protect the list of states associated with this session */
 	struct fd_list	states;	/* Sentinel for the list of states of this session. */
+	int		msg_cnt;/* Reference counter for the messages pointing to this session */
 };
 
 /* Sessions hash table, to allow fast sid to session retrieval */
@@ -673,6 +674,46 @@ int fd_sess_state_retrieve_internal ( struct session_handler * handler, struct s
 	
 	return 0;
 }
+
+/* For the messages module */
+int fd_sess_fromsid_msg ( unsigned char * sid, size_t len, struct session ** session, int * new)
+{
+	TRACE_ENTRY("%p %zd %p %p", sid, len, session, new);
+	CHECK_PARAMS( sid && len && session && VALIDATE_SI(*session) );
+	
+	/* Get the session object */
+	CHECK_FCT( fd_sess_fromsid ( (char *) sid, len, session, new) );
+	
+	/* Update the msg refcount */
+	CHECK_POSIX( pthread_mutex_lock(&(*session)->stlock) );
+	(*session)->msg_cnt++;
+	CHECK_POSIX( pthread_mutex_unlock(&(*session)->stlock) );
+	
+	/* Done */
+	return 0;
+}
+
+int fd_sess_reclaim_msg ( struct session ** session )
+{
+	int reclaim;
+	
+	TRACE_ENTRY("%p", session);
+	CHECK_PARAMS( session && VALIDATE_SI(*session) );
+	
+	/* Update the msg refcount */
+	CHECK_POSIX( pthread_mutex_lock(&(*session)->stlock) );
+	reclaim = (*session)->msg_cnt;
+	(*session)->msg_cnt = reclaim - 1;
+	CHECK_POSIX( pthread_mutex_unlock(&(*session)->stlock) );
+	
+	if (reclaim == 1) {
+		CHECK_FCT(fd_sess_reclaim ( session ));
+	} else {
+		*session = NULL;
+	}
+	return 0;
+}
+
 
 
 /* Dump functions */

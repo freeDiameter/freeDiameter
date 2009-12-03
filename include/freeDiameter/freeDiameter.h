@@ -444,35 +444,172 @@ int fd_disp_app_support ( struct dict_object * app, struct dict_object * vendor,
  *   - the PSM thread parses the buffer, does some verifications, handles non routable messages (fd_msg_is_routable)
  *   - routable messages are queued in the fd_g_incoming global queue.
  *   - a thread (routing-in) picks the message and takes the decision if it is handled locally or forwarded, 
- *       based on local capabilities (registered by extensions).
+ *       based on local capabilities (registered by extensions with fd_disp_app_support).
  *   - If the message is handled locally, it is queued in fd_g_local.
  *   - Another thread (dispatch.c) will handle this message and pass it to registered callbacks (see fd_disp_register in libfreeDiameter.h).
  *
  * (*) FWD messages details:
  *   - The process is the same as for IN messages, until the routing-in threads makes its decision that the message is not handled locally.
+ *   - If the local peer does not relay message, an error DIAMETER_APPLICATION_UNSUPPORTED is returned.
  *   - All callbacks registered with fd_rt_fwd_register are called for the message (see bellow).
  *     - these callbacks will typically do proxying work. Note that adding the route-record is handled by the daemon.
  *   - Once all callbacks have been called, the message is queued in the global fd_g_outgoing queue.
  *   - The remaining processing is the same as for OUT messages, as described bellow.
  *
  * (*) OUT messages details:
- *   - The message are picked from fd_g_outgoing, as result of forwarding process or call to fd_msg_send.
- *   - The (routing-out) thread builds a list of possible destinations for the message.
- *     The logic to build this list is as follow:
+ *   - The message are picked from fd_g_outgoing (they are queued there as result of forwarding process or call to fd_msg_send.)
+ *   - The (routing-out) thread builds a list of possible destinations for the message, as follow:
  *      - create a list of all known peers in the "OPEN" state.
  *      - remove from that list all peers that are in a Route-Record AVP of the message, to avoid routing loops.
  *      - remove also all peers that have previously replied an error message for this message.
- *   - If the list is empty, create an error UNABLE_TO_DELIVER (note: should we trig dynamic discovery here???) and reply this.
+ *   - If the list is empty, create an error UNABLE_TO_DELIVER (note: should we trig dynamic discovery here???) and reply.
  *   - Otherwise, call all callbacks registered by function fd_rt_out_register, with the list of peers and the message.
  *   - Order the resulting list of peers by score (see bellow), and sent the message to the peer with highest (positive) score.
  *    - in case the peer is no longer in the "OPEN" state, send the message to the second peer in the list.
  *      - if no peer is in OPEN state anymore, restart the process of creating the list.
- *   - The peer thread will handle the creation of the Hop-by-hop ID and sending the message.
+ *   - Once a peer has been selected, the message is queued into that peer's outgoing queue.
  *
- * This part of the API (routing-api.h) provides the definitions of the rt_out_cb_t and rt_fwd_cb_t callbacks, and the
- * functions to register and deregister these callbacks.
+ * The following functions allow an extension to register or remove a callback as described above.
  */
 
+/********** Forwarding callbacks: for Proxy operations ***********/
+
+/* Handle to registered callback */
+struct fd_rt_fwd_hdl;
+
+/* Message direction for the callback */
+enum fd_rt_fwd_dir {
+	RT_FWD_REQ = 1,	/* The callback will be called on forwarded requests only */
+	RT_FWD_ANS,	/* The callback will be called on answers and errors only */
+	RT_FWD_ALL,	/* The callback will be called on all forwarded messages */
+};	
+
+/*
+ * FUNCTION:	fd_rt_fwd_register
+ *
+ * PARAMETERS:
+ *  rt_fwd_cb	  : The callback function to register (see prototype bellow).
+ *  cbdata	  : Pointer to pass to the callback when it is called. The data is opaque to the daemon.
+ *  dir           : One of the RT_FWD_* directions defined above.
+ *  handler       : On success, a handler to the registered callback is stored here. 
+ *		   This handler will be used to unregister the cb.
+ *
+ * DESCRIPTION: 
+ *   Register a new callback for forwarded messages. See explanations above. 
+ *
+ * RETURN VALUE:
+ *  0      	: The callback is registered.
+ *  EINVAL 	: A parameter is invalid.
+ *  ENOMEM	: Not enough memory to complete the operation
+ */
+int fd_rt_fwd_register ( int (*rt_fwd_cb)(void * cbdata, struct msg ** msg), void * cbdata, enum fd_rt_fwd_dir dir, struct fd_rt_fwd_hdl ** handler );
+/*
+ * CALLBACK:	rt_fwd_cb
+ *
+ * PARAMETERS:
+ *  data	: pointer to some data that was passed when the callback was registered (optional).
+ *  msg 	: The message that is being forwarded.
+ *
+ * DESCRIPTION: 
+ *   This callback is called when a message is forwarded to another peer. It may for example add a Proxy-Info AVP.
+ *  The callback may also choose to handle the message in a more complex form. In that case, it must set *msg = NULL
+ *  and handle it differently. In such case, the forwarding thread will stop processing this message.
+ *
+ * RETURN VALUE:
+ *  0      	: Operation complete.
+ *  !0 		: An error occurred -- will result in daemon's termination.
+ */
+
+/*
+ * FUNCTION:	fd_rt_fwd_unregister
+ *
+ * PARAMETERS:
+ *  handler     : The handler of the callback that must be unregistered.
+ *  cbdata	: Will receive the data registered with the callback, that can be freed if needed.
+ *
+ * DESCRIPTION: 
+ *   Removes a callback from the list of registered callbacks.
+ *
+ * RETURN VALUE:
+ *  0      	: The callback is unregistered.
+ *  EINVAL 	: A parameter is invalid.
+ */
+int fd_rt_fwd_unregister ( struct fd_rt_fwd_hdl * handler, void ** cbdata );
+
+
+/********** Out callbacks: for next hop routing decision operations ***********/
+
+/* Handle to registered callback */
+struct fd_rt_out_hdl;
+
+enum fd_rt_out_score {
+	FD_SCORE_NO_DELIVERY	 = -70,	/* We should not send this message to this candidate */
+	FD_SCORE_LOAD_BALANCE	 =   1,	/* Use this to differentiate between several peers with the same score */
+	FD_SCORE_DEFAULT	 =   5,	/* The peer is a default route for all messages */
+	FD_SCORE_DEFAULT_REALM	 =  10,	/* The peer is a default route for this realm */
+	FD_SCORE_REDIR_HOST	 =  25,	/* If there is a redirect rule with ALL_HOST for these message and peer */
+	FD_SCORE_REDIR_APP	 =  30,	/* If there is a redirect rule with ALL_APPLICATION for these message and peer */
+	FD_SCORE_REDIR_REALM	 =  35,	/* If there is a redirect rule with ALL_REALM for these message and peer */
+	FD_SCORE_REDIR_REALM_APP =  40,	/* If there is a redirect rule with REALM_AND_APPLICATION for these message and peer */
+	FD_SCORE_REDIR_USER	 =  45,	/* If there is a redirect rule with ALL_USER for these message and peer */
+	FD_SCORE_REDIR_SESSION	 =  50,	/* If there is a redirect rule with ALL_SESSION for these message and peer */
+	FD_SCORE_FINALDEST	 = 100	/* If the peer is the final recipient of the message, it receives a big score. */
+};
+
+/*
+ * FUNCTION:	fd_rt_out_register
+ *
+ * PARAMETERS:
+ *  rt_out_cb	  : The callback function to register (see prototype bellow).
+ *  cbdata	  : Pointer to pass to the callback when it is called. The data is opaque to the daemon.
+ *  priority      : Order for calling this callback. The callbacks are called in reverse priority order (higher priority = called sooner).
+ *  handler       : On success, a handler to the registered callback is stored here. 
+ *		   This handler will be used to unregister the cb.
+ *
+ * DESCRIPTION: 
+ *   Register a new callback to handle OUT routing decisions. See explanations above. 
+ *
+ * RETURN VALUE:
+ *  0      	: The callback is registered.
+ *  EINVAL 	: A parameter is invalid.
+ *  ENOMEM	: Not enough memory to complete the operation
+ */
+int fd_rt_out_register ( int (*rt_out_cb)(void * cbdata, struct msg * msg, struct fd_list * candidates), void * cbdata, int priority, struct fd_rt_out_hdl ** handler );
+/*
+ * CALLBACK:	rt_out_cb
+ *
+ * PARAMETERS:
+ *  cbdata	: pointer to some data that was registered with the callback.
+ *  msg 	: The message that must be sent.
+ *  list        : The list of peers to which the message may be sent to, as returned by fd_rtd_candidate_extract
+ *
+ * DESCRIPTION: 
+ *   This callback must attribute a score (preferably from FD_SCORE_*) to each candidate peer in the list.
+ *  Once all registered callbacks have been called, the message is sent to the candidate with the highest score.
+ *  Note that each callback must *add* its locally-attributed score to the candidate current "score" parameter, not replace it!
+ *  Note also that this callback must be re-entrant since it may be called by several threads at the same time 
+ *  (for different messages)
+ *
+ * RETURN VALUE:
+ *  0      	: Operation complete.
+ *  !0 		: An error occurred.
+ */
+
+/*
+ * FUNCTION:	fd_rt_out_unregister
+ *
+ * PARAMETERS:
+ *  handler     : The handler of the callback that must be unregistered.
+ *  cbdata	: Will receive the data registered with the callback, that can be freed if needed.
+ *
+ * DESCRIPTION: 
+ *   Removes a callback from the list of registered callbacks.
+ *
+ * RETURN VALUE:
+ *  0      	: The callback is unregistered.
+ *  EINVAL 	: A parameter is invalid.
+ */
+int fd_rt_out_unregister ( struct fd_rt_out_hdl * handler, void ** cbdata );
 
 
 /***************************************/

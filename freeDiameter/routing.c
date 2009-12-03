@@ -51,3 +51,9 @@ int fd_rt_fini(void)
 {
 	return ENOTSUP;
 }
+
+int fd_rt_fwd_register ( int (*rt_fwd_cb)(void * cbdata, struct msg ** msg), void * cbdata, enum fd_rt_fwd_dir dir, struct fd_rt_fwd_hdl ** handler );
+int fd_rt_fwd_unregister ( struct fd_rt_fwd_hdl * handler, void ** cbdata );
+
+int fd_rt_out_register ( int (*rt_out_cb)(void * cbdata, struct msg * msg, struct fd_list * candidates), void * cbdata, int priority, struct fd_rt_out_hdl ** handler );
+int fd_rt_out_unregister ( struct fd_rt_out_hdl * handler, void ** cbdata );

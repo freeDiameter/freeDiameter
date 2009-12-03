@@ -1472,8 +1472,7 @@ int fd_sess_new ( struct session ** session, char * diamId, char * opt, size_t o
  *  new		: if not NULL, set to 1 on return if the session object has been created, 0 if it was simply retrieved.
  *
  * DESCRIPTION: 
- *   Retrieve a session object from a Session-Id string. Calling this function makes an implicit call to the
- *  fd_sess_link function on the returned session. In case no session object was previously existing with this 
+ *   Retrieve a session object from a Session-Id string. In case no session object was previously existing with this 
  *  id, a new object is silently created (equivalent to fd_sess_new with flag SESSION_NEW_FULL).
  *
  * RETURN VALUE:
@@ -1647,6 +1646,8 @@ struct rtd_candidate {
 /* Reorder the list of peers */
 int  fd_rtd_candidate_reorder(struct fd_list * candidates);
 
+/* Note : it is fine for a callback to add a new entry in the candidates list after the list has been extracted. The diamid must then be malloc'd. */
+/* Beware that this could lead to routing loops */
 
 /*============================================================*/
 /*                         MESSAGES                           */
@@ -2050,6 +2051,26 @@ int fd_msg_source_get( struct msg * msg, char ** diamid );
  */
 uint32_t fd_msg_eteid_get ( void );
 
+
+/*
+ * FUNCTION:	fd_msg_sess_get
+ *
+ * PARAMETERS:
+ *  dict	: the dictionary that contains the Session-Id AVP definition
+ *  msg		: A valid message.
+ *  session	: Location to store the session pointer when retrieved.
+ *  new		: Indicates if the session has been created.
+ *
+ * DESCRIPTION:
+ *  This function retrieves or creates the session object corresponding to a message.
+ * If the message does not contain a Session-Id AVP, *session == NULL on return.
+ * Note that the Session-Id AVP must never be modified after created in a message.
+ *
+ * RETURN VALUE:
+ *  0 : success
+ * !0 : standard error code.
+ */
+int fd_msg_sess_get(struct dictionary * dict, struct msg * msg, struct session ** session, int * new);
 
 /***************************************/
 /*   Manage AVP values                 */

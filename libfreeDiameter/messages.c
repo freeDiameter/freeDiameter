@@ -118,6 +118,7 @@ struct msg {
 	int			 msg_routable;		/* Is this a routable message? (0: undef, 1: routable, 2: non routable) */
 	struct msg		*msg_query;		/* the associated query if the message is a received answer */
 	struct rt_data		*msg_rtdata;		/* Routing list for the query */
+	struct session		*msg_sess;		/* Cached message session if any */
 	struct {
 			void (*fct)(void *, struct msg **);
 			void * data;
@@ -572,6 +573,10 @@ static int destroy_obj (struct msg_avp_chain * obj )
 		fd_rtd_free(&_M(obj)->msg_rtdata);
 	}
 	
+	if ((obj->type == MSG_MSG) && (_M(obj)->msg_sess != NULL)) {
+		CHECK_FCT_DO( fd_sess_reclaim_msg ( &_M(obj)->msg_sess ), /* continue */);
+	}
+	
 	/* free the object */
 	free(obj);
 	
@@ -660,8 +665,8 @@ public:
 		msg->msg_public.msg_hbhid,
 		msg->msg_public.msg_eteid
 		);
-	fd_log_debug(INOBJHDR "intern: rwb:%p rt:%d cb:%p(%p) qry:%p src:%s\n", 
-			INOBJHDRVAL, msg->msg_rawbuffer, msg->msg_routable, msg->msg_cb.fct, msg->msg_cb.data, msg->msg_query, msg->msg_src_id?:"(nil)");
+	fd_log_debug(INOBJHDR "intern: rwb:%p rt:%d cb:%p(%p) qry:%p sess:%p src:%s\n", 
+			INOBJHDRVAL, msg->msg_rawbuffer, msg->msg_routable, msg->msg_cb.fct, msg->msg_cb.data, msg->msg_query, msg->msg_sess, msg->msg_src_id?:"(nil)");
 }
 
 #define DUMP_VALUE(_format, _parms...)   fd_log_debug(INOBJHDR "value : t:'%s' v:'" _format "'\n", INOBJHDRVAL, typename, ## _parms);
@@ -1127,6 +1132,57 @@ int fd_msg_source_get( struct msg * msg, char ** diamid )
 	/* done */
 	return 0;
 }
+
+/* Retrieve the session of the message */
+int fd_msg_sess_get(struct dictionary * dict, struct msg * msg, struct session ** session, int * new)
+{
+	struct avp * avp;
+	
+	TRACE_ENTRY("%p %p %p", msg, session, new);
+	
+	/* Check we received valid parameters */
+	CHECK_PARAMS( CHECK_MSG(msg) );
+	CHECK_PARAMS( session );
+	
+	/* If we already resolved the session, just send it back */
+	if (msg->msg_sess) {
+		*session = msg->msg_sess;
+		if (new)
+			*new = 0;
+		return 0;
+	}
+	
+	/* OK, we have to search for Session-Id AVP -- it is usually the first AVP, but let's be permissive here */
+	/* -- note: we accept messages that have not yet been dictionary parsed... */
+	CHECK_FCT(  fd_msg_browse(msg, MSG_BRW_FIRST_CHILD, &avp, NULL)  );
+	while (avp) {
+		if ( (avp->avp_public.avp_code   == AC_SESSION_ID)
+		  && (avp->avp_public.avp_vendor == 0) )
+			break;
+		
+		/* Otherwise move to next AVP in the message */
+		CHECK_FCT( fd_msg_browse(avp, MSG_BRW_NEXT, &avp, NULL) );
+	}
+	
+	if (!avp) {
+		TRACE_DEBUG(FULL, "No Session-Id AVP found in message %p", msg);
+		*session = NULL;
+		return 0;
+	}
+	
+	if (!avp->avp_model) {
+		CHECK_FCT( fd_msg_parse_dict ( avp, dict ) );
+	}
+	
+	ASSERT( avp->avp_public.avp_value );
+	
+	/* Resolve the session and we are done */
+	CHECK_FCT( fd_sess_fromsid_msg ( avp->avp_public.avp_value->os.data, avp->avp_public.avp_value->os.len, &msg->msg_sess, new) );
+	*session = msg->msg_sess;
+	
+	return 0;
+}
+
 
 /******************* End-to-end counter *********************/
 uint32_t fd_eteid;
