@@ -704,7 +704,6 @@ struct fd_app {
 };
 	
 int fd_app_merge(struct fd_list * list, application_id_t aid, vendor_id_t vid, int auth, int acct);
-int fd_app_find_common(struct fd_list * target, struct fd_list * reference);
-int fd_app_gotcommon(struct fd_list * apps);
+int fd_app_check(struct fd_list * list, application_id_t aid, struct fd_app **detail);
 
 #endif /* _FREEDIAMETER_H */

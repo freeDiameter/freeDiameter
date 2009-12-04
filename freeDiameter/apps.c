@@ -76,16 +76,26 @@ int fd_app_merge(struct fd_list * list, application_id_t aid, vendor_id_t vid, i
 	return 0;
 }
 
-/* Tag any common application between target and reference (into target) */
-int fd_app_find_common(struct fd_list * target, struct fd_list * reference)
+/* Check if a given application id is in a list */
+int fd_app_check(struct fd_list * list, application_id_t aid, struct fd_app **detail)
 {
+	struct fd_list * li;
 	
+	TRACE_ENTRY("%p %d %p", list, aid, detail);
+	CHECK_PARAMS(list && detail);
 	
+	*detail = NULL;
+	
+	/* Search in the list */
+	for (li = list->next; li != list; li = li->next) {
+		struct fd_app * a = (struct fd_app *)li;
+		if (a->appid < aid)
+			continue;
+		
+		if (a->appid == aid)
+			*detail = a;
+		break;
+	}
+	
+	return 0;
 }
-
-/* Return true if at least one app was tagged common, false otherwise */
-int fd_app_gotcommon(struct fd_list * apps)
-{
-	
-}
-

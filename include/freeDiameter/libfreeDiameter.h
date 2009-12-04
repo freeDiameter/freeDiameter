@@ -1343,6 +1343,7 @@ The "parent" parameter can not be NULL. It points to the object (grouped avp or 
 #define CC_DISCONNECT_PEER		282
 
 /* AVPs (Vendor 0) */
+#define AC_USER_NAME			1
 #define AC_PROXY_STATE			33
 #define AC_HOST_IP_ADDRESS		257
 #define AC_AUTH_APPLICATION_ID		258

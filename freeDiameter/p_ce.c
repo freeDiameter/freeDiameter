@@ -729,6 +729,9 @@ int fd_p_ce_process_receiver(struct fd_peer * peer)
 		CHECK_FCT( res );
 	}
 	
+	/* Check if we have common applications */
+	TODO("DIAMETER_NO_COMMON_APPLICATION ?");
+	
 	/* Do we send ISI back ? */
 	if ( ! fd_cnx_getTLS(peer->p_cnxctx) ) {
 		if (peer->p_hdr.info.config.pic_flags.sec & PI_SEC_NONE)
