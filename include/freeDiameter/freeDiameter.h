@@ -366,7 +366,7 @@ int fd_peer_validate_register ( int (*peer_validate)(struct peer_info * /* info 
  * The routing module will handle sending to the correct peer, usually based on the Destination-Realm / Destination-Host AVP.
  *
  * If the msg is a request, there are two ways of receiving the answer:
- *  - either having registered a callback in the dispatch module (see disp_register)
+ *  - either having registered a callback in the dispatch module (see fd_disp_register)
  *  - or provide a callback as parameter here. If such callback is provided, it is called before the dispatch callbacks.
  *    The prototype for this callback function is:
  *     void anscb(void * data, struct msg ** answer)

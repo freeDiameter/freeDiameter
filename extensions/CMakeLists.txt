@@ -78,7 +78,7 @@ OPTION(BUILD_MONITOR "Build monitor.fdx? (display periodical debug information o
 # 	   SUBDIRS(rt_debug)
 # 	ENDIF (BUILD_RT_DEBUG)
 
-# OPTION(BUILD_APP_TEST "Build app_test? (Testing application to send dummy message to another peer, for testing purpose only)" OFF)
-# 	IF (BUILD_APP_TEST)
-# 	   SUBDIRS(app_test)
-# 	ENDIF (BUILD_APP_TEST)
+OPTION(BUILD_APP_TEST "Build app_test? (Testing application to send dummy message to another peer, for testing purpose only)" OFF)
+ 	IF (BUILD_APP_TEST)
+ 	   SUBDIRS(app_test)
+ 	ENDIF (BUILD_APP_TEST)
