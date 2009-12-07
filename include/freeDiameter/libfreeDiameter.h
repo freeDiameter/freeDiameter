@@ -1631,11 +1631,11 @@ int  fd_rtd_candidate_add(struct rt_data * rtd, char * peerid);
 /* Remove a peer from the candidates (if it is found) */
 void fd_rtd_candidate_del(struct rt_data * rtd, char * peerid, size_t sz /* if !0, peerid does not need to be \0 terminated */);
 
-/* If a peer returned a protocol error for this message, save it so that we don't try to send it there again */
-int  fd_rtd_error_add(struct rt_data * rtd, char * sentto, uint8_t * origin, size_t originsz, uint32_t rcode);
-
 /* Extract the list of valid candidates, and initialize their scores to 0 */
 void fd_rtd_candidate_extract(struct rt_data * rtd, struct fd_list ** candidates);
+
+/* If a peer returned a protocol error for this message, save it so that we don't try to send it there again */
+int  fd_rtd_error_add(struct rt_data * rtd, char * sentto, uint8_t * origin, size_t originsz, uint32_t rcode);
 
 /* The extracted list items have the following structure: */
 struct rtd_candidate {
