@@ -305,7 +305,6 @@ static int return_error(struct msg * msg, char * error_code, char * error_messag
 	return 0;
 }
 
-
 /* The (routing-in) thread -- see description in freeDiameter.h */
 static void * routing_in_thr(void * arg)
 {
@@ -742,6 +741,104 @@ fatal_error:
 	return NULL;
 }
 
+/* First OUT callback: prevent sending to peers that do not support the message application */
+static int dont_send_if_no_common_app(void * cbdata, struct msg * msg, struct fd_list * candidates)
+{
+	struct fd_list * li;
+	struct msg_hdr * hdr;
+	
+	TRACE_ENTRY("%p %p %p", cbdata, msg, candidates);
+	CHECK_PARAMS(msg && candidates);
+	
+	CHECK_FCT( fd_msg_hdr(msg, &hdr) );
+	
+	/* For Base Diameter Protocol, every peer is supposed to support it, so skip */
+	if (hdr->msg_appl == 0)
+		return 0;
+	
+	/* Otherwise, check that the peers support the application */
+	for (li = candidates->next; li != candidates; li = li->next) {
+		struct rtd_candidate *c = (struct rtd_candidate *) li;
+		struct fd_peer * peer;
+		struct fd_app *found;
+		CHECK_FCT( fd_peer_getbyid( c->diamid, (void *)&peer ) );
+		if (peer && (peer->p_hdr.info.runtime.pir_relay == 0)) {
+			/* Check if the remote peer advertised the message's appli */
+			CHECK_FCT( fd_app_check(&peer->p_hdr.info.runtime.pir_apps, hdr->msg_appl, &found) );
+			if (!found)
+				c->score += FD_SCORE_NO_DELIVERY;
+		}
+	}
+
+	return 0;
+}
+
+/* Second OUT callback: Detect if the Destination-Host and Destination-Realm match the peer */
+static int score_destination_avp(void * cbdata, struct msg * msg, struct fd_list * candidates)
+{
+	struct fd_list * li;
+	struct avp * avp;
+	union avp_value *dh = NULL, *dr = NULL;
+	
+	TRACE_ENTRY("%p %p %p", cbdata, msg, candidates);
+	CHECK_PARAMS(msg && candidates);
+	
+	/* Search the Destination-Host and Destination-Realm AVPs -- we could also use fd_msg_search_avp here, but this one is slightly more efficient */
+	CHECK_FCT(  fd_msg_browse(msg, MSG_BRW_FIRST_CHILD, &avp, NULL) );
+	while (avp) {
+		struct avp_hdr * ahdr;
+		CHECK_FCT(  fd_msg_avp_hdr( avp, &ahdr ) );
+
+		if (! (ahdr->avp_flags & AVP_FLAG_VENDOR)) {
+			switch (ahdr->avp_code) {
+				case AC_DESTINATION_HOST:
+					/* Parse this AVP */
+					CHECK_FCT( fd_msg_parse_dict ( avp, fd_g_config->cnf_dict ) );
+					ASSERT( ahdr->avp_value );
+					dh = ahdr->avp_value;
+					break;
+
+				case AC_DESTINATION_REALM:
+					/* Parse this AVP */
+					CHECK_FCT( fd_msg_parse_dict ( avp, fd_g_config->cnf_dict ) );
+					ASSERT( ahdr->avp_value );
+					dr = ahdr->avp_value;
+					break;
+			}
+		}
+
+		if (dh && dr)
+			break;
+
+		/* Go to next AVP */
+		CHECK_FCT(  fd_msg_browse(avp, MSG_BRW_NEXT, &avp, NULL) );
+	}
+	
+	/* Now, check each candidate against these AVP values */
+	for (li = candidates->next; li != candidates; li = li->next) {
+		struct rtd_candidate *c = (struct rtd_candidate *) li;
+		struct fd_peer * peer;
+		CHECK_FCT( fd_peer_getbyid( c->diamid, (void *)&peer ) );
+		if (peer) {
+			if (dh 
+				&& (dh->os.len == strlen(peer->p_hdr.info.pi_diamid)) 
+				&& (strncasecmp(peer->p_hdr.info.pi_diamid, dh->os.data, dh->os.len) == 0)) {
+				/* The candidate is the Destination-Host */
+				c->score += FD_SCORE_FINALDEST;
+			} else {
+				if (dr  && peer->p_hdr.info.runtime.pir_realm 
+					&& (dr->os.len == strlen(peer->p_hdr.info.runtime.pir_realm)) 
+					&& (strncasecmp(peer->p_hdr.info.runtime.pir_realm, dr->os.data, dr->os.len) == 0)) {
+					/* The candidate's realm matchs the Destination-Realm */
+					c->score += FD_SCORE_REALM;
+				}
+			}
+		}
+	}
+
+	return 0;
+}
+
 static pthread_t rt_out = (pthread_t)NULL;
 static pthread_t rt_in  = (pthread_t)NULL;
 
@@ -752,6 +849,11 @@ int fd_rt_init(void)
 	CHECK_POSIX( pthread_create( &rt_in,  NULL, routing_in_thr,  NULL) );
 	
 	/* Later: TODO("Set the thresholds for the IN and OUT queues to create more routing threads as needed"); */
+	
+	/* Register the built-in callbacks */
+	CHECK_FCT( fd_rt_out_register( dont_send_if_no_common_app, NULL, 10, NULL ) );
+	CHECK_FCT( fd_rt_out_register( score_destination_avp, NULL, 10, NULL ) );
+	
 	return 0;
 }
 

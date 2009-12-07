@@ -66,6 +66,7 @@ int fd_disp_app_support ( struct dict_object * app, struct dict_object * vendor,
 }
 
 
-/* Note2: if the message is still for local delivery, we should test for duplicate
+/* Note: if the message is for local delivery, we should test for duplicate
   (draft-asveren-dime-dupcons-00). This may conflict with path validation decisions, no clear answer yet */
+
 

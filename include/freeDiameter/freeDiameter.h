@@ -564,13 +564,14 @@ enum fd_rt_out_score {
 	FD_SCORE_LOAD_BALANCE	 =   1,	/* Use this to differentiate between several peers with the same score */
 	FD_SCORE_DEFAULT	 =   5,	/* The peer is a default route for all messages */
 	FD_SCORE_DEFAULT_REALM	 =  10,	/* The peer is a default route for this realm */
+	FD_SCORE_REALM		 =  15,	/* The peer belongs to Destination-Realm of the message */
 	FD_SCORE_REDIR_HOST	 =  25,	/* If there is a redirect rule with ALL_HOST for these message and peer */
 	FD_SCORE_REDIR_APP	 =  30,	/* If there is a redirect rule with ALL_APPLICATION for these message and peer */
 	FD_SCORE_REDIR_REALM	 =  35,	/* If there is a redirect rule with ALL_REALM for these message and peer */
 	FD_SCORE_REDIR_REALM_APP =  40,	/* If there is a redirect rule with REALM_AND_APPLICATION for these message and peer */
 	FD_SCORE_REDIR_USER	 =  45,	/* If there is a redirect rule with ALL_USER for these message and peer */
 	FD_SCORE_REDIR_SESSION	 =  50,	/* If there is a redirect rule with ALL_SESSION for these message and peer */
-	FD_SCORE_FINALDEST	 = 100	/* If the peer is the final recipient of the message, it receives a big score. */
+	FD_SCORE_FINALDEST	 = 100	/* If the peer is the final recipient of the message (i.e. matching Destination-Host), it receives a big score. */
 };
 
 /*
