@@ -199,3 +199,12 @@ int fd_disp_unregister ( struct disp_hdl ** handle )
 	return 0;
 }
 
+/* Delete all handlers */
+void fd_disp_unregister_all ( void )
+{
+	TRACE_ENTRY("");
+	while (!FD_IS_LIST_EMPTY(&all_handlers)) {
+		CHECK_FCT_DO( fd_disp_unregister(all_handlers.next->o), /* continue */ );
+	}
+	return;
+}

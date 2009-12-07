@@ -99,6 +99,7 @@ int main(int argc, char * argv[])
 	CHECK_FCT(  fd_queues_init()  );
 	CHECK_FCT(  fd_msg_init()  );
 	CHECK_FCT(  fd_p_expi_init()  );
+	CHECK_FCT(  fd_disp_init()  );
 	CHECK_FCT(  fd_rt_init()  );
 	
 	/* Parse the configuration file */
@@ -161,9 +162,11 @@ end:
 	
 	/* cleanups */
 	CHECK_FCT_DO( fd_servers_stop(), /* Stop accepting new connections */ );
-	TODO("Stop dispatch thread(s) properly (no cancel yet)");
+	CHECK_FCT_DO( fd_disp_cleanstop(), /* Stop dispatch thread(s) properly (no cancel yet) */ );
 	CHECK_FCT_DO( fd_peer_fini(), /* Stop all connections */ );
-	TODO("Stop dispatch & routing threads");
+	CHECK_FCT_DO( fd_rt_fini(), /* Stop routing threads */ );
+	CHECK_FCT_DO( fd_disp_fini(), /* Stop dispatch thread */ );
+	
 	CHECK_FCT_DO( fd_ext_fini(), /* Cleaup all extensions */ );
 	TODO("Cleanup queues (dump all remaining messages ?)");
 	

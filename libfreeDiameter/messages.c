@@ -2232,7 +2232,7 @@ int fd_msg_update_length ( msg_or_avp * object )
 		goto no_error;
 
 /* Call all dispatch callbacks for a given message */
-int fd_msg_dispatch ( struct msg ** msg, struct session * session, enum disp_action *action)
+int fd_msg_dispatch ( struct msg ** msg, struct session * session, enum disp_action *action, const char ** error_code)
 {
 	struct dictionary  * dict;
 	struct dict_object * app;
@@ -2241,8 +2241,11 @@ int fd_msg_dispatch ( struct msg ** msg, struct session * session, enum disp_act
 	struct fd_list * cb_list;
 	int ret = 0;
 	
-	TRACE_ENTRY("%p %p %p", msg, session, action);
+	TRACE_ENTRY("%p %p %p %p", msg, session, action, error_code);
 	CHECK_PARAMS( msg && CHECK_MSG(*msg) && action);
+	
+	if (error_code)
+		*error_code = NULL;
 	
 	/* Take the dispatch lock */
 	CHECK_FCT( pthread_rwlock_rdlock(&fd_disp_lock) );
@@ -2261,8 +2264,17 @@ int fd_msg_dispatch ( struct msg ** msg, struct session * session, enum disp_act
 	CHECK_FCT_DO( ret = fd_dict_search( dict, DICT_APPLICATION, APPLICATION_BY_ID, &(*msg)->msg_public.msg_appl, &app, 0 ), goto error );
 	
 	if (app == NULL) {
-		/* In that case, maybe we should answer a DIAMETER_APPLICATION_UNSUPPORTED error ? Do we do this here ? */
-		TODO("Reply DIAMETER_APPLICATION_UNSUPPORTED if it's a request ?");
+		if ((*msg)->msg_public.msg_flags & CMD_FLAG_REQUEST) {
+			if (error_code)
+				*error_code = "DIAMETER_APPLICATION_UNSUPPORTED";
+			*action = DISP_ACT_ERROR;
+		} else {
+			TRACE_DEBUG(INFO, "Received an answer to a local query with an unsupported application %d, discarding...",  (*msg)->msg_public.msg_appl);
+			fd_msg_dump_walk(INFO, *msg);
+			fd_msg_free(*msg);
+			*msg = NULL;
+		}
+		goto no_error;
 	}
 	
 	/* So start browsing the message */

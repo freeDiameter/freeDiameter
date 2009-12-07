@@ -105,6 +105,7 @@ int main(int argc, char *argv[])
 	enum disp_action action;
 	struct disp_hdl * hdl[NB_CB];
 	struct disp_when when;
+	const char * ec;
 	
 	/* First, initialize the daemon modules */
 	INIT_FD();
@@ -149,7 +150,7 @@ int main(int argc, char *argv[])
 		/* Check this handler is called for a message */
 		msg = new_msg( 0, cmd1, avp1, NULL, 0 );
 		memset(cbcalled, 0, sizeof(cbcalled));
-		CHECK( 0, fd_msg_dispatch ( &msg, sess, &action ) );
+		CHECK( 0, fd_msg_dispatch ( &msg, sess, &action, &ec ) );
 		CHECK( 1, cbcalled[0] );
 		CHECK( DISP_ACT_CONT, action );
 		
@@ -173,7 +174,7 @@ int main(int argc, char *argv[])
 		/* Check the callbacks are called as appropriate */
 		memset(cbcalled, 0, sizeof(cbcalled));
 		msg = new_msg( 0, cmd1, avp1, NULL, 0 );
-		CHECK( 0, fd_msg_dispatch ( &msg, sess, &action ) );
+		CHECK( 0, fd_msg_dispatch ( &msg, sess, &action, &ec ) );
 		CHECK( 1, cbcalled[0] );
 		CHECK( 0, cbcalled[1] );
 		CHECK( 0, cbcalled[2] );
@@ -184,7 +185,7 @@ int main(int argc, char *argv[])
 		
 		memset(cbcalled, 0, sizeof(cbcalled));
 		msg = new_msg( 1, cmd1, avp1, NULL, 0 );
-		CHECK( 0, fd_msg_dispatch ( &msg, sess, &action ) );
+		CHECK( 0, fd_msg_dispatch ( &msg, sess, &action, &ec ) );
 		CHECK( 1, cbcalled[0] );
 		CHECK( 1, cbcalled[1] );
 		CHECK( 0, cbcalled[2] );
@@ -195,7 +196,7 @@ int main(int argc, char *argv[])
 		
 		memset(cbcalled, 0, sizeof(cbcalled));
 		msg = new_msg( 2, cmd1, avp1, NULL, 0 );
-		CHECK( 0, fd_msg_dispatch ( &msg, sess, &action ) );
+		CHECK( 0, fd_msg_dispatch ( &msg, sess, &action, &ec ) );
 		CHECK( 1, cbcalled[0] );
 		CHECK( 0, cbcalled[1] );
 		CHECK( 1, cbcalled[2] );
@@ -229,7 +230,7 @@ int main(int argc, char *argv[])
 		/* Check the callbacks are called as appropriate */
 		memset(cbcalled, 0, sizeof(cbcalled));
 		msg = new_msg( 0, cmd1, avp1, NULL, 0 );
-		CHECK( 0, fd_msg_dispatch ( &msg, sess, &action ) );
+		CHECK( 0, fd_msg_dispatch ( &msg, sess, &action, &ec ) );
 		CHECK( 1, cbcalled[0] );
 		CHECK( 1, cbcalled[1] );
 		CHECK( 0, cbcalled[2] );
@@ -239,7 +240,7 @@ int main(int argc, char *argv[])
 		
 		memset(cbcalled, 0, sizeof(cbcalled));
 		msg = new_msg( 2, cmd1, avp1, NULL, 0 );
-		CHECK( 0, fd_msg_dispatch ( &msg, sess, &action ) );
+		CHECK( 0, fd_msg_dispatch ( &msg, sess, &action, &ec ) );
 		CHECK( 1, cbcalled[0] );
 		CHECK( 1, cbcalled[1] );
 		CHECK( 1, cbcalled[2] );
@@ -249,7 +250,7 @@ int main(int argc, char *argv[])
 		
 		memset(cbcalled, 0, sizeof(cbcalled));
 		msg = new_msg( 2, cmd2, avp1, NULL, 0 );
-		CHECK( 0, fd_msg_dispatch ( &msg, sess, &action ) );
+		CHECK( 0, fd_msg_dispatch ( &msg, sess, &action, &ec ) );
 		CHECK( 1, cbcalled[0] );
 		CHECK( 0, cbcalled[1] );
 		CHECK( 0, cbcalled[2] );
@@ -259,7 +260,7 @@ int main(int argc, char *argv[])
 		
 		memset(cbcalled, 0, sizeof(cbcalled));
 		msg = new_msg( 1, cmd2, NULL, avp2, 0 );
-		CHECK( 0, fd_msg_dispatch ( &msg, sess, &action ) );
+		CHECK( 0, fd_msg_dispatch ( &msg, sess, &action, &ec ) );
 		CHECK( 1, cbcalled[0] );
 		CHECK( 0, cbcalled[1] );
 		CHECK( 0, cbcalled[2] );
@@ -309,7 +310,7 @@ int main(int argc, char *argv[])
 		/* Check the callbacks are called as appropriate */
 		memset(cbcalled, 0, sizeof(cbcalled));
 		msg = new_msg( 0, cmd1, NULL, NULL, 0 );
-		CHECK( 0, fd_msg_dispatch ( &msg, sess, &action ) );
+		CHECK( 0, fd_msg_dispatch ( &msg, sess, &action, &ec ) );
 		CHECK( 1, cbcalled[0] );
 		CHECK( 0, cbcalled[1] );
 		CHECK( 0, cbcalled[2] );
@@ -321,7 +322,7 @@ int main(int argc, char *argv[])
 		
 		memset(cbcalled, 0, sizeof(cbcalled));
 		msg = new_msg( 0, cmd1, avp1, NULL, 0 );
-		CHECK( 0, fd_msg_dispatch ( &msg, sess, &action ) );
+		CHECK( 0, fd_msg_dispatch ( &msg, sess, &action, &ec ) );
 		CHECK( 1, cbcalled[0] );
 		CHECK( 1, cbcalled[1] );
 		CHECK( 1, cbcalled[2] );
@@ -333,7 +334,7 @@ int main(int argc, char *argv[])
 		
 		memset(cbcalled, 0, sizeof(cbcalled));
 		msg = new_msg( 1, cmd2, avp1, NULL, 0 );
-		CHECK( 0, fd_msg_dispatch ( &msg, sess, &action ) );
+		CHECK( 0, fd_msg_dispatch ( &msg, sess, &action, &ec ) );
 		CHECK( 1, cbcalled[0] );
 		CHECK( 1, cbcalled[1] );
 		CHECK( 0, cbcalled[2] );
@@ -345,7 +346,7 @@ int main(int argc, char *argv[])
 		
 		memset(cbcalled, 0, sizeof(cbcalled));
 		msg = new_msg( 1, cmd1, avp1, NULL, 0 );
-		CHECK( 0, fd_msg_dispatch ( &msg, sess, &action ) );
+		CHECK( 0, fd_msg_dispatch ( &msg, sess, &action, &ec ) );
 		CHECK( 1, cbcalled[0] );
 		CHECK( 1, cbcalled[1] );
 		CHECK( 1, cbcalled[2] );
@@ -357,7 +358,7 @@ int main(int argc, char *argv[])
 		
 		memset(cbcalled, 0, sizeof(cbcalled));
 		msg = new_msg( 1, cmd1, avp1, avp2, 0 );
-		CHECK( 0, fd_msg_dispatch ( &msg, sess, &action ) );
+		CHECK( 0, fd_msg_dispatch ( &msg, sess, &action, &ec ) );
 		CHECK( 1, cbcalled[0] );
 		CHECK( 1, cbcalled[1] );
 		CHECK( 1, cbcalled[2] );
@@ -370,7 +371,7 @@ int main(int argc, char *argv[])
 		
 		memset(cbcalled, 0, sizeof(cbcalled));
 		msg = new_msg( 1, cmd1, NULL, avp2, 1 );
-		CHECK( 0, fd_msg_dispatch ( &msg, sess, &action ) );
+		CHECK( 0, fd_msg_dispatch ( &msg, sess, &action, &ec ) );
 		CHECK( 1, cbcalled[0] );
 		CHECK( 0, cbcalled[1] );
 		CHECK( 0, cbcalled[2] );
@@ -383,7 +384,7 @@ int main(int argc, char *argv[])
 		
 		memset(cbcalled, 0, sizeof(cbcalled));
 		msg = new_msg( 1, cmd1, NULL, avp2, 2 );
-		CHECK( 0, fd_msg_dispatch ( &msg, sess, &action ) );
+		CHECK( 0, fd_msg_dispatch ( &msg, sess, &action, &ec ) );
 		CHECK( 1, cbcalled[0] );
 		CHECK( 0, cbcalled[1] );
 		CHECK( 0, cbcalled[2] );
@@ -430,7 +431,7 @@ int main(int argc, char *argv[])
 		/* Check the callbacks are called as appropriate */
 		memset(cbcalled, 0, sizeof(cbcalled));
 		msg = new_msg( 0, cmd1, avp1, NULL, 0 );
-		CHECK( 0, fd_msg_dispatch ( &msg, sess, &action ) );
+		CHECK( 0, fd_msg_dispatch ( &msg, sess, &action, &ec ) );
 		CHECK( 1, cbcalled[0] );
 		CHECK( 0, cbcalled[1] );
 		CHECK( 0, cbcalled[2] );
@@ -440,7 +441,7 @@ int main(int argc, char *argv[])
 		
 		memset(cbcalled, 0, sizeof(cbcalled));
 		msg = new_msg( 1, cmd2, avp1, avp2, 0 );
-		CHECK( 0, fd_msg_dispatch ( &msg, sess, &action ) );
+		CHECK( 0, fd_msg_dispatch ( &msg, sess, &action, &ec ) );
 		CHECK( 1, cbcalled[0] );
 		CHECK( 0, cbcalled[1] );
 		CHECK( 0, cbcalled[2] );
@@ -450,7 +451,7 @@ int main(int argc, char *argv[])
 		
 		memset(cbcalled, 0, sizeof(cbcalled));
 		msg = new_msg( 1, cmd2, avp1, avp2, 1 );
-		CHECK( 0, fd_msg_dispatch ( &msg, sess, &action ) );
+		CHECK( 0, fd_msg_dispatch ( &msg, sess, &action, &ec ) );
 		CHECK( 1, cbcalled[0] );
 		CHECK( 1, cbcalled[1] );
 		CHECK( 0, cbcalled[2] );
@@ -460,7 +461,7 @@ int main(int argc, char *argv[])
 		
 		memset(cbcalled, 0, sizeof(cbcalled));
 		msg = new_msg( 1, cmd2, avp1, avp2, 2 );
-		CHECK( 0, fd_msg_dispatch ( &msg, sess, &action ) );
+		CHECK( 0, fd_msg_dispatch ( &msg, sess, &action, &ec ) );
 		CHECK( 1, cbcalled[0] );
 		CHECK( 0, cbcalled[1] );
 		CHECK( 0, cbcalled[2] );
@@ -470,7 +471,7 @@ int main(int argc, char *argv[])
 		
 		memset(cbcalled, 0, sizeof(cbcalled));
 		msg = new_msg( 1, cmd1, avp1, avp2, 1 );
-		CHECK( 0, fd_msg_dispatch ( &msg, sess, &action ) );
+		CHECK( 0, fd_msg_dispatch ( &msg, sess, &action, &ec ) );
 		CHECK( 1, cbcalled[0] );
 		CHECK( 1, cbcalled[1] );
 		CHECK( 1, cbcalled[2] );
@@ -488,7 +489,7 @@ int main(int argc, char *argv[])
 			CHECK( 0, fd_msg_avp_setvalue ( avp, &value ) );
 			CHECK( 0, fd_msg_avp_add ( msg, MSG_BRW_LAST_CHILD, avp ) );
 		}
-		CHECK( 0, fd_msg_dispatch ( &msg, sess, &action ) );
+		CHECK( 0, fd_msg_dispatch ( &msg, sess, &action, &ec ) );
 		CHECK( 1, cbcalled[0] );
 		CHECK( 1, cbcalled[1] );
 		CHECK( 0, cbcalled[2] );
@@ -512,7 +513,7 @@ int main(int argc, char *argv[])
 		
 		memset(cbcalled, 0, sizeof(cbcalled));
 		msg = new_msg( 1, cmd1, avp1, avp2, 1 );
-		CHECK( 12345, fd_msg_dispatch ( &msg, sess, &action ) );
+		CHECK( 12345, fd_msg_dispatch ( &msg, sess, &action, &ec ) );
 		CHECK( 1, cbcalled[0] );
 		CHECK( 1, cbcalled[1] );
 		CHECK( 1, cbcalled[6] );
@@ -534,7 +535,7 @@ int main(int argc, char *argv[])
 		
 		memset(cbcalled, 0, sizeof(cbcalled));
 		msg = new_msg( 1, cmd1, avp1, avp2, 1 );
-		CHECK( 0, fd_msg_dispatch ( &msg, sess, &action ) );
+		CHECK( 0, fd_msg_dispatch ( &msg, sess, &action, &ec ) );
 		CHECK( 1, cbcalled[0] );
 		CHECK( 1, cbcalled[1] );
 		CHECK( 1, cbcalled[8] );
@@ -556,7 +557,7 @@ int main(int argc, char *argv[])
 		
 		memset(cbcalled, 0, sizeof(cbcalled));
 		msg = new_msg( 1, cmd1, avp1, avp2, 1 );
-		CHECK( 0, fd_msg_dispatch ( &msg, sess, &action ) );
+		CHECK( 0, fd_msg_dispatch ( &msg, sess, &action, &ec ) );
 		CHECK( 1, cbcalled[0] );
 		CHECK( 1, cbcalled[1] );
 		CHECK( 1, cbcalled[9] );
@@ -587,7 +588,7 @@ int main(int argc, char *argv[])
 		
 		memset(cbcalled, 0, sizeof(cbcalled));
 		msg = new_msg( 2, cmd2, avp1, avp2, 2 );
-		CHECK( 0, fd_msg_dispatch ( &msg, sess, &action ) );
+		CHECK( 0, fd_msg_dispatch ( &msg, sess, &action, &ec ) );
 		CHECK( 1, cbcalled[0] );
 		CHECK( 1, cbcalled[1] );
 		CHECK( 1, cbcalled[2] );
@@ -599,7 +600,7 @@ int main(int argc, char *argv[])
 		CHECK( 0, fd_disp_register( cb_9, DISP_HOW_ANY, &when, &hdl[5] ) );
 		memset(cbcalled, 0, sizeof(cbcalled));
 		msg = new_msg( 2, cmd2, avp1, avp2, 2 );
-		CHECK( 0, fd_msg_dispatch ( &msg, sess, &action ) );
+		CHECK( 0, fd_msg_dispatch ( &msg, sess, &action, &ec ) );
 		CHECK( 1, cbcalled[0] );
 		CHECK( 0, cbcalled[1] );
 		CHECK( 0, cbcalled[2] );
@@ -612,7 +613,7 @@ int main(int argc, char *argv[])
 		CHECK( 0, fd_disp_register( cb_9, DISP_HOW_AVP_ENUMVAL, &when, &hdl[5] ) );
 		memset(cbcalled, 0, sizeof(cbcalled));
 		msg = new_msg( 2, cmd2, avp1, avp2, 2 );
-		CHECK( 0, fd_msg_dispatch ( &msg, sess, &action ) );
+		CHECK( 0, fd_msg_dispatch ( &msg, sess, &action, &ec ) );
 		CHECK( 1, cbcalled[0] );
 		CHECK( 1, cbcalled[1] );
 		CHECK( 1, cbcalled[2] );
@@ -625,7 +626,7 @@ int main(int argc, char *argv[])
 		CHECK( 0, fd_disp_register( cb_9, DISP_HOW_AVP, &when, &hdl[5] ) );
 		memset(cbcalled, 0, sizeof(cbcalled));
 		msg = new_msg( 2, cmd2, avp1, avp2, 2 );
-		CHECK( 0, fd_msg_dispatch ( &msg, sess, &action ) );
+		CHECK( 0, fd_msg_dispatch ( &msg, sess, &action, &ec ) );
 		CHECK( 1, cbcalled[0] );
 		CHECK( 1, cbcalled[1] );
 		CHECK( 1, cbcalled[2] );
@@ -638,7 +639,7 @@ int main(int argc, char *argv[])
 		CHECK( 0, fd_disp_register( cb_9, DISP_HOW_CC, &when, &hdl[5] ) );
 		memset(cbcalled, 0, sizeof(cbcalled));
 		msg = new_msg( 2, cmd2, avp1, avp2, 2 );
-		CHECK( 0, fd_msg_dispatch ( &msg, sess, &action ) );
+		CHECK( 0, fd_msg_dispatch ( &msg, sess, &action, &ec ) );
 		CHECK( 1, cbcalled[0] );
 		CHECK( 1, cbcalled[1] );
 		CHECK( 1, cbcalled[2] );
@@ -651,7 +652,7 @@ int main(int argc, char *argv[])
 		CHECK( 0, fd_disp_register( cb_9, DISP_HOW_APPID, &when, &hdl[5] ) );
 		memset(cbcalled, 0, sizeof(cbcalled));
 		msg = new_msg( 2, cmd2, avp1, avp2, 2 );
-		CHECK( 0, fd_msg_dispatch ( &msg, sess, &action ) );
+		CHECK( 0, fd_msg_dispatch ( &msg, sess, &action, &ec ) );
 		CHECK( 1, cbcalled[0] );
 		CHECK( 1, cbcalled[1] );
 		CHECK( 1, cbcalled[2] );

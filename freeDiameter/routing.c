@@ -862,6 +862,14 @@ int fd_rt_fini(void)
 {
 	CHECK_FCT_DO( fd_thr_term(&rt_in ), /* continue */);
 	CHECK_FCT_DO( fd_thr_term(&rt_out), /* continue */);
+	
+	/* Cleanup all remaining handlers */
+	while (!FD_IS_LIST_EMPTY(&rt_fwd_list)) {
+		CHECK_FCT_DO( fd_rt_fwd_unregister ( (void *)rt_fwd_list.next, NULL ), /* continue */ );
+	}
+	while (!FD_IS_LIST_EMPTY(&rt_out_list)) {
+		CHECK_FCT_DO( fd_rt_out_unregister ( (void *)rt_out_list.next, NULL ), /* continue */ );
+	}
 	return 0;
 }
 

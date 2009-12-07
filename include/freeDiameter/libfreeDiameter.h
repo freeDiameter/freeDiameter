@@ -2352,7 +2352,8 @@ struct disp_when {
 
 enum disp_action {
 	DISP_ACT_CONT,	/* The next handler should be called, unless *msg == NULL. */
-	DISP_ACT_SEND	/* The updated message must be sent. No further callback is called. */
+	DISP_ACT_SEND,	/* The updated message must be sent. No further callback is called. */
+	DISP_ACT_ERROR	/* An error must be created and sent as a reply -- not valid for callbacks, only for fd_msg_dispatch. */
 };
 /* The callbacks that are registered have the following prototype:
  *  	int dispatch_callback( struct msg ** msg, struct avp * avp, struct session * session, enum disp_action * action );
@@ -2423,6 +2424,9 @@ int fd_disp_register ( int (*cb)( struct msg **, struct avp *, struct session *,
  */
 int fd_disp_unregister ( struct disp_hdl ** handle );
 
+/* Destroy all handlers */
+void fd_disp_unregister_all ( void );
+
 /*
  * FUNCTION:	fd_msg_dispatch
  *
@@ -2442,7 +2446,7 @@ int fd_disp_unregister ( struct disp_hdl ** handle );
  *  EINVAL 	: A parameter is invalid.
  *  (other errors)
  */
-int fd_msg_dispatch ( struct msg ** msg, struct session * session, enum disp_action *action );
+int fd_msg_dispatch ( struct msg ** msg, struct session * session, enum disp_action *action, const char ** error_code );
 
 
 
