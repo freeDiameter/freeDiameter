@@ -239,6 +239,7 @@ int fd_disp_cleanstop(void)
 int fd_disp_fini(void)
 {
 	/* Wait for a few milliseconds for the thread to complete, by monitoring my_state */
+	TODO("Not implemented yet");
 
 	/* Then if needed, cancel the thread */
 	
