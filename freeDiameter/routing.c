@@ -78,6 +78,8 @@ static int add_ordered(struct rt_hdl * new, struct fd_list * list)
 	fd_list_insert_before(li, &new->chain);
 	
 	CHECK_POSIX( pthread_rwlock_unlock(list->o) );
+	
+	return 0;
 }
 
 /* Register a new FWD callback */
