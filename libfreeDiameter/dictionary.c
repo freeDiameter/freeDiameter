@@ -1534,12 +1534,13 @@ int fd_dict_init ( struct dictionary ** dict)
 	init_object( &new->dict_vendors, DICT_VENDOR );
 	new->dict_vendors.data.vendor.vendor_name = "(no vendor)";
 	new->dict_vendors.list[0].o = NULL; /* overwrite since element is also sentinel for this list. */
-	
+	new->dict_vendors.dico = new;
 	
 	/* Initialize the sentinel for applications */
 	init_object( &new->dict_applications, DICT_APPLICATION );
 	new->dict_applications.data.application.application_name = "Diameter Common Messages";
 	new->dict_applications.list[0].o = NULL; /* overwrite since since element is also sentinel for this list. */
+	new->dict_applications.dico = new;
 			
 	/* Initialize the sentinel for types */
 	fd_list_init ( &new->dict_types, NULL );
@@ -1553,6 +1554,7 @@ int fd_dict_init ( struct dictionary ** dict)
 	new->dict_cmd_error.data.cmd.cmd_name="(generic error format)";
 	new->dict_cmd_error.data.cmd.cmd_flag_mask=CMD_FLAG_ERROR | CMD_FLAG_REQUEST | CMD_FLAG_RETRANSMIT;
 	new->dict_cmd_error.data.cmd.cmd_flag_val =CMD_FLAG_ERROR;
+	new->dict_cmd_error.dico = new;
 	
 	*dict = new;
 	
