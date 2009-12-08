@@ -41,6 +41,8 @@
 
 #include "app_test.h"
 
+#include <stdio.h>
+
 static struct session_handler * atst_cli_reg = NULL;
 
 struct atst_mess_info {
@@ -144,16 +146,16 @@ static void atst_cli_test_message(void)
 	TRACE_DEBUG(FULL, "Creating a new message for sending.");
 	
 	/* Create the request from template */
-	CHECK_FCT_DO( fd_msg_new( atst_cmd_r, MSGFL_ALLOC_ETEID, &req ), return );
+	CHECK_FCT_DO( fd_msg_new( atst_cmd_r, MSGFL_ALLOC_ETEID, &req ), goto out );
 	
 	/* Create a new session */
-	CHECK_FCT_DO( fd_sess_new( &sess, fd_g_config->cnf_diamid, "app_test", 8 ), return );
+	CHECK_FCT_DO( fd_sess_new( &sess, fd_g_config->cnf_diamid, "app_test", 8 ), goto out );
 	
 	/* Create the random value to store with the session */
 	mi = malloc(sizeof(struct atst_mess_info));
 	if (mi == NULL) {
 		fd_log_debug("malloc failed: %s", strerror(errno));
-		return;
+		goto out;
 	}
 	
 	mi->randval = (int32_t)random();
@@ -163,57 +165,59 @@ static void atst_cli_test_message(void)
 	/* Session-Id */
 	{
 		char * sid;
-		CHECK_FCT_DO( fd_sess_getsid ( sess, &sid ), return );
-		CHECK_FCT_DO( fd_msg_avp_new ( atst_sess_id, 0, &avp ), return );
+		CHECK_FCT_DO( fd_sess_getsid ( sess, &sid ), goto out );
+		CHECK_FCT_DO( fd_msg_avp_new ( atst_sess_id, 0, &avp ), goto out );
 		val.os.data = sid;
 		val.os.len  = strlen(sid);
-		CHECK_FCT_DO( fd_msg_avp_setvalue( avp, &val ), return );
-		CHECK_FCT_DO( fd_msg_avp_add( req, MSG_BRW_FIRST_CHILD, avp ), return );
+		CHECK_FCT_DO( fd_msg_avp_setvalue( avp, &val ), goto out );
+		CHECK_FCT_DO( fd_msg_avp_add( req, MSG_BRW_FIRST_CHILD, avp ), goto out );
 		
 	}
 	
 	/* Set the Destination-Realm AVP */
 	{
-		CHECK_FCT_DO( fd_msg_avp_new ( atst_dest_realm, 0, &avp ), return  );
+		CHECK_FCT_DO( fd_msg_avp_new ( atst_dest_realm, 0, &avp ), goto out  );
 		val.os.data = (unsigned char *)(atst_conf->dest_realm);
 		val.os.len  = strlen(atst_conf->dest_realm);
-		CHECK_FCT_DO( fd_msg_avp_setvalue( avp, &val ), return  );
-		CHECK_FCT_DO( fd_msg_avp_add( req, MSG_BRW_LAST_CHILD, avp ), return  );
+		CHECK_FCT_DO( fd_msg_avp_setvalue( avp, &val ), goto out  );
+		CHECK_FCT_DO( fd_msg_avp_add( req, MSG_BRW_LAST_CHILD, avp ), goto out  );
 	}
 	
 	/* Set the Destination-Host AVP if needed*/
 	if (atst_conf->dest_host) {
-		CHECK_FCT_DO( fd_msg_avp_new ( atst_dest_host, 0, &avp ), return  );
+		CHECK_FCT_DO( fd_msg_avp_new ( atst_dest_host, 0, &avp ), goto out  );
 		val.os.data = (unsigned char *)(atst_conf->dest_host);
 		val.os.len  = strlen(atst_conf->dest_host);
-		CHECK_FCT_DO( fd_msg_avp_setvalue( avp, &val ), return  );
-		CHECK_FCT_DO( fd_msg_avp_add( req, MSG_BRW_LAST_CHILD, avp ), return  );
+		CHECK_FCT_DO( fd_msg_avp_setvalue( avp, &val ), goto out  );
+		CHECK_FCT_DO( fd_msg_avp_add( req, MSG_BRW_LAST_CHILD, avp ), goto out  );
 	}
 	
 	/* Set Origin-Host & Origin-Realm */
-	CHECK_FCT_DO( fd_msg_add_origin ( req, 0 ), return  );
+	CHECK_FCT_DO( fd_msg_add_origin ( req, 0 ), goto out  );
 	
 	
 	/* Set the Test-AVP AVP */
 	{
-		CHECK_FCT_DO( fd_msg_avp_new ( atst_avp, 0, &avp ), return  );
+		CHECK_FCT_DO( fd_msg_avp_new ( atst_avp, 0, &avp ), goto out  );
 		val.i32 = mi->randval;
-		CHECK_FCT_DO( fd_msg_avp_setvalue( avp, &val ), return  );
-		CHECK_FCT_DO( fd_msg_avp_add( req, MSG_BRW_LAST_CHILD, avp ), return  );
+		CHECK_FCT_DO( fd_msg_avp_setvalue( avp, &val ), goto out  );
+		CHECK_FCT_DO( fd_msg_avp_add( req, MSG_BRW_LAST_CHILD, avp ), goto out  );
 	}
 	
-	CHECK_SYS_DO( clock_gettime(CLOCK_REALTIME, &mi->ts), return );
+	CHECK_SYS_DO( clock_gettime(CLOCK_REALTIME, &mi->ts), goto out );
 	
 	/* Store this value in the session */
-	CHECK_FCT_DO( fd_sess_state_store ( atst_cli_reg, sess, &mi ), return ); 
+	CHECK_FCT_DO( fd_sess_state_store ( atst_cli_reg, sess, &mi ), goto out ); 
 	
 	/* Log sending the message */
 	fprintf(stderr, "SEND %x to '%s' (%s)\n", mi->randval, atst_conf->dest_realm, atst_conf->dest_host?:"-" );
 	fflush(stderr);
 	
 	/* Send the request */
-	CHECK_FCT_DO( fd_msg_send( &req, atst_cb_ans, mi ), return );
-	
+	CHECK_FCT_DO( fd_msg_send( &req, atst_cb_ans, mi ), goto out );
+
+out:
+	TRACE_DEBUG(FULL, "Client function terminated");	
 	return;
 }
 

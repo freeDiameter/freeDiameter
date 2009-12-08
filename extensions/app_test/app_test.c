@@ -64,16 +64,18 @@ static int atst_conf_init(void)
 
 static void atst_conf_dump(void)
 {
-	TRACE_DEBUG(FULL, "------- app_test configuration dump: ---------");
-	TRACE_DEBUG(FULL, " Vendor Id .......... : %u", atst_conf->vendor_id);
-	TRACE_DEBUG(FULL, " Application Id ..... : %u", atst_conf->appli_id);
-	TRACE_DEBUG(FULL, " Command Id ......... : %u", atst_conf->cmd_id);
-	TRACE_DEBUG(FULL, " AVP Id ............. : %u", atst_conf->avp_id);
-	TRACE_DEBUG(FULL, " Mode ............... : %s%s", atst_conf->mode & MODE_SERV ? "Serv" : "", atst_conf->mode & MODE_CLI ? "Cli" : "" );
-	TRACE_DEBUG(FULL, " Destination Realm .. : %s", atst_conf->dest_realm ?: "- none -");
-	TRACE_DEBUG(FULL, " Destination Host ... : %s", atst_conf->dest_host ?: "- none -");
-	TRACE_DEBUG(FULL, " Signal ............. : %i", atst_conf->signal);
-	TRACE_DEBUG(FULL, "------- /app_test configuration dump ---------");
+	if (!TRACE_BOOL(INFO))
+		return;
+	fd_log_debug( "------- app_test configuration dump: ---------\n");
+	fd_log_debug( " Vendor Id .......... : %u\n", atst_conf->vendor_id);
+	fd_log_debug( " Application Id ..... : %u\n", atst_conf->appli_id);
+	fd_log_debug( " Command Id ......... : %u\n", atst_conf->cmd_id);
+	fd_log_debug( " AVP Id ............. : %u\n", atst_conf->avp_id);
+	fd_log_debug( " Mode ............... : %s%s\n", atst_conf->mode & MODE_SERV ? "Serv" : "", atst_conf->mode & MODE_CLI ? "Cli" : "" );
+	fd_log_debug( " Destination Realm .. : %s\n", atst_conf->dest_realm ?: "- none -");
+	fd_log_debug( " Destination Host ... : %s\n", atst_conf->dest_host ?: "- none -");
+	fd_log_debug( " Signal ............. : %i\n", atst_conf->signal);
+	fd_log_debug( "------- /app_test configuration dump ---------\n");
 }
 
 /* entry point */

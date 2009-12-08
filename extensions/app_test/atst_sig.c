@@ -46,6 +46,8 @@ static void * atst_sig_th(void * arg)
 	sigset_t ss;
 	void (*cb)(void) = arg;
 	
+	fd_log_threadname ( "app_test signal handler" );
+	
 	sigemptyset(&ss);
 	sigaddset(&ss, atst_conf->signal);
 	
