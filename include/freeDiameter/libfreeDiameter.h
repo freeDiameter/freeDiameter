@@ -2179,12 +2179,21 @@ int fd_msg_bufferize ( struct msg * msg, unsigned char ** buffer, size_t * len )
  */
 int fd_msg_parse_buffer ( unsigned char ** buffer, size_t buflen, struct msg ** msg );
 
+/* Parsing Error Information structure */
+struct fd_pei {
+	char *		pei_errcode;	/* name of the error code to use */
+	struct avp *	pei_avp;	/* pointer to invalid or missing AVP (to be freed) */
+	char *		pei_message;	/* Overwrite default message if needed */
+	int		pei_protoerr; 	/* do we set the 'E' bit in the error message ? */
+};
+
 /*
  * FUNCTION:	fd_msg_parse_dict
  *
  * PARAMETERS:
  *  object	: A msg or AVP object as returned by fd_msg_parse_buffer.
  *  dict	: the dictionary containing the objects definitions to use for resolving all AVPs.
+ *  error_info	: If not NULL, will contain the detail about error upon return. May be used to generate an error reply.
  *
  * DESCRIPTION: 
  *   This function looks up for the command and each children AVP definitions in the dictionary.
@@ -2202,15 +2211,7 @@ int fd_msg_parse_buffer ( unsigned char ** buffer, size_t buflen, struct msg ** 
  *  ENOMEM	: Unable to allocate enough memory to complete the operation.
  *  ENOTSUP	: No dictionary definition for the command or one of the mandatory AVP was found.
  */
-int fd_msg_parse_dict ( msg_or_avp * object, struct dictionary * dict );
-
-/* Parsing Error Information structure */
-struct fd_pei {
-	char *		pei_errcode;	/* name of the error code to use */
-	struct avp *	pei_avp;	/* pointer to invalid or missing AVP (to be freed) */
-	char *		pei_message;	/* Overwrite default message if needed */
-	int		pei_protoerr; 	/* do we set the 'E' bit in the error message ? */
-};
+int fd_msg_parse_dict ( msg_or_avp * object, struct dictionary * dict, struct fd_pei *error_info );
 
 /*
  * FUNCTION:	fd_msg_parse_rules

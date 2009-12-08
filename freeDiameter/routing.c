@@ -384,7 +384,7 @@ static void * routing_in_thr(void * arg)
 					switch (ahdr->avp_code) {
 						case AC_DESTINATION_HOST:
 							/* Parse this AVP */
-							CHECK_FCT_DO( fd_msg_parse_dict ( avp, fd_g_config->cnf_dict ), goto fatal_error );
+							CHECK_FCT_DO( fd_msg_parse_dict ( avp, fd_g_config->cnf_dict, NULL ), goto fatal_error );
 							ASSERT( ahdr->avp_value );
 							/* Compare the Destination-Host AVP of the message with our identity */
 							if (ahdr->avp_value->os.len != fd_g_config->cnf_diamid_len) {
@@ -397,7 +397,7 @@ static void * routing_in_thr(void * arg)
 							
 						case AC_DESTINATION_REALM:
 							/* Parse this AVP */
-							CHECK_FCT_DO( fd_msg_parse_dict ( avp, fd_g_config->cnf_dict ), goto fatal_error );
+							CHECK_FCT_DO( fd_msg_parse_dict ( avp, fd_g_config->cnf_dict, NULL ), goto fatal_error );
 							ASSERT( ahdr->avp_value );
 							dr_val = ahdr->avp_value;
 							/* Compare the Destination-Realm AVP of the message with our identity */
@@ -411,7 +411,7 @@ static void * routing_in_thr(void * arg)
 						
 						case AC_USER_NAME:
 							/* Parse this AVP */
-							CHECK_FCT_DO( fd_msg_parse_dict ( avp, fd_g_config->cnf_dict ), goto fatal_error );
+							CHECK_FCT_DO( fd_msg_parse_dict ( avp, fd_g_config->cnf_dict, NULL ), goto fatal_error );
 							ASSERT( ahdr->avp_value );
 							un = avp;
 							un_val = ahdr->avp_value;
@@ -655,7 +655,7 @@ static void * routing_out_thr(void * arg)
 				
 				if ((ahdr->avp_code == AC_ROUTE_RECORD) && (! (ahdr->avp_flags & AVP_FLAG_VENDOR)) ) {
 					/* Parse this AVP */
-					CHECK_FCT_DO( fd_msg_parse_dict ( avp, fd_g_config->cnf_dict ), goto fatal_error );
+					CHECK_FCT_DO( fd_msg_parse_dict ( avp, fd_g_config->cnf_dict, NULL ), goto fatal_error );
 					ASSERT( ahdr->avp_value );
 					/* Remove this value from the list */
 					fd_rtd_candidate_del(rtd, (char *)ahdr->avp_value->os.data, ahdr->avp_value->os.len);
@@ -795,14 +795,14 @@ static int score_destination_avp(void * cbdata, struct msg * msg, struct fd_list
 			switch (ahdr->avp_code) {
 				case AC_DESTINATION_HOST:
 					/* Parse this AVP */
-					CHECK_FCT( fd_msg_parse_dict ( avp, fd_g_config->cnf_dict ) );
+					CHECK_FCT( fd_msg_parse_dict ( avp, fd_g_config->cnf_dict, NULL ) );
 					ASSERT( ahdr->avp_value );
 					dh = ahdr->avp_value;
 					break;
 
 				case AC_DESTINATION_REALM:
 					/* Parse this AVP */
-					CHECK_FCT( fd_msg_parse_dict ( avp, fd_g_config->cnf_dict ) );
+					CHECK_FCT( fd_msg_parse_dict ( avp, fd_g_config->cnf_dict, NULL ) );
 					ASSERT( ahdr->avp_value );
 					dr = ahdr->avp_value;
 					break;

@@ -156,7 +156,7 @@ static int avp_value_sizes[] = {
 #define GETINITIALSIZE( _type, _vend ) (avp_value_sizes[ CHECK_BASETYPE(_type) ? (_type) : 0] + GETAVPHDRSZ(_vend))
 
 /* Forward declaration */
-static int parsedict_do_msg(struct dictionary * dict, struct msg * msg, int only_hdr);
+static int parsedict_do_msg(struct dictionary * dict, struct msg * msg, int only_hdr, struct fd_pei *error_info);
 
 /***************************************************************************************************************/
 /* Creating objects */
@@ -306,7 +306,7 @@ int fd_msg_new_answer_from_req ( struct dictionary * dict, struct msg ** msg, in
 		CHECK_FCT( fd_dict_get_error_cmd(dict, &model) );
 	} else {
 		/* The model is the answer corresponding to the query. It supposes that these are defined in the dictionary */
-		CHECK_FCT_DO(  parsedict_do_msg( dict, qry, 1), /* continue */  );
+		CHECK_FCT_DO(  parsedict_do_msg( dict, qry, 1, NULL), /* continue */  );
 		if (qry->msg_model) {
 			CHECK_FCT(  fd_dict_search ( dict, DICT_COMMAND, CMD_ANSWER, qry->msg_model, &model, EINVAL )  );
 		}
@@ -550,7 +550,7 @@ int fd_msg_search_avp ( struct msg * msg, struct dict_object * what, struct avp 
 	if (avp && nextavp) {
 		struct dictionary * dict;
 		CHECK_FCT( fd_dict_getdict( what, &dict) );
-		CHECK_FCT_DO( fd_msg_parse_dict( nextavp, dict ), /* nothing */ );
+		CHECK_FCT_DO( fd_msg_parse_dict( nextavp, dict, NULL ), /* nothing */ );
 	}
 	
 	if (avp || nextavp)
@@ -1192,7 +1192,7 @@ int fd_msg_sess_get(struct dictionary * dict, struct msg * msg, struct session *
 	}
 	
 	if (!avp->avp_model) {
-		CHECK_FCT( fd_msg_parse_dict ( avp, dict ) );
+		CHECK_FCT( fd_msg_parse_dict ( avp, dict, NULL ) );
 	}
 	
 	ASSERT( avp->avp_public.avp_value );
@@ -1695,14 +1695,14 @@ int fd_msg_parse_buffer ( unsigned char ** buffer, size_t buflen, struct msg ** 
  * For command, if the dictionary model is not found, an error is returned.
  */
 
-static int parsedict_do_chain(struct dictionary * dict, struct fd_list * head, int mandatory);
+static int parsedict_do_chain(struct dictionary * dict, struct fd_list * head, int mandatory, struct fd_pei *error_info);
 
 /* Process an AVP. If we are not in recheck, the avp_source must be set. */
-static int parsedict_do_avp(struct dictionary * dict, struct avp * avp, int mandatory)
+static int parsedict_do_avp(struct dictionary * dict, struct avp * avp, int mandatory, struct fd_pei *error_info)
 {
 	struct dict_avp_data dictdata;
 	
-	TRACE_ENTRY("%p %p %d", dict, avp, mandatory);
+	TRACE_ENTRY("%p %p %d %p", dict, avp, mandatory, error_info);
 	
 	/* First check we received an AVP as input */
 	CHECK_PARAMS(  CHECK_AVP(avp) );
@@ -1714,7 +1714,7 @@ static int parsedict_do_avp(struct dictionary * dict, struct avp * avp, int mand
 
 		if ( avp->avp_public.avp_code == dictdata.avp_code  ) {
 			/* Ok then just process the children if any */
-			return parsedict_do_chain(dict, &avp->avp_chain.children, mandatory && (avp->avp_public.avp_flags & AVP_FLAG_MANDATORY));
+			return parsedict_do_chain(dict, &avp->avp_chain.children, mandatory && (avp->avp_public.avp_flags & AVP_FLAG_MANDATORY), error_info);
 		} else {
 			/* We just erase the old model */
 			avp->avp_model = NULL;
@@ -1738,6 +1738,10 @@ static int parsedict_do_avp(struct dictionary * dict, struct avp * avp, int mand
 		if (mandatory && (avp->avp_public.avp_flags & AVP_FLAG_MANDATORY)) {
 			TRACE_DEBUG(INFO, "Unsupported mandatory AVP found:");
 			msg_dump_intern(INFO, avp, 2);
+			if (error_info) {
+				error_info->pei_errcode = "DIAMETER_AVP_UNSUPPORTED";
+				error_info->pei_avp = avp;
+			}
 			return ENOTSUP;
 		}
 		
@@ -1773,21 +1777,42 @@ static int parsedict_do_avp(struct dictionary * dict, struct avp * avp, int mand
 	/* Check the size is valid */
 	if ((avp_value_sizes[dictdata.avp_basetype] != 0) &&
 	    (avp->avp_public.avp_len - GETAVPHDRSZ( avp->avp_public.avp_flags ) != avp_value_sizes[dictdata.avp_basetype])) {
-		TRACE_DEBUG(INFO, "The AVP size is not suitable for the type. EBADMSG.");
+		TRACE_DEBUG(INFO, "The AVP size is not suitable for the type.");
+		if (error_info) {
+			error_info->pei_errcode = "DIAMETER_INVALID_AVP_LENGTH";
+			error_info->pei_avp = avp;
+		}
 		return EBADMSG;
 	}
 	
 	/* Now get the value inside */
 	switch (dictdata.avp_basetype) {
-		case AVP_TYPE_GROUPED:
-			/* This is a grouped AVP, so let's parse the list of AVPs inside */
-			CHECK_FCT(  parsebuf_list(avp->avp_source, avp->avp_public.avp_len - GETAVPHDRSZ( avp->avp_public.avp_flags ), &avp->avp_chain.children)  );
+		case AVP_TYPE_GROUPED: {
+			int ret;
 			
-			return parsedict_do_chain(dict, &avp->avp_chain.children, mandatory && (avp->avp_public.avp_flags & AVP_FLAG_MANDATORY));
+			/* This is a grouped AVP, so let's parse the list of AVPs inside */
+			CHECK_FCT_DO(  ret = parsebuf_list(avp->avp_source, avp->avp_public.avp_len - GETAVPHDRSZ( avp->avp_public.avp_flags ), &avp->avp_chain.children),
+				{
+					if ((ret == EBADMSG) && (error_info)) {
+						error_info->pei_errcode = "DIAMETER_INVALID_AVP_VALUE";
+						error_info->pei_avp = avp;
+					}
+					return ret;
+				}  );
+			
+			return parsedict_do_chain(dict, &avp->avp_chain.children, mandatory && (avp->avp_public.avp_flags & AVP_FLAG_MANDATORY), error_info);
+		}
 			
 		case AVP_TYPE_OCTETSTRING:
 			/* We just have to copy the string into the storage area */
-			CHECK_PARAMS( avp->avp_public.avp_len > GETAVPHDRSZ( avp->avp_public.avp_flags ) );
+			CHECK_PARAMS_DO( avp->avp_public.avp_len > GETAVPHDRSZ( avp->avp_public.avp_flags ),
+				{
+					if (error_info) {
+						error_info->pei_errcode = "DIAMETER_INVALID_AVP_LENGTH";
+						error_info->pei_avp = avp;
+					}
+					return EBADMSG;
+				} );
 			avp->avp_storage.os.len = avp->avp_public.avp_len - GETAVPHDRSZ( avp->avp_public.avp_flags );
 			CHECK_MALLOC(  avp->avp_storage.os.data = malloc(avp->avp_storage.os.len)  );
 			avp->avp_mustfreeos = 1;
@@ -1820,18 +1845,18 @@ static int parsedict_do_avp(struct dictionary * dict, struct avp * avp, int mand
 }
 
 /* Process a list of AVPs */
-static int parsedict_do_chain(struct dictionary * dict, struct fd_list * head, int mandatory)
+static int parsedict_do_chain(struct dictionary * dict, struct fd_list * head, int mandatory, struct fd_pei *error_info)
 {
 	struct fd_list * avpch;
 	
-	TRACE_ENTRY("%p %p %d", dict, head, mandatory);
+	TRACE_ENTRY("%p %p %d %p", dict, head, mandatory, error_info);
 	
 	/* Sanity check */
 	ASSERT ( head == head->head );
 	
 	/* Now process the list */
 	for (avpch=head->next; avpch != head; avpch = avpch->next) {
-		CHECK_FCT(  parsedict_do_avp(dict, _A(avpch->o), mandatory)  );
+		CHECK_FCT(  parsedict_do_avp(dict, _A(avpch->o), mandatory, error_info)  );
 	}
 	
 	/* Done */
@@ -1839,23 +1864,30 @@ static int parsedict_do_chain(struct dictionary * dict, struct fd_list * head, i
 }
 
 /* Process a msg header. */
-static int parsedict_do_msg(struct dictionary * dict, struct msg * msg, int only_hdr)
+static int parsedict_do_msg(struct dictionary * dict, struct msg * msg, int only_hdr, struct fd_pei *error_info)
 {
 	int ret = 0;
 	
-	TRACE_ENTRY("%p %p %d", dict, msg, only_hdr);
+	TRACE_ENTRY("%p %p %d %p", dict, msg, only_hdr, error_info);
 	
 	CHECK_PARAMS(  CHECK_MSG(msg)  );
 	
 	/* Look for the model from the header */
-	CHECK_FCT( fd_dict_search ( dict, DICT_COMMAND, 
+	CHECK_FCT_DO( ret = fd_dict_search ( dict, DICT_COMMAND, 
 			(msg->msg_public.msg_flags & CMD_FLAG_REQUEST) ? CMD_BY_CODE_R : CMD_BY_CODE_A,
 			&msg->msg_public.msg_code,
-			&msg->msg_model, ENOTSUP) );
+			&msg->msg_model, ENOTSUP),
+		{
+			if ((ret == ENOTSUP) && (error_info)) {
+				error_info->pei_errcode = "DIAMETER_COMMAND_UNSUPPORTED";
+				error_info->pei_protoerr = 1;
+			}
+			return ret;
+		} );
 	
 	if (!only_hdr) {
 		/* Then process the children */
-		ret = parsedict_do_chain(dict, &msg->msg_chain.children, 1);
+		ret = parsedict_do_chain(dict, &msg->msg_chain.children, 1, error_info);
 
 		/* Free the raw buffer if any */
 		if ((ret == 0) && (msg->msg_rawbuffer != NULL)) {
@@ -1867,18 +1899,21 @@ static int parsedict_do_msg(struct dictionary * dict, struct msg * msg, int only
 	return ret;
 }
 
-int fd_msg_parse_dict ( msg_or_avp * object, struct dictionary * dict )
+int fd_msg_parse_dict ( msg_or_avp * object, struct dictionary * dict, struct fd_pei *error_info )
 {
-	TRACE_ENTRY("%p %p", dict, object);
+	TRACE_ENTRY("%p %p %p", dict, object, error_info);
 	
 	CHECK_PARAMS(  VALIDATE_OBJ(object)  );
 	
+	if (error_info)
+		memset(error_info, 0, sizeof(struct fd_pei));
+	
 	switch (_C(object)->type) {
 		case MSG_MSG:
-			return parsedict_do_msg(dict, _M(object), 0);
+			return parsedict_do_msg(dict, _M(object), 0, error_info);
 		
 		case MSG_AVP:
-			return parsedict_do_avp(dict, _A(object), 0);
+			return parsedict_do_avp(dict, _A(object), 0, error_info);
 		
 		default:
 			ASSERT(0);
@@ -2156,7 +2191,7 @@ int fd_msg_parse_rules ( msg_or_avp * object, struct dictionary * dict, struct f
 		memset(error_info, 0, sizeof(struct fd_pei));
 	
 	/* Resolve the dictionary objects when missing. This also validates the object. */
-	CHECK_FCT(  fd_msg_parse_dict ( object, dict )  );
+	CHECK_FCT(  fd_msg_parse_dict ( object, dict, error_info )  );
 	
 	/* Call the recursive function */
 	return parserules_do ( dict, object, error_info, 1 ) ;

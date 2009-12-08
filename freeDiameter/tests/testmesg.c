@@ -686,7 +686,7 @@ int main(int argc, char *argv[])
 				/* Change the command-code */
 				buf_cpy[5] = 0x11;
 				CHECK( 0, fd_msg_parse_buffer( &buf_cpy, 344, &msg) );
-				CHECK( ENOTSUP, fd_msg_parse_dict( msg, fd_g_config->cnf_dict ) );
+				CHECK( ENOTSUP, fd_msg_parse_dict( msg, fd_g_config->cnf_dict, NULL ) );
 				
 				/* reset */
 				CHECK( 0, fd_msg_free ( msg ) );
@@ -701,7 +701,7 @@ int main(int argc, char *argv[])
 				
 				/* Check that we cannot support this message now */
 				CHECK( 0, fd_msg_parse_buffer( &buf_cpy, 344, &msg) );
-				CHECK( ENOTSUP, fd_msg_parse_dict( msg, fd_g_config->cnf_dict ) );
+				CHECK( ENOTSUP, fd_msg_parse_dict( msg, fd_g_config->cnf_dict, NULL ) );
 				
 				/* reset */
 				CHECK( 0, fd_msg_free ( msg ) );
@@ -715,7 +715,7 @@ int main(int argc, char *argv[])
 				
 				/* Check that we can support this message now */
 				CHECK( 0, fd_msg_parse_buffer( &buf_cpy, 344, &msg) );
-				CHECK( 0, fd_msg_parse_dict( msg, fd_g_config->cnf_dict ) );
+				CHECK( 0, fd_msg_parse_dict( msg, fd_g_config->cnf_dict, NULL ) );
 				
 				#if 0
 				fd_msg_dump_walk(0, msg);
@@ -726,7 +726,7 @@ int main(int argc, char *argv[])
 			}
 			
 			CHECK( 0, fd_msg_parse_buffer( &buf, 344, &msg) );
-			CHECK( 0, fd_msg_parse_dict( msg, fd_g_config->cnf_dict ) );
+			CHECK( 0, fd_msg_parse_dict( msg, fd_g_config->cnf_dict, NULL ) );
 			#if 0
 			fd_msg_dump_walk(0, msg);
 			#endif
@@ -963,7 +963,7 @@ int main(int argc, char *argv[])
 		
 		/* Ok, now let's recreate the message */
 		CHECK( 0, fd_msg_parse_buffer( &buf, 64, &cer) );
-		CHECK( 0, fd_msg_parse_dict( cer, fd_g_config->cnf_dict ) );
+		CHECK( 0, fd_msg_parse_dict( cer, fd_g_config->cnf_dict, NULL ) );
 		
 		/* Get the pointers to the first and last AVP */
 		CHECK( 0, fd_msg_browse( cer, MSG_BRW_FIRST_CHILD, &avp4, NULL) );
@@ -1193,7 +1193,7 @@ int main(int argc, char *argv[])
 			CHECK( 0, fd_msg_free( msg ) );
 			
 			CHECK( 0, fd_msg_parse_buffer( &buf, 148, &msg) );
-			CHECK( 0, fd_msg_parse_dict( msg, fd_g_config->cnf_dict ) );
+			CHECK( 0, fd_msg_parse_dict( msg, fd_g_config->cnf_dict, NULL ) );
 			#if 0
 			fd_msg_dump_walk(0, msg);
 			#endif

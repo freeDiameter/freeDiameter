@@ -292,10 +292,11 @@ int fd_msg_parse_or_error( struct msg ** msg )
 	
 	/* Parse the message against our dictionary */
 	ret = fd_msg_parse_rules ( m, fd_g_config->cnf_dict, &pei);
-	if (ret != EBADMSG)
+	if 	((ret != EBADMSG) 	/* Parsing grouped AVP failed / Conflicting rule found */
+		&& (ret != ENOTSUP))	/* Command is not supported / Mandatory AVP is not supported */
 		return ret;
 	
-	fd_log_debug("The following message does not comply to the dictionary and rules (%s):\n", pei.pei_errcode);
+	fd_log_debug("The following message does not comply to the dictionary and/or rules (%s):\n", pei.pei_errcode);
 	fd_msg_dump_walk(NONE, m);
 	
 	/* Now create an answer error if the message is a query */
