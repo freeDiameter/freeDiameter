@@ -316,5 +316,5 @@ int fd_msg_parse_or_error( struct msg ** msg )
 		*msg = NULL;
 	}
 	
-	return ret;
+	return EBADMSG; /* We convert ENOTSUP to EBADMSG as well */
 }
