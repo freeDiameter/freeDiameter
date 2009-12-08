@@ -140,7 +140,7 @@ static void atst_cli_test_message(void)
 	struct msg * req = NULL;
 	struct avp * avp;
 	union avp_value val;
-	struct atst_mess_info * mi = NULL;
+	struct atst_mess_info * mi = NULL, *svg;
 	struct session *sess = NULL;
 	
 	TRACE_DEBUG(FULL, "Creating a new message for sending.");
@@ -206,15 +206,18 @@ static void atst_cli_test_message(void)
 	
 	CHECK_SYS_DO( clock_gettime(CLOCK_REALTIME, &mi->ts), goto out );
 	
+	/* Keep a pointer to the session data for debug purpose, in real life we would not need it */
+	svg = mi;
+	
 	/* Store this value in the session */
 	CHECK_FCT_DO( fd_sess_state_store ( atst_cli_reg, sess, &mi ), goto out ); 
 	
 	/* Log sending the message */
-	fprintf(stderr, "SEND %x to '%s' (%s)\n", mi->randval, atst_conf->dest_realm, atst_conf->dest_host?:"-" );
+	fprintf(stderr, "SEND %x to '%s' (%s)\n", svg->randval, atst_conf->dest_realm, atst_conf->dest_host?:"-" );
 	fflush(stderr);
 	
 	/* Send the request */
-	CHECK_FCT_DO( fd_msg_send( &req, atst_cb_ans, mi ), goto out );
+	CHECK_FCT_DO( fd_msg_send( &req, atst_cb_ans, svg ), goto out );
 
 out:
 	TRACE_DEBUG(FULL, "Client function terminated");	
