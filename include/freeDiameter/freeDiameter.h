@@ -698,7 +698,6 @@ struct fd_app {
 	struct {
 		unsigned auth   : 1;
 		unsigned acct   : 1;
-		unsigned common : 1;
 	}		 flags;
 	vendor_id_t	 vndid; /* if not 0, Vendor-Specific-App-Id AVP will be used */
 	application_id_t appid;	/* The identifier of the application */
@@ -706,5 +705,6 @@ struct fd_app {
 	
 int fd_app_merge(struct fd_list * list, application_id_t aid, vendor_id_t vid, int auth, int acct);
 int fd_app_check(struct fd_list * list, application_id_t aid, struct fd_app **detail);
+int fd_app_check_common(struct fd_list * list1, struct fd_list * list2, int * common_found);
 
 #endif /* _FREEDIAMETER_H */

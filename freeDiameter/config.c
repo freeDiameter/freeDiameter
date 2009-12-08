@@ -110,7 +110,6 @@ void fd_conf_dump()
 					app->appid,
 					app->flags.auth ? "Au" : "--",
 					app->flags.acct ? "Ac" : "--",
-					app->flags.common ? "C" : "-",
 					app->vndid);
 			li = li->next;
 		}

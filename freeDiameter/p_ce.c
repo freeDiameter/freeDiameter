@@ -703,12 +703,13 @@ cleanup:
 	return 0;
 }
 
-/* Handle the receiver side after winning an election (or timeout on initiator side) */
+/* Handle the receiver side to go to OPEN state (any election is resolved) */
 int fd_p_ce_process_receiver(struct fd_peer * peer)
 {
 	char * ec = NULL;
 	struct msg * msg = NULL;
 	int isi = 0;
+	int fatal = 0;
 	
 	TRACE_ENTRY("%p", peer);
 	
@@ -730,7 +731,16 @@ int fd_p_ce_process_receiver(struct fd_peer * peer)
 	}
 	
 	/* Check if we have common applications */
-	TODO("DIAMETER_NO_COMMON_APPLICATION ?");
+	if ( fd_g_config->cnf_flags.no_fwd && (! peer->p_hdr.info.runtime.pir_relay) ) {
+		int got_common;
+		CHECK_FCT( fd_app_check_common( &fd_g_config->cnf_apps, &peer->p_hdr.info.runtime.pir_apps, &got_common) );
+		if (!got_common) {
+			TRACE_DEBUG(INFO, "No common application with peer '%s', sending DIAMETER_NO_COMMON_APPLICATION", peer->p_hdr.info.pi_diamid);
+			ec = "DIAMETER_NO_COMMON_APPLICATION";
+			fatal = 1;
+			goto error_abort;
+		}
+	}
 	
 	/* Do we send ISI back ? */
 	if ( ! fd_cnx_getTLS(peer->p_cnxctx) ) {
@@ -807,7 +817,7 @@ cleanup:
 	fd_p_ce_clear_cnx(peer, NULL);
 
 	/* Send the error to the peer */
-	CHECK_FCT( fd_event_send(peer->p_events, FDEVP_CNX_ERROR, 0, NULL) );
+	CHECK_FCT( fd_event_send(peer->p_events, fatal ? FDEVP_TERMINATE : FDEVP_CNX_ERROR, 0, NULL) );
 
 	return 0;
 }

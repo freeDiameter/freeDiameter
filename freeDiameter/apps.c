@@ -99,3 +99,39 @@ int fd_app_check(struct fd_list * list, application_id_t aid, struct fd_app **de
 	
 	return 0;
 }
+
+/* Check if two lists have at least one common application */
+int fd_app_check_common(struct fd_list * list1, struct fd_list * list2, int * common_found)
+{
+	struct fd_list * li1, *li2;
+	
+	TRACE_ENTRY("%p %p %p", list1, list2, common_found);
+	CHECK_PARAMS( list1 && list2 && common_found );
+	
+	/* Both lists are ordered, so advance both pointers at the same time */
+	for (li1 = list1->next, li2 = list2->next;  (li1 != list1) && (li2 != list2); ) {
+		struct fd_app * a1 = (struct fd_app *)li1, *a2 = (struct fd_app *)li2;
+		if (a1->appid < a2->appid) {
+			li1 = li1->next;
+			continue;
+		}
+		if (a1->appid > a2->appid) {
+			li2 = li2->next;
+			continue;
+		}
+		/* They are equal, compare the applications */
+		if ((a1->flags.auth && a2->flags.auth) || (a1->flags.acct && a2->flags.acct)) {
+			/* found! */
+			*common_found = 1;
+			return 0;
+		}
+		
+		/* This application is not common, advance both lists */
+		li1 = li1->next;
+		li2 = li2->next;
+	}
+	
+	/* We did not find a common app */
+	*common_found = 0;
+	return 0;
+}
