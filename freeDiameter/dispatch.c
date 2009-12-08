@@ -132,8 +132,25 @@ static void * dispatch_thread(void * arg)
 		/* Note: if the message is for local delivery, we should test for duplicate
 		  (draft-asveren-dime-dupcons-00). This may conflict with path validation decisions, no clear answer yet */
 		
-		/* At this point, we probably need to understand the message content, so parse the message */
-		CHECK_FCT_DO( fd_msg_parse_dict ( msg, fd_g_config->cnf_dict ), /* Ignore error */);
+		/* At this point, we need to understand the message content, so parse it */
+		{
+			int ret;
+			CHECK_FCT_DO( ret = fd_msg_parse_or_error( &msg ),
+				{
+					/* in case of error, the message is already dump'd */
+					if ((ret == EBADMSG) && (msg != NULL)) {
+						/* msg now contains the answer message to send back */
+						CHECK_FCT_DO( fd_fifo_post(fd_g_outgoing, &msg), goto fatal_error );
+					}
+					if (msg) {	/* another error happen'd */
+						TRACE_DEBUG(INFO, "An unexpected error occurred (%s), discarding a message:", strerror(ret));
+						fd_msg_dump_walk(INFO, msg);
+						CHECK_FCT_DO( fd_msg_free(msg), /* continue */);
+					}
+					/* Go to the next message */
+					continue;
+				} );
+		}
 		
 		/* First, if the original request was registered with a callback and we receive the answer, call it. */
 		if ( ! is_req ) {
