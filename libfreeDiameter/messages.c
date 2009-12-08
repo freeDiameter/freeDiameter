@@ -286,6 +286,7 @@ int fd_msg_new_answer_from_req ( struct dictionary * dict, struct msg ** msg, in
 {
 	struct dict_object * model = NULL;
 	struct msg *qry, *ans;
+	struct session * sess = NULL;
 	
 	TRACE_ENTRY("%p %x", msg, flags);
 	
@@ -293,6 +294,11 @@ int fd_msg_new_answer_from_req ( struct dictionary * dict, struct msg ** msg, in
 	CHECK_PARAMS(  msg );
 	qry = *msg;
 	CHECK_PARAMS( CHECK_MSG(qry) && (qry->msg_public.msg_flags & CMD_FLAG_REQUEST) );
+	
+	if (! (flags & MSGFL_ANSW_NOSID)) {
+		/* Get the session of the message */
+		CHECK_FCT_DO( fd_msg_sess_get(dict, qry, &sess, NULL), /* ignore an error */ );
+	}
 	
 	/* Find the model for the answer */
 	if (flags & MSGFL_ANSW_ERROR) {
@@ -315,8 +321,23 @@ int fd_msg_new_answer_from_req ( struct dictionary * dict, struct msg ** msg, in
 	ans->msg_public.msg_eteid = qry->msg_public.msg_eteid;
 	ans->msg_public.msg_hbhid = qry->msg_public.msg_hbhid;
 	
+	/* Add the Session-Id AVP if session is known */
+	if (sess && dict) {
+		struct dict_object * sess_id_avp;
+		char * sid;
+		struct avp * avp;
+		union avp_value val;
+		
+		CHECK_FCT( fd_dict_search( dict, DICT_AVP, AVP_BY_NAME, "Session-Id", &sess_id_avp, ENOENT) );
+		CHECK_FCT( fd_sess_getsid ( sess, &sid ) );
+		CHECK_FCT( fd_msg_avp_new ( sess_id_avp, 0, &avp ) );
+		val.os.data = sid;
+		val.os.len  = strlen(sid);
+		CHECK_FCT( fd_msg_avp_setvalue( avp, &val ) );
+		CHECK_FCT( fd_msg_avp_add( ans, MSG_BRW_FIRST_CHILD, avp ) );
+	}
+	
 	/* associate with query */
-	 /* may do  CHECK_FCT(  msg_answ_associate( *msg, (msg_t *)qry )  ); but this is quicker */
 	ans->msg_query = qry;
 	
 	/* Done */

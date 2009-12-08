@@ -1722,7 +1722,8 @@ enum msg_brw_dir {
 /* Some flags used in the functions bellow */
 #define MSGFL_ALLOC_ETEID	0x01	/* When creating a message, a new end-to-end ID is allocated and set in the message */
 #define MSGFL_ANSW_ERROR	0x02	/* When creating an answer message, set the 'E' bit and use the generic error ABNF instead of command-specific ABNF */
-#define MSGFL_MAX		MSGFL_ANSW_ERROR	/* The biggest valid flag value */
+#define MSGFL_ANSW_NOSID	0x04	/* When creating an answer message, do not add the Session-Id even if present in request */
+#define MSGFL_MAX		MSGFL_ANSW_NOSID	/* The biggest valid flag value */
 
 /**************************************************/
 /*   Message creation, manipulation, disposal     */

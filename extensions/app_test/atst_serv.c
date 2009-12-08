@@ -67,17 +67,6 @@ static int atst_tr_cb( struct msg ** msg, struct avp * avp, struct session * ses
 	CHECK_FCT( fd_msg_new_answer_from_req ( fd_g_config->cnf_dict, msg, 0 ) );
 	ans = *msg;
 	
-	/* Set the Session-Id AVP */
-	{
-		char * sid;
-		CHECK_FCT( fd_sess_getsid ( sess, &sid ) );
-		CHECK_FCT( fd_msg_avp_new ( atst_sess_id, 0, &avp ) );
-		val.os.data = sid;
-		val.os.len  = strlen(sid);
-		CHECK_FCT( fd_msg_avp_setvalue( avp, &val ) );
-		CHECK_FCT( fd_msg_avp_add( ans, MSG_BRW_FIRST_CHILD, avp ) );
-		
-	}
 	/* Set the Test-AVP AVP */
 	{
 		struct avp * src = NULL;

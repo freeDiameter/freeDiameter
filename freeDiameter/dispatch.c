@@ -191,7 +191,7 @@ static void * dispatch_thread(void * arg)
 				}
 				
 				/* Create an answer with the error code and message */
-				CHECK_FCT_DO( fd_msg_new_answer_from_req ( fd_g_config->cnf_dict, &msg, MSGFL_ANSW_ERROR ), goto fatal_error );
+				CHECK_FCT_DO( fd_msg_new_answer_from_req ( fd_g_config->cnf_dict, &msg, 0 ), goto fatal_error );
 				CHECK_FCT_DO( fd_msg_rescode_set(msg, (char *)ec, (char *)em, NULL, 1 ), goto fatal_error );
 				
 			case DISP_ACT_SEND:

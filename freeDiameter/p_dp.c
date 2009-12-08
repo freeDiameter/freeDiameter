@@ -97,8 +97,7 @@ int fd_p_dp_handle(struct msg ** msg, int req, struct fd_peer * peer)
 		
 		/* Now reply with a DPA */
 		CHECK_FCT( fd_msg_new_answer_from_req ( fd_g_config->cnf_dict, msg, 0 ) );
-		CHECK_FCT( fd_msg_rescode_set( *msg, "DIAMETER_SUCCESS", NULL, NULL, 0 ) );
-		CHECK_FCT( fd_msg_add_origin ( *msg, 0 ) );
+		CHECK_FCT( fd_msg_rescode_set( *msg, "DIAMETER_SUCCESS", NULL, NULL, 1 ) );
 		
 		/* Move to CLOSING state to failover outgoing messages (and avoid failing the DPA...) */
 		CHECK_FCT( fd_psm_change_state(peer, STATE_CLOSING) );
