@@ -85,7 +85,7 @@ static int atst_entry(char * conffile)
 	
 	/* Parse configuration file */
 	if (conffile != NULL) {
-		CHECK( atst_conf_handle(conffile) );
+		CHECK_FCT( atst_conf_handle(conffile) );
 	}
 	
 	TRACE_DEBUG(INFO, "Extension APP/Test initialized with configuration: '%s'", conffile);
