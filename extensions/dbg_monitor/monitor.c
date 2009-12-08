@@ -35,11 +35,15 @@
 
 /* Monitoring extension:
  - periodically display queues and peers information
- - upon SIGUSR1, display additional debug information
+ - upon SIGUSR2, display additional debug information
  */
 
 #include <freeDiameter/extension.h>
 #include <signal.h>
+
+#ifndef MONITOR_SIGNAL
+#define MONITOR_SIGNAL	SIGUSR2
+#endif /* MONITOR_SIGNAL */
 
 static int 	 monitor_main(char * conffile);
 
@@ -63,9 +67,9 @@ static void * mn_thr(void * arg)
 	/* Catch signal SIGUSR1 */
 	memset(&act, 0, sizeof(act));
 	act.sa_handler = got_sig;
-	CHECK_SYS_DO( sigaction(SIGUSR1, &act, NULL), /* conitnue */ );
+	CHECK_SYS_DO( sigaction(MONITOR_SIGNAL, &act, NULL), /* conitnue */ );
 	sigemptyset(&sig);
-	sigaddset(&sig, SIGUSR1);
+	sigaddset(&sig, MONITOR_SIGNAL);
 	CHECK_POSIX_DO(  pthread_sigmask(SIG_UNBLOCK, &sig, NULL), /* conitnue */  );
 	
 	/* Loop */

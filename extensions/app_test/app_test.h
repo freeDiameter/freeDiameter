@@ -42,6 +42,11 @@
  
 #include <freeDiameter/extension.h>
 
+#ifndef APP_TEST_DEFAULT_SIGNAL
+#define APP_TEST_DEFAULT_SIGNAL	SIGUSR1
+#endif /* APP_TEST_DEFAULT_SIGNAL */
+
+
 /* Mode for the extension */
 #define MODE_SERV	0x1
 #define	MODE_CLI	0x2
@@ -55,7 +60,7 @@ struct atst_conf {
 	int		mode;		/* default MODE_SERV | MODE_CLI */
 	char 	*	dest_realm;	/* default local realm */
 	char 	*	dest_host;	/* default NULL */
-	int 		signal;		/* default SIGUSR1 */
+	int 		signal;		/* default APP_TEST_DEFAULT_SIGNAL */
 };
 extern struct atst_conf * atst_conf;
 

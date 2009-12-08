@@ -38,6 +38,7 @@
  */
 
 #include "app_test.h"
+#include <signal.h>
 
 /* Initialize the configuration */
 struct atst_conf * atst_conf = NULL;
@@ -56,7 +57,7 @@ static int atst_conf_init(void)
 	atst_conf->mode       = MODE_SERV | MODE_CLI;
 	atst_conf->dest_realm = strdup(fd_g_config->cnf_diamrlm);
 	atst_conf->dest_host  = NULL;
-	atst_conf->signal     = 10; /* SIGUSR1 */
+	atst_conf->signal     = APP_TEST_DEFAULT_SIGNAL;
 	
 	return 0;
 }
