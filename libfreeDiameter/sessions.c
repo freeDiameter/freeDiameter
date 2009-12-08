@@ -679,7 +679,7 @@ int fd_sess_state_retrieve_internal ( struct session_handler * handler, struct s
 int fd_sess_fromsid_msg ( unsigned char * sid, size_t len, struct session ** session, int * new)
 {
 	TRACE_ENTRY("%p %zd %p %p", sid, len, session, new);
-	CHECK_PARAMS( sid && len && session && VALIDATE_SI(*session) );
+	CHECK_PARAMS( sid && len && session );
 	
 	/* Get the session object */
 	CHECK_FCT( fd_sess_fromsid ( (char *) sid, len, session, new) );
