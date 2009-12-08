@@ -59,6 +59,7 @@ static int do_send(struct msg ** msg, struct cnxctx * cnx, uint32_t * hbh, struc
 	
 	/* Log the message */
 	if (TRACE_BOOL(FULL)) {
+		CHECK_FCT_DO(  fd_msg_update_length(*msg), /* continue */  );
 		TRACE_DEBUG(FULL, "Sending the following message on connection '%s':", fd_cnx_getid(cnx));
 		fd_msg_dump_walk(FULL, *msg);
 	}
