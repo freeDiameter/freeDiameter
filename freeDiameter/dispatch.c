@@ -121,8 +121,8 @@ static void * dispatch_thread(void * arg)
 		CHECK_FCT_DO( fd_fifo_get ( fd_g_local, &msg ), goto fatal_error );
 		
 		if (TRACE_BOOL(FULL)) {
-			TRACE_DEBUG(FULL, "Picked next message:");
-			fd_msg_dump_one(FULL, msg);
+			TRACE_DEBUG(FULL, "Picked next message");
+			fd_msg_dump_one(ANNOYING, msg);
 		}
 		
 		/* Read the message header */
