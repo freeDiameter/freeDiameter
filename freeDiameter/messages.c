@@ -299,9 +299,9 @@ int fd_msg_parse_or_error( struct msg ** msg )
 	fd_log_debug("The following message does not comply to the dictionary and/or rules (%s):\n", pei.pei_errcode);
 	fd_msg_dump_walk(NONE, m);
 	
-	/* Now create an answer error if the message is a query */
 	CHECK_FCT( fd_msg_hdr(m, &hdr) );
 	
+	/* Now create an answer error if the message is a query */
 	if (hdr->msg_flags & CMD_FLAG_REQUEST) {
 		
 		/* Create the error message */
@@ -311,6 +311,41 @@ int fd_msg_parse_or_error( struct msg ** msg )
 		CHECK_FCT( fd_msg_rescode_set(*msg, pei.pei_errcode, pei.pei_message, pei.pei_avp, 1 ) );
 		
 	} else {
+		do { /* Rescue error messages */
+			struct avp * avp;
+			union avp_value * rc = NULL;
+			
+			/* Search the Result-Code AVP */
+			CHECK_FCT_DO(  fd_msg_browse(*msg, MSG_BRW_FIRST_CHILD, &avp, NULL), break  );
+			while (avp) {
+				struct avp_hdr * ahdr;
+				CHECK_FCT_DO(  fd_msg_avp_hdr( avp, &ahdr ), break  );
+				
+				if ((ahdr->avp_code == AC_RESULT_CODE) && (! (ahdr->avp_flags & AVP_FLAG_VENDOR)) ) {
+					/* Parse this AVP */
+					ASSERT( ahdr->avp_value );
+					rc = ahdr->avp_value;
+					break;
+				}
+				
+				/* Go to next AVP */
+				CHECK_FCT_DO(  fd_msg_browse(avp, MSG_BRW_NEXT, &avp, NULL), break  );
+			}
+			
+			if (rc) {
+				switch (rc->u32 / 1000) {
+					case 1:	/* 1xxx : Informational */
+					case 2:	/* 2xxx : Sucess */
+						/* In these cases, we want the message to validate the ABNF, so we will discard the bad message */
+						break;
+						
+					default: /* Other errors */
+						/* We let the application decide what to do with the message, we rescue it */
+						return 0;
+				}
+			}
+		} while (0);
+		
 		/* Just discard */
 		CHECK_FCT( fd_msg_free( m ) );
 		*msg = NULL;
