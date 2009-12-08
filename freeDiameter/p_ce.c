@@ -184,7 +184,7 @@ static int add_CE_info(struct msg *msg, struct cnxctx * cnx, int isi_tls, int is
 					avp = avp2;
 					CHECK_FCT( fd_msg_avp_new ( dictobj_vid, 0, &avp2 ) );
 					val.u32 = a->vndid;
-					CHECK_FCT( fd_msg_avp_setvalue( avp, &val ) );
+					CHECK_FCT( fd_msg_avp_setvalue( avp2, &val ) );
 					CHECK_FCT( fd_msg_avp_add( avp, MSG_BRW_LAST_CHILD, avp2 ) );
 				}
 				CHECK_FCT( fd_msg_avp_add( msg, MSG_BRW_LAST_CHILD, avp ) );
@@ -200,7 +200,7 @@ static int add_CE_info(struct msg *msg, struct cnxctx * cnx, int isi_tls, int is
 					avp = avp2;
 					CHECK_FCT( fd_msg_avp_new ( dictobj_vid, 0, &avp2 ) );
 					val.u32 = a->vndid;
-					CHECK_FCT( fd_msg_avp_setvalue( avp, &val ) );
+					CHECK_FCT( fd_msg_avp_setvalue( avp2, &val ) );
 					CHECK_FCT( fd_msg_avp_add( avp, MSG_BRW_LAST_CHILD, avp2 ) );
 				}
 				CHECK_FCT( fd_msg_avp_add( msg, MSG_BRW_LAST_CHILD, avp ) );
