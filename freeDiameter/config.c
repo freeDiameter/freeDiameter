@@ -106,7 +106,7 @@ void fd_conf_dump()
 		while (li != &fd_g_config->cnf_apps) {
 			struct fd_app * app = (struct fd_app *)li;
 			if (li != fd_g_config->cnf_apps.next) fd_log_debug("                             ");
-			fd_log_debug("App: %u\t%s%s%s\tVnd: %u\n", 
+			fd_log_debug("App: %u\t%s%s\tVnd: %u\n", 
 					app->appid,
 					app->flags.auth ? "Au" : "--",
 					app->flags.acct ? "Ac" : "--",
