@@ -1383,6 +1383,14 @@ int fd_dict_new ( struct dictionary * dict, enum dict_object_type type, void * d
 		CHECK_PARAMS( ((struct dict_cmd_data *)data)->cmd_flag_mask & CMD_FLAG_REQUEST   );
 	}
 	
+	/* We have to check that the new values are not equal to the sentinels */
+	if (type == DICT_VENDOR) {
+		CHECK_PARAMS( ((struct dict_vendor_data *)data)->vendor_id != 0   );
+	}
+	if (type == DICT_APPLICATION) {
+		CHECK_PARAMS( ((struct dict_application_data *)data)->application_id != 0   );
+	}
+	
 	/* Parameters are valid, create the new object */
 	CHECK_MALLOC(  new = malloc(sizeof(struct dict_object))  );
 	
