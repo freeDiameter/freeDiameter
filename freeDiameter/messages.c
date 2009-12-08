@@ -267,7 +267,9 @@ int fd_msg_send ( struct msg ** pmsg, void (*anscb)(void *, struct msg **), void
 	CHECK_PARAMS( pmsg );
 	
 	/* Save the callback in the message */
-	CHECK_FCT(  fd_msg_anscb_associate( *pmsg, anscb, data )  );
+	if (anscb) {
+		CHECK_FCT(  fd_msg_anscb_associate( *pmsg, anscb, data )  );
+	}
 	
 	/* Post the message in the outgoing queue */
 	CHECK_FCT( fd_fifo_post(fd_g_outgoing, pmsg) );
