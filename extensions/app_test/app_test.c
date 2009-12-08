@@ -50,7 +50,7 @@ static int atst_conf_init(void)
 	memset(atst_conf, 0, sizeof(struct atst_conf));
 	
 	/* Set the default values */
-	atst_conf->vendor_id  = 0;		/* IETF */
+	atst_conf->vendor_id  = 999999;		/* Dummy value */
 	atst_conf->appli_id   = 0xffffff;	/* dummy value */
 	atst_conf->cmd_id     = 0xfffffe;	/* Experimental */
 	atst_conf->avp_id     = 0xffffff;	/* dummy value */
