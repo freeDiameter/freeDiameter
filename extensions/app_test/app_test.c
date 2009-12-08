@@ -107,6 +107,9 @@ static int atst_entry(char * conffile)
 		CHECK_FCT( atst_cli_init() );
 	}
 	
+	/* Advertise the support for the test application in the peer */
+	CHECK_FCT( fd_disp_app_support ( atst_appli, atst_vendor, 1, 0 ) );
+	
 	return 0;
 }
 
