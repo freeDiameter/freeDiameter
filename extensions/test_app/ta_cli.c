@@ -39,21 +39,21 @@
  * This is just for the purpose of checking everything went OK.
  */
 
-#include "app_test.h"
+#include "test_app.h"
 
 #include <stdio.h>
 
-static struct session_handler * atst_cli_reg = NULL;
+static struct session_handler * ta_cli_reg = NULL;
 
-struct atst_mess_info {
+struct ta_mess_info {
 	int32_t		randval;	/* a random value to store in Test-AVP */
 	struct timespec ts;		/* Time of sending the message */
 } ;
 
 /* Cb called when an answer is received */
-static void atst_cb_ans(void * data, struct msg ** msg)
+static void ta_cb_ans(void * data, struct msg ** msg)
 {
-	struct atst_mess_info * mi = NULL;
+	struct ta_mess_info * mi = NULL;
 	struct timespec ts;
 	struct session * sess;
 	struct avp * avp;
@@ -67,7 +67,7 @@ static void atst_cb_ans(void * data, struct msg ** msg)
 		CHECK_FCT_DO( fd_msg_sess_get(fd_g_config->cnf_dict, *msg, &sess, &new), return );
 		ASSERT( new == 0 );
 		
-		CHECK_FCT_DO( fd_sess_state_retrieve( atst_cli_reg, sess, &mi ), return );
+		CHECK_FCT_DO( fd_sess_state_retrieve( ta_cli_reg, sess, &mi ), return );
 		TRACE_DEBUG( INFO, "%p %p", mi, data);
 		ASSERT( (void *)mi == data );
 	}
@@ -76,7 +76,7 @@ static void atst_cb_ans(void * data, struct msg ** msg)
 	fprintf(stderr, "RECV ");
 	
 	/* Value of Test-AVP */
-	CHECK_FCT_DO( fd_msg_search_avp ( *msg, atst_avp, &avp), return );
+	CHECK_FCT_DO( fd_msg_search_avp ( *msg, ta_avp, &avp), return );
 	if (avp) {
 		CHECK_FCT_DO( fd_msg_avp_hdr( avp, &hdr ), return );
 		fprintf(stderr, "%x (%s) ", hdr->avp_value->i32, (hdr->avp_value->i32 == mi->randval) ? "Ok" : "PROBLEM");
@@ -85,7 +85,7 @@ static void atst_cb_ans(void * data, struct msg ** msg)
 	}
 	
 	/* Value of Result Code */
-	CHECK_FCT_DO( fd_msg_search_avp ( *msg, atst_res_code, &avp), return );
+	CHECK_FCT_DO( fd_msg_search_avp ( *msg, ta_res_code, &avp), return );
 	if (avp) {
 		CHECK_FCT_DO( fd_msg_avp_hdr( avp, &hdr ), return );
 		fprintf(stderr, "Status: %d ", hdr->avp_value->i32);
@@ -94,7 +94,7 @@ static void atst_cb_ans(void * data, struct msg ** msg)
 	}
 	
 	/* Value of Origin-Host */
-	CHECK_FCT_DO( fd_msg_search_avp ( *msg, atst_origin_host, &avp), return );
+	CHECK_FCT_DO( fd_msg_search_avp ( *msg, ta_origin_host, &avp), return );
 	if (avp) {
 		CHECK_FCT_DO( fd_msg_avp_hdr( avp, &hdr ), return );
 		fprintf(stderr, "From '%.*s' ", hdr->avp_value->os.len, hdr->avp_value->os.data);
@@ -103,7 +103,7 @@ static void atst_cb_ans(void * data, struct msg ** msg)
 	}
 	
 	/* Value of Origin-Realm */
-	CHECK_FCT_DO( fd_msg_search_avp ( *msg, atst_origin_realm, &avp), return );
+	CHECK_FCT_DO( fd_msg_search_avp ( *msg, ta_origin_realm, &avp), return );
 	if (avp) {
 		CHECK_FCT_DO( fd_msg_avp_hdr( avp, &hdr ), return );
 		fprintf(stderr, "('%.*s') ", hdr->avp_value->os.len, hdr->avp_value->os.data);
@@ -135,24 +135,24 @@ static void atst_cb_ans(void * data, struct msg ** msg)
 }
 
 /* Create a test message */
-static void atst_cli_test_message(void)
+static void ta_cli_test_message(void)
 {
 	struct msg * req = NULL;
 	struct avp * avp;
 	union avp_value val;
-	struct atst_mess_info * mi = NULL, *svg;
+	struct ta_mess_info * mi = NULL, *svg;
 	struct session *sess = NULL;
 	
 	TRACE_DEBUG(FULL, "Creating a new message for sending.");
 	
 	/* Create the request from template */
-	CHECK_FCT_DO( fd_msg_new( atst_cmd_r, MSGFL_ALLOC_ETEID, &req ), goto out );
+	CHECK_FCT_DO( fd_msg_new( ta_cmd_r, MSGFL_ALLOC_ETEID, &req ), goto out );
 	
 	/* Create a new session */
 	CHECK_FCT_DO( fd_sess_new( &sess, fd_g_config->cnf_diamid, "app_test", 8 ), goto out );
 	
 	/* Create the random value to store with the session */
-	mi = malloc(sizeof(struct atst_mess_info));
+	mi = malloc(sizeof(struct ta_mess_info));
 	if (mi == NULL) {
 		fd_log_debug("malloc failed: %s", strerror(errno));
 		goto out;
@@ -166,7 +166,7 @@ static void atst_cli_test_message(void)
 	{
 		char * sid;
 		CHECK_FCT_DO( fd_sess_getsid ( sess, &sid ), goto out );
-		CHECK_FCT_DO( fd_msg_avp_new ( atst_sess_id, 0, &avp ), goto out );
+		CHECK_FCT_DO( fd_msg_avp_new ( ta_sess_id, 0, &avp ), goto out );
 		val.os.data = sid;
 		val.os.len  = strlen(sid);
 		CHECK_FCT_DO( fd_msg_avp_setvalue( avp, &val ), goto out );
@@ -176,18 +176,18 @@ static void atst_cli_test_message(void)
 	
 	/* Set the Destination-Realm AVP */
 	{
-		CHECK_FCT_DO( fd_msg_avp_new ( atst_dest_realm, 0, &avp ), goto out  );
-		val.os.data = (unsigned char *)(atst_conf->dest_realm);
-		val.os.len  = strlen(atst_conf->dest_realm);
+		CHECK_FCT_DO( fd_msg_avp_new ( ta_dest_realm, 0, &avp ), goto out  );
+		val.os.data = (unsigned char *)(ta_conf->dest_realm);
+		val.os.len  = strlen(ta_conf->dest_realm);
 		CHECK_FCT_DO( fd_msg_avp_setvalue( avp, &val ), goto out  );
 		CHECK_FCT_DO( fd_msg_avp_add( req, MSG_BRW_LAST_CHILD, avp ), goto out  );
 	}
 	
 	/* Set the Destination-Host AVP if needed*/
-	if (atst_conf->dest_host) {
-		CHECK_FCT_DO( fd_msg_avp_new ( atst_dest_host, 0, &avp ), goto out  );
-		val.os.data = (unsigned char *)(atst_conf->dest_host);
-		val.os.len  = strlen(atst_conf->dest_host);
+	if (ta_conf->dest_host) {
+		CHECK_FCT_DO( fd_msg_avp_new ( ta_dest_host, 0, &avp ), goto out  );
+		val.os.data = (unsigned char *)(ta_conf->dest_host);
+		val.os.len  = strlen(ta_conf->dest_host);
 		CHECK_FCT_DO( fd_msg_avp_setvalue( avp, &val ), goto out  );
 		CHECK_FCT_DO( fd_msg_avp_add( req, MSG_BRW_LAST_CHILD, avp ), goto out  );
 	}
@@ -198,7 +198,7 @@ static void atst_cli_test_message(void)
 	
 	/* Set the Test-AVP AVP */
 	{
-		CHECK_FCT_DO( fd_msg_avp_new ( atst_avp, 0, &avp ), goto out  );
+		CHECK_FCT_DO( fd_msg_avp_new ( ta_avp, 0, &avp ), goto out  );
 		val.i32 = mi->randval;
 		CHECK_FCT_DO( fd_msg_avp_setvalue( avp, &val ), goto out  );
 		CHECK_FCT_DO( fd_msg_avp_add( req, MSG_BRW_LAST_CHILD, avp ), goto out  );
@@ -210,34 +210,34 @@ static void atst_cli_test_message(void)
 	svg = mi;
 	
 	/* Store this value in the session */
-	CHECK_FCT_DO( fd_sess_state_store ( atst_cli_reg, sess, &mi ), goto out ); 
+	CHECK_FCT_DO( fd_sess_state_store ( ta_cli_reg, sess, &mi ), goto out ); 
 	
 	/* Log sending the message */
-	fprintf(stderr, "SEND %x to '%s' (%s)\n", svg->randval, atst_conf->dest_realm, atst_conf->dest_host?:"-" );
+	fprintf(stderr, "SEND %x to '%s' (%s)\n", svg->randval, ta_conf->dest_realm, ta_conf->dest_host?:"-" );
 	fflush(stderr);
 	
 	/* Send the request */
-	CHECK_FCT_DO( fd_msg_send( &req, atst_cb_ans, svg ), goto out );
+	CHECK_FCT_DO( fd_msg_send( &req, ta_cb_ans, svg ), goto out );
 
 out:
 	TRACE_DEBUG(FULL, "Client function terminated");	
 	return;
 }
 
-int atst_cli_init(void)
+int ta_cli_init(void)
 {
-	CHECK_FCT( fd_sess_handler_create(&atst_cli_reg, free) );
+	CHECK_FCT( fd_sess_handler_create(&ta_cli_reg, free) );
 	
-	CHECK_FCT( atst_sig_init(atst_cli_test_message) );
+	CHECK_FCT( ta_sig_init(ta_cli_test_message) );
 	
 	return 0;
 }
 
-void atst_cli_fini(void)
+void ta_cli_fini(void)
 {
-	(void) fd_sess_handler_destroy(&atst_cli_reg);
+	(void) fd_sess_handler_destroy(&ta_cli_reg);
 	
-	atst_sig_fini();
+	ta_sig_fini();
 	
 	return;
 };

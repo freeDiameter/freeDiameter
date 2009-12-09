@@ -43,11 +43,11 @@ static struct fd_rt_fwd_hdl * fwd_hdl = NULL;
 static struct fd_rt_out_hdl * out_hdl = NULL;
 
 /* Proxying debug callback */
-static int rtdebug_fwd_cb(void * cbdata, struct msg ** msg)
+static int dbgrt_fwd_cb(void * cbdata, struct msg ** msg)
 {
 	TRACE_ENTRY("%p %p", cbdata, msg);
 	
-	fd_log_debug("[rt_debug] FWD routing message: %p\n", msg ? *msg : NULL);
+	fd_log_debug("[dbg_rt] FWD routing message: %p\n", msg ? *msg : NULL);
 	if (msg)
 		fd_msg_dump_walk(INFO, *msg);
 	
@@ -55,31 +55,31 @@ static int rtdebug_fwd_cb(void * cbdata, struct msg ** msg)
 }
 
 /* Path selection debug callback */
-static int rtdebug_out_cb(void * cbdata, struct msg * msg, struct fd_list * candidates)
+static int dbgrt_out_cb(void * cbdata, struct msg * msg, struct fd_list * candidates)
 {
 	struct fd_list * li;
 	
 	TRACE_ENTRY("%p %p %p", cbdata, msg, candidates);
 	
-	fd_log_debug("[rt_debug] OUT routing message: %p\n", msg);
+	fd_log_debug("[dbg_rt] OUT routing message: %p\n", msg);
 	fd_msg_dump_walk(INFO, msg);
-	fd_log_debug("[rt_debug] Current list of candidates (%p)\n", msg);
+	fd_log_debug("[dbg_rt] Current list of candidates (%p)\n", msg);
 	
 	for (li = candidates->next; li != candidates; li = li->next) {
 		struct rtd_candidate *c = (struct rtd_candidate *) li;
-		fd_log_debug("[rt_debug]   - %d\t%s\n", c->score, c->diamid);
+		fd_log_debug("[dbg_rt]   - %d\t%s\n", c->score, c->diamid);
 	}
 	
 	return 0;
 }
 
 /* Register the callbacks to the daemon */
-static int rtdebug_main(char * conffile)
+static int dbgrt_main(char * conffile)
 {
 	TRACE_ENTRY("%p", conffile);
 	
-	CHECK_FCT( fd_rt_fwd_register ( rtdebug_fwd_cb, NULL, RT_FWD_ALL, &fwd_hdl ) );
-	CHECK_FCT( fd_rt_out_register ( rtdebug_out_cb, NULL, -1 /* so that it is called late */, &out_hdl ) );
+	CHECK_FCT( fd_rt_fwd_register ( dbgrt_fwd_cb, NULL, RT_FWD_ALL, &fwd_hdl ) );
+	CHECK_FCT( fd_rt_out_register ( dbgrt_out_cb, NULL, -1 /* so that it is called late */, &out_hdl ) );
 
 	return 0;
 }
@@ -97,4 +97,4 @@ void fd_ext_fini(void)
 }
 
 /* Define the entry point function */
-EXTENSION_ENTRY("rt_debug", rtdebug_main);
+EXTENSION_ENTRY("dbg_rt", dbgrt_main);

@@ -40,9 +40,9 @@
  */
 
 %{
-#include "app_test.h"
+#include "test_app.h"
 /* Include yacc tokens definitions */
-#include "atst_conf.tab.h"
+#include "ta_conf.tab.h"
 
 /* Update the column information */
 #define YY_USER_ACTION { 						\

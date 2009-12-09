@@ -33,44 +33,54 @@
 * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.								 *
 *********************************************************************************************************/
 
-/* 
- * Test-only extension for routing: gives a random positive score to any candidate peer.
- */
-#include <freeDiameter/extension.h>
-#include <stdlib.h>
+/* Install the signal handler */
 
-/* The callback */
-static int rtany_out_cb(void * cbdata, struct msg * msg, struct fd_list * candidates)
+#include "test_app.h"
+
+static pthread_t th = (pthread_t) NULL;
+
+static void * ta_sig_th(void * arg)
 {
-	struct fd_list * li;
+	int sig;
+	int ret;
+	sigset_t ss;
+	void (*cb)(void) = arg;
 	
-	TRACE_ENTRY("%p %p %p", cbdata, msg, candidates);
+	fd_log_threadname ( "app_test signal handler" );
 	
-	for (li = candidates->next; li != candidates; li = li->next) {
-		struct rtd_candidate *c = (struct rtd_candidate *) li;
-		c->score = (int)lrand48();
+	sigemptyset(&ss);
+	sigaddset(&ss, ta_conf->signal);
+	
+	while (1) {
+		ret = sigwait(&ss, &sig);
+		if (ret != 0) {
+			fd_log_debug("sigwait failed in the app_test extension: %s", strerror(errno));
+			break;
+		}
+		
+		TRACE_DEBUG(FULL, "Signal caught, calling function...");
+		
+		/* Call the cb function */
+		(*cb)();
+		
 	}
 	
-	return 0;
+	return NULL;
 }
 
-static struct fd_rt_out_hdl * out_hdl = NULL;
-
-/* Register the callbacks to the daemon */
-static int rtany_main(char * conffile)
+int ta_sig_init(void (*cb)(void))
 {
-	TRACE_ENTRY("%p", conffile);
-	CHECK_FCT( fd_rt_out_register ( rtany_out_cb, NULL, 0 /* we call it late so that it replaces previous scores */, &out_hdl ) );
-	return 0;
+	return pthread_create( &th, NULL, ta_sig_th, (void *)cb );
 }
 
-/* Cleanup the callbacks */
-void fd_ext_fini(void)
+void ta_sig_fini(void)
 {
-	TRACE_ENTRY();
-	CHECK_FCT_DO( fd_rt_out_unregister ( out_hdl, NULL ), /* continue */ );
-	return ;
+	void * th_ret = NULL;
+	
+	if (th != (pthread_t) NULL) {
+		(void) pthread_cancel(th);
+		(void) pthread_join(th, &th_ret);
+	}
+	
+	return;
 }
-
-/* Define the entry point function */
-EXTENSION_ENTRY("rt_any", rtany_main);

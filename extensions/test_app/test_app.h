@@ -42,9 +42,9 @@
  
 #include <freeDiameter/extension.h>
 
-#ifndef APP_TEST_DEFAULT_SIGNAL
-#define APP_TEST_DEFAULT_SIGNAL	SIGUSR1
-#endif /* APP_TEST_DEFAULT_SIGNAL */
+#ifndef TEST_APP_DEFAULT_SIGNAL
+#define TEST_APP_DEFAULT_SIGNAL	SIGUSR1
+#endif /* TEST_APP_DEFAULT_SIGNAL */
 
 
 /* Mode for the extension */
@@ -52,7 +52,7 @@
 #define	MODE_CLI	0x2
 
 /* The module configuration */
-struct atst_conf {
+struct ta_conf {
 	uint32_t	vendor_id;	/* default 999999 */
 	uint32_t	appli_id;	/* default 123456 */
 	uint32_t	cmd_id;		/* default 234567 */
@@ -60,39 +60,39 @@ struct atst_conf {
 	int		mode;		/* default MODE_SERV | MODE_CLI */
 	char 	*	dest_realm;	/* default local realm */
 	char 	*	dest_host;	/* default NULL */
-	int 		signal;		/* default APP_TEST_DEFAULT_SIGNAL */
+	int 		signal;		/* default TEST_APP_DEFAULT_SIGNAL */
 };
-extern struct atst_conf * atst_conf;
+extern struct ta_conf * ta_conf;
 
 /* Parse the configuration file */
-int atst_conf_handle(char * conffile);
+int ta_conf_handle(char * conffile);
 
 /* Start or stop the signal handler */
-int atst_sig_init(void (*cb)(void));
-void atst_sig_fini(void);
+int ta_sig_init(void (*cb)(void));
+void ta_sig_fini(void);
 
 /* Handle incoming messages (server) */
-int atst_serv_init(void);
-void atst_serv_fini(void);
+int ta_serv_init(void);
+void ta_serv_fini(void);
 
 /* Create outgoing message (client) */
-int atst_cli_init(void);
-void atst_cli_fini(void);
+int ta_cli_init(void);
+void ta_cli_fini(void);
 
 /* Initialize dictionary definitions */
-int atst_dict_init(void);
+int ta_dict_init(void);
 
 
 /* Some global variables for dictionary */
-extern struct dict_object * atst_vendor;
-extern struct dict_object * atst_appli;
-extern struct dict_object * atst_cmd_r;
-extern struct dict_object * atst_cmd_a;
-extern struct dict_object * atst_avp;
+extern struct dict_object * ta_vendor;
+extern struct dict_object * ta_appli;
+extern struct dict_object * ta_cmd_r;
+extern struct dict_object * ta_cmd_a;
+extern struct dict_object * ta_avp;
 
-extern struct dict_object * atst_sess_id;
-extern struct dict_object * atst_origin_host;
-extern struct dict_object * atst_origin_realm;
-extern struct dict_object * atst_dest_host;
-extern struct dict_object * atst_dest_realm;
-extern struct dict_object * atst_res_code;
+extern struct dict_object * ta_sess_id;
+extern struct dict_object * ta_origin_host;
+extern struct dict_object * ta_origin_realm;
+extern struct dict_object * ta_dest_host;
+extern struct dict_object * ta_dest_realm;
+extern struct dict_object * ta_res_code;

@@ -35,73 +35,73 @@
 
 /* Install the dictionary objects */
 
-#include "app_test.h"
+#include "test_app.h"
 
-struct dict_object * atst_vendor = NULL;
-struct dict_object * atst_appli = NULL;
-struct dict_object * atst_cmd_r = NULL;
-struct dict_object * atst_cmd_a = NULL;
-struct dict_object * atst_avp = NULL;
+struct dict_object * ta_vendor = NULL;
+struct dict_object * ta_appli = NULL;
+struct dict_object * ta_cmd_r = NULL;
+struct dict_object * ta_cmd_a = NULL;
+struct dict_object * ta_avp = NULL;
 
-struct dict_object * atst_sess_id = NULL;
-struct dict_object * atst_origin_host = NULL;
-struct dict_object * atst_origin_realm = NULL;
-struct dict_object * atst_dest_host = NULL;
-struct dict_object * atst_dest_realm = NULL;
-struct dict_object * atst_res_code = NULL;
+struct dict_object * ta_sess_id = NULL;
+struct dict_object * ta_origin_host = NULL;
+struct dict_object * ta_origin_realm = NULL;
+struct dict_object * ta_dest_host = NULL;
+struct dict_object * ta_dest_realm = NULL;
+struct dict_object * ta_res_code = NULL;
 
-int atst_dict_init(void)
+int ta_dict_init(void)
 {
 	TRACE_DEBUG(FULL, "Initializing the dictionary for test");
 	
 	/* Create the Test Vendor */
 	{
 		struct dict_vendor_data data;
-		data.vendor_id = atst_conf->vendor_id;
+		data.vendor_id = ta_conf->vendor_id;
 		data.vendor_name = "app_test vendor";
-		CHECK_FCT(fd_dict_new( fd_g_config->cnf_dict, DICT_VENDOR, &data, NULL, &atst_vendor));
+		CHECK_FCT(fd_dict_new( fd_g_config->cnf_dict, DICT_VENDOR, &data, NULL, &ta_vendor));
 	}
 	
 	/* Create the Test Application */
 	{
 		struct dict_application_data data;
-		data.application_id = atst_conf->appli_id;
+		data.application_id = ta_conf->appli_id;
 		data.application_name = "app_test application";
-		CHECK_FCT(fd_dict_new( fd_g_config->cnf_dict, DICT_APPLICATION, &data, atst_vendor, &atst_appli));
+		CHECK_FCT(fd_dict_new( fd_g_config->cnf_dict, DICT_APPLICATION, &data, ta_vendor, &ta_appli));
 	}
 	
 	/* Create the Test-Request & Test-Answer commands */
 	{
 		struct dict_cmd_data data;
-		data.cmd_code = atst_conf->cmd_id;
+		data.cmd_code = ta_conf->cmd_id;
 		data.cmd_name = "Test-Request";
 		data.cmd_flag_mask = CMD_FLAG_PROXIABLE | CMD_FLAG_REQUEST;
 		data.cmd_flag_val  = CMD_FLAG_PROXIABLE | CMD_FLAG_REQUEST;
-		CHECK_FCT(fd_dict_new( fd_g_config->cnf_dict, DICT_COMMAND, &data, atst_appli, &atst_cmd_r));
+		CHECK_FCT(fd_dict_new( fd_g_config->cnf_dict, DICT_COMMAND, &data, ta_appli, &ta_cmd_r));
 		data.cmd_name = "Test-Answer";
 		data.cmd_flag_val  = CMD_FLAG_PROXIABLE;
-		CHECK_FCT(fd_dict_new( fd_g_config->cnf_dict, DICT_COMMAND, &data, atst_appli, &atst_cmd_a));
+		CHECK_FCT(fd_dict_new( fd_g_config->cnf_dict, DICT_COMMAND, &data, ta_appli, &ta_cmd_a));
 	}
 	
 	/* Create the Test AVP */
 	{
 		struct dict_avp_data data;
-		data.avp_code = atst_conf->avp_id;
-		data.avp_vendor = atst_conf->vendor_id;
+		data.avp_code = ta_conf->avp_id;
+		data.avp_vendor = ta_conf->vendor_id;
 		data.avp_name = "Test-AVP";
 		data.avp_flag_mask = AVP_FLAG_VENDOR;
 		data.avp_flag_val = AVP_FLAG_VENDOR;
 		data.avp_basetype = AVP_TYPE_INTEGER32;
-		CHECK_FCT(fd_dict_new( fd_g_config->cnf_dict, DICT_AVP, &data, NULL, &atst_avp));
+		CHECK_FCT(fd_dict_new( fd_g_config->cnf_dict, DICT_AVP, &data, NULL, &ta_avp));
 	}
 	
 	/* Now resolve some other useful AVPs */
-	CHECK_FCT( fd_dict_search( fd_g_config->cnf_dict, DICT_AVP, AVP_BY_NAME, "Session-Id", &atst_sess_id, ENOENT) );
-	CHECK_FCT( fd_dict_search( fd_g_config->cnf_dict, DICT_AVP, AVP_BY_NAME, "Origin-Host", &atst_origin_host, ENOENT) );
-	CHECK_FCT( fd_dict_search( fd_g_config->cnf_dict, DICT_AVP, AVP_BY_NAME, "Origin-Realm", &atst_origin_realm, ENOENT) );
-	CHECK_FCT( fd_dict_search( fd_g_config->cnf_dict, DICT_AVP, AVP_BY_NAME, "Destination-Host", &atst_dest_host, ENOENT) );
-	CHECK_FCT( fd_dict_search( fd_g_config->cnf_dict, DICT_AVP, AVP_BY_NAME, "Destination-Realm", &atst_dest_realm, ENOENT) );
-	CHECK_FCT( fd_dict_search( fd_g_config->cnf_dict, DICT_AVP, AVP_BY_NAME, "Result-Code", &atst_res_code, ENOENT) );
+	CHECK_FCT( fd_dict_search( fd_g_config->cnf_dict, DICT_AVP, AVP_BY_NAME, "Session-Id", &ta_sess_id, ENOENT) );
+	CHECK_FCT( fd_dict_search( fd_g_config->cnf_dict, DICT_AVP, AVP_BY_NAME, "Origin-Host", &ta_origin_host, ENOENT) );
+	CHECK_FCT( fd_dict_search( fd_g_config->cnf_dict, DICT_AVP, AVP_BY_NAME, "Origin-Realm", &ta_origin_realm, ENOENT) );
+	CHECK_FCT( fd_dict_search( fd_g_config->cnf_dict, DICT_AVP, AVP_BY_NAME, "Destination-Host", &ta_dest_host, ENOENT) );
+	CHECK_FCT( fd_dict_search( fd_g_config->cnf_dict, DICT_AVP, AVP_BY_NAME, "Destination-Realm", &ta_dest_realm, ENOENT) );
+	CHECK_FCT( fd_dict_search( fd_g_config->cnf_dict, DICT_AVP, AVP_BY_NAME, "Result-Code", &ta_res_code, ENOENT) );
 	
 	/* Create the rules for Test-Request and Test-Answer */
 	{
@@ -110,40 +110,40 @@ int atst_dict_init(void)
 		data.rule_max = 1;
 		
 		/* Session-Id is in first position */
-		data.rule_avp = atst_sess_id;
+		data.rule_avp = ta_sess_id;
 		data.rule_position = RULE_FIXED_HEAD;
 		data.rule_order = 1;
-		CHECK_FCT(fd_dict_new( fd_g_config->cnf_dict, DICT_RULE, &data, atst_cmd_r, NULL));
-		CHECK_FCT(fd_dict_new( fd_g_config->cnf_dict, DICT_RULE, &data, atst_cmd_a, NULL));
+		CHECK_FCT(fd_dict_new( fd_g_config->cnf_dict, DICT_RULE, &data, ta_cmd_r, NULL));
+		CHECK_FCT(fd_dict_new( fd_g_config->cnf_dict, DICT_RULE, &data, ta_cmd_a, NULL));
 		
 		data.rule_position = RULE_REQUIRED;
 		/* Test-AVP is mandatory */
-		data.rule_avp = atst_avp;
-		CHECK_FCT(fd_dict_new( fd_g_config->cnf_dict, DICT_RULE, &data, atst_cmd_r, NULL));
-		CHECK_FCT(fd_dict_new( fd_g_config->cnf_dict, DICT_RULE, &data, atst_cmd_a, NULL));
+		data.rule_avp = ta_avp;
+		CHECK_FCT(fd_dict_new( fd_g_config->cnf_dict, DICT_RULE, &data, ta_cmd_r, NULL));
+		CHECK_FCT(fd_dict_new( fd_g_config->cnf_dict, DICT_RULE, &data, ta_cmd_a, NULL));
 		
 		/* idem for Origin Host and Realm */
-		data.rule_avp = atst_origin_host;
-		CHECK_FCT(fd_dict_new( fd_g_config->cnf_dict, DICT_RULE, &data, atst_cmd_r, NULL));
-		CHECK_FCT(fd_dict_new( fd_g_config->cnf_dict, DICT_RULE, &data, atst_cmd_a, NULL));
+		data.rule_avp = ta_origin_host;
+		CHECK_FCT(fd_dict_new( fd_g_config->cnf_dict, DICT_RULE, &data, ta_cmd_r, NULL));
+		CHECK_FCT(fd_dict_new( fd_g_config->cnf_dict, DICT_RULE, &data, ta_cmd_a, NULL));
 		
-		data.rule_avp = atst_origin_realm;
-		CHECK_FCT(fd_dict_new( fd_g_config->cnf_dict, DICT_RULE, &data, atst_cmd_r, NULL));
-		CHECK_FCT(fd_dict_new( fd_g_config->cnf_dict, DICT_RULE, &data, atst_cmd_a, NULL));
+		data.rule_avp = ta_origin_realm;
+		CHECK_FCT(fd_dict_new( fd_g_config->cnf_dict, DICT_RULE, &data, ta_cmd_r, NULL));
+		CHECK_FCT(fd_dict_new( fd_g_config->cnf_dict, DICT_RULE, &data, ta_cmd_a, NULL));
 		
 		/* And Result-Code is mandatory for answers only */
-		data.rule_avp = atst_res_code;
-		CHECK_FCT(fd_dict_new( fd_g_config->cnf_dict, DICT_RULE, &data, atst_cmd_a, NULL));
+		data.rule_avp = ta_res_code;
+		CHECK_FCT(fd_dict_new( fd_g_config->cnf_dict, DICT_RULE, &data, ta_cmd_a, NULL));
 		
 		/* And Destination-Realm for requests only */
-		data.rule_avp = atst_dest_realm;
-		CHECK_FCT(fd_dict_new( fd_g_config->cnf_dict, DICT_RULE, &data, atst_cmd_r, NULL));
+		data.rule_avp = ta_dest_realm;
+		CHECK_FCT(fd_dict_new( fd_g_config->cnf_dict, DICT_RULE, &data, ta_cmd_r, NULL));
 		
 		/* And Destination-Host optional for requests only */
 		data.rule_position = RULE_OPTIONAL;
 		data.rule_min = 0;
-		data.rule_avp = atst_dest_host;
-		CHECK_FCT(fd_dict_new( fd_g_config->cnf_dict, DICT_RULE, &data, atst_cmd_r, NULL));
+		data.rule_avp = ta_dest_host;
+		CHECK_FCT(fd_dict_new( fd_g_config->cnf_dict, DICT_RULE, &data, ta_cmd_r, NULL));
 		
 	}
 	

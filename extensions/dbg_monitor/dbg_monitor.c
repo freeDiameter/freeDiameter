@@ -33,89 +33,74 @@
 * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.								 *
 *********************************************************************************************************/
 
-/* Install the dispatch callbacks */
+/* Monitoring extension:
+ - periodically display queues and peers information
+ - upon SIGUSR2, display additional debug information
+ */
 
-#include "app_test.h"
+#include <freeDiameter/extension.h>
+#include <signal.h>
 
-static struct disp_hdl * atst_hdl_fb = NULL; /* handler for fallback cb */
-static struct disp_hdl * atst_hdl_tr = NULL; /* handler for Test-Request req cb */
+#ifndef MONITOR_SIGNAL
+#define MONITOR_SIGNAL	SIGUSR2
+#endif /* MONITOR_SIGNAL */
 
-/* Default callback for the application. */
-static int atst_fb_cb( struct msg ** msg, struct avp * avp, struct session * sess, enum disp_action * act)
+static int 	 monitor_main(char * conffile);
+
+EXTENSION_ENTRY("dbg_monitor", monitor_main);
+
+/* Function called on receipt of SIGUSR1 */
+static void got_sig(int signal)
 {
-	/* This CB should never be called */
-	TRACE_ENTRY("%p %p %p %p", msg, avp, sess, act);
-	
-	fd_log_debug("Unexpected message received!\n");
-	
-	return ENOTSUP;
+	fd_log_debug("[dbg_monitor] Dumping extra information\n");
+	CHECK_FCT_DO(fd_event_send(fd_g_config->cnf_main_ev, FDEV_DUMP_DICT, 0, NULL), /* continue */);
+	CHECK_FCT_DO(fd_event_send(fd_g_config->cnf_main_ev, FDEV_DUMP_CONFIG, 0, NULL), /* continue */);
+	CHECK_FCT_DO(fd_event_send(fd_g_config->cnf_main_ev, FDEV_DUMP_EXT, 0, NULL), /* continue */);
 }
-
-/* Callback for incoming Test-Request messages */
-static int atst_tr_cb( struct msg ** msg, struct avp * avp, struct session * sess, enum disp_action * act)
+/* Thread to display periodical debug information */
+static pthread_t thr;
+static void * mn_thr(void * arg)
 {
-	struct msg *ans, *qry;
-	union avp_value val;
+	sigset_t sig;
+	struct sigaction act;
+	fd_log_threadname("Monitor thread");
 	
-	TRACE_ENTRY("%p %p %p %p", msg, avp, sess, act);
+	/* Catch signal SIGUSR1 */
+	memset(&act, 0, sizeof(act));
+	act.sa_handler = got_sig;
+	CHECK_SYS_DO( sigaction(MONITOR_SIGNAL, &act, NULL), /* conitnue */ );
+	sigemptyset(&sig);
+	sigaddset(&sig, MONITOR_SIGNAL);
+	CHECK_POSIX_DO(  pthread_sigmask(SIG_UNBLOCK, &sig, NULL), /* conitnue */  );
 	
-	if (msg == NULL)
-		return EINVAL;
-	
-	/* Create answer header */
-	qry = *msg;
-	CHECK_FCT( fd_msg_new_answer_from_req ( fd_g_config->cnf_dict, msg, 0 ) );
-	ans = *msg;
-	
-	/* Set the Test-AVP AVP */
-	{
-		struct avp * src = NULL;
-		struct avp_hdr * hdr = NULL;
-		
-		CHECK_FCT( fd_msg_search_avp ( qry, atst_avp, &src) );
-		CHECK_FCT( fd_msg_avp_hdr( src, &hdr )  );
-		
-		CHECK_FCT( fd_msg_avp_new ( atst_avp, 0, &avp ) );
-		CHECK_FCT( fd_msg_avp_setvalue( avp, hdr->avp_value ) );
-		CHECK_FCT( fd_msg_avp_add( ans, MSG_BRW_LAST_CHILD, avp ) );
+	/* Loop */
+	while (1) {
+		#ifdef DEBUG
+		sleep(30);
+		#else /* DEBUG */
+		sleep(3600); /* 1 hour */
+		#endif /* DEBUG */
+		fd_log_debug("[dbg_monitor] Dumping current information\n");
+		CHECK_FCT_DO(fd_event_send(fd_g_config->cnf_main_ev, FDEV_DUMP_QUEUES, 0, NULL), /* continue */);
+		CHECK_FCT_DO(fd_event_send(fd_g_config->cnf_main_ev, FDEV_DUMP_SERV, 0, NULL), /* continue */);
+		CHECK_FCT_DO(fd_event_send(fd_g_config->cnf_main_ev, FDEV_DUMP_PEERS, 0, NULL), /* continue */);
+		pthread_testcancel();
 	}
 	
-	/* Set the Origin-Host, Origin-Realm, Result-Code AVPs */
-	CHECK_FCT( fd_msg_rescode_set( ans, "DIAMETER_SUCCESS", NULL, NULL, 1 ) );
-	
-	/* Send the answer */
-	CHECK_FCT( fd_msg_send( msg, NULL, NULL ) );
-	
+	return NULL;
+}
+
+static int monitor_main(char * conffile)
+{
+	TRACE_ENTRY("%p", conffile);
+	CHECK_POSIX( pthread_create( &thr, NULL, mn_thr, NULL ) );
 	return 0;
 }
 
-int atst_serv_init(void)
+void fd_ext_fini(void)
 {
-	struct disp_when data;
-	
-	TRACE_DEBUG(FULL, "Initializing dispatch callbacks for test");
-	
-	memset(&data, 0, sizeof(data));
-	data.app = atst_appli;
-	data.command = atst_cmd_r;
-	
-	/* fallback CB if command != Test-Request received */
-	CHECK_FCT( fd_disp_register( atst_fb_cb, DISP_HOW_APPID, &data, &atst_hdl_fb ) );
-	
-	/* Now specific handler for Test-Request */
-	CHECK_FCT( fd_disp_register( atst_tr_cb, DISP_HOW_CC, &data, &atst_hdl_tr ) );
-	
-	return 0;
+	TRACE_ENTRY();
+	CHECK_FCT_DO( fd_thr_term(&thr), /* continue */ );
+	return ;
 }
 
-void atst_serv_fini(void)
-{
-	if (atst_hdl_fb) {
-		(void) fd_disp_unregister(&atst_hdl_fb);
-	}
-	if (atst_hdl_tr) {
-		(void) fd_disp_unregister(&atst_hdl_tr);
-	}
-	
-	return;
-}

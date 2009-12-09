@@ -37,78 +37,78 @@
  * Test application for freeDiameter.
  */
 
-#include "app_test.h"
+#include "test_app.h"
 #include <signal.h>
 
 /* Initialize the configuration */
-struct atst_conf * atst_conf = NULL;
-static struct atst_conf _conf;
+struct ta_conf * ta_conf = NULL;
+static struct ta_conf _conf;
 
-static int atst_conf_init(void)
+static int ta_conf_init(void)
 {
-	atst_conf = &_conf;
-	memset(atst_conf, 0, sizeof(struct atst_conf));
+	ta_conf = &_conf;
+	memset(ta_conf, 0, sizeof(struct ta_conf));
 	
 	/* Set the default values */
-	atst_conf->vendor_id  = 999999;		/* Dummy value */
-	atst_conf->appli_id   = 0xffffff;	/* dummy value */
-	atst_conf->cmd_id     = 0xfffffe;	/* Experimental */
-	atst_conf->avp_id     = 0xffffff;	/* dummy value */
-	atst_conf->mode       = MODE_SERV | MODE_CLI;
-	atst_conf->dest_realm = strdup(fd_g_config->cnf_diamrlm);
-	atst_conf->dest_host  = NULL;
-	atst_conf->signal     = APP_TEST_DEFAULT_SIGNAL;
+	ta_conf->vendor_id  = 999999;		/* Dummy value */
+	ta_conf->appli_id   = 0xffffff;	/* dummy value */
+	ta_conf->cmd_id     = 0xfffffe;	/* Experimental */
+	ta_conf->avp_id     = 0xffffff;	/* dummy value */
+	ta_conf->mode       = MODE_SERV | MODE_CLI;
+	ta_conf->dest_realm = strdup(fd_g_config->cnf_diamrlm);
+	ta_conf->dest_host  = NULL;
+	ta_conf->signal     = TEST_APP_DEFAULT_SIGNAL;
 	
 	return 0;
 }
 
-static void atst_conf_dump(void)
+static void ta_conf_dump(void)
 {
 	if (!TRACE_BOOL(INFO))
 		return;
 	fd_log_debug( "------- app_test configuration dump: ---------\n");
-	fd_log_debug( " Vendor Id .......... : %u\n", atst_conf->vendor_id);
-	fd_log_debug( " Application Id ..... : %u\n", atst_conf->appli_id);
-	fd_log_debug( " Command Id ......... : %u\n", atst_conf->cmd_id);
-	fd_log_debug( " AVP Id ............. : %u\n", atst_conf->avp_id);
-	fd_log_debug( " Mode ............... : %s%s\n", atst_conf->mode & MODE_SERV ? "Serv" : "", atst_conf->mode & MODE_CLI ? "Cli" : "" );
-	fd_log_debug( " Destination Realm .. : %s\n", atst_conf->dest_realm ?: "- none -");
-	fd_log_debug( " Destination Host ... : %s\n", atst_conf->dest_host ?: "- none -");
-	fd_log_debug( " Signal ............. : %i\n", atst_conf->signal);
+	fd_log_debug( " Vendor Id .......... : %u\n", ta_conf->vendor_id);
+	fd_log_debug( " Application Id ..... : %u\n", ta_conf->appli_id);
+	fd_log_debug( " Command Id ......... : %u\n", ta_conf->cmd_id);
+	fd_log_debug( " AVP Id ............. : %u\n", ta_conf->avp_id);
+	fd_log_debug( " Mode ............... : %s%s\n", ta_conf->mode & MODE_SERV ? "Serv" : "", ta_conf->mode & MODE_CLI ? "Cli" : "" );
+	fd_log_debug( " Destination Realm .. : %s\n", ta_conf->dest_realm ?: "- none -");
+	fd_log_debug( " Destination Host ... : %s\n", ta_conf->dest_host ?: "- none -");
+	fd_log_debug( " Signal ............. : %i\n", ta_conf->signal);
 	fd_log_debug( "------- /app_test configuration dump ---------\n");
 }
 
 /* entry point */
-static int atst_entry(char * conffile)
+static int ta_entry(char * conffile)
 {
 	TRACE_ENTRY("%p", conffile);
 	
 	/* Initialize configuration */
-	CHECK_FCT( atst_conf_init() );
+	CHECK_FCT( ta_conf_init() );
 	
 	/* Parse configuration file */
 	if (conffile != NULL) {
-		CHECK_FCT( atst_conf_handle(conffile) );
+		CHECK_FCT( ta_conf_handle(conffile) );
 	}
 	
-	TRACE_DEBUG(INFO, "Extension APP/Test initialized with configuration: '%s'", conffile);
-	atst_conf_dump();
+	TRACE_DEBUG(INFO, "Extension Test_App initialized with configuration: '%s'", conffile);
+	ta_conf_dump();
 	
 	/* Install objects definitions for this test application */
-	CHECK_FCT( atst_dict_init() );
+	CHECK_FCT( ta_dict_init() );
 	
 	/* Install the handlers for incoming messages */
-	if (atst_conf->mode & MODE_SERV) {
-		CHECK_FCT( atst_serv_init() );
+	if (ta_conf->mode & MODE_SERV) {
+		CHECK_FCT( ta_serv_init() );
 	}
 	
 	/* Start the signal handler thread */
-	if (atst_conf->mode & MODE_CLI) {
-		CHECK_FCT( atst_cli_init() );
+	if (ta_conf->mode & MODE_CLI) {
+		CHECK_FCT( ta_cli_init() );
 	}
 	
 	/* Advertise the support for the test application in the peer */
-	CHECK_FCT( fd_disp_app_support ( atst_appli, atst_vendor, 1, 0 ) );
+	CHECK_FCT( fd_disp_app_support ( ta_appli, ta_vendor, 1, 0 ) );
 	
 	return 0;
 }
@@ -116,10 +116,10 @@ static int atst_entry(char * conffile)
 /* Unload */
 void fd_ext_fini(void)
 {
-	if (atst_conf->mode & MODE_CLI)
-		atst_cli_fini();
-	if (atst_conf->mode & MODE_SERV)
-		atst_serv_fini();
+	if (ta_conf->mode & MODE_CLI)
+		ta_cli_fini();
+	if (ta_conf->mode & MODE_SERV)
+		ta_serv_fini();
 }
 
-EXTENSION_ENTRY("app_test", atst_entry);
+EXTENSION_ENTRY("test_app", ta_entry);

@@ -33,53 +33,88 @@
 * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.								 *
 *********************************************************************************************************/
 
-/* Install the signal handler */
+/* Install the dispatch callbacks */
 
-#include "app_test.h"
+#include "test_app.h"
 
-static pthread_t th = (pthread_t) NULL;
+static struct disp_hdl * ta_hdl_fb = NULL; /* handler for fallback cb */
+static struct disp_hdl * ta_hdl_tr = NULL; /* handler for Test-Request req cb */
 
-static void * atst_sig_th(void * arg)
+/* Default callback for the application. */
+static int ta_fb_cb( struct msg ** msg, struct avp * avp, struct session * sess, enum disp_action * act)
 {
-	int sig;
-	int ret;
-	sigset_t ss;
-	void (*cb)(void) = arg;
+	/* This CB should never be called */
+	TRACE_ENTRY("%p %p %p %p", msg, avp, sess, act);
 	
-	fd_log_threadname ( "app_test signal handler" );
+	fd_log_debug("Unexpected message received!\n");
 	
-	sigemptyset(&ss);
-	sigaddset(&ss, atst_conf->signal);
+	return ENOTSUP;
+}
+
+/* Callback for incoming Test-Request messages */
+static int ta_tr_cb( struct msg ** msg, struct avp * avp, struct session * sess, enum disp_action * act)
+{
+	struct msg *ans, *qry;
+	union avp_value val;
 	
-	while (1) {
-		ret = sigwait(&ss, &sig);
-		if (ret != 0) {
-			fd_log_debug("sigwait failed in the app_test extension: %s", strerror(errno));
-			break;
-		}
+	TRACE_ENTRY("%p %p %p %p", msg, avp, sess, act);
+	
+	if (msg == NULL)
+		return EINVAL;
+	
+	/* Create answer header */
+	qry = *msg;
+	CHECK_FCT( fd_msg_new_answer_from_req ( fd_g_config->cnf_dict, msg, 0 ) );
+	ans = *msg;
+	
+	/* Set the Test-AVP AVP */
+	{
+		struct avp * src = NULL;
+		struct avp_hdr * hdr = NULL;
 		
-		TRACE_DEBUG(FULL, "Signal caught, calling function...");
+		CHECK_FCT( fd_msg_search_avp ( qry, ta_avp, &src) );
+		CHECK_FCT( fd_msg_avp_hdr( src, &hdr )  );
 		
-		/* Call the cb function */
-		(*cb)();
-		
+		CHECK_FCT( fd_msg_avp_new ( ta_avp, 0, &avp ) );
+		CHECK_FCT( fd_msg_avp_setvalue( avp, hdr->avp_value ) );
+		CHECK_FCT( fd_msg_avp_add( ans, MSG_BRW_LAST_CHILD, avp ) );
 	}
 	
-	return NULL;
-}
-
-int atst_sig_init(void (*cb)(void))
-{
-	return pthread_create( &th, NULL, atst_sig_th, (void *)cb );
-}
-
-void atst_sig_fini(void)
-{
-	void * th_ret = NULL;
+	/* Set the Origin-Host, Origin-Realm, Result-Code AVPs */
+	CHECK_FCT( fd_msg_rescode_set( ans, "DIAMETER_SUCCESS", NULL, NULL, 1 ) );
 	
-	if (th != (pthread_t) NULL) {
-		(void) pthread_cancel(th);
-		(void) pthread_join(th, &th_ret);
+	/* Send the answer */
+	CHECK_FCT( fd_msg_send( msg, NULL, NULL ) );
+	
+	return 0;
+}
+
+int ta_serv_init(void)
+{
+	struct disp_when data;
+	
+	TRACE_DEBUG(FULL, "Initializing dispatch callbacks for test");
+	
+	memset(&data, 0, sizeof(data));
+	data.app = ta_appli;
+	data.command = ta_cmd_r;
+	
+	/* fallback CB if command != Test-Request received */
+	CHECK_FCT( fd_disp_register( ta_fb_cb, DISP_HOW_APPID, &data, &ta_hdl_fb ) );
+	
+	/* Now specific handler for Test-Request */
+	CHECK_FCT( fd_disp_register( ta_tr_cb, DISP_HOW_CC, &data, &ta_hdl_tr ) );
+	
+	return 0;
+}
+
+void ta_serv_fini(void)
+{
+	if (ta_hdl_fb) {
+		(void) fd_disp_unregister(&ta_hdl_fb);
+	}
+	if (ta_hdl_tr) {
+		(void) fd_disp_unregister(&ta_hdl_tr);
 	}
 	
 	return;

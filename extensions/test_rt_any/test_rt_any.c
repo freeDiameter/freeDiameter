@@ -33,73 +33,44 @@
 * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.								 *
 *********************************************************************************************************/
 
-/* Monitoring extension:
- - periodically display queues and peers information
- - upon SIGUSR2, display additional debug information
+/* 
+ * Test-only extension for routing: gives a random positive score to any candidate peer.
  */
-
 #include <freeDiameter/extension.h>
-#include <signal.h>
+#include <stdlib.h>
 
-#ifndef MONITOR_SIGNAL
-#define MONITOR_SIGNAL	SIGUSR2
-#endif /* MONITOR_SIGNAL */
-
-static int 	 monitor_main(char * conffile);
-
-EXTENSION_ENTRY("monitor", monitor_main);
-
-/* Function called on receipt of SIGUSR1 */
-static void got_sig(int signal)
+/* The callback */
+static int tra_out_cb(void * cbdata, struct msg * msg, struct fd_list * candidates)
 {
-	CHECK_FCT_DO(fd_event_send(fd_g_config->cnf_main_ev, FDEV_DUMP_DICT, 0, NULL), /* continue */);
-	CHECK_FCT_DO(fd_event_send(fd_g_config->cnf_main_ev, FDEV_DUMP_CONFIG, 0, NULL), /* continue */);
-	CHECK_FCT_DO(fd_event_send(fd_g_config->cnf_main_ev, FDEV_DUMP_EXT, 0, NULL), /* continue */);
-}
-/* Thread to display periodical debug information */
-static pthread_t thr;
-static void * mn_thr(void * arg)
-{
-	sigset_t sig;
-	struct sigaction act;
-	fd_log_threadname("Monitor thread");
+	struct fd_list * li;
 	
-	/* Catch signal SIGUSR1 */
-	memset(&act, 0, sizeof(act));
-	act.sa_handler = got_sig;
-	CHECK_SYS_DO( sigaction(MONITOR_SIGNAL, &act, NULL), /* conitnue */ );
-	sigemptyset(&sig);
-	sigaddset(&sig, MONITOR_SIGNAL);
-	CHECK_POSIX_DO(  pthread_sigmask(SIG_UNBLOCK, &sig, NULL), /* conitnue */  );
+	TRACE_ENTRY("%p %p %p", cbdata, msg, candidates);
 	
-	/* Loop */
-	while (1) {
-		#ifdef DEBUG
-		sleep(30);
-		#else /* DEBUG */
-		sleep(3600); /* 1 hour */
-		#endif /* DEBUG */
-		TRACE_DEBUG(NONE, "Monitor information");
-		CHECK_FCT_DO(fd_event_send(fd_g_config->cnf_main_ev, FDEV_DUMP_QUEUES, 0, NULL), /* continue */);
-		CHECK_FCT_DO(fd_event_send(fd_g_config->cnf_main_ev, FDEV_DUMP_SERV, 0, NULL), /* continue */);
-		CHECK_FCT_DO(fd_event_send(fd_g_config->cnf_main_ev, FDEV_DUMP_PEERS, 0, NULL), /* continue */);
-		pthread_testcancel();
+	for (li = candidates->next; li != candidates; li = li->next) {
+		struct rtd_candidate *c = (struct rtd_candidate *) li;
+		c->score = (int)lrand48();
 	}
 	
-	return NULL;
-}
-
-static int monitor_main(char * conffile)
-{
-	TRACE_ENTRY("%p", conffile);
-	CHECK_POSIX( pthread_create( &thr, NULL, mn_thr, NULL ) );
 	return 0;
 }
 
+static struct fd_rt_out_hdl * out_hdl = NULL;
+
+/* Register the callbacks to the daemon */
+static int tra_main(char * conffile)
+{
+	TRACE_ENTRY("%p", conffile);
+	CHECK_FCT( fd_rt_out_register ( tra_out_cb, NULL, 0 /* we call it late so that it replaces previous scores */, &out_hdl ) );
+	return 0;
+}
+
+/* Cleanup the callbacks */
 void fd_ext_fini(void)
 {
 	TRACE_ENTRY();
-	CHECK_FCT_DO( fd_thr_term(&thr), /* continue */ );
+	CHECK_FCT_DO( fd_rt_out_unregister ( out_hdl, NULL ), /* continue */ );
 	return ;
 }
 
+/* Define the entry point function */
+EXTENSION_ENTRY("test_rt_any", tra_main);

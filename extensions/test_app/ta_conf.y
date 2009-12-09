@@ -49,8 +49,8 @@
 %pure-parser
 
 %{
-#include "app_test.h"
-#include "atst_conf.tab.h"	/* bison is not smart enough to define the YYLTYPE before including this code, so... */
+#include "test_app.h"
+#include "ta_conf.tab.h"	/* bison is not smart enough to define the YYLTYPE before including this code, so... */
 
 #include <string.h>
 #include <errno.h>
@@ -59,17 +59,17 @@
 int yyparse(char * conffile);
 
 /* Parse the configuration file */
-int atst_conf_handle(char * conffile)
+int ta_conf_handle(char * conffile)
 {
-	extern FILE * atst_confin;
+	extern FILE * ta_confin;
 	int ret;
 	
 	TRACE_ENTRY("%p", conffile);
 	
 	TRACE_DEBUG (FULL, "Parsing configuration file: %s...", conffile);
 	
-	atst_confin = fopen(conffile, "r");
-	if (atst_confin == NULL) {
+	ta_confin = fopen(conffile, "r");
+	if (ta_confin == NULL) {
 		ret = errno;
 		fd_log_debug("Unable to open extension configuration file %s for reading: %s\n", conffile, strerror(ret));
 		TRACE_DEBUG (INFO, "Error occurred, message logged -- configuration file.");
@@ -78,7 +78,7 @@ int atst_conf_handle(char * conffile)
 
 	ret = yyparse(conffile);
 
-	fclose(atst_confin);
+	fclose(ta_confin);
 
 	if (ret != 0) {
 		TRACE_DEBUG (INFO, "Unable to parse the configuration file.");
@@ -89,7 +89,7 @@ int atst_conf_handle(char * conffile)
 }
 
 /* The Lex parser prototype */
-int atst_conflex(YYSTYPE *lvalp, YYLTYPE *llocp);
+int ta_conflex(YYSTYPE *lvalp, YYLTYPE *llocp);
 
 /* Function to report the errors */
 void yyerror (YYLTYPE *ploc, char * conffile, char const *s)
@@ -151,50 +151,50 @@ conffile:		/* empty grammar is OK */
 
 vendor:			VENDOR_ID '=' INTEGER ';'
 			{
-				atst_conf->vendor_id = $3;
+				ta_conf->vendor_id = $3;
 			}
 			;
 
 appli:			APPLI_ID '=' INTEGER ';'
 			{
-				atst_conf->appli_id = $3;
+				ta_conf->appli_id = $3;
 			}
 			;
 
 cmd:			CMD_ID '=' INTEGER ';'
 			{
-				atst_conf->cmd_id = $3;
+				ta_conf->cmd_id = $3;
 			}
 			;
 
 avp:			AVP_ID '=' INTEGER ';'
 			{
-				atst_conf->avp_id = $3;
+				ta_conf->avp_id = $3;
 			}
 			;
 
 mode:			MODE '=' INTEGER ';'
 			{
-				atst_conf->mode = $3;
+				ta_conf->mode = $3;
 			}
 			;
 
 dstrealm:		DEST_REALM '=' QSTRING ';'
 			{
-				free(atst_conf->dest_realm);
-				atst_conf->dest_realm = $3;
+				free(ta_conf->dest_realm);
+				ta_conf->dest_realm = $3;
 			}
 			;
 
 dsthost:		DEST_HOST '=' QSTRING ';'
 			{
-				free(atst_conf->dest_host);
-				atst_conf->dest_host = $3;
+				free(ta_conf->dest_host);
+				ta_conf->dest_host = $3;
 			}
 			;
 
 signal:			SIGNAL '=' INTEGER ';'
 			{
-				atst_conf->signal = $3;
+				ta_conf->signal = $3;
 			}
 			;
