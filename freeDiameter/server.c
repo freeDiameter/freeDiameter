@@ -349,10 +349,46 @@ int fd_servers_start()
 /* Terminate all the servers */
 int fd_servers_stop()
 {
-	TODO("Not implemented");
+	TRACE_ENTRY("");
+	
+	TRACE_DEBUG(INFO, "Shutting down server sockets...");
 	
 	/* Loop on all servers */
+	while (!FD_IS_LIST_EMPTY(&FD_SERVERS)) {
+		struct server * s = (struct server *)(FD_SERVERS.next);
+		
+		/* Lock client list now */
+		CHECK_FCT_DO( pthread_mutex_lock(&s->clients_mtx), /* continue anyway */);
+		
 		/* cancel thread */
+		CHECK_FCT_DO( fd_thr_term(&s->thr), /* continue */);
+		
 		/* destroy server connection context */
+		fd_cnx_destroy(s->conn);
+		
 		/* cancel and destroy all clients */
+		while (!FD_IS_LIST_EMPTY(&s->clients)) {
+			struct client * c = (struct client *)(s->clients.next);
+			
+			/* Destroy client's thread */
+			CHECK_FCT_DO( fd_thr_term(&c->thr), /* continue */);
+			
+			/* Destroy client's connection */
+			fd_cnx_destroy(c->conn);
+			
+			/* Unlink and free the client */
+			fd_list_unlink(&c->chain);
+			free(c);
+		}
+		/* Unlock & destroy */
+		CHECK_FCT_DO( pthread_mutex_unlock(&s->clients_mtx), /* continue anyway */);
+		CHECK_FCT_DO( pthread_mutex_destroy(&s->clients_mtx), /* continue */);
+		
+		/* Now destroy the server object */
+		fd_list_unlink(&s->chain);
+		free(s);
+	}
+	
+	/* We're done! */
+	return 0;
 }

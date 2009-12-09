@@ -99,20 +99,17 @@ extern struct fifo * fd_g_outgoing; /* messages to be sent to other peers on the
 extern struct fifo * fd_g_local; /* messages to be handled to local extensions */
 /* Message queues */
 int fd_queues_init(void);
-int fd_queues_fini(void);
+int fd_queues_fini_rt(void);
+int fd_queues_fini_disp(void);
 
 /* Create all the dictionary objects defined in the Diameter base RFC. */
 int fd_dict_base_protocol(struct dictionary * dict);
 
 /* Routing */
-int fd_rt_init(void);
-int fd_rt_fini(void);
-int fd_rt_cleanup(void);
-
-/* Dispatch */
-int fd_disp_init(void);
-int fd_disp_cleanstop(void);
-int fd_disp_fini(void);
+int fd_rtdisp_init(void);
+int fd_rtdisp_cleanstop(void);
+int fd_rtdisp_fini(void);
+int fd_rtdisp_cleanup(void);
 
 /* Sentinel for the sent requests list */
 struct sr_list {

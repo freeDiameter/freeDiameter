@@ -184,14 +184,8 @@ int fd_rt_out_unregister ( struct fd_rt_out_hdl * handler, void ** cbdata )
 }
 
 /********************************************************************************/
-/*                   Second part : the routing threads                          */
+/*                        Helper functions                                      */
 /********************************************************************************/
-
-/* Note: in the first version, we only create one thread of each kind.
- We could improve the scalability by using the threshold feature of the queues fd_g_incoming and fd_g_outgoing
- ( fd_g_local is managed by the dispatch thread ) to create additional threads if a queue is filling up.
- */
-
 /* Test if a User-Name AVP contains a Decorated NAI -- RFC4282, draft-ietf-dime-nai-routing-04 */
 static int is_decorated_NAI(union avp_value * un)
 {
@@ -261,8 +255,6 @@ static int process_decorated_NAI(union avp_value * un, union avp_value * dr)
 	return 0;
 }
 
-
-
 /* Function to return an error to an incoming request */
 static int return_error(struct msg * msg, char * error_code, char * error_message, struct avp * failedavp)
 {
@@ -307,19 +299,205 @@ static int return_error(struct msg * msg, char * error_code, char * error_messag
 	return 0;
 }
 
+
+/********************************************************************************/
+/*         Second part : the threads moving messages in the daemon              */
+/********************************************************************************/
+
+/* Note: in the first version, we only create one thread of each kind.
+ We could improve the scalability by using the threshold feature of the queues
+ to create additional threads if a queue is filling up.
+ */
+
+/* Control of the threads */
+enum thread_state { INITIAL = 0, RUNNING = 1, TERMINATED = 2 };
+static void cleanup_state(void * state_loc)
+{
+	if (state_loc)
+		*(enum thread_state *)state_loc = TERMINATED;
+}
+static pthread_mutex_t order_lock = PTHREAD_MUTEX_INITIALIZER;
+static enum { RUN = 0, STOP = 1 } order_val = RUN;;
+
+/* The dispatching thread */
+static void * dispatch_thr(void * arg)
+{
+	TRACE_ENTRY("%p", arg);
+	
+	/* Set the thread name */
+	{
+		char buf[48];
+		snprintf(buf, sizeof(buf), "Dispatch %p", arg);
+		fd_log_threadname ( buf );
+	}
+
+	pthread_cleanup_push( cleanup_state, arg );
+	
+	/* Mark the thread running */
+	*(enum thread_state *)arg = RUNNING;
+	
+	do {
+		struct msg * msg;
+		struct msg_hdr * hdr;
+		int is_req = 0;
+		struct session * sess;
+		enum disp_action action;
+		const char * ec = NULL;
+		const char * em = NULL;
+		
+		/* Test the environment */
+		{
+			int must_stop;
+			CHECK_POSIX_DO( pthread_mutex_lock(&order_lock), goto end ); /* we lock to flush the caches */
+			must_stop = (order_val == STOP);
+			CHECK_POSIX_DO( pthread_mutex_unlock(&order_lock), goto end );
+			if (must_stop)
+				goto end;
+			
+			pthread_testcancel();
+		}
+		
+		/* Ok, we are allowed to run */
+		
+		/* Get the next message from the queue */
+		{
+			int ret;
+			CHECK_FCT_DO( ret = fd_fifo_get ( fd_g_local, &msg ), 
+				{
+					if (ret == EPIPE)
+						/* The queue was destroyed */
+						goto end;
+					goto fatal_error;
+				} );
+		}
+		
+		if (TRACE_BOOL(FULL)) {
+			TRACE_DEBUG(FULL, "Picked next message");
+			fd_msg_dump_one(ANNOYING, msg);
+		}
+		
+		/* Read the message header */
+		CHECK_FCT_DO( fd_msg_hdr(msg, &hdr), goto fatal_error );
+		is_req = hdr->msg_flags & CMD_FLAG_REQUEST;
+		
+		/* Note: if the message is for local delivery, we should test for duplicate
+		  (draft-asveren-dime-dupcons-00). This may conflict with path validation decisions, no clear answer yet */
+		
+		/* At this point, we need to understand the message content, so parse it */
+		{
+			int ret;
+			CHECK_FCT_DO( ret = fd_msg_parse_or_error( &msg ),
+				{
+					/* in case of error, the message is already dump'd */
+					if ((ret == EBADMSG) && (msg != NULL)) {
+						/* msg now contains the answer message to send back */
+						CHECK_FCT_DO( fd_fifo_post(fd_g_outgoing, &msg), goto fatal_error );
+					}
+					if (msg) {	/* another error happen'd */
+						TRACE_DEBUG(INFO, "An unexpected error occurred (%s), discarding a message:", strerror(ret));
+						fd_msg_dump_walk(INFO, msg);
+						CHECK_FCT_DO( fd_msg_free(msg), /* continue */);
+					}
+					/* Go to the next message */
+					continue;
+				} );
+		}
+		
+		/* First, if the original request was registered with a callback and we receive the answer, call it. */
+		if ( ! is_req ) {
+			struct msg * qry;
+			void (*anscb)(void *, struct msg **) = NULL;
+			void * data = NULL;
+			
+			/* Retrieve the corresponding query */
+			CHECK_FCT_DO( fd_msg_answ_getq( msg, &qry ), goto fatal_error );
+			
+			/* Retrieve any registered handler */
+			CHECK_FCT_DO( fd_msg_anscb_get( qry, &anscb, &data ), goto fatal_error );
+			
+			/* If a callback was registered, pass the message to it */
+			if (anscb != NULL) {
+				
+				TRACE_DEBUG(FULL, "Calling callback registered when query was sent (%p, %p)", anscb, data);
+				(*anscb)(data, &msg);
+				
+				if (msg == NULL) {
+					/* Ok, the message is now handled, we can skip to the next one */
+					continue;
+				}
+			}
+		}
+		
+		/* Retrieve the session of the message */
+		CHECK_FCT_DO( fd_msg_sess_get(fd_g_config->cnf_dict, msg, &sess, NULL), goto fatal_error );
+		
+		/* Now, call any callback registered for the message */
+		CHECK_FCT_DO( fd_msg_dispatch ( &msg, sess, &action, &ec), goto fatal_error );
+		
+		/* Now, act depending on msg and action and ec */
+		if (!msg)
+			continue;
+		
+		switch ( action ) {
+			case DISP_ACT_CONT:
+				/* No callback has handled the message, let's reply with a generic error */
+				em = "The message was not handled by any extension callback";
+				ec = "DIAMETER_COMMAND_UNSUPPORTED";
+			
+			case DISP_ACT_ERROR:
+				/* We have a problem with delivering the message */
+				if (ec == NULL) {
+					ec = "DIAMETER_UNABLE_TO_COMPLY";
+				}
+				
+				if (!is_req) {
+					TRACE_DEBUG(INFO, "Received an answer to a localy issued query, but no handler processed this answer!");
+					fd_msg_dump_walk(INFO, msg);
+					fd_msg_free(msg);
+					msg = NULL;
+					break;
+				}
+				
+				/* Create an answer with the error code and message */
+				CHECK_FCT_DO( fd_msg_new_answer_from_req ( fd_g_config->cnf_dict, &msg, 0 ), goto fatal_error );
+				CHECK_FCT_DO( fd_msg_rescode_set(msg, (char *)ec, (char *)em, NULL, 1 ), goto fatal_error );
+				
+			case DISP_ACT_SEND:
+				/* Now, send the message */
+				CHECK_FCT_DO( fd_fifo_post(fd_g_outgoing, &msg), goto fatal_error );
+		}
+		
+		/* We're done with this message */
+	
+	} while (1);
+	
+fatal_error:
+	TRACE_DEBUG(INFO, "An error occurred in dispatch module! Thread is terminating...");
+	CHECK_FCT_DO(fd_event_send(fd_g_config->cnf_main_ev, FDEV_TERMINATE, 0, NULL), );
+	
+end:	
+	/* Mark the thread as terminated */
+	pthread_cleanup_pop(1);
+	return NULL;
+}
+
+
 /* The (routing-in) thread -- see description in freeDiameter.h */
 static void * routing_in_thr(void * arg)
 {
 	TRACE_ENTRY("%p", arg);
 	
 	/* Set the thread name */
-	if (arg) {
+	{
 		char buf[48];
 		snprintf(buf, sizeof(buf), "Routing-IN %p", arg);
 		fd_log_threadname ( buf );
-	} else {
-		fd_log_threadname ( "Routing-IN" );
 	}
+
+	pthread_cleanup_push( cleanup_state, arg );
+	
+	/* Mark the thread running */
+	*(enum thread_state *)arg = RUNNING;
 	
 	/* Main thread loop */
 	do {
@@ -330,10 +508,28 @@ static void * routing_in_thr(void * arg)
 		char * qry_src = NULL;
 		
 		/* Test if we were told to stop */
-		pthread_testcancel();
+		{
+			int must_stop;
+			CHECK_POSIX_DO( pthread_mutex_lock(&order_lock), goto end ); /* we lock to flush the caches */
+			must_stop = (order_val == STOP);
+			CHECK_POSIX_DO( pthread_mutex_unlock(&order_lock), goto end );
+			if (must_stop)
+				goto end;
+			
+			pthread_testcancel();
+		}
 		
 		/* Get the next message from the incoming queue */
-		CHECK_FCT_DO( fd_fifo_get ( fd_g_incoming, &msg ), goto fatal_error );
+		{
+			int ret;
+			CHECK_FCT_DO( ret = fd_fifo_get ( fd_g_incoming, &msg ), 
+				{
+					if (ret == EPIPE)
+						/* The queue was destroyed */
+						goto end;
+					goto fatal_error;
+				} );
+		}
 		
 		if (TRACE_BOOL(FULL)) {
 			TRACE_DEBUG(FULL, "Picked next message");
@@ -550,6 +746,10 @@ static void * routing_in_thr(void * arg)
 fatal_error:
 	TRACE_DEBUG(INFO, "An error occurred in routing module! IN thread is terminating...");
 	CHECK_FCT_DO(fd_event_send(fd_g_config->cnf_main_ev, FDEV_TERMINATE, 0, NULL), );
+	
+end:	
+	/* Mark the thread as terminated */
+	pthread_cleanup_pop(1);
 	return NULL;
 }
 
@@ -557,17 +757,21 @@ fatal_error:
 /* The (routing-out) thread -- see description in freeDiameter.h */
 static void * routing_out_thr(void * arg)
 {
-	TRACE_ENTRY("%p", arg);
 	struct rt_data * rtd = NULL;
+	TRACE_ENTRY("%p", arg);
 	
 	/* Set the thread name */
-	if (arg) {
+	{
 		char buf[48];
-		snprintf(buf, sizeof(buf), "Routing-OUT %p", arg);
+		snprintf(buf, sizeof(buf), "Routing OUT %p", arg);
 		fd_log_threadname ( buf );
-	} else {
-		fd_log_threadname ( "Routing-OUT" );
 	}
+
+	pthread_cleanup_push( cleanup_state, arg );
+	
+	/* Mark the thread running */
+	*(enum thread_state *)arg = RUNNING;
+	
 	
 	/* Main thread loop */
 	do {
@@ -583,10 +787,28 @@ static void * routing_out_thr(void * arg)
 			fd_rtd_free(&rtd);
 		
 		/* Test if we were told to stop */
-		pthread_testcancel();
+		{
+			int must_stop;
+			CHECK_POSIX_DO( pthread_mutex_lock(&order_lock), goto end ); /* we lock to flush the caches */
+			must_stop = (order_val == STOP);
+			CHECK_POSIX_DO( pthread_mutex_unlock(&order_lock), goto end );
+			if (must_stop)
+				goto end;
+			
+			pthread_testcancel();
+		}
 		
 		/* Get the next message from the ougoing queue */
-		CHECK_FCT_DO( fd_fifo_get ( fd_g_outgoing, &msg ), goto fatal_error );
+		{
+			int ret;
+			CHECK_FCT_DO( ret = fd_fifo_get ( fd_g_outgoing, &msg ), 
+				{
+					if (ret == EPIPE)
+						/* The queue was destroyed */
+						goto end;
+					goto fatal_error;
+				} );
+		}
 		
 		if (TRACE_BOOL(FULL)) {
 			TRACE_DEBUG(FULL, "Picked next message");
@@ -740,8 +962,17 @@ static void * routing_out_thr(void * arg)
 fatal_error:
 	TRACE_DEBUG(INFO, "An error occurred in routing module! OUT thread is terminating...");
 	CHECK_FCT_DO(fd_event_send(fd_g_config->cnf_main_ev, FDEV_TERMINATE, 0, NULL), );
+	
+end:	
+	/* Mark the thread as terminated */
+	pthread_cleanup_pop(1);
 	return NULL;
 }
+
+
+/********************************************************************************/
+/*                      Some default routing callbacks                          */
+/********************************************************************************/
 
 /* First OUT callback: prevent sending to peers that do not support the message application */
 static int dont_send_if_no_common_app(void * cbdata, struct msg * msg, struct fd_list * candidates)
@@ -841,35 +1072,82 @@ static int score_destination_avp(void * cbdata, struct msg * msg, struct fd_list
 	return 0;
 }
 
-static pthread_t rt_out = (pthread_t)NULL;
-static pthread_t rt_in  = (pthread_t)NULL;
+/********************************************************************************/
+/*                     The functions for the other files                        */
+/********************************************************************************/
 
-/* Initialize the routing module */
-int fd_rt_init(void)
+/* Later: TODO("Set thresholds on queues"); */
+static pthread_t dispatch = (pthread_t)NULL;
+static enum thread_state disp_state = INITIAL;
+
+static pthread_t rt_out = (pthread_t)NULL;
+static enum thread_state out_state = INITIAL;
+
+static pthread_t rt_in  = (pthread_t)NULL;
+static enum thread_state in_state = INITIAL;
+
+/* Initialize the routing and dispatch threads */
+int fd_rtdisp_init(void)
 {
-	CHECK_POSIX( pthread_create( &rt_out, NULL, routing_out_thr, NULL) );
-	CHECK_POSIX( pthread_create( &rt_in,  NULL, routing_in_thr,  NULL) );
+	CHECK_POSIX( pthread_create( &dispatch, NULL, dispatch_thr, &disp_state ) );
+	CHECK_POSIX( pthread_create( &rt_out, NULL, routing_out_thr, &out_state) );
+	CHECK_POSIX( pthread_create( &rt_in,  NULL, routing_in_thr,  &in_state) );
 	
-	/* Later: TODO("Set the thresholds for the IN and OUT queues to create more routing threads as needed"); */
+	/* Later: TODO("Set the thresholds for the queues to create more threads as needed"); */
 	
 	/* Register the built-in callbacks */
 	CHECK_FCT( fd_rt_out_register( dont_send_if_no_common_app, NULL, 10, NULL ) );
 	CHECK_FCT( fd_rt_out_register( score_destination_avp, NULL, 10, NULL ) );
-	
 	return 0;
 }
 
-/* Terminate the routing threads */
-int fd_rt_fini(void)
+/* Ask the thread to terminate after next iteration */
+int fd_rtdisp_cleanstop(void)
 {
-	CHECK_FCT_DO( fd_thr_term(&rt_in ), /* continue */);
-	CHECK_FCT_DO( fd_thr_term(&rt_out), /* continue */);
+	CHECK_POSIX( pthread_mutex_lock(&order_lock) );
+	order_val = STOP;
+	CHECK_POSIX( pthread_mutex_unlock(&order_lock) );
+
+	return 0;
+}
+
+/* Stop the thread after up to one second of wait */
+int fd_rtdisp_fini(void)
+{
+	/* Destroy the local queue */
+	CHECK_FCT_DO( fd_queues_fini_disp(), /* ignore */);
+
+	/* Wait for a second for the thread to complete, by monitoring my_state */
+	if (disp_state != TERMINATED) {
+		TRACE_DEBUG(INFO, "Waiting for the dispatch thread to have a chance to terminate");
+		do {
+			struct timespec	 ts, ts_final;
+
+			CHECK_SYS_DO( clock_gettime(CLOCK_REALTIME, &ts), break );
+			
+			ts_final.tv_sec = ts.tv_sec + 1;
+			ts_final.tv_nsec = ts.tv_nsec;
+			
+			while (TS_IS_INFERIOR( &ts, &ts_final )) {
+				if (disp_state == TERMINATED)
+					break;
+				
+				usleep(100000);
+				CHECK_SYS_DO( clock_gettime(CLOCK_REALTIME, &ts), break );
+			}
+		} while (0);
+	}
+
+	/* Now stop the thread and reclaim its resources */
+	CHECK_FCT_DO( fd_thr_term(&dispatch ), /* continue */);
 	
+	
+	TODO("Add terminating the routing threads");
 	return 0;
 }
 
 /* Cleanup handlers */
-int fd_rt_cleanup(void)
+int fd_rtdisp_cleanup(void)
 {
 	/* Cleanup all remaining handlers */
 	while (!FD_IS_LIST_EMPTY(&rt_fwd_list)) {
@@ -878,7 +1156,41 @@ int fd_rt_cleanup(void)
 	while (!FD_IS_LIST_EMPTY(&rt_out_list)) {
 		CHECK_FCT_DO( fd_rt_out_unregister ( (void *)rt_out_list.next, NULL ), /* continue */ );
 	}
+	
+	fd_disp_unregister_all(); /* destroy remaining handlers */
+
 	return 0;
+}
+
+
+/* Add an application into the peer's supported apps */
+int fd_disp_app_support ( struct dict_object * app, struct dict_object * vendor, int auth, int acct )
+{
+	application_id_t aid = 0;
+	vendor_id_t	 vid = 0;
+	
+	TRACE_ENTRY("%p %p %d %d", app, vendor, auth, acct);
+	CHECK_PARAMS( app && (auth || acct) );
+	
+	{
+		enum dict_object_type type = 0;
+		struct dict_application_data data;
+		CHECK_FCT( fd_dict_gettype(app, &type) );
+		CHECK_PARAMS( type == DICT_APPLICATION );
+		CHECK_FCT( fd_dict_getval(app, &data) );
+		aid = data.application_id;
+	}
+
+	if (vendor) {
+		enum dict_object_type type = 0;
+		struct dict_vendor_data data;
+		CHECK_FCT( fd_dict_gettype(vendor, &type) );
+		CHECK_PARAMS( type == DICT_VENDOR );
+		CHECK_FCT( fd_dict_getval(vendor, &data) );
+		vid = data.vendor_id;
+	}
+	
+	return fd_app_merge(&fd_g_config->cnf_apps, aid, vid, auth, acct);
 }
 
 

@@ -50,13 +50,10 @@ int fd_queues_init(void)
 	return 0;
 }
 
-/* Destroy the message queues */
-int fd_queues_fini(void)
+/* Destroy the routing message queues */
+int fd_queues_fini_rt(void)
 {
 	TRACE_ENTRY();
-	
-	/* Stop the providing threads */
-	TODO("Stop the providing threads");
 	
 	/* Empty all contents */
 	TODO("Empty all contents (dump to log file ?)");
@@ -64,6 +61,18 @@ int fd_queues_fini(void)
 	/* Now, delete the queues */
 	CHECK_FCT( fd_fifo_del ( &fd_g_incoming ) );
 	CHECK_FCT( fd_fifo_del ( &fd_g_outgoing ) );
+	
+	return 0;
+}
+
+/* Destroy the local message queue */
+int fd_queues_fini_disp(void)
+{
+	TRACE_ENTRY();
+	
+	/* Empty all contents */
+	TODO("Empty all contents (dump to log file ?)");
+	
 	CHECK_FCT( fd_fifo_del ( &fd_g_local ) );
 	
 	return 0;

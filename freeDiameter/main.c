@@ -99,8 +99,7 @@ int main(int argc, char * argv[])
 	CHECK_FCT(  fd_queues_init()  );
 	CHECK_FCT(  fd_msg_init()  );
 	CHECK_FCT(  fd_p_expi_init()  );
-	CHECK_FCT(  fd_disp_init()  );
-	CHECK_FCT(  fd_rt_init()  );
+	CHECK_FCT(  fd_rtdisp_init()  );
 	
 	/* Parse the configuration file */
 	CHECK_FCT( fd_conf_parse() );
@@ -162,18 +161,14 @@ end:
 	
 	/* cleanups */
 	CHECK_FCT_DO( fd_servers_stop(), /* Stop accepting new connections */ );
-	CHECK_FCT_DO( fd_disp_cleanstop(), /* Stop dispatch thread(s) properly (no cancel yet) */ );
+	CHECK_FCT_DO( fd_rtdisp_cleanstop(), /* Stop dispatch thread(s) after a clean loop if possible */ );
 	CHECK_FCT_DO( fd_peer_fini(), /* Stop all connections */ );
-	CHECK_FCT_DO( fd_rt_fini(), /* Stop routing threads */ );
-	CHECK_FCT_DO( fd_disp_fini(), /* Stop dispatch thread */ );
+	CHECK_FCT_DO( fd_rtdisp_fini(), /* Stop routing threads and destroy routing queues */ );
 	
-	CHECK_FCT_DO( fd_ext_fini(), /* Cleaup all extensions */ );
-	TODO("Cleanup queues (dump all remaining messages ?)");
-	CHECK_FCT_DO( fd_rt_cleanup(), /* destroy remaining handlers */ );
-	fd_disp_unregister_all(); /* destroy remaining handlers */
+	CHECK_FCT_DO( fd_ext_fini(), /* Cleanup all extensions */ );
+	CHECK_FCT_DO( fd_rtdisp_cleanup(), /* destroy remaining handlers */ );
 	
-	
-	CHECK_FCT_DO( fd_thr_term(&sig_th), /* continue */ );
+	CHECK_FCT_DO( fd_thr_term(&sig_th), /* reclaim resources of the signal thread */ );
 	
 	gnutls_global_deinit();
 	

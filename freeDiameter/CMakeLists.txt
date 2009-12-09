@@ -13,7 +13,6 @@ SET(FD_COMMON_SRC
 	cnxctx.h
 	config.c
 	cnxctx.c
-	dispatch.c
 	endpoints.c
 	events.c
 	extensions.c
@@ -29,7 +28,7 @@ SET(FD_COMMON_SRC
 	p_out.c
 	p_psm.c
 	p_sr.c
-	routing.c
+	routing_dispatch.c
 	server.c
 	tcp.c
 	)
