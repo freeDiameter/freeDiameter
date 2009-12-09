@@ -1,0 +1,5 @@
+# The rt_debug extension
+PROJECT("Routing module debug extension" C)
+
+# Compile as a module
+FD_ADD_EXTENSION(rt_debug rt_debug.c)

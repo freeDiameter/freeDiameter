@@ -68,15 +68,15 @@ OPTION(BUILD_MONITOR "Build monitor.fdx? (display periodical debug information o
 	   SUBDIRS(dbg_monitor)
 	ENDIF (BUILD_MONITOR)
 
-# OPTION(BUILD_RT_ANY "Build rt_any? (Routing extension sending message to any peer available, for testing purpose only)" OFF)
+# OPTION(BUILD_RT_ANY "Build rt_any? (Routing extension randomly sending message to any peer available, for testing purpose only)" OFF)
 # 	IF (BUILD_RT_ANY)
 # 	   SUBDIRS(rt_any)
 # 	ENDIF (BUILD_RT_ANY)
 
-# OPTION(BUILD_RT_DEBUG "Build rt_debug? (Routing extension tracing routing list, for debug purpose only)" OFF)
-# 	IF (BUILD_RT_DEBUG)
-# 	   SUBDIRS(rt_debug)
-# 	ENDIF (BUILD_RT_DEBUG)
+OPTION(BUILD_RT_DEBUG "Build rt_debug? (Routing extension for debugging the routing module)" OFF)
+ 	IF (BUILD_RT_DEBUG)
+ 	   SUBDIRS(rt_debug)
+ 	ENDIF (BUILD_RT_DEBUG)
 
 OPTION(BUILD_APP_TEST "Build app_test? (Testing application to send dummy message to another peer, for testing purpose only)" OFF)
  	IF (BUILD_APP_TEST)
