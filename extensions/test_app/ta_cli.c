@@ -220,7 +220,6 @@ static void ta_cli_test_message(void)
 	CHECK_FCT_DO( fd_msg_send( &req, ta_cb_ans, svg ), goto out );
 
 out:
-	TRACE_DEBUG(FULL, "Client function terminated");	
 	return;
 }
 
