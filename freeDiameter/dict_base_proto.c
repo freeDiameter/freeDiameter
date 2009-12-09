@@ -1252,6 +1252,17 @@ int fd_dict_base_protocol(struct dictionary * dict)
 			}
 			/* Protocol Errors */
 			{
+				/* 3001 */
+				{
+					/*
+						The Request contained a Command-Code that the receiver did not
+						recognize or support.  This MUST be used when a Diameter node
+						receives an experimental command that it does not understand.
+					*/
+					/* (old): it has been changed to 5019 in 3588bis */
+					struct dict_enumval_data 	error_code = { "DIAMETER_COMMAND_UNSUPPORTED(old)", 	{ .u32 = 3001 }};
+					CHECK_dict_new( DICT_ENUMVAL, &error_code , type, NULL);
+				}
 				/* 3002 */
 				{
 					/*
@@ -1321,6 +1332,37 @@ int fd_dict_base_protocol(struct dictionary * dict)
 						A request was sent for an application that is not supported.
 					*/
 					struct dict_enumval_data 	error_code = { "DIAMETER_APPLICATION_UNSUPPORTED",	{ .u32 = 3007 }};
+					CHECK_dict_new( DICT_ENUMVAL, &error_code , type, NULL);
+				}
+				/* 3008 */
+				{
+					/*
+						A request was received whose bits in the Diameter header were
+						either set to an invalid combination, or to a value that is
+						inconsistent with the command code's definition.
+					*/
+					/* (old): it has been changed in 3588bis */
+					struct dict_enumval_data 	error_code = { "DIAMETER_INVALID_HDR_BITS(old)", 	{ .u32 = 3008 }};
+					CHECK_dict_new( DICT_ENUMVAL, &error_code , type, NULL);
+				}
+				/* 3009 */
+				{
+					/*
+						A request was received that included an AVP whose flag bits are
+						set to an unrecognized value, or that is inconsistent with the
+						AVP's definition.
+					*/
+					/* (old): it has been changed in 3588bis */
+					struct dict_enumval_data 	error_code = { "DIAMETER_INVALID_AVP_BITS(old)", 	{ .u32 = 3009 }};
+					CHECK_dict_new( DICT_ENUMVAL, &error_code , type, NULL);
+				}
+				/* 3010 */
+				{
+					/*
+						 A CER was received from an unknown peer.
+					*/
+					/* (old): it has been changed in 3588bis */
+					struct dict_enumval_data 	error_code = { "DIAMETER_UNKNOWN_PEER(old)", 	{ .u32 = 3010 }};
 					CHECK_dict_new( DICT_ENUMVAL, &error_code , type, NULL);
 				}
 				/* 3011 */
@@ -1499,6 +1541,16 @@ int fd_dict_base_protocol(struct dictionary * dict)
 					struct dict_enumval_data 	error_code = { "DIAMETER_UNABLE_TO_COMPLY",	{ .u32 = 5012 }};
 					CHECK_dict_new( DICT_ENUMVAL, &error_code , type, NULL);
 				}
+				/* 5013 */
+				{
+					/*
+						This error is returned when an unrecognized bit in the Diameter
+						header is set to one (1).
+					*/
+					/* (old): it has been changed in 3588bis */
+					struct dict_enumval_data 	error_code = { "DIAMETER_INVALID_BIT_IN_HEADER(old)", 	{ .u32 = 5013 }};
+					CHECK_dict_new( DICT_ENUMVAL, &error_code , type, NULL);
+				}
 				/* 5014 */
 				{
 					/*
@@ -1517,6 +1569,28 @@ int fd_dict_base_protocol(struct dictionary * dict)
 						AVP header with zero up to the minimum AVP header length.
 					*/
 					struct dict_enumval_data 	error_code = { "DIAMETER_INVALID_AVP_LENGTH",	{ .u32 = 5014 }};
+					CHECK_dict_new( DICT_ENUMVAL, &error_code , type, NULL);
+				}
+				/* 5015 */
+				{
+					/*
+						This error is returned when a request is received with an invalid
+						message length.
+					*/
+					/* (old): it has been changed in 3588bis */
+					struct dict_enumval_data 	error_code = { "DIAMETER_INVALID_MESSAGE_LENGTH(old)", 	{ .u32 = 5015 }};
+					CHECK_dict_new( DICT_ENUMVAL, &error_code , type, NULL);
+				}
+				/* 5016 */
+				{
+					/*
+						The request contained an AVP with which is not allowed to have the
+						given value in the AVP Flags field.  A Diameter message indicating
+						this error MUST include the offending AVPs within a Failed-AVP
+						AVP.
+					*/
+					/* (old): it has been changed in 3588bis */
+					struct dict_enumval_data 	error_code = { "DIAMETER_INVALID_AVP_BIT_COMBO(old)", 	{ .u32 = 5016 }};
 					CHECK_dict_new( DICT_ENUMVAL, &error_code , type, NULL);
 				}
 				/* 5017 */
