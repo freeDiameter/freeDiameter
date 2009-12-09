@@ -260,9 +260,6 @@ int fd_disp_fini(void)
 
 	/* Then if needed, cancel the thread */
 	
-	/* Remove all remaining handlers */
-	fd_disp_unregister_all();
-	
 	return ENOTSUP;
 }
 

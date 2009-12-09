@@ -169,6 +169,9 @@ end:
 	
 	CHECK_FCT_DO( fd_ext_fini(), /* Cleaup all extensions */ );
 	TODO("Cleanup queues (dump all remaining messages ?)");
+	CHECK_FCT_DO( fd_rt_cleanup(), /* destroy remaining handlers */ );
+	fd_disp_unregister_all(); /* destroy remaining handlers */
+	
 	
 	CHECK_FCT_DO( fd_thr_term(&sig_th), /* continue */ );
 	

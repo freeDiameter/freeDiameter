@@ -107,6 +107,12 @@ int fd_dict_base_protocol(struct dictionary * dict);
 /* Routing */
 int fd_rt_init(void);
 int fd_rt_fini(void);
+int fd_rt_cleanup(void);
+
+/* Dispatch */
+int fd_disp_init(void);
+int fd_disp_cleanstop(void);
+int fd_disp_fini(void);
 
 /* Sentinel for the sent requests list */
 struct sr_list {

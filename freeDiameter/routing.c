@@ -859,12 +859,18 @@ int fd_rt_init(void)
 	return 0;
 }
 
-/* Terminate the routing module */
+/* Terminate the routing threads */
 int fd_rt_fini(void)
 {
 	CHECK_FCT_DO( fd_thr_term(&rt_in ), /* continue */);
 	CHECK_FCT_DO( fd_thr_term(&rt_out), /* continue */);
 	
+	return 0;
+}
+
+/* Cleanup handlers */
+int fd_rt_cleanup(void)
+{
 	/* Cleanup all remaining handlers */
 	while (!FD_IS_LIST_EMPTY(&rt_fwd_list)) {
 		CHECK_FCT_DO( fd_rt_fwd_unregister ( (void *)rt_fwd_list.next, NULL ), /* continue */ );
