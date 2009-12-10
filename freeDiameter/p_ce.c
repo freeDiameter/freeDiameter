@@ -282,6 +282,23 @@ static int save_remote_CE_info(struct msg * msg, struct fd_peer * peer, char ** 
 		}
 
 		switch (hdr->avp_code) {
+			case AC_RESULT_CODE: /* Result-Code */
+				if (hdr->avp_value == NULL) {
+					/* This is a sanity check */
+					TRACE_DEBUG(NONE, "Ignored an AVP with unset value in CER/CEA");
+					fd_msg_dump_one(NONE, avp);
+					ASSERT(0); /* To check if this really happens, and understand why... */
+					goto next;
+				}
+				
+				/* We check that the CEA Result-Code is Success, otherwise we disconnect */
+				if (hdr->avp_value->u32 != ER_DIAMETER_SUCCESS) {
+					TRACE_DEBUG(INFO, "Received CEA with Result-Code %d (expected %d), disconnect", hdr->avp_value->u32, ER_DIAMETER_SUCCESS);
+					return EBADMSG;
+				}
+
+				break;
+		
 			case AC_ORIGIN_HOST: /* Origin-Host */
 				if (hdr->avp_value == NULL) {
 					/* This is a sanity check */
@@ -625,7 +642,7 @@ int fd_p_ce_msgrcv(struct msg ** msg, int req, struct fd_peer * peer)
 	TRACE_ENTRY("%p %p", msg, peer);
 	CHECK_PARAMS( msg && *msg && CHECK_PEER(peer) );
 	
-	/* The only valid situation where we are called is in WAITCEA and we receive a CEA */
+	/* The only valid situation where we are called is in WAITCEA and we receive a CEA (we may have won an election) */
 	
 	/* Note : to implement Capabilities Update, we would need to change here */
 	
@@ -695,6 +712,11 @@ int fd_p_ce_msgrcv(struct msg ** msg, int req, struct fd_peer * peer)
 	return 0;
 	
 cleanup:
+	if (*msg) {
+		CHECK_FCT_DO( fd_msg_free(*msg), /* continue */ );
+		*msg = NULL;
+	}
+
 	fd_p_ce_clear_cnx(peer, NULL);
 
 	/* Send the error to the peer */
