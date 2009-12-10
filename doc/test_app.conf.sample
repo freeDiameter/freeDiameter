@@ -48,6 +48,10 @@
 # (default is not providing this AVP).
 # dest-host = "server.foreign.net";
 
+# The User-Name for the message (may be useful for some routing tests).
+# (default is not providing this AVP).
+# user-name = "user@server.foreign.net";
+
 # The signal that triggers sending the test message
 # Note: Symbolic names are now recognized, you must use integers
 # signal = 10;

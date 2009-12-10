@@ -144,6 +144,10 @@
 				return DEST_HOST;
 			}
 
+(?i:"user-name")	{
+				return USER_NAME;
+			}
+
 (?i:"Signal")		{
 				return SIGNAL;
 			}

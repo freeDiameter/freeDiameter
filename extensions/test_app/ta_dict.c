@@ -48,6 +48,7 @@ struct dict_object * ta_origin_host = NULL;
 struct dict_object * ta_origin_realm = NULL;
 struct dict_object * ta_dest_host = NULL;
 struct dict_object * ta_dest_realm = NULL;
+struct dict_object * ta_user_name = NULL;
 struct dict_object * ta_res_code = NULL;
 
 int ta_dict_init(void)
@@ -101,6 +102,7 @@ int ta_dict_init(void)
 	CHECK_FCT( fd_dict_search( fd_g_config->cnf_dict, DICT_AVP, AVP_BY_NAME, "Origin-Realm", &ta_origin_realm, ENOENT) );
 	CHECK_FCT( fd_dict_search( fd_g_config->cnf_dict, DICT_AVP, AVP_BY_NAME, "Destination-Host", &ta_dest_host, ENOENT) );
 	CHECK_FCT( fd_dict_search( fd_g_config->cnf_dict, DICT_AVP, AVP_BY_NAME, "Destination-Realm", &ta_dest_realm, ENOENT) );
+	CHECK_FCT( fd_dict_search( fd_g_config->cnf_dict, DICT_AVP, AVP_BY_NAME, "User-Name", &ta_user_name, ENOENT) );
 	CHECK_FCT( fd_dict_search( fd_g_config->cnf_dict, DICT_AVP, AVP_BY_NAME, "Result-Code", &ta_res_code, ENOENT) );
 	
 	/* Create the rules for Test-Request and Test-Answer */

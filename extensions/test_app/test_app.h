@@ -60,6 +60,7 @@ struct ta_conf {
 	int		mode;		/* default MODE_SERV | MODE_CLI */
 	char 	*	dest_realm;	/* default local realm */
 	char 	*	dest_host;	/* default NULL */
+	char 	*	user_name;	/* default NULL */
 	int 		signal;		/* default TEST_APP_DEFAULT_SIGNAL */
 };
 extern struct ta_conf * ta_conf;
@@ -95,4 +96,5 @@ extern struct dict_object * ta_origin_host;
 extern struct dict_object * ta_origin_realm;
 extern struct dict_object * ta_dest_host;
 extern struct dict_object * ta_dest_realm;
+extern struct dict_object * ta_user_name;
 extern struct dict_object * ta_res_code;

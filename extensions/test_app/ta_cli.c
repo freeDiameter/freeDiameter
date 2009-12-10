@@ -195,6 +195,14 @@ static void ta_cli_test_message(void)
 	/* Set Origin-Host & Origin-Realm */
 	CHECK_FCT_DO( fd_msg_add_origin ( req, 0 ), goto out  );
 	
+	/* Set the User-Name AVP if needed*/
+	if (ta_conf->user_name) {
+		CHECK_FCT_DO( fd_msg_avp_new ( ta_user_name, 0, &avp ), goto out  );
+		val.os.data = (unsigned char *)(ta_conf->user_name);
+		val.os.len  = strlen(ta_conf->user_name);
+		CHECK_FCT_DO( fd_msg_avp_setvalue( avp, &val ), goto out  );
+		CHECK_FCT_DO( fd_msg_avp_add( req, MSG_BRW_LAST_CHILD, avp ), goto out  );
+	}
 	
 	/* Set the Test-AVP AVP */
 	{

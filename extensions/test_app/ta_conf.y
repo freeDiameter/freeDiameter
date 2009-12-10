@@ -123,6 +123,7 @@ void yyerror (YYLTYPE *ploc, char * conffile, char const *s)
 %token 		MODE
 %token 		DEST_REALM
 %token 		DEST_HOST
+%token 		USER_NAME
 %token 		SIGNAL
 
 /* Tokens and types for routing table definition */
@@ -146,6 +147,7 @@ conffile:		/* empty grammar is OK */
 			| conffile mode
 			| conffile dstrealm
 			| conffile dsthost
+			| conffile usrname
 			| conffile signal
 			;
 
@@ -190,6 +192,13 @@ dsthost:		DEST_HOST '=' QSTRING ';'
 			{
 				free(ta_conf->dest_host);
 				ta_conf->dest_host = $3;
+			}
+			;
+
+usrname:		USER_NAME '=' QSTRING ';'
+			{
+				free(ta_conf->user_name);
+				ta_conf->user_name = $3;
 			}
 			;
 
