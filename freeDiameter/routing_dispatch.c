@@ -1014,14 +1014,13 @@ static void * process_thr(void * arg, int (*action_cb)(struct msg ** pmsg), stru
 		/* Get the next message from the queue */
 		{
 			int ret;
-			CHECK_FCT_DO( ret = fd_fifo_get ( queue, &msg ), 
-				{
-					if (ret == EPIPE)
-						/* The queue was destroyed, we are probably exiting */
-						goto end;
-					/* another error occurred */
-					goto fatal_error;
-				} );
+			ret = fd_fifo_get ( queue, &msg );
+			if (ret == EPIPE)
+				/* The queue was destroyed, we are probably exiting */
+				goto end;
+			
+			/* check if another error occurred */
+			CHECK_FCT_DO( ret, goto fatal_error );
 		}
 		
 		if (TRACE_BOOL(FULL)) {
