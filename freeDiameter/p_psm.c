@@ -383,9 +383,8 @@ psm_loop:
 		CHECK_FCT_DO( fd_msg_parse_buffer( (void *)&ev_data, ev_sz, &msg), 
 			{
 				fd_log_debug("Received invalid data from peer '%s', closing the connection\n", peer->p_hdr.info.pi_diamid);
-				CHECK_FCT_DO( fd_event_send(peer->p_events, FDEVP_CNX_ERROR, 0, NULL), goto psm_end );
 				free(ev_data);
-				goto psm_loop;
+				goto psm_reset;
 			} );
 		
 		TRACE_DEBUG(FULL, "Received a message (%zdb) from '%s'", ev_sz, peer->p_hdr.info.pi_diamid);
@@ -451,18 +450,22 @@ psm_loop:
 		
 		/* Link-local message: They must be understood by our dictionary, otherwise we return an error */
 		{
-			int ret;
-			CHECK_FCT_DO( ret = fd_msg_parse_or_error( &msg ),
-				{
-					if ((ret == EBADMSG) && (msg != NULL)) {
-						/* msg now contains an answer message to send back */
-						CHECK_FCT_DO( fd_out_send(&msg, peer->p_cnxctx, peer), /* In case of error the message has already been dumped */ );
-					}
+			int ret = fd_msg_parse_or_error( &msg );
+			if (ret != EBADMSG) {
+				CHECK_FCT_DO( ret, goto psm_end );
+			} else {
+				if (msg) {
+					/* Send the error back to the peer */
+					CHECK_FCT_DO( fd_out_send(&msg, NULL, peer), /* In case of error the message has already been dumped */ );
 					if (msg) {
-						CHECK_FCT_DO( fd_msg_free(msg), /* continue */);
+						CHECK_FCT_DO( fd_msg_free(msg), goto psm_end);
 					}
-					goto psm_loop;
-				} );
+				} else {
+					/* We received an invalid answer, let's disconnect */
+					goto psm_reset;
+				}
+				goto psm_loop;
+			}
 		}
 		
 		/* Handle the LL message and update the expiry timer appropriately */
@@ -498,7 +501,7 @@ psm_loop:
 					} while (0);
 				} else {
 					/* We did ASK for it ??? */
-					fd_log_debug("Invalid PXY flag in header ?\n");
+					fd_log_debug("Invalid PXY flag in answer header ?\n");
 				}
 				
 				/* Cleanup the message if not done */
@@ -536,14 +539,16 @@ psm_loop:
 			default:
 				/* Mark the connection problem */
 				peer->p_flags.pf_cnx_pb = 1;
+				goto psm_reset;
+				
+			case STATE_CLOSED:
+				/* Just ignore */
+				break;
 				
 			case STATE_CLOSING:
 				/* We sent a DPR so we are terminating, do not wait for DPA */
 				goto psm_end;
 				
-			case STATE_CLOSED:
-				/* Just ignore */
-				;
 		}
 		goto psm_loop;
 	}
@@ -616,7 +621,7 @@ psm_loop:
 		goto psm_loop;
 	}
 	
-	/* A new connection has been established with the remote peer */
+	/* A new connection has not been established with the remote peer */
 	if (event == FDEVP_CNX_FAILED) {
 		struct cnxctx * cnx = ev_data;
 		
@@ -680,8 +685,11 @@ psm_loop:
 	
 	/* Default action : the handling has not yet been implemented. [for debug only] */
 	TRACE_DEBUG(INFO, "Missing handler in PSM for '%s'\t<-- '%s'", STATE_STR(peer->p_hdr.info.runtime.pir_state), fd_pev_str(event));
+psm_reset:
+	fd_psm_cleanup(peer, 0);
+	fd_psm_next_timeout(peer, 0, 0);
 	goto psm_loop;
-
+	
 psm_end:
 	fd_psm_cleanup(peer, 1);
 	pthread_cleanup_pop(1); /* set STATE_ZOMBIE */

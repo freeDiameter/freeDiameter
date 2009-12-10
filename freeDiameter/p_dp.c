@@ -167,7 +167,7 @@ int fd_p_dp_initiate(struct fd_peer * peer, char * reason)
 	fd_psm_next_timeout(peer, 0, DPR_TIMEOUT);
 	
 	/* Now send the DPR message */
-	CHECK_FCT( fd_out_send(&msg, NULL, peer) );
+	CHECK_FCT_DO( fd_out_send(&msg, NULL, peer), /* ignore since we are on timeout anyway */ );
 	
 	return 0;
 }

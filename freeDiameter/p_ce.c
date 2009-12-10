@@ -638,7 +638,7 @@ int fd_p_ce_msgrcv(struct msg ** msg, int req, struct fd_peer * peer)
 		CHECK_FCT( fd_msg_rescode_set(*msg, "DIAMETER_COMMAND_UNSUPPORTED", "No CER allowed in current state", NULL, 1 ) );
 
 		/* msg now contains an answer message to send back */
-		CHECK_FCT_DO( fd_out_send(msg, peer->p_cnxctx, peer), /* In case of error the message has already been dumped */ );
+		CHECK_FCT_DO( fd_out_send(msg, NULL, peer), /* In case of error the message has already been dumped */ );
 	}
 	
 	/* If the state is not WAITCEA, just discard the message */
