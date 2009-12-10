@@ -50,30 +50,32 @@ int fd_queues_init(void)
 	return 0;
 }
 
-/* Destroy the routing message queues */
-int fd_queues_fini_rt(void)
+/* Destroy a queue after emptying it (and dumping the content) */
+int fd_queues_fini(struct fifo ** queue)
 {
-	TRACE_ENTRY();
+	struct msg * msg;
+	int ret = 0;
 	
-	/* Empty all contents */
-	TODO("Empty all contents (dump to log file ?)");
+	TRACE_ENTRY("%p", queue);
 	
-	/* Now, delete the queues */
-	CHECK_FCT( fd_fifo_del ( &fd_g_incoming ) );
-	CHECK_FCT( fd_fifo_del ( &fd_g_outgoing ) );
-	
-	return 0;
-}
+	/* Note : the threads that post into this queue should already been stopped before this !!! */
 
-/* Destroy the local message queue */
-int fd_queues_fini_disp(void)
-{
-	TRACE_ENTRY();
-	
 	/* Empty all contents */
-	TODO("Empty all contents (dump to log file ?)");
+	while (1) {
+		/* Check if there is a message in the queue */
+		ret = fd_fifo_tryget(*queue, &msg);
+		if (ret == EWOULDBLOCK)
+			break;
+		CHECK_FCT(ret);
+		
+		/* We got one! */
+		fd_log_debug("The following message is lost because the daemon is stopping:\n");
+		fd_msg_dump_walk(NONE, msg);
+		fd_msg_free(msg);
+	}
 	
-	CHECK_FCT( fd_fifo_del ( &fd_g_local ) );
+	/* Now, delete the empty queue */
+	CHECK_FCT( fd_fifo_del ( queue ) );
 	
 	return 0;
 }

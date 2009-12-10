@@ -1632,7 +1632,7 @@ int  fd_rtd_candidate_add(struct rt_data * rtd, char * peerid);
 void fd_rtd_candidate_del(struct rt_data * rtd, char * peerid, size_t sz /* if !0, peerid does not need to be \0 terminated */);
 
 /* Extract the list of valid candidates, and initialize their scores to 0 */
-void fd_rtd_candidate_extract(struct rt_data * rtd, struct fd_list ** candidates);
+void fd_rtd_candidate_extract(struct rt_data * rtd, struct fd_list ** candidates, int ini_score);
 
 /* If a peer returned a protocol error for this message, save it so that we don't try to send it there again */
 int  fd_rtd_error_add(struct rt_data * rtd, char * sentto, uint8_t * origin, size_t originsz, uint32_t rcode);
@@ -2605,7 +2605,7 @@ int fd_fifo_get_int ( struct fifo * queue, void ** item );
  *
  * PARAMETERS:
  *  queue	: The queue from which the element must be retrieved.
- *  msg		: On return, the message is stored here.
+ *  item	: On return, the first element of the queue is stored here.
  *
  * DESCRIPTION: 
  *  This function is similar to fd_fifo_get, except that it will not block if 

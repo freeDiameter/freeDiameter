@@ -561,6 +561,7 @@ struct fd_rt_out_hdl;
 
 enum fd_rt_out_score {
 	FD_SCORE_NO_DELIVERY	 = -70,	/* We should not send this message to this candidate */
+	FD_SCORE_INI		 =  -2, /* All candidates are initialized with this value */
 	FD_SCORE_LOAD_BALANCE	 =   1,	/* Use this to differentiate between several peers with the same score */
 	FD_SCORE_DEFAULT	 =   5,	/* The peer is a default route for all messages */
 	FD_SCORE_DEFAULT_REALM	 =  10,	/* The peer is a default route for this realm */

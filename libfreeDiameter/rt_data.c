@@ -226,7 +226,7 @@ int  fd_rtd_error_add(struct rt_data * rtd, char * sentto, uint8_t * origin, siz
 }
 
 /* Extract the list of valid candidates, and initialize their scores to 0 */
-void fd_rtd_candidate_extract(struct rt_data * rtd, struct fd_list ** candidates)
+void fd_rtd_candidate_extract(struct rt_data * rtd, struct fd_list ** candidates, int ini_score)
 {
 	TRACE_ENTRY("%p %p", rtd, candidates);
 	CHECK_PARAMS_DO( candidates, return );
@@ -235,11 +235,11 @@ void fd_rtd_candidate_extract(struct rt_data * rtd, struct fd_list ** candidates
 	*candidates = &rtd->candidates;
 	
 	if (rtd->extracted) {
-		/* Reset all scores to 0 */
+		/* Reset all scores to INITIAL score */
 		struct fd_list * li;
 		for (li = rtd->candidates.next; li != &rtd->candidates; li = li->next) {
 			struct rtd_candidate * c = (struct rtd_candidate *) li;
-			c->score = 0;
+			c->score = ini_score;
 		}
 	}
 	
