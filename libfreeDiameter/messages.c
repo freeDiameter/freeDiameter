@@ -2302,6 +2302,7 @@ int fd_msg_dispatch ( struct msg ** msg, struct session * session, enum disp_act
 	
 	if (error_code)
 		*error_code = NULL;
+	*action = DISP_ACT_CONT;
 	
 	/* Take the dispatch lock */
 	CHECK_FCT( pthread_rwlock_rdlock(&fd_disp_lock) );
