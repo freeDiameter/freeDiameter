@@ -1382,6 +1382,7 @@ The "parent" parameter can not be NULL. It points to the object (grouped avp or 
 #define ER_DIAMETER_REALM_NOT_SERVED		3003
 #define ER_DIAMETER_TOO_BUSY			3004
 #define ER_DIAMETER_REDIRECT_INDICATION		3006
+#define ER_ELECTION_LOST			4003
 
 
 /*============================================================*/

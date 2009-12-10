@@ -260,7 +260,7 @@ static void cleanup_remote_CE_info(struct fd_peer * peer)
 }
 
 /* Extract information sent by the remote peer and save it in our peer structure */
-static int save_remote_CE_info(struct msg * msg, struct fd_peer * peer, char ** error_code)
+static int save_remote_CE_info(struct msg * msg, struct fd_peer * peer, char ** error_code, uint32_t *rc)
 {
 	struct avp * avp = NULL;
 	
@@ -291,12 +291,8 @@ static int save_remote_CE_info(struct msg * msg, struct fd_peer * peer, char ** 
 					goto next;
 				}
 				
-				/* We check that the CEA Result-Code is Success, otherwise we disconnect */
-				if (hdr->avp_value->u32 != ER_DIAMETER_SUCCESS) {
-					TRACE_DEBUG(INFO, "Received CEA with Result-Code %d (expected %d), disconnect", hdr->avp_value->u32, ER_DIAMETER_SUCCESS);
-					return EBADMSG;
-				}
-
+				if (rc)
+					*rc = hdr->avp_value->u32;
 				break;
 		
 			case AC_ORIGIN_HOST: /* Origin-Host */
@@ -639,6 +635,7 @@ int fd_p_ce_handle_newcnx(struct fd_peer * peer, struct cnxctx * initiator)
 int fd_p_ce_msgrcv(struct msg ** msg, int req, struct fd_peer * peer)
 {
 	char * ec;
+	uint32_t rc = 0;
 	TRACE_ENTRY("%p %p", msg, peer);
 	CHECK_PARAMS( msg && *msg && CHECK_PEER(peer) );
 	
@@ -671,11 +668,35 @@ int fd_p_ce_msgrcv(struct msg ** msg, int req, struct fd_peer * peer)
 	}
 	
 	/* Save info from the CEA into the peer */
-	CHECK_FCT_DO( save_remote_CE_info(*msg, peer, &ec), goto cleanup );
+	CHECK_FCT_DO( save_remote_CE_info(*msg, peer, &ec, &rc), goto cleanup );
 	
 	/* Dispose of the message, we don't need it anymore */
 	CHECK_FCT_DO( fd_msg_free(*msg), /* continue */ );
 	*msg = NULL;
+	
+	/* Check the Result-Code */
+	switch (rc) {
+		case ER_DIAMETER_SUCCESS:
+			/* No problem, we can continue */
+			break;
+			
+		case ER_DIAMETER_TOO_BUSY:
+			/* Retry later */
+			TRACE_DEBUG(INFO, "Peer %s replied a CEA with Result-Code AVP DIAMETER_TOO_BUSY, will retry later.", peer->p_hdr.info.pi_diamid);
+			fd_psm_cleanup(peer, 0);
+			fd_psm_next_timeout(peer, 0, 300);
+			return 0;
+		
+		case ER_ELECTION_LOST:
+			/* Ok, just wait for a little while for the CER to be processed on the other connection. */
+			TRACE_DEBUG(FULL, "Peer %s replied a CEA with Result-Code AVP ELECTION_LOST, waiting for events.", peer->p_hdr.info.pi_diamid);
+			return 0;
+		
+		default:
+			/* In any other case, we abort all attempts to connect to this peer */
+			TRACE_DEBUG(INFO, "Peer %s replied a CEA with Result-Code AVP %d, aborting connection attempts.", peer->p_hdr.info.pi_diamid, rc);
+			return EINVAL;
+	}
 	
 	/* Handshake if needed, start clear otherwise */
 	if ( ! fd_cnx_getTLS(peer->p_cnxctx) ) {
@@ -712,11 +733,6 @@ int fd_p_ce_msgrcv(struct msg ** msg, int req, struct fd_peer * peer)
 	return 0;
 	
 cleanup:
-	if (*msg) {
-		CHECK_FCT_DO( fd_msg_free(*msg), /* continue */ );
-		*msg = NULL;
-	}
-
 	fd_p_ce_clear_cnx(peer, NULL);
 
 	/* Send the error to the peer */
@@ -740,7 +756,7 @@ int fd_p_ce_process_receiver(struct fd_peer * peer)
 	peer->p_cer = NULL;
 	
 	/* Parse the content of the received CER */
-	CHECK_FCT_DO( save_remote_CE_info(msg, peer, &ec), goto error_abort );
+	CHECK_FCT_DO( save_remote_CE_info(msg, peer, &ec, NULL), goto error_abort );
 	
 	/* Validate the peer if needed */
 	if (peer->p_flags.pf_responder) {

@@ -531,10 +531,10 @@ psm_loop:
 				CHECK_FCT_DO( fd_p_ce_process_receiver(peer), goto psm_end );
 				break;
 			
+			case STATE_WAITCEA:
 			case STATE_OPEN:
 			case STATE_REOPEN:
 			case STATE_WAITCNXACK:
-			case STATE_WAITCEA:
 			case STATE_SUSPECT:
 			default:
 				/* Mark the connection problem */
