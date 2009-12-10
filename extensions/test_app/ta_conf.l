@@ -87,9 +87,9 @@
 				return INTEGER;
 			}
 
-	/* Recognize quoted strings */
-\"[[:alnum:].-]+\"	{
-				/* Match a string. expected only ASCII characters, '-' and '.'. The validation is done in yacc */
+	/* Recognize quoted strings -- we do not support escaped \" in the string currently. */
+\"[^\"]+\"		{
+				/* Match a quoted string. Let's be very permissive. */
 				yylval->string = strdup(yytext+1);
 				if (!yylval->string) {
 					fd_log_debug("Unable to copy the string '%s': %s\n", yytext, strerror(errno));
