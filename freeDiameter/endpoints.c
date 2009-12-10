@@ -41,10 +41,26 @@ int fd_ep_add_merge( struct fd_list * list, sSA * sa, socklen_t sl, uint32_t fla
 {
 	struct fd_endpoint * ep;
 	struct fd_list * li;
+	union {
+		sSA * sa;
+		sSA4 *sin;
+		sSA6 *sin6;
+	} ptr;
 	int cmp = -1;
 	
 	TRACE_ENTRY("%p %p %u %x", list, sa, sl, flags);
 	CHECK_PARAMS( list && sa && (sl <= sizeof(sSS)) );
+	
+	/* Filter out loopback addresses */
+	ptr.sa = sa;
+	switch (sa->sa_family) {
+		case AF_INET:
+			if (ptr.sin->sin_addr.s_addr == INADDR_LOOPBACK)
+				return 0;
+		case AF_INET6:
+			if (!memcmp(&ptr.sin6->sin6_addr, &in6addr_loopback, sizeof(struct in6_addr)))
+				return 0;
+	}
 	
 	/* Search place in the list */
 	for (li = list->next; li != list; li = li->next) {
