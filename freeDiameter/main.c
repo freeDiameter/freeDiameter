@@ -172,6 +172,7 @@ end:
 	
 	gnutls_global_deinit();
 	
+	fd_log_debug(FD_PROJECT_BINARY " daemon is terminated.\n");
 	return ret;
 }
 
