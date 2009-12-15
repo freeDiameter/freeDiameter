@@ -394,6 +394,13 @@ extern int fd_g_debug_lvl;
 #define INADDR_LOOPBACK	inet_addr("127.0.0.1")
 #endif /* INADDR_LOOPBACK */
 
+/* An IP equivalent to IN6_IS_ADDR_LOOPBACK */
+#ifndef IN_IS_ADDR_LOOPBACK
+#define IN_IS_ADDR_LOOPBACK(a) \
+  ((((long int) (a)->s_addr) & ntohl(0xff000000)) == ntohl(0x7f000000))
+#endif /* IN_IS_ADDR_LOOPBACK */
+
+
 /* create a V4MAPPED address */
 #define IN6_ADDR_V4MAP( a6, a4 ) {			\
 	((uint32_t *)(a6))[0] = 0;			\

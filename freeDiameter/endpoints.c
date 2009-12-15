@@ -55,10 +55,10 @@ int fd_ep_add_merge( struct fd_list * list, sSA * sa, socklen_t sl, uint32_t fla
 	ptr.sa = sa;
 	switch (sa->sa_family) {
 		case AF_INET:
-			if (ptr.sin->sin_addr.s_addr == INADDR_LOOPBACK)
+			if (IN_IS_ADDR_LOOPBACK(&ptr.sin->sin_addr))
 				return 0;
 		case AF_INET6:
-			if (!memcmp(&ptr.sin6->sin6_addr, &in6addr_loopback, sizeof(struct in6_addr)))
+			if (IN6_IS_ADDR_LOOPBACK(&ptr.sin6->sin6_addr))
 				return 0;
 	}
 	
