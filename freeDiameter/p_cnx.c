@@ -203,7 +203,7 @@ static void * connect_thr(void * arg)
 	/* Set the thread name */
 	{
 		char buf[48];
-		sprintf(buf, "ConnTo:%.*s", sizeof(buf) - 8, peer->p_hdr.info.pi_diamid);
+		sprintf(buf, "ConnTo:%.*s", (int)(sizeof(buf)) - 8, peer->p_hdr.info.pi_diamid);
 		fd_log_threadname ( buf );
 	}
 	

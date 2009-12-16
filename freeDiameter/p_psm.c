@@ -298,7 +298,7 @@ static void * p_psm_th( void * arg )
 	/* Set the thread name */
 	{
 		char buf[48];
-		sprintf(buf, "PSM/%.*s", sizeof(buf) - 5, peer->p_hdr.info.pi_diamid);
+		sprintf(buf, "PSM/%.*s", (int)sizeof(buf) - 5, peer->p_hdr.info.pi_diamid);
 		fd_log_threadname ( buf );
 	}
 	

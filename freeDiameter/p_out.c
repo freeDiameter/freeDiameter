@@ -102,7 +102,7 @@ static void * out_thr(void * arg)
 	/* Set the thread name */
 	{
 		char buf[48];
-		sprintf(buf, "OUT/%.*s", sizeof(buf) - 5, peer->p_hdr.info.pi_diamid);
+		sprintf(buf, "OUT/%.*s", (int)sizeof(buf) - 5, peer->p_hdr.info.pi_diamid);
 		fd_log_threadname ( buf );
 	}
 	

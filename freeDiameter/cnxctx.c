@@ -1015,7 +1015,7 @@ int fd_cnx_handshake(struct cnxctx * conn, int mode, char * priority, void * alt
 #endif /* DISABLE_SCTP */
 	} else {
 		/* Set the socket info in the session */
-		gnutls_transport_set_ptr (conn->cc_tls_para.session, (gnutls_transport_ptr_t) conn->cc_socket);
+		gnutls_transport_set_ptr (conn->cc_tls_para.session, (gnutls_transport_ptr_t) (long) conn->cc_socket);
 	}
 
 	/* Handshake master session */
