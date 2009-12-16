@@ -161,7 +161,7 @@ int fd_fifo_del ( struct fifo  ** queue )
 	while (q->thrs) {
 		CHECK_POSIX(  pthread_cond_signal(&q->cond)  );
 		CHECK_POSIX(  pthread_mutex_unlock( &q->mtx ));
-		pthread_yield();
+		sched_yield();
 		CHECK_POSIX(  pthread_mutex_lock( &q->mtx )  );
 		ASSERT( ++loops < 10 ); /* detect infinite loops */
 	}
@@ -209,7 +209,7 @@ int fd_fifo_move ( struct fifo * old, struct fifo * new, struct fifo ** loc_upda
 	while (old->thrs) {
 		CHECK_POSIX(  pthread_cond_signal(&old->cond)  );
 		CHECK_POSIX(  pthread_mutex_unlock( &old->mtx ));
-		pthread_yield();
+		sched_yield();
 		CHECK_POSIX(  pthread_mutex_lock( &old->mtx )  );
 		ASSERT( ++loops < 10 ); /* detect infinite loops */
 	}

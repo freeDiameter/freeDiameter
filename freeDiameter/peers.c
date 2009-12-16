@@ -300,7 +300,7 @@ int fd_peer_fini()
 	while ((!list_empty) && (TS_IS_INFERIOR(&now, &wait_until))) {
 		
 		/* Allow the PSM(s) to execute */
-		pthread_yield();
+		sched_yield();
 		
 		/* Remove zombie peers */
 		CHECK_FCT_DO( pthread_rwlock_wrlock(&fd_g_peers_rw), /* continue */ );

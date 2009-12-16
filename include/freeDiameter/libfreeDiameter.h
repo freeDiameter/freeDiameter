@@ -59,6 +59,7 @@
 #endif /* FD_IS_CONFIG */
 
 #include <pthread.h>
+#include <sched.h>
 #include <string.h>
 #include <assert.h>
 #include <errno.h>
