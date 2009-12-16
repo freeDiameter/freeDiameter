@@ -400,6 +400,12 @@ extern int fd_g_debug_lvl;
   ((((long int) (a)->s_addr) & ntohl(0xff000000)) == ntohl(0x7f000000))
 #endif /* IN_IS_ADDR_LOOPBACK */
 
+/* An IP equivalent to IN6_IS_ADDR_UNSPECIFIED */
+#ifndef IN_IS_ADDR_UNSPECIFIED
+#define IN_IS_ADDR_UNSPECIFIED(a) \
+  (((long int) (a)->s_addr) == 0x00000000)
+#endif /* IN_IS_ADDR_UNSPECIFIED */
+
 
 /* create a V4MAPPED address */
 #define IN6_ADDR_V4MAP( a6, a4 ) {			\
