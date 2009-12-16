@@ -52,20 +52,25 @@ int fd_ep_add_merge( struct fd_list * list, sSA * sa, socklen_t sl, uint32_t fla
 	CHECK_PARAMS( list && sa && (sl <= sizeof(sSS)) );
 	
 	/* Filter out loopback addresses, unspecified addresses, and invalid families */
-	ptr.sa = sa;
-	switch (sa->sa_family) {
-		case AF_INET:
-			if (IN_IS_ADDR_UNSPECIFIED(&ptr.sin->sin_addr) || IN_IS_ADDR_LOOPBACK(&ptr.sin->sin_addr))
+	if (! (flags & EP_ACCEPTALL)) {
+		ptr.sa = sa;
+		switch (sa->sa_family) {
+			case AF_INET:
+				if (IN_IS_ADDR_UNSPECIFIED(&ptr.sin->sin_addr) || IN_IS_ADDR_LOOPBACK(&ptr.sin->sin_addr))
+					return 0;
+				break;
+
+			case AF_INET6:
+				if (IN6_IS_ADDR_UNSPECIFIED(&ptr.sin6->sin6_addr) || IN6_IS_ADDR_LOOPBACK(&ptr.sin6->sin6_addr))
+					return 0;
+				break;
+
+			default:
 				return 0;
-			break;
-			
-		case AF_INET6:
-			if (IN6_IS_ADDR_UNSPECIFIED(&ptr.sin6->sin6_addr) || IN6_IS_ADDR_LOOPBACK(&ptr.sin6->sin6_addr))
-				return 0;
-			break;
-			
-		default:
-			return 0;
+		}
+	} else {
+		/* remove it */
+		flags &= ~EP_ACCEPTALL;
 	}
 	
 	/* Search place in the list */

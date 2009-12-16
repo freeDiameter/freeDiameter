@@ -590,7 +590,7 @@ int main(int argc, char *argv[])
 		CHECK( 0, getaddrinfo("localhost", _stringize(TEST_PORT), &hints, &ai) );
 		aip = ai;
 		while (aip) {
-			CHECK( 0, fd_ep_add_merge( &eps, aip->ai_addr, aip->ai_addrlen, EP_FL_DISC ));
+			CHECK( 0, fd_ep_add_merge( &eps, aip->ai_addr, aip->ai_addrlen, EP_FL_DISC | EP_ACCEPTALL ));
 			aip = aip->ai_next;
 		};
 		freeaddrinfo(ai);

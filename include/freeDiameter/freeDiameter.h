@@ -678,6 +678,7 @@ struct fd_endpoint {
 #define	EP_FL_ADV	(1 << 2)	/* This endpoint was advertized in Diameter CER/CEA exchange */
 #define	EP_FL_LL	(1 << 3)	/* Lower layer mechanism provided this endpoint */
 #define	EP_FL_PRIMARY	(1 << 4)	/* This endpoint is primary in a multihomed SCTP association */
+#define	EP_ACCEPTALL	(1 << 15)	/* This flag allows bypassing the address filter in fd_ep_add_merge. */
 	uint32_t	flags;		/* Additional information about the endpoint */
 		
 	/* To add: a validity timestamp for DNS records ? How do we retrieve this lifetime from DNS ? */
