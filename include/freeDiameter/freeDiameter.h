@@ -94,6 +94,7 @@ struct fd_config {
 		char *				 key_file;
 		
 		char *  			 ca_file;
+		int				 ca_file_nr;
 		char *  			 crl_file;
 		
 		char *				 prio_string;

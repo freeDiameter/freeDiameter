@@ -455,7 +455,7 @@ tls_cred:		TLS_CRED '=' QSTRING ',' QSTRING ';'
 tls_ca:			TLS_CA '=' QSTRING ';'
 			{
 				conf->cnf_sec_data.ca_file = $3;
-				CHECK_GNUTLS_DO( gnutls_certificate_set_x509_trust_file( 
+				CHECK_GNUTLS_DO( conf->cnf_sec_data.ca_file_nr += gnutls_certificate_set_x509_trust_file( 
 							conf->cnf_sec_data.credentials,
 							conf->cnf_sec_data.ca_file,
 							GNUTLS_X509_FMT_PEM),

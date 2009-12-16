@@ -129,7 +129,7 @@ void fd_conf_dump()
 	
 	fd_log_debug("  TLS :   - Certificate .. : %s\n", fd_g_config->cnf_sec_data.cert_file ?: "(NONE)");
 	fd_log_debug("          - Private key .. : %s\n", fd_g_config->cnf_sec_data.key_file ?: "(NONE)");
-	fd_log_debug("          - CA (trust) ... : %s\n", fd_g_config->cnf_sec_data.ca_file ?: "(none)");
+	fd_log_debug("          - CA (trust) ... : %s (%d certs)\n", fd_g_config->cnf_sec_data.ca_file ?: "(none)", fd_g_config->cnf_sec_data.ca_file_nr);
 	fd_log_debug("          - CRL .......... : %s\n", fd_g_config->cnf_sec_data.crl_file ?: "(none)");
 	fd_log_debug("          - Priority ..... : %s\n", fd_g_config->cnf_sec_data.prio_string ?: "(default: '" GNUTLS_DEFAULT_PRIORITY "')");
 	fd_log_debug("          - DH bits ...... : %d\n", fd_g_config->cnf_sec_data.dh_bits ?: GNUTLS_DEFAULT_DHBITS);
