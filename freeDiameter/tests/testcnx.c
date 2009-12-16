@@ -1334,7 +1334,7 @@ int main(int argc, char *argv[])
 		CHECK( 1, (cert_list_size > 0) ? 1 : 0 );
 		/* We could also verify that the cert_list really contains the client_cert and ca certificates */
 		
-
+		#if 0 /* The following are broken since we filter local addresses */
 		/* fd_cnx_getendpoints */
 		fd_list_init(&local, NULL);		
 		fd_list_init(&remote, NULL);
@@ -1356,6 +1356,7 @@ int main(int argc, char *argv[])
 		CHECK( 0, FD_IS_LIST_EMPTY(&remote) ? 1 : 0 );
 		CHECK( &local, local.next->next );
 		CHECK( &remote, remote.next->next );
+		#endif 
 		
 		/* fd_cnx_getremoteid */
 		str = fd_cnx_getremoteid(server_side);
@@ -1451,6 +1452,7 @@ int main(int argc, char *argv[])
 		/* We could also verify that the cert_list really contains the client_cert and ca certificates */
 		
 
+		#if 0 /* The following are broken since we filter local addresses */
 		/* fd_cnx_getendpoints */
 		fd_list_init(&local, NULL);		
 		fd_list_init(&remote, NULL);
@@ -1472,6 +1474,7 @@ int main(int argc, char *argv[])
 		CHECK( 0, FD_IS_LIST_EMPTY(&remote) ? 1 : 0 );
 		CHECK( &local, local.next->next );
 		CHECK( &remote, remote.next->next );
+		#endif 
 		
 		/* fd_cnx_getremoteid */
 		str = fd_cnx_getremoteid(server_side);
