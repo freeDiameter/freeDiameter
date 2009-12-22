@@ -54,6 +54,7 @@ structure:
 	# Creating CA structure
 	@mkdir -p $(DATA_DIR)/$(caname)
 	@mkdir $(DATA_DIR)/$(caname)/public
+	@mkdir $(DATA_DIR)/$(caname)/public/crl
 	@mkdir $(DATA_DIR)/$(caname)/private
 	@chmod 700 $(DATA_DIR)/$(caname)/private
 	@mkdir $(DATA_DIR)/$(caname)/clients
@@ -101,6 +102,7 @@ newca:
 	@ln -s ../$(ca) $(DATA_DIR)/$(name)/parent
 	@cat $(DATA_DIR)/$(ca)/public/cachain.pem $(DATA_DIR)/$(name)/public/cacert.pem > $(DATA_DIR)/$(name)/public/cachain.pem
 	@ln -s ../../$(ca)/public/caroot.pem $(DATA_DIR)/$(name)/public/caroot.pem
+	@for CRL in `cd $(DATA_DIR)/$(ca)/public/crl && ls -1`; do ln -s ../../../$(ca)/public/crl/$(CRL) $(DATA_DIR)/$(name)/public/crl/; done
 	@$(REMAKE) gencrl ca=$(name)
 
 # Create a new certificate for use in TLS communications and other terminal usages
@@ -128,7 +130,7 @@ newcert:
 	@ln -sf `cat $(DATA_DIR)/$(ca)/serial.old`.pem $(DATA_DIR)/$(ca)/public/`openssl x509 -noout -hash < $(DATA_DIR)/$(ca)/clients/$(name)/cert.pem`.0
 	# Compiled informations for the client
 	@cat $(DATA_DIR)/$(ca)/clients/$(name)/cert.pem $(DATA_DIR)/$(ca)/public/cachain.pem > $(DATA_DIR)/$(ca)/clients/$(name)/certchain.pem
-	@ln -sf ../../public/crl.pem $(DATA_DIR)/$(ca)/clients/$(name)/crl.pem
+	@ln -sf ../../public/crl $(DATA_DIR)/$(ca)/clients/$(name)/crl
 	@ln -sf ../../public/caroot.pem $(DATA_DIR)/$(ca)/clients/$(name)/ca.pem
 
 # Revoke a certificate
@@ -147,7 +149,7 @@ revoke:
 gencrl:
 	@if [ -z "$(ca)" ]; then echo "Missing parameter. Ex: make gencrl ca=ca.testbed.aaa"; exit 1; fi
 	# Create the CRL (keep the old one?)
-	@CA_ROOT_DIR=$(DATA_DIR)/$(ca) openssl ca $(CONFIG) -gencrl -out $(DATA_DIR)/$(ca)/public/crl.pem
-	@ln -s crl.pem $(DATA_DIR)/$(ca)/public/`openssl crl -noout -hash < $(DATA_DIR)/$(ca)/public/crl.pem`.r0
+	@CA_ROOT_DIR=$(DATA_DIR)/$(ca) openssl ca $(CONFIG) -gencrl -out $(DATA_DIR)/$(ca)/public/crl/$(ca).pem
+	@ln -s crl.pem $(DATA_DIR)/$(ca)/public/`openssl crl -noout -hash < $(DATA_DIR)/$(ca)/public/crl/$(ca).pem`.r0
 
 # End of file...
