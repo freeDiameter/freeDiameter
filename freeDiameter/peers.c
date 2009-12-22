@@ -421,8 +421,10 @@ int fd_peer_handle_newCER( struct msg ** cer, struct cnxctx ** cnx )
 	CHECK_FCT( fd_msg_search_avp ( msg, avp_oh_model, &avp_oh ) );
 	CHECK_FCT( fd_msg_avp_hdr ( avp_oh, &avp_hdr ) );
 	
-	/* Search if we already have this peer id in our list */
-	CHECK_POSIX( pthread_rwlock_rdlock(&fd_g_peers_rw) );
+	/* Search if we already have this peer id in our list. We take directly the write lock so that we don't need to upgrade if it is a new peer.
+	 * There is space for a small optimization here if needed.
+	 */
+	CHECK_POSIX( pthread_rwlock_wrlock(&fd_g_peers_rw) );
 	
 	for (li = fd_g_peers.next; li != &fd_g_peers; li = li->next) {
 		peer = (struct fd_peer *)li;
@@ -448,14 +450,8 @@ int fd_peer_handle_newCER( struct msg ** cer, struct cnxctx ** cnx )
 		peer->p_hdr.info.config.pic_flags.exp 	= PI_EXP_INACTIVE;
 		peer->p_hdr.info.config.pic_lft		= 3600 * 3;	/* 3 hours without any message */
 		
-		/* Upgrade the lock to write lock */
-		CHECK_POSIX_DO( ret = pthread_rwlock_wrlock(&fd_g_peers_rw), goto out );
-		
 		/* Insert the new peer in the list (the PSM will take care of setting the expiry after validation) */
 		fd_list_insert_before( li, &peer->p_hdr.chain );
-		
-		/* Release the write lock */
-		CHECK_POSIX_DO( ret = pthread_rwlock_unlock(&fd_g_peers_rw), goto out );
 		
 		/* Start the PSM, which will receive the event bellow */
 		CHECK_FCT_DO( ret = fd_psm_begin(peer), goto out );
