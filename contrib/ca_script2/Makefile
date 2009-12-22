@@ -102,7 +102,7 @@ newca:
 	@ln -s ../$(ca) $(DATA_DIR)/$(name)/parent
 	@cat $(DATA_DIR)/$(ca)/public/cachain.pem $(DATA_DIR)/$(name)/public/cacert.pem > $(DATA_DIR)/$(name)/public/cachain.pem
 	@ln -s ../../$(ca)/public/caroot.pem $(DATA_DIR)/$(name)/public/caroot.pem
-	@for CRL in `cd $(DATA_DIR)/$(ca)/public/crl && ls -1`; do ln -s ../../../$(ca)/public/crl/$(CRL) $(DATA_DIR)/$(name)/public/crl/; done
+	@for CRL in `cd $(DATA_DIR)/$(ca)/public/crl && ls -1`; do ln -sf ../../../$(ca)/public/crl/$(CRL) $(DATA_DIR)/$(name)/public/crl/$(CRL); done
 	@$(REMAKE) gencrl ca=$(name)
 
 # Create a new certificate for use in TLS communications and other terminal usages
