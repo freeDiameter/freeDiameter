@@ -70,7 +70,8 @@ init:
 	@CA_ROOT_DIR=$(DATA_DIR)/$(topca) openssl req $(CONFIG) -new -batch -x509 -nodes -newkey rsa:$(cakeysize) -out $(DATA_DIR)/$(topca)/public/cacert.pem \
 		-keyout $(DATA_DIR)/$(topca)/private/cakey.pem -subj /CN=$(topca)
 	@ln -s cacert.pem $(DATA_DIR)/$(topca)/public/`openssl x509 -noout -hash < $(DATA_DIR)/$(topca)/public/cacert.pem`.0
-	@touch $(DATA_DIR)/$(topca)/public/parents.pem
+	@touch $(DATA_DIR)/$(topca)/public/cachain.pem
+	@ln -s ../../$(topca)/public/cacert.pem $(DATA_DIR)/$(topca)/public/caroot.pem 
 	@$(REMAKE) gencrl ca=$(topca)
 
 # Create a secondary CA
@@ -98,7 +99,8 @@ newca:
 	@ln -s cacert.pem $(DATA_DIR)/$(ca)/public/`openssl x509 -noout -hash < $(DATA_DIR)/$(name)/public/cacert.pem`.0
 	@rm -f $(DATA_DIR)/$(name)/parent
 	@ln -s ../$(ca) $(DATA_DIR)/$(name)/parent
-	@cat $(DATA_DIR)/$(ca)/public/parents.pem $(DATA_DIR)/$(ca)/public/cacert.pem > $(DATA_DIR)/$(name)/public/parents.pem
+	@cat $(DATA_DIR)/$(ca)/public/cachain.pem $(DATA_DIR)/$(name)/public/cacert.pem > $(DATA_DIR)/$(name)/public/cachain.pem
+	@ln -s ../../$(ca)/public/caroot.pem $(DATA_DIR)/$(name)/public/caroot.pem
 
 # Create a new certificate for use in TLS communications and other terminal usages
 newcert:
@@ -124,8 +126,9 @@ newcert:
 	# Hash
 	@ln -sf `cat $(DATA_DIR)/$(ca)/serial.old`.pem $(DATA_DIR)/$(ca)/public/`openssl x509 -noout -hash < $(DATA_DIR)/$(ca)/clients/$(name)/cert.pem`.0
 	# Compiled informations for the client
-	@cat $(DATA_DIR)/$(ca)/public/parents.pem $(DATA_DIR)/$(ca)/public/cacert.pem > $(DATA_DIR)/$(ca)/clients/$(name)/ca.pem
+	@cat $(DATA_DIR)/$(ca)/clients/$(name)/cert.pem $(DATA_DIR)/$(ca)/public/cachain.pem > $(DATA_DIR)/$(ca)/clients/$(name)/certchain.pem
 	@ln -sf ../../public/crl.pem $(DATA_DIR)/$(ca)/clients/$(name)/crl.pem
+	@ln -sf ../../public/caroot.pem $(DATA_DIR)/$(ca)/clients/$(name)/ca.pem
 
 # Revoke a certificate
 revoke:
