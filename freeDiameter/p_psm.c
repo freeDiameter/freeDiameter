@@ -384,7 +384,8 @@ psm_loop:
 			{
 				fd_log_debug("Received invalid data from peer '%s', closing the connection\n", peer->p_hdr.info.pi_diamid);
 				free(ev_data);
-				goto psm_reset;
+				CHECK_FCT_DO( fd_event_send(peer->p_events, FDEVP_CNX_ERROR, 0, NULL), goto psm_reset );
+				goto psm_loop;
 			} );
 		
 		TRACE_DEBUG(FULL, "Received a message (%zdb) from '%s'", ev_sz, peer->p_hdr.info.pi_diamid);
@@ -462,7 +463,7 @@ psm_loop:
 					}
 				} else {
 					/* We received an invalid answer, let's disconnect */
-					goto psm_reset;
+					CHECK_FCT_DO( fd_event_send(peer->p_events, FDEVP_CNX_ERROR, 0, NULL), goto psm_reset );
 				}
 				goto psm_loop;
 			}
@@ -471,17 +472,17 @@ psm_loop:
 		/* Handle the LL message and update the expiry timer appropriately */
 		switch (hdr->msg_code) {
 			case CC_CAPABILITIES_EXCHANGE:
-				CHECK_FCT_DO( fd_p_ce_msgrcv(&msg, (hdr->msg_flags & CMD_FLAG_REQUEST), peer), goto psm_end );
+				CHECK_FCT_DO( fd_p_ce_msgrcv(&msg, (hdr->msg_flags & CMD_FLAG_REQUEST), peer), goto psm_reset );
 				break;
 			
 			case CC_DISCONNECT_PEER:
-				CHECK_FCT_DO( fd_p_dp_handle(&msg, (hdr->msg_flags & CMD_FLAG_REQUEST), peer), goto psm_end );
+				CHECK_FCT_DO( fd_p_dp_handle(&msg, (hdr->msg_flags & CMD_FLAG_REQUEST), peer), goto psm_reset );
 				if (peer->p_hdr.info.runtime.pir_state == STATE_CLOSING)
 					goto psm_end;
 				break;
 			
 			case CC_DEVICE_WATCHDOG:
-				CHECK_FCT_DO( fd_p_dw_handle(&msg, (hdr->msg_flags & CMD_FLAG_REQUEST), peer), goto psm_end );
+				CHECK_FCT_DO( fd_p_dw_handle(&msg, (hdr->msg_flags & CMD_FLAG_REQUEST), peer), goto psm_reset );
 				break;
 			
 			default:
@@ -539,6 +540,9 @@ psm_loop:
 			default:
 				/* Mark the connection problem */
 				peer->p_flags.pf_cnx_pb = 1;
+				
+				/* Destroy the connection, restart the timer to a new connection attempt */
+				fd_psm_next_timeout(peer, 1, peer->p_hdr.info.config.pic_tctimer ?: fd_g_config->cnf_timer_tc);
 				goto psm_reset;
 				
 			case STATE_CLOSED:
@@ -639,9 +643,8 @@ psm_loop:
 				
 			case STATE_WAITCNXACK:
 				/* Go back to CLOSE */
-				fd_psm_cleanup(peer, 0);
 				fd_psm_next_timeout(peer, 1, peer->p_hdr.info.config.pic_tctimer ?: fd_g_config->cnf_timer_tc);
-				break;
+				goto psm_reset;
 				
 			default:
 				/* Just ignore */
@@ -670,9 +673,8 @@ psm_loop:
 			case STATE_WAITCNXACK:
 			case STATE_WAITCEA:
 				/* Destroy the connection, restart the timer to a new connection attempt */
-				fd_psm_cleanup(peer, 0);
 				fd_psm_next_timeout(peer, 1, peer->p_hdr.info.config.pic_tctimer ?: fd_g_config->cnf_timer_tc);
-				goto psm_loop;
+				goto psm_reset;
 				
 			case STATE_WAITCNXACK_ELEC:
 				/* Abort the initiating side */
@@ -686,8 +688,9 @@ psm_loop:
 	/* Default action : the handling has not yet been implemented. [for debug only] */
 	TRACE_DEBUG(INFO, "Missing handler in PSM for '%s'\t<-- '%s'", STATE_STR(peer->p_hdr.info.runtime.pir_state), fd_pev_str(event));
 psm_reset:
+	if (peer->p_flags.pf_delete)
+		goto psm_end;
 	fd_psm_cleanup(peer, 0);
-	fd_psm_next_timeout(peer, 0, 0);
 	goto psm_loop;
 	
 psm_end:

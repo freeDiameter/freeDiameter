@@ -137,6 +137,7 @@ struct fd_peer { /* The "real" definition of the peer structure */
 	/* Some flags influencing the peer state machine */
 	struct {
 		unsigned pf_responder	: 1;	/* The peer has been created to handle incoming connection */
+		unsigned pf_delete	: 1;	/* Destroy the peer when the connection is terminated */
 		
 		unsigned pf_dw_pending 	: 1;	/* A DWR message was sent and not answered yet */
 		

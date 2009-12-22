@@ -447,6 +447,7 @@ int fd_peer_handle_newCER( struct msg ** cer, struct cnxctx ** cnx )
 		peer->p_hdr.info.pi_diamid[avp_hdr->avp_value->os.len] = '\0';
 		CHECK_MALLOC_DO( peer->p_dbgorig = strdup(fd_cnx_getid(*cnx)), { ret = ENOMEM; goto out; } );
 		peer->p_flags.pf_responder = 1;
+		peer->p_flags.pf_delete = 1;
 		
 		/* Set this peer to expire on inactivity */
 		peer->p_hdr.info.config.pic_flags.exp 	= PI_EXP_INACTIVE;
