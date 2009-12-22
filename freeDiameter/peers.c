@@ -443,6 +443,8 @@ int fd_peer_handle_newCER( struct msg ** cer, struct cnxctx ** cnx )
 		
 		/* Set the peer Diameter Id and the responder flag parameters */
 		CHECK_MALLOC_DO( peer->p_hdr.info.pi_diamid = malloc(avp_hdr->avp_value->os.len + 1), { ret = ENOMEM; goto out; } );
+		memcpy(peer->p_hdr.info.pi_diamid, avp_hdr->avp_value->os.data, avp_hdr->avp_value->os.len);
+		peer->p_hdr.info.pi_diamid[avp_hdr->avp_value->os.len] = '\0';
 		CHECK_MALLOC_DO( peer->p_dbgorig = strdup(fd_cnx_getid(*cnx)), { ret = ENOMEM; goto out; } );
 		peer->p_flags.pf_responder = 1;
 		
