@@ -149,9 +149,8 @@ revoke:
 gencrl:
 	@if [ -z "$(ca)" ]; then echo "Missing parameter. Ex: make gencrl ca=ca.testbed.aaa"; exit 1; fi
 	# Create the CRL
-	@rm -f $(DATA_DIR)/$(ca)/public/crl/local.pem
 	@CA_ROOT_DIR=$(DATA_DIR)/$(ca) openssl ca $(CONFIG) -gencrl -out $(DATA_DIR)/$(ca)/public/crl/$(ca).pem
-	@ln -s $(ca).pem $(DATA_DIR)/$(ca)/public/crl/local.pem
-	@ln -s crl/$(ca).pem $(DATA_DIR)/$(ca)/public/`openssl crl -noout -hash < $(DATA_DIR)/$(ca)/public/crl/$(ca).pem`.r0
+	@ln -s crl/$(ca).pem $(DATA_DIR)/$(ca)/public/local.pem
+	@ln -s local.pem $(DATA_DIR)/$(ca)/public/`openssl crl -noout -hash < $(DATA_DIR)/$(ca)/public/crl/$(ca).pem`.r0
 
 # End of file...
