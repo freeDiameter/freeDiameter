@@ -101,6 +101,7 @@ newca:
 	@ln -s ../$(ca) $(DATA_DIR)/$(name)/parent
 	@cat $(DATA_DIR)/$(ca)/public/cachain.pem $(DATA_DIR)/$(name)/public/cacert.pem > $(DATA_DIR)/$(name)/public/cachain.pem
 	@ln -s ../../$(ca)/public/caroot.pem $(DATA_DIR)/$(name)/public/caroot.pem
+	@$(REMAKE) gencrl ca=$(name)
 
 # Create a new certificate for use in TLS communications and other terminal usages
 newcert:
