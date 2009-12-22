@@ -102,7 +102,7 @@ newca:
 	@ln -s ../$(ca) $(DATA_DIR)/$(name)/parent
 	@cat $(DATA_DIR)/$(ca)/public/cachain.pem $(DATA_DIR)/$(name)/public/cacert.pem > $(DATA_DIR)/$(name)/public/cachain.pem
 	@ln -s ../../$(ca)/public/caroot.pem $(DATA_DIR)/$(name)/public/caroot.pem
-	@for CRL in `cd $(DATA_DIR)/$(ca)/public/crl && ls -1`; do ln -sf ../../../$(ca)/public/crl/$(CRL) $(DATA_DIR)/$(name)/public/crl/$(CRL); done
+	@for CRLFILE in `cd $(DATA_DIR)/$(ca)/public/crl && ls -1`; do ln -sf ../../../$(ca)/public/crl/$(CRLFILE) $(DATA_DIR)/$(name)/public/crl/$(CRLFILE); done
 	@$(REMAKE) gencrl ca=$(name)
 
 # Create a new certificate for use in TLS communications and other terminal usages
@@ -148,8 +148,10 @@ revoke:
 # Regenerate the Certificate Revocation List.
 gencrl:
 	@if [ -z "$(ca)" ]; then echo "Missing parameter. Ex: make gencrl ca=ca.testbed.aaa"; exit 1; fi
-	# Create the CRL (keep the old one?)
+	# Create the CRL
+	@rm -f $(DATA_DIR)/$(ca)/public/crl/local.pem
 	@CA_ROOT_DIR=$(DATA_DIR)/$(ca) openssl ca $(CONFIG) -gencrl -out $(DATA_DIR)/$(ca)/public/crl/$(ca).pem
-	@ln -s crl.pem $(DATA_DIR)/$(ca)/public/`openssl crl -noout -hash < $(DATA_DIR)/$(ca)/public/crl/$(ca).pem`.r0
+	@ln -s $(ca).pem $(DATA_DIR)/$(ca)/public/crl/local.pem
+	@ln -s crl/$(ca).pem $(DATA_DIR)/$(ca)/public/`openssl crl -noout -hash < $(DATA_DIR)/$(ca)/public/crl/$(ca).pem`.r0
 
 # End of file...
