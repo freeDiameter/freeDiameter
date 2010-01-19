@@ -47,6 +47,7 @@ struct cnxctx {
 
 	int 		cc_proto;	/* IPPROTO_TCP or IPPROTO_SCTP */
 	int		cc_tls;		/* Is TLS already started ? */
+	int		cc_closing;	/* True if the object is being destroyed: we don't send events anymore */
 
 	pthread_t	cc_rcvthr;	/* thread for receiving messages on the connection */
 	int		cc_loop;	/* tell the thread if it loops or stops after the first message is received */
@@ -117,6 +118,9 @@ struct sctps_ctx {
 int fd_sctps_init(struct cnxctx * conn);
 int fd_sctps_handshake_others(struct cnxctx * conn, char * priority, void * alt_creds);
 int fd_sctps_startthreads(struct cnxctx * conn);
+void fd_sctps_bye(struct cnxctx * conn);
+void fd_sctps_waitthreadsterm(struct cnxctx * conn);
+void fd_sctps_gnutls_deinit_others(struct cnxctx * conn);
 void fd_sctps_stopthreads(struct cnxctx * conn);
 void fd_sctps_destroy(struct cnxctx * conn);
 

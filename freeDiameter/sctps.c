@@ -109,7 +109,9 @@ out:
 	TRACE_DEBUG(FULL, "Thread terminated");	
 	return NULL;
 error:
-	CHECK_FCT_DO( fd_event_send( Target_Queue(conn), FDEVP_CNX_ERROR, 0, NULL), /* continue or destroy everything? */);
+	if (!conn->cc_closing) {
+		CHECK_FCT_DO( fd_event_send( Target_Queue(conn), FDEVP_CNX_ERROR, 0, NULL), /* continue or destroy everything? */);
+	}
 	goto out;
 }
 
@@ -133,7 +135,9 @@ static void * decipher(void * arg)
 	
 	CHECK_FCT_DO(fd_tls_rcvthr_core(cnx, ctx->strid ? ctx->session : cnx->cc_tls_para.session), /* continue */);
 error:
-	CHECK_FCT_DO( fd_event_send( Target_Queue(cnx), FDEVP_CNX_ERROR, 0, NULL), /* continue or destroy everything? */);
+	if (!cnx->cc_closing) {
+		CHECK_FCT_DO( fd_event_send( Target_Queue(cnx), FDEVP_CNX_ERROR, 0, NULL), /* continue or destroy everything? */);
+	}
 	TRACE_DEBUG(FULL, "Thread terminated");	
 	return NULL;
 }
@@ -578,6 +582,71 @@ int fd_sctps_startthreads(struct cnxctx * conn)
 	return 0;
 }
 
+static void * bye_th(void * arg)
+{
+	struct sctps_ctx * ctx = (struct sctps_ctx *) arg;
+	TRACE_ENTRY("%p", arg);
+	
+	/* Set the thread name */
+	{
+		char buf[48];
+		snprintf(buf, sizeof(buf), "gnutls_bye (%hu@%d)", ctx->strid, ctx->parent->cc_socket);
+		fd_log_threadname ( buf );
+	}
+	
+	CHECK_GNUTLS_DO( gnutls_bye(ctx->session, GNUTLS_SHUT_WR), /* Continue */ );
+			
+	/* Finish */
+	return NULL;
+}
+
+/* Initiate a "bye" on all stream pairs in paralel */
+void fd_sctps_bye(struct cnxctx * conn)
+{
+	uint16_t i;
+	
+	CHECK_PARAMS_DO( conn && conn->cc_sctps_data.array, return );
+	
+	/* End all TLS sessions, in parallel */
+	for (i = 1; i < conn->cc_sctp_para.pairs; i++) {
+		CHECK_POSIX_DO( pthread_create( &conn->cc_sctps_data.array[i].thr, NULL, bye_th, &conn->cc_sctps_data.array[i] ), break );
+	}
+	for (--i; i > 0; --i) {
+		CHECK_POSIX_DO( pthread_join( conn->cc_sctps_data.array[i].thr, NULL ), continue );
+	}
+}
+
+/* After "bye" was sent on all streams, read from sessions until an error is received */
+void fd_sctps_waitthreadsterm(struct cnxctx * conn)
+{
+	uint16_t i;
+	
+	TRACE_ENTRY("%p", conn);
+	CHECK_PARAMS_DO( conn && conn->cc_sctps_data.array, return );
+	
+	for (i = 0; i < conn->cc_sctp_para.pairs; i++) {
+		if (conn->cc_sctps_data.array[i].thr != (pthread_t)NULL) {
+			CHECK_POSIX_DO( pthread_join(conn->cc_sctps_data.array[i].thr, NULL), /* continue */ );
+			conn->cc_sctps_data.array[i].thr = (pthread_t)NULL;
+		}
+	}
+	return;
+}
+
+/* Free gnutls resources of all sessions */
+void fd_sctps_gnutls_deinit_others(struct cnxctx * conn)
+{
+	uint16_t i;
+	
+	TRACE_ENTRY("%p", conn);
+	CHECK_PARAMS_DO( conn && conn->cc_sctps_data.array, return );
+	
+	for (i = 1; i < conn->cc_sctp_para.pairs; i++) {
+		gnutls_deinit(conn->cc_sctps_data.array[i].session);
+	}
+}
+
+
 /* Stop all receiver threads */
 void fd_sctps_stopthreads(struct cnxctx * conn)
 {
@@ -592,26 +661,6 @@ void fd_sctps_stopthreads(struct cnxctx * conn)
 	return;
 }
 
-static void * bye_th(void * arg)
-{
-	struct sctps_ctx * ctx = (struct sctps_ctx *) arg;
-	TRACE_ENTRY("%p", arg);
-	
-	/* Set the thread name */
-	{
-		char buf[48];
-		snprintf(buf, sizeof(buf), "gnutls_bye (%hu@%d)", ctx->strid, ctx->parent->cc_socket);
-		fd_log_threadname ( buf );
-	}
-	
-	CHECK_GNUTLS_DO( gnutls_bye(ctx->session, GNUTLS_SHUT_RDWR), /* Continue */ );
-			
-	/* Finish */
-	return arg;
-}
-
-
-
 /* Destroy a wrapper context */
 void fd_sctps_destroy(struct cnxctx * conn)
 {
@@ -622,14 +671,6 @@ void fd_sctps_destroy(struct cnxctx * conn)
 	/* Terminate all receiving threads in case we did not do it yet */
 	fd_sctps_stopthreads(conn);
 	
-	/* End all TLS sessions, in parallel */
-	for (i = 1; i < conn->cc_sctp_para.pairs; i++) {
-		CHECK_POSIX_DO( pthread_create( &conn->cc_sctps_data.array[i].thr, NULL, bye_th, &conn->cc_sctps_data.array[i] ), break );
-	}
-	for (--i; i > 0; --i) {
-		CHECK_POSIX_DO( pthread_join( conn->cc_sctps_data.array[i].thr, NULL ), continue );
-	}
-skip:	
 	/* Now, stop the demux thread */
 	CHECK_FCT_DO( fd_thr_term(&conn->cc_rcvthr), /* continue */ );
 	

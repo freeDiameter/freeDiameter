@@ -561,7 +561,9 @@ out:
 	TRACE_DEBUG(FULL, "Thread terminated");	
 	return NULL;
 error:
-	CHECK_FCT_DO( fd_event_send( Target_Queue(conn), FDEVP_CNX_ERROR, 0, NULL), /* continue or destroy everything? */);
+	if (!conn->cc_closing) {
+		CHECK_FCT_DO( fd_event_send( Target_Queue(conn), FDEVP_CNX_ERROR, 0, NULL), /* continue or destroy everything? */);
+	}
 	goto out;
 }
 
@@ -602,7 +604,9 @@ out:
 	TRACE_DEBUG(FULL, "Thread terminated");	
 	return NULL;
 error:
-	CHECK_FCT_DO( fd_event_send( Target_Queue(conn), FDEVP_CNX_ERROR, 0, NULL), /* continue or destroy everything? */);
+	if (!conn->cc_closing) {
+		CHECK_FCT_DO( fd_event_send( Target_Queue(conn), FDEVP_CNX_ERROR, 0, NULL), /* continue or destroy everything? */);
+	}
 	goto out;
 }
 #endif /* DISABLE_SCTP */
@@ -712,7 +716,9 @@ static void * rcvthr_tls_single(void * arg)
 	
 	CHECK_FCT_DO(fd_tls_rcvthr_core(conn, conn->cc_tls_para.session), /* continue */);
 error:
-	CHECK_FCT_DO( fd_event_send( Target_Queue(conn), FDEVP_CNX_ERROR, 0, NULL), /* continue or destroy everything? */);
+	if (!conn->cc_closing) {
+		CHECK_FCT_DO( fd_event_send( Target_Queue(conn), FDEVP_CNX_ERROR, 0, NULL), /* continue or destroy everything? */);
+	}
 	TRACE_DEBUG(FULL, "Thread terminated");	
 	return NULL;
 }
@@ -1132,7 +1138,7 @@ int fd_cnx_recv_setaltfifo(struct cnxctx * conn, struct fifo * alt_fifo)
 	return 0;
 }
 
-/* Wrapper around gnutls_record_recv to handle some error codes */
+/* Wrapper around gnutls_record_send to handle some error codes */
 static ssize_t fd_tls_send_handle_error(struct cnxctx * conn, gnutls_session_t session, void * data, size_t sz)
 {
 	ssize_t ret;
@@ -1245,35 +1251,51 @@ void fd_cnx_destroy(struct cnxctx * conn)
 	
 	CHECK_PARAMS_DO(conn, return);
 	
-	/* Avoid sending further events to the alt fifo */
-	conn->cc_alt = NULL;
-
-	/* In case of TLS, stop receiver thread, then close properly the gnutls session */
-	if ((conn->cc_tls) && (conn->cc_sctp_para.pairs > 1)) {
-#ifndef DISABLE_SCTP
-		/* Multi-stream TLS: Stop all decipher threads, but not the demux thread */
-		fd_sctps_stopthreads(conn);
-#endif /* DISABLE_SCTP */
-	} else {
-		/* Stop the decoding thread */
-		CHECK_FCT_DO( fd_thr_term(&conn->cc_rcvthr), /* continue */ );
-	}
+	conn->cc_closing = 1;
 	
-	/* Terminate properly the TLS session(s) */
+	/* Initiate shutdown of the TLS session(s): call gnutls_bye(WR), then read until error */
 	if (conn->cc_tls) {
-		/* Master session */
-		CHECK_GNUTLS_DO( gnutls_bye(conn->cc_tls_para.session, GNUTLS_SHUT_RDWR), /* Continue */ );
-		gnutls_deinit(conn->cc_tls_para.session);
-		
 #ifndef DISABLE_SCTP
 		if (conn->cc_sctp_para.pairs > 1) {
-			/* Multi-stream TLS: destroy the wrapper and stop the demux thread */
+			/* Master session */
+			CHECK_GNUTLS_DO( gnutls_bye(conn->cc_tls_para.session, GNUTLS_SHUT_WR), /* Continue */ );
+			
+			/* and other stream pairs */
+			fd_sctps_bye(conn);
+			
+			/* Now wait for all decipher threads to terminate */
+			fd_sctps_waitthreadsterm(conn);
+			
+			/* Deinit gnutls resources */
+			fd_sctps_gnutls_deinit_others(conn);
+			gnutls_deinit(conn->cc_tls_para.session);
+			
+			/* Destroy the wrapper (also stops the demux thread) */
 			fd_sctps_destroy(conn);
+
+		} else {
+#endif /* DISABLE_SCTP */
+		/* We are not using the sctps wrapper layer */
+			/* Master session */
+			CHECK_GNUTLS_DO( gnutls_bye(conn->cc_tls_para.session, GNUTLS_SHUT_WR), /* Continue */ );
+		
+			/* In this case, just wait for thread rcvthr_tls_single to terminate */
+			if (conn->cc_rcvthr != (pthread_t)NULL) {
+				CHECK_POSIX_DO(  pthread_join(conn->cc_rcvthr, NULL), /* continue */  );
+				conn->cc_rcvthr = (pthread_t)NULL;
+			}
+			
+			/* Free the resources of the TLS session */
+			gnutls_deinit(conn->cc_tls_para.session);
+		
+#ifndef DISABLE_SCTP
 		}
 #endif /* DISABLE_SCTP */
-		
 	}
 	
+	/* Terminate the thread in case it is not done yet */
+	CHECK_FCT_DO( fd_thr_term(&conn->cc_rcvthr), /* continue */ );
+		
 	/* Shut the connection down */
 	if (conn->cc_socket > 0) {
 		shutdown(conn->cc_socket, SHUT_RDWR);
