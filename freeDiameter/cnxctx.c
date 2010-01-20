@@ -1257,7 +1257,7 @@ void fd_cnx_destroy(struct cnxctx * conn)
 	if (conn->cc_tls) {
 #ifndef DISABLE_SCTP
 		if (conn->cc_sctp_para.pairs > 1) {
-			/* Master session */
+			/* Bye on master session */
 			CHECK_GNUTLS_DO( gnutls_bye(conn->cc_tls_para.session, GNUTLS_SHUT_WR), /* Continue */ );
 			
 			/* and other stream pairs */

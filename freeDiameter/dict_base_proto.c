@@ -143,6 +143,20 @@ static int Address_interpret(union avp_value * avp_value, void * interpreted)
 	return 0;
 }
 
+static void Address_dump(union avp_value * avp_value)
+{
+	fd_log_debug("*todo: dump address*");
+}
+
+static void UTF8String_dump(union avp_value * avp_value)
+{
+	size_t len = avp_value->os.len;
+	if (len > 42)
+		len = 42; /* avoid very long strings */
+	fd_log_debug("%.*s", len, avp_value->os.data);
+}
+
+
 
 
 #define CHECK_dict_new( _type, _data, _parent, _ref )				\
@@ -230,7 +244,7 @@ int fd_dict_base_protocol(struct dictionary * dict)
 				defined in [IANAADFAM].  The AddressType is used to discriminate
 				the content and format of the remaining octets.
 			*/
-			struct dict_type_data data = { AVP_TYPE_OCTETSTRING,	"Address"		, Address_interpret	, Address_encode	};
+			struct dict_type_data data = { AVP_TYPE_OCTETSTRING,	"Address"		, Address_interpret	, Address_encode,	Address_dump	};
 			CHECK_dict_new( DICT_TYPE, &data , NULL, NULL);
 		}
 		
@@ -249,7 +263,7 @@ int fd_dict_base_protocol(struct dictionary * dict)
 				SNTP [RFC4330] describes a procedure to extend the time to 2104.
 				This procedure MUST be supported by all DIAMETER nodes.
 			*/
-			struct dict_type_data data = { AVP_TYPE_OCTETSTRING,	"Time"			, NULL			, NULL			};
+			struct dict_type_data data = { AVP_TYPE_OCTETSTRING,	"Time"			, NULL			, NULL		, NULL		};
 			CHECK_dict_new( DICT_TYPE, &data , NULL, NULL);
 		}
 		
@@ -287,7 +301,7 @@ int fd_dict_base_protocol(struct dictionary * dict)
 				Note that the AVP Length field of an UTF8String is measured in
 				octets, not characters.
 			*/
-			struct dict_type_data data = { AVP_TYPE_OCTETSTRING,	"UTF8String"		, NULL			, NULL			};
+			struct dict_type_data data = { AVP_TYPE_OCTETSTRING,	"UTF8String"		, NULL			, NULL	, UTF8String_dump	};
 			CHECK_dict_new( DICT_TYPE, &data , NULL, NULL);
 		}
 		
@@ -316,7 +330,7 @@ int fd_dict_base_protocol(struct dictionary * dict)
 				interactions between the Diameter protocol and Internationalized
 				Domain Name (IDNs).
 			*/
-			struct dict_type_data data = { AVP_TYPE_OCTETSTRING,	"DiameterIdentity"	, NULL			, NULL			};
+			struct dict_type_data data = { AVP_TYPE_OCTETSTRING,	"DiameterIdentity"	, NULL			, NULL		, UTF8String_dump	};
 			CHECK_dict_new( DICT_TYPE, &data , NULL, NULL);
 		}
 		
@@ -371,7 +385,7 @@ int fd_dict_base_protocol(struct dictionary * dict)
 				aaa://host.example.com:6666;transport=tcp;protocol=diameter
 				aaa://host.example.com:1813;transport=udp;protocol=radius
 			*/
-			struct dict_type_data data = { AVP_TYPE_OCTETSTRING,	"DiameterURI"		, NULL			, NULL			};
+			struct dict_type_data data = { AVP_TYPE_OCTETSTRING,	"DiameterURI"		, NULL			, NULL		, UTF8String_dump	};
 			CHECK_dict_new( DICT_TYPE, &data , NULL, NULL);
 		}
 		
@@ -433,7 +447,7 @@ int fd_dict_base_protocol(struct dictionary * dict)
 				supplied rules, for example to protect the access device owner's
 				infrastructure.
 			*/
-			struct dict_type_data data = { AVP_TYPE_OCTETSTRING,	"IPFilterRule"		, NULL			, NULL			};
+			struct dict_type_data data = { AVP_TYPE_OCTETSTRING,	"IPFilterRule"		, NULL			, NULL		, UTF8String_dump	};
 			CHECK_dict_new( DICT_TYPE, &data , NULL, NULL);
 		}
 	}
@@ -603,7 +617,7 @@ int fd_dict_base_protocol(struct dictionary * dict)
 				with above result code SHOULD NOT attempt reconnection.
 			*/
 			struct dict_object 	* 	type;
-			struct dict_type_data 		tdata = { AVP_TYPE_INTEGER32,	"Enumerated(Disconnect-Cause)"	, NULL, NULL};
+			struct dict_type_data 		tdata = { AVP_TYPE_INTEGER32,	"Enumerated(Disconnect-Cause)"	, NULL, NULL, NULL };
 			struct dict_enumval_data 	t_0 = { "REBOOTING", 			{ .i32 = 0 }};
 			struct dict_enumval_data 	t_1 = { "BUSY", 			{ .i32 = 1 }};
 			struct dict_enumval_data 	t_2 = { "DO_NOT_WANT_TO_TALK_TO_YOU", 	{ .i32 = 2 }};
@@ -908,7 +922,7 @@ int fd_dict_base_protocol(struct dictionary * dict)
 			 */
 			
 			struct dict_object 	* 	type;
-			struct dict_type_data	 	tdata = { AVP_TYPE_UNSIGNED32,	"Enumerated*(Inband-Security-Id)"	, NULL, NULL};
+			struct dict_type_data	 	tdata = { AVP_TYPE_UNSIGNED32,	"Enumerated*(Inband-Security-Id)"	, NULL, NULL, NULL };
 			struct dict_enumval_data 	t_0 = { "NO_INBAND_SECURITY", 		{ .u32 = ACV_ISI_NO_INBAND_SECURITY }};
 			struct dict_enumval_data 	t_1 = { "TLS", 			{ .u32 = ACV_ISI_TLS }};
 			struct dict_avp_data 		data = { 
@@ -1102,7 +1116,7 @@ int fd_dict_base_protocol(struct dictionary * dict)
 				6.  ALL_HOST
 			*/
 			struct dict_object 	* 	type;
-			struct dict_type_data	 	tdata = { AVP_TYPE_INTEGER32,	"Enumerated(Redirect-Host-Usage)"	, NULL, NULL};
+			struct dict_type_data	 	tdata = { AVP_TYPE_INTEGER32,	"Enumerated(Redirect-Host-Usage)"	, NULL, NULL, NULL };
 			struct dict_enumval_data 	t_0 = { "DONT_CACHE", 			{ .i32 = 0 }};
 			struct dict_enumval_data 	t_1 = { "ALL_SESSION", 			{ .i32 = 1 }};
 			struct dict_enumval_data 	t_2 = { "ALL_REALM", 			{ .i32 = 2 }};
@@ -1196,7 +1210,7 @@ int fd_dict_base_protocol(struct dictionary * dict)
 			 * This is the reason for the "*" in the type name
 			 */
 			struct dict_object * 	type;
-			struct dict_type_data 	tdata = { AVP_TYPE_UNSIGNED32,	"Enumerated*(Result-Code)"	, NULL, NULL};
+			struct dict_type_data 	tdata = { AVP_TYPE_UNSIGNED32,	"Enumerated*(Result-Code)"	, NULL, NULL, NULL };
 			struct dict_avp_data 	data = { 
 					268, 					/* Code */
 					#if AC_RESULT_CODE != 268
@@ -1795,7 +1809,7 @@ int fd_dict_base_protocol(struct dictionary * dict)
 			 * This is the reason for the "*" in the type name. Vendors will have to define their values.
 			 */
 			struct dict_object * 	type;
-			struct dict_type_data 	tdata = { AVP_TYPE_UNSIGNED32,	"Enumerated*(Experimental-Result-Code)"	, NULL, NULL};
+			struct dict_type_data 	tdata = { AVP_TYPE_UNSIGNED32,	"Enumerated*(Experimental-Result-Code)"	, NULL, NULL, NULL };
 			struct dict_avp_data 	data = { 
 					298, 					/* Code */
 					0, 					/* Vendor */
@@ -1842,7 +1856,7 @@ int fd_dict_base_protocol(struct dictionary * dict)
 				offered.
 			*/
 			struct dict_object 	* 	type;
-			struct dict_type_data 		tdata = { AVP_TYPE_INTEGER32,	"Enumerated(Auth-Request-Type)"	, NULL, NULL};
+			struct dict_type_data 		tdata = { AVP_TYPE_INTEGER32,	"Enumerated(Auth-Request-Type)"	, NULL, NULL, NULL };
 			struct dict_enumval_data 	t_1 = { "AUTHENTICATE_ONLY", 		{ .i32 = 1 }};
 			struct dict_enumval_data 	t_2 = { "AUTHORIZE_ONLY", 		{ .i32 = 2 }};
 			struct dict_enumval_data 	t_3 = { "AUTHORIZE_AUTHENTICATE", 	{ .i32 = 3 }};
@@ -1984,7 +1998,7 @@ int fd_dict_base_protocol(struct dictionary * dict)
 				Authorization-Lifetime.
 			*/
 			struct dict_object 	* 	type;
-			struct dict_type_data	 	tdata = { AVP_TYPE_INTEGER32,	"Enumerated(Auth-Session-State)"	, NULL, NULL};
+			struct dict_type_data	 	tdata = { AVP_TYPE_INTEGER32,	"Enumerated(Auth-Session-State)"	, NULL, NULL, NULL };
 			struct dict_enumval_data 	t_0 = { "STATE_MAINTAINED", 		{ .i32 = 0 }};
 			struct dict_enumval_data 	t_1 = { "NO_STATE_MAINTAINED", 		{ .i32 = 1 }};
 			struct dict_avp_data	 	data = { 
@@ -2027,7 +2041,7 @@ int fd_dict_base_protocol(struct dictionary * dict)
 				expiration of the Authorization-Lifetime.
 			*/
 			struct dict_object 	* 	type;
-			struct dict_type_data	 	tdata = { AVP_TYPE_INTEGER32,	"Enumerated(Re-Auth-Request-Type)"	, NULL, NULL};
+			struct dict_type_data	 	tdata = { AVP_TYPE_INTEGER32,	"Enumerated(Re-Auth-Request-Type)"	, NULL, NULL, NULL };
 			struct dict_enumval_data 	t_0 = { "AUTHORIZE_ONLY", 		{ .i32 = 0 }};
 			struct dict_enumval_data 	t_1 = { "AUTHORIZE_AUTHENTICATE",	{ .i32 = 1 }};
 			struct dict_avp_data	 	data = { 
@@ -2154,7 +2168,7 @@ int fd_dict_base_protocol(struct dictionary * dict)
 				The user's session has timed out, and service has been terminated.
 			*/
 			struct dict_object 	* 	type;
-			struct dict_type_data	 	tdata = { AVP_TYPE_INTEGER32,	"Enumerated(Termination-Cause)"	, NULL, NULL};
+			struct dict_type_data	 	tdata = { AVP_TYPE_INTEGER32,	"Enumerated(Termination-Cause)"	, NULL, NULL, NULL };
 			struct dict_enumval_data 	t_1 = { "DIAMETER_LOGOUT",			{ .i32 = 1 }};
 			struct dict_enumval_data 	t_2 = { "DIAMETER_SERVICE_NOT_PROVIDED", 	{ .i32 = 2 }};
 			struct dict_enumval_data 	t_3 = { "DIAMETER_BAD_ANSWER",			{ .i32 = 3 }};
@@ -2266,7 +2280,7 @@ int fd_dict_base_protocol(struct dictionary * dict)
 			 */
 			
 			struct dict_object 	* 	type;
-			struct dict_type_data	 	tdata = { AVP_TYPE_UNSIGNED32,	"Enumerated*(Session-Binding)"	, NULL, NULL};
+			struct dict_type_data	 	tdata = { AVP_TYPE_UNSIGNED32,	"Enumerated*(Session-Binding)"	, NULL, NULL, NULL };
 			struct dict_enumval_data 	t_1 = { "RE_AUTH", 		{ .u32 = 1 }};
 			struct dict_enumval_data 	t_2 = { "STR", 			{ .u32 = 2 }};
 			struct dict_enumval_data 	t_4 = { "ACCOUNTING", 		{ .u32 = 4 }};
@@ -2328,7 +2342,7 @@ int fd_dict_base_protocol(struct dictionary * dict)
 				session.
 			*/
 			struct dict_object  	* 	type;
-			struct dict_type_data	 	tdata = { AVP_TYPE_INTEGER32,	"Enumerated(Session-Server-Failover)"	, NULL, NULL};
+			struct dict_type_data	 	tdata = { AVP_TYPE_INTEGER32,	"Enumerated(Session-Server-Failover)"	, NULL, NULL, NULL };
 			struct dict_enumval_data 	t_0 = { "REFUSE_SERVICE", 		{ .i32 = 0 }};
 			struct dict_enumval_data 	t_1 = { "TRY_AGAIN",			{ .i32 = 1 }};
 			struct dict_enumval_data 	t_2 = { "ALLOW_SERVICE", 		{ .i32 = 2 }};
@@ -2460,7 +2474,7 @@ int fd_dict_base_protocol(struct dictionary * dict)
 				the existing session.
 			*/
 			struct dict_object 	* 	type;
-			struct dict_type_data	  	tdata = { AVP_TYPE_INTEGER32,	"Enumerated(Accounting-Record-Type)"	, NULL, NULL};
+			struct dict_type_data	  	tdata = { AVP_TYPE_INTEGER32,	"Enumerated(Accounting-Record-Type)"	, NULL, NULL, NULL };
 			struct dict_enumval_data 	t_1 = { "EVENT_RECORD",			{ .i32 = 1 }};
 			struct dict_enumval_data 	t_2 = { "START_RECORD", 		{ .i32 = 2 }};
 			struct dict_enumval_data 	t_3 = { "INTERIM_RECORD",		{ .i32 = 3 }};
@@ -2654,7 +2668,7 @@ int fd_dict_base_protocol(struct dictionary * dict)
 				stored.
 			*/
 			struct dict_object  	* 	type;
-			struct dict_type_data	 	tdata = { AVP_TYPE_INTEGER32,	"Enumerated(Accounting-Realtime-Required)"	, NULL, NULL};
+			struct dict_type_data	 	tdata = { AVP_TYPE_INTEGER32,	"Enumerated(Accounting-Realtime-Required)"	, NULL, NULL, NULL };
 			struct dict_enumval_data 	t_1 = { "DELIVER_AND_GRANT",		{ .i32 = 1 }};
 			struct dict_enumval_data 	t_2 = { "GRANT_AND_STORE", 		{ .i32 = 2 }};
 			struct dict_enumval_data 	t_3 = { "GRANT_AND_LOSE",		{ .i32 = 3 }};

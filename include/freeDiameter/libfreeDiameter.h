@@ -665,7 +665,6 @@ int fd_dict_getdict ( struct dict_object * object, struct dictionary ** dict);
 void fd_dict_dump_object(struct dict_object * obj);
 void fd_dict_dump(struct dictionary * dict);
 
-
 /*
  ***************************************************************************
  *
@@ -894,6 +893,7 @@ struct dict_type_data {
 	char 			*type_name;	/* The name of this type */
 	dict_avpdata_interpret	 type_interpret;/* cb to convert the AVP value in more comprehensive format (or NULL) */
 	dict_avpdata_encode	 type_encode;	/* cb to convert formatted data into an AVP value (or NULL) */
+	void			(*type_dump)(union avp_value * val);	/* cb called by fd_msg_dump_one for this type of data (if != NULL) */
 };
 
 /* The criteria for searching a type object in the dictionary */

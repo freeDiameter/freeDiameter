@@ -90,7 +90,12 @@ static void * demuxer(void * arg)
 		switch (event) {
 			case FDEVP_CNX_MSG_RECV:
 				/* Demux this message in the appropriate fifo, another thread will pull, gnutls process, and send in target queue */
-				CHECK_FCT_DO(fd_event_send(conn->cc_sctps_data.array[strid].raw_recv, event, bufsz, buf), goto error );
+				if (strid < conn->cc_sctp_para.pairs) {
+					CHECK_FCT_DO(fd_event_send(conn->cc_sctps_data.array[strid].raw_recv, event, bufsz, buf), goto error );
+				} else {
+					TRACE_DEBUG(INFO, "Received packet (%d bytes) on out-of-range stream #%s from %s, discarded.", bufsz, strid, conn->cc_remid);
+					free(buf);
+				}
 				break;
 				
 			case FDEVP_CNX_EP_CHANGE:
@@ -112,6 +117,12 @@ error:
 	if (!conn->cc_closing) {
 		CHECK_FCT_DO( fd_event_send( Target_Queue(conn), FDEVP_CNX_ERROR, 0, NULL), /* continue or destroy everything? */);
 	}
+	
+	/* Since the demux thread terminates, we must trig an error for all decipher threads. We do this by destroying all demuxed FIFO queues */
+	for (strid = 0; strid < conn->cc_sctp_para.pairs; strid++) {
+		fd_event_destroy( &conn->cc_sctps_data.array[strid].raw_recv, free );
+	}
+	
 	goto out;
 }
 
@@ -582,37 +593,16 @@ int fd_sctps_startthreads(struct cnxctx * conn)
 	return 0;
 }
 
-static void * bye_th(void * arg)
-{
-	struct sctps_ctx * ctx = (struct sctps_ctx *) arg;
-	TRACE_ENTRY("%p", arg);
-	
-	/* Set the thread name */
-	{
-		char buf[48];
-		snprintf(buf, sizeof(buf), "gnutls_bye (%hu@%d)", ctx->strid, ctx->parent->cc_socket);
-		fd_log_threadname ( buf );
-	}
-	
-	CHECK_GNUTLS_DO( gnutls_bye(ctx->session, GNUTLS_SHUT_WR), /* Continue */ );
-			
-	/* Finish */
-	return NULL;
-}
-
-/* Initiate a "bye" on all stream pairs in paralel */
+/* Initiate a "bye" on all stream pairs */
 void fd_sctps_bye(struct cnxctx * conn)
 {
 	uint16_t i;
 	
 	CHECK_PARAMS_DO( conn && conn->cc_sctps_data.array, return );
 	
-	/* End all TLS sessions, in parallel */
+	/* End all TLS sessions, in series (not as efficient as paralel, but simpler) */
 	for (i = 1; i < conn->cc_sctp_para.pairs; i++) {
-		CHECK_POSIX_DO( pthread_create( &conn->cc_sctps_data.array[i].thr, NULL, bye_th, &conn->cc_sctps_data.array[i] ), break );
-	}
-	for (--i; i > 0; --i) {
-		CHECK_POSIX_DO( pthread_join( conn->cc_sctps_data.array[i].thr, NULL ), continue );
+		CHECK_GNUTLS_DO( gnutls_bye(conn->cc_sctps_data.array[i].session, GNUTLS_SHUT_WR), /* Continue */ );
 	}
 }
 
@@ -676,7 +666,8 @@ void fd_sctps_destroy(struct cnxctx * conn)
 	
 	/* Free remaining data in the array */
 	for (i = 0; i < conn->cc_sctp_para.pairs; i++) {
-		fd_event_destroy( &conn->cc_sctps_data.array[i].raw_recv, free );
+		if (conn->cc_sctps_data.array[i].raw_recv)
+			fd_event_destroy( &conn->cc_sctps_data.array[i].raw_recv, free );
 		free(conn->cc_sctps_data.array[i].partial.buf);
 		if (i > 0)
 			gnutls_deinit(conn->cc_sctps_data.array[i].session);

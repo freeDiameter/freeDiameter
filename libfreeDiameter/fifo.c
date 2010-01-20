@@ -158,6 +158,7 @@ int fd_fifo_del ( struct fifo  ** queue )
 	/* Ok, now invalidate the queue */
 	q->eyec = 0xdead;
 	
+	/* Have all waiting threads return an error */
 	while (q->thrs) {
 		CHECK_POSIX(  pthread_mutex_unlock( &q->mtx ));
 		CHECK_POSIX(  pthread_cond_signal(&q->cond)  );

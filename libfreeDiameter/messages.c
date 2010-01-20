@@ -690,99 +690,6 @@ public:
 			INOBJHDRVAL, msg->msg_rawbuffer, msg->msg_routable, msg->msg_cb.fct, msg->msg_cb.data, msg->msg_query, msg->msg_sess, msg->msg_src_id?:"(nil)");
 }
 
-#define DUMP_VALUE(_format, _parms...)   fd_log_debug(INOBJHDR "value : t:'%s' v:'" _format "'\n", INOBJHDRVAL, typename, ## _parms);
-/* Dump an AVP value that is not a constant */
-static void dump_basic_type(union avp_value * value, enum dict_avp_basetype type, const char * typename, int indent)
-{
-	switch (type) {
-		case AVP_TYPE_GROUPED:
-			DUMP_VALUE("%s", "error: grouped AVP with a value!");
-			break;
-			
-		case AVP_TYPE_OCTETSTRING:
-			{
-				/* Dump only up to 16 bytes of the buffer */
-				unsigned char buf[8];
-				memset(buf, 0, sizeof(buf));
-				memcpy(buf, value->os.data, value->os.len < sizeof(buf) ? value->os.len : sizeof(buf) );
-				DUMP_VALUE("l:%d, v:%02.2X %02.2X %02.2X %02.2X  %02.2X %02.2X %02.2X %02.2X  ... ('%.*s')", 
-						value->os.len,
-						buf[0], buf[1], buf[2], buf[3], buf[4], buf[5], buf[6], buf[7], 
-						value->os.len, value->os.data
-						);
-			}
-			break;
-		
-		case AVP_TYPE_INTEGER32:
-			DUMP_VALUE("%i",value->i32);
-			break;
-
-		case AVP_TYPE_INTEGER64:
-			DUMP_VALUE("%lli (0x%llx)",value->i64,value->i64);
-			break;
-
-		case AVP_TYPE_UNSIGNED32:
-			DUMP_VALUE("%u",value->u32);
-			break;
-
-		case AVP_TYPE_UNSIGNED64:
-			DUMP_VALUE("%llu",value->u64);
-			break;
-
-		case AVP_TYPE_FLOAT32:
-			DUMP_VALUE("%f",value->f32);
-			break;
-
-		case AVP_TYPE_FLOAT64:
-			DUMP_VALUE("%g",value->f64);
-			break;
-		
-		default:
-			DUMP_VALUE("%s %d", "error: invalid type :", type);
-	}
-}
-
-/* Dump an AVP value that is a constant */
-#define DUMP_CONST(_format, _parms...)   fd_log_debug(INOBJHDR "value : t:'%s' v:'%s' ( " _format " )\n", INOBJHDRVAL, typename, value->enum_name, ## _parms);
-static void dump_constant_type(struct dict_enumval_data * value, enum dict_avp_basetype type, char * typename, int indent)
-{
-	switch (type) {
-		case AVP_TYPE_GROUPED:
-			DUMP_CONST("%s", "error: grouped AVP with a constant value!");
-			break;
-		case AVP_TYPE_OCTETSTRING:
-			DUMP_CONST("%s", "value skipped");
-			break;
-		
-		case AVP_TYPE_INTEGER32:
-			DUMP_CONST("%i",value->enum_value.i32);
-			break;
-
-		case AVP_TYPE_INTEGER64:
-			DUMP_CONST("%li",value->enum_value.i64);
-			break;
-
-		case AVP_TYPE_UNSIGNED32:
-			DUMP_CONST("%u",value->enum_value.u32);
-			break;
-
-		case AVP_TYPE_UNSIGNED64:
-			DUMP_CONST("%lu",value->enum_value.u64);
-			break;
-
-		case AVP_TYPE_FLOAT32:
-			DUMP_CONST("%f",value->enum_value.f32);
-			break;
-
-		case AVP_TYPE_FLOAT64:
-			DUMP_CONST("%g",value->enum_value.f64);
-			break;
-		
-		default:
-			DUMP_CONST("%s %d", "error: invalid type :", type);
-	}
-}
-
 /* Dump an avp object */
 static void obj_dump_avp ( struct avp * avp, int indent )
 {
@@ -833,47 +740,7 @@ public:
 		if (!avp->avp_model) {
 			fd_log_debug(INOBJHDR "(data set but no model: ERROR)\n", INOBJHDRVAL);
 		} else {
-			/* Try and find a constant name for this value */
-			struct dictionary * dict = NULL;
-			struct dict_object * avp_type = NULL;
-			struct dict_object * avp_constant = NULL;
-			struct dict_type_data type_data;
-			struct dict_enumval_request  request;
-			ret = fd_dict_getdict(avp->avp_model, & dict);
-			if (ret != 0) {
-				dump_basic_type(avp->avp_public.avp_value, type, type_base_name[type], indent);
-				goto end;
-			}
-			ret = fd_dict_search(dict, DICT_TYPE, TYPE_OF_AVP, avp->avp_model, &avp_type, ENOENT);
-			if (ret != 0) {
-				dump_basic_type(avp->avp_public.avp_value, type, type_base_name[type], indent);
-				goto end;
-			}
-			ret = fd_dict_getval(avp_type, &type_data);
-			if (ret != 0) {
-				dump_basic_type(avp->avp_public.avp_value, type, "(error getting type data)", indent);
-				goto end;
-			}
-			if (type_data.type_base != type) {
-				dump_basic_type(avp->avp_public.avp_value, type, "(mismatching type information!)", indent);
-				goto end;
-			}
-			/* Create a query for a constant */
-			memset(&request, 0, sizeof(request));
-			request.type_obj = avp_type;
-			memcpy(&request.search.enum_value, avp->avp_public.avp_value, sizeof(union avp_value));
-			ret = fd_dict_search(dict, DICT_ENUMVAL, ENUMVAL_BY_STRUCT, &request, &avp_constant, ENOENT);
-			if (ret != 0)  {
-				dump_basic_type(avp->avp_public.avp_value, type, type_data.type_name, indent);
-				goto end;
-			}
-			/* get the constant's information; we re-use request.search field */
-			ret = fd_dict_getval(avp_constant, &request.search);
-			if (ret != 0) {
-				dump_basic_type(avp->avp_public.avp_value, type, "(error getting constant data)", indent);
-				goto end;
-			}
-			dump_constant_type(&request.search, type, type_data.type_name, indent);
+			fd_dict_dump_avp_value(avp->avp_public.avp_value, avp->avp_model, indent);
 		}
 	}
 end:	

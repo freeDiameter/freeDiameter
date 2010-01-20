@@ -1283,6 +1283,152 @@ void fd_dict_dump(struct dictionary * dict)
 	CHECK_POSIX_DO(  pthread_rwlock_unlock( &dict->dict_lock ), /* ignore */  );
 }
 
+/**************************** Dump AVP values ********************************/
+
+/* Default dump functions */
+static void dump_val_os(union avp_value * value)
+{
+	int i;
+	for (i = 0; i < value->os.len; i++) {
+		if (i == 16) { /* Dump only up to 16 bytes of the buffer */
+			fd_log_debug("(trunc, len=%zd)", value->os.len);
+			break;
+		}
+		fd_log_debug("%02.2X ", value->os.data[i]);
+	}
+}
+
+static void dump_val_i32(union avp_value * value)
+{
+	fd_log_debug("%i", value->i32);
+}
+
+static void dump_val_i64(union avp_value * value)
+{
+	fd_log_debug("%lli (0x%llx)", value->i64, value->i64);
+}
+
+static void dump_val_u32(union avp_value * value)
+{
+	fd_log_debug("%u", value->u32);
+}
+
+static void dump_val_u64(union avp_value * value)
+{
+	fd_log_debug("%llu", value->u64);
+}
+
+static void dump_val_f32(union avp_value * value)
+{
+	fd_log_debug("%f", value->f32);
+}
+
+static void dump_val_f64(union avp_value * value)
+{
+	fd_log_debug("%g", value->f64);
+}
+
+/* Get the dump function for basic dict_avp_basetype */
+static void (*get_default_dump_val_cb(enum dict_avp_basetype datatype))(union avp_value *)
+{
+	switch (datatype) {
+		case AVP_TYPE_OCTETSTRING:
+			return &dump_val_os;
+		
+		case AVP_TYPE_INTEGER32:
+			return &dump_val_i32;
+
+		case AVP_TYPE_INTEGER64:
+			return &dump_val_i64;
+
+		case AVP_TYPE_UNSIGNED32:
+			return &dump_val_u32;
+
+		case AVP_TYPE_UNSIGNED64:
+			return &dump_val_u64;
+
+		case AVP_TYPE_FLOAT32:
+			return &dump_val_f32;
+
+		case AVP_TYPE_FLOAT64:
+			return &dump_val_f64;
+		
+		case AVP_TYPE_GROUPED:
+			TRACE_DEBUG(FULL, "error: grouped AVP with a value!");
+	}
+	return NULL;
+}
+
+/* indent inside an object (duplicate from messages.c) */
+#define INOBJHDR 	"%*s   "
+#define INOBJHDRVAL 	indent<0 ? 1 : indent, indent<0 ? "-" : "|"
+
+/* Formater for the AVP value dump line */
+static void dump_avp_val(union avp_value *avp_value, void (*dump_val_cb)(union avp_value *avp_value), enum dict_avp_basetype datatype, char * type_name, char * const_name, int indent)
+{
+	/* Header for all AVP values dumps: */
+	fd_log_debug(INOBJHDR "value ", INOBJHDRVAL);
+	
+	/* If the type is provided, write it */
+	if (type_name)
+		fd_log_debug("t: '%s' ", type_name);
+	
+	/* Always give the base datatype anyway */
+	fd_log_debug("(%s) ", type_base_name[datatype]);
+	
+	/* Now, the value */
+	fd_log_debug("v: ");
+	if (const_name)
+		fd_log_debug("'%s' (", const_name);
+	(*dump_val_cb)(avp_value);
+	if (const_name)
+		fd_log_debug(")");
+	
+	/* Done! */
+	fd_log_debug("\n");
+}
+
+/* Dump the value of an AVP of known type */
+void fd_dict_dump_avp_value(union avp_value *avp_value, struct dict_object * model, int indent)
+{
+	void (*dump_val_cb)(union avp_value *avp_value);
+	struct dict_object * type = NULL;
+	char * type_name = NULL;
+	char * const_name = NULL;
+	
+	/* Check the parameters are correct */
+	CHECK_PARAMS_DO( avp_value && verify_object(model) && (model->type == DICT_AVP), return );
+	
+	/* Default: display the value with the formatter for the AVP datatype */
+	CHECK_PARAMS_DO( dump_val_cb = get_default_dump_val_cb(model->data.avp.avp_basetype), return );
+	
+	/* Get the type definition of this AVP */
+	type = model->parent;
+	if (type) {
+		struct dict_enumval_request  request;
+		struct dict_object * enumval = NULL;
+		
+		type_name = type->data.type.type_name;
+		
+		/* overwrite the dump function ? */
+		if (type->data.type.type_dump)
+			dump_val_cb = type->data.type.type_dump;
+		
+		/* Now check if the AVP value matches a constant */
+		memset(&request, 0, sizeof(request));
+		request.type_obj = type;
+		memcpy(&request.search.enum_value, avp_value, sizeof(union avp_value));
+		/* bypass checks */
+		if ((search_enumval( type->dico, ENUMVAL_BY_STRUCT, &request, &enumval ) == 0) && (enumval)) {
+			/* We found a cosntant, get its name */
+			const_name = enumval->data.enumval.enum_name;
+		}
+	}
+	
+	/* And finally, dump the value */
+	dump_avp_val(avp_value, dump_val_cb, model->data.avp.avp_basetype, type_name, const_name, indent);
+}
+
 /*******************************************************************************************************/
 /*******************************************************************************************************/
 /*                                                                                                     */
