@@ -543,11 +543,9 @@ psm_loop:
 				
 				/* Destroy the connection, restart the timer to a new connection attempt */
 				fd_psm_next_timeout(peer, 1, peer->p_hdr.info.config.pic_tctimer ?: fd_g_config->cnf_timer_tc);
-				goto psm_reset;
 				
 			case STATE_CLOSED:
-				/* Just ignore */
-				break;
+				goto psm_reset;
 				
 			case STATE_CLOSING:
 				/* We sent a DPR so we are terminating, do not wait for DPA */
