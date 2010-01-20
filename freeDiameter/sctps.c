@@ -569,6 +569,7 @@ int fd_sctps_handshake_others(struct cnxctx * conn, char * priority, void * alt_
 	for (i = 1; i < conn->cc_sctp_para.pairs; i++) {
 		void * ret;
 		CHECK_POSIX( pthread_join(conn->cc_sctps_data.array[i].thr, &ret) );
+		conn->cc_sctps_data.array[i].thr = (pthread_t) NULL;
 		if (ret == NULL) {
 			errors++; /* Handshake failed on this stream */
 		}
