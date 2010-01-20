@@ -669,8 +669,7 @@ void fd_sctps_destroy(struct cnxctx * conn)
 		if (conn->cc_sctps_data.array[i].raw_recv)
 			fd_event_destroy( &conn->cc_sctps_data.array[i].raw_recv, free );
 		free(conn->cc_sctps_data.array[i].partial.buf);
-		if (i > 0)
-			gnutls_deinit(conn->cc_sctps_data.array[i].session);
+		/* gnutls_session was already deinit */
 	}
 	
 	/* Free the array itself now */
