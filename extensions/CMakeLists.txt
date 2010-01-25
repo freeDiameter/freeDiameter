@@ -49,10 +49,10 @@ OPTION(BUILD_DICT_EAP "Build Diameter EAP (RFC4072) Dictionary definitions?" ON)
 ####
 # Peers security extensions
 
-# OPTION(BUILD_PS_DEFAULT "Build ps_default? (white-list of peers)" ON)
-# 	IF (BUILD_PS_DEFAULT)
-# # -- enable once API is updated:	   SUBDIRS(ps_default)
-# 	ENDIF (BUILD_PS_DEFAULT)
+OPTION(BUILD_ACL_WL "Build acl_wl? (White-list of remote connecting peers)" ON)
+	IF (BUILD_ACL_WL)
+		SUBDIRS(acl_wl)
+ 	ENDIF (BUILD_ACL_WL)
 
 
 ####
