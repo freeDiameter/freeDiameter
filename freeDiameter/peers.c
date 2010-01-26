@@ -458,6 +458,14 @@ int fd_peer_handle_newCER( struct msg ** cer, struct cnxctx ** cnx )
 		
 		/* Start the PSM, which will receive the event bellow */
 		CHECK_FCT_DO( ret = fd_psm_begin(peer), goto out );
+	} else {
+		/* Check if the peer is in zombie state */
+		if (peer->p_hdr.info.runtime.pir_state == STATE_ZOMBIE) {
+			/* Re-activate the peer */
+			peer->p_flags.pf_responder = 1;
+			peer->p_hdr.info.runtime.pir_state = STATE_NEW;
+			CHECK_FCT_DO( ret = fd_psm_begin(peer), goto out );
+		}
 	}
 		
 	/* Send the new connection event to the PSM */
