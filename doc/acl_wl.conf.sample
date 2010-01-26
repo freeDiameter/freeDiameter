@@ -15,4 +15,5 @@
 # ALLOW_IPSEC   : we accept implicitly protected connection with with peer (Inband-Security-Id = IPSec)
 # It is specified for example as:
 # ALLOW_IPSEC vpn.example.net vpn2.example.net *.vpn.example.net
+# These flag take effect from their position, until the end of the line.
 

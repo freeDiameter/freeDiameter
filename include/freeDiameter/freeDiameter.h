@@ -302,7 +302,7 @@ int fd_peer_add ( struct peer_info * info, char * orig_dbg, void (*cb)(struct pe
 int fd_peer_getbyid( char * diamid, struct peer_hdr ** peer );
 
 /*
- * FUNCTION:	peer_validate_register
+ * FUNCTION:	fd_peer_validate_register
  *
  * PARAMETERS:
  *  peer_validate 	: Callback as defined bellow.
@@ -341,6 +341,8 @@ int fd_peer_validate_register ( int (*peer_validate)(struct peer_info * /* info 
  * structure as parameter (with pir_cert_list set) and returns 0 if the credentials are correct,
  * or an error code otherwise. If the error code is received, the connection is closed and the 
  * peer is destroyed.
+ * Note that freeDiameter already achieves some usual checks. The callback may be used to enforce
+ * additional restrictions.
  *
  * RETURN VALUE:
  *  0      	: The authorization decision has been written in the location pointed by auth.

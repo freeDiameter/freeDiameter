@@ -70,35 +70,57 @@ static int aw_validate(struct peer_info * info, int * auth, int (**cb2)(struct p
 	}
 	
 	/* Now, if we did not specify any flag, reject */
+	if (res == 0) {
+		TRACE_DEBUG(INFO, "Peer '%s' rejected, only TLS-protected connection is whitelisted.", info->pi_diamid);
+		/* We don't actually set *auth = -1, leave space for a further extension to validate the peer */
+		return 0;
+	}
 	
-
+	/* Check the Inband-Security-Id value */
+	res &= info->runtime.pir_isi;
+	if (res == 0) {
+		TRACE_DEBUG(INFO, "Peer '%s' rejected, remotely advertised Inband-Security-Id is not compatible with whitelist flags.", info->pi_diamid);
+		/* We don't actually set *auth = -1, leave space for a further extension to validate the peer */
+		return 0;
+	}
+	
+	/* Ok, the peer is whitelisted */
+	*auth = 1;
+	
+	/* Now, configure the peer for the authorized mechanism */
+	if ((res & PI_SEC_NONE) && (res & PI_SEC_TLS_OLD))
+		res = PI_SEC_NONE; /* If we authorized it, we must have an IPsec tunnel setup, no need for TLS in this case */
+	
+	/* Save information about the security mechanism to use after CER/CEA exchange */
+	info->config.pic_flags.sec = res;
+	return 0;
 }
 
 /* entry point */
 static int aw_entry(char * conffile)
 {
 	TRACE_ENTRY("%p", conffile);
-	
 	CHECK_PARAMS(conffile);
 	
 	/* Parse configuration file */
 	CHECK_FCT( aw_conf_handle(conffile) );
 	
 	TRACE_DEBUG(INFO, "Extension ACL_wl initialized with configuration: '%s'", conffile);
-	aw_tree_dump();
+	if (TRACE_BOOL(ANNOYING)) {
+		aw_tree_dump();
+	}
 	
 	/* Register the validator function */
-	
+	CHECK_FCT( fd_peer_validate_register ( aw_validate ) );
+
 	return 0;
 }
 
 /* Unload */
 void fd_ext_fini(void)
 {
-	/* Unregister the validator function */
-
 	/* Destroy the tree */
-
+	aw_tree_destroy();
 }
 
 EXTENSION_ENTRY("acl_wl", aw_entry);

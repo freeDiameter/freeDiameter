@@ -781,12 +781,31 @@ int fd_p_ce_process_receiver(struct fd_peer * peer)
 		}
 	}
 	
-	/* Do we send ISI back ? */
+	/* Do we agree on ISI ? */
 	if ( ! fd_cnx_getTLS(peer->p_cnxctx) ) {
-		if (peer->p_hdr.info.config.pic_flags.sec & PI_SEC_NONE)
-			isi = PI_SEC_NONE; /* Maybe we should also look at peer->p_hdr.info.runtime.pir_isi here ? */
-		else
+		/* In case of responder, the validate callback must have set the config.pic_flags.sec value already */
+		if (!peer->p_hdr.info.config.pic_flags.sec) {
+			/* The peer did not send the Inband-Security-Id AVP, reject */
+			TRACE_DEBUG(INFO, "No security mechanism advertised by peer '%s', sending DIAMETER_NO_COMMON_SECURITY", peer->p_hdr.info.pi_diamid);
+			ec = "DIAMETER_NO_COMMON_SECURITY";
+			fatal = 1;
+			goto error_abort;
+		}
+		
+		/* Now, check if we agree on the value IPsec */
+		if ((peer->p_hdr.info.config.pic_flags.sec & PI_SEC_NONE) && (peer->p_hdr.info.runtime.pir_isi & PI_SEC_NONE)) {
+			isi = PI_SEC_NONE;
+		} else if ((peer->p_hdr.info.config.pic_flags.sec & PI_SEC_TLS_OLD) && (peer->p_hdr.info.runtime.pir_isi & PI_SEC_TLS_OLD)) {
 			isi = PI_SEC_TLS_OLD;
+		}
+		
+		/* If we did not find an agreement */
+		if (!isi) {
+			TRACE_DEBUG(INFO, "No common security mechanism with '%s', sending DIAMETER_NO_COMMON_SECURITY", peer->p_hdr.info.pi_diamid);
+			ec = "DIAMETER_NO_COMMON_SECURITY";
+			fatal = 1;
+			goto error_abort;
+		}
 	}
 	
 	/* Reply a CEA */

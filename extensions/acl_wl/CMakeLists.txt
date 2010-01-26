@@ -7,7 +7,7 @@ FLEX_FILE(aw_conf.l)
 SET_SOURCE_FILES_PROPERTIES(lex.aw_conf.c aw_conf.tab.c PROPERTIES COMPILE_FLAGS "-I ${CMAKE_CURRENT_SOURCE_DIR}")
 
 # List of source files
-SET( APP_TEST_SRC
+SET( ACL_WL_SRC
 	acl_wl.h
 	acl_wl.c
 	aw_tree.c
@@ -17,4 +17,4 @@ SET( APP_TEST_SRC
 )
 
 # Compile as a module
-FD_ADD_EXTENSION(acl_wl ${APP_TEST_SRC})
+FD_ADD_EXTENSION(acl_wl ${ACL_WL_SRC})

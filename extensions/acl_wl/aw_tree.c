@@ -229,7 +229,7 @@ int aw_tree_add(char * name, int flags)
 		/* Check if we have a '*' element already that overlapses */
 		ti = (struct tree_item *)(senti->next);
 		if (ti->str == NULL) {
-			fd_log_debug("[acl_wl] Warning: entry '%s' is superseeded by a generic entry at level %d, ignoring.\n", name, lbl);
+			fd_log_debug("[acl_wl] Warning: entry '%s' is superseeded by a generic entry at label %d, ignoring.\n", name, lbl + 1);
 			return 0;
 		}
 		
@@ -286,7 +286,7 @@ int aw_tree_add(char * name, int flags)
 			/* Check we don't have a '*' entry already */
 			ti = (struct tree_item *)(senti->next);
 			if (ti->str == NULL) {
-				fd_log_debug("[acl_wl] Warning: entry '%s' is superseeded by a generic entry at level 0, ignoring.\n", name);
+				fd_log_debug("[acl_wl] Warning: entry '%s' is superseeded by a generic entry at label 1, ignoring.\n", name);
 				return 0;
 			}
 			
@@ -366,7 +366,7 @@ int aw_tree_lookup(char * name, int * result)
 		/* Check if we have a '*' element */
 		ti = (struct tree_item *)(senti->next);
 		if (ti->str == NULL) {
-			TRACE_DEBUG(FULL, "[acl_wl] %s matched at level %d with a generic entry.", name, lbl);
+			TRACE_DEBUG(ANNOYING, "[acl_wl] %s matched at label %d with a generic entry.", name, lbl + 1);
 			*result = ti->flags;
 			return 0;
 		}
@@ -406,7 +406,7 @@ int aw_tree_lookup(char * name, int * result)
 	if (!ti->leaf)
 		return 0;
 	
-	TRACE_DEBUG(FULL, "[acl_wl] %s matched exactly.", name);
+	TRACE_DEBUG(ANNOYING, "[acl_wl] %s matched exactly.", name);
 	*result = ti->flags;
 	return 0;
 }
