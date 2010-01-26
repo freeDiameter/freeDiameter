@@ -1040,6 +1040,7 @@ fatal_error:
 	CHECK_FCT_DO(fd_event_send(fd_g_config->cnf_main_ev, FDEV_TERMINATE, 0, NULL), );
 	
 end:	
+	; /* noop so that we get rid of "label at end of compund statement" warning */
 	/* Mark the thread as terminated */
 	pthread_cleanup_pop(1);
 	return NULL;
