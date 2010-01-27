@@ -279,7 +279,7 @@ int fd_p_cnx_init(struct fd_peer * peer);
 void fd_p_cnx_abort(struct fd_peer * peer, int cleanup_all);
 
 /* Peer sent requests cache */
-int fd_p_sr_store(struct sr_list * srlist, struct msg **req, uint32_t *hbhloc);
+int fd_p_sr_store(struct sr_list * srlist, struct msg **req, uint32_t *hbhloc, uint32_t hbh_restore);
 int fd_p_sr_fetch(struct sr_list * srlist, uint32_t hbh, struct msg **req);
 void fd_p_sr_failover(struct sr_list * srlist);
 

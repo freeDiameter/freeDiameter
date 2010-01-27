@@ -43,6 +43,7 @@ static int do_send(struct msg ** msg, struct cnxctx * cnx, uint32_t * hbh, struc
 	uint8_t * buf;
 	size_t sz;
 	int ret;
+	uint32_t bkp_hbh = 0;
 	
 	TRACE_ENTRY("%p %p %p %p", msg, cnx, hbh, srl);
 	
@@ -53,6 +54,7 @@ static int do_send(struct msg ** msg, struct cnxctx * cnx, uint32_t * hbh, struc
 	if (msg_is_a_req) {
 		CHECK_PARAMS(hbh && srl);
 		/* Alloc the hop-by-hop id and increment the value for next message */
+		bkp_hbh = hdr->msg_hbhid;
 		hdr->msg_hbhid = *hbh;
 		*hbh = hdr->msg_hbhid + 1;
 	}
@@ -70,7 +72,7 @@ static int do_send(struct msg ** msg, struct cnxctx * cnx, uint32_t * hbh, struc
 	
 	/* Save a request before sending so that there is no race condition with the answer */
 	if (msg_is_a_req) {
-		CHECK_FCT_DO( ret = fd_p_sr_store(srl, msg, &hdr->msg_hbhid), { free(buf); return ret; } );
+		CHECK_FCT_DO( ret = fd_p_sr_store(srl, msg, &hdr->msg_hbhid, bkp_hbh), { free(buf); return ret; } );
 	}
 	
 	/* Send the message */

@@ -43,6 +43,7 @@
 struct sentreq {
 	struct fd_list	chain; 	/* the "o" field points directly to the hop-by-hop of the request (uint32_t *)  */
 	struct msg	*req;	/* A request that was sent and not yet answered. */
+	uint32_t	prevhbh;/* The value to set in the hbh header when the message is retrieved */
 };
 
 /* Find an element in the list, or the following one */
@@ -76,19 +77,20 @@ static void srl_dump(const char * text, struct fd_list * srlist)
 }
 
 /* Store a new sent request */
-int fd_p_sr_store(struct sr_list * srlist, struct msg **req, uint32_t *hbhloc)
+int fd_p_sr_store(struct sr_list * srlist, struct msg **req, uint32_t *hbhloc, uint32_t hbh_restore)
 {
 	struct sentreq * sr;
 	struct fd_list * next;
 	int match;
 	
-	TRACE_ENTRY("%p %p %p", srlist, req, hbhloc);
+	TRACE_ENTRY("%p %p %p %x", srlist, req, hbhloc, hbh_restore);
 	CHECK_PARAMS(srlist && req && *req && hbhloc);
 	
 	CHECK_MALLOC( sr = malloc(sizeof(struct sentreq)) );
 	memset(sr, 0, sizeof(struct sentreq));
 	fd_list_init(&sr->chain, hbhloc);
 	sr->req = *req;
+	sr->prevhbh = hbh_restore;
 	
 	/* Search the place in the list */
 	CHECK_POSIX( pthread_mutex_lock(&srlist->mtx) );
@@ -122,9 +124,11 @@ int fd_p_sr_fetch(struct sr_list * srlist, uint32_t hbh, struct msg **req)
 	srl_dump("Fetching a request, ", &srlist->srs);
 	sr = (struct sentreq *)find_or_next(&srlist->srs, hbh, &match);
 	if (!match) {
-		TRACE_DEBUG(INFO, "There is no saved request with this hop-by-hop id");
+		TRACE_DEBUG(INFO, "There is no saved request with this hop-by-hop id (%x)", hbh);
 		*req = NULL;
 	} else {
+		/* Restore hop-by-hop id */
+		*((uint32_t *)sr->chain.o) = sr->prevhbh;
 		/* Unlink */
 		fd_list_unlink(&sr->chain);
 		*req = sr->req;
