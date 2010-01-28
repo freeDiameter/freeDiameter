@@ -63,11 +63,11 @@ static int dbgrt_out_cb(void * cbdata, struct msg * msg, struct fd_list * candid
 	
 	fd_log_debug("[dbg_rt] OUT routing message: %p\n", msg);
 	fd_msg_dump_walk(INFO, msg);
-	fd_log_debug("[dbg_rt] Current list of candidates (%p)\n", msg);
+	fd_log_debug("[dbg_rt] Current list of candidates (%p): (score - id)\n", msg);
 	
 	for (li = candidates->next; li != candidates; li = li->next) {
 		struct rtd_candidate *c = (struct rtd_candidate *) li;
-		fd_log_debug("[dbg_rt]   - %d\t%s\n", c->score, c->diamid);
+		fd_log_debug("[dbg_rt]   %d -\t%s\n", c->score, c->diamid);
 	}
 	
 	return 0;
