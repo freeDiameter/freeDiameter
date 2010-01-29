@@ -40,10 +40,10 @@ OPTION(BUILD_DICT_EAP "Build Diameter EAP (RFC4072) Dictionary definitions?" ON)
 ####
 # Routing extensions
 
-# OPTION(BUILD_RT_DEFAULT "Build rt_default? (Routing extension using Destination-Host, Destination-Realm, and static configuration)" ON)
-# 	IF (BUILD_RT_DEFAULT)
-# 	   SUBDIRS(rt_default)
-# 	ENDIF (BUILD_RT_DEFAULT)
+OPTION(BUILD_RT_DEFAULT "Build rt_default? (Configurable routing rules for freeDiameter)" ON)
+	IF (BUILD_RT_DEFAULT)
+	   SUBDIRS(rt_default)
+	ENDIF (BUILD_RT_DEFAULT)
 
 
 ####
