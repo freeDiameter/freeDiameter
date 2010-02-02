@@ -30,5 +30,11 @@ SET( RT_DEFAULT_SRC
 
 INCLUDE_DIRECTORIES(${CMAKE_CURRENT_BINARY_DIR})
 
+# Overwrite the debug level for the extension code if configured, example: cmake -DDEBUG_LEVEL_RT_DEFAULT:STATIC=CALL ...
+OPTION(DEBUG_LEVEL_RT_DEFAULT "Overwrite debug level for the extension rt_default if defined" OFF)
+IF (DEBUG_LEVEL_RT_DEFAULT)
+     ADD_DEFINITIONS(-DTRACE_LEVEL=${DEBUG_LEVEL_RT_DEFAULT})
+ENDIF (DEBUG_LEVEL_RT_DEFAULT)
+
 # Compile these files as a freeDiameter extension
 FD_ADD_EXTENSION(rt_default ${RT_DEFAULT_SRC})
