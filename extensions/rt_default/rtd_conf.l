@@ -135,7 +135,7 @@ qstring		\"[^\"\n]*\"
 (?i:"rlm")	 	{	return REALM;	}
 			
 	/* Valid single characters for yyparse */
-[*:=+;]			{ return yytext[0]; }
+[*:=+-;]		{ return yytext[0]; }
 
 	/* Unrecognized sequence, if it did not match any previous pattern */
 [^[:space:]\"*:=+;\n]+	{ 

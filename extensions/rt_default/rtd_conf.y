@@ -142,6 +142,7 @@ void yyerror (YYLTYPE *ploc, char * conffile, char const *s)
 %type <tstring>  TSTRING
 %type <criteria> CRITERIA
 %type <target> 	 TARGET
+%type <integer>  EXPR_INT
 
 /* Tokens */
 %token 		OH
@@ -164,7 +165,7 @@ conffile:		/* empty grammar is OK */
 			;
 			
 	/* a RULE entry */
-rule:			CRITERIA ':' TARGET '+' '=' INTEGER ';'
+rule:			CRITERIA ':' TARGET '+' '=' EXPR_INT ';'
 			{
 				int flag = 0;
 				if ($1.regex)
@@ -253,5 +254,20 @@ TARGET:			TSTRING
 				$$.str = $3.str;
 				$$.regex =$3.regex;
 				$$.type = RTD_TAR_REALM;
+			}
+			;
+	
+	/* An expression that has an integer value; we allow + and - operators cause it is convenient */
+EXPR_INT:		INTEGER
+			{
+				$$ = $1;
+			}
+			| EXPR_INT '+' INTEGER
+			{
+				$$ = $1 + $3;
+			}
+			| EXPR_INT '-' INTEGER
+			{
+				$$ = $1 - $3;
 			}
 			;
