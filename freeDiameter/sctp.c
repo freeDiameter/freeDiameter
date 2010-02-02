@@ -51,7 +51,13 @@
 #define SCTP_LEVEL	(FCTS + 1)
 #endif /* DEBUG_SCTP */
 
+/* Temper with the retransmission timers to try and improve disconnection detection response? Undef this to keep the defaults of SCTP stack */
+#ifndef USE_DEFAULT_SCTP_RTX_PARAMS	/* make this a configuration option if useful */
+#define ADJUST_RTX_PARAMS
+#endif /* USE_DEFAULT_SCTP_RTX_PARAMS */
+
 /* Pre-binding socket options -- # streams read in config */
+/* The code of this file is based on draft-ietf-tsvwg-sctpsocket, versions 17 to 21 */
 static int fd_setsockopt_prebind(int sk)
 {
 	socklen_t sz;
@@ -60,7 +66,297 @@ static int fd_setsockopt_prebind(int sk)
 	
 	CHECK_PARAMS( sk > 0 );
 	
+#ifdef ADJUST_RTX_PARAMS
+	/* Set the retransmit parameters */
+	#ifdef SCTP_RTOINFO
+	{
+		struct sctp_rtoinfo rtoinfo;
+		memset(&rtoinfo, 0, sizeof(rtoinfo));
+
+		if (TRACE_BOOL(SCTP_LEVEL)) {
+			sz = sizeof(rtoinfo);
+			/* Read socket defaults */
+			CHECK_SYS(  getsockopt(sk, IPPROTO_SCTP, SCTP_RTOINFO, &rtoinfo, &sz)  );
+			if (sz != sizeof(rtoinfo))
+			{
+				TRACE_DEBUG(INFO, "Invalid size of socket option: %d / %d", sz, (socklen_t)sizeof(rtoinfo));
+				return ENOTSUP;
+			}
+			fd_log_debug( "Def SCTP_RTOINFO : srto_initial : %u\n", rtoinfo.srto_initial);
+			fd_log_debug( "                   srto_min     : %u\n", rtoinfo.srto_min);
+			fd_log_debug( "                   srto_max     : %u\n", rtoinfo.srto_max);
+		}
+
+		/* rtoinfo.srto_initial: Estimate of the RTT before it can be measured; keep the default value */
+		rtoinfo.srto_max = 5000; /* Maximum retransmit timer (in ms), we want fast retransmission time. */
+		rtoinfo.srto_min = 1000; /* Value under which the RTO does not descend, we set this value to not conflict with srto_max */
+
+		/* Set the option to the socket */
+		CHECK_SYS(  setsockopt(sk, IPPROTO_SCTP, SCTP_RTOINFO, &rtoinfo, sizeof(rtoinfo))  );
+		
+		if (TRACE_BOOL(SCTP_LEVEL)) {
+			/* Check new values */
+			CHECK_SYS(  getsockopt(sk, IPPROTO_SCTP, SCTP_RTOINFO, &rtoinfo, &sz)  );
+			fd_log_debug( "New SCTP_RTOINFO : srto_initial : %u\n", rtoinfo.srto_initial);
+			fd_log_debug( "                   srto_max     : %u\n", rtoinfo.srto_max);
+			fd_log_debug( "                   srto_min     : %u\n", rtoinfo.srto_min);
+		}
+	}
+	#else /* SCTP_RTOINFO */
+	TRACE_DEBUG(SCTP_LEVEL, "Skipping SCTP_RTOINFO");
+	#endif /* SCTP_RTOINFO */
+	
+	/* Set the association parameters: max number of retransmits, ... */
+	#ifdef SCTP_ASSOCINFO
+	{
+		struct sctp_assocparams assoc;
+		memset(&assoc, 0, sizeof(assoc));
+
+		if (TRACE_BOOL(SCTP_LEVEL)) {
+			sz = sizeof(assoc);
+			/* Read socket defaults */
+			CHECK_SYS(  getsockopt(sk, IPPROTO_SCTP, SCTP_ASSOCINFO, &assoc, &sz)  );
+			if (sz != sizeof(assoc))
+			{
+				TRACE_DEBUG(INFO, "Invalid size of socket option: %d / %d", sz, (socklen_t)sizeof(assoc));
+				return ENOTSUP;
+			}
+			fd_log_debug( "Def SCTP_ASSOCINFO : sasoc_asocmaxrxt               : %hu\n", assoc.sasoc_asocmaxrxt);
+			fd_log_debug( "                     sasoc_number_peer_destinations : %hu\n", assoc.sasoc_number_peer_destinations);
+			fd_log_debug( "                     sasoc_peer_rwnd                : %u\n" , assoc.sasoc_peer_rwnd);
+			fd_log_debug( "                     sasoc_local_rwnd               : %u\n" , assoc.sasoc_local_rwnd);
+			fd_log_debug( "                     sasoc_cookie_life              : %u\n" , assoc.sasoc_cookie_life);
+		}
+
+		assoc.sasoc_asocmaxrxt = 4;	/* Maximum number of retransmission attempts: we want fast detection of errors */
+						/* Note that this must remain less than the sum of retransmission parameters of the different paths. */
+		
+		/* Set the option to the socket */
+		CHECK_SYS(  setsockopt(sk, IPPROTO_SCTP, SCTP_ASSOCINFO, &assoc, sizeof(assoc))  );
+		
+		if (TRACE_BOOL(SCTP_LEVEL)) {
+			/* Check new values */
+			CHECK_SYS(  getsockopt(sk, IPPROTO_SCTP, SCTP_ASSOCINFO, &assoc, &sz)  );
+			fd_log_debug( "New SCTP_ASSOCINFO : sasoc_asocmaxrxt               : %hu\n", assoc.sasoc_asocmaxrxt);
+			fd_log_debug( "                     sasoc_number_peer_destinations : %hu\n", assoc.sasoc_number_peer_destinations);
+			fd_log_debug( "                     sasoc_peer_rwnd                : %u\n" , assoc.sasoc_peer_rwnd);
+			fd_log_debug( "                     sasoc_local_rwnd               : %u\n" , assoc.sasoc_local_rwnd);
+			fd_log_debug( "                     sasoc_cookie_life              : %u\n" , assoc.sasoc_cookie_life);
+		}
+	}
+	#else /* SCTP_ASSOCINFO */
+	TRACE_DEBUG(SCTP_LEVEL, "Skipping SCTP_ASSOCINFO");
+	#endif /* SCTP_ASSOCINFO */
+#endif /* ADJUST_RTX_PARAMS */
+	
+	/* Set the INIT parameters, such as number of streams */
+	#ifdef SCTP_INITMSG
+	{
+		struct sctp_initmsg init;
+		memset(&init, 0, sizeof(init));
+		
+		if (TRACE_BOOL(SCTP_LEVEL)) {
+			sz = sizeof(init);
+
+			/* Read socket defaults */
+			CHECK_SYS(  getsockopt(sk, IPPROTO_SCTP, SCTP_INITMSG, &init, &sz)  );
+			if (sz != sizeof(init))
+			{
+				TRACE_DEBUG(INFO, "Invalid size of socket option: %d / %d", sz, (socklen_t)sizeof(init));
+				return ENOTSUP;
+			}
+			fd_log_debug( "Def SCTP_INITMSG : sinit_num_ostreams   : %hu\n", init.sinit_num_ostreams);
+			fd_log_debug( "                   sinit_max_instreams  : %hu\n", init.sinit_max_instreams);
+			fd_log_debug( "                   sinit_max_attempts   : %hu\n", init.sinit_max_attempts);
+			fd_log_debug( "                   sinit_max_init_timeo : %hu\n", init.sinit_max_init_timeo);
+		}
+
+		/* Set the init options -- need to receive SCTP_COMM_UP to confirm the requested parameters, but we don't care (best effort) */
+		init.sinit_num_ostreams	  = fd_g_config->cnf_sctp_str;	/* desired number of outgoing streams */
+		init.sinit_max_init_timeo = CNX_TIMEOUT * 1000;
+
+		/* Set the option to the socket */
+		CHECK_SYS(  setsockopt(sk, IPPROTO_SCTP, SCTP_INITMSG, &init, sizeof(init))  );
+		
+		if (TRACE_BOOL(SCTP_LEVEL)) {
+			/* Check new values */
+			CHECK_SYS(  getsockopt(sk, IPPROTO_SCTP, SCTP_INITMSG, &init, &sz)  );
+			fd_log_debug( "New SCTP_INITMSG : sinit_num_ostreams   : %hu\n", init.sinit_num_ostreams);
+			fd_log_debug( "                   sinit_max_instreams  : %hu\n", init.sinit_max_instreams);
+			fd_log_debug( "                   sinit_max_attempts   : %hu\n", init.sinit_max_attempts);
+			fd_log_debug( "                   sinit_max_init_timeo : %hu\n", init.sinit_max_init_timeo);
+		}
+	}
+	#else /* SCTP_INITMSG */
+	TRACE_DEBUG(SCTP_LEVEL, "Skipping SCTP_INITMSG");
+	#endif /* SCTP_INITMSG */
+	
+	/* The SO_LINGER option will be reset if we want to perform SCTP ABORT */
+	#ifdef SO_LINGER
+	{
+		struct linger linger;
+		memset(&linger, 0, sizeof(linger));
+		
+		if (TRACE_BOOL(SCTP_LEVEL)) {
+			sz = sizeof(linger);
+			/* Read socket defaults */
+			CHECK_SYS(  getsockopt(sk, SOL_SOCKET, SO_LINGER, &linger, &sz)  );
+			if (sz != sizeof(linger))
+			{
+				TRACE_DEBUG(INFO, "Invalid size of socket option: %d / %d", sz, (socklen_t)sizeof(linger));
+				return ENOTSUP;
+			}
+			fd_log_debug( "Def SO_LINGER : l_onoff  : %d\n", linger.l_onoff);
+			fd_log_debug( " 	       l_linger : %d\n", linger.l_linger);
+		}
+		
+		linger.l_onoff	= 0;	/* Do not activate the linger */
+		linger.l_linger = 0;	/* Ignored, but it would mean : Return immediately when closing (=> abort) (graceful shutdown in background) */
+		
+		/* Set the option */
+		CHECK_SYS(  setsockopt(sk, SOL_SOCKET, SO_LINGER, &linger, sizeof(linger))  );
+		
+		if (TRACE_BOOL(SCTP_LEVEL)) {
+			/* Check new values */
+			CHECK_SYS(  getsockopt(sk, SOL_SOCKET, SO_LINGER, &linger, &sz)  );
+			fd_log_debug( "New SO_LINGER : l_onoff  : %d\n", linger.l_onoff);
+			fd_log_debug( "		  l_linger : %d\n", linger.l_linger);
+		}
+	}
+	#else /* SO_LINGER */
+	TRACE_DEBUG(SCTP_LEVEL, "Skipping SO_LINGER");
+	#endif /* SO_LINGER */
+	
+	/* Set the NODELAY option (Nagle-like algorithm) */
+	#ifdef SCTP_NODELAY
+	{
+		int nodelay;
+		
+		if (TRACE_BOOL(SCTP_LEVEL)) {
+			sz = sizeof(nodelay);
+			/* Read socket defaults */
+			CHECK_SYS(  getsockopt(sk, IPPROTO_SCTP, SCTP_NODELAY, &nodelay, &sz)  );
+			if (sz != sizeof(nodelay))
+			{
+				TRACE_DEBUG(INFO, "Invalid size of socket option: %d / %d", sz, (socklen_t)sizeof(nodelay));
+				return ENOTSUP;
+			}
+			fd_log_debug( "Def SCTP_NODELAY value : %s\n", nodelay ? "true" : "false");
+		}
+
+		nodelay = 1;	/* We turn ON the Nagle algorithm (probably the default already), since we might have several messages to send through the same proxy (not the same session). */
+		
+		/* Set the option to the socket */
+		CHECK_SYS(  setsockopt(sk, IPPROTO_SCTP, SCTP_NODELAY, &nodelay, sizeof(nodelay))  );
+		
+		if (TRACE_BOOL(SCTP_LEVEL)) {
+			/* Check new values */
+			CHECK_SYS(  getsockopt(sk, IPPROTO_SCTP, SCTP_NODELAY, &nodelay, &sz)  );
+			fd_log_debug( "New SCTP_NODELAY value : %s\n", nodelay ? "true" : "false");
+		}
+	}
+	#else /* SCTP_NODELAY */
+	TRACE_DEBUG(SCTP_LEVEL, "Skipping SCTP_NODELAY");
+	#endif /* SCTP_NODELAY */
+	
+	/*
+	   SO_RCVBUF			size of receiver window
+	   SO_SNDBUF			size of pending data to send
+	   SCTP_AUTOCLOSE		for one-to-many only
+	   SCTP_PRIMARY_ADDR		use this address as primary locally
+	   SCTP_ADAPTATION_LAYER	set adaptation layer indication, we don't use this 
+	*/
+	
+	/* Set the SCTP_DISABLE_FRAGMENTS option, required for TLS */
+	#ifdef SCTP_DISABLE_FRAGMENTS
+	{
+		int nofrag;
+		
+		if (TRACE_BOOL(SCTP_LEVEL)) {
+			sz = sizeof(nofrag);
+			/* Read socket defaults */
+			CHECK_SYS(  getsockopt(sk, IPPROTO_SCTP, SCTP_DISABLE_FRAGMENTS, &nofrag, &sz)  );
+			if (sz != sizeof(nofrag))
+			{
+				TRACE_DEBUG(INFO, "Invalid size of socket option: %d / %d", sz, (socklen_t)sizeof(nofrag));
+				return ENOTSUP;
+			}
+			fd_log_debug( "Def SCTP_DISABLE_FRAGMENTS value : %s\n", nofrag ? "true" : "false");
+		}
+
+		nofrag = 0;	/* We turn ON the fragmentation, since Diameter messages & TLS messages can be quite large. */
+		
+		/* Set the option to the socket */
+		CHECK_SYS(  setsockopt(sk, IPPROTO_SCTP, SCTP_DISABLE_FRAGMENTS, &nofrag, sizeof(nofrag))  );
+		
+		if (TRACE_BOOL(SCTP_LEVEL)) {
+			/* Check new values */
+			CHECK_SYS(  getsockopt(sk, IPPROTO_SCTP, SCTP_DISABLE_FRAGMENTS, &nofrag, &sz)  );
+			fd_log_debug( "New SCTP_DISABLE_FRAGMENTS value : %s\n", nofrag ? "true" : "false");
+		}
+	}
+	#else /* SCTP_DISABLE_FRAGMENTS */
+	# error "TLS requires support of SCTP_DISABLE_FRAGMENTS"
+	#endif /* SCTP_DISABLE_FRAGMENTS */
+	
+	/* SCTP_PEER_ADDR_PARAMS	control heartbeat per peer address. We set it as a default for all addresses in the association; not sure if it works ... */
+	#ifdef SCTP_PEER_ADDR_PARAMS
+	{
+		struct sctp_paddrparams parms;
+		memset(&parms, 0, sizeof(parms));
+		
+		if (TRACE_BOOL(SCTP_LEVEL)) {
+			sz = sizeof(parms);
+
+			/* Read socket defaults */
+			CHECK_SYS(  getsockopt(sk, IPPROTO_SCTP, SCTP_PEER_ADDR_PARAMS, &parms, &sz)  );
+			if (sz != sizeof(parms))
+			{
+				TRACE_DEBUG(INFO, "Invalid size of socket option: %d / %d", sz, (socklen_t)sizeof(parms));
+				return ENOTSUP;
+			}
+			fd_log_debug( "Def SCTP_PEER_ADDR_PARAMS : spp_hbinterval    : %u\n",  parms.spp_hbinterval);
+			fd_log_debug( "                            spp_pathmaxrxt    : %hu\n", parms.spp_pathmaxrxt);
+			fd_log_debug( "                            spp_pathmtu       : %u\n",  parms.spp_pathmtu);
+			fd_log_debug( "                            spp_flags         : %x\n",  parms.spp_flags);
+			// fd_log_debug( "                            spp_ipv6_flowlabel: %u\n",  parms.spp_ipv6_flowlabel);
+			// fd_log_debug( "                            spp_ipv4_tos      : %hhu\n",parms.spp_ipv4_tos);
+		}
+
+		parms.spp_flags = SPP_HB_ENABLE;	/* Enable heartbeat for the associtation */
+		#ifdef SPP_PMTUD_ENABLE
+		parms.spp_flags |= SPP_PMTUD_ENABLE;	/* also enable path MTU discovery mechanism */
+		#endif /* SPP_PMTUD_ENABLE */
+		
+#ifdef ADJUST_RTX_PARAMS
+		parms.spp_hbinterval = 6000;		/* Send an heartbeat every 6 seconds to quickly start retransmissions */
+		/* parms.spp_pathmaxrxt : max nbr of restransmissions on this address. There is a relationship with sasoc_asocmaxrxt, so we leave the default here */
+#endif /* ADJUST_RTX_PARAMS */
+
+		/* Set the option to the socket */
+		CHECK_SYS(  setsockopt(sk, IPPROTO_SCTP, SCTP_PEER_ADDR_PARAMS, &parms, sizeof(parms)) );
+		
+		if (TRACE_BOOL(SCTP_LEVEL)) {
+			/* Check new values */
+			CHECK_SYS(  getsockopt(sk, IPPROTO_SCTP, SCTP_PEER_ADDR_PARAMS, &parms, &sz)  );
+			fd_log_debug( "New SCTP_PEER_ADDR_PARAMS : spp_hbinterval    : %u\n",  parms.spp_hbinterval);
+			fd_log_debug( "                            spp_pathmaxrxt    : %hu\n", parms.spp_pathmaxrxt);
+			fd_log_debug( "                            spp_pathmtu       : %u\n",  parms.spp_pathmtu);
+			fd_log_debug( "                            spp_flags         : %x\n",  parms.spp_flags);
+			// fd_log_debug( "                            spp_ipv6_flowlabel: %u\n",  parms.spp_ipv6_flowlabel);
+			// fd_log_debug( "                            spp_ipv4_tos      : %hhu\n",parms.spp_ipv4_tos);
+		}
+	}
+	#else /* SCTP_PEER_ADDR_PARAMS */
+	TRACE_DEBUG(SCTP_LEVEL, "Skipping SCTP_PEER_ADDR_PARAMS");
+	#endif /* SCTP_PEER_ADDR_PARAMS */
+	
+	/*
+	   SCTP_DEFAULT_SEND_PARAM	parameters for the sendto() call, we don't use it.
+	*/
+
 	/* Subscribe to some notifications */
+	#ifdef SCTP_EVENTS
 	{
 		struct sctp_event_subscribe event;
 
@@ -97,226 +393,54 @@ static int fd_setsockopt_prebind(int sk)
 			fd_log_debug( "       	     sctp_adaptation_layer_event : %hhu\n", event.sctp_adaptation_layer_event);
 			// fd_log_debug( "             sctp_authentication_event    : %hhu\n", event.sctp_authentication_event);
 		}
-		
 	}
+	#else /* SCTP_EVENTS */
+	TRACE_DEBUG(SCTP_LEVEL, "Skipping SCTP_EVENTS");
+	#endif /* SCTP_EVENTS */
 	
-	/* Set the INIT parameters, such as number of streams */
+	/* Set the v4 mapped addresses option */
+	#ifdef SCTP_I_WANT_MAPPED_V4_ADDR
 	{
-		struct sctp_initmsg init;
-		memset(&init, 0, sizeof(init));
+		int v4mapped;
 		
 		if (TRACE_BOOL(SCTP_LEVEL)) {
-			sz = sizeof(init);
-
+			sz = sizeof(v4mapped);
 			/* Read socket defaults */
-			CHECK_SYS(  getsockopt(sk, IPPROTO_SCTP, SCTP_INITMSG, &init, &sz)  );
-			if (sz != sizeof(init))
+			CHECK_SYS(  getsockopt(sk, IPPROTO_SCTP, SCTP_I_WANT_MAPPED_V4_ADDR, &v4mapped, &sz)  );
+			if (sz != sizeof(v4mapped))
 			{
-				TRACE_DEBUG(INFO, "Invalid size of socket option: %d / %d", sz, (socklen_t)sizeof(init));
+				TRACE_DEBUG(INFO, "Invalid size of socket option: %d / %d", sz, (socklen_t)sizeof(v4mapped));
 				return ENOTSUP;
 			}
-			fd_log_debug( "Def SCTP_INITMSG : sinit_num_ostreams   : %hu\n", init.sinit_num_ostreams);
-			fd_log_debug( "                   sinit_max_instreams  : %hu\n", init.sinit_max_instreams);
-			fd_log_debug( "                   sinit_max_attempts   : %hu\n", init.sinit_max_attempts);
-			fd_log_debug( "                   sinit_max_init_timeo : %hu\n", init.sinit_max_init_timeo);
+			fd_log_debug( "Def SCTP_I_WANT_MAPPED_V4_ADDR value : %s\n", v4mapped ? "true" : "false");
 		}
 
-		/* Set the init options -- need to receive SCTP_COMM_UP to confirm the requested parameters */
-		init.sinit_num_ostreams	  = fd_g_config->cnf_sctp_str;	/* desired number of outgoing streams */
-		init.sinit_max_init_timeo = CNX_TIMEOUT * 1000;
-
-		/* Set the option to the socket */
-		CHECK_SYS(  setsockopt(sk, IPPROTO_SCTP, SCTP_INITMSG, &init, sizeof(init))  );
-		
-		if (TRACE_BOOL(SCTP_LEVEL)) {
-			/* Check new values */
-			CHECK_SYS(  getsockopt(sk, IPPROTO_SCTP, SCTP_INITMSG, &init, &sz)  );
-			fd_log_debug( "New SCTP_INITMSG : sinit_num_ostreams   : %hu\n", init.sinit_num_ostreams);
-			fd_log_debug( "                   sinit_max_instreams  : %hu\n", init.sinit_max_instreams);
-			fd_log_debug( "                   sinit_max_attempts   : %hu\n", init.sinit_max_attempts);
-			fd_log_debug( "                   sinit_max_init_timeo : %hu\n", init.sinit_max_init_timeo);
-		}
-	}
-	
-	/* Set the SCTP_DISABLE_FRAGMENTS option, required for TLS */
-	#ifdef SCTP_DISABLE_FRAGMENTS
-	{
-		int nofrag;
-		
-		if (TRACE_BOOL(SCTP_LEVEL)) {
-			sz = sizeof(nofrag);
-			/* Read socket defaults */
-			CHECK_SYS(  getsockopt(sk, IPPROTO_SCTP, SCTP_DISABLE_FRAGMENTS, &nofrag, &sz)  );
-			if (sz != sizeof(nofrag))
-			{
-				TRACE_DEBUG(INFO, "Invalid size of socket option: %d / %d", sz, (socklen_t)sizeof(nofrag));
-				return ENOTSUP;
-			}
-			fd_log_debug( "Def SCTP_DISABLE_FRAGMENTS value : %s\n", nofrag ? "true" : "false");
-		}
-
-		nofrag = 0;	/* We turn ON the fragmentation */
+		#ifndef SCTP_USE_MAPPED_ADDRESSES
+		v4mapped = 0;	/* We don't want v4 mapped addresses */
+		#else /* SCTP_USE_MAPPED_ADDRESSES */
+		v4mapped = 1;	/* but we may have to, otherwise the bind fails in some environments */
+		#endif /* SCTP_USE_MAPPED_ADDRESSES */
 		
 		/* Set the option to the socket */
-		CHECK_SYS(  setsockopt(sk, IPPROTO_SCTP, SCTP_DISABLE_FRAGMENTS, &nofrag, sizeof(nofrag))  );
+		CHECK_SYS(  setsockopt(sk, IPPROTO_SCTP, SCTP_I_WANT_MAPPED_V4_ADDR, &v4mapped, sizeof(v4mapped))  );
 		
 		if (TRACE_BOOL(SCTP_LEVEL)) {
 			/* Check new values */
-			CHECK_SYS(  getsockopt(sk, IPPROTO_SCTP, SCTP_DISABLE_FRAGMENTS, &nofrag, &sz)  );
-			fd_log_debug( "New SCTP_DISABLE_FRAGMENTS value : %s\n", nofrag ? "true" : "false");
+			CHECK_SYS(  getsockopt(sk, IPPROTO_SCTP, SCTP_I_WANT_MAPPED_V4_ADDR, &v4mapped, &sz)  );
+			fd_log_debug( "New SCTP_I_WANT_MAPPED_V4_ADDR value : %s\n", v4mapped ? "true" : "false");
 		}
 	}
-	#else /* SCTP_DISABLE_FRAGMENTS */
-	# error "TLS requires support of SCTP_DISABLE_FRAGMENTS"
-	#endif /* SCTP_DISABLE_FRAGMENTS */
+	#else /* SCTP_I_WANT_MAPPED_V4_ADDR */
+	TRACE_DEBUG(SCTP_LEVEL, "Skipping SCTP_I_WANT_MAPPED_V4_ADDR");
+	#endif /* SCTP_I_WANT_MAPPED_V4_ADDR */
 	
+	/*
+	   SCTP_MAXSEG			max size of fragmented segments -- bound to PMTU
+	   SCTP_HMAC_IDENT		authentication algorithms
+	   SCTP_AUTH_ACTIVE_KEY		set the active key
+	   SCTP_DELAYED_SACK		control delayed acks
+	*/
 	
-	/* Set the RETRANSMIT parameters */
-	#ifdef SCTP_RTOINFO
-	{
-		struct sctp_rtoinfo rtoinfo;
-		memset(&rtoinfo, 0, sizeof(rtoinfo));
-
-		if (TRACE_BOOL(SCTP_LEVEL)) {
-			sz = sizeof(rtoinfo);
-			/* Read socket defaults */
-			CHECK_SYS(  getsockopt(sk, IPPROTO_SCTP, SCTP_RTOINFO, &rtoinfo, &sz)  );
-			if (sz != sizeof(rtoinfo))
-			{
-				TRACE_DEBUG(INFO, "Invalid size of socket option: %d / %d", sz, (socklen_t)sizeof(rtoinfo));
-				return ENOTSUP;
-			}
-			fd_log_debug( "Def SCTP_RTOINFO : srto_initial : %u\n", rtoinfo.srto_initial);
-			fd_log_debug( "                   srto_max     : %u\n", rtoinfo.srto_max);
-			fd_log_debug( "                   srto_min     : %u\n", rtoinfo.srto_min);
-		}
-
-		rtoinfo.srto_max     = fd_g_config->cnf_timer_tw * 500 - 1000;	/* Maximum retransmit timer (in ms) (set to Tw / 2 - 1) */
-
-		/* Set the option to the socket */
-		CHECK_SYS(  setsockopt(sk, IPPROTO_SCTP, SCTP_RTOINFO, &rtoinfo, sizeof(rtoinfo))  );
-		
-		if (TRACE_BOOL(SCTP_LEVEL)) {
-			/* Check new values */
-			CHECK_SYS(  getsockopt(sk, IPPROTO_SCTP, SCTP_RTOINFO, &rtoinfo, &sz)  );
-			fd_log_debug( "New SCTP_RTOINFO : srto_initial : %u\n", rtoinfo.srto_initial);
-			fd_log_debug( "                   srto_max     : %u\n", rtoinfo.srto_max);
-			fd_log_debug( "                   srto_min     : %u\n", rtoinfo.srto_min);
-		}
-	}
-	#else /* SCTP_RTOINFO */
-	TRACE_DEBUG(SCTP_LEVEL, "Skipping SCTP_RTOINFO");
-	#endif /* SCTP_RTOINFO */
-	
-	/* Set the ASSOCIATION parameters */
-	#ifdef SCTP_ASSOCINFO
-	{
-		struct sctp_assocparams assoc;
-		memset(&assoc, 0, sizeof(assoc));
-
-		if (TRACE_BOOL(SCTP_LEVEL)) {
-			sz = sizeof(assoc);
-			/* Read socket defaults */
-			CHECK_SYS(  getsockopt(sk, IPPROTO_SCTP, SCTP_ASSOCINFO, &assoc, &sz)  );
-			if (sz != sizeof(assoc))
-			{
-				TRACE_DEBUG(INFO, "Invalid size of socket option: %d / %d", sz, (socklen_t)sizeof(assoc));
-				return ENOTSUP;
-			}
-			fd_log_debug( "Def SCTP_ASSOCINFO : sasoc_asocmaxrxt               : %hu\n", assoc.sasoc_asocmaxrxt);
-			fd_log_debug( "                     sasoc_number_peer_destinations : %hu\n", assoc.sasoc_number_peer_destinations);
-			fd_log_debug( "                     sasoc_peer_rwnd                : %u\n" , assoc.sasoc_peer_rwnd);
-			fd_log_debug( "                     sasoc_local_rwnd               : %u\n" , assoc.sasoc_local_rwnd);
-			fd_log_debug( "                     sasoc_cookie_life              : %u\n" , assoc.sasoc_cookie_life);
-		}
-
-		assoc.sasoc_asocmaxrxt = 8;	/* Maximum retransmission attempts: we want fast detection of errors */
-		
-		/* Set the option to the socket */
-		CHECK_SYS(  setsockopt(sk, IPPROTO_SCTP, SCTP_ASSOCINFO, &assoc, sizeof(assoc))  );
-		
-		if (TRACE_BOOL(SCTP_LEVEL)) {
-			/* Check new values */
-			CHECK_SYS(  getsockopt(sk, IPPROTO_SCTP, SCTP_ASSOCINFO, &assoc, &sz)  );
-			fd_log_debug( "New SCTP_ASSOCINFO : sasoc_asocmaxrxt               : %hu\n", assoc.sasoc_asocmaxrxt);
-			fd_log_debug( "                     sasoc_number_peer_destinations : %hu\n", assoc.sasoc_number_peer_destinations);
-			fd_log_debug( "                     sasoc_peer_rwnd                : %u\n" , assoc.sasoc_peer_rwnd);
-			fd_log_debug( "                     sasoc_local_rwnd               : %u\n" , assoc.sasoc_local_rwnd);
-			fd_log_debug( "                     sasoc_cookie_life              : %u\n" , assoc.sasoc_cookie_life);
-		}
-	}
-	#else /* SCTP_ASSOCINFO */
-	TRACE_DEBUG(SCTP_LEVEL, "Skipping SCTP_ASSOCINFO");
-	#endif /* SCTP_ASSOCINFO */
-	
-	
-	/* The SO_LINGER option will be re-set if we want to perform SCTP ABORT */
-	#ifdef SO_LINGER
-	{
-		struct linger linger;
-		memset(&linger, 0, sizeof(linger));
-		
-		if (TRACE_BOOL(SCTP_LEVEL)) {
-			sz = sizeof(linger);
-			/* Read socket defaults */
-			CHECK_SYS(  getsockopt(sk, SOL_SOCKET, SO_LINGER, &linger, &sz)  );
-			if (sz != sizeof(linger))
-			{
-				TRACE_DEBUG(INFO, "Invalid size of socket option: %d / %d", sz, (socklen_t)sizeof(linger));
-				return ENOTSUP;
-			}
-			fd_log_debug( "Def SO_LINGER : l_onoff  : %d\n", linger.l_onoff);
-			fd_log_debug( " 	       l_linger : %d\n", linger.l_linger);
-		}
-		
-		linger.l_onoff	= 0;	/* Do not activate the linger */
-		linger.l_linger = 0;	/* Return immediately when closing (=> abort) */
-		
-		/* Set the option */
-		CHECK_SYS(  setsockopt(sk, SOL_SOCKET, SO_LINGER, &linger, sizeof(linger))  );
-		
-		if (TRACE_BOOL(SCTP_LEVEL)) {
-			/* Check new values */
-			CHECK_SYS(  getsockopt(sk, SOL_SOCKET, SO_LINGER, &linger, &sz)  );
-			fd_log_debug( "New SO_LINGER : l_onoff  : %d\n", linger.l_onoff);
-			fd_log_debug( "		  l_linger : %d\n", linger.l_linger);
-		}
-	}
-	#else /* SO_LINGER */
-	TRACE_DEBUG(SCTP_LEVEL, "Skipping SO_LINGER");
-	#endif /* SO_LINGER */
-	
-	/* Set the NODELAY option (Nagle-like algorithm) */
-	#ifdef SCTP_NODELAY
-	{
-		int nodelay;
-		
-		if (TRACE_BOOL(SCTP_LEVEL)) {
-			sz = sizeof(nodelay);
-			/* Read socket defaults */
-			CHECK_SYS(  getsockopt(sk, IPPROTO_SCTP, SCTP_NODELAY, &nodelay, &sz)  );
-			if (sz != sizeof(nodelay))
-			{
-				TRACE_DEBUG(INFO, "Invalid size of socket option: %d / %d", sz, (socklen_t)sizeof(nodelay));
-				return ENOTSUP;
-			}
-			fd_log_debug( "Def SCTP_NODELAY value : %s\n", nodelay ? "true" : "false");
-		}
-
-		nodelay = 0;	/* We turn ON the Nagle algorithm (probably the default already) */
-		
-		/* Set the option to the socket */
-		CHECK_SYS(  setsockopt(sk, IPPROTO_SCTP, SCTP_NODELAY, &nodelay, sizeof(nodelay))  );
-		
-		if (TRACE_BOOL(SCTP_LEVEL)) {
-			/* Check new values */
-			CHECK_SYS(  getsockopt(sk, IPPROTO_SCTP, SCTP_NODELAY, &nodelay, &sz)  );
-			fd_log_debug( "New SCTP_NODELAY value : %s\n", nodelay ? "true" : "false");
-		}
-	}
-	#else /* SCTP_NODELAY */
-	TRACE_DEBUG(SCTP_LEVEL, "Skipping SCTP_NODELAY");
-	#endif /* SCTP_NODELAY */
 	
 	/* Set the interleaving option */
 	#ifdef SCTP_FRAGMENT_INTERLEAVE
@@ -354,77 +478,54 @@ static int fd_setsockopt_prebind(int sk)
 	TRACE_DEBUG(SCTP_LEVEL, "Skipping SCTP_FRAGMENT_INTERLEAVE");
 	#endif /* SCTP_FRAGMENT_INTERLEAVE */
 	
-	/* Set the v4 mapped addresses option */
-	#ifdef SCTP_I_WANT_MAPPED_V4_ADDR
+	/*
+	   SCTP_PARTIAL_DELIVERY_POINT	control partial delivery size
+	   SCTP_USE_EXT_RCVINFO		use extended receive info structure (information about the next message if available)
+	 */
+	/* SCTP_AUTO_ASCONF is set by the postbind function */
+	/*
+	   SCTP_MAX_BURST		number of packets that can be burst emitted
+	   SCTP_CONTEXT			save a context information along with the association.
+	 */
+	 
+	/* SCTP_EXPLICIT_EOR: we assume implicit EOR in freeDiameter, so let's ensure this is known by the stack */
+	#ifdef SCTP_EXPLICIT_EOR
 	{
-		int v4mapped;
+		int bool;
 		
 		if (TRACE_BOOL(SCTP_LEVEL)) {
-			sz = sizeof(v4mapped);
+			sz = sizeof(bool);
 			/* Read socket defaults */
-			CHECK_SYS(  getsockopt(sk, IPPROTO_SCTP, SCTP_I_WANT_MAPPED_V4_ADDR, &v4mapped, &sz)  );
-			if (sz != sizeof(v4mapped))
+			CHECK_SYS(  getsockopt(sk, IPPROTO_SCTP, SCTP_EXPLICIT_EOR, &bool, &sz)  );
+			if (sz != sizeof(bool))
 			{
-				TRACE_DEBUG(INFO, "Invalid size of socket option: %d / %d", sz, (socklen_t)sizeof(v4mapped));
+				TRACE_DEBUG(INFO, "Invalid size of socket option: %d / %d", sz, (socklen_t)sizeof(bool));
 				return ENOTSUP;
 			}
-			fd_log_debug( "Def SCTP_I_WANT_MAPPED_V4_ADDR value : %s\n", v4mapped ? "true" : "false");
+			fd_log_debug( "Def SCTP_EXPLICIT_EOR value : %s\n", bool ? "true" : "false");
 		}
 
-#ifndef SCTP_USE_MAPPED_ADDRESSES
-		v4mapped = 0;	/* We don't want v4 mapped addresses */
-#else /* SCTP_USE_MAPPED_ADDRESSES */
-		v4mapped = 1;	/* but we may have to, otherwise the bind fails in some environments */
-#endif /* SCTP_USE_MAPPED_ADDRESSES */
+		bool = 0;
 		
 		/* Set the option to the socket */
-		CHECK_SYS(  setsockopt(sk, IPPROTO_SCTP, SCTP_I_WANT_MAPPED_V4_ADDR, &v4mapped, sizeof(v4mapped))  );
+		CHECK_SYS(  setsockopt(sk, IPPROTO_SCTP, SCTP_EXPLICIT_EOR, &bool, sizeof(bool))  );
 		
 		if (TRACE_BOOL(SCTP_LEVEL)) {
 			/* Check new values */
-			CHECK_SYS(  getsockopt(sk, IPPROTO_SCTP, SCTP_I_WANT_MAPPED_V4_ADDR, &v4mapped, &sz)  );
-			fd_log_debug( "New SCTP_I_WANT_MAPPED_V4_ADDR value : %s\n", v4mapped ? "true" : "false");
+			CHECK_SYS(  getsockopt(sk, IPPROTO_SCTP, SCTP_EXPLICIT_EOR, &bool, &sz)  );
+			fd_log_debug( "New SCTP_EXPLICIT_EOR value : %s\n", bool ? "true" : "false");
 		}
 	}
-	#else /* SCTP_I_WANT_MAPPED_V4_ADDR */
-	TRACE_DEBUG(SCTP_LEVEL, "Skipping SCTP_I_WANT_MAPPED_V4_ADDR");
-	#endif /* SCTP_I_WANT_MAPPED_V4_ADDR */
-			   
-			   
-	/* Other settable options (draft-ietf-tsvwg-sctpsocket-17):
-	   SO_RCVBUF			size of receiver window
-	   SO_SNDBUF			size of pending data to send
-	   SCTP_AUTOCLOSE		for one-to-many only
-	   SCTP_SET_PEER_PRIMARY_ADDR	ask remote peer to use this local address as primary
-	   SCTP_PRIMARY_ADDR		use this address as primary locally
-	   SCTP_ADAPTATION_LAYER	set adaptation layer indication 
-	   SCTP_PEER_ADDR_PARAMS	control heartbeat per peer address
-	   SCTP_DEFAULT_SEND_PARAM	parameters for the sendto() call
-	   SCTP_MAXSEG			max size of fragmented segments -- bound to PMTU
-	   SCTP_AUTH_CHUNK		request authentication of some type of chunk
-	    SCTP_HMAC_IDENT		authentication algorithms
-	    SCTP_AUTH_KEY		set a shared key
-	    SCTP_AUTH_ACTIVE_KEY	set the active key
-	    SCTP_AUTH_DELETE_KEY	remove a key
-	    SCTP_AUTH_DEACTIVATE_KEY	will not use that key anymore
-	   SCTP_DELAYED_SACK		control delayed acks
-	   SCTP_PARTIAL_DELIVERY_POINT	control partial delivery size
-	   SCTP_USE_EXT_RCVINFO		use extended receive info structure (information about the next message if available)
-	   SCTP_MAX_BURST		number of packets that can be burst emitted
-	   SCTP_CONTEXT			save a context information along with the association.
-	   SCTP_EXPLICIT_EOR		enable sending one message across several send calls
+	#else /* SCTP_EXPLICIT_EOR */
+	TRACE_DEBUG(SCTP_LEVEL, "Skipping SCTP_EXPLICIT_EOR");
+	#endif /* SCTP_EXPLICIT_EOR */
+	
+	/*
 	   SCTP_REUSE_PORT		share one listening port with several sockets
-	   
-	   read-only options:
-	   SCTP_STATUS			retrieve info such as number of streams, pending packets, state, ...
-	   SCTP_GET_PEER_ADDR_INFO	get information about a specific peer address of the association.
-	   SCTP_PEER_AUTH_CHUNKS	list of chunks the remote peer wants authenticated
-	   SCTP_LOCAL_AUTH_CHUNKS	list of chunks the local peer wants authenticated
-	   SCTP_GET_ASSOC_NUMBER	number of associations in a one-to-many socket
-	   SCTP_GET_ASSOC_ID_LIST	list of these associations
+	   SCTP_EVENT			same as EVENTS ?
 	*/
 	
-	/* In case of no_ip4, force the v6only option -- is it a valid option for SCTP ? */
+	/* In case of no_ip4, force the v6only option */
 	#ifdef IPV6_V6ONLY
 	if (fd_g_config->cnf_flags.no_ip4) {
 		int opt = 1;
