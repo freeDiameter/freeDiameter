@@ -88,6 +88,7 @@ void fd_rtd_free(struct rt_data ** rtd)
 		
 		fd_list_unlink(&c->chain);
 		free(c->diamid);
+		free(c->realm);
 		free(c);
 	}
 	
@@ -106,7 +107,7 @@ void fd_rtd_free(struct rt_data ** rtd)
 }
 
 /* Add a peer to the candidates list */
-int  fd_rtd_candidate_add(struct rt_data * rtd, char * peerid)
+int  fd_rtd_candidate_add(struct rt_data * rtd, char * peerid, char * realm)
 {
 	struct fd_list * prev;
 	struct rtd_candidate * new;
@@ -129,6 +130,7 @@ int  fd_rtd_candidate_add(struct rt_data * rtd, char * peerid)
 	memset(new, 0, sizeof(struct rtd_candidate) );
 	fd_list_init(&new->chain, NULL);
 	CHECK_MALLOC( new->diamid = strdup(peerid) );
+	CHECK_MALLOC( new->realm = strdup(realm) );
 	
 	fd_list_insert_after(prev, &new->chain);
 	
@@ -164,6 +166,7 @@ void fd_rtd_candidate_del(struct rt_data * rtd, char * peerid, size_t sz /* if !
 			/* Found it! Remove it */
 			fd_list_unlink(&c->chain);
 			free(c->diamid);
+			free(c->realm);
 			free(c);
 			break;
 		}

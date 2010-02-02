@@ -38,7 +38,11 @@
  *  See the rt_default.conf.sample file for the format of the configuration file.
  */
  
+/* FreeDiameter's common include file */
 #include <freeDiameter/extension.h>
+
+/* Host configuration for this specific extension */
+#include <rt_default-host.h>
 
 /* Parse the configuration file */
 int rtd_conf_handle(char * conffile);

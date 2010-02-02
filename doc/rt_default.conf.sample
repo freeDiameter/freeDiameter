@@ -44,15 +44,15 @@
 #  - and a SCORE, that is added to the matching peer's current score.
 #
 # In the following definitions, "STR/REG" stands for:
-#   - a quoted string "some.peer" that will match exactly this string, or
-#   - a bracket-quoted string ["some regex"] that will be interpreted as a POSIX regular expression, and attempt to match the string.
+#   - a quoted string "some.peer" that will match exactly this string (case-insensitive), or
+#   - a bracket-quoted string ["some regex"] that will be interpreted as a POSIX extended regular expression (case-sensitive), and attempt to match the string.
 #
 # The RULE is specified as:
 #    CRITERIA : TARGET += SCORE ;
 #
 # The CRITERIA can be:
 #    *   		-> matches any message.
-#    oh="STR/REG"	-> selects the message if the string or regular expression matches the message's Origin-Host
+#    oh="STR/REG"	-> selects the message if the string or regular expression matches the message's Origin-Host AVP content
 #    or="STR/REG"   	-> idem with Origin-Realm
 #    dh="STR/REG"   	-> idem with Destination-Host
 #    dr="STR/REG"   	-> idem with Destination-Realm
@@ -60,8 +60,8 @@
 #    si="STR/REG"   	-> idem with Session-Id
 #
 # The TARGET is also of a similar form:
-#    i="STR/REG"	-> Will apply the score to this peer if its Diameter-Id is matched by the string or regular expression.
-#    r="STR/REG"	-> Idem with the peer's advertized Diameter-Realm.
+#    "STR/REG"		-> Will apply the score to this peer if its Diameter-Id is matched by the string or regular expression.
+#    rlm="STR/REG"	-> Idem with the peer's advertized Diameter-Realm.
 #
 # The SCORE is either numeric (positive or negative), or one of the following constants (see values in freeDiameter.h):
 #    NO_DELIVERY
@@ -78,14 +78,14 @@
 #
 #
 # Here are some examples:
-#  1) Rule to add a default next-hop to all messages:
-#    * : i="proxy.testbed.aaa" += DEFAULT ;
+#  1) Rule to add a default next-hop peer to all messages:
+#    * : "proxy.testbed.aaa" += DEFAULT ;
 #
 #  2) Rule to route messages for a given realm (realmA) through another realm (realmB):
-#    dr="realmA" : r="realmB" += DEFAULT_REALM ;
+#    dr="realmA" : rlm="realmB" += DEFAULT_REALM ;
 #
 #  3) Avoid sending messages with decorated NAI to the proxy A:
-#    un=[".+!.+@.+"] : i="proxy.A" += NO_DELIVERY ;
+#    un=[".+!.+@.+"] : "proxy.A" += NO_DELIVERY ;
 
 
 

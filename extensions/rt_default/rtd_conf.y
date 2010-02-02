@@ -151,7 +151,6 @@ void yyerror (YYLTYPE *ploc, char * conffile, char const *s)
 %token 		UN
 %token 		SI
 
-%token 		IDENTITY
 %token 		REALM
 
 
@@ -179,6 +178,8 @@ rule:			CRITERIA ':' TARGET '+' '=' INTEGER ';'
 						yyerror (&yylloc, conffile, "An error occurred while adding a rule, aborting...");
 						YYERROR;
 					} );
+				
+				rules_added++;
 			}
 			;
 	
@@ -241,10 +242,10 @@ CRITERIA:		'*'
 			;
 
 	/* Details of the TARGET type */
-TARGET:			IDENTITY '=' TSTRING
+TARGET:			TSTRING
 			{
-				$$.str = $3.str;
-				$$.regex =$3.regex;
+				$$.str = $1.str;
+				$$.regex =$1.regex;
 				$$.type = RTD_TAR_ID;
 			}
 			| REALM '=' TSTRING

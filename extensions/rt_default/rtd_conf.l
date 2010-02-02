@@ -132,8 +132,7 @@ qstring		\"[^\"\n]*\"
 (?i:"dr")	 	{	return DR;	}
 (?i:"un")	 	{	return UN;	}
 (?i:"si")	 	{	return SI;	}
-(?i:"i")	 	{	return IDENTITY;}
-(?i:"r")	 	{	return REALM;	}
+(?i:"rlm")	 	{	return REALM;	}
 			
 	/* Valid single characters for yyparse */
 [*:=+;]			{ return yytext[0]; }

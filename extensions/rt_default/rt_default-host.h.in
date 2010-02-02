@@ -33,66 +33,10 @@
 * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.								 *
 *********************************************************************************************************/
 
-/* 
- * Configurable routing of messages for freeDiameter.
- */
+/* Configuration from compile-time */
+#ifndef RTD_IS_CONFIG
+#define RTD_IS_CONFIG
 
-#include "rt_default.h"
+#cmakedefine HAVE_REG_STARTEND
 
-/* The callback called on new messages */
-static int rtd_out(void * cbdata, struct msg * msg, struct fd_list * candidates)
-{
-	TRACE_ENTRY("%p %p %p", cbdata, msg, candidates);
-	
-	CHECK_PARAMS(msg && candidates);
-	
-	/* Simply pass it to the appropriate function */
-	if (FD_IS_LIST_EMPTY(candidates)) {
-		return 0;
-	} else {
-		return rtd_process( msg, candidates );
-	}
-}
-
-/* handler */
-static struct fd_rt_out_hdl * rtd_hdl = NULL;
-
-/* entry point */
-static int rtd_entry(char * conffile)
-{
-	TRACE_ENTRY("%p", conffile);
-	
-	/* Initialize the repo */
-	CHECK_FCT( rtd_init() );
-	
-	/* Parse the configuration file */
-	CHECK_FCT( rtd_conf_handle(conffile) );
-	
-#if 0
-	/* Dump the rules */
-	rtd_dump();
-#endif /* 0 */
-	
-	/* Register the callback */
-	CHECK_FCT( fd_rt_out_register( rtd_out, NULL, 5, &rtd_hdl ) );
-	
-	/* We're done */
-	return 0;
-}
-
-/* Unload */
-void fd_ext_fini(void)
-{
-	TRACE_ENTRY();
-	
-	/* Unregister the cb */
-	CHECK_FCT_DO( fd_rt_out_unregister ( rtd_hdl, NULL ), /* continue */ );
-	
-	/* Destroy the data */
-	rtd_fini();
-	
-	/* Done */
-	return ;
-}
-
-EXTENSION_ENTRY("rt_default", rtd_entry);
+#endif /* RTD_IS_CONFIG */

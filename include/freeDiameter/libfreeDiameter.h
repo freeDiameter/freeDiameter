@@ -1631,7 +1631,7 @@ void fd_sess_dump_hdl(int level, struct session_handler * handler);
 /*============================================================*/
 
 /* The following functions are helpers for the routing module. 
-  The routing data is stored in the message it-self. */
+  The routing data is stored in the message itself. */
 
 /* Structure that contains the routing data for a message */
 struct rt_data;
@@ -1641,7 +1641,7 @@ int  fd_rtd_init(struct rt_data ** rtd);
 void fd_rtd_free(struct rt_data ** rtd);
 
 /* Add a peer to the candidates list */
-int  fd_rtd_candidate_add(struct rt_data * rtd, char * peerid);
+int  fd_rtd_candidate_add(struct rt_data * rtd, char * peerid, char * realm);
 
 /* Remove a peer from the candidates (if it is found) */
 void fd_rtd_candidate_del(struct rt_data * rtd, char * peerid, size_t sz /* if !0, peerid does not need to be \0 terminated */);
@@ -1656,6 +1656,7 @@ int  fd_rtd_error_add(struct rt_data * rtd, char * sentto, uint8_t * origin, siz
 struct rtd_candidate {
 	struct fd_list	chain;	/* link in the list returned by the previous fct */
 	char *		diamid;	/* the diameter Id of the peer */
+	char *		realm;	/* the diameter realm of the peer (if known) */
 	int		score;	/* the current routing score for this peer, see fd_rt_out_register definition for details */
 };
 

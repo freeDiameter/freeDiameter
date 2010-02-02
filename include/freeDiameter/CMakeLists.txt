@@ -64,7 +64,8 @@ IF(NOT DISABLE_SCTP)
 	ENDIF(NOT HAVE_NATIVE_SCTP)
 	# Now check the number of args of this function, since it changed between Ubuntu 9.04 and 9.10
    	SET(CHECK_SCTP_CONNECTX_4_ARGS_SOURCE_CODE "
-		#include <netinet/sctp.h>;
+		#include <unistd.h>
+		#include <netinet/sctp.h>
 		int main() {
 		   return sctp_connectx(0, NULL, 0, NULL);
 		}
