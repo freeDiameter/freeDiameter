@@ -305,6 +305,9 @@ static int fd_setsockopt_prebind(int sk)
 		struct sctp_paddrparams parms;
 		memset(&parms, 0, sizeof(parms));
 		
+		/* Some kernel versions need this to be set */
+		parms.spp_address.ss_family = AF_INET;
+		
 		if (TRACE_BOOL(SCTP_LEVEL)) {
 			sz = sizeof(parms);
 
@@ -323,7 +326,7 @@ static int fd_setsockopt_prebind(int sk)
 			// fd_log_debug( "                            spp_ipv4_tos      : %hhu\n",parms.spp_ipv4_tos);
 		}
 
-		parms.spp_flags = SPP_HB_ENABLE;	/* Enable heartbeat for the associtation */
+		parms.spp_flags = SPP_HB_ENABLE;	/* Enable heartbeat for the association */
 		#ifdef SPP_PMTUD_ENABLE
 		parms.spp_flags |= SPP_PMTUD_ENABLE;	/* also enable path MTU discovery mechanism */
 		#endif /* SPP_PMTUD_ENABLE */
