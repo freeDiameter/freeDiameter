@@ -1290,8 +1290,8 @@ static void dump_val_os(union avp_value * value)
 {
 	int i;
 	for (i = 0; i < value->os.len; i++) {
-		if (i == 16) { /* Dump only up to 16 bytes of the buffer */
-			fd_log_debug("(trunc, len=%zd)", value->os.len);
+		if (i == 24) { /* Dump only up to 24 bytes of the buffer */
+			fd_log_debug("[...] (len=%zd)", value->os.len);
 			break;
 		}
 		fd_log_debug("%02.2X ", value->os.data[i]);
@@ -1300,7 +1300,7 @@ static void dump_val_os(union avp_value * value)
 
 static void dump_val_i32(union avp_value * value)
 {
-	fd_log_debug("%i", value->i32);
+	fd_log_debug("%i (0x%x)", value->i32, value->i32);
 }
 
 static void dump_val_i64(union avp_value * value)
@@ -1310,12 +1310,12 @@ static void dump_val_i64(union avp_value * value)
 
 static void dump_val_u32(union avp_value * value)
 {
-	fd_log_debug("%u", value->u32);
+	fd_log_debug("%u (0x%x)", value->u32, value->u32);
 }
 
 static void dump_val_u64(union avp_value * value)
 {
-	fd_log_debug("%llu", value->u64);
+	fd_log_debug("%llu (0x%llx)", value->u64, value->u64);
 }
 
 static void dump_val_f32(union avp_value * value)
