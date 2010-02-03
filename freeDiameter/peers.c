@@ -451,7 +451,8 @@ int fd_peer_handle_newCER( struct msg ** cer, struct cnxctx ** cnx )
 		
 		/* Set this peer to expire on inactivity */
 		peer->p_hdr.info.config.pic_flags.exp 	= PI_EXP_INACTIVE;
-		peer->p_hdr.info.config.pic_lft		= 3600 * 3;	/* 3 hours without any message */
+		peer->p_hdr.info.config.pic_lft		= 3600;	/* 1 hour without any message 
+		-- RFC3539 states that this must not be inferior to BRINGDOWN_INTERVAL = 5 minutes */
 		
 		/* Insert the new peer in the list (the PSM will take care of setting the expiry after validation) */
 		fd_list_insert_before( li, &peer->p_hdr.chain );
