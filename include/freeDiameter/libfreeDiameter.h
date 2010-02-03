@@ -492,8 +492,10 @@ static __inline__ int fd_thr_term(pthread_t * th)
 	/* Then join the thread */
 	CHECK_POSIX_DO( ret = pthread_join(*th, &th_ret), /* continue */ );
 	
-	if (th_ret != NULL) {
-		TRACE_DEBUG(ANNOYING, "The thread returned the following value: %p (ignored)", th_ret);
+	if (th_ret == PTHREAD_CANCELED) {
+		TRACE_DEBUG(ANNOYING, "The thread %p was canceled", *th);
+	} else {
+		TRACE_DEBUG(CALL, "The thread %p returned %x", *th, th_ret);
 	}
 	
 	/* Clean the location */
