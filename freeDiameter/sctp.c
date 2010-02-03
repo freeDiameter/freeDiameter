@@ -837,7 +837,23 @@ int fd_sctp_client( int *sock, int no_ip6, uint16_t port, struct fd_list * list 
 	CHECK_FCT_DO( ret = add_addresses_from_list_mask(&sar.buf, &count, &offset, htons(port), list, EP_FL_CONF | EP_FL_DISC, 0		), goto fail );
 	
 	/* Try connecting */
-	TRACE_DEBUG(FULL, "Attempting SCTP connection (%d addresses attempted)...", count);
+	if (TRACE_BOOL(FULL)) {
+		TRACE_DEBUG(FULL, "Attempting SCTP connection (%d addresses attempted) :", count);
+		/* Dump the SAs */
+		union {
+			uint8_t *buf;
+			sSA	*sa;
+			sSA4	*sin;
+			sSA6	*sin6;
+		} ptr;
+		int i;
+		ptr.buf = sar.buf;
+		for (i=0; i< count; i++) {
+			TRACE_DEBUG_sSA(FULL, "  - ", ptr.sa, NI_NUMERICHOST | NI_NUMERICSERV, "" );
+			ptr.buf += (ptr.sa->sa_family == AF_INET) ? sizeof(sSA4) : sizeof(sSA6);
+		}
+	}
+	
 #ifdef SCTP_CONNECTX_4_ARGS
 	CHECK_SYS_DO( sctp_connectx(*sock, sar.sa, count, NULL), { ret = errno; goto fail; } );
 #else /* SCTP_CONNECTX_4_ARGS */
@@ -845,7 +861,7 @@ int fd_sctp_client( int *sock, int no_ip6, uint16_t port, struct fd_list * list 
 #endif /* SCTP_CONNECTX_4_ARGS */
 	
 	/*****************
-	 BUG : received "EINVAL" at reconnection attempt... Should probably filter a little what is in list ! 
+	 BUG : received "EINVAL" at reconnection attempt... Should probably filter what is in that list ! 
 	 *****************/
 	
 	free(sar.buf); sar.buf = NULL;
