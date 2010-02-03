@@ -76,7 +76,11 @@ static void * mn_thr(void * arg)
 	/* Loop */
 	while (1) {
 		#ifdef DEBUG
-		sleep(30);
+		int i;
+		for (i=0; i<30; i++) {
+			sleep(1);
+			fd_log_debug("[dbg_monitor]\n"); /* This makes it easier to detect inactivity periods in the log file */
+		}
 		#else /* DEBUG */
 		sleep(3600); /* 1 hour */
 		#endif /* DEBUG */
