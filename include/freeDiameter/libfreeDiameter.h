@@ -520,7 +520,7 @@ static __inline__ void fd_cleanup_buffer( void * buffer )
 static __inline__ void fd_cleanup_socket(void * sockptr)
 {
 	if (sockptr) {
-		shutdown(*(int *)sockptr, SHUT_RDWR);
+		CHECK_SYS_DO( close(*(int *)sockptr), /* ignore */ );
 		*(int *)sockptr = 0;
 	}
 }
