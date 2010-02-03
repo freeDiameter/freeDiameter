@@ -191,6 +191,8 @@ static int main_cmdline(int argc, char *argv[])
 		{ "debug",	no_argument, 		NULL, 'd' },
 		{ "quiet",	no_argument, 		NULL, 'q' },
 		{ "dbglocale",	optional_argument, 	NULL, 'l' },
+		{ "dbg_func",	required_argument, 	NULL, 'f' },
+		{ "dbg_file",	required_argument, 	NULL, 'F' },
 		{ NULL,		0, 			NULL, 0 }
 	};
 	
@@ -228,6 +230,14 @@ static int main_cmdline(int argc, char *argv[])
 
 			case 'd':	/* Increase verbosity of debug messages.  */
 				fd_g_debug_lvl++;
+				break;
+				
+			case 'f':	/* Full debug for the function with this name.  */
+				fd_debug_one_function = optarg;
+				break;
+				
+			case 'F':	/* Full debug for the file with this name.  */
+				fd_debug_one_file = optarg;
 				break;
 				
 			case 'q':	/* Decrease verbosity then remove debug messages.  */

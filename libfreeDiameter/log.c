@@ -41,6 +41,11 @@ pthread_mutex_t fd_log_lock = PTHREAD_MUTEX_INITIALIZER;
 pthread_key_t	fd_log_thname;
 int fd_g_debug_lvl = 0;
 
+/* These may be used to pass specific debug requests via the command-line parameters */
+char * fd_debug_one_function = NULL;
+char * fd_debug_one_file = NULL;
+
+
 /* Log a debug message */
 void fd_log_debug ( char * format, ... )
 {

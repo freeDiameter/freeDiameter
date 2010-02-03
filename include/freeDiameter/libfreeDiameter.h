@@ -97,6 +97,8 @@
  */
 void fd_log_debug ( char * format, ... );
 extern pthread_mutex_t	fd_log_lock;
+extern char * fd_debug_one_function;
+extern char * fd_debug_one_file;
 
 /*
  * FUNCTION:	fd_log_threadname
@@ -165,7 +167,9 @@ extern int fd_g_debug_lvl;
 #endif /* __PRETTY_FUNCTION__ */
 
 /* Boolean for tracing at a certain level */
-#define TRACE_BOOL(_level_) ( (_level_) <= local_debug_level + fd_g_debug_lvl )
+#define TRACE_BOOL(_level_) ( ((_level_) <= local_debug_level + fd_g_debug_lvl) 					\
+				|| (fd_debug_one_function && !strcmp(fd_debug_one_function, __PRETTY_FUNCTION__)) 	\
+				|| (fd_debug_one_file && !strcmp(fd_debug_one_file, __FILE__) ) )
 
 /* The general debug macro, each call results in two lines of debug messages (change the macro for more compact output) */
 #define TRACE_DEBUG(level,format,args... ) {											\
