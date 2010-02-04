@@ -291,7 +291,7 @@ struct cnxctx * fd_cnx_cli_connect_tcp(sSA * sa /* contains the port already */,
 	}
 	
 	/* Once the socket is created successfuly, prepare the remaining of the cnx */
-	CHECK_MALLOC_DO( cnx = fd_cnx_init(1), { shutdown(sock, SHUT_RDWR); return NULL; } );
+	CHECK_MALLOC_DO( cnx = fd_cnx_init(1), { shutdown(sock, SHUT_RDWR); close(sock); return NULL; } );
 	
 	cnx->cc_socket = sock;
 	cnx->cc_proto  = IPPROTO_TCP;
