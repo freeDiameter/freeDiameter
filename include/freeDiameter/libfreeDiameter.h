@@ -189,7 +189,8 @@ extern int fd_g_debug_lvl;
 
 /* Helper for debugging by adding traces -- for debuging a specific location of the code */
 #define TRACE_HERE()	\
-	TRACE_DEBUG(NONE, " -- debug checkpoint -- ");
+	TRACE_DEBUG(NONE, " -- debug checkpoint %d -- ", fd_breakhere());
+int fd_breakhere(void);
 
 /* Helper for tracing the CHECK_* macros bellow -- very very verbose code execution! */
 #define TRACE_DEBUG_ALL( str ) 	\
@@ -477,7 +478,6 @@ extern int fd_g_debug_lvl;
 /* Terminate a thread */
 static __inline__ int fd_thr_term(pthread_t * th)
 {
-	int ret = 0;
 	void * th_ret = NULL;
 	
 	CHECK_PARAMS(th);
@@ -490,7 +490,7 @@ static __inline__ int fd_thr_term(pthread_t * th)
 	(void) pthread_cancel(*th);
 	
 	/* Then join the thread */
-	CHECK_POSIX_DO( ret = pthread_join(*th, &th_ret), /* continue */ );
+	CHECK_POSIX( pthread_join(*th, &th_ret) );
 	
 	if (th_ret == PTHREAD_CANCELED) {
 		TRACE_DEBUG(ANNOYING, "The thread %p was canceled", *th);
@@ -501,7 +501,7 @@ static __inline__ int fd_thr_term(pthread_t * th)
 	/* Clean the location */
 	*th = (pthread_t)NULL;
 	
-	return ret;
+	return 0;
 }
 
 /* Cleanups for cancellation (all threads should be safely cancelable...) */

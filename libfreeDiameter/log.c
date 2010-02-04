@@ -45,6 +45,9 @@ int fd_g_debug_lvl = 0;
 char * fd_debug_one_function = NULL;
 char * fd_debug_one_file = NULL;
 
+/* Useless function, only to ease setting up a breakpoint in gdb (break fd_breakhere) -- use TRACE_HERE */
+int fd_breaks = 0;
+int fd_breakhere(void) { return ++fd_breaks; }
 
 /* Log a debug message */
 void fd_log_debug ( char * format, ... )
