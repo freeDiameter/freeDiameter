@@ -625,7 +625,6 @@ psm_loop:
 	
 	/* A new connection has not been established with the remote peer */
 	if (event == FDEVP_CNX_FAILED) {
-		struct cnxctx * cnx = ev_data;
 		
 		/* Release the resources of the connecting thread */
 		CHECK_POSIX_DO( pthread_join( peer->p_ini_thr, NULL), /* ignore, it is not a big deal */);

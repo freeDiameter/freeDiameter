@@ -867,15 +867,17 @@ int fd_sctp_client( int *sock, int no_ip6, uint16_t port, struct fd_list * list 
 	free(sar.buf); sar.buf = NULL;
 	
 	/* Set the remaining sockopts */
-	CHECK_FCT_DO( ret = fd_setsockopt_postbind(*sock, 1), goto fail );
+	CHECK_FCT_DO( ret = fd_setsockopt_postbind(*sock, 1), goto fail_deco );
 	
 	/* Done! */
 	pthread_cleanup_pop(0);
 	return 0;
 	
+fail_deco:
+	shutdown(*sock, SHUT_RDWR);
 fail:
 	if (*sock > 0) {
-		shutdown(*sock, SHUT_RDWR);
+		close(*sock);
 		*sock = -1;
 	}
 	free(sar.buf);

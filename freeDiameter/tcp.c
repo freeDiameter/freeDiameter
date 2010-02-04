@@ -132,7 +132,7 @@ int fd_tcp_client( int *sock, sSA * sa, socklen_t salen )
 	TRACE_DEBUG_sSA(FULL, "Attempting TCP connection with peer: ", sa, NI_NUMERICHOST | NI_NUMERICSERV, "..." );
 	
 	/* Try connecting to the remote address */
-	CHECK_SYS( connect(*sock, sa, salen) );
+	CHECK_SYS_DO( connect(*sock, sa, salen), { int ret = errno; close(*sock); *sock = -1; return ret; } );
 	
 	/* Done! */
 	pthread_cleanup_pop(0);
