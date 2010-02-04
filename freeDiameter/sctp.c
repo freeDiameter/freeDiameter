@@ -874,10 +874,10 @@ int fd_sctp_client( int *sock, int no_ip6, uint16_t port, struct fd_list * list 
 	return 0;
 	
 fail_deco:
-	shutdown(*sock, SHUT_RDWR);
+	CHECK_SYS_DO( shutdown(*sock, SHUT_RDWR), /* continue */ );
 fail:
 	if (*sock > 0) {
-		close(*sock);
+		CHECK_SYS_DO( close(*sock), /* continue */ );
 		*sock = -1;
 	}
 	free(sar.buf);
