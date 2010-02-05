@@ -965,24 +965,11 @@ int fd_sctp_get_local_ep(int sock, struct fd_list * list)
 	
 	/* Now get the primary address, the add function will take care of merging with existing entry */
 	{
-		 
-		struct sctp_status status;
-		socklen_t sz = sizeof(status);
-		int ret;
-		
-		memset(&status, 0, sizeof(status));
-		/* Attempt to use SCTP_STATUS message to retrieve the primary address */
-		CHECK_SYS_DO( ret = getsockopt(sock, IPPROTO_SCTP, SCTP_STATUS, &status, &sz), /* continue */);
-		if (sz != sizeof(status))
-			ret = -1;
-		sz = sizeof(sSS);
-		if (ret < 0)
-		{
-			/* Fallback to getsockname -- not recommended by draft-ietf-tsvwg-sctpsocket-19#section-7.4 */
-			CHECK_SYS(getsockname(sock, (sSA *)&status.sstat_primary.spinfo_address, &sz));
-		}
-			
-		CHECK_FCT( fd_ep_add_merge( list, (sSA *)&status.sstat_primary.spinfo_address, sz, EP_FL_PRIMARY ) );
+		sSS ss;
+		socklen_t sl = sizeof(sSS);
+	
+		CHECK_SYS(getsockname(sock, (sSA *)&ss, &sl));
+		CHECK_FCT( fd_ep_add_merge( list, (sSA *)&ss, sl, EP_FL_PRIMARY ) );
 	}
 	
 	return 0;
@@ -1029,11 +1016,24 @@ next:
 	
 	/* Now get the primary address, the add function will take care of merging with existing entry */
 	{
-		sSS ss;
-		socklen_t sl = sizeof(sSS);
-	
-		CHECK_SYS(getpeername(sock, (sSA *)&ss, &sl));
-		CHECK_FCT( fd_ep_add_merge( list, (sSA *)&ss, sl, EP_FL_PRIMARY ) );
+		 
+		struct sctp_status status;
+		socklen_t sz = sizeof(status);
+		int ret;
+		
+		memset(&status, 0, sizeof(status));
+		/* Attempt to use SCTP_STATUS message to retrieve the primary address */
+		CHECK_SYS_DO( ret = getsockopt(sock, IPPROTO_SCTP, SCTP_STATUS, &status, &sz), /* continue */);
+		if (sz != sizeof(status))
+			ret = -1;
+		sz = sizeof(sSS);
+		if (ret < 0)
+		{
+			/* Fallback to getsockname -- not recommended by draft-ietf-tsvwg-sctpsocket-19#section-7.4 */
+			CHECK_SYS(getpeername(sock, (sSA *)&status.sstat_primary.spinfo_address, &sz));
+		}
+			
+		CHECK_FCT( fd_ep_add_merge( list, (sSA *)&status.sstat_primary.spinfo_address, sz, EP_FL_PRIMARY ) );
 	}
 	
 	/* Done! */
