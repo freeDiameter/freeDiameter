@@ -117,26 +117,30 @@ int fd_tcp_listen( int sock )
 /* Create a client socket and connect to remote server */
 int fd_tcp_client( int *sock, sSA * sa, socklen_t salen )
 {
+	int ret = 0;
+	int s;
+	
 	TRACE_ENTRY("%p %p %d", sock, sa, salen);
-	CHECK_PARAMS( sock && sa && salen );
+	CHECK_PARAMS( sock && (*sock <= 0) && sa && salen );
 	
 	/* Create the socket */
-	CHECK_SYS(  *sock = socket(sa->sa_family, SOCK_STREAM, IPPROTO_TCP)  );
+	CHECK_SYS(  s = socket(sa->sa_family, SOCK_STREAM, IPPROTO_TCP)  );
 	
 	/* Cleanup if we are cancelled */
-	pthread_cleanup_push(fd_cleanup_socket, sock);
+	pthread_cleanup_push(fd_cleanup_socket, &s);
 	
 	/* Set the socket options */
-	CHECK_FCT(  fd_tcp_setsockopt(sa->sa_family, *sock)  );
+	CHECK_FCT(  fd_tcp_setsockopt(sa->sa_family, s)  );
 	
 	TRACE_DEBUG_sSA(FULL, "Attempting TCP connection with peer: ", sa, NI_NUMERICHOST | NI_NUMERICSERV, "..." );
 	
 	/* Try connecting to the remote address */
-	CHECK_SYS_DO( connect(*sock, sa, salen), { int ret = errno; close(*sock); *sock = -1; return ret; } );
+	CHECK_SYS_DO( connect(s, sa, salen), { ret = errno; close(s); s = -1; } );
 	
 	/* Done! */
 	pthread_cleanup_pop(0);
-	return 0;
+	*sock = s;
+	return ret;
 }
 
 
