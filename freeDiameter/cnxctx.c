@@ -1253,6 +1253,15 @@ void fd_cnx_destroy(struct cnxctx * conn)
 	
 	conn->cc_closing = 1;
 	
+	/* Set a timeout on the socket so that in any case we are not stuck waiting for something */
+	if (conn->cc_socket > 0) {
+		struct timeval tv;
+		memset(&tv, 0, sizeof(tv));
+		tv.tv_sec = 3;	/* 3 seconds timeout */
+		CHECK_SYS_DO( setsockopt(conn->cc_socket, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv)), /* best effort only */ );
+		CHECK_SYS_DO( setsockopt(conn->cc_socket, SOL_SOCKET, SO_SNDTIMEO, &tv, sizeof(tv)), /* best effort only */ );
+	}
+	
 	/* Initiate shutdown of the TLS session(s): call gnutls_bye(WR), then read until error */
 	if (conn->cc_tls) {
 #ifndef DISABLE_SCTP
