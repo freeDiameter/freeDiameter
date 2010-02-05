@@ -1257,7 +1257,7 @@ void fd_cnx_destroy(struct cnxctx * conn)
 	if (conn->cc_socket > 0) {
 		struct timeval tv;
 		memset(&tv, 0, sizeof(tv));
-		tv.tv_sec = 3;	/* 3 seconds timeout */
+		tv.tv_sec = 3;	/* allow 3 seconds timeout for TLS session cleanup */
 		CHECK_SYS_DO( setsockopt(conn->cc_socket, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv)), /* best effort only */ );
 		CHECK_SYS_DO( setsockopt(conn->cc_socket, SOL_SOCKET, SO_SNDTIMEO, &tv, sizeof(tv)), /* best effort only */ );
 	}
