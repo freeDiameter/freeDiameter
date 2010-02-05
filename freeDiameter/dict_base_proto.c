@@ -143,9 +143,52 @@ static int Address_interpret(union avp_value * avp_value, void * interpreted)
 	return 0;
 }
 
+/* Dump the content of an Address AVP */
 static void Address_dump(union avp_value * avp_value)
 {
-	fd_log_debug("*todo: dump address*");
+	union {
+		sSA	sa;
+		sSS	ss;
+		sSA4	sin;
+		sSA6	sin6;
+	} s;
+	uint16_t fam;
+	
+	memset(&s, 0, sizeof(s));
+	
+	/* The first two octets represent the address family, http://www.iana.org/assignments/address-family-numbers/ */
+	if (avp_value->os.len < 2) {
+		fd_log_debug("[invalid length: %d]", avp_value->os.len);
+		return;
+	}
+	
+	/* Following octets are the address in network byte order already */
+	fam = avp_value->os.data[0] << 8 | avp_value->os.data[1];
+	switch (fam) {
+		case 1:
+			/* IP */
+			s.sa.sa_family = AF_INET;
+			if (avp_value->os.len != 6) {
+				fd_log_debug("[invalid IP length: %d]", avp_value->os.len);
+				return;
+			}
+			memcpy(&s.sin.sin_addr.s_addr, avp_value->os.data + 2, 4);
+			break;
+		case 2:
+			/* IP6 */
+			s.sa.sa_family = AF_INET6;
+			if (avp_value->os.len != 18) {
+				fd_log_debug("[invalid IP6 length: %d]", avp_value->os.len);
+				return;
+			}
+			memcpy(&s.sin6.sin6_addr.s6_addr, avp_value->os.data + 2, 16);
+			break;
+		default:
+			fd_log_debug("[unsupported family: 0x%hx]", fam);
+			return;
+	}
+
+	sSA_DUMP_NODE(&s.sa, NI_NUMERICHOST);
 }
 
 static void UTF8String_dump(union avp_value * avp_value)
