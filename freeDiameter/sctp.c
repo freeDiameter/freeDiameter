@@ -972,7 +972,7 @@ int fd_sctp_get_local_ep(int sock, struct fd_list * list)
 		
 		memset(&status, 0, sizeof(status));
 		/* Attempt to use SCTP_STATUS message to retrieve the primary address */
-		ret = getsockopt(sock, IPPROTO_SCTP, SCTP_STATUS, &status, &sz);
+		CHECK_SYS_DO( ret = getsockopt(sock, IPPROTO_SCTP, SCTP_STATUS, &status, &sz), /* continue */);
 		if (sz != sizeof(status))
 			ret = -1;
 		sz = sizeof(sSS);
