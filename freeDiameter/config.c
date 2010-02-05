@@ -232,7 +232,7 @@ int fd_conf_parse()
 				fd_list_unlink(&ep->chain);
 				if (TRACE_BOOL(INFO)) {
 					fd_log_debug("Info: Removing local address conflicting with the flags no_IP / no_IP6 : ");
-					sSA_DUMP_NODE( &ep->sa, AI_NUMERICHOST );
+					sSA_DUMP_NODE( &ep->sa, NI_NUMERICHOST );
 					fd_log_debug("\n");
 				}
 				free(ep);
