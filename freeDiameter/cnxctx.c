@@ -524,7 +524,6 @@ again:
 			goto again;
 		}
 		CHECK_SYS_DO(ret, /* continue */);
-		return 0; /* so that the connection appears closed */
 	}
 	
 	return ret;
@@ -679,7 +678,8 @@ again:
 
 				case GNUTLS_E_AGAIN:
 				case GNUTLS_E_INTERRUPTED:
-					goto again;
+					if (!conn->cc_closing)
+						goto again;
 
 				default:
 					TRACE_DEBUG(INFO, "This TLS error is not handled, assume unrecoverable error");
