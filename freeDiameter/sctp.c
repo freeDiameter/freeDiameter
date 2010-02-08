@@ -1085,7 +1085,7 @@ int fd_sctp_sendstr(int sock, uint16_t strid, uint8_t * buf, size_t len)
 }
 
 /* Receive the next data from the socket, or next notification */
-int fd_sctp_recvmeta(int sock, uint16_t * strid, uint8_t ** buf, size_t * len, int *event)
+int fd_sctp_recvmeta(int sock, uint16_t * strid, uint8_t ** buf, size_t * len, int *event, int * cc_closing)
 {
 	ssize_t 		 ret = 0;
 	struct msghdr 		 mhdr;
@@ -1094,9 +1094,10 @@ int fd_sctp_recvmeta(int sock, uint16_t * strid, uint8_t ** buf, size_t * len, i
 	uint8_t			*data = NULL;
 	size_t 			 bufsz = 0, datasize = 0;
 	size_t			 mempagesz = sysconf(_SC_PAGESIZE); /* We alloc buffer by memory pages for efficiency */
+	int 			 timedout = 0;
 	
-	TRACE_ENTRY("%d %p %p %p %p", sock, strid, buf, len, event);
-	CHECK_PARAMS( (sock > 0) && buf && len && event );
+	TRACE_ENTRY("%d %p %p %p %p %p", sock, strid, buf, len, event, cc_closing);
+	CHECK_PARAMS( (sock > 0) && buf && len && event && cc_closing );
 	
 	/* Cleanup out parameters */
 	*buf = NULL;
@@ -1123,12 +1124,24 @@ incomplete:
 	iov.iov_len  = bufsz - datasize;
 
 	/* Receive data from the socket */
+again:
 	pthread_cleanup_push(free, data);
 	ret = recvmsg(sock, &mhdr, 0);
 	pthread_cleanup_pop(0);
 	
+	/* First, handle timeouts (same as fd_cnx_s_recv) */
+	if ((ret < 0) && (errno == ETIMEDOUT)) {
+		if (!*cc_closing)
+			goto again; /* don't care, just ignore */
+		if (!timedout) {
+			timedout ++; /* allow for one timeout while closing */
+			goto again;
+		}
+		/* fallback to normal handling */
+	}
+	
 	/* Handle errors */
-	if (ret <= 0) { /* Socket is closed, or an error occurred */
+	if (ret <= 0) { /* Socket timedout, closed, or an error occurred */
 		CHECK_SYS_DO(ret, /* to log in case of error */);
 		free(data);
 		*event = FDEVP_CNX_ERROR;

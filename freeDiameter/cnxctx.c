@@ -230,6 +230,9 @@ struct cnxctx * fd_cnx_serv_accept(struct cnxctx * serv)
 	cli->cc_socket = cli_sock;
 	cli->cc_proto = serv->cc_proto;
 	
+	/* Set the timeout */
+	fd_cnx_s_setto(cli->cc_socket);
+	
 	/* Generate the name for the connection object */
 	{
 		char addrbuf[INET6_ADDRSTRLEN];
@@ -296,6 +299,9 @@ struct cnxctx * fd_cnx_cli_connect_tcp(sSA * sa /* contains the port already */,
 	cnx->cc_socket = sock;
 	cnx->cc_proto  = IPPROTO_TCP;
 	
+	/* Set the timeout */
+	fd_cnx_s_setto(cnx->cc_socket);
+	
 	/* Generate the names for the object */
 	{
 		char addrbuf[INET6_ADDRSTRLEN];
@@ -346,6 +352,9 @@ struct cnxctx * fd_cnx_cli_connect_sctp(int no_ip6, uint16_t port, struct fd_lis
 	
 	cnx->cc_socket = sock;
 	cnx->cc_proto  = IPPROTO_SCTP;
+	
+	/* Set the timeout */
+	fd_cnx_s_setto(cnx->cc_socket);
 	
 	/* Retrieve the number of streams and primary address */
 	CHECK_FCT_DO( fd_sctp_get_str_info( sock, &cnx->cc_sctp_para.str_in, &cnx->cc_sctp_para.str_out, &primary ), goto error );
@@ -488,6 +497,45 @@ char * fd_cnx_getremoteid(struct cnxctx * conn)
 /*     Use of a connection object     */
 /**************************************/
 
+/* Set the timeout option on the socket */
+void fd_cnx_s_setto(int sock) 
+{
+	struct timeval tv;
+	
+	/* Set a timeout on the socket so that in any case we are not stuck waiting for something */
+	memset(&tv, 0, sizeof(tv));
+	tv.tv_sec = 3;	/* allow 3 seconds timeout for TLS session cleanup */
+	CHECK_SYS_DO( setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv)), /* best effort only */ );
+}	
+
+/* A recv-like function, taking a cnxctx object instead of socket as entry. Only used to filter timeouts error (GNUTLS does not like these...) */
+ssize_t fd_cnx_s_recv(struct cnxctx * conn, void *buffer, size_t length)
+{
+	ssize_t ret = 0;
+	int timedout = 0;
+again:
+	ret = recv(conn->cc_socket, buffer, length, 0);
+	/* Handle special case of timeout */
+	if ((ret < 0) && (errno == ETIMEDOUT)) {
+		if (!conn->cc_closing)
+			goto again; /* don't care, just ignore */
+		if (!timedout) {
+			timedout ++; /* allow for one timeout while closing */
+			goto again;
+		}
+		CHECK_SYS_DO(ret, /* continue */);
+		return 0; /* so that the connection appears closed */
+	}
+	
+	return ret;
+}
+
+/* Send */
+static ssize_t fd_cnx_s_send(struct cnxctx * conn, void *buffer, size_t length)
+{
+	return send(conn->cc_socket, buffer, length, 0);
+}
+
 /* Receiver thread (TCP & noTLS) : incoming message is directly saved into the target queue */
 static void * rcvthr_notls_tcp(void * arg)
 {
@@ -516,7 +564,7 @@ static void * rcvthr_notls_tcp(void * arg)
 		size_t	received = 0;
 
 		do {
-			ret = recv(conn->cc_socket, &header[received], sizeof(header) - received, 0);
+			ret = fd_cnx_s_recv(conn, &header[received], sizeof(header) - received);
 			if (ret <= 0) {
 				CHECK_SYS_DO(ret, /* continue */);
 				goto error; /* Stop the thread, the recipient of the event will cleanup */
@@ -541,7 +589,7 @@ static void * rcvthr_notls_tcp(void * arg)
 
 		while (received < length) {
 			pthread_cleanup_push(free, newmsg); /* In case we are canceled, clean the partialy built buffer */
-			ret = recv(conn->cc_socket, newmsg + received, length - received, 0);
+			ret = fd_cnx_s_recv(conn, newmsg + received, length - received);
 			pthread_cleanup_pop(0);
 
 			if (ret <= 0) {
@@ -591,7 +639,7 @@ static void * rcvthr_notls_sctp(void * arg)
 	ASSERT( Target_Queue(conn) );
 	
 	do {
-		CHECK_FCT_DO( fd_sctp_recvmeta(conn->cc_socket, NULL, &buf, &bufsz, &event), goto error );
+		CHECK_FCT_DO( fd_sctp_recvmeta(conn->cc_socket, NULL, &buf, &bufsz, &event, &conn->cc_closing), goto error );
 		if (event == FDEVP_CNX_ERROR) {
 			goto error;
 		}
@@ -1020,8 +1068,12 @@ int fd_cnx_handshake(struct cnxctx * conn, int mode, char * priority, void * alt
 		CHECK_FCT( fd_sctps_init(conn) );
 #endif /* DISABLE_SCTP */
 	} else {
-		/* Set the socket info in the session */
-		gnutls_transport_set_ptr (conn->cc_tls_para.session, (gnutls_transport_ptr_t) (long) conn->cc_socket);
+		/* Set the transport pointer passed to push & pull callbacks */
+		gnutls_transport_set_ptr( conn->cc_tls_para.session, (gnutls_transport_ptr_t) conn );
+
+		/* Set the push and pull callbacks */
+		gnutls_transport_set_pull_function(conn->cc_tls_para.session, (void *)fd_cnx_s_recv);
+		gnutls_transport_set_push_function(conn->cc_tls_para.session, (void *)fd_cnx_s_send);
 	}
 
 	/* Handshake master session */
@@ -1252,15 +1304,6 @@ void fd_cnx_destroy(struct cnxctx * conn)
 	CHECK_PARAMS_DO(conn, return);
 	
 	conn->cc_closing = 1;
-	
-	/* Set a timeout on the socket so that in any case we are not stuck waiting for something */
-	if (conn->cc_socket > 0) {
-		struct timeval tv;
-		memset(&tv, 0, sizeof(tv));
-		tv.tv_sec = 3;	/* allow 3 seconds timeout for TLS session cleanup */
-		CHECK_SYS_DO( setsockopt(conn->cc_socket, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv)), /* best effort only */ );
-		CHECK_SYS_DO( setsockopt(conn->cc_socket, SOL_SOCKET, SO_SNDTIMEO, &tv, sizeof(tv)), /* best effort only */ );
-	}
 	
 	/* Initiate shutdown of the TLS session(s): call gnutls_bye(WR), then read until error */
 	if (conn->cc_tls) {

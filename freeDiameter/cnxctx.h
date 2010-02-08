@@ -78,6 +78,10 @@ struct cnxctx {
 	} 		cc_sctps_data;
 };
 
+/* Socket */
+ssize_t fd_cnx_s_recv(struct cnxctx * conn, void *buffer, size_t length);
+void fd_cnx_s_setto(int sock);
+
 /* TLS */
 int fd_tls_rcvthr_core(struct cnxctx * conn, gnutls_session_t session);
 int fd_tls_prepare(gnutls_session_t * session, int mode, char * priority, void * alt_creds);
@@ -99,7 +103,7 @@ int fd_sctp_get_local_ep(int sock, struct fd_list * list);
 int fd_sctp_get_remote_ep(int sock, struct fd_list * list);
 int fd_sctp_get_str_info( int sock, uint16_t *in, uint16_t *out, sSS *primary );
 int fd_sctp_sendstr(int sock, uint16_t strid, uint8_t * buf, size_t len);
-int fd_sctp_recvmeta(int sock, uint16_t * strid, uint8_t ** buf, size_t * len, int *event);
+int fd_sctp_recvmeta(int sock, uint16_t * strid, uint8_t ** buf, size_t * len, int *event, int * cc_closing);
 
 /* TLS over SCTP (multi-stream) */
 struct sctps_ctx {

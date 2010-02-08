@@ -86,7 +86,7 @@ static void * demuxer(void * arg)
 	ASSERT( conn->cc_sctps_data.array );
 	
 	do {
-		CHECK_FCT_DO( fd_sctp_recvmeta(conn->cc_socket, &strid, &buf, &bufsz, &event), goto error );
+		CHECK_FCT_DO( fd_sctp_recvmeta(conn->cc_socket, &strid, &buf, &bufsz, &event, &conn->cc_closing), goto error );
 		switch (event) {
 			case FDEVP_CNX_MSG_RECV:
 				/* Demux this message in the appropriate fifo, another thread will pull, gnutls process, and send in target queue */
