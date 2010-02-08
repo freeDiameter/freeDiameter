@@ -62,6 +62,7 @@ static pthread_t thr;
 static void * mn_thr(void * arg)
 {
 	sigset_t sig;
+	int i = 0;
 	struct sigaction act;
 	fd_log_threadname("Monitor thread");
 	
@@ -76,9 +77,8 @@ static void * mn_thr(void * arg)
 	/* Loop */
 	while (1) {
 		#ifdef DEBUG
-		int i;
-		for (i=30; i>0; i--) {
-			fd_log_debug("[dbg_monitor] %i\n", i); /* This makes it easier to detect inactivity periods in the log file */
+		for (i++; i % 30; i++) {
+			fd_log_debug("[dbg_monitor] %ih%*im%*is\n", i/3600, 2, i/60, 2, i%60); /* This makes it easier to detect inactivity periods in the log file */
 			sleep(1);
 		}
 		#else /* DEBUG */
