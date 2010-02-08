@@ -516,7 +516,7 @@ ssize_t fd_cnx_s_recv(struct cnxctx * conn, void *buffer, size_t length)
 again:
 	ret = recv(conn->cc_socket, buffer, length, 0);
 	/* Handle special case of timeout */
-	if ((ret < 0) && (errno == ETIMEDOUT)) {
+	if ((ret < 0) && (errno == EAGAIN)) {
 		if (!conn->cc_closing)
 			goto again; /* don't care, just ignore */
 		if (!timedout) {

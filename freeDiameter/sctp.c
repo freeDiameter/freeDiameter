@@ -1130,7 +1130,7 @@ again:
 	pthread_cleanup_pop(0);
 	
 	/* First, handle timeouts (same as fd_cnx_s_recv) */
-	if ((ret < 0) && (errno == ETIMEDOUT)) {
+	if ((ret < 0) && (errno == EAGAIN)) {
 		if (!*cc_closing)
 			goto again; /* don't care, just ignore */
 		if (!timedout) {
