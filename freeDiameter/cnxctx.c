@@ -680,6 +680,9 @@ again:
 				case GNUTLS_E_INTERRUPTED:
 					if (!conn->cc_closing)
 						goto again;
+					TRACE_DEBUG(INFO, "Connection is closing, so abord gnutls_record_recv now.");
+					ret = 0;
+					break;
 
 				default:
 					TRACE_DEBUG(INFO, "This TLS error is not handled, assume unrecoverable error");

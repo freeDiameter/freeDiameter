@@ -665,8 +665,11 @@ psm_loop:
 				CHECK_FCT_DO( fd_p_cnx_init(peer), goto psm_end );
 				goto psm_loop;
 				
-			case STATE_CLOSING:
 			case STATE_SUSPECT:
+				/* Mark the connection problem */
+				peer->p_flags.pf_cnx_pb = 1;
+				
+			case STATE_CLOSING:
 			case STATE_WAITCNXACK:
 			case STATE_WAITCEA:
 				/* Destroy the connection, restart the timer to a new connection attempt */
