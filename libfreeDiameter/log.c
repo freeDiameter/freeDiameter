@@ -49,6 +49,12 @@ char * fd_debug_one_file = NULL;
 int fd_breaks = 0;
 int fd_breakhere(void) { return ++fd_breaks; }
 
+static void fd_cleanup_mutex_silent( void * mutex )
+{
+	(void)pthread_mutex_unlock((pthread_mutex_t *)mutex);
+}
+
+
 /* Log a debug message */
 void fd_log_debug ( char * format, ... )
 {
@@ -56,7 +62,7 @@ void fd_log_debug ( char * format, ... )
 	
 	(void)pthread_mutex_lock(&fd_log_lock);
 	
-	pthread_cleanup_push(fd_cleanup_mutex, &fd_log_lock);
+	pthread_cleanup_push(fd_cleanup_mutex_silent, &fd_log_lock);
 	
 	va_start(ap, format);
 	vfprintf( stdout, format, ap);
