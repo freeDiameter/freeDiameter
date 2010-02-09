@@ -667,14 +667,15 @@ again:
 		{
 			switch (ret) {
 				case GNUTLS_E_REHANDSHAKE: 
-					CHECK_GNUTLS_DO( ret = gnutls_handshake(session),
-						{
-							if (TRACE_BOOL(INFO)) {
-								fd_log_debug("TLS re-handshake failed on socket %d (%s) : %s\n", conn->cc_socket, conn->cc_id, gnutls_strerror(ret));
-							}
-							ret = 0;
-							goto end;
-						} );
+					if (!conn->cc_closing)
+						CHECK_GNUTLS_DO( ret = gnutls_handshake(session),
+							{
+								if (TRACE_BOOL(INFO)) {
+									fd_log_debug("TLS re-handshake failed on socket %d (%s) : %s\n", conn->cc_socket, conn->cc_id, gnutls_strerror(ret));
+								}
+								ret = 0;
+								goto end;
+							} );
 
 				case GNUTLS_E_AGAIN:
 				case GNUTLS_E_INTERRUPTED:
