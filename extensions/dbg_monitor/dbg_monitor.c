@@ -78,7 +78,7 @@ static void * mn_thr(void * arg)
 	while (1) {
 		#ifdef DEBUG
 		for (i++; i % 30; i++) {
-			fd_log_debug("[dbg_monitor] %ih%*im%*is\n", i/3600, 2, i/60, 2, i%60); /* This makes it easier to detect inactivity periods in the log file */
+			fd_log_debug("[dbg_monitor] %ih%*im%*is\n", i/3600, 2, (i/60) % 60 , 2, i%60); /* This makes it easier to detect inactivity periods in the log file */
 			sleep(1);
 		}
 		#else /* DEBUG */
