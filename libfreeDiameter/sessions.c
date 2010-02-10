@@ -163,19 +163,20 @@ static void * exp_fct(void * arg)
 	fd_log_threadname ( "Session/expire" );
 	TRACE_ENTRY( "" );
 	
-	CHECK_POSIX_DO( pthread_mutex_lock(&exp_lock),  goto error );
-	pthread_cleanup_push( fd_cleanup_mutex, &exp_lock );
 	
 	do {
 		struct timespec	now;
 		struct session * first;
 		
+		CHECK_POSIX_DO( pthread_mutex_lock(&exp_lock),  break );
+		pthread_cleanup_push( fd_cleanup_mutex, &exp_lock );
+again:		
 		/* Check if there are expiring sessions available */
 		if (FD_IS_LIST_EMPTY(&exp_sentinel)) {
 			/* Just wait for a change or cancelation */
-			CHECK_POSIX_DO( pthread_cond_wait( &exp_cond, &exp_lock ), goto error );
+			CHECK_POSIX_DO( pthread_cond_wait( &exp_cond, &exp_lock ), break );
 			/* Restart the loop on wakeup */
-			continue;
+			goto again;
 		}
 		
 		/* Get the pointer to the session that expires first */
@@ -183,28 +184,27 @@ static void * exp_fct(void * arg)
 		ASSERT( VALIDATE_SI(first) );
 		
 		/* Get the current time */
-		CHECK_SYS_DO(  clock_gettime(CLOCK_REALTIME, &now),  goto error  );
+		CHECK_SYS_DO(  clock_gettime(CLOCK_REALTIME, &now),  break  );
 
 		/* If first session is not expired, we just wait until it happens */
 		if ( TS_IS_INFERIOR( &now, &first->timeout ) ) {
 			
 			CHECK_POSIX_DO2(  pthread_cond_timedwait( &exp_cond, &exp_lock, &first->timeout ),  
 					ETIMEDOUT, /* ETIMEDOUT is a normal error, continue */,
-					/* on other error, */ goto error );
+					/* on other error, */ break );
 	
 			/* on wakeup, loop */
-			continue;
+			goto again;
 		}
 		
 		/* Now, the first session in the list is expired; destroy it */
-		CHECK_POSIX_DO( pthread_mutex_unlock(&exp_lock),  goto error );
-		CHECK_FCT_DO( fd_sess_destroy( &first ), goto error );
-		CHECK_POSIX_DO( pthread_mutex_lock(&exp_lock),  goto error );
+		pthread_cleanup_pop( 0 );
+		CHECK_POSIX_DO( pthread_mutex_unlock(&exp_lock),  break );
+		
+		CHECK_FCT_DO( fd_sess_destroy( &first ), break );
 		
 	} while (1);
 	
-	pthread_cleanup_pop( 1 );
-error:
 	TRACE_DEBUG(INFO, "An error occurred in session module! Expiry thread is terminating...");
 	ASSERT(0);
 	return NULL;
@@ -346,6 +346,8 @@ int fd_sess_new ( struct session ** session, char * diamId, char * opt, size_t o
 			sidlen = strlen(sid);
 		}
 	} else {
+		uint32_t sid_h_cpy;
+		uint32_t sid_l_cpy;
 		/* "<diamId>;<high32>;<low32>[;opt]" */
 		sidlen = strlen(diamId);
 		sidlen += 22; /* max size of ';<high32>;<low32>' */
@@ -353,20 +355,22 @@ int fd_sess_new ( struct session ** session, char * diamId, char * opt, size_t o
 			sidlen += 1 + (optlen ?: strlen(opt)) ;
 		sidlen++; /* space for the final \0 also */
 		CHECK_MALLOC( sid = malloc(sidlen) );
+		
 		CHECK_POSIX( pthread_mutex_lock(&sid_lock) );
 		if ( ++sid_l == 0 ) /* overflow */
 			++sid_h;
+		sid_h_cpy = sid_h;
+		sid_l_cpy = sid_l;
+		CHECK_POSIX( pthread_mutex_unlock(&sid_lock) );
 		
 		if (opt) {
 			if (optlen)
-				sidlen = snprintf(sid, sidlen, "%s;%u;%u;%.*s", diamId, sid_h, sid_l, (int)optlen, opt);
+				sidlen = snprintf(sid, sidlen, "%s;%u;%u;%.*s", diamId, sid_h_cpy, sid_l_cpy, (int)optlen, opt);
 			else
-				sidlen = snprintf(sid, sidlen, "%s;%u;%u;%s", diamId, sid_h, sid_l, opt);
+				sidlen = snprintf(sid, sidlen, "%s;%u;%u;%s", diamId, sid_h_cpy, sid_l_cpy, opt);
 		} else {
-			sidlen = snprintf(sid, sidlen, "%s;%u;%u", diamId, sid_h, sid_l);
+			sidlen = snprintf(sid, sidlen, "%s;%u;%u", diamId, sid_h_cpy, sid_l_cpy);
 		}
-	
-		CHECK_POSIX( pthread_mutex_unlock(&sid_lock) );
 	}
 	
 	/* Initialize the session object now, to spend less time inside locked section later. 
@@ -375,6 +379,8 @@ int fd_sess_new ( struct session ** session, char * diamId, char * opt, size_t o
 	
 	/* Now find the place to add this object in the hash table. */
 	CHECK_POSIX( pthread_mutex_lock( H_LOCK(sess->hash) ) );
+	pthread_cleanup_push( fd_cleanup_mutex, H_LOCK(sess->hash) );
+	
 	for (li = H_LIST(sess->hash)->next; li != H_LIST(sess->hash); li = li->next) {
 		int cmp;
 		struct session * s = (struct session *)(li->o);
@@ -403,6 +409,7 @@ int fd_sess_new ( struct session ** session, char * diamId, char * opt, size_t o
 		
 		/* We must also insert in the expiry list */
 		CHECK_POSIX( pthread_mutex_lock( &exp_lock ) );
+		pthread_cleanup_push( fd_cleanup_mutex, &exp_lock );
 		
 		/* Find the position in that list. We take it in reverse order */
 		for (li = exp_sentinel.prev; li != &exp_sentinel; li = li->prev) {
@@ -429,9 +436,11 @@ int fd_sess_new ( struct session ** session, char * diamId, char * opt, size_t o
 		#endif
 		
 		/* We're done */
+		pthread_cleanup_pop(0);
 		CHECK_POSIX( pthread_mutex_unlock( &exp_lock ) );
 	}
 	
+	pthread_cleanup_pop(0);
 	CHECK_POSIX( pthread_mutex_unlock( H_LOCK(sess->hash) ) );
 	
 	/* If a session already existed, we must destroy the new element */
@@ -491,6 +500,7 @@ int fd_sess_settimeout( struct session * session, const struct timespec * timeou
 	
 	/* Lock -- do we need to lock the hash table as well? I don't think so... */
 	CHECK_POSIX( pthread_mutex_lock( &exp_lock ) );
+	pthread_cleanup_push( fd_cleanup_mutex, &exp_lock );
 	
 	/* Update the timeout */
 	fd_list_unlink(&session->expire);
@@ -524,6 +534,7 @@ int fd_sess_settimeout( struct session * session, const struct timespec * timeou
 	#endif
 
 	/* We're done */
+	pthread_cleanup_pop(0);
 	CHECK_POSIX( pthread_mutex_unlock( &exp_lock ) );
 	
 	return 0;
@@ -542,11 +553,13 @@ int fd_sess_destroy ( struct session ** session )
 	
 	/* Unlink and invalidate */
 	CHECK_FCT( pthread_mutex_lock( H_LOCK(sess->hash) ) );
+	pthread_cleanup_push( fd_cleanup_mutex, H_LOCK(sess->hash) );
 	CHECK_FCT( pthread_mutex_lock( &exp_lock ) );
 	fd_list_unlink( &sess->chain_h );
 	fd_list_unlink( &sess->expire ); /* no need to signal the condition here */
 	sess->eyec = 0xdead;
 	CHECK_FCT( pthread_mutex_unlock( &exp_lock ) );
+	pthread_cleanup_pop(0);
 	CHECK_FCT( pthread_mutex_unlock( H_LOCK(sess->hash) ) );
 	
 	/* Now destroy all states associated -- we don't take the lock since nobody can access this session anymore (in theory) */
@@ -577,6 +590,7 @@ int fd_sess_reclaim ( struct session ** session )
 	*session = NULL;
 	
 	CHECK_FCT( pthread_mutex_lock( H_LOCK(sess->hash) ) );
+	pthread_cleanup_push( fd_cleanup_mutex, H_LOCK(sess->hash) );
 	CHECK_FCT( pthread_mutex_lock( &exp_lock ) );
 	if (FD_IS_LIST_EMPTY(&sess->states)) {
 		fd_list_unlink( &sess->chain_h );
@@ -586,6 +600,7 @@ int fd_sess_reclaim ( struct session ** session )
 		free(sess);
 	}
 	CHECK_FCT( pthread_mutex_unlock( &exp_lock ) );
+	pthread_cleanup_pop(0);
 	CHECK_FCT( pthread_mutex_unlock( H_LOCK(sess->hash) ) );
 	
 	return 0;
@@ -603,6 +618,7 @@ int fd_sess_state_store_internal ( struct session_handler * handler, struct sess
 	
 	/* Lock the session state list */
 	CHECK_POSIX( pthread_mutex_lock(&session->stlock) );
+	pthread_cleanup_push( fd_cleanup_mutex, &session->stlock );
 			
 	/* Create the new state object */
 	CHECK_MALLOC(new = malloc(sizeof(struct state)) );
@@ -635,6 +651,7 @@ int fd_sess_state_store_internal ( struct session_handler * handler, struct sess
 		free(new);
 	}
 	
+	pthread_cleanup_pop(0);
 	CHECK_POSIX( pthread_mutex_unlock(&session->stlock) );
 	
 	return already ? EALREADY : 0;
@@ -653,6 +670,7 @@ int fd_sess_state_retrieve_internal ( struct session_handler * handler, struct s
 	
 	/* Lock the session state list */
 	CHECK_POSIX( pthread_mutex_lock(&session->stlock) );
+	pthread_cleanup_push( fd_cleanup_mutex, &session->stlock );
 	
 	/* find the state in the list */
 	for (li = session->states.next; li != &session->states; li = li->next) {
@@ -670,6 +688,7 @@ int fd_sess_state_retrieve_internal ( struct session_handler * handler, struct s
 		free(st);
 	}
 	
+	pthread_cleanup_pop(0);
 	CHECK_POSIX( pthread_mutex_unlock(&session->stlock) );
 	
 	return 0;
@@ -737,10 +756,12 @@ void fd_sess_dump(int level, struct session * session)
 		fd_log_debug("\t  %*s  timeout %s.%09ld\n", level, "", buf, session->timeout.tv_nsec);
 
 		CHECK_POSIX_DO( pthread_mutex_lock(&session->stlock), /* ignore */ );
+		pthread_cleanup_push( fd_cleanup_mutex, &session->stlock );
 		for (li = session->states.next; li != &session->states; li = li->next) {
 			struct state * st = (struct state *)(li->o);
 			fd_log_debug("\t  %*s    handler %d registered data %p\n", level, "", st->hdl->id, st->state);
 		}
+		pthread_cleanup_pop(0);
 		CHECK_POSIX_DO( pthread_mutex_unlock(&session->stlock), /* ignore */ );
 	}
 	fd_log_debug("\t  %*s -- end of session @%p --\n", level, "", session);

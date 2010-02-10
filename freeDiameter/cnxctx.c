@@ -226,7 +226,7 @@ struct cnxctx * fd_cnx_serv_accept(struct cnxctx * serv)
 		fd_log_debug("].\n");
 	}
 	
-	CHECK_MALLOC_DO( cli = fd_cnx_init(1), { shutdown(cli_sock, SHUT_RDWR); return NULL; } );
+	CHECK_MALLOC_DO( cli = fd_cnx_init(1), { shutdown(cli_sock, SHUT_RDWR); close(cli_sock); return NULL; } );
 	cli->cc_socket = cli_sock;
 	cli->cc_proto = serv->cc_proto;
 	
@@ -324,10 +324,6 @@ struct cnxctx * fd_cnx_cli_connect_tcp(sSA * sa /* contains the port already */,
 	}
 	
 	return cnx;
-
-error:
-	fd_cnx_destroy(cnx);
-	return NULL;
 }
 
 /* Same for SCTP, accepts a list of remote addresses to connect to (see sctp_connectx for how they are used) */
@@ -348,7 +344,7 @@ struct cnxctx * fd_cnx_cli_connect_sctp(int no_ip6, uint16_t port, struct fd_lis
 	CHECK_FCT_DO( fd_sctp_client( &sock, no_ip6, port, list ), return NULL );
 	
 	/* Once the socket is created successfuly, prepare the remaining of the cnx */
-	CHECK_MALLOC_DO( cnx = fd_cnx_init(1), { shutdown(sock, SHUT_RDWR); return NULL; } );
+	CHECK_MALLOC_DO( cnx = fd_cnx_init(1), { shutdown(sock, SHUT_RDWR); close(sock); return NULL; } );
 	
 	cnx->cc_socket = sock;
 	cnx->cc_proto  = IPPROTO_SCTP;
@@ -527,6 +523,10 @@ again:
 		CHECK_SYS_DO(ret, /* continue */);
 	}
 	
+	/* Mark the error */
+	if (ret <= 0)
+		conn->cc_goterror=1;
+	
 	return ret;
 }
 
@@ -547,6 +547,10 @@ again:
 		}
 		CHECK_SYS_DO(ret, /* continue */);
 	}
+	
+	/* Mark the error */
+	if (ret <= 0)
+		conn->cc_goterror=1;
 	
 	return ret;
 }
@@ -656,6 +660,7 @@ static void * rcvthr_notls_sctp(void * arg)
 	do {
 		CHECK_FCT_DO( fd_sctp_recvmeta(conn->cc_socket, NULL, &buf, &bufsz, &event, &conn->cc_closing), goto error );
 		if (event == FDEVP_CNX_ERROR) {
+			conn->cc_goterror = 1;
 			goto error;
 		}
 		
@@ -707,8 +712,46 @@ again:
 			}
 		} );
 end:	
+	if (ret <= 0)
+		conn->cc_goterror = 1;
 	return ret;
 }
+
+/* Wrapper around gnutls_record_send to handle some error codes */
+static ssize_t fd_tls_send_handle_error(struct cnxctx * conn, gnutls_session_t session, void * data, size_t sz)
+{
+	ssize_t ret;
+again:	
+	CHECK_GNUTLS_DO( ret = gnutls_record_send(session, data, sz),
+		{
+			switch (ret) {
+				case GNUTLS_E_REHANDSHAKE: 
+					if (!conn->cc_closing)
+						CHECK_GNUTLS_DO( ret = gnutls_handshake(session),
+							{
+								if (TRACE_BOOL(INFO)) {
+									fd_log_debug("TLS re-handshake failed on socket %d (%s) : %s\n", conn->cc_socket, conn->cc_id, gnutls_strerror(ret));
+								}
+								goto end;
+							} );
+
+				case GNUTLS_E_AGAIN:
+				case GNUTLS_E_INTERRUPTED:
+					if (!conn->cc_closing)
+						goto again;
+					TRACE_DEBUG(INFO, "Connection is closing, so abord gnutls_record_send now.");
+					break;
+
+				default:
+					TRACE_DEBUG(INFO, "This TLS error is not handled, assume unrecoverable error");
+			}
+		} );
+end:	
+	if (ret <= 0)
+		conn->cc_goterror = 1;
+	return ret;
+}
+
 
 /* The function that receives TLS data and re-builds a Diameter message -- it exits only on error or cancelation */
 int fd_tls_rcvthr_core(struct cnxctx * conn, gnutls_session_t session)
@@ -798,11 +841,11 @@ int fd_cnx_start_clear(struct cnxctx * conn, int loop)
 	
 	CHECK_PARAMS( conn && Target_Queue(conn) && (!conn->cc_tls) && (!conn->cc_loop));
 	
-	/* Save the loop request */
-	conn->cc_loop = loop;
-	
 	/* Release resources in case of a previous call was already made */
 	CHECK_FCT_DO( fd_thr_term(&conn->cc_rcvthr), /* continue */);
+	
+	/* Save the loop request */
+	conn->cc_loop = loop;
 	
 	switch (conn->cc_proto) {
 		case IPPROTO_TCP:
@@ -1104,29 +1147,32 @@ int fd_cnx_handshake(struct cnxctx * conn, int mode, char * priority, void * alt
 				if (TRACE_BOOL(INFO)) {
 					fd_log_debug("TLS Handshake failed on socket %d (%s) : %s\n", conn->cc_socket, conn->cc_id, gnutls_strerror(ret));
 				}
+				conn->cc_goterror = 1;
 				return EINVAL;
 			} );
 
-		/* Now verify the remote credentials are valid -- only simple test here */
-		CHECK_FCT( fd_tls_verify_credentials(conn->cc_tls_para.session, conn, 1) );
+		/* Now verify the remote credentials are valid -- only simple tests here */
+		CHECK_FCT_DO( fd_tls_verify_credentials(conn->cc_tls_para.session, conn, 1), 
+			{  
+				CHECK_GNUTLS_DO( gnutls_bye(conn->cc_tls_para.session, GNUTLS_SHUT_RDWR), /* Continue */ );
+				gnutls_deinit(conn->cc_tls_para.session);
+				return EINVAL;
+			});
 	}
+
+	/* Mark the connection as protected from here */
+	conn->cc_tls = 1;
 
 	/* Multi-stream TLS: handshake other streams as well */
 	if (conn->cc_sctp_para.pairs > 1) {
 #ifndef DISABLE_SCTP
 		/* Resume all additional sessions from the master one. */
 		CHECK_FCT(fd_sctps_handshake_others(conn, priority, alt_creds));
-		
-		/* Mark the connection as protected from here */
-		conn->cc_tls = 1;
 
 		/* Start decrypting the messages from all threads and queuing them in target queue */
 		CHECK_FCT(fd_sctps_startthreads(conn));
 #endif /* DISABLE_SCTP */
 	} else {
-		/* Mark the connection as protected from here */
-		conn->cc_tls = 1;
-
 		/* Start decrypting the data */
 		CHECK_POSIX( pthread_create( &conn->cc_rcvthr, NULL, rcvthr_tls_single, conn ) );
 	}
@@ -1210,37 +1256,6 @@ int fd_cnx_recv_setaltfifo(struct cnxctx * conn, struct fifo * alt_fifo)
 	return 0;
 }
 
-/* Wrapper around gnutls_record_send to handle some error codes */
-static ssize_t fd_tls_send_handle_error(struct cnxctx * conn, gnutls_session_t session, void * data, size_t sz)
-{
-	ssize_t ret;
-again:	
-	CHECK_GNUTLS_DO( ret = gnutls_record_send(session, data, sz),
-		{
-			switch (ret) {
-				case GNUTLS_E_REHANDSHAKE: 
-					CHECK_GNUTLS_DO( ret = gnutls_handshake(session),
-						{
-							if (TRACE_BOOL(INFO)) {
-								fd_log_debug("TLS re-handshake failed on socket %d (%s) : %s\n", conn->cc_socket, conn->cc_id, gnutls_strerror(ret));
-							}
-							goto end;
-						} );
-
-				case GNUTLS_E_AGAIN:
-				case GNUTLS_E_INTERRUPTED:
-					goto again;
-
-				default:
-					TRACE_DEBUG(INFO, "This TLS error is not handled, assume unrecoverable error");
-			}
-		} );
-end:	
-	return ret;
-}
-
-
-
 /* Send function when no multi-stream is involved, or sending on stream #0 (send() always use stream 0)*/
 static int send_simple(struct cnxctx * conn, unsigned char * buf, size_t len)
 {
@@ -1263,7 +1278,7 @@ int fd_cnx_send(struct cnxctx * conn, unsigned char * buf, size_t len)
 {
 	TRACE_ENTRY("%p %p %zd", conn, buf, len);
 	
-	CHECK_PARAMS(conn && (conn->cc_socket > 0) && buf && len);
+	CHECK_PARAMS(conn && (conn->cc_socket > 0) && (! conn->cc_goterror) && buf && len);
 
 	TRACE_DEBUG(FULL, "Sending %zdb %sdata on connection %s", len, conn->cc_tls ? "TLS-protected ":"", conn->cc_id);
 	
@@ -1287,7 +1302,7 @@ int fd_cnx_send(struct cnxctx * conn, unsigned char * buf, size_t len)
 				CHECK_FCT( send_simple(conn, buf, len) );
 			} else {
 				if (!conn->cc_tls) {
-					CHECK_FCT( fd_sctp_sendstr(conn->cc_socket, conn->cc_sctp_para.next, buf, len, &conn->cc_closing) );
+					CHECK_FCT_DO( fd_sctp_sendstr(conn->cc_socket, conn->cc_sctp_para.next, buf, len, &conn->cc_closing), { conn->cc_goterror = 1; return ENOTCONN; } );
 				} else {
 					/* push the record to the appropriate session */
 					ssize_t ret;
@@ -1329,15 +1344,20 @@ void fd_cnx_destroy(struct cnxctx * conn)
 	if (conn->cc_tls) {
 #ifndef DISABLE_SCTP
 		if (conn->cc_sctp_para.pairs > 1) {
-			/* Bye on master session */
-			CHECK_GNUTLS_DO( gnutls_bye(conn->cc_tls_para.session, GNUTLS_SHUT_WR), /* Continue */ );
-			
-			/* and other stream pairs */
-			fd_sctps_bye(conn);
-			
-			/* Now wait for all decipher threads to terminate */
-			fd_sctps_waitthreadsterm(conn);
-			
+			if (! conn->cc_goterror ) {
+				/* Bye on master session */
+				CHECK_GNUTLS_DO( gnutls_bye(conn->cc_tls_para.session, GNUTLS_SHUT_WR), /* Continue */ );
+
+				/* and other stream pairs */
+				fd_sctps_bye(conn);
+
+				/* Now wait for all decipher threads to terminate */
+				fd_sctps_waitthreadsterm(conn);
+			} else {
+				/* Abord the threads, the connection is dead already */
+				fd_sctps_stopthreads(conn);
+			}
+
 			/* Deinit gnutls resources */
 			fd_sctps_gnutls_deinit_others(conn);
 			gnutls_deinit(conn->cc_tls_para.session);
@@ -1348,13 +1368,18 @@ void fd_cnx_destroy(struct cnxctx * conn)
 		} else {
 #endif /* DISABLE_SCTP */
 		/* We are not using the sctps wrapper layer */
-			/* Master session */
-			CHECK_GNUTLS_DO( gnutls_bye(conn->cc_tls_para.session, GNUTLS_SHUT_WR), /* Continue */ );
-		
-			/* In this case, just wait for thread rcvthr_tls_single to terminate */
-			if (conn->cc_rcvthr != (pthread_t)NULL) {
-				CHECK_POSIX_DO(  pthread_join(conn->cc_rcvthr, NULL), /* continue */  );
-				conn->cc_rcvthr = (pthread_t)NULL;
+			if (! conn->cc_goterror ) {
+				/* Master session */
+				CHECK_GNUTLS_DO( gnutls_bye(conn->cc_tls_para.session, GNUTLS_SHUT_WR), /* Continue */ );
+
+				/* In this case, just wait for thread rcvthr_tls_single to terminate */
+				if (conn->cc_rcvthr != (pthread_t)NULL) {
+					CHECK_POSIX_DO(  pthread_join(conn->cc_rcvthr, NULL), /* continue */  );
+					conn->cc_rcvthr = (pthread_t)NULL;
+				}
+			} else {
+				/* Cancel the receiver thread in case it did not already terminate */
+				CHECK_FCT_DO( fd_thr_term(&conn->cc_rcvthr), /* continue */ );
 			}
 			
 			/* Free the resources of the TLS session */
@@ -1365,7 +1390,7 @@ void fd_cnx_destroy(struct cnxctx * conn)
 #endif /* DISABLE_SCTP */
 	}
 	
-	/* Terminate the thread in case it is not done yet */
+	/* Terminate the thread in case it is not done yet -- is there any such case left ?*/
 	CHECK_FCT_DO( fd_thr_term(&conn->cc_rcvthr), /* continue */ );
 		
 	/* Shut the connection down */

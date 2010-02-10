@@ -242,9 +242,9 @@ int ta_cli_init(void)
 
 void ta_cli_fini(void)
 {
-	(void) fd_sess_handler_destroy(&ta_cli_reg);
-	
 	ta_sig_fini();
+	
+	(void) fd_sess_handler_destroy(&ta_cli_reg);
 	
 	return;
 };

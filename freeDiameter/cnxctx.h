@@ -47,6 +47,7 @@ struct cnxctx {
 
 	int 		cc_proto;	/* IPPROTO_TCP or IPPROTO_SCTP */
 	int		cc_tls;		/* Is TLS already started ? */
+	int		cc_goterror;	/* True when an error occurred on the socket */
 	int		cc_closing;	/* True if the object is being destroyed: we don't send events anymore */
 
 	pthread_t	cc_rcvthr;	/* thread for receiving messages on the connection */
