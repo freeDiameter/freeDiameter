@@ -1041,7 +1041,7 @@ next:
 }
 
 /* Send a buffer over a specified stream */
-int fd_sctp_sendstr(int sock, uint16_t strid, uint8_t * buf, size_t len)
+int fd_sctp_sendstr(int sock, uint16_t strid, uint8_t * buf, size_t len, int * cc_closing)
 {
 	struct msghdr mhdr;
 	struct iovec  iov;
@@ -1050,8 +1050,10 @@ int fd_sctp_sendstr(int sock, uint16_t strid, uint8_t * buf, size_t len)
 		struct sctp_sndrcvinfo	sndrcv;
 	} anci;
 	ssize_t ret;
+	int timedout = 0;
 	
-	TRACE_ENTRY("%d %hu %p %zd", sock, strid, buf, len);
+	TRACE_ENTRY("%d %hu %p %zd %p", sock, strid, buf, len, cc_closing);
+	CHECK_PARAMS(cc_closing);
 	
 	memset(&mhdr, 0, sizeof(mhdr));
 	memset(&iov,  0, sizeof(iov));
@@ -1077,8 +1079,19 @@ int fd_sctp_sendstr(int sock, uint16_t strid, uint8_t * buf, size_t len)
 	mhdr.msg_controllen = sizeof(anci);
 	
 	TRACE_DEBUG(FULL, "Sending %db data on stream %hu of socket %d", len, strid, sock);
+again:	
+	ret = sendmsg(sock, &mhdr, 0);
+	/* Handle special case of timeout */
+	if ((ret < 0) && (errno == EAGAIN)) {
+		if (!*cc_closing)
+			goto again; /* don't care, just ignore */
+		if (!timedout) {
+			timedout ++; /* allow for one timeout while closing */
+			goto again;
+		}
+	}
 	
-	CHECK_SYS( ret = sendmsg(sock, &mhdr, 0) );
+	CHECK_SYS( ret );
 	ASSERT( ret == len ); /* There should not be partial delivery with sendmsg... */
 	
 	return 0;

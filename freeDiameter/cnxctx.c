@@ -506,6 +506,7 @@ void fd_cnx_s_setto(int sock)
 	memset(&tv, 0, sizeof(tv));
 	tv.tv_sec = 3;	/* allow 3 seconds timeout for TLS session cleanup */
 	CHECK_SYS_DO( setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv)), /* best effort only */ );
+	CHECK_SYS_DO( setsockopt(sock, SOL_SOCKET, SO_SNDTIMEO, &tv, sizeof(tv)), /* Also timeout for sending, to avoid waiting forever */ );
 }	
 
 /* A recv-like function, taking a cnxctx object instead of socket as entry. Only used to filter timeouts error (GNUTLS does not like these...) */
@@ -532,7 +533,22 @@ again:
 /* Send */
 static ssize_t fd_cnx_s_send(struct cnxctx * conn, void *buffer, size_t length)
 {
-	return send(conn->cc_socket, buffer, length, 0);
+	ssize_t ret = 0;
+	int timedout = 0;
+again:
+	ret = send(conn->cc_socket, buffer, length, 0);
+	/* Handle special case of timeout */
+	if ((ret < 0) && (errno == EAGAIN)) {
+		if (!conn->cc_closing)
+			goto again; /* don't care, just ignore */
+		if (!timedout) {
+			timedout ++; /* allow for one timeout while closing */
+			goto again;
+		}
+		CHECK_SYS_DO(ret, /* continue */);
+	}
+	
+	return ret;
 }
 
 /* Receiver thread (TCP & noTLS) : incoming message is directly saved into the target queue */
@@ -1235,7 +1251,7 @@ static int send_simple(struct cnxctx * conn, unsigned char * buf, size_t len)
 		if (conn->cc_tls) {
 			CHECK_GNUTLS_DO( ret = fd_tls_send_handle_error(conn, conn->cc_tls_para.session, buf + sent, len - sent), return ENOTCONN );
 		} else {
-			CHECK_SYS( ret = send(conn->cc_socket, buf + sent, len - sent, 0) ); /* better to replace with sendmsg for atomic sending? */
+			CHECK_SYS( ret = fd_cnx_s_send(conn, buf + sent, len - sent) ); /* better to replace with sendmsg for atomic sending? */
 		}
 		sent += ret;
 	} while ( sent < len );
@@ -1271,7 +1287,7 @@ int fd_cnx_send(struct cnxctx * conn, unsigned char * buf, size_t len)
 				CHECK_FCT( send_simple(conn, buf, len) );
 			} else {
 				if (!conn->cc_tls) {
-					CHECK_FCT( fd_sctp_sendstr(conn->cc_socket, conn->cc_sctp_para.next, buf, len) );
+					CHECK_FCT( fd_sctp_sendstr(conn->cc_socket, conn->cc_sctp_para.next, buf, len, &conn->cc_closing) );
 				} else {
 					/* push the record to the appropriate session */
 					ssize_t ret;
