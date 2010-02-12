@@ -233,11 +233,21 @@ static int main_cmdline(int argc, char *argv[])
 				break;
 				
 			case 'f':	/* Full debug for the function with this name.  */
+				#ifdef DEBUG
 				fd_debug_one_function = optarg;
+				#else /* DEBUG */
+				TRACE_DEBUG(INFO, "Error: must compile with DEBUG support to use this feature");
+				return EINVAL;
+				#endif /* DEBUG */
 				break;
 				
 			case 'F':	/* Full debug for the file with this name.  */
-				fd_debug_one_file = optarg;
+				#ifdef DEBUG
+				fd_debug_one_file = basename(optarg);
+				#else /* DEBUG */
+				TRACE_DEBUG(INFO, "Error: must compile with DEBUG support to use this feature");
+				return EINVAL;
+				#endif /* DEBUG */
 				break;
 				
 			case 'q':	/* Decrease verbosity then remove debug messages.  */

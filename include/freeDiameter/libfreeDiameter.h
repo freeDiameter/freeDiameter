@@ -70,6 +70,10 @@
 #include <stdlib.h>
 #include <unistd.h>
 
+#ifdef DEBUG
+#include <libgen.h>	/* for basename if --dbg_file is specified */
+#endif /* DEBUG */
+
 /*============================================================*/
 /*                          DEBUG                             */
 /*============================================================*/
@@ -166,10 +170,18 @@ extern int fd_g_debug_lvl;
 #define __PRETTY_FUNCTION__ __func__
 #endif /* __PRETTY_FUNCTION__ */
 
+/* A version of __FILE__ without the full path */
+static char * file_bname = NULL;
+#define __STRIPPED_FILE__	(file_bname ?: (file_bname = basename(__FILE__)))
+
 /* Boolean for tracing at a certain level */
+#ifdef DEBUG
 #define TRACE_BOOL(_level_) ( ((_level_) <= local_debug_level + fd_g_debug_lvl) 					\
 				|| (fd_debug_one_function && !strcmp(fd_debug_one_function, __PRETTY_FUNCTION__)) 	\
-				|| (fd_debug_one_file && !strcmp(fd_debug_one_file, __FILE__) ) )
+				|| (fd_debug_one_file && !strcmp(fd_debug_one_file, __STRIPPED_FILE__) ) )
+#else /* DEBUG */
+#define TRACE_BOOL(_level_) ((_level_) <= local_debug_level + fd_g_debug_lvl)
+#endif /* DEBUG */
 
 /* The general debug macro, each call results in two lines of debug messages (change the macro for more compact output) */
 #define TRACE_DEBUG(level,format,args... ) {											\
