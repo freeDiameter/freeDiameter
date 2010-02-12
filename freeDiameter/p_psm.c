@@ -264,6 +264,7 @@ void fd_psm_cleanup(struct fd_peer * peer, int terminate)
 	}
 	
 	if (terminate) {
+		fd_psm_events_free(peer);
 		CHECK_FCT_DO( fd_fifo_del(&peer->p_events), /* continue */ );
 	}
 	
