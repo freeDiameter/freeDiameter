@@ -190,7 +190,7 @@ static char * file_bname = NULL;
 		char * __thn = ((char *)pthread_getspecific(fd_log_thname) ?: "unnamed");					\
 		fd_log_debug("\t | tid:%-20s\t%s\tin %s@%s:%d\n"								\
 			  "\t%s|%*s" format "\n",  										\
-					__thn, fd_log_time(NULL, __buf, sizeof(__buf)), __PRETTY_FUNCTION__, __FILE__, __LINE__,	\
+					__thn, fd_log_time(NULL, __buf, sizeof(__buf)), __PRETTY_FUNCTION__, __FILE__, __LINE__,\
 					(level < FULL)?"@":" ",level, "", ## args); 						\
 	}															\
 }
