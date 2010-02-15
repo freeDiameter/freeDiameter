@@ -672,14 +672,14 @@ int main(int argc, char *argv[])
 		CHECK( 0, fd_cnx_start_clear(client_side, 0) );
 		
 		/* Send a message and receive it */
-		CHECK( 0, fd_cnx_send(server_side, cer_buf, cer_sz));
+		CHECK( 0, fd_cnx_send(server_side, cer_buf, cer_sz, 0));
 		CHECK( 0, fd_cnx_receive(client_side, NULL, &rcv_buf, &rcv_sz));
 		CHECK( cer_sz, rcv_sz );
 		CHECK( 0, memcmp( rcv_buf, cer_buf, cer_sz ) );
 		free(rcv_buf);
 		
 		/* Do it in the other direction */
-		CHECK( 0, fd_cnx_send(client_side, cer_buf, cer_sz));
+		CHECK( 0, fd_cnx_send(client_side, cer_buf, cer_sz, 0));
 		CHECK( 0, fd_cnx_receive(server_side, NULL, &rcv_buf, &rcv_sz));
 		CHECK( cer_sz, rcv_sz );
 		CHECK( 0, memcmp( rcv_buf, cer_buf, cer_sz ) );
@@ -712,7 +712,7 @@ int main(int argc, char *argv[])
 		CHECK( 0, fd_cnx_start_clear(server_side, 1) );
 		
 		/* Send a message and receive it */
-		CHECK( 0, fd_cnx_send(server_side, cer_buf, cer_sz));
+		CHECK( 0, fd_cnx_send(server_side, cer_buf, cer_sz, 0));
 		CHECK( EINVAL, fd_cnx_receive(client_side, NULL, &rcv_buf, &rcv_sz));
 		CHECK( 0, fd_cnx_start_clear(client_side, 0) );
 		CHECK( 0, fd_cnx_receive(client_side, NULL, &rcv_buf, &rcv_sz));
@@ -721,14 +721,14 @@ int main(int argc, char *argv[])
 		free(rcv_buf);
 		
 		/* Do it in the other direction */
-		CHECK( 0, fd_cnx_send(client_side, cer_buf, cer_sz));
+		CHECK( 0, fd_cnx_send(client_side, cer_buf, cer_sz, 0));
 		CHECK( 0, fd_cnx_receive(server_side, NULL, &rcv_buf, &rcv_sz));
 		CHECK( cer_sz, rcv_sz );
 		CHECK( 0, memcmp( rcv_buf, cer_buf, cer_sz ) );
 		free(rcv_buf);
 		
 		/* Do it one more time to use another stream */
-		CHECK( 0, fd_cnx_send(client_side, cer_buf, cer_sz));
+		CHECK( 0, fd_cnx_send(client_side, cer_buf, cer_sz, 0));
 		CHECK( 0, fd_cnx_receive(server_side, NULL, &rcv_buf, &rcv_sz));
 		CHECK( cer_sz, rcv_sz );
 		CHECK( 0, memcmp( rcv_buf, cer_buf, cer_sz ) );
@@ -778,14 +778,14 @@ int main(int argc, char *argv[])
 		CHECK( 0, fd_cnx_start_clear(client_side, 0) );
 		
 		/* Send a message and receive it */
-		CHECK( 0, fd_cnx_send(server_side, cer_buf, cer_sz));
+		CHECK( 0, fd_cnx_send(server_side, cer_buf, cer_sz, 0));
 		CHECK( 0, fd_cnx_receive(client_side, NULL, &rcv_buf, &rcv_sz));
 		CHECK( cer_sz, rcv_sz );
 		CHECK( 0, memcmp( rcv_buf, cer_buf, cer_sz ) );
 		free(rcv_buf);
 		
 		/* And the supposed reply */
-		CHECK( 0, fd_cnx_send(client_side, cer_buf, cer_sz));
+		CHECK( 0, fd_cnx_send(client_side, cer_buf, cer_sz, 0));
 		CHECK( 0, fd_cnx_receive(server_side, NULL, &rcv_buf, &rcv_sz));
 		CHECK( cer_sz, rcv_sz );
 		CHECK( 0, memcmp( rcv_buf, cer_buf, cer_sz ) );
@@ -799,13 +799,13 @@ int main(int argc, char *argv[])
 		
 		/* Send a few TLS protected message, and replies */
 		for (i = 0; i < 2 * NB_STREAMS; i++) {
-			CHECK( 0, fd_cnx_send(server_side, cer_buf, cer_sz));
+			CHECK( 0, fd_cnx_send(server_side, cer_buf, cer_sz, 0));
 			CHECK( 0, fd_cnx_receive(client_side, NULL, &rcv_buf, &rcv_sz));
 			CHECK( cer_sz, rcv_sz );
 			CHECK( 0, memcmp( rcv_buf, cer_buf, cer_sz ) );
 			free(rcv_buf);
 
-			CHECK( 0, fd_cnx_send(client_side, cer_buf, cer_sz));
+			CHECK( 0, fd_cnx_send(client_side, cer_buf, cer_sz, 0));
 			CHECK( 0, fd_cnx_receive(server_side, NULL, &rcv_buf, &rcv_sz));
 			CHECK( cer_sz, rcv_sz );
 			CHECK( 0, memcmp( rcv_buf, cer_buf, cer_sz ) );
@@ -863,14 +863,14 @@ int main(int argc, char *argv[])
 		CHECK( 0, fd_cnx_start_clear(client_side, 0) );
 		
 		/* Send a message and receive it */
-		CHECK( 0, fd_cnx_send(server_side, cer_buf, cer_sz));
+		CHECK( 0, fd_cnx_send(server_side, cer_buf, cer_sz, 0));
 		CHECK( 0, fd_cnx_receive(client_side, NULL, &rcv_buf, &rcv_sz));
 		CHECK( cer_sz, rcv_sz );
 		CHECK( 0, memcmp( rcv_buf, cer_buf, cer_sz ) );
 		free(rcv_buf);
 		
 		/* And the supposed reply */
-		CHECK( 0, fd_cnx_send(client_side, cer_buf, cer_sz));
+		CHECK( 0, fd_cnx_send(client_side, cer_buf, cer_sz, 0));
 		CHECK( 0, fd_cnx_receive(server_side, NULL, &rcv_buf, &rcv_sz));
 		CHECK( cer_sz, rcv_sz );
 		CHECK( 0, memcmp( rcv_buf, cer_buf, cer_sz ) );
@@ -884,13 +884,13 @@ int main(int argc, char *argv[])
 		
 		/* Send a few TLS protected message, and replies */
 		for (i = 0; i < 2 * NB_STREAMS; i++) {
-			CHECK( 0, fd_cnx_send(server_side, cer_buf, cer_sz));
+			CHECK( 0, fd_cnx_send(server_side, cer_buf, cer_sz, 0));
 			CHECK( 0, fd_cnx_receive(client_side, NULL, &rcv_buf, &rcv_sz));
 			CHECK( cer_sz, rcv_sz );
 			CHECK( 0, memcmp( rcv_buf, cer_buf, cer_sz ) );
 			free(rcv_buf);
 
-			CHECK( 0, fd_cnx_send(client_side, cer_buf, cer_sz));
+			CHECK( 0, fd_cnx_send(client_side, cer_buf, cer_sz, 0));
 			CHECK( 0, fd_cnx_receive(server_side, NULL, &rcv_buf, &rcv_sz));
 			CHECK( cer_sz, rcv_sz );
 			CHECK( 0, memcmp( rcv_buf, cer_buf, cer_sz ) );
@@ -950,13 +950,13 @@ int main(int argc, char *argv[])
 		
 		/* Send a few TLS protected message, and replies */
 		for (i = 0; i < 2 * NB_STREAMS; i++) {
-			CHECK( 0, fd_cnx_send(server_side, cer_buf, cer_sz));
+			CHECK( 0, fd_cnx_send(server_side, cer_buf, cer_sz, 0));
 			CHECK( 0, fd_cnx_receive(client_side, NULL, &rcv_buf, &rcv_sz));
 			CHECK( cer_sz, rcv_sz );
 			CHECK( 0, memcmp( rcv_buf, cer_buf, cer_sz ) );
 			free(rcv_buf);
 
-			CHECK( 0, fd_cnx_send(client_side, cer_buf, cer_sz));
+			CHECK( 0, fd_cnx_send(client_side, cer_buf, cer_sz, 0));
 			CHECK( 0, fd_cnx_receive(server_side, NULL, &rcv_buf, &rcv_sz));
 			CHECK( cer_sz, rcv_sz );
 			CHECK( 0, memcmp( rcv_buf, cer_buf, cer_sz ) );
@@ -1015,13 +1015,13 @@ int main(int argc, char *argv[])
 		
 		/* Send a few TLS protected message, and replies */
 		for (i = 0; i < 2 * NB_STREAMS; i++) {
-			CHECK( 0, fd_cnx_send(server_side, cer_buf, cer_sz));
+			CHECK( 0, fd_cnx_send(server_side, cer_buf, cer_sz, 0));
 			CHECK( 0, fd_cnx_receive(client_side, NULL, &rcv_buf, &rcv_sz));
 			CHECK( cer_sz, rcv_sz );
 			CHECK( 0, memcmp( rcv_buf, cer_buf, cer_sz ) );
 			free(rcv_buf);
 
-			CHECK( 0, fd_cnx_send(client_side, cer_buf, cer_sz));
+			CHECK( 0, fd_cnx_send(client_side, cer_buf, cer_sz, 0));
 			CHECK( 0, fd_cnx_receive(server_side, NULL, &rcv_buf, &rcv_sz));
 			CHECK( cer_sz, rcv_sz );
 			CHECK( 0, memcmp( rcv_buf, cer_buf, cer_sz ) );
@@ -1364,7 +1364,7 @@ int main(int argc, char *argv[])
 		CHECK( 1, (str[0] != '\0') ? 1 : 0 );
 		
 		/* fd_cnx_recv_setaltfifo */
-		CHECK( 0, fd_cnx_send(client_side, cer_buf, cer_sz));
+		CHECK( 0, fd_cnx_send(client_side, cer_buf, cer_sz, 0));
 		CHECK( 0, fd_fifo_new(&myfifo) );
 		CHECK( 0, fd_cnx_recv_setaltfifo(server_side, myfifo) );
 		CHECK( 0, clock_gettime(CLOCK_REALTIME, &now) );
@@ -1482,7 +1482,7 @@ int main(int argc, char *argv[])
 		CHECK( 1, (str[0] != '\0') ? 1 : 0 );
 		
 		/* fd_cnx_recv_setaltfifo */
-		CHECK( 0, fd_cnx_send(client_side, cer_buf, cer_sz));
+		CHECK( 0, fd_cnx_send(client_side, cer_buf, cer_sz, 0));
 		CHECK( 0, fd_fifo_new(&myfifo) );
 		CHECK( 0, fd_cnx_recv_setaltfifo(server_side, myfifo) );
 		CHECK( 0, clock_gettime(CLOCK_REALTIME, &now) );

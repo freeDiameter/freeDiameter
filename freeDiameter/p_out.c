@@ -39,7 +39,7 @@
 static int do_send(struct msg ** msg, struct cnxctx * cnx, uint32_t * hbh, struct sr_list * srl)
 {
 	struct msg_hdr * hdr;
-	int msg_is_a_req;
+	int msg_is_a_req, msg_is_appl;
 	uint8_t * buf;
 	size_t sz;
 	int ret;
@@ -59,6 +59,8 @@ static int do_send(struct msg ** msg, struct cnxctx * cnx, uint32_t * hbh, struc
 		*hbh = hdr->msg_hbhid + 1;
 	}
 	
+	msg_is_appl = fd_msg_is_routable(*msg);
+	
 	/* Log the message */
 	if (TRACE_BOOL(FULL)) {
 		CHECK_FCT_DO(  fd_msg_update_length(*msg), /* continue */  );
@@ -76,7 +78,7 @@ static int do_send(struct msg ** msg, struct cnxctx * cnx, uint32_t * hbh, struc
 	}
 	
 	/* Send the message */
-	CHECK_FCT_DO( ret = fd_cnx_send(cnx, buf, sz), { free(buf); return ret; } );
+	CHECK_FCT_DO( ret = fd_cnx_send(cnx, buf, sz, !msg_is_appl), { free(buf); return ret; } );
 	pthread_cleanup_pop(1);
 	
 	/* Free remaining messages (i.e. answers) */

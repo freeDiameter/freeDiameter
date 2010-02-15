@@ -323,7 +323,7 @@ int             fd_cnx_getendpoints(struct cnxctx * conn, struct fd_list * local
 char *          fd_cnx_getremoteid(struct cnxctx * conn);
 int             fd_cnx_receive(struct cnxctx * conn, struct timespec * timeout, unsigned char **buf, size_t * len);
 int             fd_cnx_recv_setaltfifo(struct cnxctx * conn, struct fifo * alt_fifo); /* send FDEVP_CNX_MSG_RECV event to the fifo list */
-int             fd_cnx_send(struct cnxctx * conn, unsigned char * buf, size_t len);
+int             fd_cnx_send(struct cnxctx * conn, unsigned char * buf, size_t len, int ordered);
 void            fd_cnx_destroy(struct cnxctx * conn);
 
 

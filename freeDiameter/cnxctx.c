@@ -1274,9 +1274,9 @@ static int send_simple(struct cnxctx * conn, unsigned char * buf, size_t len)
 }
 
 /* Send a message -- this is synchronous -- and we assume it's never called by several threads at the same time, so we don't protect. */
-int fd_cnx_send(struct cnxctx * conn, unsigned char * buf, size_t len)
+int fd_cnx_send(struct cnxctx * conn, unsigned char * buf, size_t len, int ordered)
 {
-	TRACE_ENTRY("%p %p %zd", conn, buf, len);
+	TRACE_ENTRY("%p %p %zd %i", conn, buf, len, ordered);
 	
 	CHECK_PARAMS(conn && (conn->cc_socket > 0) && (! conn->cc_goterror) && buf && len);
 
@@ -1291,7 +1291,7 @@ int fd_cnx_send(struct cnxctx * conn, unsigned char * buf, size_t len)
 		case IPPROTO_SCTP: {
 			int multistr = 0;
 			
-			if ((conn->cc_sctp_para.str_out > 1) && ((! conn->cc_tls) || (conn->cc_sctp_para.pairs > 1)))  {
+			if ((!ordered) && (conn->cc_sctp_para.str_out > 1) && ((! conn->cc_tls) || (conn->cc_sctp_para.pairs > 1)))  {
 				/* Update the id of the stream we will send this message on */
 				conn->cc_sctp_para.next += 1;
 				conn->cc_sctp_para.next %= (conn->cc_tls ? conn->cc_sctp_para.pairs : conn->cc_sctp_para.str_out);
