@@ -118,11 +118,6 @@ error:
 		CHECK_FCT_DO( fd_event_send( Target_Queue(conn), FDEVP_CNX_ERROR, 0, NULL), /* continue or destroy everything? */);
 	}
 	
-	/* Since the demux thread terminates, we must trig an error for all decipher threads. We do this by destroying all demuxed FIFO queues */
-	for (strid = 0; strid < conn->cc_sctp_para.pairs; strid++) {
-		fd_event_destroy( &conn->cc_sctps_data.array[strid].raw_recv, free );
-	}
-	
 	goto out;
 }
 
