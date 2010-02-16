@@ -86,12 +86,12 @@ static void * demuxer(void * arg)
 	ASSERT( conn->cc_sctps_data.array );
 	
 	do {
-		CHECK_FCT_DO( fd_sctp_recvmeta(conn->cc_socket, &strid, &buf, &bufsz, &event, &conn->cc_closing), goto error );
+		CHECK_FCT_DO( fd_sctp_recvmeta(conn->cc_socket, &strid, &buf, &bufsz, &event, &conn->cc_status), goto fatal );
 		switch (event) {
 			case FDEVP_CNX_MSG_RECV:
-				/* Demux this message in the appropriate fifo, another thread will pull, gnutls process, and send in target queue */
+				/* Demux this message to the appropriate fifo, another thread will pull, gnutls process, and send to target queue */
 				if (strid < conn->cc_sctp_para.pairs) {
-					CHECK_FCT_DO(fd_event_send(conn->cc_sctps_data.array[strid].raw_recv, event, bufsz, buf), goto error );
+					CHECK_FCT_DO(fd_event_send(conn->cc_sctps_data.array[strid].raw_recv, event, bufsz, buf), goto fatal );
 				} else {
 					TRACE_DEBUG(INFO, "Received packet (%d bytes) on out-of-range stream #%s from %s, discarded.", bufsz, strid, conn->cc_remid);
 					free(buf);
@@ -100,12 +100,15 @@ static void * demuxer(void * arg)
 				
 			case FDEVP_CNX_EP_CHANGE:
 				/* Send this event to the target queue */
-				CHECK_FCT_DO( fd_event_send( Target_Queue(conn), event, bufsz, buf), goto error );
+				CHECK_FCT_DO( fd_event_send( Target_Queue(conn), event, bufsz, buf), goto fatal );
 				break;
 			
 			case FDEVP_CNX_ERROR:
+				fd_cnx_markerror(conn);
+				goto out;
+				
 			default:
-				goto error;
+				goto fatal;
 		}
 		
 	} while (conn->cc_loop);
@@ -113,11 +116,10 @@ static void * demuxer(void * arg)
 out:
 	TRACE_DEBUG(FULL, "Thread terminated");	
 	return NULL;
-error:
-	if (!conn->cc_closing) {
-		CHECK_FCT_DO( fd_event_send( Target_Queue(conn), FDEVP_CNX_ERROR, 0, NULL), /* continue or destroy everything? */);
-	}
 	
+fatal:
+	/* An unrecoverable error occurred, stop the daemon */
+	CHECK_FCT_DO(fd_event_send(fd_g_config->cnf_main_ev, FDEV_TERMINATE, 0, NULL), );
 	goto out;
 }
 
@@ -139,11 +141,10 @@ static void * decipher(void * arg)
 		fd_log_threadname ( buf );
 	}
 	
+	/* The next function loops while there is no error */
 	CHECK_FCT_DO(fd_tls_rcvthr_core(cnx, ctx->strid ? ctx->session : cnx->cc_tls_para.session), /* continue */);
 error:
-	if (!cnx->cc_closing) {
-		CHECK_FCT_DO( fd_event_send( Target_Queue(cnx), FDEVP_CNX_ERROR, 0, NULL), /* continue or destroy everything? */);
-	}
+	fd_cnx_markerror(cnx);
 	TRACE_DEBUG(FULL, "Thread terminated");	
 	return NULL;
 }
@@ -160,7 +161,7 @@ static ssize_t sctps_push(gnutls_transport_ptr_t tr, const void * data, size_t l
 	TRACE_ENTRY("%p %p %zd", tr, data, len);
 	CHECK_PARAMS_DO( tr && data, { errno = EINVAL; return -1; } );
 	
-	CHECK_FCT_DO( fd_sctp_sendstr(ctx->parent->cc_socket, ctx->strid, (uint8_t *)data, len, &ctx->parent->cc_closing), /* errno is already set */ return -1 );
+	CHECK_FCT_DO( fd_sctp_sendstr(ctx->parent->cc_socket, ctx->strid, (uint8_t *)data, len, &ctx->parent->cc_status), /* errno is already set */ return -1 );
 	
 	return len;
 }
@@ -175,7 +176,7 @@ static ssize_t sctps_pull(gnutls_transport_ptr_t tr, void * buf, size_t len)
 	TRACE_ENTRY("%p %p %zd", tr, buf, len);
 	CHECK_PARAMS_DO( tr && buf, { errno = EINVAL; return -1; } );
 	
-	/* If we don't have data available now, pull new message from the fifo -- this is blocking */
+	/* If we don't have data available now, pull new message from the fifo -- this is blocking (until the queue is destroyed) */
 	if (!ctx->partial.buf) {
 		int ev;
 		CHECK_FCT_DO( errno = fd_event_get(ctx->raw_recv, &ev, &ctx->partial.bufsz, (void *)&ctx->partial.buf), return -1 );
@@ -230,7 +231,7 @@ struct sr_store {
 	struct fd_list	 list;	/* list of sr_data, ordered by key.size then key.data */
 	pthread_rwlock_t lock;
 	struct cnxctx   *parent;
-	/* Add another list to chain in a global list to implement a garbage collector on sessions */
+	/* Add another list to chain in a global list to implement a garbage collector on sessions -- TODO */
 };
 
 /* Saved master session data for resuming sessions */
@@ -335,7 +336,7 @@ static int sr_store (void *dbf, gnutls_datum_t key, gnutls_datum_t data)
 		
 		/* Check the data is the same */
 		if ((data.size != sr->data.size) || memcmp(data.data, sr->data.data, data.size)) {
-			TRACE_DEBUG(SR_LEVEL, "GnuTLS tried to store a session with same key and different data!");
+			TRACE_DEBUG(INFO, "GnuTLS tried to store a session with same key and different data!");
 			ret = -1;
 		} else {
 			TRACE_DEBUG(SR_LEVEL, "GnuTLS tried to store a session with same key and same data, skipped.");
@@ -570,7 +571,13 @@ int fd_sctps_handshake_others(struct cnxctx * conn, char * priority, void * alt_
 		}
 	}
 	
-	return errors ? ENOTCONN : 0;
+	if (errors) {
+		TRACE_DEBUG(INFO, "Handshake failed on %d/%hd stream pairs", errors, conn->cc_sctp_para.pairs);
+		fd_cnx_markerror(conn);
+		return ENOTCONN;
+	}
+	
+	return 0;
 }
 
 /* Receive messages from all stream pairs */
@@ -598,7 +605,9 @@ void fd_sctps_bye(struct cnxctx * conn)
 	
 	/* End all TLS sessions, in series (not as efficient as paralel, but simpler) */
 	for (i = 1; i < conn->cc_sctp_para.pairs; i++) {
-		CHECK_GNUTLS_DO( gnutls_bye(conn->cc_sctps_data.array[i].session, GNUTLS_SHUT_WR), /* Continue */ );
+		if (!conn->cc_status & CC_STATUS_ERROR) {
+			CHECK_GNUTLS_DO( gnutls_bye(conn->cc_sctps_data.array[i].session, GNUTLS_SHUT_WR), fd_cnx_markerror(conn) );
+		}
 	}
 }
 
@@ -628,7 +637,10 @@ void fd_sctps_gnutls_deinit_others(struct cnxctx * conn)
 	CHECK_PARAMS_DO( conn && conn->cc_sctps_data.array, return );
 	
 	for (i = 1; i < conn->cc_sctp_para.pairs; i++) {
-		gnutls_deinit(conn->cc_sctps_data.array[i].session);
+		if (conn->cc_sctps_data.array[i].session) {
+			gnutls_deinit(conn->cc_sctps_data.array[i].session);
+			conn->cc_sctps_data.array[i].session = NULL;
+		}
 	}
 }
 
@@ -665,7 +677,10 @@ void fd_sctps_destroy(struct cnxctx * conn)
 		if (conn->cc_sctps_data.array[i].raw_recv)
 			fd_event_destroy( &conn->cc_sctps_data.array[i].raw_recv, free );
 		free(conn->cc_sctps_data.array[i].partial.buf);
-		/* gnutls_session was already deinit */
+		if (conn->cc_sctps_data.array[i].session) {
+			gnutls_deinit(conn->cc_sctps_data.array[i].session);
+			conn->cc_sctps_data.array[i].session = NULL;
+		}
 	}
 	
 	/* Free the array itself now */

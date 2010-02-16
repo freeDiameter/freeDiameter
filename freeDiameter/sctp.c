@@ -1041,7 +1041,7 @@ next:
 }
 
 /* Send a buffer over a specified stream */
-int fd_sctp_sendstr(int sock, uint16_t strid, uint8_t * buf, size_t len, int * cc_closing)
+int fd_sctp_sendstr(int sock, uint16_t strid, uint8_t * buf, size_t len, int * cc_status)
 {
 	struct msghdr mhdr;
 	struct iovec  iov;
@@ -1052,8 +1052,8 @@ int fd_sctp_sendstr(int sock, uint16_t strid, uint8_t * buf, size_t len, int * c
 	ssize_t ret;
 	int timedout = 0;
 	
-	TRACE_ENTRY("%d %hu %p %zd %p", sock, strid, buf, len, cc_closing);
-	CHECK_PARAMS(cc_closing);
+	TRACE_ENTRY("%d %hu %p %zd %p", sock, strid, buf, len, cc_status);
+	CHECK_PARAMS(cc_status);
 	
 	memset(&mhdr, 0, sizeof(mhdr));
 	memset(&iov,  0, sizeof(iov));
@@ -1083,7 +1083,7 @@ again:
 	ret = sendmsg(sock, &mhdr, 0);
 	/* Handle special case of timeout */
 	if ((ret < 0) && (errno == EAGAIN)) {
-		if (!*cc_closing)
+		if (!(*cc_status & CC_STATUS_CLOSING))
 			goto again; /* don't care, just ignore */
 		if (!timedout) {
 			timedout ++; /* allow for one timeout while closing */
@@ -1098,7 +1098,7 @@ again:
 }
 
 /* Receive the next data from the socket, or next notification */
-int fd_sctp_recvmeta(int sock, uint16_t * strid, uint8_t ** buf, size_t * len, int *event, int * cc_closing)
+int fd_sctp_recvmeta(int sock, uint16_t * strid, uint8_t ** buf, size_t * len, int *event, int * cc_status)
 {
 	ssize_t 		 ret = 0;
 	struct msghdr 		 mhdr;
@@ -1109,8 +1109,8 @@ int fd_sctp_recvmeta(int sock, uint16_t * strid, uint8_t ** buf, size_t * len, i
 	size_t			 mempagesz = sysconf(_SC_PAGESIZE); /* We alloc buffer by memory pages for efficiency */
 	int 			 timedout = 0;
 	
-	TRACE_ENTRY("%d %p %p %p %p %p", sock, strid, buf, len, event, cc_closing);
-	CHECK_PARAMS( (sock > 0) && buf && len && event && cc_closing );
+	TRACE_ENTRY("%d %p %p %p %p %p", sock, strid, buf, len, event, cc_status);
+	CHECK_PARAMS( (sock > 0) && buf && len && event && cc_status );
 	
 	/* Cleanup out parameters */
 	*buf = NULL;
@@ -1144,7 +1144,7 @@ again:
 	
 	/* First, handle timeouts (same as fd_cnx_s_recv) */
 	if ((ret < 0) && (errno == EAGAIN)) {
-		if (!*cc_closing)
+		if (!(*cc_status & CC_STATUS_CLOSING))
 			goto again; /* don't care, just ignore */
 		if (!timedout) {
 			timedout ++; /* allow for one timeout while closing */

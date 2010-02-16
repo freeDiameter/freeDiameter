@@ -46,9 +46,11 @@ struct cnxctx {
 	int 		cc_socket;	/* The socket object of the connection -- <=0 if no socket is created */
 
 	int 		cc_proto;	/* IPPROTO_TCP or IPPROTO_SCTP */
-	int		cc_tls;		/* Is TLS already started ? */
-	int		cc_goterror;	/* True when an error occurred on the socket */
-	int		cc_closing;	/* True if the object is being destroyed: we don't send events anymore */
+	uint32_t	cc_status;	/* True if the object is being destroyed: we don't send events anymore */
+	#define 	CC_STATUS_CLOSING	1
+	#define 	CC_STATUS_ERROR		2
+	#define 	CC_STATUS_SIGNALED	4
+	#define 	CC_STATUS_TLS		8
 
 	pthread_t	cc_rcvthr;	/* thread for receiving messages on the connection */
 	int		cc_loop;	/* tell the thread if it loops or stops after the first message is received */
@@ -78,6 +80,8 @@ struct cnxctx {
 		struct sr_store	 *sess_store; /* Session data of the master session, to resume the children sessions */
 	} 		cc_sctps_data;
 };
+
+void fd_cnx_markerror(struct cnxctx * conn);
 
 /* Socket */
 ssize_t fd_cnx_s_recv(struct cnxctx * conn, void *buffer, size_t length);
