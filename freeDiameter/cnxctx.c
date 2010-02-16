@@ -498,6 +498,8 @@ void fd_cnx_markerror(struct cnxctx * conn)
 	TRACE_ENTRY("%p", conn);
 	CHECK_PARAMS_DO( conn, goto fatal );
 	
+	TRACE_DEBUG(FULL, "Connection (%d) CC_STATUS_ERROR set", conn->cc_socket);
+	
 	/* Mark the error */
 	conn->cc_status |= CC_STATUS_ERROR;
 	
