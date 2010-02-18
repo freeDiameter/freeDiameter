@@ -81,7 +81,7 @@ int main(int argc, char * argv[])
 		fprintf(stderr, "The GNUTLS library is too old; found '%s', need '" GNUTLS_VERSION "'\n", gnutls_check_version(NULL));
 		return EINVAL;
 	} else {
-		TRACE_DEBUG(INFO, "GNUTLS library '%s' initialized.", gnutls_check_version(NULL));
+		TRACE_DEBUG(INFO, "libgnutls '%s', libgcrypt '%s', initialized.", gnutls_check_version(NULL), gcry_check_version(NULL) );
 	}
 	
 	/* Initialize the config */
