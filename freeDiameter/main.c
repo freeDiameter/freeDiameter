@@ -82,6 +82,7 @@ int main(int argc, char * argv[])
 	/* Initialize gcrypt and gnutls */
 	(void) gcry_control (GCRYCTL_SET_THREAD_CBS, &gcry_threads_pthread);
 	(void) gcry_control (GCRYCTL_ENABLE_QUICK_RANDOM, 0);
+	(void) gcry_control (GCRYCTL_DISABLE_SECMEM, NULL, 0);
 	CHECK_GNUTLS_DO( gnutls_global_init(), return EINVAL );
 	if ( ! gnutls_check_version(GNUTLS_VERSION) ) {
 		fprintf(stderr, "The GNUTLS library is too old; found '%s', need '" GNUTLS_VERSION "'\n", gnutls_check_version(NULL));
