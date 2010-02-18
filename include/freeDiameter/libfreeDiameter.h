@@ -466,13 +466,14 @@ int fd_breakhere(void);
 /* Trace a binary buffer content */
 #define TRACE_DEBUG_BUFFER(level, prefix, buf, bufsz, suffix ) {								\
 	if ( TRACE_BOOL(level) ) {												\
+		char __ts[25];													\
 		int __i;													\
 		size_t __sz = (size_t)(bufsz);											\
 		uint8_t * __buf = (uint8_t *)(buf);										\
 		char * __thn = ((char *)pthread_getspecific(fd_log_thname) ?: "unnamed");					\
 		fd_log_debug("\t | tid:%-20s\t%s\tin %s@%s:%d\n"								\
 			  "\t%s|%*s" prefix ,  											\
-					__thn, fd_log_time(NULL, __buf, sizeof(__buf)), __PRETTY_FUNCTION__, __FILE__, __LINE__,\
+					__thn, fd_log_time(NULL, __ts, sizeof(__ts)), __PRETTY_FUNCTION__, __FILE__, __LINE__,	\
 					(level < FULL)?"@":" ",level, ""); 							\
 		for (__i = 0; __i < __sz; __i++) {										\
 			fd_log_debug("%02.2hhx", __buf[__i]);									\
