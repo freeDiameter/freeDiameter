@@ -73,12 +73,6 @@ int main(int argc, char * argv[])
 	/* Name this thread */
 	fd_log_threadname("Main");
 	
-	/* Initialize the config */
-	CHECK_FCT( fd_conf_init() );
-
-	/* Parse the command-line */
-	CHECK_FCT(  main_cmdline(argc, argv)  );
-	
 	/* Initialize gcrypt and gnutls */
 	(void) gcry_control (GCRYCTL_SET_THREAD_CBS, &gcry_threads_pthread);
 	(void) gcry_control (GCRYCTL_ENABLE_QUICK_RANDOM, 0);
@@ -90,6 +84,12 @@ int main(int argc, char * argv[])
 	} else {
 		TRACE_DEBUG(INFO, "GNUTLS library '%s' initialized.", gnutls_check_version(NULL));
 	}
+	
+	/* Initialize the config */
+	CHECK_FCT( fd_conf_init() );
+
+	/* Parse the command-line */
+	CHECK_FCT(  main_cmdline(argc, argv)  );
 	
 	/* Allow SIGINT and SIGTERM from this point */
 	CHECK_POSIX(  pthread_create(&sig_th, NULL, sig_hdl, NULL)  );
