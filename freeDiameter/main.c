@@ -66,7 +66,7 @@ int main(int argc, char * argv[])
 	sigfillset(&sig_all);
 	CHECK_POSIX(  pthread_sigmask(SIG_BLOCK, &sig_all, NULL)  );
 	
-	/* Initialize the library */
+	/* Initialize the library -- must come first since it initializes the debug facility */
 	CHECK_FCT( fd_lib_init() );
 	TRACE_DEBUG(INFO, "libfreeDiameter initialized.");
 	
@@ -76,7 +76,6 @@ int main(int argc, char * argv[])
 	/* Initialize gcrypt and gnutls */
 	GNUTLS_TRACE( (void) gcry_control (GCRYCTL_SET_THREAD_CBS, &gcry_threads_pthread) );
 	GNUTLS_TRACE( (void) gcry_control (GCRYCTL_ENABLE_QUICK_RANDOM, 0) );
-	GNUTLS_TRACE( (void) gcry_control (GCRYCTL_DISABLE_SECMEM, NULL, 0) );
 	CHECK_GNUTLS_DO( gnutls_global_init(), return EINVAL );
 	if ( ! gnutls_check_version(GNUTLS_VERSION) ) {
 		fprintf(stderr, "The GNUTLS library is too old; found '%s', need '" GNUTLS_VERSION "'\n", gnutls_check_version(NULL));
