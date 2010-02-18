@@ -322,7 +322,7 @@ static int sr_store (void *dbf, gnutls_datum_t key, gnutls_datum_t data)
 	int match = 0;
 	int ret = 0;
 	
-	TRACE_DEBUG( GNUTLS_DBG_LEVEL, "Callback: %s", __PRETTY_FUNCTION__ );
+	TRACE_DEBUG( GNUTLS_DBG_LEVEL, "GNUTLS Callback: %s", __PRETTY_FUNCTION__ );
 	CHECK_PARAMS_DO( sto && key.data && data.data, return -1 );
 	
 	CHECK_POSIX_DO( pthread_rwlock_wrlock(&sto->lock), return -1 );
@@ -372,7 +372,7 @@ static int sr_remove (void *dbf, gnutls_datum_t key)
 	int match = 0;
 	int ret = 0;
 	
-	TRACE_DEBUG( GNUTLS_DBG_LEVEL, "Callback: %s", __PRETTY_FUNCTION__ );
+	TRACE_DEBUG( GNUTLS_DBG_LEVEL, "GNUTLS Callback: %s", __PRETTY_FUNCTION__ );
 	CHECK_PARAMS_DO( sto && key.data, return -1 );
 	
 	CHECK_POSIX_DO( pthread_rwlock_wrlock(&sto->lock), return -1 );
@@ -405,7 +405,7 @@ static gnutls_datum_t sr_fetch (void *dbf, gnutls_datum_t key)
 	gnutls_datum_t res = { NULL, 0 };
 	gnutls_datum_t error = { NULL, 0 };
 
-	TRACE_DEBUG( GNUTLS_DBG_LEVEL, "Callback: %s", __PRETTY_FUNCTION__ );
+	TRACE_DEBUG( GNUTLS_DBG_LEVEL, "GNUTLS Callback: %s", __PRETTY_FUNCTION__ );
 	CHECK_PARAMS_DO( sto && key.data, return error );
 
 	CHECK_POSIX_DO( pthread_rwlock_rdlock(&sto->lock), return error );
