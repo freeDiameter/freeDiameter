@@ -74,9 +74,9 @@ int main(int argc, char * argv[])
 	fd_log_threadname("Main");
 	
 	/* Initialize gcrypt and gnutls */
-	(void) gcry_control (GCRYCTL_SET_THREAD_CBS, &gcry_threads_pthread);
-	(void) gcry_control (GCRYCTL_ENABLE_QUICK_RANDOM, 0);
-	(void) gcry_control (GCRYCTL_DISABLE_SECMEM, NULL, 0);
+	GNUTLS_TRACE( (void) gcry_control (GCRYCTL_SET_THREAD_CBS, &gcry_threads_pthread) );
+	GNUTLS_TRACE( (void) gcry_control (GCRYCTL_ENABLE_QUICK_RANDOM, 0) );
+	GNUTLS_TRACE( (void) gcry_control (GCRYCTL_DISABLE_SECMEM, NULL, 0) );
 	CHECK_GNUTLS_DO( gnutls_global_init(), return EINVAL );
 	if ( ! gnutls_check_version(GNUTLS_VERSION) ) {
 		fprintf(stderr, "The GNUTLS library is too old; found '%s', need '" GNUTLS_VERSION "'\n", gnutls_check_version(NULL));
@@ -172,7 +172,7 @@ end:
 	
 	CHECK_FCT_DO( fd_thr_term(&sig_th), /* reclaim resources of the signal thread */ );
 	
-	gnutls_global_deinit();
+	GNUTLS_TRACE( gnutls_global_deinit() );
 	
 	fd_log_debug(FD_PROJECT_BINARY " daemon is terminated.\n");
 	return ret;

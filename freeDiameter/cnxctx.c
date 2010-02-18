@@ -942,13 +942,13 @@ int fd_tls_verify_credentials(gnutls_session_t session, struct cnxctx * conn, in
 		fd_log_debug("TLS Session information for connection '%s':\n", conn->cc_id);
 
 		/* print the key exchange's algorithm name */
-		kx = gnutls_kx_get (session);
-		tmp = gnutls_kx_get_name (kx);
+		GNUTLS_TRACE( kx = gnutls_kx_get (session) );
+		GNUTLS_TRACE( tmp = gnutls_kx_get_name (kx) );
 		fd_log_debug("\t - Key Exchange: %s\n", tmp);
 
 		/* Check the authentication type used and switch
 		* to the appropriate. */
-		cred = gnutls_auth_get_type (session);
+		GNUTLS_TRACE( cred = gnutls_auth_get_type (session) );
 		switch (cred)
 		{
 			case GNUTLS_CRD_IA:
@@ -1031,7 +1031,7 @@ int fd_tls_verify_credentials(gnutls_session_t session, struct cnxctx * conn, in
 	if (gnutls_certificate_type_get (session) != GNUTLS_CRT_X509)
 		return EINVAL;
 	
-	cert_list = gnutls_certificate_get_peers (session, &cert_list_size);
+	GNUTLS_TRACE( cert_list = gnutls_certificate_get_peers (session, &cert_list_size) );
 	if (cert_list == NULL)
 		return EINVAL;
 	
@@ -1053,8 +1053,8 @@ int fd_tls_verify_credentials(gnutls_session_t session, struct cnxctx * conn, in
 		
 			fd_log_debug(" Certificate %d info:\n", i);
 
-			expiration_time = gnutls_x509_crt_get_expiration_time (cert);
-			activation_time = gnutls_x509_crt_get_activation_time (cert);
+			GNUTLS_TRACE( expiration_time = gnutls_x509_crt_get_expiration_time (cert) );
+			GNUTLS_TRACE( activation_time = gnutls_x509_crt_get_activation_time (cert) );
 
 			fd_log_debug("\t - Certificate is valid since: %s", ctime (&activation_time));
 			fd_log_debug("\t - Certificate expires: %s", ctime (&expiration_time));
@@ -1073,7 +1073,7 @@ int fd_tls_verify_credentials(gnutls_session_t session, struct cnxctx * conn, in
 			fd_log_debug("\n");
 
 			/* Extract some of the public key algorithm's parameters */
-			algo = gnutls_x509_crt_get_pk_algorithm (cert, &bits);
+			GNUTLS_TRACE( algo = gnutls_x509_crt_get_pk_algorithm (cert, &bits) );
 			fd_log_debug("\t - Certificate public key: %s\n",
 			      gnutls_pk_algorithm_get_name (algo));
 
@@ -1082,14 +1082,14 @@ int fd_tls_verify_credentials(gnutls_session_t session, struct cnxctx * conn, in
 			      gnutls_x509_crt_get_version (cert));
 
 			size = sizeof (dn);
-			gnutls_x509_crt_get_dn (cert, dn, &size);
+			GNUTLS_TRACE( gnutls_x509_crt_get_dn (cert, dn, &size) );
 			fd_log_debug("\t - DN: %s\n", dn);
 
 			size = sizeof (dn);
-			gnutls_x509_crt_get_issuer_dn (cert, dn, &size);
+			GNUTLS_TRACE( gnutls_x509_crt_get_issuer_dn (cert, dn, &size) );
 			fd_log_debug("\t - Issuer's DN: %s\n", dn);
 
-			gnutls_x509_crt_deinit (cert);
+			GNUTLS_TRACE( gnutls_x509_crt_deinit (cert) );
 		}
 	}
 
@@ -1101,7 +1101,7 @@ int fd_tls_verify_credentials(gnutls_session_t session, struct cnxctx * conn, in
 		CHECK_GNUTLS_DO( gnutls_x509_crt_init (&cert), return EINVAL);
 		CHECK_GNUTLS_DO( gnutls_x509_crt_import (cert, &cert_list[i], GNUTLS_X509_FMT_DER), return EINVAL);
 		
-		deadline = gnutls_x509_crt_get_expiration_time(cert);
+		GNUTLS_TRACE( deadline = gnutls_x509_crt_get_expiration_time(cert) );
 		if ((deadline != (time_t)-1) && (deadline < now)) {
 			if (TRACE_BOOL(INFO)) {
 				fd_log_debug("TLS: Remote certificate invalid on socket %d (Remote: '%s')(Connection: '%s') :\n", conn->cc_socket, conn->cc_remid, conn->cc_id);
@@ -1110,7 +1110,7 @@ int fd_tls_verify_credentials(gnutls_session_t session, struct cnxctx * conn, in
 			return EINVAL;
 		}
 		
-		deadline = gnutls_x509_crt_get_activation_time(cert);
+		GNUTLS_TRACE( deadline = gnutls_x509_crt_get_activation_time(cert) );
 		if ((deadline != (time_t)-1) && (deadline > now)) {
 			if (TRACE_BOOL(INFO)) {
 				fd_log_debug("TLS: Remote certificate invalid on socket %d (Remote: '%s')(Connection: '%s') :\n", conn->cc_socket, conn->cc_remid, conn->cc_id);
@@ -1129,7 +1129,7 @@ int fd_tls_verify_credentials(gnutls_session_t session, struct cnxctx * conn, in
 			}
 		}
 		
-		gnutls_x509_crt_deinit (cert);
+		GNUTLS_TRACE( gnutls_x509_crt_deinit (cert) );
 	}
 
 	return 0;
@@ -1164,11 +1164,11 @@ int fd_cnx_handshake(struct cnxctx * conn, int mode, char * priority, void * alt
 #endif /* DISABLE_SCTP */
 	} else {
 		/* Set the transport pointer passed to push & pull callbacks */
-		gnutls_transport_set_ptr( conn->cc_tls_para.session, (gnutls_transport_ptr_t) conn );
+		GNUTLS_TRACE( gnutls_transport_set_ptr( conn->cc_tls_para.session, (gnutls_transport_ptr_t) conn ) );
 
 		/* Set the push and pull callbacks */
-		gnutls_transport_set_pull_function(conn->cc_tls_para.session, (void *)fd_cnx_s_recv);
-		gnutls_transport_set_push_function(conn->cc_tls_para.session, (void *)fd_cnx_s_send);
+		GNUTLS_TRACE( gnutls_transport_set_pull_function(conn->cc_tls_para.session, (void *)fd_cnx_s_recv) );
+		GNUTLS_TRACE( gnutls_transport_set_push_function(conn->cc_tls_para.session, (void *)fd_cnx_s_send) );
 	}
 
 	/* Mark the connection as protected from here, so that the gnutls credentials will be freed */
@@ -1221,7 +1221,7 @@ int fd_cnx_getcred(struct cnxctx * conn, const gnutls_datum_t **cert_list, unsig
 	/* This function only works for X.509 certificates. */
 	CHECK_PARAMS( gnutls_certificate_type_get (conn->cc_tls_para.session) == GNUTLS_CRT_X509 );
 	
-	*cert_list = gnutls_certificate_get_peers (conn->cc_tls_para.session, cert_list_size);
+	GNUTLS_TRACE( *cert_list = gnutls_certificate_get_peers (conn->cc_tls_para.session, cert_list_size) );
 	if (*cert_list == NULL) {
 		TRACE_DEBUG(INFO, "No certificate was provided by remote peer / an error occurred.");
 		return EINVAL;
@@ -1406,7 +1406,7 @@ void fd_cnx_destroy(struct cnxctx * conn)
 			/* Deinit gnutls resources */
 			fd_sctps_gnutls_deinit_others(conn);
 			if (conn->cc_tls_para.session) {
-				gnutls_deinit(conn->cc_tls_para.session);
+				GNUTLS_TRACE( gnutls_deinit(conn->cc_tls_para.session) );
 				conn->cc_tls_para.session = NULL;
 			}
 			
@@ -1434,7 +1434,7 @@ void fd_cnx_destroy(struct cnxctx * conn)
 			
 			/* Free the resources of the TLS session */
 			if (conn->cc_tls_para.session) {
-				gnutls_deinit(conn->cc_tls_para.session);
+				GNUTLS_TRACE( gnutls_deinit(conn->cc_tls_para.session) );
 				conn->cc_tls_para.session = NULL;
 			}
 		

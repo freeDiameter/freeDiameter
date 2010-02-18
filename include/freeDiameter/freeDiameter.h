@@ -46,16 +46,28 @@
 #define GNUTLS_VERSION LIBGNUTLS_VERSION
 #endif /* GNUTLS_VERSION */
 
+/* GNUTLS calls debug level */
+#ifndef GNUTLS_DBG_LEVEL
+#define GNUTLS_DBG_LEVEL ANNOYING
+#endif /* GNUTLS_DBG_LEVEL */
+
 /* Check the return value of a GNUTLS function, log and propagate */
 #define CHECK_GNUTLS_DO( __call__, __fallback__ ) {						\
 	int __ret__;										\
-	TRACE_DEBUG_ALL( "Check FCT: " #__call__ );						\
+	TRACE_DEBUG(GNUTLS_DBG_LEVEL, "GNUTLS call: " #__call__ );				\
 	__ret__ = (__call__);									\
 	if (__ret__ < 0) {									\
 		TRACE_DEBUG(INFO, "Error in '" #__call__ "':\t%s", gnutls_strerror(__ret__));	\
 		__fallback__;									\
 	}											\
 }
+
+/* For GNUTLS routines that do not return a value */
+#define GNUTLS_TRACE( __call__) {					\
+	TRACE_DEBUG(GNUTLS_DBG_LEVEL, "GNUTLS call: " #__call__ );	\
+	(__call__);							\
+}
+
 
 
 /* Structure to hold the configuration of the freeDiameter daemon */

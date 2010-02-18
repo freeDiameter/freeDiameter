@@ -211,14 +211,14 @@ static ssize_t sctps_pull(gnutls_transport_ptr_t tr, void * buf, size_t len)
 static void set_sess_transport(gnutls_session_t session, struct sctps_ctx *ctx)
 {
 	/* Set the transport pointer passed to push & pull callbacks */
-	gnutls_transport_set_ptr( session, (gnutls_transport_ptr_t) ctx );
+	GNUTLS_TRACE( gnutls_transport_set_ptr( session, (gnutls_transport_ptr_t) ctx ) );
 	
 	/* Reset the low water value, since we don't use sockets */
-	gnutls_transport_set_lowat( session, 0 );
+	GNUTLS_TRACE( gnutls_transport_set_lowat( session, 0 ) );
 	
 	/* Set the push and pull callbacks */
-	gnutls_transport_set_pull_function(session, sctps_pull);
-	gnutls_transport_set_push_function(session, sctps_push);
+	GNUTLS_TRACE( gnutls_transport_set_pull_function(session, sctps_pull) );
+	GNUTLS_TRACE( gnutls_transport_set_push_function(session, sctps_push) );
 
 	return;
 }
@@ -240,9 +240,6 @@ struct sr_data {
 	gnutls_datum_t	key;
 	gnutls_datum_t 	data;
 };
-
-/* The level at which we debug session resuming */
-#define SR_LEVEL (FULL + 1)
 
 /* Initialize the store area for a connection */
 static int store_init(struct cnxctx * conn)
@@ -325,10 +322,11 @@ static int sr_store (void *dbf, gnutls_datum_t key, gnutls_datum_t data)
 	int match = 0;
 	int ret = 0;
 	
+	TRACE_DEBUG( GNUTLS_DBG_LEVEL, "Callback: %s", __PRETTY_FUNCTION__ );
 	CHECK_PARAMS_DO( sto && key.data && data.data, return -1 );
 	
 	CHECK_POSIX_DO( pthread_rwlock_wrlock(&sto->lock), return -1 );
-	TRACE_DEBUG_BUFFER(SR_LEVEL, "Session store [key ", key.data, key.size, "]");
+	TRACE_DEBUG_BUFFER(GNUTLS_DBG_LEVEL, "Session store [key ", key.data, key.size, "]");
 	
 	li = find_or_next(sto, key, &match);
 	if (match) {
@@ -339,7 +337,7 @@ static int sr_store (void *dbf, gnutls_datum_t key, gnutls_datum_t data)
 			TRACE_DEBUG(INFO, "GnuTLS tried to store a session with same key and different data!");
 			ret = -1;
 		} else {
-			TRACE_DEBUG(SR_LEVEL, "GnuTLS tried to store a session with same key and same data, skipped.");
+			TRACE_DEBUG(GNUTLS_DBG_LEVEL, "GnuTLS tried to store a session with same key and same data, skipped.");
 		}
 		goto out;
 	}
@@ -374,10 +372,11 @@ static int sr_remove (void *dbf, gnutls_datum_t key)
 	int match = 0;
 	int ret = 0;
 	
+	TRACE_DEBUG( GNUTLS_DBG_LEVEL, "Callback: %s", __PRETTY_FUNCTION__ );
 	CHECK_PARAMS_DO( sto && key.data, return -1 );
 	
 	CHECK_POSIX_DO( pthread_rwlock_wrlock(&sto->lock), return -1 );
-	TRACE_DEBUG_BUFFER(SR_LEVEL, "Session delete [key ", key.data, key.size, "]");
+	TRACE_DEBUG_BUFFER(GNUTLS_DBG_LEVEL, "Session delete [key ", key.data, key.size, "]");
 	
 	li = find_or_next(sto, key, &match);
 	if (match) {
@@ -406,20 +405,21 @@ static gnutls_datum_t sr_fetch (void *dbf, gnutls_datum_t key)
 	gnutls_datum_t res = { NULL, 0 };
 	gnutls_datum_t error = { NULL, 0 };
 
+	TRACE_DEBUG( GNUTLS_DBG_LEVEL, "Callback: %s", __PRETTY_FUNCTION__ );
 	CHECK_PARAMS_DO( sto && key.data, return error );
 
 	CHECK_POSIX_DO( pthread_rwlock_rdlock(&sto->lock), return error );
-	TRACE_DEBUG_BUFFER(SR_LEVEL, "Session fetch [key ", key.data, key.size, "]");
+	TRACE_DEBUG_BUFFER(GNUTLS_DBG_LEVEL, "Session fetch [key ", key.data, key.size, "]");
 	
 	li = find_or_next(sto, key, &match);
 	if (match) {
 		sr = (struct sr_data *)li;
-		CHECK_MALLOC_DO(res.data = gnutls_malloc(sr->data.size), goto out );
+		GNUTLS_TRACE( CHECK_MALLOC_DO(res.data = gnutls_malloc(sr->data.size), goto out ) );
 		res.size = sr->data.size;
 		memcpy(res.data, sr->data.data, res.size);
 	}
 out:	
-	TRACE_DEBUG(SR_LEVEL, "Fetched (%p, %d) from store %p", res.data, res.size, sto);
+	TRACE_DEBUG(GNUTLS_DBG_LEVEL, "Fetched (%p, %d) from store %p", res.data, res.size, sto);
 	CHECK_POSIX_DO( pthread_rwlock_unlock(&sto->lock), return error);
 	return res;
 }
@@ -429,10 +429,10 @@ static void set_resume_callbacks(gnutls_session_t session, struct cnxctx * conn)
 {
 	TRACE_ENTRY("%p", conn);
 	
-	gnutls_db_set_retrieve_function(session, sr_fetch);
-	gnutls_db_set_remove_function  (session, sr_remove);
-	gnutls_db_set_store_function   (session, sr_store);
-	gnutls_db_set_ptr              (session, conn->cc_sctps_data.sess_store);
+	GNUTLS_TRACE( gnutls_db_set_retrieve_function(session, sr_fetch));
+	GNUTLS_TRACE( gnutls_db_set_remove_function  (session, sr_remove));
+	GNUTLS_TRACE( gnutls_db_set_store_function   (session, sr_store));
+	GNUTLS_TRACE( gnutls_db_set_ptr              (session, conn->cc_sctps_data.sess_store));
 	
 	return;
 }
@@ -455,7 +455,7 @@ static void * handshake_resume_th(void * arg)
 	TRACE_DEBUG(FULL, "Starting TLS resumed handshake on stream %hu", ctx->strid);
 	CHECK_GNUTLS_DO( gnutls_handshake( ctx->session ), return NULL);
 			
-	resumed = gnutls_session_is_resumed(ctx->session);
+	GNUTLS_TRACE( resumed = gnutls_session_is_resumed(ctx->session) );
 	if (!resumed) {
 		/* Check the credentials here also */
 		CHECK_FCT_DO( fd_tls_verify_credentials(ctx->session, ctx->parent, 0), return NULL );
@@ -529,11 +529,11 @@ int fd_sctps_handshake_others(struct cnxctx * conn, char * priority, void * alt_
 	if (conn->cc_tls_para.mode == GNUTLS_CLIENT) {
 		CHECK_GNUTLS_DO( gnutls_session_get_data2(conn->cc_tls_para.session, &master_data), return ENOMEM );
 		/* For debug: */
-		if (TRACE_BOOL(SR_LEVEL)) {
+		if (TRACE_BOOL(GNUTLS_DBG_LEVEL)) {
 			uint8_t  id[256];
 			size_t	 ids = sizeof(id);
 			CHECK_GNUTLS_DO( gnutls_session_get_id(conn->cc_tls_para.session, id, &ids), /* continue */ );
-			TRACE_DEBUG_BUFFER(SR_LEVEL, "Master session id: [", id, ids, "]");
+			TRACE_DEBUG_BUFFER(GNUTLS_DBG_LEVEL, "Master session id: [", id, ids, "]");
 		}
 	}
 	
@@ -558,7 +558,7 @@ int fd_sctps_handshake_others(struct cnxctx * conn, char * priority, void * alt_
 	
 	/* We can now release the memory of master session data if any */
 	if (conn->cc_tls_para.mode == GNUTLS_CLIENT) {
-		gnutls_free(master_data.data);
+		GNUTLS_TRACE( gnutls_free(master_data.data) );
 	}
 	
 	/* Now wait for all handshakes to finish */
@@ -638,7 +638,7 @@ void fd_sctps_gnutls_deinit_others(struct cnxctx * conn)
 	
 	for (i = 1; i < conn->cc_sctp_para.pairs; i++) {
 		if (conn->cc_sctps_data.array[i].session) {
-			gnutls_deinit(conn->cc_sctps_data.array[i].session);
+			GNUTLS_TRACE( gnutls_deinit(conn->cc_sctps_data.array[i].session) );
 			conn->cc_sctps_data.array[i].session = NULL;
 		}
 	}
@@ -678,7 +678,7 @@ void fd_sctps_destroy(struct cnxctx * conn)
 			fd_event_destroy( &conn->cc_sctps_data.array[i].raw_recv, free );
 		free(conn->cc_sctps_data.array[i].partial.buf);
 		if (conn->cc_sctps_data.array[i].session) {
-			gnutls_deinit(conn->cc_sctps_data.array[i].session);
+			GNUTLS_TRACE( gnutls_deinit(conn->cc_sctps_data.array[i].session) );
 			conn->cc_sctps_data.array[i].session = NULL;
 		}
 	}
