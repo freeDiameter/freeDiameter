@@ -585,20 +585,106 @@ static int fd_setsockopt_postbind(int sk, int bound_to_default)
 	return 0;
 }
 
-/* Create a socket server and bind it according to daemon s configuration */
-int fd_sctp_create_bind_server( int * sock, struct fd_list * list, uint16_t port )
+/* Add addresses from a list to an array, with filter on the flags */
+static int add_addresses_from_list_mask(uint8_t ** array, size_t * size, int * addr_count, int target_family, uint16_t port, struct fd_list * list, uint32_t mask, uint32_t val)
 {
-	int family;
+	struct fd_list * li;
+	int to_add4 = 0;
+	int to_add6 = 0;
+	union {
+		uint8_t *buf;
+		sSA4	*sin;
+		sSA6	*sin6;
+	} ptr;
+	size_t sz;
+	
+	/* First, count the number of addresses to add */
+	for (li = list->next; li != list; li = li->next) {
+		struct fd_endpoint * ep = (struct fd_endpoint *) li;
+		
+		/* Do the flag match ? */
+		if ((val & mask) != (ep->flags & mask))
+			continue;
+		
+		if (ep->sa.sa_family == AF_INET) {
+			to_add4 ++;
+		} else {
+			to_add6 ++;
+		}
+	}
+	
+	if ((to_add4 + to_add6) == 0)
+		return 0; /* nothing to do */
+	
+	/* The size to add */
+	if (target_family == AF_INET) {
+		sz = to_add4 * sizeof(sSA4);
+	} else {
+		#ifndef SCTP_USE_MAPPED_ADDRESSES
+			sz = (to_add4 * sizeof(sSA4)) + (to_add6 * sizeof(sSA6));
+		#else /* SCTP_USE_MAPPED_ADDRESSES */
+			sz = (to_add4 + to_add6) * sizeof(sSA6);
+		#endif /* SCTP_USE_MAPPED_ADDRESSES */
+	}
+	
+	/* Now, (re)alloc the array to store the new addresses */
+	CHECK_MALLOC( *array = realloc(*array, *size + sz) );
+	
+	/* Finally, add the addresses */
+	for (li = list->next; li != list; li = li->next) {
+		struct fd_endpoint * ep = (struct fd_endpoint *) li;
+		
+		/* Skip v6 addresses for v4 socket */
+		if ((target_family == AF_INET) && (ep->sa.sa_family == AF_INET6))
+			continue;
+		
+		/* Are the flags matching ? */
+		if ((val & mask) != (ep->flags & mask))
+			continue;
+		
+		/* Size of the new SA we are adding (array may contain a mix of sockaddr_in and sockaddr_in6) */
+		#ifndef SCTP_USE_MAPPED_ADDRESSES
+		if (ep->sa.sa_family == AF_INET6)
+		#else /* SCTP_USE_MAPPED_ADDRESSES */
+		if (target_family == AF_INET6) {
+		#endif /* SCTP_USE_MAPPED_ADDRESSES */
+			sz = sizeof(sSA6);
+		else
+			sz = sizeof(sSA4);
+		
+		/* Place where we add the new address */
+		ptr.buf = *array + *size; /* place of the new SA */
+		
+		/* Update other information */
+		*size += sz;
+		*addr_count += 1;
+		
+		/* And write the addr in the buffer */
+		if (sz == sizeof(sSA4)) {
+			memcpy(ptr.buf, &ep->sin, sz);
+			ptr.sin->sin_port = port;
+		} else {
+			if (ep->sa.sa_family == AF_INET) { /* We must map the address */ 
+				memset(ptr.buf, 0, sz);
+				ptr.sin6->sin6_family = AF_INET6;
+				IN6_ADDR_V4MAP( &ptr.sin6->sin6_addr.s6_addr, ep->sin.sin_addr.s_addr );
+			} else {
+				memcpy(ptr.sin6, &ep->sin6, sz);
+			}
+			ptr.sin6->sin6_port = port;
+		}
+	}
+	
+	return 0;
+}
+
+/* Create a socket server and bind it according to daemon s configuration */
+int fd_sctp_create_bind_server( int * sock, int family, struct fd_list * list, uint16_t port )
+{
 	int bind_default;
 	
-	TRACE_ENTRY("%p %p %hu", sock, list, port);
+	TRACE_ENTRY("%p %i %p %hu", sock, family, list, port);
 	CHECK_PARAMS(sock);
-	
-	if (fd_g_config->cnf_flags.no_ip6) {
-		family = AF_INET;
-	} else {
-		family = AF_INET6; /* can create socket for both IP and IPv6 */
-	}
 	
 	/* Create the socket */
 	CHECK_SYS( *sock = socket(family, SOCK_STREAM, IPPROTO_SCTP) );
@@ -632,62 +718,12 @@ redo:
 	} else {
 		/* Explicit endpoints to bind to from config */
 		
-		union {
-			sSA     * sa;
-			sSA4	*sin;
-			sSA6	*sin6;
-			uint8_t *buf;
-		} ptr;
-		union {
-			sSA     * sa;
-			uint8_t * buf;
-		} sar;
-		int count = 0; /* number of sock addr in sar array */
-		size_t offset = 0;
-		struct fd_list * li;
+		sSA * sar = NULL; /* array of addresses */
+		size_t sz = 0; /* size of the array */
+		int count = 0; /* number of sock addr in the array */
 		
-		sar.buf = NULL;
-		
-		/* Create a flat array from the list of configured addresses */
-		for (li = list->next; li != list; li = li->next) {
-			struct fd_endpoint * ep = (struct fd_endpoint *)li;
-			size_t sz = 0;
-			
-			if (! (ep->flags & EP_FL_CONF))
-				continue;
-			
-			count++;
-			
-			/* Size of the new SA we are adding (sar may contain a mix of sockaddr_in and sockaddr_in6) */
-#ifndef SCTP_USE_MAPPED_ADDRESSES
-			if (ep->sa.sa_family == AF_INET6)
-#else /* SCTP_USE_MAPPED_ADDRESSES */
-			if (family == AF_INET6)
-#endif /* SCTP_USE_MAPPED_ADDRESSES */
-				sz = sizeof(sSA6);
-			else
-				sz = sizeof(sSA4);
-			
-			/* augment sar to contain the additional info */
-			CHECK_MALLOC( sar.buf = realloc(sar.buf, offset + sz)  );
-			
-			ptr.buf = sar.buf + offset; /* place of the new SA */
-			offset += sz; /* update to end of sar */
-			
-			if (sz == sizeof(sSA4)) {
-				memcpy(ptr.buf, &ep->sin, sz);
-				ptr.sin->sin_port = htons(port);
-			} else {
-				if (ep->sa.sa_family == AF_INET) { /* We must map the address */ 
-					memset(ptr.buf, 0, sz);
-					ptr.sin6->sin6_family = AF_INET6;
-					IN6_ADDR_V4MAP( &ptr.sin6->sin6_addr.s6_addr, ep->sin.sin_addr.s_addr );
-				} else {
-					memcpy(ptr.sin6, &ep->sin6, sz);
-				}
-				ptr.sin6->sin6_port = htons(port);
-			}
-		}
+		/* Create the array of configured addresses */
+		CHECK_FCT( add_addresses_from_list_mask((void *)&sar, &sz, &count, family, port, list, EP_FL_CONF, EP_FL_CONF) );
 		
 		if (!count) {
 			/* None of the addresses in the list came from configuration, we bind to default */
@@ -696,8 +732,12 @@ redo:
 		}
 		
 		if (TRACE_BOOL(SCTP_LEVEL)) {
+			union {
+				sSA	*sa;
+				uint8_t *buf;
+			} ptr;
 			int i;
-			ptr.buf = sar.buf;
+			ptr.sa = sar;
 			fd_log_debug("Calling sctp_bindx with the following address array:\n");
 			for (i = 0; i < count; i++) {
 				TRACE_DEBUG_sSA(FULL, "    - ", ptr.sa, NI_NUMERICHOST | NI_NUMERICSERV, "" );
@@ -706,10 +746,10 @@ redo:
 		}
 		
 		/* Bind to this array */
-		CHECK_SYS(  sctp_bindx(*sock, sar.sa, count, SCTP_BINDX_ADD_ADDR)  );
+		CHECK_SYS(  sctp_bindx(*sock, sar, count, SCTP_BINDX_ADD_ADDR)  );
 		
 		/* We don't need sar anymore */
-		free(sar.buf);
+		free(sar);
 	}
 	
 	/* Now, the server is bound, set remaining sockopt */
@@ -744,71 +784,16 @@ int fd_sctp_listen( int sock )
 	return 0;
 }
 
-/* Add addresses from the list that match the flags to the array */
-static int add_addresses_from_list_mask(uint8_t ** array, int * count, size_t * offset, uint16_t port, struct fd_list * list, uint32_t mask, uint32_t val)
-{
-	size_t sz;
-	struct fd_list * li;
-	union {
-		uint8_t *buf;
-		sSA4	*sin;
-		sSA6	*sin6;
-	} ptr;
-	
-	for (li = list->next; li != list; li = li->next) {
-		struct fd_endpoint * ep = (struct fd_endpoint *) li;
-		
-		/* Do the flag match ? */
-		if ((val & mask) != (ep->flags & mask))
-			continue;
-		
-		/* We add this endpoint at the end of array */
-		(*count)++;
-		
-		/* Size of the new SA we are adding (array may contain a mix of sockaddr_in and sockaddr_in6) */
-#ifndef SCTP_USE_MAPPED_ADDRESSES
-		if (ep->sa.sa_family == AF_INET6)
-#else /* SCTP_USE_MAPPED_ADDRESSES */
-		if (family == AF_INET6)
-#endif /* SCTP_USE_MAPPED_ADDRESSES */
-			sz = sizeof(sSA6);
-		else
-			sz = sizeof(sSA4);
-		
-		/* augment array to contain the additional info */
-		CHECK_MALLOC( *array = realloc(*array, (*offset) + sz) );
-
-		ptr.buf = *array + *offset; /* place of the new SA */
-		(*offset) += sz; /* update to end of sar */
-			
-		if (sz == sizeof(sSA4)) {
-			memcpy(ptr.buf, &ep->sin, sz);
-			ptr.sin->sin_port = port;
-		} else {
-			if (ep->sa.sa_family == AF_INET) { /* We must map the address */ 
-				memset(ptr.buf, 0, sz);
-				ptr.sin6->sin6_family = AF_INET6;
-				IN6_ADDR_V4MAP( &ptr.sin6->sin6_addr.s6_addr, ep->sin.sin_addr.s_addr );
-			} else {
-				memcpy(ptr.sin6, &ep->sin6, sz);
-			}
-			ptr.sin6->sin6_port = port;
-		}
-	}
-	
-	return 0;
-}
-
 /* Create a client socket and connect to remote server */
 int fd_sctp_client( int *sock, int no_ip6, uint16_t port, struct fd_list * list )
 {
 	int family;
-	int count = 0;
-	size_t offset = 0;
 	union {
 		uint8_t *buf;
 		sSA	*sa;
 	} sar;
+	size_t size = 0;
+	int count = 0;
 	int ret;
 	
 	sar.buf = NULL;
@@ -832,9 +817,9 @@ int fd_sctp_client( int *sock, int no_ip6, uint16_t port, struct fd_list * list 
 	CHECK_FCT_DO( ret = fd_setsockopt_prebind(*sock), goto fail );
 	
 	/* Create the array of addresses, add first the configured addresses, then the discovered, then the other ones */
-	CHECK_FCT_DO( ret = add_addresses_from_list_mask(&sar.buf, &count, &offset, htons(port), list, EP_FL_CONF, 		EP_FL_CONF	), goto fail );
-	CHECK_FCT_DO( ret = add_addresses_from_list_mask(&sar.buf, &count, &offset, htons(port), list, EP_FL_CONF | EP_FL_DISC, EP_FL_DISC	), goto fail );
-	CHECK_FCT_DO( ret = add_addresses_from_list_mask(&sar.buf, &count, &offset, htons(port), list, EP_FL_CONF | EP_FL_DISC, 0		), goto fail );
+	CHECK_FCT_DO( ret = add_addresses_from_list_mask(&sar.buf, &size, &count, family, htons(port), list, EP_FL_CONF,              EP_FL_CONF	), goto fail );
+	CHECK_FCT_DO( ret = add_addresses_from_list_mask(&sar.buf, &size, &count, family, htons(port), list, EP_FL_CONF | EP_FL_DISC, EP_FL_DISC	), goto fail );
+	CHECK_FCT_DO( ret = add_addresses_from_list_mask(&sar.buf, &size, &count, family, htons(port), list, EP_FL_CONF | EP_FL_DISC, 0		), goto fail );
 	
 	/* Try connecting */
 	if (TRACE_BOOL(FULL)) {
@@ -859,10 +844,6 @@ int fd_sctp_client( int *sock, int no_ip6, uint16_t port, struct fd_list * list 
 #else /* SCTP_CONNECTX_4_ARGS */
 	CHECK_SYS_DO( sctp_connectx(*sock, sar.sa, count), { ret = errno; goto fail; } );
 #endif /* SCTP_CONNECTX_4_ARGS */
-	
-	/*****************
-	 BUG : received "EINVAL" at reconnection attempt... Should probably filter what is in that list ! 
-	 *****************/
 	
 	free(sar.buf); sar.buf = NULL;
 	
@@ -936,7 +917,7 @@ int fd_sctp_get_local_ep(int sock, struct fd_list * list)
 		uint8_t	*buf;
 	} ptr;
 	
-	sSA * data;
+	sSA * data = NULL;
 	int count;
 	
 	TRACE_ENTRY("%d %p", sock, list);
@@ -953,13 +934,17 @@ int fd_sctp_get_local_ep(int sock, struct fd_list * list)
 			case AF_INET6:	sl = sizeof(sSA6); break;
 			default:
 				TRACE_DEBUG(INFO, "Unkown address family returned in sctp_getladdrs: %d", ptr.sa->sa_family);
+				TRACE_DEBUG_BUFFER(NONE, "DEBUG: Parsed data : [", data, ptr.buf - (uint8_t *)data, "]" );
+				TRACE_DEBUG(NONE, "DEBUG: Remaining %d addresses to parse in :", count)
+				TRACE_DEBUG_BUFFER(NONE, "DEBUG: Unable to parse [", ptr.buf, count * sizeof(sSA), "]" );
+				goto stop;
 		}
 				
 		CHECK_FCT( fd_ep_add_merge( list, ptr.sa, sl, EP_FL_LL ) );
 		ptr.buf += sl;
 		count --;
 	}
-	
+stop:
 	/* Free the list */
 	sctp_freeladdrs(data);
 	
@@ -993,9 +978,6 @@ int fd_sctp_get_remote_ep(int sock, struct fd_list * list)
 	CHECK_SYS( count = sctp_getpaddrs(sock, 0, &data)  );
 	ptr.sa = data;
 	
-	TRACE_DEBUG(NONE, "DEBUG: count = %d", count);
-	TRACE_DEBUG_BUFFER(NONE, "DEBUG: data = ", ptr.buf, count * sizeof(sSA4), "" );
-	
 	while (count) {
 		socklen_t sl;
 		switch (ptr.sa->sa_family) {
@@ -1003,14 +985,17 @@ int fd_sctp_get_remote_ep(int sock, struct fd_list * list)
 			case AF_INET6:	sl = sizeof(sSA6); break;
 			default:
 				TRACE_DEBUG(INFO, "Unkown address family returned in sctp_getpaddrs: %d, skip", ptr.sa->sa_family);
-				goto next;
+				TRACE_DEBUG_BUFFER(NONE, "DEBUG: Parsed data : [", data, ptr.buf - (uint8_t *)data, "]" );
+				TRACE_DEBUG(NONE, "DEBUG: Remaining %d addresses to parse in :", count)
+				TRACE_DEBUG_BUFFER(NONE, "DEBUG: Unable to parse [", ptr.buf, count * sizeof(sSA), "]" );
+				goto stop;
 		}
 				
 		CHECK_FCT( fd_ep_add_merge( list, ptr.sa, sl, EP_FL_LL ) );
 		ptr.buf += sl;
 		count --;
 	}
-next:	
+stop:	
 	/* Free the list */
 	sctp_freepaddrs(data);
 	

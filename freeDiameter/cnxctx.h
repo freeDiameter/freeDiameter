@@ -45,6 +45,7 @@ struct cnxctx {
 	
 	int 		cc_socket;	/* The socket object of the connection -- <=0 if no socket is created */
 
+	int 		cc_family;	/* AF_INET or AF_INET6 (mixed) */
 	int 		cc_proto;	/* IPPROTO_TCP or IPPROTO_SCTP */
 	uint32_t	cc_status;	/* True if the object is being destroyed: we don't send events anymore */
 	#define 	CC_STATUS_CLOSING	1
@@ -101,10 +102,10 @@ int fd_tcp_get_remote_ep(int sock, sSS * ss, socklen_t *sl);
 
 #ifndef DISABLE_SCTP
 /* SCTP */
-int fd_sctp_create_bind_server( int * sock, struct fd_list * list, uint16_t port );
+int fd_sctp_create_bind_server( int * sock, int family, struct fd_list * list, uint16_t port );
 int fd_sctp_listen( int sock );
 int fd_sctp_client( int *sock, int no_ip6, uint16_t port, struct fd_list * list );
-int fd_sctp_get_local_ep(int sock, struct fd_list * list);
+int fd_sctp_get_local_ep(int sock,  struct fd_list * list);
 int fd_sctp_get_remote_ep(int sock, struct fd_list * list);
 int fd_sctp_get_str_info( int sock, uint16_t *in, uint16_t *out, sSS *primary );
 int fd_sctp_sendstr(int sock, uint16_t strid, uint8_t * buf, size_t len, int * cc_closing);

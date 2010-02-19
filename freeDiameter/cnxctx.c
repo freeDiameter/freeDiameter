@@ -121,8 +121,10 @@ struct cnxctx * fd_cnx_serv_tcp(uint16_t port, int family, struct fd_endpoint * 
 	}
 	if (sa->sa_family == AF_INET) {
 		((sSA4 *)sa)->sin_port = htons(port);
+		cnx->cc_family = AF_INET;
 	} else {
 		((sSA6 *)sa)->sin6_port = htons(port);
+		cnx->cc_family = AF_INET6;
 	}
 
 	/* Create the socket */
@@ -166,8 +168,14 @@ struct cnxctx * fd_cnx_serv_sctp(uint16_t port, struct fd_list * ep_list)
 	/* The connection object */
 	CHECK_MALLOC_DO( cnx = fd_cnx_init(0), return NULL );
 
+	if (fd_g_config->cnf_flags.no_ip6) {
+		cnx->cc_family = AF_INET;
+	} else {
+		cnx->cc_family = AF_INET6; /* can create socket for both IP and IPv6 */
+	}
+	
 	/* Create the socket */
-	CHECK_FCT_DO( fd_sctp_create_bind_server( &cnx->cc_socket, ep_list, port ), goto error );
+	CHECK_FCT_DO( fd_sctp_create_bind_server( &cnx->cc_socket, cnx->cc_family, ep_list, port ), goto error );
 
 	/* Generate the name for the connection object */
 	snprintf(cnx->cc_id, sizeof(cnx->cc_id), "SCTP srv :%hu (%d)", port, cnx->cc_socket);
@@ -228,6 +236,7 @@ struct cnxctx * fd_cnx_serv_accept(struct cnxctx * serv)
 	
 	CHECK_MALLOC_DO( cli = fd_cnx_init(1), { shutdown(cli_sock, SHUT_RDWR); close(cli_sock); return NULL; } );
 	cli->cc_socket = cli_sock;
+	cli->cc_family = serv->cc_family;
 	cli->cc_proto = serv->cc_proto;
 	
 	/* Set the timeout */
@@ -296,6 +305,7 @@ struct cnxctx * fd_cnx_cli_connect_tcp(sSA * sa /* contains the port already */,
 	CHECK_MALLOC_DO( cnx = fd_cnx_init(1), { shutdown(sock, SHUT_RDWR); close(sock); return NULL; } );
 	
 	cnx->cc_socket = sock;
+	cnx->cc_family = sa->sa_family;
 	cnx->cc_proto  = IPPROTO_TCP;
 	
 	/* Set the timeout */
@@ -346,6 +356,7 @@ struct cnxctx * fd_cnx_cli_connect_sctp(int no_ip6, uint16_t port, struct fd_lis
 	CHECK_MALLOC_DO( cnx = fd_cnx_init(1), { shutdown(sock, SHUT_RDWR); close(sock); return NULL; } );
 	
 	cnx->cc_socket = sock;
+	cnx->cc_family = no_ip6 ? AF_INET : AF_INET6;
 	cnx->cc_proto  = IPPROTO_SCTP;
 	
 	/* Set the timeout */
