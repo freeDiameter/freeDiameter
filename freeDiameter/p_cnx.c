@@ -250,6 +250,9 @@ static void * connect_thr(void * arg)
 	
 	pthread_cleanup_push((void *)fd_cnx_destroy, cnx);
 	
+	/* Set the hostname in the connection, so that handshake verifies the remote identity */
+	fd_cnx_sethostname(cnx,peer->p_hdr.info.pi_diamid);
+	
 	/* Handshake if needed (secure port) */
 	if (nc->dotls) {
 		CHECK_FCT_DO( fd_cnx_handshake(cnx, GNUTLS_CLIENT, peer->p_hdr.info.config.pic_priority, NULL),
