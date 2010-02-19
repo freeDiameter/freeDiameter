@@ -988,6 +988,7 @@ int fd_sctp_get_remote_ep(int sock, struct fd_list * list)
 				TRACE_DEBUG_BUFFER(NONE, "DEBUG: Parsed data : [", data, ptr.buf - (uint8_t *)data, "]" );
 				TRACE_DEBUG(NONE, "DEBUG: Remaining %d addresses to parse in :", count)
 				TRACE_DEBUG_BUFFER(NONE, "DEBUG: Unable to parse [", ptr.buf, count * sizeof(sSA), "]" );
+				/* The bug is probably in the kernel actually... */
 				goto stop;
 		}
 				
