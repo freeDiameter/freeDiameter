@@ -934,9 +934,6 @@ int fd_sctp_get_local_ep(int sock, struct fd_list * list)
 			case AF_INET6:	sl = sizeof(sSA6); break;
 			default:
 				TRACE_DEBUG(INFO, "Unkown address family returned in sctp_getladdrs: %d", ptr.sa->sa_family);
-				TRACE_DEBUG_BUFFER(NONE, "DEBUG: Parsed data : [", data, ptr.buf - (uint8_t *)data, "]" );
-				TRACE_DEBUG(NONE, "DEBUG: Remaining %d addresses to parse in :", count)
-				TRACE_DEBUG_BUFFER(NONE, "DEBUG: Unable to parse [", ptr.buf, count * sizeof(sSA), "]" );
 				goto stop;
 		}
 				
@@ -985,10 +982,7 @@ int fd_sctp_get_remote_ep(int sock, struct fd_list * list)
 			case AF_INET6:	sl = sizeof(sSA6); break;
 			default:
 				TRACE_DEBUG(INFO, "Unkown address family returned in sctp_getpaddrs: %d, skip", ptr.sa->sa_family);
-				TRACE_DEBUG_BUFFER(NONE, "DEBUG: Parsed data : [", data, ptr.buf - (uint8_t *)data, "]" );
-				TRACE_DEBUG(NONE, "DEBUG: Remaining %d addresses to parse in :", count)
-				TRACE_DEBUG_BUFFER(NONE, "DEBUG: Unable to parse [", ptr.buf, count * sizeof(sSA), "]" );
-				/* The bug is probably in the kernel actually... */
+				/* There is a bug in current Linux kernel: http://www.spinics.net/lists/linux-sctp/msg00760.html */
 				goto stop;
 		}
 				
