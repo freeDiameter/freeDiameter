@@ -509,13 +509,14 @@ void fd_cnx_markerror(struct cnxctx * conn)
 	TRACE_ENTRY("%p", conn);
 	CHECK_PARAMS_DO( conn, goto fatal );
 	
-	TRACE_DEBUG(FULL, "Connection (%d) CC_STATUS_ERROR set", conn->cc_socket);
+	TRACE_DEBUG(FULL, "CC_STATUS_ERROR set for socket %d (%s)", conn->cc_socket, conn->cc_id);
 	
 	/* Mark the error */
 	conn->cc_status |= CC_STATUS_ERROR;
 	
 	/* Report the error if not reported yet, and not closing */
 	if ((!(conn->cc_status & CC_STATUS_CLOSING )) && (!(conn->cc_status & CC_STATUS_SIGNALED )))  {
+		TRACE_DEBUG(FULL, "Sending FDEVP_CNX_ERROR event");
 		CHECK_FCT_DO( fd_event_send( Target_Queue(conn), FDEVP_CNX_ERROR, 0, NULL), goto fatal);
 		conn->cc_status |= CC_STATUS_SIGNALED;
 	}

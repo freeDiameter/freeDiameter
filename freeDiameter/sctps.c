@@ -114,6 +114,11 @@ static void * demuxer(void * arg)
 	} while (conn->cc_loop);
 	
 out:
+	/* Signal termination of the connection to all decipher threads */
+	for (strid = 0; strid < conn->cc_sctp_para.pairs; strid++) {
+		if (conn->cc_sctps_data.array[strid].raw_recv)
+			CHECK_FCT_DO(fd_event_send(conn->cc_sctps_data.array[strid].raw_recv, FDEVP_CNX_ERROR, 0, NULL), goto fatal );
+	}
 	TRACE_DEBUG(FULL, "Thread terminated");	
 	return NULL;
 	
@@ -180,7 +185,8 @@ static ssize_t sctps_pull(gnutls_transport_ptr_t tr, void * buf, size_t len)
 	if (!ctx->partial.buf) {
 		int ev;
 		CHECK_FCT_DO( errno = fd_event_get(ctx->raw_recv, &ev, &ctx->partial.bufsz, (void *)&ctx->partial.buf), return -1 );
-		ASSERT( ev == FDEVP_CNX_MSG_RECV );
+		if (ev == FDEVP_CNX_ERROR) 
+			return 0; /* connection closed */
 	}
 		
 	pulled = ctx->partial.bufsz - ctx->partial.offset;
