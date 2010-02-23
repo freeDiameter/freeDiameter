@@ -192,11 +192,11 @@ int fd_psm_change_state(struct fd_peer * peer, int new_state)
 			STATE_STR(new_state),
 			peer->p_hdr.info.pi_diamid);
 	
+	peer->p_hdr.info.runtime.pir_state = new_state;
+	
 	if (old == STATE_OPEN) {
 		CHECK_FCT( leave_open_state(peer) );
 	}
-	
-	peer->p_hdr.info.runtime.pir_state = new_state;
 	
 	if (new_state == STATE_OPEN) {
 		CHECK_FCT( enter_open_state(peer) );
