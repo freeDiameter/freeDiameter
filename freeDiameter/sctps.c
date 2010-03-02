@@ -77,7 +77,7 @@ static void * demuxer(void * arg)
 	/* Set the thread name */
 	{
 		char buf[48];
-		snprintf(buf, sizeof(buf), "Demuxer (%d)", conn->cc_socket);
+		snprintf(buf, sizeof(buf), "Demuxer (%d:%s)", conn->cc_socket, conn->cc_remid);
 		fd_log_threadname ( buf );
 	}
 	
@@ -106,6 +106,10 @@ static void * demuxer(void * arg)
 			case FDEVP_CNX_ERROR:
 				fd_cnx_markerror(conn);
 				goto out;
+				
+			case FDEVP_CNX_SHUTDOWN:
+				/* Just ignore the notification for now, we will get another error later anyway */
+				continue;
 				
 			default:
 				goto fatal;
@@ -142,7 +146,7 @@ static void * decipher(void * arg)
 	/* Set the thread name */
 	{
 		char buf[48];
-		snprintf(buf, sizeof(buf), "Decipher (%hu@%d)", ctx->strid, cnx->cc_socket);
+		snprintf(buf, sizeof(buf), "Decipher (%hu@%d:%s)", ctx->strid, cnx->cc_socket, cnx->cc_remid);
 		fd_log_threadname ( buf );
 	}
 	
@@ -341,6 +345,10 @@ static int sr_store (void *dbf, gnutls_datum_t key, gnutls_datum_t data)
 		/* Check the data is the same */
 		if ((data.size != sr->data.size) || memcmp(data.data, sr->data.data, data.size)) {
 			TRACE_DEBUG(INFO, "GnuTLS tried to store a session with same key and different data!");
+			TRACE_DEBUG_BUFFER(INFO, "Session store [key ", key.data, key.size, "]");
+			TRACE_DEBUG_BUFFER(INFO, "  -- old data [", sr->data.data, sr->data.size, "]");
+			TRACE_DEBUG_BUFFER(INFO, "  -- new data [", data.data, data.size, "]");
+			
 			ret = -1;
 		} else {
 			TRACE_DEBUG(GNUTLS_DBG_LEVEL, "GnuTLS tried to store a session with same key and same data, skipped.");

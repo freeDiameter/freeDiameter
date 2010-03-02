@@ -1211,7 +1211,7 @@ again:
 			case SCTP_SHUTDOWN_EVENT:
 				TRACE_DEBUG(FULL, "Received SCTP_SHUTDOWN_EVENT notification");
 				
-				*event = FDEVP_CNX_ERROR;
+				*event = FDEVP_CNX_SHUTDOWN;
 				break;
 			
 			default:	

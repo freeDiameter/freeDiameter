@@ -201,6 +201,9 @@ enum {
 	/* Endpoints of a connection have been changed (multihomed SCTP). */
 	,FDEVP_CNX_EP_CHANGE
 	
+	/* The connection is being shutdown (SCTP notification). */
+	,FDEVP_CNX_SHUTDOWN
+	
 	/* A new connection (with a CER) has been received */
 	,FDEVP_CNX_INCOMING
 	

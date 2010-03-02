@@ -543,7 +543,7 @@ void fd_cnx_markerror(struct cnxctx * conn)
 	TRACE_ENTRY("%p", conn);
 	CHECK_PARAMS_DO( conn, goto fatal );
 	
-	TRACE_DEBUG(FULL, "CC_STATUS_ERROR set for socket %d (%s)", conn->cc_socket, conn->cc_id);
+	TRACE_DEBUG(FULL, "Error flag set for socket %d (%s / %s)", conn->cc_socket, conn->cc_remid, conn->cc_id);
 	
 	/* Mark the error */
 	conn->cc_status |= CC_STATUS_ERROR;
@@ -732,6 +732,11 @@ static void * rcvthr_notls_sctp(void * arg)
 			goto out;
 		}
 		
+		if (event == FDEVP_CNX_SHUTDOWN) {
+			/* Just ignore the notification for now, we will get another error later anyway */
+			continue;
+		}
+		
 		CHECK_FCT_DO( fd_event_send( Target_Queue(conn), event, bufsz, buf), goto fatal );
 		
 	} while (conn->cc_loop);
@@ -805,11 +810,16 @@ again:
 				case GNUTLS_E_INTERRUPTED:
 					if (!(conn->cc_status & CC_STATUS_CLOSING))
 						goto again;
-					TRACE_DEBUG(INFO, "Connection is closing, so abord gnutls_record_recv now.");
+					TRACE_DEBUG(FULL, "Connection is closing, so abord gnutls_record_recv now.");
 					break;
 
+				case GNUTLS_E_UNEXPECTED_PACKET_LENGTH:
+					/* The connection is closed */
+					TRACE_DEBUG(FULL, "Got 0 size while reading the socket, probably connection closed...");
+					break;
+				
 				default:
-					TRACE_DEBUG(INFO, "This TLS error is not handled, assume unrecoverable error");
+					TRACE_DEBUG(INFO, "This GNU TLS error is not handled, assume unrecoverable error");
 			}
 		} );
 end:	

@@ -187,7 +187,7 @@ int fd_psm_change_state(struct fd_peer * peer, int new_state)
 	if (old == new_state)
 		return 0;
 	
-	TRACE_DEBUG(FULL, "'%s'\t-> '%s'\t'%s'",
+	TRACE_DEBUG(((old == STATE_OPEN) || (new_state == STATE_OPEN)) ? INFO : FULL, "'%s'\t-> '%s'\t'%s'",
 			STATE_STR(old),
 			STATE_STR(new_state),
 			peer->p_hdr.info.pi_diamid);
