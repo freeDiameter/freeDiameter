@@ -458,7 +458,7 @@ psm_loop:
 			} else {
 				if (msg) {
 					/* Send the error back to the peer */
-					CHECK_FCT_DO( fd_out_send(&msg, NULL, peer), /* In case of error the message has already been dumped */ );
+					CHECK_FCT_DO( fd_out_send(&msg, NULL, peer, FD_CNX_ORDERED), /* In case of error the message has already been dumped */ );
 					if (msg) {
 						CHECK_FCT_DO( fd_msg_free(msg), goto psm_end);
 					}
@@ -499,7 +499,7 @@ psm_loop:
 						CHECK_FCT_DO( fd_msg_rescode_set(msg, "DIAMETER_INVALID_HDR_BITS", NULL, NULL, 1 ), break );
 
 						/* Send the answer */
-						CHECK_FCT_DO( fd_out_send(&msg, peer->p_cnxctx, peer), break );
+						CHECK_FCT_DO( fd_out_send(&msg, peer->p_cnxctx, peer, FD_CNX_ORDERED), break );
 					} while (0);
 				} else {
 					/* We did ASK for it ??? */

@@ -36,16 +36,16 @@
 #include "fD.h"
 
 /* Alloc a new hbh for requests, bufferize the message and send on the connection, save in sentreq if provided */
-static int do_send(struct msg ** msg, struct cnxctx * cnx, uint32_t * hbh, struct sr_list * srl)
+static int do_send(struct msg ** msg, uint32_t flags, struct cnxctx * cnx, uint32_t * hbh, struct sr_list * srl)
 {
 	struct msg_hdr * hdr;
-	int msg_is_a_req, msg_is_appl;
+	int msg_is_a_req;
 	uint8_t * buf;
 	size_t sz;
 	int ret;
 	uint32_t bkp_hbh = 0;
 	
-	TRACE_ENTRY("%p %p %p %p", msg, cnx, hbh, srl);
+	TRACE_ENTRY("%p %x %p %p %p", msg, flags, cnx, hbh, srl);
 	
 	/* Retrieve the message header */
 	CHECK_FCT( fd_msg_hdr(*msg, &hdr) );
@@ -58,8 +58,6 @@ static int do_send(struct msg ** msg, struct cnxctx * cnx, uint32_t * hbh, struc
 		hdr->msg_hbhid = *hbh;
 		*hbh = hdr->msg_hbhid + 1;
 	}
-	
-	msg_is_appl = fd_msg_is_routable(*msg);
 	
 	/* Log the message */
 	if (TRACE_BOOL(FULL)) {
@@ -78,7 +76,7 @@ static int do_send(struct msg ** msg, struct cnxctx * cnx, uint32_t * hbh, struc
 	}
 	
 	/* Send the message */
-	CHECK_FCT_DO( ret = fd_cnx_send(cnx, buf, sz, !msg_is_appl), { free(buf); return ret; } );
+	CHECK_FCT_DO( ret = fd_cnx_send(cnx, buf, sz, flags), { free(buf); return ret; } );
 	pthread_cleanup_pop(1);
 	
 	/* Free remaining messages (i.e. answers) */
@@ -121,7 +119,7 @@ static void * out_thr(void * arg)
 		pthread_cleanup_push(cleanup_requeue, msg);
 		
 		/* Send the message, log any error */
-		CHECK_FCT_DO( do_send(&msg, peer->p_cnxctx, &peer->p_hbh, &peer->p_sr),
+		CHECK_FCT_DO( do_send(&msg, 0, peer->p_cnxctx, &peer->p_hbh, &peer->p_sr),
 			{
 				fd_log_debug("An error occurred while sending this message, it is lost:\n");
 				fd_msg_dump_walk(NONE, msg);
@@ -138,10 +136,10 @@ error:
 	return NULL;
 }
 
-/* Wrapper to sending a message either by out thread (peer in OPEN state) or directly; cnx or peer must be provided */
-int fd_out_send(struct msg ** msg, struct cnxctx * cnx, struct fd_peer * peer)
+/* Wrapper to sending a message either by out thread (peer in OPEN state) or directly; cnx or peer must be provided. Flags are valid only for direct sending, not through thread (unused) */
+int fd_out_send(struct msg ** msg, struct cnxctx * cnx, struct fd_peer * peer, uint32_t flags)
 {
-	TRACE_ENTRY("%p %p %p", msg, cnx, peer);
+	TRACE_ENTRY("%p %p %p %x", msg, cnx, peer, flags);
 	CHECK_PARAMS( msg && *msg && (cnx || (peer && peer->p_cnxctx)));
 	
 	if (peer && (peer->p_hdr.info.runtime.pir_state == STATE_OPEN)) {
@@ -159,7 +157,7 @@ int fd_out_send(struct msg ** msg, struct cnxctx * cnx, struct fd_peer * peer)
 			cnx = peer->p_cnxctx;
 
 		/* Do send the message */
-		CHECK_FCT_DO( do_send(msg, cnx, hbh, peer ? &peer->p_sr : NULL),
+		CHECK_FCT_DO( do_send(msg, flags, cnx, hbh, peer ? &peer->p_sr : NULL),
 			{
 				fd_log_debug("An error occurred while sending this message, it is lost:\n");
 				fd_msg_dump_walk(NONE, *msg);

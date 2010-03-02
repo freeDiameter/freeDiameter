@@ -75,7 +75,7 @@ static int send_DWR(struct fd_peer * peer)
 	CHECK_FCT( fd_msg_add_origin ( msg, 1 ) );
 	
 	/* Now send this message */
-	CHECK_FCT( fd_out_send(&msg, NULL, peer) );
+	CHECK_FCT( fd_out_send(&msg, NULL, peer, FD_CNX_ORDERED) );
 	
 	/* And mark the pending DW */
 	peer->p_flags.pf_dw_pending = 1;
@@ -98,7 +98,7 @@ int fd_p_dw_handle(struct msg ** msg, int req, struct fd_peer * peer)
 		CHECK_FCT( fd_msg_new_answer_from_req ( fd_g_config->cnf_dict, msg, 0 ) );
 		CHECK_FCT( fd_msg_rescode_set( *msg, "DIAMETER_SUCCESS", NULL, NULL, 0 ) );
 		CHECK_FCT( fd_msg_add_origin ( *msg, 1 ) );
-		CHECK_FCT( fd_out_send( msg, peer->p_cnxctx, peer) );
+		CHECK_FCT( fd_out_send( msg, peer->p_cnxctx, peer, FD_CNX_ORDERED) );
 		
 	} else {
 		/* Just discard the DWA */

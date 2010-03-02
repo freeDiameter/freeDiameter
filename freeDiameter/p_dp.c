@@ -86,12 +86,12 @@ int fd_p_dp_handle(struct msg ** msg, int req, struct fd_peer * peer)
 				CHECK_FCT( fd_dict_search( fd_g_config->cnf_dict, DICT_ENUMVAL, ENUMVAL_BY_STRUCT, &er, &dictobj, 0 )  );
 				if (dictobj) {
 					CHECK_FCT( fd_dict_getval( dictobj, &er.search ) );
-					fd_log_debug("Peer '%s' sent a DPR with cause: %s\n", peer->p_hdr.info.pi_diamid, er.search.enum_name);
+					TRACE_DEBUG(INFO, "Peer '%s' sent a DPR with cause: %s\n", peer->p_hdr.info.pi_diamid, er.search.enum_name);
 				} else {
-					fd_log_debug("Peer '%s' sent a DPR with unknown cause: %u\n", peer->p_hdr.info.pi_diamid, peer->p_hdr.info.runtime.pir_lastDC);
+					TRACE_DEBUG(INFO, "Peer '%s' sent a DPR with unknown cause: %u\n", peer->p_hdr.info.pi_diamid, peer->p_hdr.info.runtime.pir_lastDC);
 				}
 			} else {
-				fd_log_debug("Peer '%s' sent a DPR without Disconnect-Cause AVP\n", peer->p_hdr.info.pi_diamid);
+				TRACE_DEBUG(INFO, "Peer '%s' sent a DPR without Disconnect-Cause AVP\n", peer->p_hdr.info.pi_diamid);
 			}
 		}
 		
@@ -103,7 +103,7 @@ int fd_p_dp_handle(struct msg ** msg, int req, struct fd_peer * peer)
 		CHECK_FCT( fd_psm_change_state(peer, STATE_CLOSING) );
 		
 		/* Now send the DPA */
-		CHECK_FCT( fd_out_send( msg, NULL, peer) );
+		CHECK_FCT( fd_out_send( msg, NULL, peer, FD_CNX_ORDERED) );
 		
 		/* Move to CLOSED state */
 		fd_psm_cleanup(peer, 0);
@@ -114,7 +114,7 @@ int fd_p_dp_handle(struct msg ** msg, int req, struct fd_peer * peer)
 	} else {
 		/* We received a DPA */
 		if (peer->p_hdr.info.runtime.pir_state != STATE_CLOSING) {
-			TRACE_DEBUG(INFO, "Ignore DPA received in state %s", STATE_STR(peer->p_hdr.info.runtime.pir_state));
+			TRACE_DEBUG(INFO, "Ignoring DPA received in state %s", STATE_STR(peer->p_hdr.info.runtime.pir_state));
 		}
 			
 		/* In theory, we should control the Result-Code AVP. But since we will not go back to OPEN state here anyway, let's skip it */
@@ -167,7 +167,7 @@ int fd_p_dp_initiate(struct fd_peer * peer, char * reason)
 	fd_psm_next_timeout(peer, 0, DPR_TIMEOUT);
 	
 	/* Now send the DPR message */
-	CHECK_FCT_DO( fd_out_send(&msg, NULL, peer), /* ignore since we are on timeout anyway */ );
+	CHECK_FCT_DO( fd_out_send(&msg, NULL, peer, FD_CNX_ORDERED), /* ignore since we are on timeout anyway */ );
 	
 	return 0;
 }

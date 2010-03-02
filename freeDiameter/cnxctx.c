@@ -1367,9 +1367,9 @@ static int send_simple(struct cnxctx * conn, unsigned char * buf, size_t len)
 }
 
 /* Send a message -- this is synchronous -- and we assume it's never called by several threads at the same time, so we don't protect. */
-int fd_cnx_send(struct cnxctx * conn, unsigned char * buf, size_t len, int ordered)
+int fd_cnx_send(struct cnxctx * conn, unsigned char * buf, size_t len, uint32_t flags)
 {
-	TRACE_ENTRY("%p %p %zd %i", conn, buf, len, ordered);
+	TRACE_ENTRY("%p %p %zd %x", conn, buf, len, flags);
 	
 	CHECK_PARAMS(conn && (conn->cc_socket > 0) && (! (conn->cc_status & CC_STATUS_ERROR)) && buf && len);
 
@@ -1382,32 +1382,64 @@ int fd_cnx_send(struct cnxctx * conn, unsigned char * buf, size_t len, int order
 		
 #ifndef DISABLE_SCTP
 		case IPPROTO_SCTP: {
-			int multistr = 0;
-			
-			if ((!ordered) && (conn->cc_sctp_para.str_out > 1) && ((! (conn->cc_status & CC_STATUS_TLS)) || (conn->cc_sctp_para.pairs > 1)))  {
-				/* Update the id of the stream we will send this message on */
-				conn->cc_sctp_para.next += 1;
-				conn->cc_sctp_para.next %= ((conn->cc_status & CC_STATUS_TLS) ? conn->cc_sctp_para.pairs : conn->cc_sctp_para.str_out);
-				multistr = 1;
+			if (flags & FD_CNX_BROADCAST) {
+				/* Send the buffer over all other streams */
+				uint16_t str;
+				if (conn->cc_status & CC_STATUS_TLS) {
+					for ( str=1; str < conn->cc_sctp_para.pairs; str++) {
+						ssize_t ret;
+						size_t sent = 0;
+						do {
+							CHECK_GNUTLS_DO( ret = fd_tls_send_handle_error(conn, conn->cc_sctps_data.array[str].session, buf + sent, len - sent), );
+							if (ret <= 0)
+								return ENOTCONN;
+
+							sent += ret;
+						} while ( sent < len );
+					}
+				} else {
+					for ( str=1; str < conn->cc_sctp_para.str_out; str++) {
+						CHECK_FCT_DO( fd_sctp_sendstr(conn->cc_socket, str, buf, len, &conn->cc_status), { fd_cnx_markerror(conn); return ENOTCONN; } );
+					}
+				}
+				
+				/* Set the ORDERED flag also so that it is sent over stream 0 as well */
+				flags &= FD_CNX_ORDERED;
 			}
 			
-			if ((!multistr) || (conn->cc_sctp_para.next == 0)) {
+			if (flags & FD_CNX_ORDERED) {
+				/* We send over stream #0 */
 				CHECK_FCT( send_simple(conn, buf, len) );
 			} else {
-				if (!(conn->cc_status & CC_STATUS_TLS)) {
-					CHECK_FCT_DO( fd_sctp_sendstr(conn->cc_socket, conn->cc_sctp_para.next, buf, len, &conn->cc_status), { fd_cnx_markerror(conn); return ENOTCONN; } );
+				/* Default case : no flag specified */
+			
+				int another_str = 0; /* do we send over stream #0 ? */
+				
+				if ((conn->cc_sctp_para.str_out > 1) && ((! (conn->cc_status & CC_STATUS_TLS)) || (conn->cc_sctp_para.pairs > 1)))  {
+					/* Update the id of the stream we will send this message over */
+					conn->cc_sctp_para.next += 1;
+					conn->cc_sctp_para.next %= ((conn->cc_status & CC_STATUS_TLS) ? conn->cc_sctp_para.pairs : conn->cc_sctp_para.str_out);
+					another_str = (conn->cc_sctp_para.next ? 1 : 0);
+				}
+
+				if ( ! another_str ) {
+					CHECK_FCT( send_simple(conn, buf, len) );
 				} else {
-					/* push the record to the appropriate session */
-					ssize_t ret;
-					size_t sent = 0;
-					ASSERT(conn->cc_sctps_data.array != NULL);
-					do {
-						CHECK_GNUTLS_DO( ret = fd_tls_send_handle_error(conn, conn->cc_sctps_data.array[conn->cc_sctp_para.next].session, buf + sent, len - sent), );
-						if (ret <= 0)
-							return ENOTCONN;
-						
-						sent += ret;
-					} while ( sent < len );
+					if (!(conn->cc_status & CC_STATUS_TLS)) {
+						CHECK_FCT_DO( fd_sctp_sendstr(conn->cc_socket, conn->cc_sctp_para.next, buf, len, &conn->cc_status), { fd_cnx_markerror(conn); return ENOTCONN; } );
+					} else {
+						/* push the record to the appropriate session */
+						ssize_t ret;
+						size_t sent = 0;
+						ASSERT(conn->cc_sctps_data.array != NULL);
+						do {
+							CHECK_GNUTLS_DO( ret = fd_tls_send_handle_error(conn, conn->cc_sctps_data.array[conn->cc_sctp_para.next].session, buf + sent, len - sent), );
+							if (ret <= 0)
+								return ENOTCONN;
+
+							sent += ret;
+						} while ( sent < len );
+					}
 				}
 			}
 		}

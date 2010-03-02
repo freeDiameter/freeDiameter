@@ -239,7 +239,7 @@ const char * fd_pev_str(int event)			\
 }
 const char * fd_pev_str(int event);
 
-/* The data structure for FDEVP_CNX_INCOMING events */
+/* The data structure for FDEVP_CNX_INCOMING event */
 struct cnx_incoming {
 	struct msg	* cer;		/* the CER message received on this connection */
 	struct cnxctx	* cnx;		/* The connection context */
@@ -273,7 +273,7 @@ int fd_psm_change_state(struct fd_peer * peer, int new_state);
 void fd_psm_cleanup(struct fd_peer * peer, int terminate);
 
 /* Peer out */
-int fd_out_send(struct msg ** msg, struct cnxctx * cnx, struct fd_peer * peer);
+int fd_out_send(struct msg ** msg, struct cnxctx * cnx, struct fd_peer * peer, uint32_t flags);
 int fd_out_start(struct fd_peer * peer);
 int fd_out_stop(struct fd_peer * peer);
 
@@ -326,8 +326,11 @@ int             fd_cnx_getendpoints(struct cnxctx * conn, struct fd_list * local
 char *          fd_cnx_getremoteid(struct cnxctx * conn);
 int             fd_cnx_receive(struct cnxctx * conn, struct timespec * timeout, unsigned char **buf, size_t * len);
 int             fd_cnx_recv_setaltfifo(struct cnxctx * conn, struct fifo * alt_fifo); /* send FDEVP_CNX_MSG_RECV event to the fifo list */
-int             fd_cnx_send(struct cnxctx * conn, unsigned char * buf, size_t len, int ordered);
+int             fd_cnx_send(struct cnxctx * conn, unsigned char * buf, size_t len, uint32_t flags);
 void            fd_cnx_destroy(struct cnxctx * conn);
 
+/* Flags for the fd_cnx_send function : */
+#define FD_CNX_ORDERED		(1 << 0)	/* All messages sent with this flag set will be delivered in the same order. No guarantee on other messages */
+#define FD_CNX_BROADCAST	(1 << 1)	/* The message is sent over all stream pairs, in case of SCTP. No effect on TCP */
 
 #endif /* _FD_H */

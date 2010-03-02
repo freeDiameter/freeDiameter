@@ -587,7 +587,7 @@ static void receiver_reject(struct cnxctx * recv_cnx, struct msg ** cer, char * 
 	/* Create and send the CEA with appropriate error code */
 	CHECK_FCT_DO( fd_msg_new_answer_from_req ( fd_g_config->cnf_dict, cer, MSGFL_ANSW_ERROR ), goto destroy );
 	CHECK_FCT_DO( fd_msg_rescode_set(*cer, rescode, errormsg, NULL, 1 ), goto destroy );
-	CHECK_FCT_DO( fd_out_send(cer, recv_cnx, NULL), goto destroy );
+	CHECK_FCT_DO( fd_out_send(cer, recv_cnx, NULL, FD_CNX_ORDERED), goto destroy );
 	
 	/* And now destroy this connection */
 destroy:
@@ -605,7 +605,7 @@ int fd_p_ce_handle_newcnx(struct fd_peer * peer, struct cnxctx * initiator)
 	
 	/* Send CER on the new connection */
 	CHECK_FCT( create_CER(peer, initiator, &cer) );
-	CHECK_FCT( fd_out_send(&cer, initiator, peer) );
+	CHECK_FCT( fd_out_send(&cer, initiator, peer, FD_CNX_ORDERED) );
 	
 	/* Are we doing an election ? */
 	if (peer->p_hdr.info.runtime.pir_state == STATE_WAITCNXACK_ELEC) {
@@ -652,7 +652,7 @@ int fd_p_ce_msgrcv(struct msg ** msg, int req, struct fd_peer * peer)
 		CHECK_FCT( fd_msg_rescode_set(*msg, "DIAMETER_COMMAND_UNSUPPORTED", "No CER allowed in current state", NULL, 1 ) );
 
 		/* msg now contains an answer message to send back */
-		CHECK_FCT_DO( fd_out_send(msg, NULL, peer), /* In case of error the message has already been dumped */ );
+		CHECK_FCT_DO( fd_out_send(msg, NULL, peer, FD_CNX_ORDERED), /* In case of error the message has already been dumped */ );
 	}
 	
 	/* If the state is not WAITCEA, just discard the message */
@@ -812,8 +812,7 @@ int fd_p_ce_process_receiver(struct fd_peer * peer)
 	CHECK_FCT( fd_msg_new_answer_from_req ( fd_g_config->cnf_dict, &msg, 0 ) );
 	CHECK_FCT( fd_msg_rescode_set(msg, "DIAMETER_SUCCESS", NULL, NULL, 0 ) );
 	CHECK_FCT( add_CE_info(msg, peer->p_cnxctx, isi & PI_SEC_TLS_OLD, isi & PI_SEC_NONE) );
-	CHECK_FCT( fd_out_send(&msg, peer->p_cnxctx, peer) );
-	TODO("In case of SCTP, broadcast the CEA over all streams so that further messages cannot be delivered before the CEA?");
+	CHECK_FCT( fd_out_send(&msg, peer->p_cnxctx, peer, FD_CNX_BROADCAST) ); /* Broadcast in order to avoid further messages sent over a different stream be delivered first... */
 	
 	/* Handshake if needed */
 	if (isi & PI_SEC_TLS_OLD) {
@@ -866,7 +865,7 @@ error_abort:
 		CHECK_FCT( fd_msg_rescode_set(msg, ec, NULL, NULL, 1 ) );
 
 		/* msg now contains an answer message to send back */
-		CHECK_FCT_DO( fd_out_send(&msg, peer->p_cnxctx, peer), /* In case of error the message has already been dumped */ );
+		CHECK_FCT_DO( fd_out_send(&msg, peer->p_cnxctx, peer, FD_CNX_ORDERED), /* In case of error the message has already been dumped */ );
 	}
 	
 cleanup:
