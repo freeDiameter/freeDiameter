@@ -135,10 +135,29 @@ int fd_tcp_client( int *sock, sSA * sa, socklen_t salen )
 	TRACE_DEBUG_sSA(FULL, "Attempting TCP connection with peer: ", sa, NI_NUMERICHOST | NI_NUMERICSERV, "..." );
 	
 	/* Try connecting to the remote address */
-	CHECK_SYS_DO( connect(s, sa, salen), { ret = errno; close(s); s = -1; } );
+	ret = connect(s, sa, salen);
+	
+	pthread_cleanup_pop(0);
+	
+	if (ret < 0) {
+		int lvl;
+		switch (ret = errno) {
+			case ECONNREFUSED:
+			
+				/* "Normal" errors */
+				lvl = FULL;
+				break;
+			default:
+				lvl = INFO;
+		}
+		/* Some errors are expected, we log at different level */
+		TRACE_DEBUG( lvl, "connect returned an error: %s", strerror(ret));
+		CHECK_SYS_DO( close(s), /* continue */ );
+		*sock = -1;
+		return ret;
+	}
 	
 	/* Done! */
-	pthread_cleanup_pop(0);
 	*sock = s;
 	return ret;
 }

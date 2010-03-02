@@ -840,10 +840,26 @@ int fd_sctp_client( int *sock, int no_ip6, uint16_t port, struct fd_list * list 
 	}
 	
 #ifdef SCTP_CONNECTX_4_ARGS
-	CHECK_SYS_DO( sctp_connectx(*sock, sar.sa, count, NULL), { ret = errno; goto fail; } );
+	ret = sctp_connectx(*sock, sar.sa, count, NULL);
 #else /* SCTP_CONNECTX_4_ARGS */
-	CHECK_SYS_DO( sctp_connectx(*sock, sar.sa, count), { ret = errno; goto fail; } );
+	ret = sctp_connectx(*sock, sar.sa, count);
 #endif /* SCTP_CONNECTX_4_ARGS */
+	
+	if (ret < 0) {
+		int lvl;
+		switch (ret = errno) {
+			case ECONNREFUSED:
+			
+				/* "Normal" errors */
+				lvl = FULL;
+				break;
+			default:
+				lvl = INFO;
+		}
+		/* Some errors are expected, we log at different level */
+		TRACE_DEBUG( lvl, "sctp_connectx returned an error: %s", strerror(ret));
+		goto fail;
+	}
 	
 	free(sar.buf); sar.buf = NULL;
 	

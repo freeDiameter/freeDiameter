@@ -286,14 +286,31 @@ error:
 /* Client side: connect to a remote server -- cancelable */
 struct cnxctx * fd_cnx_cli_connect_tcp(sSA * sa /* contains the port already */, socklen_t addrlen)
 {
-	int sock;
+	int sock = 0;
 	struct cnxctx * cnx = NULL;
 	
 	TRACE_ENTRY("%p %d", sa, addrlen);
 	CHECK_PARAMS_DO( sa && addrlen, return NULL );
 	
 	/* Create the socket and connect, which can take some time and/or fail */
-	CHECK_FCT_DO( fd_tcp_client( &sock, sa, addrlen ), return NULL );
+	{
+		int ret = fd_tcp_client( &sock, sa, addrlen );
+		if (ret != 0) {
+			int lvl;
+			switch (ret) {
+				case ECONNREFUSED:
+
+					/* "Normal" errors */
+					lvl = FULL;
+					break;
+				default:
+					lvl = INFO;
+			}
+			/* Some errors are expected, we log at different level */
+			TRACE_DEBUG( lvl, "fd_tcp_client returned an error: %s", strerror(ret));
+			return NULL;
+		}
+	}
 	
 	if (TRACE_BOOL(INFO)) {
 		fd_log_debug("Connection established to server '");
@@ -343,14 +360,31 @@ struct cnxctx * fd_cnx_cli_connect_sctp(int no_ip6, uint16_t port, struct fd_lis
 	ASSERT(0);
 	CHECK_FCT_DO( ENOTSUP, return NULL);
 #else /* DISABLE_SCTP */
-	int sock;
+	int sock = 0;
 	struct cnxctx * cnx = NULL;
 	sSS primary;
 	
 	TRACE_ENTRY("%p", list);
 	CHECK_PARAMS_DO( list && !FD_IS_LIST_EMPTY(list), return NULL );
 	
-	CHECK_FCT_DO( fd_sctp_client( &sock, no_ip6, port, list ), return NULL );
+	{
+		int ret = fd_sctp_client( &sock, no_ip6, port, list );
+		if (ret != 0) {
+			int lvl;
+			switch (ret) {
+				case ECONNREFUSED:
+
+					/* "Normal" errors */
+					lvl = FULL;
+					break;
+				default:
+					lvl = INFO;
+			}
+			/* Some errors are expected, we log at different level */
+			TRACE_DEBUG( lvl, "fd_sctp_client returned an error: %s", strerror(ret));
+			return NULL;
+		}
+	}
 	
 	/* Once the socket is created successfuly, prepare the remaining of the cnx */
 	CHECK_MALLOC_DO( cnx = fd_cnx_init(1), { shutdown(sock, SHUT_RDWR); close(sock); return NULL; } );

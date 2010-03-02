@@ -237,7 +237,7 @@ struct sr_store {
 	struct fd_list	 list;	/* list of sr_data, ordered by key.size then key.data */
 	pthread_rwlock_t lock;
 	struct cnxctx   *parent;
-	/* Add another list to chain in a global list to implement a garbage collector on sessions -- TODO */
+	/* Add another list to chain in a global list to implement a garbage collector on sessions -- TODO if needed */
 };
 
 /* Saved master session data for resuming sessions */
