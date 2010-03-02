@@ -812,7 +812,7 @@ int fd_p_ce_process_receiver(struct fd_peer * peer)
 	CHECK_FCT( fd_msg_new_answer_from_req ( fd_g_config->cnf_dict, &msg, 0 ) );
 	CHECK_FCT( fd_msg_rescode_set(msg, "DIAMETER_SUCCESS", NULL, NULL, 0 ) );
 	CHECK_FCT( add_CE_info(msg, peer->p_cnxctx, isi & PI_SEC_TLS_OLD, isi & PI_SEC_NONE) );
-	CHECK_FCT( fd_out_send(&msg, peer->p_cnxctx, peer, FD_CNX_BROADCAST) ); /* Broadcast in order to avoid further messages sent over a different stream be delivered first... */
+	CHECK_FCT( fd_out_send(&msg, peer->p_cnxctx, peer, (isi & PI_SEC_TLS_OLD) ? FD_CNX_ORDERED : FD_CNX_BROADCAST) ); /* Broadcast in order to avoid further messages sent over a different stream be delivered first... */
 	
 	/* Handshake if needed */
 	if (isi & PI_SEC_TLS_OLD) {
