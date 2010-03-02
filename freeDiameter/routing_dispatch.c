@@ -451,7 +451,7 @@ static int msg_dispatch(struct msg ** pmsg)
 	/* Read the message header */
 	CHECK_FCT( fd_msg_hdr(*pmsg, &hdr) );
 	is_req = hdr->msg_flags & CMD_FLAG_REQUEST;
-		
+	
 	/* Note: if the message is for local delivery, we should test for duplicate
 	  (draft-asveren-dime-dupcons-00). This may conflict with path validation decisions, no clear answer yet */
 

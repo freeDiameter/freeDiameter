@@ -77,9 +77,6 @@
 /*============================================================*/
 /*                          DEBUG                             */
 /*============================================================*/
-#ifndef ASSERT
-#define ASSERT(x) assert(x)
-#endif /* ASSERT */
 
 /*
  * FUNCTION:	fd_log_debug
@@ -139,6 +136,14 @@ extern pthread_key_t	fd_log_thname;
 char * fd_log_time ( struct timespec * ts, char * buf, size_t len );
 
 
+/*============================================================*/
+/*                    DEBUG MACROS                            */
+/*============================================================*/
+
+#ifndef ASSERT
+#define ASSERT(x) assert(x)
+#endif /* ASSERT */
+
 /* levels definitions */
 #define NONE 0	/* Display no debug message */
 #define INFO 1	/* Display errors only */
@@ -174,6 +179,7 @@ extern int fd_g_debug_lvl;
 static char * file_bname = NULL;
 #define __STRIPPED_FILE__	(file_bname ?: (file_bname = basename(__FILE__)))
 
+
 /* Boolean for tracing at a certain level */
 #ifdef DEBUG
 #define TRACE_BOOL(_level_) ( ((_level_) <= local_debug_level + fd_g_debug_lvl) 					\
@@ -183,7 +189,10 @@ static char * file_bname = NULL;
 #define TRACE_BOOL(_level_) ((_level_) <= local_debug_level + fd_g_debug_lvl)
 #endif /* DEBUG */
 
-/* The general debug macro, each call results in two lines of debug messages (change the macro for more compact output) */
+
+/*************
+ The general debug macro, each call results in two lines of debug messages (change the macro for more compact output) 
+ *************/
 #define TRACE_DEBUG(level,format,args... ) {											\
 	if ( TRACE_BOOL(level) ) {												\
 		char __buf[25];													\
@@ -195,6 +204,9 @@ static char * file_bname = NULL;
 	}															\
 }
 
+/*************
+ Derivatives from this macro 
+ ************/
 /* Helper for function entry -- for very detailed trace of the execution */
 #define TRACE_ENTRY(_format,_args... ) \
 	TRACE_DEBUG(FCTS, "[enter] %s(" _format ") {" #_args "}", __PRETTY_FUNCTION__, ##_args );
@@ -217,9 +229,94 @@ int fd_breakhere(void);
 	"TODO" = _msg ## _args; /* just a stupid compilation error to spot the todo */
 #endif /* ERRORS_ON_TODO */
 
+/* Trace a binary buffer content */
+#define TRACE_DEBUG_BUFFER(level, prefix, buf, bufsz, suffix ) {								\
+	if ( TRACE_BOOL(level) ) {												\
+		char __ts[25];													\
+		int __i;													\
+		size_t __sz = (size_t)(bufsz);											\
+		uint8_t * __buf = (uint8_t *)(buf);										\
+		char * __thn = ((char *)pthread_getspecific(fd_log_thname) ?: "unnamed");					\
+		fd_log_debug("\t | tid:%-20s\t%s\tin %s@%s:%d\n"								\
+			  "\t%s|%*s" prefix ,  											\
+					__thn, fd_log_time(NULL, __ts, sizeof(__ts)), __PRETTY_FUNCTION__, __FILE__, __LINE__,	\
+					(level < FULL)?"@":" ",level, ""); 							\
+		for (__i = 0; __i < __sz; __i++) {										\
+			fd_log_debug("%02.2hhx", __buf[__i]);									\
+		}														\
+		fd_log_debug(suffix "\n");											\
+	}															\
+}
+
+/* Some aliases to socket addresses structures */
+#define sSS	struct sockaddr_storage
+#define sSA	struct sockaddr
+#define sSA4	struct sockaddr_in
+#define sSA6	struct sockaddr_in6
+
+/* Dump one sockaddr Node information */
+#define sSA_DUMP_NODE( sa, flag ) {				\
+	sSA * __sa = (sSA *)(sa);				\
+	char __addrbuf[INET6_ADDRSTRLEN];			\
+	if (__sa) {						\
+	  int __rc = getnameinfo(__sa, 				\
+	  		sizeof(sSS),				\
+			__addrbuf,				\
+			sizeof(__addrbuf),			\
+			NULL,					\
+			0,					\
+			flag);					\
+	  if (__rc)						\
+	  	fd_log_debug("%s", (char *)gai_strerror(__rc));	\
+	  else							\
+	  	fd_log_debug("%s", &__addrbuf[0]);		\
+	} else {						\
+		fd_log_debug("(NULL / ANY)");			\
+	}							\
+}
+/* Same but with the port (service) also */
+#define sSA_DUMP_NODE_SERV( sa, flag ) {				\
+	sSA * __sa = (sSA *)(sa);					\
+	char __addrbuf[INET6_ADDRSTRLEN];				\
+	char __servbuf[32];						\
+	if (__sa) {							\
+	  int __rc = getnameinfo(__sa, 					\
+	  		sizeof(sSS),					\
+			__addrbuf,					\
+			sizeof(__addrbuf),				\
+			__servbuf,					\
+			sizeof(__servbuf),				\
+			flag);						\
+	  if (__rc)							\
+	  	fd_log_debug("%s", (char *)gai_strerror(__rc));		\
+	  else								\
+	  	fd_log_debug("[%s]:%s", &__addrbuf[0],&__servbuf[0]);	\
+	} else {							\
+		fd_log_debug("(NULL / ANY)");				\
+	}								\
+}
+
+/* Inside a debug trace */
+#define TRACE_DEBUG_sSA(level, prefix, sa, flags, suffix ) {										\
+	if ( TRACE_BOOL(level) ) {												\
+		char __buf[25];													\
+		char * __thn = ((char *)pthread_getspecific(fd_log_thname) ?: "unnamed");					\
+		fd_log_debug("\t | tid:%-20s\t%s\tin %s@%s:%d\n"								\
+			  "\t%s|%*s" prefix ,  											\
+					__thn, fd_log_time(NULL, __buf, sizeof(__buf)), __PRETTY_FUNCTION__, __FILE__, __LINE__,\
+					(level < FULL)?"@":" ",level, ""); 							\
+		sSA_DUMP_NODE_SERV( sa, flags );										\
+		fd_log_debug(suffix "\n");											\
+	}															\
+}
+
+
+/*============================================================*/
+/*                  ERROR CHECKING MACRO                      */
+/*============================================================*/
 
 /* Macros to check a return value and branch out in case of error.
- * These macro must be used only when errors are highly improbable, not for expected errors.
+ * These macro should be used only when errors are improbable, not for expected errors.
  */
 
 /* Check the return value of a system function and execute fallback in case of error */
@@ -287,8 +384,6 @@ int fd_breakhere(void);
 	CHECK_MALLOC_DO( __call__, return ENOMEM );
 
 
-/* The next macros can be used also for expected errors */
-
 /* Check parameters at function entry, execute fallback on error */
 #define CHECK_PARAMS_DO( __bool__, __fallback__ )					\
 	TRACE_DEBUG_ALL( "Check PARAMS: " #__bool__ );					\
@@ -318,7 +413,7 @@ int fd_breakhere(void);
 
 
 /*============================================================*/
-/*                          MACROS                            */
+/*                  OTHER MACROS                              */
 /*============================================================*/
 
 /* helper macros (pre-processor hacks to allow macro arguments) */
@@ -326,67 +421,6 @@ int fd_breakhere(void);
 #define _stringize( arg ) __str( arg )
 #define __agr( arg1, arg2 ) arg1 ## arg2
 #define _aggregate( arg1, arg2 ) __agr( arg1, arg2 )
-
-/* Some aliases to socket addresses structures */
-#define sSS	struct sockaddr_storage
-#define sSA	struct sockaddr
-#define sSA4	struct sockaddr_in
-#define sSA6	struct sockaddr_in6
-
-/* Dump one sockaddr Node information */
-#define sSA_DUMP_NODE( sa, flag ) {				\
-	sSA * __sa = (sSA *)(sa);				\
-	char __addrbuf[INET6_ADDRSTRLEN];			\
-	if (__sa) {						\
-	  int __rc = getnameinfo(__sa, 				\
-	  		sizeof(sSS),				\
-			__addrbuf,				\
-			sizeof(__addrbuf),			\
-			NULL,					\
-			0,					\
-			flag);					\
-	  if (__rc)						\
-	  	fd_log_debug("%s", (char *)gai_strerror(__rc));	\
-	  else							\
-	  	fd_log_debug("%s", &__addrbuf[0]);		\
-	} else {						\
-		fd_log_debug("(NULL / ANY)");			\
-	}							\
-}
-/* Same but with the port (service) also */
-#define sSA_DUMP_NODE_SERV( sa, flag ) {				\
-	sSA * __sa = (sSA *)(sa);					\
-	char __addrbuf[INET6_ADDRSTRLEN];				\
-	char __servbuf[32];						\
-	if (__sa) {							\
-	  int __rc = getnameinfo(__sa, 					\
-	  		sizeof(sSS),					\
-			__addrbuf,					\
-			sizeof(__addrbuf),				\
-			__servbuf,					\
-			sizeof(__servbuf),				\
-			flag);						\
-	  if (__rc)							\
-	  	fd_log_debug("%s", (char *)gai_strerror(__rc));		\
-	  else								\
-	  	fd_log_debug("[%s]:%s", &__addrbuf[0],&__servbuf[0]);	\
-	} else {							\
-		fd_log_debug("(NULL / ANY)");				\
-	}								\
-}
-/* Inside a debug trace */
-#define TRACE_DEBUG_sSA(level, prefix, sa, flags, suffix ) {										\
-	if ( TRACE_BOOL(level) ) {												\
-		char __buf[25];													\
-		char * __thn = ((char *)pthread_getspecific(fd_log_thname) ?: "unnamed");					\
-		fd_log_debug("\t | tid:%-20s\t%s\tin %s@%s:%d\n"								\
-			  "\t%s|%*s" prefix ,  											\
-					__thn, fd_log_time(NULL, __buf, sizeof(__buf)), __PRETTY_FUNCTION__, __FILE__, __LINE__,\
-					(level < FULL)?"@":" ",level, ""); 							\
-		sSA_DUMP_NODE_SERV( sa, flags );										\
-		fd_log_debug(suffix "\n");											\
-	}															\
-}
 
 
 /* A l4 protocol name (TCP / SCTP) */
@@ -424,7 +458,6 @@ int fd_breakhere(void);
   (((long int) (a)->s_addr) == 0x00000000)
 #endif /* IN_IS_ADDR_UNSPECIFIED */
 
-
 /* create a V4MAPPED address */
 #define IN6_ADDR_V4MAP( a6, a4 ) {			\
 	((uint32_t *)(a6))[0] = 0;			\
@@ -439,7 +472,7 @@ int fd_breakhere(void);
 
 
 /* We provide macros to convert 64 bit values to and from network byte-order, on systems where it is not already provided. */
-#ifndef HAVE_NTOHLL	/* Defined in config.h, if the ntohll symbol is defined on the system */
+#ifndef HAVE_NTOHLL	/* Defined by the cmake step, if the ntohll symbol is defined on the system */
 # if HOST_BIG_ENDIAN
     /* In big-endian systems, we don't have to change the values, since the order is the same as network */
 #   define ntohll(x) (x)
@@ -454,33 +487,13 @@ int fd_breakhere(void);
 /* This macro will give the next multiple of 4 for an integer (used for padding sizes of AVP). */
 #define PAD4(_x) ((_x) + ( (4 - (_x)) & 3 ) )
 
-/* Useful to display as safe ASCII a value (will garbage UTF-8 output...) */
+/* Useful to display any value as (safe) ASCII (will garbage UTF-8 output...) */
 #define ASCII(_c) ( ((_c < 32) || (_c > 127)) ? ( _c ? '?' : ' ' ) : _c )
 
 /* Compare timespec structures */
 #define TS_IS_INFERIOR( ts1, ts2 ) 		\
 	(    ((ts1)->tv_sec  < (ts2)->tv_sec ) 	\
 	  || (((ts1)->tv_sec  == (ts2)->tv_sec ) && ((ts1)->tv_nsec < (ts2)->tv_nsec) ))
-
-
-/* Trace a binary buffer content */
-#define TRACE_DEBUG_BUFFER(level, prefix, buf, bufsz, suffix ) {								\
-	if ( TRACE_BOOL(level) ) {												\
-		char __ts[25];													\
-		int __i;													\
-		size_t __sz = (size_t)(bufsz);											\
-		uint8_t * __buf = (uint8_t *)(buf);										\
-		char * __thn = ((char *)pthread_getspecific(fd_log_thname) ?: "unnamed");					\
-		fd_log_debug("\t | tid:%-20s\t%s\tin %s@%s:%d\n"								\
-			  "\t%s|%*s" prefix ,  											\
-					__thn, fd_log_time(NULL, __ts, sizeof(__ts)), __PRETTY_FUNCTION__, __FILE__, __LINE__,	\
-					(level < FULL)?"@":" ",level, ""); 							\
-		for (__i = 0; __i < __sz; __i++) {										\
-			fd_log_debug("%02.2hhx", __buf[__i]);									\
-		}														\
-		fd_log_debug(suffix "\n");											\
-	}															\
-}
 
 
 
@@ -517,7 +530,9 @@ static __inline__ int fd_thr_term(pthread_t * th)
 	return 0;
 }
 
-/* Cleanups for cancellation (all threads should be safely cancelable...) */
+/*************
+ Cancelation cleanup handlers for common objects 
+ *************/
 static __inline__ void fd_cleanup_mutex( void * mutex )
 {
 	CHECK_POSIX_DO( pthread_mutex_unlock((pthread_mutex_t *)mutex), /* */);
@@ -550,7 +565,7 @@ struct fd_list {
 	struct fd_list 	*next; /* next element in the list */
 	struct fd_list 	*prev; /* previous element in the list */
 	struct fd_list 	*head; /* head of the list */
-	void		*o;    /* additional avialbe pointer used for start of the parento object or other purpose */
+	void		*o;    /* additional pointer, used for any purpose (ex: start of the parent object) */
 };
 
 /* Initialize a list element */
@@ -567,14 +582,20 @@ void fd_list_init ( struct fd_list * list, void *obj );
 void fd_list_insert_after  ( struct fd_list * ref, struct fd_list * item );
 void fd_list_insert_before ( struct fd_list * ref, struct fd_list * item );
 
-/* Move a list at the end of another */
+/* Move all elements from a list at the end of another */
 void fd_list_move_end(struct fd_list * ref, struct fd_list * senti);
 
-/* Insert an item in an ordered list -- ordering function provided. If duplicate object found, EEXIST and it is returned in ref_duplicate */
+/* Insert an item in an ordered list -- ordering function must be provided. If duplicate object found, EEXIST and it is returned in ref_duplicate */
 int fd_list_insert_ordered( struct fd_list * head, struct fd_list * item, int (*cmp_fct)(void *, void *), void ** ref_duplicate);
 
 /* Unlink an item from a list */
 void fd_list_unlink ( struct fd_list * item );
+
+
+
+/*============================================================*/
+/*                          HASH                              */
+/*============================================================*/
 
 /* Compute a hash value of a string (session id, diameter id, ...) */
 uint32_t fd_hash ( char * string, size_t len );
@@ -912,7 +933,7 @@ struct dict_type_data {
 	char 			*type_name;	/* The name of this type */
 	dict_avpdata_interpret	 type_interpret;/* cb to convert the AVP value in more comprehensive format (or NULL) */
 	dict_avpdata_encode	 type_encode;	/* cb to convert formatted data into an AVP value (or NULL) */
-	void			(*type_dump)(union avp_value * val);	/* cb called by fd_msg_dump_one for this type of data (if != NULL) */
+	void			(*type_dump)(union avp_value * val);	/* cb called by fd_msg_dump_one for this type of data (if != NULL), to dump the AVP value in debug */
 };
 
 /* The criteria for searching a type object in the dictionary */
@@ -1428,7 +1449,7 @@ struct session_handler;
 /* This opaque structure represents a session associated with a Session-Id */
 struct session;
 
-/* The state information that a module associate with a session -- each module define its own data format */
+/* The state information that a module associate with a session -- each module defines its own data format */
 typedef void session_state;
 
 /*
