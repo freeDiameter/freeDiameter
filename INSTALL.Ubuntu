@@ -1,0 +1,11 @@
+See INSTALL file for general instructions on building freeDiameter.
+
+On Ubuntu / Debian, the following packages are required (aptitude install ...):
+ cmake make gcc flex bison libsctp1 libsctp-dev libgnutls-dev libgcrypt-dev
+ 
+Additionnaly, these ones may be useful:
+ mercurial gdb
+
+
+Tested working: Ubuntu Intrepid, Jaunty, Karmic. Debian Lenny.
+Tested not working: Ubuntu Hardy.

@@ -1,0 +1,48 @@
+See INSTALL file for general instructions on building freeDiameter.
+
+------------------
+QUICK INSTRUCTIONS
+------------------
+
+On FreeBSD-8.0 the following packages were required (should be same on FreeBSD-7.x):
+ cmake flex bison gnutls
+
+Then the cmake command had to look like:
+ cmake -DFLEX_EXECUTABLE:FILEPATH=/usr/local/bin/flex ...
+
+
+---------------------
+COMPLETE INSTRUCTIONS
+---------------------
+
+1) If you don't have freeBSD yet:
+   Install minimal system + ports using initial installer /usr/sbin/sysinstall
+
+
+2) Install cmake
+
+ a) from sources:
+    # cd /usr/ports/devel/cmake
+    # make install
+    
+ b) from package (don't forget to set your PACKAGEROOT appropriately: set PACKAGEROOT=ftp://ftp.jp.freebsd.org):
+    # pkg_add -v -r cmake
+	
+ 
+3) Install mercurial (optional)
+  (replace "cmake" by "mercurial" in the previous command) 
+
+4) Install flex and bison.
+
+5) Retrieve freeDiameter source code:
+   # cd ~
+   # /usr/local/bin/hg clone http://aaa.koganei.wide.ad.jp/hg/freeDiameter/
+   
+6) Make a build directory
+   # mkdir fD-build
+   # cd fD-build
+   
+7) Run cmake for freeDiameter (add other flags as you see fit, see INSTALL for more details)
+   # cmake -DFLEX_EXECUTABLE:FILEPATH=/usr/local/bin/flex ../freeDiameter
+
+8) make, run, enjoy :)

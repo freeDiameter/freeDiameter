@@ -16,17 +16,11 @@ Note: instead of passing options on the command line, you can use a CMake front-
 or edit the CCmakeCache.txt file directly.
 
 Note that there are dependencies on external tools that may not be enforced by the configure script.
-On Ubuntu Intrepid, the following packages were required (aptitude install ...):
- gcc make flex bison libsctp1 libsctp-dev cmake libgnutls-dev libgcrypt-dev
-
-On FreeBSD the following packages were required:
- cmake flex bison
-Then the cmake command had to look like:
- cmake -DFLEX_EXECUTABLE:FILEPATH=/usr/local/bin/flex ...
+See the specific INSTALL.distro files matching your situation.
 
 make install has not been tested yet and will probably not behave as expected!
 
-You can also configure which extensions to build with CMake:
+You can configure which extensions to build with CMake:
 IGNORE_ALL_EXTENSIONS:BOOL=OFF    (or the following are ignored)
 BUILD_APP_TEST:BOOL=ON
 BUILD_RT_ANY:BOOL=ON
