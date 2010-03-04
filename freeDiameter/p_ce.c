@@ -37,6 +37,13 @@
 
 /* This file contains code to handle Capabilities Exchange messages (CER and CEA) and election process */
 
+/* Compilation option:
+ USE_CEA_BROADCAST
+ 	Define this to enable sending multiple copies of the CEA in case of SCTP connection.
+	This avoids a race condition when sending an application message over a different stream
+	than the CEA, it might be delivered first and thus ignored.
+*/
+
 /* Save a connection as peer's principal */
 static int set_peer_cnx(struct fd_peer * peer, struct cnxctx **cnx)
 {
@@ -812,7 +819,11 @@ int fd_p_ce_process_receiver(struct fd_peer * peer)
 	CHECK_FCT( fd_msg_new_answer_from_req ( fd_g_config->cnf_dict, &msg, 0 ) );
 	CHECK_FCT( fd_msg_rescode_set(msg, "DIAMETER_SUCCESS", NULL, NULL, 0 ) );
 	CHECK_FCT( add_CE_info(msg, peer->p_cnxctx, isi & PI_SEC_TLS_OLD, isi & PI_SEC_NONE) );
+#ifdef USE_CEA_BROADCAST
 	CHECK_FCT( fd_out_send(&msg, peer->p_cnxctx, peer, (isi & PI_SEC_TLS_OLD) ? FD_CNX_ORDERED : FD_CNX_BROADCAST) ); /* Broadcast in order to avoid further messages sent over a different stream be delivered first... */
+#else /* USE_CEA_BROADCAST */
+	CHECK_FCT( fd_out_send(&msg, peer->p_cnxctx, peer, FD_CNX_ORDERED ) );
+#endif /* USE_CEA_BROADCAST */
 	
 	/* Handshake if needed */
 	if (isi & PI_SEC_TLS_OLD) {
