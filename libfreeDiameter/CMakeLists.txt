@@ -13,6 +13,7 @@ SET(LFD_SRC
 	messages.c
 	rt_data.c
 	sessions.c
+	signal.c
 	)
 
 # Build as a shared library

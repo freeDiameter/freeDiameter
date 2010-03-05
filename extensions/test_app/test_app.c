@@ -38,7 +38,6 @@
  */
 
 #include "test_app.h"
-#include <signal.h>
 
 /* Initialize the configuration */
 struct ta_conf * ta_conf = NULL;

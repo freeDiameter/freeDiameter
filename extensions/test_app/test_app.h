@@ -41,6 +41,7 @@
  */
  
 #include <freeDiameter/extension.h>
+#include <signal.h>
 
 #ifndef TEST_APP_DEFAULT_SIGNAL
 #define TEST_APP_DEFAULT_SIGNAL	SIGUSR1
@@ -67,10 +68,6 @@ extern struct ta_conf * ta_conf;
 
 /* Parse the configuration file */
 int ta_conf_handle(char * conffile);
-
-/* Start or stop the signal handler */
-int ta_sig_init(void (*cb)(void));
-void ta_sig_fini(void);
 
 /* Handle incoming messages (server) */
 int ta_serv_init(void);

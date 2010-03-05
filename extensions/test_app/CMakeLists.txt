@@ -13,7 +13,6 @@ SET( APP_TEST_SRC
 	lex.ta_conf.c
 	ta_conf.tab.c
 	ta_conf.tab.h
-	ta_sig.c
 	ta_dict.c
 	ta_cli.c
 	ta_serv.c

@@ -41,7 +41,7 @@
 #include <gcrypt.h>
 
 /* forward declarations */
-static void * sig_hdl(void * arg);
+static void fd_shutdown(int signal);
 static int main_cmdline(int argc, char *argv[]);
 static void main_version(void);
 static void main_help( void );
@@ -57,17 +57,11 @@ GCRY_THREAD_OPTION_PTHREAD_IMPL;
 int main(int argc, char * argv[])
 {
 	int ret;
-	pthread_t sig_th;
-	sigset_t sig_all;
 	
 	memset(fd_g_config, 0, sizeof(struct fd_config));
 	
-	/* Block all signals */
-	sigfillset(&sig_all);
-	CHECK_POSIX(  pthread_sigmask(SIG_BLOCK, &sig_all, NULL)  );
-	
 	/* Initialize the library -- must come first since it initializes the debug facility */
-	CHECK_FCT( fd_lib_init() );
+	CHECK_FCT( fd_lib_init(1) );
 	TRACE_DEBUG(INFO, "libfreeDiameter initialized.");
 	
 	/* Name this thread */
@@ -90,8 +84,9 @@ int main(int argc, char * argv[])
 	/* Parse the command-line */
 	CHECK_FCT(  main_cmdline(argc, argv)  );
 	
-	/* Allow SIGINT and SIGTERM from this point */
-	CHECK_POSIX(  pthread_create(&sig_th, NULL, sig_hdl, NULL)  );
+	/* Allow SIGINT and SIGTERM from this point to terminate the application */
+	CHECK_FCT( fd_sig_register(SIGINT,  "freeDiameter.main", fd_shutdown) );
+	CHECK_FCT( fd_sig_register(SIGTERM, "freeDiameter.main", fd_shutdown) );
 	
 	/* Add definitions of the base protocol */
 	CHECK_FCT( fd_dict_base_protocol(fd_g_config->cnf_dict) );
@@ -109,6 +104,7 @@ int main(int argc, char * argv[])
 	CHECK_FCT(  fd_ext_load()  );
 	
 	fd_conf_dump();
+	fd_sig_dump(FULL, 1);
 	
 	/* Start the servers */
 	CHECK_FCT( fd_servers_start() );
@@ -169,11 +165,12 @@ end:
 	CHECK_FCT_DO( fd_ext_fini(), /* Cleanup all extensions */ );
 	CHECK_FCT_DO( fd_rtdisp_cleanup(), /* destroy remaining handlers */ );
 	
-	CHECK_FCT_DO( fd_thr_term(&sig_th), /* reclaim resources of the signal thread */ );
-	
 	GNUTLS_TRACE( gnutls_global_deinit() );
 	
 	fd_log_debug(FD_PROJECT_BINARY " daemon is terminated.\n");
+	
+	fd_lib_fini();
+	
 	return ret;
 }
 
@@ -318,33 +315,14 @@ static void main_help( void )
   		"  -q, --quiet            Decrease verbosity then remove debug messages\n");
 }
 
-#ifdef HAVE_SIGNALENT_H
-const char *const signalstr[] = {
-# include "signalent.h"
-};
-const int nsignalstr = sizeof signalstr / sizeof signalstr[0];
-# define SIGNALSTR(sig) (((sig) < nsignalstr) ? signalstr[(sig)] : "unknown")
-#else /* HAVE_SIGNALENT_H */
-# define SIGNALSTR(sig) ("")
-#endif /* HAVE_SIGNALENT_H */
-
-/* signal handler */
-static void * sig_hdl(void * arg)
+/* Terminate the application */
+static void fd_shutdown(int signal)
 {
-	sigset_t sig_main;
-	int sig = 0;
+	TRACE_ENTRY("%d", signal);
 	
-	TRACE_ENTRY();
-	fd_log_threadname("Main signal handler");
-	
-	sigemptyset(&sig_main);
-	sigaddset(&sig_main, SIGINT);
-	sigaddset(&sig_main, SIGTERM);
-	
-	CHECK_SYS_DO(  sigwait(&sig_main, &sig), TRACE_DEBUG(INFO, "Error in sigwait function") );
-	
-	TRACE_DEBUG(INFO, "Received signal %s (%d), exiting", SIGNALSTR(sig), sig);
+	TRACE_DEBUG(INFO, "Received signal %s (%d), exiting", SIGNALSTR(signal), signal);
+
 	CHECK_FCT_DO( fd_event_send(fd_g_config->cnf_main_ev, FDEV_TERMINATE, 0, NULL), exit(2) );
-	return NULL;
-}
 	
+	return;
+}

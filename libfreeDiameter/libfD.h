@@ -45,6 +45,9 @@
 extern const char * type_base_name[];
 void fd_msg_eteid_init(void);
 int fd_sess_init(void);
+void fd_sess_fini(void);
+int fd_sig_init(void);
+void fd_sig_fini(void);
 
 /* Iterator on the rules of a parent object */
 int fd_dict_iterate_rules ( struct dict_object *parent, void * data, int (*cb)(void *, struct dict_rule_data *) );

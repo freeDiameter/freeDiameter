@@ -237,6 +237,14 @@ int fd_sess_init(void)
 	return 0;
 }
 
+/* Terminate */
+void fd_sess_fini(void)
+{
+	TRACE_ENTRY("");
+	CHECK_FCT_DO( fd_thr_term(&exp_thr), /* continue */ );
+	return;
+}
+
 /* Create a new handler */
 int fd_sess_handler_create_internal ( struct session_handler ** handler, void (*cleanup)(char * sid, session_state * state) )
 {

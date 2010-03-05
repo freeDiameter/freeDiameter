@@ -35,7 +35,8 @@
 
 #include "libfD.h"
 
-int fd_lib_init(void)
+/* Initialize library variables and threads */
+int fd_lib_init(int support_signals)
 {
 	int ret = 0;
 	
@@ -46,9 +47,21 @@ int fd_lib_init(void)
 		return ret;
 	}
 	
+	/* Initialize signals if requested */
+	if (support_signals) {
+		CHECK_FCT( fd_sig_init() );
+	}
+	
 	/* Initialize the modules that need it */
 	fd_msg_eteid_init();
 	CHECK_FCT( fd_sess_init() );
 	
 	return 0;
+}
+
+/* Stop all threads created in the library */
+void fd_lib_fini(void)
+{
+	fd_sess_fini();
+	fd_sig_fini();
 }

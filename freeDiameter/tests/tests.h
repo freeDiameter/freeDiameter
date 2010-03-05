@@ -105,7 +105,7 @@ GCRY_THREAD_OPTION_PTHREAD_IMPL;
 /* Minimum inits */
 #define INIT_FD() {								\
 	memset(fd_g_config, 0, sizeof(struct fd_config));			\
-	CHECK( 0, fd_lib_init() );						\
+	CHECK( 0, fd_lib_init(1) );						\
 	fd_log_threadname(basename(__FILE__));					\
 	(void) gcry_control (GCRYCTL_SET_THREAD_CBS, &gcry_threads_pthread);	\
 	(void) gcry_control (GCRYCTL_ENABLE_QUICK_RANDOM, 0);			\
