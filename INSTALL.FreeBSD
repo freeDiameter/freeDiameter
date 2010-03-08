@@ -54,4 +54,8 @@ STATUS
   This function will prevent the build of the tests, it needs to be fixed (TODO)
   Workaround: use -DSKIP_TESTS:BOOL=ON
   
-*)
+*) Extensions loading:
+  It seems the loader in freeBSD does not make symbols globals as in Linux, this needs 
+ more investigation. Do not load any extension for now (quite useless...)
+
+
