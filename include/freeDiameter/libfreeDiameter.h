@@ -589,13 +589,7 @@ int fd_sig_unregister(int signal);
 void fd_sig_dump(int level, int indent);
 
 /* Name of signals */
-#ifdef HAVE_SIGNALENT_H
-extern const char *const fd_sig_str[];
-extern const int fd_sig_nstr;
-# define SIGNALSTR(sig) (((sig) < fd_sig_nstr) ? fd_sig_str[(sig)] : "[unknown signal]")
-#else /* HAVE_SIGNALENT_H */
-# define SIGNALSTR(sig) ("[no sig names]")
-#endif /* HAVE_SIGNALENT_H */
+const char * fd_sig_abbrev(int signal);
 
 
 /*============================================================*/

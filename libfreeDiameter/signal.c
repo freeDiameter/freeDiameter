@@ -37,14 +37,6 @@
 
 #include <signal.h>
 
-/* List of signal names */
-#ifdef HAVE_SIGNALENT_H
-const char *const fd_sig_str[] = {
-# include "signalent.h"
-};
-const int fd_sig_nstr = sizeof fd_sig_str / sizeof fd_sig_str[0];
-#endif /* HAVE_SIGNALENT_H */
-
 /* A structure to hold the registered signal handlers */
 struct sig_hdl {
 	struct fd_list	chain;		/* Link in the sig_hdl_list ordered by signal */
@@ -64,6 +56,9 @@ static pthread_attr_t detached;
 /* Note if the module was initialized */
 static int sig_initialized = 0;
 
+/* signals short names list */
+static int abbrevs_init(void);
+
 /* Initialize the support for signals */
 int fd_sig_init(void)
 {
@@ -73,6 +68,9 @@ int fd_sig_init(void)
 	
 	if (sig_initialized)
 		return 0;
+	
+	/* Initialize the list of abbreviations */
+	CHECK_FCT(abbrevs_init());
 	
 	/* Block all signals from the current thread and all its future children, so that signals are delivered only to our sig_hdl->sig_thr */
 	sigfillset(&sig_all);
@@ -96,7 +94,7 @@ static void * signal_caller(void * arg)
 	char buf[40];
 	
 	/* Name this thread */
-	snprintf(buf, sizeof(buf), "cb %d:%s:%s", me->signal, SIGNALSTR(me->signal), me->modname);
+	snprintf(buf, sizeof(buf), "cb %d:%s:%s", me->signal, fd_sig_abbrev(me->signal), me->modname);
 	fd_log_threadname ( buf );
 	
 	TRACE_ENTRY("%p", me);
@@ -120,7 +118,7 @@ static void * signal_catcher(void * arg)
 	ASSERT(arg);
 	
 	/* Name this thread */
-	snprintf(buf, sizeof(buf), "catch %d:%s:%s", me->signal, SIGNALSTR(me->signal), me->modname);
+	snprintf(buf, sizeof(buf), "catch %d:%s:%s", me->signal, fd_sig_abbrev(me->signal), me->modname);
 	fd_log_threadname ( buf );
 	
 	TRACE_ENTRY("%p", me);
@@ -143,7 +141,7 @@ static void * signal_catcher(void * arg)
 	}
 	
 	/* An error occurred... What should we do ? */
-	TRACE_DEBUG(INFO, "!!! ERROR !!! The signal catcher for %d:%s:%s is terminating!", me->signal, SIGNALSTR(me->signal), me->modname);
+	TRACE_DEBUG(INFO, "!!! ERROR !!! The signal catcher for %d:%s:%s is terminating!", me->signal, fd_sig_abbrev(me->signal), me->modname);
 	
 	/* Better way to handle this ? */
 	ASSERT(0);
@@ -179,7 +177,7 @@ int fd_sig_register(int signal, char * modname, void (*handler)(int signal))
 			continue;
 		if (nh->signal == signal) {
 			matched = 1;
-			TRACE_DEBUG(INFO, "Signal %d (%s) is already registered by module '%s'", signal, SIGNALSTR(signal), nh->modname);
+			TRACE_DEBUG(INFO, "Signal %d (%s) is already registered by module '%s'", signal, fd_sig_abbrev(signal), nh->modname);
 		}
 		break;
 	}
@@ -215,7 +213,7 @@ void fd_sig_dump(int level, int indent)
 	for (li = sig_hdl_list.next; li != &sig_hdl_list; li = li->next) {
 		struct sig_hdl * h = (struct sig_hdl *)li;
 		
-		fd_log_debug("%*s  - sig %*d (%s) => %p in module %s\n", indent, "", 2, h->signal, SIGNALSTR(h->signal), h->sig_hdl, h->modname);
+		fd_log_debug("%*s  - sig %*d (%s) => %p in module %s\n", indent, "", 2, h->signal, fd_sig_abbrev(h->signal), h->sig_hdl, h->modname);
 	}
 	CHECK_POSIX_DO(pthread_mutex_unlock(&sig_hdl_lock), /* continue */);
 	
@@ -288,3 +286,171 @@ void fd_sig_fini(void)
 	CHECK_POSIX_DO( pthread_attr_destroy(&detached), /* continue */ );
 	return;
 }
+
+
+/**************************************************************************************/
+
+static char **abbrevs;
+static size_t abbrevs_nr = 0;
+
+/* Initialize the array of signals */
+static int abbrevs_init(void)
+{
+	int i;
+	
+	#define SIGNAL_MAX_LIMIT	100 /* Do not save signals with value > this */
+
+	/* The raw list of signals in the system -- might be incomplete, add any signal you need */
+	struct sig_abb_raw {
+		int	 sig;
+		char 	*name;
+	} abbrevs_raw[] = {
+		{ 0, "[unknown signal]" }
+	#define RAW_SIGNAL( _sig ) ,{ _sig, #_sig }
+	#ifdef SIGBUS
+		RAW_SIGNAL( SIGBUS )
+	#endif /* SIGBUS */
+	#ifdef SIGTTIN
+		RAW_SIGNAL( SIGTTIN )
+	#endif /* SIGTTIN */
+	#ifdef SIGTTOU
+		RAW_SIGNAL( SIGTTOU )
+	#endif /* SIGTTOU */
+	#ifdef SIGPROF
+		RAW_SIGNAL( SIGPROF )
+	#endif /* SIGPROF */
+	#ifdef SIGALRM
+		RAW_SIGNAL( SIGALRM )
+	#endif /* SIGALRM */
+	#ifdef SIGFPE
+		RAW_SIGNAL( SIGFPE )
+	#endif /* SIGFPE */
+	#ifdef SIGSTKFLT
+		RAW_SIGNAL( SIGSTKFLT )
+	#endif /* SIGSTKFLT */
+	#ifdef SIGSTKSZ
+		RAW_SIGNAL( SIGSTKSZ )
+	#endif /* SIGSTKSZ */
+	#ifdef SIGUSR1
+		RAW_SIGNAL( SIGUSR1 )
+	#endif /* SIGUSR1 */
+	#ifdef SIGURG
+		RAW_SIGNAL( SIGURG )
+	#endif /* SIGURG */
+	#ifdef SIGIO
+		RAW_SIGNAL( SIGIO )
+	#endif /* SIGIO */
+	#ifdef SIGQUIT
+		RAW_SIGNAL( SIGQUIT )
+	#endif /* SIGQUIT */
+	#ifdef SIGABRT
+		RAW_SIGNAL( SIGABRT )
+	#endif /* SIGABRT */
+	#ifdef SIGTRAP
+		RAW_SIGNAL( SIGTRAP )
+	#endif /* SIGTRAP */
+	#ifdef SIGVTALRM
+		RAW_SIGNAL( SIGVTALRM )
+	#endif /* SIGVTALRM */
+	#ifdef SIGSEGV
+		RAW_SIGNAL( SIGSEGV )
+	#endif /* SIGSEGV */
+	#ifdef SIGCONT
+		RAW_SIGNAL( SIGCONT )
+	#endif /* SIGCONT */
+	#ifdef SIGPIPE
+		RAW_SIGNAL( SIGPIPE )
+	#endif /* SIGPIPE */
+	#ifdef SIGWINCH
+		RAW_SIGNAL( SIGWINCH )
+	#endif /* SIGWINCH */
+	#ifdef SIGXFSZ
+		RAW_SIGNAL( SIGXFSZ )
+	#endif /* SIGXFSZ */
+	#ifdef SIGHUP
+		RAW_SIGNAL( SIGHUP )
+	#endif /* SIGHUP */
+	#ifdef SIGCHLD
+		RAW_SIGNAL( SIGCHLD )
+	#endif /* SIGCHLD */
+	#ifdef SIGSYS
+		RAW_SIGNAL( SIGSYS )
+	#endif /* SIGSYS */
+	#ifdef SIGSTOP
+		RAW_SIGNAL( SIGSTOP )
+	#endif /* SIGSTOP */
+	#ifdef SIGUSR2
+		RAW_SIGNAL( SIGUSR2 )
+	#endif /* SIGUSR2 */
+	#ifdef SIGTSTP
+		RAW_SIGNAL( SIGTSTP )
+	#endif /* SIGTSTP */
+	#ifdef SIGKILL
+		RAW_SIGNAL( SIGKILL )
+	#endif /* SIGKILL */
+	#ifdef SIGXCPU
+		RAW_SIGNAL( SIGXCPU )
+	#endif /* SIGXCPU */
+	#ifdef SIGUNUSED
+		RAW_SIGNAL( SIGUNUSED )
+	#endif /* SIGUNUSED */
+	#ifdef SIGPWR
+		RAW_SIGNAL( SIGPWR )
+	#endif /* SIGPWR */
+	#ifdef SIGILL
+		RAW_SIGNAL( SIGILL )
+	#endif /* SIGILL */
+	#ifdef SIGINT
+		RAW_SIGNAL( SIGINT )
+	#endif /* SIGINT */
+	#ifdef SIGIOT
+		RAW_SIGNAL( SIGIOT )
+	#endif /* SIGIOT */
+	#ifdef SIGTERM
+		RAW_SIGNAL( SIGTERM )
+	#endif /* SIGTERM */
+	};
+
+	TRACE_ENTRY("");
+	
+	/* First pass: find the highest signal number */
+	for (i=0; i < sizeof(abbrevs_raw)/sizeof(abbrevs_raw[0]); i++) {
+		if (abbrevs_raw[i].sig > SIGNAL_MAX_LIMIT) {
+			TRACE_DEBUG(ANNOYING, "Ignoring signal %s (%d), increase SIGNAL_MAX_LIMIT if you want it included", abbrevs_raw[i].name, abbrevs_raw[i].sig);
+			continue;
+		}
+		if (abbrevs_raw[i].sig > abbrevs_nr)
+			abbrevs_nr = abbrevs_raw[i].sig;
+	}
+	
+	/* Now, alloc the array */
+	abbrevs_nr++; /* 0-based */
+	CHECK_MALLOC( abbrevs = calloc( abbrevs_nr, sizeof(char *) ) );
+	
+	/* Second pass: add all the signals in the array */
+	for (i=0; i < sizeof(abbrevs_raw)/sizeof(abbrevs_raw[0]); i++) {
+		if (abbrevs_raw[i].sig > SIGNAL_MAX_LIMIT)
+			continue;
+		
+		if (abbrevs[abbrevs_raw[i].sig] == NULL)
+			abbrevs[abbrevs_raw[i].sig] = abbrevs_raw[i].name;
+	}
+	
+	/* Third pass: Set all missing signals to the undef value */
+	for (i=0; i < abbrevs_nr; i++) {
+		if (abbrevs[i] == NULL)
+			abbrevs[i] = abbrevs_raw[0].name;
+	}
+	
+	/* Done! */
+	return 0;
+}
+
+/* Names of signals */
+const char * fd_sig_abbrev(int signal)
+{
+	if (signal < abbrevs_nr)
+		return abbrevs[signal];
+	return abbrevs[0];
+}
+

@@ -56,6 +56,7 @@
 #include <getopt.h>
 #include <time.h>
 #include <libgen.h>
+#include <signal.h>
 
 /* Define the return code values */
 #define PASS	0
@@ -115,6 +116,11 @@ GCRY_THREAD_OPTION_PTHREAD_IMPL;
 	parse_cmdline(argc, argv);						\
 }
 
+static void test_timeout(int signal)
+{
+	FAILTEST("The timeout (" _stringize(TEST_TIMEOUT) " sec) was reached. Use -n or change TEST_TIMEOUT if the test needs more time to execute.");
+}
+
 static inline void parse_cmdline(int argc, char * argv[]) {
 	int c;
 	int no_timeout = 0;
@@ -137,8 +143,10 @@ static inline void parse_cmdline(int argc, char * argv[]) {
 		}
 	}
 	fd_g_debug_lvl = (test_verbo > 0) ? (test_verbo - 1) : 0;
-	if (!no_timeout)
+	if (!no_timeout) {
 		alarm(TEST_TIMEOUT);
+		fd_sig_register(SIGALRM, "Test.harness", test_timeout);
+	}
 }
  
 #endif /* _TESTS_H */

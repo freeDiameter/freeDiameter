@@ -320,7 +320,7 @@ static void fd_shutdown(int signal)
 {
 	TRACE_ENTRY("%d", signal);
 	
-	TRACE_DEBUG(INFO, "Received signal %s (%d), exiting", SIGNALSTR(signal), signal);
+	TRACE_DEBUG(INFO, "Received signal %s (%d), exiting", fd_sig_abbrev(signal), signal);
 
 	CHECK_FCT_DO( fd_event_send(fd_g_config->cnf_main_ev, FDEV_TERMINATE, 0, NULL), exit(2) );
 	
