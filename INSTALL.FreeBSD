@@ -32,7 +32,7 @@ COMPLETE INSTRUCTIONS
 3) Install mercurial (optional)
   (replace "cmake" by "mercurial" in the previous command) 
 
-4) Install flex and bison.
+4) Install flex and bison, same way.
 
 5) Retrieve freeDiameter source code:
    # cd ~
@@ -43,6 +43,15 @@ COMPLETE INSTRUCTIONS
    # cd fD-build
    
 7) Run cmake for freeDiameter (add other flags as you see fit, see INSTALL for more details)
-   # cmake -DFLEX_EXECUTABLE:FILEPATH=/usr/local/bin/flex ../freeDiameter
+   # /usr/local/bin/cmake -DFLEX_EXECUTABLE:FILEPATH=/usr/local/bin/flex ../freeDiameter
 
 8) make, run, enjoy :)
+
+------
+STATUS
+------
+*) clock_nanosleep:
+  This function will prevent the build of the tests, it needs to be fixed (TODO)
+  Workaround: use -DSKIP_TESTS:BOOL=ON
+  
+*)

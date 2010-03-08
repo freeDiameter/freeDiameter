@@ -12,6 +12,15 @@ MACRO(FD_ADD_EXTENSION EXTNAME)
   SET_TARGET_PROPERTIES(${EXTNAME} PROPERTIES SUFFIX ".fdx" )
 ENDMACRO(FD_ADD_EXTENSION)
 
+# The extensions include the headers of freeDiameter that contains gnutls objects
+FIND_PACKAGE(GNUTLS REQUIRED)
+INCLUDE_DIRECTORIES(${GNUTLS_INCLUDE_DIRS})
+find_path(GCRYPT_INCLUDE_DIR NAMES gcrypt.h)
+If ( NOT GCRYPT_INCLUDE_DIR )
+	MESSAGE(SEND_ERROR "Unable to find gcrypt.h, please install libgcrypt-dev or equivalent")
+Endif ( NOT GCRYPT_INCLUDE_DIR )
+INCLUDE_DIRECTORIES(${GCRYPT_INCLUDE_DIR})
+
 ###########################
 # Extensions section
 
