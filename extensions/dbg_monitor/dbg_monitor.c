@@ -49,30 +49,12 @@ static int 	 monitor_main(char * conffile);
 
 EXTENSION_ENTRY("dbg_monitor", monitor_main);
 
-/* Function called on receipt of SIGUSR1 */
-static void got_sig(int signal)
-{
-	fd_log_debug("[dbg_monitor] Dumping extra information\n");
-	CHECK_FCT_DO(fd_event_send(fd_g_config->cnf_main_ev, FDEV_DUMP_DICT, 0, NULL), /* continue */);
-	CHECK_FCT_DO(fd_event_send(fd_g_config->cnf_main_ev, FDEV_DUMP_CONFIG, 0, NULL), /* continue */);
-	CHECK_FCT_DO(fd_event_send(fd_g_config->cnf_main_ev, FDEV_DUMP_EXT, 0, NULL), /* continue */);
-}
 /* Thread to display periodical debug information */
 static pthread_t thr;
 static void * mn_thr(void * arg)
 {
-	sigset_t sig;
 	int i = 0;
-	struct sigaction act;
 	fd_log_threadname("Monitor thread");
-	
-	/* Catch signal SIGUSR1 */
-	memset(&act, 0, sizeof(act));
-	act.sa_handler = got_sig;
-	CHECK_SYS_DO( sigaction(MONITOR_SIGNAL, &act, NULL), /* conitnue */ );
-	sigemptyset(&sig);
-	sigaddset(&sig, MONITOR_SIGNAL);
-	CHECK_POSIX_DO(  pthread_sigmask(SIG_UNBLOCK, &sig, NULL), /* conitnue */  );
 	
 	/* Loop */
 	while (1) {
@@ -94,13 +76,28 @@ static void * mn_thr(void * arg)
 	return NULL;
 }
 
+/* Function called on receipt of MONITOR_SIGNAL */
+static void got_sig(int signal)
+{
+	fd_log_debug("[dbg_monitor] Dumping extra information\n");
+	CHECK_FCT_DO(fd_event_send(fd_g_config->cnf_main_ev, FDEV_DUMP_DICT, 0, NULL), /* continue */);
+	CHECK_FCT_DO(fd_event_send(fd_g_config->cnf_main_ev, FDEV_DUMP_CONFIG, 0, NULL), /* continue */);
+	CHECK_FCT_DO(fd_event_send(fd_g_config->cnf_main_ev, FDEV_DUMP_EXT, 0, NULL), /* continue */);
+}
+
+/* Entry point */
 static int monitor_main(char * conffile)
 {
 	TRACE_ENTRY("%p", conffile);
+	
+	/* Catch signal SIGUSR1 */
+	CHECK_FCT( fd_sig_register(MONITOR_SIGNAL, "dbg_monitor", got_sig));
+	
 	CHECK_POSIX( pthread_create( &thr, NULL, mn_thr, NULL ) );
 	return 0;
 }
 
+/* Cleanup */
 void fd_ext_fini(void)
 {
 	TRACE_ENTRY();
