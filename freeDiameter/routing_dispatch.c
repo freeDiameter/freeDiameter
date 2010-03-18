@@ -336,7 +336,7 @@ static void nai_get_indexes(union avp_value * un, int * excl_idx, int * at_idx)
 	return;
 }	
 
-/* Test if a User-Name AVP contains a Decorated NAI -- RFC4282, draft-ietf-dime-nai-routing-04 */
+/* Test if a User-Name AVP contains a Decorated NAI -- RFC4282, RFC5729 */
 static int is_decorated_NAI(union avp_value * un)
 {
 	int i;
@@ -688,7 +688,7 @@ static int msg_rt_in(struct msg ** pmsg)
 		} else {
 		/* Destination-Host was not set, and Destination-Realm is matching : we may handle or pass to a fellow peer */
 
-			/* test for decorated NAI  (draft-ietf-dime-nai-routing-04 section 4.4) */
+			/* test for decorated NAI  (RFC5729 section 4.4) */
 			if (is_decorated_NAI(un_val)) {
 				/* Handle the decorated NAI */
 				CHECK_FCT_DO( process_decorated_NAI(un_val, dr_val),
