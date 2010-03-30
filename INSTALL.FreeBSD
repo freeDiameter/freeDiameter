@@ -57,7 +57,9 @@ STATUS
 *) Extensions loading:
   It seems the loader in freeBSD does not make symbols globals as in Linux, this needs 
  more investigation. Do not load any extension for now (quite useless...)
- See http://httpd.apache.org/docs/1.3/dso.html for +
+ http://httpd.apache.org/docs/1.3/dso.html describes the situation
+ http://people.redhat.com/drepper/dsohowto.pdf (I must read to understand better)
+
 
 
 
