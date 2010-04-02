@@ -549,7 +549,7 @@ static int fd_setsockopt_postbind(int sk, int bound_to_default)
 	
 	/* Set the ASCONF option */
 	#ifdef SCTP_AUTO_ASCONF
-	{
+	if (bound_to_default) {
 		int asconf;
 		
 		if (TRACE_BOOL(SCTP_LEVEL)) {
@@ -566,7 +566,7 @@ static int fd_setsockopt_postbind(int sk, int bound_to_default)
 			fd_log_debug( "Def SCTP_AUTO_ASCONF value : %s\n", asconf ? "true" : "false");
 		}
 
-		asconf = bound_to_default ? 1 : 0;	/* allow automatic use of added or removed addresses in the association (for bound-all sockets) */
+		asconf = 1;	/* allow automatic use of added or removed addresses in the association (for bound-all sockets) */
 		
 		/* Set the option to the socket */
 		CHECK_SYS(  setsockopt(sk, IPPROTO_SCTP, SCTP_AUTO_ASCONF, &asconf, sizeof(asconf))  );
