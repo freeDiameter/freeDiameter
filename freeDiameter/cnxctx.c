@@ -739,7 +739,7 @@ static void * rcvthr_notls_sctp(void * arg)
 		
 		CHECK_FCT_DO( fd_event_send( Target_Queue(conn), event, bufsz, buf), goto fatal );
 		
-	} while (conn->cc_loop);
+	} while (conn->cc_loop || (event != FDEVP_CNX_MSG_RECV));
 	
 out:
 	TRACE_DEBUG(FULL, "Thread terminated");	
