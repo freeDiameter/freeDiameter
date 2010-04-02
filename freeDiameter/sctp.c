@@ -713,7 +713,7 @@ redo:
 		else
 			s.sin6.sin6_port = htons(port);
 		
-		CHECK_SYS( bind(*sock, &s.sa, sSSlen(&s)) );
+		CHECK_SYS( bind(*sock, &s.sa, sSAlen(&s)) );
 		
 	} else {
 		/* Explicit endpoints to bind to from config */

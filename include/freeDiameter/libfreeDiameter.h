@@ -271,13 +271,19 @@ int fd_breakhere(void);
 #define sSA4	struct sockaddr_in
 #define sSA6	struct sockaddr_in6
 
+/* The sockaddr length of a sSS structure */
+#define sSAlen( _sa_ )	\
+	( (socklen_t) ( (((sSA *)_sa_)->sa_family == AF_INET) ? (sizeof(sSA4)) :		\
+				((((sSA *)_sa_)->sa_family == AF_INET6) ? (sizeof(sSA6)) :	\
+					0 ) ) )
+
 /* Dump one sockaddr Node information */
 #define sSA_DUMP_NODE( sa, flag ) {				\
 	sSA * __sa = (sSA *)(sa);				\
 	char __addrbuf[INET6_ADDRSTRLEN];			\
 	if (__sa) {						\
 	  int __rc = getnameinfo(__sa, 				\
-	  		sizeof(sSS),				\
+	  		sSAlen(__sa),				\
 			__addrbuf,				\
 			sizeof(__addrbuf),			\
 			NULL,					\
@@ -298,7 +304,7 @@ int fd_breakhere(void);
 	char __servbuf[32];						\
 	if (__sa) {							\
 	  int __rc = getnameinfo(__sa, 					\
-	  		sizeof(sSS),					\
+	  		sSAlen(__sa),					\
 			__addrbuf,					\
 			sizeof(__addrbuf),				\
 			__servbuf,					\
@@ -451,12 +457,6 @@ int fd_breakhere(void);
 		(((_proto) == IPPROTO_SCTP) ? "SCTP" :		\
 			"Unknown"))
 #endif /* DISABLE_SCTP */
-
-/* The sockaddr length of a sSS structure */
-#define sSSlen( _ss_ )	\
-	( (socklen_t) ( (((sSS *)_ss_)->ss_family == AF_INET) ? (sizeof(sSA4)) :		\
-				((((sSS *)_ss_)->ss_family == AF_INET6) ? (sizeof(sSA6)) :	\
-					0 ) ) )
 
 /* Define the value of IP loopback address */
 #ifndef INADDR_LOOPBACK 

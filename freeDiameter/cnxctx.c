@@ -128,7 +128,7 @@ struct cnxctx * fd_cnx_serv_tcp(uint16_t port, int family, struct fd_endpoint * 
 	}
 
 	/* Create the socket */
-	CHECK_FCT_DO( fd_tcp_create_bind_server( &cnx->cc_socket, sa, sSSlen(sa) ), goto error );
+	CHECK_FCT_DO( fd_tcp_create_bind_server( &cnx->cc_socket, sa, sSAlen(sa) ), goto error );
 
 	/* Generate the name for the connection object */
 	{

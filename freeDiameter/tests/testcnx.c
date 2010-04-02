@@ -485,7 +485,7 @@ void * connect_thr(void * arg)
 		case IPPROTO_TCP:
 			{
 				struct fd_endpoint * ep = (struct fd_endpoint *)(eps.next);
-				cnx = fd_cnx_cli_connect_tcp( &ep->sa, sSSlen(&ep->ss) );
+				cnx = fd_cnx_cli_connect_tcp( &ep->sa, sSAlen(&ep->ss) );
 				CHECK( 1, (cnx ? 1 : 0) ^ cf->expect_failure );
 			}
 			break;

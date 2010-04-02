@@ -227,7 +227,7 @@ static void * connect_thr(void * arg)
 		
 		switch (nc->proto) {
 			case IPPROTO_TCP:
-				cnx = fd_cnx_cli_connect_tcp((sSA *)&nc->ss, sSSlen(&nc->ss));
+				cnx = fd_cnx_cli_connect_tcp((sSA *)&nc->ss, sSAlen(&nc->ss));
 				break;
 #ifndef DISABLE_SCTP			
 			case IPPROTO_SCTP:
