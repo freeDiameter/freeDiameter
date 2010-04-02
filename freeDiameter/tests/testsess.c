@@ -212,7 +212,7 @@ int main(int argc, char *argv[])
 		CHECK( 0, fd_sess_settimeout( sess1, &timeout) );
 		timeout.tv_sec = 0;
 		timeout.tv_nsec= 50000000; /* 50 ms */
-		CHECK( 0, clock_nanosleep(CLOCK_REALTIME, 0, &timeout, NULL) );
+		CHECK( 0, nanosleep(&timeout, NULL) );
 		
 		CHECK( 0, fd_sess_fromsid( TEST_SID, strlen(TEST_SID), &sess1, &new ) );
 		CHECK( 1, new ? 1 : 0 );
@@ -338,7 +338,7 @@ int main(int argc, char *argv[])
 		#endif
 		timeout.tv_sec = 0;
 		timeout.tv_nsec= 50000000; /* 50 ms */
-		CHECK( 0, clock_nanosleep(CLOCK_REALTIME, 0, &timeout, NULL) );
+		CHECK( 0, nanosleep(&timeout, NULL) );
 		CHECK( 0, freed[0] );
 		CHECK( 1, freed[1] );
 		CHECK( 1, freed[2] );

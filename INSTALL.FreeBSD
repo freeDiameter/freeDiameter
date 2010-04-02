@@ -47,12 +47,5 @@ COMPLETE INSTRUCTIONS
 
 8) make, run, enjoy :)
 
-------
-STATUS
-------
-*) clock_nanosleep:
-  This function will prevent the build of the tests, it needs to be fixed (TODO)
-  Workaround: use -DSKIP_TESTS:BOOL=ON
-  
 
 
