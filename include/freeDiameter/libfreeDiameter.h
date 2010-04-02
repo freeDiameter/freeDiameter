@@ -454,8 +454,8 @@ int fd_breakhere(void);
 
 /* The sockaddr length of a sSS structure */
 #define sSSlen( _ss_ )	\
-	( (socklen_t) ( ((_ss_)->ss_family == AF_INET) ? (sizeof(sSA4)) :		\
-				(((_ss_)->ss_family == AF_INET6) ? (sizeof(sSA6)) :	\
+	( (socklen_t) ( (((sSS *)_ss_)->ss_family == AF_INET) ? (sizeof(sSA4)) :		\
+				((((sSS *)_ss_)->ss_family == AF_INET6) ? (sizeof(sSA6)) :	\
 					0 ) ) )
 
 /* Define the value of IP loopback address */
