@@ -56,6 +56,9 @@ INCLUDE_DIRECTORIES(${GCRYPT_INCLUDE_DIR})
 # Building the executable
 ADD_EXECUTABLE(freeDiameterd ${FD_COMMON_SRC} ${FD_COMMON_GEN_SRC} main.c)
 
+# Add this to workaround an apparent bug in FreeBSD cmake (already defined in Linux)
+SET(CMAKE_SHARED_LIBRARY_LINK_C_FLAGS "-rdynamic")
+
 # The link command
 LINK_DIRECTORIES(${CURRENT_BINARY_DIR}/../libfreeDiameter)
 TARGET_LINK_LIBRARIES(freeDiameterd libfreeDiameter ${FD_LIBS})
