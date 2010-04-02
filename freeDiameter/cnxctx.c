@@ -134,7 +134,7 @@ struct cnxctx * fd_cnx_serv_tcp(uint16_t port, int family, struct fd_endpoint * 
 	{
 		char addrbuf[INET6_ADDRSTRLEN];
 		int  rc;
-		rc = getnameinfo(sa, sizeof(sSS), addrbuf, sizeof(addrbuf), NULL, 0, NI_NUMERICHOST);
+		rc = getnameinfo(sa, sSAlen(sa), addrbuf, sizeof(addrbuf), NULL, 0, NI_NUMERICHOST);
 		if (rc)
 			snprintf(addrbuf, sizeof(addrbuf), "[err:%s]", gai_strerror(rc));
 		snprintf(cnx->cc_id, sizeof(cnx->cc_id), "TCP srv [%s]:%hu (%d)", addrbuf, port, cnx->cc_socket);
@@ -249,7 +249,7 @@ struct cnxctx * fd_cnx_serv_accept(struct cnxctx * serv)
 		int  rc;
 		
 		/* Numeric values for debug */
-		rc = getnameinfo((sSA *)&ss, sizeof(sSS), addrbuf, sizeof(addrbuf), portbuf, sizeof(portbuf), NI_NUMERICHOST | NI_NUMERICSERV);
+		rc = getnameinfo((sSA *)&ss, sSAlen(&ss), addrbuf, sizeof(addrbuf), portbuf, sizeof(portbuf), NI_NUMERICHOST | NI_NUMERICSERV);
 		if (rc) {
 			snprintf(addrbuf, sizeof(addrbuf), "[err:%s]", gai_strerror(rc));
 			portbuf[0] = '\0';
@@ -260,7 +260,7 @@ struct cnxctx * fd_cnx_serv_accept(struct cnxctx * serv)
 				addrbuf, portbuf, cli->cc_socket);
 		
 		/* Name for log messages */
-		rc = getnameinfo((sSA *)&ss, sizeof(sSS), cli->cc_remid, sizeof(cli->cc_remid), NULL, 0, 0);
+		rc = getnameinfo((sSA *)&ss, sSAlen(&ss), cli->cc_remid, sizeof(cli->cc_remid), NULL, 0, 0);
 		if (rc)
 			snprintf(cli->cc_remid, sizeof(cli->cc_remid), "[err:%s]", gai_strerror(rc));
 	}
@@ -416,7 +416,7 @@ struct cnxctx * fd_cnx_cli_connect_sctp(int no_ip6, uint16_t port, struct fd_lis
 		int  rc;
 		
 		/* Numeric values for debug */
-		rc = getnameinfo((sSA *)&primary, sizeof(sSS), addrbuf, sizeof(addrbuf), portbuf, sizeof(portbuf), NI_NUMERICHOST | NI_NUMERICSERV);
+		rc = getnameinfo((sSA *)&primary, sSAlen(&primary), addrbuf, sizeof(addrbuf), portbuf, sizeof(portbuf), NI_NUMERICHOST | NI_NUMERICSERV);
 		if (rc) {
 			snprintf(addrbuf, sizeof(addrbuf), "[err:%s]", gai_strerror(rc));
 			portbuf[0] = '\0';
@@ -425,7 +425,7 @@ struct cnxctx * fd_cnx_cli_connect_sctp(int no_ip6, uint16_t port, struct fd_lis
 		snprintf(cnx->cc_id, sizeof(cnx->cc_id), "{SCTP} -> [%s]:%s (%d)", addrbuf, portbuf, cnx->cc_socket);
 		
 		/* Name for log messages */
-		rc = getnameinfo((sSA *)&primary, sizeof(sSS), cnx->cc_remid, sizeof(cnx->cc_remid), NULL, 0, 0);
+		rc = getnameinfo((sSA *)&primary, sSAlen(&primary), cnx->cc_remid, sizeof(cnx->cc_remid), NULL, 0, 0);
 		if (rc)
 			snprintf(cnx->cc_remid, sizeof(cnx->cc_remid), "[err:%s]", gai_strerror(rc));
 	}
