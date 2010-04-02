@@ -66,6 +66,13 @@ static int fd_setsockopt_prebind(int sk)
 	
 	CHECK_PARAMS( sk > 0 );
 	
+#ifdef DEBUG
+	{
+		int reuse = 1;
+		CHECK_SYS(  setsockopt(sk, SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof(reuse))  );
+	}
+#endif /* DEBUG	*/
+	
 #ifdef ADJUST_RTX_PARAMS
 	/* Set the retransmit parameters */
 	#ifdef SCTP_RTOINFO
