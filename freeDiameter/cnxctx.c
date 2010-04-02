@@ -822,6 +822,10 @@ again:
 					TRACE_DEBUG(INFO, "This GNU TLS error is not handled, assume unrecoverable error");
 			}
 		} );
+		
+	if (ret == 0)
+		CHECK_GNUTLS_DO( gnutls_bye(session, GNUTLS_SHUT_RDWR),  );
+	
 end:	
 	if (ret <= 0)
 		fd_cnx_markerror(conn);
@@ -1070,7 +1074,7 @@ int fd_tls_verify_credentials(gnutls_session_t session, struct cnxctx * conn, in
 		if (TRACE_BOOL(INFO)) {
 			fd_log_debug("TLS: Remote certificate invalid on socket %d (Remote: '%s')(Connection: '%s') :\n", conn->cc_socket, conn->cc_remid, conn->cc_id);
 			if (ret & GNUTLS_CERT_INVALID)
-				fd_log_debug(" - The certificate is not trusted (unknown CA?)\n");
+				fd_log_debug(" - The certificate is not trusted (unknown CA? expired?)\n");
 			if (ret & GNUTLS_CERT_REVOKED)
 				fd_log_debug(" - The certificate has been revoked.\n");
 			if (ret & GNUTLS_CERT_SIGNER_NOT_FOUND)
