@@ -104,6 +104,7 @@ struct peer_info fddpi;
 %token		OLDTLS
 %token		NOTLS
 %token		SCTPSTREAMS
+%token		APPSERVTHREADS
 %token		LISTENON
 %token		TCTIMER
 %token		TWTIMER
@@ -132,6 +133,7 @@ conffile:		/* Empty is OK -- for simplicity here, we reject in daemon later */
 			| conffile sctpstreams
 			| conffile listenon
 			| conffile norelay
+			| conffile appservthreads
 			| conffile noip
 			| conffile noip6
 			| conffile notcp
@@ -227,6 +229,14 @@ listenon:		LISTENON '=' QSTRING ';'
 norelay:		NORELAY ';'
 			{
 				conf->cnf_flags.no_fwd = 1;
+			}
+			;
+
+appservthreads:		APPSERVTHREADS '=' INTEGER ';'
+			{
+				CHECK_PARAMS_DO( ($3 > 0) && ($3 < 1024),
+					{ yyerror (&yylloc, conf, "Invalid value"); YYERROR; } );
+				conf->cnf_dispthr = (uint16_t)$3;
 			}
 			;
 

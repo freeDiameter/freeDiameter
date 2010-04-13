@@ -122,6 +122,7 @@ qstring		\"[^\"\n]*\"
 (?i:"Prefer_TCP")	{ return PREFERTCP;	}
 (?i:"TLS_old_method")	{ return OLDTLS;	}
 (?i:"SCTP_streams")	{ return SCTPSTREAMS;	}
+(?i:"AppServThreads")	{ return APPSERVTHREADS;}
 (?i:"ListenOn")		{ return LISTENON;	}
 (?i:"TcTimer")		{ return TCTIMER;	}
 (?i:"TwTimer")		{ return TWTIMER;	}

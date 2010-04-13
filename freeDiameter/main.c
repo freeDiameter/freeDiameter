@@ -95,10 +95,12 @@ int main(int argc, char * argv[])
 	CHECK_FCT(  fd_queues_init()  );
 	CHECK_FCT(  fd_msg_init()  );
 	CHECK_FCT(  fd_p_expi_init()  );
-	CHECK_FCT(  fd_rtdisp_init()  );
 	
 	/* Parse the configuration file */
 	CHECK_FCT( fd_conf_parse() );
+	
+	/* Create the daemon's threads */
+	CHECK_FCT(  fd_rtdisp_init()  );
 	
 	/* Load the dynamic extensions */
 	CHECK_FCT(  fd_ext_load()  );

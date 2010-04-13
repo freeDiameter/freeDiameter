@@ -58,6 +58,7 @@ int fd_conf_init()
 	fd_g_config->cnf_port     = 3868;
 	fd_g_config->cnf_port_tls = 3869;
 	fd_g_config->cnf_sctp_str = 30;
+	fd_g_config->cnf_dispthr  = 4;
 	fd_list_init(&fd_g_config->cnf_endpoints, NULL);
 	fd_list_init(&fd_g_config->cnf_apps, NULL);
 	#ifdef DISABLE_SCTP
@@ -91,6 +92,7 @@ void fd_conf_dump()
 	fd_log_debug("  Local port ............. : %hu\n", fd_g_config->cnf_port);
 	fd_log_debug("  Local secure port ...... : %hu\n", fd_g_config->cnf_port_tls);
 	fd_log_debug("  Number of SCTP streams . : %hu\n", fd_g_config->cnf_sctp_str);
+	fd_log_debug("  Number of server threads : %hu\n", fd_g_config->cnf_dispthr);
 	if (FD_IS_LIST_EMPTY(&fd_g_config->cnf_endpoints)) {
 		fd_log_debug("  Local endpoints ........ : Default (use all available)\n");
 	} else {

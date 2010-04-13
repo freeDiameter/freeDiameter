@@ -144,6 +144,11 @@
 # Default: Relaying is enabled.
 #NoRelay;
 
+# Number of server threads that can handle incoming messages at the same time.
+#  TODO: implement dynamic # of threads depending on the length of the queue.
+# Default: 4
+#AppServThreads = 4;
+
 # Other applications are configured by loading appropriate extensions.
 
 ##############################################################

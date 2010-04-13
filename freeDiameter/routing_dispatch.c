@@ -1069,10 +1069,10 @@ static void * routing_out_thr(void * arg)
 /*                     The functions for the other files                        */
 /********************************************************************************/
 
-/* Later: make this more dynamic */
-static pthread_t dispatch = (pthread_t)NULL;
-static enum thread_state disp_state = INITIAL;
+static pthread_t * dispatch = NULL;
+static enum thread_state * disp_state = NULL;
 
+/* Later: make this more dynamic */
 static pthread_t rt_out = (pthread_t)NULL;
 static enum thread_state out_state = INITIAL;
 
@@ -1082,7 +1082,16 @@ static enum thread_state in_state = INITIAL;
 /* Initialize the routing and dispatch threads */
 int fd_rtdisp_init(void)
 {
-	CHECK_POSIX( pthread_create( &dispatch, NULL, dispatch_thr, &disp_state ) );
+	int i;
+	
+	/* Prepare the array for dispatch */
+	CHECK_MALLOC( dispatch = calloc(fd_g_config->cnf_dispthr, sizeof(pthread_t)) );
+	CHECK_MALLOC( disp_state = calloc(fd_g_config->cnf_dispthr, sizeof(enum thread_state)) );
+	
+	/* Create the threads */
+	for (i=0; i < fd_g_config->cnf_dispthr; i++) {
+		CHECK_POSIX( pthread_create( &dispatch[i], NULL, dispatch_thr, &disp_state[i] ) );
+	}
 	CHECK_POSIX( pthread_create( &rt_out, NULL, routing_out_thr, &out_state) );
 	CHECK_POSIX( pthread_create( &rt_in,  NULL, routing_in_thr,  &in_state) );
 	
@@ -1138,6 +1147,8 @@ static void stop_thread_delayed(enum thread_state *st, pthread_t * thr, char * t
 /* Stop the thread after up to one second of wait */
 int fd_rtdisp_fini(void)
 {
+	int i;
+	
 	/* Destroy the incoming queue */
 	CHECK_FCT_DO( fd_queues_fini(&fd_g_incoming), /* ignore */);
 	
@@ -1154,7 +1165,9 @@ int fd_rtdisp_fini(void)
 	CHECK_FCT_DO( fd_queues_fini(&fd_g_local), /* ignore */);
 	
 	/* Stop the Dispatch thread */
-	stop_thread_delayed(&disp_state, &dispatch, "Dispatching");
+	for (i=0; i < fd_g_config->cnf_dispthr; i++) {
+		stop_thread_delayed(&disp_state[i], &dispatch[i], "Dispatching");
+	}
 	
 	return 0;
 }
