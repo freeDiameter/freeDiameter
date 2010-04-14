@@ -26,6 +26,7 @@ INCLUDE_DIRECTORIES(${GCRYPT_INCLUDE_DIR})
 
 ####
 # Diameter applications dictionary
+
 OPTION(BUILD_DICT_NASREQ "Build NASREQ (RFC4005) Dictionary definitions?" ON)
 	IF (BUILD_DICT_NASREQ)
 	   SUBDIRS(dict_nasreq)
@@ -39,11 +40,13 @@ OPTION(BUILD_DICT_EAP "Build Diameter EAP (RFC4072) Dictionary definitions?" ON)
 
 
 ####
-# Radius / Diameter gateway extension(s)
-# OPTION(BUILD_RADIUS_GW "Build radius_gw? (one-way RADIUS/Diameter gateway - RADIUS NAS <-> Diameter server)" ON)
-# 	IF (BUILD_RADIUS_GW)
-# 	   SUBDIRS(radius_gw)
-# 	ENDIF (BUILD_RADIUS_GW)
+# Diameter applications
+
+OPTION(BUILD_APP_RADGW "Build app_radgw? (one-way RADIUS/Diameter gateway - RADIUS NAS <-> Diameter server)" OFF)
+	IF (BUILD_APP_RADGW)
+	   SUBDIRS(app_radgw)
+	ENDIF (BUILD_APP_RADGW)
+
 
 
 ####
@@ -64,8 +67,9 @@ OPTION(BUILD_ACL_WL "Build acl_wl? (White-list of remote connecting peers)" ON)
  	ENDIF (BUILD_ACL_WL)
 
 
+
 ####
-# Debug / test extensions
+# Debug & test extensions
 
 OPTION(BUILD_SAMPLE "Build sample.fdx? (Simple extension to demonstrate extension mechanism, for developpers only)" OFF)
 	IF (BUILD_SAMPLE)
