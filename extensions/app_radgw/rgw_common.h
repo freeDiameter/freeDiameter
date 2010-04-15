@@ -218,5 +218,8 @@ enum {  DIAM_ATTR_USER_NAME = 1,
 	DIAM_ATTR_ACCOUNTING_EAP_AUTH_METHOD = 465
 };
 
+const char * rgw_msg_attrtype_str(unsigned char c);
+const char * rgw_msg_code_str(unsigned char c);
+
 #endif /* _RGW_COMMON_H */
   

@@ -16,6 +16,8 @@ ENDIF (DEBUG_LEVEL_APP_RADGW)
 SET( RG_COMMON_SRC
 	radius.c
 	md5.c
+	rgw_msg_codes.c
+	rgw_msg_attrtype.c
 )
 SET( RG_COMMON_HEADER
 	rgw_common.h
@@ -53,6 +55,28 @@ TARGET_LINK_LIBRARIES(app_radgw rgw_common)
 
 
 
+########### RADIUS/Diameter translation agent plugins (support for RADIUS protocol) ############
+# Use the macro RGWX_ADD_PLUGIN(name files...) to create a plugin.
+# It is equivalent to add_library with the appropriate parameters
+# and naming conventions (.rgwx : Radius GateWay eXtension)
+MACRO(RGWX_ADD_PLUGIN PLGNAME)
+  ADD_LIBRARY(${PLGNAME} MODULE ${ARGN})
+  SET_TARGET_PROPERTIES(${PLGNAME} PROPERTIES PREFIX "" )
+  SET_TARGET_PROPERTIES(${PLGNAME} PROPERTIES SUFFIX ".rgwx" )
+  TARGET_LINK_LIBRARIES(${PLGNAME} rgw_common)
+ENDMACRO(RGWX_ADD_PLUGIN)
+
+# Example of plugin:
+OPTION(BUILD_RGWX_SAMPLE "Build sample plugin? (for developers only)" OFF)
+ 	IF (BUILD_RGWX_SAMPLE)
+ 	   RGWX_ADD_PLUGIN(sample ${RG_COMMON_HEADER} rgwx_sample.c)
+ 	ENDIF (BUILD_RGWX_SAMPLE)
+
+# A plugin for debug: dumps RADIUS and Diameter messages state at the time the plugin is called.
+OPTION(BUILD_RGWX_DEBUG "Build debug plugin? (display status of RADIUS and Diameter messages)" ON)
+ 	IF (BUILD_RGWX_DEBUG)
+ 	   RGWX_ADD_PLUGIN(debug ${RG_COMMON_HEADER} rgwx_debug.c)
+ 	ENDIF (BUILD_RGWX_DEBUG)
 
 
 
@@ -62,19 +86,7 @@ TARGET_LINK_LIBRARIES(app_radgw rgw_common)
 
 
 
-########### Sub extensions #############
-# Example of support extension:
-# OPTION(BUILD_RADIUS_GW_SAMPLE "Build sample sub-extension? (for debug only)" OFF)
-#  	IF (BUILD_RADIUS_GW_SAMPLE)
-#  	   ADD_LIBRARY(sub_sample MODULE ${RG_COMMON_HEADER} sub_sample.c)
-# 	   TARGET_LINK_LIBRARIES(sub_sample rg_common)
-#  	ENDIF (BUILD_RADIUS_GW_SAMPLE)
-	
-# OPTION(BUILD_SUB_DEBUG "Build debug sub-extension? (display status of RADIUS and Diameter messages)" ON)
-#  	IF (BUILD_SUB_DEBUG)
-#  	   ADD_LIBRARY(sub_debug MODULE ${RG_COMMON_HEADER} sub_debug.c)
-# 	   TARGET_LINK_LIBRARIES(sub_debug rg_common)
-#  	ENDIF (BUILD_SUB_DEBUG)
+
 # 
 # OPTION(BUILD_SUB_ECHO_DROP "Build 'echo/drop' sub-extension? (echo or drop specific RADIUS attributes, no Diameter translation)" ON)
 #  	IF (BUILD_SUB_ECHO_DROP)

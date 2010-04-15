@@ -219,6 +219,7 @@ int rgw_plg_add( char * plgfile, char * conffile, int type, unsigned char ** cod
 			fd_log_debug("An error occurred while parsing configuration file '%s' in plugin '%s', aborting...\n", new->conffile, new->plgname);
 			goto error;
 		}
+		TRACE_DEBUG(INFO, "RADIUS/Diameter gateway plugin '%s%s%s%s' initialized.", new->plgname, conffile ? " (" : "",  conffile ? new->conffile : "", conffile ? ")" : "");
 	}
 	
 	/* Now sort the array (very simple algorithm, but this list is usually small) of command codes and save */
@@ -492,10 +493,12 @@ void rgw_plg_fini(void)
 		struct plg_descr * plg = (struct plg_descr *) plg_list.next;
 		fd_list_unlink(&plg->chain);
 		free(plg->conffile);
-		free(plg->plgname);
 		free(plg->cc);
-		if (plg->cs && plg->descriptor && plg->descriptor->rgwp_conf_free )
+		if (plg->cs && plg->descriptor && plg->descriptor->rgwp_conf_free ) {
+			TRACE_DEBUG(INFO, "RADIUS/Diameter gateway plugin '%s' cleaning up...", plg->plgname);
 			(*plg->descriptor->rgwp_conf_free)(plg->cs);
+		}
+		free(plg->plgname);
 		dlclose(plg->dlo);
 		free(plg);
 	}

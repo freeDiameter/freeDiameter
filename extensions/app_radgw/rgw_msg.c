@@ -40,10 +40,6 @@ file functions (from hostap project).*/
 
 #include "rgw.h"
 
-/* Directly include the code of the functions for dumping (generated from the IANA registries) */
-#include "rgw_msg_codes.c"
-#include "rgw_msg_attrtype.c"
-
 /* Destroy a message */
 void rgw_msg_free(struct rgw_radius_msg_meta ** msg)
 {
