@@ -53,9 +53,6 @@ struct plg_descr {
 	int			 type;		/* this extension is called for messages received on this(these) server port(s) only */
 	unsigned char 		*cc;		/* array of command codes, or NULL for all cc */
 	size_t			 cc_len; 	/* size of the previous array */
-	
-	char 			*plgname; 	/* basename of the plugin, for debug messages. To be freed when object is detroyed */
-	char  			*conffile; 	/* configuration file passed to the extension, or "(null)". To be freed when object is destroyed */
 };
 
 /* Accelerators for each command code (one for each port). These accelerators are built on-demand, as a cache, after start_cache function has been called.  */
@@ -176,23 +173,15 @@ int rgw_plg_add( char * plgfile, char * conffile, int type, unsigned char ** cod
 {
 	struct plg_descr * new;
 	int ret = 0;
-	char * tmp;
 	
 	TRACE_ENTRY("%p %p %d %p %zi", plgfile, conffile, type, codes_array, codes_sz);
 	
 	CHECK_PARAMS( plgfile && type && codes_array && (cache_started == 0) );
 	
-	CHECK_MALLOC( tmp = strdup(plgfile) );
-	
 	CHECK_MALLOC( new = malloc(sizeof(struct plg_descr)) );
 	memset(new, 0, sizeof(struct plg_descr));
 	
 	fd_list_init(&new->chain, new);
-	
-	/* Copy names, for debug */
-	CHECK_MALLOC( new->plgname = strdup(basename(tmp)) ); /* basename is a stupid function :( */
-	free(tmp);
-	CHECK_MALLOC( new->conffile = conffile ?: strdup("(null)") );
 	
 	/* Try and load the plugin */
 	TRACE_DEBUG(FULL, "Loading plugin: %s", plgfile);
@@ -211,15 +200,15 @@ int rgw_plg_add( char * plgfile, char * conffile, int type, unsigned char ** cod
 		goto error;
 	}
 	
-	/* Now parse the configuration file, this will initialize all extension states and store it in the returned pointer (the subextensions must be re-entrant) */
+	TRACE_DEBUG(FULL, "Plugin '%s' found in file '%s'", new->descriptor->rgwp_name, plgfile);
+	
+	/* Now parse the configuration file, this will initialize all plugin states and store it in the "cs" pointer (the plugin must be re-entrant, so no global state) */
 	if (new->descriptor->rgwp_conf_parse) {
-		TRACE_DEBUG(FULL, "Parsing plugin conf file: %s", new->conffile );
-		new->cs = (*(new->descriptor->rgwp_conf_parse))(conffile);
-		if (new->cs == NULL) {
-			fd_log_debug("An error occurred while parsing configuration file '%s' in plugin '%s', aborting...\n", new->conffile, new->plgname);
-			goto error;
-		}
-		TRACE_DEBUG(INFO, "RADIUS/Diameter gateway plugin '%s%s%s%s' initialized.", new->plgname, conffile ? " (" : "",  conffile ? new->conffile : "", conffile ? ")" : "");
+		CHECK_FCT_DO( (*(new->descriptor->rgwp_conf_parse))(conffile, &new->cs), 
+			{
+				fd_log_debug("An error occurred while parsing configuration file '%s' in plugin '%s', aborting...\n", conffile, plgfile);
+				goto error;
+			} );
 	}
 	
 	/* Now sort the array (very simple algorithm, but this list is usually small) of command codes and save */
@@ -282,9 +271,9 @@ void rgw_plg_dump(void)
 		
 		plg = (struct plg_descr *)ptr;
 		
-		fd_log_debug("  %-25s ( %-25s ) - types: %s%s, codes: ", 
-				plg->plgname, 
-				basename(plg->conffile),
+		fd_log_debug("  %-25s ( %p ) - types: %s%s, codes: ", 
+				plg->descriptor->rgwp_name, 
+				plg->cs,
 				plg->type & RGW_PLG_TYPE_AUTH ? "Au" : "  ",
 				plg->type & RGW_PLG_TYPE_ACCT ? "Ac" : "  ");
 		
@@ -316,7 +305,7 @@ void rgw_plg_dump(void)
 
 		for (ptr = accel->plugins.next; ptr != &accel->plugins; ptr = ptr->next) {
 			struct plg_accel_item * item = (struct plg_accel_item *)ptr;
-			fd_log_debug("     %-15s (%s)\n", item->plg->plgname, basename(item->plg->conffile));
+			fd_log_debug("     %-15s (%p)\n", item->plg->descriptor->rgwp_name, item->plg->cs);
 		}
 	}
 	for (ptraccel = plg_accel_acct.next; ptraccel != &plg_accel_acct; ptraccel = ptraccel->next) {
@@ -325,7 +314,7 @@ void rgw_plg_dump(void)
 
 		for (ptr = accel->plugins.next; ptr != &accel->plugins; ptr = ptr->next) {
 			struct plg_accel_item * item = (struct plg_accel_item *)ptr;
-			fd_log_debug("     %-15s (%s)\n", item->plg->plgname, basename(item->plg->conffile));
+			fd_log_debug("     %-15s (%p)\n", item->plg->descriptor->rgwp_name, item->plg->cs);
 		}
 	}
 	
@@ -358,12 +347,12 @@ int rgw_plg_loop_req(struct rgw_radius_msg_meta **rad, struct session **session,
 		struct plg_descr * plg = ((struct plg_accel_item *) li)->plg;
 		
 		if (plg->descriptor->rgwp_rad_req) {
-			TRACE_DEBUG(ANNOYING, "Calling next plugin: %s", plg->plgname);
+			TRACE_DEBUG(ANNOYING, "Calling next plugin: %s", plg->descriptor->rgwp_name);
 			ret = (*plg->descriptor->rgwp_rad_req)(plg->cs, *session, &(*rad)->radius, &rad_ans, diam_msg, cli);
 			if (ret)
 				break;
 		} else {
-			TRACE_DEBUG(ANNOYING, "Skipping extension '%s' (NULL callback)", plg->plgname);
+			TRACE_DEBUG(ANNOYING, "Skipping extension '%s' (NULL callback)", plg->descriptor->rgwp_name);
 		}					
 	}
 	
@@ -419,12 +408,12 @@ int rgw_plg_loop_ans(struct rgw_radius_msg_meta *req, struct session *session, s
 		struct plg_descr * plg = ((struct plg_accel_item *) li)->plg;
 		
 		if (plg->descriptor->rgwp_diam_ans) {
-			TRACE_DEBUG(ANNOYING, "Calling next plugin: %s", plg->plgname);
+			TRACE_DEBUG(ANNOYING, "Calling next plugin: %s", plg->descriptor->rgwp_name);
 			ret = (*plg->descriptor->rgwp_diam_ans)(plg->cs, session, diam_ans, rad_ans, (void *)cli);
 			if (ret)
 				break;
 		} else {
-			TRACE_DEBUG(ANNOYING, "Skipping extension '%s' (NULL callback)", plg->plgname);
+			TRACE_DEBUG(ANNOYING, "Skipping extension '%s' (NULL callback)", plg->descriptor->rgwp_name);
 		}					
 	}
 	
@@ -492,14 +481,13 @@ void rgw_plg_fini(void)
 	while ( ! FD_IS_LIST_EMPTY(&plg_list) ) {
 		struct plg_descr * plg = (struct plg_descr *) plg_list.next;
 		fd_list_unlink(&plg->chain);
-		free(plg->conffile);
 		free(plg->cc);
-		if (plg->cs && plg->descriptor && plg->descriptor->rgwp_conf_free ) {
-			TRACE_DEBUG(INFO, "RADIUS/Diameter gateway plugin '%s' cleaning up...", plg->plgname);
+		if (plg->descriptor && plg->descriptor->rgwp_conf_free ) {
+			TRACE_DEBUG(INFO, "RADIUS/Diameter gateway plugin '%s' cleaning up...", plg->descriptor->rgwp_name);
 			(*plg->descriptor->rgwp_conf_free)(plg->cs);
 		}
-		free(plg->plgname);
-		dlclose(plg->dlo);
+		if (plg->dlo)
+			dlclose(plg->dlo);
 		free(plg);
 	}
 	

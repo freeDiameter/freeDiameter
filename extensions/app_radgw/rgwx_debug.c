@@ -37,32 +37,17 @@
 
 #include "rgw_common.h"
 
-struct rgwp_config {
-	char * confstring;
-};
-
-/* The function called at plugin initialization */
-static struct rgwp_config * debug_conf_parse ( char * conf_file )
+/* Store the configuration string in the state */
+static int debug_conf_parse ( char * conf_file, struct rgwp_config ** state )
 {
-	struct rgwp_config * ret = NULL;
+	TRACE_ENTRY("%p %p", conf_file, state);
+	CHECK_PARAMS(state);
 	
-	TRACE_ENTRY("%p", conf_file);
+	*state = (void *)conf_file;
 	
-	CHECK_MALLOC_DO( ret = malloc(sizeof(struct rgwp_config)), return NULL );
-	
-	ret->confstring = conf_file;
-	
-	return ret;
+	return 0;
 }
 
-/* This function is called when the plugin is unloaded, to cleanup all the states */
-static void debug_conf_free(struct rgwp_config * cs)
-{
-	TRACE_ENTRY("%p", cs);
-	CHECK_PARAMS_DO( cs, );
-	free(cs);
-	return;
-}
 
 /* Function to display the content of a RADIUS message (more friendly way than radius_msg_dump) */
 static void debug_dump_radius(struct radius_msg *msg)
@@ -90,7 +75,7 @@ static int debug_rad_req( struct rgwp_config * cs, struct session * session, str
 {
 	TRACE_ENTRY("%p %p %p %p %p %p", cs, session, rad_req, rad_ans, diam_fw, cli);
 	
-	fd_log_debug("------------- RADIUS/Diameter Request Debug%s%s%s -------------\n", cs->confstring ? " [" : "", cs->confstring ?: "", cs->confstring ? "]" : "");
+	fd_log_debug("------------- RADIUS/Diameter Request Debug%s%s%s -------------\n", cs ? " [" : "", cs ? (char *)cs : "", cs ? "]" : "");
 	
 	if (!rad_req) {
 		fd_log_debug(" RADIUS request: NULL pointer\n");
@@ -113,7 +98,7 @@ static int debug_rad_req( struct rgwp_config * cs, struct session * session, str
 		fd_msg_dump_walk(0, *diam_fw);
 	}
 	
-	fd_log_debug("===========  Debug%s%s%s complete =============\n", cs->confstring ? " [" : "", cs->confstring ?: "", cs->confstring ? "]" : "");
+	fd_log_debug("===========  Debug%s%s%s complete =============\n", cs ? " [" : "", cs ? (char *)cs : "", cs ? "]" : "");
 	
 	return 0;
 }
@@ -123,7 +108,7 @@ static int debug_diam_ans( struct rgwp_config * cs, struct session * session, st
 {
 	TRACE_ENTRY("%p %p %p %p %p", cs, session, diam_ans, rad_fw, cli);
 
-	fd_log_debug("------------- RADIUS/Diameter Answer Debug%s%s%s -------------\n", cs->confstring ? " [" : "", cs->confstring ?: "", cs->confstring ? "]" : "");
+	fd_log_debug("------------- RADIUS/Diameter Answer Debug%s%s%s -------------\n", cs ? " [" : "", cs ? (char *)cs : "", cs ? "]" : "");
 	
 	if (!diam_ans || ! *diam_ans) {
 		fd_log_debug(" Diameter message: NULL pointer\n");
@@ -139,15 +124,16 @@ static int debug_diam_ans( struct rgwp_config * cs, struct session * session, st
 		debug_dump_radius(*rad_fw);
 	}
 	
-	fd_log_debug("===========  Debug%s%s%s complete =============\n", cs->confstring ? " [" : "", cs->confstring ?: "", cs->confstring ? "]" : "");
+	fd_log_debug("===========  Debug%s%s%s complete =============\n", cs ? " [" : "", cs ? (char *)cs : "", cs ? "]" : "");
 	return 0;
 }
 
 
 /* The exported symbol */
 struct rgw_api rgwp_descriptor = {
-	debug_conf_parse,
-	debug_conf_free,
-	debug_rad_req,
-	debug_diam_ans
+	.rgwp_name       = "debug",
+	.rgwp_conf_parse = debug_conf_parse,
+	.rgwp_conf_free  = NULL,
+	.rgwp_rad_req    = debug_rad_req,
+	.rgwp_diam_ans   = debug_diam_ans
 };	

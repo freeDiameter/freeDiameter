@@ -55,16 +55,20 @@ struct rgwp_config;
 
 /* This structure points to a RADIUS client description, the definition is not known to plugins */
 struct rgw_client;
+/* This function is required to be able to translate user paswords */
+int rgw_clients_getkey(struct rgw_client * cli, unsigned char **key, size_t *key_len);
 
 /* Each plugin must provide the following structure. */
 extern struct rgw_api {
+	/* The name of the plugin */
+	const char * rgwp_name;
+
 	/* Parse the configuration file. It may be called several times with different configurations.
-	    Returns NULL on errors.
-	    Called even if no configuration file is passed (with NULL parameter then) */
-	struct rgwp_config * (*rgwp_conf_parse) ( char * conf_file );
+	    Called even if no configuration file is passed (with NULL conf_file parameter then) */
+	int (*rgwp_conf_parse) ( char * conf_file, struct rgwp_config ** state );
 	
-	/* Cleanup the configuration state when the daemon is exiting. */
-	void (*rgwp_conf_free) (struct rgwp_config * conf);
+	/* Cleanup the configuration state when the daemon is exiting (called even if state is NULL). */
+	void (*rgwp_conf_free) (struct rgwp_config * state);
 
 	/* handle an incoming RADIUS message */
 	int	(*rgwp_rad_req) ( struct rgwp_config * conf, struct session * session, struct radius_msg * rad_req, struct radius_msg ** rad_ans, struct msg ** diam_fw, struct rgw_client * cli );

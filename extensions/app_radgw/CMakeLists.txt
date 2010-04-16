@@ -66,6 +66,8 @@ MACRO(RGWX_ADD_PLUGIN PLGNAME)
   TARGET_LINK_LIBRARIES(${PLGNAME} rgw_common)
 ENDMACRO(RGWX_ADD_PLUGIN)
 
+
+### Debug 
 # Example of plugin:
 OPTION(BUILD_RGWX_SAMPLE "Build sample plugin? (for developers only)" OFF)
  	IF (BUILD_RGWX_SAMPLE)
@@ -79,6 +81,11 @@ OPTION(BUILD_RGWX_DEBUG "Build debug plugin? (display status of RADIUS and Diame
  	ENDIF (BUILD_RGWX_DEBUG)
 
 
+### Authentication, Authorization messages translation.
+OPTION(BUILD_RGWX_AUTH "Build Authentication & Authorization RADIUS translation plugin? (RFC2865, RFC3579)" ON)
+	IF (BUILD_RGWX_AUTH)
+ 	   RGWX_ADD_PLUGIN(auth ${RG_COMMON_HEADER} rgwx_auth.c)
+	ENDIF (BUILD_RGWX_AUTH)
 
 
 
@@ -102,13 +109,6 @@ OPTION(BUILD_RGWX_DEBUG "Build debug plugin? (display status of RADIUS and Diame
 # 		sub_echo_drop.tab.h)
 # 	   TARGET_LINK_LIBRARIES(sub_echo_drop rg_common)
 #  	ENDIF (BUILD_SUB_ECHO_DROP)
-# 
-# OPTION(BUILD_SUB_AUTH "Build RADIUS Authentication & Authorization sub-extension? (RFC2865, RFC3579)" ON)
-#  	IF (BUILD_SUB_AUTH)
-# 	   ADD_DEFINITIONS(-DSUB_AUTH_VERBO=2)
-#  	   ADD_LIBRARY(sub_auth MODULE ${RG_COMMON_HEADER} sub_auth.c)
-# 	   TARGET_LINK_LIBRARIES(sub_auth rg_common)
-#  	ENDIF (BUILD_SUB_AUTH)
 # 
 # OPTION(BUILD_SUB_ACCT "Build RADIUS Accounting sub-extension? (RFC2866)" ON)
 #  	IF (BUILD_SUB_ACCT)

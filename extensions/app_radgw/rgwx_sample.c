@@ -40,29 +40,28 @@
 /* The state of this extension */
 struct rgwp_config {
 	/* In a real extension, we would store the parsed configuration file, and the states of the extension */
-	int state;
+	int init;
 };
 
 /* The function called at plugin initialization */
-static struct rgwp_config * sample_conf_parse ( char * conf_file )
+static int sample_conf_parse ( char * conf_file, struct rgwp_config ** state )
 {
-	struct rgwp_config * ret = NULL;
+	TRACE_ENTRY("%p %p", conf_file, state);
+	CHECK_PARAMS(state);
 	
-	TRACE_ENTRY("%p", conf_file);
+	CHECK_MALLOC( *state = malloc(sizeof(struct rgwp_config)) );
 	
-	CHECK_MALLOC_DO( ret = malloc(sizeof(struct rgwp_config)), return NULL );
+	(*state)->init = 1;
 	
-	ret->state = 1;
-	
-	return ret;
+	return 0;
 }
 
 /* This function is called when the plugin is unloaded, to cleanup all the states */
-static void sample_conf_free(struct rgwp_config * cs)
+static void sample_conf_free(struct rgwp_config * state)
 {
-	TRACE_ENTRY("%p", cs);
-	CHECK_PARAMS_DO( cs, );
-	free(cs);
+	TRACE_ENTRY("%p", state);
+	CHECK_PARAMS_DO( state, );
+	free(state);
 	return;
 }
 
@@ -87,8 +86,9 @@ static int sample_diam_ans( struct rgwp_config * cs, struct session * session, s
 
 /* Finally, we declare the structure that will be loaded by main RADIUS/Diameter gateway extension */
 struct rgw_api rgwp_descriptor = {
-	sample_conf_parse,
-	sample_conf_free,
-	sample_rad_req,
-	sample_diam_ans
+	.rgwp_name       = "sample",
+	.rgwp_conf_parse = sample_conf_parse,
+	.rgwp_conf_free  = sample_conf_free,
+	.rgwp_rad_req    = sample_rad_req,
+	.rgwp_diam_ans   = sample_diam_ans
 };	
