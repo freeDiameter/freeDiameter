@@ -1,19 +1,19 @@
 #!/bin/bash -x
 
-# This script will search all waaad copyrights from source files, and update these if 
-# the waaad source was modified later.
+# This script will search all copyrights dates from source files, and update these if 
+# the file has been modified at a later date.
 
-if [ ! -f waaad/waaad-internal.h ];
-then echo "This script must be run from waaad top directory"
+if [ ! -f include/freeDiameter/freeDiameter.h ];
+then echo "This script must be run from the source top directory"
 exit 1;
 fi;
 
 # Create a clean working copy
 TMPDIR=`mktemp -d up_cop.XXXXXXX` || exit 1
-hg clone . $TMPDIR/waaad || exit 1
-pushd $TMPDIR/waaad
+hg clone . $TMPDIR/fD || exit 1
+pushd $TMPDIR/fD
 
-# Now, for each file
+# Now, for each file with a copyright
 for SRC_FILE in `find . -name .hg -prune -or -type f -exec grep -q 'Copyright (c) 20.., WIDE Project and NICT' {} \; -print`;
 do 
 HG_YEAR=`hg log --template '{date|shortdate}' $SRC_FILE | tr - ' ' | awk '{print \$1}'`
