@@ -467,9 +467,9 @@ int rgw_clients_add( struct sockaddr * ip_port, unsigned char ** key, size_t key
 	
 	/* Dump the entry in debug mode */
 	if (TRACE_BOOL(FULL + 1 )) {
-		TRACE_DEBUG(FULL, "Adding client:\n");
-		TRACE_DEBUG_sSA(FULL, 	 "\tIP : ", ip_port, NI_NUMERICHOST | NI_NUMERICSERV, "\n" );
-		TRACE_DEBUG_BUFFER(FULL, "\tKey: [", *key, keylen, "]\n" );
+		TRACE_DEBUG(FULL, "Adding client:");
+		TRACE_DEBUG_sSA(FULL, 	 "\tIP : ", ip_port, NI_NUMERICHOST | NI_NUMERICSERV, "" );
+		TRACE_DEBUG_BUFFER(FULL, "\tKey: [", *key, keylen, "]" );
 	}
 	
 	/* Lock the lists */
@@ -495,12 +495,12 @@ int rgw_clients_add( struct sockaddr * ip_port, unsigned char ** key, size_t key
 		}
 		
 		fd_log_debug("ERROR: Conflicting RADIUS clients descriptions!\n");
-		TRACE_DEBUG(NONE, "Previous entry:\n");
-		TRACE_DEBUG_sSA(NONE, 	 "\tIP : ", prev->sa, NI_NUMERICHOST | NI_NUMERICSERV, "\n" );
-		TRACE_DEBUG_BUFFER(NONE, "\tKey: [", prev->key.data, prev->key.len, "]\n" );
-		TRACE_DEBUG(NONE, "Conflicting entry:\n");
-		TRACE_DEBUG_sSA(NONE, 	 "\tIP : ", ip_port, NI_NUMERICHOST | NI_NUMERICSERV, "\n" );
-		TRACE_DEBUG_BUFFER(NONE, "\tKey: [", *key, keylen, "]\n" );
+		TRACE_DEBUG(NONE, "Previous entry:");
+		TRACE_DEBUG_sSA(NONE, 	 "\tIP : ", prev->sa, NI_NUMERICHOST | NI_NUMERICSERV, "" );
+		TRACE_DEBUG_BUFFER(NONE, "\tKey: [", prev->key.data, prev->key.len, "]" );
+		TRACE_DEBUG(NONE, "Conflicting entry:");
+		TRACE_DEBUG_sSA(NONE, 	 "\tIP : ", ip_port, NI_NUMERICHOST | NI_NUMERICSERV, "" );
+		TRACE_DEBUG_BUFFER(NONE, "\tKey: [", *key, keylen, "]" );
 	}
 end:
 	/* release the lists */
@@ -516,8 +516,8 @@ static void dump_cli_list(struct fd_list *senti)
 	
 	for (ref = senti->next; ref != senti; ref = ref->next) {
 		client = (struct rgw_client *)ref;
-		TRACE_DEBUG_sSA(NONE, 	 "  - ", client->sa, NI_NUMERICHOST | NI_NUMERICSERV, "\n" );
-		TRACE_DEBUG_BUFFER(NONE, "     [", client->key.data, client->key.len, "]\n" );
+		TRACE_DEBUG_sSA(NONE, 	 "  - ", client->sa, NI_NUMERICHOST | NI_NUMERICSERV, "" );
+		TRACE_DEBUG_BUFFER(NONE, "     [", client->key.data, client->key.len, "]" );
 	}
 }
 
