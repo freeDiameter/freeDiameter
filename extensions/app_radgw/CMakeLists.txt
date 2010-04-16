@@ -87,6 +87,12 @@ OPTION(BUILD_RGWX_AUTH "Build Authentication & Authorization RADIUS translation 
  	   RGWX_ADD_PLUGIN(auth ${RG_COMMON_HEADER} rgwx_auth.c)
 	ENDIF (BUILD_RGWX_AUTH)
 
+### Accounting messages translation.
+OPTION(BUILD_RGWX_ACCT "Build Accounting RADIUS translation plugin? (RFC2866)" ON)
+	IF (BUILD_RGWX_ACCT)
+ 	   RGWX_ADD_PLUGIN(acct ${RG_COMMON_HEADER} rgwx_acct.c)
+	ENDIF (BUILD_RGWX_ACCT)
+
 
 
 
@@ -109,10 +115,3 @@ OPTION(BUILD_RGWX_AUTH "Build Authentication & Authorization RADIUS translation 
 # 		sub_echo_drop.tab.h)
 # 	   TARGET_LINK_LIBRARIES(sub_echo_drop rg_common)
 #  	ENDIF (BUILD_SUB_ECHO_DROP)
-# 
-# OPTION(BUILD_SUB_ACCT "Build RADIUS Accounting sub-extension? (RFC2866)" ON)
-#  	IF (BUILD_SUB_ACCT)
-# 	   ADD_DEFINITIONS(-DSUB_ACCT_VERBO=2)
-#  	   ADD_LIBRARY(sub_acct MODULE ${RG_COMMON_HEADER} sub_acct.c)
-# 	   TARGET_LINK_LIBRARIES(sub_acct rg_common)
-#  	ENDIF (BUILD_SUB_ACCT)
