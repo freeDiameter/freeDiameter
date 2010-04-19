@@ -390,7 +390,12 @@ psm_loop:
 			} );
 		
 		TRACE_DEBUG(FULL, "Received a message (%zdb) from '%s'", ev_sz, peer->p_hdr.info.pi_diamid);
-		fd_msg_dump_walk(FULL, msg);
+		if (TRACE_BOOL(FULL+1)) {
+			CHECK_FCT_DO( fd_msg_parse_dict( msg, fd_g_config->cnf_dict, NULL ), );
+			fd_msg_dump_walk(FULL, msg);
+		} else {
+			fd_msg_dump_one(FULL, msg);
+		}
 	
 		/* Extract the header */
 		CHECK_FCT_DO( fd_msg_hdr(msg, &hdr), goto psm_end );
