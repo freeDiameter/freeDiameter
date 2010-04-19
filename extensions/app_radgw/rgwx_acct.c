@@ -77,6 +77,8 @@ static int acct_conf_parse(char * conffile, struct rgwp_config ** state)
 	CHECK_FCT( fd_dict_search( fd_g_config->cnf_dict, DICT_AVP, AVP_BY_NAME, "State", &new->dict.State, ENOENT) );
 	CHECK_FCT( fd_dict_search( fd_g_config->cnf_dict, DICT_AVP, AVP_BY_NAME, "User-Name", &new->dict.User_Name, ENOENT) );
 	
+	TODO("Advertize application support...");
+	
 	*state = new;
 	return 0;
 }

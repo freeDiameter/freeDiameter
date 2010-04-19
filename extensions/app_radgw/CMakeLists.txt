@@ -94,24 +94,11 @@ OPTION(BUILD_RGWX_ACCT "Build Accounting RADIUS translation plugin? (RFC2866)" O
 	ENDIF (BUILD_RGWX_ACCT)
 
 
-
-
-
-
-
-
-# 
-# OPTION(BUILD_SUB_ECHO_DROP "Build 'echo/drop' sub-extension? (echo or drop specific RADIUS attributes, no Diameter translation)" ON)
-#  	IF (BUILD_SUB_ECHO_DROP)
-# 	   ADD_DEFINITIONS(-DSUB_ECHO_DROP_VERBO=2)
-#  	   BISON_FILE(sub_echo_drop.y)
-#  	   FLEX_FILE(sub_echo_drop.l)
-#  	   SET_SOURCE_FILES_PROPERTIES(lex.sub_echo_drop.c sub_echo_drop.tab.c PROPERTIES COMPILE_FLAGS "-I ${CMAKE_CURRENT_SOURCE_DIR}")
-#  	   ADD_LIBRARY(sub_echo_drop MODULE ${RG_COMMON_HEADER}
-# 	   	sub_echo_drop.c
-# 		sub_echo_drop.h
-# 		lex.sub_echo_drop.c
-# 		sub_echo_drop.tab.c
-# 		sub_echo_drop.tab.h)
-# 	   TARGET_LINK_LIBRARIES(sub_echo_drop rg_common)
-#  	ENDIF (BUILD_SUB_ECHO_DROP)
+### Generic plugin to handle some attributes (either delete them or simply echo them in the answer) 
+OPTION(BUILD_RGWX_ECHODROP "Build 'echo/drop' plugin? (drop specific RADIUS attributes or echo them in RADIUS answer)" ON)
+  	IF (BUILD_RGWX_ECHODROP)
+  	   BISON_FILE(rgwx_echodrop.y)
+  	   FLEX_FILE(rgwx_echodrop.l)
+  	   SET_SOURCE_FILES_PROPERTIES(lex.rgwx_echodrop.c rgwx_echodrop.tab.c PROPERTIES COMPILE_FLAGS "-I ${CMAKE_CURRENT_SOURCE_DIR}")
+ 	   RGWX_ADD_PLUGIN(echodrop ${RG_COMMON_HEADER} rgwx_echodrop.h rgwx_echodrop.c lex.rgwx_echodrop.c rgwx_echodrop.tab.c rgwx_echodrop.tab.h )
+  	ENDIF (BUILD_RGWX_ECHODROP)
