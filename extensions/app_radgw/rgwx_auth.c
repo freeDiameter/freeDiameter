@@ -126,6 +126,7 @@ struct rgwp_config {
 static int auth_conf_parse(char * conffile, struct rgwp_config ** state)
 {
 	struct rgwp_config * new;
+	struct dict_object * app;
 	
 	TRACE_ENTRY("%p %p", conffile, state);
 	CHECK_PARAMS( state );
@@ -197,6 +198,13 @@ static int auth_conf_parse(char * conffile, struct rgwp_config ** state)
 	CHECK_FCT( fd_dict_search( fd_g_config->cnf_dict, DICT_AVP, AVP_BY_NAME, "Tunnel-Server-Auth-Id", &new->dict.Tunnel_Server_Auth_Id, ENOENT) );
 	CHECK_FCT( fd_dict_search( fd_g_config->cnf_dict, DICT_AVP, AVP_BY_NAME, "User-Name", &new->dict.User_Name, ENOENT) );
 	CHECK_FCT( fd_dict_search( fd_g_config->cnf_dict, DICT_AVP, AVP_BY_NAME, "User-Password", &new->dict.User_Password, ENOENT) );
+	
+	/* This plugin provides the following Diameter authentication applications support: */
+	CHECK_FCT( fd_dict_search( fd_g_config->cnf_dict, DICT_APPLICATION, APPLICATION_BY_NAME, "Diameter Network Access Server Application", &app, ENOENT) );
+	CHECK_FCT( fd_disp_app_support ( app, NULL, 1, 0 ) );
+
+	CHECK_FCT( fd_dict_search( fd_g_config->cnf_dict, DICT_APPLICATION, APPLICATION_BY_NAME, "Diameter Extensible Authentication Protocol (EAP) Application", &app, ENOENT) );
+	CHECK_FCT( fd_disp_app_support ( app, NULL, 1, 0 ) );
 	
 	*state = new;
 	return 0;
