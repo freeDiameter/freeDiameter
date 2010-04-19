@@ -708,6 +708,9 @@ int fd_p_ce_msgrcv(struct msg ** msg, int req, struct fd_peer * peer)
 	/* Handshake if needed, start clear otherwise */
 	if ( ! fd_cnx_getTLS(peer->p_cnxctx) ) {
 		int todo = peer->p_hdr.info.config.pic_flags.sec & peer->p_hdr.info.runtime.pir_isi ;
+		/* Special case: if the peer did not send a ISI AVP */
+		if (peer->p_hdr.info.runtime.pir_isi == 0)
+			todo = peer->p_hdr.info.config.pic_flags.sec;
 		
 		if (todo == PI_SEC_NONE) {
 			/* Ok for clear connection */
