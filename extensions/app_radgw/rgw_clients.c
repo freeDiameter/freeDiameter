@@ -443,6 +443,11 @@ int rgw_clients_get_origin(struct rgw_client *cli, char **fqdn, char **realm)
 	return 0;
 }
 
+char * rgw_clients_id(struct rgw_client *cli)
+{
+	return cli->fqdn;
+}
+
 
 void rgw_clients_dispose(struct rgw_client ** ref)
 {

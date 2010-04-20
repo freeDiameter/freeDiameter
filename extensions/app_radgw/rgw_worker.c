@@ -247,36 +247,39 @@ static void receive_diam_answer(void * paback, struct msg **ans)
 	
 	/* Pass the Diameter answer to the same extensions as the request */
 	CHECK_FCT_DO( rgw_plg_loop_ans(pa->rad, pa->sess, ans, &rad_ans, pa->cli), goto out );
-	
-	/* Now check what AVPs remain in the diameter answer. If AVPs with the 'M' flag are here, we have a problem... */
-	CHECK_FCT_DO( fd_msg_browse(*ans, MSG_BRW_FIRST_CHILD, &avp, NULL), { avp = NULL; pb++; } );
-	while (avp) {
-		CHECK_FCT_DO( fd_msg_avp_hdr ( avp, &ahdr ), { pb++; continue; } );
-		if (ahdr->avp_flags & AVP_FLAG_MANDATORY) {
-			if (ahdr->avp_flags & AVP_FLAG_VENDOR) {
-				TRACE_DEBUG(FULL, "Remaining Mandatory Vendor AVP, code %d", ahdr->avp_code);
-				pb++;
-			} else {
-				switch (ahdr->avp_code) {
-					/* A few AVPs can be safely ignored here: */
-					case DIAM_ATTR_ROUTE_RECORD:
-					case DIAM_ATTR_PROXY_INFO:
-						
-						
-						/* just ignore */
-						break;
-					
-					default:
-						TRACE_DEBUG(FULL, "Remaining Mandatory AVP, code %d", ahdr->avp_code);
-						pb++;
+
+	if (*ans != NULL) {
+
+		/* Now check what AVPs remain in the diameter answer. If AVPs with the 'M' flag are here, we have a problem... */
+		CHECK_FCT_DO( fd_msg_browse(*ans, MSG_BRW_FIRST_CHILD, &avp, NULL), { avp = NULL; pb++; } );
+		while (avp) {
+			CHECK_FCT_DO( fd_msg_avp_hdr ( avp, &ahdr ), { pb++; continue; } );
+			if (ahdr->avp_flags & AVP_FLAG_MANDATORY) {
+				if (ahdr->avp_flags & AVP_FLAG_VENDOR) {
+					TRACE_DEBUG(FULL, "Remaining Mandatory Vendor AVP, code %d", ahdr->avp_code);
+					pb++;
+				} else {
+					switch (ahdr->avp_code) {
+						/* A few AVPs can be safely ignored here: */
+						case DIAM_ATTR_ROUTE_RECORD:
+						case DIAM_ATTR_PROXY_INFO:
+
+
+							/* just ignore */
+							break;
+
+						default:
+							TRACE_DEBUG(FULL, "Remaining Mandatory AVP, code %d", ahdr->avp_code);
+							pb++;
+					}
 				}
 			}
+			CHECK_FCT_DO( fd_msg_browse(avp, MSG_BRW_NEXT, &avp, NULL), { pb++; break; } );
 		}
-		CHECK_FCT_DO( fd_msg_browse(avp, MSG_BRW_NEXT, &avp, NULL), { pb++; break; } );
-	}
-	
-	if (pb) {
-		TRACE_DEBUG(INFO, "[radgw] WARNING: %d mandatory AVP in the Diameter answer have not been translated to RADIUS!\n Please use plg_debug.rgwx for more information.", pb);
+
+		if (pb) {
+			TRACE_DEBUG(INFO, "[radgw] WARNING: %d mandatory AVP in the Diameter answer have not been translated to RADIUS!\n Please use plg_debug.rgwx for more information.", pb);
+		}
 	}
 	
 	/* Now try and send the RADIUS answer */

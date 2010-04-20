@@ -380,7 +380,7 @@ int rgw_plg_loop_req(struct rgw_radius_msg_meta **rad, struct session **session,
 	
 	if (ret > 0) {
 		/* Critical error, log and exit */
-		fd_log_debug("An error occurred while handling a RADIUS message, turn on DEBUG for details: %s\n", strerror(ret));
+		TRACE_DEBUG(NONE, "An error occurred while handling a RADIUS message from '%s': %s\n", rgw_clients_id(cli), strerror(ret));
 		return ret;
 	}
 	
@@ -437,6 +437,8 @@ int rgw_plg_loop_ans(struct rgw_radius_msg_meta *req, struct session *session, s
 	}
 	
 	/* We might define other return values with special meaning here (ret == -1, ...) for example create a new Diameter request */
+	
+	/* -1: just abord the translation with no more processing. */
 	
 	return 0;
 }

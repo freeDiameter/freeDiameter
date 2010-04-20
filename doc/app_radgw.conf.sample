@@ -39,6 +39,10 @@
 # Once the list of extensions for an incoming message has been called (or if the list is empty), 
 # an error is logged if some RADIUS attributes of the message have not been handled.
 
+RGWX = "extensions/echodrop.rgwx" : "echodrop.rgwx.conf"; # See echodrop.rgwx.conf.sample file
+RGWX = "extensions/auth.rgwx" : auth;
+RGWX = "extensions/acct.rgwx" : acct;
+# RGWX = "extensions/debug.rgwx"; # Uncomment to see the result of the translation plugins.
 
 ##################
 # RADIUS Clients #

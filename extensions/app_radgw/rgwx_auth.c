@@ -46,7 +46,6 @@
 #define AI_EAP			5	/* Diameter EAP application */
 #define CC_AA			265	/* AAR */
 #define CC_DIAMETER_EAP		268	/* DER */
-#define CC_DIAMETER_EAP		268	/* DER */
 #define ACV_ART_AUTHORIZE_AUTHENTICATE	3	/* AUTHORIZE_AUTHENTICATE */
 #define ACV_OAP_RADIUS			1	/* RADIUS */
 #define ACV_ASS_STATE_MAINTAINED	0	/* STATE_MAINTAINED */
@@ -55,7 +54,6 @@
 
 /* The state we keep for this plugin */
 struct rgwp_config {
-	struct session_handler * sess_hdl; /* We store RADIUS request authenticator information in the session */
 	struct {
 		struct dict_object * ARAP_Password;		/* ARAP-Password */
 		struct dict_object * ARAP_Security;		/* ARAP-Security */
@@ -119,6 +117,7 @@ struct rgwp_config {
 		struct dict_object * User_Password;		/* User-Password */
 		
 	} dict; /* cache of the dictionary objects we use */
+	struct session_handler * sess_hdl; /* We store RADIUS request authenticator information in the session */
 	char * confstr;
 };
 
@@ -767,13 +766,13 @@ static int auth_rad_req( struct rgwp_config * cs, struct session * session, stru
 						tag = *(uint8_t *)(attr + 1);							\
 						if (tag > 0x1F) tag = 0;							\
 						if (avp_tun[tag] == NULL) {							\
-							CHECK_FCT( fd_msg_avp_new ( cs->dict.Tunneling, 0, &avp_tun[tag] ) );		\
+							CHECK_FCT( fd_msg_avp_new ( cs->dict.Tunneling, 0, &avp_tun[tag] ) );	\
 							CHECK_FCT( fd_msg_avp_add (*diam_fw, MSG_BRW_LAST_CHILD, avp_tun[tag]));\
 						}										\
 					}
 			
 			/* Convert an attribute to an OctetString AVP and add inside the Tunneling AVP corresponding to the tag */
-			#define CONV2DIAM_TUN_STR( _dictobj_ ) {							\
+			#define CONV2DIAM_TUN_STR( _dictobj_ ) {						\
 				uint8_t tag;									\
 				CHECK_PARAMS( attr->length >= 3);						\
 				AVP_TUN_PREPARE();								\
@@ -785,7 +784,7 @@ static int auth_rad_req( struct rgwp_config * cs, struct session * session, stru
 				}
 				
 			/* Convert an attribute to a scalar AVP and add inside the Tunneling AVP corresponding to the tag */
-			#define CONV2DIAM_TUN_24B( _dictobj_ ) {							\
+			#define CONV2DIAM_TUN_24B( _dictobj_ ) {						\
 				uint8_t tag;									\
 				CHECK_PARAMS( attr->length == 6);						\
 				AVP_TUN_PREPARE();								\
@@ -915,7 +914,6 @@ static int auth_rad_req( struct rgwp_config * cs, struct session * session, stru
 
 static int auth_diam_ans( struct rgwp_config * cs, struct session * session, struct msg ** diam_ans, struct radius_msg ** rad_fw, struct rgw_client * cli )
 {
-	struct msg_hdr *mhdr;
 	struct avp *avp, *next, *avp_x, *avp_y, *asid, *aoh;
 	struct avp_hdr *ahdr, *sid, *oh;
 	char buf[254]; /* to store some attributes values (with final '\0') */
@@ -930,8 +928,6 @@ static int auth_diam_ans( struct rgwp_config * cs, struct session * session, str
 	if (session) {
 		CHECK_FCT( fd_sess_state_retrieve( cs->sess_hdl, session, &req_auth ) );
 	}
-	
-	CHECK_FCT( fd_msg_hdr( *diam_ans, &mhdr ) );
 	
 	/*	
 	      -  If the Diameter Command-Code is set to AA-Answer and the
@@ -1465,8 +1461,8 @@ static int auth_diam_ans( struct rgwp_config * cs, struct session * session, str
 										CONV2RAD_TUN_STR(RADIUS_ATTR_TUNNEL_SERVER_AUTH_ID, ahdr->avp_value->os.data, ahdr->avp_value->os.len, 1);
 										break;
 										
-									case DIAM_ATTR_TUNNEL_ASSIGNEMENT_ID:
-										CONV2RAD_TUN_STR(RADIUS_ATTR_TUNNEL_ASSIGNEMENT_ID, ahdr->avp_value->os.data, ahdr->avp_value->os.len, 1);
+									case DIAM_ATTR_TUNNEL_ASSIGNMENT_ID:
+										CONV2RAD_TUN_STR(RADIUS_ATTR_TUNNEL_ASSIGNMENT_ID, ahdr->avp_value->os.data, ahdr->avp_value->os.len, 1);
 										break;
 										
 									case DIAM_ATTR_TUNNEL_PASSWORD:
