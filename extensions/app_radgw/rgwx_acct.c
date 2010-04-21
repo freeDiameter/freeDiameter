@@ -81,6 +81,8 @@ struct rgwp_config {
 		struct dict_object * CHAP_Ident;		/* CHAP-Ident */
 		struct dict_object * CHAP_Response;		/* CHAP-Response */
 		struct dict_object * Connect_Info;		/* Connect-Info */
+		struct dict_object * Destination_Host;		/* Destination-Host */
+		struct dict_object * Destination_Realm;		/* Destination-Realm */
 		struct dict_object * EAP_Payload;		/* EAP-Payload */
 		struct dict_object * Error_Message;		/* Error-Message */
 		struct dict_object * Error_Reporting_Host;	/* Error-Reporting-Host */
@@ -129,6 +131,7 @@ struct rgwp_config {
 		struct dict_object * Session_Id;		/* Session-Id */
 		struct dict_object * Session_Timeout;		/* Session-Timeout */
 		struct dict_object * State;			/* State */
+		struct dict_object * Termination_Cause;		/* Termination-Cause */
 		struct dict_object * Tunneling;			/* Tunneling */
 		struct dict_object * Tunnel_Type;		/* Tunnel-Type */
 		struct dict_object * Tunnel_Assignment_Id;	/* Tunnel-Assignment-Id */
@@ -140,6 +143,8 @@ struct rgwp_config {
 		struct dict_object * Tunnel_Client_Auth_Id;	/* Tunnel-Client-Auth-Id */
 		struct dict_object * Tunnel_Server_Auth_Id;	/* Tunnel-Server-Auth-Id */
 		struct dict_object * User_Name;			/* User-Name */
+		
+		struct dict_object * Session_Termination_Request;/* STR */
 	} dict; /* cache of the dictionary objects we use */
 	struct session_handler * sess_hdl; /* We store RADIUS request authenticator information in the session */
 	char * confstr;
@@ -147,9 +152,10 @@ struct rgwp_config {
 
 /* The state we store in the session */
 struct sess_state {
-	uint8_t	 req_auth[16]; 	/* The request authenticator */
-	int	 send_str;	/* If not 0, we must send a STR when the ACA is received. */
-	uint32_t term_cause;	/* If not 0, the Termination-Cause to put in the STR. */
+	uint8_t	 	 req_auth[16]; 	/* The request authenticator */
+	application_id_t auth_appl;	/* Auth-Application-Id used for this session, if available (stored in a Class attribute) */
+	int		 send_str;	/* If not 0, we must send a STR when the ACA is received. */
+	uint32_t	 term_cause;	/* If not 0, the Termination-Cause to put in the STR. */
 };
 
 /* Initialize the plugin */
@@ -192,6 +198,8 @@ static int acct_conf_parse(char * conffile, struct rgwp_config ** state)
 	CHECK_FCT( fd_dict_search( fd_g_config->cnf_dict, DICT_AVP, AVP_BY_NAME, "Calling-Station-Id", &new->dict.Calling_Station_Id, ENOENT) );
 	CHECK_FCT( fd_dict_search( fd_g_config->cnf_dict, DICT_AVP, AVP_BY_NAME, "Class", &new->dict.Class, ENOENT) );
 	CHECK_FCT( fd_dict_search( fd_g_config->cnf_dict, DICT_AVP, AVP_BY_NAME, "Connect-Info", &new->dict.Connect_Info, ENOENT) );
+	CHECK_FCT( fd_dict_search( fd_g_config->cnf_dict, DICT_AVP, AVP_BY_NAME, "Destination-Host", &new->dict.Destination_Host, ENOENT) );
+	CHECK_FCT( fd_dict_search( fd_g_config->cnf_dict, DICT_AVP, AVP_BY_NAME, "Destination-Realm", &new->dict.Destination_Realm, ENOENT) );
 	CHECK_FCT( fd_dict_search( fd_g_config->cnf_dict, DICT_AVP, AVP_BY_NAME, "EAP-Payload", &new->dict.EAP_Payload, ENOENT) );
 	CHECK_FCT( fd_dict_search( fd_g_config->cnf_dict, DICT_AVP, AVP_BY_NAME, "Error-Message", &new->dict.Error_Message, ENOENT) );
 	CHECK_FCT( fd_dict_search( fd_g_config->cnf_dict, DICT_AVP, AVP_BY_NAME, "Error-Reporting-Host", &new->dict.Error_Reporting_Host, ENOENT) );
@@ -240,6 +248,7 @@ static int acct_conf_parse(char * conffile, struct rgwp_config ** state)
 	CHECK_FCT( fd_dict_search( fd_g_config->cnf_dict, DICT_AVP, AVP_BY_NAME, "Session-Id", &new->dict.Session_Id, ENOENT) );
 	CHECK_FCT( fd_dict_search( fd_g_config->cnf_dict, DICT_AVP, AVP_BY_NAME, "Session-Timeout", &new->dict.Session_Timeout, ENOENT) );
 	CHECK_FCT( fd_dict_search( fd_g_config->cnf_dict, DICT_AVP, AVP_BY_NAME, "State", &new->dict.State, ENOENT) );
+	CHECK_FCT( fd_dict_search( fd_g_config->cnf_dict, DICT_AVP, AVP_BY_NAME, "Termination-Cause", &new->dict.Termination_Cause, ENOENT) );
 	CHECK_FCT( fd_dict_search( fd_g_config->cnf_dict, DICT_AVP, AVP_BY_NAME, "Tunneling", &new->dict.Tunneling, ENOENT) );
 	CHECK_FCT( fd_dict_search( fd_g_config->cnf_dict, DICT_AVP, AVP_BY_NAME, "Tunnel-Assignment-Id", &new->dict.Tunnel_Assignment_Id, ENOENT) );
 	CHECK_FCT( fd_dict_search( fd_g_config->cnf_dict, DICT_AVP, AVP_BY_NAME, "Tunnel-Type", &new->dict.Tunnel_Type, ENOENT) );
@@ -251,6 +260,8 @@ static int acct_conf_parse(char * conffile, struct rgwp_config ** state)
 	CHECK_FCT( fd_dict_search( fd_g_config->cnf_dict, DICT_AVP, AVP_BY_NAME, "Tunnel-Client-Auth-Id", &new->dict.Tunnel_Client_Auth_Id, ENOENT) );
 	CHECK_FCT( fd_dict_search( fd_g_config->cnf_dict, DICT_AVP, AVP_BY_NAME, "Tunnel-Server-Auth-Id", &new->dict.Tunnel_Server_Auth_Id, ENOENT) );
 	CHECK_FCT( fd_dict_search( fd_g_config->cnf_dict, DICT_AVP, AVP_BY_NAME, "User-Name", &new->dict.User_Name, ENOENT) );
+	
+	CHECK_FCT( fd_dict_search( fd_g_config->cnf_dict, DICT_COMMAND, CMD_BY_NAME, "Session-Termination-Request", &new->dict.Session_Termination_Request, ENOENT) );
 	
 	/* This plugin provides the following Diameter authentication applications support: */
 	CHECK_FCT( fd_dict_search( fd_g_config->cnf_dict, DICT_APPLICATION, APPLICATION_BY_NAME, "Diameter Base Accounting", &app, ENOENT) );
@@ -275,6 +286,7 @@ static int acct_rad_req( struct rgwp_config * cs, struct session * session, stru
 	int idx;
 	int send_str=0;
 	uint32_t str_cause=0;
+	application_id_t auth_appl=0;
 	int got_id = 0;
 	uint32_t status_type;
 	uint32_t termination_action = 0;
@@ -556,6 +568,23 @@ static int acct_rad_req( struct rgwp_config * cs, struct session * session, stru
 				
 			case RADIUS_ATTR_CLASS:
 				CONV2DIAM_STR( Class );
+				/* In addition, save the data in the session if it is "our" CLASS_AAI_PREFIX Class attribute */
+				{
+					char buf[32];
+					char * attr_val, *auth_val;
+					attr_val = (char *)(attr + 1);
+					auth_val = attr_val + strlen(CLASS_AAI_PREFIX);
+					if (	(attr->length > sizeof(struct radius_attr_hdr) + strlen(CLASS_AAI_PREFIX)  )
+						&& (attr->length < sizeof(struct radius_attr_hdr) + strlen(CLASS_AAI_PREFIX) + sizeof(buf))
+						&& ! strncmp(attr_val, CLASS_AAI_PREFIX, strlen(CLASS_AAI_PREFIX))) {
+					
+						memset(buf, 0, sizeof(buf));
+						memcpy(buf, auth_val, attr->length - sizeof(struct radius_attr_hdr) - strlen(CLASS_AAI_PREFIX));
+						if (sscanf(buf, "%u", &auth_appl) == 1) {
+							TRACE_DEBUG(ANNOYING, "Found Class attribute with '%s' prefix (attr #%d), AAI:%u.", CLASS_AAI_PREFIX, idx, auth_appl);
+						}
+					}
+				}
 				break;
 			
 			case RADIUS_ATTR_VENDOR_SPECIFIC:
@@ -1042,12 +1071,43 @@ static int acct_rad_req( struct rgwp_config * cs, struct session * session, stru
 		CHECK_MALLOC( st = malloc(sizeof(struct sess_state)) );
 		memset(st, 0, sizeof(struct sess_state));
 		memcpy(&st->req_auth, &rad_req->hdr->authenticator[0], 16);
+		st->auth_appl = auth_appl;
 		st->send_str = send_str;
 		st->term_cause = str_cause;
 		CHECK_FCT( fd_sess_state_store( cs->sess_hdl, session, &st ) );
 	}
 	
 	return 0;
+}
+
+/* Callback when an STA is received after having sent an STR. */
+static void handle_sta(void * data, struct msg ** answer)
+{
+	struct rgwp_config * cs = data;
+	struct avp *avp;
+	struct avp_hdr *ahdr;
+	
+	CHECK_PARAMS_DO( data && answer && *answer, goto out );
+	
+	/* Check the Diameter error code */
+	CHECK_FCT_DO( fd_msg_search_avp (*answer, cs->dict.Result_Code, &avp), goto out );
+	CHECK_PARAMS_DO( avp, goto out );
+	CHECK_FCT_DO( fd_msg_avp_hdr ( avp, &ahdr ), goto out );
+	if (ahdr->avp_value->u32 != ER_DIAMETER_SUCCESS)
+		goto out;
+	
+	/* OK, discard the message without complaining */
+	fd_msg_free(*answer);
+	*answer = NULL;
+		
+out:
+	if (answer && *answer) {
+		TRACE_DEBUG(INFO, "Received the following problematic STA message, discarding...");
+		fd_msg_dump_walk( INFO, *answer );
+		fd_msg_free(*answer);
+		*answer = NULL;
+	}
+	return;
 }
 
 static int acct_diam_ans( struct rgwp_config * cs, struct session * session, struct msg ** diam_ans, struct radius_msg ** rad_fw, struct rgw_client * cli )
@@ -1117,9 +1177,63 @@ static int acct_diam_ans( struct rgwp_config * cs, struct session * session, str
 	
 	/* If it was a response to a STOP record, we must send an STR for this session */
 	if (st->send_str) {
-		TODO("Send STR, including sid, [Dest-Host=oh,] Dest-Realm=or, Term-Cause=st->term_cause... Register to receive the answer.");
+		struct msg * str = NULL;
+		char * fqdn;
+		char * realm;
+		union avp_value avp_val;
+		
+		/* Create a new STR message */
+		CHECK_FCT(  fd_msg_new ( cs->dict.Session_Termination_Request, MSGFL_ALLOC_ETEID, &str )  );
+		
+		/* Add the Session-Id AVP as first AVP */
+		CHECK_FCT( fd_msg_avp_new (  cs->dict.Session_Id, 0, &avp ) );
+		CHECK_FCT( fd_msg_avp_setvalue ( avp, sid->avp_value ) );
+		CHECK_FCT( fd_msg_avp_add ( str, MSG_BRW_FIRST_CHILD, avp) );
+
+		/* Add the Destination-Realm as next AVP */
+		CHECK_FCT( fd_msg_avp_new ( cs->dict.Destination_Realm, 0, &avp ) );
+		CHECK_FCT( fd_msg_avp_setvalue ( avp, or->avp_value ) );
+		CHECK_FCT( fd_msg_avp_add ( str, MSG_BRW_LAST_CHILD, avp) );
+
+		/* Add the Destination-Host as next AVP */
+		CHECK_FCT( fd_msg_avp_new ( cs->dict.Destination_Host, 0, &avp ) );
+		CHECK_FCT( fd_msg_avp_setvalue ( avp, oh->avp_value ) );
+		CHECK_FCT( fd_msg_avp_add ( str, MSG_BRW_LAST_CHILD, avp) );
+		
+		/* Get information on the NAS */
+		CHECK_FCT( rgw_clients_get_origin(cli, &fqdn, &realm) );
+
+		/* Add the Origin-Host as next AVP */
+		CHECK_FCT( fd_msg_avp_new ( cs->dict.Origin_Host, 0, &avp ) );
+		memset(&avp_val, 0, sizeof(avp_val));
+		avp_val.os.data = (unsigned char *)fqdn;
+		avp_val.os.len = strlen(fqdn);
+		CHECK_FCT( fd_msg_avp_setvalue ( avp, &avp_val ) );
+		CHECK_FCT( fd_msg_avp_add ( str, MSG_BRW_LAST_CHILD, avp) );
+
+		/* Add the Origin-Realm as next AVP */
+		CHECK_FCT( fd_msg_avp_new ( cs->dict.Origin_Realm, 0, &avp ) );
+		memset(&avp_val, 0, sizeof(avp_val));
+		avp_val.os.data = (unsigned char *)realm;
+		avp_val.os.len = strlen(realm);
+		CHECK_FCT( fd_msg_avp_setvalue ( avp, &avp_val ) );
+		CHECK_FCT( fd_msg_avp_add ( str, MSG_BRW_LAST_CHILD, avp) );
+		
+		/* Auth-Application-Id -- if we did not get it from our Class attribute, we just set "0" */
+		CHECK_FCT( fd_msg_avp_new ( cs->dict.Auth_Application_Id, 0, &avp ) );
+		avp_val.u32 = st->auth_appl;
+		CHECK_FCT( fd_msg_avp_setvalue ( avp, &avp_val ) );
+		CHECK_FCT( fd_msg_avp_add ( str, MSG_BRW_LAST_CHILD, avp) );
+		
+		/* Termination-Cause */
+		CHECK_FCT( fd_msg_avp_new ( cs->dict.Termination_Cause, 0, &avp ) );
+		avp_val.u32 = st->term_cause;
+		CHECK_FCT( fd_msg_avp_setvalue ( avp, &avp_val ) );
+		CHECK_FCT( fd_msg_avp_add ( str, MSG_BRW_LAST_CHILD, avp) );
+		
+		/* Send this message */
+		CHECK_FCT( fd_msg_send ( &str, handle_sta, cs ) );
 	}
-	
 	
 	/* 
 		No attributes should be found in

@@ -93,6 +93,9 @@ extern struct rgw_api {
 #define RGW_PLG_TYPE_AUTH	1
 #define RGW_PLG_TYPE_ACCT	2
 
+/* Class attribute prefix to store the Auth Application Id (required to send STR) */
+#define CLASS_AAI_PREFIX 	"fD/rgwx/aai:"
+
 /* Attributes missing from radius.h (not used in EAP) */
 enum { RADIUS_ATTR_CHAP_PASSWORD = 3,
        RADIUS_ATTR_SERVICE_TYPE = 6,

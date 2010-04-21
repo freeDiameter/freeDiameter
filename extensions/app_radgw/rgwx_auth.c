@@ -914,6 +914,7 @@ static int auth_rad_req( struct rgwp_config * cs, struct session * session, stru
 
 static int auth_diam_ans( struct rgwp_config * cs, struct session * session, struct msg ** diam_ans, struct radius_msg ** rad_fw, struct rgw_client * cli )
 {
+	struct msg_hdr * hdr;
 	struct avp *avp, *next, *avp_x, *avp_y, *asid, *aoh;
 	struct avp_hdr *ahdr, *sid, *oh;
 	char buf[254]; /* to store some attributes values (with final '\0') */
@@ -1048,8 +1049,17 @@ static int auth_diam_ans( struct rgwp_config * cs, struct session * session, str
 	}
 	/* The RFC text says that this should always be the case, but it seems odd... */
 	if ((*rad_fw)->hdr->code == RADIUS_CODE_ACCESS_ACCEPT) {
+		/* Add the Session-Id */
 		if (sizeof(buf) < snprintf(buf, sizeof(buf), "Diameter/%.*s", 
 				sid->avp_value->os.len, sid->avp_value->os.data)) {
+			TRACE_DEBUG(INFO, "Data truncated in Class attribute: %s", buf);
+		}
+		CONV2RAD_STR(RADIUS_ATTR_CLASS, buf, strlen(buf), 0);
+		
+		/* Add the auth-application-id required for STR */
+		CHECK_FCT( fd_msg_hdr( *diam_ans, &hdr ) );
+		if (sizeof(buf) < snprintf(buf, sizeof(buf), CLASS_AAI_PREFIX "%u", 
+				hdr->msg_appl)) {
 			TRACE_DEBUG(INFO, "Data truncated in Class attribute: %s", buf);
 		}
 		CONV2RAD_STR(RADIUS_ATTR_CLASS, buf, strlen(buf), 0);
