@@ -27,7 +27,6 @@
 #		
 
 # Examples:
-# ECHO code 25 ; # Class attributes
 # DROP code 18 ; # Reply-Message attribute, should not be included in requests
 # DROP code 26 vendor 9 ; # Drop any Cisco-specific attribute
 # ECHO code 26 vendor 0 ext 256 ; # Echo any extended attribute with the type 256.
