@@ -68,8 +68,8 @@ init:
 	# Create the folder hierarchy
 	@$(REMAKE) structure caname=$(topca)
 	# Generate the self-signed certificate
-	@CA_ROOT_DIR=$(DATA_DIR)/$(topca) openssl req $(CONFIG) -new -batch -x509 -nodes -newkey rsa:$(cakeysize) -out $(DATA_DIR)/$(topca)/public/cacert.pem \
-		-keyout $(DATA_DIR)/$(topca)/private/cakey.pem -subj /CN=$(topca)
+	@CA_ROOT_DIR=$(DATA_DIR)/$(topca) openssl req $(CONFIG) -new -batch -x509 -days 3650 -nodes -newkey rsa:$(cakeysize) -out $(DATA_DIR)/$(topca)/public/cacert.pem \
+		-keyout $(DATA_DIR)/$(topca)/private/cakey.pem -extensions ca_cert -subj /CN=$(topca)
 	@ln -s cacert.pem $(DATA_DIR)/$(topca)/public/`openssl x509 -noout -hash < $(DATA_DIR)/$(topca)/public/cacert.pem`.0
 	@touch $(DATA_DIR)/$(topca)/public/cachain.pem
 	@ln -s ../../$(topca)/public/cacert.pem $(DATA_DIR)/$(topca)/public/caroot.pem 
