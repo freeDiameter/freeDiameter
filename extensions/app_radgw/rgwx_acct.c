@@ -51,6 +51,7 @@
 /* The state we keep for this plugin */
 struct rgwp_config {
 	struct {
+		struct dict_object * Accounting_Record_Number;	/* Accounting-Record-Number */
 		struct dict_object * Accounting_Record_Type;	/* Accounting-Record-Type */
 		struct dict_object * Acct_Application_Id;	/* Acct-Application-Id */
 		struct dict_object * Acct_Delay_Time;		/* Acct-Delay-Time */
@@ -174,6 +175,7 @@ static int acct_conf_parse(char * conffile, struct rgwp_config ** state)
 	new->confstr = conffile;
 	
 	/* Resolve all dictionary objects we use */
+	CHECK_FCT( fd_dict_search( fd_g_config->cnf_dict, DICT_AVP, AVP_BY_NAME, "Accounting-Record-Number", &new->dict.Accounting_Record_Number, ENOENT) );
 	CHECK_FCT( fd_dict_search( fd_g_config->cnf_dict, DICT_AVP, AVP_BY_NAME, "Accounting-Record-Type", &new->dict.Accounting_Record_Type, ENOENT) );
 	CHECK_FCT( fd_dict_search( fd_g_config->cnf_dict, DICT_AVP, AVP_BY_NAME, "Acct-Application-Id", &new->dict.Acct_Application_Id, ENOENT) );
 	CHECK_FCT( fd_dict_search( fd_g_config->cnf_dict, DICT_AVP, AVP_BY_NAME, "Acct-Delay-Time", &new->dict.Acct_Delay_Time, ENOENT) );
@@ -287,6 +289,7 @@ static int acct_rad_req( struct rgwp_config * cs, struct session * session, stru
 	int idx;
 	int send_str=0;
 	uint32_t str_cause=0;
+	uint32_t e2eid = 0;
 	application_id_t auth_appl=0;
 	int got_id = 0;
 	uint32_t status_type;
@@ -427,6 +430,9 @@ static int acct_rad_req( struct rgwp_config * cs, struct session * session, stru
 		value.i32 = header->msg_appl;
 		CHECK_FCT( fd_msg_avp_setvalue ( avp, &value ) );
 		CHECK_FCT( fd_msg_avp_add ( *diam_fw, MSG_BRW_LAST_CHILD, avp) );
+		
+		/* save the end to end id */
+		e2eid = header->msg_eteid;
 	}
 	
 	/* Convert the RADIUS attributes, as they appear in the message */
@@ -735,6 +741,14 @@ static int acct_rad_req( struct rgwp_config * cs, struct session * session, stru
 				CHECK_FCT( fd_msg_avp_new ( cs->dict.Accounting_Record_Type, 0, &avp ) );
 				CHECK_FCT( fd_msg_avp_setvalue ( avp, &value ) );
 				CHECK_FCT( fd_msg_avp_add ( *diam_fw, MSG_BRW_LAST_CHILD, avp) );
+				
+				/* While here, we also add the Accouting-Record-Number AVP.
+				   We don't have a dedicated counter nor a state, so we just use the Diameter message End-to-end id here, which fits the conditions on the value. */
+				CHECK_FCT( fd_msg_avp_new ( cs->dict.Accounting_Record_Number, 0, &avp ) );
+				value.u32 = e2eid;
+				CHECK_FCT( fd_msg_avp_setvalue ( avp, &value ) );
+				CHECK_FCT( fd_msg_avp_add ( *diam_fw, MSG_BRW_LAST_CHILD, avp) );
+				
 				break;
 			
 			case RADIUS_ATTR_ACCT_DELAY_TIME:
