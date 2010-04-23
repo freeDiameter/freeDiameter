@@ -170,6 +170,7 @@ static int acct_conf_parse(char * conffile, struct rgwp_config ** state)
 	CHECK_MALLOC( new = malloc(sizeof(struct rgwp_config)) );
 	memset(new, 0, sizeof(struct rgwp_config));
 	
+	CHECK_FCT( fd_sess_handler_create( &new->sess_hdl, free ) );
 	new->confstr = conffile;
 	
 	/* Resolve all dictionary objects we use */
