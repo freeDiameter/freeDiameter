@@ -146,12 +146,26 @@ static void * work_th(void * arg)
 		CHECK_FCT_DO( rgw_plg_loop_req(&msg, &session, &diam_msg, cli), 
 			{
 				/* An error occurred, discard message */
+				if (diam_msg) {
+					CHECK_FCT_DO( fd_msg_free(diam_msg), );
+					diam_msg = NULL;
+				}
+				if (session) {
+					CHECK_FCT_DO( fd_sess_destroy(&session), );
+				}
 				rgw_msg_free(&msg);
 				rgw_clients_dispose(&cli);
 				continue;
 			}  );
 		if (msg == NULL) {
 			rgw_clients_dispose(&cli);
+			if (diam_msg) {
+				CHECK_FCT_DO( fd_msg_free(diam_msg), );
+				diam_msg = NULL;
+			}
+			if (session) {
+				CHECK_FCT_DO( fd_sess_destroy(&session), );
+			}
 			continue; /* the message was handled already */
 		}
 		
@@ -175,7 +189,7 @@ static void * work_th(void * arg)
 					msg->radius.hdr->code, rgw_msg_code_str(msg->radius.hdr->code));
 		}
 		
-		/* Check the session is correct */
+		/* Check the session is correct (for debug) */
 		ASSERT(session != NULL);
 		
 		if (pb) {
@@ -295,6 +309,11 @@ out:
 	if (*ans) {
 		CHECK_FCT_DO( fd_msg_free(*ans),  );
 		*ans = NULL;
+	}
+	
+	/* Clear the RADIUS request */
+	if (pa->rad) {
+		rgw_msg_free(&pa->rad);
 	}
 	
 	/* Release reference on the client */

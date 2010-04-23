@@ -259,15 +259,23 @@ int rgw_clients_check_dup(struct rgw_radius_msg_meta **msg, struct rgw_client *c
 		}
 		rgw_msg_free(msg);
 	} else {
-		/* Update information for new message */
-		if (cli->last[idx].ans) {
-			/* Free it */
-			radius_msg_free(cli->last[idx].ans);
-			free(cli->last[idx].ans);
-			cli->last[idx].ans = NULL;
+		/* We have not just received this message already */
+		if (cli->last[idx].port == 0) { /* first message from this client */
+			/* Just add the new information */
+			ASSERT(cli->last[idx].ans == NULL);
+			cli->last[idx].id = (*msg)->radius.hdr->identifier;
+			cli->last[idx].port = (*msg)->port;
+		} else { 
+			/* We have got previous message(s), update the info only if answered already */
+			if (cli->last[idx].ans) {
+				cli->last[idx].id = (*msg)->radius.hdr->identifier;
+				cli->last[idx].port = (*msg)->port;
+				/* Free the previous answer */
+				radius_msg_free(cli->last[idx].ans);
+				free(cli->last[idx].ans);
+				cli->last[idx].ans = NULL;
+			} 
 		}
-		cli->last[idx].id = (*msg)->radius.hdr->identifier;
-		cli->last[idx].port = (*msg)->port;
 	}
 	
 	return 0;
@@ -606,6 +614,8 @@ int rgw_client_finish_send(struct radius_msg ** msg, struct rgw_radius_msg_meta 
 		free(cli->last[idx].ans);
 	}
 	cli->last[idx].ans = *msg;
+	cli->last[idx].id = req->radius.hdr->identifier;
+	cli->last[idx].port = req->port;
 	*msg = NULL;
 	
 	/* Finished */

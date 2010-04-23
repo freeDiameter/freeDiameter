@@ -267,7 +267,13 @@ int rgw_msg_create_base(struct rgw_radius_msg_meta * msg, struct rgw_client * cl
 	
 	if (*session) {
 		CHECK_FCT( fd_sess_getsid(*session, &sess_str) );
-		TRACE_DEBUG(FULL, "Session '%s' has been successfully %s.", sess_str, idx ? "created" : "retrieved");
+		if (idx == 0) {
+			TRACE_DEBUG(INFO, "Another message was translated for this session ('%s') and not answered yet, discarding the new RADIUS request.", sess_str);
+			*session = NULL;
+			return EALREADY;
+		}
+		
+		TRACE_DEBUG(FULL, "Translating new message for session '%s'...", sess_str);
 		
 		/* Add the Session-Id AVP as first AVP */
 		CHECK_FCT( fd_msg_avp_new ( cache_sess_id, 0, &avp ) );
