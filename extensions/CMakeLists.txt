@@ -86,6 +86,11 @@ OPTION(BUILD_DBG_RT "Build dbg_rt.fdx? (Routing extension for debugging the rout
  	   SUBDIRS(dbg_rt)
  	ENDIF (BUILD_DBG_RT)
 
+OPTION(BUILD_TEST_ACCT "Build test_acct.fdx? (Receive Accounting-Requests and display the data, but no storage)" OFF)
+	IF (BUILD_TEST_ACCT)
+	   SUBDIRS(test_acct)
+	ENDIF (BUILD_TEST_ACCT)
+
 OPTION(BUILD_TEST_APP "Build test_app.fdx? (Testing application to send dummy message to another peer, for testing purpose only)" OFF)
  	IF (BUILD_TEST_APP)
  	   SUBDIRS(test_app)
