@@ -53,16 +53,15 @@ static int tac_cb( struct msg ** msg, struct avp * avp, struct session * sess, e
 	if (msg == NULL)
 		return EINVAL;
 	
-	fd_log_debug("--------------Received the following Accounting message:--------------\n");
-	fd_msg_dump_walk(NONE, *msg);
-	fd_log_debug("----------------------------------------------------------------------\n");
-	
-	/* Now check what we received */
+	/* Check what we received */
 	CHECK_FCT( fd_msg_hdr(*msg, &hdr) );
 	
 	if (hdr->msg_flags & CMD_FLAG_REQUEST) {
 		/* It was a request, create an answer */
 		struct msg *ans, *qry;
+		struct avp * a = NULL;
+		struct avp_hdr * h = NULL;
+		char * s;
 	
 		qry = *msg;
 		/* Create the answer message, including the Session-Id AVP */
@@ -72,27 +71,39 @@ static int tac_cb( struct msg ** msg, struct avp * avp, struct session * sess, e
 		/* Set the Origin-Host, Origin-Realm, Result-Code AVPs */
 		CHECK_FCT( fd_msg_rescode_set( ans, "DIAMETER_SUCCESS", NULL, NULL, 1 ) );
 		
-		/* Search for Accounting required AVPs */
-		{
-			struct avp * a = NULL;
-			struct avp_hdr * h = NULL;
-
-			CHECK_FCT( fd_msg_search_avp ( qry, tac_dict.Accounting_Record_Number, &a) );
-			if (a) {
-				CHECK_FCT( fd_msg_avp_hdr( a, &h )  );
-				CHECK_FCT( fd_msg_avp_new ( tac_dict.Accounting_Record_Number, 0, &a ) );
-				CHECK_FCT( fd_msg_avp_setvalue( a, h->avp_value ) );
-				CHECK_FCT( fd_msg_avp_add( ans, MSG_BRW_LAST_CHILD, a ) );
-			}
-
-			CHECK_FCT( fd_msg_search_avp ( qry, tac_dict.Accounting_Record_Type, &a) );
-			if (a) {
-				CHECK_FCT( fd_msg_avp_hdr( a, &h )  );
-				CHECK_FCT( fd_msg_avp_new ( tac_dict.Accounting_Record_Type, 0, &a ) );
-				CHECK_FCT( fd_msg_avp_setvalue( a, h->avp_value ) );
-				CHECK_FCT( fd_msg_avp_add( ans, MSG_BRW_LAST_CHILD, a ) );
-			}
+		fd_log_debug("--------------Received the following Accounting message:--------------\n");
+		
+		CHECK_FCT( fd_sess_getsid ( sess, &s ) );
+		fd_log_debug("Session: %s\n", s);
+		
+		/* The AVPs that we copy in the answer */
+		CHECK_FCT( fd_msg_search_avp ( qry, tac_dict.Accounting_Record_Type, &a) );
+		if (a) {
+			CHECK_FCT( fd_msg_avp_hdr( a, &h )  );
+			fd_log_debug("Accounting-Record-Type: %d (%s)\n", h->avp_value->u32, 
+						/* it would be better to search this in the dictionary, but it is only for debug, so ok */
+						(h->avp_value->u32 == 1) ? "EVENT_RECORD" : 
+						(h->avp_value->u32 == 2) ? "START_RECORD" : 
+						(h->avp_value->u32 == 3) ? "INTERIM_RECORD" : 
+						(h->avp_value->u32 == 4) ? "STOP_RECORD" : 
+						"<unknown value>"
+					);
+			CHECK_FCT( fd_msg_avp_new ( tac_dict.Accounting_Record_Type, 0, &a ) );
+			CHECK_FCT( fd_msg_avp_setvalue( a, h->avp_value ) );
+			CHECK_FCT( fd_msg_avp_add( ans, MSG_BRW_LAST_CHILD, a ) );
 		}
+		CHECK_FCT( fd_msg_search_avp ( qry, tac_dict.Accounting_Record_Number, &a) );
+		if (a) {
+			CHECK_FCT( fd_msg_avp_hdr( a, &h )  );
+			fd_log_debug("Accounting-Record-Number: %d\n", h->avp_value->u32);
+			CHECK_FCT( fd_msg_avp_new ( tac_dict.Accounting_Record_Number, 0, &a ) );
+			CHECK_FCT( fd_msg_avp_setvalue( a, h->avp_value ) );
+			CHECK_FCT( fd_msg_avp_add( ans, MSG_BRW_LAST_CHILD, a ) );
+		}
+		
+		/* We may also dump other data from the message, such as Accounting session Id, number of packets, ...  */
+
+		fd_log_debug("----------------------------------------------------------------------\n");
 		
 		/* Send the answer */
 		CHECK_FCT( fd_msg_send( msg, NULL, NULL ) );
