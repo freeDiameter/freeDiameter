@@ -13,7 +13,7 @@ MACRO(FD_ADD_EXTENSION EXTNAME)
 ENDMACRO(FD_ADD_EXTENSION)
 
 # The extensions include the headers of freeDiameter that contains gnutls objects
-FIND_PACKAGE(GNUTLS REQUIRED)
+FIND_PACKAGE(GnuTLS REQUIRED)
 INCLUDE_DIRECTORIES(${GNUTLS_INCLUDE_DIRS})
 find_path(GCRYPT_INCLUDE_DIR NAMES gcrypt.h)
 If ( NOT GCRYPT_INCLUDE_DIR )
@@ -46,6 +46,11 @@ OPTION(BUILD_APP_RADGW "Build app_radgw? (one-way RADIUS/Diameter gateway - RADI
 	IF (BUILD_APP_RADGW)
 	   SUBDIRS(app_radgw)
 	ENDIF (BUILD_APP_RADGW)
+
+OPTION(BUILD_APP_ACCT "Build app_acct? (simple accounting application that stores accounting records in flat database)" OFF)
+	IF (BUILD_APP_ACCT)
+	   SUBDIRS(app_acct)
+	ENDIF (BUILD_APP_ACCT)
 
 
 
