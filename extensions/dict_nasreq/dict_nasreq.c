@@ -3713,14 +3713,14 @@ static int dnr_entry(char * conffile)
 			struct dict_object * cmd;
 			struct local_rules_definition rules[] = 
 						{ 	 {  "Origin-AAA-Protocol",		RULE_OPTIONAL,   -1, 1 }
-							,{  "NAS-Identifier", 			RULE_REQUIRED,   -1, 1 }
-							,{  "NAS-IP-Address", 			RULE_REQUIRED,   -1, 1 }
-							,{  "NAS-IPv6-Address", 		RULE_REQUIRED,   -1, 1 }
-							,{  "NAS-Port", 			RULE_REQUIRED,   -1, 1 }
-							,{  "NAS-Port-Id", 			RULE_REQUIRED,   -1, 1 }
-							,{  "NAS-Port-Type", 			RULE_REQUIRED,   -1, 1 }
-							,{  "Service-Type", 			RULE_REQUIRED,   -1, 1 }
-							,{  "Termination-Cause", 		RULE_REQUIRED,   -1, 1 }
+							,{  "NAS-Identifier", 			RULE_OPTIONAL,   -1, 1 }
+							,{  "NAS-IP-Address", 			RULE_OPTIONAL,   -1, 1 }
+							,{  "NAS-IPv6-Address", 		RULE_OPTIONAL,   -1, 1 }
+							,{  "NAS-Port", 			RULE_OPTIONAL,   -1, 1 }
+							,{  "NAS-Port-Id", 			RULE_OPTIONAL,   -1, 1 }
+							,{  "NAS-Port-Type", 			RULE_OPTIONAL,   -1, 1 }
+							,{  "Service-Type", 			RULE_OPTIONAL,   -1, 1 }
+							,{  "Termination-Cause", 		RULE_OPTIONAL,   -1, 1 }
 						};
 			
 			CHECK_dict_search( DICT_COMMAND, CMD_BY_NAME, "Accounting-Answer", &cmd);
