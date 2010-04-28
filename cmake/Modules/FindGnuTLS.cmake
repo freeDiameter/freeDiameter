@@ -5,9 +5,9 @@
 #  GNUTLS_INCLUDE_DIRS - where to find gnutls.h, etc.
 #  GNUTLS_LIBRARIES - List of libraries when using gnutls.
 
-if (GNUTLS_INCLUDE_DIRS)
+if (GNUTLS_INCLUDE_DIRS AND GNUTLS_LIBRARIES)
   set(GNUTLS_FIND_QUIETLY TRUE)
-endif (GNUTLS_INCLUDE_DIRS)
+endif (GNUTLS_INCLUDE_DIRS AND GNUTLS_LIBRARIES)
 
 # Include dir
 find_path(GNUTLS_INCLUDE_DIR
