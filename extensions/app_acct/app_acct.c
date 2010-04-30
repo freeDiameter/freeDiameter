@@ -37,7 +37,7 @@
 
 #include "app_acct.h"
 
-/* Mandatory AVPs for the Accounting-Answer */
+/* Mandatory AVPs for the Accounting-Answer (any value in adding all the other AVPs?) */
 static struct {
 	struct dict_object * Accounting_Record_Number;
 	struct dict_object * Accounting_Record_Type;
