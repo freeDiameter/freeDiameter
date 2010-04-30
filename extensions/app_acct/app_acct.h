@@ -83,6 +83,11 @@ struct acct_record_item {
 	struct acct_conf_avp 	*param;	/* the AVP entry this refers to. */
 	unsigned		 index;	/* in case of multi */
 	union avp_value		*value; /* If the AVP was found in the message, this points to its value. Otherwise, NULL */
+	union {
+		uint32_t v32	/* Storage area for network byte-order copy of the AVP value */;
+		uint64_t v64;
+		char	 c;	/* pointer that is passed to the database */
+	} 			 scalar;/* for scalar AVP (all types except OCTETSTRING) we copy in this area the value in network byte order */
 };
 
 /* The sentinel for a list of acct_record_items */
@@ -111,3 +116,5 @@ void acct_db_free(void);
 /* In acct_records.c */
 int acct_rec_prepare(struct acct_record_list * records);
 int acct_rec_map(struct acct_record_list * records, struct msg * msg);
+int acct_rec_validate(struct acct_record_list * records);
+void acct_rec_empty(struct acct_record_list * records);

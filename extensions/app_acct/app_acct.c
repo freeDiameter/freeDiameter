@@ -37,51 +37,76 @@
 
 #include "app_acct.h"
 
-/* Default callback for the Accounting application. */
-static int acct_fallback( struct msg ** msg, struct avp * avp, struct session * sess, enum disp_action * act)
-{
-	/* This CB should never be called */
-	TRACE_ENTRY("%p %p %p %p", msg, avp, sess, act);
-	
-	fd_log_debug("Unexpected message received!\n");
-	
-	return ENOTSUP;
-}
+/* Mandatory AVPs for the Accounting-Answer */
+static struct {
+	struct dict_object * Accounting_Record_Number;
+	struct dict_object * Accounting_Record_Type;
+} acct_dict;
 
 
 /* Callback for incoming Base Accounting Accounting-Request messages */
 static int acct_cb( struct msg ** msg, struct avp * avp, struct session * sess, enum disp_action * act)
 {
 	struct msg_hdr *hdr = NULL;
-	struct msg *ans, *qry;
+	struct msg * m;
 	struct avp * a = NULL;
-	struct avp_hdr * h = NULL;
+	struct avp_hdr * art=NULL, *arn=NULL; /* We keep a pointer on the Accounting-Record-{Type, Number} AVPs from the query */
 	char * s;
+	struct acct_record_list rl;
 	
 	TRACE_ENTRY("%p %p %p %p", msg, avp, sess, act);
 	if (msg == NULL)
 		return EINVAL;
 	
-	qry = *msg;
-	/* Create the answer message, including the Session-Id AVP */
+	m = *msg;
+	
+	/* Prepare a new record list */
+	CHECK_FCT( acct_rec_prepare( &rl ) );
+	
+	/* Maps the AVPs from the query with this record list */
+	CHECK_FCT( acct_rec_map( &rl, m ) );
+	
+	/* Check that at least one AVP was mapped */
+	CHECK_FCT( acct_rec_validate( &rl ) );
+	
+	/* Now, save these mapped AVPs in the database */
+	CHECK_FCT( acct_db_insert( &rl ) );
+	
+	acct_rec_empty( &rl );
+	
+	/* OK, we can send a positive reply now */
+	
+	/* Get Accounting-Record-{Number,Type} values */
+	CHECK_FCT( fd_msg_search_avp ( m, acct_dict.Accounting_Record_Type, &a) );
+	if (a) {
+		CHECK_FCT( fd_msg_avp_hdr( a, &art )  );
+	}
+	CHECK_FCT( fd_msg_search_avp ( m, acct_dict.Accounting_Record_Number, &a) );
+	if (a) {
+		CHECK_FCT( fd_msg_avp_hdr( a, &arn )  );
+	}
+	
+	/* Create the answer message */
 	CHECK_FCT( fd_msg_new_answer_from_req ( fd_g_config->cnf_dict, msg, 0 ) );
-	ans = *msg;
+	m = *msg;
 
 	/* Set the Origin-Host, Origin-Realm, Result-Code AVPs */
-	CHECK_FCT( fd_msg_rescode_set( ans, "DIAMETER_SUCCESS", NULL, NULL, 1 ) );
-
-	fd_log_debug("--------------Received the following Accounting message:--------------\n");
-
-	CHECK_FCT( fd_sess_getsid ( sess, &s ) );
-	fd_log_debug("Session: %s\n", s);
-
-	/* We may also dump other data from the message, such as Accounting session Id, number of packets, ...  */
-
-	fd_log_debug("----------------------------------------------------------------------\n");
-
+	CHECK_FCT( fd_msg_rescode_set( m, "DIAMETER_SUCCESS", NULL, NULL, 1 ) );
+	
+	/* Add the mandatory AVPs in the ACA */
+	if (art) {
+		CHECK_FCT( fd_msg_avp_new ( acct_dict.Accounting_Record_Type, 0, &a ) );
+		CHECK_FCT( fd_msg_avp_setvalue( a, art->avp_value ) );
+		CHECK_FCT( fd_msg_avp_add( m, MSG_BRW_LAST_CHILD, a ) );
+	}
+	if (arn) {
+		CHECK_FCT( fd_msg_avp_new ( acct_dict.Accounting_Record_Number, 0, &a ) );
+		CHECK_FCT( fd_msg_avp_setvalue( a, arn->avp_value ) );
+		CHECK_FCT( fd_msg_avp_add( m, MSG_BRW_LAST_CHILD, a ) );
+	}
+	
 	/* Send the answer */
-	CHECK_FCT( fd_msg_send( msg, NULL, NULL ) );
-		
+	*act = DISP_ACT_SEND;
 	return 0;
 }
 	
@@ -93,18 +118,23 @@ static int acct_entry(char * conffile)
 	
 	TRACE_ENTRY("%p", conffile);
 	
+#ifndef TEST_DEBUG /* We do this differently in the test scenario */
 	/* Initialize the configuration and parse the file */
 	CHECK_FCT( acct_conf_init() );
 	CHECK_FCT( acct_conf_parse(conffile) );
 	CHECK_FCT( acct_conf_check(conffile) );
+#endif /* TEST_DEBUG */
 	
 	/* Now initialize the database module */
 	CHECK_FCT( acct_db_init() );
 	
+	/* Search the AVPs we will need in this file */
+	CHECK_FCT( fd_dict_search( fd_g_config->cnf_dict, DICT_AVP, AVP_BY_NAME, "Accounting-Record-Number", &acct_dict.Accounting_Record_Number, ENOENT) );
+	CHECK_FCT( fd_dict_search( fd_g_config->cnf_dict, DICT_AVP, AVP_BY_NAME, "Accounting-Record-Type", &acct_dict.Accounting_Record_Type, ENOENT) );
+	
 	/* Register the dispatch callbacks */
 	memset(&data, 0, sizeof(data));
 	CHECK_FCT( fd_dict_search( fd_g_config->cnf_dict, DICT_APPLICATION, APPLICATION_BY_NAME, "Diameter Base Accounting", &data.app, ENOENT) );
-	CHECK_FCT( fd_disp_register( acct_fallback, DISP_HOW_APPID, &data, NULL ) );
 	CHECK_FCT( fd_dict_search( fd_g_config->cnf_dict, DICT_COMMAND, CMD_BY_NAME, "Accounting-Request", &data.command, ENOENT) );
 	CHECK_FCT( fd_disp_register( acct_cb, DISP_HOW_CC, &data, NULL ) );
 	

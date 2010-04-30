@@ -83,7 +83,7 @@ int fddparse(struct fd_config * conf); /* yacc generated */
 int fd_ext_add( char * filename, char * conffile );
 int fd_ext_load();
 void fd_ext_dump(void);
-int fd_ext_fini(void);
+int fd_ext_term(void);
 
 /* Messages */
 int fd_msg_init(void);

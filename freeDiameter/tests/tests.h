@@ -124,7 +124,7 @@ static void test_timeout(int signal)
 static inline void parse_cmdline(int argc, char * argv[]) {
 	int c;
 	int no_timeout = 0;
-	while ((c = getopt (argc, argv, "dqn")) != -1) {
+	while ((c = getopt (argc, argv, "dqnf:")) != -1) {
 		switch (c) {
 			case 'd':	/* Increase verbosity of debug messages.  */
 				test_verbo++;
@@ -138,6 +138,15 @@ static inline void parse_cmdline(int argc, char * argv[]) {
 				no_timeout = 1;
 				break;
 			
+			case 'f':	/* Full debug for the function with this name.  */
+				#ifdef DEBUG
+				fd_debug_one_function = optarg;
+				#else /* DEBUG */
+				TRACE_DEBUG(INFO, "Error: must compile with DEBUG support to use this feature");
+				return EINVAL;
+				#endif /* DEBUG */
+				break;
+				
 			default:	/* bug: option not considered.  */
 				return;
 		}

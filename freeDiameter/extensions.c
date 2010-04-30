@@ -152,7 +152,7 @@ int fd_ext_load()
 }
 
 /* Now unload the extensions and free the memory */
-int fd_ext_fini( void ) 
+int fd_ext_term( void ) 
 {
 	TRACE_ENTRY();
 	

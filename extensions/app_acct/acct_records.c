@@ -73,11 +73,89 @@ int acct_rec_prepare(struct acct_record_list * records)
 	return 0;
 }
 
+/* Find the AVPs from configuration inside a received message */
 int acct_rec_map(struct acct_record_list * records, struct msg * msg)
 {
+	struct avp * avp;
+	
 	TRACE_ENTRY("%p %p", records, msg);
 	
 	/* For each AVP in the message, search if we have a corresponding unmap'd record */
+	CHECK_FCT(  fd_msg_browse(msg, MSG_BRW_FIRST_CHILD, &avp, NULL)  );
+	while (avp) {
+		struct fd_list * li;
+		struct dict_object * model;
+		
+		CHECK_FCT( fd_msg_model(avp, &model) );
+		if (model != NULL) {	/* we ignore the AVPs we don't recognize */
+		
+			/* Search this model in the list */
+			for (li = records->unmaped.next; li != &records->unmaped; li = li->next) {
+				struct acct_record_item * r = (struct acct_record_item *)(li->o);
+				if (r->param->avpobj == model) {
+					/* It matches: save the AVP value and unlink this record from the unmap'd list */
+					struct avp_hdr * h;
+					CHECK_FCT( fd_msg_avp_hdr( avp, &h ) );
+					r->value = h->avp_value;
+					fd_list_unlink(&r->unmapd);
+					records->nbunmap -= 1;
+					break;
+				}
+			}
+
+			/* Continue only while there are some AVPs to map */
+			if (FD_IS_LIST_EMPTY(&records->unmaped))
+				break;
+		}
+		
+		/* Go to next AVP in the message */
+		CHECK_FCT( fd_msg_browse(avp, MSG_BRW_NEXT, &avp, NULL) );
+	}
 	
-	return ENOTSUP;
+	/* Done */
+	return 0;
+}
+
+/* Check that a mapped list is not empty and no required AVP is missing. Free the record list in case of error */
+int acct_rec_validate(struct acct_record_list * records)
+{
+	struct fd_list * li;
+	TRACE_ENTRY("%p", records);
+	CHECK_PARAMS( records );
+	
+	/* Check at least one AVP was mapped */
+	if (records->nball == records->nbunmap) {
+		fd_log_debug("The received ACR does not contain any AVP from the configuration file.\n"
+				"This is an invalid situation. Please fix your configuration file.\n"
+				"One way to ensure this does not happen is to include Session-Id in the database.\n");
+		acct_rec_empty(records);
+		return EINVAL;
+	}
+	
+	/* Now, check there is no required AVP unmap'd */
+	for (li = records->unmaped.next; li != &records->unmaped; li = li->next) {
+		struct acct_record_item * r = (struct acct_record_item *)(li->o);
+		if (r->param->required && (r->index <= 1)) {
+			fd_log_debug("The received ACR does not contain the required AVP '%s'.\n", r->param->avpname);
+			acct_rec_empty(records);
+			return EINVAL;
+		}
+	}
+	
+	/* The record list is OK */
+	return 0;
+}
+
+/* Free all the items in an acct_record_list returned by acct_rec_prepare */
+void acct_rec_empty(struct acct_record_list * records)
+{
+	TRACE_ENTRY("%p", records);
+	CHECK_PARAMS_DO( records, return );
+	
+	while (!FD_IS_LIST_EMPTY(&records->all)) {
+		struct acct_record_item * r = (struct acct_record_item *)(records->all.next);
+		fd_list_unlink( &r->chain );
+		fd_list_unlink( &r->unmapd );
+		free(r);
+	}
 }

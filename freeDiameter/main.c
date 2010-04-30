@@ -164,7 +164,7 @@ end:
 	CHECK_FCT_DO( fd_peer_fini(), /* Stop all connections */ );
 	CHECK_FCT_DO( fd_rtdisp_fini(), /* Stop routing threads and destroy routing queues */ );
 	
-	CHECK_FCT_DO( fd_ext_fini(), /* Cleanup all extensions */ );
+	CHECK_FCT_DO( fd_ext_term(), /* Cleanup all extensions */ );
 	CHECK_FCT_DO( fd_rtdisp_cleanup(), /* destroy remaining handlers */ );
 	
 	GNUTLS_TRACE( gnutls_global_deinit() );

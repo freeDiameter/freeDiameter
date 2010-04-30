@@ -50,8 +50,12 @@ const char * diam2db_types_mapping[AVP_TYPE_MAX + 1] = {
 };
 
 static const char * stmt = "acct_db_stmt";
-static PGconn *conn = NULL;
+#ifndef TEST_DEBUG
+static 
+#endif /* TEST_DEBUG */
+PGconn *conn = NULL;
 
+/* Initialize the database context: connection to the DB, prepared statement to insert new records */
 int acct_db_init(void)
 {
 	struct acct_record_list emptyrecords;
@@ -62,7 +66,7 @@ int acct_db_init(void)
 	size_t p;
 	int idx = 0;
 	PGresult * res;
-	#define REALLOC_SIZE	1024
+	#define REALLOC_SIZE	1024	/* We extend the buffer by this amount */
 	
 	TRACE_ENTRY();
 	CHECK_PARAMS( acct_config && acct_config->conninfo && acct_config->tablename ); 
@@ -75,9 +79,14 @@ int acct_db_init(void)
 		fd_log_debug("Connection to database failed: %s\n", PQerrorMessage(conn));
 		acct_db_free();
 		return EINVAL;
-	} else {
-		TRACE_DEBUG(INFO, "Connection to database successfull: user:%s, db:%s, host:%s.", PQuser(conn), PQdb(conn), PQhost(conn));
 	}
+	if (PQprotocolVersion(conn) < 3) {
+		fd_log_debug("Database protocol version is too old, version 3 is required for prepared statements.\n");
+		acct_db_free();
+		return EINVAL;
+	}
+	
+	TRACE_DEBUG(FULL, "Connection to database successful, server version %d.", PQserverVersion(conn));
 	
 	/* Now, prepare the request object */
 	
@@ -173,21 +182,105 @@ int acct_db_init(void)
         }
 	PQclear(res);
 	
+	free(sql);
+	acct_rec_empty(&emptyrecords);
 	
-
+	/* Ok, ready */
 	return 0;
 }
 
+/* Terminate the connection to the DB */
 void acct_db_free(void)
-{
-	if (conn)
+{	
+	if (conn) {
+		/* Note: the prepared statement is automatically freed when the session terminates */
 		PQfinish(conn);
-	conn = NULL;
+		conn = NULL;
+	}
 }
 
+/* When a new message has been received, insert the content of the parsed mapping into the DB (using prepared statement) */
 int acct_db_insert(struct acct_record_list * records)
 {
-	return ENOTSUP;
+	char 	**val;
+	int	 *val_len;
+	int 	 *val_isbin;
+	int	  idx = 0;
+	PGresult *res;
+	struct fd_list *li;
+	
+	TRACE_ENTRY("%p", records);
+	CHECK_PARAMS( conn && records );
+	
+	/* First, check if the connection with the DB has not staled, and eventually try to fix it */
+	if (PQstatus(conn) != CONNECTION_OK) {
+		/* Attempt a reset */
+		PQreset(conn);
+		if (PQstatus(conn) != CONNECTION_OK) {
+			TRACE_DEBUG(INFO, "Lost connection to the database server, and attempt to reestablish it failed");
+			TODO("Terminate the freeDiameter instance completly?");
+			return ENOTCONN;
+		}
+	}
+	
+	/* Alloc the arrays of parameters */
+	CHECK_MALLOC( val       = calloc(records->nball, sizeof(const char *)) );
+	CHECK_MALLOC( val_len   = calloc(records->nball, sizeof(const int)) );
+	CHECK_MALLOC( val_isbin = calloc(records->nball, sizeof(const int)) );
+	
+	/* Now write all the map'd records in these arrays */
+	for (li = records->all.next; li != &records->all; li = li->next) {
+		struct acct_record_item * r = (struct acct_record_item *)(li->o);
+		if (r->value) {
+			val_isbin[idx] = 1; /* We always pass binary parameters */
+			switch (r->param->avptype) {
+				case AVP_TYPE_OCTETSTRING:
+					val[idx] = (void *)(r->value->os.data);
+					val_len[idx] = r->value->os.len;
+					break;
+					
+				case AVP_TYPE_INTEGER32:
+				case AVP_TYPE_UNSIGNED32:
+				case AVP_TYPE_FLOAT32:
+					r->scalar.v32 = htonl(r->value->u32);
+					val[idx] = &r->scalar.c;
+					val_len[idx] = sizeof(uint32_t);
+					break;
+					
+				case AVP_TYPE_INTEGER64:
+				case AVP_TYPE_UNSIGNED64:
+				case AVP_TYPE_FLOAT64:
+					r->scalar.v64 = htonll(r->value->u64);
+					val[idx] = &r->scalar.c;
+					val_len[idx] = sizeof(uint64_t);
+					break;
+				
+				default:
+					ASSERT(0); /* detect bugs */
+			}
+		}
+		
+		idx++;
+	}
+	
+	/* OK, now execute the SQL statement */
+	res = PQexecPrepared(conn, stmt, records->nball, (const char * const *)val, val_len, val_isbin, 1 /* We actually don't care here */);
+	
+	/* Done with the parameters */
+	free(val);
+	free(val_len);
+	free(val_isbin);
+	
+	/* Now check the result code */
+	if (PQresultStatus(res) != PGRES_COMMAND_OK) {
+		TRACE_DEBUG(INFO, "An error occurred while INSERTing in the database: %s", PQerrorMessage(conn));
+		PQclear(res);
+		return EINVAL; /* It was probably a mistake in configuration file... */
+        }
+	PQclear(res);
+	
+	/* Ok, we are done */
+	return 0;
 }
 
 

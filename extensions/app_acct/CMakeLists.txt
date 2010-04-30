@@ -16,11 +16,13 @@ SET_SOURCE_FILES_PROPERTIES(lex.acct_conf.c acct_conf.tab.c PROPERTIES COMPILE_F
 SET( APP_ACCT_SRC
 	app_acct.h
 	app_acct.c
+	acct_db.c
+	acct_records.c
+)
+SET( APP_ACCT_SRC_GEN
 	lex.acct_conf.c
 	acct_conf.tab.c
 	acct_conf.tab.h
-	acct_db.c
-	acct_records.c
 )
 
 # Compile as a module
