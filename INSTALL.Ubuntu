@@ -5,7 +5,8 @@ On Ubuntu / Debian, the following packages are required (aptitude install ...):
  
 Additionnaly, these ones may be useful:
  mercurial gdb
+ 
+In order to build app_acct extension, you will also need the package libpq-dev.
 
-
-Tested working: Ubuntu Intrepid, Jaunty, Karmic. Debian Lenny.
-Tested not working: Ubuntu Hardy.
+Tested not working: Ubuntu Hardy (too old).
+Tested working: Ubuntu Intrepid, Jaunty, Karmic, Lucid. Debian Lenny.

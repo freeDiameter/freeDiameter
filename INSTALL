@@ -12,21 +12,20 @@ cmake -DSKIP_TESTS:BOOL=OFF ../
 make
 make tests
 
-Note: instead of passing options on the command line, you can use a CMake front-end (for example cmake-gui)
+Note: instead of passing options on the command line, you can use a CMake front-end (for example ccmake or cmake-gui)
 or edit the CCmakeCache.txt file directly.
 
 Note that there are dependencies on external tools that may not be enforced by the configure script.
 See the specific INSTALL.distro files matching your situation.
 
-make install has not been tested yet and will probably not behave as expected!
+make install has not been tested yet and will probably not behave as expected.
 
 You can configure which extensions to build with CMake:
 IGNORE_ALL_EXTENSIONS:BOOL=OFF    (or the following are ignored)
-BUILD_APP_TEST:BOOL=ON
-BUILD_RT_ANY:BOOL=ON
-BUILD_RT_DEBUG:BOOL=ON
-BUILD_RT_DEFAULT:BOOL=ON
 BUILD_SAMPLE:BOOL=ON
+BUILD_DICT_NASREQ:BOOL=ON
+BUILD_APP_RADGW:BOOL=ON
+...
 
 You can change the default configuration file pathname:
 DEFAULT_CONF_FILE:STRING=/path/to/some/freeDiameter.conf
