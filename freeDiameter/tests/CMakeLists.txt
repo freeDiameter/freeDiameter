@@ -69,6 +69,10 @@ IF(BUILD_APP_ACCT)
 		SET(testappacct_ADDITIONAL_LIB ${POSTGRESQL_LIBRARIES})
 
 		# List of source files, copied from the extension CMakeLists.
+		BISON_FILE(../../extensions/app_acct/acct_conf.y)
+		FLEX_FILE(../../extensions/app_acct/acct_conf.l)
+		#SET_SOURCE_FILES_PROPERTIES(lex.acct_conf.c acct_conf.tab.c PROPERTIES COMPILE_FLAGS "-I ${CMAKE_CURRENT_SOURCE_DIR}")
+		
 		SET( APP_ACCT_SRC
 			app_acct.h
 			app_acct.c
