@@ -590,16 +590,18 @@ int fd_sess_destroy ( struct session ** session )
 int fd_sess_reclaim ( struct session ** session )
 {
 	struct session * sess;
+	uint32_t hash;
 	
 	TRACE_ENTRY("%p", session);
 	CHECK_PARAMS( session && VALIDATE_SI(*session) );
 	
 	sess = *session;
+	hash = sess->hash;
 	*session = NULL;
 	
-	CHECK_FCT( pthread_mutex_lock( H_LOCK(sess->hash) ) );
+	CHECK_POSIX( pthread_mutex_lock( H_LOCK(sess->hash) ) );
 	pthread_cleanup_push( fd_cleanup_mutex, H_LOCK(sess->hash) );
-	CHECK_FCT( pthread_mutex_lock( &exp_lock ) );
+	CHECK_POSIX( pthread_mutex_lock( &exp_lock ) );
 	if (FD_IS_LIST_EMPTY(&sess->states)) {
 		fd_list_unlink( &sess->chain_h );
 		fd_list_unlink( &sess->expire );
@@ -607,9 +609,9 @@ int fd_sess_reclaim ( struct session ** session )
 		free(sess->sid);
 		free(sess);
 	}
-	CHECK_FCT( pthread_mutex_unlock( &exp_lock ) );
+	CHECK_POSIX( pthread_mutex_unlock( &exp_lock ) );
 	pthread_cleanup_pop(0);
-	CHECK_FCT( pthread_mutex_unlock( H_LOCK(sess->hash) ) );
+	CHECK_POSIX( pthread_mutex_unlock( H_LOCK(hash) ) );
 	
 	return 0;
 }
