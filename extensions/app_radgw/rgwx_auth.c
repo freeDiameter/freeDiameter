@@ -49,6 +49,7 @@
 #define ACV_ART_AUTHORIZE_AUTHENTICATE	3	/* AUTHORIZE_AUTHENTICATE */
 #define ACV_OAP_RADIUS			1	/* RADIUS */
 #define ACV_ASS_STATE_MAINTAINED	0	/* STATE_MAINTAINED */
+#define ACV_ASS_NO_STATE_MAINTAINED	1	/* NO_STATE_MAINTAINED */
 #define ER_DIAMETER_MULTI_ROUND_AUTH	1001
 #define ER_DIAMETER_LIMITED_SUCCESS	2002
 
@@ -919,6 +920,7 @@ static int auth_diam_ans( struct rgwp_config * cs, struct session * session, str
 	struct avp_hdr *ahdr, *sid, *oh;
 	char buf[254]; /* to store some attributes values (with final '\0') */
 	int ta_set = 0;
+	int no_str = 0; /* indicate if an STR is required for this server */
 	uint8_t	tuntag = 0;
 	unsigned char * req_auth = NULL;
 	
@@ -1047,19 +1049,11 @@ static int auth_diam_ans( struct rgwp_config * cs, struct session * session, str
 		}
 		CONV2RAD_STR(RADIUS_ATTR_STATE, buf, strlen(buf), 0);
 	}
-	/* The RFC text says that this should always be the case, but it seems odd... */
+
 	if ((*rad_fw)->hdr->code == RADIUS_CODE_ACCESS_ACCEPT) {
 		/* Add the Session-Id */
 		if (sizeof(buf) < snprintf(buf, sizeof(buf), "Diameter/%.*s", 
 				sid->avp_value->os.len, sid->avp_value->os.data)) {
-			TRACE_DEBUG(INFO, "Data truncated in Class attribute: %s", buf);
-		}
-		CONV2RAD_STR(RADIUS_ATTR_CLASS, buf, strlen(buf), 0);
-		
-		/* Add the auth-application-id required for STR */
-		CHECK_FCT( fd_msg_hdr( *diam_ans, &hdr ) );
-		if (sizeof(buf) < snprintf(buf, sizeof(buf), CLASS_AAI_PREFIX "%u", 
-				hdr->msg_appl)) {
 			TRACE_DEBUG(INFO, "Data truncated in Class attribute: %s", buf);
 		}
 		CONV2RAD_STR(RADIUS_ATTR_CLASS, buf, strlen(buf), 0);
@@ -1205,6 +1199,10 @@ static int auth_diam_ans( struct rgwp_config * cs, struct session * session, str
 				case DIAM_ATTR_AUTH_SESSION_STATE:
 					if ((!ta_set) && (ahdr->avp_value->u32 == ACV_ASS_STATE_MAINTAINED)) {
 						CONV2RAD_32B( RADIUS_ATTR_TERMINATION_ACTION, RADIUS_TERMINATION_ACTION_RADIUS_REQUEST );
+					}
+					
+					if (ahdr->avp_value->u32 == ACV_ASS_NO_STATE_MAINTAINED) {
+						no_str = 1;
 					}
 					break;
 					
@@ -1668,6 +1666,16 @@ static int auth_diam_ans( struct rgwp_config * cs, struct session * session, str
 	CHECK_FCT( fd_msg_free( aoh ) );
 	free(req_auth);
 
+	if ((*rad_fw)->hdr->code == RADIUS_CODE_ACCESS_ACCEPT) {
+		/* Add the auth-application-id required for STR, or 0 if no STR is required */
+		CHECK_FCT( fd_msg_hdr( *diam_ans, &hdr ) );
+		if (sizeof(buf) < snprintf(buf, sizeof(buf), CLASS_AAI_PREFIX "%u", 
+				no_str ? 0 : hdr->msg_appl)) {
+			TRACE_DEBUG(INFO, "Data truncated in Class attribute: %s", buf);
+		}
+		CONV2RAD_STR(RADIUS_ATTR_CLASS, buf, strlen(buf), 0);
+	}
+	
 	return 0;
 }
 

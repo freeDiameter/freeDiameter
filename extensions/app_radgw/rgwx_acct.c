@@ -1087,7 +1087,9 @@ static int acct_rad_req( struct rgwp_config * cs, struct session * session, stru
 		memset(st, 0, sizeof(struct sess_state));
 		memcpy(&st->req_auth, &rad_req->hdr->authenticator[0], 16);
 		st->auth_appl = auth_appl;
-		st->send_str = send_str;
+		if (auth_appl) { /* We use the value 0 for servers which indicated NO STATE MAINTAINED, hence have no need for STR */
+			st->send_str = send_str;
+		}
 		st->term_cause = str_cause;
 		CHECK_FCT( fd_sess_state_store( cs->sess_hdl, session, &st ) );
 	}
