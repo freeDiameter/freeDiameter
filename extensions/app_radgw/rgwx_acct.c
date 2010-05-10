@@ -1215,11 +1215,6 @@ static int acct_diam_ans( struct rgwp_config * cs, struct session * session, str
 		CHECK_FCT( fd_msg_avp_setvalue ( avp, or->avp_value ) );
 		CHECK_FCT( fd_msg_avp_add ( str, MSG_BRW_LAST_CHILD, avp) );
 
-		/* Add the Destination-Host as next AVP */
-		CHECK_FCT( fd_msg_avp_new ( cs->dict.Destination_Host, 0, &avp ) );
-		CHECK_FCT( fd_msg_avp_setvalue ( avp, oh->avp_value ) );
-		CHECK_FCT( fd_msg_avp_add ( str, MSG_BRW_LAST_CHILD, avp) );
-		
 		/* Get information on the NAS */
 		CHECK_FCT( rgw_clients_get_origin(cli, &fqdn, &realm) );
 
