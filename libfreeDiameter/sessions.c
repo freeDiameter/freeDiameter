@@ -711,12 +711,23 @@ int fd_sess_fromsid_msg ( unsigned char * sid, size_t len, struct session ** ses
 	/* Get the session object */
 	CHECK_FCT( fd_sess_fromsid ( (char *) sid, len, session, new) );
 	
-	/* Update the msg refcount */
-	CHECK_POSIX( pthread_mutex_lock(&(*session)->stlock) );
-	(*session)->msg_cnt++;
-	CHECK_POSIX( pthread_mutex_unlock(&(*session)->stlock) );
+	/* Increase count */
+	CHECK_FCT( fd_sess_ref_msg ( *session ) );
 	
 	/* Done */
+	return 0;
+}
+
+int fd_sess_ref_msg ( struct session * session )
+{
+	TRACE_ENTRY("%p", session);
+	CHECK_PARAMS( VALIDATE_SI(session) );
+
+	/* Update the msg refcount */
+	CHECK_POSIX( pthread_mutex_lock(&session->stlock) );
+	session->msg_cnt++;
+	CHECK_POSIX( pthread_mutex_unlock(&session->stlock) );
+	
 	return 0;
 }
 

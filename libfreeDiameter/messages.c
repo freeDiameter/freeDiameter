@@ -335,6 +335,8 @@ int fd_msg_new_answer_from_req ( struct dictionary * dict, struct msg ** msg, in
 		val.os.len  = strlen(sid);
 		CHECK_FCT( fd_msg_avp_setvalue( avp, &val ) );
 		CHECK_FCT( fd_msg_avp_add( ans, MSG_BRW_FIRST_CHILD, avp ) );
+		ans->msg_sess = sess;
+		CHECK_FCT( fd_sess_ref_msg(sess) );
 	}
 	
 	/* associate with query */
@@ -2207,13 +2209,13 @@ int fd_msg_dispatch ( struct msg ** msg, struct session * session, enum disp_act
 	/* So start browsing the message */
 	CHECK_FCT_DO( ret = fd_msg_browse( *msg, MSG_BRW_FIRST_CHILD, &avp, NULL ), goto error );
 	while (avp != NULL) {
-		/* Sanity */
-		ASSERT( avp->avp_public.avp_value );
-		
 		/* For unknown AVP, we don't have a callback registered, so just skip */
 		if (avp->avp_model) {
 			struct dict_object * type, * enumval;
 			
+			/* Sanity */
+			ASSERT( avp->avp_public.avp_value );
+
 			/* Get the list of callback for this AVP */
 			CHECK_FCT_DO( ret = fd_dict_disp_cb(DICT_AVP, avp->avp_model, &cb_list), goto error );
 			
