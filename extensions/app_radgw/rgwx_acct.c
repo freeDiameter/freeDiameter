@@ -1193,12 +1193,17 @@ static int acct_diam_ans( struct rgwp_config * cs, struct session * session, str
 	/* If it was a response to a STOP record, we must send an STR for this session */
 	if (st->send_str) {
 		struct msg * str = NULL;
+		struct msg_hdr * hdr = NULL;
 		char * fqdn;
 		char * realm;
 		union avp_value avp_val;
 		
 		/* Create a new STR message */
 		CHECK_FCT(  fd_msg_new ( cs->dict.Session_Termination_Request, MSGFL_ALLOC_ETEID, &str )  );
+		
+		/* Set the application-id to the auth application if available, accouting otherwise (not sure what is actually expected...) */
+		CHECK_FCT( fd_msg_hdr ( str, &hdr ) );
+		hdr->msg_appl = st->auth_appl ?: AI_ACCT;
 		
 		/* Add the Session-Id AVP as first AVP */
 		CHECK_FCT( fd_msg_avp_new (  cs->dict.Session_Id, 0, &avp ) );
