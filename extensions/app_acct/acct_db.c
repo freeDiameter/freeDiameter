@@ -157,13 +157,12 @@ int acct_db_init(void)
 	ADD_EXTEND("\") VALUES (");
 	
 	if (acct_config->tsfield) {
-		ADD_EXTEND("'now', ");
+		ADD_EXTEND("$%d, ", ++idx);
 	}
 	
 	for (li = emptyrecords.all.next; li != &emptyrecords.all; li = li->next) {
 		struct acct_record_item * i = (struct acct_record_item *)(li->o);
-		idx += 1;
-		ADD_EXTEND("$%d::%s", idx, diam2db_types_mapping[i->param->avptype]);
+		ADD_EXTEND("$%d::%s", ++idx, diam2db_types_mapping[i->param->avptype]);
 		
 		if (li->next != &emptyrecords.all) {
 			ADD_EXTEND(", ");
@@ -206,6 +205,7 @@ int acct_db_insert(struct acct_record_list * records)
 	int	 *val_len;
 	int 	 *val_isbin;
 	int	  idx = 0;
+	int	  size = 0;
 	PGresult *res;
 	struct fd_list *li;
 	
@@ -223,10 +223,19 @@ int acct_db_insert(struct acct_record_list * records)
 		}
 	}
 	
+	size = 	acct_config->tsfield ? records->nball + 1 : records->nball;
+	
 	/* Alloc the arrays of parameters */
-	CHECK_MALLOC( val       = calloc(records->nball, sizeof(const char *)) );
-	CHECK_MALLOC( val_len   = calloc(records->nball, sizeof(const int)) );
-	CHECK_MALLOC( val_isbin = calloc(records->nball, sizeof(const int)) );
+	CHECK_MALLOC( val       = calloc(size, sizeof(const char *)) );
+	CHECK_MALLOC( val_len   = calloc(size, sizeof(const int)) );
+	CHECK_MALLOC( val_isbin = calloc(size, sizeof(const int)) );
+	
+	if (acct_config->tsfield) {
+		val[idx] = "now";
+		val_len[idx] = 3;
+		val_isbin[idx] = 0;
+		idx++;
+	}
 	
 	/* Now write all the map'd records in these arrays */
 	for (li = records->all.next; li != &records->all; li = li->next) {
@@ -264,7 +273,7 @@ int acct_db_insert(struct acct_record_list * records)
 	}
 	
 	/* OK, now execute the SQL statement */
-	res = PQexecPrepared(conn, stmt, records->nball, (const char * const *)val, val_len, val_isbin, 1 /* We actually don't care here */);
+	res = PQexecPrepared(conn, stmt, size, (const char * const *)val, val_len, val_isbin, 1 /* We actually don't care here */);
 	
 	/* Done with the parameters */
 	free(val);
