@@ -54,6 +54,6 @@ IF(NOT IGNORE_ALL_EXTENSIONS)
 ENDIF(NOT IGNORE_ALL_EXTENSIONS)
 
 # The documentation to install
-INSTALL(FILES README LICENCE doc/freediameter.conf.sample
+INSTALL(FILES README LICENSE doc/freediameter.conf.sample
 	DESTINATION doc
 	COMPONENT freeDiameter-doc)
