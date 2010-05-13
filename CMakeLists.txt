@@ -52,3 +52,8 @@ OPTION(IGNORE_ALL_EXTENSIONS "Ignore the extensions completly?")
 IF(NOT IGNORE_ALL_EXTENSIONS)
 	SUBDIRS(extensions)
 ENDIF(NOT IGNORE_ALL_EXTENSIONS)
+
+# The documentation to install
+INSTALL(FILES README LICENCE doc/freediameter.conf.sample
+	DESTINATION doc
+	COMPONENT freeDiameter-doc)

@@ -63,6 +63,11 @@ SET(CMAKE_SHARED_LIBRARY_LINK_C_FLAGS "-rdynamic")
 LINK_DIRECTORIES(${CURRENT_BINARY_DIR}/../libfreeDiameter)
 TARGET_LINK_LIBRARIES(freeDiameterd libfreeDiameter ${FD_LIBS})
 
+# The daemon is to be installed as part of the freeDiameter-daemon component.
+INSTALL(TARGETS freeDiameterd
+	RUNTIME DESTINATION bin
+	COMPONENT freeDiameter-daemon)
+
 # Save the list of files, if needed
 SET(FD_COMMON_SRC ${FD_COMMON_SRC} PARENT_SCOPE)
 SET(FD_COMMON_GEN_SRC ${FD_COMMON_GEN_SRC} PARENT_SCOPE)

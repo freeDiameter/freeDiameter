@@ -25,6 +25,11 @@ SET_TARGET_PROPERTIES(libfreeDiameter PROPERTIES OUTPUT_NAME "freeDiameter")
 # The library itself needs other libraries 
 TARGET_LINK_LIBRARIES(libfreeDiameter ${FD_LIBS})
 
+# The library is to be installed as part of the freeDiameter-common component.
+INSTALL(TARGETS libfreeDiameter
+	LIBRARY DESTINATION lib
+	COMPONENT freeDiameter-common)
+
 # Save the list of files for testcases in the daemon's directory
 SET(LFD_SRC ${LFD_SRC} PARENT_SCOPE)
 
