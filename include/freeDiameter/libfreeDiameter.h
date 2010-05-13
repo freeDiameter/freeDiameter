@@ -210,6 +210,8 @@ static char * file_bname = NULL;
 /*************
  The general debug macro, each call results in two lines of debug messages (change the macro for more compact output) 
  *************/
+#ifdef DEBUG
+/* In DEBUG mode, we add (a lot of) meta-information along each trace. This makes multi-threading problems easier to debug. */
 #define TRACE_DEBUG(level,format,args... ) {											\
 	if ( TRACE_BOOL(level) ) {												\
 		char __buf[25];													\
@@ -220,6 +222,14 @@ static char * file_bname = NULL;
 					(level < FULL)?"@":" ",level, "", ## args); 						\
 	}															\
 }
+#else /* DEBUG */
+/* Do not print thread, function, ... only the message itself in this case. */
+#define TRACE_DEBUG(level,format,args... ) {		\
+	if ( TRACE_BOOL(level) ) {			\
+		fd_log_debug(format "\n", ## args); 	\
+	}						\
+}
+#endif /* DEBUG */
 
 /*************
  Derivatives from this macro 
