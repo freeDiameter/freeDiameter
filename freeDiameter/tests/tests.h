@@ -143,7 +143,6 @@ static inline void parse_cmdline(int argc, char * argv[]) {
 				fd_debug_one_function = optarg;
 				#else /* DEBUG */
 				TRACE_DEBUG(INFO, "Error: must compile with DEBUG support to use this feature");
-				return EINVAL;
 				#endif /* DEBUG */
 				break;
 				
