@@ -109,3 +109,9 @@ FOREACH( TEST ${TEST_LIST} )
    TARGET_LINK_LIBRARIES(${TEST} fDcore ${FD_LIBS} ${${TEST}_ADDITIONAL_LIB})
    ADD_TEST(${TEST} ${EXECUTABLE_OUTPUT_PATH}/${TEST})
 ENDFOREACH( TEST )
+
+
+####
+## INSTALL section ##
+
+# we do not install the tests

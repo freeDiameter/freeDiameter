@@ -28,3 +28,12 @@ SET( APP_ACCT_SRC_GEN
 # Compile as a module
 FD_ADD_EXTENSION(app_acct ${APP_ACCT_SRC} ${APP_ACCT_SRC_GEN})
 TARGET_LINK_LIBRARIES(app_acct ${POSTGRESQL_LIBRARIES})
+
+
+####
+## INSTALL section ##
+
+INSTALL(TARGETS app_acct
+	LIBRARY DESTINATION ${DEFAULT_EXTENSIONS_PATH}
+	COMPONENT freeDiameter-accounting-server)
+

@@ -34,4 +34,4 @@ ENDIF(GNUTLS_FOUND)
 
 # Lastly make it so that the GNUTLS_LIBRARY and GNUTLS_INCLUDE_DIR variables
 # only show up under the advanced options in the gui cmake applications.
-MARK_AS_ADVANCED( GNUTLS_LIBRARIES GNUTLS_INCLUDE_DIRS )
+MARK_AS_ADVANCED( GNUTLS_LIBRARY GNUTLS_INCLUDE_DIR )

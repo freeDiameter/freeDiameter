@@ -20,3 +20,12 @@ SET( APP_TEST_SRC
 
 # Compile as a module
 FD_ADD_EXTENSION(test_app ${APP_TEST_SRC})
+
+
+####
+## INSTALL section ##
+
+INSTALL(TARGETS test_app
+	LIBRARY DESTINATION ${DEFAULT_EXTENSIONS_PATH}
+	COMPONENT freeDiameter-debug-tools)
+

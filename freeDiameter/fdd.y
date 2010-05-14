@@ -308,7 +308,52 @@ oldtls:			OLDTLS ';'
 
 loadext:		LOADEXT '=' QSTRING extconf ';'
 			{
-				CHECK_FCT_DO( fd_ext_add( $3, $4 ),
+				char * fname;
+				char * cfname;
+				FILE * fd;
+				
+				/* Try and open the extension file */
+				fname = $3;
+				fd = fopen(fname, "r");
+				if ((fd == NULL) && (*fname != '/')) {
+					char * bkp = fname;
+					CHECK_MALLOC_DO( fname = malloc( strlen(bkp) + strlen(DEFAULT_EXTENSIONS_PATH) + 2 ),
+						{ yyerror (&yylloc, conf, "Not enough memory"); YYERROR; } );
+					sprintf(fname, DEFAULT_EXTENSIONS_PATH "/%s", bkp);
+					free(bkp);
+					fd = fopen(fname, "r");
+				}
+				if (fd == NULL) {
+					int ret = errno;
+					TRACE_DEBUG(INFO, "Unable to open extension file %s for reading: %s\n", fname, strerror(ret));
+					yyerror (&yylloc, conf, "Error adding extension"); 
+					YYERROR;
+				}
+				fclose(fd);
+				
+				/* Try and open the configuration file (optional) */
+				cfname = $4;
+				if (cfname) {
+					fd = fopen(cfname, "r");
+					if ((fd == NULL) && (*cfname != '/')) {
+						char * test;
+						CHECK_MALLOC_DO( test = malloc( strlen(cfname) + strlen(DEFAULT_CONF_PATH) + 2 ),
+							{ yyerror (&yylloc, conf, "Not enough memory"); YYERROR; } );
+						sprintf(test, DEFAULT_CONF_PATH "/%s", cfname);
+						fd = fopen(test, "r");
+						if (fd) {
+							free(cfname);
+							cfname=test;
+						} else {
+							/* This is not an error, we allow an extension to wait for something else than a real conf file. */
+							free(test);
+						}
+					}
+					if (fd)
+						fclose(fd);
+				}
+				
+				CHECK_FCT_DO( fd_ext_add( fname, cfname ),
 					{ yyerror (&yylloc, conf, "Error adding extension"); YYERROR; } );
 			}
 			;

@@ -51,6 +51,7 @@ find_path(GCRYPT_INCLUDE_DIR NAMES gcrypt.h)
 If ( NOT GCRYPT_INCLUDE_DIR )
 	MESSAGE(SEND_ERROR "Unable to find gcrypt.h, please install libgcrypt-dev or equivalent")
 Endif ( NOT GCRYPT_INCLUDE_DIR )
+MARK_AS_ADVANCED(GCRYPT_INCLUDE_DIR)
 INCLUDE_DIRECTORIES(${GCRYPT_INCLUDE_DIR})
 
 # Building the executable
@@ -63,17 +64,23 @@ SET(CMAKE_SHARED_LIBRARY_LINK_C_FLAGS "-rdynamic")
 LINK_DIRECTORIES(${CURRENT_BINARY_DIR}/../libfreeDiameter)
 TARGET_LINK_LIBRARIES(freeDiameterd libfreeDiameter ${FD_LIBS})
 
-# The daemon is to be installed as part of the freeDiameter-daemon component.
-INSTALL(TARGETS freeDiameterd
-	RUNTIME DESTINATION bin
-	COMPONENT freeDiameter-daemon)
-
 # Save the list of files, if needed
 SET(FD_COMMON_SRC ${FD_COMMON_SRC} PARENT_SCOPE)
 SET(FD_COMMON_GEN_SRC ${FD_COMMON_GEN_SRC} PARENT_SCOPE)
 
 # The unary tests directory
-OPTION(SKIP_TESTS "Skip compilation of the tests?" OFF)
+OPTION(SKIP_TESTS "Skip compilation of the tests?" ON)
 IF ( NOT SKIP_TESTS )
 	SUBDIRS(tests)
 ENDIF ( NOT SKIP_TESTS )
+IF (NOT CMAKE_BUILD_TYPE MATCHES "Debug")
+  MARK_AS_ADVANCED(SKIP_TESTS)
+ENDIF (NOT CMAKE_BUILD_TYPE MATCHES "Debug")
+
+
+####
+## INSTALL section ##
+
+INSTALL(TARGETS freeDiameterd
+	RUNTIME DESTINATION bin
+	COMPONENT freeDiameter-daemon)

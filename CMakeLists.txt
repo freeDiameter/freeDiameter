@@ -47,13 +47,13 @@ SUBDIRS(include/freeDiameter)
 SUBDIRS(libfreeDiameter)
 SUBDIRS(freeDiameter)
 
-# Do we build the extensions?
-OPTION(IGNORE_ALL_EXTENSIONS "Ignore the extensions completly?")
-IF(NOT IGNORE_ALL_EXTENSIONS)
-	SUBDIRS(extensions)
-ENDIF(NOT IGNORE_ALL_EXTENSIONS)
+# Extensions (there is no point in freeDiameter without any extension)
+SUBDIRS(extensions)
 
-# The documentation to install
+
+####
+## INSTALL section ##
+
 INSTALL(FILES README LICENSE doc/freediameter.conf.sample
 	DESTINATION doc
 	COMPONENT freeDiameter-doc)

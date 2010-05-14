@@ -3,3 +3,11 @@ PROJECT("Routing module debug extension" C)
 
 # Compile as a module
 FD_ADD_EXTENSION(dbg_rt dbg_rt.c)
+
+
+####
+## INSTALL section ##
+
+INSTALL(TARGETS dbg_rt
+	LIBRARY DESTINATION ${DEFAULT_EXTENSIONS_PATH}
+	COMPONENT freeDiameter-debug-tools)

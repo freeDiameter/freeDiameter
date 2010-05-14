@@ -41,6 +41,10 @@
 #include <freeDiameter/freeDiameter-host.h>
 #include <freeDiameter/freeDiameter.h>
 
+#ifndef FD_DEFAULT_CONF_FILENAME
+#define FD_DEFAULT_CONF_FILENAME "freeDiameter.conf"
+#endif /* FD_DEFAULT_CONF_FILENAME */
+
 #ifdef DISABLE_SCTP
 #undef IPPROTO_SCTP
 #define IPPROTO_SCTP	(2 = 4) /* some compilation error to spot the references */

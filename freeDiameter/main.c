@@ -309,7 +309,7 @@ static void main_help( void )
 	printf( "  -h, --help             Print help and exit\n"
   		"  -V, --version          Print version and exit\n"
   		"  -c, --config=filename  Read configuration from this file instead of the \n"
-		"                           default location (%s).\n", DEFAULT_CONF_FILE);
+		"                           default location (" DEFAULT_CONF_PATH "/" FD_DEFAULT_CONF_FILENAME ").\n");
  	printf( "\nDebug:\n"
   		"  These options are mostly useful for developers\n"
   		"  -l, --dbglocale        Set the locale for error messages\n"

@@ -223,11 +223,20 @@ static char * file_bname = NULL;
 	}															\
 }
 #else /* DEBUG */
-/* Do not print thread, function, ... only the message itself in this case. */
-#define TRACE_DEBUG(level,format,args... ) {		\
-	if ( TRACE_BOOL(level) ) {			\
-		fd_log_debug(format "\n", ## args); 	\
-	}						\
+/* Do not print thread, function, ... only the message itself in this case, unless the debug level is set > FULL. */
+#define TRACE_DEBUG(level,format,args... ) {												\
+	if ( TRACE_BOOL(level) ) {													\
+		if (fd_g_debug_lvl > FULL) {												\
+			char __buf[25];													\
+			char * __thn = ((char *)pthread_getspecific(fd_log_thname) ?: "unnamed");					\
+			fd_log_debug("\t | tid:%-20s\t%s\tin %s@%s:%d\n"								\
+				  "\t%s|%*s" format "\n",  										\
+						__thn, fd_log_time(NULL, __buf, sizeof(__buf)), __PRETTY_FUNCTION__, __FILE__, __LINE__,\
+						(level < FULL)?"@":" ",level, "", ## args); 						\
+		} else {														\
+			fd_log_debug(format "\n", ## args); 										\
+		}															\
+	}																\
 }
 #endif /* DEBUG */
 

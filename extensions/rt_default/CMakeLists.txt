@@ -31,10 +31,23 @@ SET( RT_DEFAULT_SRC
 INCLUDE_DIRECTORIES(${CMAKE_CURRENT_BINARY_DIR})
 
 # Overwrite the debug level for the extension code if configured, example: cmake -DDEBUG_LEVEL_RT_DEFAULT:STATIC=CALL ...
-OPTION(DEBUG_LEVEL_RT_DEFAULT "Overwrite debug level for the extension rt_default if defined" OFF)
+OPTION(DEBUG_LEVEL_RT_DEFAULT "Overwrite debug level for the extension rt_default if defined (valid values: FULL, ANNOYING, CALL...)" OFF)
 IF (DEBUG_LEVEL_RT_DEFAULT)
      ADD_DEFINITIONS(-DTRACE_LEVEL=${DEBUG_LEVEL_RT_DEFAULT})
 ENDIF (DEBUG_LEVEL_RT_DEFAULT)
+IF (NOT CMAKE_BUILD_TYPE MATCHES "Debug")
+  MARK_AS_ADVANCED(DEBUG_LEVEL_RT_DEFAULT)
+ENDIF (NOT CMAKE_BUILD_TYPE MATCHES "Debug")
 
 # Compile these files as a freeDiameter extension
 FD_ADD_EXTENSION(rt_default ${RT_DEFAULT_SRC})
+
+
+####
+## INSTALL section ##
+
+# We install with the daemon component because it is a base feature.
+INSTALL(TARGETS rt_default
+	LIBRARY DESTINATION ${DEFAULT_EXTENSIONS_PATH}
+	COMPONENT freeDiameter-daemon)
+

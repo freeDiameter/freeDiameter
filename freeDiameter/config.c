@@ -34,6 +34,7 @@
 *********************************************************************************************************/
 
 #include "fD.h"
+#include <sys/stat.h>
 
 /* Configuration management */
 
@@ -50,7 +51,6 @@ int fd_conf_init()
 	TRACE_ENTRY();
 	
 	fd_g_config->cnf_eyec = EYEC_CONFIG;
-	fd_g_config->cnf_file = DEFAULT_CONF_FILE;
 	
 	fd_g_config->cnf_timer_tc = 30;
 	fd_g_config->cnf_timer_tw = 30;
@@ -144,9 +144,18 @@ int fd_conf_parse()
 {
 	extern FILE * fddin;
 	
-	TRACE_DEBUG (FULL, "Parsing configuration file: %s", fd_g_config->cnf_file);
+	/* Attempt to find the configuration file */
+	if (!fd_g_config->cnf_file)
+		fd_g_config->cnf_file = FD_DEFAULT_CONF_FILENAME;
 	
 	fddin = fopen(fd_g_config->cnf_file, "r");
+	if ((fddin == NULL) && (*fd_g_config->cnf_file != '/')) {
+		/* We got a relative path, attempt to add the default directory prefix */
+		char * bkp = fd_g_config->cnf_file;
+		CHECK_MALLOC( fd_g_config->cnf_file = malloc(strlen(bkp) + strlen(DEFAULT_CONF_PATH) + 2) ); /* we will not free it, but not important */
+		sprintf( fd_g_config->cnf_file, DEFAULT_CONF_PATH "/%s", bkp );
+		fddin = fopen(fd_g_config->cnf_file, "r");
+	}
 	if (fddin == NULL) {
 		int ret = errno;
 		fprintf(stderr, "Unable to open configuration file %s for reading: %s\n", fd_g_config->cnf_file, strerror(ret));
@@ -154,6 +163,7 @@ int fd_conf_parse()
 	}
 	
 	/* call yacc parser */
+	TRACE_DEBUG (FULL, "Parsing configuration file: %s", fd_g_config->cnf_file);
 	CHECK_FCT(  fddparse(fd_g_config)  );
 	
 	/* close the file */

@@ -3,10 +3,13 @@ PROJECT("RADIUS/Diameter extensible gateway application for freeDiameter" C)
 
 
 # Overwrite the debug level for the extension code if configured
-OPTION(DEBUG_LEVEL_APP_RADGW "Overwrite debug level for the extension app_radgw if defined" OFF)
+OPTION(DEBUG_LEVEL_APP_RADGW "Overwrite debug level for the extension app_radgw if defined (valid values: FULL, ANNOYING, CALL...)" OFF)
 IF (DEBUG_LEVEL_APP_RADGW)
      ADD_DEFINITIONS(-DTRACE_LEVEL=${DEBUG_LEVEL_APP_RADGW})
 ENDIF (DEBUG_LEVEL_APP_RADGW)
+IF (NOT CMAKE_BUILD_TYPE MATCHES "Debug")
+  MARK_AS_ADVANCED(DEBUG_LEVEL_APP_RADGW)
+ENDIF (NOT CMAKE_BUILD_TYPE MATCHES "Debug")
 
 
 ########### Utility library #############
@@ -64,6 +67,9 @@ MACRO(RGWX_ADD_PLUGIN PLGNAME)
   SET_TARGET_PROPERTIES(${PLGNAME} PROPERTIES PREFIX "" )
   SET_TARGET_PROPERTIES(${PLGNAME} PROPERTIES SUFFIX ".rgwx" )
   TARGET_LINK_LIBRARIES(${PLGNAME} rgw_common)
+  INSTALL(TARGETS ${PLGNAME}
+	LIBRARY DESTINATION ${DEFAULT_EXTENSIONS_PATH}
+	COMPONENT freeDiameter-radius-gateway)
 ENDMACRO(RGWX_ADD_PLUGIN)
 
 
@@ -102,3 +108,13 @@ OPTION(BUILD_RGWX_ECHODROP "Build 'echo/drop' plugin? (drop specific RADIUS attr
   	   SET_SOURCE_FILES_PROPERTIES(lex.rgwx_echodrop.c rgwx_echodrop.tab.c PROPERTIES COMPILE_FLAGS "-I ${CMAKE_CURRENT_SOURCE_DIR}")
  	   RGWX_ADD_PLUGIN(echodrop ${RG_COMMON_HEADER} rgwx_echodrop.h rgwx_echodrop.c lex.rgwx_echodrop.c rgwx_echodrop.tab.c rgwx_echodrop.tab.h )
   	ENDIF (BUILD_RGWX_ECHODROP)
+	
+	
+####
+## INSTALL section ##
+
+INSTALL(TARGETS app_radgw
+	LIBRARY DESTINATION ${DEFAULT_EXTENSIONS_PATH}
+	COMPONENT freeDiameter-radius-gateway)
+
+# Note that all compiled plugins are added by the RGWX_ADD_PLUGIN macro in the component freeDiameter-radius-gateway as well.

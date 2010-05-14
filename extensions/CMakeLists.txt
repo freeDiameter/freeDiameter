@@ -19,6 +19,7 @@ find_path(GCRYPT_INCLUDE_DIR NAMES gcrypt.h)
 If ( NOT GCRYPT_INCLUDE_DIR )
 	MESSAGE(SEND_ERROR "Unable to find gcrypt.h, please install libgcrypt-dev or equivalent")
 Endif ( NOT GCRYPT_INCLUDE_DIR )
+MARK_AS_ADVANCED(GCRYPT_INCLUDE_DIR)
 INCLUDE_DIRECTORIES(${GCRYPT_INCLUDE_DIR})
 
 ###########################
@@ -76,11 +77,6 @@ OPTION(BUILD_ACL_WL "Build acl_wl? (White-list of remote connecting peers)" ON)
 ####
 # Debug & test extensions
 
-OPTION(BUILD_SAMPLE "Build sample.fdx? (Simple extension to demonstrate extension mechanism, for developpers only)" OFF)
-	IF (BUILD_SAMPLE)
-	   SUBDIRS(_sample)
-	ENDIF (BUILD_SAMPLE)
-
 OPTION(BUILD_DBG_MONITOR "Build dbg_monitor.fdx? (display periodical debug information on the console)" OFF)
 	IF (BUILD_DBG_MONITOR)
 	   SUBDIRS(dbg_monitor)
@@ -91,17 +87,26 @@ OPTION(BUILD_DBG_RT "Build dbg_rt.fdx? (Routing extension for debugging the rout
  	   SUBDIRS(dbg_rt)
  	ENDIF (BUILD_DBG_RT)
 
-OPTION(BUILD_TEST_ACCT "Build test_acct.fdx? (Receive Accounting-Requests and display the data, but no storage)" OFF)
-	IF (BUILD_TEST_ACCT)
-	   SUBDIRS(test_acct)
-	ENDIF (BUILD_TEST_ACCT)
-
 OPTION(BUILD_TEST_APP "Build test_app.fdx? (Testing application to send dummy message to another peer, for testing purpose only)" OFF)
  	IF (BUILD_TEST_APP)
  	   SUBDIRS(test_app)
  	ENDIF (BUILD_TEST_APP)
 
-OPTION(BUILD_TEST_RT_ANY "Build test_rt_any.fdx? (Routing extension randomly sending message to any peer available, for testing purpose only)" OFF)
- 	IF (BUILD_TEST_RT_ANY)
- 	   SUBDIRS(test_rt_any)
- 	ENDIF (BUILD_TEST_RT_ANY)
+# The following extension have very little use except for specific tests, so we disable them except in Debug configurations.
+IF (CMAKE_BUILD_TYPE MATCHES "Debug")
+	OPTION(BUILD_SAMPLE "Build sample.fdx? (Simple extension to demonstrate extension mechanism, for developpers only)" OFF)
+		IF (BUILD_SAMPLE)
+		   SUBDIRS(_sample)
+		ENDIF (BUILD_SAMPLE)
+
+	OPTION(BUILD_TEST_ACCT "Build test_acct.fdx? (Receive Accounting-Requests and display the data, but no storage)" OFF)
+		IF (BUILD_TEST_ACCT)
+		   SUBDIRS(test_acct)
+		ENDIF (BUILD_TEST_ACCT)
+		
+	OPTION(BUILD_TEST_RT_ANY "Build test_rt_any.fdx? (Routing extension randomly sending message to any peer available, for testing purpose only)" OFF)
+ 		IF (BUILD_TEST_RT_ANY)
+ 		   SUBDIRS(test_rt_any)
+ 		ENDIF (BUILD_TEST_RT_ANY)
+ENDIF (CMAKE_BUILD_TYPE MATCHES "Debug")
+

@@ -5,19 +5,25 @@ Project("freeDiameter include directory" C)
 ########################
 # Configurable parameters
 
-# Name of the default configuration file
-OPTION(DEFAULT_CONF_FILE "Default path to configuration file?" OFF)
+# The default directory for configuration files
+SET(DEFAULT_CONF_PATH ${CMAKE_INSTALL_PREFIX}/etc/freeDiameter CACHE PATH "Default location of freeDiameter configuration files")
+
+# The default directory for extension files
+SET(DEFAULT_EXTENSIONS_PATH ${CMAKE_INSTALL_PREFIX}/lib/fdx CACHE PATH "Default location of freeDiameter extensions")
 
 # Disable SCTP support completly ?
 OPTION(DISABLE_SCTP "Disable SCTP support?" OFF)
 IF (NOT DISABLE_SCTP)
 	OPTION(DEBUG_SCTP "Verbose SCTP (for debug)?" OFF)
 	OPTION(SCTP_USE_MAPPED_ADDRESSES "Use v6-mapped v4 addresses in SCTP (workaround some SCTP limitations)?" OFF)
+ELSE (NOT DISABLE_SCTP)
+	MESSAGE(STATUS "Disabled SCTP support.")
 ENDIF (NOT DISABLE_SCTP)
 
 # Find TODO items in the code easily ?
 OPTION(ERRORS_ON_TODO "(development) Generate compilation errors on TODO items ?" OFF)
 
+MARK_AS_ADVANCED(DISABLE_SCTP DEBUG_SCTP SCTP_USE_MAPPED_ADDRESSES ERRORS_ON_TODO)
 
 ########################
 # System checks 
@@ -89,14 +95,22 @@ CHECK_SYMBOL_EXISTS(ntohll "" HAVE_NTOHLL)
 # malloc.h ?
 CHECK_INCLUDE_FILES (malloc.h HAVE_MALLOC_H)
 
-# The default configuration file name
-IF (NOT DEFAULT_CONF_FILE)
-   SET(DEFAULT_CONF_FILE "freeDiameter.conf")
-ENDIF (NOT DEFAULT_CONF_FILE)
 ##########################
 
 # Generate the host.h file
 CONFIGURE_FILE(${CMAKE_CURRENT_SOURCE_DIR}/freeDiameter-host.h.in ${CMAKE_CURRENT_BINARY_DIR}/freeDiameter-host.h)
 
-# Save the FD_LIBS for parent scope
+# Save some variables for the other directories
 SET(FD_LIBS ${FD_LIBS} PARENT_SCOPE)
+SET(DEFAULT_CONF_PATH ${DEFAULT_CONF_PATH} PARENT_SCOPE)
+SET(DEFAULT_EXTENSIONS_PATH ${DEFAULT_EXTENSIONS_PATH} PARENT_SCOPE)
+
+
+####
+## INSTALL section ##
+
+# The headers from this directory are required to develop new extensions for freeDiameter.
+INSTALL(FILES ${CMAKE_CURRENT_BINARY_DIR}/freeDiameter-host.h libfreeDiameter.h freeDiameter.h extension.h
+	DESTINATION include/freeDiameter
+	COMPONENT freeDiameter-dev)
+

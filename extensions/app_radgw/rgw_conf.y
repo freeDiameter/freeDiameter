@@ -52,7 +52,6 @@
 #include "rgw.h"
 #include "rgw_conf.tab.h"	/* bison is not smart enough to define the YYLTYPE before including this code, so... */
 
-#include <sys/stat.h>
 #include <sys/socket.h>
 #include <arpa/inet.h>
 #include <netdb.h>
@@ -96,22 +95,6 @@ void yyerror (YYLTYPE *ploc, char * conffile, char const *s)
 		fd_log_debug("%s:%d.%d-%d : %s\n", conffile, ploc->first_line, ploc->first_column, ploc->last_column, s);
 	else
 		fd_log_debug("%s:%d.%d : %s\n", conffile, ploc->first_line, ploc->first_column, s);
-}
-
-/* This function checks a string value is a valid filename */
-static int is_valid_file( char * candidate ) 
-{
-	int ret;
-	struct stat buffer;
-	
-	ret = stat(candidate, &buffer);
-	if (ret != 0) {
-		fd_log_debug("Error on file '%s': %s.\n", candidate, strerror(errno));
-		return 0;
-	}
-
-	/* Ok this candidate is valid */
-	return 1;
 }
 
 /* Very simple byte stack management */
@@ -160,7 +143,7 @@ static char * plgconffile = NULL;
 %token <integer> INTEGER
 %token <ss>	IP
 
-%type <string>	FILENAME
+%type <string>	FINDFILEEXT
 
 /* simple tokens */
 %token		DISABLED
@@ -196,14 +179,30 @@ conffile:		/* empty grammar is OK */
 
 				
 /* -------------------------------------- */
-FILENAME:		QSTRING
+FINDFILEEXT:		QSTRING
 			{
-				/* Verify this is a valid file */
-				if (!is_valid_file($1)) {
-					yyerror (&yylloc, conffile, "Error on file name, aborting...");
+				char * fname = $1;
+				FILE * fd;
+				
+				/* First, check if the file exists */
+				fd = fopen(fname, "r");
+				if ((fd == NULL) && (*fname != '/')) {
+					char * bkp = fname;
+					CHECK_MALLOC_DO( fname = malloc( strlen(bkp) + strlen(DEFAULT_EXTENSIONS_PATH) + 2 ),
+						{ yyerror (&yylloc, conffile, "Not enough memory"); YYERROR; } );
+					sprintf(fname, DEFAULT_EXTENSIONS_PATH "/%s", bkp);
+					free(bkp);
+					fd = fopen(fname, "r");
+				}
+				if (fd == NULL) {
+					int ret = errno;
+					TRACE_DEBUG(INFO, "Unable to open file %s for reading: %s\n", fname, strerror(ret));
+					yyerror (&yylloc, conffile, "Error adding plugin"); 
 					YYERROR;
 				}
-				$$ = $1;
+				fclose(fd);
+				
+				$$ = fname;
 			}
 			;
 /* -------------------------------------- */
@@ -213,7 +212,7 @@ plugin:			{
 				port = RGW_PLG_TYPE_AUTH | RGW_PLG_TYPE_ACCT ;
 				free(plgconffile); plgconffile = NULL;
 			}
-			PLG_PREFIX '=' FILENAME plg_attributes ';'
+			PLG_PREFIX '=' FINDFILEEXT plg_attributes ';'
 			{
 				/* Add this extension in the list */
 				if ( rgw_plg_add( $4, plgconffile, port, &buf, buf_sz ) ) {

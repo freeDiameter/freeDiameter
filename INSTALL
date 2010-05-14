@@ -2,18 +2,24 @@ This package uses CMake (cmake.org) as building system. You'll need the cmake to
 to generate the Makefiles for your platform. You can also select which extensions must be built.
 
 Building in a separate directory is recommended:
-mkdir build
-cd build
-cmake ../
-make
-
-You can enable the unary tests by doing:
-cmake -DSKIP_TESTS:BOOL=OFF ../
-make
-make tests
+# mkdir build
+# cd build
+# cmake ../
+# make
 
 Note: instead of passing options on the command line, you can use a CMake front-end (for example ccmake or cmake-gui)
-or edit the CCmakeCache.txt file directly.
+or edit the CCmakeCache.txt file directly. If your cmake installation is recent, you can also do:
+# mkdir build
+# cd build
+# cmake ../
+# make edit_cache
+# make
+
+
+You can enable the unary tests by doing:
+# cmake -DSKIP_TESTS:BOOL=OFF ../
+# make
+# make tests
 
 Note that there are dependencies on external tools that may not be enforced by the configure script.
 See the specific INSTALL.distro files matching your situation.
