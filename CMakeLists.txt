@@ -20,6 +20,15 @@ CMAKE_MINIMUM_REQUIRED(VERSION 2.6)
 # Location of additional CMake modules
 SET(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/Modules/")
 
+# The default directories
+SET(DEFAULT_CONF_PATH ${CMAKE_INSTALL_PREFIX}/etc/freeDiameter CACHE PATH "Default location of freeDiameter configuration files")
+
+SET(INSTALL_DOCUMENTATION_PATH 	${CMAKE_INSTALL_PREFIX}/doc 			CACHE PATH "Directory where the documentation is installed.")
+SET(INSTALL_HEADERS_PATH 	${CMAKE_INSTALL_PREFIX}/include/freeDiameter 	CACHE PATH "Directory where the headers are installed.")
+SET(INSTALL_EXTENSIONS_PATH 	${CMAKE_INSTALL_PREFIX}/lib/fdx			CACHE PATH "Directory where the extensions are installed / searched.")
+SET(INSTALL_DAEMON_PATH 	${CMAKE_INSTALL_PREFIX}/bin 			CACHE PATH "Directory where the daemon binary is installed.")
+SET(INSTALL_LIBRARY_PATH 	${CMAKE_INSTALL_PREFIX}/lib 			CACHE PATH "Directory where the libfreeDiameter library is installed.")
+
 # All source code should be POSIX 200112L compatible, but some other extensions might be used, so:
 ADD_DEFINITIONS(-D_GNU_SOURCE)
 IF (CMAKE_BUILD_TYPE MATCHES "Debug")
@@ -55,5 +64,6 @@ SUBDIRS(extensions)
 ## INSTALL section ##
 
 INSTALL(FILES README LICENSE doc/freediameter.conf.sample
-	DESTINATION doc
-	COMPONENT freeDiameter-doc)
+	DESTINATION ${INSTALL_DOCUMENTATION_PATH}
+	COMPONENT freeDiameter-daemon)
+

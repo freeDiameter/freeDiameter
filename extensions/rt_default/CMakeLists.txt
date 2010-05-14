@@ -48,6 +48,10 @@ FD_ADD_EXTENSION(rt_default ${RT_DEFAULT_SRC})
 
 # We install with the daemon component because it is a base feature.
 INSTALL(TARGETS rt_default
-	LIBRARY DESTINATION ${DEFAULT_EXTENSIONS_PATH}
+	LIBRARY DESTINATION ${INSTALL_EXTENSIONS_PATH}
+	COMPONENT freeDiameter-daemon)
+
+INSTALL(FILES ../../doc/rt_default.conf.sample
+	DESTINATION ${INSTALL_DOCUMENTATION_PATH}
 	COMPONENT freeDiameter-daemon)
 

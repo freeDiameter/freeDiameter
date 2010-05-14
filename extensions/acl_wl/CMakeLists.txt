@@ -34,5 +34,9 @@ FD_ADD_EXTENSION(acl_wl ${ACL_WL_SRC})
 
 # We install with the daemon component because it is a base feature.
 INSTALL(TARGETS acl_wl
-	LIBRARY DESTINATION ${DEFAULT_EXTENSIONS_PATH}
+	LIBRARY DESTINATION ${INSTALL_EXTENSIONS_PATH}
+	COMPONENT freeDiameter-daemon)
+
+INSTALL(FILES ../../doc/acl_wl.conf.sample
+	DESTINATION ${INSTALL_DOCUMENTATION_PATH}
 	COMPONENT freeDiameter-daemon)

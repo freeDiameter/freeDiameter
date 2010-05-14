@@ -68,7 +68,7 @@ MACRO(RGWX_ADD_PLUGIN PLGNAME)
   SET_TARGET_PROPERTIES(${PLGNAME} PROPERTIES SUFFIX ".rgwx" )
   TARGET_LINK_LIBRARIES(${PLGNAME} rgw_common)
   INSTALL(TARGETS ${PLGNAME}
-	LIBRARY DESTINATION ${DEFAULT_EXTENSIONS_PATH}
+	LIBRARY DESTINATION ${INSTALL_EXTENSIONS_PATH}
 	COMPONENT freeDiameter-radius-gateway)
 ENDMACRO(RGWX_ADD_PLUGIN)
 
@@ -114,7 +114,12 @@ OPTION(BUILD_RGWX_ECHODROP "Build 'echo/drop' plugin? (drop specific RADIUS attr
 ## INSTALL section ##
 
 INSTALL(TARGETS app_radgw
-	LIBRARY DESTINATION ${DEFAULT_EXTENSIONS_PATH}
+	LIBRARY DESTINATION ${INSTALL_EXTENSIONS_PATH}
 	COMPONENT freeDiameter-radius-gateway)
+
+INSTALL(FILES ../../doc/app_radgw.conf.sample
+	DESTINATION ${INSTALL_DOCUMENTATION_PATH}
+	COMPONENT freeDiameter-radius-gateway)
+
 
 # Note that all compiled plugins are added by the RGWX_ADD_PLUGIN macro in the component freeDiameter-radius-gateway as well.

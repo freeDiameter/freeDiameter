@@ -5,19 +5,11 @@ Project("freeDiameter include directory" C)
 ########################
 # Configurable parameters
 
-# The default directory for configuration files
-SET(DEFAULT_CONF_PATH ${CMAKE_INSTALL_PREFIX}/etc/freeDiameter CACHE PATH "Default location of freeDiameter configuration files")
-
-# The default directory for extension files
-SET(DEFAULT_EXTENSIONS_PATH ${CMAKE_INSTALL_PREFIX}/lib/fdx CACHE PATH "Default location of freeDiameter extensions")
-
 # Disable SCTP support completly ?
 OPTION(DISABLE_SCTP "Disable SCTP support?" OFF)
 IF (NOT DISABLE_SCTP)
 	OPTION(DEBUG_SCTP "Verbose SCTP (for debug)?" OFF)
 	OPTION(SCTP_USE_MAPPED_ADDRESSES "Use v6-mapped v4 addresses in SCTP (workaround some SCTP limitations)?" OFF)
-ELSE (NOT DISABLE_SCTP)
-	MESSAGE(STATUS "Disabled SCTP support.")
 ENDIF (NOT DISABLE_SCTP)
 
 # Find TODO items in the code easily ?
@@ -78,6 +70,8 @@ IF(NOT DISABLE_SCTP)
 		")
 	SET(CMAKE_REQUIRED_LIBRARIES ${SCTP_LIBRARIES})
 	CHECK_C_SOURCE_COMPILES("${CHECK_SCTP_CONNECTX_4_ARGS_SOURCE_CODE}" SCTP_CONNECTX_4_ARGS)
+ELSE (NOT DISABLE_SCTP)
+	MESSAGE(STATUS "Disabled SCTP support.")
 ENDIF(NOT DISABLE_SCTP)
 
 # Check byte ordering
@@ -96,21 +90,22 @@ CHECK_SYMBOL_EXISTS(ntohll "" HAVE_NTOHLL)
 CHECK_INCLUDE_FILES (malloc.h HAVE_MALLOC_H)
 
 ##########################
+# rename this var for the file
+SET(DEFAULT_EXTENSIONS_PATH ${INSTALL_EXTENSIONS_PATH})
+
+##########################
 
 # Generate the host.h file
 CONFIGURE_FILE(${CMAKE_CURRENT_SOURCE_DIR}/freeDiameter-host.h.in ${CMAKE_CURRENT_BINARY_DIR}/freeDiameter-host.h)
 
 # Save some variables for the other directories
 SET(FD_LIBS ${FD_LIBS} PARENT_SCOPE)
-SET(DEFAULT_CONF_PATH ${DEFAULT_CONF_PATH} PARENT_SCOPE)
-SET(DEFAULT_EXTENSIONS_PATH ${DEFAULT_EXTENSIONS_PATH} PARENT_SCOPE)
-
 
 ####
 ## INSTALL section ##
 
 # The headers from this directory are required to develop new extensions for freeDiameter.
 INSTALL(FILES ${CMAKE_CURRENT_BINARY_DIR}/freeDiameter-host.h libfreeDiameter.h freeDiameter.h extension.h
-	DESTINATION include/freeDiameter
+	DESTINATION ${INSTALL_HEADERS_PATH}
 	COMPONENT freeDiameter-dev)
 
