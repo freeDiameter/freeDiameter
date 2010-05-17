@@ -495,6 +495,23 @@ peerparams:		/* empty */
 
 tls_cred:		TLS_CRED '=' QSTRING ',' QSTRING ';'
 			{
+				FILE * fd;
+				fd = fopen($3, "r");
+				if (fd == NULL) {
+					int ret = errno;
+					TRACE_DEBUG(INFO, "Unable to open certificate file %s for reading: %s\n", $3, strerror(ret));
+					yyerror (&yylloc, conf, "Error on file name"); 
+					YYERROR;
+				}
+				fclose(fd);
+				fd = fopen($5, "r");
+				if (fd == NULL) {
+					int ret = errno;
+					TRACE_DEBUG(INFO, "Unable to open private key file %s for reading: %s\n", $5, strerror(ret));
+					yyerror (&yylloc, conf, "Error on file name"); 
+					YYERROR;
+				}
+				fclose(fd);
 				conf->cnf_sec_data.cert_file = $3;
 				conf->cnf_sec_data.key_file = $5;
 				
@@ -509,6 +526,15 @@ tls_cred:		TLS_CRED '=' QSTRING ',' QSTRING ';'
 
 tls_ca:			TLS_CA '=' QSTRING ';'
 			{
+				FILE * fd;
+				fd = fopen($3, "r");
+				if (fd == NULL) {
+					int ret = errno;
+					TRACE_DEBUG(INFO, "Unable to open CA file %s for reading: %s\n", $3, strerror(ret));
+					yyerror (&yylloc, conf, "Error on file name"); 
+					YYERROR;
+				}
+				fclose(fd);
 				conf->cnf_sec_data.ca_file = $3;
 				CHECK_GNUTLS_DO( conf->cnf_sec_data.ca_file_nr += gnutls_certificate_set_x509_trust_file( 
 							conf->cnf_sec_data.credentials,
@@ -520,6 +546,15 @@ tls_ca:			TLS_CA '=' QSTRING ';'
 			
 tls_crl:		TLS_CRL '=' QSTRING ';'
 			{
+				FILE * fd;
+				fd = fopen($3, "r");
+				if (fd == NULL) {
+					int ret = errno;
+					TRACE_DEBUG(INFO, "Unable to open CRL file %s for reading: %s\n", $3, strerror(ret));
+					yyerror (&yylloc, conf, "Error on file name"); 
+					YYERROR;
+				}
+				fclose(fd);
 				conf->cnf_sec_data.crl_file = $3;
 				CHECK_GNUTLS_DO( gnutls_certificate_set_x509_crl_file( 
 							conf->cnf_sec_data.credentials,
