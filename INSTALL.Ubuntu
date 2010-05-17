@@ -53,4 +53,28 @@ Step by step instructions (with no prerequisite):
 # make test
 
 
-
+===========================================
+apt-get -y install mercurial cmake make gcc bison flex libsctp-dev libgnutls-dev libgcrypt-dev libpq-dev ssl-cert
+cd /usr/src
+hg clone http://aaa.koganei.wide.ad.jp/hg/freeDiameter
+mkdir fDbuild && cd fDbuild
+cmake -DCMAKE_BUILD_TYPE:STRING=RelWithDebInfo \
+      -DDEFAULT_CONF_PATH:PATH=/etc/freeDiameter \
+      -DCMAKE_INSTALL_PREFIX:PATH=/usr \
+      -DINSTALL_DOCUMENTATION_PATH:PATH=/usr/share/doc/freeDiameter \
+      -DBUILD_APP_ACCT:BOOL=ON \
+      -DBUILD_APP_RADGW:BOOL=ON \
+      -DBUILD_DBG_MONITOR:BOOL=ON \
+      -DBUILD_DBG_RT:BOOL=ON \
+      -DBUILD_TEST_APP:BOOL=ON \
+      -DBUILD_APP_ACCT:BOOL=ON \
+      ../freeDiameter
+make
+make install
+ln -s /etc/ssl/certs/ssl-cert-snakeoil.pem /etc/ssl/certs/freeDiameter.pem
+ln -s /etc/ssl/private/ssl-cert-snakeoil.key /etc/ssl/private/freeDiameter.key
+mkdir /etc/freeDiameter
+cp /usr/share/doc/freeDiameter/*.sample /etc/freeDiameter
+mv /etc/freeDiameter/freediameter.conf.sample /etc/freeDiameter/freeDiameter.conf
+echo "Identity=\"localhost.localdomain\";" >> /etc/freeDiameter/freeDiameter.conf
+freeDiameterd
