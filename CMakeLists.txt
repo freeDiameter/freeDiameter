@@ -6,8 +6,8 @@ PROJECT("freeDiameter" C)
 # Informations to display in daemon's help
 SET(FD_PROJECT_NAME freeDiameter)
 SET(FD_PROJECT_BINARY freeDiameterd)
-SET(FD_PROJECT_VERSION_MAJOR 0)
-SET(FD_PROJECT_VERSION_MINOR 1)
+SET(FD_PROJECT_VERSION_MAJOR 1)
+SET(FD_PROJECT_VERSION_MINOR 0)
 SET(FD_PROJECT_VERSION_REV 0)
 SET(FD_PROJECT_COPYRIGHT "Copyright (c) 2008-2009, WIDE Project (www.wide.ad.jp) and NICT (www.nict.go.jp)")
 
