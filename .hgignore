@@ -6,4 +6,5 @@ syntax: glob
 *.sum
 .hg
 build*
+test.*
 
