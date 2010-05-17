@@ -195,7 +195,7 @@ int fd_conf_parse()
 		if (ret != 0) {
 			fprintf(stderr, "Error resolving local FQDN :\n"
 					" '%s' : %s\n"
-					"Please provide LocalIdentity in configuration file.\n",
+					"Please provide Identity in configuration file.\n",
 					buf, gai_strerror(ret));
 			return EINVAL;
 		}
@@ -213,8 +213,8 @@ int fd_conf_parse()
 		/* Check the diameter identity is a fqdn */
 		start = strchr(fd_g_config->cnf_diamid, '.');
 		if ((start == NULL) || (start[1] == '\0')) {
-			fprintf(stderr, "Unable to extract realm from the LocalIdentity '%s'.\n"
-					"Please fix your LocalIdentity setting or provide LocalRealm.\n",
+			fprintf(stderr, "Unable to extract realm from the Identity '%s'.\n"
+					"Please fix your Identity setting or provide Realm.\n",
 					fd_g_config->cnf_diamid);
 			return EINVAL;
 		}		
