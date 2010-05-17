@@ -1,0 +1,94 @@
+Source: freediameter
+Section: unknown
+Priority: optional
+Maintainer: Sebastien Decugis <sdecugis@nict.go.jp>
+Build-Depends: debhelper (>=7.0.50~),
+ cmake, make, gcc, bison, flex,
+ libsctp-dev, libgnutls-dev, libgcrypt-dev, libpq-dev
+Standards-Version: 3.8.4
+Homepage: http://aaa.koganei.wide.ad.jp
+
+Package: freediameter-common
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: The libfreeDiameter library.
+ This library is required by all freeDiameter components.
+ It may also be useful for other projects which need to 
+ perform operations on Diameter messages. 
+ .
+ See 'freeDiameter-dev' package to retrieve the API for the library.
+
+Package: freediameter-daemon
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}, freediameter-common (= ${binary:Version})
+Suggests: ssl-cert, freediameter-dictionary-RFC4005, freediameter-dictionary-RFC4072
+Description: The freeDiameter daemon. 
+ The freeDiameter daemon provides support for the Diameter
+ Base Protocol. Without any extension, the daemon can only
+ be used as a Diameter routing agent. You probably want to 
+ install some freeDiameter extension to extend its features.
+ .
+ The daemon is shipped with a small set of extensions, for
+ example to configure the routing behavior. See the 
+ documentation for more details.
+
+Package: freediameter-dev
+Architecture: any
+Depends: freediameter-daemon (= ${binary:Version}), libsctp-dev, libgnutls-dev, libgcrypt-dev
+Description: This package provides the development files for freeDiameter.
+
+Package: freediameter-debug-tools
+Architecture: any
+Depends: freediameter-daemon (= ${binary:Version}), ${shlibs:Depends}, ${misc:Depends}
+Description: freeDiameter debug tools.
+ This package provides useful tools to help tracking 
+ problems in freeDiameter installation.
+
+Package: freediameter-dictionary-RFC4005
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}, freediameter-daemon (= ${binary:Version})
+Description: RFC4005 (NASREQ) dictionary support.
+ This freeDiameter extension provides the dictionary support
+ for commands and AVP defined in RFC4005 (NASREQ).
+ .
+ In order to use this extension, your main freeDiameter 
+ configuration file must contain a LoadExtension directive. 
+ See freeDiameter documentation for more details. 
+ .
+ This extension does not require a configuration file.
+
+Package: freediameter-dictionary-RFC4072
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}, freediameter-dictionary-RFC4005 (= ${binary:Version})
+Description: RFC4072 (Diameter EAP) dictionary support.
+ This freeDiameter extension provides the dictionary support
+ for commands and AVP defined in RFC4072 (Diameter EAP).
+ .
+ In order to use this extension, your main freeDiameter 
+ configuration file must contain a LoadExtension directive. 
+ See freeDiameter documentation for more details. 
+ .
+ This extension does not require a configuration file.
+
+Package: freediameter-accounting-server
+Architecture: any
+Depends: freediameter-daemon (= ${binary:Version}), ${shlibs:Depends}, ${misc:Depends}
+Description: freeDiameter simple Accounting server.
+ This freeDiameter extension implements the Diameter Base 
+ Accounting application. It saves the accounting records
+ in a PostgreSQL database backend in a highly configurable
+ maneer.
+ .
+ In order to use this extension, your main freeDiameter 
+ configuration file must contain a LoadExtension directive. 
+ See freeDiameter documentation for more details. 
+ .
+ This extension requires a configuration file.
+ See app_acct.conf.sample for more details.
+
+
+
+
+
+
+
