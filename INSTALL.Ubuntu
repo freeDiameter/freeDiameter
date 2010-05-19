@@ -61,12 +61,11 @@ hg clone http://aaa.koganei.wide.ad.jp/hg/freeDiameter
 cd freeDiameter
 dh binary
 
-
+cd ..
+dpkg -i *.deb
 
 ln -s /etc/ssl/certs/ssl-cert-snakeoil.pem /etc/ssl/certs/freeDiameter.pem
 ln -s /etc/ssl/private/ssl-cert-snakeoil.key /etc/ssl/private/freeDiameter.key
-mkdir /etc/freeDiameter
-cp /usr/share/doc/freeDiameter/*.sample /etc/freeDiameter
-mv /etc/freeDiameter/freediameter.conf.sample /etc/freeDiameter/freeDiameter.conf
+zcat /usr/share/doc/freediameter-daemon/examples/freediameter.conf.sample.gz > /etc/freeDiameter/freeDiameter.conf
 echo "Identity=\"localhost.localdomain\";" >> /etc/freeDiameter/freeDiameter.conf
 freeDiameterd
