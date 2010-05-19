@@ -12,7 +12,6 @@ Tested not working: Ubuntu Hardy (too old).
 Tested working: Ubuntu Intrepid, Jaunty, Karmic, Lucid. Debian Lenny.
 
 
-
 ===========================================-
 Step by step instructions (with no prerequisite):
 
@@ -54,23 +53,16 @@ Step by step instructions (with no prerequisite):
 
 
 ===========================================
-apt-get -y install mercurial cmake make gcc bison flex libsctp-dev libgnutls-dev libgcrypt-dev libpq-dev ssl-cert
+
+You can alternatively do:
+apt-get -y install mercurial cmake make gcc bison flex libsctp-dev libgnutls-dev libgcrypt-dev libpq-dev ssl-cert debhelper
 cd /usr/src
 hg clone http://aaa.koganei.wide.ad.jp/hg/freeDiameter
-mkdir fDbuild && cd fDbuild
-cmake -DCMAKE_BUILD_TYPE:STRING=RelWithDebInfo \
-      -DDEFAULT_CONF_PATH:PATH=/etc/freeDiameter \
-      -DCMAKE_INSTALL_PREFIX:PATH=/usr \
-      -DINSTALL_DOCUMENTATION_SUFFIX:PATH=share/doc/freeDiameter \
-      -DBUILD_APP_ACCT:BOOL=ON \
-      -DBUILD_APP_RADGW:BOOL=ON \
-      -DBUILD_DBG_MONITOR:BOOL=ON \
-      -DBUILD_DBG_RT:BOOL=ON \
-      -DBUILD_TEST_APP:BOOL=ON \
-      -DBUILD_APP_ACCT:BOOL=ON \
-      ../freeDiameter
-make
-make install
+cd freeDiameter
+dh binary
+
+
+
 ln -s /etc/ssl/certs/ssl-cert-snakeoil.pem /etc/ssl/certs/freeDiameter.pem
 ln -s /etc/ssl/private/ssl-cert-snakeoil.key /etc/ssl/private/freeDiameter.key
 mkdir /etc/freeDiameter
