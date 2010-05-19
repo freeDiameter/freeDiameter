@@ -23,7 +23,7 @@ ADD_LIBRARY(libfreeDiameter SHARED ${LFD_SRC})
 SET_TARGET_PROPERTIES(libfreeDiameter PROPERTIES OUTPUT_NAME "freeDiameter")
 
 # The library itself needs other libraries 
-TARGET_LINK_LIBRARIES(libfreeDiameter ${FD_LIBS})
+TARGET_LINK_LIBRARIES(libfreeDiameter ${LFD_LIBS})
 
 # Save the list of files for testcases in the daemon's directory
 SET(LFD_SRC ${LFD_SRC} PARENT_SCOPE)

@@ -49,6 +49,7 @@ ENDFOREACH(SRC_FILE)
 # Create an archive with the daemon common files (all but main)
 ADD_LIBRARY(fDcore STATIC ${TEST_COMMON_SRC})
 
+
 ##############################
 # App_acct test
 
@@ -106,7 +107,7 @@ ENDIF(BUILD_APP_ACCT)
 # Compile each test
 FOREACH( TEST ${TEST_LIST} )
    ADD_EXECUTABLE(${TEST} ${TEST}.c tests.h ${${TEST}_ADDITIONAL})
-   TARGET_LINK_LIBRARIES(${TEST} fDcore ${FD_LIBS} ${${TEST}_ADDITIONAL_LIB})
+   TARGET_LINK_LIBRARIES(${TEST} fDcore ${FD_LIBS} ${LFD_LIBS} ${${TEST}_ADDITIONAL_LIB})
    ADD_TEST(${TEST} ${EXECUTABLE_OUTPUT_PATH}/${TEST})
 ENDFOREACH( TEST )
 

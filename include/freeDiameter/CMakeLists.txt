@@ -27,53 +27,6 @@ INCLUDE (CheckSymbolExists)
 INCLUDE (CheckCSourceCompiles)
 INCLUDE (TestBigEndian)
 
-# We use dlopen and dlclose
-SET(FD_LIBS ${FD_LIBS} ${CMAKE_DL_LIBS})
-
-# We need the threads library (pthread)
-INCLUDE(FindThreads)
-SET(FD_LIBS ${FD_LIBS} ${CMAKE_THREAD_LIBS_INIT})
-
-# We need the clock_gettime function ( -lrt, -lposix4 )
-CHECK_FUNCTION_EXISTS (clock_gettime HAVE_CLOCK_GETTIME)
-IF (HAVE_CLOCK_GETTIME)
-   SET(CLOCK_GETTIME_LIBS "")
-ELSE (HAVE_CLOCK_GETTIME)
-   CHECK_LIBRARY_EXISTS (rt clock_gettime "" HAVE_LIBRT)
-   IF (HAVE_LIBRT)
-     SET(CLOCK_GETTIME_LIBS "-lrt")
-   ELSE (HAVE_LIBRT)
-     CHECK_LIBRARY_EXISTS (posix4 clock_gettime "" HAVE_LIBPOSIX4)
-     IF (HAVE_LIBPOSIX4)
-       SET(CLOCK_GETTIME_LIBS "-lposix4")
-     ENDIF (HAVE_LIBPOSIX4)
-   ENDIF (HAVE_LIBRT)
-ENDIF (HAVE_CLOCK_GETTIME)
-SET(FD_LIBS ${FD_LIBS} ${CLOCK_GETTIME_LIBS})
-
-# We need the sctp_connectx function among others
-# We need the IPPROTO_SCTP symbol from sys/socket.h, netinet/in.h or netinet/sctp.h
-IF(NOT DISABLE_SCTP)
-	CHECK_FUNCTION_EXISTS(sctp_connectx HAVE_NATIVE_SCTP)
-	IF(NOT HAVE_NATIVE_SCTP)
-		FIND_PACKAGE(SCTP REQUIRED)
-		INCLUDE_DIRECTORIES(${SCTP_INCLUDE_DIRS})
-		SET(FD_LIBS ${FD_LIBS} ${SCTP_LIBRARIES})
-	ENDIF(NOT HAVE_NATIVE_SCTP)
-	# Now check the number of args of this function, since it changed between Ubuntu 9.04 and 9.10
-   	SET(CHECK_SCTP_CONNECTX_4_ARGS_SOURCE_CODE "
-		#include <unistd.h>
-		#include <netinet/sctp.h>
-		int main() {
-		   return sctp_connectx(0, NULL, 0, NULL);
-		}
-		")
-	SET(CMAKE_REQUIRED_LIBRARIES ${SCTP_LIBRARIES})
-	CHECK_C_SOURCE_COMPILES("${CHECK_SCTP_CONNECTX_4_ARGS_SOURCE_CODE}" SCTP_CONNECTX_4_ARGS)
-ELSE (NOT DISABLE_SCTP)
-	MESSAGE(STATUS "Disabled SCTP support.")
-ENDIF(NOT DISABLE_SCTP)
-
 # Check byte ordering
 TEST_BIG_ENDIAN(HOST_BIG_ENDIAN)
 
@@ -89,6 +42,58 @@ CHECK_SYMBOL_EXISTS(ntohll "" HAVE_NTOHLL)
 # malloc.h ?
 CHECK_INCLUDE_FILES (malloc.h HAVE_MALLOC_H)
 
+
+# pthreads
+INCLUDE(FindThreads)
+
+# clock_gettime
+CHECK_FUNCTION_EXISTS (clock_gettime HAVE_CLOCK_GETTIME)
+IF (HAVE_CLOCK_GETTIME)
+   SET(CLOCK_GETTIME_LIBS "")
+ELSE (HAVE_CLOCK_GETTIME)
+   CHECK_LIBRARY_EXISTS (rt clock_gettime "" HAVE_LIBRT)
+   IF (HAVE_LIBRT)
+     SET(CLOCK_GETTIME_LIBS "-lrt")
+   ELSE (HAVE_LIBRT)
+     CHECK_LIBRARY_EXISTS (posix4 clock_gettime "" HAVE_LIBPOSIX4)
+     IF (HAVE_LIBPOSIX4)
+       SET(CLOCK_GETTIME_LIBS "-lposix4")
+     ENDIF (HAVE_LIBPOSIX4)
+   ENDIF (HAVE_LIBRT)
+ENDIF (HAVE_CLOCK_GETTIME)
+
+# LFD_LIBS = libraries required by the libfreeDiameter.
+SET(LFD_LIBS ${CLOCK_GETTIME_LIBS} ${CMAKE_THREAD_LIBS_INIT})
+
+
+# dlopen and dlclose: CMAKE_DL_LIBS
+
+# We need the sctp_connectx function among others
+# We need the IPPROTO_SCTP symbol from sys/socket.h, netinet/in.h or netinet/sctp.h
+IF(NOT DISABLE_SCTP)
+	CHECK_FUNCTION_EXISTS(sctp_connectx HAVE_NATIVE_SCTP)
+	IF(NOT HAVE_NATIVE_SCTP)
+		FIND_PACKAGE(SCTP REQUIRED)
+		INCLUDE_DIRECTORIES(${SCTP_INCLUDE_DIRS})
+	ENDIF(NOT HAVE_NATIVE_SCTP)
+	# Now check the number of args of this function, since it changed between Ubuntu 9.04 and 9.10
+   	SET(CHECK_SCTP_CONNECTX_4_ARGS_SOURCE_CODE "
+		#include <unistd.h>
+		#include <netinet/sctp.h>
+		int main() {
+		   return sctp_connectx(0, NULL, 0, NULL);
+		}
+		")
+	SET(CMAKE_REQUIRED_LIBRARIES ${SCTP_LIBRARIES})
+	CHECK_C_SOURCE_COMPILES("${CHECK_SCTP_CONNECTX_4_ARGS_SOURCE_CODE}" SCTP_CONNECTX_4_ARGS)
+ELSE (NOT DISABLE_SCTP)
+	MESSAGE(STATUS "Disabled SCTP support.")
+ENDIF(NOT DISABLE_SCTP)
+
+
+# FD_LIBS = libraries required by the daemon
+SET(FD_LIBS ${CMAKE_DL_LIBS} ${SCTP_LIBRARIES})
+
 ##########################
 # Create the absolute path for searching extensions
 SET(DEFAULT_EXTENSIONS_PATH ${CMAKE_INSTALL_PREFIX}/${INSTALL_EXTENSIONS_SUFFIX})
@@ -99,7 +104,8 @@ SET(DEFAULT_EXTENSIONS_PATH ${CMAKE_INSTALL_PREFIX}/${INSTALL_EXTENSIONS_SUFFIX}
 CONFIGURE_FILE(${CMAKE_CURRENT_SOURCE_DIR}/freeDiameter-host.h.in ${CMAKE_CURRENT_BINARY_DIR}/freeDiameter-host.h)
 
 # Save some variables for the other directories
-SET(FD_LIBS ${FD_LIBS} PARENT_SCOPE)
+SET(FD_LIBS  ${FD_LIBS}  PARENT_SCOPE)
+SET(LFD_LIBS ${LFD_LIBS} PARENT_SCOPE)
 
 ####
 ## INSTALL section ##
