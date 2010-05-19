@@ -45,7 +45,15 @@ COMPLETE INSTRUCTIONS
 7) Run cmake for freeDiameter (add other flags as you see fit, see INSTALL for more details)
    # /usr/local/bin/cmake -DFLEX_EXECUTABLE:FILEPATH=/usr/local/bin/flex ../freeDiameter
 
-8) make, run, enjoy :)
+8) Compile, optionnaly test
+   # make
+   # make test
+
+9) Install
+   # make install
+   
+10) Run (the install path can be changed in cmake step):
+   # /usr/local/bin/freeDiameterd --help
 
 
 ------------------------------
@@ -79,7 +87,7 @@ Here is additional steps in order to run the test for app_acct
   root=# \q
 
 3) configure the sources
-  # ccmake .
+  # make edit_cache
    BUILD_APP_ACCT:BOOL=ON
    TEST_APP_ACCT:BOOL=ON
    TEST_APP_ACCT_CONNINFO:STRING="user=root dbname=root"
