@@ -90,8 +90,8 @@ CHECK_SYMBOL_EXISTS(ntohll "" HAVE_NTOHLL)
 CHECK_INCLUDE_FILES (malloc.h HAVE_MALLOC_H)
 
 ##########################
-# rename this var for the file
-SET(DEFAULT_EXTENSIONS_PATH ${INSTALL_EXTENSIONS_PATH})
+# Create the absolute path for searching extensions
+SET(DEFAULT_EXTENSIONS_PATH ${CMAKE_INSTALL_PREFIX}/${INSTALL_EXTENSIONS_SUFFIX})
 
 ##########################
 
@@ -106,6 +106,6 @@ SET(FD_LIBS ${FD_LIBS} PARENT_SCOPE)
 
 # The headers from this directory are required to develop new extensions for freeDiameter.
 INSTALL(FILES ${CMAKE_CURRENT_BINARY_DIR}/freeDiameter-host.h libfreeDiameter.h freeDiameter.h extension.h
-	DESTINATION ${INSTALL_HEADERS_PATH}
+	DESTINATION ${INSTALL_HEADERS_SUFFIX}
 	COMPONENT freeDiameter-dev)
 

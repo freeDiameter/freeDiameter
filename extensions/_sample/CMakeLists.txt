@@ -17,6 +17,7 @@ FD_ADD_EXTENSION(dbg_sample sample.c fini.c)
 ####
 ## INSTALL section ##
 
-INSTALL(TARGETS dbg_sample
-	LIBRARY DESTINATION ${INSTALL_EXTENSIONS_PATH}
-	COMPONENT freeDiameter-debug-tools)
+# Uncomment the following lines to have the extension installed
+# INSTALL(TARGETS dbg_sample
+# 	LIBRARY DESTINATION ${INSTALL_EXTENSIONS_SUFFIX}
+# 	COMPONENT freeDiameter-debug-tools)

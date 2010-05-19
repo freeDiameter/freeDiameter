@@ -61,7 +61,7 @@ mkdir fDbuild && cd fDbuild
 cmake -DCMAKE_BUILD_TYPE:STRING=RelWithDebInfo \
       -DDEFAULT_CONF_PATH:PATH=/etc/freeDiameter \
       -DCMAKE_INSTALL_PREFIX:PATH=/usr \
-      -DINSTALL_DOCUMENTATION_PATH:PATH=/usr/share/doc/freeDiameter \
+      -DINSTALL_DOCUMENTATION_SUFFIX:PATH=share/doc/freeDiameter \
       -DBUILD_APP_ACCT:BOOL=ON \
       -DBUILD_APP_RADGW:BOOL=ON \
       -DBUILD_DBG_MONITOR:BOOL=ON \
