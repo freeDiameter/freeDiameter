@@ -39,6 +39,8 @@
  * It provides the tools to manipulate Diameter messages and related data.
  * This file should always be included as #include <freeDiameter/libfreeDiameter.h>
  *
+ * If any change is made to this file, you must increment the FD_PROJECT_VERSION_API version.
+ *
  * The file contains the following parts:
  *	DEBUG
  *	MACROS

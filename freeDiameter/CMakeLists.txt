@@ -42,6 +42,11 @@ SET(FD_COMMON_GEN_SRC
 		fdd.tab.c
 		fdd.tab.h
 	)
+	
+# Save the list of files for the tests 
+SET(FD_COMMON_SRC ${FD_COMMON_SRC} PARENT_SCOPE)
+SET(FD_COMMON_GEN_SRC ${FD_COMMON_GEN_SRC} PARENT_SCOPE)
+
 
 # Require GNU TLS for building the daemon
 FIND_PACKAGE(GnuTLS REQUIRED)
@@ -54,8 +59,13 @@ Endif ( NOT GCRYPT_INCLUDE_DIR )
 MARK_AS_ADVANCED(GCRYPT_INCLUDE_DIR)
 INCLUDE_DIRECTORIES(${GCRYPT_INCLUDE_DIR})
 
-# Building the executable
+
+# Build the executable
 ADD_EXECUTABLE(freeDiameterd ${FD_COMMON_SRC} ${FD_COMMON_GEN_SRC} main.c)
+
+# The version
+SET_TARGET_PROPERTIES(freeDiameterd PROPERTIES 
+	VERSION ${FD_PROJECT_VERSION_MAJOR}.${FD_PROJECT_VERSION_MINOR}.${FD_PROJECT_VERSION_REV})
 
 # Add this to workaround an apparent bug in FreeBSD cmake (already defined in Linux)
 SET(CMAKE_SHARED_LIBRARY_LINK_C_FLAGS "-rdynamic")
@@ -63,10 +73,6 @@ SET(CMAKE_SHARED_LIBRARY_LINK_C_FLAGS "-rdynamic")
 # The link command
 LINK_DIRECTORIES(${CURRENT_BINARY_DIR}/../libfreeDiameter)
 TARGET_LINK_LIBRARIES(freeDiameterd libfreeDiameter ${FD_LIBS})
-
-# Save the list of files, if needed
-SET(FD_COMMON_SRC ${FD_COMMON_SRC} PARENT_SCOPE)
-SET(FD_COMMON_GEN_SRC ${FD_COMMON_GEN_SRC} PARENT_SCOPE)
 
 # The unary tests directory
 OPTION(SKIP_TESTS "Skip compilation of the tests?" ON)

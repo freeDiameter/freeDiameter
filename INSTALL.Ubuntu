@@ -54,7 +54,7 @@ Step by step instructions (with no prerequisite):
 
 ===========================================
 
-You can alternatively do:
+# You can alternatively do:
 apt-get -y install mercurial cmake make gcc bison flex libsctp-dev libgnutls-dev libgcrypt-dev libpq-dev ssl-cert debhelper
 cd /usr/src
 hg clone http://aaa.koganei.wide.ad.jp/hg/freeDiameter
