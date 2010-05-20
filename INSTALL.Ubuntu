@@ -1,6 +1,10 @@
 See INSTALL file for general instructions on building freeDiameter.
 
-On Ubuntu / Debian, the following packages are required (aptitude install ...):
+
+freeDiameter has native support for Debian packaging. All related files
+are in the directory "debian" of the distribution.
+
+The following packages are required to compile freeDiameter from source:
  cmake make gcc flex bison libsctp1 libsctp-dev libgnutls-dev libgcrypt-dev
  
 Additionnaly, these ones may be useful:
@@ -8,21 +12,53 @@ Additionnaly, these ones may be useful:
  
 In order to build app_acct extension, you will also need the package libpq-dev.
 
-Tested not working: Ubuntu Hardy (too old).
-Tested working: Ubuntu Intrepid, Jaunty, Karmic, Lucid. Debian Lenny.
+
+If your debhelper environment is recent, the following commands should
+generate the freeDiameter packages for you:
+
+# Install the dependencies for building the source:
+sudo apt-get -y install mercurial cmake make gcc bison flex libsctp-dev libgnutls-dev libgcrypt-dev libpq-dev ssl-cert debhelper fakeroot
+
+# Retrieve the latest version of the source package
+cd 
+hg clone http://aaa.koganei.wide.ad.jp/hg/freeDiameter
+cd freeDiameter
+
+# Build the packages
+fakeroot dh binary
+
+# Install the packages
+cd ..
+sudo dpkg -i *.deb
+
+
+# The following lines may help you getting started.... (execute as root)
+ln -s /etc/ssl/certs/ssl-cert-snakeoil.pem /etc/ssl/certs/freeDiameter.pem
+ln -s /etc/ssl/private/ssl-cert-snakeoil.key /etc/ssl/private/freeDiameter.key
+zcat /usr/share/doc/freediameter-daemon/examples/freediameter.conf.sample.gz > /etc/freeDiameter/freeDiameter.conf
+echo "Identity=\"localhost.localdomain\";" >> /etc/freeDiameter/freeDiameter.conf
+freeDiameterd
+
+===========================================
+
+freeDiameter has been tested on the following distributions:
+Ubuntu Intrepid, Jaunty, Karmic, Lucid. 
+Debian Lenny.
+
+(Ubuntu Hardy support is broken)
 
 
 ===========================================-
-Step by step instructions (with no prerequisite):
+Step by step instructions without using the debhelper tools:
 
 1) Install all packages dependencies
-# apt-get install mercurial cmake make gcc bison flex libsctp-dev libgnutls-dev libgcrypt-dev
+# sudo apt-get install mercurial cmake make gcc bison flex libsctp-dev libgnutls-dev libgcrypt-dev
 
 2) (OPTION) If you will compile modules that require postgresql, also install:
-# apt-get install libpq-dev
+# sudo apt-get install libpq-dev
 
 3) (OPTION) If you want a more user-friendly interface, install this:
-# apt-get install cmake-curses-gui
+# sudo apt-get install cmake-curses-gui
 
 4) Retrieve the source files
 # hg clone http://aaa.koganei.wide.ad.jp/hg/freeDiameter
@@ -32,40 +68,21 @@ Step by step instructions (with no prerequisite):
 # cd fDbuild
 
 6) Configure and generate the Makefiles
- a) If you did not install ccmake in step 3:
 # cmake ../freeDiameter
-
- b) If you did install ccmake:
-# ccmake ../freeDiameter
-- press 'c' (configure)
-- toggle the values as needed (ex: BUILD_APP_RADGW=ON, ...)
-- press 'c' again. New items may appear, iterate the process
-- press 'c' and 'g' to complete the process
+# make edit_cache
 
 7) Compile all files:
 # make
 
-8) See available targets:
+8) (OPTION) See available targets:
 # make help
 
 9) (OPTION) Check the software has a correct basic behavior on your environment. -- only if you did not disable the tests in step 6
 # make test
 
+10) Install the software in configured locations:
+# sudo make install
+
 
 ===========================================
 
-# You can alternatively do:
-apt-get -y install mercurial cmake make gcc bison flex libsctp-dev libgnutls-dev libgcrypt-dev libpq-dev ssl-cert debhelper
-cd /usr/src
-hg clone http://aaa.koganei.wide.ad.jp/hg/freeDiameter
-cd freeDiameter
-dh binary
-
-cd ..
-dpkg -i *.deb
-
-ln -s /etc/ssl/certs/ssl-cert-snakeoil.pem /etc/ssl/certs/freeDiameter.pem
-ln -s /etc/ssl/private/ssl-cert-snakeoil.key /etc/ssl/private/freeDiameter.key
-zcat /usr/share/doc/freediameter-daemon/examples/freediameter.conf.sample.gz > /etc/freeDiameter/freeDiameter.conf
-echo "Identity=\"localhost.localdomain\";" >> /etc/freeDiameter/freeDiameter.conf
-freeDiameterd

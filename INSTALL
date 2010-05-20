@@ -7,32 +7,20 @@ Building in a separate directory is recommended:
 # cmake ../
 # make
 
-Note: instead of passing options on the command line, you can use a CMake front-end (for example ccmake or cmake-gui)
-or edit the CCmakeCache.txt file directly. If your cmake installation is recent, you can also do:
+You can pass options to instruct cmake about which components to compile on the command-line.
+You can also use a CMake front-end (for example ccmake or cmake-gui) or edit the CCmakeCache.txt file directly. 
+If your cmake installation is recent, the edit_cache target is a good help as well:
 # mkdir build
 # cd build
 # cmake ../
+# make help
 # make edit_cache
 # make
 
-
-You can enable the unary tests by doing:
+You can enable the unit tests by doing:
 # cmake -DSKIP_TESTS:BOOL=OFF ../
 # make
 # make tests
 
 Note that there are dependencies on external tools that may not be enforced by the configure script.
-See the specific INSTALL.distro files matching your situation.
-
-You can configure which extensions to build with CMake:
-IGNORE_ALL_EXTENSIONS:BOOL=OFF    (or the following are ignored)
-BUILD_SAMPLE:BOOL=ON
-BUILD_DICT_NASREQ:BOOL=ON
-BUILD_APP_RADGW:BOOL=ON
-...
-
-You can change the default configuration file pathname:
-DEFAULT_CONF_FILE:STRING=/path/to/some/freeDiameter.conf
-
-Build binary with symbols, for debug:
-CMAKE_BUILD_TYPE:STRING=Debug
+See the specific INSTALL.* files for additional information.
