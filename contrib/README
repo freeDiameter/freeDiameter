@@ -1,0 +1,35 @@
+This file describes the content of the "contrib" directory. 
+For information about the freeDiameter project, please refer
+to top-level README file.
+
+- update_copyright.sh : This script will simply update the copyright information
+        in all source files in the freeDiameter mercurial repository, based
+	on the last modification time. Thought I might share it if other people find
+	it useful for their own project...
+
+- PKI : This directory contains useful material related to establishing a 
+        Public Key Infrastructure (PKI) for deploying x509 certificates 
+	and use these for TLS authentication of the freeDiameter nodes.
+	
+        IMPORTANT: Please note that these solutions are NOT suitable 
+	for use in a production environment! It allows easy deployment of 
+	certificates for tests, and that is their sole purpose.
+    
+        The directory contains:
+	
+    - ca_script: a simple Makefile allowing you to generate a self-signed certificate (root)
+                and then issue new certificates and private keys for your users.
+		Run "make" without argument to get the help.
+		
+    - ca_script2: An evolution of the previous Makefile. This one allows you
+    		to create a hierarchy of CA and certificates. 
+
+    - phpki-0.82.patch : This patch is to be applied to PHPki to customize the use for freeDiameter.
+                PHPki (http://sourceforge.net/projects/phpki/) is a PHP-based web interface
+		that provides more or less the same services as ca_script.
+
+- OpenWRT : This directory contains the scripts and documentation related to 
+	the integration of freeDiameter RADIUS/Diameter gateway component in the openWRT
+	distribution (http://openwrt.org) -- the goal is to give the access point the 
+	ability to "talk" Diameter instead of RADIUS.
+				
