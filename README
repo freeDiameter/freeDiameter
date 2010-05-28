@@ -1,4 +1,4 @@
-freeDiameter is an implementation of Diameter.
+freeDiameter is an implementation of the Diameter protocol.
 
 Diameter is a protocol designed to carry Authentication, Authorization and
 Accounting (AAA) payload. It is an evolution of the RADIUS protocol (as the 

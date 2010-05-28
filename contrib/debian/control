@@ -2,7 +2,7 @@ Source: freediameter
 Section: unknown
 Priority: optional
 Maintainer: Sebastien Decugis <sdecugis@nict.go.jp>
-Build-Depends: debhelper ( >= 7),
+Build-Depends: debhelper ( >= 7.3.9),
  cmake, make, gcc, bison, flex,
  libsctp-dev, libgnutls-dev, libgcrypt-dev, libpq-dev
 Standards-Version: 3.8.3

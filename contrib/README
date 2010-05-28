@@ -7,6 +7,13 @@ to top-level README file.
 	on the last modification time. Thought I might share it if other people find
 	it useful for their own project...
 
+
+- debian : This directory contains the packaging information to create native Debian / Ubuntu 
+	packages. It requires debhelper >= 7.3.9 (support for cmake). To use, simply link the
+	debian folder from the main freeDiameter folder, then use your building script as
+	usual ('dh binary' or 'pdebuild' or ...).
+
+
 - PKI : This directory contains useful material related to establishing a 
         Public Key Infrastructure (PKI) for deploying x509 certificates 
 	and use these for TLS authentication of the freeDiameter nodes.
@@ -27,6 +34,7 @@ to top-level README file.
     - phpki-0.82.patch : This patch is to be applied to PHPki to customize the use for freeDiameter.
                 PHPki (http://sourceforge.net/projects/phpki/) is a PHP-based web interface
 		that provides more or less the same services as ca_script.
+
 
 - OpenWRT : This directory contains the scripts and documentation related to 
 	the integration of freeDiameter RADIUS/Diameter gateway component in the openWRT

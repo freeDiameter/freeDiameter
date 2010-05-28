@@ -1,8 +1,11 @@
 See INSTALL file for general instructions on building freeDiameter.
 
 
-freeDiameter has native support for Debian packaging. All related files
-are in the directory "debian" of the distribution.
+freeDiameter is shipped with the necessary files to generate the Debian package. 
+All related files are in the directory "contrib/debian" of the distribution.
+As a first step, you have to link this directory from your top-level dir:
+  ln -s contrib/debian
+ 
 
 The following packages are required to compile freeDiameter from source:
  cmake make gcc flex bison libsctp1 libsctp-dev libgnutls-dev libgcrypt-dev
@@ -13,8 +16,8 @@ Additionnaly, these ones may be useful:
 In order to build app_acct extension, you will also need the package libpq-dev.
 
 
-If your debhelper environment is recent, the following commands should
-generate the freeDiameter packages for you:
+If your debhelper environment is recent (> 7.3.9 to provide cmake support), 
+the following commands should generate the freeDiameter packages for you:
 
 # Install the dependencies for building the source:
 sudo apt-get -y install mercurial cmake make gcc bison flex libsctp-dev libgnutls-dev libgcrypt-dev libpq-dev ssl-cert debhelper fakeroot
@@ -23,6 +26,9 @@ sudo apt-get -y install mercurial cmake make gcc bison flex libsctp-dev libgnutl
 cd 
 hg clone http://aaa.koganei.wide.ad.jp/hg/freeDiameter
 cd freeDiameter
+
+# Prepare for Debian package
+ln -s contrib/debian
 
 # Build the packages
 fakeroot dh binary
@@ -41,11 +47,13 @@ freeDiameterd
 
 ===========================================
 
-freeDiameter has been tested on the following distributions:
+freeDiameter has been tested on the following distributions (compiled from source as described bellow):
 Ubuntu Intrepid, Jaunty, Karmic, Lucid. 
 Debian Lenny.
 
-(Ubuntu Hardy support is broken)
+Ubuntu Hardy support is broken.
+
+The Debian package has been generated with success on Ubuntu Lucid.
 
 
 ===========================================-
