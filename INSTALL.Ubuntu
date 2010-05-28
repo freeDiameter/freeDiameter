@@ -1,5 +1,7 @@
 See INSTALL file for general instructions on building freeDiameter.
 
+This file contains specific instructions to compile and install freeDiameter
+on Debian and Ubuntu systems.
 
 freeDiameter is shipped with the necessary files to generate the Debian package. 
 All related files are in the directory "contrib/debian" of the distribution.
@@ -53,7 +55,7 @@ Debian Lenny.
 
 Ubuntu Hardy support is broken.
 
-The Debian package has been generated with success on Ubuntu Lucid.
+The Debian package has been generated with success on Debian (>=Squeeze) and Ubuntu (>=Karmic).
 
 
 ===========================================-
