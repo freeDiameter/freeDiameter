@@ -38,6 +38,11 @@ OPTION(BUILD_DICT_EAP "Build Diameter EAP (RFC4072) Dictionary definitions?" ON)
 	   SUBDIRS(dict_eap)
 	ENDIF (BUILD_DICT_EAP)
 
+OPTION(BUILD_DICT_SIP "Build Diameter SIP (RFC4740) Dictionary definitions?" ON)
+	IF (BUILD_DICT_SIP)
+	   SUBDIRS(dict_sip)
+	ENDIF (BUILD_DICT_SIP)
+
 
 
 ####
