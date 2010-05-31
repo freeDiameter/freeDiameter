@@ -2211,25 +2211,23 @@ int fd_msg_dispatch ( struct msg ** msg, struct session * session, enum disp_act
 	while (avp != NULL) {
 		/* For unknown AVP, we don't have a callback registered, so just skip */
 		if (avp->avp_model) {
-			struct dict_object * type, * enumval;
+			struct dict_object * enumval = NULL;
 			
-			/* Sanity */
-			ASSERT( avp->avp_public.avp_value );
-
 			/* Get the list of callback for this AVP */
 			CHECK_FCT_DO( ret = fd_dict_disp_cb(DICT_AVP, avp->avp_model, &cb_list), goto error );
 			
-			/* Check if the AVP has a constant value */
-			CHECK_FCT_DO( ret = fd_dict_search(dict, DICT_TYPE, TYPE_OF_AVP, avp->avp_model, &type, 0), goto error );
-			if (type) {
-				struct dict_enumval_request req;
-				memset(&req, 0, sizeof(struct dict_enumval_request));
-				req.type_obj = type;
-				memcpy( &req.search.enum_value, avp->avp_public.avp_value, sizeof(union avp_value) );
-				CHECK_FCT_DO( ret = fd_dict_search(dict, DICT_ENUMVAL, ENUMVAL_BY_STRUCT, &req, &enumval, 0), goto error );
-			} else {
-				/* No enumerated value in this case */
-				enumval = NULL;
+			/* We search enumerated values only in case of non-grouped AVP */
+			if ( avp->avp_public.avp_value ) {
+				struct dict_object * type;
+				/* Check if the AVP has a constant value */
+				CHECK_FCT_DO( ret = fd_dict_search(dict, DICT_TYPE, TYPE_OF_AVP, avp->avp_model, &type, 0), goto error );
+				if (type) {
+					struct dict_enumval_request req;
+					memset(&req, 0, sizeof(struct dict_enumval_request));
+					req.type_obj = type;
+					memcpy( &req.search.enum_value, avp->avp_public.avp_value, sizeof(union avp_value) );
+					CHECK_FCT_DO( ret = fd_dict_search(dict, DICT_ENUMVAL, ENUMVAL_BY_STRUCT, &req, &enumval, 0), goto error );
+				}
 			}
 			
 			/* Call the callbacks */
