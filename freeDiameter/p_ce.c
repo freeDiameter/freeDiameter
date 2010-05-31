@@ -793,22 +793,45 @@ int fd_p_ce_process_receiver(struct fd_peer * peer)
 	
 	/* Do we agree on ISI ? */
 	if ( ! fd_cnx_getTLS(peer->p_cnxctx) ) {
+		
 		/* In case of responder, the validate callback must have set the config.pic_flags.sec value already */
-		if (!peer->p_hdr.info.config.pic_flags.sec) {
-			/* The peer did not send the Inband-Security-Id AVP, reject */
-			TRACE_DEBUG(INFO, "No security mechanism advertised by peer '%s', sending DIAMETER_NO_COMMON_SECURITY", peer->p_hdr.info.pi_diamid);
-			ec = "DIAMETER_NO_COMMON_SECURITY";
-			fatal = 1;
-			goto error_abort;
+	
+		/* First case: we are not using old mechanism: ISI are deprecated, we ignore it. */
+		if ( ! (peer->p_hdr.info.config.pic_flags.sec & PI_SEC_TLS_OLD)) {
+			/* Just check then that the peer configuration allows for IPsec protection */
+			if (peer->p_hdr.info.config.pic_flags.sec & PI_SEC_NONE) {
+				isi = PI_SEC_NONE;
+			} else {
+				/* otherwise, we should have already been protected. Reject */
+				TRACE_DEBUG(INFO, "Non TLS-protected CER/CEA exchanges are not allowed with this peer, rejecting.");
+			}
+		} else {
+			/* The old mechanism is allowed with this peer. Now, look into the ISI AVP values */
+			
+			/* In case no ISI was present anyway: */
+			if (!peer->p_hdr.info.runtime.pir_isi) {
+				TRACE_DEBUG(INFO, "Inband-Security-Id AVP is missing in received CER.");
+				if (peer->p_hdr.info.config.pic_flags.sec & PI_SEC_NONE) {
+					isi = PI_SEC_NONE;
+					TRACE_DEBUG(INFO, "IPsec protection allowed by configuration, allowing this mechanism to be used.");
+				} else {
+					/* otherwise, we should have already been protected. Reject */
+					TRACE_DEBUG(INFO, "Rejecting the peer connection (please allow IPsec here or configure TLS in the remote peer).");
+				}
+			} else {
+				/* OK, the remote peer did send the ISI AVP. */
+				if ((peer->p_hdr.info.config.pic_flags.sec & PI_SEC_NONE) && (peer->p_hdr.info.runtime.pir_isi & PI_SEC_NONE)) {
+					/* We have allowed IPsec */
+					isi = PI_SEC_NONE;
+				} else if (peer->p_hdr.info.runtime.pir_isi & PI_SEC_TLS_OLD) {
+					/* We can agree on TLS */
+					isi = PI_SEC_TLS_OLD;
+				} else {
+					TRACE_DEBUG(INFO, "Remote peer requested IPsec protection, but local configuration forbids it.");
+				}
+			}
 		}
-		
-		/* Now, check if we agree on the value IPsec */
-		if ((peer->p_hdr.info.config.pic_flags.sec & PI_SEC_NONE) && (peer->p_hdr.info.runtime.pir_isi & PI_SEC_NONE)) {
-			isi = PI_SEC_NONE;
-		} else if ((peer->p_hdr.info.config.pic_flags.sec & PI_SEC_TLS_OLD) && (peer->p_hdr.info.runtime.pir_isi & PI_SEC_TLS_OLD)) {
-			isi = PI_SEC_TLS_OLD;
-		}
-		
+	
 		/* If we did not find an agreement */
 		if (!isi) {
 			TRACE_DEBUG(INFO, "No common security mechanism with '%s', sending DIAMETER_NO_COMMON_SECURITY", peer->p_hdr.info.pi_diamid);
@@ -816,6 +839,10 @@ int fd_p_ce_process_receiver(struct fd_peer * peer)
 			fatal = 1;
 			goto error_abort;
 		}
+		
+		/* Do not send the ISI IPsec if we are using the new mechanism */
+		if ((isi == PI_SEC_NONE) && (! (peer->p_hdr.info.config.pic_flags.sec & PI_SEC_TLS_OLD)))
+			isi = 0;
 	}
 	
 	/* Reply a CEA */

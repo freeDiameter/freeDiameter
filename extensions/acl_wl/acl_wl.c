@@ -76,22 +76,13 @@ static int aw_validate(struct peer_info * info, int * auth, int (**cb2)(struct p
 		return 0;
 	}
 	
-	/* Check the Inband-Security-Id value */
-	res &= info->runtime.pir_isi;
-	if (res == 0) {
-		TRACE_DEBUG(INFO, "Peer '%s' rejected, remotely advertised Inband-Security-Id is not compatible with whitelist flags.", info->pi_diamid);
-		/* We don't actually set *auth = -1, leave space for a further extension to validate the peer */
-		return 0;
-	}
-	
-	/* Ok, the peer is whitelisted */
+	/* Otherwise, just set the configured flags for the peer, and authorize it */
 	*auth = 1;
 	
-	/* Now, configure the peer for the authorized mechanism */
+	/* Save information about the security mechanism to use after CER/CEA exchange */
 	if ((res & PI_SEC_NONE) && (res & PI_SEC_TLS_OLD))
 		res = PI_SEC_NONE; /* If we authorized it, we must have an IPsec tunnel setup, no need for TLS in this case */
 	
-	/* Save information about the security mechanism to use after CER/CEA exchange */
 	info->config.pic_flags.sec = res;
 	return 0;
 }
