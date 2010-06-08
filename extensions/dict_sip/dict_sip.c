@@ -1,8 +1,8 @@
 /*********************************************************************************************************
 * Software License Agreement (BSD License)                                                               *
-* Author: Alexandre Westfahl <awestfahl@gmail.com>							 *
+* Author: Alexandre Westfahl <awestfahl@freediameter.net>						 *
 *													 *
-* Copyright (c) 2010, Teraoka Laboratory								 *
+* Copyright (c) 2010, Teraoka Laboratory, Keio University						 *
 * All rights reserved.											 *
 * 													 *
 * Redistribution and use of this software in source and binary forms, with or without modification, are  *
