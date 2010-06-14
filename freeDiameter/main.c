@@ -295,7 +295,7 @@ static void main_version(void)
 {
 	main_version_core();
 	printf( "%s\n", FD_PROJECT_COPYRIGHT);
-	printf( "\nSee " FD_PROJECT_NAME " homepage at http://aaa.koganei.wide.ad.jp/\n"
+	printf( "\nSee " FD_PROJECT_NAME " homepage at http://www.freediameter.net/\n"
 		" for information, updates and bug reports on this software.\n");
 }
 

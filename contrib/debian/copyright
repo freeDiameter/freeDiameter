@@ -1,7 +1,7 @@
 Format-Specification: http://dep.debian.net/deps/dep5/
 Name: freeDiameter
 Maintainer: Sebastien Decugis <sdecugis@nict.go.jp>
-Source: http://aaa.koganei.wide.ad.jp
+Source: http://www.freediameter.net
 
 Files: *
 Copyright: 2008-2010, WIDE Project and NICT.

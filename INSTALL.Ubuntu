@@ -26,7 +26,7 @@ sudo apt-get -y install mercurial cmake make gcc bison flex libsctp-dev libgnutl
 
 # Retrieve the latest version of the source package
 cd 
-hg clone http://aaa.koganei.wide.ad.jp/hg/freeDiameter
+hg clone http://www.freediameter.net/hg/freeDiameter
 cd freeDiameter
 
 # Prepare for Debian package
@@ -71,7 +71,7 @@ Step by step instructions without using the debhelper tools:
 # sudo apt-get install cmake-curses-gui
 
 4) Retrieve the source files
-# hg clone http://aaa.koganei.wide.ad.jp/hg/freeDiameter
+# hg clone http://www.freediameter.net/hg/freeDiameter
 
 5) Create a build directory, and enter it
 # mkdir fDbuild

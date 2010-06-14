@@ -8,7 +8,7 @@
 # The Diameter Identity of this daemon.
 # This must be a valid FQDN that resolves to the local host.
 # Default: hostname's FQDN
-#Identity = "aaa.koganei.wide.ad.jp";
+#Identity = "aaa.koganei.freediameter.net";
 
 # The Diameter Realm of this daemon.
 # Default: the domain part of Identity.

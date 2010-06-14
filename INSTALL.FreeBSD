@@ -36,7 +36,7 @@ COMPLETE INSTRUCTIONS
 
 5) Retrieve freeDiameter source code:
    # cd ~
-   # /usr/local/bin/hg clone http://aaa.koganei.wide.ad.jp/hg/freeDiameter/
+   # /usr/local/bin/hg clone http://www.freediameter.net/hg/freeDiameter/
    
 6) Make a build directory
    # mkdir fD-build
