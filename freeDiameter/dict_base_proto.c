@@ -441,7 +441,7 @@ int fd_dict_base_protocol(struct dictionary * dict)
 				introducing the AVP.
 			*/
 			
-			/* We don't use a generic "Enumerated" type in waaad. Instead, we define
+			/* We don't use a generic "Enumerated" type in freeDiameter. Instead, we define
 			 * types of the form "Enumerated(<avpname>)" where <avpname> is replaced 
 			 * by the name of the AVP to which the type applies.
 			 *  Example: Enumerated(Disconnect-Cause)

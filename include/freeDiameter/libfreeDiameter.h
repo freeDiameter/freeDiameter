@@ -1037,7 +1037,7 @@ enum {
  * Enumerated values object 
  *
  * These types are used to manage named constants of some AVP,
- * for enumerated types. Waaad allows contants for types others than Unsigned32
+ * for enumerated types. freeDiameter allows constants for types others than Unsigned32
  *
  ***************************************************************************
  */
@@ -1938,6 +1938,8 @@ int fd_msg_browse_internal ( msg_or_avp * reference, enum msg_brw_dir dir, msg_o
  *
  * DESCRIPTION: 
  *   Adds an AVP into an object that can contain it: grouped AVP or message.
+ * Note that the added AVP will be freed at the same time as the object it is added to, 
+ * so it should not be freed after the call to this function.
  *
  * RETURN VALUE:
  *  0      	: The AVP has been added.

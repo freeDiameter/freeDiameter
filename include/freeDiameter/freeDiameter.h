@@ -390,8 +390,8 @@ int fd_peer_validate_register ( int (*peer_validate)(struct peer_info * /* info 
  *		data   : opaque data that was registered along with the callback.
  *		answer : location of the pointer to the answer.
  *      note1: on function return, if *answer is not NULL, the message is passed to the dispatch module for regular callbacks.
- *	       otherwise, the callback must take care of freeing the message (msg_free).
- *	note2: the opaque data is not freed by the daemon in any case, extensions should ensure clean handling in waaad_ext_fini.
+ *	       otherwise, the callback must take care of freeing the message (fd_msg_free).
+ *	note2: the opaque data is not freed by the daemon in any case, extensions should ensure clean handling in fd_ext_fini.
  * 
  * If no callback is registered to handle an answer, the message is discarded and an error is logged.
  *

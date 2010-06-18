@@ -16,7 +16,7 @@
 # Configuration of the test message
 
 # This application is defined as a Vendor-Specific application. 
-# Since waaad does not have a IANA-assigned Vendor ID, we let a configurable value here:
+# Since freeDiameter does not have a IANA-assigned Vendor ID, we let a configurable value here:
 # vendor-id = 999999;
 
 # The application id. Same remark as previously.
