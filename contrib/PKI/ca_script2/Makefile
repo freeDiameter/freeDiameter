@@ -33,6 +33,8 @@ Available commands:\n\
        Creates a new sub-CA that can be used for certificates later.\n\
    make newcert name=foo ca=parentca\n\
        Create private key and csr, then issue the certificate (named foo.*)\n\
+   make ship name=foo ca=parentca\n\
+       Create an archive with the data for the client\n\
    make revoke name=foo ca=parentca\n\
        Revokes the certificate foo.cert issued by parentca and regenerates the CRL.\n\
    make gencrl ca=caname\n\
@@ -132,6 +134,15 @@ newcert:
 	@cat $(DATA_DIR)/$(ca)/clients/$(name)/cert.pem $(DATA_DIR)/$(ca)/public/cachain.pem > $(DATA_DIR)/$(ca)/clients/$(name)/certchain.pem
 	@ln -sf ../../public/crl $(DATA_DIR)/$(ca)/clients/$(name)/crl
 	@ln -sf ../../public/caroot.pem $(DATA_DIR)/$(ca)/clients/$(name)/ca.pem
+
+# Create an archive to send the data to the client node
+ship:
+	@if [ -z "$(name)" -o -z "$(ca)" ]; then echo "Missing parameter. Ex: make ship name=service.testbed.aaa ca=ca.testbed.aaa"; exit 1; fi
+	@if [ ! -e $(DATA_DIR)/$(ca)/private/cakey.pem ]; then echo "The parent CA $(ca) does not exist."; exit 1; fi
+	@if [ ! -e  $(DATA_DIR)/$(ca)/clients/$(name)/privkey.pem ]; then echo "The client $(name) does not exist, use 'make newcert' first."; exit 1; fi
+	# Ship the data
+	@tar -c -C $(DATA_DIR)/$(ca)/clients/$(name) -z -f $(ca)_$(name).tar.gz -h .
+	@echo "The files have been packaged into archive: $(ca)_$(name).tar.gz"
 
 # Revoke a certificate
 revoke:
