@@ -12,7 +12,7 @@
 
 # The Diameter Realm of this daemon.
 # Default: the domain part of Identity.
-#Realm = "wide.ad.jp";
+#Realm = "koganei.freediameter.net";
 
 ##############################################################
 ##  Transport protocol configuration
