@@ -18,6 +18,8 @@ SET(FD_PROJECT_VERSION_API 1)
 
 # Some subfolders may have tests
 ENABLE_TESTING()
+# And actually we are now using CTest advanced features such as CDash, so we need this:
+INCLUDE(CTest)
 
 # CMake version
 CMAKE_MINIMUM_REQUIRED(VERSION 2.6)
