@@ -1526,11 +1526,12 @@ typedef void session_state;
  *  EINVAL 	: A parameter is invalid.
  *  ENOMEM	: Not enough memory to complete the operation
  */
-int fd_sess_handler_create_internal ( struct session_handler ** handler, void (*cleanup)(char * sid, session_state * state) );
+int fd_sess_handler_create_internal ( struct session_handler ** handler, void (*cleanup)(session_state * state, char * sid) );
 /* Macro to avoid casting everywhere */
 #define fd_sess_handler_create( _handler, _cleanup ) \
-	fd_sess_handler_create_internal( (_handler), (void (*)(char *, session_state *))(_cleanup) )
+	fd_sess_handler_create_internal( (_handler), (void (*)(session_state *, char *))(_cleanup) )
 
+	
 /*
  * FUNCTION:	fd_sess_handler_destroy
  *

@@ -46,7 +46,7 @@ struct mystate {
 	int  *  freed;	/* location where to write the freed status */
 };
 
-static void mycleanup( char * sid, struct mystate * data )
+static void mycleanup( struct mystate * data, char * sid )
 {
 	/* sanity */
 	CHECK( 1, sid ? 1 : 0 );
@@ -267,8 +267,8 @@ int main(int argc, char *argv[])
 		CHECK( 0, fd_sess_state_retrieve( hdl1, sess2, &tms ) );
 		CHECK( NULL, tms );
 		
-		mycleanup(str1, ms[0]);
-		mycleanup(str1, ms[1]);
+		mycleanup(ms[0], str1);
+		mycleanup(ms[1], str1);
 		
 		/* Now create 6 states */
 		memset(&freed[0], 0, sizeof(freed));
@@ -349,7 +349,7 @@ int main(int argc, char *argv[])
 		/* Check the last data can still be retrieved */
 		CHECK( 0, fd_sess_state_retrieve( hdl1, sess1, &tms ) );
 		CHECK( 0, fd_sess_getsid(sess1, &str1) );
-		mycleanup(str1, tms);
+		mycleanup(tms, str1);
 	}
 	
 	

@@ -68,7 +68,7 @@
 struct session_handler {
 	int		  eyec;	/* An eye catcher also used to ensure the object is valid, must be SH_EYEC */
 	int		  id;	/* A unique integer to identify this handler */
-	void 		(*cleanup)(char *, session_state *); /* The cleanup function to be called for cleaning a state */
+	void 		(*cleanup)(session_state *, char *); /* The cleanup function to be called for cleaning a state */
 };
 
 static int 		hdl_id = 0;				/* A global counter to initialize the id field */
@@ -246,7 +246,7 @@ void fd_sess_fini(void)
 }
 
 /* Create a new handler */
-int fd_sess_handler_create_internal ( struct session_handler ** handler, void (*cleanup)(char * sid, session_state * state) )
+int fd_sess_handler_create_internal ( struct session_handler ** handler, void (*cleanup)(session_state * state, char * sid) )
 {
 	struct session_handler *new;
 	
@@ -317,7 +317,7 @@ int fd_sess_handler_destroy ( struct session_handler ** handler )
 	while (!FD_IS_LIST_EMPTY(&deleted_states)) {
 		struct state * st = (struct state *)(deleted_states.next->o);
 		TRACE_DEBUG(FULL, "Calling cleanup handler for session '%s' and data %p", st->sid, st->state);
-		(*del->cleanup)(st->sid, st->state);
+		(*del->cleanup)(st->state, st->sid);
 		free(st->sid);
 		fd_list_unlink(&st->chain);
 		free(st);
@@ -575,7 +575,7 @@ int fd_sess_destroy ( struct session ** session )
 		struct state * st = (struct state *)(sess->states.next->o);
 		fd_list_unlink(&st->chain);
 		TRACE_DEBUG(FULL, "Calling handler %p cleanup for state registered with session '%s'", st->hdl, sess->sid);
-		(*st->hdl->cleanup)(sess->sid, st->state);
+		(*st->hdl->cleanup)(st->state, sess->sid);
 		free(st);
 	}
 	

@@ -38,7 +38,7 @@
 #include "rgwx_echodrop.h"
 
 /* If a session is destroyed, empty the list of ed_saved_attribute */
-static void state_delete(void * arg) {
+static void state_delete(void * arg, char * sid) {
 	struct fd_list * list = (struct fd_list *)arg;
 	
 	CHECK_PARAMS_DO( list, return );
