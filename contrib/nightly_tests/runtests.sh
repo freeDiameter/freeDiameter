@@ -64,10 +64,10 @@ for t in $(cat $WORKDIR/2_tests.list | grep -v -e "^#"); do
       
       set(CTEST_BUILD_CONFIGURATION "Profiling")
       set(WITH_MEMCHECK FALSE)
-      set(WITH_COVERAGE TRUE)
+      set(WITH_COVERAGE FALSE)
       
       set(CTEST_BUILD_OPTIONS "")
-      set(CTEST_BUILD_NAME "Unamed")
+      set(CTEST_BUILD_NAME "Unnamed")
 
       ##########################
 EOF
