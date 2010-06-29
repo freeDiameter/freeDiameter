@@ -26,7 +26,7 @@ if [ ! -d $WORKDIR ]; then
    mkdir $WORKDIR
 else
    rm -rf $WORKDIR/*/build
-if
+fi
 
 echo "Starting Nightly tests, time: "`date`
 
