@@ -78,7 +78,7 @@ Here is additional steps in order to run the test for app_acct
   root=# CREATE TABLE incoming_test (
   root(# recorded_on timestamp with time zone NOT NULL,
   root(# "Accounting-Record-Type" integer,
-  root(# "Session-Id" bytea, "
+  root(# "Session-Id" bytea,
   root(# "Accounting-Record-Number" integer,
   root(# "Route-Record1" bytea,
   root(# "Route-Record2" bytea,
