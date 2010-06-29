@@ -35,9 +35,15 @@ SET(INSTALL_LIBRARY_SUFFIX 		lib 			CACHE PATH "Directory where the libfreeDiame
 
 # All source code should be POSIX 200112L compatible, but some other extensions might be used, so:
 ADD_DEFINITIONS(-D_GNU_SOURCE)
-IF (CMAKE_BUILD_TYPE MATCHES "Debug")
+
+# Add a "Profiling" build type
+SET(CMAKE_BUILD_TYPE Profiling)
+SET(CMAKE_C_FLAGS_PROFILING "-fprofile-arcs -ftest-coverage")
+
+# Set the DEBUG flag for Debug and Profiling builds
+IF (CMAKE_BUILD_TYPE MATCHES "Debug|Profiling")
   SET(DEBUG 1)
-ENDIF (CMAKE_BUILD_TYPE MATCHES "Debug")
+ENDIF (CMAKE_BUILD_TYPE MATCHES "Debug|Profiling")
 
 # some subfolders use yacc and lex parsers
 SET(BISON_GENERATE_DEFINES TRUE)
