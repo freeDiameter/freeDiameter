@@ -17,8 +17,8 @@ If your cmake installation is recent, the edit_cache target is a good help as we
 # make edit_cache
 # make
 
-You can enable the unit tests by doing:
-# cmake -DSKIP_TESTS:BOOL=OFF ../
+You can disable the unit tests by doing:
+# cmake -DBUILD_TESTING:BOOL=OFF ../
 # make
 # make tests
 

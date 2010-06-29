@@ -75,10 +75,9 @@ LINK_DIRECTORIES(${CURRENT_BINARY_DIR}/../libfreeDiameter)
 TARGET_LINK_LIBRARIES(freeDiameterd libfreeDiameter ${FD_LIBS})
 
 # The unary tests directory
-OPTION(SKIP_TESTS "Skip compilation of the tests?" ON)
-IF ( NOT SKIP_TESTS )
+IF ( BUILD_TESTING )
 	SUBDIRS(tests)
-ENDIF ( NOT SKIP_TESTS )
+ENDIF ( BUILD_TESTING )
 
 ####
 ## INSTALL section ##

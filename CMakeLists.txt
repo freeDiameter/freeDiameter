@@ -16,9 +16,7 @@ SET(FD_PROJECT_VERSION_REV 0)
 # Version of the API with the library
 SET(FD_PROJECT_VERSION_API 1)
 
-# Some subfolders may have tests
-ENABLE_TESTING()
-# And actually we are now using CTest advanced features such as CDash, so we need this:
+# The test framework, using CTest and CDash.
 INCLUDE(CTest)
 
 # CMake version
