@@ -1,0 +1,21 @@
+This folder contains information and scripts to run a new test configuration for nightly builds 
+and reporting the results to freeDiameter dashboard 
+http://www.freediameter.net/CDash/index.php?project=freeDiameter
+
+The information comes from:
+http://www.itk.org/Wiki/CMake_Testing_With_CTest
+http://www.itk.org/Wiki/CMake_Scripting_Of_CTest
+http://www.itk.org/Wiki/CTest:Buildserver
+
+
+These are the instructions to setup a new build slave for the freeDiameter buildserver:
+
+1) Install all dependencies for freeDiameter. See the "prereqs" file.
+
+2) Create a directory ~/fDtests
+
+3) Retrieve the runtests.sh script and save in this directory
+
+4) Create a file local.cmake defining the name of the build slave in this directory also.
+
+5) 

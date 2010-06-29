@@ -1,0 +1,1 @@
+cmake mercurial make gcc flex bison binutils libsctp-dev libgnutls-dev valgrind wget
