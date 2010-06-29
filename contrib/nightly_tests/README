@@ -15,7 +15,7 @@ $ sudo aptitude install `wget http://www.freediameter.net/hg/freeDiameter/raw-fi
 
 2) Create a directory ~/fDtests
 $ cd
-$ make fDtests
+$ mkdir fDtests
 $ cd fDtests
 
 3) Retrieve the runtests.sh script and save in this directory

@@ -16,7 +16,8 @@ WORKDIR=$ROOTDIR/data
 #     the name of the build slave.
 # Exemple: SET(CTEST_SITE "Ubuntu-Lucid-64b")
 if [ ! -e $ROOTDIR/local.cmake ]; then
-   echo "Missing $ROOTDIR/local.cmake file";
+   echo "Missing $ROOTDIR/local.cmake file, generating one (edit as needed, and run the script again)";
+   echo "SET(CTEST_SITE \""`hostname --fqdn`"\")" > $ROOTDIR/local.cmake
    exit 1;
 fi
 
@@ -53,17 +54,18 @@ for t in $(cat $WORKDIR/2_tests.list | grep -v -e "^#"); do
    # Path name, build configuration, ...
    cat >> $WORKDIR/$t/CTestScript.cmake << EOF
       ##########################
-      SET(CTEST_SOURCE_DIRECTORY "$WORKDIR/source")
+      SET(CTEST_SOURCE_DIRECTORY "$ROOTDIR/source")
       SET(CTEST_BINARY_DIRECTORY "$WORKDIR/$t/build")
 
       set(CTEST_CMAKE_GENERATOR "Unix Makefiles")
+      
       set(CTEST_BUILD_CONFIGURATION "Profiling")
-
-      set(CTEST_BUILD_OPTIONS "")
-      set(CTEST_BUILD_NAME "Unamed test profile")
-
       set(WITH_MEMCHECK FALSE)
       set(WITH_COVERAGE TRUE)
+      
+      set(CTEST_BUILD_OPTIONS "")
+      set(CTEST_BUILD_NAME "Unamed")
+
       ##########################
 EOF
    
