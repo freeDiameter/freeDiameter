@@ -11,45 +11,45 @@ http://www.itk.org/Wiki/CTest:Buildserver
 These are the instructions to setup a new build slave for the freeDiameter buildserver:
 
 1) Install all dependencies for freeDiameter. See the "prereqs" file.
-$ sudo aptitude install `wget http://www.freediameter.net/hg/freeDiameter/raw-file/tip/contrib/nightly_tests/prereqs -O -`
+	$ sudo aptitude install `wget http://www.freediameter.net/hg/freeDiameter/raw-file/tip/contrib/nightly_tests/prereqs -O - | grep -v -e "$#"`
 
 2) Create the "test" database for app_acct test (we assume the tests are run as user "test" here)
-# su - postgres
-# createuser test
-Shall the new role be a superuser? (y/n) n
-Shall the new role be allowed to create databases? (y/n) y
-Shall the new role be allowed to create more new roles? (y/n) n
-# logout
-$ whoami
-test
-$ createdb test
-$ psql test
-psql (8.4.4)
-Type "help" for help.
+	# su - postgres
+	# createuser test
+	 Shall the new role be a superuser? (y/n) n
+	 Shall the new role be allowed to create databases? (y/n) y
+	 Shall the new role be allowed to create more new roles? (y/n) n
+	# logout
+	$ whoami
+	 test
+	$ createdb test
+	$ psql test
+	 psql (8.4.4)
+	 Type "help" for help.
 
-test=> 
-CREATE TABLE incoming_test (
-recorded_on timestamp with time zone NOT NULL,
-"Accounting-Record-Type" integer,
-"Session-Id" bytea,
-"Accounting-Record-Number" integer,
-"Route-Record1" bytea,
-"Route-Record2" bytea,
-"Route-Record3" bytea,
-"Route-Record4" bytea );
-\q
+	 test=> 
+	 CREATE TABLE incoming_test (
+	 recorded_on timestamp with time zone NOT NULL,
+	 "Accounting-Record-Type" integer,
+	 "Session-Id" bytea,
+	 "Accounting-Record-Number" integer,
+	 "Route-Record1" bytea,
+	 "Route-Record2" bytea,
+	 "Route-Record3" bytea,
+	 "Route-Record4" bytea );
+	 \q
 
 3) Create a directory ~/fDtests
-$ cd
-$ mkdir fDtests
-$ cd fDtests
+	$ cd
+	$ mkdir fDtests
+	$ cd fDtests
 
 4) Retrieve the runtests.sh script and save in this directory
-$ wget http://www.freediameter.net/hg/freeDiameter/raw-file/tip/contrib/nightly_tests/runtests.sh
-$ chmod +x runtests.sh
+	$ wget http://www.freediameter.net/hg/freeDiameter/raw-file/tip/contrib/nightly_tests/runtests.sh
+	$ chmod +x runtests.sh
 
 5) Create a file local.cmake defining the name of the build slave in this directory also.
-$ echo "SET(CTEST_SITE \""`hostname`"\")" > local.cmake
+	$ echo "SET(CTEST_SITE \""`hostname`"\")" > local.cmake
 
 6) Run the script once to check it works properly
 
