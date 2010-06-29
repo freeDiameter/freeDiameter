@@ -81,6 +81,10 @@ EOF
    # The retrieved parameters will overwrite the defaults
    cat $WORKDIR/$t/params.conf >> $WORKDIR/$t/CTestScript.cmake
    
+   # Overwrite with all the local data (site name, ...)
+   echo "######## Local site data: "  >> $WORKDIR/$t/CTestScript.cmake
+   cat $ROOTDIR/local.cmake >> $WORKDIR/$t/CTestScript.cmake
+   
    # Now, the remaining of the script
    cat >> $WORKDIR/$t/CTestScript.cmake << EOF
        #######################################################################
