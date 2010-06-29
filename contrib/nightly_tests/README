@@ -11,11 +11,20 @@ http://www.itk.org/Wiki/CTest:Buildserver
 These are the instructions to setup a new build slave for the freeDiameter buildserver:
 
 1) Install all dependencies for freeDiameter. See the "prereqs" file.
+$ sudo aptitude install `wget http://www.freediameter.net/hg/freeDiameter/raw-file/tip/contrib/nightly_tests/prereqs -O -`
 
 2) Create a directory ~/fDtests
+$ cd
+$ make fDtests
+$ cd fDtests
 
 3) Retrieve the runtests.sh script and save in this directory
+$ wget http://www.freediameter.net/hg/freeDiameter/raw-file/tip/contrib/nightly_tests/runtests.sh
+$ chmod +x runtests.sh
 
 4) Create a file local.cmake defining the name of the build slave in this directory also.
+$ echo "SET(CTEST_SITE \""`hostname`"\")" > local.cmake
 
-5) 
+5) Run the script once to check it works properly
+
+6) Set up a crontab to run the script

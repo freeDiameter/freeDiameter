@@ -4,7 +4,7 @@
 # and execute them one by one.
 
 ROOTDIR=$HOME/fDtests
-if [ -d $ROOTDIR ]; then
+if [ ! -d $ROOTDIR ]; then
    echo "The working directory $ROOTDIR does not exist. Please create or edit the script."
    exit 1;
 fi
