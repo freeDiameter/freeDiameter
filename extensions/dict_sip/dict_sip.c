@@ -2,7 +2,7 @@
 * Software License Agreement (BSD License)                                                               *
 * Author: Alexandre Westfahl <awestfahl@freediameter.net>						 *
 *													 *
-* Copyright (c) 2010, Teraoka Laboratory, Keio University						 *
+* Copyright (c) 2010, Alexandre Westfahl, Teraoka Laboratory (Keio University), and the WIDE Project. 	 *										 *
 * All rights reserved.											 *
 * 													 *
 * Redistribution and use of this software in source and binary forms, with or without modification, are  *
@@ -35,24 +35,6 @@
 
 #include <freeDiameter/extension.h>
 
-
-// New Result-Code for SIP (RFC4740: Section 10.*) 
-#define DIAMETER_FIRST_REGISTRATION 2003
-#define DIAMETER_SUBSEQUENT_REGISTRATION 2004
-#define DIAMETER_UNREGISTERED_SERVICE 2005
-#define DIAMETER_SUCCESS_SERVER_NAME_NOT_STORED 2006
-#define DIAMETER_SERVER_SELECTION 2007
-#define DIAMETER_SUCCESS_AUTH_SENT_SERVER_NOT_STORED 2008
-#define DIAMETER_USER_NAME_REQUIRED 4013
-#define DIAMETER_ERROR_USER_UNKNOWN 5032
-#define DIAMETER_ERROR_IDENTITIES_DONT_MATCH 5033
-#define DIAMETER_ERROR_IDENTITY_NOT_REGISTERED 5034
-#define DIAMETER_ERROR_ROAMING_NOT_ALLOWED 5035
-#define DIAMETER_ERROR_IDENTITY_ALREADY_REGISTERED 5036
-#define DIAMETER_ERROR_AUTH_SCHEME_NOT_SUPPORTED 5037
-#define DIAMETER_ERROR_IN_ASSIGNMENT_TYPE 5038
-#define DIAMETER_ERROR_TOO_MUCH_DATA 5039
-#define DIAMETER_ERROR_NOT SUPPORTED_USER_DATA 5040
 
 
 /* The content of this file follows the same structure as dict_base_proto.c */
@@ -557,7 +539,7 @@ int ds_dict_init()
 					AVP_FLAG_MANDATORY,		 	/* Fixed flag values */
 					AVP_TYPE_OCTETSTRING 			/* base type of data */
 					};
-			CHECK_dict_new( DICT_AVP, &data , NULL, NULL);
+			CHECK_dict_new( DICT_AVP, &data , UTF8String_type, NULL);
 		}
 
 		/* SIP-Mandatory-Capability */
