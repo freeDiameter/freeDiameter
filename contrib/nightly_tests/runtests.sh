@@ -5,7 +5,7 @@
 
 ROOTDIR=$HOME/fDtests
 if [ ! -d $ROOTDIR ]; then
-   echo "The working directory $ROOTDIR does not exist. Please create or edit the script."
+   echo "The working directory $ROOTDIR does not exist. Please create it or edit the script."
    exit 1;
 fi
 
@@ -21,9 +21,12 @@ if [ ! -e $ROOTDIR/local.cmake ]; then
    exit 1;
 fi
 
-# Now, cleanup any previous data. We start from clean slate.
-rm -rf $WORKDIR
-mkdir $WORKDIR
+# Now, cleanup any previous built data, but keep the sources (to get the diffs)
+if [ ! -d $WORKDIR ]; then 
+   mkdir $WORKDIR
+else
+   rm -rf $WORKDIR/*/build
+if
 
 echo "Starting Nightly tests, time: "`date`
 
@@ -48,13 +51,13 @@ for t in $(cat $WORKDIR/2_tests.list | grep -v -e "^#"); do
    
    #### Create the script
    
-   # Project name, ...
+   # Project name, nightly time
    cp $WORKDIR/1_default.cmake $WORKDIR/$t/CTestScript.cmake
    
-   # Path name, build configuration, ...
+   # Create path names, default build configuration, ...
    cat >> $WORKDIR/$t/CTestScript.cmake << EOF
       ##########################
-      SET(CTEST_SOURCE_DIRECTORY "$ROOTDIR/source")
+      SET(CTEST_SOURCE_DIRECTORY "$WORKDIR/$t/source")
       SET(CTEST_BINARY_DIRECTORY "$WORKDIR/$t/build")
 
       set(CTEST_CMAKE_GENERATOR "Unix Makefiles")
@@ -82,7 +85,7 @@ EOF
    cat >> $WORKDIR/$t/CTestScript.cmake << EOF
        #######################################################################
 
-       ctest_empty_binary_directory(\${CTEST_BINARY_DIRECTORY})
+       # ctest_empty_binary_directory(\${CTEST_BINARY_DIRECTORY})
 
        find_program(CTEST_HG_COMMAND NAMES hg)
        find_program(CTEST_COVERAGE_COMMAND NAMES gcov)
