@@ -108,7 +108,7 @@ int main(int argc, char *argv[])
 		CHECK( 0, acct_conf_init() );
 		acct_config->conninfo = strdup(TEST_CONNINFO);
 		acct_config->tablename = strdup(TABLE);
-		acct_config->tsfield = strdup("ts");
+		acct_config->tsfield = strdup("recorded_on");
 		CHECK( 0, add_avp_in_conf(strdup("Session-Id"), 0) );
 		CHECK( 0, add_avp_in_conf(strdup("Accounting-Record-Type"), 0) );
 		CHECK( 0, add_avp_in_conf(strdup("Accounting-Record-Number"), 0) );
@@ -128,7 +128,7 @@ int main(int argc, char *argv[])
 		PQclear(res);
 		
 		res = PQexec(conn, "CREATE TABLE " TABLE " ( "
-					"  ts timestamp with time zone NOT NULL, "
+					"  recorded_on timestamp with time zone NOT NULL, "
 					"  \"Accounting-Record-Type\" integer, "
 					"  \"Session-Id\" bytea, "
 					"  \"Accounting-Record-Number\" integer, "
