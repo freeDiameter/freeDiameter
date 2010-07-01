@@ -303,6 +303,8 @@ static int acct_rad_req( struct rgwp_config * cs, struct session ** session, str
 	size_t pref_len;
 	char * si = NULL;
 	size_t si_len = 0;
+	char * un = NULL;
+	size_t un_len = 0;
 	
 	TRACE_ENTRY("%p %p %p %p %p %p", cs, session, rad_req, rad_ans, diam_fw, cli);
 	CHECK_PARAMS(rad_req && (rad_req->hdr->code == RADIUS_CODE_ACCOUNTING_REQUEST) && rad_ans && diam_fw && *diam_fw);
@@ -319,6 +321,8 @@ static int acct_rad_req( struct rgwp_config * cs, struct session ** session, str
 	for (idx = 0; idx < rad_req->attr_used; idx++) {
 		struct radius_attr_hdr * attr = (struct radius_attr_hdr *)(rad_req->buf + rad_req->attr_pos[idx]);
 		uint8_t * v = (uint8_t *)(attr + 1);
+		size_t attr_len = attr->length - sizeof(struct radius_attr_hdr);
+		
 		switch (attr->type) {
 			case RADIUS_ATTR_NAS_IP_ADDRESS:
 			case RADIUS_ATTR_NAS_IDENTIFIER:
@@ -351,23 +355,26 @@ static int acct_rad_req( struct rgwp_config * cs, struct session ** session, str
 				break;
 				
 			case RADIUS_ATTR_CLASS:
-				{
-					char * attr_val = (char *)(attr + 1);
-					size_t attr_len = attr->length - sizeof(struct radius_attr_hdr);
-					if ((attr_len > pref_len ) && ! strncmp(attr_val, prefix, pref_len)) {
-						int i;
-						si = attr_val + pref_len;
-						si_len = attr_len - pref_len;
-						TRACE_DEBUG(ANNOYING, "Found Class attribute with '%s' prefix (attr #%d), SI:'%.*s'.", prefix, idx, si_len, si);
-						/* Remove from the message */
-						for (i = idx + 1; i < rad_req->attr_used; i++)
-							rad_req->attr_pos[i - 1] = rad_req->attr_pos[i];
-						rad_req->attr_used -= 1;
-						break;
-					}
+				if ((attr_len > pref_len ) && ! strncmp((char *)v, prefix, pref_len)) {
+					int i;
+					si = (char *)v + pref_len;
+					si_len = attr_len - pref_len;
+					TRACE_DEBUG(ANNOYING, "Found Class attribute with '%s' prefix (attr #%d), SI:'%.*s'.", prefix, idx, si_len, si);
+					/* Remove from the message */
+					for (i = idx + 1; i < rad_req->attr_used; i++)
+						rad_req->attr_pos[i - 1] = rad_req->attr_pos[i];
+					rad_req->attr_used -= 1;
 				}
 				break;
 
+			case RADIUS_ATTR_USER_NAME:
+				if (attr_len) {
+					un = (char *)v;
+					un_len = attr_len;
+					TRACE_DEBUG(ANNOYING, "Found a User-Name attribute: '%.*s'", un_len, un);
+				}
+				break;
+			
 		}
 	}
 	
@@ -450,6 +457,29 @@ static int acct_rad_req( struct rgwp_config * cs, struct session ** session, str
 		return EINVAL;
 	}
 	
+	/* Add the Destination-Realm */
+	CHECK_FCT( fd_msg_avp_new ( cs->dict.Destination_Realm, 0, &avp ) );
+	idx = 0;
+	if (un) {
+		/* Is there an '@' in the user name? We don't care for decorated NAI here */
+		for (idx = un_len - 2; idx > 0; idx--) {
+			if (un[idx] == '@') {
+				idx++;
+				break;
+			}
+		}
+	}
+	if (idx == 0) {
+		/* Not found in the User-Name => we use the local domain of this gateway */
+		value.os.data = fd_g_config->cnf_diamrlm;
+		value.os.len  = fd_g_config->cnf_diamrlm_len;
+	} else {
+		value.os.data = un + idx;
+		value.os.len  = un_len - idx;
+	}
+	CHECK_FCT( fd_msg_avp_setvalue ( avp, &value ) );
+	CHECK_FCT( fd_msg_avp_add ( *diam_fw, *session ? MSG_BRW_LAST_CHILD : MSG_BRW_FIRST_CHILD, avp) );
+	
 	/* Create the Session-Id AVP if needed */
 	if (!*session) {
 		CHECK_FCT( fd_sess_fromsid ( si, si_len, session, NULL) );
@@ -463,6 +493,7 @@ static int acct_rad_req( struct rgwp_config * cs, struct session ** session, str
 		CHECK_FCT( fd_msg_avp_setvalue ( avp, &value ) );
 		CHECK_FCT( fd_msg_avp_add ( *diam_fw, MSG_BRW_FIRST_CHILD, avp) );
 	}
+	
 		
 	/* Add the command code */
 	{
