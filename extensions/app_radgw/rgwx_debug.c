@@ -71,7 +71,7 @@ static void debug_dump_radius(struct radius_msg *msg)
 }
 
 /* Function called when a new RADIUS message is being converted to Diameter */
-static int debug_rad_req( struct rgwp_config * cs, struct session * session, struct radius_msg * rad_req, struct radius_msg ** rad_ans, struct msg ** diam_fw, struct rgw_client * cli )
+static int debug_rad_req( struct rgwp_config * cs, struct session ** session, struct radius_msg * rad_req, struct radius_msg ** rad_ans, struct msg ** diam_fw, struct rgw_client * cli )
 {
 	TRACE_ENTRY("%p %p %p %p %p %p", cs, session, rad_req, rad_ans, diam_fw, cli);
 	
@@ -98,15 +98,24 @@ static int debug_rad_req( struct rgwp_config * cs, struct session * session, str
 		fd_msg_dump_walk(0, *diam_fw);
 	}
 	
+	if (!session || ! *session) {
+		fd_log_debug(" Diameter session: NULL pointer\n");
+	} else {
+		char * str;
+		CHECK_FCT( fd_sess_getsid(*session, &str) );
+
+		fd_log_debug(" Diameter session: %s\n", str);
+	}
+	
 	fd_log_debug("===========  Debug%s%s%s complete =============\n", cs ? " [" : "", cs ? (char *)cs : "", cs ? "]" : "");
 	
 	return 0;
 }
 
 /* This one, when Diameter answer is converted to RADIUS */
-static int debug_diam_ans( struct rgwp_config * cs, struct session * session, struct msg ** diam_ans, struct radius_msg ** rad_fw, struct rgw_client * cli )
+static int debug_diam_ans( struct rgwp_config * cs, struct session * session, struct msg ** diam_ans, struct radius_msg ** rad_fw, struct rgw_client * cli, int * stateful )
 {
-	TRACE_ENTRY("%p %p %p %p %p", cs, session, diam_ans, rad_fw, cli);
+	TRACE_ENTRY("%p %p %p %p %p %p", cs, session, diam_ans, rad_fw, cli, stateful);
 
 	fd_log_debug("------------- RADIUS/Diameter Answer Debug%s%s%s -------------\n", cs ? " [" : "", cs ? (char *)cs : "", cs ? "]" : "");
 	

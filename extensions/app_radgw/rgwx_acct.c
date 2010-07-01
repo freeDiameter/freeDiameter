@@ -284,7 +284,7 @@ static void acct_conf_free(struct rgwp_config * state)
 }
 
 /* Incoming RADIUS request */
-static int acct_rad_req( struct rgwp_config * cs, struct session * session, struct radius_msg * rad_req, struct radius_msg ** rad_ans, struct msg ** diam_fw, struct rgw_client * cli )
+static int acct_rad_req( struct rgwp_config * cs, struct session ** session, struct radius_msg * rad_req, struct radius_msg ** rad_ans, struct msg ** diam_fw, struct rgw_client * cli )
 {
 	int idx;
 	int send_str=0;
@@ -299,8 +299,15 @@ static int acct_rad_req( struct rgwp_config * cs, struct session * session, stru
 	union avp_value value;
 	struct avp ** avp_tun = NULL, *avp = NULL;
 	
+	const char * prefix = "Diameter/";
+	size_t pref_len;
+	char * si = NULL;
+	size_t si_len = 0;
+	
 	TRACE_ENTRY("%p %p %p %p %p %p", cs, session, rad_req, rad_ans, diam_fw, cli);
 	CHECK_PARAMS(rad_req && (rad_req->hdr->code == RADIUS_CODE_ACCOUNTING_REQUEST) && rad_ans && diam_fw && *diam_fw);
+	
+	pref_len = strlen(prefix);
 	
 	/*
 	      Either NAS-IP-Address or NAS-Identifier MUST be present in a
@@ -308,6 +315,7 @@ static int acct_rad_req( struct rgwp_config * cs, struct session * session, stru
 	      Port-Type attribute or both unless the service does not involve a
 	      port or the NAS does not distinguish among its ports.
 	*/
+	/* We also enforce that the message contains a CLASS attribute with Diameter/ prefix containing the Session-Id. */
 	for (idx = 0; idx < rad_req->attr_used; idx++) {
 		struct radius_attr_hdr * attr = (struct radius_attr_hdr *)(rad_req->buf + rad_req->attr_pos[idx]);
 		uint8_t * v = (uint8_t *)(attr + 1);
@@ -341,6 +349,25 @@ static int acct_rad_req( struct rgwp_config * cs, struct session * session, stru
 					           | (v[2] <<  8)
 					           |  v[3] ;
 				break;
+				
+			case RADIUS_ATTR_CLASS:
+				{
+					char * attr_val = (char *)(attr + 1);
+					size_t attr_len = attr->length - sizeof(struct radius_attr_hdr);
+					if ((attr_len > pref_len ) && ! strncmp(attr_val, prefix, pref_len)) {
+						int i;
+						si = attr_val + pref_len;
+						si_len = attr_len - pref_len;
+						TRACE_DEBUG(ANNOYING, "Found Class attribute with '%s' prefix (attr #%d), SI:'%.*s'.", prefix, idx, si_len, si);
+						/* Remove from the message */
+						for (i = idx + 1; i < rad_req->attr_used; i++)
+							rad_req->attr_pos[i - 1] = rad_req->attr_pos[i];
+						rad_req->attr_used -= 1;
+						break;
+					}
+				}
+				break;
+
 		}
 	}
 	
@@ -417,6 +444,26 @@ static int acct_rad_req( struct rgwp_config * cs, struct session * session, stru
 		return ENOTSUP;
 	}
 	
+	/* Check if we got a valid session information, otherwise the server will not be able to handle the data... */
+	if (!*session && !si) {
+		TRACE_DEBUG(INFO, "[acct.rgwx] RADIUS Account-Request from %s did not contain a CLASS attribute with Diameter session information, reject.", rgw_clients_id(cli));
+		return EINVAL;
+	}
+	
+	/* Create the Session-Id AVP if needed */
+	if (!*session) {
+		CHECK_FCT( fd_sess_fromsid ( si, si_len, session, NULL) );
+		
+		TRACE_DEBUG(FULL, "[auth.rgwx] Translating new accounting message for session '%.*s'...", si_len, si);
+		
+		/* Add the Session-Id AVP as first AVP */
+		CHECK_FCT( fd_msg_avp_new ( cs->dict.Session_Id, 0, &avp ) );
+		value.os.data = (unsigned char *)si;
+		value.os.len = si_len;
+		CHECK_FCT( fd_msg_avp_setvalue ( avp, &value ) );
+		CHECK_FCT( fd_msg_avp_add ( *diam_fw, MSG_BRW_FIRST_CHILD, avp) );
+	}
+		
 	/* Add the command code */
 	{
 		struct msg_hdr * header = NULL;
@@ -1091,7 +1138,7 @@ static int acct_rad_req( struct rgwp_config * cs, struct session * session, stru
 			st->send_str = send_str;
 		}
 		st->term_cause = str_cause;
-		CHECK_FCT( fd_sess_state_store( cs->sess_hdl, session, &st ) );
+		CHECK_FCT( fd_sess_state_store( cs->sess_hdl, *session, &st ) );
 	}
 	
 	return 0;
@@ -1127,7 +1174,7 @@ out:
 	return;
 }
 
-static int acct_diam_ans( struct rgwp_config * cs, struct session * session, struct msg ** diam_ans, struct radius_msg ** rad_fw, struct rgw_client * cli )
+static int acct_diam_ans( struct rgwp_config * cs, struct session * session, struct msg ** diam_ans, struct radius_msg ** rad_fw, struct rgw_client * cli, int * stateful )
 {
 	struct sess_state * st = NULL;
 	struct avp *avp, *next;

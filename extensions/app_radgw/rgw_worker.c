@@ -129,18 +129,18 @@ static void * work_th(void * arg)
 			}  );
 		
 		/* Note: after this point, the radius message buffer may not be consistent with the array of attributes anymore. */
-		
-		session = NULL;
 		diam_msg = NULL;
 		
-		/* Create the session and an empty message with default common AVPs */
-		CHECK_FCT_DO( rgw_msg_create_base(msg, cli, &session, &diam_msg),
+		/* Create an empty message with only Origin information (no session, no destination -- added by the plugins) */
+		CHECK_FCT_DO( rgw_msg_create_base(cli, &diam_msg),
 			{
 				/* An error occurred, discard message */
 				rgw_msg_free(&msg);
 				rgw_clients_dispose(&cli);
 				continue;
 			}  );
+		
+		session = NULL;
 		
 		/* Pass the message to the list of registered plugins */
 		CHECK_FCT_DO( rgw_plg_loop_req(&msg, &session, &diam_msg, cli), 
@@ -157,26 +157,23 @@ static void * work_th(void * arg)
 				rgw_clients_dispose(&cli);
 				continue;
 			}  );
-		if (msg == NULL) {
+		if (msg == NULL) { /* Error or RADIUS answer locally generated */
 			rgw_clients_dispose(&cli);
 			if (diam_msg) {
 				CHECK_FCT_DO( fd_msg_free(diam_msg), );
 				diam_msg = NULL;
-			}
-			if (session) {
-				CHECK_FCT_DO( fd_sess_destroy(&session), );
 			}
 			continue; /* the message was handled already */
 		}
 		
 		pb = 0;
 		
-		/* Check the created Diameter message */
+		/* Check the created Diameter message -- it will be invalid if no callback has handled the RADIUS message */
 		if ((diam_msg == NULL) || ( fd_msg_parse_rules(diam_msg, fd_g_config->cnf_dict, NULL) ) ) {
 			fd_log_debug("[radgw] No or invalid Diameter message was generated after processing the RADIUS command %hhd (%s).\n"
-					" This is likely an implementation problem, please report.\n",
+					" It may indicate a gateway configuration problem, or implementation issue in a plugin.\n",
 					msg->radius.hdr->code, rgw_msg_code_str(msg->radius.hdr->code));
-			/* We might also dump the conflicting rule here if useful */
+			/* We should also dump the conflicting rule here to help debug? */
 			pb++;
 		}
 		
@@ -188,9 +185,6 @@ static void * work_th(void * arg)
 					attr->type, rgw_msg_attrtype_str(attr->type),
 					msg->radius.hdr->code, rgw_msg_code_str(msg->radius.hdr->code));
 		}
-		
-		/* Check the session is correct (for debug) */
-		ASSERT(session != NULL);
 		
 		if (pb) {
 			/* Something went wrong during the conversion */
@@ -252,6 +246,7 @@ static void receive_diam_answer(void * paback, struct msg **ans)
 	struct avp *avp;
 	struct avp_hdr  *ahdr;
 	int pb = 0;
+	int keepsession=0;
 	
 	TRACE_ENTRY("%p %p", pa, ans);
 	CHECK_PARAMS_DO( pa && ans, return );
@@ -260,7 +255,7 @@ static void receive_diam_answer(void * paback, struct msg **ans)
 	CHECK_MALLOC_DO( rad_ans = radius_msg_new(0, pa->rad->radius.hdr->identifier), goto out );
 	
 	/* Pass the Diameter answer to the same extensions as the request */
-	CHECK_FCT_DO( rgw_plg_loop_ans(pa->rad, pa->sess, ans, &rad_ans, pa->cli), goto out );
+	CHECK_FCT_DO( rgw_plg_loop_ans(pa->rad, pa->sess, ans, &rad_ans, pa->cli, &keepsession), goto out );
 
 	if (*ans != NULL) {
 
@@ -292,7 +287,7 @@ static void receive_diam_answer(void * paback, struct msg **ans)
 		}
 
 		if (pb) {
-			TRACE_DEBUG(INFO, "[radgw] WARNING: %d mandatory AVP in the Diameter answer have not been translated to RADIUS!\n Please use plg_debug.rgwx for more information.", pb);
+			TRACE_DEBUG(INFO, "[radgw] WARNING: %d mandatory AVP in the Diameter answer have not been translated to RADIUS!\n Please use debug.rgwx for more information.", pb);
 		}
 	}
 	
@@ -302,8 +297,10 @@ static void receive_diam_answer(void * paback, struct msg **ans)
 	}
 
 out:
-	/* Destroy remaining session data (stateless gateway) */
-	CHECK_FCT_DO( fd_sess_destroy(&pa->sess),  );
+	if (!keepsession) {
+		/* Destroy remaining session data (stateless gateway) */
+		CHECK_FCT_DO( fd_sess_destroy(&pa->sess),  );
+	}
 	
 	/* Clear the Diameter message */
 	if (*ans) {

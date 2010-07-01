@@ -67,7 +67,7 @@ void rgw_msg_free(struct rgw_radius_msg_meta ** msg);
 int rgw_msg_parse(unsigned char * buf, size_t len, struct rgw_radius_msg_meta ** msg);
 void rgw_msg_dump(struct rgw_radius_msg_meta * msg);
 int rgw_msg_auth_check(struct rgw_radius_msg_meta * msg, struct rgw_client * cli, uint8_t * req_auth);
-int rgw_msg_create_base(struct rgw_radius_msg_meta * msg, struct rgw_client * cli, struct session ** session, struct msg ** diam);
+int rgw_msg_create_base(struct rgw_client * cli, struct msg ** diam);
 int rgw_msg_init(void);
 
 /* Local RADIUS server(s) configuration */
@@ -116,7 +116,7 @@ int rgw_plg_add( char * plgfile, char * conffile, int port, unsigned char ** cod
 void rgw_plg_dump(void);
 void rgw_plg_start_cache(void);
 int rgw_plg_loop_req(struct rgw_radius_msg_meta **rad, struct session **session, struct msg **diam_msg, struct rgw_client * cli);
-int rgw_plg_loop_ans(struct rgw_radius_msg_meta *req, struct session *session, struct msg **diam_ans, struct radius_msg ** rad_ans, struct rgw_client * cli);
+int rgw_plg_loop_ans(struct rgw_radius_msg_meta *req, struct session *session, struct msg **diam_ans, struct radius_msg ** rad_ans, struct rgw_client * cli, int * stateful);
 void rgw_plg_fini(void);
 
 

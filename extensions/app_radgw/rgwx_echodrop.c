@@ -118,7 +118,7 @@ static void ed_conf_free(struct rgwp_config * state)
 
 
 /* Handle attributes from a RADIUS request as specified in the configuration */
-static int ed_rad_req( struct rgwp_config * cs, struct session * session, struct radius_msg * rad_req, struct radius_msg ** rad_ans, struct msg ** diam_fw, struct rgw_client * cli )
+static int ed_rad_req( struct rgwp_config * cs, struct session ** session, struct radius_msg * rad_req, struct radius_msg ** rad_ans, struct msg ** diam_fw, struct rgw_client * cli )
 {
 	size_t nattr_used = 0;
 	int idx;
@@ -127,7 +127,7 @@ static int ed_rad_req( struct rgwp_config * cs, struct session * session, struct
 	struct fd_list *li;
 	
 	TRACE_ENTRY("%p %p %p %p %p %p", cs, session, rad_req, rad_ans, diam_fw, cli);
-	CHECK_PARAMS(cs && rad_req);
+	CHECK_PARAMS(cs && rad_req && session);
 	
 	/* For each attribute in the original message */
 	for (idx = 0; idx < rad_req->attr_used; idx++) {
@@ -216,7 +216,13 @@ static int ed_rad_req( struct rgwp_config * cs, struct session * session, struct
 	
 	/* Save the echoed values in the session, if any */
 	if (!FD_IS_LIST_EMPTY(&echo_list)) {
-		CHECK_PARAMS(session);
+		CHECK_PARAMS_DO(*session,
+			{
+				fd_log_debug(	"[echodrop.rgwx] The extension is configured to echo some attributes from this message, but no session object has been created for it (yet).\n"
+						"  Please check your configuration file and include a session-generating extension BEFORE calling echodrop.rgwx to echo attributes.\n"
+						"  Please use debug.rgwx to retrieve more information.\n" );
+				return EINVAL;
+			} );
 		
 		/* Move the values in a dynamically allocated list */
 		CHECK_MALLOC( li = malloc(sizeof(struct fd_list)) );
@@ -224,19 +230,19 @@ static int ed_rad_req( struct rgwp_config * cs, struct session * session, struct
 		fd_list_move_end(li, &echo_list);
 		
 		/* Save the list in the session */
-		CHECK_FCT( fd_sess_state_store( cs->sess_hdl, session, &li ) );
+		CHECK_FCT( fd_sess_state_store( cs->sess_hdl, *session, &li ) );
 	}
 	
 	return 0;
 }
 
 /* Process an answer: add the ECHO attributes back, if any */
-static int ed_diam_ans( struct rgwp_config * cs, struct session * session, struct msg ** diam_ans, struct radius_msg ** rad_fw, struct rgw_client * cli )
+static int ed_diam_ans( struct rgwp_config * cs, struct session * session, struct msg ** diam_ans, struct radius_msg ** rad_fw, struct rgw_client * cli, int * stateful )
 {
 	int ret;
 	struct fd_list * list = NULL;
 	
-	TRACE_ENTRY("%p %p %p %p %p", cs, session, diam_ans, rad_fw, cli);
+	TRACE_ENTRY("%p %p %p %p %p %p", cs, session, diam_ans, rad_fw, cli, stateful);
 	CHECK_PARAMS(cs);
 	
 	/* If there is no session associated, just give up */

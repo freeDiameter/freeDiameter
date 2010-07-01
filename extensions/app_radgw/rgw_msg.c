@@ -136,195 +136,34 @@ void rgw_msg_dump(struct rgw_radius_msg_meta * msg)
 	fd_log_debug("-----------------------------\n");
 }
 
-static struct dict_object * cache_sess_id = NULL;
-static struct dict_object * cache_dest_host = NULL;
-static struct dict_object * cache_dest_realm = NULL;
 static struct dict_object * cache_orig_host = NULL;
 static struct dict_object * cache_orig_realm = NULL;
 
 int rgw_msg_init(void)
 {
 	TRACE_ENTRY();
-	CHECK_FCT( fd_dict_search(fd_g_config->cnf_dict, DICT_AVP, AVP_BY_NAME, "Session-Id", &cache_sess_id, ENOENT) );
-	CHECK_FCT( fd_dict_search(fd_g_config->cnf_dict, DICT_AVP, AVP_BY_NAME, "Destination-Host", &cache_dest_host, ENOENT) );
-	CHECK_FCT( fd_dict_search(fd_g_config->cnf_dict, DICT_AVP, AVP_BY_NAME, "Destination-Realm", &cache_dest_realm, ENOENT) );
 	CHECK_FCT( fd_dict_search(fd_g_config->cnf_dict, DICT_AVP, AVP_BY_NAME, "Origin-Host", &cache_orig_host, ENOENT) );
 	CHECK_FCT( fd_dict_search(fd_g_config->cnf_dict, DICT_AVP, AVP_BY_NAME, "Origin-Realm", &cache_orig_realm, ENOENT) );
 	return 0;
 }
 
-/* Create a msg with origin-host & realm, and session-id, and a session object from a RADIUS request message */
-int rgw_msg_create_base(struct rgw_radius_msg_meta * msg, struct rgw_client * cli, struct session ** session, struct msg ** diam)
+/* Create a new Diameter msg with origin-host & realm */
+int rgw_msg_create_base(struct rgw_client * cli, struct msg ** diam)
 {
-	int idx, i;
-	const char * prefix = "Diameter/";
-	size_t pref_len;
-	char * dh = NULL;
-	size_t dh_len = 0;
-	char * dr = NULL;
-	size_t dr_len = 0;
-	char * si = NULL;
-	size_t si_len = 0;
-	char * un = NULL;
-	size_t un_len = 0;
-	
 	char * fqdn;
 	char * realm;
-	char * sess_str = NULL;
 	
 	struct avp *avp = NULL;
 	union avp_value avp_val;
 	
-	TRACE_ENTRY("%p %p %p %p", msg, cli, session, diam);
-	CHECK_PARAMS( msg && cli && session && (*session == NULL) && diam && (*diam == NULL) );
-	
-	pref_len = strlen(prefix);
-	
-	/* Is there a State attribute with prefix "Diameter/" in the message? (in that case: Diameter/Destination-Host/Destination-Realm/Session-Id) */
-	/* NOTE: RFC4005 says "Origin-Host" here, but it's not coherent with the rules for answers. Destination-Host makes more sense */
-	/* Is there a Class attribute with prefix "Diameter/" in the message? (in that case: Diameter/Session-Id) */
-	for (idx = 0; idx < msg->radius.attr_used; idx++) {
-		struct radius_attr_hdr * attr = (struct radius_attr_hdr *)(msg->radius.buf + msg->radius.attr_pos[idx]);
-		char * attr_val = (char *)(attr + 1);
-		size_t attr_len = attr->length - sizeof(struct radius_attr_hdr);
-		
-		if ((attr->type == RADIUS_ATTR_USER_NAME) 
-				&& attr_len) {
-			TRACE_DEBUG(ANNOYING, "Found a User-Name attribute: '%.*s'", attr_len, attr_val);
-			un = attr_val;
-			un_len = attr_len;
-			continue;
-		}
-		
-		if ((attr->type == RADIUS_ATTR_STATE) 
-				&& (attr_len > pref_len + 5 /* for the '/'s and non empty strings */ ) 
-				&& ! strncmp(attr_val, prefix, pref_len)) { /* should we make it strncasecmp? */
-			int i, start;
-		
-			TRACE_DEBUG(ANNOYING, "Found a State attribute with '%s' prefix (attr #%d).", prefix, idx);
-
-			/* Now parse the value and check its content is valid. Unfortunately we cannot use strchr here since strings are not \0-terminated */
-
-			i = start = pref_len;
-			dh = attr_val + i;
-			for (; (i < attr_len - 2) && (attr_val[i] != '/'); i++) /* loop */;
-			if ( i >= attr_len - 2 ) continue; /* the attribute format is not good */
-			dh_len = i - start;
-
-			start = ++i;
-			dr = attr_val + i;
-			for (; (i < attr_len - 1) && (attr_val[i] != '/'); i++) /* loop */;
-			if ( i >= attr_len - 1 ) continue; /* the attribute format is not good */
-			dr_len = i - start;
-
-			i++;
-			si = attr_val + i;
-			si_len = attr_len - i;
-
-			TRACE_DEBUG(ANNOYING, "Attribute parsed successfully: DH:'%.*s' DR:'%.*s' SI:'%.*s'.", dh_len, dh, dr_len, dr, si_len, si);
-			/* Remove from the message */
-			for (i = idx + 1; i < msg->radius.attr_used; i++)
-				msg->radius.attr_pos[i - 1] = msg->radius.attr_pos[i];
-			msg->radius.attr_used -= 1;
-			break;
-		}
-		
-		if ((attr->type == RADIUS_ATTR_CLASS) 
-				&& (attr_len > pref_len ) 
-				&& ! strncmp(attr_val, prefix, pref_len)) {
-			si = attr_val + pref_len;
-			si_len = attr_len - pref_len;
-			TRACE_DEBUG(ANNOYING, "Found Class attribute with '%s' prefix (attr #%d), SI:'%.*s'.", prefix, idx, si_len, si);
-			/* Remove from the message */
-			for (i = idx + 1; i < msg->radius.attr_used; i++)
-				msg->radius.attr_pos[i - 1] = msg->radius.attr_pos[i];
-			msg->radius.attr_used -= 1;
-			break;
-		}
-		
-	}
+	TRACE_ENTRY("%p %p", cli, diam);
+	CHECK_PARAMS( cli && diam && (*diam == NULL) );
 	
 	/* Get information on this peer */
 	CHECK_FCT( rgw_clients_get_origin(cli, &fqdn, &realm) );
 	
-	/* Create the session object */
-	if (si_len) {
-		CHECK_FCT( fd_sess_fromsid ( si, si_len, session, &idx) );
-	} else {
-		if (un) {
-			int len;
-			/* If not found, create a new Session-Id. The format is: {fqdn;hi32;lo32;username;diamid} */
-			CHECK_MALLOC( sess_str = malloc(un_len + 1 /* ';' */ + fd_g_config->cnf_diamid_len + 1 /* '\0' */) );
-			len = sprintf(sess_str, "%.*s;%s", un_len, un, fd_g_config->cnf_diamid);
-			CHECK_FCT( fd_sess_new(session, fqdn, sess_str, len) );
-			free(sess_str);
-			idx = 1;
-		}
-	}
-	
 	/* Create an empty Diameter message so that extensions can store their AVPs */
 	CHECK_FCT(  fd_msg_new ( NULL, MSGFL_ALLOC_ETEID, diam )  );
-	
-	if (*session) {
-		CHECK_FCT( fd_sess_getsid(*session, &sess_str) );
-		if (idx == 0) {
-			TRACE_DEBUG(INFO, "Another message was translated for this session ('%s') and not answered yet, discarding the new RADIUS request.", sess_str);
-			*session = NULL;
-			return EALREADY;
-		}
-		
-		TRACE_DEBUG(FULL, "Translating new message for session '%s'...", sess_str);
-		
-		/* Add the Session-Id AVP as first AVP */
-		CHECK_FCT( fd_msg_avp_new ( cache_sess_id, 0, &avp ) );
-		memset(&avp_val, 0, sizeof(avp_val));
-		avp_val.os.data = (unsigned char *)sess_str;
-		avp_val.os.len = strlen(sess_str);
-		CHECK_FCT( fd_msg_avp_setvalue ( avp, &avp_val ) );
-		CHECK_FCT( fd_msg_avp_add ( *diam, MSG_BRW_FIRST_CHILD, avp) );
-
-	} else {
-		TRACE_DEBUG(FULL, "No session has been created for this message");
-	}
-	
-	/* Add the Destination-Realm as next AVP */
-	CHECK_FCT( fd_msg_avp_new ( cache_dest_realm, 0, &avp ) );
-	memset(&avp_val, 0, sizeof(avp_val));
-	if (dr) {
-		avp_val.os.data = (unsigned char *)dr;
-		avp_val.os.len = dr_len;
-	} else {
-		int i = 0;
-		if (un) {
-			/* Is there an '@' in the user name? We don't care for decorated NAI here */
-			for (i = un_len - 2; i > 0; i--) {
-				if (un[i] == '@') {
-					i++;
-					break;
-				}
-			}
-		}
-		if (i == 0) {
-			/* Not found in the User-Name => we use the local domain of this gateway */
-			avp_val.os.data = fd_g_config->cnf_diamrlm;
-			avp_val.os.len  = fd_g_config->cnf_diamrlm_len;
-		} else {
-			avp_val.os.data = un + i;
-			avp_val.os.len  = un_len - i;
-		}
-	}
-	CHECK_FCT( fd_msg_avp_setvalue ( avp, &avp_val ) );
-	CHECK_FCT( fd_msg_avp_add ( *diam, MSG_BRW_LAST_CHILD, avp) );
-	
-	/* Add the Destination-Host as next AVP */
-	if (dh) {
-		CHECK_FCT( fd_msg_avp_new ( cache_dest_host, 0, &avp ) );
-		memset(&avp_val, 0, sizeof(avp_val));
-		avp_val.os.data = (unsigned char *)dh;
-		avp_val.os.len = dh_len;
-		CHECK_FCT( fd_msg_avp_setvalue ( avp, &avp_val ) );
-		CHECK_FCT( fd_msg_avp_add ( *diam, MSG_BRW_LAST_CHILD, avp) );
-	}
 	
 	/* Add the Origin-Host as next AVP */
 	CHECK_FCT( fd_msg_avp_new ( cache_orig_host, 0, &avp ) );

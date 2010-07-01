@@ -348,7 +348,7 @@ int rgw_plg_loop_req(struct rgw_radius_msg_meta **rad, struct session **session,
 		
 		if (plg->descriptor->rgwp_rad_req) {
 			TRACE_DEBUG(ANNOYING, "Calling next plugin: %s", plg->descriptor->rgwp_name);
-			ret = (*plg->descriptor->rgwp_rad_req)(plg->cs, *session, &(*rad)->radius, &rad_ans, diam_msg, cli);
+			ret = (*plg->descriptor->rgwp_rad_req)(plg->cs, session, &(*rad)->radius, &rad_ans, diam_msg, cli);
 			if (ret)
 				break;
 		} else {
@@ -390,13 +390,15 @@ int rgw_plg_loop_req(struct rgw_radius_msg_meta **rad, struct session **session,
 }
 
 /* Loop in the extension list (same as req) to convert data from diam_ans to rad_ans */
-int rgw_plg_loop_ans(struct rgw_radius_msg_meta *req, struct session *session, struct msg **diam_ans, struct radius_msg ** rad_ans, struct rgw_client * cli)
+int rgw_plg_loop_ans(struct rgw_radius_msg_meta *req, struct session *session, struct msg **diam_ans, struct radius_msg ** rad_ans, struct rgw_client * cli, int * stateful)
 {
 	int ret = 0;
 	struct fd_list * head = NULL, *li;
 	
-	TRACE_ENTRY("%p %p %p %p %p", req, session, diam_ans, rad_ans, cli);
-	CHECK_PARAMS( req && session && diam_ans && *diam_ans && rad_ans && *rad_ans && cli);
+	TRACE_ENTRY("%p %p %p %p %p %p", req, session, diam_ans, rad_ans, cli, stateful);
+	CHECK_PARAMS( req && session && diam_ans && *diam_ans && rad_ans && *rad_ans && cli && stateful);
+	
+	*stateful = 0; /* default: stateless gateway */
 	
 	/* Get the list of extensions of the RADIUS request */
 	CHECK_POSIX( pthread_rwlock_rdlock( &plg_lock) );
@@ -406,12 +408,14 @@ int rgw_plg_loop_ans(struct rgw_radius_msg_meta *req, struct session *session, s
 	/* Loop in the list of extensions */
 	for (li = head->next; li != head; li = li->next) {
 		struct plg_descr * plg = ((struct plg_accel_item *) li)->plg;
+		int locstateful = 0;
 		
 		if (plg->descriptor->rgwp_diam_ans) {
 			TRACE_DEBUG(ANNOYING, "Calling next plugin: %s", plg->descriptor->rgwp_name);
-			ret = (*plg->descriptor->rgwp_diam_ans)(plg->cs, session, diam_ans, rad_ans, (void *)cli);
+			ret = (*plg->descriptor->rgwp_diam_ans)(plg->cs, session, diam_ans, rad_ans, (void *)cli, &locstateful);
 			if (ret)
 				break;
+			*stateful |= locstateful;
 		} else {
 			TRACE_DEBUG(ANNOYING, "Skipping extension '%s' (NULL callback)", plg->descriptor->rgwp_name);
 		}					

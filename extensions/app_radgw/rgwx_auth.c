@@ -70,6 +70,8 @@ struct rgwp_config {
 		struct dict_object * CHAP_Challenge;		/* CHAP-Challenge */
 		struct dict_object * CHAP_Ident;		/* CHAP-Ident */
 		struct dict_object * CHAP_Response;		/* CHAP-Response */
+		struct dict_object * Destination_Host;		/* Destination-Host */
+		struct dict_object * Destination_Realm;		/* Destination-Realm */
 		struct dict_object * Connect_Info;		/* Connect-Info */
 		struct dict_object * EAP_Payload;		/* EAP-Payload */
 		struct dict_object * Error_Message;		/* Error-Message */
@@ -153,6 +155,8 @@ static int auth_conf_parse(char * conffile, struct rgwp_config ** state)
 	CHECK_FCT( fd_dict_search( fd_g_config->cnf_dict, DICT_AVP, AVP_BY_NAME, "CHAP-Ident", &new->dict.CHAP_Ident, ENOENT) );
 	CHECK_FCT( fd_dict_search( fd_g_config->cnf_dict, DICT_AVP, AVP_BY_NAME, "CHAP-Response", &new->dict.CHAP_Response, ENOENT) );
 	CHECK_FCT( fd_dict_search( fd_g_config->cnf_dict, DICT_AVP, AVP_BY_NAME, "Connect-Info", &new->dict.Connect_Info, ENOENT) );
+	CHECK_FCT( fd_dict_search( fd_g_config->cnf_dict, DICT_AVP, AVP_BY_NAME, "Destination-Host", &new->dict.Destination_Host, ENOENT) );
+	CHECK_FCT( fd_dict_search( fd_g_config->cnf_dict, DICT_AVP, AVP_BY_NAME, "Destination-Realm", &new->dict.Destination_Realm, ENOENT) );
 	CHECK_FCT( fd_dict_search( fd_g_config->cnf_dict, DICT_AVP, AVP_BY_NAME, "EAP-Payload", &new->dict.EAP_Payload, ENOENT) );
 	CHECK_FCT( fd_dict_search( fd_g_config->cnf_dict, DICT_AVP, AVP_BY_NAME, "Error-Message", &new->dict.Error_Message, ENOENT) );
 	CHECK_FCT( fd_dict_search( fd_g_config->cnf_dict, DICT_AVP, AVP_BY_NAME, "Error-Reporting-Host", &new->dict.Error_Reporting_Host, ENOENT) );
@@ -221,7 +225,7 @@ static void auth_conf_free(struct rgwp_config * state)
 }
 
 /* Handle an incoming RADIUS request */
-static int auth_rad_req( struct rgwp_config * cs, struct session * session, struct radius_msg * rad_req, struct radius_msg ** rad_ans, struct msg ** diam_fw, struct rgw_client * cli )
+static int auth_rad_req( struct rgwp_config * cs, struct session ** session, struct radius_msg * rad_req, struct radius_msg ** rad_ans, struct msg ** diam_fw, struct rgw_client * cli )
 {
 	int idx;
 	int got_id = 0;
@@ -229,13 +233,25 @@ static int auth_rad_req( struct rgwp_config * cs, struct session * session, stru
 	int got_passwd = 0;
 	int got_eap = 0;
 	int got_empty_eap = 0;
+	const char * prefix = "Diameter/";
+	size_t pref_len;
+	char * dh = NULL;
+	size_t dh_len = 0;
+	char * dr = NULL;
+	size_t dr_len = 0;
+	char * si = NULL;
+	size_t si_len = 0;
+	char * un = NULL;
+	size_t un_len = 0;
 	uint32_t status_type;
 	size_t nattr_used = 0;
 	struct avp ** avp_tun = NULL, *avp = NULL;
 	union avp_value value;
 	
 	TRACE_ENTRY("%p %p %p %p %p %p", cs, session, rad_req, rad_ans, diam_fw, cli);
-	CHECK_PARAMS(rad_req && (rad_req->hdr->code == RADIUS_CODE_ACCESS_REQUEST) && rad_ans && diam_fw && *diam_fw);
+	CHECK_PARAMS(cs && session && rad_req && (rad_req->hdr->code == RADIUS_CODE_ACCESS_REQUEST) && rad_ans && diam_fw && *diam_fw);
+	
+	pref_len = strlen(prefix);
 	
 	/*
 	   Guidelines:
@@ -269,14 +285,6 @@ static int auth_rad_req( struct rgwp_config * cs, struct session * session, stru
 		        and associated with the session state.
 		     -> sub_echo_drop should handle the Proxy-State attribute (conf issue)
 
-	      -  If the RADIUS request contained a State attribute and the
-        	 prefix of the data is "Diameter/", the data following the
-        	 prefix contains the Diameter Origin-Host/Origin-Realm/Session-
-        	 Id.  If no such attributes are present and the RADIUS command
-        	 is an Access-Request, a new Session-Id is created.  The
-        	 Session-Id is included in the Session-Id AVP.
-		     -> done in rgw_msg_create_base.
-
 	      -  The Diameter Origin-Host and Origin-Realm AVPs MUST be created
         	 and added by using the information from an FQDN corresponding
         	 to the NAS-IP-Address attribute (preferred if available),
@@ -304,9 +312,12 @@ static int auth_rad_req( struct rgwp_config * cs, struct session * session, stru
 	      -> the remaining is specific conversion rules
 	*/
 	
-	/* Check basic information is there */
+	/* Check basic information is there, and also retrieve some attribute information */
 	for (idx = 0; idx < rad_req->attr_used; idx++) {
 		struct radius_attr_hdr * attr = (struct radius_attr_hdr *)(rad_req->buf + rad_req->attr_pos[idx]);
+		char * attr_val = (char *)(attr + 1);
+		size_t attr_len = attr->length - sizeof(struct radius_attr_hdr);
+		
 		switch (attr->type) {
 			case RADIUS_ATTR_NAS_IP_ADDRESS:
 			case RADIUS_ATTR_NAS_IDENTIFIER:
@@ -326,6 +337,50 @@ static int auth_rad_req( struct rgwp_config * cs, struct session * session, stru
 			case RADIUS_ATTR_ARAP_PASSWORD:
 				got_passwd += 1;
 				break;
+				
+			/* Is there a State attribute with prefix "Diameter/" in the message? (in that case: Diameter/Destination-Host/Destination-Realm/Session-Id) */
+			/* NOTE: RFC4005 says "Origin-Host" here, but it's not coherent with the rules for answers. Destination-Host makes more sense */
+			case RADIUS_ATTR_STATE:
+				if ((attr_len > pref_len + 5 /* for the '/'s and non empty strings */ ) 
+					&& ! strncmp(attr_val, prefix, pref_len)) { /* should we make it strncasecmp? */
+					int i, start;
+
+					TRACE_DEBUG(ANNOYING, "Found a State attribute with '%s' prefix (attr #%d).", prefix, idx);
+
+					/* Now parse the value and check its content is valid. Unfortunately we cannot use strchr here since strings are not \0-terminated */
+
+					i = start = pref_len;
+					dh = attr_val + i;
+					for (; (i < attr_len - 2) && (attr_val[i] != '/'); i++) /* loop */;
+					if ( i >= attr_len - 2 ) continue; /* the attribute format is not good */
+					dh_len = i - start;
+
+					start = ++i;
+					dr = attr_val + i;
+					for (; (i < attr_len - 1) && (attr_val[i] != '/'); i++) /* loop */;
+					if ( i >= attr_len - 1 ) continue; /* the attribute format is not good */
+					dr_len = i - start;
+
+					i++;
+					si = attr_val + i;
+					si_len = attr_len - i;
+
+					TRACE_DEBUG(ANNOYING, "Attribute parsed successfully: DH:'%.*s' DR:'%.*s' SI:'%.*s'.", dh_len, dh, dr_len, dr, si_len, si);
+					/* Remove from the message */
+					for (i = idx + 1; i < rad_req->attr_used; i++)
+						rad_req->attr_pos[i - 1] = rad_req->attr_pos[i];
+					rad_req->attr_used -= 1;
+				}
+				break;
+		
+			case RADIUS_ATTR_USER_NAME:
+				if (attr_len) {
+					TRACE_DEBUG(ANNOYING, "Found a User-Name attribute: '%.*s'", attr_len, attr_val);
+					un = attr_val;
+					un_len = attr_len;
+				}
+				break;
+			
 		}
 	}
 	if (!got_id) {
@@ -345,6 +400,99 @@ static int auth_rad_req( struct rgwp_config * cs, struct session * session, stru
 		TRACE_DEBUG(INFO, "RADIUS Access-Request not conform to RFC3579 sec 3.3 note 1, discard.");
 		return EINVAL;
 	}
+	
+	
+	
+	/*
+	      -  If the RADIUS request contained a State attribute and the
+        	 prefix of the data is "Diameter/", the data following the
+        	 prefix contains the Diameter Origin-Host/Origin-Realm/Session-
+        	 Id.  If no such attributes are present and the RADIUS command
+        	 is an Access-Request, a new Session-Id is created.  The
+        	 Session-Id is included in the Session-Id AVP.
+	*/
+	
+	/* Add the Destination-Realm AVP */
+	CHECK_FCT( fd_msg_avp_new ( cs->dict.Destination_Realm, 0, &avp ) );
+	if (dr) {
+		value.os.data = (unsigned char *)dr;
+		value.os.len = dr_len;
+	} else {
+		int i = 0;
+		if (un) {
+			/* Is there an '@' in the user name? We don't care for decorated NAI here */
+			for (i = un_len - 2; i > 0; i--) {
+				if (un[i] == '@') {
+					i++;
+					break;
+				}
+			}
+		}
+		if (i == 0) {
+			/* Not found in the User-Name => we use the local domain of this gateway */
+			value.os.data = fd_g_config->cnf_diamrlm;
+			value.os.len  = fd_g_config->cnf_diamrlm_len;
+		} else {
+			value.os.data = un + i;
+			value.os.len  = un_len - i;
+		}
+	}
+	CHECK_FCT( fd_msg_avp_setvalue ( avp, &value ) );
+	CHECK_FCT( fd_msg_avp_add ( *diam_fw, *session ? MSG_BRW_LAST_CHILD : MSG_BRW_FIRST_CHILD, avp) );
+	
+	/* Add the Destination-Host if found */
+	if (dh) {
+		CHECK_FCT( fd_msg_avp_new ( cs->dict.Destination_Host, 0, &avp ) );
+		value.os.data = (unsigned char *)dh;
+		value.os.len = dh_len;
+		CHECK_FCT( fd_msg_avp_setvalue ( avp, &value ) );
+		CHECK_FCT( fd_msg_avp_add ( *diam_fw, *session ? MSG_BRW_LAST_CHILD : MSG_BRW_FIRST_CHILD, avp) );
+	}
+	
+	/* Create the session if it is not already done */
+	if (*session == NULL) {
+		char * sess_str = NULL;
+		
+		if (si_len) {
+			/* We already have the Session-Id, just use it */
+			CHECK_FCT( fd_sess_fromsid ( si, si_len, session, NULL) );
+		} else {
+			/* Create a new Session-Id string */
+			
+			char * fqdn;
+			char * realm;
+			
+			/* Get information on the RADIUS client */
+			CHECK_FCT( rgw_clients_get_origin(cli, &fqdn, &realm) );
+			
+			/* If we have a user name, create the new session with it */
+			if (un) {
+				int len;
+				/* If not found, create a new Session-Id. The format is: {fqdn;hi32;lo32;username;diamid} */
+				CHECK_MALLOC( sess_str = malloc(un_len + 1 /* ';' */ + fd_g_config->cnf_diamid_len + 1 /* '\0' */) );
+				len = sprintf(sess_str, "%.*s;%s", un_len, un, fd_g_config->cnf_diamid);
+				CHECK_FCT( fd_sess_new(session, fqdn, sess_str, len) );
+				free(sess_str);
+			} else {
+				/* We don't have enough information to create the Session-Id, the RADIUS message is probably invalid */
+				TRACE_DEBUG(INFO, "RADIUS Access-Request does not contain a User-Name attribute, rejecting.");
+				return EINVAL;
+			}	
+		}
+		
+		/* Now, add the Session-Id AVP at beginning of Diameter message */
+		CHECK_FCT( fd_sess_getsid(*session, &sess_str) );
+		
+		TRACE_DEBUG(FULL, "[auth.rgwx] Translating new message for session '%s'...", sess_str);
+		
+		/* Add the Session-Id AVP as first AVP */
+		CHECK_FCT( fd_msg_avp_new ( cs->dict.Session_Id, 0, &avp ) );
+		value.os.data = (unsigned char *)sess_str;
+		value.os.len = strlen(sess_str);
+		CHECK_FCT( fd_msg_avp_setvalue ( avp, &value ) );
+		CHECK_FCT( fd_msg_avp_add ( *diam_fw, MSG_BRW_FIRST_CHILD, avp) );
+	}
+	
 	
 	/* Add the appropriate command code & Auth-Application-Id */
 	{
@@ -907,13 +1055,13 @@ static int auth_rad_req( struct rgwp_config * cs, struct session * session, stru
 		CHECK_MALLOC(req_auth = malloc(16));
 		memcpy(req_auth, &rad_req->hdr->authenticator[0], 16);
 		
-		CHECK_FCT( fd_sess_state_store( cs->sess_hdl, session, &req_auth ) );
+		CHECK_FCT( fd_sess_state_store( cs->sess_hdl, *session, &req_auth ) );
 	}
 	
 	return 0;
 }
 
-static int auth_diam_ans( struct rgwp_config * cs, struct session * session, struct msg ** diam_ans, struct radius_msg ** rad_fw, struct rgw_client * cli )
+static int auth_diam_ans( struct rgwp_config * cs, struct session * session, struct msg ** diam_ans, struct radius_msg ** rad_fw, struct rgw_client * cli, int * stateful )
 {
 	struct msg_hdr * hdr;
 	struct avp *avp, *next, *avp_x, *avp_y, *asid, *aoh;
