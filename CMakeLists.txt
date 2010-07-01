@@ -37,7 +37,7 @@ SET(INSTALL_LIBRARY_SUFFIX 		lib 			CACHE PATH "Directory where the libfreeDiame
 ADD_DEFINITIONS(-D_GNU_SOURCE)
 
 # Add a "Profiling" build type
-SET(CMAKE_BUILD_TYPE Profiling)
+# SET(CMAKE_BUILD_TYPE Profiling)
 SET(CMAKE_C_FLAGS_PROFILING "-fprofile-arcs -ftest-coverage")
 
 # Set the DEBUG flag for Debug and Profiling builds
