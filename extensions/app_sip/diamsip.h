@@ -83,7 +83,7 @@ void nonce_deletelistnonce();
 
 
 
-static int ds_entry();
+int ds_entry();
 void fd_ext_fini(void);
 int diamsip_default_cb( struct msg ** msg, struct avp * avp, struct session * sess, enum disp_action * act);
 int diamsip_MAR_cb( struct msg ** msg, struct avp * avp, struct session * sess, enum disp_action * act);
@@ -102,8 +102,7 @@ int diamsip_MAR_cb( struct msg ** msg, struct avp * avp, struct session * sess, 
 #define SQL_CLEARFLAG "UPDATE ds_users SET `flag`=0 WHERE `username` ='%s'"
 #define SQL_CLEARFLAG_LEN 74
 
-static struct session_handler * ds_sess_hdl;
-static struct session *dssess;
+extern struct session_handler * ds_sess_hdl;
 
 
 
@@ -113,7 +112,7 @@ struct ds_nonce
 };
 
 //Storage for some usefull AVPs
-static struct {
+struct diamsip_dict{
 	struct dict_object * Auth_Session_State;
 	struct dict_object * Auth_Application_Id;
 	struct dict_object * User_Name;
@@ -138,4 +137,6 @@ static struct {
 	struct dict_object * Digest_QOP;	
 	struct dict_object * Digest_Algorithm;
 	struct dict_object * Digest_HA1;
-} sip_dict;
+};
+
+extern  struct diamsip_dict  sip_dict;

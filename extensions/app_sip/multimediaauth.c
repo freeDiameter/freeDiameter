@@ -36,10 +36,10 @@
 #include "diamsip.h"
 
 
-int diamsip_MAR_cb( struct msg ** msg, struct avp * avp, struct session * sess, enum disp_action * act)
+int diamsip_MAR_cb( struct msg ** msg, struct avp * paramavp, struct session * sess, enum disp_action * act)
 {
 	struct msg *ans, *qry;
-	struct avp *a2, *authdataitem;
+	struct avp *avp, *a2, *authdataitem;
 	struct msg_hdr * header = NULL;
 	struct avp_hdr * avphdr=NULL, *avpheader=NULL, *avpheader_auth=NULL,*digestheader=NULL;
 	union avp_value val;
@@ -47,7 +47,7 @@ int diamsip_MAR_cb( struct msg ** msg, struct avp * avp, struct session * sess, 
 	struct avp * tempavp=NULL,*sipAuthentication=NULL,*sipAuthenticate=NULL;
 	char * result;
 	char password[51];
-	int idx=0, idx2=0, number_of_auth_items=0,i=0;;
+	int idx=0, idx2=0, number_of_auth_items=0,i=0;
 	//Flags and variables for Database
 	int sipurinotstored=0, authenticationpending=0, querylen=0, usernamelen=0;
 	char *query=NULL,*username=NULL;
@@ -81,6 +81,7 @@ int diamsip_MAR_cb( struct msg ** msg, struct avp * avp, struct session * sess, 
 		/* Add the Auth-Application-Id */
 		{
 			CHECK_FCT( fd_msg_avp_new ( sip_dict.Auth_Application_Id, 0, &avp ) );
+			ASSERT(avp);
 			val.i32 = header->msg_appl;
 			CHECK_FCT( fd_msg_avp_setvalue ( avp, &val ) );
 			CHECK_FCT( fd_msg_avp_add ( ans, MSG_BRW_LAST_CHILD, avp) );
@@ -669,7 +670,8 @@ int diamsip_MAR_cb( struct msg ** msg, struct avp * avp, struct session * sess, 
 									//We calculate Digest_Response_Auth
 									DigestCalcResponseAuth(HA1, digest_nonce, digest_noncecount, digest_cnonce, digest_qop,digest_method, digest_uri, HA2, responseauth);
 									
-									
+									TRACE_DEBUG(FULL,"Response calculated by Diameter server:%s",response);
+										TRACE_DEBUG(FULL,"Response calculated by UA:%s",digest_response);
 									if(strcmp(digest_qop,"auth-int")==0)
 									{
 										//Digest-HA1 MUST be used instead of Digest-Response-Auth if Digest-Qop is 'auth-int'.

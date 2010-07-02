@@ -35,8 +35,11 @@
 *********************************************************************************************************/
 #include "diamsip.h"
 
-static struct disp_hdl * diamsip_MAR_hdl=NULL;
-static struct disp_hdl * diamsip_default_hdl=NULL;
+struct disp_hdl * diamsip_MAR_hdl=NULL;
+struct disp_hdl * diamsip_default_hdl=NULL;
+struct session_handler * ds_sess_hdl;
+
+struct diamsip_dict sip_dict;
 
 int diamsip_default_cb( struct msg ** msg, struct avp * avp, struct session * sess, enum disp_action * act)
 {
@@ -47,11 +50,8 @@ int diamsip_default_cb( struct msg ** msg, struct avp * avp, struct session * se
 	return 0;
 }
 
-
-
-
 /* entry point */
-static int ds_entry()
+int ds_entry()
 {
 	struct dict_object * app=NULL;
 	struct disp_when data;
@@ -109,8 +109,6 @@ static int ds_entry()
 	
 	CHECK_FCT(fd_sess_handler_create(&ds_sess_hdl, free));
 	
-
-	//listnonce=NULL;
 	return 0;
 }
 
@@ -126,9 +124,7 @@ void fd_ext_fini(void)
 	//We close database connection
 	close_mysql_connection();
 	
-	//We delete the chained list of nonces
-	//nonce_deletelistnonce();
-	//TODO:NONCE
+
 	
 	TRACE_ENTRY();
 	return ;

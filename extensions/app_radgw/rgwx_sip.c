@@ -48,8 +48,6 @@
 #define AI_SIP				6	/* Diameter SIP application */
 #define CC_MULTIMEDIA_AUTH_REQUEST	286	/* MAR */
 #define CC_MULTIMEDIA_AUTH_ANSWER	286	/* MAA */
-#define ACV_ART_AUTHORIZE_AUTHENTICATE	3	/* AUTHORIZE_AUTHENTICATE */
-#define ACV_OAP_RADIUS			1	/* RADIUS */
 #define ACV_ASS_STATE_MAINTAINED	0	/* STATE_MAINTAINED */
 #define ACV_ASS_NO_STATE_MAINTAINED	1	/* NO_STATE_MAINTAINED */
 #define ER_DIAMETER_MULTI_ROUND_AUTH	1001
@@ -139,7 +137,7 @@ struct rgwp_config {
 	} dict; /* cache of the dictionary objects we use */
 	struct session_handler * sess_hdl; /* We store RADIUS request authenticator information in the session */
 	char * confstr;
-	//Global variable which points to chained list of nonce
+	//Chained list of nonce
 	struct fd_list listnonce;
 	//This will be used to lock access to chained list
 	pthread_mutex_t nonce_mutex; 
@@ -150,129 +148,104 @@ struct noncechain
 {
 	struct fd_list chain;
     char * sid;
+    size_t sidlen;
     char * nonce;
+    size_t noncelen;
     
 };
 
-
-
-
-
-
-int nonce_add_element(char * nonce, char * sid, struct rgwp_config *state)
+static int nonce_add_element(char * nonce, size_t noncelen,char * sid, size_t sidlen, struct rgwp_config * state)
 {
+	CHECK_PARAMS(nonce && state && sid && sidlen && noncelen);
+	
 	noncechain *newelt;
 	CHECK_MALLOC(newelt=malloc(sizeof(noncechain)));
-	int lenghtsid=strlen(sid);
 	
-	CHECK_MALLOC(newelt->nonce=malloc(33));
-	memcpy(newelt->nonce,nonce,32);
-	newelt->nonce[32]='\0';
-	CHECK_MALLOC(newelt->sid=malloc(lenghtsid+1));
-	strncpy(newelt->sid,sid,lenghtsid);
-	newelt->sid[lenghtsid]='\0';
+	CHECK_MALLOC(newelt->nonce=malloc(noncelen));
+	memcpy(newelt->nonce,nonce,noncelen);
+	newelt->noncelen=noncelen;
 	
-	FD_LIST_INITIALIZER(&newelt->chain);
+	CHECK_MALLOC(newelt->sid=malloc(sidlen));
+	memcpy(newelt->sid,sid,sidlen);
+	newelt->sidlen=sidlen;
+	
+	fd_list_init(&newelt->chain,NULL);
 	
 	CHECK_POSIX(pthread_mutex_lock(&state->nonce_mutex));
 	fd_list_insert_before(&state->listnonce,&newelt->chain);
 	CHECK_POSIX(pthread_mutex_unlock(&state->nonce_mutex));
+	
+	return 0;
 }
 
-void nonce_del_element(char * nonce, struct rgwp_config *state)
+static void nonce_del_element(char * nonce, struct rgwp_config *state)
 {
-	if(!FD_IS_LIST_EMPTY(&state->listnonce))
-	{
-		/*
-		noncechain *temp=listnonce, *tempbefore=NULL;
-		
-		if(listnonce->next==NULL && strcmp(listnonce->nonce,nonce)==0)
-		{
-			free(listnonce->nonce);
-			free(listnonce->sid);
-			free(listnonce);
-			listnonce=NULL;
-			return;
-		}
-		while(temp->next != NULL)
-		{
-			if(strcmp(temp->nonce,nonce)==0)
-			{
-				if(tempbefore==NULL)
-				{
-					listnonce=temp->next;
-					free(temp->nonce);
-					free(temp->sid);
-					free(temp);
-					return;
-				}
-				tempbefore->next=temp->next;
-				free(temp->nonce);
-				free(temp->sid);
-				free(temp);
-				break;
-			}
-			tempbefore=temp;
-			temp = temp->next;
-		}*/
-	}
+	struct fd_list * li;
 	
-}
-//Retrieve sid from nonce
-char * nonce_check_element(char * nonce)
-{
-	/*
-	if(listnonce==NULL)
+	CHECK_PARAMS_DO(nonce && state, return);
+	
+	for(li=state->listnonce.next;li!=&state->listnonce;li=li->next)
 	{
-		//Not found
-		return NULL;
-	}
-	else
-	{
-		noncechain* temp=listnonce;
+		noncechain *temp=(noncechain *)li;
 		
 		if(strcmp(temp->nonce,nonce)==0)
-				return temp->sid;
-		
-		while(temp->next != NULL)
 		{
-			
-			if(strcmp(temp->nonce,nonce)==0)
-			{
-				TRACE_DEBUG(FULL,"We found the nonce!");
-				return temp->sid;
-			}
-			else
-				temp = temp->next;
+			fd_list_unlink (li);
+			free(temp->sid);
+			free(temp->nonce);
+			free(temp);
+			break;
 		}
-		
-		
 	}
-	return NULL;
-	*/
 }
 
-void nonce_deletelistnonce()
+//Retrieve sid from nonce
+static char * nonce_get_sid(char * nonce, size_t noncelen, size_t * sidlen, struct rgwp_config *state)
 {
-	/*
-	if(listnonce !=NULL)
+	struct fd_list * li;
+	char *sid=NULL;
+	
+	CHECK_PARAMS_DO(nonce && state && noncelen && sidlen, return);
+	*sidlen=0;
+	
+	//**Start mutex
+	CHECK_POSIX_DO(pthread_mutex_lock(&state->nonce_mutex),); 
+	for(li=state->listnonce.next;li!=&state->listnonce;li=li->next)
 	{
-		while(listnonce->next != NULL)
-		{
-			noncechain* temp=listnonce->next;
-			
-			free(listnonce->nonce);
-			free(listnonce->sid);
-			free(listnonce);
+		noncechain *temp=(noncechain *)li;
 		
-			listnonce=temp;
+		if(temp->noncelen==noncelen && strncmp(temp->nonce,nonce, noncelen)==0)
+		{
+			fd_list_unlink (li);
+			sid=temp->sid;
+			*sidlen=temp->sidlen;
+			free(temp->nonce);
+			free(temp);
+			break;
 		}
-		free(listnonce->nonce);
-		free(listnonce->sid);
-		free(listnonce);
-		listnonce=NULL;
+		
 	}
-	*/
+	CHECK_POSIX_DO(pthread_mutex_unlock(&state->nonce_mutex),); 
+	//***Stop mutex
+	return sid;
+}
+
+static void nonce_deletelistnonce(struct rgwp_config *state)
+{
+	//**Start mutex
+	CHECK_POSIX_DO(pthread_mutex_lock(&state->nonce_mutex),); 
+	while(!(FD_IS_LIST_EMPTY(&state->listnonce)) )
+	{
+		noncechain *temp=(noncechain *)state->listnonce.next;
+		
+		fd_list_unlink (&temp->chain);
+		free(temp->sid);
+		free(temp->nonce);
+		free(temp);
+		
+	}
+	CHECK_POSIX_DO(pthread_mutex_unlock(&state->nonce_mutex),); 
+	//***Stop mutex
 }
 
 /* Initialize the plugin */
@@ -329,7 +302,7 @@ static int sip_conf_parse(char * conffile, struct rgwp_config ** state)
 	CHECK_FCT( fd_disp_app_support ( app, NULL, 1, 0 ) );
 	
 	//chained list
-	FD_LIST_INITIALIZER(&new->listnonce);
+	fd_list_init(&new->listnonce,NULL);
 	CHECK_POSIX(pthread_mutex_init(&new->nonce_mutex,NULL));
 	
 	*state = new;
@@ -344,7 +317,7 @@ static void sip_conf_free(struct rgwp_config * state)
 	
 	CHECK_FCT_DO( fd_sess_handler_destroy( &state->sess_hdl ),  );
 	
-	nonce_deletelistnonce(&state->listnonce);
+	nonce_deletelistnonce(state);
 	CHECK_POSIX_DO(pthread_mutex_destroy(&state->nonce_mutex), /*continue*/);
 	
 	free(state);
@@ -356,7 +329,6 @@ static void sip_conf_free(struct rgwp_config * state)
 static int sip_rad_req( struct rgwp_config * cs, struct session ** session, struct radius_msg * rad_req, struct radius_msg ** rad_ans, struct msg ** diam_fw, struct rgw_client * cli )
 {
 	int idx;
-	int got_username = 0;
 	int got_AOR = 0;
 	int got_Dusername = 0;
 	int got_Drealm = 0;
@@ -368,7 +340,9 @@ static int sip_rad_req( struct rgwp_config * cs, struct session ** session, stru
 	int got_Dcnonce = 0;
 	int got_Dresponse = 0;
 	int got_Dalgorithm = 0;
-	
+	char * sid = NULL;
+	char * un=NULL;
+	size_t  un_len;
 	uint32_t status_type;
 	size_t nattr_used = 0;
 	struct avp *auth_data=NULL, *auth=NULL, *avp = NULL;
@@ -376,7 +350,7 @@ static int sip_rad_req( struct rgwp_config * cs, struct session ** session, stru
 	
 	TRACE_ENTRY("%p %p %p %p %p %p", cs, session, rad_req, rad_ans, diam_fw, cli);
 	
-	CHECK_PARAMS(rad_req && (rad_req->hdr->code == RADIUS_CODE_ACCESS_REQUEST) && rad_ans && diam_fw && *diam_fw);
+	CHECK_PARAMS(rad_req && (rad_req->hdr->code == RADIUS_CODE_ACCESS_REQUEST) && rad_ans && diam_fw && *diam_fw && session);
 	
 	//We check that session is not already filled
 	if(*session)
@@ -397,7 +371,12 @@ static int sip_rad_req( struct rgwp_config * cs, struct session ** session, stru
 		switch (attr->type) {
 			
 			case RADIUS_ATTR_USER_NAME:
-				got_username = 1;
+				if (attr->length>sizeof(struct radius_attr_hdr)) 
+				{
+					TRACE_DEBUG(ANNOYING, "Found a User-Name attribute: '%.*s'", attr->length- sizeof(struct radius_attr_hdr), (char *)(attr+1));
+					un = (char *)(attr + 1);
+					un_len =attr->length - sizeof(struct radius_attr_hdr);
+				}
 			break;
 			case RADIUS_ATTR_DIGEST_USERNAME:
 				got_Dusername = 1;
@@ -419,6 +398,19 @@ static int sip_rad_req( struct rgwp_config * cs, struct session ** session, stru
 			break;
 			case RADIUS_ATTR_DIGEST_NONCE:
 				got_Dnonce = 1;
+				
+				size_t sidlen;
+				
+				sid=nonce_get_sid((char *)(attr+1),attr->length-2,&sidlen,cs);
+				if(!sid)
+				{
+					TRACE_DEBUG(INFO,"We haven't found the session.'");
+					return EINVAL;
+				}
+				CHECK_FCT(fd_sess_fromsid (sid, sidlen, session, NULL));
+				free(sid);
+								
+				
 			break;
 			case RADIUS_ATTR_DIGEST_CNONCE:
 				got_Dcnonce = 1;
@@ -434,24 +426,69 @@ static int sip_rad_req( struct rgwp_config * cs, struct session ** session, stru
 			break;
 		}
 	}
-	if(!got_username)
+	if(!un)
 	{
 		TRACE_DEBUG(INFO,"No Username in request");
-		return 1;
+		return EINVAL;
 	}
-	if(!got_Dnonce)
-	{
-		/* Add the Session-Id AVP as first AVP */
-		CHECK_FCT( fd_msg_avp_new ( cs->dict.Session_Id, 0, &avp ) );
+
+	/* Create the session if it is not already done */
+	if (!*session) {
 		
-		char *sid=NULL;
-		fd_sess_getsid (session, &sid );
-		memset(&value, 0, sizeof(value));
-		value.os.data = (unsigned char *)sid;
-		value.os.len = strlen(sid);
-		CHECK_FCT( fd_msg_avp_setvalue ( avp, &value ) );
-		CHECK_FCT( fd_msg_avp_add ( *diam_fw, MSG_BRW_FIRST_CHILD, avp) );
+		char * fqdn;
+		char * realm;
+		
+		
+		
+		
+		/* Get information on the RADIUS client */
+		CHECK_FCT( rgw_clients_get_origin(cli, &fqdn, &realm) );
+		
+		int len;
+		/* Create a new Session-Id. The format is: {fqdn;hi32;lo32;username;diamid} */
+		CHECK_MALLOC( sid = malloc(un_len + 1 /* ';' */ + fd_g_config->cnf_diamid_len + 1 /* '\0' */) );
+		len = sprintf(sid, "%.*s;%s", un_len, un, fd_g_config->cnf_diamid);
+		CHECK_FCT( fd_sess_new(session, fqdn, sid, len) );
+		free(sid);
 	}
+		
+	/* Add the Destination-Realm AVP */
+	CHECK_FCT( fd_msg_avp_new ( cs->dict.Destination_Realm, 0, &avp ) );
+	
+	int i = 0;
+	if (un) {
+		/* Is there an '@' in the user name? We don't care for decorated NAI here */
+		for (i = un_len - 2; i > 0; i--) {
+			if (un[i] == '@') {
+				i++;
+				break;
+			}
+		}
+	}
+	if (i == 0) {
+		/* Not found in the User-Name => we use the local domain of this gateway */
+		value.os.data = fd_g_config->cnf_diamrlm;
+		value.os.len  = fd_g_config->cnf_diamrlm_len;
+	} else {
+		value.os.data = un + i;
+		value.os.len  = un_len - i;
+	}
+	
+	CHECK_FCT( fd_msg_avp_setvalue ( avp, &value ) );
+	CHECK_FCT( fd_msg_avp_add ( *diam_fw, MSG_BRW_FIRST_CHILD, avp) );
+	
+	/* Now, add the Session-Id AVP at beginning of Diameter message */
+	CHECK_FCT( fd_sess_getsid(*session, &sid) );
+	
+	TRACE_DEBUG(FULL, "[sip.rgwx] Translating new message for session '%s'...", sid);
+	
+	/* Add the Session-Id AVP as first AVP */
+	CHECK_FCT( fd_msg_avp_new ( cs->dict.Session_Id, 0, &avp ) );
+	value.os.data = (unsigned char *)sid;
+	value.os.len = strlen(sid);
+	CHECK_FCT( fd_msg_avp_setvalue ( avp, &value ) );
+	CHECK_FCT( fd_msg_avp_add ( *diam_fw, MSG_BRW_FIRST_CHILD, avp) );
+	
 	/*
 	If the RADIUS Access-Request message does not
 	contain any Digest-* attribute, then the RADIUS client does not want
@@ -640,53 +677,6 @@ static int sip_rad_req( struct rgwp_config * cs, struct session ** session, stru
 			break;
 			case RADIUS_ATTR_DIGEST_NONCE:
 				CONV2DIAM_STR_AUTH( Digest_Nonce );
-				
-				
-				int new=0;
-				int sidlen=0;
-				struct session * temp;
-				char *nonce=malloc(attr->length-1);
-				char *sid=malloc(sidlen+1);
-				
-				strncpy(nonce,(char *)(attr+1), attr->length-2);
-				nonce[attr->length-2]='\0';
-				
-				//**Start mutex
-				pthread_mutex_lock(&state->nonce_mutex); 
-				sidlen=strlen(nonce_check_element(nonce));
-				strcpy(sid,nonce_check_element(nonce));
-				sid[sidlen+1]='\0';
-				nonce_del_element(nonce);
-				free(nonce); //TODO: free nonce inside delete
-				pthread_mutex_unlock(&state->nonce_mutex); 
-				//**Stop mutex
-				
-				CHECK_FCT(fd_sess_fromsid ( (char *)sid, (size_t)sidlen, &temp, &new));
-				//free(sid);
-				
-				if(new==0)
-				{
-					session=temp;
-					/* Add the Session-Id AVP as first AVP */
-					CHECK_FCT( fd_msg_avp_new ( cs->dict.Session_Id, 0, &avp ) );
-					//memset(&value, 0, sizeof(value));
-					value.os.data = (unsigned char *)sid;
-					value.os.len = sidlen;
-					CHECK_FCT( fd_msg_avp_setvalue ( avp, &value ) );
-					CHECK_FCT( fd_msg_avp_add ( *diam_fw, MSG_BRW_FIRST_CHILD, avp) );
-
-				}
-				else
-				{
-					TRACE_DEBUG(INFO,"Can't find previously established session, message droped!");
-					return 1;
-				}
-				//free(sid);
-				free(nonce);
-				//fd_sess_dump(FULL,session);
-				
-				
-		
 			break;
 			case RADIUS_ATTR_DIGEST_NONCE_COUNT:
 			CONV2DIAM_STR_AUTH( Digest_Nonce_Count );
@@ -737,12 +727,12 @@ static int sip_rad_req( struct rgwp_config * cs, struct session ** session, stru
 	/* Store the request identifier in the session (if provided) */
 	
 	
-	if (session) {
+	if (*session) {
 		unsigned char * req_sip;
 		CHECK_MALLOC(req_sip = malloc(16));
 		memcpy(req_sip, &rad_req->hdr->authenticator[0], 16);
 		
-		CHECK_FCT( fd_sess_state_store( cs->sess_hdl, session, &req_sip ) );
+		CHECK_FCT( fd_sess_state_store( cs->sess_hdl, *session, &req_sip ) );
 	}
 	
 	
@@ -754,12 +744,9 @@ static int sip_diam_ans( struct rgwp_config * cs, struct session * session, stru
 	
 	struct msg_hdr * hdr;
 	struct avp *avp, *next, *asid;
-	struct avp_hdr *ahdr, *sid, *oh;
-	char buf[254]; /* to store some attributes values (with final '\0') */
-	int ta_set = 0;
-	int no_str = 0; /* indicate if an STR is required for this server */
-	uint8_t	tuntag = 0;
-	unsigned char * req_sip = NULL;
+	struct avp_hdr *ahdr, *sid;
+	//char buf[254]; /* to store some attributes values (with final '\0') */
+	//unsigned char * req_sip = NULL;
 	int in_success=0;
 	
 	TRACE_ENTRY("%p %p %p %p %p", cs, session, diam_ans, rad_fw, cli);
@@ -800,8 +787,6 @@ static int sip_diam_ans( struct rgwp_config * cs, struct session * session, stru
 	/* Search the different AVPs we handle here */
 	CHECK_FCT( fd_msg_search_avp (*diam_ans, cs->dict.Session_Id, &asid) );
 	CHECK_FCT( fd_msg_avp_hdr ( asid, &sid ) );
-	CHECK_FCT( fd_msg_search_avp (*diam_ans, cs->dict.Origin_Host, &asid) );
-	CHECK_FCT( fd_msg_avp_hdr ( asid, &oh ) );
 
 	/* Check the Diameter error code */
 	CHECK_FCT( fd_msg_search_avp (*diam_ans, cs->dict.Result_Code, &avp) );
@@ -811,11 +796,10 @@ static int sip_diam_ans( struct rgwp_config * cs, struct session * session, stru
 		case ER_DIAMETER_MULTI_ROUND_AUTH:
 		case ER_DIAMETER_SUCCESS_AUTH_SENT_SERVER_NOT_STORED:		
 			(*rad_fw)->hdr->code = RADIUS_CODE_ACCESS_CHALLENGE;
-			*statefull=1;
-			struct timespec nowts;
-			CHECK_SYS(clock_gettime(CLOCK_REALTIME, &nowts));
-			nowts.tv_sec+=600;
-			CHECK_FCT(fd_sess_settimeout(session, &nowts ));
+			//struct timespec nowts;
+			//CHECK_SYS(clock_gettime(CLOCK_REALTIME, &nowts));
+			//nowts.tv_sec+=600;
+			//CHECK_FCT(fd_sess_settimeout(session, &nowts ));
 			break;
 		case ER_DIAMETER_SUCCESS_SERVER_NAME_NOT_STORED:
 		case ER_DIAMETER_SUCCESS:
@@ -825,45 +809,13 @@ static int sip_diam_ans( struct rgwp_config * cs, struct session * session, stru
 		
 		default:
 			(*rad_fw)->hdr->code = RADIUS_CODE_ACCESS_REJECT;
-			fd_log_debug("[authSIP.rgwx] Received Diameter answer with error code '%d' from server '%.*s', session %.*s, translating into Access-Reject\n",
+			fd_log_debug("[sip.rgwx] Received Diameter answer with error code '%d', session %.*s, translating into Access-Reject\n",
 					ahdr->avp_value->u32, 
-					oh->avp_value->os.len, oh->avp_value->os.data,
 					sid->avp_value->os.len, sid->avp_value->os.data);
 			return 0;
 	}
 	/* Remove this Result-Code avp */
 	CHECK_FCT( fd_msg_free( avp ) );
-	
-	/* Creation of the State or Class attribute with session information */
-	CHECK_FCT( fd_msg_search_avp (*diam_ans, cs->dict.Origin_Realm, &avp) );
-	CHECK_FCT( fd_msg_avp_hdr ( avp, &ahdr ) );
-
-	
-	/* Now, save the session-id and eventually server info in a STATE or CLASS attribute */
-	if ((*rad_fw)->hdr->code == RADIUS_CODE_ACCESS_CHALLENGE) {
-		if (sizeof(buf) < snprintf(buf, sizeof(buf), "Diameter/%.*s/%.*s/%.*s", 
-				oh->avp_value->os.len,  oh->avp_value->os.data,
-				ahdr->avp_value->os.len,  ahdr->avp_value->os.data,
-				sid->avp_value->os.len, sid->avp_value->os.data)) {
-			TRACE_DEBUG(INFO, "Data truncated in State attribute: %s", buf);
-		}
-		CONV2RAD_STR(RADIUS_ATTR_STATE, buf, strlen(buf), 0);
-		
-	}
-
-	if ((*rad_fw)->hdr->code == RADIUS_CODE_ACCESS_ACCEPT) {
-		/* Add the Session-Id */
-		if (sizeof(buf) < snprintf(buf, sizeof(buf), "Diameter/%.*s", 
-				sid->avp_value->os.len, sid->avp_value->os.data)) {
-			TRACE_DEBUG(INFO, "Data truncated in Class attribute: %s", buf);
-		}
-		CONV2RAD_STR(RADIUS_ATTR_CLASS, buf, strlen(buf), 0);
-	}
-	
-	/* Unlink the Origin-Realm now; the others are unlinked at the end of this function */
-	CHECK_FCT( fd_msg_free( avp ) );
-	
-
 	
 	/* Now loop in the list of AVPs and convert those that we know how */
 	CHECK_FCT( fd_msg_browse(*diam_ans, MSG_BRW_FIRST_CHILD, &next, NULL) );
@@ -878,28 +830,17 @@ static int sip_diam_ans( struct rgwp_config * cs, struct session * session, stru
 		if (!(ahdr->avp_flags & AVP_FLAG_VENDOR)) {
 			switch (ahdr->avp_code) {
 				
-				case DIAM_ATTR_AUTH_SESSION_STATE:
-					if ((!ta_set) && (ahdr->avp_value->u32 == ACV_ASS_STATE_MAINTAINED)) {
-						CONV2RAD_32B( RADIUS_ATTR_TERMINATION_ACTION, RADIUS_TERMINATION_ACTION_RADIUS_REQUEST );
-					}
-					
-					if (ahdr->avp_value->u32 == ACV_ASS_NO_STATE_MAINTAINED) {
-						no_str = 1;
-					}
-					break;
+				
 				case DIAM_ATTR_DIGEST_NONCE:
 					CONV2RAD_STR(DIAM_ATTR_DIGEST_NONCE, ahdr->avp_value->os.data, ahdr->avp_value->os.len, 0);
 					/* Retrieve the request identified which was stored in the session */
 					if (session) {
 						char *sid=NULL;
-						
+						size_t sidlen;
 						fd_sess_getsid (session, &sid );
+						sidlen=strlen(sid);
 						
-						//***Start mutex
-						CHECK_POSIX(pthread_mutex_lock(&state->nonce_mutex)); 
-						nonce_add_element(ahdr->avp_value->os.data, sid, state);
-						CHECK_POSIX(pthread_mutex_unlock(&state->nonce_mutex)); 
-						//***Stop mutex
+						nonce_add_element(ahdr->avp_value->os.data,ahdr->avp_value->os.len, sid,sidlen, cs);
 					}
 					break;
 				case DIAM_ATTR_DIGEST_REALM:
@@ -925,15 +866,15 @@ static int sip_diam_ans( struct rgwp_config * cs, struct session * session, stru
 					handled = 0;
 			}
 		}
-		
-		
-		if (session) 
-		{
-			CHECK_FCT( fd_sess_state_retrieve( cs->sess_hdl, session, &req_sip ) );
-		}
 	}
-
-	req_sip=NULL;
+	
+	if (session) 
+	{
+		//TODO: authenticator & message-authenticator
+		CHECK_FCT( fd_sess_state_retrieve( cs->sess_hdl, session, &req_sip ) );
+	}
+	free(req_sip);
+	
 	
 	return 0;
 }
@@ -945,65 +886,5 @@ struct rgw_api rgwp_descriptor = {
 	.rgwp_conf_free  = sip_conf_free,
 	.rgwp_rad_req    = sip_rad_req,
 	.rgwp_diam_ans   = sip_diam_ans
-	
 };	
-/*}
-	/* Add FAKE Digest_Realm AVP 
-	{
-		//We give a fake realm because it will be provided in the second access request.
-		CHECK_FCT( fd_msg_avp_new ( cs->dict.Digest_Realm, 0, &avp ) );
-		
-		u8  *realm="example.com";
-		
-		value.os.data=(unsigned char *)realm;
-		value.os.len=strlen(realm);
-		CHECK_FCT( fd_msg_avp_setvalue ( avp, &value ) );
-		CHECK_FCT( fd_msg_avp_add ( auth, MSG_BRW_LAST_CHILD, avp) );
-
-	}
-	else
-	{
-		TRACE_DEBUG(FULL,"\nAnswer to challenge!\n");
-		//We need a client nonce, count nonce, digest realm, username and response to handle authentication
-		if (got_Dnonce_count && got_Dcnonce && got_Dresponse && got_Drealm && got_Dusername)
-		{
-			/* Add SIP_Authorization AVP 
-			{
-				CHECK_FCT( fd_msg_avp_new ( cs->dict.SIP_Authorization, 0, &auth ) );
-				CHECK_FCT( fd_msg_avp_add ( auth_data, MSG_BRW_LAST_CHILD, auth) );
-			}
-			for (idx = 0; idx < rad_req->attr_used; idx++) 
-			{
-				struct radius_attr_hdr * attr = (struct radius_attr_hdr *)(rad_req->buf + rad_req->attr_pos[idx]);
-				char * temp;
-			
-				switch (attr->type) {
-					
-					
-					default:
-					
-					if(!got_Dalgorithm)
-					{
-						//[Note 3] If Digest-Algorithm is missing, 'MD5' is assumed.
-				
-						CHECK_PARAMS( attr->length >= 2 );						
-						CHECK_FCT( fd_msg_avp_new ( cs->dict.Digest_Algorithm, 0, &avp ) );			
-						value.os.len = attr->length - 2;						
-						value.os.data = (unsigned char *)(attr + 1);					
-						CHECK_FCT( fd_msg_avp_setvalue ( avp, &value ) );					
-						CHECK_FCT( fd_msg_avp_add ( auth, MSG_BRW_LAST_CHILD, avp) );		
-					}
-				
-				}
-				
-			}
-			CHECK_FCT( fd_msg_avp_add ( *diam_fw, MSG_BRW_LAST_CHILD, auth_data) );
-			
-		}
-		else
-		{
-			TRACE_DEBUG(INFO,"Missing Digest attributes in request, we drop it...");
-			return 1;
-		}
-	}*/
 
