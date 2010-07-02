@@ -93,6 +93,14 @@ OPTION(BUILD_RGWX_AUTH "Build Authentication & Authorization RADIUS translation 
  	   RGWX_ADD_PLUGIN(auth ${RG_COMMON_HEADER} rgwx_auth.c)
 	ENDIF (BUILD_RGWX_AUTH)
 
+### SIP Authentication, Authorization messages translation.
+OPTION(BUILD_RGWX_SIP "Build SIP RADIUS translation plugin? (RFC4740 or RFC5090)" OFF)
+        IF (BUILD_RGWX_SIP)
+           RGWX_ADD_PLUGIN(sip ${RG_COMMON_HEADER} rgwx_sip.c)
+        ENDIF (BUILD_RGWX_SIP)
+
+
+
 ### Accounting messages translation.
 OPTION(BUILD_RGWX_ACCT "Build Accounting RADIUS translation plugin? (RFC2866)" ON)
 	IF (BUILD_RGWX_ACCT)
