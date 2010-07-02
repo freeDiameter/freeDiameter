@@ -36,6 +36,7 @@
 #include <mysql.h>
 #include "diamsip.h"
 
+MYSQL *conn;
 /*
 void calculate_nonce(u8 * nonce)
 {
