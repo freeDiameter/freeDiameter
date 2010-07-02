@@ -58,6 +58,11 @@ OPTION(BUILD_APP_ACCT "Build app_acct? (simple accounting application that store
 	   SUBDIRS(app_acct)
 	ENDIF (BUILD_APP_ACCT)
 
+OPTION(BUILD_APP_SIP "Build app_sip? (Authentication and authorization for Diameter SIP RFC4740)" OFF)
+	IF (BUILD_APP_SIP)
+	   SUBDIRS(app_sip)
+	ENDIF (BUILD_APP_SIP)
+
 
 
 ####

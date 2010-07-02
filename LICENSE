@@ -34,6 +34,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 
-The extensions/dict_sip files have been contributed by Alexandre Westfahl 
-	-- see source file for copyright information.
+The following files have been contributed by Alexandre Westfahl, see source files for copyright information:
+  extensions/dict_sip/*
+  extensions/app_sip/*
+  extensions/app_radgw/rgwx_sip.c
 
