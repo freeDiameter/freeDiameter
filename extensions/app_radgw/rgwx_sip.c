@@ -1,9 +1,11 @@
 /*********************************************************************************************************
 * Software License Agreement (BSD License)                                                               *
-* Author: Sebastien Decugis <sdecugis@nict.go.jp>							 *
+* Author: Alexandre Westfahl <awestfahl@freediameter.net>						 *
 *													 *
-* Copyright (c) 2010, WIDE Project and NICT								 *
+* Copyright (c) 2010, Alexandre Westfahl, Teraoka Laboratory (Keio University), and the WIDE Project. 	 *		
+*													 *
 * All rights reserved.											 *
+* Based on rgwx_auth plugin (Sebastien Decugis <sdecugis@nict.go.jp>)					 *
 * 													 *
 * Redistribution and use of this software in source and binary forms, with or without modification, are  *
 * permitted provided that the following conditions are met:						 *
@@ -17,11 +19,11 @@
 *   following disclaimer in the documentation and/or other						 *
 *   materials provided with the distribution.								 *
 * 													 *
-* * Neither the name of the WIDE Project or NICT nor the 						 *
+* * Neither the name of the Teraoka Laboratory nor the 							 *
 *   names of its contributors may be used to endorse or 						 *
 *   promote products derived from this software without 						 *
-*   specific prior written permission of WIDE Project and 						 *
-*   NICT.												 *
+*   specific prior written permission of Teraoka Laboratory 						 *
+*   													 *
 * 													 *
 * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED *
 * WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A *
@@ -32,6 +34,7 @@
 * TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF   *
 * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.								 *
 *********************************************************************************************************/
+
 
 /* RADIUS Access-Request messages translation plugin */
 
