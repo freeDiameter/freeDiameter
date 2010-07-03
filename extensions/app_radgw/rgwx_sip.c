@@ -746,7 +746,7 @@ static int sip_diam_ans( struct rgwp_config * cs, struct session * session, stru
 	struct avp *avp, *next, *asid;
 	struct avp_hdr *ahdr, *sid;
 	//char buf[254]; /* to store some attributes values (with final '\0') */
-	//unsigned char * req_sip = NULL;
+	unsigned char * req_sip = NULL;
 	int in_success=0;
 	
 	TRACE_ENTRY("%p %p %p %p %p", cs, session, diam_ans, rad_fw, cli);
