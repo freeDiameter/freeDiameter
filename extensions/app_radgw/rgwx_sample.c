@@ -41,6 +41,9 @@
 struct rgwp_config {
 	/* In a real extension, we would store the parsed configuration file, and the states of the extension */
 	int init;
+	
+	/* If needed to store information between sent Diameter request and received answer, the session is probably the best place.
+	  See rgwx_echodrop for an example. */
 };
 
 /* The function called at plugin initialization */
