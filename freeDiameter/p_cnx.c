@@ -87,7 +87,8 @@ static int prepare_connection_list(struct fd_peer * peer)
 		ret = getaddrinfo(peer->p_hdr.info.pi_diamid, NULL, &hints, &ai);
 		if (ret) {
 			fd_log_debug("Unable to resolve address for peer '%s' (%s), aborting\n", peer->p_hdr.info.pi_diamid, gai_strerror(ret));
-			fd_psm_terminate( peer, NULL );
+			if (ret != EAI_AGAIN)
+				fd_psm_terminate( peer, NULL );
 			return 0;
 		}
 		
@@ -104,6 +105,16 @@ static int prepare_connection_list(struct fd_peer * peer)
 					(peer->p_hdr.info.config.pic_flags.pro3 == PI_P3_IP) ? 
 						AF_INET 
 						: AF_INET6));
+	}
+	if (fd_g_config->cnf_flags.no_ip4) {
+		CHECK_FCT( fd_ep_filter_family(
+					&peer->p_hdr.info.pi_endpoints, 
+					AF_INET6));
+	}
+	if (fd_g_config->cnf_flags.no_ip6) {
+		CHECK_FCT( fd_ep_filter_family(
+					&peer->p_hdr.info.pi_endpoints, 
+					AF_INET));
 	}
 	
 	/* Now check we have at least one address to attempt */
