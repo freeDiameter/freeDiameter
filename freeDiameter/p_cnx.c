@@ -188,7 +188,7 @@ static int prepare_connection_list(struct fd_peer * peer)
 		new->dotls = dotls_immediate;
 
 		/* Add the new entry to the appropriate position (depending on preferences) */
-		if (peer->p_hdr.info.config.pic_flags.alg == PI_ALGPREF_TCP) {
+		if ((fd_g_config->cnf_flags.pr_tcp) || (peer->p_hdr.info.config.pic_flags.alg == PI_ALGPREF_TCP)) {
 			fd_list_insert_after(last_prio, &new->chain);
 		} else {
 			fd_list_insert_after(&peer->p_connparams, &new->chain); /* very first position */
