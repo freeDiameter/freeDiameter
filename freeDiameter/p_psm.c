@@ -570,9 +570,9 @@ psm_loop:
 		CHECK_FCT_DO( fd_ep_clearflags( &peer->p_hdr.info.pi_endpoints, EP_FL_PRIMARY ), /* ignore the error */);
 		
 		/* Get the new ones */
-		CHECK_FCT_DO( fd_cnx_getendpoints(peer->p_cnxctx, NULL, &peer->p_hdr.info.pi_endpoints), /* ignore the error */);
+		CHECK_FCT_DO( fd_cnx_getremoteeps(peer->p_cnxctx, &peer->p_hdr.info.pi_endpoints), /* ignore the error */);
 		
-		/* We do not support local endpoints change currently, but it could be added here if needed */
+		/* We do not support local endpoints change currently, but it could be added here if needed (refresh fd_g_config->cnf_endpoints)*/
 		
 		if (TRACE_BOOL(ANNOYING)) {
 			TRACE_DEBUG(ANNOYING, "New remote endpoint(s):" );

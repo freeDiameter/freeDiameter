@@ -36,10 +36,14 @@
 #include "fD.h"
 #include "cnxctx.h"
 
+#include <net/if.h>
+#include <ifaddrs.h> /* for getifaddrs */
+
 /* The maximum size of Diameter message we accept to receive (<= 2^24) to avoid too big mallocs in case of trashed headers */
 #ifndef DIAMETER_MSG_SIZE_MAX
 #define DIAMETER_MSG_SIZE_MAX	65535	/* in bytes */
 #endif /* DIAMETER_MSG_SIZE_MAX */
+
 
 /* Connections contexts (cnxctx) in freeDiameter are wrappers around the sockets and TLS operations .
  * They are used to hide the details of the processing to the higher layers of the daemon.
@@ -72,7 +76,6 @@
  * 4) End
  *    - fd_cnx_destroy
  */
-
 
 /*******************************************/
 /*     Creation of a connection object     */
@@ -467,69 +470,67 @@ int fd_cnx_getTLS(struct cnxctx * conn)
 }
 
 /* Get the list of endpoints (IP addresses) of the local and remote peers on this connection */
-int fd_cnx_getendpoints(struct cnxctx * conn, struct fd_list * local, struct fd_list * remote)
+int fd_cnx_getremoteeps(struct cnxctx * conn, struct fd_list * eps)
 {
-	TRACE_ENTRY("%p %p %p", conn, local, remote);
-	CHECK_PARAMS(conn);
+	TRACE_ENTRY("%p %p %p", conn, eps);
+	CHECK_PARAMS(conn && eps);
 	
-	if (local) {
-		/* Retrieve the local endpoint(s) of the connection */
-		switch (conn->cc_proto) {
-			case IPPROTO_TCP: {
-				sSS ss;
-				socklen_t sl;
-				CHECK_FCT(fd_tcp_get_local_ep(conn->cc_socket, &ss, &sl));
-				CHECK_FCT(fd_ep_add_merge( local, (sSA *)&ss, sl, EP_FL_LL | EP_FL_PRIMARY));
-			}
-			break;
+	/* Check we have a full connection object, not a listening socket (with no remote) */
+	CHECK_PARAMS( conn->cc_incoming );
 
-			#ifndef DISABLE_SCTP
-			case IPPROTO_SCTP: {
-				CHECK_FCT(fd_sctp_get_local_ep(conn->cc_socket, local));
-			}
-			break;
-			#endif /* DISABLE_SCTP */
-
-			default:
-				CHECK_PARAMS(0);
+	/* Retrieve the peer endpoint(s) of the connection */
+	switch (conn->cc_proto) {
+		case IPPROTO_TCP: {
+			sSS ss;
+			socklen_t sl;
+			CHECK_FCT(fd_tcp_get_remote_ep(conn->cc_socket, &ss, &sl));
+			CHECK_FCT(fd_ep_add_merge( eps, (sSA *)&ss, sl, EP_FL_LL | EP_FL_PRIMARY ));
 		}
-	}
-	
-	if (remote) {
-		/* Check we have a full connection object, not a listening socket (with no remote) */
-		CHECK_PARAMS( conn->cc_incoming );
-		
-		/* Retrieve the peer endpoint(s) of the connection */
-		switch (conn->cc_proto) {
-			case IPPROTO_TCP: {
-				sSS ss;
-				socklen_t sl;
-				CHECK_FCT(fd_tcp_get_remote_ep(conn->cc_socket, &ss, &sl));
-				CHECK_FCT(fd_ep_add_merge( remote, (sSA *)&ss, sl, EP_FL_LL | EP_FL_PRIMARY ));
-			}
-			break;
+		break;
 
-			#ifndef DISABLE_SCTP
-			case IPPROTO_SCTP: {
-				CHECK_FCT(fd_sctp_get_remote_ep(conn->cc_socket, remote));
-			}
-			break;
-			#endif /* DISABLE_SCTP */
-
-			default:
-				CHECK_PARAMS(0);
+		#ifndef DISABLE_SCTP
+		case IPPROTO_SCTP: {
+			CHECK_FCT(fd_sctp_get_remote_ep(conn->cc_socket, eps));
 		}
+		break;
+		#endif /* DISABLE_SCTP */
+
+		default:
+			CHECK_PARAMS(0);
 	}
 
 	return 0;
 }
-
 
 /* Get a string describing the remote peer address (ip address or fqdn) */
 char * fd_cnx_getremoteid(struct cnxctx * conn)
 {
 	CHECK_PARAMS_DO( conn, return "" );
 	return conn->cc_remid;
+}
+
+/* Retrieve a list of all IP addresses of the local system from the kernel, using  */
+int fd_cnx_get_local_eps(struct fd_list * list)
+{
+	struct ifaddrs *iflist, *cur;
+	CHECK_SYS(getifaddrs(&iflist));
+	
+	for (cur = iflist; cur != NULL; cur = cur->ifa_next) {
+		if (cur->ifa_flags & IFF_LOOPBACK)
+			continue;
+		
+		if (fd_g_config->cnf_flags.no_ip4 && (cur->ifa_addr->sa_family == AF_INET))
+			continue;
+		
+		if (fd_g_config->cnf_flags.no_ip6 && (cur->ifa_addr->sa_family == AF_INET6))
+			continue;
+		
+		CHECK_FCT(fd_ep_add_merge( list, cur->ifa_addr, sSAlen(cur->ifa_addr), EP_FL_LL ));
+	}
+	
+	freeifaddrs(iflist);
+	
+	return 0;
 }
 
 

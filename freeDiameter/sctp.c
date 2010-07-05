@@ -932,54 +932,6 @@ int fd_sctp_get_str_info( int sock, uint16_t *in, uint16_t *out, sSS *primary )
 	return 0;
 }
 
-/* Get the list of local endpoints of the socket */
-int fd_sctp_get_local_ep(int sock, struct fd_list * list)
-{
-	union {
-		sSA	*sa;
-		uint8_t	*buf;
-	} ptr;
-	
-	sSA * data = NULL;
-	int count;
-	
-	TRACE_ENTRY("%d %p", sock, list);
-	CHECK_PARAMS(list);
-	
-	/* Read the list on the socket */
-	CHECK_SYS( count = sctp_getladdrs(sock, 0, &data)  );
-	ptr.sa = data;
-	
-	while (count) {
-		socklen_t sl;
-		switch (ptr.sa->sa_family) {
-			case AF_INET:	sl = sizeof(sSA4); break;
-			case AF_INET6:	sl = sizeof(sSA6); break;
-			default:
-				TRACE_DEBUG(INFO, "Unknown address family returned in sctp_getladdrs: %d", ptr.sa->sa_family);
-				goto stop;
-		}
-				
-		CHECK_FCT( fd_ep_add_merge( list, ptr.sa, sl, EP_FL_LL ) );
-		ptr.buf += sl;
-		count --;
-	}
-stop:
-	/* Free the list */
-	sctp_freeladdrs(data);
-	
-	/* Now get the primary address, the add function will take care of merging with existing entry */
-	{
-		sSS ss;
-		socklen_t sl = sizeof(sSS);
-	
-		CHECK_SYS(getsockname(sock, (sSA *)&ss, &sl));
-		CHECK_FCT( fd_ep_add_merge( list, (sSA *)&ss, sl, EP_FL_PRIMARY ) );
-	}
-	
-	return 0;
-}
-
 /* Get the list of remote endpoints of the socket */
 int fd_sctp_get_remote_ep(int sock, struct fd_list * list)
 {

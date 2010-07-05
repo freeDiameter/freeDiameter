@@ -326,7 +326,7 @@ char *          fd_cnx_getid(struct cnxctx * conn);
 int		fd_cnx_getproto(struct cnxctx * conn);
 int		fd_cnx_getTLS(struct cnxctx * conn);
 int             fd_cnx_getcred(struct cnxctx * conn, const gnutls_datum_t **cert_list, unsigned int *cert_list_size);
-int             fd_cnx_getendpoints(struct cnxctx * conn, struct fd_list * local, struct fd_list * remote);
+int             fd_cnx_getremoteeps(struct cnxctx * conn, struct fd_list * eps);
 char *          fd_cnx_getremoteid(struct cnxctx * conn);
 int             fd_cnx_receive(struct cnxctx * conn, struct timespec * timeout, unsigned char **buf, size_t * len);
 int             fd_cnx_recv_setaltfifo(struct cnxctx * conn, struct fifo * alt_fifo); /* send FDEVP_CNX_MSG_RECV event to the fifo list */

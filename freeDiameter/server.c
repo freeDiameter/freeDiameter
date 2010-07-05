@@ -269,15 +269,6 @@ int fd_servers_start()
 		fd_list_insert_before( &FD_SERVERS, &s->chain );
 		CHECK_POSIX( pthread_create( &s->thr, NULL, serv_th, s ) );
 		
-		/* Retrieve the list of endpoints if it was empty */
-		if (empty_conf_ep) {
-			(void) fd_cnx_getendpoints(s->conn, &fd_g_config->cnf_endpoints, NULL);
-			if (TRACE_BOOL(FULL)){
-				fd_log_debug("  Local server address(es) :\n");
-				fd_ep_dump( 5, &fd_g_config->cnf_endpoints );
-			}
-		}
-		
 		/* Create the server on secure port */
 		CHECK_MALLOC( s = new_serv(IPPROTO_SCTP, 1) );
 		CHECK_MALLOC( s->conn = fd_cnx_serv_sctp(fd_g_config->cnf_port_tls, FD_IS_LIST_EMPTY(&fd_g_config->cnf_endpoints) ? NULL : &fd_g_config->cnf_endpoints) );
@@ -343,6 +334,18 @@ int fd_servers_start()
 		}
 	}
 	
+	/* Now, if we still have not got the list of local adresses, try to read it from the kernel directly */
+	if (FD_IS_LIST_EMPTY(&fd_g_config->cnf_endpoints)) {
+		CHECK_FCT(fd_cnx_get_local_eps(&fd_g_config->cnf_endpoints));
+		if (FD_IS_LIST_EMPTY(&fd_g_config->cnf_endpoints)) {
+			TRACE_DEBUG(INFO, "Unable to find the addresses of the local system. Please use \"ListenOn\" parameter in the configuration.");
+			return EINVAL;
+		}
+	}
+	if (TRACE_BOOL(FULL)){
+		fd_log_debug("  Local server address(es) :\n");
+		fd_ep_dump( 5, &fd_g_config->cnf_endpoints );
+	}
 	return 0;
 }
 

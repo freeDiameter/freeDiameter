@@ -136,5 +136,8 @@ void fd_sctps_destroy(struct cnxctx * conn);
 
 #endif /* DISABLE_SCTP */
 
+/* UDP */
+int fd_cnx_get_local_eps(struct fd_list * list);
+
 #endif /* _CNXCTX_H */
 

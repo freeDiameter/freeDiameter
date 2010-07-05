@@ -62,7 +62,7 @@ static int set_peer_cnx(struct fd_peer * peer, struct cnxctx **cnx)
 	}
 	
 	/* Read the endpoints, maybe used to reconnect to the peer later */
-	CHECK_FCT( fd_cnx_getendpoints(peer->p_cnxctx, NULL, &peer->p_hdr.info.pi_endpoints) );
+	CHECK_FCT( fd_cnx_getremoteeps(peer->p_cnxctx, &peer->p_hdr.info.pi_endpoints) );
 	
 	/* Read the protocol */
 	peer->p_hdr.info.runtime.pir_proto = fd_cnx_getproto(peer->p_cnxctx);
@@ -105,7 +105,7 @@ static int add_CE_info(struct msg *msg, struct cnxctx * cnx, int isi_tls, int is
 	struct dict_object * dictobj = NULL;
 	struct avp * avp = NULL;
 	union avp_value val;
-	struct fd_list *li, local_ep = FD_LIST_INITIALIZER(local_ep);
+	struct fd_list *li;
 	
 	/* Add the Origin-* AVPs */
 	CHECK_FCT( fd_msg_add_origin ( msg, 1 ) );
@@ -113,18 +113,14 @@ static int add_CE_info(struct msg *msg, struct cnxctx * cnx, int isi_tls, int is
 	/* Find the model for Host-IP-Address AVP */
 	CHECK_FCT(  fd_dict_search( fd_g_config->cnf_dict, DICT_AVP, AVP_BY_NAME, "Host-IP-Address", &dictobj, ENOENT )  );
 		
-	/* Get the list of endpoints */
-	CHECK_FCT(  fd_cnx_getendpoints(cnx, &local_ep, NULL) );
-	
 	/* Add the AVP(s) -- not sure what is the purpose... We could probably only add the primary one ? */
-	for (li = local_ep.next; li != &local_ep; li = li->next) {
+	for (li = fd_g_config->cnf_endpoints.next; li != &fd_g_config->cnf_endpoints; li = li->next) {
 		struct fd_endpoint * ep = (struct fd_endpoint *)li;
 		
 		CHECK_FCT( fd_msg_avp_new ( dictobj, 0, &avp ) );
 		CHECK_FCT( fd_msg_avp_value_encode ( &ep->ss, avp ) );
 		CHECK_FCT( fd_msg_avp_add( msg, MSG_BRW_LAST_CHILD, avp ) );
 	}
-	
 	
 	/* Vendor-Id, Product-Name, and Firmware-Revision AVPs */
 	CHECK_FCT( fd_dict_search( fd_g_config->cnf_dict, DICT_AVP, AVP_BY_NAME, "Vendor-Id", &dictobj, ENOENT )  );

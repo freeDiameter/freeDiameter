@@ -42,6 +42,11 @@ CHECK_SYMBOL_EXISTS(ntohll "" HAVE_NTOHLL)
 # malloc.h ?
 CHECK_INCLUDE_FILES (malloc.h HAVE_MALLOC_H)
 
+# getifaddrs ?
+CHECK_FUNCTION_EXISTS (getifaddrs HAVE_GETIFADDRS)
+IF (NOT HAVE_GETIFADDRS)
+   MESSAGE(SEND_ERROR "The getifaddrs function is currently required by freeDiameter.")
+ENDIF (NOT HAVE_GETIFADDRS)
 
 # pthreads
 INCLUDE(FindThreads)
