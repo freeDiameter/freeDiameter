@@ -1051,7 +1051,7 @@ static int auth_rad_req( struct rgwp_config * cs, struct session ** session, str
 	rad_req->attr_used = nattr_used;
 
 	/* Store the request identifier in the session (if provided) */
-	if (session) {
+	if (*session) {
 		unsigned char * req_auth;
 		CHECK_MALLOC(req_auth = malloc(16));
 		memcpy(req_auth, &rad_req->hdr->authenticator[0], 16);
