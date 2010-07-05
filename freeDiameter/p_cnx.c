@@ -196,7 +196,7 @@ static int prepare_connection_list(struct fd_peer * peer)
 	}
 #endif /* DISABLE_SCTP */
 	
-	return FD_IS_LIST_EMPTY(&peer->p_connparams) ? EINVAL : 0;
+	return 0;
 }
 
 
