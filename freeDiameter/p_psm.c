@@ -701,7 +701,7 @@ psm_reset:
 	
 psm_end:
 	fd_psm_cleanup(peer, 1);
-	TRACE_DEBUG(INFO "'%s'\t-> STATE_ZOMBIE (terminated)\t'%s'",
+	TRACE_DEBUG(INFO, "'%s'\t-> STATE_ZOMBIE (terminated)\t'%s'",
 			STATE_STR(peer->p_hdr.info.runtime.pir_state),
 			peer->p_hdr.info.pi_diamid);
 	pthread_cleanup_pop(1); /* set STATE_ZOMBIE */
