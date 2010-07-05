@@ -153,7 +153,6 @@ struct rgwp_config {
 
 /* The state we store in the session */
 struct sess_state {
-	uint8_t	 	 req_auth[16]; 	/* The request authenticator */
 	application_id_t auth_appl;	/* Auth-Application-Id used for this session, if available (stored in a Class attribute) */
 	int		 send_str;	/* If not 0, we must send a STR when the ACA is received. */
 	uint32_t	 term_cause;	/* If not 0, the Termination-Cause to put in the STR. */
@@ -1163,7 +1162,6 @@ static int acct_rad_req( struct rgwp_config * cs, struct session ** session, str
 		
 		CHECK_MALLOC( st = malloc(sizeof(struct sess_state)) );
 		memset(st, 0, sizeof(struct sess_state));
-		memcpy(&st->req_auth, &rad_req->hdr->authenticator[0], 16);
 		st->auth_appl = auth_appl;
 		if (auth_appl) { /* We use the value 0 for servers which indicated NO STATE MAINTAINED, hence have no need for STR */
 			st->send_str = send_str;
