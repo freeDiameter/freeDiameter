@@ -370,6 +370,7 @@ static int auth_rad_req( struct rgwp_config * cs, struct session ** session, str
 					for (i = idx + 1; i < rad_req->attr_used; i++)
 						rad_req->attr_pos[i - 1] = rad_req->attr_pos[i];
 					rad_req->attr_used -= 1;
+					idx--;
 				}
 				break;
 		
