@@ -128,7 +128,7 @@ static int prepare_connection_list(struct fd_peer * peer)
 	empty_connection_list(peer);
 	
 	/* Prepare the parameters */
-	if (peer->p_hdr.info.config.pic_flags.sec != PI_SEC_DEFAULT) {
+	if ((peer->p_hdr.info.config.pic_flags.sec != PI_SEC_DEFAULT) || (fd_g_config->cnf_flags.tls_alg)) {
 		dotls_immediate = 0;
 		port_no = htons(peer->p_hdr.info.config.pic_port ?: fd_g_config->cnf_port);
 	} else {
