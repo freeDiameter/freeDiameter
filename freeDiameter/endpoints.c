@@ -246,7 +246,7 @@ int fd_ep_filter_list( struct fd_list * list, struct fd_list * exclude_list )
 	
 	/* initialize. Both lists are ordered */
 	li_out = list->next;
-	li_ex = exclude_list;
+	li_ex = exclude_list->next;
 	
 	if (TRACE_BOOL(ANNOYING + 1)) {
 		TRACE_DEBUG(ANNOYING, "  DEBUG:fd_ep_filter_list  Filter this list ");
