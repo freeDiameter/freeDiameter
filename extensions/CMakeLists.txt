@@ -102,6 +102,11 @@ OPTION(BUILD_TEST_APP "Build test_app.fdx? (Testing application to send dummy me
  	   SUBDIRS(test_app)
  	ENDIF (BUILD_TEST_APP)
 
+OPTION(BUILD_TEST_APP "Build test_sip.fdx? (Testing application to simulate Diameter-SIP client (RFC4740), for testing purpose only)" OFF)
+ 	IF (BUILD_TEST_SIP)
+ 	   SUBDIRS(test_sip)
+ 	ENDIF (BUILD_TEST_SIP)
+ 	
 # The following extension have very little use except for specific tests, so we disable them except in Debug configurations.
 IF (CMAKE_BUILD_TYPE MATCHES "Debug")
 	OPTION(BUILD_SAMPLE "Build sample.fdx? (Simple extension to demonstrate extension mechanism, for developpers only)" OFF)

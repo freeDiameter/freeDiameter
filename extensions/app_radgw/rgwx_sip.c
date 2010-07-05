@@ -725,8 +725,6 @@ static int sip_rad_req( struct rgwp_config * cs, struct session ** session, stru
 	//fd_msg_dump_walk(1,*diam_fw);
 	
 	/* Store the request identifier in the session (if provided) */
-	
-	
 	if (*session) {
 		unsigned char * req_sip;
 		CHECK_MALLOC(req_sip = malloc(16));
@@ -855,6 +853,9 @@ static int sip_diam_ans( struct rgwp_config * cs, struct session * session, stru
 				case DIAM_ATTR_DIGEST_RESPONSE_AUTH:
 					CONV2RAD_STR(DIAM_ATTR_DIGEST_RESPONSE_AUTH, ahdr->avp_value->os.data, ahdr->avp_value->os.len, 0);
 					break;
+				default:
+					handled=0;
+					break;
 			}
 		} 
 		else 
@@ -866,11 +867,13 @@ static int sip_diam_ans( struct rgwp_config * cs, struct session * session, stru
 					handled = 0;
 			}
 		}
+		if (handled) {
+			CHECK_FCT( fd_msg_free( avp ) );
+		}
 	}
 	
 	if (session) 
 	{
-		//TODO: authenticator & message-authenticator
 		CHECK_FCT( fd_sess_state_retrieve( cs->sess_hdl, session, &req_sip ) );
 	}
 	free(req_sip);
