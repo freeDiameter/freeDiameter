@@ -52,6 +52,19 @@ int fd_ep_add_merge( struct fd_list * list, sSA * sa, socklen_t sl, uint32_t fla
 	TRACE_ENTRY("%p %p %u %x", list, sa, sl, flags);
 	CHECK_PARAMS( list && sa && (sl <= sizeof(sSS)) );
 	
+	if (TRACE_BOOL(ANNOYING + 1)) {
+		TRACE_DEBUG(ANNOYING, "  DEBUG:fd_ep_add_merge  Current list:");
+		fd_ep_dump( 4, list );
+		TRACE_DEBUG(ANNOYING, "  DEBUG:fd_ep_add_merge  Adding:");
+		fd_log_debug("    ");
+		sSA_DUMP_NODE_SERV( sa, NI_NUMERICHOST | NI_NUMERICSERV );
+		fd_log_debug(" {%s%s%s%s}\n", 
+				(flags & EP_FL_CONF) 	? "C" : "-",
+				(flags & EP_FL_DISC)	    ? "D" : "-",
+				(flags & EP_FL_ADV)	    ? "A" : "-",
+				(flags & EP_FL_LL)	    ? "L" : "-",
+				(flags & EP_FL_PRIMARY)     ? "P" : "-");
+	}
 	ptr.sa = sa;
 	
 	/* Filter out a bunch of invalid addresses */
@@ -63,8 +76,12 @@ int fd_ep_add_merge( struct fd_list * list, sSA * sa, socklen_t sl, uint32_t fla
 				 || IN_MULTICAST(ptr.sin->sin_addr.s_addr)
 				 || IN_EXPERIMENTAL(ptr.sin->sin_addr.s_addr)
 				 || IN_BADCLASS(ptr.sin->sin_addr.s_addr)
-				 || (ptr.sin->sin_addr.s_addr == INADDR_BROADCAST))
+				 || (ptr.sin->sin_addr.s_addr == INADDR_BROADCAST)) {
+					if (TRACE_BOOL(ANNOYING + 1)) {
+						TRACE_DEBUG(ANNOYING, "  DEBUG:fd_ep_add_merge  Address was ignored, not added.");
+					}
 					return 0;
+				}
 			}
 			port = &ptr.sin->sin_port;
 			break;
@@ -75,13 +92,20 @@ int fd_ep_add_merge( struct fd_list * list, sSA * sa, socklen_t sl, uint32_t fla
 				 || IN6_IS_ADDR_LOOPBACK(&ptr.sin6->sin6_addr)
 				 || IN6_IS_ADDR_MULTICAST(&ptr.sin6->sin6_addr)
 				 || IN6_IS_ADDR_LINKLOCAL(&ptr.sin6->sin6_addr)
-				 || IN6_IS_ADDR_SITELOCAL(&ptr.sin6->sin6_addr))
+				 || IN6_IS_ADDR_SITELOCAL(&ptr.sin6->sin6_addr)) {
+					if (TRACE_BOOL(ANNOYING + 1)) {
+						TRACE_DEBUG(ANNOYING, "  DEBUG:fd_ep_add_merge  Address was ignored, not added.");
+					}
 					return 0;
+				}
 			}
 			port = &ptr.sin6->sin6_port;
 			break;
 
 		default:
+			if (TRACE_BOOL(ANNOYING + 1)) {
+				TRACE_DEBUG(ANNOYING, "  DEBUG:fd_ep_add_merge  Address family was unknown, not added.");
+			}
 			return 0;
 	}
 
@@ -110,8 +134,7 @@ int fd_ep_add_merge( struct fd_list * list, sSA * sa, socklen_t sl, uint32_t fla
 				ep_port = &ep->sin6.sin6_port;
 				break;
 			default:
-				/* Filter this out */
-				return 0;
+				ASSERT( 0 ); /* we got a different value previously in this same function */
 		}
 		if (cmp < 0)
 			continue;
@@ -147,6 +170,10 @@ int fd_ep_add_merge( struct fd_list * list, sSA * sa, socklen_t sl, uint32_t fla
 	/* Merge the flags */
 	ep->flags |= flags;
 	
+	if (TRACE_BOOL(ANNOYING + 1)) {
+		TRACE_DEBUG(ANNOYING, "  DEBUG:fd_ep_add_merge  New list:");
+		fd_ep_dump( 4, list );
+	}
 	return 0;
 }
 
@@ -158,6 +185,10 @@ int fd_ep_filter( struct fd_list * list, uint32_t flags )
 	TRACE_ENTRY("%p %x", list, flags);
 	CHECK_PARAMS(list);
 	
+	if (TRACE_BOOL(ANNOYING + 1)) {
+		TRACE_DEBUG(ANNOYING, "  DEBUG:fd_ep_filter  Filter this list for flags %x:", flags);
+		fd_ep_dump( 4, list );
+	}
 	for (li = list->next; li != list; li = li->next) {
 		struct fd_endpoint * ep = (struct fd_endpoint *)li;
 		
@@ -168,6 +199,10 @@ int fd_ep_filter( struct fd_list * list, uint32_t flags )
 		}
 	}
 	
+	if (TRACE_BOOL(ANNOYING + 1)) {
+		TRACE_DEBUG(ANNOYING, "  DEBUG:fd_ep_filter  Resulting list:");
+		fd_ep_dump( 4, list );
+	}
 	return 0;
 }
 
@@ -179,6 +214,10 @@ int fd_ep_filter_family( struct fd_list * list, int af )
 	TRACE_ENTRY("%p %d", list, af);
 	CHECK_PARAMS(list);
 	
+	if (TRACE_BOOL(ANNOYING + 1)) {
+		TRACE_DEBUG(ANNOYING, "  DEBUG:fd_ep_filter_family  Filter this list for family %d:", af);
+		fd_ep_dump( 4, list );
+	}
 	for (li = list->next; li != list; li = li->next) {
 		struct fd_endpoint * ep = (struct fd_endpoint *)li;
 		
@@ -189,6 +228,10 @@ int fd_ep_filter_family( struct fd_list * list, int af )
 		}
 	}
 	
+	if (TRACE_BOOL(ANNOYING + 1)) {
+		TRACE_DEBUG(ANNOYING, "  DEBUG:fd_ep_filter_family  Resulting list:");
+		fd_ep_dump( 4, list );
+	}
 	return 0;
 }
 
@@ -205,6 +248,12 @@ int fd_ep_filter_list( struct fd_list * list, struct fd_list * exclude_list )
 	li_out = list->next;
 	li_ex = exclude_list;
 	
+	if (TRACE_BOOL(ANNOYING + 1)) {
+		TRACE_DEBUG(ANNOYING, "  DEBUG:fd_ep_filter_list  Filter this list ");
+		fd_ep_dump( 4, list );
+		TRACE_DEBUG(ANNOYING, "  DEBUG:fd_ep_filter_list  Removing from list");
+		fd_ep_dump( 6, exclude_list );
+	}
 	/* Now browse both lists in parallel */
 	while ((li_out != list) && (li_ex != exclude_list)) {
 		int cmp;
@@ -248,6 +297,11 @@ int fd_ep_filter_list( struct fd_list * list, struct fd_list * exclude_list )
 		li_out = li->next;
 		fd_list_unlink(li);
 		free(li);
+	}
+	
+	if (TRACE_BOOL(ANNOYING + 1)) {
+		TRACE_DEBUG(ANNOYING, "  DEBUG:fd_ep_filter_list  Resulting list:");
+		fd_ep_dump( 4, list );
 	}
 	return 0;
 
