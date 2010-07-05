@@ -1,0 +1,16 @@
+# The test_sip extension
+PROJECT("Diameter-SIP client Test Application (RFC4740)" C)
+
+FIND_PACKAGE(MySQL REQUIRED)
+INCLUDE_DIRECTORIES(${MySQL_INCLUDE_DIR}) 
+
+# List of source files
+SET( TEST_SIP_SRC
+	test_sip.c
+	test_sip.h
+)
+
+# Compile as a module
+FD_ADD_EXTENSION(test_sip ${TEST_SIP_SRC})
+
+TARGET_LINK_LIBRARIES(test_sip ${MySQL_LIBRARIES})
