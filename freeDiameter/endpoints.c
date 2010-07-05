@@ -192,6 +192,68 @@ int fd_ep_filter_family( struct fd_list * list, int af )
 	return 0;
 }
 
+/* Remove any endpoint from the exclude list in the list */
+int fd_ep_filter_list( struct fd_list * list, struct fd_list * exclude_list )
+{
+	struct fd_list * li_out, *li_ex, *li;
+	struct fd_endpoint * out, * ex;
+	
+	TRACE_ENTRY("%p %p", list, exclude_list);
+	CHECK_PARAMS(list && exclude_list);
+	
+	/* initialize. Both lists are ordered */
+	li_out = list->next;
+	li_ex = exclude_list;
+	
+	/* Now browse both lists in parallel */
+	while ((li_out != list) && (li_ex != exclude_list)) {
+		int cmp;
+
+		out = (struct fd_endpoint *)li_out;
+		ex = (struct fd_endpoint *)li_ex;
+
+		/* Compare the next elements families */
+		if (out->sa.sa_family < ex->sa.sa_family) {
+			li_out = li_out->next;
+			continue;
+		}
+		if (out->sa.sa_family > ex->sa.sa_family) {
+			li_ex = li_ex->next;
+			continue;
+		}
+
+		/* Then compare the address fields */
+		switch (out->sa.sa_family) {
+			case AF_INET:
+				cmp = memcmp(&out->sin.sin_addr, &ex->sin.sin_addr, sizeof(struct in_addr));
+				break;
+			case AF_INET6:
+				cmp = memcmp(&out->sin6.sin6_addr, &ex->sin6.sin6_addr, sizeof(struct in6_addr));
+				break;
+			default:
+				/* Filter this out */
+				cmp = 0;
+		}
+		if (cmp < 0) {
+			li_out = li_out->next;
+			continue;
+		}
+		if (cmp > 0) {
+			li_ex = li_ex->next;
+			continue;
+		}
+	
+		/* We remove this element then loop */
+		li = li_out;
+		li_out = li->next;
+		fd_list_unlink(li);
+		free(li);
+	}
+	return 0;
+
+}
+
+
 /* Reset the given flag(s) from all items in the list */
 int fd_ep_clearflags( struct fd_list * list, uint32_t flags )
 {

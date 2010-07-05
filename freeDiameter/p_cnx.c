@@ -117,6 +117,9 @@ static int prepare_connection_list(struct fd_peer * peer)
 					AF_INET));
 	}
 	
+	/* Remove any local address that would be here, it should not happen but it does sometimes... */
+	CHECK_FCT( fd_ep_filter_list(&peer->p_hdr.info.pi_endpoints, &fd_g_config->cnf_endpoints) );
+	
 	/* Now check we have at least one address to attempt */
 	if (FD_IS_LIST_EMPTY(&peer->p_hdr.info.pi_endpoints)) {
 		fd_log_debug("No address %savailable to connect to peer '%s', aborting\n", peer->p_hdr.info.config.pic_flags.pro3 ? "in the configured family " : "", peer->p_hdr.info.pi_diamid);
