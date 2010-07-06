@@ -375,11 +375,9 @@ static int auth_rad_req( struct rgwp_config * cs, struct session ** session, str
 				break;
 		
 			case RADIUS_ATTR_USER_NAME:
-				if (attr_len) {
-					TRACE_DEBUG(ANNOYING, "Found a User-Name attribute: '%.*s'", attr_len, attr_val);
-					un = attr_val;
-					un_len = attr_len;
-				}
+				TRACE_DEBUG(ANNOYING, "Found a User-Name attribute: '%.*s'", attr_len, attr_val);
+				un = attr_val;
+				un_len = attr_len;
 				break;
 			
 		}

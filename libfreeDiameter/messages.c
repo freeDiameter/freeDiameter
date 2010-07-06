@@ -1138,7 +1138,7 @@ int fd_msg_avp_setvalue ( struct avp *avp, union avp_value *value )
 	memcpy(&avp->avp_storage, value, sizeof(union avp_value));
 	
 	/* Copy an octetstring if needed. */
-	if (type == AVP_TYPE_OCTETSTRING) {
+	if ((type == AVP_TYPE_OCTETSTRING) && (value->os.len)) {
 		CHECK_MALLOC(  avp->avp_storage.os.data = malloc(value->os.len)  );
 		avp->avp_mustfreeos = 1;
 		memcpy(avp->avp_storage.os.data, value->os.data, value->os.len);
