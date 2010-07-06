@@ -375,7 +375,7 @@ static int auth_rad_req( struct rgwp_config * cs, struct session ** session, str
 				break;
 		
 			case RADIUS_ATTR_USER_NAME:
-				TRACE_DEBUG(ANNOYING, "Found a User-Name attribute: '%.*s'", attr_len, attr_val);
+				TRACE_DEBUG(ANNOYING, "Found a User-Name attribute: '%.*s'", attr_len, attr_len ? attr_val : "");
 				un = attr_val;
 				un_len = attr_len;
 				break;
@@ -427,7 +427,7 @@ static int auth_rad_req( struct rgwp_config * cs, struct session ** session, str
 				}
 			}
 		}
-		if (i == 0) {
+		if (i <= 0) {
 			/* Not found in the User-Name => we use the local domain of this gateway */
 			value.os.data = fd_g_config->cnf_diamrlm;
 			value.os.len  = fd_g_config->cnf_diamrlm_len;
