@@ -39,22 +39,65 @@ struct disp_hdl * diamsip_MAR_hdl=NULL;
 struct disp_hdl * diamsip_default_hdl=NULL;
 struct session_handler * ds_sess_hdl;
 
+//configuration stucture
+struct as_conf * as_conf=NULL;
+static struct as_conf app_sip_conf;
+
+//dictionary of SIP
 struct diamsip_dict sip_dict;
 
 int diamsip_default_cb( struct msg ** msg, struct avp * avp, struct session * sess, enum disp_action * act)
 {
-
 	TRACE_ENTRY("%p %p %p %p", msg, avp, sess, act);
-
 	
 	return 0;
 }
 
-/* entry point */
-int ds_entry()
+void dump_config()
 {
+	TRACE_DEBUG(FULL,"***Configuration of Diameter-SIP extension***");
+	TRACE_DEBUG(FULL,"# mode: *%d*",as_conf->mode);
+	TRACE_DEBUG(FULL,"# datasource: *%d*",as_conf->datasource);
+	TRACE_DEBUG(FULL,"# mysql_login: *%s*",as_conf->mysql_login);
+	TRACE_DEBUG(FULL,"# mysql_password: *%s*",as_conf->mysql_password);
+	TRACE_DEBUG(FULL,"# mysql_database: *%s*",as_conf->mysql_database);
+	TRACE_DEBUG(FULL,"# mysql_server: *%s*",as_conf->mysql_server);
+	TRACE_DEBUG(FULL,"# mysql_port: *%d*",as_conf->mysql_port);
+	TRACE_DEBUG(FULL,"***End of Diameter-SIP configuration extension***");
+}
+
+static int as_conf_init(void)
+{
+	as_conf=&app_sip_conf;
+	//memset(app_sip_conf, 0, sizeof(struct as_conf));
+	
+
+	return 0;
+}
+
+/* entry point */
+int as_entry(char * conffile)
+{
+	TRACE_ENTRY("%p", conffile);
+	
 	struct dict_object * app=NULL;
 	struct disp_when data;
+	
+	/* Initialize configuration */
+	CHECK_FCT( as_conf_init() );
+	
+	
+	//We parse the configuration file
+	if (conffile != NULL) {
+		CHECK_FCT( as_conf_handle(conffile) );
+	}
+	else
+	{
+		TRACE_DEBUG(INFO, "We need a configuration file for Diameter-SIP extension. See doc/ for an example.");
+	}
+	
+	//We can dump the configuration extracted from app_sip.conf
+	//dump_config();
 	
 	CHECK_FCT( fd_dict_search( fd_g_config->cnf_dict, DICT_APPLICATION, APPLICATION_BY_NAME, "Diameter Session Initiation Protocol (SIP) Application", &app, ENOENT) );
 	CHECK_FCT( fd_disp_app_support ( app, NULL, 1, 0 ) );
@@ -104,7 +147,7 @@ int ds_entry()
 	
 	//TRACE_DEBUG(INFO,"*%s*%s*%s*%s*",DB_SERVER,DB_USERNAME, DB_PASSWORD, DB_DATABASE);
 	//We start database connection
-	if(start_mysql_connection(DB_SERVER,DB_USERNAME, DB_PASSWORD, DB_DATABASE))
+	if(start_mysql_connection())
 		return 1;
 	
 	CHECK_FCT(fd_sess_handler_create(&ds_sess_hdl, free));
@@ -130,55 +173,4 @@ void fd_ext_fini(void)
 	return ;
 }
 
-EXTENSION_ENTRY("diam_sip", ds_entry);
-
-
-/*
-
-
-
-
-
-
-test set for digest calculate
-
-TRACE_DEBUG(FULL,"TEST");
-									DigestCalcHA1("MD5", "12345678", "example.com", "secret", "3bada1a0","56593a80", HA1);
-									TRACE_DEBUG(FULL,"TEST->HA1 done: *%s*",HA1);
-      									DigestCalcResponse(HA1, "3bada1a0", "00000001", "56593a80", "auth","INVITE", "sip:97226491335@example.com", HA2, response);
-      									DigestCalcResponseAuth(HA1, "3bada1a0", "00000001", "56593a80", "auth","INVITE", "sip:97226491335@example.com", HA2, responseauth);
-	
-	
-	
-	
-	
-	
-old digest reponse check
-
-						struct avp_hdr * tempavphdr=NULL;
-						
-						
-						CHECK_FCT(fd_msg_browse ( avp, MSG_BRW_WALK, &tempavp, NULL) );
-						
-						while(tempavp)
-						{
-							CHECK_FCT( fd_msg_avp_hdr( tempavp, &tempavphdr )  );
-							
-							if(tempavphdr->avp_code==380)
-							{
-								found_response=0;
-								//We have not found it but we finished looking in this Auth-Data-Item
-								tempavp=NULL; 
-							}
-							else if(tempavphdr->avp_code==103)
-							{
-								found_response=1;
-								//We found it, we can leave the loop
-								tempavp=NULL; 
-							}
-							else
-							{
-								CHECK_FCT(fd_msg_browse ( tempavp, MSG_BRW_WALK, &tempavp, NULL) );
-							}
-						}
-*/
+EXTENSION_ENTRY("app_sip", as_entry);

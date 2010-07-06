@@ -157,15 +157,15 @@ struct avp_hdr *walk_digest(struct avp *avp, int avp_code)
 	return temphdr;
 }
 
-int start_mysql_connection(char *server,char *user, char *password, char *database)
+int start_mysql_connection()
 {
 	conn = mysql_init(NULL);
 	
 	mysql_options(conn, MYSQL_OPT_RECONNECT, "true");
 	
-	if (!mysql_real_connect(conn, server,user, password, database, 0, NULL, 0)) 
-	{
-		TRACE_DEBUG(INFO,"Unable to connect to database (%s) with login:%s",database,user);
+	if (!mysql_real_connect(conn, as_conf->mysql_server,as_conf->mysql_login, as_conf->mysql_password, as_conf->mysql_database, as_conf->mysql_port, NULL, 0)) 
+	{//TODO: display error from mysql
+		TRACE_DEBUG(INFO,"Unable to connect to database (%s) with login:%s",as_conf->mysql_database,as_conf->mysql_login);
 		return 1;
 	}
 	return 0;

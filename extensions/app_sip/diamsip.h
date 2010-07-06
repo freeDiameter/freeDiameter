@@ -47,11 +47,28 @@
 #define NONCE_SIZE 16
 #define DIGEST_LEN 16
 
-//SQL configuration
-#define DB_USERNAME "diamsip"
-#define DB_PASSWORD "BAVpzCUhULVHayFr"
-#define DB_SERVER "pineapple.tera.ics.keio.ac.jp"
-#define DB_DATABASE "diamsip"
+
+/* Mode for the extension */
+#define MODE_DSSERVER	0x1
+#define	MODE_SL	0x2
+
+
+/* The module configuration */
+struct as_conf {
+	int		mode;		/* default MODE_DSSERVER | MODE_SL */
+	enum {ASMYSQL} datasource; 
+	char * mysql_login;
+	char * mysql_password;
+	char * mysql_database;
+	char * mysql_server;
+	uint16_t  mysql_port;
+	
+};
+extern struct as_conf * as_conf;
+
+/* Parse the configuration file */
+int as_conf_handle(char * conffile);
+
 
 extern MYSQL *conn;
 
@@ -60,26 +77,9 @@ extern MYSQL *conn;
 void calc_md5(char *buffer, char * data);
 void clear_digest(char * digest, char * readable_digest, int digestlength);
 struct avp_hdr * walk_digest(struct avp *avp, int avp_code);
-int start_mysql_connection(char *server,char *user, char *password, char *database);
+int start_mysql_connection();
 void request_mysql(char *query);
 void close_mysql_connection();
-/*
-typedef struct noncechain noncechain;
-struct noncechain
-{
-    int timestamp;
-    char * nonce;
-    noncechain *next;
-};
-
-
-//Global variable which points to chained list of nonce
-noncechain* listnonce;
-
-void nonce_add_element(char * nonce);
-int nonce_check_element(char * nonce);
-void nonce_deletelistnonce();
-*/
 
 
 

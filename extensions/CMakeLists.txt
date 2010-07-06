@@ -58,7 +58,7 @@ OPTION(BUILD_APP_ACCT "Build app_acct? (simple accounting application that store
 	   SUBDIRS(app_acct)
 	ENDIF (BUILD_APP_ACCT)
 
-OPTION(BUILD_APP_SIP "Build app_sip? (Authentication and authorization for Diameter SIP RFC4740)" OFF)
+OPTION(BUILD_APP_SIP "Build app_sip? (Authentication and Authorization for Diameter SIP RFC4740)" OFF)
 	IF (BUILD_APP_SIP)
 	   SUBDIRS(app_sip)
 	ENDIF (BUILD_APP_SIP)
@@ -102,7 +102,7 @@ OPTION(BUILD_TEST_APP "Build test_app.fdx? (Testing application to send dummy me
  	   SUBDIRS(test_app)
  	ENDIF (BUILD_TEST_APP)
 
-OPTION(BUILD_TEST_APP "Build test_sip.fdx? (Testing application to simulate Diameter-SIP client (RFC4740), for testing purpose only)" OFF)
+OPTION(BUILD_TEST_SIP "Build test_sip.fdx? (Testing application to simulate Diameter-SIP client (RFC4740), for testing purpose only)" OFF)
  	IF (BUILD_TEST_SIP)
  	   SUBDIRS(test_sip)
  	ENDIF (BUILD_TEST_SIP)
