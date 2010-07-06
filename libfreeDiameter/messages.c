@@ -1138,10 +1138,14 @@ int fd_msg_avp_setvalue ( struct avp *avp, union avp_value *value )
 	memcpy(&avp->avp_storage, value, sizeof(union avp_value));
 	
 	/* Copy an octetstring if needed. */
-	if ((type == AVP_TYPE_OCTETSTRING) && (value->os.len)) {
-		CHECK_MALLOC(  avp->avp_storage.os.data = malloc(value->os.len)  );
-		avp->avp_mustfreeos = 1;
-		memcpy(avp->avp_storage.os.data, value->os.data, value->os.len);
+	if (type == AVP_TYPE_OCTETSTRING) {
+		if (value->os.len) {
+			CHECK_MALLOC(  avp->avp_storage.os.data = malloc(value->os.len)  );
+			avp->avp_mustfreeos = 1;
+			memcpy(avp->avp_storage.os.data, value->os.data, value->os.len);
+		} else {
+			avp->avp_storage.os.data = NULL;
+		}
 	}
 	
 	/* Set the data pointer of the public part */
@@ -1333,7 +1337,8 @@ static int bufferize_avp(unsigned char * buffer, size_t buflen, size_t * offset,
 				return bufferize_chain(buffer, buflen, offset, &avp->avp_chain.children);
 
 			case AVP_TYPE_OCTETSTRING:
-				memcpy(&buffer[*offset], avp->avp_public.avp_value->os.data, avp->avp_public.avp_value->os.len);
+				if (avp->avp_public.avp_value->os.len)
+					memcpy(&buffer[*offset], avp->avp_public.avp_value->os.data, avp->avp_public.avp_value->os.len);
 				*offset += PAD4(avp->avp_public.avp_value->os.len);
 				break;
 
@@ -1620,9 +1625,12 @@ static int parsedict_do_avp(struct dictionary * dict, struct avp * avp, int mand
 			
 			avp->avp_rawlen = avp->avp_public.avp_len - GETAVPHDRSZ( avp->avp_public.avp_flags );
 			
-			CHECK_MALLOC(  avp->avp_rawdata = malloc(avp->avp_rawlen)  );
+			if (avp->avp_rawlen) {
+				CHECK_MALLOC(  avp->avp_rawdata = malloc(avp->avp_rawlen)  );
 			
-			memcpy(avp->avp_rawdata, avp->avp_source, avp->avp_rawlen);
+				memcpy(avp->avp_rawdata, avp->avp_source, avp->avp_rawlen);
+			}
+			
 			avp->avp_source = NULL;
 			
 			TRACE_DEBUG(FULL, "Unsupported optional AVP found, raw source data saved in avp_rawdata.");
@@ -1674,7 +1682,7 @@ static int parsedict_do_avp(struct dictionary * dict, struct avp * avp, int mand
 			
 		case AVP_TYPE_OCTETSTRING:
 			/* We just have to copy the string into the storage area */
-			CHECK_PARAMS_DO( avp->avp_public.avp_len > GETAVPHDRSZ( avp->avp_public.avp_flags ),
+			CHECK_PARAMS_DO( avp->avp_public.avp_len >= GETAVPHDRSZ( avp->avp_public.avp_flags ),
 				{
 					if (error_info) {
 						error_info->pei_errcode = "DIAMETER_INVALID_AVP_LENGTH";
@@ -1683,9 +1691,13 @@ static int parsedict_do_avp(struct dictionary * dict, struct avp * avp, int mand
 					return EBADMSG;
 				} );
 			avp->avp_storage.os.len = avp->avp_public.avp_len - GETAVPHDRSZ( avp->avp_public.avp_flags );
-			CHECK_MALLOC(  avp->avp_storage.os.data = malloc(avp->avp_storage.os.len)  );
-			avp->avp_mustfreeos = 1;
-			memcpy(avp->avp_storage.os.data, avp->avp_source, avp->avp_storage.os.len);
+			if (avp->avp_storage.os.len) {
+				CHECK_MALLOC(  avp->avp_storage.os.data = malloc(avp->avp_storage.os.len)  );
+				avp->avp_mustfreeos = 1;
+				memcpy(avp->avp_storage.os.data, avp->avp_source, avp->avp_storage.os.len);
+			} else {
+				avp->avp_storage.os.data = NULL;
+			}
 			break;
 		
 		case AVP_TYPE_INTEGER32:
