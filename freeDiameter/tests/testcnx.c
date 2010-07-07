@@ -1041,6 +1041,114 @@ int main(int argc, char *argv[])
 	}
 #endif /* DISABLE_SCTP */
 	
+	/* Test with different number of streams between server and client */
+#ifndef DISABLE_SCTP
+	{
+		struct connect_flags cf;
+		struct handshake_flags hf;
+		
+		memset(&cf, 0, sizeof(cf));
+		cf.proto = IPPROTO_SCTP;
+		
+		memset(&hf, 0, sizeof(hf));
+		
+		/* Initialize remote certificate */
+		CHECK_GNUTLS_DO( ret = gnutls_certificate_allocate_credentials (&hf.creds), );
+		CHECK( GNUTLS_E_SUCCESS, ret );
+		/* Set the CA */
+		CHECK_GNUTLS_DO( ret = gnutls_certificate_set_x509_trust_mem( hf.creds, &ca, GNUTLS_X509_FMT_PEM), );
+		CHECK( 1, ret );
+		/* Set the key */
+		CHECK_GNUTLS_DO( ret = gnutls_certificate_set_x509_key_mem( hf.creds, &client_cert, &client_priv, GNUTLS_X509_FMT_PEM), );
+		CHECK( GNUTLS_E_SUCCESS, ret );
+		
+		/* Start the client thread with more streams than the server */
+		fd_g_config->cnf_sctp_str = 2 * NB_STREAMS;
+		CHECK( 0, pthread_create(&thr, 0, connect_thr, &cf) );
+
+		/* Accept the connection of the client */
+		server_side = fd_cnx_serv_accept(listener_sctp);
+		CHECK( 1, server_side ? 1 : 0 );
+		
+		/* Retrieve the client connection object */
+		CHECK( 0, pthread_join( thr, (void *)&client_side ) );
+		CHECK( 1, client_side ? 1 : 0 );
+		hf.cnx = client_side;
+		
+		/* Start the handshake directly */
+		CHECK( 0, pthread_create(&thr, 0, handshake_thr, &hf) );
+		CHECK( 0, fd_cnx_handshake(server_side, GNUTLS_SERVER, NULL, NULL) );
+		CHECK( 0, pthread_join(thr, NULL) );
+		CHECK( 0, hf.ret );
+		
+		/* Send a few TLS protected message, and replies */
+		for (i = 0; i < 4 * NB_STREAMS; i++) {
+			CHECK( 0, fd_cnx_send(server_side, cer_buf, cer_sz, 0));
+			CHECK( 0, fd_cnx_receive(client_side, NULL, &rcv_buf, &rcv_sz));
+			CHECK( cer_sz, rcv_sz );
+			CHECK( 0, memcmp( rcv_buf, cer_buf, cer_sz ) );
+			free(rcv_buf);
+
+			CHECK( 0, fd_cnx_send(client_side, cer_buf, cer_sz, 0));
+			CHECK( 0, fd_cnx_receive(server_side, NULL, &rcv_buf, &rcv_sz));
+			CHECK( cer_sz, rcv_sz );
+			CHECK( 0, memcmp( rcv_buf, cer_buf, cer_sz ) );
+			free(rcv_buf);
+		}
+		
+		/* Now close the connection */
+		CHECK( 0, pthread_create(&thr, 0, destroy_thr, client_side) );
+		fd_cnx_destroy(server_side);
+		CHECK( 0, pthread_join(thr, NULL) );
+		
+		/* Do the same test but with more streams on the server this time */
+		fd_g_config->cnf_sctp_str = NB_STREAMS / 2;
+		CHECK( 0, pthread_create(&thr, 0, connect_thr, &cf) );
+
+		/* Accept the connection of the client */
+		server_side = fd_cnx_serv_accept(listener_sctp);
+		CHECK( 1, server_side ? 1 : 0 );
+		
+		/* Retrieve the client connection object */
+		CHECK( 0, pthread_join( thr, (void *)&client_side ) );
+		CHECK( 1, client_side ? 1 : 0 );
+		hf.cnx = client_side;
+		
+		/* Start the handshake directly */
+		CHECK( 0, pthread_create(&thr, 0, handshake_thr, &hf) );
+		CHECK( 0, fd_cnx_handshake(server_side, GNUTLS_SERVER, NULL, NULL) );
+		CHECK( 0, pthread_join(thr, NULL) );
+		CHECK( 0, hf.ret );
+		
+		/* Send a few TLS protected message, and replies */
+		for (i = 0; i < 2 * NB_STREAMS; i++) {
+			CHECK( 0, fd_cnx_send(server_side, cer_buf, cer_sz, 0));
+			CHECK( 0, fd_cnx_receive(client_side, NULL, &rcv_buf, &rcv_sz));
+			CHECK( cer_sz, rcv_sz );
+			CHECK( 0, memcmp( rcv_buf, cer_buf, cer_sz ) );
+			free(rcv_buf);
+
+			CHECK( 0, fd_cnx_send(client_side, cer_buf, cer_sz, 0));
+			CHECK( 0, fd_cnx_receive(server_side, NULL, &rcv_buf, &rcv_sz));
+			CHECK( cer_sz, rcv_sz );
+			CHECK( 0, memcmp( rcv_buf, cer_buf, cer_sz ) );
+			free(rcv_buf);
+		}
+		
+		/* Now close the connection */
+		CHECK( 0, pthread_create(&thr, 0, destroy_thr, client_side) );
+		fd_cnx_destroy(server_side);
+		CHECK( 0, pthread_join(thr, NULL) );
+		
+		
+		/* Free the credentials */
+		gnutls_certificate_free_keys(hf.creds);
+		gnutls_certificate_free_cas(hf.creds);
+		gnutls_certificate_free_credentials(hf.creds);
+	}
+#endif /* DISABLE_SCTP */
+	
+	
 	/* Basic operation tested successfully, now test we detect error conditions */
 	
 	/* Untrusted certificate, TCP */
@@ -1505,6 +1613,7 @@ int main(int argc, char *argv[])
 	}
 #endif /* DISABLE_SCTP */
 	
+
 	/* Destroy the servers */
 	{
 		fd_cnx_destroy(listener);
