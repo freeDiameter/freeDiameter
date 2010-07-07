@@ -33,8 +33,10 @@ Available commands:\n\
        Creates a new sub-CA that can be used for certificates later.\n\
    make newcert name=foo ca=parentca\n\
        Create private key and csr, then issue the certificate (named foo.*)\n\
+   make p12 name=foo ca=parentca\n\
+       Same as newcert, but additionnaly creates a pkcs12 file to ship client certificate to Windows or Mac\n\
    make ship name=foo ca=parentca\n\
-       Create an archive with the data for the client\n\
+       Create an archive with the data for the client (useful for freeDiameter peers)\n\
    make revoke name=foo ca=parentca\n\
        Revokes the certificate foo.cert issued by parentca and regenerates the CRL.\n\
    make gencrl ca=caname\n\
@@ -134,6 +136,15 @@ newcert:
 	@cat $(DATA_DIR)/$(ca)/clients/$(name)/cert.pem $(DATA_DIR)/$(ca)/public/cachain.pem > $(DATA_DIR)/$(ca)/clients/$(name)/certchain.pem
 	@ln -sf ../../public/crl $(DATA_DIR)/$(ca)/clients/$(name)/crl
 	@ln -sf ../../public/caroot.pem $(DATA_DIR)/$(ca)/clients/$(name)/ca.pem
+
+# Create a PKCS#12 file containing the client's information
+p12:	newcert
+	# Create the PKCS#12 file
+	@cat 	$(DATA_DIR)/$(ca)/clients/$(name)/privkey.pem \
+		$(DATA_DIR)/$(ca)/clients/$(name)/certchain.pem \
+		$(DATA_DIR)/$(ca)/clients/$(name)/ca.pem \
+		| openssl pkcs12 -export -out $(DATA_DIR)/$(ca)/clients/$(name)/$(name).p12
+	@echo "Client certificate is created in $(DATA_DIR)/$(ca)/clients/$(name)/$(name).p12"
 
 # Create an archive to send the data to the client node
 ship:
