@@ -80,6 +80,7 @@ struct rgw_client {
 	struct {
 		uint16_t		port;
 		uint8_t			id;
+		uint8_t			auth[16]; /* we also compare the request authenticator to avoid buggy NASes */
 		struct radius_msg * 	ans; /* to be able to resend a lost answer */
 	} last[2]; /*[0] for auth, [1] for acct. */
 };
@@ -250,7 +251,9 @@ int rgw_clients_check_dup(struct rgw_radius_msg_meta **msg, struct rgw_client *c
 	else
 		idx = 1;
 	
-	if ((cli->last[idx].id == (*msg)->radius.hdr->identifier) && (cli->last[idx].port == (*msg)->port)) {
+	if ((cli->last[idx].id == (*msg)->radius.hdr->identifier) 
+	 && (cli->last[idx].port == (*msg)->port) 
+	 && !memcmp(&cli->last[idx].auth[0], &(*msg)->radius.hdr->authenticator[0], 16)) {
 		/* Duplicate! */
 		TRACE_DEBUG(INFO, "Received duplicated RADIUS message (id: %02hhx, port: %hu).", (*msg)->radius.hdr->identifier, ntohs((*msg)->port));
 		if (cli->last[idx].ans) {
@@ -265,11 +268,13 @@ int rgw_clients_check_dup(struct rgw_radius_msg_meta **msg, struct rgw_client *c
 			ASSERT(cli->last[idx].ans == NULL);
 			cli->last[idx].id = (*msg)->radius.hdr->identifier;
 			cli->last[idx].port = (*msg)->port;
+			memcpy(&cli->last[idx].auth[0], &(*msg)->radius.hdr->authenticator[0], 16);
 		} else { 
 			/* We have got previous message(s), update the info only if answered already */
 			if (cli->last[idx].ans) {
 				cli->last[idx].id = (*msg)->radius.hdr->identifier;
 				cli->last[idx].port = (*msg)->port;
+				memcpy(&cli->last[idx].auth[0], &(*msg)->radius.hdr->authenticator[0], 16);
 				/* Free the previous answer */
 				radius_msg_free(cli->last[idx].ans);
 				free(cli->last[idx].ans);
