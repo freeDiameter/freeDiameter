@@ -403,7 +403,7 @@ struct cnxctx * fd_cnx_cli_connect_sctp(int no_ip6, uint16_t port, struct fd_lis
 	
 	/* Retrieve the number of streams and primary address */
 	CHECK_FCT_DO( fd_sctp_get_str_info( sock, &cnx->cc_sctp_para.str_in, &cnx->cc_sctp_para.str_out, &primary ), goto error );
-	if (cnx->cc_sctp_para.str_out > cnx->cc_sctp_para.str_in)
+	if (cnx->cc_sctp_para.str_out < cnx->cc_sctp_para.str_in)
 		cnx->cc_sctp_para.pairs = cnx->cc_sctp_para.str_out;
 	else
 		cnx->cc_sctp_para.pairs = cnx->cc_sctp_para.str_in;
