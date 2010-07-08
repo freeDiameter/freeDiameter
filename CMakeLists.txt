@@ -38,7 +38,7 @@ ADD_DEFINITIONS(-D_GNU_SOURCE)
 
 # Add a "Profiling" build type
 # SET(CMAKE_BUILD_TYPE Profiling)
-SET(CMAKE_C_FLAGS_PROFILING "-fprofile-arcs -ftest-coverage -g -Wall")
+SET(CMAKE_C_FLAGS_PROFILING "-fprofile-arcs -ftest-coverage -fstack-protector -g -Wall")
 
 # Set the DEBUG flag for Debug and Profiling builds
 IF (CMAKE_BUILD_TYPE MATCHES "Debug|Profiling")
