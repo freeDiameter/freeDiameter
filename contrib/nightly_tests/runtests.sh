@@ -47,7 +47,7 @@ fi
 # Now, for each test in the list
 for t in $(cat $WORKDIR/2_tests.list | grep -v -e "^#"); do
    # Create the work environment if needed
-   if [ ! -d $WORKDIR/$t]; then 
+   if [ ! -d $WORKDIR/$t ]; then 
        mkdir $WORKDIR/$t
    fi
    
