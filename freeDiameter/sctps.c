@@ -93,7 +93,7 @@ static void * demuxer(void * arg)
 				if (strid < conn->cc_sctp_para.pairs) {
 					CHECK_FCT_DO(fd_event_send(conn->cc_sctps_data.array[strid].raw_recv, event, bufsz, buf), goto fatal );
 				} else {
-					TRACE_DEBUG(INFO, "Received packet (%d bytes) on out-of-range stream #%s from %s, discarded.", bufsz, strid, conn->cc_remid);
+					TRACE_DEBUG(INFO, "Received packet (%d bytes) on out-of-range stream #%d from %s, discarded.", bufsz, strid, conn->cc_remid);
 					free(buf);
 				}
 				break;
