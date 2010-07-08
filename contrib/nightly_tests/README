@@ -12,7 +12,7 @@ The information gathered here mostly comes from the following pages:
 INSTRUCTIONS to setup a new build slave for the freeDiameter buildserver:
 
 1) Install all dependencies for freeDiameter. See the "prereqs" file (for Debian/Ubuntu).
-	$ sudo aptitude install `wget http://www.freediameter.net/hg/freeDiameter/raw-file/tip/contrib/nightly_tests/prereqs -O - | grep -v -e "$#"`
+	$ sudo aptitude install `wget http://www.freediameter.net/hg/freeDiameter/raw-file/tip/contrib/nightly_tests/prereqs -O - | grep -v -e "^#"`
 
 2) Create the "test" database for app_acct test (we assume the tests are run as user "test" here)
 	# su - postgres
@@ -55,5 +55,7 @@ INSTRUCTIONS to setup a new build slave for the freeDiameter buildserver:
 6) Run the script once to check it works properly
 
 7) Set up a crontab to run the script
+	$ wget http://www.freediameter.net/hg/freeDiameter/raw-file/tip/contrib/nightly_tests/cronjob.sh
+	$ chmod +x cronjob.sh
 	$ crontab -l
-0 0 * * * /home/test/fDbuild/runtests.sh > /home/test/fDbuild/runtests.log 2>&1
+0 0 * * * /home/test/fDbuild/cronjob.sh > /home/test/fDbuild/cronjob.log 2>&1
