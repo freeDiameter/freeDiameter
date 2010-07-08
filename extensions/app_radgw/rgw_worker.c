@@ -67,7 +67,7 @@ static void * work_th(void * arg)
 	/* Set the thread name */
 	{
 		char buf[48];
-		snprintf(buf, sizeof(buf), "radgw/worker #%d", (int)arg);
+		snprintf(buf, sizeof(buf), "radgw/worker #%ld", (long)arg);
 		fd_log_threadname ( buf );
 	}
 	
@@ -324,7 +324,7 @@ out:
 
 int rgw_work_start(void)
 {
-	int i;
+	long i;
 	TRACE_ENTRY();
 	
 	memset(workers, 0, sizeof(workers));

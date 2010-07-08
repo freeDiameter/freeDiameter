@@ -468,7 +468,7 @@ static int auth_rad_req( struct rgwp_config * cs, struct session ** session, str
 				int len;
 				/* If not found, create a new Session-Id. The format is: {fqdn;hi32;lo32;username;diamid} */
 				CHECK_MALLOC( sess_str = malloc(un_len + 1 /* ';' */ + fd_g_config->cnf_diamid_len + 1 /* '\0' */) );
-				len = sprintf(sess_str, "%.*s;%s", un_len, un, fd_g_config->cnf_diamid);
+				len = sprintf(sess_str, "%.*s;%s", (int)un_len, un, fd_g_config->cnf_diamid);
 				CHECK_FCT( fd_sess_new(session, fqdn, sess_str, len) );
 				free(sess_str);
 			} else {
@@ -1189,9 +1189,9 @@ static int auth_diam_ans( struct rgwp_config * cs, struct session * session, str
 	/* Now, save the session-id and eventually server info in a STATE or CLASS attribute */
 	if ((*rad_fw)->hdr->code == RADIUS_CODE_ACCESS_CHALLENGE) {
 		if (sizeof(buf) < (sz = snprintf((char *)buf, sizeof(buf), "Diameter/%.*s/%.*s/%.*s", 
-				oh->avp_value->os.len,  (char *)oh->avp_value->os.data,
-				ahdr->avp_value->os.len,  (char *)ahdr->avp_value->os.data,
-				sid->avp_value->os.len, (char *)sid->avp_value->os.data))) {
+				(int)oh->avp_value->os.len,  (char *)oh->avp_value->os.data,
+				(int)ahdr->avp_value->os.len,  (char *)ahdr->avp_value->os.data,
+				(int)sid->avp_value->os.len, (char *)sid->avp_value->os.data))) {
 			TRACE_DEBUG(INFO, "Data truncated in State attribute: %s", buf);
 		}
 		CONV2RAD_STR(RADIUS_ATTR_STATE, buf, sz, 0);
@@ -1200,7 +1200,7 @@ static int auth_diam_ans( struct rgwp_config * cs, struct session * session, str
 	if ((*rad_fw)->hdr->code == RADIUS_CODE_ACCESS_ACCEPT) {
 		/* Add the Session-Id */
 		if (sizeof(buf) < (sz = snprintf((char *)buf, sizeof(buf), "Diameter/%.*s", 
-				sid->avp_value->os.len, sid->avp_value->os.data))) {
+				(int)sid->avp_value->os.len, sid->avp_value->os.data))) {
 			TRACE_DEBUG(INFO, "Data truncated in Class attribute: %s", buf);
 		}
 		CONV2RAD_STR(RADIUS_ATTR_CLASS, buf, sz, 0);
