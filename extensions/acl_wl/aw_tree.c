@@ -87,7 +87,6 @@ struct split_name {
 static int parse_name(char * name, struct split_name * result)
 {
 	int i, l, prev_offset;
-	char * c;
 	
 	TRACE_ENTRY("%p %p", name, result);
 	

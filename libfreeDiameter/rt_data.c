@@ -222,7 +222,7 @@ int  fd_rtd_error_add(struct rt_data * rtd, char * sentto, uint8_t * origin, siz
 	/* Finally, remove this (these) peers from the candidate list */
 	fd_rtd_candidate_del(rtd, sentto, 0);
 	if (origin)
-		fd_rtd_candidate_del(rtd, origin, originsz);
+		fd_rtd_candidate_del(rtd, (char *)origin, originsz);
 	
 	/* Done! */
 	return 0;

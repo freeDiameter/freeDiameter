@@ -55,8 +55,10 @@ struct rgwp_config;
 
 /* This structure points to a RADIUS client description, the definition is not known to plugins */
 struct rgw_client;
-/* This function is required to be able to translate user paswords */
-int rgw_clients_getkey(struct rgw_client * cli, unsigned char **key, size_t *key_len);
+
+int    rgw_clients_getkey(struct rgw_client * cli, unsigned char **key, size_t *key_len);
+char * rgw_clients_id(struct rgw_client *cli);
+int    rgw_clients_get_origin(struct rgw_client *cli, char **fqdn, char **realm);
 
 /* Each plugin must provide the following structure. */
 extern struct rgw_api {

@@ -47,11 +47,9 @@ static struct {
 /* Callback for incoming Base Accounting Accounting-Request messages */
 static int acct_cb( struct msg ** msg, struct avp * avp, struct session * sess, enum disp_action * act)
 {
-	struct msg_hdr *hdr = NULL;
 	struct msg * m;
 	struct avp * a = NULL;
 	struct avp_hdr * art=NULL, *arn=NULL; /* We keep a pointer on the Accounting-Record-{Type, Number} AVPs from the query */
-	char * s;
 	struct acct_record_list rl;
 	
 	TRACE_ENTRY("%p %p %p %p", msg, avp, sess, act);

@@ -161,8 +161,6 @@ struct cnxctx * fd_cnx_serv_sctp(uint16_t port, struct fd_list * ep_list)
 	CHECK_FCT_DO( ENOTSUP, return NULL);
 #else /* DISABLE_SCTP */
 	struct cnxctx * cnx = NULL;
-	sSS dummy;
-	sSA * sa = (sSA *) &dummy;
 
 	TRACE_ENTRY("%hu %p", port, ep_list);
 
@@ -223,7 +221,6 @@ struct cnxctx * fd_cnx_serv_accept(struct cnxctx * serv)
 	sSS ss;
 	socklen_t ss_len = sizeof(ss);
 	int cli_sock = 0;
-	struct fd_endpoint * ep;
 
 	TRACE_ENTRY("%p", serv);
 	CHECK_PARAMS_DO(serv, return NULL);
@@ -987,7 +984,8 @@ int fd_tls_prepare(gnutls_session_t * session, int mode, char * priority, void *
 /* Verify remote credentials after successful handshake (return 0 if OK, EINVAL otherwise) */
 int fd_tls_verify_credentials(gnutls_session_t session, struct cnxctx * conn, int verbose)
 {
-	int ret, i;
+	int i;
+	unsigned int gtret;
 	const gnutls_datum_t *cert_list;
 	unsigned int cert_list_size;
 	gnutls_x509_crt_t cert;
@@ -1018,14 +1016,6 @@ int fd_tls_verify_credentials(gnutls_session_t session, struct cnxctx * conn, in
 				fd_log_debug("\t - TLS/IA session\n");
 				break;
 
-
-			#ifdef ENABLE_SRP
-			case GNUTLS_CRD_SRP:
-				fd_log_debug("\t - SRP session with username %s\n",
-					gnutls_srp_server_get_username (session));
-				break;
-			#endif
-
 			case GNUTLS_CRD_PSK:
 				/* This returns NULL in server side. */
 				if (gnutls_psk_client_get_hint (session) != NULL)
@@ -1048,6 +1038,17 @@ int fd_tls_verify_credentials(gnutls_session_t session, struct cnxctx * conn, in
 					fd_log_debug("\t - Ephemeral DH using prime of %d bits\n",
 						gnutls_dh_get_prime_bits (session));
 				}
+				break;
+				
+			case GNUTLS_CRD_SRP:
+				fd_log_debug("\t - SRP session with username %s\n",
+					gnutls_srp_server_get_username (session));
+				break;
+
+			default:
+				fd_log_debug("\t - Different type of credentials for the session (%d).\n", cred);
+				break;
+
 		}
 
 		/* print the protocol's name (ie TLS 1.0) */
@@ -1072,19 +1073,19 @@ int fd_tls_verify_credentials(gnutls_session_t session, struct cnxctx * conn, in
 	}
 	
 	/* First, use built-in verification */
-	CHECK_GNUTLS_DO( gnutls_certificate_verify_peers2 (session, &ret), return EINVAL );
-	if (ret) {
+	CHECK_GNUTLS_DO( gnutls_certificate_verify_peers2 (session, &gtret), return EINVAL );
+	if (gtret) {
 		if (TRACE_BOOL(INFO)) {
 			fd_log_debug("TLS: Remote certificate invalid on socket %d (Remote: '%s')(Connection: '%s') :\n", conn->cc_socket, conn->cc_remid, conn->cc_id);
-			if (ret & GNUTLS_CERT_INVALID)
+			if (gtret & GNUTLS_CERT_INVALID)
 				fd_log_debug(" - The certificate is not trusted (unknown CA? expired?)\n");
-			if (ret & GNUTLS_CERT_REVOKED)
+			if (gtret & GNUTLS_CERT_REVOKED)
 				fd_log_debug(" - The certificate has been revoked.\n");
-			if (ret & GNUTLS_CERT_SIGNER_NOT_FOUND)
+			if (gtret & GNUTLS_CERT_SIGNER_NOT_FOUND)
 				fd_log_debug(" - The certificate hasn't got a known issuer.\n");
-			if (ret & GNUTLS_CERT_SIGNER_NOT_CA)
+			if (gtret & GNUTLS_CERT_SIGNER_NOT_CA)
 				fd_log_debug(" - The certificate signer is not a CA, or uses version 1, or 3 without basic constraints.\n");
-			if (ret & GNUTLS_CERT_INSECURE_ALGORITHM)
+			if (gtret & GNUTLS_CERT_INSECURE_ALGORITHM)
 				fd_log_debug(" - The certificate signature uses a weak algorithm.\n");
 		}
 		return EINVAL;

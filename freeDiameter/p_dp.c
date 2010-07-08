@@ -47,11 +47,11 @@ int fd_p_dp_handle(struct msg ** msg, int req, struct fd_peer * peer)
 		struct avp * dc;
 		int delay = peer->p_hdr.info.config.pic_tctimer ?: fd_g_config->cnf_timer_tc;
 		
-		CHECK_FCT_DO( fd_msg_search_avp ( *msg, fd_dict_avp_DC, &dc ), return );
+		CHECK_FCT( fd_msg_search_avp ( *msg, fd_dict_avp_DC, &dc ));
 		if (dc) {
 			/* Check the value is consistent with the saved one */
 			struct avp_hdr * hdr;
-			CHECK_FCT_DO(  fd_msg_avp_hdr( dc, &hdr ), return  );
+			CHECK_FCT(  fd_msg_avp_hdr( dc, &hdr )  );
 			if (hdr->avp_value == NULL) {
 				/* This is a sanity check */
 				TRACE_DEBUG(NONE, "BUG: Unset value in Disconnect-Cause in DPR");

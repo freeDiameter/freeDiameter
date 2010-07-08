@@ -996,7 +996,7 @@ stop:
 }
 
 /* Send a buffer over a specified stream */
-int fd_sctp_sendstr(int sock, uint16_t strid, uint8_t * buf, size_t len, int * cc_status)
+int fd_sctp_sendstr(int sock, uint16_t strid, uint8_t * buf, size_t len, uint32_t * cc_status)
 {
 	struct msghdr mhdr;
 	struct iovec  iov;
@@ -1053,7 +1053,7 @@ again:
 }
 
 /* Receive the next data from the socket, or next notification */
-int fd_sctp_recvmeta(int sock, uint16_t * strid, uint8_t ** buf, size_t * len, int *event, int * cc_status)
+int fd_sctp_recvmeta(int sock, uint16_t * strid, uint8_t ** buf, size_t * len, int *event, uint32_t * cc_status)
 {
 	ssize_t 		 ret = 0;
 	struct msghdr 		 mhdr;

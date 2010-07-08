@@ -223,7 +223,6 @@ void fd_peer_failover_msg(struct fd_peer * peer)
 int fd_peer_free(struct fd_peer ** ptr)
 {
 	struct fd_peer *p;
-	void * t;
 	
 	TRACE_ENTRY("%p", ptr);
 	CHECK_PARAMS(ptr);
@@ -428,7 +427,8 @@ int fd_peer_handle_newCER( struct msg ** cer, struct cnxctx ** cnx )
 	
 	for (li = fd_g_peers.next; li != &fd_g_peers; li = li->next) {
 		peer = (struct fd_peer *)li;
-		int cmp = strncasecmp( avp_hdr->avp_value->os.data, peer->p_hdr.info.pi_diamid, avp_hdr->avp_value->os.len );
+		/* It is probably unwise to use strcasecmp on UTF8 data... To be improved! */
+		int cmp = strncasecmp( (char *)avp_hdr->avp_value->os.data, peer->p_hdr.info.pi_diamid, avp_hdr->avp_value->os.len );
 		if (cmp > 0)
 			continue;
 		if (cmp == 0)

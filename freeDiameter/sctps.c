@@ -619,7 +619,7 @@ void fd_sctps_bye(struct cnxctx * conn)
 	
 	/* End all TLS sessions, in series (not as efficient as paralel, but simpler) */
 	for (i = 1; i < conn->cc_sctp_para.pairs; i++) {
-		if (!conn->cc_status & CC_STATUS_ERROR) {
+		if ( ! (conn->cc_status & CC_STATUS_ERROR)) {
 			CHECK_GNUTLS_DO( gnutls_bye(conn->cc_sctps_data.array[i].session, GNUTLS_SHUT_WR), fd_cnx_markerror(conn) );
 		}
 	}

@@ -62,8 +62,6 @@ static void receive_diam_answer(void * paback, struct msg **ans);
 /* Worker thread, processing incoming RADIUS messages (after parsing) */
 static void * work_th(void * arg)
 {
-	char thname[10];
-	
 	TRACE_ENTRY("%p", arg);
 	
 	/* Set the thread name */

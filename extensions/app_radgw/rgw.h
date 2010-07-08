@@ -101,8 +101,6 @@ int rgw_clients_getkey(struct rgw_client * cli, unsigned char **key, size_t *key
 int rgw_clients_search(struct sockaddr * ip_port, struct rgw_client ** ref);
 int rgw_clients_check_dup(struct rgw_radius_msg_meta **msg, struct rgw_client *cli);
 int rgw_clients_check_origin(struct rgw_radius_msg_meta *msg, struct rgw_client *cli);
-int rgw_clients_get_origin(struct rgw_client *cli, char **fqdn, char **realm);
-char * rgw_clients_id(struct rgw_client *cli);
 int rgw_client_finish_send(struct radius_msg ** msg, struct rgw_radius_msg_meta * req, struct rgw_client * cli);
 void rgw_clients_dispose(struct rgw_client ** ref);
 void rgw_clients_dump(void);

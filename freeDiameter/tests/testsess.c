@@ -235,7 +235,6 @@ int main(int argc, char *argv[])
 	{
 		struct mystate * ms[6], *tms;
 		int freed[6];
-		int i;
 		struct timespec timeout;
 		
 		/* Create three sessions */

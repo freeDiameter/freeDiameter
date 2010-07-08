@@ -54,7 +54,6 @@ int main(int argc, char *argv[])
 	
 	/* Test creating and searching all types of objects */
 	{
-		enum dict_object_type type;
 		struct dict_object * obj1 = NULL;
 		struct dict_object * obj2 = NULL;
 		struct dict_object * obj3 = NULL;

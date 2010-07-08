@@ -326,6 +326,7 @@ char *          fd_cnx_getid(struct cnxctx * conn);
 int		fd_cnx_getproto(struct cnxctx * conn);
 int		fd_cnx_getTLS(struct cnxctx * conn);
 int             fd_cnx_getcred(struct cnxctx * conn, const gnutls_datum_t **cert_list, unsigned int *cert_list_size);
+int 		fd_cnx_get_local_eps(struct fd_list * list);
 int             fd_cnx_getremoteeps(struct cnxctx * conn, struct fd_list * eps);
 char *          fd_cnx_getremoteid(struct cnxctx * conn);
 int             fd_cnx_receive(struct cnxctx * conn, struct timespec * timeout, unsigned char **buf, size_t * len);

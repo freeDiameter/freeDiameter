@@ -530,16 +530,16 @@ void * destroy_thr(void * arg)
 /* Main test routine */
 int main(int argc, char *argv[])
 {
-	gnutls_datum_t ca 		= { ca_data, 		sizeof(ca_data) 	  };
-	gnutls_datum_t server_cert 	= { server_cert_data, 	sizeof(server_cert_data)  };
-	gnutls_datum_t server_priv 	= { server_priv_data, 	sizeof(server_priv_data)  };
-	gnutls_datum_t client_cert	= { client_cert_data, 	sizeof(client_cert_data)  };
-	gnutls_datum_t client_priv 	= { client_priv_data, 	sizeof(client_priv_data)  };
-	gnutls_datum_t expired_cert 	= { expired_cert_data, 	sizeof(expired_cert_data) };
-	gnutls_datum_t expired_priv 	= { expired_priv_data, 	sizeof(expired_priv_data) };
-	gnutls_datum_t notrust_ca 	= { notrust_ca_data, 	sizeof(notrust_ca_data)   };
-	gnutls_datum_t notrust_cert 	= { notrust_cert_data, 	sizeof(notrust_cert_data) };
-	gnutls_datum_t notrust_priv 	= { notrust_priv_data, 	sizeof(notrust_priv_data) };
+	gnutls_datum_t ca 		= { (uint8_t *)ca_data, 		sizeof(ca_data) 	  };
+	gnutls_datum_t server_cert 	= { (uint8_t *)server_cert_data, 	sizeof(server_cert_data)  };
+	gnutls_datum_t server_priv 	= { (uint8_t *)server_priv_data, 	sizeof(server_priv_data)  };
+	gnutls_datum_t client_cert	= { (uint8_t *)client_cert_data, 	sizeof(client_cert_data)  };
+	gnutls_datum_t client_priv 	= { (uint8_t *)client_priv_data, 	sizeof(client_priv_data)  };
+	gnutls_datum_t expired_cert 	= { (uint8_t *)expired_cert_data, 	sizeof(expired_cert_data) };
+	gnutls_datum_t expired_priv 	= { (uint8_t *)expired_priv_data, 	sizeof(expired_priv_data) };
+	gnutls_datum_t notrust_ca 	= { (uint8_t *)notrust_ca_data, 	sizeof(notrust_ca_data)   };
+	gnutls_datum_t notrust_cert 	= { (uint8_t *)notrust_cert_data, 	sizeof(notrust_cert_data) };
+	gnutls_datum_t notrust_priv 	= { (uint8_t *)notrust_priv_data, 	sizeof(notrust_priv_data) };
 	
 	struct cnxctx * listener;
 #ifndef DISABLE_SCTP
@@ -634,8 +634,8 @@ int main(int argc, char *argv[])
 
 		/* Create the instance */
 		CHECK( 0, fd_msg_avp_new ( model, 0, &oh ) );
-		value.os.data = "Client.side";
-		value.os.len = strlen(value.os.data);
+		value.os.data = (uint8_t *)"Client.side";
+		value.os.len = strlen((char *)value.os.data);
 		CHECK( 0, fd_msg_avp_setvalue ( oh, &value ) );
 		
 		/* Add the AVP */
@@ -1384,7 +1384,6 @@ int main(int argc, char *argv[])
 		char * str;
 		const gnutls_datum_t *cert_list;
 		unsigned int cert_list_size;
-		struct fd_list local, remote;
 		struct fifo * myfifo = NULL;
 		struct timespec now;
 		int ev_code;
@@ -1501,7 +1500,6 @@ int main(int argc, char *argv[])
 		char * str;
 		const gnutls_datum_t *cert_list;
 		unsigned int cert_list_size;
-		struct fd_list local, remote;
 		struct fifo * myfifo = NULL;
 		struct timespec now;
 		int ev_code;

@@ -96,7 +96,6 @@ void fd_conf_dump()
 	if (FD_IS_LIST_EMPTY(&fd_g_config->cnf_endpoints)) {
 		fd_log_debug("  Local endpoints ........ : Default (use all available)\n");
 	} else {
-		struct fd_list * li = fd_g_config->cnf_endpoints.next;
 		fd_log_debug("  Local endpoints ........ : \n");
 		fd_ep_dump( 29, &fd_g_config->cnf_endpoints );
 	}

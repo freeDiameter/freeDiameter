@@ -172,7 +172,6 @@ restart:
 int rgw_plg_add( char * plgfile, char * conffile, int type, unsigned char ** codes_array, size_t codes_sz )
 {
 	struct plg_descr * new;
-	int ret = 0;
 	
 	TRACE_ENTRY("%p %p %d %p %zi", plgfile, conffile, type, codes_array, codes_sz);
 	

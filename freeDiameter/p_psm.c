@@ -688,6 +688,9 @@ psm_loop:
 				/* Process the receiver side */
 				CHECK_FCT_DO( fd_p_ce_process_receiver(peer), goto psm_end );
 				goto psm_loop;
+			
+			default:
+				ASSERT(0); /* implementation problem, we did not foresee this case? */
 		}
 	}
 	

@@ -300,9 +300,9 @@ static int acct_rad_req( struct rgwp_config * cs, struct session ** session, str
 	
 	const char * prefix = "Diameter/";
 	size_t pref_len;
-	char * si = NULL;
+	uint8_t * si = NULL;
 	size_t si_len = 0;
-	char * un = NULL;
+	uint8_t * un = NULL;
 	size_t un_len = 0;
 	
 	TRACE_ENTRY("%p %p %p %p %p %p", cs, session, rad_req, rad_ans, diam_fw, cli);
@@ -356,7 +356,7 @@ static int acct_rad_req( struct rgwp_config * cs, struct session ** session, str
 			case RADIUS_ATTR_CLASS:
 				if ((attr_len > pref_len ) && ! strncmp((char *)v, prefix, pref_len)) {
 					int i;
-					si = (char *)v + pref_len;
+					si = v + pref_len;
 					si_len = attr_len - pref_len;
 					TRACE_DEBUG(ANNOYING, "Found Class attribute with '%s' prefix (attr #%d), SI:'%.*s'.", prefix, idx, si_len, si);
 					/* Remove from the message */
@@ -368,7 +368,7 @@ static int acct_rad_req( struct rgwp_config * cs, struct session ** session, str
 
 			case RADIUS_ATTR_USER_NAME:
 				if (attr_len) {
-					un = (char *)v;
+					un = v;
 					un_len = attr_len;
 					TRACE_DEBUG(ANNOYING, "Found a User-Name attribute: '%.*s'", un_len, un);
 				}
@@ -470,7 +470,7 @@ static int acct_rad_req( struct rgwp_config * cs, struct session ** session, str
 	}
 	if (idx == 0) {
 		/* Not found in the User-Name => we use the local domain of this gateway */
-		value.os.data = fd_g_config->cnf_diamrlm;
+		value.os.data = (uint8_t *)fd_g_config->cnf_diamrlm;
 		value.os.len  = fd_g_config->cnf_diamrlm_len;
 	} else {
 		value.os.data = un + idx;
@@ -481,7 +481,7 @@ static int acct_rad_req( struct rgwp_config * cs, struct session ** session, str
 	
 	/* Create the Session-Id AVP if needed */
 	if (!*session) {
-		CHECK_FCT( fd_sess_fromsid ( si, si_len, session, NULL) );
+		CHECK_FCT( fd_sess_fromsid ( (char *)/* cast should be removed later */si, si_len, session, NULL) );
 		
 		TRACE_DEBUG(FULL, "[auth.rgwx] Translating new accounting message for session '%.*s'...", si_len, si);
 		

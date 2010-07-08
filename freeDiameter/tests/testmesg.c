@@ -1020,11 +1020,9 @@ int main(int argc, char *argv[])
 		{
 			struct dict_object * cmd_model = NULL;
 			struct msg         * msg = NULL;
-			struct dict_object * avp_model = NULL;
 			struct avp         * avp = NULL;
 			union avp_value      value;
 			struct avp         * avpi = NULL;
-			struct avp         * avpch = NULL;
 			struct avp_hdr     * avpdata = NULL;
 			struct msg_hdr     * msgdata = NULL;
 

@@ -235,15 +235,14 @@ static int auth_rad_req( struct rgwp_config * cs, struct session ** session, str
 	int got_empty_eap = 0;
 	const char * prefix = "Diameter/";
 	size_t pref_len;
-	char * dh = NULL;
+	uint8_t * dh = NULL;
 	size_t dh_len = 0;
-	char * dr = NULL;
+	uint8_t * dr = NULL;
 	size_t dr_len = 0;
-	char * si = NULL;
+	uint8_t * si = NULL;
 	size_t si_len = 0;
-	char * un = NULL;
+	uint8_t * un = NULL;
 	size_t un_len = 0;
-	uint32_t status_type;
 	size_t nattr_used = 0;
 	struct avp ** avp_tun = NULL, *avp = NULL;
 	union avp_value value;
@@ -315,7 +314,7 @@ static int auth_rad_req( struct rgwp_config * cs, struct session ** session, str
 	/* Check basic information is there, and also retrieve some attribute information */
 	for (idx = 0; idx < rad_req->attr_used; idx++) {
 		struct radius_attr_hdr * attr = (struct radius_attr_hdr *)(rad_req->buf + rad_req->attr_pos[idx]);
-		char * attr_val = (char *)(attr + 1);
+		uint8_t * attr_val = (uint8_t *)(attr + 1);
 		size_t attr_len = attr->length - sizeof(struct radius_attr_hdr);
 		
 		switch (attr->type) {
@@ -342,7 +341,7 @@ static int auth_rad_req( struct rgwp_config * cs, struct session ** session, str
 			/* NOTE: RFC4005 says "Origin-Host" here, but it's not coherent with the rules for answers. Destination-Host makes more sense */
 			case RADIUS_ATTR_STATE:
 				if ((attr_len > pref_len + 5 /* for the '/'s and non empty strings */ ) 
-					&& ! strncmp(attr_val, prefix, pref_len)) { /* should we make it strncasecmp? */
+					&& ! memcmp(attr_val, prefix, pref_len)) {
 					int i, start;
 
 					TRACE_DEBUG(ANNOYING, "Found a State attribute with '%s' prefix (attr #%d).", prefix, idx);
@@ -375,7 +374,7 @@ static int auth_rad_req( struct rgwp_config * cs, struct session ** session, str
 				break;
 		
 			case RADIUS_ATTR_USER_NAME:
-				TRACE_DEBUG(ANNOYING, "Found a User-Name attribute: '%.*s'", attr_len, attr_len ? attr_val : "");
+				TRACE_DEBUG(ANNOYING, "Found a User-Name attribute: '%.*s'", attr_len, attr_len ? (char *)attr_val : "");
 				un = attr_val;
 				un_len = attr_len;
 				break;
@@ -429,7 +428,7 @@ static int auth_rad_req( struct rgwp_config * cs, struct session ** session, str
 		}
 		if (i <= 0) {
 			/* Not found in the User-Name => we use the local domain of this gateway */
-			value.os.data = fd_g_config->cnf_diamrlm;
+			value.os.data = (uint8_t *)fd_g_config->cnf_diamrlm;
 			value.os.len  = fd_g_config->cnf_diamrlm_len;
 		} else {
 			value.os.data = un + i;
@@ -454,7 +453,7 @@ static int auth_rad_req( struct rgwp_config * cs, struct session ** session, str
 		
 		if (si_len) {
 			/* We already have the Session-Id, just use it */
-			CHECK_FCT( fd_sess_fromsid ( si, si_len, session, NULL) );
+			CHECK_FCT( fd_sess_fromsid ( (char *) /* this cast will be removed later */ si, si_len, session, NULL) );
 		} else {
 			/* Create a new Session-Id string */
 			
@@ -543,7 +542,7 @@ static int auth_rad_req( struct rgwp_config * cs, struct session ** session, str
 			 EAP-Start, and it is translated to an empty EAP-Payload AVP. */
 		if (got_empty_eap) {
 			value.os.len = 0;
-			value.os.data = "";
+			value.os.data = (uint8_t *)"";
 		} else {
 			CHECK_MALLOC( value.os.data = radius_msg_get_eap(rad_req, &value.os.len) );
 		}
@@ -1065,7 +1064,8 @@ static int auth_diam_ans( struct rgwp_config * cs, struct session * session, str
 	struct msg_hdr * hdr;
 	struct avp *avp, *next, *avp_x, *avp_y, *asid, *aoh;
 	struct avp_hdr *ahdr, *sid, *oh;
-	char buf[254]; /* to store some attributes values (with final '\0') */
+	uint8_t buf[254]; /* to store some attributes values (with final '\0') */
+	size_t sz;
 	int ta_set = 0;
 	int no_str = 0; /* indicate if an STR is required for this server */
 	uint8_t	tuntag = 0;
@@ -1188,22 +1188,22 @@ static int auth_diam_ans( struct rgwp_config * cs, struct session * session, str
 	
 	/* Now, save the session-id and eventually server info in a STATE or CLASS attribute */
 	if ((*rad_fw)->hdr->code == RADIUS_CODE_ACCESS_CHALLENGE) {
-		if (sizeof(buf) < snprintf(buf, sizeof(buf), "Diameter/%.*s/%.*s/%.*s", 
-				oh->avp_value->os.len,  oh->avp_value->os.data,
-				ahdr->avp_value->os.len,  ahdr->avp_value->os.data,
-				sid->avp_value->os.len, sid->avp_value->os.data)) {
+		if (sizeof(buf) < (sz = snprintf((char *)buf, sizeof(buf), "Diameter/%.*s/%.*s/%.*s", 
+				oh->avp_value->os.len,  (char *)oh->avp_value->os.data,
+				ahdr->avp_value->os.len,  (char *)ahdr->avp_value->os.data,
+				sid->avp_value->os.len, (char *)sid->avp_value->os.data))) {
 			TRACE_DEBUG(INFO, "Data truncated in State attribute: %s", buf);
 		}
-		CONV2RAD_STR(RADIUS_ATTR_STATE, buf, strlen(buf), 0);
+		CONV2RAD_STR(RADIUS_ATTR_STATE, buf, sz, 0);
 	}
 
 	if ((*rad_fw)->hdr->code == RADIUS_CODE_ACCESS_ACCEPT) {
 		/* Add the Session-Id */
-		if (sizeof(buf) < snprintf(buf, sizeof(buf), "Diameter/%.*s", 
-				sid->avp_value->os.len, sid->avp_value->os.data)) {
+		if (sizeof(buf) < (sz = snprintf((char *)buf, sizeof(buf), "Diameter/%.*s", 
+				sid->avp_value->os.len, sid->avp_value->os.data))) {
 			TRACE_DEBUG(INFO, "Data truncated in Class attribute: %s", buf);
 		}
-		CONV2RAD_STR(RADIUS_ATTR_CLASS, buf, strlen(buf), 0);
+		CONV2RAD_STR(RADIUS_ATTR_CLASS, buf, sz, 0);
 	}
 	
 	/* Unlink the Origin-Realm now; the others are unlinked at the end of this function */
@@ -1586,7 +1586,7 @@ static int auth_diam_ans( struct rgwp_config * cs, struct session * session, str
 							CHECK_FCT( fd_msg_browse(inavp, MSG_BRW_NEXT, &innext, NULL) );
 							CHECK_FCT( fd_msg_avp_hdr ( inavp, &ahdr ) );
 							
-							if (ahdr->avp_flags & AVP_FLAG_VENDOR == 0) {
+							if ( ! (ahdr->avp_flags & AVP_FLAG_VENDOR)) {
 								switch (ahdr->avp_code) {
 									case DIAM_ATTR_TUNNEL_TYPE:
 										CONV2RAD_TUN_32B( RADIUS_ATTR_TUNNEL_TYPE, ahdr->avp_value->u32);
@@ -1633,7 +1633,6 @@ static int auth_diam_ans( struct rgwp_config * cs, struct session * session, str
 											*/
 											size_t pos;
 											int i;
-											size_t buflen;
 											uint8_t * secret;	/* S */
 											size_t secret_len;
 											uint8_t hash[16];	/* b(i) */
@@ -1652,7 +1651,7 @@ static int auth_diam_ans( struct rgwp_config * cs, struct session * session, str
 											buf[2] = (uint8_t)(lrand48()); /* A (low bits) */
 											
 											/* The plain text string P */
-											CHECK_PARAM(ahdr->avp_value->os.len < 240);
+											CHECK_PARAMS(ahdr->avp_value->os.len < 240);
 											buf[3] = ahdr->avp_value->os.len;
 											memcpy(&buf[4], ahdr->avp_value->os.data, ahdr->avp_value->os.len);
 											memset(&buf[4 + ahdr->avp_value->os.len], 0, sizeof(buf) - 4 - ahdr->avp_value->os.len);
@@ -1816,11 +1815,11 @@ static int auth_diam_ans( struct rgwp_config * cs, struct session * session, str
 	if ((*rad_fw)->hdr->code == RADIUS_CODE_ACCESS_ACCEPT) {
 		/* Add the auth-application-id required for STR, or 0 if no STR is required */
 		CHECK_FCT( fd_msg_hdr( *diam_ans, &hdr ) );
-		if (sizeof(buf) < snprintf(buf, sizeof(buf), CLASS_AAI_PREFIX "%u", 
-				no_str ? 0 : hdr->msg_appl)) {
+		if (sizeof(buf) < (sz = snprintf((char *)buf, sizeof(buf), CLASS_AAI_PREFIX "%u", 
+				no_str ? 0 : hdr->msg_appl))) {
 			TRACE_DEBUG(INFO, "Data truncated in Class attribute: %s", buf);
 		}
-		CONV2RAD_STR(RADIUS_ATTR_CLASS, buf, strlen(buf), 0);
+		CONV2RAD_STR(RADIUS_ATTR_CLASS, buf, sz, 0);
 	}
 	
 	return 0;

@@ -135,7 +135,7 @@ BR_PORT		[[][0-9]+[]]
 					return LEX_ERROR; /* trig an error in yacc parser */
 				}
 				
-				if (port = strchr(work, '[')) {
+				if ((port = strchr(work, '[')) != NULL) {
 					*port = '\0';
 					port++;
 					if (sscanf(port, "%hu]", &p) != 1) {

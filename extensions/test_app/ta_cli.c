@@ -167,7 +167,7 @@ static void ta_cli_test_message(int sig)
 		char * sid;
 		CHECK_FCT_DO( fd_sess_getsid ( sess, &sid ), goto out );
 		CHECK_FCT_DO( fd_msg_avp_new ( ta_sess_id, 0, &avp ), goto out );
-		val.os.data = sid;
+		val.os.data = (uint8_t *)sid;
 		val.os.len  = strlen(sid);
 		CHECK_FCT_DO( fd_msg_avp_setvalue( avp, &val ), goto out );
 		CHECK_FCT_DO( fd_msg_avp_add( req, MSG_BRW_FIRST_CHILD, avp ), goto out );

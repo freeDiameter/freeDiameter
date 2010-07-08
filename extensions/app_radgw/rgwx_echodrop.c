@@ -239,7 +239,6 @@ static int ed_rad_req( struct rgwp_config * cs, struct session ** session, struc
 /* Process an answer: add the ECHO attributes back, if any */
 static int ed_diam_ans( struct rgwp_config * cs, struct session * session, struct msg ** diam_ans, struct radius_msg ** rad_fw, struct rgw_client * cli, int * stateful )
 {
-	int ret;
 	struct fd_list * list = NULL;
 	
 	TRACE_ENTRY("%p %p %p %p %p %p", cs, session, diam_ans, rad_fw, cli, stateful);
@@ -264,7 +263,6 @@ static int ed_diam_ans( struct rgwp_config * cs, struct session * session, struc
 	
 	while (! FD_IS_LIST_EMPTY(list) ) {
 		struct ed_saved_attribute * esa = (struct ed_saved_attribute *)(list->next);
-		struct radius_attr_hdr * rc;
 		
 		fd_list_unlink(&esa->chain);
 		

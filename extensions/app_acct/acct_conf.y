@@ -58,6 +58,9 @@
 /* Forward declaration */
 int yyparse(char * conffile);
 
+/* The Lex parser prototype */
+int acct_conflex(YYSTYPE *lvalp, YYLTYPE *llocp);
+
 /* the global configuration */
 struct acct_conf * acct_config = NULL;
 
@@ -88,9 +91,10 @@ int acct_conf_check(char * conffile)
 		return EINVAL;
 	}
 
-	struct fd_list * li;
 	if (!TRACE_BOOL(FULL))
-		return;
+		return 0;
+	
+	struct fd_list * li;
 		
 	fd_log_debug("[app_acct] Configuration dump:\n");
 	fd_log_debug(" Database:\n");
@@ -109,6 +113,7 @@ int acct_conf_check(char * conffile)
 		fd_log_debug("as ::%s\n", diam2db_types_mapping[a->avptype]);
 	}
 	fd_log_debug("[app_acct] Complete.\n");
+	return 0;
 }
 
 void acct_conf_free(void)

@@ -308,7 +308,8 @@ static int save_remote_CE_info(struct msg * msg, struct fd_peer * peer, char ** 
 				}
 				
 				/* We check that the value matches what we know, otherwise disconnect the peer */
-				if (strncasecmp(hdr->avp_value->os.data, peer->p_hdr.info.pi_diamid, hdr->avp_value->os.len)) {
+				/* here also, using strcasecmp on (supposed) UTF8 data might be bad idea... to be improved */
+				if (strncasecmp((char *)hdr->avp_value->os.data, peer->p_hdr.info.pi_diamid, hdr->avp_value->os.len)) {
 					TRACE_DEBUG(INFO, "Received a message with Origin-Host set to '%.*s' while expecting '%s'\n", 
 							hdr->avp_value->os.len, hdr->avp_value->os.data, peer->p_hdr.info.pi_diamid);
 					*error_code = "DIAMETER_UNKNOWN_PEER";

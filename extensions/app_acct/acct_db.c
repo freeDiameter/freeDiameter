@@ -63,7 +63,6 @@ int acct_db_init(void)
 	char * sql=NULL;   /* The buffer that will contain the SQL query */
 	size_t sql_allocd = 0; /* The malloc'd size of the buffer */
 	size_t sql_offset = 0; /* The actual data already written in this buffer */
-	size_t p;
 	int idx = 0;
 	PGresult * res;
 	#define REALLOC_SIZE	1024	/* We extend the buffer by this amount */

@@ -53,6 +53,14 @@ See doc/echodrop.rgwx.conf.sample for description of the parsed format. */
 #include "rgwx_echodrop.h"
 #include "rgwx_echodrop.tab.h"	/* bison is not smart enough to define the YYLTYPE before including this code, so... */
 
+
+/* Forward declaration */
+int yyparse(char * conffile, struct rgwp_config *cs);
+
+/* The Lex parser prototype */
+int rgwx_echodroplex(YYSTYPE *lvalp, YYLTYPE *llocp);
+
+
 /* Parse the configuration file */
 int ed_conffile_parse(char * conffile, struct rgwp_config *cs)
 {

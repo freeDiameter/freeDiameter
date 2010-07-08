@@ -268,13 +268,15 @@ static int score_destination_avp(void * cbdata, struct msg * msg, struct fd_list
 		if (peer) {
 			if (dh 
 				&& (dh->os.len == strlen(peer->p_hdr.info.pi_diamid)) 
-				&& (strncasecmp(peer->p_hdr.info.pi_diamid, dh->os.data, dh->os.len) == 0)) {
+				/* Here again we use strncasecmp on UTF8 data... This should probably be changed. */
+				&& (strncasecmp(peer->p_hdr.info.pi_diamid, (char *)dh->os.data, dh->os.len) == 0)) {
 				/* The candidate is the Destination-Host */
 				c->score += FD_SCORE_FINALDEST;
 			} else {
 				if (dr  && peer->p_hdr.info.runtime.pir_realm 
 					&& (dr->os.len == strlen(peer->p_hdr.info.runtime.pir_realm)) 
-					&& (strncasecmp(peer->p_hdr.info.runtime.pir_realm, dr->os.data, dr->os.len) == 0)) {
+					/* Yet another case where we use strncasecmp on UTF8 data... Hmmm :-( */
+					&& (strncasecmp(peer->p_hdr.info.runtime.pir_realm, (char *)dr->os.data, dr->os.len) == 0)) {
 					/* The candidate's realm matchs the Destination-Realm */
 					c->score += FD_SCORE_REALM;
 				}
@@ -354,7 +356,7 @@ static int is_decorated_NAI(union avp_value * un)
 /* Create new User-Name and Destination-Realm values */
 static int process_decorated_NAI(union avp_value * un, union avp_value * dr)
 {
-	int i, at_idx = 0, sep_idx = 0;
+	int at_idx = 0, sep_idx = 0;
 	unsigned char * old_un;
 	TRACE_ENTRY("%p %p", un, dr);
 	CHECK_PARAMS(un && dr);
@@ -364,7 +366,7 @@ static int process_decorated_NAI(union avp_value * un, union avp_value * dr)
 	
 	/* Search the positions of the first '!' and the '@' in the string */
 	nai_get_indexes(un, &sep_idx, &at_idx);
-	CHECK_PARAMS( 0 < sep_idx < at_idx < un->os.len);
+	CHECK_PARAMS( (0 < sep_idx) && (sep_idx < at_idx) && (at_idx < un->os.len));
 	
 	/* Create the new User-Name value */
 	CHECK_MALLOC( un->os.data = malloc( at_idx ) );

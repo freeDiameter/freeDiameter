@@ -296,7 +296,6 @@ int fd_sess_handler_destroy ( struct session_handler ** handler )
 			CHECK_POSIX(  pthread_mutex_lock(&sess->stlock)  );
 			for (li_st = sess->states.next; li_st != &sess->states; li_st = li_st->next) {
 				struct state * st = (struct state *)(li_st->o);
-				char * sid_cpy;
 				/* The list is ordered */
 				if (st->hdl->id < del->id)
 					continue;
@@ -333,7 +332,6 @@ int fd_sess_new ( struct session ** session, char * diamId, char * opt, size_t o
 {
 	char * sid = NULL;
 	size_t sidlen;
-	uint32_t hash;
 	struct session * sess;
 	struct fd_list * li;
 	int found = 0;

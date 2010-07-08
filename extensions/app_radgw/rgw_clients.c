@@ -188,7 +188,6 @@ static void client_unlink(struct rgw_client * client)
    Returns other error code on other error. */
 static int client_search(struct rgw_client ** res, struct sockaddr * ip_port )
 {
-	int ret = 0;
 	int cmp;
 	struct fd_list *ref = NULL;
 	
@@ -300,7 +299,6 @@ int rgw_clients_check_origin(struct rgw_radius_msg_meta *msg, struct rgw_client 
 	/* Find the relevant attributes, if any */
 	for (idx = 0; idx < msg->radius.attr_used; idx++) {
 		struct radius_attr_hdr * attr = (struct radius_attr_hdr *)(msg->radius.buf + msg->radius.attr_pos[idx]);
-		unsigned char * attr_val = (unsigned char *)(attr + 1);
 		size_t attr_len = attr->length - sizeof(struct radius_attr_hdr);
 		
 		if ((attr->type == RADIUS_ATTR_NAS_IP_ADDRESS) && (attr_len = 4)) {

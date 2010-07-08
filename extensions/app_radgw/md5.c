@@ -6,8 +6,6 @@
  *  In addition to this notice, only the #include directives have been modified.
  */
 #include "rgw_common.h"
-/* Forward declaration: */
-void md5_vector(size_t num_elem, const u8 *addr[], const size_t *len, u8 *mac);
 /*********************************************************************************/
 
  

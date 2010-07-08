@@ -88,9 +88,10 @@ static int add_avp_in_conf(char * avpname, int multi)
 int main(int argc, char *argv[])
 {
 	extern PGconn *conn; /* in acct_db.c */
+	extern int fd_ext_init(int major, int minor, char * conffile); /* defined in include's extension.h */
+	extern void fd_ext_fini(void); /* defined in the extension itself */
 	struct msg * msg;
 	char * sess_bkp;
-	struct dict_object * session_id = NULL;
 	
 	/* First, initialize the daemon modules */
 	INIT_FD();

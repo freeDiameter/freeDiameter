@@ -3,8 +3,8 @@
  *  The content from this file comes directly from the hostap project.
  * It is redistributed under the terms of the BSD license, as allowed
  * by the original copyright reproduced bellow.
- *  The file has not been modified, except for this notice.
  */
+
 /*********************************************************************************/
 
 /*
@@ -39,5 +39,8 @@ void MD5Update(struct MD5Context *context, unsigned char const *buf,
 	       unsigned len);
 void MD5Final(unsigned char digest[16], struct MD5Context *context);
 #endif /* CONFIG_CRYPTO_INTERNAL */
+
+ /* Forward declaration: */
+void md5_vector(size_t num_elem, const u8 *addr[], const size_t *len, u8 *mac);
 
 #endif /* MD5_H */

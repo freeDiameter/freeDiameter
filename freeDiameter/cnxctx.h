@@ -108,8 +108,8 @@ int fd_sctp_client( int *sock, int no_ip6, uint16_t port, struct fd_list * list 
 int fd_sctp_get_local_ep(int sock,  struct fd_list * list);
 int fd_sctp_get_remote_ep(int sock, struct fd_list * list);
 int fd_sctp_get_str_info( int sock, uint16_t *in, uint16_t *out, sSS *primary );
-int fd_sctp_sendstr(int sock, uint16_t strid, uint8_t * buf, size_t len, int * cc_closing);
-int fd_sctp_recvmeta(int sock, uint16_t * strid, uint8_t ** buf, size_t * len, int *event, int * cc_closing);
+int fd_sctp_sendstr(int sock, uint16_t strid, uint8_t * buf, size_t len, uint32_t * cc_closing);
+int fd_sctp_recvmeta(int sock, uint16_t * strid, uint8_t ** buf, size_t * len, int *event, uint32_t * cc_closing);
 
 /* TLS over SCTP (multi-stream) */
 struct sctps_ctx {
@@ -136,8 +136,6 @@ void fd_sctps_destroy(struct cnxctx * conn);
 
 #endif /* DISABLE_SCTP */
 
-/* UDP */
-int fd_cnx_get_local_eps(struct fd_list * list);
 
 #endif /* _CNXCTX_H */
 

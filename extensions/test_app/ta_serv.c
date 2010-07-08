@@ -56,7 +56,6 @@ static int ta_tr_cb( struct msg ** msg, struct avp * avp, struct session * sess,
 {
 	struct msg *ans, *qry;
 	struct avp * a;
-	union avp_value val;
 	
 	TRACE_ENTRY("%p %p %p %p", msg, avp, sess, act);
 	
@@ -65,10 +64,10 @@ static int ta_tr_cb( struct msg ** msg, struct avp * avp, struct session * sess,
 	
 	/* Value of Origin-Host */
 	fprintf(stderr, "ECHO Test-Request received from ");
-	CHECK_FCT_DO( fd_msg_search_avp ( *msg, ta_origin_host, &a), return );
+	CHECK_FCT( fd_msg_search_avp ( *msg, ta_origin_host, &a) );
 	if (a) {
 		struct avp_hdr * hdr;
-		CHECK_FCT_DO( fd_msg_avp_hdr( a, &hdr ), return );
+		CHECK_FCT( fd_msg_avp_hdr( a, &hdr ) );
 		fprintf(stderr, "'%.*s'", hdr->avp_value->os.len, hdr->avp_value->os.data);
 	} else {
 		fprintf(stderr, "no_Origin-Host");

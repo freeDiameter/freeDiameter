@@ -306,7 +306,7 @@ static int compare_match(char * str, size_t len, struct match_data * md, int * r
 	return (err == REG_ESPACE) ? ENOMEM : EINVAL;
 }
 
-/* Search in list (targets or rules) the next matching item for string str(len). Returned in next_match, or *next_match == NULL if no more match. Re-enter with same next_match for the next one. */
+/* Search in list (targets or rules) the next matching item for octet string str(len). Returned in next_match, or *next_match == NULL if no more match. Re-enter with same next_match for the next one. */
 static int get_next_match(struct fd_list * list, char * str, size_t len, struct fd_list ** next_match)
 {
 	struct fd_list * li;
@@ -576,7 +576,7 @@ int rtd_process( struct msg * msg, struct fd_list * candidates )
 						/* OK, we can now check if one of our rule's criteria match the message content */
 						r = NULL;
 						do {
-							CHECK_FCT ( get_next_match( &target->rules[j], parsed_msg_avp[j].avp->os.data, parsed_msg_avp[j].avp->os.len, (void *)&r) );
+							CHECK_FCT ( get_next_match( &target->rules[j], (char *) /* is this cast safe? */ parsed_msg_avp[j].avp->os.data, parsed_msg_avp[j].avp->os.len, (void *)&r) );
 							if (!r)
 								break;
 							
