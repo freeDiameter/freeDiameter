@@ -331,7 +331,7 @@ int fd_msg_new_answer_from_req ( struct dictionary * dict, struct msg ** msg, in
 		CHECK_FCT( fd_dict_search( dict, DICT_AVP, AVP_BY_NAME, "Session-Id", &sess_id_avp, ENOENT) );
 		CHECK_FCT( fd_sess_getsid ( sess, &sid ) );
 		CHECK_FCT( fd_msg_avp_new ( sess_id_avp, 0, &avp ) );
-		val.os.data = sid;
+		val.os.data = (unsigned char *)sid;
 		val.os.len  = strlen(sid);
 		CHECK_FCT( fd_msg_avp_setvalue( avp, &val ) );
 		CHECK_FCT( fd_msg_avp_add( ans, MSG_BRW_FIRST_CHILD, avp ) );
@@ -745,7 +745,7 @@ public:
 			fd_dict_dump_avp_value(avp->avp_public.avp_value, avp->avp_model, indent);
 		}
 	}
-end:	
+
 	fd_log_debug(INOBJHDR "intern: src:%p mf:%d raw:%p(%d)\n", INOBJHDRVAL, avp->avp_source, avp->avp_mustfreeos, avp->avp_rawdata, avp->avp_rawlen);
 }
 
@@ -1854,7 +1854,7 @@ static struct avp * empty_avp(struct dict_object * model_avp)
 	struct avp * avp = NULL;
 	struct dict_avp_data avp_info;
 	union avp_value val;
-	char os[1] = { '\0' };
+	unsigned char os[1] = { '\0' };
 	
 	/* Create an instance */
 	CHECK_FCT_DO( fd_msg_avp_new(model_avp, 0, &avp ), return NULL );
@@ -1875,7 +1875,11 @@ static struct avp * empty_avp(struct dict_object * model_avp)
 		case AVP_TYPE_FLOAT32:
 		case AVP_TYPE_FLOAT64:
 			CHECK_FCT_DO( fd_msg_avp_setvalue(avp, &val), return NULL );
-		/* For AVP_TYPE_GROUPED we don't do anything */
+		case AVP_TYPE_GROUPED:
+			/* For AVP_TYPE_GROUPED we don't do anything */
+			break;
+		default:
+			ASSERT(0); /* not handled */
 	}
 	
 	return avp;
