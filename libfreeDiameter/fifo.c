@@ -190,7 +190,6 @@ int fd_fifo_del ( struct fifo  ** queue )
 /* Move the content of old into new, and update loc_update atomically. We leave the old queue empty but valid */
 int fd_fifo_move ( struct fifo * old, struct fifo * new, struct fifo ** loc_update )
 {
-	struct fifo * q;
 	int loops = 0;
 	
 	TRACE_ENTRY("%p %p %p", old, new, loc_update);
