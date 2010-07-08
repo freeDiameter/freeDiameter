@@ -28,7 +28,7 @@ SET( RG_COMMON_HEADER
 	md5.h
 	hostap_compat.h
 )
-ADD_LIBRARY(rgw_common ${RG_COMMON_SRC})
+ADD_LIBRARY(rgw_common SHARED ${RG_COMMON_SRC})
 
 
 
