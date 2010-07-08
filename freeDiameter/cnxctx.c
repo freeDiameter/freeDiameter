@@ -269,7 +269,7 @@ struct cnxctx * fd_cnx_serv_accept(struct cnxctx * serv)
 	/* SCTP-specific handlings */
 	if (cli->cc_proto == IPPROTO_SCTP) {
 		/* Retrieve the number of streams */
-		CHECK_FCT_DO( fd_sctp_get_str_info( cli->cc_socket, &cli->cc_sctp_para.str_in, &cli->cc_sctp_para.str_out, NULL ), goto error );
+		CHECK_FCT_DO( fd_sctp_get_str_info( cli->cc_socket, &cli->cc_sctp_para.str_in, &cli->cc_sctp_para.str_out, NULL ), {fd_cnx_destroy(cli); return NULL;} );
 		if (cli->cc_sctp_para.str_out < cli->cc_sctp_para.str_in)
 			cli->cc_sctp_para.pairs = cli->cc_sctp_para.str_out;
 		else
@@ -280,9 +280,6 @@ struct cnxctx * fd_cnx_serv_accept(struct cnxctx * serv)
 #endif /* DISABLE_SCTP */
 
 	return cli;
-error:
-	fd_cnx_destroy(cli);
-	return NULL;
 }
 
 /* Client side: connect to a remote server -- cancelable */
