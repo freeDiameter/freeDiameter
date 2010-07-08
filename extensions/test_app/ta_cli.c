@@ -97,7 +97,7 @@ static void ta_cb_ans(void * data, struct msg ** msg)
 	CHECK_FCT_DO( fd_msg_search_avp ( *msg, ta_origin_host, &avp), return );
 	if (avp) {
 		CHECK_FCT_DO( fd_msg_avp_hdr( avp, &hdr ), return );
-		fprintf(stderr, "From '%.*s' ", hdr->avp_value->os.len, hdr->avp_value->os.data);
+		fprintf(stderr, "From '%.*s' ", (int)hdr->avp_value->os.len, hdr->avp_value->os.data);
 	} else {
 		fprintf(stderr, "no_Origin-Host ");
 	}
@@ -106,7 +106,7 @@ static void ta_cb_ans(void * data, struct msg ** msg)
 	CHECK_FCT_DO( fd_msg_search_avp ( *msg, ta_origin_realm, &avp), return );
 	if (avp) {
 		CHECK_FCT_DO( fd_msg_avp_hdr( avp, &hdr ), return );
-		fprintf(stderr, "('%.*s') ", hdr->avp_value->os.len, hdr->avp_value->os.data);
+		fprintf(stderr, "('%.*s') ", (int)hdr->avp_value->os.len, hdr->avp_value->os.data);
 	} else {
 		fprintf(stderr, "no_Origin-Realm ");
 	}

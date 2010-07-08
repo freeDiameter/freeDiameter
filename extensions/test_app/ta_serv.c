@@ -68,7 +68,7 @@ static int ta_tr_cb( struct msg ** msg, struct avp * avp, struct session * sess,
 	if (a) {
 		struct avp_hdr * hdr;
 		CHECK_FCT( fd_msg_avp_hdr( a, &hdr ) );
-		fprintf(stderr, "'%.*s'", hdr->avp_value->os.len, hdr->avp_value->os.data);
+		fprintf(stderr, "'%.*s'", (int)hdr->avp_value->os.len, hdr->avp_value->os.data);
 	} else {
 		fprintf(stderr, "no_Origin-Host");
 	}
