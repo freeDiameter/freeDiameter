@@ -34,11 +34,13 @@ COMPLETE INSTRUCTIONS
 
 4) Install flex and bison, same way.
 
-5) Retrieve freeDiameter source code:
+5) Install gnutls, same way also.
+
+6) Retrieve freeDiameter source code:
    # cd ~
    # /usr/local/bin/hg clone http://www.freediameter.net/hg/freeDiameter/
    
-6) Make a build directory
+6b) Make a build directory
    # mkdir fD-build
    # cd fD-build
    
