@@ -1,4 +1,4 @@
-/*********************************************************************************************************
+/********************************************************************************************************
 * Software License Agreement (BSD License)                                                               *
 * Author: Alexandre Westfahl <awestfahl@freediameter.net>						 *
 *													 *
@@ -32,22 +32,23 @@
 * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR *
 * TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF   *
 * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.								 *
-*********************************************************************************************************/
-#include "diamsip.h"
+********************************************************************************************************/
+#include "test_sip.h"
 
 
-int diamsip_MAR_cb( struct msg ** msg, struct avp * paramavp, struct session * sess, enum disp_action * act)
+int test_sip_MAA_cb( struct msg ** msg, struct avp * paramavp, struct session * sess, enum disp_action * act)
 {
+/*
 	struct msg *ans, *qry;
 	struct avp *avp, *a2, *authdataitem;
-	//struct msg_hdr * header = NULL;
+	struct msg_hdr * header = NULL;
 	struct avp_hdr * avphdr=NULL, *avpheader=NULL, *avpheader_auth=NULL,*digestheader=NULL;
 	union avp_value val;
 	int found_cnonce=0;
 	struct avp * tempavp=NULL,*sipAuthentication=NULL,*sipAuthenticate=NULL;
 	char * result;
 	char password[51];
-	int idx=0, number_of_auth_items=0,i=0;
+	int idx=0, idx2=0, number_of_auth_items=0,i=0;
 	//Flags and variables for Database
 	int sipurinotstored=0, authenticationpending=0, querylen=0, usernamelen=0;
 	char *query=NULL,*username=NULL;
@@ -62,14 +63,14 @@ int diamsip_MAR_cb( struct msg ** msg, struct avp * paramavp, struct session * s
 		return EINVAL;
 
 	
-	/* Create answer header */
+	// Create answer header 
 	qry = *msg;
 	CHECK_FCT( fd_msg_new_answer_from_req ( fd_g_config->cnf_dict, msg, 0 ) );
 	ans = *msg;
 	
 
 
-	/* Add the appropriate command code & Auth-Application-Id 
+	// Add the appropriate command code & Auth-Application-Id 
 	{
 		
 		CHECK_FCT( fd_msg_hdr ( *msg, &header ) );
@@ -86,10 +87,10 @@ int diamsip_MAR_cb( struct msg ** msg, struct avp * paramavp, struct session * s
 			CHECK_FCT( fd_msg_avp_setvalue ( avp, &val ) );
 			CHECK_FCT( fd_msg_avp_add ( ans, MSG_BRW_LAST_CHILD, avp) );
 		}
-	}*/
+	}
 	
 	
-	/* Add the Auth-Session-State AVP */
+	// Add the Auth-Session-State AVP 
 	{
 		
 		CHECK_FCT( fd_msg_search_avp ( qry, sip_dict.Auth_Session_State, &avp) );
@@ -102,7 +103,7 @@ int diamsip_MAR_cb( struct msg ** msg, struct avp * paramavp, struct session * s
 
 	
 	
-	/* Check if method is REGISTER then User-Name must be present */
+	// Check if method is REGISTER then User-Name must be present 
 	{
 		
 		CHECK_FCT( fd_msg_search_avp ( qry, sip_dict.SIP_Method, &avp) );
@@ -124,10 +125,10 @@ int diamsip_MAR_cb( struct msg ** msg, struct avp * paramavp, struct session * s
 			//We allocate the double size of username because at worst it can be all quotes
 			username=malloc(avphdr->avp_value->os.len*2+1);
 			//We purify username not to have forbidden characters
-			usernamelen=mysql_real_escape_string(conn, username, (const char *)avphdr->avp_value->os.data, avphdr->avp_value->os.len);
+			usernamelen=mysql_real_escape_string(conn, username, avphdr->avp_value->os.data, avphdr->avp_value->os.len);
 			
 			
-			if((strncmp((const char *)avpheader->avp_value->os.data,"REGISTER",avpheader->avp_value->os.len)==0))
+			if((strncmp(avpheader->avp_value->os.data,"REGISTER",avpheader->avp_value->os.len)==0))
 			{
 				not_found=1;
 				
@@ -152,7 +153,7 @@ int diamsip_MAR_cb( struct msg ** msg, struct avp * paramavp, struct session * s
 			
 				while ((row = mysql_fetch_row(res)) != NULL)
       				{
-      					if(strlen(row[0])>0)
+      					if(row[0]!="")
       					{
       						strcpy(password,row[0]);
       						not_found=0;
@@ -194,7 +195,7 @@ int diamsip_MAR_cb( struct msg ** msg, struct avp * paramavp, struct session * s
 				not_found=1;
 				while ((row = mysql_fetch_row(res)) != NULL)
       				{
-      					if(strncmp((const char *)avphdr->avp_value->os.data,row[0],avphdr->avp_value->os.len)==0)
+      					if(strncmp(avphdr->avp_value->os.data,row[0],avphdr->avp_value->os.len)==0)
       					{
       						not_found=0;
       						break;
@@ -224,7 +225,7 @@ int diamsip_MAR_cb( struct msg ** msg, struct avp * paramavp, struct session * s
 				//We allocate the double size of SIP-URI because at worst it can be all quotes
 				sipuri=malloc(avphdr->avp_value->os.len*2+1);
 				//We purify SIP-URI not to have forbidden characters
-				sipurilen=mysql_real_escape_string(conn, sipuri, (const char *)avphdr->avp_value->os.data, avphdr->avp_value->os.len);
+				sipurilen=mysql_real_escape_string(conn, sipuri, avphdr->avp_value->os.data, avphdr->avp_value->os.len);
 				
 				
 				//We get the SIP-URI assignated to the user
@@ -244,7 +245,7 @@ int diamsip_MAR_cb( struct msg ** msg, struct avp * paramavp, struct session * s
 				not_found=1;
 				while ((row = mysql_fetch_row(res)) != NULL)
       				{
-      					if(strncmp((const char *)avphdr->avp_value->os.data,row[0],avphdr->avp_value->os.len)==0)
+      					if(strncmp(avphdr->avp_value->os.data,row[0],avphdr->avp_value->os.len)==0)
       					{
       						not_found=0;
       						break;
@@ -318,10 +319,10 @@ int diamsip_MAR_cb( struct msg ** msg, struct avp * paramavp, struct session * s
 		
 						if(avphdr->avp_code==380) //We only create Auth-Data-Item to answer Auth-Data-Item
 						{
-							/* Add the Auth-Data-Item AVP */
+							// Add the Auth-Data-Item AVP 
 							CHECK_FCT( fd_msg_avp_new ( sip_dict.SIP_Auth_Data_Item, 0, &authdataitem ) );
 					
-							/* Add the Authentication Scheme AVP */
+							// Add the Authentication Scheme AVP 
 							{
 								CHECK_FCT( fd_msg_avp_new ( sip_dict.SIP_Authentication_Scheme, 0, &a2 ) );
 								val.i32=0; //We only know Digest Authentication
@@ -343,29 +344,29 @@ int diamsip_MAR_cb( struct msg ** msg, struct avp * paramavp, struct session * s
 								
 							if(!found_cnonce)
 							{
-								/*
+								//
 								We are in the case of first access request so we need to challenge the user.
-								*/
+								
 								TRACE_DEBUG(FULL,"First Authorization in progress...");
 
-								/* Create a new session */ //this create a new session Id !!!
-								//CHECK_FCT_DO( fd_sess_new( &sess, fd_g_config->cnf_diamid, "diamsip", 7), goto out );
+								// Create a new session  //this create a new session Id !!!
+								//CHECK_FCT_DO( fd_sess_new( &sess, fd_g_config->cnf_diamid, "test_sip", 7), goto out );
 								
 
-								/* Create the SIP-Authenticate AVP */
+								// Create the SIP-Authenticate AVP 
 								{
 									CHECK_FCT( fd_msg_avp_new ( sip_dict.SIP_Authenticate, 0, &sipAuthenticate ) );
 								}						
 
-								/* Add the Digest QOP AVP */
+								// Add the Digest QOP AVP 
 								{
 									CHECK_FCT( fd_msg_avp_new ( sip_dict.Digest_QOP, 0, &a2 ) );
-									val.os.data=(unsigned char *)"auth";
-									val.os.len=strlen((const char *)val.os.data);
+									val.os.data="auth";
+									val.os.len=strlen(val.os.data);
 									CHECK_FCT( fd_msg_avp_setvalue( a2, &val ) );
 									CHECK_FCT( fd_msg_avp_add( sipAuthenticate, MSG_BRW_LAST_CHILD, a2 ) );
 								}
-								/* Add the Digest Nonce AVP */
+								// Add the Digest Nonce AVP 
 								{
 									uint8_t buffer[NONCE_SIZE];
 									char nonce[NONCE_SIZE * 2 + 1];
@@ -386,22 +387,22 @@ int diamsip_MAR_cb( struct msg ** msg, struct avp * paramavp, struct session * s
 									memcpy(storednonce->nonce,(char *)nonce,NONCE_SIZE*2+1);
 									CHECK_FCT( fd_sess_state_store ( ds_sess_hdl, sess, &storednonce ));  
 									
-									val.os.data=(unsigned char *)nonce;
+									val.os.data=nonce;
 									val.os.len=NONCE_SIZE * 2;
 									
 									CHECK_FCT( fd_msg_avp_setvalue( a2, &val ) );
 									CHECK_FCT( fd_msg_avp_add( sipAuthenticate, MSG_BRW_LAST_CHILD, a2 ) );
 								}
-								/* Add the Digest Algorithm AVP */
+								// Add the Digest Algorithm AVP 
 								{
 									CHECK_FCT( fd_msg_avp_new ( sip_dict.Digest_Algorithm, 0, &a2 ) );
-									val.os.data=(unsigned char *)"MD5";
-									val.os.len=strlen((const char *)val.os.data);
+									val.os.data="MD5";
+									val.os.len=strlen(val.os.data);
 									CHECK_FCT( fd_msg_avp_setvalue( a2, &val ) );
 									CHECK_FCT( fd_msg_avp_add( sipAuthenticate, MSG_BRW_LAST_CHILD, a2 ) );
 							
 								}
-								/* Add the Digest Realm AVP */
+								// Add the Digest Realm AVP 
 								{
 									tempavp=avp;
 								
@@ -430,12 +431,12 @@ int diamsip_MAR_cb( struct msg ** msg, struct avp * paramavp, struct session * s
 							}
 							else
 							{
-								/*
+								//
 								We are in the case of access request after challenge so we need to check credentials.
-								*/
+								
 								TRACE_DEBUG(FULL,"Authentication after challenge");
 								
-								/* Search the session, retrieve its data */
+								// Search the session, retrieve its data 
 								{
 									//int new=0;
 									
@@ -452,18 +453,18 @@ int diamsip_MAR_cb( struct msg ** msg, struct avp * paramavp, struct session * s
 									}
 								}
 								
-								/* Create the SIP-Authentication-Info AVP */
+								// Create the SIP-Authentication-Info AVP 
 								{
 									CHECK_FCT( fd_msg_avp_new ( sip_dict.SIP_Authentication_Info, 0, &sipAuthentication ) );
 								}
 								
 								
 							
-								/* Add the Digest response Auth AVP */
+								// Add the Digest response Auth AVP 
 								{
 									//uint8_t bufferresp[DIGEST_LEN];
 									//char response[DIGEST_LEN*2+1];
-									
+									int i=0;
 									
 									//We extract all the data we need
 									tempavp=avp;
@@ -639,7 +640,8 @@ int diamsip_MAR_cb( struct msg ** msg, struct avp * paramavp, struct session * s
 
 									
 									DigestCalcHA1(digest_algorithm, digest_username, digest_realm, password, digest_nonce,digest_cnonce, HA1);
-      								DigestCalcResponse(HA1, digest_nonce, digest_noncecount, digest_cnonce, digest_qop,digest_method, digest_uri, HA2, response);
+									
+      							DigestCalcResponse(HA1, digest_nonce, digest_noncecount, digest_cnonce, digest_qop,digest_method, digest_uri, HA2, response);
       									
 		
 									// We check that the Digest-Response is the same (UA, Diameter)
@@ -675,7 +677,7 @@ int diamsip_MAR_cb( struct msg ** msg, struct avp * paramavp, struct session * s
 									{
 										//Digest-HA1 MUST be used instead of Digest-Response-Auth if Digest-Qop is 'auth-int'.
 										CHECK_FCT( fd_msg_avp_new ( sip_dict.Digest_HA1, 0, &a2 ) );
-										val.os.data=(unsigned char *)HA1;
+										val.os.data=HA1;
 										val.os.len=HASHHEXLEN+1;
 										CHECK_FCT( fd_msg_avp_setvalue( a2, &val ) );
 										CHECK_FCT( fd_msg_avp_add( sipAuthentication, MSG_BRW_LAST_CHILD, a2 ) );
@@ -684,7 +686,7 @@ int diamsip_MAR_cb( struct msg ** msg, struct avp * paramavp, struct session * s
 									{
 										//Digest-Response-Auth MUST be used instead of Digest-HA1 if Digest-Qop is 'auth'.
 										CHECK_FCT( fd_msg_avp_new ( sip_dict.Digest_Response_Auth, 0, &a2 ) );
-										val.os.data=(unsigned char *)responseauth;
+										val.os.data=responseauth;
 										val.os.len=DIGEST_LEN*2;
 										CHECK_FCT( fd_msg_avp_setvalue( a2, &val ) );
 										CHECK_FCT( fd_msg_avp_add( sipAuthentication, MSG_BRW_LAST_CHILD, a2 ) );
@@ -736,7 +738,7 @@ int diamsip_MAR_cb( struct msg ** msg, struct avp * paramavp, struct session * s
 					else
 						TRACE_DEBUG(INFO,"No auth data items!");
 				}
-				/*Add SIP_Number_Auth_Items  AVP */
+				//Add SIP_Number_Auth_Items  AVP 
 				{
 					CHECK_FCT( fd_msg_avp_new ( sip_dict.SIP_Number_Auth_Items, 0, &avp ) );
 					val.i32 = number_of_auth_items;
@@ -771,13 +773,14 @@ int diamsip_MAR_cb( struct msg ** msg, struct avp * paramavp, struct session * s
 	
 
 out:
-	/* Set the Origin-Host, Origin-Realm, Result-Code AVPs */
+	// Set the Origin-Host, Origin-Realm, Result-Code AVPs 
 	CHECK_FCT( fd_msg_rescode_set( ans, result, NULL, NULL, 1 ) );
 	
 	
-	/* Send the answer */
+	// Send the answer 
 	CHECK_FCT( fd_msg_send( msg, NULL, NULL ) );
 	
-	
+*/	
 	return 0;
 }
+

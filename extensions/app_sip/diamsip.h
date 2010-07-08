@@ -75,18 +75,23 @@ extern MYSQL *conn;
 
 
 void calc_md5(char *buffer, char * data);
-void clear_digest(char * digest, char * readable_digest, int digestlength);
+void clear_digest(uint8_t * digest, char * readable_digest, int digestlength);
 struct avp_hdr * walk_digest(struct avp *avp, int avp_code);
 int start_mysql_connection();
 void request_mysql(char *query);
 void close_mysql_connection();
 
+void DigestCalcHA1(char * pszAlg,char * pszUserName,char * pszRealm,char * pszPassword,char * pszNonce,char * pszCNonce,HASHHEX SessionKey);
+void DigestCalcResponse(HASHHEX HA1,char * pszNonce,char * pszNonceCount,char * pszCNonce,char * pszQop,char * pszMethod,char * pszDigestUri,HASHHEX HEntity,HASHHEX Response);
+void DigestCalcResponseAuth(HASHHEX HA1,char * pszNonce,char * pszNonceCount,char * pszCNonce,char * pszQop,char * pszMethod,char * pszDigestUri,HASHHEX HEntity,HASHHEX Response);
 
+int fd_avp_search_avp ( struct avp * groupedavp, struct dict_object * what, struct avp ** avp );
 
 int ds_entry();
 void fd_ext_fini(void);
 int diamsip_default_cb( struct msg ** msg, struct avp * avp, struct session * sess, enum disp_action * act);
 int diamsip_MAR_cb( struct msg ** msg, struct avp * avp, struct session * sess, enum disp_action * act);
+int diamsip_RTA_cb( struct msg ** msg, struct avp * avp, struct session * sess, enum disp_action * act);
 #define SQL_GETPASSWORD "SELECT `password` FROM ds_users WHERE `username` ='%s'"
 #define SQL_GETPASSWORD_LEN 52
 

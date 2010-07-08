@@ -36,6 +36,13 @@
 #include "diamsip.h"
 
 struct disp_hdl * diamsip_MAR_hdl=NULL;
+struct disp_hdl * diamsip_LIR_hdl=NULL;
+struct disp_hdl * diamsip_UAR_hdl=NULL;
+struct disp_hdl * diamsip_SAR_hdl=NULL;
+struct disp_hdl * diamsip_PPA_hdl=NULL;
+struct disp_hdl * diamsip_RTA_hdl=NULL;
+
+
 struct disp_hdl * diamsip_default_hdl=NULL;
 struct session_handler * ds_sess_hdl;
 
@@ -136,16 +143,20 @@ int as_entry(char * conffile)
 	//Register Application
 	memset(&data, 0, sizeof(data));
 	CHECK_FCT( fd_dict_search( fd_g_config->cnf_dict, DICT_APPLICATION, APPLICATION_BY_NAME, "Diameter Session Initiation Protocol (SIP) Application", &data.app, ENOENT) );
-	CHECK_FCT( fd_dict_search( fd_g_config->cnf_dict, DICT_COMMAND, CMD_BY_NAME, "Multimedia-Auth-Request", &data.command, ENOENT) );
 	
-	//Callback for unexpected messages
-	CHECK_FCT( fd_disp_register( diamsip_MAR_cb, DISP_HOW_APPID, &data, &diamsip_default_hdl ) );
 	
 	//**Command Codes
 	//MAR
+	CHECK_FCT( fd_dict_search( fd_g_config->cnf_dict, DICT_COMMAND, CMD_BY_NAME, "Multimedia-Auth-Request", &data.command, ENOENT) );
 	CHECK_FCT( fd_disp_register( diamsip_MAR_cb, DISP_HOW_CC, &data, &diamsip_MAR_hdl ) );
+	//RTA
+	CHECK_FCT( fd_dict_search( fd_g_config->cnf_dict, DICT_COMMAND, CMD_BY_NAME, "Registration-Termination-Answer", &data.command, ENOENT) );
+	CHECK_FCT( fd_disp_register( diamsip_RTA_cb, DISP_HOW_CC, &data, &diamsip_RTA_hdl ) );
 	
-	//TRACE_DEBUG(INFO,"*%s*%s*%s*%s*",DB_SERVER,DB_USERNAME, DB_PASSWORD, DB_DATABASE);
+	//Callback for unexpected messages
+	CHECK_FCT( fd_disp_register( diamsip_default_cb, DISP_HOW_APPID, &data, &diamsip_default_hdl ) );
+	
+	
 	//We start database connection
 	if(start_mysql_connection())
 		return 1;
@@ -159,10 +170,10 @@ int as_entry(char * conffile)
 void fd_ext_fini(void)
 {
 	
-	if (diamsip_MAR_cb) {
-		(void) fd_disp_unregister(&diamsip_MAR_hdl);
-		CHECK_FCT_DO( fd_sess_handler_destroy(&ds_sess_hdl),return);
-	}
+	
+	(void) fd_disp_unregister(&diamsip_MAR_hdl);
+	CHECK_FCT_DO( fd_sess_handler_destroy(&ds_sess_hdl),return);
+	
 	
 	//We close database connection
 	close_mysql_connection();

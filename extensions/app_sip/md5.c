@@ -52,20 +52,20 @@ void DigestCalcHA1(char * pszAlg,char * pszUserName,char * pszRealm,char * pszPa
       HASH HA1;
 
       MD5Init(&Md5Ctx);
-      MD5Update(&Md5Ctx, pszUserName, strlen(pszUserName));
-      MD5Update(&Md5Ctx, ":", 1);
-      MD5Update(&Md5Ctx, pszRealm, strlen(pszRealm));
-      MD5Update(&Md5Ctx, ":", 1);
-      MD5Update(&Md5Ctx, pszPassword, strlen(pszPassword));
-      MD5Final(HA1, &Md5Ctx);
+      MD5Update(&Md5Ctx, (const unsigned char *)pszUserName, strlen(pszUserName));
+      MD5Update(&Md5Ctx, (const unsigned char *)":", 1);
+      MD5Update(&Md5Ctx, (const unsigned char *)pszRealm, strlen(pszRealm));
+      MD5Update(&Md5Ctx, (const unsigned char *)":", 1);
+      MD5Update(&Md5Ctx, (const unsigned char *)pszPassword, strlen(pszPassword));
+      MD5Final((unsigned char *)HA1, &Md5Ctx);
       if (strcmp(pszAlg, "md5-sess") == 0) {	
 		MD5Init(&Md5Ctx);
-		MD5Update(&Md5Ctx, HA1, HASHLEN);
-		MD5Update(&Md5Ctx, ":", 1);
-		MD5Update(&Md5Ctx, pszNonce, strlen(pszNonce));
-		MD5Update(&Md5Ctx, ":", 1);
-		MD5Update(&Md5Ctx, pszCNonce, strlen(pszCNonce));
-		MD5Final(HA1, &Md5Ctx);
+		MD5Update(&Md5Ctx, (const unsigned char *)HA1, HASHLEN);
+		MD5Update(&Md5Ctx, (const unsigned char *)":", 1);
+		MD5Update(&Md5Ctx, (const unsigned char *)pszNonce, strlen(pszNonce));
+		MD5Update(&Md5Ctx, (const unsigned char *)":", 1);
+		MD5Update(&Md5Ctx, (const unsigned char *)pszCNonce, strlen(pszCNonce));
+		MD5Final((unsigned char *)HA1, &Md5Ctx);
       }
       CvtHex(HA1, SessionKey);
 }
@@ -80,32 +80,32 @@ void DigestCalcResponse(HASHHEX HA1,char * pszNonce,char * pszNonceCount,char * 
 
       // calculate H(A2)
       MD5Init(&Md5Ctx);
-      MD5Update(&Md5Ctx, pszMethod, strlen(pszMethod));
-      MD5Update(&Md5Ctx, ":", 1);
-      MD5Update(&Md5Ctx, pszDigestUri, strlen(pszDigestUri));
+      MD5Update(&Md5Ctx, (const unsigned char *)pszMethod, strlen(pszMethod));
+      MD5Update(&Md5Ctx, (const unsigned char *)":", 1);
+      MD5Update(&Md5Ctx, (const unsigned char *)pszDigestUri, strlen(pszDigestUri));
       if (strcmp(pszQop, "auth-int") == 0) {
-            MD5Update(&Md5Ctx, ":", 1);
-            MD5Update(&Md5Ctx, HEntity, HASHHEXLEN);
+            MD5Update(&Md5Ctx, (const unsigned char *)":", 1);
+            MD5Update(&Md5Ctx, (const unsigned char *)HEntity, HASHHEXLEN);
       }
-      MD5Final(HA2, &Md5Ctx);
+      MD5Final((unsigned char *)HA2, &Md5Ctx);
        CvtHex(HA2, HA2Hex);
        
       // calculate response
       MD5Init(&Md5Ctx);
-      MD5Update(&Md5Ctx, HA1, HASHHEXLEN);
-      MD5Update(&Md5Ctx, ":", 1);
-      MD5Update(&Md5Ctx, pszNonce, strlen(pszNonce));
-      MD5Update(&Md5Ctx, ":", 1);
+      MD5Update(&Md5Ctx, (const unsigned char *)HA1, HASHHEXLEN);
+      MD5Update(&Md5Ctx, (const unsigned char *)":", 1);
+      MD5Update(&Md5Ctx,(const unsigned char *) pszNonce, strlen(pszNonce));
+      MD5Update(&Md5Ctx, (const unsigned char *)":", 1);
       if (*pszQop) {
-          MD5Update(&Md5Ctx, pszNonceCount, strlen(pszNonceCount));
-          MD5Update(&Md5Ctx, ":", 1);
-          MD5Update(&Md5Ctx, pszCNonce, strlen(pszCNonce));
-          MD5Update(&Md5Ctx, ":", 1);
-          MD5Update(&Md5Ctx, pszQop, strlen(pszQop));
-          MD5Update(&Md5Ctx, ":", 1);
+          MD5Update(&Md5Ctx, (const unsigned char *)pszNonceCount, strlen(pszNonceCount));
+          MD5Update(&Md5Ctx, (const unsigned char *)":", 1);
+          MD5Update(&Md5Ctx, (const unsigned char *)pszCNonce, strlen(pszCNonce));
+          MD5Update(&Md5Ctx, (const unsigned char *)":", 1);
+          MD5Update(&Md5Ctx, (const unsigned char *)pszQop, strlen(pszQop));
+          MD5Update(&Md5Ctx, (const unsigned char *)":", 1);
       }
-      MD5Update(&Md5Ctx, HA2Hex, HASHHEXLEN);
-      MD5Final(RespHash, &Md5Ctx);
+      MD5Update(&Md5Ctx, (const unsigned char *)HA2Hex, HASHHEXLEN);
+      MD5Final((unsigned char *)RespHash, &Md5Ctx);
       CvtHex(RespHash, Response);
 }
 // calculate Digest_response_Auth as per SIP Digest spec RFC5090
@@ -118,31 +118,31 @@ void DigestCalcResponseAuth(HASHHEX HA1,char * pszNonce,char * pszNonceCount,cha
 
       // calculate H(A2)
       MD5Init(&Md5Ctx);
-      MD5Update(&Md5Ctx, ":", 1);
-      MD5Update(&Md5Ctx, pszDigestUri, strlen(pszDigestUri));
+      MD5Update(&Md5Ctx, (const unsigned char *)":", 1);
+      MD5Update(&Md5Ctx, (const unsigned char *)pszDigestUri, strlen(pszDigestUri));
       if (strcmp(pszQop, "auth-int") == 0) {
-            MD5Update(&Md5Ctx, ":", 1);
-            MD5Update(&Md5Ctx, HEntity, HASHHEXLEN);
+            MD5Update(&Md5Ctx, (const unsigned char *)":", 1);
+            MD5Update(&Md5Ctx, (const unsigned char *)HEntity, HASHHEXLEN);
       }
-      MD5Final(HA2, &Md5Ctx);
+      MD5Final((unsigned char *)HA2, &Md5Ctx);
        CvtHex(HA2, HA2Hex);
        
       // calculate response
       MD5Init(&Md5Ctx);
-      MD5Update(&Md5Ctx, HA1, HASHHEXLEN);
-      MD5Update(&Md5Ctx, ":", 1);
-      MD5Update(&Md5Ctx, pszNonce, strlen(pszNonce));
-      MD5Update(&Md5Ctx, ":", 1);
+      MD5Update(&Md5Ctx, (const unsigned char *)HA1, HASHHEXLEN);
+      MD5Update(&Md5Ctx, (const unsigned char *)":", 1);
+      MD5Update(&Md5Ctx, (const unsigned char *)pszNonce, strlen(pszNonce));
+      MD5Update(&Md5Ctx, (const unsigned char *)":", 1);
       if (*pszQop) {
-          MD5Update(&Md5Ctx, pszNonceCount, strlen(pszNonceCount));
-          MD5Update(&Md5Ctx, ":", 1);
-          MD5Update(&Md5Ctx, pszCNonce, strlen(pszCNonce));
-          MD5Update(&Md5Ctx, ":", 1);
-          MD5Update(&Md5Ctx, pszQop, strlen(pszQop));
-          MD5Update(&Md5Ctx, ":", 1);
+          MD5Update(&Md5Ctx, (const unsigned char *)pszNonceCount, strlen(pszNonceCount));
+          MD5Update(&Md5Ctx, (const unsigned char *)":", 1);
+          MD5Update(&Md5Ctx, (const unsigned char *)pszCNonce, strlen(pszCNonce));
+          MD5Update(&Md5Ctx, (const unsigned char *)":", 1);
+          MD5Update(&Md5Ctx, (const unsigned char *)pszQop, strlen(pszQop));
+          MD5Update(&Md5Ctx, (const unsigned char *)":", 1);
       }
-      MD5Update(&Md5Ctx, HA2Hex, HASHHEXLEN);
-      MD5Final(RespHash, &Md5Ctx);
+      MD5Update(&Md5Ctx, (const unsigned char *)HA2Hex, HASHHEXLEN);
+      MD5Final((unsigned char *)RespHash, &Md5Ctx);
       CvtHex(RespHash, Response);
 }
 

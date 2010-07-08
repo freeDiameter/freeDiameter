@@ -33,54 +33,11 @@
 * TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF   *
 * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.								 *
 *********************************************************************************************************/
+#include "test_sip.h"
 
 
-/* The module configuration */
-struct test_sip_conf {
-	char * destination_sip; 
-	char * destination_realm;
-	char * username;
-	char * password;
-	char * sip_aor;
-};
-extern struct test_sip_conf * test_sip_conf;
-
-
-//Storage for some usefull AVPs
-struct sip_dict{
-	struct dict_object * Auth_Session_State;
-	struct dict_object * Auth_Application_Id;
-	struct dict_object * User_Name;
-	struct dict_object * SIP_Auth_Data_Item;
-	struct dict_object * SIP_Authorization;
-	struct dict_object * SIP_Authenticate;
-	struct dict_object * SIP_Number_Auth_Items;	
-	struct dict_object * SIP_Authentication_Scheme;
-	struct dict_object * SIP_Authentication_Info;	
-	struct dict_object * SIP_Server_URI;
-	struct dict_object * SIP_Method;
-	struct dict_object * SIP_AOR;
-	struct dict_object * Digest_URI;		
-	struct dict_object * Digest_Nonce;
-	struct dict_object * Digest_Nonce_Count;
-	struct dict_object * Digest_CNonce;		
-	struct dict_object * Digest_Realm;		
-	struct dict_object * Digest_Response;	
-	struct dict_object * Digest_Response_Auth;	
-	struct dict_object * Digest_Username;	
-	struct dict_object * Digest_Method;
-	struct dict_object * Digest_QOP;	
-	struct dict_object * Digest_Algorithm;
-	struct dict_object * Digest_HA1;
-};
-
-extern  struct sip_dict  sip_dict;
-
-
-
-
-int test_sip_default_cb( struct msg ** msg, struct avp * avp, struct session * sess, enum disp_action * act);
-int test_sip_MAA_cb( struct msg ** msg, struct avp * avp, struct session * sess, enum disp_action * act);
-int test_sip_RTR_cb( struct msg ** msg, struct avp * avp, struct session * sess, enum disp_action * act);
-
-
+int test_sip_RTR_cb( struct msg ** msg, struct avp * paramavp, struct session * sess, enum disp_action * act)
+{
+	
+	return 0;
+}

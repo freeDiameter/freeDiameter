@@ -37,15 +37,8 @@
 #include "diamsip.h"
 
 MYSQL *conn;
-/*
-void calculate_nonce(u8 * nonce)
-{
 
-	nonce="lkgbsljhsdjdsgj";
-	return;
-}*/
-
-void clear_digest(char * digest, char * readable_digest, int digestlength)
+void clear_digest(uint8_t * digest, char * readable_digest, int digestlength)
 {
 	int i=0;
 	for(i=0;i<digestlength * 2;i++)
@@ -80,7 +73,7 @@ int fd_avp_search_avp ( struct avp * groupedavp, struct dict_object * what, stru
 	struct avp * nextavp;
 	struct avp_hdr * nextavphdr;
 	struct dict_avp_data 	dictdata;
-	enum dict_object_type 	dicttype;
+	
 	
 	TRACE_ENTRY("%p %p %p", groupedavp, what, avp);
 	
@@ -124,12 +117,12 @@ int fd_avp_search_avp ( struct avp * groupedavp, struct dict_object * what, stru
 struct avp_hdr *walk_digest(struct avp *avp, int avp_code)
 {
 	struct avp_hdr *temphdr=NULL;
-	CHECK_FCT_DO(fd_msg_browse ( avp, MSG_BRW_WALK, &avp, NULL),0 );
+	CHECK_FCT_DO(fd_msg_browse ( avp, MSG_BRW_WALK, &avp, NULL),return NULL);
 	
 	while(avp!=NULL)
 	{
 		
-		CHECK_FCT_DO( fd_msg_avp_hdr( avp,&temphdr ),0);
+		CHECK_FCT_DO( fd_msg_avp_hdr( avp,&temphdr ),return NULL);
 
 		if(temphdr->avp_code==avp_code)
 		{
@@ -148,7 +141,7 @@ struct avp_hdr *walk_digest(struct avp *avp, int avp_code)
 		}
 		else
 		{
-			CHECK_FCT_DO(fd_msg_browse ( avp, MSG_BRW_WALK, &avp, NULL),0 );
+			CHECK_FCT_DO(fd_msg_browse ( avp, MSG_BRW_WALK, &avp, NULL),return NULL);
 			temphdr=NULL;
 			
 		}
