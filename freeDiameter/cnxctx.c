@@ -273,10 +273,12 @@ struct cnxctx * fd_cnx_serv_accept(struct cnxctx * serv)
 	if (cli->cc_proto == IPPROTO_SCTP) {
 		/* Retrieve the number of streams */
 		CHECK_FCT_DO( fd_sctp_get_str_info( cli->cc_socket, &cli->cc_sctp_para.str_in, &cli->cc_sctp_para.str_out, NULL ), goto error );
-		if (cli->cc_sctp_para.str_out > cli->cc_sctp_para.str_in)
+		if (cli->cc_sctp_para.str_out < cli->cc_sctp_para.str_in)
 			cli->cc_sctp_para.pairs = cli->cc_sctp_para.str_out;
 		else
 			cli->cc_sctp_para.pairs = cli->cc_sctp_para.str_in;
+		
+		TRACE_DEBUG(FULL,"%s : client '%s' (SCTP:%d, %d/%d streams)", fd_cnx_getid(serv), fd_cnx_getid(cli), cli->cc_socket, cli->cc_sctp_para.str_in, cli->cc_sctp_para.str_out);
 	}
 #endif /* DISABLE_SCTP */
 
