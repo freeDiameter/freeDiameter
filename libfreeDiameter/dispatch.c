@@ -157,6 +157,9 @@ int fd_disp_register ( int (*cb)( struct msg **, struct avp *, struct session *,
 	fd_list_init(&new->parent, new);
 	new->how = how;
 	switch (how) {
+		case DISP_HOW_ANY:
+			/* there is no "when" in that case */
+			break;
 		case DISP_HOW_AVP_ENUMVAL:
 			new->when.value   = when->value;
 		case DISP_HOW_AVP:
