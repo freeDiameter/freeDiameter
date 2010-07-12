@@ -34,10 +34,235 @@
 * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.								 *
 *********************************************************************************************************/
 #include "diamsip.h"
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#include <unistd.h>
+typedef int SOCKET;
+typedef struct sockaddr_in SOCKADDR_IN;
+typedef struct sockaddr SOCKADDR;
 
+//Procedure which always wait for data on socket 
+void *rtr_socket(void *arg)
+{
+	SOCKET sock;
+    SOCKADDR_IN sin, csin;
+    struct rtrsipaor rtrsip;
+    int rcvbytes=0;
+	sock = socket(AF_INET, SOCK_STREAM, 0);
+	sin.sin_addr.s_addr = inet_addr("127.0.0.1");
+    sin.sin_family = AF_INET;
+    sin.sin_port = htons(PORT);
+    socklen_t sinsize = sizeof(csin);
+	int accepted=0;
 
+    TRACE_DEBUG(INFO,"############********************THREAD OPEN \n********************\n********************\n");
+    
+	if(!bind(sock, (SOCKADDR*)&sin, sizeof(sin)))
+	{
+		if(listen(sock,1))
+		{
+			TRACE_DEBUG(INFO,"ERROR on listen!");
+		}
+		
+		while(1)
+		{
+			accepted=accept(sock, (struct sockaddr *)&csin,&sinsize);
+			if(accepted>-1)
+			{
+				rcvbytes=recv(accepted, &rtrsip, sizeof(struct rtrsipaor),0);
+	
+				
+				if(rcvbytes>-1)
+				{
+					diamsip_RTR_cb(rtrsip);
+					
+					
+				}
+			}
+		}
+		
+		
+	}
+	else
+		TRACE_DEBUG(INFO,"Can't create socket!");
+
+	
+	
+	
+	
+	TRACE_DEBUG(INFO,"############********************THREAD CLOSED \n********************\n********************\n");
+	pthread_exit(NULL);
+	
+}
+//Called to send a RTR
+int diamsip_RTR_cb(struct rtrsipaor structure)
+{
+	TRACE_ENTRY("%p", structure);
+	
+	int got_username=0;
+	int got_streason=0;
+	int num_aor=0;//How many SIP-AOR?
+	struct dict_object * rtr_model=NULL;
+	struct msg * message=NULL;
+	struct avp *groupedavp=NULL, *avp=NULL;
+	struct session *sess=NULL;
+	union avp_value value;
+	
+	//We must check that we have all needed value in structure
+	if(structure.username[0]!='\0')
+		got_username=1;
+	
+	if(structure.sip_aor1[0]!='\0')
+	{	
+		num_aor++;
+		if(structure.sip_aor2[0]!='\0')
+		{
+			num_aor++;
+			if(structure.sip_aor3[0]!='\0')
+				num_aor++;
+		}
+	}
+	
+	if(structure.strreason!='\0')
+		got_streason=1;
+	
+	
+	TRACE_DEBUG(INFO,"We have %d SIP_AOR",num_aor);
+	
+	if((got_username + num_aor)==0)
+	{
+		//We must have a least a SIP_AOR or a Username
+		TRACE_DEBUG(INFO,"Can not proceed because there is no SIP_AOR or Username");
+		return EINVAL;
+	}
+	if(structure.reason<0)
+	{
+		//We must have a least a SIP_AOR or a Username
+		TRACE_DEBUG(INFO,"Incorrect Reason-Code");
+		return EINVAL;
+	}
+	
+	if(structure.desthost[0]=='\0')
+	{
+		//We must have a least a SIP_AOR or a Username
+		TRACE_DEBUG(INFO,"No Destination_Host was provided!");
+		return EINVAL;
+	}
+	//Create the base message for an RTR
+	CHECK_FCT( fd_dict_search( fd_g_config->cnf_dict, DICT_COMMAND, CMD_BY_NAME, "Registration-Termination-Request", &rtr_model, ENOENT) );
+	CHECK_FCT( fd_msg_new (rtr_model, 0, &message));
+	
+	// Create a new session 
+	{
+		CHECK_FCT( fd_sess_new( &sess, fd_g_config->cnf_diamid, "app_sip", 7 ));
+		char * sid;
+		CHECK_FCT( fd_sess_getsid ( sess, &sid ));
+		CHECK_FCT( fd_msg_avp_new ( sip_dict.Session_Id, 0, &avp ));
+		value.os.data = (uint8_t *)sid;
+		value.os.len  = strlen(sid);
+		CHECK_FCT( fd_msg_avp_setvalue( avp, &value ));
+		CHECK_FCT( fd_msg_avp_add( message, MSG_BRW_FIRST_CHILD, avp ));
+	}
+	
+	
+	//Auth_Session_State
+	{
+		CHECK_FCT( fd_msg_avp_new ( sip_dict.Auth_Session_State, 0, &avp ) );
+		value.i32=1;
+		CHECK_FCT( fd_msg_avp_setvalue( avp, &value ) );
+		CHECK_FCT( fd_msg_avp_add( message, MSG_BRW_LAST_CHILD, avp ) );
+	}
+	
+	//Origin_Host & Origin_Realm
+	CHECK_FCT( fd_msg_add_origin ( message, 0 ));
+	
+	//Destination_Host
+	{
+		CHECK_FCT( fd_msg_avp_new ( sip_dict.Destination_Host, 0, &avp ) );
+		value.os.data=(unsigned char *)structure.desthost;
+		value.os.len=(size_t)strlen(structure.desthost);
+		CHECK_FCT( fd_msg_avp_setvalue( avp, &value ) );
+		CHECK_FCT( fd_msg_avp_add( message, MSG_BRW_LAST_CHILD, avp ) );
+	}
+	
+	
+	//SIP Deregistration Reason (Grouped AVP)
+	{
+		CHECK_FCT( fd_msg_avp_new ( sip_dict.SIP_Deregistration_Reason, 0, &groupedavp ) );
+		
+		//Reason Code
+		CHECK_FCT( fd_msg_avp_new ( sip_dict.SIP_Reason_Code, 0, &avp ) );
+		value.i32=structure.reason;
+		CHECK_FCT( fd_msg_avp_setvalue( avp, &value ) );
+		CHECK_FCT( fd_msg_avp_add( groupedavp, MSG_BRW_LAST_CHILD, avp ) );
+		
+		if(got_streason)
+		{
+			//Reason Info
+			CHECK_FCT( fd_msg_avp_new ( sip_dict.SIP_Reason_Info, 0, &avp ) );
+			value.os.data=(unsigned char *)structure.strreason;
+			value.os.len=(size_t)strlen(structure.strreason);
+			CHECK_FCT( fd_msg_avp_setvalue( avp, &value ) );
+			CHECK_FCT( fd_msg_avp_add( groupedavp, MSG_BRW_LAST_CHILD, avp ) );
+		}
+		
+		//We add the grouped AVP to the message
+		CHECK_FCT( fd_msg_avp_add( message, MSG_BRW_LAST_CHILD, groupedavp ) );
+	}
+	
+	//Username
+	{
+		if(got_username)
+		{
+			CHECK_FCT( fd_msg_avp_new ( sip_dict.User_Name, 0, &avp ) );
+			value.os.data=(unsigned char *)structure.username;
+			value.os.len=(size_t)strlen(structure.username);
+			CHECK_FCT( fd_msg_avp_setvalue( avp, &value ) );
+			CHECK_FCT( fd_msg_avp_add( message, MSG_BRW_LAST_CHILD, avp ) );
+		}
+	}
+	
+	//SIP_AOR
+	{
+		if(num_aor>0)
+		{
+			CHECK_FCT( fd_msg_avp_new ( sip_dict.SIP_AOR, 0, &avp ) );
+			value.os.data=(unsigned char *)structure.sip_aor1;
+			value.os.len=(size_t)strlen(structure.sip_aor1);
+			CHECK_FCT( fd_msg_avp_setvalue( avp, &value ) );
+			CHECK_FCT( fd_msg_avp_add( message, MSG_BRW_LAST_CHILD, avp ) );
+			if(num_aor>1)
+			{
+				CHECK_FCT( fd_msg_avp_new ( sip_dict.SIP_AOR, 0, &avp ) );
+				value.os.data=(unsigned char *)structure.sip_aor2;
+				value.os.len=(size_t)strlen(structure.sip_aor2);
+				CHECK_FCT( fd_msg_avp_setvalue( avp, &value ) );
+				CHECK_FCT( fd_msg_avp_add( message, MSG_BRW_LAST_CHILD, avp ) );
+				if(num_aor>2)
+				{
+					CHECK_FCT( fd_msg_avp_new ( sip_dict.SIP_AOR, 0, &avp ) );
+					value.os.data=(unsigned char *)structure.sip_aor3;
+					value.os.len=(size_t)strlen(structure.sip_aor3);
+					CHECK_FCT( fd_msg_avp_setvalue( avp, &value ) );
+					CHECK_FCT( fd_msg_avp_add( message, MSG_BRW_LAST_CHILD, avp ) );
+				}
+			}
+		}
+	}
+	
+	fd_msg_dump_walk(INFO,message);
+	CHECK_FCT( fd_msg_send( &message, NULL, NULL ));
+	
+	return 0;
+}
+
+//Called when an RTA arrive
 int diamsip_RTA_cb( struct msg ** msg, struct avp * paramavp, struct session * sess, enum disp_action * act)
 {
+	//TODO: RTA reception
+/*
 	//TODO:remove unused variables
 	struct msg *ans, *qry;
 	struct avp *avp, *a2, *authdataitem;
@@ -60,13 +285,13 @@ int diamsip_RTA_cb( struct msg ** msg, struct avp * paramavp, struct session * s
 		return EINVAL;
 	
 	
-	/* Create answer header */
+	// Create answer header 
 	qry = *msg;
 	CHECK_FCT( fd_msg_new_answer_from_req ( fd_g_config->cnf_dict, msg, 0 ) );
 	ans = *msg;	
 	
 	
-	/* Add the Auth-Session-State AVP */
+	// Add the Auth-Session-State AVP 
 	{
 		
 		CHECK_FCT( fd_msg_search_avp ( qry, sip_dict.Auth_Session_State, &avp) );
@@ -92,7 +317,8 @@ int diamsip_RTA_cb( struct msg ** msg, struct avp * paramavp, struct session * s
 	
 	
 	
-	
+	*/
 	return 0;
+	
 }
 

@@ -87,6 +87,22 @@ void DigestCalcResponseAuth(HASHHEX HA1,char * pszNonce,char * pszNonceCount,cha
 
 int fd_avp_search_avp ( struct avp * groupedavp, struct dict_object * what, struct avp ** avp );
 
+//thread procedure
+void *rtr_socket(void *);
+
+struct rtrsipaor
+{
+	char username[200];
+	char sip_aor1[200];
+	char sip_aor2[200];
+	char sip_aor3[200];
+	char strreason[200];
+	char desthost[200];
+	int reason;
+};
+int diamsip_RTR_cb(struct rtrsipaor structure);
+#define PORT 666 //TODO:put in conf file
+
 int ds_entry();
 void fd_ext_fini(void);
 int diamsip_default_cb( struct msg ** msg, struct avp * avp, struct session * sess, enum disp_action * act);
@@ -120,7 +136,9 @@ struct ds_nonce
 struct diamsip_dict{
 	struct dict_object * Auth_Session_State;
 	struct dict_object * Auth_Application_Id;
+	struct dict_object * Destination_Host;
 	struct dict_object * User_Name;
+	struct dict_object * Session_Id;
 	struct dict_object * SIP_Auth_Data_Item;
 	struct dict_object * SIP_Authorization;
 	struct dict_object * SIP_Authenticate;
@@ -130,6 +148,9 @@ struct diamsip_dict{
 	struct dict_object * SIP_Server_URI;
 	struct dict_object * SIP_Method;
 	struct dict_object * SIP_AOR;
+	struct dict_object * SIP_Deregistration_Reason;
+	struct dict_object * SIP_Reason_Code;
+	struct dict_object * SIP_Reason_Info;
 	struct dict_object * Digest_URI;		
 	struct dict_object * Digest_Nonce;
 	struct dict_object * Digest_Nonce_Count;

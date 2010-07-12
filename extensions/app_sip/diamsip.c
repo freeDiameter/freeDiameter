@@ -89,6 +89,7 @@ int as_entry(char * conffile)
 	
 	struct dict_object * app=NULL;
 	struct disp_when data;
+	pthread_t rtr_thread;
 	
 	/* Initialize configuration */
 	CHECK_FCT( as_conf_init() );
@@ -114,6 +115,8 @@ int as_entry(char * conffile)
 	//We set usefull AVPs 
 	CHECK_FCT( fd_dict_search( fd_g_config->cnf_dict, DICT_AVP, AVP_BY_NAME, "Auth-Session-State", &sip_dict.Auth_Session_State, ENOENT) );
 	CHECK_FCT( fd_dict_search( fd_g_config->cnf_dict, DICT_AVP, AVP_BY_NAME, "Auth-Application-Id", &sip_dict.Auth_Application_Id, ENOENT) );
+	CHECK_FCT( fd_dict_search( fd_g_config->cnf_dict, DICT_AVP, AVP_BY_NAME, "Destination-Host", &sip_dict.Destination_Host, ENOENT) );
+	CHECK_FCT( fd_dict_search( fd_g_config->cnf_dict, DICT_AVP, AVP_BY_NAME, "Session-Id", &sip_dict.Session_Id, ENOENT) );
 	CHECK_FCT( fd_dict_search( fd_g_config->cnf_dict, DICT_AVP, AVP_BY_NAME, "SIP-Auth-Data-Item", &sip_dict.SIP_Auth_Data_Item, ENOENT) );
 	CHECK_FCT( fd_dict_search( fd_g_config->cnf_dict, DICT_AVP, AVP_BY_NAME, "SIP-Authorization", &sip_dict.SIP_Authorization, ENOENT) );
 	CHECK_FCT( fd_dict_search( fd_g_config->cnf_dict, DICT_AVP, AVP_BY_NAME, "SIP-Authenticate", &sip_dict.SIP_Authenticate, ENOENT) );
@@ -123,6 +126,9 @@ int as_entry(char * conffile)
 	CHECK_FCT( fd_dict_search( fd_g_config->cnf_dict, DICT_AVP, AVP_BY_NAME, "SIP-Server-URI", &sip_dict.SIP_Server_URI, ENOENT) );
 	CHECK_FCT( fd_dict_search( fd_g_config->cnf_dict, DICT_AVP, AVP_BY_NAME, "SIP-Method", &sip_dict.SIP_Method, ENOENT) );
 	CHECK_FCT( fd_dict_search( fd_g_config->cnf_dict, DICT_AVP, AVP_BY_NAME, "SIP-AOR", &sip_dict.SIP_AOR, ENOENT) );
+	CHECK_FCT( fd_dict_search( fd_g_config->cnf_dict, DICT_AVP, AVP_BY_NAME, "SIP-Deregistration-Reason", &sip_dict.SIP_Deregistration_Reason, ENOENT) );
+	CHECK_FCT( fd_dict_search( fd_g_config->cnf_dict, DICT_AVP, AVP_BY_NAME, "SIP-Reason-Code", &sip_dict.SIP_Reason_Code, ENOENT) );
+	CHECK_FCT( fd_dict_search( fd_g_config->cnf_dict, DICT_AVP, AVP_BY_NAME, "SIP-Reason-Info", &sip_dict.SIP_Reason_Info, ENOENT) );
 	CHECK_FCT( fd_dict_search( fd_g_config->cnf_dict, DICT_AVP, AVP_BY_NAME, "Digest-Realm", &sip_dict.Digest_Realm, ENOENT) );
 	CHECK_FCT( fd_dict_search( fd_g_config->cnf_dict, DICT_AVP, AVP_BY_NAME, "Digest-URI", &sip_dict.Digest_URI, ENOENT) );
 	CHECK_FCT( fd_dict_search( fd_g_config->cnf_dict, DICT_AVP, AVP_BY_NAME, "Digest-Nonce", &sip_dict.Digest_Nonce, ENOENT) );
@@ -162,6 +168,18 @@ int as_entry(char * conffile)
 		return 1;
 	
 	CHECK_FCT(fd_sess_handler_create(&ds_sess_hdl, free));
+	
+	//Creation of thread for Registration Termination	
+	if(pthread_create(&rtr_thread, NULL,rtr_socket, NULL))
+	{
+		TRACE_DEBUG(INFO,"Creation of thread failed, abort!");
+		return 1;
+	}
+		
+
+	
+	
+	
 	
 	return 0;
 }

@@ -19,6 +19,7 @@ SET( DIAM_SIP_SRC
 	libdiamsip.c
 	md5.c
 	multimediaauth.c
+	registrationtermination.c
 )
 
 # Compile as a module
