@@ -44,19 +44,21 @@ typedef struct sockaddr_in SOCKADDR_IN;
 typedef struct sockaddr SOCKADDR;
 
 //Procedure which always wait for data on socket 
-void *rtr_socket(void *arg)
+void *ppr_socket(void *arg)
 {
+	/*
 	SOCKET sock;
-	SOCKADDR_IN sin, csin;
-	struct rtrsipaor rtrsip;
-	int rcvbytes=0;
+    SOCKADDR_IN sin, csin;
+    struct rtrsipaor rtrsip;
+    int rcvbytes=0;
 	sock = socket(AF_INET, SOCK_STREAM, 0);
 	sin.sin_addr.s_addr = inet_addr("127.0.0.1");
-	sin.sin_family = AF_INET;
-	sin.sin_port = htons(PORT);
-	socklen_t sinsize = sizeof(csin);
+    sin.sin_family = AF_INET;
+    sin.sin_port = htons(PORT);
+    socklen_t sinsize = sizeof(csin);
 	int accepted=0;
 
+    
 	if(!bind(sock, (SOCKADDR*)&sin, sizeof(sin)))
 	{
 		if(listen(sock,1))
@@ -73,22 +75,25 @@ void *rtr_socket(void *arg)
 				
 				if(rcvbytes>-1)
 				{
-					//We received something, we can send an RTR
-					diamsip_RTR_cb(rtrsip);
+					//We received something, we can send an PPR
+					diamsip_PPR_cb(pprsip);
 				}
 			}
 		}
+		
+		
 	}
 	else
 		TRACE_DEBUG(INFO,"Can't create socket!");
-
+*/	
 	
 	pthread_exit(NULL);
 	
 }
-//Called to send a RTR
-int diamsip_RTR_cb(struct rtrsipaor structure)
+//Called to send a PPR
+int diamsip_PPR_cb(struct pprsipaor structure)
 {
+	/*
 	TRACE_ENTRY("%p", structure);
 	
 	int got_username=0;
@@ -119,7 +124,7 @@ int diamsip_RTR_cb(struct rtrsipaor structure)
 		got_streason=1;
 	
 	
-	TRACE_DEBUG(FULL,"Request for %d SIP_AOR to be deregistred.",num_aor);
+	TRACE_DEBUG(INFO,"We have %d SIP_AOR",num_aor);
 	
 	if((got_username + num_aor)==0)
 	{
@@ -156,13 +161,6 @@ int diamsip_RTR_cb(struct rtrsipaor structure)
 		CHECK_FCT( fd_msg_avp_add( message, MSG_BRW_FIRST_CHILD, avp ));
 	}
 	
-	//Add the Auth-Application-Id 
-	{
-		CHECK_FCT( fd_msg_avp_new ( sip_dict.Auth_Application_Id, 0, &avp ) );
-		value.i32 = 6;
-		CHECK_FCT( fd_msg_avp_setvalue ( avp, &value ) );
-		CHECK_FCT( fd_msg_avp_add ( message, MSG_BRW_LAST_CHILD, avp) );
-	}
 	
 	//Auth_Session_State
 	{
@@ -249,17 +247,16 @@ int diamsip_RTR_cb(struct rtrsipaor structure)
 		}
 	}
 	
-	//TODO:remove for debug
 	fd_msg_dump_walk(INFO,message);
 	CHECK_FCT( fd_msg_send( &message, NULL, NULL ));
-	
+	*/
 	return 0;
 }
 
-//Called when an RTA arrive
-int diamsip_RTA_cb( struct msg ** msg, struct avp * paramavp, struct session * sess, enum disp_action * act)
+//Called when an PPA arrive
+int diamsip_PPA_cb( struct msg ** msg, struct avp * paramavp, struct session * sess, enum disp_action * act)
 {
-	//TODO: RTA reception
+	//TODO: PPA reception
 /*
 	//TODO:remove unused variables
 	struct msg *ans, *qry;

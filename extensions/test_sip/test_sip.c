@@ -37,7 +37,12 @@
 
 #include"test_sip.h"
 
-
+struct disp_hdl * test_sip_MAR_hdl=NULL;
+struct disp_hdl * test_sip_LIR_hdl=NULL;
+struct disp_hdl * test_sip_UAR_hdl=NULL;
+struct disp_hdl * test_sip_SAR_hdl=NULL;
+struct disp_hdl * test_sip_PPA_hdl=NULL;
+struct disp_hdl * test_sip_RTA_hdl=NULL;
 
 struct disp_hdl * test_sip_MAA_hdl=NULL;
 struct disp_hdl * test_sip_LIA_hdl=NULL;
@@ -52,10 +57,11 @@ struct session_handler * ts_sess_hdl;
 
 //configuration stucture
 struct ts_conf * ts_conf=NULL;
-static struct ts_conf app_sip_conf;
+static struct ts_conf test_sip_conf;
+
 
 //dictionary of SIP
-struct test_sip_dict sip_dict;
+struct sip_dict sip_dict;
 
 int test_sip_default_cb( struct msg ** msg, struct avp * avp, struct session * sess, enum disp_action * act)
 {
@@ -64,14 +70,8 @@ int test_sip_default_cb( struct msg ** msg, struct avp * avp, struct session * s
 	return 0;
 }
 
-username = "awestfahl"
-password = "test"
-sip_aor = "sip:awestfahl@tera.ics.keio.ac.jp"
 
-#Destination information
-destination_realm = "freediameter.net"
-destination_sip = "sip:awestfahl@freediameter.net"
-
+/*
 void dump_config()
 {
 	TRACE_DEBUG(FULL,"***Configuration of TEST Diameter-SIP extension***");
@@ -82,7 +82,7 @@ void dump_config()
 	TRACE_DEBUG(FULL,"# destination_sip: *%s*",ts_conf->destination_sip);
 	TRACE_DEBUG(FULL,"***End of TEST Diameter-SIP configuration extension***");
 }
-
+*/
 static int ts_conf_init(void)
 {
 	ts_conf=&test_sip_conf;
@@ -93,15 +93,15 @@ static int ts_conf_init(void)
 }
 
 /* entry point */
-int as_entry(char * conffile)
+int ts_entry(char * conffile)
 {
 	TRACE_ENTRY("%p", conffile);
 	
 	struct dict_object * app=NULL;
 	struct disp_when data;
 	
-	/* Initialize configuration */
-	CHECK_FCT( ts_conf_init() );
+	/* Initialize configuration 
+	//CHECK_FCT( ts_conf_init() );
 	
 	
 	//We parse the configuration file
@@ -115,6 +115,8 @@ int as_entry(char * conffile)
 	
 	//We can dump the configuration extracted from app_sip.conf
 	dump_config();
+	*/
+	
 	
 	CHECK_FCT( fd_dict_search( fd_g_config->cnf_dict, DICT_APPLICATION, APPLICATION_BY_NAME, "Diameter Session Initiation Protocol (SIP) Application", &app, ENOENT) );
 	CHECK_FCT( fd_disp_app_support ( app, NULL, 1, 0 ) );
@@ -124,6 +126,9 @@ int as_entry(char * conffile)
 	//We set usefull AVPs 
 	CHECK_FCT( fd_dict_search( fd_g_config->cnf_dict, DICT_AVP, AVP_BY_NAME, "Auth-Session-State", &sip_dict.Auth_Session_State, ENOENT) );
 	CHECK_FCT( fd_dict_search( fd_g_config->cnf_dict, DICT_AVP, AVP_BY_NAME, "Auth-Application-Id", &sip_dict.Auth_Application_Id, ENOENT) );
+	CHECK_FCT( fd_dict_search( fd_g_config->cnf_dict, DICT_AVP, AVP_BY_NAME, "Destination-Host", &sip_dict.Destination_Host, ENOENT) );
+	CHECK_FCT( fd_dict_search( fd_g_config->cnf_dict, DICT_AVP, AVP_BY_NAME, "Destination-Realm", &sip_dict.Destination_Realm, ENOENT) );
+	CHECK_FCT( fd_dict_search( fd_g_config->cnf_dict, DICT_AVP, AVP_BY_NAME, "Session-Id", &sip_dict.Session_Id, ENOENT) );
 	CHECK_FCT( fd_dict_search( fd_g_config->cnf_dict, DICT_AVP, AVP_BY_NAME, "SIP-Auth-Data-Item", &sip_dict.SIP_Auth_Data_Item, ENOENT) );
 	CHECK_FCT( fd_dict_search( fd_g_config->cnf_dict, DICT_AVP, AVP_BY_NAME, "SIP-Authorization", &sip_dict.SIP_Authorization, ENOENT) );
 	CHECK_FCT( fd_dict_search( fd_g_config->cnf_dict, DICT_AVP, AVP_BY_NAME, "SIP-Authenticate", &sip_dict.SIP_Authenticate, ENOENT) );
@@ -133,6 +138,9 @@ int as_entry(char * conffile)
 	CHECK_FCT( fd_dict_search( fd_g_config->cnf_dict, DICT_AVP, AVP_BY_NAME, "SIP-Server-URI", &sip_dict.SIP_Server_URI, ENOENT) );
 	CHECK_FCT( fd_dict_search( fd_g_config->cnf_dict, DICT_AVP, AVP_BY_NAME, "SIP-Method", &sip_dict.SIP_Method, ENOENT) );
 	CHECK_FCT( fd_dict_search( fd_g_config->cnf_dict, DICT_AVP, AVP_BY_NAME, "SIP-AOR", &sip_dict.SIP_AOR, ENOENT) );
+	CHECK_FCT( fd_dict_search( fd_g_config->cnf_dict, DICT_AVP, AVP_BY_NAME, "SIP-Deregistration-Reason", &sip_dict.SIP_Deregistration_Reason, ENOENT) );
+	CHECK_FCT( fd_dict_search( fd_g_config->cnf_dict, DICT_AVP, AVP_BY_NAME, "SIP-Reason-Code", &sip_dict.SIP_Reason_Code, ENOENT) );
+	CHECK_FCT( fd_dict_search( fd_g_config->cnf_dict, DICT_AVP, AVP_BY_NAME, "SIP-Reason-Info", &sip_dict.SIP_Reason_Info, ENOENT) );
 	CHECK_FCT( fd_dict_search( fd_g_config->cnf_dict, DICT_AVP, AVP_BY_NAME, "Digest-Realm", &sip_dict.Digest_Realm, ENOENT) );
 	CHECK_FCT( fd_dict_search( fd_g_config->cnf_dict, DICT_AVP, AVP_BY_NAME, "Digest-URI", &sip_dict.Digest_URI, ENOENT) );
 	CHECK_FCT( fd_dict_search( fd_g_config->cnf_dict, DICT_AVP, AVP_BY_NAME, "Digest-Nonce", &sip_dict.Digest_Nonce, ENOENT) );
@@ -156,23 +164,31 @@ int as_entry(char * conffile)
 	
 	
 	//**Command Codes
+	/**/
 	//MAR
-	CHECK_FCT( fd_dict_search( fd_g_config->cnf_dict, DICT_COMMAND, CMD_BY_NAME, "Multimedia-Auth-Request", &data.command, ENOENT) );
-	CHECK_FCT( fd_disp_register( test_sip_MAR_cb, DISP_HOW_CC, &data, &test_sip_MAR_hdl ) );
+	CHECK_FCT( fd_dict_search( fd_g_config->cnf_dict, DICT_COMMAND, CMD_BY_NAME, "Multimedia-Auth-Answer", &data.command, ENOENT) );
+	CHECK_FCT( fd_disp_register( test_sip_MAA_cb, DISP_HOW_CC, &data, &test_sip_MAA_hdl ) );
+	
 	//RTR
 	CHECK_FCT( fd_dict_search( fd_g_config->cnf_dict, DICT_COMMAND, CMD_BY_NAME, "Registration-Termination-Request", &data.command, ENOENT) );
-	CHECK_FCT( fd_disp_register( test_sip_RTR_cb, DISP_HOW_CC, &data, &test_sip_RTA_hdl ) );
+	CHECK_FCT( fd_disp_register( test_sip_RTR_cb, DISP_HOW_CC, &data, &test_sip_RTR_hdl ) );
+	
+	//LIA
+	CHECK_FCT( fd_dict_search( fd_g_config->cnf_dict, DICT_COMMAND, CMD_BY_NAME, "Location-Info-Answer", &data.command, ENOENT) );
+	CHECK_FCT( fd_disp_register( test_sip_LIA_cb, DISP_HOW_CC, &data, &test_sip_LIA_hdl ) );
 	
 	
 	//Callback for unexpected messages
 	CHECK_FCT( fd_disp_register( test_sip_default_cb, DISP_HOW_APPID, &data, &test_sip_default_hdl ) );
 	
-	
+	/*
 	//We start database connection
 	if(start_mysql_connection())
 		return 1;
+	*/
 	
-	CHECK_FCT(fd_sess_handler_create(&ds_sess_hdl, free));
+	CHECK_FCT(fd_sess_handler_create(&ts_sess_hdl, free));
+	CHECK_FCT( fd_sig_register(30, "test_sip", (void *)test_sip_LIR_cb ) );
 	
 	return 0;
 }
@@ -180,14 +196,14 @@ int as_entry(char * conffile)
 //Cleanup callback
 void fd_ext_fini(void)
 {
-	
+	/*
 	if (test_sip_MAR_cb) {
 		(void) fd_disp_unregister(&test_sip_MAR_hdl);
 		CHECK_FCT_DO( fd_sess_handler_destroy(&ds_sess_hdl),return);
 	}
-	
+	*/
 	//We close database connection
-	close_mysql_connection();
+	//close_mysql_connection();
 	
 
 	

@@ -56,7 +56,7 @@ int diamsip_MAR_cb( struct msg ** msg, struct avp * paramavp, struct session * s
 	struct ds_nonce *storednonce=NULL;
 	
 	
-	TRACE_ENTRY("%p %p %p %p", msg, avp, sess, act);
+	TRACE_ENTRY("%p %p %p %p", msg, paramavp, sess, act);
 	
 	if (msg == NULL)
 		return EINVAL;
@@ -222,14 +222,14 @@ int diamsip_MAR_cb( struct msg ** msg, struct avp * paramavp, struct session * s
 				int sipurilen=0;
 
 				//We allocate the double size of SIP-URI because at worst it can be all quotes
-				sipuri=malloc(avphdr->avp_value->os.len*2+1);
+				CHECK_MALLOC(sipuri=malloc(avphdr->avp_value->os.len*2+1));
 				//We purify SIP-URI not to have forbidden characters
 				sipurilen=mysql_real_escape_string(conn, sipuri, (const char *)avphdr->avp_value->os.data, avphdr->avp_value->os.len);
 				
 				
 				//We get the SIP-URI assignated to the user
 				querylen=SQL_GETSIPURI_LEN + usernamelen;
-				query = malloc(querylen+2);
+				CHECK_MALLOC(query = malloc(querylen+2));
 				snprintf(query, querylen+1, SQL_GETSIPURI, username);
 
 				//We make the query

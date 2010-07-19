@@ -8,6 +8,9 @@ INCLUDE_DIRECTORIES(${MySQL_INCLUDE_DIR})
 SET( TEST_SIP_SRC
 	test_sip.c
 	test_sip.h
+	multimediaauth.c
+	locationinfo.c
+	registrationtermination.c
 )
 
 # Compile as a module

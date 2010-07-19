@@ -52,6 +52,8 @@
 #define MODE_DSSERVER	0x1
 #define	MODE_SL	0x2
 
+//Redirect_Host_Usage
+#define ALL_USER	6
 
 /* The module configuration */
 struct as_conf {
@@ -61,7 +63,8 @@ struct as_conf {
 	char * mysql_password;
 	char * mysql_database;
 	char * mysql_server;
-	uint16_t  mysql_port;
+	char mysql_prefix[10]; //default: as_
+	uint16_t  mysql_port; //if 0, default port will be used
 	
 };
 extern struct as_conf * as_conf;
@@ -77,9 +80,14 @@ extern MYSQL *conn;
 void calc_md5(char *buffer, char * data);
 void clear_digest(uint8_t * digest, char * readable_digest, int digestlength);
 struct avp_hdr * walk_digest(struct avp *avp, int avp_code);
+
+
+//MySQL part
 int start_mysql_connection();
 void request_mysql(char *query);
 void close_mysql_connection();
+int get_diameter_uri(const unsigned char *sip_aor, const size_t sipaorlen, char ** diameter_uri, size_t *diameterurilen);
+
 
 void DigestCalcHA1(char * pszAlg,char * pszUserName,char * pszRealm,char * pszPassword,char * pszNonce,char * pszCNonce,HASHHEX SessionKey);
 void DigestCalcResponse(HASHHEX HA1,char * pszNonce,char * pszNonceCount,char * pszCNonce,char * pszQop,char * pszMethod,char * pszDigestUri,HASHHEX HEntity,HASHHEX Response);
@@ -89,6 +97,7 @@ int fd_avp_search_avp ( struct avp * groupedavp, struct dict_object * what, stru
 
 //thread procedure
 void *rtr_socket(void *);
+void *ppr_socket(void *);
 
 struct rtrsipaor
 {
@@ -100,7 +109,17 @@ struct rtrsipaor
 	char desthost[200];
 	int reason;
 };
+struct pprsipaor
+{
+	char username[200];
+	char label1[200];
+	char value1[200];
+	char label2[200];
+	char value2[200];
+	char desthost[200];  
+};
 int diamsip_RTR_cb(struct rtrsipaor structure);
+int diamsip_PPR_cb(struct pprsipaor structure);
 #define PORT 666 //TODO:put in conf file
 
 int ds_entry();
@@ -108,11 +127,21 @@ void fd_ext_fini(void);
 int diamsip_default_cb( struct msg ** msg, struct avp * avp, struct session * sess, enum disp_action * act);
 int diamsip_MAR_cb( struct msg ** msg, struct avp * avp, struct session * sess, enum disp_action * act);
 int diamsip_RTA_cb( struct msg ** msg, struct avp * avp, struct session * sess, enum disp_action * act);
+int diamsip_PPA_cb( struct msg ** msg, struct avp * avp, struct session * sess, enum disp_action * act);
+int diamsip_LIR_cb( struct msg ** msg, struct avp * avp, struct session * sess, enum disp_action * act);
+
+//Suscriber Locator
+int diamsipSL_LIR_cb( struct msg ** msg, struct avp * paramavp, struct session * sess, enum disp_action * act);
+//int diamsipSL_SAR_cb( struct msg ** msg, struct avp * paramavp, struct session * sess, enum disp_action * act);
+
 #define SQL_GETPASSWORD "SELECT `password` FROM ds_users WHERE `username` ='%s'"
 #define SQL_GETPASSWORD_LEN 52
 
-#define SQL_GETSIPURI "SELECT `sip_server_uri` FROM ds_users WHERE `username` ='%s'"
+#define SQL_GETSIPURI  "SELECT `sip_server_uri` FROM ds_users WHERE `username` ='%s'"
 #define SQL_GETSIPURI_LEN 60
+
+#define SQL_GETDIAMURI "SELECT `diameter_uri` FROM sl_sip_aor_map WHERE `sip_aor` ='%s'"
+#define SQL_GETDIAMURI_LEN 61
 
 #define SQL_SETSIPURI "UPDATE ds_users SET `sip_server_uri`='%s', `flag`=1 WHERE `username` ='%s'"
 #define SQL_SETSIPURI_LEN 74
@@ -139,6 +168,8 @@ struct diamsip_dict{
 	struct dict_object * Destination_Host;
 	struct dict_object * User_Name;
 	struct dict_object * Session_Id;
+	struct dict_object * Redirect_Host;
+	struct dict_object * Redirect_Host_Usage;
 	struct dict_object * SIP_Auth_Data_Item;
 	struct dict_object * SIP_Authorization;
 	struct dict_object * SIP_Authenticate;

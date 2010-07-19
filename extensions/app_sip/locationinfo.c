@@ -33,69 +33,82 @@
 * TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF   *
 * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.								 *
 *********************************************************************************************************/
-#include <freeDiameter/extension.h>
-#include <sys/time.h>
-#include <stdint.h>
-#include <stdlib.h>
-#include <stdio.h>
-#include <gcrypt.h>
-#include <string.h>
-#include <mysql.h>
+#include "diamsip.h"
 
-/* The module configuration */
-struct ts_conf {
-	char * destination_sip; 
-	char * destination_realm;
-	char * username;
-	char * password;
-	char * sip_aor;
-};
-extern struct ts_conf * ts_conf;
 
-//Storage for some usefull AVPs
-struct sip_dict{
-	struct dict_object * Auth_Session_State;
-	struct dict_object * Auth_Application_Id;
-	struct dict_object * Destination_Host;
-	struct dict_object * Destination_Realm;
-	struct dict_object * User_Name;
-	struct dict_object * Session_Id;
-	struct dict_object * SIP_Auth_Data_Item;
-	struct dict_object * SIP_Authorization;
-	struct dict_object * SIP_Authenticate;
-	struct dict_object * SIP_Number_Auth_Items;	
-	struct dict_object * SIP_Authentication_Scheme;
-	struct dict_object * SIP_Authentication_Info;	
-	struct dict_object * SIP_Server_URI;
-	struct dict_object * SIP_Method;
-	struct dict_object * SIP_AOR;
-	struct dict_object * SIP_Deregistration_Reason;
-	struct dict_object * SIP_Reason_Code;
-	struct dict_object * SIP_Reason_Info;
-	struct dict_object * Digest_URI;		
-	struct dict_object * Digest_Nonce;
-	struct dict_object * Digest_Nonce_Count;
-	struct dict_object * Digest_CNonce;		
-	struct dict_object * Digest_Realm;		
-	struct dict_object * Digest_Response;	
-	struct dict_object * Digest_Response_Auth;	
-	struct dict_object * Digest_Username;	
-	struct dict_object * Digest_Method;
-	struct dict_object * Digest_QOP;	
-	struct dict_object * Digest_Algorithm;
-	struct dict_object * Digest_HA1;
-};
+int diamsip_LIR_cb( struct msg ** msg, struct avp * paramavp, struct session * sess, enum disp_action * act)
+{
+	TRACE_ENTRY("%p %p %p %p", msg, paramavp, sess, act);
+	
+	struct msg *ans, *qry;
+	struct avp *avp, *groupedavp;
+	struct avp_hdr *avphdr;
+	union avp_value value;
+	
+	//Result_Code to return in the answer
+	char result[55];
+	
+	if (msg == NULL)
+		return EINVAL;
 
-extern  struct sip_dict  sip_dict;
-extern struct session_handler * ts_sess_hdl;
-
-int ts_entry();
-void fd_ext_fini(void);
-
-int test_sip_LIR_cb();
-
-int test_sip_default_cb( struct msg ** msg, struct avp * avp, struct session * sess, enum disp_action * act);
-int test_sip_MAA_cb( struct msg ** msg, struct avp * avp, struct session * sess, enum disp_action * act);
-int test_sip_RTR_cb( struct msg ** msg, struct avp * avp, struct session * sess, enum disp_action * act);
-int test_sip_LIA_cb( struct msg ** msg, struct avp * avp, struct session * sess, enum disp_action * act);
-
+	
+	// Create answer header 
+	qry = *msg;
+	CHECK_FCT( fd_msg_new_answer_from_req ( fd_g_config->cnf_dict, msg, 0 ) );
+	ans = *msg;
+	
+	// Add the Auth-Session-State AVP 
+	{
+		
+		CHECK_FCT( fd_msg_search_avp ( qry, sip_dict.Auth_Session_State, &avp) );
+		CHECK_FCT( fd_msg_avp_hdr( avp, &avphdr )  );
+		
+		CHECK_FCT( fd_msg_avp_new ( sip_dict.Auth_Session_State, 0, &avp ) );
+		CHECK_FCT( fd_msg_avp_setvalue( avp, avphdr->avp_value ) );
+		CHECK_FCT( fd_msg_avp_add( ans, MSG_BRW_LAST_CHILD, avp ) );
+	}
+	
+	//TODO: wait for answer from authors to clear how to find SIP server!
+	//Add a SIP_Server_URI
+	{
+		CHECK_FCT( fd_msg_search_avp ( qry, sip_dict.SIP_AOR, &avp) );
+		CHECK_FCT( fd_msg_avp_hdr( avp, &avphdr )  );
+		
+		//We extract Realm from SIP_AOR
+		char *realm=NULL;
+		
+		
+		realm = strtok( (char *)(avphdr->avp_value->os.data), "@" );
+		realm = strtok( NULL, "@" );
+		
+		if(realm!=NULL)
+		{
+			CHECK_FCT( fd_msg_avp_new ( sip_dict.SIP_Server_URI, 0, &avp ) );
+			value.os.data=(unsigned char *)realm;
+			value.os.len=strlen(realm);
+			CHECK_FCT( fd_msg_avp_setvalue ( avp, &value ) );
+			CHECK_FCT( fd_msg_avp_add ( ans, MSG_BRW_LAST_CHILD, avp) );
+		}
+		else
+		{
+			strcpy(result,"DIAMETER_UNABLE_TO_COMPLY");
+			goto out;
+		}
+	}
+	
+	
+	
+	
+out:
+	CHECK_FCT( fd_msg_rescode_set( ans, result, NULL, NULL, 1 ) );
+	
+	//DEBUG
+	fd_msg_dump_walk(INFO,qry);
+	fd_msg_dump_walk(INFO,ans);
+	
+	CHECK_FCT( fd_msg_send( msg, NULL, NULL ));
+	
+	
+	
+	return 0;
+}

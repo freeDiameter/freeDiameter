@@ -33,7 +33,7 @@
 * TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF   *
 * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.								 *
 *********************************************************************************************************/
-#include <mysql.h>
+//#include <mysql.h>
 #include "diamsip.h"
 
 MYSQL *conn;
@@ -184,6 +184,86 @@ void close_mysql_connection()
 	mysql_close(conn);
 	
 }
+
+int get_diameter_uri(const unsigned char *sip_aor, const size_t sipaorlen, char ** diameter_uri, size_t *diameterurilen)
+{
+  CHECK_PARAMS(sip_aor && sipaorlen);
+  
+  size_t querylen, sipaorpurelen;
+  char *query, *sipaor_pure;
+  int not_found=1;
+  
+  
+  
+      
+  //a sip aor must begin by "sip:" or "sips:" so it must at least be longer than 4 chars
+  if(sipaorlen<5)
+    return 2;
+  
+  //NOTE: each method has to purify sip_aor itself. You must remove quotes or special chars for security
+  
+  switch(as_conf->datasource)
+  {
+    //MySQL
+    case ASMYSQL:
+
+      querylen=SQL_GETDIAMURI_LEN + sipaorlen;
+      
+	  
+	  //We allocate the double size of SIP-URI because at worst it can be all quotes
+	  CHECK_MALLOC(sipaor_pure=malloc(sipaorlen*2+1));
+	  //We purify SIP-URI not to have forbidden characters
+	  sipaorpurelen=mysql_real_escape_string(conn, sipaor_pure, (const char *)sip_aor, sipaorlen);
+	  
+	  
+      query = malloc(querylen+sipaorpurelen+ 2);
+	  snprintf(query, querylen+1, SQL_GETDIAMURI, sipaor_pure);
+      
+      MYSQL_RES *res;
+      MYSQL_ROW row;
+      
+
+      //We make the query	
+      request_mysql(query);
+      res=mysql_use_result(conn);
+      if(res==NULL)
+      {
+		//We couldn't make the request
+		diameter_uri=NULL;
+		return 2;
+      }
+      TRACE_DEBUG(INFO,"***********%d|%d****************\n%s\n*********************************",sipaorlen,sipaorpurelen,query);
+      while ((row = mysql_fetch_row(res)) != NULL)
+      {
+		*diameterurilen=strlen(row[0]);
+		if(*diameterurilen>0)
+		{
+			CHECK_MALLOC(*diameter_uri=malloc(*diameterurilen+1));
+			strcpy(*diameter_uri,row[0]);
+			not_found=0;
+			break;
+		}
+      }
+      mysql_free_result(res);
+      free(query);
+	  free(sipaor_pure);
+      break;
+      
+    default:
+      
+      //We must never go here, if so, we must stop diameter_sip
+      diameter_uri=NULL;
+      return 2;
+      
+      break;
+  }
+  
+  //0 if it was found
+  return not_found;
+  
+}
+
+
 /*
 void nonce_add_element(char * nonce)
 {

@@ -35,12 +35,17 @@
 *********************************************************************************************************/
 #include "diamsip.h"
 
+//Diameter-SIP server
 struct disp_hdl * diamsip_MAR_hdl=NULL;
 struct disp_hdl * diamsip_LIR_hdl=NULL;
 struct disp_hdl * diamsip_UAR_hdl=NULL;
 struct disp_hdl * diamsip_SAR_hdl=NULL;
 struct disp_hdl * diamsip_PPA_hdl=NULL;
 struct disp_hdl * diamsip_RTA_hdl=NULL;
+
+//Suscriber Locator
+struct disp_hdl * diamsipSL_LIR_hdl=NULL;
+
 
 
 struct disp_hdl * diamsip_default_hdl=NULL;
@@ -70,6 +75,7 @@ void dump_config()
 	TRACE_DEBUG(FULL,"# mysql_database: *%s*",as_conf->mysql_database);
 	TRACE_DEBUG(FULL,"# mysql_server: *%s*",as_conf->mysql_server);
 	TRACE_DEBUG(FULL,"# mysql_port: *%d*",as_conf->mysql_port);
+	TRACE_DEBUG(FULL,"# mysql_port: *%d*",as_conf->mysql_prefix);
 	TRACE_DEBUG(FULL,"***End of Diameter-SIP configuration extension***");
 }
 
@@ -89,7 +95,7 @@ int as_entry(char * conffile)
 	
 	struct dict_object * app=NULL;
 	struct disp_when data;
-	pthread_t rtr_thread;
+	pthread_t rtr_thread, ppr_thread;
 	
 	/* Initialize configuration */
 	CHECK_FCT( as_conf_init() );
@@ -104,6 +110,9 @@ int as_entry(char * conffile)
 		TRACE_DEBUG(INFO, "We need a configuration file for Diameter-SIP extension. See doc/ for an example.");
 	}
 	
+	//TODO: replace by configuration file!!
+	strcpy(as_conf->mysql_prefix,"as_");
+	
 	//We can dump the configuration extracted from app_sip.conf
 	//dump_config();
 	
@@ -117,6 +126,8 @@ int as_entry(char * conffile)
 	CHECK_FCT( fd_dict_search( fd_g_config->cnf_dict, DICT_AVP, AVP_BY_NAME, "Auth-Application-Id", &sip_dict.Auth_Application_Id, ENOENT) );
 	CHECK_FCT( fd_dict_search( fd_g_config->cnf_dict, DICT_AVP, AVP_BY_NAME, "Destination-Host", &sip_dict.Destination_Host, ENOENT) );
 	CHECK_FCT( fd_dict_search( fd_g_config->cnf_dict, DICT_AVP, AVP_BY_NAME, "Session-Id", &sip_dict.Session_Id, ENOENT) );
+	CHECK_FCT( fd_dict_search( fd_g_config->cnf_dict, DICT_AVP, AVP_BY_NAME, "Redirect-Host", &sip_dict.Redirect_Host, ENOENT) );
+	CHECK_FCT( fd_dict_search( fd_g_config->cnf_dict, DICT_AVP, AVP_BY_NAME, "Redirect-Host-Usage", &sip_dict.Redirect_Host_Usage, ENOENT) );
 	CHECK_FCT( fd_dict_search( fd_g_config->cnf_dict, DICT_AVP, AVP_BY_NAME, "SIP-Auth-Data-Item", &sip_dict.SIP_Auth_Data_Item, ENOENT) );
 	CHECK_FCT( fd_dict_search( fd_g_config->cnf_dict, DICT_AVP, AVP_BY_NAME, "SIP-Authorization", &sip_dict.SIP_Authorization, ENOENT) );
 	CHECK_FCT( fd_dict_search( fd_g_config->cnf_dict, DICT_AVP, AVP_BY_NAME, "SIP-Authenticate", &sip_dict.SIP_Authenticate, ENOENT) );
@@ -142,7 +153,6 @@ int as_entry(char * conffile)
 	CHECK_FCT( fd_dict_search( fd_g_config->cnf_dict, DICT_AVP, AVP_BY_NAME, "Digest-Algorithm", &sip_dict.Digest_Algorithm, ENOENT) );
 	CHECK_FCT( fd_dict_search( fd_g_config->cnf_dict, DICT_AVP, AVP_BY_NAME, "Digest-QoP", &sip_dict.Digest_QOP, ENOENT) );
 	CHECK_FCT( fd_dict_search( fd_g_config->cnf_dict, DICT_AVP, AVP_BY_NAME, "User-Name", &sip_dict.User_Name, ENOENT) );
-	
 	CHECK_FCT( fd_dict_search( fd_g_config->cnf_dict, DICT_AVP, AVP_BY_NAME, "Digest-HA1", &sip_dict.Digest_HA1, ENOENT) );
 	
 	
@@ -150,22 +160,35 @@ int as_entry(char * conffile)
 	memset(&data, 0, sizeof(data));
 	CHECK_FCT( fd_dict_search( fd_g_config->cnf_dict, DICT_APPLICATION, APPLICATION_BY_NAME, "Diameter Session Initiation Protocol (SIP) Application", &data.app, ENOENT) );
 	
-	
-	//**Command Codes
-	//MAR
-	CHECK_FCT( fd_dict_search( fd_g_config->cnf_dict, DICT_COMMAND, CMD_BY_NAME, "Multimedia-Auth-Request", &data.command, ENOENT) );
-	CHECK_FCT( fd_disp_register( diamsip_MAR_cb, DISP_HOW_CC, &data, &diamsip_MAR_hdl ) );
-	//RTA
-	CHECK_FCT( fd_dict_search( fd_g_config->cnf_dict, DICT_COMMAND, CMD_BY_NAME, "Registration-Termination-Answer", &data.command, ENOENT) );
-	CHECK_FCT( fd_disp_register( diamsip_RTA_cb, DISP_HOW_CC, &data, &diamsip_RTA_hdl ) );
-	
+	if(as_conf->mode==1)
+	{
+	  //**Command Codes
+	  //MAR
+	  CHECK_FCT( fd_dict_search( fd_g_config->cnf_dict, DICT_COMMAND, CMD_BY_NAME, "Multimedia-Auth-Request", &data.command, ENOENT) );
+	  CHECK_FCT( fd_disp_register( diamsip_MAR_cb, DISP_HOW_CC, &data, &diamsip_MAR_hdl ) );
+	  //RTA
+	  CHECK_FCT( fd_dict_search( fd_g_config->cnf_dict, DICT_COMMAND, CMD_BY_NAME, "Registration-Termination-Answer", &data.command, ENOENT) );
+	  CHECK_FCT( fd_disp_register( diamsip_RTA_cb, DISP_HOW_CC, &data, &diamsip_RTA_hdl ) );
+	  //PPA
+	  CHECK_FCT( fd_dict_search( fd_g_config->cnf_dict, DICT_COMMAND, CMD_BY_NAME, "Push-Profile-Answer", &data.command, ENOENT) );
+	  CHECK_FCT( fd_disp_register( diamsip_PPA_cb, DISP_HOW_CC, &data, &diamsip_PPA_hdl ) );
+	  //LIR
+	  CHECK_FCT( fd_dict_search( fd_g_config->cnf_dict, DICT_COMMAND, CMD_BY_NAME, "Location-Info-Request", &data.command, ENOENT) );
+	  CHECK_FCT( fd_disp_register( diamsip_LIR_cb, DISP_HOW_CC, &data, &diamsip_LIR_hdl ) );
+	}
+	if(as_conf->mode==2)
+	{
+	  //LIR
+	  CHECK_FCT( fd_dict_search( fd_g_config->cnf_dict, DICT_COMMAND, CMD_BY_NAME, "Location-Info-Request", &data.command, ENOENT) );
+	  CHECK_FCT( fd_disp_register( diamsipSL_LIR_cb, DISP_HOW_CC, &data, &diamsipSL_LIR_hdl ) );
+	}
 	//Callback for unexpected messages
 	CHECK_FCT( fd_disp_register( diamsip_default_cb, DISP_HOW_APPID, &data, &diamsip_default_hdl ) );
 	
 	
 	//We start database connection
 	if(start_mysql_connection())
-		return 1;
+		return EINVAL;
 	
 	CHECK_FCT(fd_sess_handler_create(&ds_sess_hdl, free));
 	
@@ -173,7 +196,13 @@ int as_entry(char * conffile)
 	if(pthread_create(&rtr_thread, NULL,rtr_socket, NULL))
 	{
 		TRACE_DEBUG(INFO,"Creation of thread failed, abort!");
-		return 1;
+		return EINVAL;
+	}
+	//Creation of thread for Push Profile	
+	if(pthread_create(&ppr_thread, NULL,ppr_socket, NULL))
+	{
+		TRACE_DEBUG(INFO,"Creation of thread failed, abort!");
+		return EINVAL;
 	}
 		
 
@@ -187,7 +216,7 @@ int as_entry(char * conffile)
 //Cleanup callback
 void fd_ext_fini(void)
 {
-	
+	//TODO:unregister other callbacks
 	
 	(void) fd_disp_unregister(&diamsip_MAR_hdl);
 	CHECK_FCT_DO( fd_sess_handler_destroy(&ds_sess_hdl),return);

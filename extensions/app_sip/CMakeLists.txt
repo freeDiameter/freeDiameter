@@ -20,6 +20,9 @@ SET( DIAM_SIP_SRC
 	md5.c
 	multimediaauth.c
 	registrationtermination.c
+	pushprofile.c
+	locationinfo.c
+	locationinfosl.c
 )
 
 # Compile as a module
