@@ -1,0 +1,10 @@
+#### a sample configuration file for EAP-TLS
+
+#Certificate and Private key files
+#Cred = "<Path to certificate>" : "<Path to private Key>";
+
+#CA file
+#CA = "<Path to CA file>";
+
+#CRL file
+#CRL = "<Path to CRL file>";

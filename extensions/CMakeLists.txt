@@ -63,7 +63,10 @@ OPTION(BUILD_APP_SIP "Build app_sip? (Authentication and Authorization for Diame
 	   SUBDIRS(app_sip)
 	ENDIF (BUILD_APP_SIP)
 
-
+OPTION(BUILD_APP_DIAMEAP "Build app_diameap? (Diameter EAP Application - RFC 4072 )" OFF)
+	IF (BUILD_APP_DIAMEAP)
+	   SUBDIRS(app_diameap)
+	ENDIF (BUILD_APP_DIAMEAP)
 
 ####
 # Routing extensions
