@@ -71,7 +71,6 @@
  *    - fd_cnx_getid : retrieve a descriptive string for the connection (for debug)
  *    - fd_cnx_getremoteid : identification of the remote peer (IP address or fqdn)
  *    - fd_cnx_getcred : get the remote peer TLS credentials, after handshake
- *    - fd_cnx_getendpoints : get the endpoints (IP) of the connection
  *
  * 4) End
  *    - fd_cnx_destroy

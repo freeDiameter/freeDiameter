@@ -1441,30 +1441,6 @@ int main(int argc, char *argv[])
 		CHECK( 1, (cert_list_size > 0) ? 1 : 0 );
 		/* We could also verify that the cert_list really contains the client_cert and ca certificates */
 		
-		#if 0 /* The following are broken since we filter local addresses */
-		/* fd_cnx_getendpoints */
-		fd_list_init(&local, NULL);		
-		fd_list_init(&remote, NULL);
-		
-		/* Check the function provides the LL endpoint(s) */
-		CHECK( 0, fd_cnx_getendpoints(server_side, &local, &remote) );
-		CHECK( 0, fd_ep_filter( &local, EP_FL_LL ) );
-		CHECK( 0, fd_ep_filter( &remote, EP_FL_LL ) );
-		CHECK( 0, FD_IS_LIST_EMPTY(&local) ? 1 : 0 );
-		CHECK( 0, FD_IS_LIST_EMPTY(&remote) ? 1 : 0 );
-		CHECK( 0, fd_ep_filter( &local, 0 ) );
-		CHECK( 0, fd_ep_filter( &remote, 0 ) );
-		
-		/* Check the function provides 1 primary endpoint */
-		CHECK( 0, fd_cnx_getendpoints(server_side, &local, &remote) );
-		CHECK( 0, fd_ep_filter( &local, EP_FL_PRIMARY ) );
-		CHECK( 0, fd_ep_filter( &remote, EP_FL_PRIMARY ) );
-		CHECK( 0, FD_IS_LIST_EMPTY(&local) ? 1 : 0 );
-		CHECK( 0, FD_IS_LIST_EMPTY(&remote) ? 1 : 0 );
-		CHECK( &local, local.next->next );
-		CHECK( &remote, remote.next->next );
-		#endif 
-		
 		/* fd_cnx_getremoteid */
 		str = fd_cnx_getremoteid(server_side);
 		CHECK( 1, str ? 1 : 0 );
@@ -1556,31 +1532,6 @@ int main(int argc, char *argv[])
 		CHECK( 0, fd_cnx_getcred(server_side, &cert_list, &cert_list_size) );
 		CHECK( 1, (cert_list_size > 0) ? 1 : 0 );
 		/* We could also verify that the cert_list really contains the client_cert and ca certificates */
-		
-
-		#if 0 /* The following are broken since we filter local addresses */
-		/* fd_cnx_getendpoints */
-		fd_list_init(&local, NULL);		
-		fd_list_init(&remote, NULL);
-		
-		/* Check the function provides the LL endpoint(s) */
-		CHECK( 0, fd_cnx_getendpoints(server_side, &local, &remote) );
-		CHECK( 0, fd_ep_filter( &local, EP_FL_LL ) );
-		CHECK( 0, fd_ep_filter( &remote, EP_FL_LL ) );
-		CHECK( 0, FD_IS_LIST_EMPTY(&local) ? 1 : 0 );
-		CHECK( 0, FD_IS_LIST_EMPTY(&remote) ? 1 : 0 );
-		CHECK( 0, fd_ep_filter( &local, 0 ) );
-		CHECK( 0, fd_ep_filter( &remote, 0 ) );
-		
-		/* Check the function provides 1 primary endpoint */
-		CHECK( 0, fd_cnx_getendpoints(server_side, &local, &remote) );
-		CHECK( 0, fd_ep_filter( &local, EP_FL_PRIMARY ) );
-		CHECK( 0, fd_ep_filter( &remote, EP_FL_PRIMARY ) );
-		CHECK( 0, FD_IS_LIST_EMPTY(&local) ? 1 : 0 );
-		CHECK( 0, FD_IS_LIST_EMPTY(&remote) ? 1 : 0 );
-		CHECK( &local, local.next->next );
-		CHECK( &remote, remote.next->next );
-		#endif 
 		
 		/* fd_cnx_getremoteid */
 		str = fd_cnx_getremoteid(server_side);
