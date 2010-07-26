@@ -177,7 +177,7 @@ static int nonce_add_element(char * nonce, size_t noncelen,char * sid, size_t si
 	
 	return 0;
 }
-
+/*
 static void nonce_del_element(char * nonce, struct rgwp_config *state)
 {
 	struct fd_list * li;
@@ -198,14 +198,14 @@ static void nonce_del_element(char * nonce, struct rgwp_config *state)
 		}
 	}
 }
-
+*/
 //Retrieve sid from nonce
 static char * nonce_get_sid(char * nonce, size_t noncelen, size_t * sidlen, struct rgwp_config *state)
 {
 	struct fd_list * li;
 	char *sid=NULL;
 	
-	CHECK_PARAMS_DO(nonce && state && noncelen && sidlen, return);
+	CHECK_PARAMS_DO(nonce && state && noncelen && sidlen, return NULL);
 	*sidlen=0;
 	
 	//**Start mutex
@@ -343,7 +343,6 @@ static int sip_rad_req( struct rgwp_config * cs, struct session ** session, stru
 	char * sid = NULL;
 	char * un=NULL;
 	size_t  un_len;
-	uint32_t status_type;
 	size_t nattr_used = 0;
 	struct avp *auth_data=NULL, *auth=NULL, *avp = NULL;
 	union avp_value value;
@@ -467,10 +466,10 @@ static int sip_rad_req( struct rgwp_config * cs, struct session ** session, stru
 	}
 	if (i == 0) {
 		/* Not found in the User-Name => we use the local domain of this gateway */
-		value.os.data = fd_g_config->cnf_diamrlm;
+		value.os.data = (unsigned char *)fd_g_config->cnf_diamrlm;
 		value.os.len  = fd_g_config->cnf_diamrlm_len;
 	} else {
-		value.os.data = un + i;
+		value.os.data = (unsigned char *)(un + i);
 		value.os.len  = un_len - i;
 	}
 	
@@ -652,7 +651,7 @@ static int sip_rad_req( struct rgwp_config * cs, struct session ** session, stru
 			
 			CHECK_MALLOC(sipuri=malloc(attr->length +3));
 			strcpy(sipuri,"sip:");
-			strcat(sipuri,(unsigned char *)temp);
+			strcat(sipuri,(const char *)temp);
 			value.os.data=(unsigned char *)sipuri;
 			value.os.len=attr->length +2;
 			
@@ -694,8 +693,9 @@ static int sip_rad_req( struct rgwp_config * cs, struct session ** session, stru
 				//[Note 3] If Digest-Algorithm is missing, 'MD5' is assumed.
 										
 				CHECK_FCT( fd_msg_avp_new ( cs->dict.Digest_Algorithm, 0, &avp ) );			
-				value.os.len = 3;						
-				value.os.data = "MD5";					
+										
+				value.os.data = (unsigned char *)"MD5";
+				value.os.len = strlen((const char *)value.os.data);
 				CHECK_FCT( fd_msg_avp_setvalue ( avp, &value ) );					
 				CHECK_FCT( fd_msg_avp_add ( auth, MSG_BRW_LAST_CHILD, avp) );	
 				got_Dalgorithm=1;	
@@ -705,8 +705,8 @@ static int sip_rad_req( struct rgwp_config * cs, struct session ** session, stru
 			{
 				//We give a fake nonce because it will be calculated at the server.
 				CHECK_FCT( fd_msg_avp_new ( cs->dict.Digest_Nonce, 0, &avp ) );
-				value.os.data="nonce";
-				value.os.len=5;
+				value.os.data=(unsigned char *)"nonce";
+				value.os.len=strlen((const char *)value.os.data);
 				CHECK_FCT( fd_msg_avp_setvalue ( avp, &value ) );
 				CHECK_FCT( fd_msg_avp_add ( auth, MSG_BRW_LAST_CHILD, avp) );	
 				got_Dnonce=1;
@@ -740,7 +740,7 @@ static int sip_rad_req( struct rgwp_config * cs, struct session ** session, stru
 static int sip_diam_ans( struct rgwp_config * cs, struct session * session, struct msg ** diam_ans, struct radius_msg ** rad_fw, struct rgw_client * cli, int * statefull )
 {
 	
-	struct msg_hdr * hdr;
+	
 	struct avp *avp, *next, *asid;
 	struct avp_hdr *ahdr, *sid;
 	//char buf[254]; /* to store some attributes values (with final '\0') */
@@ -838,7 +838,7 @@ static int sip_diam_ans( struct rgwp_config * cs, struct session * session, stru
 						fd_sess_getsid (session, &sid );
 						sidlen=strlen(sid);
 						
-						nonce_add_element(ahdr->avp_value->os.data,ahdr->avp_value->os.len, sid,sidlen, cs);
+						nonce_add_element((char *)ahdr->avp_value->os.data,ahdr->avp_value->os.len, sid,sidlen, cs);
 					}
 					break;
 				case DIAM_ATTR_DIGEST_REALM:
