@@ -295,6 +295,6 @@ const char * rgw_msg_attrtype_str(unsigned char c) {
 		/* 224-240   Implementation Specific                  [RFC3575] */
 	if ((c >= 224) && (c <= 240)) return "Implementation Specific[RFC3575]";
 		/* 241-255   Reserved                                 [RFC3575]    */
-	if ((c >= 241) && (c <= 255)) return "Reserved [RFC3575]";
+	if ((c >= 241)) return "Reserved [RFC3575]";
 	/* fallback */ return "[Unknown]";
 }
