@@ -10,7 +10,10 @@ SET( TEST_SIP_SRC
 	test_sip.h
 	multimediaauth.c
 	locationinfo.c
+	locationinfosl.c
 	registrationtermination.c
+	userauthorization.c
+	serverassignment.c
 )
 
 # Compile as a module

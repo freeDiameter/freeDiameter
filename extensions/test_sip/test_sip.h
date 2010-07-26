@@ -57,16 +57,32 @@ struct sip_dict{
 	struct dict_object * Auth_Session_State;
 	struct dict_object * Auth_Application_Id;
 	struct dict_object * Destination_Host;
-	struct dict_object * Destination_Realm;
 	struct dict_object * User_Name;
 	struct dict_object * Session_Id;
+	struct dict_object * Redirect_Host;
+	struct dict_object * Redirect_Host_Usage;
 	struct dict_object * SIP_Auth_Data_Item;
+	struct dict_object * SIP_Accounting_Information;
+	struct dict_object * SIP_Accounting_Server_URI;
+	struct dict_object * SIP_Credit_Control_Server_URI;
+	struct dict_object * SIP_Server_Assignment_Type;
+	struct dict_object * SIP_Item_Number;
+	struct dict_object * SIP_User_Authorization_Type;
+	struct dict_object * SIP_Supported_User_Data_Type;
+	struct dict_object * SIP_User_Data;
+	struct dict_object * SIP_User_Data_Type;
+	struct dict_object * SIP_User_Data_Contents;
+	struct dict_object * SIP_User_Data_Already_Available;
+	struct dict_object * SIP_Visited_Network_Id;
 	struct dict_object * SIP_Authorization;
 	struct dict_object * SIP_Authenticate;
 	struct dict_object * SIP_Number_Auth_Items;	
 	struct dict_object * SIP_Authentication_Scheme;
 	struct dict_object * SIP_Authentication_Info;	
 	struct dict_object * SIP_Server_URI;
+	struct dict_object * SIP_Server_Capabilities;
+	struct dict_object * SIP_Mandatory_Capability;
+	struct dict_object * SIP_Optional_Capability;
 	struct dict_object * SIP_Method;
 	struct dict_object * SIP_AOR;
 	struct dict_object * SIP_Deregistration_Reason;
@@ -84,6 +100,7 @@ struct sip_dict{
 	struct dict_object * Digest_QOP;	
 	struct dict_object * Digest_Algorithm;
 	struct dict_object * Digest_HA1;
+	struct dict_object * Destination_Realm;
 };
 
 extern  struct sip_dict  sip_dict;
@@ -93,9 +110,14 @@ int ts_entry();
 void fd_ext_fini(void);
 
 int test_sip_LIR_cb();
+int test_sip_UAR_cb();
+int test_sip_SAR_cb();
+int test_sipSL_LIR_cb();
 
 int test_sip_default_cb( struct msg ** msg, struct avp * avp, struct session * sess, enum disp_action * act);
 int test_sip_MAA_cb( struct msg ** msg, struct avp * avp, struct session * sess, enum disp_action * act);
 int test_sip_RTR_cb( struct msg ** msg, struct avp * avp, struct session * sess, enum disp_action * act);
+int test_sip_UAA_cb( struct msg ** msg, struct avp * avp, struct session * sess, enum disp_action * act);
 int test_sip_LIA_cb( struct msg ** msg, struct avp * avp, struct session * sess, enum disp_action * act);
-
+int test_sip_SAA_cb( struct msg ** msg, struct avp * avp, struct session * sess, enum disp_action * act);
+int test_sipSL_LIA_cb( struct msg ** msg, struct avp * avp, struct session * sess, enum disp_action * act);

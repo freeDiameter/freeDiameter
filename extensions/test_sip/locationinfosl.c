@@ -33,112 +33,101 @@
 * TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF   *
 * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.								 *
 *********************************************************************************************************/
-#include "diamsip.h"
+#include "test_sip.h"
 
-//This callback is specific to SUSCRIBER LOCATOR. We must look for the "serving" SIP server
-int diamsipSL_LIR_cb( struct msg ** msg, struct avp * paramavp, struct session * sess, enum disp_action * act)
+//Called to send a LIR
+int test_sipSL_LIR_cb()
 {
-	TRACE_ENTRY("%p %p %p %p", msg, paramavp, sess, act);
-	
-	struct msg *ans, *qry;
-	struct avp *avp, *groupedavp;
-	struct avp_hdr *avphdr;
+	struct dict_object * lir_model=NULL;
+	struct msg * message=NULL;
+	struct avp *avp=NULL;
+	struct session *sess=NULL;
 	union avp_value value;
 	
-	//Result_Code to return in the answer
-	char result[55];
-	int ret=0;
+	//Fake values START
+	unsigned char *sip_aor="sip:aw-lappy@tera.ics.keio.ac.jp";
+	size_t aor_len=strlen(sip_aor); 
+	char *destination_realm="tera.ics.keio.ac.jp";
+	size_t destination_realmlen=strlen(destination_realm);
+	char *destination_host="biwa.tera.ics.keio.ac.jp";
+	size_t destination_hostlen=strlen(destination_host);
+	//Fake values STOP
+	
+	//Create the base message for an RTR
+	CHECK_FCT( fd_dict_search( fd_g_config->cnf_dict, DICT_COMMAND, CMD_BY_NAME, "Location-Info-Request", &lir_model, ENOENT) );
+	CHECK_FCT( fd_msg_new (lir_model, 0, &message));
 	
 	
-	if (msg == NULL)
-		return EINVAL;
-
-	
-	
-	// Create answer header 
-	qry = *msg;
-	CHECK_FCT( fd_msg_new_answer_from_req ( fd_g_config->cnf_dict, msg, 0 ) );
-	ans = *msg;
-	
+		
+	// Create a new session 
+	{
+		CHECK_FCT( fd_sess_new( &sess, fd_g_config->cnf_diamid, "appsip", 6 ));
+		char * sid;
+		CHECK_FCT( fd_sess_getsid ( sess, &sid ));
+		CHECK_FCT( fd_msg_avp_new ( sip_dict.Session_Id, 0, &avp ));
+		value.os.data = (uint8_t *)sid;
+		value.os.len  = strlen(sid);
+		CHECK_FCT( fd_msg_avp_setvalue( avp, &value ));
+		CHECK_FCT( fd_msg_avp_add( message, MSG_BRW_FIRST_CHILD, avp ));
+	}
 	
 	//Add the Auth-Application-Id 
 	{
 		CHECK_FCT( fd_msg_avp_new ( sip_dict.Auth_Application_Id, 0, &avp ) );
 		value.i32 = 6;
 		CHECK_FCT( fd_msg_avp_setvalue ( avp, &value ) );
-		CHECK_FCT( fd_msg_avp_add ( ans, MSG_BRW_LAST_CHILD, avp) );
+		CHECK_FCT( fd_msg_avp_add ( message, MSG_BRW_LAST_CHILD, avp) );
 	}
 	
-	// Add the Auth-Session-State AVP 
+	//Auth_Session_State
 	{
-		
-		CHECK_FCT( fd_msg_search_avp ( qry, sip_dict.Auth_Session_State, &avp) );
-		CHECK_FCT( fd_msg_avp_hdr( avp, &avphdr )  );
-		
 		CHECK_FCT( fd_msg_avp_new ( sip_dict.Auth_Session_State, 0, &avp ) );
-		CHECK_FCT( fd_msg_avp_setvalue( avp, avphdr->avp_value ) );
-		CHECK_FCT( fd_msg_avp_add( ans, MSG_BRW_LAST_CHILD, avp ) );
+		value.i32=1;
+		CHECK_FCT( fd_msg_avp_setvalue( avp, &value ) );
+		CHECK_FCT( fd_msg_avp_add( message, MSG_BRW_LAST_CHILD, avp ) );
 	}
 	
+	//Origin_Host & Origin_Realm
+	CHECK_FCT( fd_msg_add_origin ( message, 0 ));
 	
-	// Add the Redirect Host AVP 
+	//Destination_Host
 	{
-		CHECK_FCT( fd_msg_search_avp ( qry, sip_dict.SIP_AOR, &avp) );
-		CHECK_FCT( fd_msg_avp_hdr( avp, &avphdr )  );
-		int diameterurilen;
-		char * diameter_uri=NULL;
-		
-		
-		
-		ret=get_diameter_uri(avphdr->avp_value->os.data, avphdr->avp_value->os.len, &diameter_uri, &diameterurilen);
-		
-		//found
-		if(ret==0)
-		{
-		  if(diameter_uri==NULL)
-		  {
-			  //There is a problem because we must get a Diameter_URI here
-			  strcpy(result,"DIAMETER_UNABLE_TO_COMPLY");
-			  goto out;
-		  }
-		  else
-		  {
-		    CHECK_FCT( fd_msg_avp_new ( sip_dict.Redirect_Host, 0, &avp ) );
-		    value.os.data=diameter_uri;
-		    value.os.len=diameterurilen;
-		    CHECK_FCT( fd_msg_avp_setvalue( avp, &value ) );
-		    CHECK_FCT( fd_msg_avp_add( ans, MSG_BRW_LAST_CHILD, avp ) );
-		    
-		    CHECK_FCT( fd_msg_avp_new ( sip_dict.Redirect_Host_Usage, 0, &avp ) );
-		    value.i32=ALL_USER; //All the request about the same user must be sent to this server
-		    CHECK_FCT( fd_msg_avp_setvalue( avp, &value ) );
-		    CHECK_FCT( fd_msg_avp_add( ans, MSG_BRW_LAST_CHILD, avp ) );
-		    strcpy(result,"DIAMETER_SUCCESS");
-		  }
-		}
-		else if(ret==1)
-		{//not found
-			//We don't know this SIP_AOR in SL
-			strcpy(result,"DIAMETER_ERROR_USER_UNKNOWN");
-			goto out;
-		}
-		else
-		{// returned 2, impossible to make request
-			//We couldn't make the request, we must stop process!
-			strcpy(result,"DIAMETER_UNABLE_TO_COMPLY");
-			goto out;
-		}
+		CHECK_FCT( fd_msg_avp_new ( sip_dict.Destination_Host, 0, &avp ) );
+		value.os.data=(unsigned char *)destination_host;
+		value.os.len=destination_hostlen;
+		CHECK_FCT( fd_msg_avp_setvalue( avp, &value ) );
+		CHECK_FCT( fd_msg_avp_add( message, MSG_BRW_LAST_CHILD, avp ) );
+	}
+	//Destination_Realm
+	{
+		CHECK_FCT( fd_msg_avp_new ( sip_dict.Destination_Realm, 0, &avp ) );
+		value.os.data=(unsigned char *)destination_realm;
+		value.os.len=destination_realmlen;
+		CHECK_FCT( fd_msg_avp_setvalue( avp, &value ) );
+		CHECK_FCT( fd_msg_avp_add( message, MSG_BRW_LAST_CHILD, avp ) );
 	}
 	
 	
-out:
-	CHECK_FCT( fd_msg_rescode_set( ans, result, NULL, NULL, 1 ) );
 	
+	//SIP_AOR
+	{
+		
+		CHECK_FCT( fd_msg_avp_new ( sip_dict.SIP_AOR, 0, &avp ) );
+		value.os.data=sip_aor;
+		value.os.len=aor_len;
+		CHECK_FCT( fd_msg_avp_setvalue( avp, &value ) );
+		CHECK_FCT( fd_msg_avp_add( message, MSG_BRW_LAST_CHILD, avp ) );
+			
+	}
 	
+	fd_msg_dump_walk(INFO,message);
+	CHECK_FCT( fd_msg_send( &message, NULL, NULL ));
 	
-	CHECK_FCT( fd_msg_send( msg, NULL, NULL ));
-	
-	
+	return 0;
+}
+
+int test_sipSL_LIA_cb( struct msg ** msg, struct avp * paramavp, struct session * sess, enum disp_action * act)
+{
 	
 	return 0;
 }

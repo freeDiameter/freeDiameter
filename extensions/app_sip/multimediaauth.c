@@ -47,7 +47,7 @@ int diamsip_MAR_cb( struct msg ** msg, struct avp * paramavp, struct session * s
 	struct avp * tempavp=NULL,*sipAuthentication=NULL,*sipAuthenticate=NULL;
 	char * result;
 	char password[51];
-	int idx=0, number_of_auth_items=0,i=0;
+	int idx=0, number_of_auth_items=0,i=0, ret=0;
 	//Flags and variables for Database
 	int sipurinotstored=0, authenticationpending=0, querylen=0, usernamelen=0;
 	char *query=NULL,*username=NULL;
@@ -121,48 +121,25 @@ int diamsip_MAR_cb( struct msg ** msg, struct avp * paramavp, struct session * s
 			
 			CHECK_FCT( fd_msg_avp_hdr( avp, &avphdr )  );
 			
-			//We allocate the double size of username because at worst it can be all quotes
-			username=malloc(avphdr->avp_value->os.len*2+1);
-			//We purify username not to have forbidden characters
-			usernamelen=mysql_real_escape_string(conn, username, (const char *)avphdr->avp_value->os.data, avphdr->avp_value->os.len);
+			
 			
 			
 			if((strncmp((const char *)avpheader->avp_value->os.data,"REGISTER",avpheader->avp_value->os.len)==0))
 			{
 				not_found=1;
 				
-				//We copy username in query
-				querylen=SQL_GETPASSWORD_LEN + usernamelen;
-				query = malloc(querylen+2);
-				snprintf(query, querylen+1, SQL_GETPASSWORD, username);
+				//TODO TODO TODO TODO TODO TODO TODO: maybe doesn't work!!'
+				ret=get_password(avphdr->avp_value->os.data, avphdr->avp_value->os.len, (char *)&password);
 				
-				
-				
-				//We make the query	
-				request_mysql(query);
-				res=mysql_use_result(conn);
-				if(res==NULL)
+				if(ret>1)
 				{
 					//We couldn't make the request
 					result="DIAMETER_UNABLE_TO_COMPLY";
 					goto out;
 				}
-			
-			
-			
-				while ((row = mysql_fetch_row(res)) != NULL)
-      				{
-      					if(strlen(row[0])>0)
-      					{
-      						strcpy(password,row[0]);
-      						not_found=0;
-      						break;
-      					}
-      				}
-      				mysql_free_result(res);
-      				free(query);
-      				
-      				if(not_found)
+				not_found=ret;
+				
+				if(not_found)
 				{
 					TRACE_DEBUG(FULL,"The user %s doesn't exist!",username);
 					result="DIAMETER_ERROR_USER_UNKNOWN";
@@ -171,7 +148,11 @@ int diamsip_MAR_cb( struct msg ** msg, struct avp * paramavp, struct session * s
 				}
 			
 			
-			
+				//We allocate the double size of username because at worst it can be all quotes
+				username=malloc(avphdr->avp_value->os.len*2+1);
+				//We purify username not to have forbidden characters
+				usernamelen=mysql_real_escape_string(conn, username, (const char *)avphdr->avp_value->os.data, avphdr->avp_value->os.len);
+				
 				//Now that we know the user exist, we get the list of AOR owned by this user
 				querylen=SQL_GETSIPAOR_LEN + usernamelen;
 				query = malloc(querylen+2);
@@ -193,17 +174,17 @@ int diamsip_MAR_cb( struct msg ** msg, struct avp * paramavp, struct session * s
 			
 				not_found=1;
 				while ((row = mysql_fetch_row(res)) != NULL)
-      				{
-      					if(strncmp((const char *)avphdr->avp_value->os.data,row[0],avphdr->avp_value->os.len)==0)
-      					{
-      						not_found=0;
-      						break;
-      					}
-      				}
-      				mysql_free_result(res);
-      				free(query);
+				{
+					if(strncmp((const char *)avphdr->avp_value->os.data,row[0],avphdr->avp_value->os.len)==0)
+					{
+						not_found=0;
+						break;
+					}
+				}
+				mysql_free_result(res);
+				free(query);
       				
-      				if(not_found)
+				if(not_found)
 				{
 					TRACE_DEBUG(FULL,"The user %s can't use this SIP-AOR!",username);
 					result="DIAMETER_ERROR_IDENTITIES_DONT_MATCH";
@@ -243,30 +224,28 @@ int diamsip_MAR_cb( struct msg ** msg, struct avp * paramavp, struct session * s
 				}
 				not_found=1;
 				while ((row = mysql_fetch_row(res)) != NULL)
-      				{
-      					if(strncmp((const char *)avphdr->avp_value->os.data,row[0],avphdr->avp_value->os.len)==0)
-      					{
-      						not_found=0;
-      						break;
-      					}
-      				}
-      				mysql_free_result(res);
-      				free(query);
-
-      				if(not_found)
 				{
-					//We update the SIP_URI for the user and we flag "authentication in progress"
-					querylen=SQL_SETSIPURI_LEN + usernamelen + sipurilen;
-					query = malloc(querylen+2);
-					snprintf(query, querylen+1, SQL_SETSIPURI, sipuri, username);
-			
-					//We make the query
-					request_mysql(query);
-					
-	      				free(query);
-	      				authenticationpending=1;
+					if(strncmp((const char *)avphdr->avp_value->os.data,row[0],avphdr->avp_value->os.len)==0)
+					{
+						not_found=0;
+						break;
+					}
 				}
-      				free(sipuri);
+				mysql_free_result(res);
+				free(query);
+
+				if(not_found)
+				{
+					//Temporary
+					set_sipserver_uri(username, usernamelen, sipuri,sipurilen);
+					
+					
+					set_pending_flag(username, usernamelen);
+					
+					
+					authenticationpending=1;
+				}
+				free(sipuri);
 				
 			}
 			else
@@ -714,15 +693,8 @@ int diamsip_MAR_cb( struct msg ** msg, struct avp * paramavp, struct session * s
 								
 								if(username!=NULL && authenticationpending)
 								{
-									//We clear the flag "authentication pending"
-									querylen=SQL_CLEARFLAG_LEN + usernamelen;
-									query = malloc(querylen+2);
-									snprintf(query, querylen+1, SQL_CLEARFLAG, username);
-		
-									//We make the query
-									request_mysql(query);
-				
-					      				free(query);
+									//We clear the pending flag
+									clear_pending_flag(username, usernamelen);
 								}
 								
 								if(sipurinotstored)

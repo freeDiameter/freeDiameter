@@ -44,6 +44,7 @@ int diamsip_LIR_cb( struct msg ** msg, struct avp * paramavp, struct session * s
 	struct avp *avp, *groupedavp;
 	struct avp_hdr *avphdr;
 	union avp_value value;
+	int ret=0;
 	
 	//Result_Code to return in the answer
 	char result[55];
@@ -57,6 +58,13 @@ int diamsip_LIR_cb( struct msg ** msg, struct avp * paramavp, struct session * s
 	CHECK_FCT( fd_msg_new_answer_from_req ( fd_g_config->cnf_dict, msg, 0 ) );
 	ans = *msg;
 	
+	//Add the Auth-Application-Id 
+	{
+		CHECK_FCT( fd_msg_avp_new ( sip_dict.Auth_Application_Id, 0, &avp ) );
+		value.i32 = 6;
+		CHECK_FCT( fd_msg_avp_setvalue ( avp, &value ) );
+		CHECK_FCT( fd_msg_avp_add ( ans, MSG_BRW_LAST_CHILD, avp) );
+	}
 	// Add the Auth-Session-State AVP 
 	{
 		
@@ -68,32 +76,122 @@ int diamsip_LIR_cb( struct msg ** msg, struct avp * paramavp, struct session * s
 		CHECK_FCT( fd_msg_avp_add( ans, MSG_BRW_LAST_CHILD, avp ) );
 	}
 	
-	//TODO: wait for answer from authors to clear how to find SIP server!
+	
 	//Add a SIP_Server_URI
 	{
 		CHECK_FCT( fd_msg_search_avp ( qry, sip_dict.SIP_AOR, &avp) );
 		CHECK_FCT( fd_msg_avp_hdr( avp, &avphdr )  );
 		
-		//We extract Realm from SIP_AOR
-		char *realm=NULL;
 		
 		
-		realm = strtok( (char *)(avphdr->avp_value->os.data), "@" );
-		realm = strtok( NULL, "@" );
 		
-		if(realm!=NULL)
-		{
-			CHECK_FCT( fd_msg_avp_new ( sip_dict.SIP_Server_URI, 0, &avp ) );
-			value.os.data=(unsigned char *)realm;
-			value.os.len=strlen(realm);
-			CHECK_FCT( fd_msg_avp_setvalue ( avp, &value ) );
-			CHECK_FCT( fd_msg_avp_add ( ans, MSG_BRW_LAST_CHILD, avp) );
-		}
-		else
-		{
+		
+		ret=exist_username(avphdr->avp_value->os.data, avphdr->avp_value->os.len);
+		
+		
+		if(ret==2)
+		{//error
+			/*
+			If the Diameter server cannot process the Diameter LIR command, e.g.,
+			due to a database error, the Diameter server MUST set the Result-Code
+			AVP value to DIAMETER_UNABLE_TO_COMPLY and return it in a Diameter
+			LIA message.
+			*/
 			strcpy(result,"DIAMETER_UNABLE_TO_COMPLY");
 			goto out;
 		}
+		else if(ret==1)
+		{//not found
+			/*
+			One of the errors that the Diameter server may find is that the
+			SIP-AOR AVP value is not a valid user in the realm.  In such cases,
+			the Diameter server MUST set the Result-Code AVP value to
+			DIAMETER_ERROR_USER_UNKNOWN and return it in a Diameter LIA message.
+			
+			*/
+			strcpy(result,"DIAMETER_ERROR_USER_UNKNOWN");
+			goto out;
+		}
+		
+		//If we arrive here, the user is known
+		int sipserverurilen;
+		char * sipserver_uri=NULL;
+		
+		ret=get_sipserver_uri(avphdr->avp_value->os.data, avphdr->avp_value->os.len, &sipserver_uri, &sipserverurilen);
+		
+		
+		if(ret==0)
+		{//found
+			if(sipserver_uri==NULL)
+			{
+				//There is a problem because we must get a Diameter_URI here
+				strcpy(result,"DIAMETER_UNABLE_TO_COMPLY");
+				goto out;
+			}
+			else
+			{
+				CHECK_FCT( fd_msg_avp_new ( sip_dict.SIP_Server_URI, 0, &avp ) );
+				value.os.data=(unsigned char *)sipserver_uri;
+				value.os.len=sipserverurilen;
+				CHECK_FCT( fd_msg_avp_setvalue ( avp, &value ) );
+				CHECK_FCT( fd_msg_avp_add ( ans, MSG_BRW_LAST_CHILD, avp) );
+				
+				strcpy(result,"DIAMETER_SUCCESS");
+			}
+		}
+		else if(ret==1)
+		{//not found
+			//We don't know this SIP_AOR in SL, that means 
+			strcpy(result,"DIAMETER_ERROR_USER_UNKNOWN");
+			goto out;
+		}
+		else
+		{// returned 2, impossible to make request
+			//We couldn't make the request, we must stop process!
+			strcpy(result,"DIAMETER_UNABLE_TO_COMPLY");
+			goto out;
+		}
+		
+		//Adding SIP-Server-Capabilities
+		CHECK_FCT( fd_msg_avp_new ( sip_dict.SIP_Server_Capabilities, 0, &groupedavp ) );
+		//We add mandatory and optional capabilities
+		ret=get_sipserver_cap(avphdr->avp_value->os.data, avphdr->avp_value->os.len, &groupedavp);
+		
+		
+		if(ret==0)
+		{//found
+		if(sipserver_uri==NULL)
+		{
+			//There is a problem because we must get a Diameter_URI here
+			strcpy(result,"DIAMETER_UNABLE_TO_COMPLY");
+			CHECK_FCT( fd_msg_free( groupedavp ) );
+			goto out;
+		}
+		else
+		{
+			
+			CHECK_FCT( fd_msg_avp_add ( ans, MSG_BRW_LAST_CHILD, groupedavp) );
+			
+			strcpy(result,"DIAMETER_SUCCESS");
+		}
+		}
+		else if(ret==1)
+		{//not found
+			//We don't know this SIP_AOR in SL, that means 
+			strcpy(result,"DIAMETER_ERROR_IDENTITY_NOT_REGISTERED");
+			CHECK_FCT( fd_msg_free( groupedavp ) );
+			goto out;
+		}
+		else
+		{// returned 2, impossible to make request
+			//We couldn't make the request, we must stop process!
+			strcpy(result,"DIAMETER_UNABLE_TO_COMPLY");
+			CHECK_FCT( fd_msg_free( groupedavp ) );
+			goto out;
+		}
+		
+		
+		
 	}
 	
 	

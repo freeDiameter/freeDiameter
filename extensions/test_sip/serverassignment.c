@@ -35,10 +35,10 @@
 *********************************************************************************************************/
 #include "test_sip.h"
 
-//Called to send a LIR
-int test_sip_LIR_cb()
+//Called to send a UAR
+int test_sip_SAR_cb()
 {
-	struct dict_object * lir_model=NULL;
+	struct dict_object * sar_model=NULL;
 	struct msg * message=NULL;
 	struct avp *avp=NULL;
 	struct session *sess=NULL;
@@ -47,18 +47,25 @@ int test_sip_LIR_cb()
 	//Fake values START
 	unsigned char *sip_aor="sip:aw-lappy@tera.ics.keio.ac.jp";
 	size_t aor_len=strlen(sip_aor); 
-	char *destination_realm="tera.ics.keio.ac.jp";
+	unsigned char *destination_realm="tera.ics.keio.ac.jp";
 	size_t destination_realmlen=strlen(destination_realm);
-	char *destination_host="suika.tera.ics.keio.ac.jp";
+	unsigned char *destination_host="suika.tera.ics.keio.ac.jp";
 	size_t destination_hostlen=strlen(destination_host);
+	unsigned char *username="aw-lappy";
+	size_t usernamelen=strlen(username);
+	unsigned char *visitednetwork="Pink";
+	size_t visitednetworklen=strlen(visitednetwork);
+	int registrationtype = 2;
+	int data_already_available=0;
+	int assignment_type=0;
 	//Fake values STOP
 	
 	//Create the base message for an RTR
-	CHECK_FCT( fd_dict_search( fd_g_config->cnf_dict, DICT_COMMAND, CMD_BY_NAME, "Location-Info-Request", &lir_model, ENOENT) );
-	CHECK_FCT( fd_msg_new (lir_model, 0, &message));
+	CHECK_FCT( fd_dict_search( fd_g_config->cnf_dict, DICT_COMMAND, CMD_BY_NAME, "Server-Assignment-Request", &sar_model, ENOENT) );
+	CHECK_FCT( fd_msg_new (sar_model, 0, &message));
 	
 	
-		
+	
 	// Create a new session 
 	{
 		CHECK_FCT( fd_sess_new( &sess, fd_g_config->cnf_diamid, "appsip", 6 ));
@@ -77,8 +84,7 @@ int test_sip_LIR_cb()
 		value.i32 = 6;
 		CHECK_FCT( fd_msg_avp_setvalue ( avp, &value ) );
 		CHECK_FCT( fd_msg_avp_add ( message, MSG_BRW_LAST_CHILD, avp) );
-	}
-	
+	}	
 	//Auth_Session_State
 	{
 		CHECK_FCT( fd_msg_avp_new ( sip_dict.Auth_Session_State, 0, &avp ) );
@@ -93,7 +99,7 @@ int test_sip_LIR_cb()
 	//Destination_Host
 	{
 		CHECK_FCT( fd_msg_avp_new ( sip_dict.Destination_Host, 0, &avp ) );
-		value.os.data=(unsigned char *)destination_host;
+		value.os.data=destination_host;
 		value.os.len=destination_hostlen;
 		CHECK_FCT( fd_msg_avp_setvalue( avp, &value ) );
 		CHECK_FCT( fd_msg_avp_add( message, MSG_BRW_LAST_CHILD, avp ) );
@@ -101,7 +107,7 @@ int test_sip_LIR_cb()
 	//Destination_Realm
 	{
 		CHECK_FCT( fd_msg_avp_new ( sip_dict.Destination_Realm, 0, &avp ) );
-		value.os.data=(unsigned char *)destination_realm;
+		value.os.data=destination_realm;
 		value.os.len=destination_realmlen;
 		CHECK_FCT( fd_msg_avp_setvalue( avp, &value ) );
 		CHECK_FCT( fd_msg_avp_add( message, MSG_BRW_LAST_CHILD, avp ) );
@@ -115,7 +121,32 @@ int test_sip_LIR_cb()
 		value.os.len=aor_len;
 		CHECK_FCT( fd_msg_avp_setvalue( avp, &value ) );
 		CHECK_FCT( fd_msg_avp_add( message, MSG_BRW_LAST_CHILD, avp ) );
-			
+		
+	}
+	//Username
+	{
+		
+		CHECK_FCT( fd_msg_avp_new ( sip_dict.User_Name, 0, &avp ) );
+		value.os.data=username;
+		value.os.len=usernamelen;
+		CHECK_FCT( fd_msg_avp_setvalue( avp, &value ) );
+		CHECK_FCT( fd_msg_avp_add( message, MSG_BRW_LAST_CHILD, avp ) );
+		
+	}
+	//SIP_User_Data_Already_Available
+	{
+		CHECK_FCT( fd_msg_avp_new ( sip_dict.SIP_User_Data_Already_Available, 0, &avp ) );
+		value.i32=data_already_available;
+		CHECK_FCT( fd_msg_avp_setvalue( avp, &value ) );
+		CHECK_FCT( fd_msg_avp_add( message, MSG_BRW_LAST_CHILD, avp ) );
+	}
+	
+	//SIP_Server_Assignment_Type;
+	{
+		CHECK_FCT( fd_msg_avp_new ( sip_dict.SIP_Server_Assignment_Type, 0, &avp ) );
+		value.i32=assignment_type;
+		CHECK_FCT( fd_msg_avp_setvalue( avp, &value ) );
+		CHECK_FCT( fd_msg_avp_add( message, MSG_BRW_LAST_CHILD, avp ) );
 	}
 	
 	fd_msg_dump_walk(INFO,message);
@@ -124,7 +155,7 @@ int test_sip_LIR_cb()
 	return 0;
 }
 
-int test_sip_LIA_cb( struct msg ** msg, struct avp * paramavp, struct session * sess, enum disp_action * act)
+int test_sip_SAA_cb( struct msg ** msg, struct avp * paramavp, struct session * sess, enum disp_action * act)
 {
 	
 	return 0;

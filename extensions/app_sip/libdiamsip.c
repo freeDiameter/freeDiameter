@@ -165,7 +165,7 @@ int start_mysql_connection()
 	
 }
 
-//You must free ""result"" after using this function
+
 void request_mysql(char *query)
 {
 	//We check if the connection is still up
@@ -185,69 +185,177 @@ void close_mysql_connection()
 	
 }
 
+//If password is null, we just verify this user exist
+//We don't need the password length because it is a table'
+int get_password(const unsigned char *username, const size_t usernamelen, char *password)
+{
+	CHECK_PARAMS(username && usernamelen);
+	
+	int not_found=2;
+	size_t querylen, usernamepurelen;
+	char *query, *username_pure;
+	
+	switch(as_conf->datasource)
+	{
+		//MySQL
+		case ASMYSQL:
+			//We allocate the double size of username because at worst it can be all quotes
+			username_pure=malloc(usernamelen*2+1);
+			//We purify username not to have forbidden characters
+			usernamepurelen=mysql_real_escape_string(conn, username_pure, (const char *)username, usernamelen);
+			
+			//We copy username in query
+			querylen=SQL_GETPASSWORD_LEN + usernamepurelen;
+			query = malloc(querylen+2);
+			snprintf(query, querylen+1, SQL_GETPASSWORD, username_pure);
+			
+			MYSQL_RES *res;
+			MYSQL_ROW row;
+			
+			//We make the query	
+			request_mysql(query);
+			res=mysql_use_result(conn);
+			if(res==NULL)
+			{
+				if(password!=NULL)
+					password[0]='\0';
+				free(query);
+				return 2;
+			}
+			
+			
+			
+			while ((row = mysql_fetch_row(res)) != NULL)
+			{
+				if(strlen(row[0])>0)
+				{
+					if(password!=NULL)
+						strcpy(password,row[0]);
+					
+					not_found=0;
+					break;
+				}
+			}
+			mysql_free_result(res);
+			free(query);
+		break;
+	}
+	return not_found;
+}
+
+int check_sipaor(const unsigned char  *username, const size_t usernamelen, const char * sip_aor,const size_t sipaorlen)
+{
+	CHECK_PARAMS(username && usernamelen && sip_aor && sipaorlen);
+	
+	int not_found=2;
+	size_t querylen, usernamepurelen;
+	char *query, *username_pure;
+	
+	switch(as_conf->datasource)
+	{
+		//MySQL
+		case ASMYSQL:
+			//We allocate the double size of username because at worst it can be all quotes
+			username_pure=malloc(usernamelen*2+1);
+			//We purify username not to have forbidden characters
+			usernamepurelen=mysql_real_escape_string(conn, username_pure, (const char *)username, usernamelen);
+	
+			//We get the list of AOR owned by this user
+			querylen=SQL_GETSIPAOR_LEN + usernamepurelen;
+			query = malloc(querylen+2);
+			snprintf(query, querylen+1, SQL_GETSIPAOR, username_pure);
+			
+			MYSQL_RES *res;
+			MYSQL_ROW row;
+			
+			//We make the query
+			request_mysql(query);
+			res=mysql_use_result(conn);
+			if(res==NULL)
+			{
+				free(query);
+				return 2;
+			}
+			
+			
+			not_found=1;
+			while ((row = mysql_fetch_row(res)) != NULL)
+			{
+				if(strncmp((const char *)sip_aor,row[0],sipaorlen)==0)
+				{
+					not_found=0;
+					break;
+				}
+			}
+			mysql_free_result(res);
+			free(query);
+		break;
+	}
+	return not_found;
+}
+
 int get_diameter_uri(const unsigned char *sip_aor, const size_t sipaorlen, char ** diameter_uri, size_t *diameterurilen)
 {
-  CHECK_PARAMS(sip_aor && sipaorlen);
-  
-  size_t querylen, sipaorpurelen;
-  char *query, *sipaor_pure;
-  int not_found=1;
-  
-  
-  
-      
-  //a sip aor must begin by "sip:" or "sips:" so it must at least be longer than 4 chars
-  if(sipaorlen<5)
-    return 2;
-  
-  //NOTE: each method has to purify sip_aor itself. You must remove quotes or special chars for security
-  
-  switch(as_conf->datasource)
-  {
-    //MySQL
-    case ASMYSQL:
+	CHECK_PARAMS(sip_aor && sipaorlen);
 
-      querylen=SQL_GETDIAMURI_LEN + sipaorlen;
-      
-	  
-	  //We allocate the double size of SIP-URI because at worst it can be all quotes
-	  CHECK_MALLOC(sipaor_pure=malloc(sipaorlen*2+1));
-	  //We purify SIP-URI not to have forbidden characters
-	  sipaorpurelen=mysql_real_escape_string(conn, sipaor_pure, (const char *)sip_aor, sipaorlen);
-	  
-	  
-      query = malloc(querylen+sipaorpurelen+ 2);
-	  snprintf(query, querylen+1, SQL_GETDIAMURI, sipaor_pure);
-      
-      MYSQL_RES *res;
-      MYSQL_ROW row;
-      
+	size_t querylen, sipaorpurelen;
+	char *query, *sipaor_pure;
+	int not_found=2;
 
-      //We make the query	
-      request_mysql(query);
-      res=mysql_use_result(conn);
-      if(res==NULL)
-      {
-		//We couldn't make the request
-		diameter_uri=NULL;
+
+
+
+	//a sip aor must begin by "sip:" or "sips:" so it must at least be longer than 4 chars
+	if(sipaorlen<5)
 		return 2;
-      }
-      TRACE_DEBUG(INFO,"***********%d|%d****************\n%s\n*********************************",sipaorlen,sipaorpurelen,query);
-      while ((row = mysql_fetch_row(res)) != NULL)
-      {
-		*diameterurilen=strlen(row[0]);
-		if(*diameterurilen>0)
-		{
-			CHECK_MALLOC(*diameter_uri=malloc(*diameterurilen+1));
-			strcpy(*diameter_uri,row[0]);
-			not_found=0;
-			break;
-		}
-      }
-      mysql_free_result(res);
-      free(query);
-	  free(sipaor_pure);
-      break;
+
+	//NOTE: each method has to purify sip_aor itself. You must remove quotes or special chars for security
+	switch(as_conf->datasource)
+	{
+		//MySQL
+		case ASMYSQL:
+
+			querylen=SQL_GETDIAMURI_LEN + sipaorlen;
+
+			
+			//We allocate the double size of SIP-URI because at worst it can be all quotes
+			CHECK_MALLOC(sipaor_pure=malloc(sipaorlen*2+1));
+			//We purify SIP-URI not to have forbidden characters
+			sipaorpurelen=mysql_real_escape_string(conn, sipaor_pure, (const char *)sip_aor, sipaorlen);
+			
+			
+			query = malloc(querylen+sipaorpurelen+ 2);
+			snprintf(query, querylen+1, SQL_GETDIAMURI, sipaor_pure);
+			
+			MYSQL_RES *res;
+			MYSQL_ROW row;
+			
+
+			//We make the query	
+			request_mysql(query);
+			res=mysql_use_result(conn);
+			if(res==NULL)
+			{
+				//We couldn't make the request
+				diameter_uri=NULL;
+				return 2;
+			}
+			
+			while ((row = mysql_fetch_row(res)) != NULL)
+			{
+				*diameterurilen=strlen(row[0]);
+				if(*diameterurilen>0)
+				{
+					CHECK_MALLOC(*diameter_uri=malloc(*diameterurilen+1));
+					strcpy(*diameter_uri,row[0]);
+					not_found=0;
+					break;
+				}
+			}
+			mysql_free_result(res);
+			free(query);
+			free(sipaor_pure);
+		break;
       
     default:
       
@@ -264,6 +372,633 @@ int get_diameter_uri(const unsigned char *sip_aor, const size_t sipaorlen, char 
 }
 
 
+int exist_username(const unsigned char *sip_aor, const size_t sipaorlen)
+{
+	CHECK_PARAMS(sip_aor && sipaorlen);
+	
+	size_t querylen, sipaorpurelen;
+	char *query, *sipaor_pure;
+	int not_found=1;
+	
+	//a sip aor must begin by "sip:" or "sips:" so it must at least be longer than 4 chars
+	if(sipaorlen<5)
+		return 2;
+	
+	//NOTE: each method has to purify sip_aor itself. You must remove quotes or special chars for security
+	
+	switch(as_conf->datasource)
+	{
+		//MySQL
+		case ASMYSQL:
+			
+			querylen=SQL_GETUSERNAME_LEN + sipaorlen;
+			
+			
+			//We allocate the double size of SIP-URI because at worst it can be all quotes
+			CHECK_MALLOC(sipaor_pure=malloc(sipaorlen*2+1));
+			//We purify SIP-URI not to have forbidden characters
+			sipaorpurelen=mysql_real_escape_string(conn, sipaor_pure, (const char *)sip_aor, sipaorlen);
+			
+			
+			query = malloc(querylen+sipaorpurelen+ 2);
+			snprintf(query, querylen+1, SQL_GETUSERNAME, sipaor_pure);
+			
+			MYSQL_RES *res;
+			MYSQL_ROW row;
+			
+			
+			//We make the query	
+			request_mysql(query);
+			res=mysql_use_result(conn);
+			if(res==NULL)
+			{
+				//We couldn't make the request
+				return 2;
+			}
+			
+			while ((row = mysql_fetch_row(res)) != NULL)
+			{
+				if(strlen(row[0])>0)
+				{
+					not_found=0;
+					break;
+				}
+			}
+			mysql_free_result(res);
+			free(query);
+			free(sipaor_pure);
+			break;
+			
+		default:
+			
+			//We must never go here, if so, we must stop diameter_sip
+			TRACE_DEBUG(INFO,"FATAL ERROR: the datasource is unknown, please check your config file!");
+			return 2;
+			
+			break;
+	}
+	
+	//0 if it was found
+	return not_found;
+	
+}
+
+//We check if this user can go in the given network
+int allow_roaming(const unsigned char  *username, const size_t usernamelen, const char * network,const size_t networklen)
+{
+	CHECK_PARAMS(username && usernamelen && network && networklen);
+	
+	int not_found=2;
+	size_t querylen, usernamepurelen;
+	char *query, *username_pure;
+	
+	switch(as_conf->datasource)
+	{
+		//MySQL
+		case ASMYSQL:
+			//We allocate the double size of username because at worst it can be all quotes
+			username_pure=malloc(usernamelen*2+1);
+			//We purify username not to have forbidden characters
+			usernamepurelen=mysql_real_escape_string(conn, username_pure, (const char *)username, usernamelen);
+			
+			//We get the list of AOR owned by this user
+			querylen=SQL_GETUSERNET_LEN + usernamepurelen;
+			query = malloc(querylen+2);
+			snprintf(query, querylen+1, SQL_GETUSERNET, username_pure);
+			
+			
+			MYSQL_RES *res;
+			MYSQL_ROW row;
+			
+			
+			//We make the query
+			request_mysql(query);
+			res=mysql_use_result(conn);
+			if(res==NULL)
+			{
+				free(query);
+				return 2;
+			}
+			
+			
+			not_found=1;
+			while ((row = mysql_fetch_row(res)) != NULL)
+			{
+				if(strncmp((const char *)network,row[0],networklen)==0)
+				{
+					not_found=0;
+					break;
+				}
+			}
+			mysql_free_result(res);
+			free(query);
+			break;
+	}
+	return not_found;
+}
+
+//SIP-Server-Capabilities for the SIP-AOR
+int get_sipserver_cap(const unsigned char *sip_aor, const size_t sipaorlen, struct avp **capabilities)
+{
+	CHECK_PARAMS(sip_aor && sipaorlen && capabilities);
+	
+	size_t querylen, sipaorpurelen;
+	char *query, *sipaor_pure;
+	int not_found=2;
+	union avp_value value;
+	struct avp *avp;
+	
+	//a sip aor must begin by "sip:" or "sips:" so it must at least be longer than 4 chars
+	if(sipaorlen<5)
+		return 2;
+	
+	//NOTE: each method has to purify sip_aor itself. You must remove quotes or special chars for security
+	switch(as_conf->datasource)
+	{
+		//MySQL
+		case ASMYSQL:
+			
+			querylen=SQL_GETSIPSERCAP_LEN + sipaorlen;
+			
+			
+			//We allocate the double size of SIP-URI because at worst it can be all quotes
+			CHECK_MALLOC(sipaor_pure=malloc(sipaorlen*2+1));
+			//We purify SIP-URI not to have forbidden characters
+			sipaorpurelen=mysql_real_escape_string(conn, sipaor_pure, (const char *)sip_aor, sipaorlen);
+			
+			
+			query = malloc(querylen+sipaorpurelen+ 2);
+			snprintf(query, querylen+1, SQL_GETSIPSERCAP, sipaor_pure);
+			
+			MYSQL_RES *res;
+			MYSQL_ROW row;
+			
+			//We make the query	
+			request_mysql(query);
+			res=mysql_use_result(conn);
+			if(res==NULL)
+			{
+				//We couldn't make the request
+				return 2;
+			}
+			not_found=1;
+			while ((row = mysql_fetch_row(res)) != NULL)
+			{
+				if(atoi(row[0])==1)
+				{//mandatory
+					CHECK_FCT( fd_msg_avp_new ( sip_dict.SIP_Mandatory_Capability, 0, &avp ) );
+					value.i32=(uint32_t)atoi(row[1]);
+					CHECK_FCT( fd_msg_avp_setvalue ( avp, &value ) );
+					CHECK_FCT( fd_msg_avp_add ( *capabilities, MSG_BRW_LAST_CHILD, avp) );
+					
+				}
+				else
+				{//optional
+					CHECK_FCT( fd_msg_avp_new ( sip_dict.SIP_Optional_Capability, 0, &avp ) );
+					value.i32=(uint32_t)atoi(row[1]);
+					CHECK_FCT( fd_msg_avp_setvalue ( avp, &value ) );
+					CHECK_FCT( fd_msg_avp_add ( *capabilities, MSG_BRW_LAST_CHILD, avp) );
+				}
+				not_found=0;
+			}
+			
+			mysql_free_result(res);
+			free(query);
+			free(sipaor_pure);
+			break;
+			
+		default:
+			
+			//We must never go here, if so, we must stop diameter_sip
+			TRACE_DEBUG(INFO,"FATAL ERROR: the datasource is unknown, please check your config file!");
+			return 2;
+			
+			break;
+	}
+	
+	//0 if it was found
+	return not_found;
+	
+}
+
+
+//We retrieve datatype
+int get_user_datatype(const unsigned char  *username, const size_t usernamelen, char **table_supported, const int num_elements, struct avp **groupedavp)
+{
+	CHECK_PARAMS(table_supported && num_elements && username && usernamelen && groupedavp);
+	
+	
+	int counter=0, not_found=1;
+	union avp_value value;
+	struct avp *avp, *rootavp;
+	size_t querylen, usernamepurelen;
+	char *query, *username_pure;
+	
+	if(num_elements<1)
+		return 1;
+	
+	//NOTE: each method has to purify sip_aor itself. You must remove quotes or special chars for security
+	switch(as_conf->datasource)
+	{
+		//MySQL
+		case ASMYSQL:
+			
+			querylen=SQL_GETUSEDATA_LEN + usernamelen;
+			
+			
+			//We allocate the double size of username because at worst it can be all quotes
+			username_pure=malloc(usernamelen*2+1);
+			//We purify username not to have forbidden characters
+			usernamepurelen=mysql_real_escape_string(conn, username_pure, (const char *)username, usernamelen);
+			
+			
+			query = malloc(querylen+usernamelen+ 2);
+			snprintf(query, querylen+1, SQL_GETUSEDATA, username_pure);
+			
+			MYSQL_RES *res;
+			MYSQL_ROW row;
+			
+			//We make the query	
+			request_mysql(query);
+			res=mysql_use_result(conn);
+			if(res==NULL)
+			{
+				//We couldn't make the request
+				return 2;
+			}
+			not_found=1;
+			
+			counter=0;
+			unsigned long *length=0;
+			
+			//int index=0;//current field number
+			
+			while ((row = mysql_fetch_row(res)) != NULL)
+			{
+				length=mysql_fetch_lengths(res);
+				
+				for(counter=0;counter<num_elements; counter++)
+				{
+					//TODO: check length
+					if(strcmp(table_supported[counter],row[0]))
+					{
+						CHECK_FCT( fd_msg_avp_new ( sip_dict.SIP_User_Data, 0, &rootavp ) );
+						
+						CHECK_FCT( fd_msg_avp_new ( sip_dict.SIP_User_Data_Type, 0, &avp ) );
+						value.os.data=(unsigned char *)table_supported[counter];
+						value.os.len=strlen(table_supported[counter]);
+						CHECK_FCT( fd_msg_avp_setvalue ( avp, &value ) );
+						CHECK_FCT( fd_msg_avp_add ( rootavp, MSG_BRW_LAST_CHILD, avp) );
+						//This was used
+						table_supported[counter]=NULL;
+						
+						CHECK_FCT( fd_msg_avp_new ( sip_dict.SIP_User_Data_Contents, 0, &avp ) );
+						CHECK_MALLOC(value.os.data=malloc((length[1])*sizeof(unsigned char)));
+						memcpy(value.os.data,row[1],length[1]);
+						value.os.len=(size_t)(length[1]*sizeof(unsigned char));
+						CHECK_FCT( fd_msg_avp_setvalue ( avp, &value ) );
+						CHECK_FCT( fd_msg_avp_add ( rootavp, MSG_BRW_LAST_CHILD, avp) );
+						
+						CHECK_FCT( fd_msg_avp_add ( *groupedavp, MSG_BRW_LAST_CHILD, rootavp) );
+						not_found=0;
+					}
+				}
+				//index++;
+			}
+			
+			mysql_free_result(res);
+			free(query);
+			free(username_pure);
+			break;
+			
+			default:
+				
+				//We must never go here, if so, we must stop diameter_sip
+				TRACE_DEBUG(INFO,"FATAL ERROR: the datasource is unknown, please check your config file!");
+				return 2;
+				
+				break;
+	}
+	
+	//0 if it was found
+	return not_found;
+	
+}
+
+int set_pending_flag(const unsigned char  *username, const size_t usernamelen)
+{
+	CHECK_PARAMS(username && usernamelen);
+	
+	int not_found=2;
+	size_t querylen, usernamepurelen;
+	char *query, *username_pure;
+	
+	switch(as_conf->datasource)
+	{
+		//MySQL
+		case ASMYSQL:
+			//We allocate the double size of username because at worst it can be all quotes
+			username_pure=malloc(usernamelen*2+1);
+			//We purify username not to have forbidden characters
+			usernamepurelen=mysql_real_escape_string(conn, username_pure, (const char *)username, usernamelen);
+			
+			
+			
+			//We clear the flag "authentication pending"
+			querylen=SQL_SETFLAG_LEN + usernamepurelen;
+			query = malloc(querylen+2);
+			snprintf(query, querylen+1, SQL_SETFLAG, username_pure);
+			
+			if (mysql_query(conn, query)) 
+			{
+				TRACE_DEBUG(INFO,"Query %s failed", query);
+				free(query);
+				return 2;
+			}
+			
+			free(query);
+			break;
+	}	
+	return 0;
+}
+int clear_pending_flag(const unsigned char  *username, const size_t usernamelen)
+{
+	CHECK_PARAMS(username && usernamelen);
+	
+	int not_found=2;
+	size_t querylen, usernamepurelen;
+	char *query, *username_pure;
+	
+	switch(as_conf->datasource)
+	{
+		//MySQL
+		case ASMYSQL:
+			//We allocate the double size of username because at worst it can be all quotes
+			username_pure=malloc(usernamelen*2+1);
+			//We purify username not to have forbidden characters
+			usernamepurelen=mysql_real_escape_string(conn, username_pure, (const char *)username, usernamelen);
+			
+			
+			
+			//We clear the flag "authentication pending"
+			querylen=SQL_CLEARFLAG_LEN + usernamepurelen;
+			query = malloc(querylen+2);
+			snprintf(query, querylen+1, SQL_CLEARFLAG, username_pure);
+			
+			if (mysql_query(conn, query)) 
+			{
+				TRACE_DEBUG(INFO,"Query %s failed", query);
+				free(query);
+				return 2;
+			}
+			
+			free(query);
+		break;
+	}	
+	return 0;
+}
+
+
+
+int set_sipserver_uri(const unsigned char  *username, const size_t usernamelen, const unsigned char *sipserver_uri,const size_t sipserverurilen)
+{
+	CHECK_PARAMS(username && usernamelen && sipserver_uri && sipserverurilen);
+	
+	int not_found=2;
+	size_t querylen, usernamepurelen, sipserveruripurelen;
+	char *query, *username_pure, *sipserveruri_pure;
+	
+	switch(as_conf->datasource)
+	{
+		//MySQL
+		case ASMYSQL:
+			//We allocate the double size of username because at worst it can be all quotes
+			username_pure=malloc(usernamelen*2+1);
+			//We purify username not to have forbidden characters
+			usernamepurelen=mysql_real_escape_string(conn, username_pure, (const char *)username, usernamelen);
+			
+			//We allocate the double size of username because at worst it can be all quotes
+			sipserveruri_pure=malloc(sipserverurilen*2+1);
+			//We purify username not to have forbidden characters
+			sipserveruripurelen=mysql_real_escape_string(conn, sipserveruri_pure, (const char *)sipserver_uri, sipserverurilen);
+			
+			//We clear the flag "authentication pending"
+			querylen=SQL_SETSIPURI_LEN + usernamepurelen + sipserveruripurelen;
+			query = malloc(querylen+2);
+			snprintf(query, querylen+1, SQL_SETSIPURI, sipserveruri_pure,username_pure);
+			
+			if (mysql_query(conn, query)) 
+			{
+				TRACE_DEBUG(INFO,"Query %s failed", query);
+				free(query);
+				return 2;
+			}
+			
+			free(query);
+			break;
+	}	
+	return 0;
+}
+int remove_sipserver_uri(const unsigned char *sipserver_uri,const size_t sipserverurilen)
+{
+	CHECK_PARAMS(sipserver_uri && sipserverurilen);
+	
+	int not_found=2;
+	size_t querylen, sipserveruripurelen;
+	char *query, *sipserveruri_pure;
+	
+	switch(as_conf->datasource)
+	{
+		//MySQL
+		case ASMYSQL:
+			//We allocate the double size of username because at worst it can be all quotes
+			sipserveruri_pure=malloc(sipserverurilen*2+1);
+			//We purify username not to have forbidden characters
+			sipserveruripurelen=mysql_real_escape_string(conn, sipserveruri_pure, (const char *)sipserver_uri, sipserverurilen);
+			
+			//We clear the flag "authentication pending"
+			querylen=SQL_RMSIPURI_LEN + sipserveruripurelen;
+			query = malloc(querylen+2);
+			snprintf(query, querylen+1, SQL_RMSIPURI, sipserveruri_pure);
+			
+			if (mysql_query(conn, query)) 
+			{
+				TRACE_DEBUG(INFO,"Query %s failed", query);
+				free(query);
+				return 2;
+			}
+			
+			free(query);
+			break;
+	}	
+	return 0;
+}
+int set_real_sipserver_uri(const unsigned char  *username, const size_t usernamelen, const unsigned char *sipserver_uri,const size_t sipserverurilen)
+{
+	CHECK_PARAMS(username && usernamelen && sipserver_uri && sipserverurilen);
+	
+	int not_found=2;
+	size_t querylen, usernamepurelen, sipserveruripurelen;
+	char *query, *username_pure, *sipserveruri_pure;
+	
+	switch(as_conf->datasource)
+	{
+		//MySQL
+		case ASMYSQL:
+			//We allocate the double size of username because at worst it can be all quotes
+			username_pure=malloc(usernamelen*2+1);
+			//We purify username not to have forbidden characters
+			usernamepurelen=mysql_real_escape_string(conn, username_pure, (const char *)username, usernamelen);
+			
+			//We allocate the double size of username because at worst it can be all quotes
+			sipserveruri_pure=malloc(sipserverurilen*2+1);
+			//We purify username not to have forbidden characters
+			sipserveruripurelen=mysql_real_escape_string(conn, sipserveruri_pure, (const char *)sipserver_uri, sipserverurilen);
+			
+			//We clear the flag "authentication pending"
+			querylen=SQL_SETREALSIPURI_LEN + usernamepurelen + sipserveruripurelen;
+			query = malloc(querylen+2);
+			snprintf(query, querylen+1, SQL_SETREALSIPURI, sipserveruri_pure,username_pure);
+			
+			if (mysql_query(conn, query)) 
+			{
+				TRACE_DEBUG(INFO,"Query %s failed", query);
+				free(query);
+				return 2;
+			}
+			
+			free(query);
+			break;
+	}	
+	return 0;
+}
+
+int get_sipserver_uri(const unsigned char *sip_aor, const size_t sipaorlen, char ** sipserver_uri, size_t *sipserverurilen)
+{
+	CHECK_PARAMS(sip_aor && sipaorlen && sipserver_uri && sipserverurilen );
+	
+	size_t querylen, sipaorpurelen;
+	char *query, *sipaor_pure;
+	int not_found=2;
+	
+	
+	
+	
+	//a sip aor must begin by "sip:" or "sips:" so it must at least be longer than 4 chars
+	if(sipaorlen<5)
+		return 2;
+	
+	//NOTE: each method has to purify sip_aor itself. You must remove quotes or special chars for security
+	
+	switch(as_conf->datasource)
+	{
+		//MySQL
+		case ASMYSQL:
+			
+			querylen=SQL_GETSIPSERURI_LEN + sipaorlen;
+			
+			//We allocate the double size of SIP-URI because at worst it can be all quotes
+			CHECK_MALLOC(sipaor_pure=malloc(sipaorlen*2+1));
+			//We purify SIP-URI not to have forbidden characters
+			sipaorpurelen=mysql_real_escape_string(conn, sipaor_pure, (const char *)sip_aor, sipaorlen);
+			
+			
+			query = malloc(querylen+sipaorpurelen+ 2);
+			snprintf(query, querylen+1, SQL_GETSIPSERURI, sipaor_pure);
+			
+			MYSQL_RES *res;
+			MYSQL_ROW row;
+			
+			//We make the query	
+			request_mysql(query);
+			res=mysql_use_result(conn);
+			if(res==NULL)
+			{
+				//We couldn't make the request
+				sipserver_uri=NULL;
+				return 2;
+			}
+			
+			not_found=1;
+			while ((row = mysql_fetch_row(res)) != NULL)
+			{
+				*sipserverurilen=strlen(row[0]);
+				if(*sipserverurilen>4)
+				{
+					CHECK_MALLOC(*sipserver_uri=malloc(*sipserverurilen+1));
+					strcpy(*sipserver_uri,row[0]);
+					not_found=0;
+					break;
+				}
+			}
+			mysql_free_result(res);
+			free(query);
+			free(sipaor_pure);
+			break;
+			
+		default:
+			
+			//We must never go here, if so, we must stop diameter_sip
+			TRACE_DEBUG(INFO,"FATAL ERROR: the datasource is unknown, please check your config file!");
+			sipserver_uri=NULL;
+			return 2;
+			
+			break;
+	}
+	
+	//0 if it was found
+	return not_found;
+	
+}
+
+int count_sipaor(const struct msg * message)
+{
+	CHECK_PARAMS(message);
+	
+	struct avp_hdr *temphdr;
+	struct avp *avp;
+	int counter=0;
+	
+	CHECK_FCT(fd_msg_browse ( &message, MSG_BRW_WALK, &avp, NULL));
+	
+	while(avp!=NULL)
+	{
+		
+		CHECK_FCT( fd_msg_avp_hdr( avp,&temphdr ));
+		
+		if(temphdr->avp_code==122 && temphdr->avp_vendor==0)
+		{
+			counter++;
+		}
+		
+		CHECK_FCT(fd_msg_browse ( &message, MSG_BRW_WALK, &avp, NULL));
+	}
+	return counter;
+}
+int count_supporteddatatype(const struct msg * message)
+{
+	CHECK_PARAMS(message);
+	
+	struct avp_hdr *temphdr;
+	struct avp *avp;
+	int counter=0;
+	
+	CHECK_FCT(fd_msg_browse ( &message, MSG_BRW_WALK, &avp, NULL));
+	
+	while(avp!=NULL)
+	{
+		
+		CHECK_FCT( fd_msg_avp_hdr( avp,&temphdr ));
+		
+		if(temphdr->avp_code==388 && temphdr->avp_vendor==0)
+		{
+			counter++;
+		}
+		
+		CHECK_FCT(fd_msg_browse ( &message, MSG_BRW_WALK, &avp, NULL));
+	}
+	return counter;
+}
 /*
 void nonce_add_element(char * nonce)
 {

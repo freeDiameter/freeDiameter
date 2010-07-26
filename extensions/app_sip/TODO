@@ -37,3 +37,20 @@
 
 TODO List
 * add in malloc the size of char
+* when getting results from mysql, check lenght
+* sort capabilities in LIR/LIA
+* remove warnings in SIP plugin for gateway
+* make functions for database access in MAR/MAA
+* order diamsip.h because it's becoming a mess ^^
+* replace password in MAR/MAA and libdiamsip from table to malloc char!
+* display errors of mysql
+* check that all user data inserted in requests are purified
+* add accounting server uri in database and diamsip
+* add mutex on mysql writing
+* check multithreading of mysql!
+
+
+
+
+
+

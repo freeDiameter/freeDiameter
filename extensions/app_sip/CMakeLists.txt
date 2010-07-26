@@ -20,7 +20,9 @@ SET( DIAM_SIP_SRC
 	md5.c
 	multimediaauth.c
 	registrationtermination.c
+	userauthorization.c
 	pushprofile.c
+	serverassignment.c
 	locationinfo.c
 	locationinfosl.c
 )

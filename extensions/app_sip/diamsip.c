@@ -125,6 +125,7 @@ int as_entry(char * conffile)
 	CHECK_FCT( fd_dict_search( fd_g_config->cnf_dict, DICT_AVP, AVP_BY_NAME, "Auth-Session-State", &sip_dict.Auth_Session_State, ENOENT) );
 	CHECK_FCT( fd_dict_search( fd_g_config->cnf_dict, DICT_AVP, AVP_BY_NAME, "Auth-Application-Id", &sip_dict.Auth_Application_Id, ENOENT) );
 	CHECK_FCT( fd_dict_search( fd_g_config->cnf_dict, DICT_AVP, AVP_BY_NAME, "Destination-Host", &sip_dict.Destination_Host, ENOENT) );
+	CHECK_FCT( fd_dict_search( fd_g_config->cnf_dict, DICT_AVP, AVP_BY_NAME, "Destination-Realm", &sip_dict.Destination_Realm, ENOENT) );
 	CHECK_FCT( fd_dict_search( fd_g_config->cnf_dict, DICT_AVP, AVP_BY_NAME, "Session-Id", &sip_dict.Session_Id, ENOENT) );
 	CHECK_FCT( fd_dict_search( fd_g_config->cnf_dict, DICT_AVP, AVP_BY_NAME, "Redirect-Host", &sip_dict.Redirect_Host, ENOENT) );
 	CHECK_FCT( fd_dict_search( fd_g_config->cnf_dict, DICT_AVP, AVP_BY_NAME, "Redirect-Host-Usage", &sip_dict.Redirect_Host_Usage, ENOENT) );
@@ -135,11 +136,26 @@ int as_entry(char * conffile)
 	CHECK_FCT( fd_dict_search( fd_g_config->cnf_dict, DICT_AVP, AVP_BY_NAME, "SIP-Authentication-Scheme", &sip_dict.SIP_Authentication_Scheme, ENOENT) );
 	CHECK_FCT( fd_dict_search( fd_g_config->cnf_dict, DICT_AVP, AVP_BY_NAME, "SIP-Authentication-Info", &sip_dict.SIP_Authentication_Info, ENOENT) );
 	CHECK_FCT( fd_dict_search( fd_g_config->cnf_dict, DICT_AVP, AVP_BY_NAME, "SIP-Server-URI", &sip_dict.SIP_Server_URI, ENOENT) );
+	CHECK_FCT( fd_dict_search( fd_g_config->cnf_dict, DICT_AVP, AVP_BY_NAME, "SIP-Server-Capabilities", &sip_dict.SIP_Server_Capabilities, ENOENT) );
+	CHECK_FCT( fd_dict_search( fd_g_config->cnf_dict, DICT_AVP, AVP_BY_NAME, "SIP-Mandatory-Capability", &sip_dict.SIP_Mandatory_Capability, ENOENT) );
+	CHECK_FCT( fd_dict_search( fd_g_config->cnf_dict, DICT_AVP, AVP_BY_NAME, "SIP-Optional-Capability", &sip_dict.SIP_Optional_Capability, ENOENT) );
 	CHECK_FCT( fd_dict_search( fd_g_config->cnf_dict, DICT_AVP, AVP_BY_NAME, "SIP-Method", &sip_dict.SIP_Method, ENOENT) );
 	CHECK_FCT( fd_dict_search( fd_g_config->cnf_dict, DICT_AVP, AVP_BY_NAME, "SIP-AOR", &sip_dict.SIP_AOR, ENOENT) );
 	CHECK_FCT( fd_dict_search( fd_g_config->cnf_dict, DICT_AVP, AVP_BY_NAME, "SIP-Deregistration-Reason", &sip_dict.SIP_Deregistration_Reason, ENOENT) );
 	CHECK_FCT( fd_dict_search( fd_g_config->cnf_dict, DICT_AVP, AVP_BY_NAME, "SIP-Reason-Code", &sip_dict.SIP_Reason_Code, ENOENT) );
 	CHECK_FCT( fd_dict_search( fd_g_config->cnf_dict, DICT_AVP, AVP_BY_NAME, "SIP-Reason-Info", &sip_dict.SIP_Reason_Info, ENOENT) );
+	CHECK_FCT( fd_dict_search( fd_g_config->cnf_dict, DICT_AVP, AVP_BY_NAME, "SIP-Accounting-Information", &sip_dict.SIP_Accounting_Information, ENOENT) );
+	CHECK_FCT( fd_dict_search( fd_g_config->cnf_dict, DICT_AVP, AVP_BY_NAME, "SIP-Accounting-Server-URI", &sip_dict.SIP_Accounting_Server_URI, ENOENT) );
+	CHECK_FCT( fd_dict_search( fd_g_config->cnf_dict, DICT_AVP, AVP_BY_NAME, "SIP-Credit-Control-Server-URI", &sip_dict.SIP_Credit_Control_Server_URI, ENOENT) );
+	CHECK_FCT( fd_dict_search( fd_g_config->cnf_dict, DICT_AVP, AVP_BY_NAME, "SIP-Server-Assignment-Type", &sip_dict.SIP_Server_Assignment_Type, ENOENT) );
+	CHECK_FCT( fd_dict_search( fd_g_config->cnf_dict, DICT_AVP, AVP_BY_NAME, "SIP-Item-Number", &sip_dict.SIP_Item_Number, ENOENT) );
+	CHECK_FCT( fd_dict_search( fd_g_config->cnf_dict, DICT_AVP, AVP_BY_NAME, "SIP-User-Authorization-Type", &sip_dict.SIP_User_Authorization_Type, ENOENT) );
+	CHECK_FCT( fd_dict_search( fd_g_config->cnf_dict, DICT_AVP, AVP_BY_NAME, "SIP-Supported-User-Data-Type", &sip_dict.SIP_Supported_User_Data_Type, ENOENT) );
+	CHECK_FCT( fd_dict_search( fd_g_config->cnf_dict, DICT_AVP, AVP_BY_NAME, "SIP-User-Data", &sip_dict.SIP_User_Data, ENOENT) );
+	CHECK_FCT( fd_dict_search( fd_g_config->cnf_dict, DICT_AVP, AVP_BY_NAME, "SIP-User-Data-Type", &sip_dict.SIP_User_Data_Type, ENOENT) );
+	CHECK_FCT( fd_dict_search( fd_g_config->cnf_dict, DICT_AVP, AVP_BY_NAME, "SIP-User-Data-Contents", &sip_dict.SIP_User_Data_Contents, ENOENT) );
+	CHECK_FCT( fd_dict_search( fd_g_config->cnf_dict, DICT_AVP, AVP_BY_NAME, "SIP-User-Data-Already-Available", &sip_dict.SIP_User_Data_Already_Available, ENOENT) );
+	CHECK_FCT( fd_dict_search( fd_g_config->cnf_dict, DICT_AVP, AVP_BY_NAME, "SIP-Visited-Network-Id", &sip_dict.SIP_Visited_Network_Id, ENOENT) );
 	CHECK_FCT( fd_dict_search( fd_g_config->cnf_dict, DICT_AVP, AVP_BY_NAME, "Digest-Realm", &sip_dict.Digest_Realm, ENOENT) );
 	CHECK_FCT( fd_dict_search( fd_g_config->cnf_dict, DICT_AVP, AVP_BY_NAME, "Digest-URI", &sip_dict.Digest_URI, ENOENT) );
 	CHECK_FCT( fd_dict_search( fd_g_config->cnf_dict, DICT_AVP, AVP_BY_NAME, "Digest-Nonce", &sip_dict.Digest_Nonce, ENOENT) );
@@ -175,6 +191,12 @@ int as_entry(char * conffile)
 	  //LIR
 	  CHECK_FCT( fd_dict_search( fd_g_config->cnf_dict, DICT_COMMAND, CMD_BY_NAME, "Location-Info-Request", &data.command, ENOENT) );
 	  CHECK_FCT( fd_disp_register( diamsip_LIR_cb, DISP_HOW_CC, &data, &diamsip_LIR_hdl ) );
+	  //UAR
+	  CHECK_FCT( fd_dict_search( fd_g_config->cnf_dict, DICT_COMMAND, CMD_BY_NAME, "User-Authorization-Request", &data.command, ENOENT) );
+	  CHECK_FCT( fd_disp_register( diamsip_UAR_cb, DISP_HOW_CC, &data, &diamsip_UAR_hdl ) );
+	  //SAR
+	  CHECK_FCT( fd_dict_search( fd_g_config->cnf_dict, DICT_COMMAND, CMD_BY_NAME, "Server-Assignment-Request", &data.command, ENOENT) );
+	  CHECK_FCT( fd_disp_register( diamsip_SAR_cb, DISP_HOW_CC, &data, &diamsip_SAR_hdl ) );
 	}
 	if(as_conf->mode==2)
 	{
@@ -204,10 +226,6 @@ int as_entry(char * conffile)
 		TRACE_DEBUG(INFO,"Creation of thread failed, abort!");
 		return EINVAL;
 	}
-		
-
-	
-	
 	
 	
 	return 0;

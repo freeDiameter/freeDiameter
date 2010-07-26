@@ -87,6 +87,19 @@ int start_mysql_connection();
 void request_mysql(char *query);
 void close_mysql_connection();
 int get_diameter_uri(const unsigned char *sip_aor, const size_t sipaorlen, char ** diameter_uri, size_t *diameterurilen);
+int exist_username(const unsigned char *sip_aor, const size_t sipaorlen);
+int get_sipserver_cap(const unsigned char *sip_aor, const size_t sipaorlen, struct avp **capabilities);
+int get_password(const unsigned char *username, const size_t usernamelen, char *password);
+int check_sipaor(const unsigned char  *username, const size_t usernamelen, const char * sip_aor,const size_t sipaorlen);
+int get_user_datatype(const unsigned char  *username, const size_t usernamelen,char **table_supported, const int num_elements, struct avp **groupedavp);
+int set_pending_flag(const unsigned char  *username, const size_t usernamelen);
+int clear_pending_flag(const unsigned char  *username, const size_t usernamelen);
+int set_real_sipserver_uri(const unsigned char  *username, const size_t usernamelen, const unsigned char *sipserver_uri,const size_t sipserverurilen);
+int set_sipserver_uri(const unsigned char  *username, const size_t usernamelen, const unsigned char *sipserver_uri,const size_t sipserverurilen);
+
+//count functions
+int count_supporteddatatype(const struct msg * message);
+int count_sipaor(const struct msg * message);
 
 
 void DigestCalcHA1(char * pszAlg,char * pszUserName,char * pszRealm,char * pszPassword,char * pszNonce,char * pszCNonce,HASHHEX SessionKey);
@@ -129,6 +142,8 @@ int diamsip_MAR_cb( struct msg ** msg, struct avp * avp, struct session * sess, 
 int diamsip_RTA_cb( struct msg ** msg, struct avp * avp, struct session * sess, enum disp_action * act);
 int diamsip_PPA_cb( struct msg ** msg, struct avp * avp, struct session * sess, enum disp_action * act);
 int diamsip_LIR_cb( struct msg ** msg, struct avp * avp, struct session * sess, enum disp_action * act);
+int diamsip_UAR_cb( struct msg ** msg, struct avp * avp, struct session * sess, enum disp_action * act);
+int diamsip_SAR_cb( struct msg ** msg, struct avp * avp, struct session * sess, enum disp_action * act);
 
 //Suscriber Locator
 int diamsipSL_LIR_cb( struct msg ** msg, struct avp * paramavp, struct session * sess, enum disp_action * act);
@@ -137,20 +152,55 @@ int diamsipSL_LIR_cb( struct msg ** msg, struct avp * paramavp, struct session *
 #define SQL_GETPASSWORD "SELECT `password` FROM ds_users WHERE `username` ='%s'"
 #define SQL_GETPASSWORD_LEN 52
 
+//username by SIP-AOR
+#define SQL_GETUSERNAME  "SELECT `username` FROM ds_users, ds_sip_aor WHERE `sip_aor` ='%s' AND `ds_sip_aor`.`id_user` = `ds_users`.`id_user`"
+#define SQL_GETUSERNAME_LEN 113
+
+//sip server uri by username
 #define SQL_GETSIPURI  "SELECT `sip_server_uri` FROM ds_users WHERE `username` ='%s'"
 #define SQL_GETSIPURI_LEN 60
+
+//sip server uri by SIP-AOR
+#define SQL_GETSIPSERURI  "SELECT `sip_server_uri` FROM ds_users, ds_sip_aor WHERE `sip_aor` ='%s' AND `ds_sip_aor`.`id_user` = `ds_users`.`id_user`"
+#define SQL_GETSIPSERURI_LEN 119
+
+//sip capabilities for a SIP-AOR
+#define SQL_GETSIPSERCAP  "SELECT `compulsory`,`id_service` FROM ds_user_services, ds_sip_aor WHERE `sip_aor` ='%s' AND `ds_sip_aor`.`id_user` = `ds_user_services`.`id_user`"
+#define SQL_GETSIPSERCAP_LEN 144
+
+//user data for a user data supported
+#define SQL_GETUSEDATA  "SELECT `data_type`,`data` FROM ds_users, ds_user_data, ds_data_types WHERE `username` ='%s' AND `ds_users`.`id_user` = `ds_user_data`.`id_user` AND `ds_data_types`.`id_data_type`=`ds_user_data`.`id_data_type`"
+#define SQL_GETUSEDATA_LEN 206
 
 #define SQL_GETDIAMURI "SELECT `diameter_uri` FROM sl_sip_aor_map WHERE `sip_aor` ='%s'"
 #define SQL_GETDIAMURI_LEN 61
 
-#define SQL_SETSIPURI "UPDATE ds_users SET `sip_server_uri`='%s', `flag`=1 WHERE `username` ='%s'"
-#define SQL_SETSIPURI_LEN 74
+//networks for this user
+#define SQL_GETUSERNET "SELECT `label_network` FROM ds_users, ds_user_networks, ds_networks WHERE `ds_users`.`username` ='%s' AND `ds_user_networks`.`id_user` = `ds_users`.`id_user` AND `ds_user_networks`.`id_network` = `ds_networks`.`id_network`"
+#define SQL_GETUSERNET_LEN 220
+
+#define SQL_SETSIPURI "UPDATE ds_users SET `temp_sip_server_uri`='%s' WHERE `username` ='%s'"
+#define SQL_SETSIPURI_LEN 65
+
+//TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO 
+#define SQL_RMSIPURI "UPDATE ds_users SET `temp_sip_server_uri`='', `sip_server_uri`='' WHERE `id_user` ='%s'"
+#define SQL_RMSIPURI_LEN 65
+//TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO 
+
+#define SQL_SETREALSIPURI "UPDATE ds_users SET `sip_server_uri`='%s' WHERE `username` ='%s'"
+#define SQL_SETREALSIPURI_LEN 65
+
+#define SQL_SETFLAG "UPDATE ds_users SET `authentication_pending`=1 WHERE `username` ='%s'"
+#define SQL_SETFLAG_LEN 67
+
+#define SQL_CLEARFLAG "UPDATE ds_users SET `authentication_pending`=0, `registrated`=1 WHERE `username` ='%s'"
+#define SQL_CLEARFLAG_LEN 84
 
 #define SQL_GETSIPAOR "SELECT `sip_aor` FROM `ds_sip_aor`, `ds_users` WHERE `ds_sip_aor`.`id_user` = `ds_users`.`id_user` AND `ds_users`.`username` = '%s'"
 #define SQL_GETSIPAOR_LEN 131
 
-#define SQL_CLEARFLAG "UPDATE ds_users SET `flag`=0 WHERE `username` ='%s'"
-#define SQL_CLEARFLAG_LEN 74
+//#define SQL_CLEARFLAG "UPDATE ds_users SET `authentication_pending`=0 WHERE `username` ='%s'"
+//#define SQL_CLEARFLAG_LEN 67
 
 extern struct session_handler * ds_sess_hdl;
 
@@ -166,17 +216,33 @@ struct diamsip_dict{
 	struct dict_object * Auth_Session_State;
 	struct dict_object * Auth_Application_Id;
 	struct dict_object * Destination_Host;
+	struct dict_object * Destination_Realm;
 	struct dict_object * User_Name;
 	struct dict_object * Session_Id;
 	struct dict_object * Redirect_Host;
 	struct dict_object * Redirect_Host_Usage;
 	struct dict_object * SIP_Auth_Data_Item;
+	struct dict_object * SIP_Accounting_Information;
+	struct dict_object * SIP_Accounting_Server_URI;
+	struct dict_object * SIP_Credit_Control_Server_URI;
+	struct dict_object * SIP_Server_Assignment_Type;
+	struct dict_object * SIP_Item_Number;
+	struct dict_object * SIP_User_Authorization_Type;
+	struct dict_object * SIP_Supported_User_Data_Type;
+	struct dict_object * SIP_User_Data;
+	struct dict_object * SIP_User_Data_Type;
+	struct dict_object * SIP_User_Data_Contents;
+	struct dict_object * SIP_User_Data_Already_Available;
+	struct dict_object * SIP_Visited_Network_Id;
 	struct dict_object * SIP_Authorization;
 	struct dict_object * SIP_Authenticate;
 	struct dict_object * SIP_Number_Auth_Items;	
 	struct dict_object * SIP_Authentication_Scheme;
 	struct dict_object * SIP_Authentication_Info;	
 	struct dict_object * SIP_Server_URI;
+	struct dict_object * SIP_Server_Capabilities;
+	struct dict_object * SIP_Mandatory_Capability;
+	struct dict_object * SIP_Optional_Capability;
 	struct dict_object * SIP_Method;
 	struct dict_object * SIP_AOR;
 	struct dict_object * SIP_Deregistration_Reason;
