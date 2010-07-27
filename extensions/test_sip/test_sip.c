@@ -100,6 +100,9 @@ int ts_entry(char * conffile)
 	struct dict_object * app=NULL;
 	struct disp_when data;
 	
+	
+	//TODO: activate again configuration file
+	CHECK_FCT( ts_conf_init() );
 	/* Initialize configuration 
 	//CHECK_FCT( ts_conf_init() );
 	

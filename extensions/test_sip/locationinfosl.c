@@ -45,7 +45,7 @@ int test_sipSL_LIR_cb()
 	union avp_value value;
 	
 	//Fake values START
-	unsigned char *sip_aor="sip:aw-lappy@tera.ics.keio.ac.jp";
+	char *sip_aor="sip:aw-lappy@tera.ics.keio.ac.jp";
 	size_t aor_len=strlen(sip_aor); 
 	char *destination_realm="tera.ics.keio.ac.jp";
 	size_t destination_realmlen=strlen(destination_realm);
@@ -113,7 +113,7 @@ int test_sipSL_LIR_cb()
 	{
 		
 		CHECK_FCT( fd_msg_avp_new ( sip_dict.SIP_AOR, 0, &avp ) );
-		value.os.data=sip_aor;
+		value.os.data=(unsigned char *)sip_aor;
 		value.os.len=aor_len;
 		CHECK_FCT( fd_msg_avp_setvalue( avp, &value ) );
 		CHECK_FCT( fd_msg_avp_add( message, MSG_BRW_LAST_CHILD, avp ) );

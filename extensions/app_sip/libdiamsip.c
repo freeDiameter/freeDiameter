@@ -689,7 +689,7 @@ int set_pending_flag(const unsigned char  *username, const size_t usernamelen)
 {
 	CHECK_PARAMS(username && usernamelen);
 	
-	int not_found=2;
+	
 	size_t querylen, usernamepurelen;
 	char *query, *username_pure;
 	
@@ -725,7 +725,7 @@ int clear_pending_flag(const unsigned char  *username, const size_t usernamelen)
 {
 	CHECK_PARAMS(username && usernamelen);
 	
-	int not_found=2;
+	
 	size_t querylen, usernamepurelen;
 	char *query, *username_pure;
 	
@@ -764,7 +764,7 @@ int set_sipserver_uri(const unsigned char  *username, const size_t usernamelen, 
 {
 	CHECK_PARAMS(username && usernamelen && sipserver_uri && sipserverurilen);
 	
-	int not_found=2;
+	
 	size_t querylen, usernamepurelen, sipserveruripurelen;
 	char *query, *username_pure, *sipserveruri_pure;
 	
@@ -803,7 +803,7 @@ int remove_sipserver_uri(const unsigned char *sipserver_uri,const size_t sipserv
 {
 	CHECK_PARAMS(sipserver_uri && sipserverurilen);
 	
-	int not_found=2;
+
 	size_t querylen, sipserveruripurelen;
 	char *query, *sipserveruri_pure;
 	
@@ -837,7 +837,7 @@ int set_real_sipserver_uri(const unsigned char  *username, const size_t username
 {
 	CHECK_PARAMS(username && usernamelen && sipserver_uri && sipserverurilen);
 	
-	int not_found=2;
+	
 	size_t querylen, usernamepurelen, sipserveruripurelen;
 	char *query, *username_pure, *sipserveruri_pure;
 	
@@ -873,7 +873,7 @@ int set_real_sipserver_uri(const unsigned char  *username, const size_t username
 	return 0;
 }
 
-int get_sipserver_uri(const unsigned char *sip_aor, const size_t sipaorlen, char ** sipserver_uri, size_t *sipserverurilen)
+int get_sipserver_uri(const unsigned char *sip_aor, const size_t sipaorlen, unsigned char ** sipserver_uri, size_t *sipserverurilen)
 {
 	CHECK_PARAMS(sip_aor && sipaorlen && sipserver_uri && sipserverurilen );
 	
@@ -926,7 +926,7 @@ int get_sipserver_uri(const unsigned char *sip_aor, const size_t sipaorlen, char
 				if(*sipserverurilen>4)
 				{
 					CHECK_MALLOC(*sipserver_uri=malloc(*sipserverurilen+1));
-					strcpy(*sipserver_uri,row[0]);
+					strcpy((char *)*sipserver_uri,row[0]);
 					not_found=0;
 					break;
 				}
@@ -999,7 +999,7 @@ int count_supporteddatatype(const struct msg * message)
 	}
 	return counter;
 }
-/*
+/* 
 void nonce_add_element(char * nonce)
 {
 	noncechain *newelt=malloc(sizeof(noncechain));

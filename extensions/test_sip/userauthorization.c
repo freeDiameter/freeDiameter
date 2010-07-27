@@ -45,15 +45,15 @@ int test_sip_UAR_cb()
 	union avp_value value;
 	
 	//Fake values START
-	unsigned char *sip_aor="sip:aw-lappy@tera.ics.keio.ac.jp";
+	char *sip_aor="sip:aw-lappy@tera.ics.keio.ac.jp";
 	size_t aor_len=strlen(sip_aor); 
-	unsigned char *destination_realm="tera.ics.keio.ac.jp";
+	 char *destination_realm="tera.ics.keio.ac.jp";
 	size_t destination_realmlen=strlen(destination_realm);
-	unsigned char *destination_host="suika.tera.ics.keio.ac.jp";
+	 char *destination_host="suika.tera.ics.keio.ac.jp";
 	size_t destination_hostlen=strlen(destination_host);
-	unsigned char *username="aw-lappy";
+	 char *username="aw-lappy";
 	size_t usernamelen=strlen(username);
-	unsigned char *visitednetwork="Pink";
+	 char *visitednetwork="Pink";
 	size_t visitednetworklen=strlen(visitednetwork);
 	int registrationtype = 2;
 	//Fake values STOP
@@ -98,7 +98,7 @@ int test_sip_UAR_cb()
 	//Destination_Host
 	{
 		CHECK_FCT( fd_msg_avp_new ( sip_dict.Destination_Host, 0, &avp ) );
-		value.os.data=destination_host;
+		value.os.data=(unsigned char *)destination_host;
 		value.os.len=destination_hostlen;
 		CHECK_FCT( fd_msg_avp_setvalue( avp, &value ) );
 		CHECK_FCT( fd_msg_avp_add( message, MSG_BRW_LAST_CHILD, avp ) );
@@ -106,7 +106,7 @@ int test_sip_UAR_cb()
 	//Destination_Realm
 	{
 		CHECK_FCT( fd_msg_avp_new ( sip_dict.Destination_Realm, 0, &avp ) );
-		value.os.data=destination_realm;
+		value.os.data=(unsigned char *)destination_realm;
 		value.os.len=destination_realmlen;
 		CHECK_FCT( fd_msg_avp_setvalue( avp, &value ) );
 		CHECK_FCT( fd_msg_avp_add( message, MSG_BRW_LAST_CHILD, avp ) );
@@ -116,7 +116,7 @@ int test_sip_UAR_cb()
 	{
 		
 		CHECK_FCT( fd_msg_avp_new ( sip_dict.SIP_AOR, 0, &avp ) );
-		value.os.data=sip_aor;
+		value.os.data=(unsigned char *)sip_aor;
 		value.os.len=aor_len;
 		CHECK_FCT( fd_msg_avp_setvalue( avp, &value ) );
 		CHECK_FCT( fd_msg_avp_add( message, MSG_BRW_LAST_CHILD, avp ) );
@@ -126,7 +126,7 @@ int test_sip_UAR_cb()
 	{
 		
 		CHECK_FCT( fd_msg_avp_new ( sip_dict.User_Name, 0, &avp ) );
-		value.os.data=username;
+		value.os.data=(unsigned char *)username;
 		value.os.len=usernamelen;
 		CHECK_FCT( fd_msg_avp_setvalue( avp, &value ) );
 		CHECK_FCT( fd_msg_avp_add( message, MSG_BRW_LAST_CHILD, avp ) );
@@ -136,7 +136,7 @@ int test_sip_UAR_cb()
 	{
 		
 		CHECK_FCT( fd_msg_avp_new ( sip_dict.SIP_Visited_Network_Id, 0, &avp ) );
-		value.os.data=visitednetwork;
+		value.os.data=(unsigned char *)visitednetwork;
 		value.os.len=visitednetworklen;
 		CHECK_FCT( fd_msg_avp_setvalue( avp, &value ) );
 		CHECK_FCT( fd_msg_avp_add( message, MSG_BRW_LAST_CHILD, avp ) );

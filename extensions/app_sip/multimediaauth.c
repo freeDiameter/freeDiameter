@@ -49,8 +49,10 @@ int diamsip_MAR_cb( struct msg ** msg, struct avp * paramavp, struct session * s
 	char password[51];
 	int idx=0, number_of_auth_items=0,i=0, ret=0;
 	//Flags and variables for Database
-	int sipurinotstored=0, authenticationpending=0, querylen=0, usernamelen=0;
-	char *query=NULL,*username=NULL;
+	int sipurinotstored=0, authenticationpending=0; 
+	size_t querylen=0, usernamelen=0;
+	char *query=NULL;
+	unsigned char *username=NULL;
 	
 	//The nonce we will store and retrieve in session
 	struct ds_nonce *storednonce=NULL;
@@ -151,7 +153,7 @@ int diamsip_MAR_cb( struct msg ** msg, struct avp * paramavp, struct session * s
 				//We allocate the double size of username because at worst it can be all quotes
 				username=malloc(avphdr->avp_value->os.len*2+1);
 				//We purify username not to have forbidden characters
-				usernamelen=mysql_real_escape_string(conn, username, (const char *)avphdr->avp_value->os.data, avphdr->avp_value->os.len);
+				usernamelen=mysql_real_escape_string(conn, (char *)username, (const char *)avphdr->avp_value->os.data, avphdr->avp_value->os.len);
 				
 				//Now that we know the user exist, we get the list of AOR owned by this user
 				querylen=SQL_GETSIPAOR_LEN + usernamelen;
@@ -199,13 +201,13 @@ int diamsip_MAR_cb( struct msg ** msg, struct avp * paramavp, struct session * s
 			
 			if(avphdr!=NULL)
 			{
-				char *sipuri=NULL;
+				unsigned char *sipuri=NULL;
 				int sipurilen=0;
 
 				//We allocate the double size of SIP-URI because at worst it can be all quotes
 				CHECK_MALLOC(sipuri=malloc(avphdr->avp_value->os.len*2+1));
 				//We purify SIP-URI not to have forbidden characters
-				sipurilen=mysql_real_escape_string(conn, sipuri, (const char *)avphdr->avp_value->os.data, avphdr->avp_value->os.len);
+				sipurilen=mysql_real_escape_string(conn, (char *)sipuri, (const char *)avphdr->avp_value->os.data, avphdr->avp_value->os.len);
 				
 				
 				//We get the SIP-URI assignated to the user

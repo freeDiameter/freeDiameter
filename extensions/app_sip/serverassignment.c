@@ -122,7 +122,7 @@ int diamsip_SAR_cb( struct msg ** msg, struct avp * paramavp, struct session * s
 				if(sipaorhdr!=NULL)
 				{
 					//We must check that this user can use this SIP-AOR
-					ret=check_sipaor(usernamehdr->avp_value->os.data, usernamehdr->avp_value->os.len, sipaorhdr->avp_value->os.data,sipaorhdr->avp_value->os.len);
+					ret=check_sipaor(usernamehdr->avp_value->os.data, usernamehdr->avp_value->os.len,(const char *) sipaorhdr->avp_value->os.data,sipaorhdr->avp_value->os.len);
 					
 					if(ret==0)
 					{
@@ -202,7 +202,7 @@ int diamsip_SAR_cb( struct msg ** msg, struct avp * paramavp, struct session * s
 				{
 					
 					CHECK_MALLOC(table_supporteddatatype[counter]=malloc(avphdr->avp_value->os.len+1));
-					strncpy(table_supporteddatatype[counter],avphdr->avp_value->os.data,avphdr->avp_value->os.len);
+					strncpy(table_supporteddatatype[counter],(const char *)avphdr->avp_value->os.data,avphdr->avp_value->os.len);
 					table_supporteddatatype[counter][avphdr->avp_value->os.len+1]='\0';
 					
 					counter++;

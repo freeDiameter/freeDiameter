@@ -114,8 +114,8 @@ int diamsip_LIR_cb( struct msg ** msg, struct avp * paramavp, struct session * s
 		}
 		
 		//If we arrive here, the user is known
-		int sipserverurilen;
-		char * sipserver_uri=NULL;
+		size_t sipserverurilen;
+		unsigned char * sipserver_uri=NULL;
 		
 		ret=get_sipserver_uri(avphdr->avp_value->os.data, avphdr->avp_value->os.len, &sipserver_uri, &sipserverurilen);
 		

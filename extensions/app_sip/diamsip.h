@@ -96,6 +96,8 @@ int set_pending_flag(const unsigned char  *username, const size_t usernamelen);
 int clear_pending_flag(const unsigned char  *username, const size_t usernamelen);
 int set_real_sipserver_uri(const unsigned char  *username, const size_t usernamelen, const unsigned char *sipserver_uri,const size_t sipserverurilen);
 int set_sipserver_uri(const unsigned char  *username, const size_t usernamelen, const unsigned char *sipserver_uri,const size_t sipserverurilen);
+int get_sipserver_uri(const unsigned char *sip_aor, const size_t sipaorlen, unsigned char ** sipserver_uri, size_t *sipserverurilen);
+int allow_roaming(const unsigned char  *username, const size_t usernamelen, const char * network,const size_t networklen);
 
 //count functions
 int count_supporteddatatype(const struct msg * message);

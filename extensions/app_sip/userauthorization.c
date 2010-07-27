@@ -107,7 +107,7 @@ int diamsip_UAR_cb( struct msg ** msg, struct avp * paramavp, struct session * s
 			{//found
 				
 				//We must check that this user can use this SIP-AOR
-				ret=check_sipaor(usernamehdr->avp_value->os.data, usernamehdr->avp_value->os.len, sipaorhdr->avp_value->os.data,sipaorhdr->avp_value->os.len);
+				ret=check_sipaor(usernamehdr->avp_value->os.data, usernamehdr->avp_value->os.len, (const char *)sipaorhdr->avp_value->os.data,sipaorhdr->avp_value->os.len);
 				
 				if(ret==0)
 				{
@@ -166,7 +166,7 @@ int diamsip_UAR_cb( struct msg ** msg, struct avp * paramavp, struct session * s
 					MUST set the Result-Code AVP value in the Diameter UAA message to
 					DIAMETER_ERROR_ROAMING_NOT_ALLOWED.
 					*/
-					ret=allow_roaming(usernamehdr->avp_value->os.data, usernamehdr->avp_value->os.len, visitednethdr->avp_value->os.data,visitednethdr->avp_value->os.len);
+					ret=allow_roaming(usernamehdr->avp_value->os.data, usernamehdr->avp_value->os.len, (const char *)visitednethdr->avp_value->os.data,visitednethdr->avp_value->os.len);
 					
 					if(ret==0)
 					{
@@ -215,7 +215,7 @@ int diamsip_UAR_cb( struct msg ** msg, struct avp * paramavp, struct session * s
 		
 		
 		//Let's look for the SIP_Server_URI'
-		char *sipserver_uri;
+		unsigned char *sipserver_uri;
 		size_t sipserverurilen;
 		
 		ret=get_sipserver_uri(sipaorhdr->avp_value->os.data, sipaorhdr->avp_value->os.len, &sipserver_uri, &sipserverurilen);

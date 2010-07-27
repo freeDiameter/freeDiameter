@@ -41,7 +41,7 @@ int diamsipSL_LIR_cb( struct msg ** msg, struct avp * paramavp, struct session *
 	TRACE_ENTRY("%p %p %p %p", msg, paramavp, sess, act);
 	
 	struct msg *ans, *qry;
-	struct avp *avp, *groupedavp;
+	struct avp *avp;
 	struct avp_hdr *avphdr;
 	union avp_value value;
 	
@@ -85,7 +85,7 @@ int diamsipSL_LIR_cb( struct msg ** msg, struct avp * paramavp, struct session *
 	{
 		CHECK_FCT( fd_msg_search_avp ( qry, sip_dict.SIP_AOR, &avp) );
 		CHECK_FCT( fd_msg_avp_hdr( avp, &avphdr )  );
-		int diameterurilen;
+		size_t diameterurilen;
 		char * diameter_uri=NULL;
 		
 		
@@ -104,7 +104,7 @@ int diamsipSL_LIR_cb( struct msg ** msg, struct avp * paramavp, struct session *
 		  else
 		  {
 		    CHECK_FCT( fd_msg_avp_new ( sip_dict.Redirect_Host, 0, &avp ) );
-		    value.os.data=diameter_uri;
+		    value.os.data=(unsigned char *)diameter_uri;
 		    value.os.len=diameterurilen;
 		    CHECK_FCT( fd_msg_avp_setvalue( avp, &value ) );
 		    CHECK_FCT( fd_msg_avp_add( ans, MSG_BRW_LAST_CHILD, avp ) );
