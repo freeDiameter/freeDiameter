@@ -89,7 +89,7 @@ int as_conf_handle(char * conffile)
 }
 
 /* The Lex parser prototype */
-int diamsipflex(YYSTYPE *lvalp, YYLTYPE *llocp);
+int diamsiplex(YYSTYPE *lvalp, YYLTYPE *llocp);
 
 /* Function to report the errors */
 void yyerror (YYLTYPE *ploc, char * conffile, char const *s)
