@@ -47,3 +47,10 @@ set( diameapsrc
 FD_ADD_EXTENSION(app_diameap ${diameapsrc})
 
 TARGET_LINK_LIBRARIES(app_diameap ${MySQL_LIBRARY})
+
+####
+## INSTALL section ##
+
+INSTALL(TARGETS app_diameap
+	LIBRARY DESTINATION ${INSTALL_EXTENSIONS_SUFFIX}
+	COMPONENT freeDiameter-eap-server)
