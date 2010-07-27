@@ -583,19 +583,20 @@ int get_sipserver_cap(const unsigned char *sip_aor, const size_t sipaorlen, stru
 
 
 //We retrieve datatype
-int get_user_datatype(const unsigned char  *username, const size_t usernamelen, char **table_supported, const int num_elements, struct avp **groupedavp)
+int add_user_datatype(const unsigned char  *sip_aor, const size_t sipaorlen,struct msg *message)
 {
-	CHECK_PARAMS(table_supported && num_elements && username && usernamelen && groupedavp);
+	CHECK_PARAMS(sip_aor && sipaorlen && message );
 	
-	
-	int counter=0, not_found=1;
+	size_t querylen, sipaorpurelen;
+	char *query, *sipaor_pure;
+	int not_found=2;
 	union avp_value value;
 	struct avp *avp, *rootavp;
-	size_t querylen, usernamepurelen;
-	char *query, *username_pure;
+	unsigned long *length;
 	
-	if(num_elements<1)
-		return 1;
+	//a sip aor must begin by "sip:" or "sips:" so it must at least be longer than 4 chars
+	if(sipaorlen<5)
+		return 2;
 	
 	//NOTE: each method has to purify sip_aor itself. You must remove quotes or special chars for security
 	switch(as_conf->datasource)
@@ -603,17 +604,17 @@ int get_user_datatype(const unsigned char  *username, const size_t usernamelen, 
 		//MySQL
 		case ASMYSQL:
 			
-			querylen=SQL_GETUSEDATA_LEN + usernamelen;
+			querylen=SQL_GETSIPDATA_LEN + sipaorlen;
 			
 			
-			//We allocate the double size of username because at worst it can be all quotes
-			username_pure=malloc(usernamelen*2+1);
-			//We purify username not to have forbidden characters
-			usernamepurelen=mysql_real_escape_string(conn, username_pure, (const char *)username, usernamelen);
+			//We allocate the double size of SIP-URI because at worst it can be all quotes
+			CHECK_MALLOC(sipaor_pure=malloc(sipaorlen*2+1));
+			//We purify SIP-URI not to have forbidden characters
+			sipaorpurelen=mysql_real_escape_string(conn, sipaor_pure, (const char *)sip_aor, sipaorlen);
 			
 			
-			query = malloc(querylen+usernamelen+ 2);
-			snprintf(query, querylen+1, SQL_GETUSEDATA, username_pure);
+			query = malloc(querylen+sipaorpurelen+ 2);
+			snprintf(query, querylen+1, SQL_GETSIPDATA, sipaor_pure);
 			
 			MYSQL_RES *res;
 			MYSQL_ROW row;
@@ -627,48 +628,40 @@ int get_user_datatype(const unsigned char  *username, const size_t usernamelen, 
 				return 2;
 			}
 			not_found=1;
-			
-			counter=0;
-			unsigned long *length=0;
-			
-			//int index=0;//current field number
-			
 			while ((row = mysql_fetch_row(res)) != NULL)
 			{
 				length=mysql_fetch_lengths(res);
 				
-				for(counter=0;counter<num_elements; counter++)
+				if(strlen(row[0])>1)
 				{
-					//TODO: check length
-					if(strcmp(table_supported[counter],row[0]))
-					{
-						CHECK_FCT( fd_msg_avp_new ( sip_dict.SIP_User_Data, 0, &rootavp ) );
-						
-						CHECK_FCT( fd_msg_avp_new ( sip_dict.SIP_User_Data_Type, 0, &avp ) );
-						value.os.data=(unsigned char *)table_supported[counter];
-						value.os.len=strlen(table_supported[counter]);
-						CHECK_FCT( fd_msg_avp_setvalue ( avp, &value ) );
-						CHECK_FCT( fd_msg_avp_add ( rootavp, MSG_BRW_LAST_CHILD, avp) );
-						//This was used
-						table_supported[counter]=NULL;
-						
-						CHECK_FCT( fd_msg_avp_new ( sip_dict.SIP_User_Data_Contents, 0, &avp ) );
-						CHECK_MALLOC(value.os.data=malloc((length[1])*sizeof(unsigned char)));
-						memcpy(value.os.data,row[1],length[1]);
-						value.os.len=(size_t)(length[1]*sizeof(unsigned char));
-						CHECK_FCT( fd_msg_avp_setvalue ( avp, &value ) );
-						CHECK_FCT( fd_msg_avp_add ( rootavp, MSG_BRW_LAST_CHILD, avp) );
-						
-						CHECK_FCT( fd_msg_avp_add ( *groupedavp, MSG_BRW_LAST_CHILD, rootavp) );
-						not_found=0;
-					}
+					CHECK_FCT( fd_msg_avp_new ( sip_dict.SIP_User_Data, 0, &rootavp ) );
+					
+					CHECK_FCT( fd_msg_avp_new ( sip_dict.SIP_User_Data_Type, 0, &avp ) );
+					CHECK_MALLOC(value.os.data=malloc(length[0]*sizeof(unsigned char)));
+					strncpy((char *)value.os.data,(char *)row[0],length[0]);
+					value.os.len=(size_t)length[0];
+					CHECK_FCT( fd_msg_avp_setvalue ( avp, &value ) );
+					CHECK_FCT( fd_msg_avp_add ( rootavp, MSG_BRW_LAST_CHILD, avp) );
+					
+					
+					
+					CHECK_FCT( fd_msg_avp_new ( sip_dict.SIP_User_Data_Contents, 0, &avp ) );
+					CHECK_MALLOC(value.os.data=malloc(length[1]*sizeof(unsigned char)));
+					memcpy(value.os.data,row[1],length[1]);
+					value.os.len=(size_t)length[1];
+					CHECK_FCT( fd_msg_avp_setvalue ( avp, &value ) );
+					CHECK_FCT( fd_msg_avp_add ( rootavp, MSG_BRW_LAST_CHILD, avp) );
+					
+					//We add SIP_User_Data to message
+					CHECK_FCT( fd_msg_avp_add ( message, MSG_BRW_LAST_CHILD, rootavp) );
+					not_found=0;
 				}
-				//index++;
+				
 			}
 			
 			mysql_free_result(res);
 			free(query);
-			free(username_pure);
+			free(sipaor_pure);
 			break;
 			
 			default:
@@ -682,6 +675,8 @@ int get_user_datatype(const unsigned char  *username, const size_t usernamelen, 
 	
 	//0 if it was found
 	return not_found;
+	
+	
 	
 }
 
@@ -951,7 +946,8 @@ int get_sipserver_uri(const unsigned char *sip_aor, const size_t sipaorlen, unsi
 	
 }
 
-int count_sipaor(const struct msg * message)
+
+int count_avp(struct msg * message, int code, int vendor)
 {
 	CHECK_PARAMS(message);
 	
@@ -959,43 +955,19 @@ int count_sipaor(const struct msg * message)
 	struct avp *avp;
 	int counter=0;
 	
-	CHECK_FCT(fd_msg_browse ( &message, MSG_BRW_WALK, &avp, NULL));
+	CHECK_FCT(fd_msg_browse (message, MSG_BRW_WALK, &avp, NULL));
 	
 	while(avp!=NULL)
 	{
 		
 		CHECK_FCT( fd_msg_avp_hdr( avp,&temphdr ));
 		
-		if(temphdr->avp_code==122 && temphdr->avp_vendor==0)
+		if(temphdr->avp_code==code && temphdr->avp_vendor==vendor)
 		{
 			counter++;
 		}
 		
-		CHECK_FCT(fd_msg_browse ( &message, MSG_BRW_WALK, &avp, NULL));
-	}
-	return counter;
-}
-int count_supporteddatatype(const struct msg * message)
-{
-	CHECK_PARAMS(message);
-	
-	struct avp_hdr *temphdr;
-	struct avp *avp;
-	int counter=0;
-	
-	CHECK_FCT(fd_msg_browse ( &message, MSG_BRW_WALK, &avp, NULL));
-	
-	while(avp!=NULL)
-	{
-		
-		CHECK_FCT( fd_msg_avp_hdr( avp,&temphdr ));
-		
-		if(temphdr->avp_code==388 && temphdr->avp_vendor==0)
-		{
-			counter++;
-		}
-		
-		CHECK_FCT(fd_msg_browse ( &message, MSG_BRW_WALK, &avp, NULL));
+		CHECK_FCT(fd_msg_browse (avp, MSG_BRW_WALK, &avp, NULL));
 	}
 	return counter;
 }

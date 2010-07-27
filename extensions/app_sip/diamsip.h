@@ -91,7 +91,7 @@ int exist_username(const unsigned char *sip_aor, const size_t sipaorlen);
 int get_sipserver_cap(const unsigned char *sip_aor, const size_t sipaorlen, struct avp **capabilities);
 int get_password(const unsigned char *username, const size_t usernamelen, char *password);
 int check_sipaor(const unsigned char  *username, const size_t usernamelen, const char * sip_aor,const size_t sipaorlen);
-int get_user_datatype(const unsigned char  *username, const size_t usernamelen,char **table_supported, const int num_elements, struct avp **groupedavp);
+int add_user_datatype(const unsigned char  *sip_aor, const size_t sipaorlen,struct msg *message);
 int set_pending_flag(const unsigned char  *username, const size_t usernamelen);
 int clear_pending_flag(const unsigned char  *username, const size_t usernamelen);
 int set_real_sipserver_uri(const unsigned char  *username, const size_t usernamelen, const unsigned char *sipserver_uri,const size_t sipserverurilen);
@@ -100,8 +100,7 @@ int get_sipserver_uri(const unsigned char *sip_aor, const size_t sipaorlen, unsi
 int allow_roaming(const unsigned char  *username, const size_t usernamelen, const char * network,const size_t networklen);
 
 //count functions
-int count_supporteddatatype(const struct msg * message);
-int count_sipaor(const struct msg * message);
+int count_avp(struct msg * message, int code, int vendor);
 
 
 void DigestCalcHA1(char * pszAlg,char * pszUserName,char * pszRealm,char * pszPassword,char * pszNonce,char * pszCNonce,HASHHEX SessionKey);
@@ -163,18 +162,18 @@ int diamsipSL_LIR_cb( struct msg ** msg, struct avp * paramavp, struct session *
 #define SQL_GETSIPURI_LEN 60
 
 //sip server uri by SIP-AOR
-#define SQL_GETSIPSERURI  "SELECT `sip_server_uri` FROM ds_users, ds_sip_aor WHERE `sip_aor` ='%s' AND `ds_sip_aor`.`id_user` = `ds_users`.`id_user`"
-#define SQL_GETSIPSERURI_LEN 119
+#define SQL_GETSIPSERURI  "SELECT `ds_sip_aor`.`sip_server_uri` FROM ds_users, ds_sip_aor WHERE `sip_aor` ='%s' AND `ds_sip_aor`.`id_user` = `ds_users`.`id_user`"
+#define SQL_GETSIPSERURI_LEN 132
 
 //sip capabilities for a SIP-AOR
 #define SQL_GETSIPSERCAP  "SELECT `compulsory`,`id_service` FROM ds_user_services, ds_sip_aor WHERE `sip_aor` ='%s' AND `ds_sip_aor`.`id_user` = `ds_user_services`.`id_user`"
 #define SQL_GETSIPSERCAP_LEN 144
 
 //user data for a user data supported
-#define SQL_GETUSEDATA  "SELECT `data_type`,`data` FROM ds_users, ds_user_data, ds_data_types WHERE `username` ='%s' AND `ds_users`.`id_user` = `ds_user_data`.`id_user` AND `ds_data_types`.`id_data_type`=`ds_user_data`.`id_data_type`"
-#define SQL_GETUSEDATA_LEN 206
+#define SQL_GETSIPDATA  "SELECT `label_type`,`data` FROM ds_sip_aor, ds_user_data, ds_data_types WHERE `sip_aor` ='%s' AND `ds_sip_aor`.`id_sip_aor` = `ds_user_data`.`id_sip_aor` AND `ds_data_types`.`id_data_type`=`ds_user_data`.`id_data_type`"
+#define SQL_GETSIPDATA_LEN 216
 
-#define SQL_GETDIAMURI "SELECT `diameter_uri` FROM sl_sip_aor_map WHERE `sip_aor` ='%s'"
+#define SQL_GETDIAMURI "SELECT `diameter_uri` FROM ds_sip_aor_map WHERE `sip_aor` ='%s'"
 #define SQL_GETDIAMURI_LEN 61
 
 //networks for this user
@@ -206,7 +205,9 @@ int diamsipSL_LIR_cb( struct msg ** msg, struct avp * paramavp, struct session *
 
 extern struct session_handler * ds_sess_hdl;
 
-
+//AVP code
+#define CODE_SIP_USER_DATA_TYPE	388
+#define CODE_SIP_AOR	122
 
 struct ds_nonce
 {

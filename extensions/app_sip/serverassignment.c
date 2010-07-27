@@ -41,10 +41,10 @@ int diamsip_SAR_cb( struct msg ** msg, struct avp * paramavp, struct session * s
 	TRACE_ENTRY("%p %p %p %p", msg, paramavp, sess, act);
 	
 	struct msg *ans, *qry;
-	struct avp *avp, *groupedavp=NULL;
+	struct avp *avp;
 	struct avp_hdr *avphdr, *sipaorhdr, *usernamehdr, *sipuserdataalreadyavailable;
 	union avp_value value;
-	int ret=0, assignment_type=0, supported_datatype=0, got_datatype=0;
+	int ret=0, assignment_type=0, got_datatype=1;
 	
 	
 	struct listdatatype
@@ -175,84 +175,9 @@ int diamsip_SAR_cb( struct msg ** msg, struct avp * paramavp, struct session * s
 		assignment_type=avphdr->avp_value->i32;
 	}
 	
-	//TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO : check which assignment need data type
-	//We check if we have SIP_Supported_User_Data_Type and we make a table with all of them
-	{
-		supported_datatype=count_supporteddatatype(qry);
-		
-		if(supported_datatype>0)
-		{
-			char ** table_supporteddatatype=NULL;
-			
-			//TODO: maybe table doesn't work'
-			//We make a table of char * to store all supported datatypes
-			CHECK_MALLOC(table_supporteddatatype=(char**)realloc(table_supporteddatatype,supported_datatype*sizeof(char *)));
-			
-			
-			CHECK_FCT(fd_msg_browse ( qry, MSG_BRW_WALK, &avp, NULL));
-			int counter=0;
-			
-			while(avp!=NULL)
-			{
-				
-				CHECK_FCT( fd_msg_avp_hdr( avp,&avphdr ));
-				
-				//TODO: check if counter is good!
-				if(avphdr->avp_code==388 && avphdr->avp_vendor==0 && counter<supported_datatype)
-				{
-					
-					CHECK_MALLOC(table_supporteddatatype[counter]=malloc(avphdr->avp_value->os.len+1));
-					strncpy(table_supporteddatatype[counter],(const char *)avphdr->avp_value->os.data,avphdr->avp_value->os.len);
-					table_supporteddatatype[counter][avphdr->avp_value->os.len+1]='\0';
-					
-					counter++;
-				}
-				
-				CHECK_FCT(fd_msg_browse ( qry, MSG_BRW_WALK, &avp, NULL));
-			}
-			
-			if(usernamehdr!=NULL)
-			{
-				ret=get_user_datatype(usernamehdr->avp_value->os.data, usernamehdr->avp_value->os.len,(char **)table_supporteddatatype, counter, &groupedavp);
-				
-				//We free all unused datatypes
-				int i=0;
-				for(i=0;i<counter;i++)
-				{
-					if(table_supporteddatatype[counter]!=NULL)
-						free(table_supporteddatatype[counter]);
-				}
-				
-				if(ret==0)
-				{
-					got_datatype=1;
-					
-				}
-				else if(ret==1)
-				{
-					TRACE_DEBUG(INFO,"There was no link between supported and transmisted SIP-User-Data AVPs");
-				}
-				else
-				{
-					strcpy(result,"DIAMETER_UNABLE_TO_COMPLY");
-					goto out;
-				}
-				
-			}
-			else
-			{
-				strcpy(result,"DIAMETER_USER_NAME_REQUIRED");
-				int i=0;
-				for(i=0;i<counter;i++)
-				{
-					if(table_supporteddatatype[counter]!=NULL)
-						free(table_supporteddatatype[counter]);
-				}
-				goto out;
-			}
-			
-		}
-	}
+	
+	
+	
 	
 	//We get SIP_User_Data_Already_Available AVP
 	{
@@ -262,14 +187,28 @@ int diamsip_SAR_cb( struct msg ** msg, struct avp * paramavp, struct session * s
 	
 	if(assignment_type==1 || assignment_type==2)
 	{//registration & re-registration
-		if(count_sipaor(qry)==1)
+		if(count_avp(qry,CODE_SIP_AOR,0)==1)
 		{
+			
 			if(sipuserdataalreadyavailable->avp_value->i32==0)
 			{//Data not available, we must provide it
-				if(got_datatype==1)
+				ret=add_user_datatype(sipaorhdr->avp_value->os.data, sipaorhdr->avp_value->os.len,ans);
+				
+				if(ret==0)
 				{
-					//We provide User Data
-					CHECK_FCT( fd_msg_avp_add ( ans, MSG_BRW_LAST_CHILD, groupedavp) );
+					//We found and added datatype
+					got_datatype=1;
+				}
+				else if(ret==1)
+				{
+					//No data type was found
+					got_datatype=0;
+				}
+				else
+				{//error
+				//We couldn't make the request, we must stop process!
+				strcpy(result,"DIAMETER_UNABLE_TO_COMPLY");
+				goto out;
 				}
 			}
 			strcpy(result,"DIAMETER_SUCCESS");
@@ -285,14 +224,30 @@ int diamsip_SAR_cb( struct msg ** msg, struct avp * paramavp, struct session * s
 	{//Unregistered user
 		
 		//TODO:place user unknown here!
-		if(count_sipaor(qry)==1)
+		if(count_avp(qry,CODE_SIP_AOR,0)==1)
 		{
 			if(sipuserdataalreadyavailable->avp_value->i32==0)
 			{//Data not available, we must provide it
 				if(got_datatype==1)
 				{
-					//We provide User Data
-					CHECK_FCT( fd_msg_avp_add ( ans, MSG_BRW_LAST_CHILD, groupedavp) );
+					ret=add_user_datatype(sipaorhdr->avp_value->os.data, sipaorhdr->avp_value->os.len,ans);
+					
+					if(ret==0)
+					{
+						//We found and added datatype
+						got_datatype=1;
+					}
+					else if(ret==1)
+					{
+						//No data type was found
+						got_datatype=0;
+					}
+					else
+					{//error
+						//We couldn't make the request, we must stop process!
+						strcpy(result,"DIAMETER_UNABLE_TO_COMPLY");
+						goto out;
+					}
 				}
 			}
 			strcpy(result,"DIAMETER_SUCCESS");
@@ -308,8 +263,24 @@ int diamsip_SAR_cb( struct msg ** msg, struct avp * paramavp, struct session * s
 		{//Data not available, we must provide it
 			if(got_datatype==1)
 			{
-				//We provide User Data
-				CHECK_FCT( fd_msg_avp_add ( ans, MSG_BRW_LAST_CHILD, groupedavp) );
+				ret=add_user_datatype(sipaorhdr->avp_value->os.data, sipaorhdr->avp_value->os.len,ans);
+				
+				if(ret==0)
+				{
+					//We found and added datatype
+					got_datatype=1;
+				}
+				else if(ret==1)
+				{
+					//No data type was found
+					got_datatype=0;
+				}
+				else
+				{//error
+					//We couldn't make the request, we must stop process!
+					strcpy(result,"DIAMETER_UNABLE_TO_COMPLY");
+					goto out;
+				}
 			}
 		}
 		
@@ -337,12 +308,24 @@ int diamsip_SAR_cb( struct msg ** msg, struct avp * paramavp, struct session * s
 			if(sipuserdataalreadyavailable->avp_value->i32==0)
 			{//Data not available, we must provide it
 				
-				//We provide User Data
-				CHECK_FCT( fd_msg_avp_add ( ans, MSG_BRW_LAST_CHILD, groupedavp) );
-			}
-			else
-			{
-				CHECK_FCT( fd_msg_free( groupedavp ) );
+				ret=add_user_datatype(sipaorhdr->avp_value->os.data, sipaorhdr->avp_value->os.len,ans);
+				
+				if(ret==0)
+				{
+					//We found and added datatype
+					got_datatype=1;
+				}
+				else if(ret==1)
+				{
+					//No data type was found
+					got_datatype=0;
+				}
+				else
+				{//error
+					//We couldn't make the request, we must stop process!
+					strcpy(result,"DIAMETER_UNABLE_TO_COMPLY");
+					goto out;
+				}
 			}
 		}
 		
@@ -398,25 +381,65 @@ int diamsip_SAR_cb( struct msg ** msg, struct avp * paramavp, struct session * s
 		CHECK_FCT( fd_msg_search_avp ( qry, sip_dict.SIP_Server_URI, &avp) );
 		if(avp!=NULL)
 		{
-			//TODO: check that SIP-server_URI provided is the same as associated and answer unable to comply if so
-			//TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO here
+			unsigned char * sipserver_uri;
+			size_t sipserverurilen;
 			
 			
-			CHECK_FCT( fd_msg_avp_hdr( avp, &avphdr ));
 			
-			if(got_datatype==1)
-			{
-				if(sipuserdataalreadyavailable->avp_value->i32==0)
-				{//Data not available, we must provide it
-					
-					//We provide User Data
-					CHECK_FCT( fd_msg_avp_add ( ans, MSG_BRW_LAST_CHILD, groupedavp) );
+			
+			ret=get_sipserver_uri(sipaorhdr->avp_value->os.data, sipaorhdr->avp_value->os.len, &sipserver_uri, &sipserverurilen);
+			
+			if(ret==0)
+			{//found
+				CHECK_FCT( fd_msg_avp_hdr( avp, &avphdr ));
+				
+				
+				
+				
+				if(strncmp((char *)avphdr->avp_value->os.data,(char *)sipserver_uri,sipserverurilen))
+				{
+					if(got_datatype==1)
+					{
+						if(sipuserdataalreadyavailable->avp_value->i32==0)
+						{//Data not available, we must provide it
+							
+							ret=add_user_datatype(sipaorhdr->avp_value->os.data, sipaorhdr->avp_value->os.len,ans);
+							
+							if(ret==0)
+							{
+								//We found and added datatype
+								got_datatype=1;
+							}
+							else if(ret==1)
+							{
+								//No data type was found
+								got_datatype=0;
+							}
+							else
+							{//error
+								//We couldn't make the request, we must stop process!
+								strcpy(result,"DIAMETER_UNABLE_TO_COMPLY");
+								goto out;
+							}
+						}
+					}
 				}
 				else
-				{
-					CHECK_FCT( fd_msg_free( groupedavp ) );
+				{//error
+					TRACE_DEBUG(FULL,"SIP_Server_URI is different from the one in database");
+					strcpy(result,"DIAMETER_UNABLE_TO_COMPLY");
+					goto out;
 				}
 			}
+			else
+			{
+				TRACE_DEBUG(FULL,"SIP_Server_URI is different from the one in database");
+				strcpy(result,"DIAMETER_UNABLE_TO_COMPLY");
+				goto out;
+			}
+			
+			
+			
 			
 			
 			
@@ -427,14 +450,14 @@ int diamsip_SAR_cb( struct msg ** msg, struct avp * paramavp, struct session * s
 		}
 		else
 		{
-			TRACE_DEBUG(INFO, "There was no SIP-AOR in this request, we can't proceed request!'");
+			TRACE_DEBUG(INFO, "There was no SIP_Server_URI in this request, we can't proceed request!'");
 			strcpy(result,"DIAMETER_UNABLE_TO_COMPLY");
 			goto out;
 		}
 	}
 	else if(assignment_type==9 || assignment_type==10)
 	{
-		if(count_sipaor(qry)==1)
+		if(count_avp(qry, CODE_SIP_AOR,0)==1)
 		{
 			//TODO: remove SIP-server URI for sip_aor
 			//TODO: unregister it

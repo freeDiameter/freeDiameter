@@ -45,14 +45,16 @@ int test_sip_SAR_cb()
 	union avp_value value;
 	
 	//Fake values START
-	 char *sip_aor="sip:aw-lappy@tera.ics.keio.ac.jp";
+	char *sip_aor="sip:aw-lappy@tera.ics.keio.ac.jp";
 	size_t aor_len=strlen(sip_aor); 
-	 char *destination_realm="tera.ics.keio.ac.jp";
+	char *destination_realm="tera.ics.keio.ac.jp";
 	size_t destination_realmlen=strlen(destination_realm);
-	 char *destination_host="suika.tera.ics.keio.ac.jp";
+	char *destination_host="suika.tera.ics.keio.ac.jp";
 	size_t destination_hostlen=strlen(destination_host);
-	 char *username="aw-lappy";
+	char *username="aw-lappy";
 	size_t usernamelen=strlen(username);
+	char *sipserveruri="sip:ichigo@tera.ics.keio.ac.jp";
+	size_t sipserverurilen=strlen(sipserveruri);
 	// char *visitednetwork="Pink";
 	//size_t visitednetworklen=strlen(visitednetwork);
 	//int registrationtype = 2;
@@ -147,6 +149,16 @@ int test_sip_SAR_cb()
 		value.i32=assignment_type;
 		CHECK_FCT( fd_msg_avp_setvalue( avp, &value ) );
 		CHECK_FCT( fd_msg_avp_add( message, MSG_BRW_LAST_CHILD, avp ) );
+	}
+	//SIP_server_uri
+	{
+		
+		CHECK_FCT( fd_msg_avp_new ( sip_dict.SIP_Server_URI, 0, &avp ) );
+		value.os.data=(unsigned char *)sipserveruri;
+		value.os.len=sipserverurilen;
+		CHECK_FCT( fd_msg_avp_setvalue( avp, &value ) );
+		CHECK_FCT( fd_msg_avp_add( message, MSG_BRW_LAST_CHILD, avp ) );
+		
 	}
 	
 	fd_msg_dump_walk(INFO,message);
