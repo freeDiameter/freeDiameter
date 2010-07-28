@@ -66,6 +66,7 @@ struct rgw_client {
 	
 	/* The FQDN, realm, and optional aliases */
 	char 			*fqdn;
+	size_t			 fqdn_len;
 	char			*realm;
 	char			**aliases;
 	size_t			 aliases_nb;
@@ -108,6 +109,7 @@ static int client_create(struct rgw_client ** res, struct sockaddr ** ip_port, u
 	
 	/* Copy the fqdn */
 	CHECK_MALLOC( tmp->fqdn = strdup(buf) );
+	tmp->fqdn_len = strlen(tmp->fqdn);
 	/* Find an appropriate realm */
 	tmp->realm = strchr(tmp->fqdn, '.');
 	if (tmp->realm)
@@ -369,6 +371,10 @@ int rgw_clients_check_origin(struct rgw_radius_msg_meta *msg, struct rgw_client 
 	
 	/* Now check the nas_id */
 	if (nas_id) {
+		char * str;
+		int found, ret;
+		struct addrinfo hint, *res, *ptr;
+		
 		/*
 			In RADIUS it would be possible for a rogue NAS to forge the NAS-
 			Identifier attribute.  Diameter/RADIUS translation agents SHOULD
@@ -385,22 +391,16 @@ int rgw_clients_check_origin(struct rgw_radius_msg_meta *msg, struct rgw_client 
 			corresponds to an entry in the Route-Record AVP.  If no match is
 			found, then an error is logged, but no other action is taken.
 		*/
-	
-		/* copy the alias */
-		char * str;
-		int found, ret;
-		struct addrinfo hint, *res;
-		CHECK_MALLOC( str = malloc(nas_id->length - sizeof(struct radius_attr_hdr) + 1) );
-		memcpy(str, nas_id + 1, nas_id->length - sizeof(struct radius_attr_hdr));
-		str[nas_id->length - sizeof(struct radius_attr_hdr)] = '\0';
 		
-		/* Check if this alias is already in the aliases list */
-		if (!strcasecmp(str, cli->fqdn)) {
+		/* first, check if the nas_id is the fqdn of the peer or a known alias */
+		if ((cli->fqdn_len == (nas_id->length - sizeof(struct radius_attr_hdr))) 
+		&& (!strncasecmp((char *)(nas_id + 1), cli->fqdn, nas_id->length - sizeof(struct radius_attr_hdr)))) {
 			TRACE_DEBUG(FULL, "NAS-Identifier contains the fqdn of the NAS");
 			found = 1;
 		} else {
 			for (idx = 0; idx < cli->aliases_nb; idx++) {
-				if (!strcasecmp(str, cli->aliases[idx])) {
+				if (((nas_id->length - sizeof(struct radius_attr_hdr)) == strlen(cli->aliases[idx])) 
+				&& (!strncasecmp((char *)(nas_id + 1), cli->aliases[idx], nas_id->length - sizeof(struct radius_attr_hdr)))) {
 					TRACE_DEBUG(FULL, "NAS-Identifier valid value found in the cache");
 					found = 1;
 					break;
@@ -409,30 +409,45 @@ int rgw_clients_check_origin(struct rgw_radius_msg_meta *msg, struct rgw_client 
 		}
 		
 		if (found) {
-			free(str);
 			msg->valid_nas_info |= 2;
 			goto end;
 		}
+		
+		/* copy the identifier, we try to DNS resolve it */
+		CHECK_MALLOC( str = malloc(nas_id->length - sizeof(struct radius_attr_hdr) + 1) );
+		memcpy(str, nas_id + 1, nas_id->length - sizeof(struct radius_attr_hdr));
+		str[nas_id->length - sizeof(struct radius_attr_hdr)] = '\0';
 		
 		/* Now check if this alias is valid for this peer */
 		memset(&hint, 0, sizeof(hint));
 		hint.ai_family = cli->sa->sa_family;
 		hint.ai_flags  = AI_CANONNAME;
 		ret = getaddrinfo(str, NULL, &hint, &res);
-		if (ret) {
-			TRACE_DEBUG(INFO, "Error while resolving NAS-Identifier value '%s': %s. Discarding message...", str, gai_strerror(ret));
-			free(str);
-			return EINVAL;
-		}
-		if (strcasecmp(cli->fqdn, res->ai_canonname)) {
-			TRACE_DEBUG(INFO, "The NAS-Identifier value is not valid: '%s' resolved to '%s', expected '%s'. Discarding...", str, res->ai_canonname, cli->fqdn);
-			free(str);
+		if (ret == 0) {
+			/* The name was resolved correctly, it must match the IP of the client: */
+			for (ptr = res; ptr != NULL; ptr = ptr->ai_next) {
+				if (cli->sa->sa_family != ptr->ai_family)
+					continue;
+				if (memcmp(cli->sa, ptr->ai_addr, sSAlen(cli->sa)))
+					continue;
+				
+				/* It matches: the alias is valid */
+				found = 1;
+				break;
+			}
 			freeaddrinfo(res);
-			return EINVAL;
+			
+			if (!found) {
+				TRACE_DEBUG(INFO, "The NAS-Identifier value '%s' resolves to a different IP from the NAS's, discarding the message.", str);
+				free(str);
+				return EINVAL;
+			}
+		} else {
+			/* Error resolving the name */
+			TRACE_DEBUG(INFO, "Error while resolving NAS-Identifier value '%s': %s. Ignoring...", str, gai_strerror(ret));
 		}
 		
 		/* It is a valid alias, save it */
-		freeaddrinfo(res);
 		CHECK_MALLOC( cli->aliases = realloc(cli->aliases, (cli->aliases_nb + 1) * sizeof(char *)) );
 		cli->aliases[cli->aliases_nb + 1] = str;
 		cli->aliases_nb ++;
