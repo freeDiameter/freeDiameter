@@ -47,7 +47,7 @@ typedef struct sockaddr SOCKADDR;
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#define PORT 666
+#define PORT 667
 #include <errno.h>
 
 struct pprsipaor
