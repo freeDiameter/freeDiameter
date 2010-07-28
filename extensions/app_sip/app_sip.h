@@ -126,12 +126,12 @@ struct rtrsipaor
 struct pprsipaor
 {
 	char username[200];
-	char label1[200];
-	char value1[200];
-	char label2[200];
-	char value2[200];
-	char desthost[200];  
+	char datatype1[255];
+	char datatype2[255];
+	char datatype3[255];
+	int accounting;
 };
+
 int app_sip_RTR_cb(struct rtrsipaor structure);
 int app_sip_PPR_cb(struct pprsipaor structure);
 #define PORT 666 //TODO:put in conf file
