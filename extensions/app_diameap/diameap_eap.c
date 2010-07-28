@@ -37,6 +37,219 @@
 
 #include "diameap_common.h"
 
+static void diameap_ba_nextid(struct eap_state_machine * sm, int * id)
+{
+	TRACE_ENTRY("%p %p",sm,id);
+
+	if (sm->currentId < 0)
+	{
+		*id = (u8) (255 * rand() / RAND_MAX) & 0xFFU;
+	}
+	else
+	{
+		*id = (sm->currentId++) & 0xFFU;
+	}
+	if (*id == sm->lastId)
+	{
+		*id=*id+1;
+	}
+}
+
+static void diameap_ba_policyupdate(struct eap_state_machine * eap_sm,
+		struct eap_packet eapPacket)
+{
+	TRACE_ENTRY("%p %p",eap_sm, eapPacket);
+	if ((eap_sm->respMethod == TYPE_NAK))
+	{
+		int id;
+		eap_sm->user.pmethods = 0;
+		u32 vendor;
+		eap_type type;
+		u8 *data = (u8 *) eapPacket.data;
+		data += 5;
+		id = 5;
+		while (id < eapPacket.length)
+		{
+			vendor = VENDOR_IETF;
+			type = G8(data);
+			if (diameap_plugin_exist(vendor, type) == TRUE)
+			{
+				eap_sm->user.proposedmethods[id - 5].method = type;
+				eap_sm->user.proposedmethods[id - 5].vendor = vendor;
+				eap_sm->user.pmethods++;
+			}
+			data++;
+			id++;
+		}
+		eap_sm->user.methodId = -1;
+	}
+}
+
+static int diameap_ba_policygetnextmethod(struct eap_state_machine * eap_sm,
+		eap_type * eaptype, u32 * vendor)
+{
+	TRACE_ENTRY("%p %p %p",eap_sm,eaptype,vendor);
+	*vendor = 0;
+	*eaptype = TYPE_NONE;
+	eap_sm->selectedMethod = NULL;
+
+	if (eap_sm == NULL)
+	{
+		return EINVAL;
+	}
+
+	if (eap_sm->user.userid == NULL)
+	{
+		if ((eap_sm->currentMethod == TYPE_NONE))
+		{
+			*vendor = VENDOR_IETF;
+			*eaptype = TYPE_IDENTITY;
+			if (eap_sm->selectedMethod != NULL)
+			{
+				(*eap_sm->selectedMethod->eap_method_free)(eap_sm->methodData);
+				eap_sm->methodData = NULL;
+			}
+			CHECK_FCT(diameap_plugin_get(VENDOR_IETF,TYPE_IDENTITY,&eap_sm->selectedMethod));
+			return 0;
+		}
+
+		eap_sm->selectedMethod = NULL;
+		*vendor = 0;
+		*eaptype = TYPE_NONE;
+		return 0;
+	}
+
+	if (eap_sm->user.methodId == -1)
+	{
+		if (eap_sm->user.proposed_eap_method >= TYPE_EAP_MD5)
+		{
+			*vendor = eap_sm->user.proposed_eap_method_vendor;
+			if (*vendor == VENDOR_IETF)
+			{
+				*eaptype = eap_sm->user.proposed_eap_method;
+			}
+			else
+			{
+				*eaptype = TYPE_EXPANDED_TYPES;
+			}
+			if (eap_sm->selectedMethod != NULL)
+			{
+				(*eap_sm->selectedMethod->eap_method_free)(eap_sm->methodData);
+				eap_sm->methodData = NULL;
+			}
+			CHECK_FCT_DO(diameap_plugin_get(*vendor,*eaptype,&eap_sm->selectedMethod),
+					{	TRACE_DEBUG(INFO,"%s [EAP Protocol] Invalid EAP-TYPE %d (vendor %d)",DIAMEAP_EXTENSION,*eaptype,*vendor);return 1;});
+
+		}
+		eap_sm->user.proposed_eap_method = TYPE_NONE;
+	}
+	else
+	{
+		*vendor = eap_sm->user.proposedmethods[eap_sm->user.methodId].vendor;
+		if (eap_sm->user.proposedmethods[eap_sm->user.methodId].vendor
+				== VENDOR_IETF)
+		{
+			*eaptype
+					= eap_sm->user.proposedmethods[eap_sm->user.methodId].method;
+		}
+		else
+		{
+			*eaptype = TYPE_EXPANDED_TYPES;
+		}
+		if (eap_sm->selectedMethod != NULL)
+		{
+			(*eap_sm->selectedMethod->eap_method_free)(eap_sm->methodData);
+			eap_sm->methodData=NULL;
+		}
+		CHECK_FCT(diameap_plugin_get(eap_sm->user.proposedmethods[eap_sm->user.methodId].vendor,eap_sm->user.proposedmethods[eap_sm->user.methodId].method,&eap_sm->selectedMethod));
+
+		eap_sm->user.methodId++;
+	}
+
+	return 0;
+}
+
+static int diameap_ba_policygetdecision(struct eap_state_machine * eap_sm,
+		struct diameap_eap_interface * eap_i, decision * gdecision)
+{
+	TRACE_ENTRY("%p %p %p",eap_sm,eap_i,gdecision);
+
+	if (eap_sm->user.userid != NULL)
+	{
+
+		if (eap_sm->methodState == EAP_M_END)
+		{
+
+			if (eap_sm->respMethod == TYPE_IDENTITY)
+			{
+
+				*gdecision = DECISION_CONTINUE;
+				return 0;
+			}
+
+			if ((eap_sm->respMethod == TYPE_NAK) || ((eap_sm->respMethod
+					== TYPE_EXPANDED_TYPES) && (eap_sm->respVendor
+					== VENDOR_IETF) && (eap_sm->respVendorMethod == TYPE_NAK)))
+			{
+				goto SelectNextMethod;
+			}
+
+			if (eap_sm->user.success == TRUE)
+			{
+
+				*gdecision = DECISION_SUCCESS;
+			}
+			else
+			{
+
+				*gdecision = DECISION_FAILURE;
+			}
+
+		}
+		else
+		{
+			goto SelectNextMethod;
+		}
+		return 0;
+
+		SelectNextMethod: if ((eap_sm->user.methodId
+				== (MAXPROPOSEDMETHODS - 1))
+				|| ((eap_sm->user.proposedmethods[eap_sm->user.methodId + 1].method
+						== TYPE_NONE)
+						&& (eap_sm->user.proposedmethods[eap_sm->user.methodId
+								+ 1].vendor == VENDOR_IETF)))
+		{
+			TRACE_DEBUG(FULL+1,
+					"%s [EAP protocol] None of proposed EAP Methods authenticated the user.(FAILURE)",DIAMEAP_EXTENSION);
+			*gdecision = DECISION_FAILURE;
+			return 0;
+		}
+
+		eap_sm->user.methodId = 0;
+		*gdecision = DECISION_CONTINUE;
+		return 0;
+	}
+
+	if (eap_sm->currentMethod == TYPE_IDENTITY)
+	{
+		*gdecision = DECISION_FAILURE;
+		return 0;
+	}
+
+	*gdecision = DECISION_CONTINUE;
+	return 0;
+}
+
+static boolean diameap_ba_policydopickup(eap_type type)
+{
+	TRACE_ENTRY("%p",type);
+	if (type == TYPE_IDENTITY)
+	{
+		return TRUE;
+	}
+	return FALSE;
+}
+
 int diameap_eap_statemachine(struct eap_state_machine * eap_sm,
 		struct diameap_eap_interface * eap_i, boolean * non_fatal_error)
 {
@@ -374,7 +587,11 @@ int diameap_eap_statemachine(struct eap_state_machine * eap_sm,
 				;
 			}
 			break;
+
 		case EAP_END:
+			break;
+
+		case EAP_IDLE:
 			break;
 		}
 	}
@@ -382,215 +599,3 @@ int diameap_eap_statemachine(struct eap_state_machine * eap_sm,
 	return 0;
 }
 
-static void diameap_ba_nextid(struct eap_state_machine * sm, int * id)
-{
-	TRACE_ENTRY("%p %p",sm,id);
-
-	if (sm->currentId < 0)
-	{
-		*id = (u8) (255 * rand() / RAND_MAX) & 0xFFU;
-	}
-	else
-	{
-		*id = (sm->currentId++) & 0xFFU;
-	}
-	if (*id == sm->lastId)
-	{
-		*id++;
-	}
-}
-
-static void diameap_ba_policyupdate(struct eap_state_machine * eap_sm,
-		struct eap_packet eapPacket)
-{
-	TRACE_ENTRY("%p %p",eap_sm, eapPacket);
-	if ((eap_sm->respMethod == TYPE_NAK))
-	{
-		int id;
-		eap_sm->user.pmethods = 0;
-		u32 vendor;
-		eap_type type;
-		u8 *data = (u8 *) eapPacket.data;
-		data += 5;
-		id = 5;
-		while (id < eapPacket.length)
-		{
-			vendor = VENDOR_IETF;
-			type = G8(data);
-			if (diameap_plugin_exist(vendor, type) == TRUE)
-			{
-				eap_sm->user.proposedmethods[id - 5].method = type;
-				eap_sm->user.proposedmethods[id - 5].vendor = vendor;
-				eap_sm->user.pmethods++;
-			}
-			data++;
-			id++;
-		}
-		eap_sm->user.methodId = -1;
-	}
-}
-
-static int diameap_ba_policygetnextmethod(struct eap_state_machine * eap_sm,
-		eap_type * eaptype, u32 * vendor)
-{
-	TRACE_ENTRY("%p %p %p",eap_sm,eaptype,vendor);
-	*vendor = 0;
-	*eaptype = TYPE_NONE;
-	eap_sm->selectedMethod = NULL;
-
-	if (eap_sm == NULL)
-	{
-		return EINVAL;
-	}
-
-	if (eap_sm->user.userid == NULL)
-	{
-		if ((eap_sm->currentMethod == TYPE_NONE))
-		{
-			*vendor = VENDOR_IETF;
-			*eaptype = TYPE_IDENTITY;
-			if (eap_sm->selectedMethod != NULL)
-			{
-				(*eap_sm->selectedMethod->eap_method_free)(eap_sm->methodData);
-				eap_sm->methodData = NULL;
-			}
-			CHECK_FCT(diameap_plugin_get(VENDOR_IETF,TYPE_IDENTITY,&eap_sm->selectedMethod));
-			return 0;
-		}
-
-		eap_sm->selectedMethod = NULL;
-		*vendor = 0;
-		*eaptype = TYPE_NONE;
-		return 0;
-	}
-
-	if (eap_sm->user.methodId == -1)
-	{
-		if (eap_sm->user.proposed_eap_method >= TYPE_EAP_MD5)
-		{
-			*vendor = eap_sm->user.proposed_eap_method_vendor;
-			if (*vendor == VENDOR_IETF)
-			{
-				*eaptype = eap_sm->user.proposed_eap_method;
-			}
-			else
-			{
-				*eaptype = TYPE_EXPANDED_TYPES;
-			}
-			if (eap_sm->selectedMethod != NULL)
-			{
-				(*eap_sm->selectedMethod->eap_method_free)(eap_sm->methodData);
-				eap_sm->methodData = NULL;
-			}
-			CHECK_FCT_DO(diameap_plugin_get(*vendor,*eaptype,&eap_sm->selectedMethod),
-					{	TRACE_DEBUG(INFO,"%s [EAP Protocol] Invalid EAP-TYPE %d (vendor %d)",DIAMEAP_EXTENSION,*eaptype,*vendor);return 1;});
-
-		}
-		eap_sm->user.proposed_eap_method = TYPE_NONE;
-	}
-	else
-	{
-		*vendor = eap_sm->user.proposedmethods[eap_sm->user.methodId].vendor;
-		if (eap_sm->user.proposedmethods[eap_sm->user.methodId].vendor
-				== VENDOR_IETF)
-		{
-			*eaptype
-					= eap_sm->user.proposedmethods[eap_sm->user.methodId].method;
-		}
-		else
-		{
-			*eaptype = TYPE_EXPANDED_TYPES;
-		}
-		if (eap_sm->selectedMethod != NULL)
-		{
-			(*eap_sm->selectedMethod->eap_method_free)(eap_sm->methodData);
-			eap_sm->methodData;
-		}
-		CHECK_FCT(diameap_plugin_get(eap_sm->user.proposedmethods[eap_sm->user.methodId].vendor,eap_sm->user.proposedmethods[eap_sm->user.methodId].method,&eap_sm->selectedMethod));
-
-		eap_sm->user.methodId++;
-	}
-
-	return 0;
-}
-
-static int diameap_ba_policygetdecision(struct eap_state_machine * eap_sm,
-		struct diameap_eap_interface * eap_i, decision * gdecision)
-{
-	TRACE_ENTRY("%p %p %p",eap_sm,eap_i,gdecision);
-
-	if (eap_sm->user.userid != NULL)
-	{
-
-		if (eap_sm->methodState == EAP_M_END)
-		{
-
-			if (eap_sm->respMethod == TYPE_IDENTITY)
-			{
-
-				*gdecision = DECISION_CONTINUE;
-				return 0;
-			}
-
-			if ((eap_sm->respMethod == TYPE_NAK) || ((eap_sm->respMethod
-					== TYPE_EXPANDED_TYPES) && (eap_sm->respVendor
-					== VENDOR_IETF) && (eap_sm->respVendorMethod == TYPE_NAK)))
-			{
-				goto SelectNextMethod;
-			}
-
-			if (eap_sm->user.success == TRUE)
-			{
-
-				*gdecision = DECISION_SUCCESS;
-			}
-			else
-			{
-
-				*gdecision = DECISION_FAILURE;
-			}
-
-		}
-		else
-		{
-			goto SelectNextMethod;
-		}
-		return 0;
-
-		SelectNextMethod: if ((eap_sm->user.methodId
-				== (MAXPROPOSEDMETHODS - 1))
-				|| ((eap_sm->user.proposedmethods[eap_sm->user.methodId + 1].method
-						== TYPE_NONE)
-						&& (eap_sm->user.proposedmethods[eap_sm->user.methodId
-								+ 1].vendor == VENDOR_IETF)))
-		{
-			TRACE_DEBUG(FULL+1,
-					"%s [EAP protocol] None of proposed EAP Methods authenticated the user.(FAILURE)",DIAMEAP_EXTENSION);
-			*gdecision = DECISION_FAILURE;
-			return 0;
-		}
-
-		eap_sm->user.methodId = 0;
-		*gdecision = DECISION_CONTINUE;
-		return 0;
-	}
-
-	if (eap_sm->currentMethod == TYPE_IDENTITY)
-	{
-		*gdecision = DECISION_FAILURE;
-		return 0;
-	}
-
-	*gdecision = DECISION_CONTINUE;
-	return 0;
-}
-
-static boolean diameap_ba_policydopickup(eap_type type)
-{
-	TRACE_ENTRY("%p",type);
-	if (type == TYPE_IDENTITY)
-	{
-		return TRUE;
-	}
-	return FALSE;
-}

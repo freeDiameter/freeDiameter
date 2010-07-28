@@ -43,7 +43,6 @@
 #include "libcrypt.h"
 #include "diameap.h"
 #include "diameap_plugins.h"
-#include "diameap_init.h"
 #include "diameap_eap.h"
 #include "diameap_server.h"
 #include <regex.h>

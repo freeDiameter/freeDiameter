@@ -70,7 +70,11 @@ struct diameap_conf
 /* The pointer to access DiamEAP configuration*/
 extern struct diameap_conf *diameap_config;
 
-/* Main function of DiamEAP extension */
-static int diameap_main(char * conffile);
+/* Initialize the configuration of DiamEAP*/
+int diameap_init(char * conffile);
+
+/* parser */
+int diameapparse(struct diameap_conf * config);
+
 
 #endif /* DIAMEAP_H_ */

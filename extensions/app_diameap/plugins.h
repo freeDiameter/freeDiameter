@@ -43,12 +43,12 @@
 #include "libcrypt.h"
 
 
-static struct register_plugin *registerplugin = NULL;
 
-static int isregistered = 0;
 
 /* Macro that define the register functions of an EAP method */
 #define REGISTER_METHOD(_methodName, _configFunction, _initFunction, _initPickUpFunction, _buildReqFunction, _getTimeoutFunction, _checkFunction, _processFunction, _isDoneFunction, _getKeyFunction, _unregisterFunction, _datafreeFunction  ) \
+static struct register_plugin *registerplugin = NULL;	\
+static int isregistered = 0;	\
 int diameap_plugin_register() {	\
 		if (!isregistered){	\
 			registerplugin = malloc (sizeof(struct register_plugin)); \

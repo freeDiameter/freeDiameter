@@ -39,11 +39,6 @@
 #ifndef DIAMEAP_SERVER_H_
 #define DIAMEAP_SERVER_H_
 
-/* handler for DiamEAP server callback */
-static struct disp_hdl * handle;
-
-/* session handler for DiamEAP sessions state machine */
-static struct session_handler * diameap_server_reg = NULL;
 
 /* session data structure to store */
 struct diameap_sess_data_sm
@@ -119,45 +114,45 @@ int diameap_start_server(void);
 /* stop server*/
 int diameap_stop_server(void);
 
-/* Initialize DiamEAP state machine variables */
+/* Initialize DiamEAP state machine variables
 static int diameap_initialize_diameap_sm(
 		struct diameap_state_machine * diameap_sm,
 		struct diameap_sess_data_sm * diameap_sess_data);
 
-/* Initialize interface between the diameap and the eap states machines */
+ Initialize interface between the diameap and the eap states machines
 static int diameap_initialize_diameap_eap_interface(
 		struct diameap_eap_interface * eap_i);
 
-/* Parse received message */
+ Parse received message
 static int diameap_parse_avps(struct diameap_state_machine * diameap_sm,
 		struct msg * req, struct diameap_eap_interface * eap_i);
 
-/* Add an avp to Failed_AVP AVP for answer message */
+ Add an avp to Failed_AVP AVP for answer message
 static int diameap_failed_avp(struct diameap_state_machine * diameap_sm,
 		struct avp * invalidavp);
 
-/* Parse EAP Response */
+ Parse EAP Response
 static int diameap_parse_eap_resp(struct eap_state_machine * eap_sm,
 		struct eap_packet eappacket);
 
-/* */
+
 static int diameap_eappacket_new(struct eap_packet * eapPacket,
 		struct avp_hdr * avpdata);
 
-/* */
+
 static int diameap_sess_data_new(
 		struct diameap_sess_data_sm *diameap_sess_data,
 		struct diameap_state_machine *diameap_sm);
 
-/* */
+
 static int diameap_unlink_attributes_lists(
 		struct diameap_state_machine * diameap_sm);
 
-/**/
+
 static int diameap_answer_avp_attributes(
 		struct diameap_state_machine * diameap_sm);
 
-/**/
+
 static int diameap_answer_authorization_attributes(
 		struct diameap_state_machine * diameap_sm);
 
@@ -165,67 +160,67 @@ static void free_attrib(struct auth_attribute * auth_attrib);
 static void free_avp_attrib(struct avp_attribute * avp_attrib);
 static void free_ans_attrib(struct avp_attribute * ans_attrib);
 
-/* */
+
 static int diameap_get_avp_attribute(struct fd_list * avp_attributes,
 		char * attribute, struct avp_attribute ** avp_attrib, int unlink,
 		int *ret);
 
-/* */
+
 static int diameap_get_auth_attribute(struct fd_list * auth_attributes,
 		char * attribute, struct auth_attribute ** auth_attrib, int unlink,
 		int *ret);
 
-/**/
+
 static int diameap_get_ans_attribute(struct fd_list * ans_attributes,
 		char * attribute, struct avp_attribute ** ans_attrib, int unlink,
 		int *ret);
 
-/* */
+
 static int diameap_policy_decision(struct diameap_state_machine * diameap_sm,
 		struct diameap_eap_interface eap_i);
 
-/* */
+
 static int diameap_add_avps(struct diameap_state_machine * diameap_sm,
 		struct msg * ans, struct msg * req);
 
-/* */
+
 static int diameap_add_user_sessions_avps(
 		struct diameap_state_machine * diameap_sm, struct msg * ans);
 
-/* */
+
 static int diameap_add_result_code(struct diameap_state_machine * diameap_sm,
 		struct msg * ans, struct session * sess);
 
-/* */
+
 static int diameap_add_eap_payload(struct diameap_state_machine * diameap_sm,
 		struct msg * ans, struct diameap_eap_interface eap_i);
 
-/* */
+
 static int diameap_add_authorization_avps(struct diameap_state_machine * diameap_sm,
 		struct msg * ans);
 
-/* */
+
 static int diameap_send(struct msg ** rmsg);
 
-/* */
+
 static int diameap_add_eap_success_avps(
 		struct diameap_state_machine * diameap_sm, struct msg * ans,
 		struct diameap_eap_interface eap_i);
 
-/* */
+
 void diameap_cli_sess_cleanup(void * arg, char * sid);
 
-/* */
+
 static void diameap_free(struct diameap_state_machine * diameap_sm);
 
-/* */
+
 static void diameap_sess_data_free(
 		struct diameap_sess_data_sm * diameap_sess_data);
 
-/* */
+
 static int diameap_add_accounting_eap_auth_method(
 		struct diameap_state_machine * diameap_sm, struct msg * ans);
 
-/* */
-static int diameap_add_eap_reissued_payload(struct msg * ans,struct msg * req);
+
+static int diameap_add_eap_reissued_payload(struct msg * ans,struct msg * req);*/
 #endif /* DIAMEAP_SERVER_H_ */

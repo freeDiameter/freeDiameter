@@ -135,7 +135,7 @@ int identity_process(struct eap_state_machine *smd, struct eap_packet eapRespDat
 		data->state = IDENTITY_FAILURE;
 		goto end;
 	}
-	U8COPY(user,0,len,Respdata);
+	U8COPY((u8 *)user,0,len,Respdata);
 	user[length-5]='\0';
 
 	ret=diameap_get_eap_user(&(smd->user),user);

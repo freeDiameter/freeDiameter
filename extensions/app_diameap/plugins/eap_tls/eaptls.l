@@ -46,13 +46,15 @@
 	yylloc->first_column = yylloc->last_column + 1; 		\
 	yylloc->last_column += yyleng +1;	\
 	}	 
+	
+#define YY_NO_INPUT
 %}
 
 %option noyywrap
 %option yylineno
 %option bison-bridge 
 %option bison-locations
-
+%option nounput
 %%
 	/* List of patterns and actions */
 

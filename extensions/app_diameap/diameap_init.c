@@ -112,38 +112,7 @@ struct dict_object * dataobj_state = NULL;
 struct dict_object * dataobj_tunneling = NULL;
 struct dict_object * dataobj_user_name = NULL;
 
-int diameap_init(char * conffile)
-{
-	TRACE_ENTRY("%p",conffile);
 
-	/* Initialize the diameap_config structure*/
-	CHECK_FCT(diameap_init_config(conffile));
-
-	if (diameap_config->conffile)
-	{
-		/* parse the configuration file*/
-		CHECK_FCT(diameap_parse_conffile());
-
-		/* Load EAP methods plug-ins */
-		CHECK_FCT(diameap_plugin_load());
-
-	}
-	else
-	{
-		TRACE_DEBUG(FULL,"%sNo EAP method plug-in available with a default configuration.",DIAMEAP_EXTENSION);
-	}
-
-	/* Initialize Dictionary templates */
-	CHECK_FCT(diameap_init_obj());
-
-	/* Initialize access to user's information Database */
-	CHECK_FCT(diameap_mysql_connect());
-
-	/* Dump DiamEAP extension configuration */
-	diameap_conf_dump();
-
-	return 0;
-}
 
 static int diameap_init_config(char * conffile)
 {
@@ -390,25 +359,6 @@ int diameap_mysql_connect(void)
 	return 0;
 }
 
-/* Reconnecting to MySQL Database */
-int diameap_mysql_reconnect()
-{
-	TRACE_ENTRY();
-	CHECK_POSIX(pthread_mutex_lock( &db_cs_mutex ));
-	if (db_conn == NULL)
-	{
-		TRACE_DEBUG(INFO,"%sReconnecting to MySQL server.",DIAMEAP_EXTENSION);
-		if(diameap_mysql_connect()==0){
-			TRACE_DEBUG(INFO,"%s Reconnected successfully to MySQL Server.",DIAMEAP_EXTENSION);
-		}else{
-			return 1;
-		}
-	}
-	CHECK_POSIX(pthread_mutex_unlock( &db_cs_mutex ));
-	return 0;
-
-}
-
 static void diameap_conf_dump(void)
 {
 
@@ -438,4 +388,37 @@ static void diameap_conf_dump(void)
 
 	fd_log_debug(
 			"-------- DiamEAP extension : Configuration parameters (End) ---------------\n");
+}
+
+int diameap_init(char * conffile)
+{
+	TRACE_ENTRY("%p",conffile);
+
+	/* Initialize the diameap_config structure*/
+	CHECK_FCT(diameap_init_config(conffile));
+
+	if (diameap_config->conffile)
+	{
+		/* parse the configuration file*/
+		CHECK_FCT(diameap_parse_conffile());
+
+		/* Load EAP methods plug-ins */
+		CHECK_FCT(diameap_plugin_load());
+
+	}
+	else
+	{
+		TRACE_DEBUG(FULL,"%sNo EAP method plug-in available with a default configuration.",DIAMEAP_EXTENSION);
+	}
+
+	/* Initialize Dictionary templates */
+	CHECK_FCT(diameap_init_obj());
+
+	/* Initialize access to user's information Database */
+	CHECK_FCT(diameap_mysql_connect());
+
+	/* Dump DiamEAP extension configuration */
+	diameap_conf_dump();
+
+	return 0;
 }

@@ -66,10 +66,6 @@ struct diameap_eap_interface
 };
 
 int diameap_eap_statemachine(struct eap_state_machine * sm, struct diameap_eap_interface * eap_i, boolean * error);
-static void diameap_ba_nextid(struct eap_state_machine * sm, int * id);
-static void	diameap_ba_policyupdate(struct eap_state_machine * sm, struct eap_packet eapPacket);
-static int diameap_ba_policygetnextmethod(struct eap_state_machine * sm, eap_type * eaptype, u32 * vendor);
-static int diameap_ba_policygetdecision(struct eap_state_machine * sm,	struct diameap_eap_interface * eap_i, decision * gdecision);
-static boolean diameap_ba_policydopickup(eap_type type);
+
 
 #endif /* EAP_H_ */

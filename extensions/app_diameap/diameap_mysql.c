@@ -37,16 +37,18 @@
 
 #include "diameap_mysql.h"
 
+static pthread_mutex_t db_cs_mutex =
+PTHREAD_MUTEX_INITIALIZER;
+
 int diameap_get_eap_user(struct eap_user * user, char * username)
 {
 	TRACE_ENTRY("%p %p",user,username);
 	if (db_conn == NULL)
 	{
 		TRACE_DEBUG(INFO, "%sNot connected to the MySQL Database server.",DIAMEAP_EXTENSION);
-		if (diameap_mysql_reconnect())
-		{
-			return EINVAL;
-		}
+
+		return EINVAL;
+
 	}
 	mysql_thread_init();
 
@@ -66,8 +68,6 @@ int diameap_get_eap_user(struct eap_user * user, char * username)
 	{
 		CHECK_POSIX(pthread_mutex_unlock( &db_cs_mutex ));
 		TRACE_DEBUG(INFO, "%sQuery execution fail. %s",DIAMEAP_EXTENSION, mysql_error(db_conn));
-		db_conn = NULL;
-		diameap_mysql_reconnect();
 		mysql_thread_end();
 		free(query);
 		query = NULL;
@@ -82,9 +82,9 @@ int diameap_get_eap_user(struct eap_user * user, char * username)
 	{
 
 		user->id = atoi(row[0]);
-		user->userid = strdup(row[1]);
+		memcpy(user->userid,row[1],strlen(row[1]));
 		user->useridLength = strlen(row[1]);
-		user->password = strdup(row[2]);
+		memcpy(user->password, row[2],strlen(row[2]));
 		user->passwordLength = strlen(row[2]);
 		user->proposed_eap_method = atoi(row[3]);
 		user->proposed_eap_method_vendor = atoi(row[4]);
@@ -114,10 +114,9 @@ int diameap_authentication_get_attribs(struct eap_user user,
 	if (db_conn == NULL)
 	{
 		TRACE_DEBUG(INFO, "%sNot connected to the MySQL Database server.",DIAMEAP_EXTENSION);
-		if (diameap_mysql_reconnect())
-		{
-			return EINVAL;
-		}
+
+		return EINVAL;
+
 	}
 
 	mysql_thread_init();
@@ -137,8 +136,6 @@ int diameap_authentication_get_attribs(struct eap_user user,
 	{
 		CHECK_POSIX(pthread_mutex_unlock( &db_cs_mutex ));
 		TRACE_DEBUG(INFO, "%sQuery execution fail. %s",DIAMEAP_EXTENSION, mysql_error(db_conn));
-		db_conn = NULL;
-		diameap_mysql_reconnect();
 		mysql_thread_end();
 		free(query);
 		query = NULL;
@@ -177,10 +174,9 @@ int diameap_authorization_get_attribs(struct eap_user user,
 	if (db_conn == NULL)
 	{
 		TRACE_DEBUG(INFO, "%sNot connected to the MySQL Database server.",DIAMEAP_EXTENSION);
-		if (diameap_mysql_reconnect())
-		{
-			return EINVAL;
-		}
+
+		return EINVAL;
+
 	}
 
 	mysql_thread_init();
@@ -201,8 +197,6 @@ int diameap_authorization_get_attribs(struct eap_user user,
 	{
 		CHECK_POSIX(pthread_mutex_unlock( &db_cs_mutex ));
 		TRACE_DEBUG(INFO, "%sQuery execution fail. %s",DIAMEAP_EXTENSION, mysql_error(db_conn));
-		db_conn = NULL;
-		diameap_mysql_reconnect();
 		mysql_thread_end();
 		free(query);
 		query = NULL;
@@ -232,6 +226,7 @@ int diameap_authorization_get_attribs(struct eap_user user,
 	return 0;
 }
 
-void diameap_mysql_disconnect(){
+void diameap_mysql_disconnect()
+{
 	mysql_close(db_conn);
 }

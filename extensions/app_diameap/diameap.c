@@ -37,9 +37,7 @@
 
 #include "diameap_common.h"
 
-/* Define the entry point */
-EXTENSION_ENTRY("DiamEAP", diameap_main)
-;
+
 
 /* DiamEAP Configuration */
 static struct diameap_conf conf;
@@ -83,3 +81,7 @@ void fd_ext_fini(void)
 			{	TRACE_DEBUG(INFO,"%sUnloading EAP Methods plug-ins: Error occurred.",DIAMEAP_EXTENSION);});
 	return;
 }
+
+/* Define the entry point */
+EXTENSION_ENTRY("DiamEAP", diameap_main)
+;

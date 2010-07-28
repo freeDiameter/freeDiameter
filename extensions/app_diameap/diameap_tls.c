@@ -38,6 +38,8 @@
 
 #include "diameap_tls.h"
 
+//GCRY_THREAD_OPTION_PTHREAD_IMPL;
+
 int diameap_tls_init(struct tls_config * tls_conf)
 {
 	int ret;
@@ -101,7 +103,7 @@ void diameap_tls_log(int lev, const char * text)
 	u8 * msg;
 	if (text == NULL)
 		return;
-	msg = strdup(text);
+	msg = (u8 *) strdup(text);
 	int i;
 	for (i = 0; (G8(text+i) != '\n') && (G8(text+i) != '\0'); i++)
 	{
@@ -169,10 +171,7 @@ ssize_t diameap_tls_receive(gnutls_transport_ptr_t ptr, void *buffer,
 ssize_t diameap_tls_send(gnutls_transport_ptr_t ptr, const void *buffer,
 		size_t length)
 {
-	int i;
 	struct tls_data * data = (struct tls_data *) ptr;
-	u8 * buff;
-
 	data->tlsReq.data = realloc(data->tlsReq.data, data->tlsReq.datalength
 			+ length);
 	U8COPY(data->tlsReq.data,data->tlsReq.datalength,length,(u8*)buffer);
@@ -250,7 +249,7 @@ int diameap_tls_set_message_length(struct tls_msg * tlsmsg, u32 length)
 }
 
 int diameap_tls_get_data(struct tls_msg tlsmsg, u8** tls_data,
-		int * data_length)
+		u32 * data_length)
 {
 	if (tlsmsg.datalength > 0)
 	{
@@ -331,7 +330,7 @@ int diameap_tls_parse(u8* data, int len, struct tls_msg * tlsmsg)
 {
 
 	if (data == NULL)
-		return;
+		return EINVAL;
 	int pos = 0;
 	diameap_tls_new(tlsmsg);
 	tlsmsg->flags = G8(data);

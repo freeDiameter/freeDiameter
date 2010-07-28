@@ -45,7 +45,6 @@
 #include <errno.h>
 #include <pthread.h>
 
-GCRY_THREAD_OPTION_PTHREAD_IMPL;
 
 
 #define TLS_FLAG_LENGTH	0x80
@@ -95,7 +94,7 @@ int diameap_tls_set_message_length(struct tls_msg * tlsmsg, u32 length);
 int diameap_tls_get_flags(struct tls_msg tlsmsg, u8 * flags);
 int diameap_tls_set_flags(struct tls_msg * tlsmsg, u8 flags);
 
-int diameap_tls_get_data(struct tls_msg tlsmsg, u8** tls_data, int * data_length);
+int diameap_tls_get_data(struct tls_msg tlsmsg, u8** tls_data, u32 * data_length);
 int diameap_tls_set_data(struct tls_msg * tlsmsg, u8* tls_data, int data_length);
 
 int diameap_tls_parse(u8* data, int length, struct tls_msg * tlsmsg);

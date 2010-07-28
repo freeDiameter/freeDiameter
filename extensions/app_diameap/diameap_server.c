@@ -37,6 +37,13 @@
 
 #include "diameap_common.h"
 
+/* handler for DiamEAP server callback */
+static struct disp_hdl * handle;
+
+/* session handler for DiamEAP sessions state machine */
+static struct session_handler * diameap_server_reg = NULL;
+
+
 struct avp_max_occurences auth_avps[] =
 {
 { "Service-Type", 1 },
@@ -75,328 +82,7 @@ struct avp_max_occurences auth_avps[] =
 { "Connect-Info", 0 },
 { "Originating-Line-Info", 0 } };
 
-static int diameap_server_callback(struct msg ** rmsg, struct avp * ravp,
-		struct session * sess, enum disp_action * action)
-{
-	TRACE_ENTRY("%p %p %p %p", rmsg, ravp, sess, action);
 
-	struct diameap_sess_data_sm * diameap_sess_data = NULL;
-	struct diameap_state_machine * diameap_sm = NULL;
-	struct diameap_eap_interface eap_i;
-	struct msg *req, *ans;
-	boolean non_fatal_error = FALSE;
-
-	if (rmsg == NULL)
-		return EINVAL;
-
-	req = *rmsg;
-
-	CHECK_FCT_DO(fd_sess_state_retrieve(diameap_server_reg, sess, &diameap_sess_data),
-			{	TRACE_DEBUG(INFO,"%s retrieving session state failed.",DIAMEAP_EXTENSION); goto s_end;});
-
-	CHECK_MALLOC_DO(diameap_sm = malloc(sizeof(struct diameap_state_machine)),
-			goto s_end);
-	memset(diameap_sm, 0, sizeof(struct diameap_state_machine));
-
-	if (diameap_sess_data)
-	{
-		diameap_sm->state = DIAMEAP_RECEIVED;
-		diameap_sm->eap_sm.eap_state = EAP_IDLE;
-	}
-	else
-	{
-		diameap_sm->state = DIAMEAP_DISABLED;
-		diameap_sm->eap_sm.eap_state = EAP_INITIALIZE;
-	}
-
-	while (diameap_sm->state != DIAMEAP_IDLE && diameap_sm->state
-			!= DIAMEAP_END)
-	{
-		switch (diameap_sm->state)
-		{
-		case DIAMEAP_DISABLED:
-			if (rmsg)
-			{
-				diameap_sm->state = DIAMEAP_INITIALIZE;
-			}
-			else
-			{
-				TRACE_DEBUG(INFO,"%sReceived empty Diameter EAP Request message.",DIAMEAP_EXTENSION);
-				goto s_end;
-			}
-			break;
-
-		case DIAMEAP_INITIALIZE:
-
-			CHECK_FCT_DO(diameap_initialize_diameap_sm(diameap_sm,diameap_sess_data),
-					{	TRACE_DEBUG(INFO,"%s Initializing DiamEAP state machine failed.",DIAMEAP_EXTENSION); goto s_end;})
-			;
-			CHECK_FCT_DO(diameap_initialize_diameap_eap_interface(&eap_i),
-					{	TRACE_DEBUG(INFO,"%s Initializing DiamEAP-EAP Interface failed.",DIAMEAP_EXTENSION); goto s_end;})
-			;
-			TRACE_DEBUG(FULL+1,"%sParsing AVPs",DIAMEAP_EXTENSION)
-			;
-			CHECK_FCT_DO(diameap_parse_avps(diameap_sm, req, &eap_i), TRACE_DEBUG(INFO,"%s Unable to parse Diameter-EAP-Request AVPs.",DIAMEAP_EXTENSION))
-			;
-
-			if ((diameap_sm->result_code != 0))
-			{
-				diameap_sm->state = DIAMEAP_SEND_ERROR_MSG;
-			}
-			else
-			{
-				diameap_sm->state = DIAMEAP_AUTHENTICATION_VERIFY;
-			}
-			break;
-
-		case DIAMEAP_RECEIVED:
-
-			CHECK_FCT_DO(diameap_initialize_diameap_sm(diameap_sm,diameap_sess_data),
-					{	TRACE_DEBUG(INFO,"%s Initializing DiamEAP state machine failed.",DIAMEAP_EXTENSION); goto s_end;})
-			;
-			CHECK_FCT_DO(diameap_initialize_diameap_eap_interface(&eap_i),
-					{	TRACE_DEBUG(INFO,"%s Initializing DiamEAP-EAP Interface failed.",DIAMEAP_EXTENSION); goto s_end;})
-			;
-			TRACE_DEBUG(FULL+1,"%sParsing AVPs",DIAMEAP_EXTENSION)
-			;
-			CHECK_FCT_DO(diameap_parse_avps(diameap_sm, req, &eap_i), TRACE_DEBUG(INFO,"%s Unable to parse Diameter-EAP-Request AVPs.",DIAMEAP_EXTENSION))
-			;
-
-			if (diameap_sm->result_code != 0)
-			{
-				diameap_sm->state = DIAMEAP_SEND_ERROR_MSG;
-			}
-			else
-			{
-				diameap_sm->state = DIAMEAP_AUTHENTICATION_VERIFY;
-			}
-			break;
-
-		case DIAMEAP_AUTHENTICATION_VERIFY:
-		{
-
-			TRACE_DEBUG(FULL+1,"%sVerify authentication",DIAMEAP_EXTENSION);
-			CHECK_FCT_DO(diameap_eap_statemachine(&diameap_sm->eap_sm, &eap_i,&non_fatal_error),
-					{	TRACE_DEBUG(INFO,"%s EAP process failed.",DIAMEAP_EXTENSION); goto s_end;});
-
-			if (non_fatal_error == TRUE)
-			{
-				TRACE_DEBUG(FULL+1,"%sAuthentication verify finished with a non-fatal-error.",DIAMEAP_EXTENSION);
-				diameap_sm->state = DIAMEAP_SEND_ERROR_MSG;
-			}
-			else
-			{
-				diameap_sm->state = DIAMEAP_SELECT_DECISION;
-
-			}
-		}
-			break;
-
-		case DIAMEAP_SELECT_DECISION:
-
-			CHECK_FCT_DO( diameap_policy_decision(diameap_sm,eap_i),
-					goto s_end)
-			;
-
-			if ((eap_i.aaaSuccess == TRUE) && (diameap_sm->auth_request_val
-					== AUTHORIZE_AUTHENTICATE)
-					&& (diameap_sm->verify_authorization == FALSE))
-			{
-				diameap_sm->state = DIAMEAP_AUTHORIZATION_VERIFY;
-			}
-			else
-			{
-				diameap_sm->state = DIAMEAP_DIAMETER_EAP_ANSWER;
-			}
-			break;
-
-		case DIAMEAP_AUTHORIZATION_VERIFY:
-			diameap_sm->verify_authorization = TRUE;
-			TRACE_DEBUG(FULL+1,"%sVerify authorization",DIAMEAP_EXTENSION)
-			;
-			CHECK_FCT_DO(diameap_authorize(diameap_sm),
-					{	TRACE_DEBUG(INFO,"%s Authorization check process failed.",DIAMEAP_EXTENSION); goto s_end;})
-			;
-			diameap_sm->state = DIAMEAP_SELECT_DECISION;
-
-			break;
-
-		case DIAMEAP_DIAMETER_EAP_ANSWER:
-			TRACE_DEBUG(FULL+1,"%screate Diameter EAP Answer",DIAMEAP_EXTENSION)
-			;
-			CHECK_FCT_DO(fd_msg_new_answer_from_req(fd_g_config->cnf_dict, rmsg, 0),
-					goto s_end)
-			;
-			ans = *rmsg;
-			TRACE_DEBUG(FULL+1,"%sAdding AVPs to Diameter EAP Answer.",DIAMEAP_EXTENSION)
-			;
-			CHECK_FCT_DO( diameap_add_avps(diameap_sm, ans,req),
-					{	TRACE_DEBUG(INFO,"%s Unable to add AVPs to Diameter-EAP-Answer message.",DIAMEAP_EXTENSION);goto s_end;})
-			;
-			if (diameap_sm->authFailure == FALSE)
-			{
-				if (diameap_sm->eap_sm.user.id != 0)
-				{
-					TRACE_DEBUG(FULL+1,"%sSelect authentication attributes.",DIAMEAP_EXTENSION);
-					CHECK_FCT_DO(diameap_authentication_get_attribs(diameap_sm->eap_sm.user, &diameap_sm->attributes),
-							{	TRACE_DEBUG(INFO,"%s Unable to get user's session attributes.",DIAMEAP_EXTENSION); goto s_end;});
-					TRACE_DEBUG(FULL+1,"%sCreate answer authentication attributes.",DIAMEAP_EXTENSION);
-					CHECK_FCT_DO(diameap_answer_avp_attributes(diameap_sm),
-							{	TRACE_DEBUG(INFO,"% Unable to generate answer attributes.",DIAMEAP_EXTENSION); goto s_end;});
-				}
-
-				if (diameap_sm->authSuccess == FALSE)
-				{
-					diameap_sm->state = DIAMEAP_SEND_REQUEST;
-				}
-				else
-				{
-
-					diameap_sm->state = DIAMEAP_SEND_SUCCESS;
-				}
-			}
-			else
-			{
-				diameap_sm->state = DIAMEAP_SEND_FAILURE;
-			}
-			break;
-
-		case DIAMEAP_SEND_REQUEST:
-			TRACE_DEBUG(FULL+1,"%sAdding Result Code AVP to Diameter-EAP-Answer.",DIAMEAP_EXTENSION)
-			;
-			CHECK_FCT_DO( diameap_add_result_code(diameap_sm, ans, sess),
-					{	TRACE_DEBUG(INFO,"%s Adding Result-Code AVP failed.",DIAMEAP_EXTENSION); goto s_end;})
-			;
-			TRACE_DEBUG(FULL+1,"%sAdding EAP-Payload to Diameter-EAP-Answer.",DIAMEAP_EXTENSION)
-			;
-			CHECK_FCT_DO( diameap_add_eap_payload(diameap_sm, ans,eap_i),
-					{	TRACE_DEBUG(INFO,"%s Adding EAP-Payload AVP failed.",DIAMEAP_EXTENSION); goto s_end;})
-			;
-			TRACE_DEBUG(FULL+1,"%sStoring DiamEAP session data.",DIAMEAP_EXTENSION)
-			;
-			CHECK_MALLOC(diameap_sess_data = malloc(sizeof(struct diameap_sess_data_sm)))
-			;
-			memset(diameap_sess_data, 0, sizeof(struct diameap_sess_data_sm));
-			diameap_sess_data_new(diameap_sess_data, diameap_sm);
-
-			CHECK_FCT_DO(fd_sess_state_store(diameap_server_reg, sess, &diameap_sess_data),
-					{	TRACE_DEBUG(INFO,"%s Storing session state failed.",DIAMEAP_EXTENSION); goto s_end;})
-			;
-
-			CHECK_FCT_DO( diameap_send(rmsg),
-					goto s_end)
-			;
-
-			diameap_sm->state = DIAMEAP_IDLE;
-			break;
-
-		case DIAMEAP_SEND_FAILURE:
-			TRACE_DEBUG(FULL+1,"%sAdding Result Code AVP to Diameter-EAP-Answer.",DIAMEAP_EXTENSION)
-			;
-			CHECK_FCT_DO( diameap_add_result_code(diameap_sm, ans, sess),
-					{	TRACE_DEBUG(INFO,"%s Adding Result-Code AVP failed.",DIAMEAP_EXTENSION); goto s_end;})
-			;
-			TRACE_DEBUG(FULL+1,"%sAdding EAP-Payload to Diameter-EAP-Answer.",DIAMEAP_EXTENSION)
-			;
-			CHECK_FCT_DO( diameap_add_eap_payload(diameap_sm, ans,eap_i),
-					{	TRACE_DEBUG(INFO,"%s Adding EAP-Payload AVP failed.",DIAMEAP_EXTENSION); goto s_end;})
-			;
-
-			CHECK_FCT_DO( diameap_send(rmsg),
-					goto s_end)
-			;
-			diameap_sm->state = DIAMEAP_END;
-			break;
-
-		case DIAMEAP_SEND_SUCCESS:
-			TRACE_DEBUG(FULL+1,"%sAdding User session AVPs to Diameter-EAP-Answer.",DIAMEAP_EXTENSION)
-			;
-			CHECK_FCT_DO(diameap_add_user_sessions_avps(diameap_sm,ans),
-					{	TRACE_DEBUG(INFO,"%s Adding user's session AVPs failed.",DIAMEAP_EXTENSION); goto s_end;})
-			;
-
-			if (diameap_sm->auth_request_val == AUTHORIZE_AUTHENTICATE)
-			{
-				TRACE_DEBUG(FULL+1,"%sAdding Authorization AVPs to Diameter-EAP-Answer.",DIAMEAP_EXTENSION);
-				CHECK_FCT_DO(diameap_add_authorization_avps(diameap_sm,ans),
-						{	TRACE_DEBUG(INFO,"%s Adding Authorization AVPs failed.",DIAMEAP_EXTENSION); goto s_end;});
-			}
-			TRACE_DEBUG(FULL+1,"%sAdding Result Code AVP to Diameter-EAP-Answer.",DIAMEAP_EXTENSION)
-			;
-			CHECK_FCT_DO( diameap_add_result_code(diameap_sm, ans, sess),
-					{	TRACE_DEBUG(INFO,"%s Adding Result-Code AVP failed.",DIAMEAP_EXTENSION); goto s_end;})
-			;
-			TRACE_DEBUG(FULL+1,"%sAdding EAP-Payload to Diameter-EAP-Answer.",DIAMEAP_EXTENSION)
-			;
-			CHECK_FCT_DO( diameap_add_eap_payload(diameap_sm, ans,eap_i),
-					{	TRACE_DEBUG(INFO,"%s Adding EAP-Payload AVP failed.",DIAMEAP_EXTENSION); goto s_end;})
-			;
-			TRACE_DEBUG(FULL+1,"%sAdding EAP success AVPs AVPs to Diameter-EAP-Answer.",DIAMEAP_EXTENSION)
-			;
-			CHECK_FCT_DO( diameap_add_eap_success_avps(diameap_sm, ans, eap_i),
-					goto s_end)
-			;
-			TRACE_DEBUG(FULL+1,"%sAdding Accounting-EAP-Auth-Method AVPs to Diameter-EAP-Answer.",DIAMEAP_EXTENSION)
-			;
-			CHECK_FCT_DO(diameap_add_accounting_eap_auth_method(diameap_sm, ans),
-					{	TRACE_DEBUG(INFO,"%s Adding accounting AVP failed",DIAMEAP_EXTENSION); goto s_end;})
-			;
-			CHECK_FCT_DO( diameap_send(rmsg),
-					goto s_end)
-			;
-			diameap_sm->state = DIAMEAP_END;
-			break;
-
-		case DIAMEAP_SEND_ERROR_MSG:
-			diameap_sm->invalid_eappackets++;
-			if (diameap_sm->invalid_eappackets
-					== diameap_config->max_invalid_eap_packet)
-			{
-				diameap_sm->result_code = 4001;//DIAMETER_AUTHENTICATION_REJECTED
-				TRACE_DEBUG(FULL,"%s Maximum permitted invalid EAP Packet reached. Diameter Authentication Rejected.",DIAMEAP_EXTENSION);
-			}
-
-			CHECK_FCT_DO(fd_msg_new_answer_from_req(fd_g_config->cnf_dict, rmsg, 0),
-					goto s_end)
-			;
-
-			ans = *rmsg;
-			CHECK_FCT_DO( diameap_add_avps(diameap_sm, ans,req),
-					{	TRACE_DEBUG(INFO,"%s Adding AVPs to Diameter-EAP-Answer message failed.",DIAMEAP_EXTENSION);goto s_end;})
-			;
-			if ((non_fatal_error == TRUE) && (diameap_sm->result_code == 0))
-			{
-				diameap_sm->result_code = 1001;
-			}
-
-			if (diameap_sm->result_code == 1001)
-			{
-				CHECK_FCT_DO( diameap_add_eap_reissued_payload(ans,req), goto s_end);
-			}
-
-			if (diameap_sm->result_code == 5004)
-			{
-				CHECK_FCT_DO( fd_msg_avp_add( ans , MSG_BRW_LAST_CHILD, diameap_sm->failedavp ),goto s_end );
-			}
-
-			CHECK_FCT_DO( diameap_add_result_code(diameap_sm, ans, sess), goto s_end)
-			;
-
-			CHECK_FCT_DO( diameap_send(rmsg), goto s_end)
-			;
-			diameap_sm->state = DIAMEAP_IDLE;
-			break;
-
-		case DIAMEAP_END:
-
-			break;
-		}
-	}
-
-	diameap_free(diameap_sm);
-
-	s_end: return 0;
-}
 
 void diameap_cli_sess_cleanup(void * arg, char * sid)
 {
@@ -629,6 +315,143 @@ static int diameap_initialize_diameap_eap_interface(
 	return 0;
 }
 
+static int diameap_failed_avp(struct diameap_state_machine * diameap_sm,
+		struct avp * invalidavp)
+{
+	TRACE_ENTRY("%p %p",diameap_sm,invalidavp);
+	if (!invalidavp)
+		return EINVAL;
+
+	if (!diameap_sm)
+		return EINVAL;
+
+	if (diameap_sm->failedavp == NULL)
+	{
+		CHECK_FCT( fd_msg_avp_new( dataobj_failed_avp, 0, &diameap_sm->failedavp) );
+
+		CHECK_FCT( fd_msg_avp_add( diameap_sm->failedavp, MSG_BRW_LAST_CHILD, invalidavp ) );
+
+	}
+	else
+	{
+		//add multiple AVPs in Failed-AVP
+	}
+	return 0;
+}
+
+static int diameap_parse_eap_resp(struct eap_state_machine * eap_sm,
+		struct eap_packet eappacket)
+{
+	TRACE_ENTRY("%p %p",eap_sm, eappacket)
+
+	eap_sm->rxResp = FALSE;
+	eap_sm->respId = -1;
+	eap_sm->respMethod = TYPE_NONE;
+	eap_sm->respVendor = VENDOR_IETF;
+	eap_sm->respVendorMethod = TYPE_NONE;
+
+	if (eappacket.data == NULL)
+	{
+		TRACE_DEBUG(INFO,"%s Empty EAP packet",DIAMEAP_EXTENSION);
+		return 0;
+	}
+
+	u16 plength;
+	CHECK_FCT(diameap_eap_get_packetlength(eappacket,&plength));
+	if ((int) plength < EAP_HEADER)
+	{
+		TRACE_DEBUG(INFO,"%s EAP packet length less than EAP header.",DIAMEAP_EXTENSION);
+		return 0;
+	}
+
+	u16 length;
+	CHECK_FCT(diameap_eap_get_length(eappacket,&length));
+	if ((int) length < EAP_HEADER)
+	{
+		TRACE_DEBUG(INFO,"%sEAP packet length field less than EAP header.",DIAMEAP_EXTENSION);
+		return 0;
+	}
+
+	if (plength < length)
+	{
+		TRACE_DEBUG(INFO,"%sLength of received EAP packet is less than the value of the length field.",DIAMEAP_EXTENSION);
+		return 0;
+	}
+
+	eap_code code;
+	CHECK_FCT(diameap_eap_get_code(eappacket,&code));
+	if (code == EAP_REQUEST || code == EAP_SUCCESS || code == EAP_FAILURE)
+	{
+		TRACE_DEBUG(INFO,"%sOnly EAP Responses are accepted at EAP server side.",DIAMEAP_EXTENSION);
+		return 0;
+	}
+
+	u8 id;
+	CHECK_FCT(diameap_eap_get_identifier(eappacket,&id));
+	eap_sm->respId = id;
+
+	CHECK_FCT(diameap_eap_get_type(eappacket,&eap_sm->respMethod));
+	if ((eap_sm->methodState != EAP_M_PROPOSED) && (eap_sm->respMethod
+			== TYPE_NAK || eap_sm->respMethod == TYPE_EXPANDED_TYPES))
+	{
+		TRACE_DEBUG(INFO,"%sNAK or EXPANDED_NAK received after an EAP TYPE been selected",DIAMEAP_EXTENSION);
+		return 0;
+	}
+
+	if ((eap_sm->respMethod == TYPE_EXPANDED_TYPES) && (length < 20))
+	{
+		TRACE_DEBUG(INFO,"%s Truncated EAP Packet received.",DIAMEAP_EXTENSION);
+		return 0;
+	}
+
+	if ((eap_sm->respMethod == TYPE_NAK) && (eap_sm->currentMethod < 4))
+	{
+		TRACE_DEBUG(INFO,"%sNAK response not expected at this step (Only EAP type = 4 and above are accepted).",DIAMEAP_EXTENSION);
+		return 0;
+	}
+
+	if (eap_sm->respMethod == TYPE_EXPANDED_TYPES)
+	{
+		u8 *data = (u8 *) eappacket.data;
+		//int len = 0;
+		//u32 respVendor, respVendorMethod;
+		data += 5;
+		eap_sm->respVendor = G24BIGE(data);
+		data += 3;
+		eap_sm->respVendorMethod = G32BIGE(data);
+		data += 4;
+		/*		while ((length - 12) > (len * 8))
+		 {
+		 if (((eap_type) G8(data)) != TYPE_EXPANDED_TYPES)
+		 {
+		 return FALSE;
+		 }
+		 data += 1;
+		 respVendor = G24BIGE(data);
+		 data += 3;
+		 respVendorMethod = G32BIGE(data);
+		 eap_sm->user.proposedmethods[len].method = respVendor;
+		 eap_sm->user.proposedmethods[len].vendor = respVendorMethod;
+		 len++;
+		 data += 4;
+		 }
+		 eap_sm->user.methodId = 0;*/
+	}
+
+	eap_sm->rxResp = TRUE;
+	return 0;
+}
+
+static int diameap_eappacket_new(struct eap_packet * eappacket,
+		struct avp_hdr * avpdata)
+{
+	TRACE_ENTRY("%p %p",eappacket,avpdata);
+	eappacket->ulength = (u16) avpdata->avp_value->os.len;
+	eappacket->data = (u8 *) avpdata->avp_value->os.data;
+	diameap_eap_get_packetlength(*eappacket, &eappacket->length);
+	return 0;
+}
+
 static int diameap_parse_avps(struct diameap_state_machine * diameap_sm,
 		struct msg * req, struct diameap_eap_interface * eap_i)
 {
@@ -659,7 +482,7 @@ static int diameap_parse_avps(struct diameap_state_machine * diameap_sm,
 				struct avp * invalidavp;
 				union avp_value val;
 				CHECK_FCT( fd_msg_avp_new ( dataobj_eap_payload, 0, &invalidavp));
-				val.os.data = (char *) eap_i->aaaEapRespData.data;
+				val.os.data = eap_i->aaaEapRespData.data;
 				val.os.len = eap_i->aaaEapRespData.length;
 				CHECK_FCT( fd_msg_avp_setvalue( invalidavp, &val ))
 				CHECK_FCT( diameap_failed_avp(diameap_sm, invalidavp));
@@ -1185,144 +1008,6 @@ static int diameap_parse_avps(struct diameap_state_machine * diameap_sm,
 	return 0;
 }
 
-static int diameap_failed_avp(struct diameap_state_machine * diameap_sm,
-		struct avp * invalidavp)
-{
-	TRACE_ENTRY("%p %p",diameap_sm,invalidavp);
-	if (!invalidavp)
-		return EINVAL;
-
-	if (!diameap_sm)
-		return EINVAL;
-
-	if (diameap_sm->failedavp == NULL)
-	{
-		CHECK_FCT( fd_msg_avp_new( dataobj_failed_avp, 0, &diameap_sm->failedavp) );
-
-		CHECK_FCT( fd_msg_avp_add( diameap_sm->failedavp, MSG_BRW_LAST_CHILD, invalidavp ) );
-
-	}
-	else
-	{
-		//add multiple AVPs in Failed-AVP
-	}
-	return 0;
-}
-
-static int diameap_parse_eap_resp(struct eap_state_machine * eap_sm,
-		struct eap_packet eappacket)
-{
-	TRACE_ENTRY("%p %p",eap_sm, eappacket)
-
-	unsigned int len;
-
-	eap_sm->rxResp = FALSE;
-	eap_sm->respId = -1;
-	eap_sm->respMethod = TYPE_NONE;
-	eap_sm->respVendor = VENDOR_IETF;
-	eap_sm->respVendorMethod = TYPE_NONE;
-
-	if (eappacket.data == NULL)
-	{
-		TRACE_DEBUG(INFO,"%s Empty EAP packet",DIAMEAP_EXTENSION);
-		return 0;
-	}
-
-	u16 plength;
-	CHECK_FCT(diameap_eap_get_packetlength(eappacket,&plength));
-	if ((int) plength < EAP_HEADER)
-	{
-		TRACE_DEBUG(INFO,"%s EAP packet length less than EAP header.",DIAMEAP_EXTENSION);
-		return 0;
-	}
-
-	u16 length;
-	CHECK_FCT(diameap_eap_get_length(eappacket,&length));
-	if ((int) length < EAP_HEADER)
-	{
-		TRACE_DEBUG(INFO,"%sEAP packet length field less than EAP header.",DIAMEAP_EXTENSION);
-		return 0;
-	}
-
-	if (plength < length)
-	{
-		TRACE_DEBUG(INFO,"%sLength of received EAP packet is less than the value of the length field.",DIAMEAP_EXTENSION);
-		return 0;
-	}
-
-	eap_code code;
-	CHECK_FCT(diameap_eap_get_code(eappacket,&code));
-	if (code == EAP_REQUEST || code == EAP_SUCCESS || code == EAP_FAILURE)
-	{
-		TRACE_DEBUG(INFO,"%sOnly EAP Responses are accepted at EAP server side.",DIAMEAP_EXTENSION);
-		return 0;
-	}
-
-	u8 id;
-	CHECK_FCT(diameap_eap_get_identifier(eappacket,&id));
-	eap_sm->respId = id;
-
-	CHECK_FCT(diameap_eap_get_type(eappacket,&eap_sm->respMethod));
-	if ((eap_sm->methodState != EAP_M_PROPOSED) && (eap_sm->respMethod
-			== TYPE_NAK || eap_sm->respMethod == TYPE_EXPANDED_TYPES))
-	{
-		TRACE_DEBUG(INFO,"%sNAK or EXPANDED_NAK received after an EAP TYPE been selected",DIAMEAP_EXTENSION);
-		return 0;
-	}
-
-	if ((eap_sm->respMethod == TYPE_EXPANDED_TYPES) && (length < 20))
-	{
-		TRACE_DEBUG(INFO,"%s Truncated EAP Packet received.",DIAMEAP_EXTENSION);
-		return 0;
-	}
-
-	if ((eap_sm->respMethod == TYPE_NAK) && (eap_sm->currentMethod < 4))
-	{
-		TRACE_DEBUG(INFO,"%sNAK response not expected at this step (Only EAP type = 4 and above are accepted).",DIAMEAP_EXTENSION);
-		return 0;
-	}
-
-	if (eap_sm->respMethod == TYPE_EXPANDED_TYPES)
-	{
-		u8 *data = (u8 *) eappacket.data;
-		int len = 0;
-		u32 respVendor, respVendorMethod;
-		data += 5;
-		eap_sm->respVendor = G24BIGE(data);
-		data += 3;
-		eap_sm->respVendorMethod = G32BIGE(data);
-		data += 4;
-		/*		while ((length - 12) > (len * 8))
-		 {
-		 if (((eap_type) G8(data)) != TYPE_EXPANDED_TYPES)
-		 {
-		 return FALSE;
-		 }
-		 data += 1;
-		 respVendor = G24BIGE(data);
-		 data += 3;
-		 respVendorMethod = G32BIGE(data);
-		 eap_sm->user.proposedmethods[len].method = respVendor;
-		 eap_sm->user.proposedmethods[len].vendor = respVendorMethod;
-		 len++;
-		 data += 4;
-		 }
-		 eap_sm->user.methodId = 0;*/
-	}
-
-	eap_sm->rxResp = TRUE;
-	return 0;
-}
-
-static int diameap_eappacket_new(struct eap_packet * eappacket,
-		struct avp_hdr * avpdata)
-{
-	TRACE_ENTRY("%p %p",eappacket,avpdata);
-	eappacket->ulength = (u16) avpdata->avp_value->os.len;
-	eappacket->data = (u8 *) avpdata->avp_value->os.data;
-	diameap_eap_get_packetlength(*eappacket, &eappacket->length);
-	return 0;
-}
 
 static int diameap_sess_data_new(
 		struct diameap_sess_data_sm *diameap_sess_data,
@@ -1406,6 +1091,92 @@ static int diameap_sess_data_new(
 	return 0;
 }
 
+static void free_attrib(struct auth_attribute * auth_attrib)
+{
+	if (auth_attrib == NULL)
+	{
+		return;
+	}
+	if (auth_attrib->attrib != NULL)
+	{
+		free(auth_attrib->attrib);
+		auth_attrib->attrib = NULL;
+	}
+	if (auth_attrib->op != NULL)
+	{
+		free(auth_attrib->op);
+		auth_attrib->op = NULL;
+	}
+	if (auth_attrib->value != NULL)
+	{
+		free(auth_attrib->value);
+		auth_attrib->value = NULL;
+	}
+	free(auth_attrib);
+	auth_attrib = NULL;
+}
+
+static void free_avp_attrib(struct avp_attribute * avp_attrib)
+{
+	if(avp_attrib){
+	free(avp_attrib);
+	avp_attrib = NULL;
+	}
+}
+
+static void free_ans_attrib(struct avp_attribute * ans_attrib)
+{
+	if (ans_attrib->tofree == 1)
+	{
+		if(ans_attrib->value.os.data){
+		free(ans_attrib->value.os.data);
+		ans_attrib->value.os.data = NULL;
+		}
+	}
+	if(ans_attrib){
+	free(ans_attrib);
+	ans_attrib = NULL;
+	}
+}
+
+static int diameap_unlink_attributes_lists(
+		struct diameap_state_machine * diameap_sm)
+{
+	TRACE_ENTRY("%p ", diameap_sm);
+	if (diameap_sm == NULL)
+	{
+		return EINVAL;
+	}
+
+	while (!FD_IS_LIST_EMPTY(&diameap_sm->attributes))
+	{
+		struct fd_list * item = (struct fd_list *) diameap_sm->attributes.next;
+		struct auth_attribute * auth = (struct auth_attribute *) item;
+		fd_list_unlink(item);
+		free_attrib(auth);
+	}
+
+	while (!FD_IS_LIST_EMPTY(&diameap_sm->req_attributes))
+	{
+		struct fd_list * item =
+				(struct fd_list *) diameap_sm->req_attributes.next;
+		struct avp_attribute * avp = (struct avp_attribute *) item;
+		fd_list_unlink(item);
+		free_avp_attrib(avp);
+	}
+
+	while (!FD_IS_LIST_EMPTY(&diameap_sm->ans_attributes))
+	{
+		struct fd_list * item =
+				(struct fd_list *) diameap_sm->ans_attributes.next;
+		struct avp_attribute * avp_ans = (struct avp_attribute *) item;
+		fd_list_unlink(item);
+		free_ans_attrib(avp_ans);
+	}
+
+	return 0;
+}
+
 static void diameap_free(struct diameap_state_machine * diameap_sm)
 {
 
@@ -1473,41 +1244,106 @@ static void diameap_free(struct diameap_state_machine * diameap_sm)
 
 }
 
-static int diameap_unlink_attributes_lists(
-		struct diameap_state_machine * diameap_sm)
+static int diameap_get_avp_attribute(struct fd_list * avp_attributes,
+		char * attribute, struct avp_attribute ** avp_attrib, int unlink,
+		int *ret)
 {
-	TRACE_ENTRY("%p ", diameap_sm);
-	if (diameap_sm == NULL)
+	TRACE_ENTRY("%p %p %p %p %p", avp_attributes, attribute, avp_attrib, ret);
+	if (avp_attributes == NULL)
+	{
+		return EINVAL;
+	}
+	if (attribute == NULL)
+	{
+		return EINVAL;
+	}
+	struct fd_list * attrib;
+	for (attrib = avp_attributes->next; attrib != avp_attributes; attrib
+			= attrib->next)
+	{
+		*avp_attrib = (struct avp_attribute *) attrib;
+		if (strcmp((*avp_attrib)->attrib, attribute) == 0)
+		{
+			*ret = 0;
+			if (unlink == 1)
+			{
+				fd_list_unlink(&(*avp_attrib)->chain);
+			}
+			return 0;
+		}
+	}
+	*avp_attrib = NULL;
+	*ret = 1;
+	return 0;
+}
+
+static int diameap_get_auth_attribute(struct fd_list * auth_attributes,
+		char * attribute, struct auth_attribute ** auth_attrib, int unlink,
+		int *ret)
+{
+
+	TRACE_ENTRY("%p %p %p %p %p", auth_attributes, attribute, auth_attrib, ret);
+
+	if (auth_attributes == NULL)
+	{
+		return EINVAL;
+	}
+	if (attribute == NULL)
 	{
 		return EINVAL;
 	}
 
-	while (!FD_IS_LIST_EMPTY(&diameap_sm->attributes))
-	{
-		struct fd_list * item = (struct fd_list *) diameap_sm->attributes.next;
-		struct auth_attribute * auth = (struct auth_attribute *) item;
-		fd_list_unlink(item);
-		free_attrib(auth);
-	}
+	struct fd_list * attrib;
 
-	while (!FD_IS_LIST_EMPTY(&diameap_sm->req_attributes))
+	for (attrib = auth_attributes->next; attrib != auth_attributes; attrib
+			= attrib->next)
 	{
-		struct fd_list * item =
-				(struct fd_list *) diameap_sm->req_attributes.next;
-		struct avp_attribute * avp = (struct avp_attribute *) item;
-		fd_list_unlink(item);
-		free_avp_attrib(avp);
+		*auth_attrib = (struct auth_attribute *) attrib;
+		if (strcmp((*auth_attrib)->attrib, attribute) == 0)
+		{
+			*ret = 0;
+			if (unlink == 1)
+			{
+				fd_list_unlink(&(*auth_attrib)->chain);
+			}
+			return 0;
+		}
 	}
+	*auth_attrib = NULL;
+	*ret = 1;
+	return 0;
+}
 
-	while (!FD_IS_LIST_EMPTY(&diameap_sm->ans_attributes))
+static int diameap_get_ans_attribute(struct fd_list * ans_attributes,
+		char * attribute, struct avp_attribute ** ans_attrib, int unlink,
+		int *ret)
+{
+	TRACE_ENTRY("%p %p %p %p %p", ans_attributes, attribute, ans_attrib, ret);
+	if (ans_attributes == NULL)
 	{
-		struct fd_list * item =
-				(struct fd_list *) diameap_sm->ans_attributes.next;
-		struct avp_attribute * avp_ans = (struct avp_attribute *) item;
-		fd_list_unlink(item);
-		free_ans_attrib(avp_ans);
+		return EINVAL;
 	}
-
+	if (attribute == NULL)
+	{
+		return EINVAL;
+	}
+	struct fd_list * attrib;
+	for (attrib = ans_attributes->next; attrib != ans_attributes; attrib
+			= attrib->next)
+	{
+		*ans_attrib = (struct avp_attribute *) attrib;
+		if (strcmp((*ans_attrib)->attrib, attribute) == 0)
+		{
+			*ret = 0;
+			if (unlink == 1)
+			{
+				fd_list_unlink(&(*ans_attrib)->chain);
+			}
+			return 0;
+		}
+	}
+	*ans_attrib = NULL;
+	*ret = 1;
 	return 0;
 }
 
@@ -1854,7 +1690,7 @@ boolean diameap_check(union avp_value A, char * B, char * operator,
 			if ((datatype == AVP_TYPE_OCTETSTRING) && (is_operator(DIAMEAP_STR,
 					operator) == TRUE))
 			{
-				if (strcmp(A.os.data, B) == 0)
+				if (strcmp((char *)A.os.data, B) == 0)
 					return TRUE;
 				else
 					return FALSE;
@@ -1902,7 +1738,7 @@ boolean diameap_check(union avp_value A, char * B, char * operator,
 			{
 				regex_t rule_regexp;
 				regcomp(&rule_regexp, B, REG_EXTENDED | REG_NOSUB | REG_ICASE);
-				if (regexec(&rule_regexp, A.os.data, 0, NULL, 0) != 0)
+				if (regexec(&rule_regexp, (char *)A.os.data, 0, NULL, 0) != 0)
 				{
 					authorized = FALSE;
 				}
@@ -2055,7 +1891,7 @@ boolean diameap_check(union avp_value A, char * B, char * operator,
 			if ((datatype == AVP_TYPE_OCTETSTRING) && (is_operator(DIAMEAP_STR,
 					operator) == TRUE))
 			{
-				if (strcmp(A.os.data, B) != 0)
+				if (strcmp((char *)A.os.data, B) != 0)
 					return TRUE;
 				else
 					return FALSE;
@@ -2095,6 +1931,7 @@ boolean diameap_check(union avp_value A, char * B, char * operator,
 			break;
 		}
 	}
+	return FALSE;
 }
 
 char * diameap_attribute_operator(char * op, int * toadd, boolean *isrule)
@@ -2154,10 +1991,8 @@ int diameap_answer_set_attribute_valueA(union avp_value A, int *tofree,
 	TRACE_ENTRY("%p %p %p %p",A,tofree,datatype,rval);
 	if (datatype == AVP_TYPE_OCTETSTRING)
 	{
-		rval->os.data = strdup(A.os.data);
-
+		memcpy(rval->os.data,A.os.data,A.os.len);
 		rval->os.len = A.os.len;
-
 		*tofree = 1;
 	}
 	else
@@ -2173,8 +2008,7 @@ int diameap_answer_set_attribute_valueB(char * B, int *tofree,
 	if (datatype == AVP_TYPE_OCTETSTRING)
 	{
 
-		rval->os.data = strdup(B);
-
+		memcpy(rval->os.data,B,strlen(B));
 		rval->os.len = strlen(B);
 
 		*tofree = 1;
@@ -2332,108 +2166,7 @@ static int diameap_answer_authorization_attributes(
 	return 0;
 }
 
-static int diameap_get_avp_attribute(struct fd_list * avp_attributes,
-		char * attribute, struct avp_attribute ** avp_attrib, int unlink,
-		int *ret)
-{
-	TRACE_ENTRY("%p %p %p %p %p", avp_attributes, attribute, avp_attrib, ret);
-	if (avp_attributes == NULL)
-	{
-		return EINVAL;
-	}
-	if (attribute == NULL)
-	{
-		return EINVAL;
-	}
-	struct fd_list * attrib;
-	for (attrib = avp_attributes->next; attrib != avp_attributes; attrib
-			= attrib->next)
-	{
-		*avp_attrib = (struct avp_attribute *) attrib;
-		if (strcmp((*avp_attrib)->attrib, attribute) == 0)
-		{
-			*ret = 0;
-			if (unlink == 1)
-			{
-				fd_list_unlink(&(*avp_attrib)->chain);
-			}
-			return 0;
-		}
-	}
-	*avp_attrib = NULL;
-	*ret = 1;
-	return 0;
-}
 
-static int diameap_get_auth_attribute(struct fd_list * auth_attributes,
-		char * attribute, struct auth_attribute ** auth_attrib, int unlink,
-		int *ret)
-{
-
-	TRACE_ENTRY("%p %p %p %p %p", auth_attributes, attribute, auth_attrib, ret);
-
-	if (auth_attributes == NULL)
-	{
-		return EINVAL;
-	}
-	if (attribute == NULL)
-	{
-		return EINVAL;
-	}
-
-	struct fd_list * attrib;
-
-	for (attrib = auth_attributes->next; attrib != auth_attributes; attrib
-			= attrib->next)
-	{
-		*auth_attrib = (struct auth_attribute *) attrib;
-		if (strcmp((*auth_attrib)->attrib, attribute) == 0)
-		{
-			*ret = 0;
-			if (unlink == 1)
-			{
-				fd_list_unlink(&(*auth_attrib)->chain);
-			}
-			return 0;
-		}
-	}
-	*auth_attrib = NULL;
-	*ret = 1;
-	return 0;
-}
-
-static int diameap_get_ans_attribute(struct fd_list * ans_attributes,
-		char * attribute, struct avp_attribute ** ans_attrib, int unlink,
-		int *ret)
-{
-	TRACE_ENTRY("%p %p %p %p %p", ans_attributes, attribute, ans_attrib, ret);
-	if (ans_attributes == NULL)
-	{
-		return EINVAL;
-	}
-	if (attribute == NULL)
-	{
-		return EINVAL;
-	}
-	struct fd_list * attrib;
-	for (attrib = ans_attributes->next; attrib != ans_attributes; attrib
-			= attrib->next)
-	{
-		*ans_attrib = (struct avp_attribute *) attrib;
-		if (strcmp((*ans_attrib)->attrib, attribute) == 0)
-		{
-			*ret = 0;
-			if (unlink == 1)
-			{
-				fd_list_unlink(&(*ans_attrib)->chain);
-			}
-			return 0;
-		}
-	}
-	*ans_attrib = NULL;
-	*ret = 1;
-	return 0;
-}
 
 static int diameap_policy_decision(struct diameap_state_machine * diameap_sm,
 		struct diameap_eap_interface eap_i)
@@ -3233,8 +2966,8 @@ static int diameap_add_eap_success_avps(
 		if (avp_attrib->value.os.len == 0)
 		{
 			CHECK_FCT(fd_msg_avp_new(dataobj_eap_key_name, 0, &avp));
-			avp_val.os.data = " ";//
-			avp_val.os.len = 1;//
+			avp_val.os.data = NULL;//
+			avp_val.os.len = 0;//
 			CHECK_FCT(fd_msg_avp_setvalue(avp, &avp_val));
 			CHECK_FCT( fd_msg_avp_add( ans, MSG_BRW_LAST_CHILD, avp ) );
 			free_avp_attrib(avp_attrib);
@@ -3300,7 +3033,7 @@ static int diameap_add_eap_reissued_payload(struct msg * ans, struct msg * req)
 	{
 		CHECK_FCT( fd_msg_avp_hdr(avp, &avphdr));
 		CHECK_FCT( fd_msg_avp_new(dataobj_eap_reissued_payload, 0, &re_avp));
-		avp_val.os.data = strdup(avphdr->avp_value->os.data);
+		memcpy(avp_val.os.data,avphdr->avp_value->os.data,avphdr->avp_value->os.len);
 		avp_val.os.len = avphdr->avp_value->os.len;
 		CHECK_FCT(fd_msg_avp_setvalue(re_avp, &avp_val));
 		CHECK_FCT( fd_msg_avp_add( ans, MSG_BRW_LAST_CHILD, re_avp ) );
@@ -3314,10 +3047,338 @@ static int diameap_add_eap_reissued_payload(struct msg * ans, struct msg * req)
 	return 0;
 }
 
+
+
+
+static int diameap_server_callback(struct msg ** rmsg, struct avp * ravp,
+		struct session * sess, enum disp_action * action)
+{
+	TRACE_ENTRY("%p %p %p %p", rmsg, ravp, sess, action);
+
+	struct diameap_sess_data_sm * diameap_sess_data = NULL;
+	struct diameap_state_machine * diameap_sm = NULL;
+	struct diameap_eap_interface eap_i;
+	struct msg *req, *ans;
+	boolean non_fatal_error = FALSE;
+
+	if (rmsg == NULL)
+		return EINVAL;
+
+	req = *rmsg;
+
+	CHECK_FCT_DO(fd_sess_state_retrieve(diameap_server_reg, sess, &diameap_sess_data),
+			{	TRACE_DEBUG(INFO,"%s retrieving session state failed.",DIAMEAP_EXTENSION); goto s_end;});
+
+	CHECK_MALLOC_DO(diameap_sm = malloc(sizeof(struct diameap_state_machine)),
+			goto s_end);
+	memset(diameap_sm, 0, sizeof(struct diameap_state_machine));
+
+	if (diameap_sess_data)
+	{
+		diameap_sm->state = DIAMEAP_RECEIVED;
+		diameap_sm->eap_sm.eap_state = EAP_IDLE;
+	}
+	else
+	{
+		diameap_sm->state = DIAMEAP_DISABLED;
+		diameap_sm->eap_sm.eap_state = EAP_INITIALIZE;
+	}
+
+	while (diameap_sm->state != DIAMEAP_IDLE && diameap_sm->state
+			!= DIAMEAP_END)
+	{
+		switch (diameap_sm->state)
+		{
+		case DIAMEAP_DISABLED:
+			if (rmsg)
+			{
+				diameap_sm->state = DIAMEAP_INITIALIZE;
+			}
+			else
+			{
+				TRACE_DEBUG(INFO,"%sReceived empty Diameter EAP Request message.",DIAMEAP_EXTENSION);
+				goto s_end;
+			}
+			break;
+
+		case DIAMEAP_INITIALIZE:
+
+			CHECK_FCT_DO(diameap_initialize_diameap_sm(diameap_sm,diameap_sess_data),
+					{	TRACE_DEBUG(INFO,"%s Initializing DiamEAP state machine failed.",DIAMEAP_EXTENSION); goto s_end;})
+			;
+			CHECK_FCT_DO(diameap_initialize_diameap_eap_interface(&eap_i),
+					{	TRACE_DEBUG(INFO,"%s Initializing DiamEAP-EAP Interface failed.",DIAMEAP_EXTENSION); goto s_end;})
+			;
+			TRACE_DEBUG(FULL+1,"%sParsing AVPs",DIAMEAP_EXTENSION)
+			;
+			CHECK_FCT_DO(diameap_parse_avps(diameap_sm, req, &eap_i), TRACE_DEBUG(INFO,"%s Unable to parse Diameter-EAP-Request AVPs.",DIAMEAP_EXTENSION))
+			;
+
+			if ((diameap_sm->result_code != 0))
+			{
+				diameap_sm->state = DIAMEAP_SEND_ERROR_MSG;
+			}
+			else
+			{
+				diameap_sm->state = DIAMEAP_AUTHENTICATION_VERIFY;
+			}
+			break;
+
+		case DIAMEAP_RECEIVED:
+
+			CHECK_FCT_DO(diameap_initialize_diameap_sm(diameap_sm,diameap_sess_data),
+					{	TRACE_DEBUG(INFO,"%s Initializing DiamEAP state machine failed.",DIAMEAP_EXTENSION); goto s_end;})
+			;
+			CHECK_FCT_DO(diameap_initialize_diameap_eap_interface(&eap_i),
+					{	TRACE_DEBUG(INFO,"%s Initializing DiamEAP-EAP Interface failed.",DIAMEAP_EXTENSION); goto s_end;})
+			;
+			TRACE_DEBUG(FULL+1,"%sParsing AVPs",DIAMEAP_EXTENSION)
+			;
+			CHECK_FCT_DO(diameap_parse_avps(diameap_sm, req, &eap_i), TRACE_DEBUG(INFO,"%s Unable to parse Diameter-EAP-Request AVPs.",DIAMEAP_EXTENSION))
+			;
+
+			if (diameap_sm->result_code != 0)
+			{
+				diameap_sm->state = DIAMEAP_SEND_ERROR_MSG;
+			}
+			else
+			{
+				diameap_sm->state = DIAMEAP_AUTHENTICATION_VERIFY;
+			}
+			break;
+
+		case DIAMEAP_AUTHENTICATION_VERIFY:
+		{
+
+			TRACE_DEBUG(FULL+1,"%sVerify authentication",DIAMEAP_EXTENSION);
+			CHECK_FCT_DO(diameap_eap_statemachine(&diameap_sm->eap_sm, &eap_i,&non_fatal_error),
+					{	TRACE_DEBUG(INFO,"%s EAP process failed.",DIAMEAP_EXTENSION); goto s_end;});
+
+			if (non_fatal_error == TRUE)
+			{
+				TRACE_DEBUG(FULL+1,"%sAuthentication verify finished with a non-fatal-error.",DIAMEAP_EXTENSION);
+				diameap_sm->state = DIAMEAP_SEND_ERROR_MSG;
+			}
+			else
+			{
+				diameap_sm->state = DIAMEAP_SELECT_DECISION;
+
+			}
+		}
+			break;
+
+		case DIAMEAP_SELECT_DECISION:
+
+			CHECK_FCT_DO( diameap_policy_decision(diameap_sm,eap_i),
+					goto s_end)
+			;
+
+			if ((eap_i.aaaSuccess == TRUE) && (diameap_sm->auth_request_val
+					== AUTHORIZE_AUTHENTICATE)
+					&& (diameap_sm->verify_authorization == FALSE))
+			{
+				diameap_sm->state = DIAMEAP_AUTHORIZATION_VERIFY;
+			}
+			else
+			{
+				diameap_sm->state = DIAMEAP_DIAMETER_EAP_ANSWER;
+			}
+			break;
+
+		case DIAMEAP_AUTHORIZATION_VERIFY:
+			diameap_sm->verify_authorization = TRUE;
+			TRACE_DEBUG(FULL+1,"%sVerify authorization",DIAMEAP_EXTENSION)
+			;
+			CHECK_FCT_DO(diameap_authorize(diameap_sm),
+					{	TRACE_DEBUG(INFO,"%s Authorization check process failed.",DIAMEAP_EXTENSION); goto s_end;})
+			;
+			diameap_sm->state = DIAMEAP_SELECT_DECISION;
+
+			break;
+
+		case DIAMEAP_DIAMETER_EAP_ANSWER:
+			TRACE_DEBUG(FULL+1,"%screate Diameter EAP Answer",DIAMEAP_EXTENSION)
+			;
+			CHECK_FCT_DO(fd_msg_new_answer_from_req(fd_g_config->cnf_dict, rmsg, 0),
+					goto s_end)
+			;
+			ans = *rmsg;
+			TRACE_DEBUG(FULL+1,"%sAdding AVPs to Diameter EAP Answer.",DIAMEAP_EXTENSION)
+			;
+			CHECK_FCT_DO( diameap_add_avps(diameap_sm, ans,req),
+					{	TRACE_DEBUG(INFO,"%s Unable to add AVPs to Diameter-EAP-Answer message.",DIAMEAP_EXTENSION);goto s_end;})
+			;
+			if (diameap_sm->authFailure == FALSE)
+			{
+				if (diameap_sm->eap_sm.user.id != 0)
+				{
+					TRACE_DEBUG(FULL+1,"%sSelect authentication attributes.",DIAMEAP_EXTENSION);
+					CHECK_FCT_DO(diameap_authentication_get_attribs(diameap_sm->eap_sm.user, &diameap_sm->attributes),
+							{	TRACE_DEBUG(INFO,"%s Unable to get user's session attributes.",DIAMEAP_EXTENSION); goto s_end;});
+					TRACE_DEBUG(FULL+1,"%sCreate answer authentication attributes.",DIAMEAP_EXTENSION);
+					CHECK_FCT_DO(diameap_answer_avp_attributes(diameap_sm),
+							{	TRACE_DEBUG(INFO,"% Unable to generate answer attributes.",DIAMEAP_EXTENSION); goto s_end;});
+				}
+
+				if (diameap_sm->authSuccess == FALSE)
+				{
+					diameap_sm->state = DIAMEAP_SEND_REQUEST;
+				}
+				else
+				{
+
+					diameap_sm->state = DIAMEAP_SEND_SUCCESS;
+				}
+			}
+			else
+			{
+				diameap_sm->state = DIAMEAP_SEND_FAILURE;
+			}
+			break;
+
+		case DIAMEAP_SEND_REQUEST:
+			TRACE_DEBUG(FULL+1,"%sAdding Result Code AVP to Diameter-EAP-Answer.",DIAMEAP_EXTENSION)
+			;
+			CHECK_FCT_DO( diameap_add_result_code(diameap_sm, ans, sess),
+					{	TRACE_DEBUG(INFO,"%s Adding Result-Code AVP failed.",DIAMEAP_EXTENSION); goto s_end;})
+			;
+			TRACE_DEBUG(FULL+1,"%sAdding EAP-Payload to Diameter-EAP-Answer.",DIAMEAP_EXTENSION)
+			;
+			CHECK_FCT_DO( diameap_add_eap_payload(diameap_sm, ans,eap_i),
+					{	TRACE_DEBUG(INFO,"%s Adding EAP-Payload AVP failed.",DIAMEAP_EXTENSION); goto s_end;})
+			;
+			TRACE_DEBUG(FULL+1,"%sStoring DiamEAP session data.",DIAMEAP_EXTENSION)
+			;
+			CHECK_MALLOC(diameap_sess_data = malloc(sizeof(struct diameap_sess_data_sm)))
+			;
+			memset(diameap_sess_data, 0, sizeof(struct diameap_sess_data_sm));
+			diameap_sess_data_new(diameap_sess_data, diameap_sm);
+
+			CHECK_FCT_DO(fd_sess_state_store(diameap_server_reg, sess, &diameap_sess_data),
+					{	TRACE_DEBUG(INFO,"%s Storing session state failed.",DIAMEAP_EXTENSION); goto s_end;})
+			;
+
+			CHECK_FCT_DO( diameap_send(rmsg),
+					goto s_end)
+			;
+
+			diameap_sm->state = DIAMEAP_IDLE;
+			break;
+
+		case DIAMEAP_SEND_FAILURE:
+			TRACE_DEBUG(FULL+1,"%sAdding Result Code AVP to Diameter-EAP-Answer.",DIAMEAP_EXTENSION)
+			;
+			CHECK_FCT_DO( diameap_add_result_code(diameap_sm, ans, sess),
+					{	TRACE_DEBUG(INFO,"%s Adding Result-Code AVP failed.",DIAMEAP_EXTENSION); goto s_end;})
+			;
+			TRACE_DEBUG(FULL+1,"%sAdding EAP-Payload to Diameter-EAP-Answer.",DIAMEAP_EXTENSION)
+			;
+			CHECK_FCT_DO( diameap_add_eap_payload(diameap_sm, ans,eap_i),
+					{	TRACE_DEBUG(INFO,"%s Adding EAP-Payload AVP failed.",DIAMEAP_EXTENSION); goto s_end;})
+			;
+
+			CHECK_FCT_DO( diameap_send(rmsg),
+					goto s_end)
+			;
+			diameap_sm->state = DIAMEAP_END;
+			break;
+
+		case DIAMEAP_SEND_SUCCESS:
+			TRACE_DEBUG(FULL+1,"%sAdding User session AVPs to Diameter-EAP-Answer.",DIAMEAP_EXTENSION)
+			;
+			CHECK_FCT_DO(diameap_add_user_sessions_avps(diameap_sm,ans),
+					{	TRACE_DEBUG(INFO,"%s Adding user's session AVPs failed.",DIAMEAP_EXTENSION); goto s_end;})
+			;
+
+			if (diameap_sm->auth_request_val == AUTHORIZE_AUTHENTICATE)
+			{
+				TRACE_DEBUG(FULL+1,"%sAdding Authorization AVPs to Diameter-EAP-Answer.",DIAMEAP_EXTENSION);
+				CHECK_FCT_DO(diameap_add_authorization_avps(diameap_sm,ans),
+						{	TRACE_DEBUG(INFO,"%s Adding Authorization AVPs failed.",DIAMEAP_EXTENSION); goto s_end;});
+			}
+			TRACE_DEBUG(FULL+1,"%sAdding Result Code AVP to Diameter-EAP-Answer.",DIAMEAP_EXTENSION)
+			;
+			CHECK_FCT_DO( diameap_add_result_code(diameap_sm, ans, sess),
+					{	TRACE_DEBUG(INFO,"%s Adding Result-Code AVP failed.",DIAMEAP_EXTENSION); goto s_end;})
+			;
+			TRACE_DEBUG(FULL+1,"%sAdding EAP-Payload to Diameter-EAP-Answer.",DIAMEAP_EXTENSION)
+			;
+			CHECK_FCT_DO( diameap_add_eap_payload(diameap_sm, ans,eap_i),
+					{	TRACE_DEBUG(INFO,"%s Adding EAP-Payload AVP failed.",DIAMEAP_EXTENSION); goto s_end;})
+			;
+			TRACE_DEBUG(FULL+1,"%sAdding EAP success AVPs AVPs to Diameter-EAP-Answer.",DIAMEAP_EXTENSION)
+			;
+			CHECK_FCT_DO( diameap_add_eap_success_avps(diameap_sm, ans, eap_i),
+					goto s_end)
+			;
+			TRACE_DEBUG(FULL+1,"%sAdding Accounting-EAP-Auth-Method AVPs to Diameter-EAP-Answer.",DIAMEAP_EXTENSION)
+			;
+			CHECK_FCT_DO(diameap_add_accounting_eap_auth_method(diameap_sm, ans),
+					{	TRACE_DEBUG(INFO,"%s Adding accounting AVP failed",DIAMEAP_EXTENSION); goto s_end;})
+			;
+			CHECK_FCT_DO( diameap_send(rmsg),
+					goto s_end)
+			;
+			diameap_sm->state = DIAMEAP_END;
+			break;
+
+		case DIAMEAP_SEND_ERROR_MSG:
+			diameap_sm->invalid_eappackets++;
+			if (diameap_sm->invalid_eappackets
+					== diameap_config->max_invalid_eap_packet)
+			{
+				diameap_sm->result_code = 4001;//DIAMETER_AUTHENTICATION_REJECTED
+				TRACE_DEBUG(FULL,"%s Maximum permitted invalid EAP Packet reached. Diameter Authentication Rejected.",DIAMEAP_EXTENSION);
+			}
+
+			CHECK_FCT_DO(fd_msg_new_answer_from_req(fd_g_config->cnf_dict, rmsg, 0),
+					goto s_end)
+			;
+
+			ans = *rmsg;
+			CHECK_FCT_DO( diameap_add_avps(diameap_sm, ans,req),
+					{	TRACE_DEBUG(INFO,"%s Adding AVPs to Diameter-EAP-Answer message failed.",DIAMEAP_EXTENSION);goto s_end;})
+			;
+			if ((non_fatal_error == TRUE) && (diameap_sm->result_code == 0))
+			{
+				diameap_sm->result_code = 1001;
+			}
+
+			if (diameap_sm->result_code == 1001)
+			{
+				CHECK_FCT_DO( diameap_add_eap_reissued_payload(ans,req), goto s_end);
+			}
+
+			if (diameap_sm->result_code == 5004)
+			{
+				CHECK_FCT_DO( fd_msg_avp_add( ans , MSG_BRW_LAST_CHILD, diameap_sm->failedavp ),goto s_end );
+			}
+
+			CHECK_FCT_DO( diameap_add_result_code(diameap_sm, ans, sess), goto s_end)
+			;
+
+			CHECK_FCT_DO( diameap_send(rmsg), goto s_end)
+			;
+			diameap_sm->state = DIAMEAP_IDLE;
+			break;
+
+		case DIAMEAP_END:
+			break;
+
+		case DIAMEAP_IDLE:
+			break;
+		}
+	}
+
+	diameap_free(diameap_sm);
+
+	s_end: return 0;
+}
+
 int diameap_start_server(void)
 {
 	struct disp_when when;
-	int ret;
+
 	/*create handler for sessions */
 	CHECK_FCT(fd_sess_handler_create(&diameap_server_reg, diameap_cli_sess_cleanup));
 
@@ -3336,48 +3397,6 @@ int diameap_start_server(void)
 		return 1;
 	}
 	return 0;
-}
-
-static void free_attrib(struct auth_attribute * auth_attrib)
-{
-	if (auth_attrib == NULL)
-	{
-		return;
-	}
-	if (auth_attrib->attrib != NULL)
-	{
-		free(auth_attrib->attrib);
-		auth_attrib->attrib = NULL;
-	}
-	if (auth_attrib->op != NULL)
-	{
-		free(auth_attrib->op);
-		auth_attrib->op = NULL;
-	}
-	if (auth_attrib->value != NULL)
-	{
-		free(auth_attrib->value);
-		auth_attrib->value = NULL;
-	}
-	free(auth_attrib);
-	auth_attrib = NULL;
-}
-
-static void free_avp_attrib(struct avp_attribute * avp_attrib)
-{
-	free(avp_attrib);
-	avp_attrib = NULL;
-}
-
-static void free_ans_attrib(struct avp_attribute * ans_attrib)
-{
-	if (ans_attrib->tofree == 1)
-	{
-		free(ans_attrib->value.os.data);
-		ans_attrib->value.os.data = NULL;
-	}
-	free(ans_attrib);
-	ans_attrib = NULL;
 }
 
 int diameap_stop_server(void)

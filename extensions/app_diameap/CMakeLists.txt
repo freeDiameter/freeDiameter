@@ -24,7 +24,6 @@ set( diameapsrc
     diameap_eappacket.h
     diameap_user.h
     diameap.tab.h
-    diameap_init.h
     diameap.tab.c
     lex.diameap.c        
     diameap.c
