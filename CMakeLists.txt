@@ -40,6 +40,9 @@ ADD_DEFINITIONS(-D_GNU_SOURCE)
 # SET(CMAKE_BUILD_TYPE Profiling)
 SET(CMAKE_C_FLAGS_PROFILING "-fprofile-arcs -ftest-coverage -fstack-protector -g -Wall")
 
+# Add a "DebianPackage" build type used when creating the Debian packages
+SET(CMAKE_C_FLAGS_DEBIANPACKAGE "${CMAKE_C_FLAGS_RELWITHDEBINFO}")
+
 # Set the DEBUG flag for Debug and Profiling builds
 IF (CMAKE_BUILD_TYPE MATCHES "Debug|Profiling")
   SET(DEBUG 1)

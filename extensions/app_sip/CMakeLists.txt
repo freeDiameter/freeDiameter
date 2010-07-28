@@ -38,3 +38,8 @@ TARGET_LINK_LIBRARIES(app_sip ${MySQL_LIBRARIES})
 INSTALL(TARGETS app_sip
 	LIBRARY DESTINATION ${INSTALL_EXTENSIONS_SUFFIX}
 	COMPONENT freeDiameter-sip-server)
+
+INSTALL(FILES README TODO
+	DESTINATION /usr/share/doc/freeDiameter-sip-server
+	CONFIGURATIONS DebianPackage 
+	COMPONENT freeDiameter-sip-server)

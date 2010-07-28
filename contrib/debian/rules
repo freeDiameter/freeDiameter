@@ -24,7 +24,7 @@ skip_the_tests=-DBUILD_TESTING:BOOL=OFF
 
 override_dh_auto_configure:
 	dh_auto_configure -- $(skip_the_tests) \
-		-DCMAKE_BUILD_TYPE:STRING=RelWithDebInfo \
+		-DCMAKE_BUILD_TYPE:STRING=DebianPackage \
 		-DDEFAULT_CONF_PATH:PATH=/etc/freeDiameter \
 		-DBUILD_APP_ACCT:BOOL=ON \
 		-DBUILD_APP_DIAMEAP:BOOL=ON \
