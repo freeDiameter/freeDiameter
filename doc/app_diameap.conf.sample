@@ -23,8 +23,10 @@
 # Load_plugin = "<EAP method name>":EAP_TYPE:VENDOR:"<Path to EAP method >":"<Path to configuration file>";
 #
 # Example:
-# Load_plugin = "EAP identity":1:0:"/plugins/eap_identity.emp":"";
-# Load_plugin = "EAP tls":13:0;"/plugins/eap_tls.emp":"/plugins/eaptls.conf";
+# Load_plugin = "EAP MD5":4:0:"/extensions/eap_md5.emp":"";
+# Load_plugin = "EAP TLS":13:0;"/extensions/eap_tls.emp":"/doc/eap_tls_plugin.diameap.conf";
+
+Load_plugin = "EAP Identity":1:0:"/extensions/eap_identity.emp":"";
 
 
 # In addition to authentication DiamEAP can be configured to check authorization of authenticated users. If set to 0 authorization is disabled, otherwise enabled.( by default disabled).

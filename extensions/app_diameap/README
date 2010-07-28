@@ -1,6 +1,6 @@
 DiamEAP (http://diameap.yagami.freediameter.net/)
 
-Copyright (c) 2009-2010 Souheil Ben Ayed, Teraoka Laboratory of Keio University and the WIDE Project.
+Copyright (c) 2009-2010 Souheil Ben Ayed, Teraoka Laboratory of Keio University, and the WIDE Project.
 
 Author: Souheil Ben Ayed <souheil@tera.ics.keio.ac.jp>
 
@@ -78,8 +78,8 @@ DiamEAP_MySQL = "UserName" , "MyPassword" , "localhost" , "drupal_ui";
 
 Example:
 
-Load_plugin = "EAP MD5":4:0:"extensions/app_diameap/plugins/eap_md5.emp":"";
-Load_plugin = "EAP TLS":13:0:"extensions/app_diameap/plugins/eap_tls.emp":"doc/eap_tls_plugin.app_diameap.conf";
+Load_plugin = "EAP MD5":4:0:"extensions/eap_md5.emp":"";
+Load_plugin = "EAP TLS":13:0:"extensions/eap_tls.emp":"doc/eap_tls_plugin.app_diameap.conf";
 
 
 * Enable Authorization with DiamEAP.
