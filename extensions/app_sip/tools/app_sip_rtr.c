@@ -47,7 +47,6 @@ typedef struct sockaddr SOCKADDR;
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#define PORT 666
 #include <errno.h>
 
 struct rtrsipaor
@@ -67,11 +66,12 @@ int main (int argc, char **argv)
     SOCKADDR_IN sin;
     struct rtrsipaor rtrsip;
     int numaor=0,i=0;
-    
+	int port=666;
+	
 	sock = socket(AF_INET, SOCK_STREAM, 0);
 	sin.sin_addr.s_addr = inet_addr("127.0.0.1");
     sin.sin_family = AF_INET;
-    sin.sin_port = htons(PORT);
+    
     
     //We initialize the structure
     rtrsip.username[0]='\0';
@@ -214,6 +214,18 @@ int main (int argc, char **argv)
 				//Remote SIP Server
 				rtrsip.reason=3;
 			}
+			else if(strcmp(argv[i],"-p")==0)
+			{
+				
+				if(sscanf(argv[i+1],"%d", &port)!=1)
+				{
+					fprintf(stderr,"Incorrect port number!\n");
+					return 1;
+				}
+				
+				
+				i++;
+			}
 			else
 			{
 				fprintf(stderr,"Unknown argument: %s\n",argv[i]);
@@ -246,7 +258,8 @@ int main (int argc, char **argv)
 		return 1;
 	}
     
-    
+    //We set the port number
+    sin.sin_port = htons(port);
    
     
     /*

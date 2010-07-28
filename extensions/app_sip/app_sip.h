@@ -65,7 +65,8 @@ struct as_conf {
 	char * mysql_server;
 	char mysql_prefix[10]; //default: as_
 	uint16_t  mysql_port; //if 0, default port will be used
-	
+	uint16_t rtr_port;
+	uint16_t ppr_port;
 };
 extern struct as_conf * as_conf;
 
@@ -134,7 +135,7 @@ struct pprsipaor
 
 int app_sip_RTR_cb(struct rtrsipaor structure);
 int app_sip_PPR_cb(struct pprsipaor structure);
-#define PORT 666 //TODO:put in conf file
+
 
 int ds_entry();
 void fd_ext_fini(void);

@@ -47,7 +47,7 @@ typedef struct sockaddr SOCKADDR;
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#define PORT 667
+
 #include <errno.h>
 
 struct pprsipaor
@@ -65,11 +65,12 @@ int main (int argc, char **argv)
     SOCKADDR_IN sin;
     struct pprsipaor pprsip;
     int numdatatype=0,i=0;
-    
+    int port=667;
+	
 	sock = socket(AF_INET, SOCK_STREAM, 0);
 	sin.sin_addr.s_addr = inet_addr("127.0.0.1");
     sin.sin_family = AF_INET;
-    sin.sin_port = htons(PORT);
+    
     
     //We initialize the structure
     pprsip.username[0]='\0';
@@ -157,6 +158,18 @@ int main (int argc, char **argv)
 			{
 				pprsip.accounting=1;
 				
+				
+			}
+			else if(strcmp(argv[i],"-p")==0)
+			{
+				
+				if(sscanf(argv[i+1],"%d", &port)!=1)
+				{
+					fprintf(stderr,"Incorrect port number!\n");
+					return 1;
+				}
+				
+				
 				i++;
 			}
 			
@@ -169,6 +182,8 @@ int main (int argc, char **argv)
 			
 	}
 	
+	//We set the port number
+	sin.sin_port = htons(port);
 	
 	
 	//We want a username
@@ -179,7 +194,7 @@ int main (int argc, char **argv)
 	}
 	
     
-    
+    fprintf(stderr,"%d!\n",port);
    
     /*
     //DEBUG

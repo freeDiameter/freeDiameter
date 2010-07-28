@@ -46,15 +46,15 @@ typedef struct sockaddr SOCKADDR;
 //Procedure which always wait for data on socket 
 void *ppr_socket(void *arg)
 {
-	/*
+	
 	SOCKET sock;
     SOCKADDR_IN sin, csin;
-    struct rtrsipaor rtrsip;
+    struct pprsipaor pprsip;
     int rcvbytes=0;
 	sock = socket(AF_INET, SOCK_STREAM, 0);
 	sin.sin_addr.s_addr = inet_addr("127.0.0.1");
     sin.sin_family = AF_INET;
-    sin.sin_port = htons(PORT);
+	sin.sin_port = htons(as_conf->ppr_port);
     socklen_t sinsize = sizeof(csin);
 	int accepted=0;
 
@@ -71,7 +71,7 @@ void *ppr_socket(void *arg)
 			accepted=accept(sock, (struct sockaddr *)&csin,&sinsize);
 			if(accepted>-1)
 			{
-				rcvbytes=recv(accepted, &rtrsip, sizeof(struct rtrsipaor),0);
+				rcvbytes=recv(accepted, &pprsip, sizeof(struct pprsipaor),0);
 				
 				if(rcvbytes>-1)
 				{
@@ -85,7 +85,7 @@ void *ppr_socket(void *arg)
 	}
 	else
 		TRACE_DEBUG(INFO,"Can't create socket!");
-*/	
+
 	
 	pthread_exit(NULL);
 	

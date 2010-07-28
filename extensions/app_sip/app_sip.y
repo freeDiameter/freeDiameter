@@ -123,6 +123,8 @@ void yyerror (YYLTYPE *ploc, char * conffile, char const *s)
 %token 		ASMYSQL_DATABASE
 %token 		ASMYSQL_SERVER
 %token 		ASMYSQL_PORT
+%token 		RTR_PORT
+%token 		PPR_PORT
 
 /* Tokens and types for routing table definition */
 /* A (de)quoted string (malloc'd in lex parser; it must be freed after use) */
@@ -145,6 +147,8 @@ conffile:		/* empty grammar is OK */
 			| conffile mysql_database
 			| conffile mysql_server
 			| conffile mysql_port
+			| conffile rtr_port
+			| conffile ppr_port
 			;
 
 mode:			MODE '=' INTEGER ';'
@@ -190,5 +194,15 @@ mysql_server:		ASMYSQL_SERVER '=' QSTRING ';'
 mysql_port:		ASMYSQL_PORT '=' INTEGER ';'
 			{
 				as_conf->mysql_port = (uint16_t)$3;
+			}
+			;
+rtr_port:		RTR_PORT '=' INTEGER ';'
+			{
+				as_conf->rtr_port = (uint16_t)$3;
+			}
+			;
+ppr_port:		PPR_PORT '=' INTEGER ';'
+			{
+				as_conf->ppr_port = (uint16_t)$3;
 			}
 			;

@@ -120,7 +120,12 @@
 (?i:"mysql_port")		{
 				return ASMYSQL_PORT;
 			}
-			
+(?i:"rtr_port")		{
+				return RTR_PORT;
+			}
+(?i:"ppr_port")		{
+				return PPR_PORT;
+			}
 (?i:"mode")		{
 				return MODE;
 			}

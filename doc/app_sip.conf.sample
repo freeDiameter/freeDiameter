@@ -4,6 +4,11 @@
 mode = DSSERVER;
 
 
+# Administrator commands port (port should be provided with "-p" in remote line)
+ppr_port=90;
+rtr_port=91;
+
+
 #******************#
 #*****DATABASE*****#
 #******************#

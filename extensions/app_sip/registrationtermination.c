@@ -53,7 +53,7 @@ void *rtr_socket(void *arg)
 	sock = socket(AF_INET, SOCK_STREAM, 0);
 	sin.sin_addr.s_addr = inet_addr("127.0.0.1");
 	sin.sin_family = AF_INET;
-	sin.sin_port = htons(PORT);
+	sin.sin_port = htons(as_conf->rtr_port);
 	socklen_t sinsize = sizeof(csin);
 	int accepted=0;
 
@@ -250,7 +250,7 @@ int app_sip_RTR_cb(struct rtrsipaor structure)
 	}
 	
 	//TODO:remove for debug
-	fd_msg_dump_walk(INFO,message);
+	//fd_msg_dump_walk(INFO,message);
 	CHECK_FCT( fd_msg_send( &message, NULL, NULL ));
 	
 	return 0;
