@@ -32,6 +32,8 @@ FD_ADD_EXTENSION(app_sip ${DIAM_SIP_SRC})
 
 TARGET_LINK_LIBRARIES(app_sip ${MySQL_LIBRARIES})
 
+SUBDIRS(tools)
+
 ####
 ## INSTALL section ##
 
