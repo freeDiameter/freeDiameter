@@ -1991,6 +1991,7 @@ int diameap_answer_set_attribute_valueA(union avp_value A, int *tofree,
 	TRACE_ENTRY("%p %p %p %p",A,tofree,datatype,rval);
 	if (datatype == AVP_TYPE_OCTETSTRING)
 	{
+		CHECK_MALLOC(rval->os.data=malloc(A.os.len));
 		memcpy(rval->os.data,A.os.data,A.os.len);
 		rval->os.len = A.os.len;
 		*tofree = 1;
@@ -2007,7 +2008,7 @@ int diameap_answer_set_attribute_valueB(char * B, int *tofree,
 	TRACE_ENTRY("%p %p %p %p",B,tofree,datatype,rval);
 	if (datatype == AVP_TYPE_OCTETSTRING)
 	{
-
+		CHECK_MALLOC(rval->os.data=malloc(strlen(B)));
 		memcpy(rval->os.data,B,strlen(B));
 		rval->os.len = strlen(B);
 
@@ -3033,6 +3034,7 @@ static int diameap_add_eap_reissued_payload(struct msg * ans, struct msg * req)
 	{
 		CHECK_FCT( fd_msg_avp_hdr(avp, &avphdr));
 		CHECK_FCT( fd_msg_avp_new(dataobj_eap_reissued_payload, 0, &re_avp));
+		CHECK_MALLOC(avp_val.os.data=malloc(avphdr->avp_value->os.len));
 		memcpy(avp_val.os.data,avphdr->avp_value->os.data,avphdr->avp_value->os.len);
 		avp_val.os.len = avphdr->avp_value->os.len;
 		CHECK_FCT(fd_msg_avp_setvalue(re_avp, &avp_val));
