@@ -34,7 +34,7 @@
 * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.								 *
 *********************************************************************************************************/
 //#include <mysql.h>
-#include "diamsip.h"
+#include "app_sip.h"
 
 MYSQL *conn;
 

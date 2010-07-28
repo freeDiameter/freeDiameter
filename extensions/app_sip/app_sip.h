@@ -1,6 +1,6 @@
 /*********************************************************************************************************
 * Software License Agreement (BSD License)                                                               *
-* Author: Alexandre Westfahl <awestfahl@freediameter.net>						 *
+* Author: Alexandre Westfahl <awestfahl@freesipserver.net>						 *
 *													 *
 * Copyright (c) 2010, Alexandre Westfahl, Teraoka Laboratory (Keio University), and the WIDE Project. 	 *		
 *													 *
@@ -86,7 +86,7 @@ struct avp_hdr * walk_digest(struct avp *avp, int avp_code);
 int start_mysql_connection();
 void request_mysql(char *query);
 void close_mysql_connection();
-int get_diameter_uri(const unsigned char *sip_aor, const size_t sipaorlen, char ** diameter_uri, size_t *diameterurilen);
+int get_sipserver_uri(const unsigned char *sip_aor, const size_t sipaorlen, unsigned char ** sipserver_uri, size_t *sipserverurilen);
 int exist_username(const unsigned char *sip_aor, const size_t sipaorlen);
 int get_sipserver_cap(const unsigned char *sip_aor, const size_t sipaorlen, struct avp **capabilities);
 int get_password(const unsigned char *username, const size_t usernamelen, char *password);
@@ -96,9 +96,9 @@ int set_pending_flag(const unsigned char  *username, const size_t usernamelen);
 int clear_pending_flag(const unsigned char  *username, const size_t usernamelen);
 int set_real_sipserver_uri(const unsigned char  *username, const size_t usernamelen, const unsigned char *sipserver_uri,const size_t sipserverurilen);
 int set_sipserver_uri(const unsigned char  *username, const size_t usernamelen, const unsigned char *sipserver_uri,const size_t sipserverurilen);
-int get_sipserver_uri(const unsigned char *sip_aor, const size_t sipaorlen, unsigned char ** sipserver_uri, size_t *sipserverurilen);
+//int get_sipserver_uri(const unsigned char *sip_aor, const size_t sipaorlen, unsigned char ** sipserver_uri, size_t *sipserverurilen);
 int allow_roaming(const unsigned char  *username, const size_t usernamelen, const char * network,const size_t networklen);
-
+int get_diameter_uri(const unsigned char *sip_aor, const size_t sipaorlen, char ** diameter_uri, size_t *diameterurilen);
 //count functions
 int count_avp(struct msg * message, int code, int vendor);
 
@@ -132,23 +132,23 @@ struct pprsipaor
 	char value2[200];
 	char desthost[200];  
 };
-int diamsip_RTR_cb(struct rtrsipaor structure);
-int diamsip_PPR_cb(struct pprsipaor structure);
+int app_sip_RTR_cb(struct rtrsipaor structure);
+int app_sip_PPR_cb(struct pprsipaor structure);
 #define PORT 666 //TODO:put in conf file
 
 int ds_entry();
 void fd_ext_fini(void);
-int diamsip_default_cb( struct msg ** msg, struct avp * avp, struct session * sess, enum disp_action * act);
-int diamsip_MAR_cb( struct msg ** msg, struct avp * avp, struct session * sess, enum disp_action * act);
-int diamsip_RTA_cb( struct msg ** msg, struct avp * avp, struct session * sess, enum disp_action * act);
-int diamsip_PPA_cb( struct msg ** msg, struct avp * avp, struct session * sess, enum disp_action * act);
-int diamsip_LIR_cb( struct msg ** msg, struct avp * avp, struct session * sess, enum disp_action * act);
-int diamsip_UAR_cb( struct msg ** msg, struct avp * avp, struct session * sess, enum disp_action * act);
-int diamsip_SAR_cb( struct msg ** msg, struct avp * avp, struct session * sess, enum disp_action * act);
+int app_sip_default_cb( struct msg ** msg, struct avp * avp, struct session * sess, enum disp_action * act);
+int app_sip_MAR_cb( struct msg ** msg, struct avp * avp, struct session * sess, enum disp_action * act);
+int app_sip_RTA_cb( struct msg ** msg, struct avp * avp, struct session * sess, enum disp_action * act);
+int app_sip_PPA_cb( struct msg ** msg, struct avp * avp, struct session * sess, enum disp_action * act);
+int app_sip_LIR_cb( struct msg ** msg, struct avp * avp, struct session * sess, enum disp_action * act);
+int app_sip_UAR_cb( struct msg ** msg, struct avp * avp, struct session * sess, enum disp_action * act);
+int app_sip_SAR_cb( struct msg ** msg, struct avp * avp, struct session * sess, enum disp_action * act);
 
 //Suscriber Locator
-int diamsipSL_LIR_cb( struct msg ** msg, struct avp * paramavp, struct session * sess, enum disp_action * act);
-//int diamsipSL_SAR_cb( struct msg ** msg, struct avp * paramavp, struct session * sess, enum disp_action * act);
+int app_sip_SL_LIR_cb( struct msg ** msg, struct avp * paramavp, struct session * sess, enum disp_action * act);
+//int app_sip_SL_SAR_cb( struct msg ** msg, struct avp * paramavp, struct session * sess, enum disp_action * act);
 
 #define SQL_GETPASSWORD "SELECT `password` FROM ds_users WHERE `username` ='%s'"
 #define SQL_GETPASSWORD_LEN 52
@@ -173,7 +173,7 @@ int diamsipSL_LIR_cb( struct msg ** msg, struct avp * paramavp, struct session *
 #define SQL_GETSIPDATA  "SELECT `label_type`,`data` FROM ds_sip_aor, ds_user_data, ds_data_types WHERE `sip_aor` ='%s' AND `ds_sip_aor`.`id_sip_aor` = `ds_user_data`.`id_sip_aor` AND `ds_data_types`.`id_data_type`=`ds_user_data`.`id_data_type`"
 #define SQL_GETSIPDATA_LEN 216
 
-#define SQL_GETDIAMURI "SELECT `diameter_uri` FROM ds_sip_aor_map WHERE `sip_aor` ='%s'"
+#define SQL_GETDIAMURI "SELECT `sipserver_uri` FROM ds_sip_aor_map WHERE `sip_aor` ='%s'"
 #define SQL_GETDIAMURI_LEN 61
 
 //networks for this user
@@ -215,7 +215,7 @@ struct ds_nonce
 };
 
 //Storage for some usefull AVPs
-struct diamsip_dict{
+struct app_sip_dict{
 	struct dict_object * Auth_Session_State;
 	struct dict_object * Auth_Application_Id;
 	struct dict_object * Destination_Host;
@@ -265,4 +265,4 @@ struct diamsip_dict{
 	struct dict_object * Digest_HA1;
 };
 
-extern  struct diamsip_dict  sip_dict;
+extern  struct app_sip_dict  sip_dict;

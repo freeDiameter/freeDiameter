@@ -33,10 +33,10 @@
 * TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF   *
 * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.								 *
 *********************************************************************************************************/
-#include "diamsip.h"
+#include "app_sip.h"
 
 //This callback is specific to SUSCRIBER LOCATOR. We must look for the "serving" SIP server
-int diamsipSL_LIR_cb( struct msg ** msg, struct avp * paramavp, struct session * sess, enum disp_action * act)
+int app_sip_SL_LIR_cb( struct msg ** msg, struct avp * paramavp, struct session * sess, enum disp_action * act)
 {
 	TRACE_ENTRY("%p %p %p %p", msg, paramavp, sess, act);
 	

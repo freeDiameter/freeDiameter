@@ -5,18 +5,18 @@ FIND_PACKAGE(MySQL REQUIRED)
 INCLUDE_DIRECTORIES(${MySQL_INCLUDE_DIR}) 
 
 # Parser files
-BISON_FILE(diamsip.y)
-FLEX_FILE(diamsip.l)
-SET_SOURCE_FILES_PROPERTIES(lex.diamsip.c diamsip.tab.c PROPERTIES COMPILE_FLAGS "-I ${CMAKE_CURRENT_SOURCE_DIR}")
+BISON_FILE(app_sip.y)
+FLEX_FILE(app_sip.l)
+SET_SOURCE_FILES_PROPERTIES(lex.app_sip.c app_sip.tab.c PROPERTIES COMPILE_FLAGS "-I ${CMAKE_CURRENT_SOURCE_DIR}")
 
 # List of source files
 SET( DIAM_SIP_SRC
-	lex.diamsip.c
-	diamsip.tab.c
-	diamsip.tab.h
-	diamsip.c
-	diamsip.h
-	libdiamsip.c
+	lex.app_sip.c
+	app_sip.tab.c
+	app_sip.tab.h
+	app_sip.c
+	app_sip.h
+	libapp_sip.c
 	md5.c
 	multimediaauth.c
 	registrationtermination.c

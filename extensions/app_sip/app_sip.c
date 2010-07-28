@@ -33,22 +33,22 @@
 * TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF   *
 * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.								 *
 *********************************************************************************************************/
-#include "diamsip.h"
+#include "app_sip.h"
 
 //Diameter-SIP server
-struct disp_hdl * diamsip_MAR_hdl=NULL;
-struct disp_hdl * diamsip_LIR_hdl=NULL;
-struct disp_hdl * diamsip_UAR_hdl=NULL;
-struct disp_hdl * diamsip_SAR_hdl=NULL;
-struct disp_hdl * diamsip_PPA_hdl=NULL;
-struct disp_hdl * diamsip_RTA_hdl=NULL;
+struct disp_hdl * app_sip_MAR_hdl=NULL;
+struct disp_hdl * app_sip_LIR_hdl=NULL;
+struct disp_hdl * app_sip_UAR_hdl=NULL;
+struct disp_hdl * app_sip_SAR_hdl=NULL;
+struct disp_hdl * app_sip_PPA_hdl=NULL;
+struct disp_hdl * app_sip_RTA_hdl=NULL;
 
 //Suscriber Locator
-struct disp_hdl * diamsipSL_LIR_hdl=NULL;
+struct disp_hdl * app_sip_SL_LIR_hdl=NULL;
 
 
 
-struct disp_hdl * diamsip_default_hdl=NULL;
+struct disp_hdl * app_sip_default_hdl=NULL;
 struct session_handler * ds_sess_hdl;
 
 //configuration stucture
@@ -56,9 +56,9 @@ struct as_conf * as_conf=NULL;
 static struct as_conf app_sip_conf;
 
 //dictionary of SIP
-struct diamsip_dict sip_dict;
+struct app_sip_dict sip_dict;
 
-int diamsip_default_cb( struct msg ** msg, struct avp * avp, struct session * sess, enum disp_action * act)
+int app_sip_default_cb( struct msg ** msg, struct avp * avp, struct session * sess, enum disp_action * act)
 {
 	TRACE_ENTRY("%p %p %p %p", msg, avp, sess, act);
 	
@@ -181,31 +181,31 @@ int as_entry(char * conffile)
 	  //**Command Codes
 	  //MAR
 	  CHECK_FCT( fd_dict_search( fd_g_config->cnf_dict, DICT_COMMAND, CMD_BY_NAME, "Multimedia-Auth-Request", &data.command, ENOENT) );
-	  CHECK_FCT( fd_disp_register( diamsip_MAR_cb, DISP_HOW_CC, &data, &diamsip_MAR_hdl ) );
+	  CHECK_FCT( fd_disp_register( app_sip_MAR_cb, DISP_HOW_CC, &data, &app_sip_MAR_hdl ) );
 	  //RTA
 	  CHECK_FCT( fd_dict_search( fd_g_config->cnf_dict, DICT_COMMAND, CMD_BY_NAME, "Registration-Termination-Answer", &data.command, ENOENT) );
-	  CHECK_FCT( fd_disp_register( diamsip_RTA_cb, DISP_HOW_CC, &data, &diamsip_RTA_hdl ) );
+	  CHECK_FCT( fd_disp_register( app_sip_RTA_cb, DISP_HOW_CC, &data, &app_sip_RTA_hdl ) );
 	  //PPA
 	  CHECK_FCT( fd_dict_search( fd_g_config->cnf_dict, DICT_COMMAND, CMD_BY_NAME, "Push-Profile-Answer", &data.command, ENOENT) );
-	  CHECK_FCT( fd_disp_register( diamsip_PPA_cb, DISP_HOW_CC, &data, &diamsip_PPA_hdl ) );
+	  CHECK_FCT( fd_disp_register( app_sip_PPA_cb, DISP_HOW_CC, &data, &app_sip_PPA_hdl ) );
 	  //LIR
 	  CHECK_FCT( fd_dict_search( fd_g_config->cnf_dict, DICT_COMMAND, CMD_BY_NAME, "Location-Info-Request", &data.command, ENOENT) );
-	  CHECK_FCT( fd_disp_register( diamsip_LIR_cb, DISP_HOW_CC, &data, &diamsip_LIR_hdl ) );
+	  CHECK_FCT( fd_disp_register( app_sip_LIR_cb, DISP_HOW_CC, &data, &app_sip_LIR_hdl ) );
 	  //UAR
 	  CHECK_FCT( fd_dict_search( fd_g_config->cnf_dict, DICT_COMMAND, CMD_BY_NAME, "User-Authorization-Request", &data.command, ENOENT) );
-	  CHECK_FCT( fd_disp_register( diamsip_UAR_cb, DISP_HOW_CC, &data, &diamsip_UAR_hdl ) );
+	  CHECK_FCT( fd_disp_register( app_sip_UAR_cb, DISP_HOW_CC, &data, &app_sip_UAR_hdl ) );
 	  //SAR
 	  CHECK_FCT( fd_dict_search( fd_g_config->cnf_dict, DICT_COMMAND, CMD_BY_NAME, "Server-Assignment-Request", &data.command, ENOENT) );
-	  CHECK_FCT( fd_disp_register( diamsip_SAR_cb, DISP_HOW_CC, &data, &diamsip_SAR_hdl ) );
+	  CHECK_FCT( fd_disp_register( app_sip_SAR_cb, DISP_HOW_CC, &data, &app_sip_SAR_hdl ) );
 	}
 	if(as_conf->mode==2)
 	{
 	  //LIR
 	  CHECK_FCT( fd_dict_search( fd_g_config->cnf_dict, DICT_COMMAND, CMD_BY_NAME, "Location-Info-Request", &data.command, ENOENT) );
-	  CHECK_FCT( fd_disp_register( diamsipSL_LIR_cb, DISP_HOW_CC, &data, &diamsipSL_LIR_hdl ) );
+	  CHECK_FCT( fd_disp_register( app_sip_SL_LIR_cb, DISP_HOW_CC, &data, &app_sip_SL_LIR_hdl ) );
 	}
 	//Callback for unexpected messages
-	CHECK_FCT( fd_disp_register( diamsip_default_cb, DISP_HOW_APPID, &data, &diamsip_default_hdl ) );
+	CHECK_FCT( fd_disp_register( app_sip_default_cb, DISP_HOW_APPID, &data, &app_sip_default_hdl ) );
 	
 	
 	//We start database connection
@@ -236,7 +236,7 @@ void fd_ext_fini(void)
 {
 	//TODO:unregister other callbacks
 	
-	(void) fd_disp_unregister(&diamsip_MAR_hdl);
+	(void) fd_disp_unregister(&app_sip_MAR_hdl);
 	CHECK_FCT_DO( fd_sess_handler_destroy(&ds_sess_hdl),return);
 	
 	

@@ -33,10 +33,10 @@
 * TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF   *
 * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.								 *
 *********************************************************************************************************/
-#include "diamsip.h"
+#include "app_sip.h"
 
 
-int diamsip_MAR_cb( struct msg ** msg, struct avp * paramavp, struct session * sess, enum disp_action * act)
+int app_sip_MAR_cb( struct msg ** msg, struct avp * paramavp, struct session * sess, enum disp_action * act)
 {
 	struct msg *ans, *qry;
 	struct avp *avp, *a2, *authdataitem;

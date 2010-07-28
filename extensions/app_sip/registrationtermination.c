@@ -33,7 +33,7 @@
 * TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF   *
 * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.								 *
 *********************************************************************************************************/
-#include "diamsip.h"
+#include "app_sip.h"
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
@@ -74,7 +74,7 @@ void *rtr_socket(void *arg)
 				if(rcvbytes>-1)
 				{
 					//We received something, we can send an RTR
-					diamsip_RTR_cb(rtrsip);
+					app_sip_RTR_cb(rtrsip);
 				}
 			}
 		}
@@ -87,7 +87,7 @@ void *rtr_socket(void *arg)
 	
 }
 //Called to send a RTR
-int diamsip_RTR_cb(struct rtrsipaor structure)
+int app_sip_RTR_cb(struct rtrsipaor structure)
 {
 	TRACE_ENTRY("%p", structure);
 	
@@ -257,7 +257,7 @@ int diamsip_RTR_cb(struct rtrsipaor structure)
 }
 
 //Called when an RTA arrive
-int diamsip_RTA_cb( struct msg ** msg, struct avp * paramavp, struct session * sess, enum disp_action * act)
+int app_sip_RTA_cb( struct msg ** msg, struct avp * paramavp, struct session * sess, enum disp_action * act)
 {
 	//TODO: RTA reception
 /*

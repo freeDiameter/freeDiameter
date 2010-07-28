@@ -7,7 +7,7 @@
  */
 
 /*********************************************************************************/
-#include"diamsip.h"
+#include"app_sip.h"
  
 /*
  * MD5 hash implementation and interface functions

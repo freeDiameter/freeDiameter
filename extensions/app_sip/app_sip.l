@@ -38,9 +38,9 @@
 
 
 %{
-#include "diamsip.h"
+#include "app_sip.h"
 /* Include yacc tokens definitions */
-#include "diamsip.tab.h"
+#include "app_sip.tab.h"
 
 /* Update the column information */
 #define YY_USER_ACTION { 						\

@@ -49,8 +49,8 @@
 %pure-parser
 
 %{
-#include "diamsip.h"
-#include "diamsip.tab.h"	/* bison is not smart enough to define the YYLTYPE before including this code, so... */
+#include "app_sip.h"
+#include "app_sip.tab.h"	/* bison is not smart enough to define the YYLTYPE before including this code, so... */
 
 #include <string.h>
 #include <errno.h>
@@ -61,15 +61,15 @@ int yyparse(char * conffile);
 /* Parse the configuration file */
 int as_conf_handle(char * conffile)
 {
-	extern FILE * diamsipin;
+	extern FILE * app_sipin;
 	int ret;
 	
 	TRACE_ENTRY("%p", conffile);
 	
 	TRACE_DEBUG (FULL, "Parsing configuration file: %s...", conffile);
 	
-	diamsipin = fopen(conffile, "r");
-	if (diamsipin == NULL) {
+	app_sipin = fopen(conffile, "r");
+	if (app_sipin == NULL) {
 		ret = errno;
 		fd_log_debug("Unable to open extension configuration file %s for reading: %s\n", conffile, strerror(ret));
 		TRACE_DEBUG (INFO, "Error occurred, message logged -- configuration file.");
@@ -78,7 +78,7 @@ int as_conf_handle(char * conffile)
 
 	ret = yyparse(conffile);
 
-	fclose(diamsipin);
+	fclose(app_sipin);
 
 	if (ret != 0) {
 		TRACE_DEBUG (INFO, "Unable to parse the configuration file.");
@@ -89,7 +89,7 @@ int as_conf_handle(char * conffile)
 }
 
 /* The Lex parser prototype */
-int diamsiplex(YYSTYPE *lvalp, YYLTYPE *llocp);
+int app_siplex(YYSTYPE *lvalp, YYLTYPE *llocp);
 
 /* Function to report the errors */
 void yyerror (YYLTYPE *ploc, char * conffile, char const *s)
