@@ -322,6 +322,9 @@ int fd_sess_handler_destroy ( struct session_handler ** handler )
 		free(st);
 	}
 	
+	/* Free the handler */
+	free(del);
+	
 	return 0;
 }
 
