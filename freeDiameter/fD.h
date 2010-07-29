@@ -79,6 +79,7 @@
 
 /* Configuration */
 int fd_conf_init();
+int fd_conf_deinit();
 void fd_conf_dump();
 int fd_conf_parse();
 int fddparse(struct fd_config * conf); /* yacc generated */

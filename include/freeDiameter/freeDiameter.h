@@ -725,5 +725,6 @@ struct fd_app {
 int fd_app_merge(struct fd_list * list, application_id_t aid, vendor_id_t vid, int auth, int acct);
 int fd_app_check(struct fd_list * list, application_id_t aid, struct fd_app **detail);
 int fd_app_check_common(struct fd_list * list1, struct fd_list * list2, int * common_found);
+int fd_app_empty(struct fd_list * list);
 
 #endif /* _FREEDIAMETER_H */

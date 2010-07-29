@@ -135,3 +135,18 @@ int fd_app_check_common(struct fd_list * list1, struct fd_list * list2, int * co
 	*common_found = 0;
 	return 0;
 }
+
+/* Remove the apps from a list */
+int fd_app_empty(struct fd_list * list)
+{
+	TRACE_ENTRY("%p", list);
+	CHECK_PARAMS( list );
+	
+	while (!FD_IS_LIST_EMPTY(list)) {
+		struct fd_list * li = list->next;
+		fd_list_unlink(li);
+		free(li);
+	}
+	
+	return 0;
+}

@@ -169,6 +169,8 @@ end:
 	
 	GNUTLS_TRACE( gnutls_global_deinit() );
 	
+	CHECK_FCT_DO( fd_conf_deinit(), );
+	
 	fd_log_debug(FD_PROJECT_BINARY " daemon is terminated.\n");
 	
 	fd_lib_fini();

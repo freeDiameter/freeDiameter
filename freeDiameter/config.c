@@ -270,3 +270,39 @@ int fd_conf_parse()
 	
 	return 0;
 }
+
+
+/* Destroy contents of fd_g_config structure */
+int fd_conf_deinit()
+{
+	TRACE_ENTRY();
+	
+	/* Free the TLS parameters */
+	gnutls_priority_deinit(fd_g_config->cnf_sec_data.prio_cache);
+	gnutls_dh_params_deinit(fd_g_config->cnf_sec_data.dh_cache);
+	gnutls_certificate_free_credentials(fd_g_config->cnf_sec_data.credentials);
+	
+	free(fd_g_config->cnf_sec_data.cert_file); fd_g_config->cnf_sec_data.cert_file = NULL;
+	free(fd_g_config->cnf_sec_data.key_file); fd_g_config->cnf_sec_data.key_file = NULL;
+	free(fd_g_config->cnf_sec_data.ca_file); fd_g_config->cnf_sec_data.ca_file = NULL;
+	free(fd_g_config->cnf_sec_data.crl_file); fd_g_config->cnf_sec_data.crl_file = NULL;
+	free(fd_g_config->cnf_sec_data.prio_string); fd_g_config->cnf_sec_data.prio_string = NULL;
+	
+	/* Destroy dictionary */
+	CHECK_FCT_DO( fd_dict_fini(&fd_g_config->cnf_dict), );
+	
+	/* Destroy the main event queue */
+	CHECK_FCT_DO( fd_fifo_del(&fd_g_config->cnf_main_ev), );
+	
+	/* Destroy the local endpoints and applications */
+	CHECK_FCT_DO(fd_ep_filter(&fd_g_config->cnf_endpoints, 0 ), );
+	CHECK_FCT_DO(fd_app_empty(&fd_g_config->cnf_apps ), );
+	
+	/* Destroy the local identity */	
+	free(fd_g_config->cnf_diamid); fd_g_config->cnf_diamid = NULL;
+	free(fd_g_config->cnf_diamrlm); fd_g_config->cnf_diamrlm = NULL;
+	
+	return 0;
+}
+
+
