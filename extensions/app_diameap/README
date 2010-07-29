@@ -40,7 +40,9 @@ If you will install DiamEAP on Debian or Ubuntu system install the following pac
 1- Add DiamEAP extension to freeDiameter. 
 	See freeDiameter documentation (http://www.freediameter.net/)
 
-2- Edit the extensions/CMakeList.txt file to add DiamEAP to freeDiameter.
+2-Create a new MySQL database and add tables using the sql script 'diameap.sql'.
+
+3- Edit the extensions/CMakeList.txt file to add DiamEAP to freeDiameter.
 
 Add the following lines:
    
@@ -51,9 +53,9 @@ Add the following lines:
 
 Note: you can enable DiamEAP to be built with freeDiameter by setting the BUILD_APP_DIAMEAP to ON. If you enable it here you don't need to enable it when building freeDiameter.
 
-3- Enable DiamEAP by enabling BUILD_DIAMEAP option with CMake:
+4- Enable DiamEAP by enabling BUILD_APP_DIAMEAP option with CMake:
 
-cmake -DBUILD_DIAMEAP:BOOl=ON ../
+cmake -DBUILD_APP_DIAMEAP:BOOl=ON ../
 
 
 
