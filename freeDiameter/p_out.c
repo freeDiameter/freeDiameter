@@ -121,9 +121,11 @@ static void * out_thr(void * arg)
 		/* Send the message, log any error */
 		CHECK_FCT_DO( do_send(&msg, 0, peer->p_cnxctx, &peer->p_hbh, &peer->p_sr),
 			{
-				fd_log_debug("An error occurred while sending this message, it is lost:\n");
-				fd_msg_dump_walk(NONE, msg);
-				fd_msg_free(msg);
+				if (msg) {
+					fd_log_debug("An error occurred while sending this message, it was lost:\n");
+					fd_msg_dump_walk(NONE, msg);
+					fd_msg_free(msg);
+				}
 			} );
 			
 		/* Loop */
@@ -160,10 +162,12 @@ int fd_out_send(struct msg ** msg, struct cnxctx * cnx, struct fd_peer * peer, u
 		/* Do send the message */
 		CHECK_FCT_DO( do_send(msg, flags, cnx, hbh, peer ? &peer->p_sr : NULL),
 			{
-				fd_log_debug("An error occurred while sending this message, it is lost:\n");
-				fd_msg_dump_walk(NONE, *msg);
-				fd_msg_free(*msg);
-				*msg = NULL;
+				if (msg) {
+					fd_log_debug("An error occurred while sending this message, it was lost:\n");
+					fd_msg_dump_walk(NONE, *msg);
+					fd_msg_free(*msg);
+					*msg = NULL;
+				}
 			} );
 	}
 	

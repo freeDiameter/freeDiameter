@@ -690,6 +690,7 @@ static void * rcvthr_notls_tcp(void * arg)
 		}
 		
 		/* We have received a complete message, pass it to the daemon */
+		fd_cpu_flush_cache();
 		CHECK_FCT_DO( fd_event_send( Target_Queue(conn), FDEVP_CNX_MSG_RECV, length, newmsg), /* continue or destroy everything? */);
 		
 	} while (conn->cc_loop);
@@ -740,6 +741,7 @@ static void * rcvthr_notls_sctp(void * arg)
 			continue;
 		}
 		
+		fd_cpu_flush_cache();
 		CHECK_FCT_DO( fd_event_send( Target_Queue(conn), event, bufsz, buf), goto fatal );
 		
 	} while (conn->cc_loop || (event != FDEVP_CNX_MSG_RECV));
@@ -924,6 +926,7 @@ int fd_tls_rcvthr_core(struct cnxctx * conn, gnutls_session_t session)
 		}
 		
 		/* We have received a complete message, pass it to the daemon */
+		fd_cpu_flush_cache();
 		CHECK_FCT_DO( ret = fd_event_send( Target_Queue(conn), FDEVP_CNX_MSG_RECV, length, newmsg), 
 			{ 
 				free(newmsg); 

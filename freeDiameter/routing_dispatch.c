@@ -997,6 +997,7 @@ static void * process_thr(void * arg, int (*action_cb)(struct msg ** pmsg), stru
 	
 	/* Mark the thread running */
 	*(enum thread_state *)arg = RUNNING;
+	fd_cpu_flush_cache();
 	
 	do {
 		struct msg * msg;
@@ -1123,6 +1124,7 @@ static void stop_thread_delayed(enum thread_state *st, pthread_t * thr, char * t
 	CHECK_PARAMS_DO(st && thr, return);
 
 	/* Wait for a second for the thread to complete, by monitoring my_state */
+	fd_cpu_flush_cache();
 	if (*st != TERMINATED) {
 		TRACE_DEBUG(INFO, "Waiting for the %s thread to have a chance to terminate", th_name);
 		do {

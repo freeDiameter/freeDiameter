@@ -101,6 +101,7 @@ static void * demuxer(void * arg)
 				
 			case FDEVP_CNX_EP_CHANGE:
 				/* Send this event to the target queue */
+				fd_cpu_flush_cache();
 				CHECK_FCT_DO( fd_event_send( Target_Queue(conn), event, bufsz, buf), goto fatal );
 				break;
 			
