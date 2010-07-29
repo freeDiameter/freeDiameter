@@ -227,7 +227,7 @@ void fd_ext_fini(void)
 	/*
 	if (test_sip_MAR_cb) {
 		(void) fd_disp_unregister(&test_sip_MAR_hdl);
-		CHECK_FCT_DO( fd_sess_handler_destroy(&ds_sess_hdl),return);
+		CHECK_FCT_DO( fd_sess_handler_destroy(&ts_sess_hdl),return);
 	}
 	*/
 	//We close database connection

@@ -278,6 +278,7 @@ static void acct_conf_free(struct rgwp_config * state)
 {
 	TRACE_ENTRY("%p", state);
 	CHECK_PARAMS_DO( state, return );
+	CHECK_FCT_DO( fd_sess_handler_destroy( &state->sess_hdl ),  );
 	free(state);
 	return;
 }
