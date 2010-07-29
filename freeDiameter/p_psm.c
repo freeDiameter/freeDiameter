@@ -183,6 +183,7 @@ int fd_psm_change_state(struct fd_peer * peer, int new_state)
 	
 	TRACE_ENTRY("%p %d(%s)", peer, new_state, STATE_STR(new_state));
 	CHECK_PARAMS( CHECK_PEER(peer) );
+	fd_cpu_flush_cache();
 	old = peer->p_hdr.info.runtime.pir_state;
 	if (old == new_state)
 		return 0;
@@ -193,6 +194,7 @@ int fd_psm_change_state(struct fd_peer * peer, int new_state)
 			peer->p_hdr.info.pi_diamid);
 	
 	peer->p_hdr.info.runtime.pir_state = new_state;
+	fd_cpu_flush_cache();
 	
 	if (old == STATE_OPEN) {
 		CHECK_FCT( leave_open_state(peer) );
@@ -250,6 +252,7 @@ void fd_psm_next_timeout(struct fd_peer * peer, int add_random, int delay)
 void fd_psm_cleanup(struct fd_peer * peer, int terminate)
 {
 	/* Move to CLOSED state: failover messages, stop OUT thread, unlink peer from active list */
+	fd_cpu_flush_cache();
 	if (peer->p_hdr.info.runtime.pir_state != STATE_ZOMBIE) {
 		CHECK_FCT_DO( fd_psm_change_state(peer, STATE_CLOSED), /* continue */ );
 	}
@@ -280,6 +283,7 @@ void cleanup_setstate(void * arg)
 	struct fd_peer * peer = (struct fd_peer *)arg;
 	CHECK_PARAMS_DO( CHECK_PEER(peer), return );
 	peer->p_hdr.info.runtime.pir_state = STATE_ZOMBIE;
+	fd_cpu_flush_cache();
 	return;
 }
 
@@ -305,7 +309,7 @@ static void * p_psm_th( void * arg )
 	
 	/* The state machine starts in CLOSED state */
 	peer->p_hdr.info.runtime.pir_state = STATE_CLOSED;
-	
+
 	/* Wait that the PSM are authorized to start in the daemon */
 	CHECK_FCT_DO( fd_psm_waitstart(), goto psm_end );
 	
@@ -708,6 +712,7 @@ psm_end:
 			STATE_STR(peer->p_hdr.info.runtime.pir_state),
 			peer->p_hdr.info.pi_diamid);
 	pthread_cleanup_pop(1); /* set STATE_ZOMBIE */
+	fd_cpu_flush_cache();
 	peer->p_psm = (pthread_t)NULL;
 	pthread_detach(pthread_self());
 	return NULL;
@@ -741,6 +746,7 @@ int fd_psm_terminate(struct fd_peer * peer, char * reason )
 	TRACE_ENTRY("%p", peer);
 	CHECK_PARAMS( CHECK_PEER(peer) );
 	
+	fd_cpu_flush_cache();
 	if (peer->p_hdr.info.runtime.pir_state != STATE_ZOMBIE) {
 		CHECK_FCT( fd_event_send(peer->p_events, FDEVP_TERMINATE, 0, reason) );
 	} else {

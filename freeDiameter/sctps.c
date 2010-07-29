@@ -86,6 +86,7 @@ static void * demuxer(void * arg)
 	ASSERT( conn->cc_sctps_data.array );
 	
 	do {
+		fd_cpu_flush_cache();
 		CHECK_FCT_DO( fd_sctp_recvmeta(conn->cc_socket, &strid, &buf, &bufsz, &event, &conn->cc_status), goto fatal );
 		switch (event) {
 			case FDEVP_CNX_MSG_RECV:
@@ -170,6 +171,7 @@ static ssize_t sctps_push(gnutls_transport_ptr_t tr, const void * data, size_t l
 	TRACE_ENTRY("%p %p %zd", tr, data, len);
 	CHECK_PARAMS_DO( tr && data, { errno = EINVAL; return -1; } );
 	
+	fd_cpu_flush_cache();
 	CHECK_FCT_DO( fd_sctp_sendstr(ctx->parent->cc_socket, ctx->strid, (uint8_t *)data, len, &ctx->parent->cc_status), /* errno is already set */ return -1 );
 	
 	return len;
@@ -619,6 +621,7 @@ void fd_sctps_bye(struct cnxctx * conn)
 	
 	/* End all TLS sessions, in series (not as efficient as paralel, but simpler) */
 	for (i = 1; i < conn->cc_sctp_para.pairs; i++) {
+		fd_cpu_flush_cache();
 		if ( ! (conn->cc_status & CC_STATUS_ERROR)) {
 			CHECK_GNUTLS_DO( gnutls_bye(conn->cc_sctps_data.array[i].session, GNUTLS_SHUT_WR), fd_cnx_markerror(conn) );
 		}

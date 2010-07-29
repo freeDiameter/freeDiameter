@@ -612,6 +612,7 @@ int fd_p_ce_handle_newcnx(struct fd_peer * peer, struct cnxctx * initiator)
 	CHECK_FCT( fd_out_send(&cer, initiator, peer, FD_CNX_ORDERED) );
 	
 	/* Are we doing an election ? */
+	fd_cpu_flush_cache();
 	if (peer->p_hdr.info.runtime.pir_state == STATE_WAITCNXACK_ELEC) {
 		if (election_result(peer)) {
 			/* Close initiator connection */
@@ -660,6 +661,7 @@ int fd_p_ce_msgrcv(struct msg ** msg, int req, struct fd_peer * peer)
 	}
 	
 	/* If the state is not WAITCEA, just discard the message */
+	fd_cpu_flush_cache();
 	if (req || (peer->p_hdr.info.runtime.pir_state != STATE_WAITCEA)) {
 		if (*msg) {
 			fd_log_debug("Received CER/CEA message while in state '%s', discarded.\n", STATE_STR(peer->p_hdr.info.runtime.pir_state));
@@ -921,6 +923,7 @@ cleanup:
 /* We have received a CER on a new connection for this peer */
 int fd_p_ce_handle_newCER(struct msg ** msg, struct fd_peer * peer, struct cnxctx ** cnx, int valid)
 {
+	fd_cpu_flush_cache();
 	switch (peer->p_hdr.info.runtime.pir_state) {
 		case STATE_CLOSED:
 			peer->p_receiver = *cnx;

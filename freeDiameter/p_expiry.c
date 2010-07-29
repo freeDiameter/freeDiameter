@@ -60,6 +60,7 @@ static void * gc_th_fct(void * arg)
 		for (li = fd_g_peers.next; li != &fd_g_peers; li = li->next) {
 			struct fd_peer * peer = (struct fd_peer *)li;
 			
+			fd_cpu_flush_cache();
 			if (peer->p_hdr.info.runtime.pir_state != STATE_ZOMBIE)
 				continue;
 			

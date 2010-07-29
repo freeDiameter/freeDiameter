@@ -122,6 +122,7 @@ int fd_p_dw_handle(struct msg ** msg, int req, struct fd_peer * peer)
 	}
 	
 	/* If we are in REOPEN state, increment the counter */
+	fd_cpu_flush_cache();
 	if (peer->p_hdr.info.runtime.pir_state == STATE_REOPEN) {
 		peer->p_flags.pf_reopen_cnt += 1;
 		

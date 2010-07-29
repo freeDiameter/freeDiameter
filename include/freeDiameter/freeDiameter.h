@@ -227,7 +227,7 @@ struct peer_info {
 	
 	struct {
 		
-		enum peer_state	pir_state;	/* Current state of the peer in the state machine */
+		enum peer_state	pir_state;	/* Current state of the peer in the state machine. fd_cpu_flush_cache() might be useful before reading. */
 		
 		char * 		pir_realm;	/* The received realm in CER/CEA. */
 		
@@ -251,6 +251,7 @@ struct peer_info {
 	
 	struct fd_list	pi_endpoints;	/* Endpoint(s) of the remote peer (configured, discovered, or advertized). list of struct fd_endpoint. DNS resolved if empty. */
 };
+
 
 struct peer_hdr {
 	struct fd_list	 chain;	/* List of all the peers, ordered by their Diameter Id */

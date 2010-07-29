@@ -278,6 +278,7 @@ int fd_peer_fini()
 	for (li = fd_g_peers.next; li != &fd_g_peers; li = li->next) {
 		struct fd_peer * peer = (struct fd_peer *)li;
 		
+		fd_cpu_flush_cache();
 		if (peer->p_hdr.info.runtime.pir_state != STATE_ZOMBIE) {
 			CHECK_FCT_DO( fd_psm_terminate(peer, "REBOOTING"), /* continue */ );
 		} else {
@@ -305,6 +306,7 @@ int fd_peer_fini()
 		CHECK_FCT_DO( pthread_rwlock_wrlock(&fd_g_peers_rw), /* continue */ );
 		for (li = fd_g_peers.next; li != &fd_g_peers; li = li->next) {
 			struct fd_peer * peer = (struct fd_peer *)li;
+			fd_cpu_flush_cache();
 			if (peer->p_hdr.info.runtime.pir_state == STATE_ZOMBIE) {
 				li = li->prev; /* to avoid breaking the loop */
 				fd_list_unlink(&peer->p_hdr.chain);
@@ -461,6 +463,7 @@ int fd_peer_handle_newCER( struct msg ** cer, struct cnxctx ** cnx )
 		CHECK_FCT_DO( ret = fd_psm_begin(peer), goto out );
 	} else {
 		/* Check if the peer is in zombie state */
+		fd_cpu_flush_cache();
 		if (peer->p_hdr.info.runtime.pir_state == STATE_ZOMBIE) {
 			/* Re-activate the peer */
 			if (peer->p_hdr.info.config.pic_flags.exp)

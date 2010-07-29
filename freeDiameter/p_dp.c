@@ -113,6 +113,7 @@ int fd_p_dp_handle(struct msg ** msg, int req, struct fd_peer * peer)
 		
 	} else {
 		/* We received a DPA */
+		fd_cpu_flush_cache();
 		if (peer->p_hdr.info.runtime.pir_state != STATE_CLOSING) {
 			TRACE_DEBUG(INFO, "Ignoring DPA received in state %s", STATE_STR(peer->p_hdr.info.runtime.pir_state));
 		}

@@ -35,6 +35,9 @@
 
 #include "libfD.h"
 
+/* Only for CPU cache flush */
+pthread_mutex_t fd_cpu_mtx_dummy = PTHREAD_MUTEX_INITIALIZER;
+
 /* Initialize library variables and threads */
 int fd_lib_init(int support_signals)
 {

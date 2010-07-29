@@ -568,6 +568,14 @@ static __inline__ int fd_thr_term(pthread_t * th)
 	return 0;
 }
 
+/* Force flushing the cache of a CPU before reading a shared memory area (use only for atomic reads such as int and void*) */
+extern pthread_mutex_t fd_cpu_mtx_dummy; /* only for the macro bellow, so that we have reasonably fresh pir_state value when needed */
+#define fd_cpu_flush_cache() {				\
+	(void)pthread_mutex_lock(&fd_cpu_mtx_dummy);	\
+	(void)pthread_mutex_unlock(&fd_cpu_mtx_dummy);	\
+}
+
+
 /*************
  Cancelation cleanup handlers for common objects 
  *************/

@@ -463,6 +463,7 @@ void fd_cnx_sethostname(struct cnxctx * conn, char * hn)
 int fd_cnx_getTLS(struct cnxctx * conn)
 {
 	CHECK_PARAMS_DO( conn, return 0 );
+	fd_cpu_flush_cache();
 	return conn->cc_status & CC_STATUS_TLS;
 }
 
@@ -544,6 +545,7 @@ void fd_cnx_markerror(struct cnxctx * conn)
 	TRACE_DEBUG(FULL, "Error flag set for socket %d (%s / %s)", conn->cc_socket, conn->cc_remid, conn->cc_id);
 	
 	/* Mark the error */
+	fd_cpu_flush_cache();
 	conn->cc_status |= CC_STATUS_ERROR;
 	
 	/* Report the error if not reported yet, and not closing */
@@ -552,7 +554,7 @@ void fd_cnx_markerror(struct cnxctx * conn)
 		CHECK_FCT_DO( fd_event_send( Target_Queue(conn), FDEVP_CNX_ERROR, 0, NULL), goto fatal);
 		conn->cc_status |= CC_STATUS_SIGNALED;
 	}
-	
+	fd_cpu_flush_cache();
 	return;
 fatal:
 	/* An unrecoverable error occurred, stop the daemon */
@@ -580,6 +582,7 @@ again:
 	ret = recv(conn->cc_socket, buffer, length, 0);
 	/* Handle special case of timeout */
 	if ((ret < 0) && (errno == EAGAIN)) {
+		fd_cpu_flush_cache();
 		if (! (conn->cc_status & CC_STATUS_CLOSING))
 			goto again; /* don't care, just ignore */
 		if (!timedout) {
@@ -606,6 +609,7 @@ again:
 	ret = send(conn->cc_socket, buffer, length, 0);
 	/* Handle special case of timeout */
 	if ((ret < 0) && (errno == EAGAIN)) {
+		fd_cpu_flush_cache();
 		if (! (conn->cc_status & CC_STATUS_CLOSING))
 			goto again; /* don't care, just ignore */
 		if (!timedout) {
@@ -724,6 +728,7 @@ static void * rcvthr_notls_sctp(void * arg)
 	ASSERT( Target_Queue(conn) );
 	
 	do {
+		fd_cpu_flush_cache();
 		CHECK_FCT_DO( fd_sctp_recvmeta(conn->cc_socket, NULL, &buf, &bufsz, &event, &conn->cc_status), goto fatal );
 		if (event == FDEVP_CNX_ERROR) {
 			fd_cnx_markerror(conn);
@@ -795,6 +800,7 @@ again:
 		{
 			switch (ret) {
 				case GNUTLS_E_REHANDSHAKE: 
+					fd_cpu_flush_cache();
 					if (!(conn->cc_status & CC_STATUS_CLOSING))
 						CHECK_GNUTLS_DO( ret = gnutls_handshake(session),
 							{
@@ -806,6 +812,7 @@ again:
 
 				case GNUTLS_E_AGAIN:
 				case GNUTLS_E_INTERRUPTED:
+					fd_cpu_flush_cache();
 					if (!(conn->cc_status & CC_STATUS_CLOSING))
 						goto again;
 					TRACE_DEBUG(FULL, "Connection is closing, so abord gnutls_record_recv now.");
@@ -839,6 +846,7 @@ again:
 		{
 			switch (ret) {
 				case GNUTLS_E_REHANDSHAKE: 
+					fd_cpu_flush_cache();
 					if (!(conn->cc_status & CC_STATUS_CLOSING))
 						CHECK_GNUTLS_DO( ret = gnutls_handshake(session),
 							{
@@ -850,6 +858,7 @@ again:
 
 				case GNUTLS_E_AGAIN:
 				case GNUTLS_E_INTERRUPTED:
+					fd_cpu_flush_cache();
 					if (!(conn->cc_status & CC_STATUS_CLOSING))
 						goto again;
 					TRACE_DEBUG(INFO, "Connection is closing, so abord gnutls_record_send now.");
@@ -1234,6 +1243,7 @@ int fd_cnx_handshake(struct cnxctx * conn, int mode, char * priority, void * alt
 	}
 
 	/* Mark the connection as protected from here, so that the gnutls credentials will be freed */
+	fd_cpu_flush_cache();
 	conn->cc_status |= CC_STATUS_TLS;
 
 	/* Handshake master session */
@@ -1358,6 +1368,7 @@ static int send_simple(struct cnxctx * conn, unsigned char * buf, size_t len)
 	size_t sent = 0;
 	TRACE_ENTRY("%p %p %zd", conn, buf, len);
 	do {
+		fd_cpu_flush_cache();
 		if (conn->cc_status & CC_STATUS_TLS) {
 			CHECK_GNUTLS_DO( ret = fd_tls_send_handle_error(conn, conn->cc_tls_para.session, buf + sent, len - sent),  );
 		} else {
@@ -1391,6 +1402,7 @@ int fd_cnx_send(struct cnxctx * conn, unsigned char * buf, size_t len, uint32_t 
 			if (flags & FD_CNX_BROADCAST) {
 				/* Send the buffer over all other streams */
 				uint16_t str;
+				fd_cpu_flush_cache();
 				if (conn->cc_status & CC_STATUS_TLS) {
 					for ( str=1; str < conn->cc_sctp_para.pairs; str++) {
 						ssize_t ret;
@@ -1473,6 +1485,7 @@ void fd_cnx_destroy(struct cnxctx * conn)
 	
 	CHECK_PARAMS_DO(conn, return);
 	
+	fd_cpu_flush_cache();
 	conn->cc_status |= CC_STATUS_CLOSING;
 	
 	/* Initiate shutdown of the TLS session(s): call gnutls_bye(WR), then read until error */

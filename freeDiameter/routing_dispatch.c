@@ -814,6 +814,7 @@ static int msg_rt_out(struct msg ** pmsg)
 
 		/* Find the peer corresponding to this name */
 		CHECK_FCT( fd_peer_getbyid( qry_src, (void *) &peer ) );
+		fd_cpu_flush_cache();
 		if ((!peer) || (peer->p_hdr.info.runtime.pir_state != STATE_OPEN)) {
 			TRACE_DEBUG(INFO, "Unable to forward answer message to peer '%s', deleted or not in OPEN state.", qry_src);
 			fd_msg_dump_walk(INFO, *pmsg);
@@ -933,6 +934,7 @@ static int msg_rt_out(struct msg ** pmsg)
 		/* Search for the peer */
 		CHECK_FCT( fd_peer_getbyid( c->diamid, (void *)&peer ) );
 
+		fd_cpu_flush_cache();
 		if (peer && (peer->p_hdr.info.runtime.pir_state == STATE_OPEN)) {
 			/* Send to this one */
 			CHECK_FCT_DO( fd_out_send(pmsg, NULL, peer, 0), continue );
