@@ -412,12 +412,6 @@ static void fifo_cleanup(void * queue)
 	struct fifo * q = (struct fifo *)queue;
 	TRACE_ENTRY( "%p", queue );
 	
-	/* Check the parameter */
-	if ( ! CHECK_FIFO( q )) {
-		TRACE_DEBUG(INFO, "Invalid queue, skipping handler");
-		return;
-	}
-	
 	/* The thread has been cancelled, therefore it does not wait on the queue anymore */
 	q->thrs--;
 	
