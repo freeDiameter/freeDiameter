@@ -72,6 +72,7 @@ void fd_servers_dump()
 	fd_log_debug("Dumping servers list :\n");
 	for (li = FD_SERVERS.next; li != &FD_SERVERS; li = li->next) {
 		struct server * s = (struct server *)li;
+		fd_cpu_flush_cache();
 		fd_log_debug("  Serv %p '%s': %s, %s, %s\n", 
 				s, fd_cnx_getid(s->conn), 
 				IPPROTO_NAME( s->proto ),
@@ -192,6 +193,7 @@ static void * serv_th(void * arg)
 	CHECK_PARAMS_DO(s, goto error);
 	fd_log_threadname ( fd_cnx_getid(s->conn) );
 	s->status = 1;
+	fd_cpu_flush_cache();
 	
 	/* Accept incoming connections */
 	CHECK_FCT_DO( fd_cnx_serv_listen(s->conn), goto error );
