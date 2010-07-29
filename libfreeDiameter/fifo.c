@@ -177,9 +177,9 @@ int fd_fifo_del ( struct fifo  ** queue )
 	/* And destroy it */
 	CHECK_POSIX(  pthread_mutex_unlock( &q->mtx )  );
 	
-	CHECK_POSIX(  pthread_cond_destroy( &q->cond )  );
+	CHECK_POSIX_DO(  pthread_cond_destroy( &q->cond ),  );
 	
-	CHECK_POSIX(  pthread_mutex_destroy( &q->mtx )  );
+	CHECK_POSIX_DO(  pthread_mutex_destroy( &q->mtx ),  );
 	
 	free(q);
 	*queue = NULL;
