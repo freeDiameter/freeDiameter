@@ -1509,6 +1509,9 @@ struct session;
 /* The state information that a module associate with a session -- each module defines its own data format */
 typedef void session_state;
 
+/* The following function must be called to activate the session expiry mechanism */
+int fd_sess_start(void);
+
 /*
  * FUNCTION:	fd_sess_handler_create
  *

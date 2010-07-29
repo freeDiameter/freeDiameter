@@ -94,6 +94,7 @@ int main(int argc, char * argv[])
 	/* Initialize other modules */
 	CHECK_FCT(  fd_queues_init()  );
 	CHECK_FCT(  fd_msg_init()  );
+	CHECK_FCT(  fd_sess_start()  );
 	CHECK_FCT(  fd_p_expi_init()  );
 	
 	/* Parse the configuration file */

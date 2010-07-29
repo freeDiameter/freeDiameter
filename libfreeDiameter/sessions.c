@@ -231,6 +231,12 @@ int fd_sess_init(void)
 		CHECK_POSIX(  pthread_mutex_init(&sess_hash[i].lock, NULL)  );
 	}
 	
+	return 0;
+}
+
+/* Run this when initializations are complete. */
+int fd_sess_start(void)
+{
 	/* Start session garbage collector (expiry) */
 	CHECK_POSIX(  pthread_create(&exp_thr, NULL, exp_fct, NULL)  );
 	
