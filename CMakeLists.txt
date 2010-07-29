@@ -43,10 +43,13 @@ SET(CMAKE_C_FLAGS_PROFILING "-fprofile-arcs -ftest-coverage -fstack-protector -g
 # Add a "DebianPackage" build type used when creating the Debian packages
 SET(CMAKE_C_FLAGS_DEBIANPACKAGE "${CMAKE_C_FLAGS_RELWITHDEBINFO}")
 
+# Add a "DebugValgrind" build type used for checking execution with Valgrind tool
+SET(CMAKE_C_FLAGS_DEBUGVALGRIND "-Wall -g -O0")
+
 # Set the DEBUG flag for Debug and Profiling builds
-IF (CMAKE_BUILD_TYPE MATCHES "Debug|Profiling")
+IF (CMAKE_BUILD_TYPE MATCHES "Debug|Profiling|DebugValgrind")
   SET(DEBUG 1)
-ENDIF (CMAKE_BUILD_TYPE MATCHES "Debug|Profiling")
+ENDIF (CMAKE_BUILD_TYPE MATCHES "Debug|Profiling|DebugValgrind")
 
 # some subfolders use yacc and lex parsers
 SET(BISON_GENERATE_DEFINES TRUE)
