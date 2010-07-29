@@ -140,7 +140,7 @@ struct dictionary {
 	
 	struct dict_object	dict_cmd_error;		/* Special command object for answers with the 'E' bit set */
 	
-	int			dict_count[DICT_TYPE_MAX]; /* Number of objects of each type */
+	int			dict_count[DICT_TYPE_MAX + 1]; /* Number of objects of each type */
 };
 
 /* Forward declarations of dump functions */
