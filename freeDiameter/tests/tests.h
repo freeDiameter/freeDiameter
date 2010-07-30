@@ -115,6 +115,7 @@ GCRY_THREAD_OPTION_PTHREAD_IMPL;
 	CHECK( 0, fd_conf_init() );						\
 	CHECK( 0, fd_dict_base_protocol(fd_g_config->cnf_dict) );		\
 	parse_cmdline(argc, argv);						\
+	CHECK( 0, fd_sess_start() );						\
 }
 
 static void test_timeout(int signal)
