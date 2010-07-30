@@ -11,10 +11,18 @@ The information gathered here mostly comes from the following pages:
 
 INSTRUCTIONS to setup a new build slave for the freeDiameter buildserver:
 
-1) Install all dependencies for freeDiameter. See the "prereqs" file (for Debian/Ubuntu).
+1) Install all dependencies for freeDiameter as follow: 
+  a) Debian / Ubuntu: See the "prereqs" file
 	$ sudo aptitude install `wget http://www.freediameter.net/hg/freeDiameter/raw-file/tip/contrib/nightly_tests/prereqs -O - | grep -v -e "^#"`
+	
+  b) FreeBSD:
+      - install base system and ports
+      - install freediameter dependencies as follow:
+      # pkg_add -r -v wget bash cmake mercurial flex bison gnutls postgresql84-client postgresql84-server mysql50-client
 
 2) Create the "test" database for app_acct test (we assume the tests are run as user "test" here)
+      - check INSTALL.FreeBSD file for specific PostgreSQL pre-install instructions.
+      - These are the instructions for Ubuntu, adjust as needed:
 	# su - postgres
 	# createuser test
 	 Shall the new role be a superuser? (y/n) n
@@ -55,7 +63,7 @@ INSTRUCTIONS to setup a new build slave for the freeDiameter buildserver:
    For FreeBSD:
    	$ echo "set(CTEST_BUILD_OPTIONS \"\${CTEST_BUILD_OPTIONS} -DFLEX_EXECUTABLE:FILEPATH=/usr/local/bin/flex\")" >> local.cmake
 
-6) Run the script once to check it works properly
+6) Run the script once to check it works properly (freeBSD might require: ln -s /usr/local/bin/bash /bin/bash)
 
 7) Set up a crontab to run the script
 	$ wget http://www.freediameter.net/hg/freeDiameter/raw-file/tip/contrib/nightly_tests/cronjob.sh
