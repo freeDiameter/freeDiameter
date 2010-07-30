@@ -16,14 +16,14 @@ Additionnaly, these ones may be useful:
  mercurial gdb
  
 In order to build app_acct extension, you will also need the package libpq-dev.
-In order to build app_sip extension, you will also need the package libmysqlclient-dev.
+In order to build app_sip or app_diameap extension, you will also need the package libmysqlclient-dev.
 
 
 If your debhelper environment is recent (> 7.3.9 to provide cmake support), 
 the following commands should generate the freeDiameter packages for you:
 
 # Install the dependencies for building the source:
-sudo apt-get -y install mercurial cmake make gcc bison flex libsctp-dev libgnutls-dev libgcrypt-dev libpq-dev ssl-cert debhelper fakeroot
+sudo apt-get -y install mercurial cmake make gcc bison flex libsctp-dev libgnutls-dev libgcrypt-dev libpq-dev libmysqlclient-dev ssl-cert debhelper fakeroot
 
 # Retrieve the latest version of the source package
 cd 
@@ -54,7 +54,7 @@ freeDiameter has been tested on the following distributions (compiled from sourc
 Ubuntu Intrepid, Jaunty, Karmic, Lucid. 
 Debian Lenny.
 
-Ubuntu Hardy support is broken.
+Ubuntu Hardy support is known to be broken.
 
 The Debian package has been generated with success on Debian (>=Squeeze) and Ubuntu (>=Karmic).
 
@@ -67,6 +67,8 @@ Step by step instructions without using the debhelper tools:
 
 2) (OPTION) If you will compile modules that require postgresql, also install:
 # sudo apt-get install libpq-dev
+   and for mysql:
+# sudo apt-get install libmysqlclient-dev
 
 3) (OPTION) If you want a more user-friendly interface, install this:
 # sudo apt-get install cmake-curses-gui

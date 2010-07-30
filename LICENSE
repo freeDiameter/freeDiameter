@@ -39,3 +39,6 @@ The following files have been contributed by Alexandre Westfahl, see source file
   extensions/app_sip/*
   extensions/app_radgw/rgwx_sip.c
 
+The following files have been contributed by Souheil Ben Ayed, see source files for copyright information:
+   extensions/app_diameap/*
+

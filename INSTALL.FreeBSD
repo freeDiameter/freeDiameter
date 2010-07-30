@@ -25,7 +25,7 @@ COMPLETE INSTRUCTIONS
     # cd /usr/ports/devel/cmake
     # make install
     
- b) from package (don't forget to set your PACKAGEROOT appropriately: set PACKAGEROOT=ftp://ftp.jp.freebsd.org):
+ b) or from package (don't forget to set your PACKAGEROOT appropriately: set PACKAGEROOT=ftp://ftp.jp.freebsd.org):
     # pkg_add -v -r cmake
 	
  
