@@ -64,7 +64,7 @@ INSTRUCTIONS to setup a new build slave for the freeDiameter buildserver:
    For FreeBSD:
    	$ echo "set(CTEST_BUILD_OPTIONS \"\${CTEST_BUILD_OPTIONS} -DFLEX_EXECUTABLE:FILEPATH=/usr/local/bin/flex\")" >> local.cmake
 
-6) Run the script once to check it works properly (freeBSD might require: ln -s /usr/local/bin/bash /bin/bash)
+6) Run the runscript.sh script once to check it works properly (freeBSD might require: ln -s /usr/local/bin/bash /bin/bash)
 
 7) Set up a crontab to run the script
 	$ wget http://www.freediameter.net/hg/freeDiameter/raw-file/tip/contrib/nightly_tests/cronjob.sh
