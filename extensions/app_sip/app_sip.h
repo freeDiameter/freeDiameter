@@ -152,54 +152,54 @@ int app_sip_SL_LIR_cb( struct msg ** msg, struct avp * paramavp, struct session 
 //int app_sip_SL_SAR_cb( struct msg ** msg, struct avp * paramavp, struct session * sess, enum disp_action * act);
 
 #define SQL_GETPASSWORD "SELECT `password` FROM ds_users WHERE `username` ='%s'"
-#define SQL_GETPASSWORD_LEN 52
+#define SQL_GETPASSWORD_LEN sizeof(SQL_GETPASSWORD)-2
 
 //username by SIP-AOR
 #define SQL_GETUSERNAME  "SELECT `username` FROM ds_users, ds_sip_aor WHERE `sip_aor` ='%s' AND `ds_sip_aor`.`id_user` = `ds_users`.`id_user`"
-#define SQL_GETUSERNAME_LEN 113
+#define SQL_GETUSERNAME_LEN sizeof(SQL_GETUSERNAME)-2
 
 //sip server uri by username
 #define SQL_GETSIPURI  "SELECT `sip_server_uri` FROM ds_users WHERE `username` ='%s'"
-#define SQL_GETSIPURI_LEN 60
+#define SQL_GETSIPURI_LEN sizeof(SQL_GETSIPURI)-2
 
 //sip server uri by SIP-AOR
 #define SQL_GETSIPSERURI  "SELECT `ds_sip_aor`.`sip_server_uri` FROM ds_users, ds_sip_aor WHERE `sip_aor` ='%s' AND `ds_sip_aor`.`id_user` = `ds_users`.`id_user`"
-#define SQL_GETSIPSERURI_LEN 132
+#define SQL_GETSIPSERURI_LEN sizeof(SQL_GETSIPSERURI)-2
 
 //sip capabilities for a SIP-AOR
 #define SQL_GETSIPSERCAP  "SELECT `compulsory`,`id_service` FROM ds_user_services, ds_sip_aor WHERE `sip_aor` ='%s' AND `ds_sip_aor`.`id_user` = `ds_user_services`.`id_user`"
-#define SQL_GETSIPSERCAP_LEN 144
+#define SQL_GETSIPSERCAP_LEN sizeof(SQL_GETSIPSERCAP)-2
 
 //user data for a user data supported
 #define SQL_GETSIPDATA  "SELECT `label_type`,`data` FROM ds_sip_aor, ds_user_data, ds_data_types WHERE `sip_aor` ='%s' AND `ds_sip_aor`.`id_sip_aor` = `ds_user_data`.`id_sip_aor` AND `ds_data_types`.`id_data_type`=`ds_user_data`.`id_data_type`"
-#define SQL_GETSIPDATA_LEN 216
+#define SQL_GETSIPDATA_LEN sizeof(SQL_GETSIPDATA)-2
 
 #define SQL_GETDIAMURI "SELECT `sipserver_uri` FROM ds_sip_aor_map WHERE `sip_aor` ='%s'"
-#define SQL_GETDIAMURI_LEN 61
+#define SQL_GETDIAMURI_LEN sizeof(SQL_GETDIAMURI)-2
 
 //networks for this user
 #define SQL_GETUSERNET "SELECT `label_network` FROM ds_users, ds_user_networks, ds_networks WHERE `ds_users`.`username` ='%s' AND `ds_user_networks`.`id_user` = `ds_users`.`id_user` AND `ds_user_networks`.`id_network` = `ds_networks`.`id_network`"
-#define SQL_GETUSERNET_LEN 220
+#define SQL_GETUSERNET_LEN sizeof(SQL_GETUSERNET)-2
 
 #define SQL_SETSIPURI "UPDATE ds_users SET `temp_sip_server_uri`='%s' WHERE `username` ='%s'"
-#define SQL_SETSIPURI_LEN 65
+#define SQL_SETSIPURI_LEN sizeof(SQL_SETSIPURI)-4
 
 //TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO 
 #define SQL_RMSIPURI "UPDATE ds_users SET `temp_sip_server_uri`='', `sip_server_uri`='' WHERE `id_user` ='%s'"
-#define SQL_RMSIPURI_LEN 65
+#define SQL_RMSIPURI_LEN sizeof(SQL_RMSIPURI)-2
 //TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO 
 
 #define SQL_SETREALSIPURI "UPDATE ds_users SET `sip_server_uri`='%s' WHERE `username` ='%s'"
-#define SQL_SETREALSIPURI_LEN 65
+#define SQL_SETREALSIPURI_LEN sizeof(SQL_SETREALSIPURI)-4
 
 #define SQL_SETFLAG "UPDATE ds_users SET `authentication_pending`=1 WHERE `username` ='%s'"
-#define SQL_SETFLAG_LEN 67
+#define SQL_SETFLAG_LEN sizeof(SQL_SETFLAG)-2
 
 #define SQL_CLEARFLAG "UPDATE ds_users SET `authentication_pending`=0, `registrated`=1 WHERE `username` ='%s'"
-#define SQL_CLEARFLAG_LEN 84
+#define SQL_CLEARFLAG_LEN sizeof(SQL_CLEARFLAG)-2
 
 #define SQL_GETSIPAOR "SELECT `sip_aor` FROM `ds_sip_aor`, `ds_users` WHERE `ds_sip_aor`.`id_user` = `ds_users`.`id_user` AND `ds_users`.`username` = '%s'"
-#define SQL_GETSIPAOR_LEN 131
+#define SQL_GETSIPAOR_LEN sizeof(SQL_GETSIPAOR)-2
 
 //#define SQL_CLEARFLAG "UPDATE ds_users SET `authentication_pending`=0 WHERE `username` ='%s'"
 //#define SQL_CLEARFLAG_LEN 67
