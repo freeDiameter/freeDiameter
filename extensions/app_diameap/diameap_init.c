@@ -346,7 +346,7 @@ int diameap_mysql_connect(void)
 {
 	TRACE_ENTRY();
 	db_conn = mysql_init(NULL);
-	int mysql_reconnect_val=1;
+	const my_bool mysql_reconnect_val=1;
 	mysql_options(db_conn,MYSQL_OPT_RECONNECT,&mysql_reconnect_val);
 	/* Connect to database */
 	if (!mysql_real_connect(db_conn, diameap_config->db.server,
