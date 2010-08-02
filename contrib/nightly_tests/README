@@ -10,6 +10,7 @@ The information gathered here mostly comes from the following pages:
 =============
 
 INSTRUCTIONS to setup a new build slave for the freeDiameter buildserver:
+-- note: the build slave should have cmake version 2.8 at least so that ctest will update the source tree properly.
 
 1) Install all dependencies for freeDiameter as follow: 
   a) Debian / Ubuntu: See the "prereqs" file
