@@ -1,6 +1,6 @@
 Source: freediameter
-Section: unknown
-Priority: optional
+Section: contrib/net
+Priority: extra
 Maintainer: Sebastien Decugis <sdecugis@nict.go.jp>
 Build-Depends: debhelper ( >= 7.3.9),
  cmake, make, gcc, bison, flex,
@@ -20,6 +20,7 @@ Description: The libfreeDiameter library.
 
 Package: freediameter-dev
 Architecture: any
+Section: contrib/devel
 Depends: freediameter-daemon (= ${binary:Version}), libsctp-dev, libgnutls-dev, libgcrypt-dev
 Description: This package provides the development files for freeDiameter.
 
@@ -40,6 +41,7 @@ Description: The freeDiameter daemon.
 
 Package: freediameter-debug-tools
 Architecture: any
+Section: contrib/debug
 Depends: ${misc:Depends}, freediameter-daemon (= ${binary:Version})
 Description: freeDiameter debug tools.
  This package provides useful tools to help tracking 
