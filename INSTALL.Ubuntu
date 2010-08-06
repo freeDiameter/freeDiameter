@@ -1,7 +1,13 @@
-See INSTALL file for general instructions on building freeDiameter.
+See http://www.freediameter.net/trac/wiki/DebRepository for instructions on how to
+install freeDiameter from existing package.
 
-This file contains specific instructions to compile and install freeDiameter
-on Debian and Ubuntu systems.
+See INSTALL file for general instructions on building freeDiameter from sources.
+
+The remaining of this file contains specific instructions for building the freeDiameter 
+package files for Debian and Ubuntu systems.
+
+
+
 
 freeDiameter is shipped with the necessary files to generate the Debian package. 
 All related files are in the directory "contrib/debian" of the distribution.
