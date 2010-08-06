@@ -16,7 +16,7 @@
 DAEMON=/usr/bin/freeDiameterd
 CONF=/etc/freeDiameter/freeDiameter.conf
 NAME=freediameter
-DESC=freeDiameter daemon
+DESC="freeDiameter daemon"
 
 test -x $DAEMON || exit 0
 
