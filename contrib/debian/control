@@ -133,7 +133,7 @@ Description: freeDiameter simple Accounting server.
 
 Package: freediameter-eap-server
 Architecture: any
-Depends: ${misc:Depends}, freediameter-daemon (= ${binary:Version}), mysql-client
+Depends: ${misc:Depends}, freediameter-daemon (= ${binary:Version}), mysql-client, freediameter-dictionary-rfc4072 (= ${binary:Version})
 Description: freeDiameter Diameter EAP server implementation.
  This freeDiameter extension implements a Diameter EAP server. 
  It supports EAP-MD5 and EAP-TLS methods currently.
