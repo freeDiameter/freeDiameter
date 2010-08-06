@@ -12,6 +12,8 @@ to top-level README file.
 	packages. It requires debhelper >= 7.3.9 (support for cmake). To use, simply link the
 	debian folder from the main freeDiameter folder, then use your building script as
 	usual ('dh binary' or 'pdebuild' or ...).
+	If you simply intend to use freeDiameter package, the relevant information is located
+	at: http://www.freediameter.net/trac/wiki/DebRepository
 
 
 - PKI : This directory contains useful material related to establishing a 
@@ -41,3 +43,8 @@ to top-level README file.
 	distribution (http://openwrt.org) -- the goal is to give the access point the 
 	ability to "talk" Diameter instead of RADIUS.
 				
+
+- nightly_tests : This directory contains the scripts and documentation for the nightly 
+	tests run on freeDiameter. The results are published at the following URL:
+	http://www.freediameter.net/CDash/index.php?project=freeDiameter
+
