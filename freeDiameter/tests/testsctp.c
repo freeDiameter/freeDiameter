@@ -85,7 +85,7 @@ int main(int argc, char *argv[])
 	fd_g_config->cnf_sctp_str = NB_STREAMS;
 	
 	/* Create the server socket */
-	CHECK( 0, fd_sctp_create_bind_server( &sock, AF_INET, &eps, TEST_PORT ));
+	CHECK( 0, fd_sctp_create_bind_server( &sock, AF_INET6, &eps, TEST_PORT ));
 	
 	/* Accept incoming clients */
 	CHECK( 0, fd_sctp_listen( sock ));
