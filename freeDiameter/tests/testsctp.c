@@ -101,7 +101,10 @@ int main(int argc, char *argv[])
 	CHECK( 0, status);
 	
 	/* Receive this message */
+redo1:
 	CHECK( 0, fd_sctp_recvmeta(clisock, &str, (uint8_t **)&buf2, &sz, &ev, &status) );
+	if (ev == FDEVP_CNX_EP_CHANGE)
+		goto redo1;
 	CHECK( FDEVP_CNX_MSG_RECV, ev);
 	CHECK( 0, status);
 	CHECK( 1, str);
@@ -114,7 +117,10 @@ int main(int argc, char *argv[])
 	CHECK( 0, status);
 	
 	/* Receive this message */
+redo2:
 	CHECK( 0, fd_sctp_recvmeta(srvsock, &str, (uint8_t **)&buf2, &sz, &ev, &status) );
+	if (ev == FDEVP_CNX_EP_CHANGE)
+		goto redo2;
 	CHECK( FDEVP_CNX_MSG_RECV, ev);
 	CHECK( 0, status);
 	CHECK( 2, str);
