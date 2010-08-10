@@ -50,6 +50,7 @@ COMPLETE INSTRUCTIONS
 8) Compile, optionnaly test
    # make
    # make test
+  Note: on FreeBSD <= 8.1 on amd64, SCTP does not work properly, causing testsctp & testcnx to fail.
 
 9) Install
    # make install
