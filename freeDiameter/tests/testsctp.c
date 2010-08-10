@@ -53,7 +53,7 @@ int main(int argc, char *argv[])
 #ifdef DISABLE_SCTP
 	/* In this case, we don't perform this simple test */
 	PASSTEST();
-#endif
+#else /* DISABLE_SCTP */
 	int sock, srvsock, clisock;
 	char buf1[]="abcdef";
 	char *buf2;
@@ -130,5 +130,6 @@ redo2:
 	
 	/* That's all for the tests yet */
 	PASSTEST();
+#endif /* DISABLE_SCTP */
 } 
 	
