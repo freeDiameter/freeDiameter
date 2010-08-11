@@ -51,6 +51,7 @@
 int main(int argc, char *argv[])
 {
 #ifdef DISABLE_SCTP
+	INIT_FD();
 	/* In this case, we don't perform this simple test */
 	PASSTEST();
 #else /* DISABLE_SCTP */
