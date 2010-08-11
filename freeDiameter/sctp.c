@@ -1000,10 +1000,9 @@ int fd_sctp_sendstr(int sock, uint16_t strid, uint8_t * buf, size_t len, uint32_
 {
 	struct msghdr mhdr;
 	struct iovec  iov;
-	struct {
-		struct cmsghdr 		hdr;
-		struct sctp_sndrcvinfo	sndrcv;
-	} anci;
+	struct cmsghdr 		*hdr;
+	struct sctp_sndrcvinfo	*sndrcv;
+	uint8_t anci[CMSG_SPACE(sizeof(struct sctp_sndrcvinfo))];
 	ssize_t ret;
 	int timedout = 0;
 	
@@ -1019,10 +1018,12 @@ int fd_sctp_sendstr(int sock, uint16_t strid, uint8_t * buf, size_t len, uint32_
 	iov.iov_len  = len;
 	
 	/* Anciliary data: specify SCTP stream */
-	anci.hdr.cmsg_len   = sizeof(anci);
-	anci.hdr.cmsg_level = IPPROTO_SCTP;
-	anci.hdr.cmsg_type  = SCTP_SNDRCV;
-	anci.sndrcv.sinfo_stream = strid;
+	hdr = (struct cmsghdr *)anci;
+	sndrcv = (struct sctp_sndrcvinfo *)CMSG_DATA(hdr);
+	hdr->cmsg_len   = sizeof(anci);
+	hdr->cmsg_level = IPPROTO_SCTP;
+	hdr->cmsg_type  = SCTP_SNDRCV;
+	sndrcv->sinfo_stream = strid;
 	/* note : we could store other data also, for example in .sinfo_ppid for remote peer or in .sinfo_context for errors. */
 	
 	/* We don't use mhdr.msg_name here; it could be used to specify an address different from the primary */
@@ -1030,7 +1031,7 @@ int fd_sctp_sendstr(int sock, uint16_t strid, uint8_t * buf, size_t len, uint32_
 	mhdr.msg_iov    = &iov;
 	mhdr.msg_iovlen = 1;
 	
-	mhdr.msg_control    = &anci;
+	mhdr.msg_control    = anci;
 	mhdr.msg_controllen = sizeof(anci);
 	
 	TRACE_DEBUG(FULL, "Sending %db data on stream %hu of socket %d", len, strid, sock);
