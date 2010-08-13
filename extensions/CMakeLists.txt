@@ -14,7 +14,7 @@ ENDMACRO(FD_ADD_EXTENSION)
 
 # The extensions include the headers of freeDiameter that contains gnutls objects
 FIND_PACKAGE(GnuTLS REQUIRED)
-INCLUDE_DIRECTORIES(${GNUTLS_INCLUDE_DIRS})
+INCLUDE_DIRECTORIES(${GNUTLS_INCLUDE_DIR})
 find_path(GCRYPT_INCLUDE_DIR NAMES gcrypt.h)
 If ( NOT GCRYPT_INCLUDE_DIR )
 	MESSAGE(SEND_ERROR "Unable to find gcrypt.h, please install libgcrypt-dev or equivalent")

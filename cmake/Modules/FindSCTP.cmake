@@ -2,12 +2,12 @@
 # Once done, this will define
 #
 #  SCTP_FOUND - system has SCTP
-#  SCTP_INCLUDE_DIRS - the SCTP include directories
+#  SCTP_INCLUDE_DIR - the SCTP include directories
 #  SCTP_LIBRARIES - link these to use SCTP
 
-if (SCTP_INCLUDE_DIRS AND SCTP_LIBRARIES)
+if (SCTP_INCLUDE_DIR AND SCTP_LIBRARIES)
   set(SCTP_FIND_QUIETLY TRUE)
-endif (SCTP_INCLUDE_DIRS AND SCTP_LIBRARIES)
+endif (SCTP_INCLUDE_DIR AND SCTP_LIBRARIES)
 
 # Include dir
 find_path(SCTP_INCLUDE_DIR
