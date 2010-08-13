@@ -89,7 +89,9 @@ $ ./scripts/feeds search <package>
 
 We will now describe how to install these dependencies. At the time this HOWTO is written, 
 the OpenWRT repositories contain ipv6, gnutls, pthreads and hostapd. Follow these instruction to
-build them:
+build them.
+
+Alternatively, you can find these packages pre-compiled in the OpenWRT packages repository.
 
 a) GNU TLS packages
 $ scripts/feeds install libgnutls

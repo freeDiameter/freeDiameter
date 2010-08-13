@@ -22,20 +22,10 @@ PKG_FIXUP:=libtool
 PKG_INSTALL:=1
 
 include $(INCLUDE_DIR)/package.mk
-include $(INCLUDE_DIR)/kernel.mk
 
-define KernelPackage/sctp
-  SUBMENU:=Network Support
-  TITLE:=SCTP support
-  KCONFIG:= CONFIG_IP_SCTP=m
-  FILES:=$(LINUX_DIR)/net/sctp/sctp.$(LINUX_KMOD_SUFFIX)
-  AUTOLOAD:=$(call AutoLoad,20,sctp)
-  DEPENDS:=@LINUX_2_6
-endef
-
-define KernelPackage/sctp/description
- Kernel modules for SCTP support
-endef
+#####
+## lksctp library: provides sctp_* functions in user space
+#####
 
 define Package/sctp
   SECTION:=libs
@@ -59,4 +49,32 @@ define Package/sctp/install
 endef
 
 $(eval $(call BuildPackage,sctp))
+
+
+#####
+## SCTP kernel support
+#####
+
+include $(INCLUDE_DIR)/kernel.mk
+
+define KernelPackage/sctp
+  SUBMENU:=Network Support
+  TITLE:=SCTP support
+  KCONFIG:=\
+     CONFIG_IP_SCTP=m \
+     CONFIG_LIBCRC32C=m
+  FILES:=\
+     $(LINUX_DIR)/net/sctp/sctp.$(LINUX_KMOD_SUFFIX) \
+     $(LINUX_DIR)/lib/libcrc32c.$(LINUX_KMOD_SUFFIX)
+  AUTOLOAD:=\
+     $(call AutoLoad,30,crc32c libcrc32c,1) \
+     $(call AutoLoad,35,sctp)
+  DEPENDS:=@LINUX_2_6 +kmod-crypto-core +kmod-crypto-misc
+endef
+
+define KernelPackage/sctp/description
+ Kernel modules for SCTP support
+endef
+
 $(eval $(call KernelPackage,sctp))
+
