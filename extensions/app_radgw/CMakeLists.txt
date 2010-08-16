@@ -122,8 +122,12 @@ OPTION(BUILD_RGWX_ECHODROP "Build 'echo/drop' plugin? (drop specific RADIUS attr
 ####
 ## INSTALL section ##
 
-INSTALL(TARGETS app_radgw rgw_common
+INSTALL(TARGETS app_radgw
 	LIBRARY DESTINATION ${INSTALL_EXTENSIONS_SUFFIX}
+	COMPONENT freeDiameter-radius-gateway)
+	
+INSTALL(TARGETS rgw_common
+	LIBRARY DESTINATION ${INSTALL_LIBRARY_SUFFIX}
 	COMPONENT freeDiameter-radius-gateway)
 
 # Note that all compiled plugins are added by the RGWX_ADD_PLUGIN macro in the component freeDiameter-radius-gateway as well.
