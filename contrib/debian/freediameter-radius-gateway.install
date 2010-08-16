@@ -1,2 +1,3 @@
 usr/lib/freeDiameter/app_radgw.fdx
 usr/lib/freeDiameter/*.rgwx
+usr/lib/freeDiameter/rgw_common.*
