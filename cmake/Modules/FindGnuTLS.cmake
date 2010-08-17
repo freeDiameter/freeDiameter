@@ -2,12 +2,12 @@
 # Find the native GNUTLS includes and library
 #
 #  GNUTLS_FOUND - True if gnutls found.
-#  GNUTLS_INCLUDE_DIRS - where to find gnutls.h, etc.
+#  GNUTLS_INCLUDE_DIR - where to find gnutls.h, etc.
 #  GNUTLS_LIBRARIES - List of libraries when using gnutls.
 
-if (GNUTLS_INCLUDE_DIRS AND GNUTLS_LIBRARIES)
+if (GNUTLS_INCLUDE_DIR AND GNUTLS_LIBRARIES)
   set(GNUTLS_FIND_QUIETLY TRUE)
-endif (GNUTLS_INCLUDE_DIRS AND GNUTLS_LIBRARIES)
+endif (GNUTLS_INCLUDE_DIR AND GNUTLS_LIBRARIES)
 
 # Include dir
 find_path(GNUTLS_INCLUDE_DIR

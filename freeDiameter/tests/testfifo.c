@@ -211,7 +211,7 @@ int main(int argc, char *argv[])
 		
 		/* Initialize the ts */
 		CHECK(0, clock_gettime(CLOCK_REALTIME, &ts));
-		ts.tv_sec += 2; /* Set the timeout to 2 second */
+		ts.tv_sec += 20; /* Set the timeout to 20 second */
 		
 		/* Create the messages */
 		CHECK( 0, fd_dict_search ( fd_g_config->cnf_dict, DICT_COMMAND, CMD_BY_NAME, "Device-Watchdog-Request",		&dwr_model, ENOENT ) );
@@ -281,7 +281,7 @@ int main(int argc, char *argv[])
 		
 		/* Initialize the ts */
 		CHECK(0, clock_gettime(CLOCK_REALTIME, &ts));
-		ts.tv_sec += 2; /* Set the timeout to 2 second */
+		ts.tv_sec += 10; /* Set the timeout to 10 second */
 		
 		/* Initialize the test data structures */
 		td.queue = queue;

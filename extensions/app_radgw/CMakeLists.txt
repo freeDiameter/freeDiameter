@@ -29,6 +29,7 @@ SET( RG_COMMON_HEADER
 	hostap_compat.h
 )
 ADD_LIBRARY(rgw_common SHARED ${RG_COMMON_SRC})
+SET_TARGET_PROPERTIES(rgw_common PROPERTIES PREFIX "" )
 
 
 
@@ -123,6 +124,10 @@ OPTION(BUILD_RGWX_ECHODROP "Build 'echo/drop' plugin? (drop specific RADIUS attr
 
 INSTALL(TARGETS app_radgw
 	LIBRARY DESTINATION ${INSTALL_EXTENSIONS_SUFFIX}
+	COMPONENT freeDiameter-radius-gateway)
+	
+INSTALL(TARGETS rgw_common
+	LIBRARY DESTINATION ${INSTALL_LIBRARY_SUFFIX}
 	COMPONENT freeDiameter-radius-gateway)
 
 # Note that all compiled plugins are added by the RGWX_ADD_PLUGIN macro in the component freeDiameter-radius-gateway as well.
