@@ -5,6 +5,7 @@ This HOWTO is written for OpenWRT 10.03 (BackFire) and no guarantee is provided
 that it will work for you. Be prepared to eventually brick your routeur...
 
 Table of contents:
+0) Quick HOWTO: optimistic step-by-step instructions.
 1) Prerequisites: get the OpenWRT development environment ready.
 2) Supplied packages: use the existing packages when possible (gnutls, ...)
 3) Other dependencies: provide for additional missing dependencies (sctp ...)
@@ -15,6 +16,58 @@ This HOWTO will NOT cover how to install OpenWRT on your access device, nor
 its basic configuration. Please refer to OpenWRT website for this type of HOWTOs.
 
 
+==============================================
+0) Quick HOWTO
+==============================================
+The following instructions should allow you to put freeDiameter on your OpenWRT-compatible router.
+In case something goes wrong, you should follow the detailed instructions in the remaining of 
+this file.
+
+Be warned: playing with the software in your router may brick it, i.e. make it unusable forever. 
+Do it at your own risk.
+
+1) Get the OpenWRT environment:
+$ git clone git://nbd.name/openwrt.git
+$ cd openwrt
+
+2) Get the feeds
+$ cp feeds.conf.default feeds.conf
+$ echo "src-hg freediameter http://www.freediameter.net/hg/fD-OWRT-packages" >> feeds.conf
+$ scripts/feeds update
+$ scripts/feeds install freeDiameter
+
+3) Configure your image
+$ make menuconfig
+(set Target System and Target Profile as needed for your equipment)
+
+- Network --->
+   freeDiameter (M)
+
+4) Build the image and packages, this takes a while
+$ make world
+
+5) Export the bin/* directory through a webserver. 
+   We assume it is available at http://192.168.1.25/owrt
+   
+6) Flash the router with your new image -- THIS DESTROYS ALL CONFIG ON THE ROUTER!
+$ ssh root@192.168.1.1
+# cd /tmp
+# wget http://192.168.1.25/owrt/openwrt-brcm47xx-squashfs.trx
+    ;; change the file name with yours
+# mtd -r write openwrt-brcm47xx-squashfs.trx linux
+    ;; wait for reboot
+$ telnet 192.168.1.1
+# passwd
+# sync
+
+7) Update the opkg router's config to get your new packages
+ssh root@192.168.1.1
+# echo "src/gz chavroux http://192.168.1.25/owrt/packages" >> /etc/opkg.conf 
+# opkg update
+
+8) Install freeDiameter, you're done. Optionnaly, install also certtool and libgnutls-extra on the router before, to 
+   generate the TLS certificate.
+# opkg install freeDiameter
 
 ==============================================
 1) Prerequisites:
@@ -183,9 +236,9 @@ d) Install this on the router as well:
 ==============================================
 
 Now, your environment should be ready to compile the freeDiameter ipkg package.
-$ ./scripts/feeds install freediameter
+$ scripts/feeds install freeDiameter
 
-Note that in order to build this package, you need to have cmake on your compilation machine.
+Note that in order to build this package, you need to have cmake & flex on your compilation machine.
 
 $ make menuconfig
 - Network --->

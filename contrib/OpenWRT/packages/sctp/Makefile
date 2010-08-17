@@ -46,6 +46,16 @@ define Package/sctp/install
 	$(CP) \
 		$(PKG_INSTALL_DIR)/usr/lib/libsctp.so* \
 		$(1)/usr/lib/
+	# And in staging for dependent packages	
+	$(INSTALL_DIR) $(STAGING_DIR)/usr/include/netinet
+	$(CP) \
+		$(PKG_INSTALL_DIR)/usr/include/netinet/* \
+		$(STAGING_DIR)/usr/include/netinet/
+	$(INSTALL_DIR) $(STAGING_DIR)/usr/lib
+	$(CP) \
+		$(PKG_INSTALL_DIR)/usr/lib/libsctp.so* \
+		$(STAGING_DIR)/usr/lib/
+	
 endef
 
 $(eval $(call BuildPackage,sctp))
@@ -69,7 +79,7 @@ define KernelPackage/sctp
   AUTOLOAD:=\
      $(call AutoLoad,30,crc32c libcrc32c,1) \
      $(call AutoLoad,35,sctp)
-  DEPENDS:=@LINUX_2_6 +kmod-crypto-core +kmod-crypto-misc
+  DEPENDS:=@LINUX_2_6 +kmod-crypto-core +kmod-crypto-misc +kmod-crypto-md5 +kmod-crypto-hmac
 endef
 
 define KernelPackage/sctp/description
