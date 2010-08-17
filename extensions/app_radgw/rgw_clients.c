@@ -65,6 +65,7 @@ struct rgw_client {
 	};
 	
 	/* The FQDN, realm, and optional aliases */
+	int			 is_local; /* true if the RADIUS client runs on the same host -- we use Diameter Identity in that case */
 	char 			*fqdn;
 	size_t			 fqdn_len;
 	char			*realm;
@@ -94,12 +95,21 @@ static int client_create(struct rgw_client ** res, struct sockaddr ** ip_port, u
 	struct rgw_client *tmp = NULL;
 	char buf[255];
 	int ret;
+	int loc = 0;
 	
-	/* Search FQDN for the client */
-	ret = getnameinfo( *ip_port, sizeof(struct sockaddr_storage), &buf[0], sizeof(buf), NULL, 0, 0 );
-	if (ret) {
-		TRACE_DEBUG(INFO, "Unable to resolve peer name: %s", gai_strerror(ret));
-		return EINVAL;
+	/* Check if the IP address is local */
+	if (   ( ((*ip_port)->sa_family == AF_INET ) && (   IN_IS_ADDR_LOOPBACK( &((struct sockaddr_in  *)(*ip_port))->sin_addr ) ) )
+	     ||( ((*ip_port)->sa_family == AF_INET6) && (  IN6_IS_ADDR_LOOPBACK( &((struct sockaddr_in6 *)(*ip_port))->sin6_addr) ) )) {
+		/* The client is local */
+		loc = 1;
+	} else {
+	
+		/* Search FQDN for the client */
+		ret = getnameinfo( *ip_port, sizeof(struct sockaddr_storage), &buf[0], sizeof(buf), NULL, 0, 0 );
+		if (ret) {
+			TRACE_DEBUG(INFO, "Unable to resolve peer name: %s", gai_strerror(ret));
+			return EINVAL;
+		}
 	}
 	
 	/* Create the new object */
@@ -107,15 +117,19 @@ static int client_create(struct rgw_client ** res, struct sockaddr ** ip_port, u
 	memset(tmp, 0, sizeof(struct rgw_client));
 	fd_list_init(&tmp->chain, NULL);
 	
-	/* Copy the fqdn */
-	CHECK_MALLOC( tmp->fqdn = strdup(buf) );
-	tmp->fqdn_len = strlen(tmp->fqdn);
-	/* Find an appropriate realm */
-	tmp->realm = strchr(tmp->fqdn, '.');
-	if (tmp->realm)
-		tmp->realm += 1;
-	if ((!tmp->realm) || (*tmp->realm == '\0')) /* in case the fqdn was "localhost." for example, if it is possible... */
-		tmp->realm = fd_g_config->cnf_diamrlm;
+	if (loc) {
+		tmp->is_local = 1;
+	} else {
+		/* Copy the fqdn */
+		CHECK_MALLOC( tmp->fqdn = strdup(buf) );
+		tmp->fqdn_len = strlen(tmp->fqdn);
+		/* Find an appropriate realm */
+		tmp->realm = strchr(tmp->fqdn, '.');
+		if (tmp->realm)
+			tmp->realm += 1;
+		if ((!tmp->realm) || (*tmp->realm == '\0')) /* in case the fqdn was "localhost." for example, if it is possible... */
+			tmp->realm = fd_g_config->cnf_diamrlm;
+	}
 	
 	/* move the sa info reference */
 	tmp->sa = *ip_port;
@@ -154,7 +168,7 @@ static void client_unlink(struct rgw_client * client)
 }
 
 
-/* Macro to avoid duplicting the code in the next function */
+/* Macro to avoid duplicating the code in the next function */
 #define client_search_family( _family_ )												\
 		case AF_INET##_family_: {												\
 			struct sockaddr_in##_family_ * sin##_family_ = (struct sockaddr_in##_family_ *)ip_port;				\
@@ -369,8 +383,8 @@ int rgw_clients_check_origin(struct rgw_radius_msg_meta *msg, struct rgw_client 
 		return ENOTSUP;
 	}
 	
-	/* Now check the nas_id */
-	if (nas_id) {
+	/* Now check the nas_id, but only for non-local hosts */
+	if (nas_id && (! cli->is_local) ) {
 		char * str;
 		int found, ret;
 		struct addrinfo hint, *res, *ptr;
@@ -463,15 +477,22 @@ int rgw_clients_get_origin(struct rgw_client *cli, char **fqdn, char **realm)
 	TRACE_ENTRY("%p %p %p", cli, fqdn, realm);
 	CHECK_PARAMS(cli && fqdn);
 	
-	*fqdn = cli->fqdn;
-	if (realm)
-		*realm= cli->realm;
+	if (cli->is_local) {
+		*fqdn = fd_g_config->cnf_diamid;
+		if (realm)
+			*realm= fd_g_config->cnf_diamrlm;
+	} else {
+		*fqdn = cli->fqdn;
+		if (realm)
+			*realm= cli->realm;
+	}
+		
 	return 0;
 }
 
 char * rgw_clients_id(struct rgw_client *cli)
 {
-	return cli->fqdn;
+	return cli->is_local ? "(local)" : cli->fqdn;
 }
 
 
