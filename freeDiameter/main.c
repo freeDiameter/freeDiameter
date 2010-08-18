@@ -259,7 +259,6 @@ static int main_cmdline(int argc, char *argv[])
 				break;
 				
 			case 'g':	/* Full debug for the function with this name.  */
-				#ifdef DEBUG
 				{
 					int l = (int)atoi(optarg);
 					if (l) {
@@ -268,10 +267,6 @@ static int main_cmdline(int argc, char *argv[])
 						TRACE_DEBUG(INFO, "Enabled GNUTLS debug at level %d", l);
 					}
 				}
-				#else /* DEBUG */
-				TRACE_DEBUG(INFO, "Error: must compile with DEBUG support to use this feature");
-				return EINVAL;
-				#endif /* DEBUG */
 				break;
 				
 			case 'q':	/* Decrease verbosity then remove debug messages.  */
@@ -339,7 +334,8 @@ static void main_help( void )
   		"  These options are mostly useful for developers\n"
   		"  -l, --dbglocale        Set the locale for error messages\n"
   		"  -d, --debug            Increase verbosity of debug messages\n"
-  		"  -q, --quiet            Decrease verbosity then remove debug messages\n");
+  		"  -q, --quiet            Decrease verbosity then remove debug messages\n"
+  		"  --dbg_gnutls <int>     Enable GNU TLS debug at level <int>\n");
 }
 
 /* Terminate the application */
