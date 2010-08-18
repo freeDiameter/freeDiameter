@@ -179,6 +179,11 @@ end:
 	return ret;
 }
 
+/* gnutls debug */
+static void fd_gnutls_debug(int level, const char * str) {
+	fd_log_debug(" [gnutls:%d] %s", level, str);
+}
+
 /* Parse the command-line */
 static int main_cmdline(int argc, char *argv[])
 {
@@ -195,6 +200,7 @@ static int main_cmdline(int argc, char *argv[])
 		{ "dbglocale",	optional_argument, 	NULL, 'l' },
 		{ "dbg_func",	required_argument, 	NULL, 'f' },
 		{ "dbg_file",	required_argument, 	NULL, 'F' },
+		{ "dbg_gnutls",	required_argument, 	NULL, 'g' },
 		{ NULL,		0, 			NULL, 0 }
 	};
 	
@@ -246,6 +252,22 @@ static int main_cmdline(int argc, char *argv[])
 			case 'F':	/* Full debug for the file with this name.  */
 				#ifdef DEBUG
 				fd_debug_one_file = basename(optarg);
+				#else /* DEBUG */
+				TRACE_DEBUG(INFO, "Error: must compile with DEBUG support to use this feature");
+				return EINVAL;
+				#endif /* DEBUG */
+				break;
+				
+			case 'g':	/* Full debug for the function with this name.  */
+				#ifdef DEBUG
+				{
+					int l = (int)atoi(optarg);
+					if (l) {
+						gnutls_global_set_log_function((gnutls_log_func)fd_gnutls_debug);
+						gnutls_global_set_log_level (l);
+						TRACE_DEBUG(INFO, "Enabled GNUTLS debug at level %d", l);
+					}
+				}
 				#else /* DEBUG */
 				TRACE_DEBUG(INFO, "Error: must compile with DEBUG support to use this feature");
 				return EINVAL;
