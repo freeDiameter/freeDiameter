@@ -144,7 +144,7 @@ if [ "$$?" -eq "1" ]; then
       echo -n "IP or IPv6 address of your Diameter server? (leave blank for dynamic resolution) "
       read serverip
       connstr=""
-      if [ -n "$$serverip"]; then
+      if [ -n "$$serverip" ]; then
         connstr=" { ConnectTo = \"$$serverip\"; }"
       fi
       echo "ConnectPeer = \"$$serverid\"$$connstr;" >> /etc/freeDiameter/freeDiameter.conf
