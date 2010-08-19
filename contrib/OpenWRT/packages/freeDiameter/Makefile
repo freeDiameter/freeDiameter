@@ -99,7 +99,7 @@ define Package/freeDiameter/install
 	echo "LoadExtension = \"dict_eap.fdx\";" 	>> $(1)/etc/freeDiameter/freeDiameter.conf
 	echo "LoadExtension = \"app_radgw.fdx\":\"rgw.conf\";" \
 							>> $(1)/etc/freeDiameter/freeDiameter.conf
-	echo "Identity = \"localhost.localdomain\";" 	>> $(1)/etc/freeDiameter/freeDiameter.conf
+	echo "## Add overrides bellow this point" 	>> $(1)/etc/freeDiameter/freeDiameter.conf
 
 	
 	$(INSTALL_CONF) \
@@ -120,6 +120,38 @@ endef
 
 define Package/freeDiameter/postinst
 #!/bin/sh
+
+# Test if the configuration file contains the local identity already
+localid = `sed -n -r -e "s/^[[:space:]]*Identity[[:space:]]*=[[:space:]]*\"([^\"]*)\"[[:space:]]*;/\1/p" /etc/freeDiameter/freeDiameter.conf`
+if [ -z "$localid" ]; then
+   # Ask for the local name
+   echo -n "Full name of your access point? (openwrt.localdomain) : "
+   read localid
+   if [ -z "$localid" ]; then
+      localid="openwrt.localdomain"
+   fi
+   echo "Identity = \"$localid\";" >> /etc/freeDiameter/freeDiameter.conf
+fi
+
+# Is there already a ConnectPeer directive?
+grep -q -E -e "^[[:space:]]*ConnectPeer[[:space:]]*=" /etc/freeDiameter/freeDiameter.conf
+if [ "$?" -eq "1"; then
+   echo -n "Diameter Identity of your Diameter server: "
+   read serverid
+   if [ -z "$serverid" ]; then
+      echo "Skipped. Please add ConnectPeer directive to your /etc/freeDiameter/freeDiameter.conf file later."
+   else
+      echo -n "IP or IPv6 address of your Diameter server? (leave blank for dynamic resolution) "
+      read serverip
+      connstr=""
+      if [ -n "$serverip"] then
+        connstr=" { ConnectTo = \"$serverip\"; }"
+      fi
+      echo "ConnectPeer = \"$serverid\"$connstr;" >> /etc/freeDiameter/freeDiameter.conf
+   fi
+fi
+
+# Certificate configuration    
 if [ ! -f "/usr/bin/certtool" ]; then
    echo "certtool is not installed, skipping creation of default certificate."
    exit 0
@@ -129,8 +161,24 @@ if [ ! -f "/etc/freeDiameter/freeDiameter.pem" ]; then
       echo "Creating a new private key for freeDiameter TLS layer, please wait"
       certtool -p --outfile /etc/freeDiameter/freeDiameter.key
    fi
-   echo "Creating a new certificate for freeDiameter TLS layer, please enter the appropriate values for your access point" 
-   certtool -s --load-privkey /etc/freeDiameter/freeDiameter.key --outfile /etc/freeDiameter/freeDiameter.pem
+   echo "Creating a new certificate for freeDiameter TLS layer"
+   echo "organization = freeDiameter"		> /tmp/template.cnf
+   echo "unit = OpenWRT"			>>/tmp/template.cnf
+   echo "state = internet"			>>/tmp/template.cnf
+   echo "country = net"				>>/tmp/template.cnf
+   echo "cn = $localid"				>>/tmp/template.cnf
+   echo "expiration_days = 3650			>>/tmp/template.cnf
+   echo "signing_key				>>/tmp/template.cnf
+   echo "encryption_key				>>/tmp/template.cnf
+   certtool -s --load-privkey /etc/freeDiameter/freeDiameter.key \
+               --outfile /etc/freeDiameter/freeDiameter.pem \
+	       --template /tmp/template.cnf
+   rm -f /tmp/template.cnf
+   echo "Done."
+   echo "To enable TLS communication, you should either:"
+   echo "  - use a real certificate signed by your server's CA"
+   echo "  - or, copy the two peers certificates in a ca.pem file and "
+   echo "    add this file in freeDiameter configuration."
 fi
 endef
 
