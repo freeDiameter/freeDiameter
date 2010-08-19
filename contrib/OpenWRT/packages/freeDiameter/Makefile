@@ -122,7 +122,7 @@ define Package/freeDiameter/postinst
 #!/bin/sh
 
 # Test if the configuration file contains the local identity already
-localid = `sed -n -r -e "s/^[[:space:]]*Identity[[:space:]]*=[[:space:]]*\"([^\"]*)\"[[:space:]]*;/\1/p" /etc/freeDiameter/freeDiameter.conf`
+localid=`sed -n -r -e "s/^[[:space:]]*Identity[[:space:]]*=[[:space:]]*\"([^\"]*)\"[[:space:]]*;/\1/p" /etc/freeDiameter/freeDiameter.conf`
 if [ -z "$localid" ]; then
    # Ask for the local name
    echo -n "Full name of your access point? (openwrt.localdomain) : "
@@ -135,7 +135,7 @@ fi
 
 # Is there already a ConnectPeer directive?
 grep -q -E -e "^[[:space:]]*ConnectPeer[[:space:]]*=" /etc/freeDiameter/freeDiameter.conf
-if [ "$?" -eq "1"; then
+if [ "$?" -eq "1" ]; then
    echo -n "Diameter Identity of your Diameter server: "
    read serverid
    if [ -z "$serverid" ]; then
@@ -144,7 +144,7 @@ if [ "$?" -eq "1"; then
       echo -n "IP or IPv6 address of your Diameter server? (leave blank for dynamic resolution) "
       read serverip
       connstr=""
-      if [ -n "$serverip"] then
+      if [ -n "$serverip"]; then
         connstr=" { ConnectTo = \"$serverip\"; }"
       fi
       echo "ConnectPeer = \"$serverid\"$connstr;" >> /etc/freeDiameter/freeDiameter.conf
@@ -167,18 +167,20 @@ if [ ! -f "/etc/freeDiameter/freeDiameter.pem" ]; then
    echo "state = internet"			>>/tmp/template.cnf
    echo "country = net"				>>/tmp/template.cnf
    echo "cn = $localid"				>>/tmp/template.cnf
-   echo "expiration_days = 3650			>>/tmp/template.cnf
-   echo "signing_key				>>/tmp/template.cnf
-   echo "encryption_key				>>/tmp/template.cnf
+   echo "expiration_days = 3650"		>>/tmp/template.cnf
+   echo "signing_key"				>>/tmp/template.cnf
+   echo "encryption_key"			>>/tmp/template.cnf
    certtool -s --load-privkey /etc/freeDiameter/freeDiameter.key \
                --outfile /etc/freeDiameter/freeDiameter.pem \
 	       --template /tmp/template.cnf
    rm -f /tmp/template.cnf
    echo "Done."
+   echo "============================================================"
    echo "To enable TLS communication, you should either:"
    echo "  - use a real certificate signed by your server's CA"
    echo "  - or, copy the two peers certificates in a ca.pem file and "
    echo "    add this file in freeDiameter configuration."
+   echo "============================================================"
 fi
 endef
 
