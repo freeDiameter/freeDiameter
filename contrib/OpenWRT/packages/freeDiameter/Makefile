@@ -123,31 +123,31 @@ define Package/freeDiameter/postinst
 
 # Test if the configuration file contains the local identity already
 localid=`sed -n -r -e "s/^[[:space:]]*Identity[[:space:]]*=[[:space:]]*\"([^\"]*)\"[[:space:]]*;/\1/p" /etc/freeDiameter/freeDiameter.conf`
-if [ -z "$localid" ]; then
+if [ -z "\$localid" ]; then
    # Ask for the local name
    echo -n "Full name of your access point? (openwrt.localdomain) : "
    read localid
-   if [ -z "$localid" ]; then
+   if [ -z "\$localid" ]; then
       localid="openwrt.localdomain"
    fi
-   echo "Identity = \"$localid\";" >> /etc/freeDiameter/freeDiameter.conf
+   echo "Identity = \"\$localid\";" >> /etc/freeDiameter/freeDiameter.conf
 fi
 
 # Is there already a ConnectPeer directive?
 grep -q -E -e "^[[:space:]]*ConnectPeer[[:space:]]*=" /etc/freeDiameter/freeDiameter.conf
-if [ "$?" -eq "1" ]; then
+if [ "\$?" -eq "1" ]; then
    echo -n "Diameter Identity of your Diameter server: "
    read serverid
-   if [ -z "$serverid" ]; then
+   if [ -z "\$serverid" ]; then
       echo "Skipped. Please add ConnectPeer directive to your /etc/freeDiameter/freeDiameter.conf file later."
    else
       echo -n "IP or IPv6 address of your Diameter server? (leave blank for dynamic resolution) "
       read serverip
       connstr=""
-      if [ -n "$serverip"]; then
-        connstr=" { ConnectTo = \"$serverip\"; }"
+      if [ -n "\$serverip"]; then
+        connstr=" { ConnectTo = \"\$serverip\"; }"
       fi
-      echo "ConnectPeer = \"$serverid\"$connstr;" >> /etc/freeDiameter/freeDiameter.conf
+      echo "ConnectPeer = \"\$serverid\"\$connstr;" >> /etc/freeDiameter/freeDiameter.conf
    fi
 fi
 
@@ -166,7 +166,7 @@ if [ ! -f "/etc/freeDiameter/freeDiameter.pem" ]; then
    echo "unit = OpenWRT"			>>/tmp/template.cnf
    echo "state = internet"			>>/tmp/template.cnf
    echo "country = net"				>>/tmp/template.cnf
-   echo "cn = $localid"				>>/tmp/template.cnf
+   echo "cn = \$localid"			>>/tmp/template.cnf
    echo "expiration_days = 3650"		>>/tmp/template.cnf
    echo "signing_key"				>>/tmp/template.cnf
    echo "encryption_key"			>>/tmp/template.cnf
