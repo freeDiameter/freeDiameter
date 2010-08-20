@@ -68,6 +68,13 @@ int ed_conffile_parse(char * conffile, struct rgwp_config *cs)
 	int ret;
 	
 	rgwx_echodropin = fopen(conffile, "r");
+	if ((rgwx_echodropin == NULL) && (*conffile != '/')) { /* We received a relative path, try adding DEFAULT_CONF_PATH prefix */
+		char * fullpath;
+		CHECK_MALLOC( fullpath = malloc( strlen(conffile) + strlen(DEFAULT_CONF_PATH) + 2 ) );
+		sprintf( fullpath, DEFAULT_CONF_PATH "/%s", conffile );
+		rgwx_echodropin = fopen(fullpath, "r");
+		free(fullpath);
+	}
 	if (rgwx_echodropin == NULL) {
 		ret = errno;
 		fd_log_debug("[echodrop.rgwx] Unable to open plugin configuration file %s for reading: %s\n", conffile, strerror(ret));

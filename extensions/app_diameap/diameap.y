@@ -133,9 +133,9 @@ EAPmethod :	EAPMETHOD '=' iSTRING ':' NUM ':' NUM ':' iSTRING ':' iSTRING ';'
 			fl = fopen(cfile, "r");
 			if ((fl == NULL) && (*cfile != '/')) {
 				char * tmp = cfile;
-				CHECK_MALLOC_DO( cfile = malloc( strlen(tmp) + strlen(DEFAULT_EXTENSIONS_PATH) + 2 ),
+				CHECK_MALLOC_DO( cfile = malloc( strlen(tmp) + strlen(DEFAULT_CONF_PATH) + 2 ),
 					{ yyerror (&yylloc, config, "Not enough memory"); YYERROR; } );
-				sprintf(cfile, DEFAULT_EXTENSIONS_PATH "/%s", tmp);
+				sprintf(cfile, DEFAULT_CONF_PATH "/%s", tmp);
 				free(tmp);
 				fl = fopen(cfile, "r");
 			}
