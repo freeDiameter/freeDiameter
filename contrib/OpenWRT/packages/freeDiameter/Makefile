@@ -94,6 +94,8 @@ define Package/freeDiameter/install
 	echo "### OPENWRT specific"		 	>> $(1)/etc/freeDiameter/freeDiameter.conf
 	echo "TLS_Cred = \"/etc/freeDiameter/freeDiameter.pem\", \"/etc/freeDiameter/freeDiameter.key\";" \
 							>> $(1)/etc/freeDiameter/freeDiameter.conf
+	echo "TLS_CA = \"/etc/freeDiameter/freeDiameter.ca.pem\";" \
+							>> $(1)/etc/freeDiameter/freeDiameter.conf
 	echo "TLS_DH_Bits = 768;" 			>> $(1)/etc/freeDiameter/freeDiameter.conf
 	echo "LoadExtension = \"dict_nasreq.fdx\";" 	>> $(1)/etc/freeDiameter/freeDiameter.conf
 	echo "LoadExtension = \"dict_eap.fdx\";" 	>> $(1)/etc/freeDiameter/freeDiameter.conf
@@ -170,20 +172,27 @@ if [ ! -f "/etc/freeDiameter/freeDiameter.pem" ]; then
    echo "expiration_days = 3650"		>>/tmp/template.cnf
    echo "signing_key"				>>/tmp/template.cnf
    echo "encryption_key"			>>/tmp/template.cnf
-   certtool -q --load-privkey /etc/freeDiameter/freeDiameter.key \
+   if [ ! -f "/etc/freeDiameter/freeDiameter.csr" ]; then 
+      echo "Creating a new CSR"
+      certtool -q --load-privkey /etc/freeDiameter/freeDiameter.key \
                --outfile /etc/freeDiameter/freeDiameter.csr \
 	       --template /tmp/template.cnf
+   fi
    certtool -s --load-privkey /etc/freeDiameter/freeDiameter.key \
                --outfile /etc/freeDiameter/freeDiameter.pem \
 	       --template /tmp/template.cnf
    rm -f /tmp/template.cnf
+   cat /etc/freeDiameter/freeDiameter.pem >> /etc/freeDiameter/freeDiameter.ca.pem
    echo "Done."
    echo "========================================================================"
    echo "To enable TLS communication, you should either:"
-   echo "  - use a real certificate signed by your server's CA"
-   echo "      (CSR provided in /etc/freeDiameter/freeDiameter.csr)"
-   echo "  - or, copy the two certificates (client & server) in a ca.pem file and "
-   echo "    add this file in both freeDiameter configurations (as TLS_CA)."
+   echo "  - use a real certificate signed by your server's CA:"
+   echo "      Use the CSR provided in /etc/freeDiameter/freeDiameter.csr"
+   echo "      Save the new certificate as /etc/freeDiameter/freeDiameter.pem"
+   echo "      Replace the contents of /etc/freeDiameter/freeDiameter.ca.pem with your CA's certificate"
+   echo "  - or, declare the certificates as trusted as follow: "
+   echo "      Add your server's CA certificate into /etc/freeDiameter/freeDiameter.ca.pem"
+   echo "      Add the content of /etc/freeDiameter/freeDiameter.pem into your server's trusted CA file"
    echo "========================================================================"
 fi
 endef
