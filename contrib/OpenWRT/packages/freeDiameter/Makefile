@@ -170,17 +170,21 @@ if [ ! -f "/etc/freeDiameter/freeDiameter.pem" ]; then
    echo "expiration_days = 3650"		>>/tmp/template.cnf
    echo "signing_key"				>>/tmp/template.cnf
    echo "encryption_key"			>>/tmp/template.cnf
+   certtool -q --load-privkey /etc/freeDiameter/freeDiameter.key \
+               --outfile /etc/freeDiameter/freeDiameter.csr \
+	       --template /tmp/template.cnf
    certtool -s --load-privkey /etc/freeDiameter/freeDiameter.key \
                --outfile /etc/freeDiameter/freeDiameter.pem \
 	       --template /tmp/template.cnf
    rm -f /tmp/template.cnf
    echo "Done."
-   echo "============================================================"
+   echo "========================================================================"
    echo "To enable TLS communication, you should either:"
    echo "  - use a real certificate signed by your server's CA"
-   echo "  - or, copy the two peers certificates in a ca.pem file and "
-   echo "    add this file in freeDiameter configuration."
-   echo "============================================================"
+   echo "      (CSR provided in /etc/freeDiameter/freeDiameter.csr)"
+   echo "  - or, copy the two certificates (client & server) in a ca.pem file and "
+   echo "    add this file in both freeDiameter configurations (as TLS_CA)."
+   echo "========================================================================"
 fi
 endef
 
