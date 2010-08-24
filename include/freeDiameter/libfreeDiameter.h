@@ -484,6 +484,10 @@ int fd_breakhere(void);
 #define INADDR_LOOPBACK	inet_addr("127.0.0.1")
 #endif /* INADDR_LOOPBACK */
 
+#ifndef INADDR_BROADCAST
+#define	INADDR_BROADCAST	((in_addr_t) 0xffffffff)
+#endif /* INADDR_BROADCAST */
+
 /* An IP equivalent to IN6_IS_ADDR_LOOPBACK */
 #ifndef IN_IS_ADDR_LOOPBACK
 #define IN_IS_ADDR_LOOPBACK(a) \
