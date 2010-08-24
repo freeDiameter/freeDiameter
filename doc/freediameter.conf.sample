@@ -11,7 +11,7 @@
 #Identity = "aaa.koganei.freediameter.net";
 
 # The Diameter Realm of this daemon.
-# Default: the domain part of Identity.
+# Default: the domain part of Identity (after the first dot).
 #Realm = "koganei.freediameter.net";
 
 ##############################################################
@@ -68,6 +68,9 @@
 #ListenOn = "202.249.37.5";
 #ListenOn = "2001:200:903:2::202:1";
 #ListenOn = "fe80::21c:5ff:fe98:7d62%eth0";
+
+# Note: although by default freeDiameter listens also on the loopback interface, it
+# will not be able to connect to the loopback address.
 
 ##############################################################
 ##  TLS Configuration
@@ -183,6 +186,11 @@ TLS_Cred = "/etc/ssl/certs/freeDiameter.pem", "/etc/ssl/private/freeDiameter.key
 #
 # Note that the configured Diameter Id MUST match
 # the information received inside CEA, or the connection will be aborted.
+#
+# Note also, loopback addresses are not allowed currently in freeDiameter 
+# (because of a bad behavior if they are allowed).
+# As a workaround, one might provide a public address of the local machine to
+# test locally.
 #
 # Format:
 #ConnectPeer = "diameterid" [ { parameter1; parameter2; ...} ] ;
