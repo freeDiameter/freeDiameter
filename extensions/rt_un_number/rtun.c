@@ -136,6 +136,13 @@ static int rtun_entry(char * conffile)
 	/* Parse the configuration file */
 	CHECK_FCT( rtun_conf_handle(conffile) );
 	
+	/* Check the configuration */
+	CHECK_PARAMS_DO( rtun_conf.serv_nb > 1,
+		{
+			fd_log_debug("[rt_un_number] Invalid configuration: you need at least 2 servers to perform load-balancing.\n");
+			return EINVAL;
+		} );
+	
 	/* Register the callback */
 	CHECK_FCT( fd_rt_out_register( rtun_out, NULL, 1, &rtun_hdl ) );
 	
