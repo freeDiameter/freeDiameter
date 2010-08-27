@@ -121,7 +121,8 @@ BR_PORT		[[][0-9]+[]]
 
 
 	/* Client section */
-(?i:"cli")		{ BEGIN(IN_CLI1); return CLI_PREFIX; 		}
+(?i:"nas"|"cli")	{ BEGIN(IN_CLI1); yylval->integer=RGW_CLI_NAS; return NAS_OR_PXY; 		}
+(?i:"pxy")		{ BEGIN(IN_CLI1); yylval->integer=RGW_CLI_PXY; return NAS_OR_PXY; 		}
 
 	/* Match an IP (4 or 6) and optional port */
 <IN_CLI1>({IP4}|{IP6}){BR_PORT}?	{

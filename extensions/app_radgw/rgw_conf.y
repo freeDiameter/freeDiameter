@@ -145,13 +145,14 @@ static char * plgconffile = NULL;
 
 %type <string>	FINDFILEEXT
 
+%token <integer> NAS_OR_PXY
+
 /* simple tokens */
 %token		DISABLED
 %token		AUTH
 %token		ACCT
 
 %token 		PLG_PREFIX
-%token 		CLI_PREFIX
 
 %token		AUTH_ENABLE
 %token		AUTH_PORT
@@ -263,10 +264,10 @@ extcodes_list:		/* empty */
 clientdef:		{
 				buf_reinit();
 			}
-			CLI_PREFIX '=' IP '/' clisecret_key ';'
+			NAS_OR_PXY '=' IP '/' clisecret_key ';'
 			{
 				/* Add this client */
-				if ( rgw_clients_add( $4, &buf, buf_sz ) ) {
+				if ( rgw_clients_add( $4, &buf, buf_sz, $2 ) ) {
 					yyerror (&yylloc, conffile, "Error parsing / adding client !");
 					YYERROR;
 				}

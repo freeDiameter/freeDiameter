@@ -57,18 +57,12 @@ struct rgw_radius_msg_meta {
 		
 		/* The message has a valid Message-Authenticator attribute */
 		unsigned	valid_mac :1;
-		
-		/* The message has a valid NAS-IP(v6)-Address (1) and/or NAS-Identifier (2) attribute */
-		unsigned	valid_nas_info :2;
 	};
 	
 };
 void rgw_msg_free(struct rgw_radius_msg_meta ** msg);
 int rgw_msg_parse(unsigned char * buf, size_t len, struct rgw_radius_msg_meta ** msg);
 void rgw_msg_dump(struct rgw_radius_msg_meta * msg);
-int rgw_msg_auth_check(struct rgw_radius_msg_meta * msg, struct rgw_client * cli, uint8_t * req_auth);
-int rgw_msg_create_base(struct rgw_client * cli, struct msg ** diam);
-int rgw_msg_init(void);
 
 /* Local RADIUS server(s) configuration */
 struct rgw_serv {
@@ -96,14 +90,18 @@ void rgw_servers_fini(void);
 
 
 /* Clients management */
-int rgw_clients_add( struct sockaddr * ip_port, unsigned char ** key, size_t keylen );
+enum rgw_cli_type { RGW_CLI_NAS, RGW_CLI_PXY };
+int rgw_clients_auth_check(struct rgw_radius_msg_meta * msg, struct rgw_client * cli, uint8_t * req_auth);
+int rgw_clients_add( struct sockaddr * ip_port, unsigned char ** key, size_t keylen, enum rgw_cli_type type );
 int rgw_clients_getkey(struct rgw_client * cli, unsigned char **key, size_t *key_len);
+int rgw_clients_gettype(struct rgw_client * cli, enum rgw_cli_type *type);
 int rgw_clients_search(struct sockaddr * ip_port, struct rgw_client ** ref);
 int rgw_clients_check_dup(struct rgw_radius_msg_meta **msg, struct rgw_client *cli);
-int rgw_clients_check_origin(struct rgw_radius_msg_meta *msg, struct rgw_client *cli);
+int rgw_clients_create_origin(struct rgw_radius_msg_meta *msg, struct rgw_client * cli, struct msg ** diam);
 int rgw_client_finish_send(struct radius_msg ** msg, struct rgw_radius_msg_meta * req, struct rgw_client * cli);
 void rgw_clients_dispose(struct rgw_client ** ref);
 void rgw_clients_dump(void);
+int rgw_clients_init(void);
 void rgw_clients_fini(void);
 int rgw_client_session_add(struct rgw_client * cli, struct session *sess, char * dest_realm, char * dest_host, application_id_t appid);
 int rgw_client_session_stop(struct rgw_client * cli, struct session * sess, int32_t reason);

@@ -3,7 +3,8 @@
  *  The content from this file comes directly from the hostap project.
  * It is redistributed under the terms of the BSD license, as allowed
  * by the original copyright reproduced bellow.
- *  In addition to this notice, only the #include directives have been modified.
+ *  In addition to this notice, the following changes have been done:
+ *   - created the radius_msg_dump_attr_val function
  */
 #include "rgw_common.h"
 
@@ -217,16 +218,13 @@ static void print_char(char c)
 }
 
 
-static void radius_msg_dump_attr(struct radius_attr_hdr *hdr)
+void radius_msg_dump_attr_val(struct radius_attr_hdr *hdr)
 {
 	struct radius_attr_type *attr;
 	int i, len;
 	unsigned char *pos;
 
 	attr = radius_get_attr_type(hdr->type);
-
-	printf("   Attribute %d (%s) length=%d\n",
-	       hdr->type, attr ? attr->name : "?Unknown?", hdr->length);
 
 	if (attr == NULL)
 		return;
@@ -282,6 +280,18 @@ static void radius_msg_dump_attr(struct radius_attr_hdr *hdr)
 	default:
 		break;
 	}
+}
+
+static void radius_msg_dump_attr(struct radius_attr_hdr *hdr)
+{
+	struct radius_attr_type *attr;
+
+	attr = radius_get_attr_type(hdr->type);
+
+	printf("   Attribute %d (%s) length=%d\n",
+	       hdr->type, attr ? attr->name : "?Unknown?", hdr->length);
+	
+	radius_msg_dump_attr_val(hdr);
 }
 
 

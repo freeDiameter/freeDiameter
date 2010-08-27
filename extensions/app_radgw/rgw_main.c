@@ -41,7 +41,7 @@
 /* Extension entry point called by freeDiameter */
 static int rgw_main(char * conffile) 
 {
-	CHECK_FCT( rgw_msg_init() );
+	CHECK_FCT( rgw_clients_init() );
 	
 	CHECK_FCT( rgw_servers_init() );
 	

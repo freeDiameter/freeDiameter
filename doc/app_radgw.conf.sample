@@ -48,14 +48,23 @@ RGWX = "extensions/acct.rgwx" : acct;
 # RADIUS Clients #
 ##################
 
-# Each RADIUS client must be declared in the form: cli = IP / shared-secret ;
+# Each RADIUS client must be declared in the form: 
+#   nas = IP / shared-secret ;
 # IP can be ipv4 or ipv6
 # port can be additionaly restricted with brackets: IP[port] (ex: 192.168.0.1[1812])
 # shared-secret can be a quoted string, or a list of hexadecimal values.
 # examples:
-# cli = 192.168.100.1 / "secret key" ; # the shared secret buffer is 0x736563726574206b6579 (length 10 bytes)
-# cli = fe00::1 / 73 65 63 72 65 74 20 6b 65 79; # same shared secret as previously
+# nas = 192.168.100.1 / "secret key" ; # the shared secret buffer is 0x736563726574206b6579 (length 10 bytes)
+# nas = fe00::1 / 73 65 63 72 65 74 20 6b 65 79; # same shared secret as previously
 # When a packet is received from an IP not declared here, it is discarded.
+
+# If the RADIUS client is a Proxy that forwards messages from different peers, it must be
+# declared instead as follow:
+#   pxy = IP / shared-secret ;
+# Note that it is not recommended to use this gateway implementation with a proxy currently,
+# since the management of duplicate messages might be insufficient.
+
+# The old notation cli = ... is equivalent to nas = ... and kept for backward compatibility.
 
 
 ####################

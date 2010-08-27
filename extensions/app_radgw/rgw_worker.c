@@ -96,7 +96,7 @@ static void * work_th(void * arg)
 		/* process the data */
 		
 		/* Check authenticator, if any */
-		CHECK_FCT_DO( rgw_msg_auth_check(msg, cli, NULL),
+		CHECK_FCT_DO( rgw_clients_auth_check(msg, cli, NULL),
 			{
 				/* An error occurred, discard message */
 				rgw_msg_free(&msg);
@@ -117,22 +117,16 @@ static void * work_th(void * arg)
 			continue; /* the message was a duplicate */
 		}
 		
-		/* Check that IP is coherent with the identity in the message */
-		CHECK_FCT_DO( rgw_clients_check_origin(msg, cli),
-			{
-				/* An error occurred, discard message */
-				rgw_msg_free(&msg);
-				rgw_clients_dispose(&cli);
-				continue;
-			}  );
-		
-		/* Note: after this point, the radius message buffer may not be consistent with the array of attributes anymore. */
 		diam_msg = NULL;
-		
-		/* Create an empty message with only Origin information (no session, no destination -- added by the plugins) */
-		CHECK_FCT_DO( rgw_msg_create_base(cli, &diam_msg),
+		/* Note: after this point, the radius message buffer may not be consistent with the array of attributes anymore. */
+	
+		/* Check that IP is coherent with the identity in the message, and create an empty message with only Origin information */
+		CHECK_FCT_DO( rgw_clients_create_origin(msg, cli, &diam_msg),
 			{
 				/* An error occurred, discard message */
+				if (diam_msg) {
+					CHECK_FCT_DO( fd_msg_free(diam_msg), );
+				}
 				rgw_msg_free(&msg);
 				rgw_clients_dispose(&cli);
 				continue;

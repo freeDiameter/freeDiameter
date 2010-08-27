@@ -3,8 +3,11 @@
  *  The content from this file comes directly from the hostap project.
  * It is redistributed under the terms of the BSD license, as allowed
  * by the original copyright reproduced bellow.
- *  The file has not been modified, except for this notice.
+ *  The file has not been modified, except for this notice and
+ * declaration of:
+ *  void radius_msg_dump_attr_val(struct radius_attr_hdr *hdr);
  */
+
 /*********************************************************************************/
 
 /*
@@ -215,6 +218,7 @@ struct radius_msg *radius_msg_new(u8 code, u8 identifier);
 int radius_msg_initialize(struct radius_msg *msg, size_t init_len);
 void radius_msg_set_hdr(struct radius_msg *msg, u8 code, u8 identifier);
 void radius_msg_free(struct radius_msg *msg);
+void radius_msg_dump_attr_val(struct radius_attr_hdr *hdr);
 void radius_msg_dump(struct radius_msg *msg);
 int radius_msg_finish(struct radius_msg *msg, const u8 *secret,
 		      size_t secret_len);
