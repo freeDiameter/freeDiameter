@@ -223,16 +223,19 @@ void radius_msg_dump_attr_val(struct radius_attr_hdr *hdr)
 	struct radius_attr_type *attr;
 	int i, len;
 	unsigned char *pos;
+	u8 attrtype;
 
 	attr = radius_get_attr_type(hdr->type);
 
 	if (attr == NULL)
-		return;
+		attrtype = RADIUS_ATTR_HEXDUMP;
+	else
+		attrtype = attr->data_type;
 
 	len = hdr->length - sizeof(struct radius_attr_hdr);
 	pos = (unsigned char *) (hdr + 1);
 
-	switch (attr->data_type) {
+	switch (attrtype) {
 	case RADIUS_ATTR_TEXT:
 		printf("      Value: '");
 		for (i = 0; i < len; i++)
@@ -249,7 +252,6 @@ void radius_msg_dump_attr_val(struct radius_attr_hdr *hdr)
 			printf("      Invalid IP address length %d\n", len);
 		break;
 
-#ifdef CONFIG_IPV6
 	case RADIUS_ATTR_IPV6:
 		if (len == 16) {
 			char buf[128];
@@ -260,15 +262,6 @@ void radius_msg_dump_attr_val(struct radius_attr_hdr *hdr)
 		} else
 			printf("      Invalid IPv6 address length %d\n", len);
 		break;
-#endif /* CONFIG_IPV6 */
-
-	case RADIUS_ATTR_HEXDUMP:
-	case RADIUS_ATTR_UNDIST:
-		printf("      Value:");
-		for (i = 0; i < len; i++)
-			printf(" %02x", pos[i]);
-		printf("\n");
-		break;
 
 	case RADIUS_ATTR_INT32:
 		if (len == 4)
@@ -277,7 +270,13 @@ void radius_msg_dump_attr_val(struct radius_attr_hdr *hdr)
 			printf("      Invalid INT32 length %d\n", len);
 		break;
 
+	case RADIUS_ATTR_HEXDUMP:
+	case RADIUS_ATTR_UNDIST:
 	default:
+		printf("      Value:");
+		for (i = 0; i < len; i++)
+			printf(" %02x", pos[i]);
+		printf("\n");
 		break;
 	}
 }
