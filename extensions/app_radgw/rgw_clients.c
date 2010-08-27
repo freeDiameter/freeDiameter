@@ -453,11 +453,11 @@ int rgw_clients_create_origin(struct rgw_radius_msg_meta *msg, struct rgw_client
 	*/
 	if (nas_ip || nas_ip6) {
 		if (!valid_nas_info) {
-			if (cli->type == RGW_CLI_NAS) {
+			if ((!cli->is_local) && (cli->type == RGW_CLI_NAS)) {
 				TRACE_DEBUG(INFO, "Message received with a NAS-IP-Address or NAS-IPv6-Address different \nfrom the sender's. Please configure as Proxy if this is expected.\n Message discarded.");
 				return EINVAL;
 			} else {
-				/* the peer is configured as a proxy, so accept the message */
+				/* the peer is configured as a proxy, or running on localhost, so accept the message */
 				sSS ss;
 				
 				/* In that case, the cli will be stored as Route-Record and the NAS-IP-Address as origin */
@@ -478,6 +478,11 @@ int rgw_clients_create_origin(struct rgw_radius_msg_meta *msg, struct rgw_client
 				}
 				CHECK_SYS_DO( getnameinfo( (sSA *)&ss, sSAlen(&ss), &buf[0], sizeof(buf), NULL, 0, NI_NAMEREQD),
 					{
+						if (cli->is_local) {
+							CHECK_FCT( rgw_clients_get_origin(cli, &oh_str, &or_str) );
+							goto diameter;
+						}
+						
 						TRACE_DEBUG(INFO, "The NAS-IP*-Address cannot be DNS reversed in order to create the Origin-Host AVP; rejecting the message (translation is impossible).");
 						return EINVAL;
 					} );
