@@ -746,7 +746,7 @@ static void dump_cli_list(struct fd_list *senti)
 	
 	for (ref = senti->next; ref != senti; ref = ref->next) {
 		client = (struct rgw_client *)ref;
-		TRACE_DEBUG_sSA(NONE, 	 "  - ", client->sa, NI_NUMERICHOST | NI_NUMERICSERV, "" );
+		TRACE_DEBUG_sSA(NONE, 	 "  - ", client->sa, NI_NUMERICHOST | NI_NUMERICSERV, (type == RGW_CLI_NAS) ? "" : " [PROXY]" );
 	}
 }
 
