@@ -98,7 +98,7 @@ void rgw_msg_dump(struct rgw_radius_msg_meta * msg)
 			auth[12], auth[13], auth[14], auth[15]);
 	for (i = 0; i < msg->radius.attr_used; i++) {
 		struct radius_attr_hdr *attr = (struct radius_attr_hdr *)(msg->radius.buf + msg->radius.attr_pos[i]);
-		fd_log_debug("    - len:%3hhu, type:0x%02hhx (%s)\n", attr->length, attr->type, rgw_msg_attrtype_str(attr->type));
+		fd_log_debug("    - type: 0x%02hhx (%s)\n       len: %3hhu,", attr->length, attr->type, rgw_msg_attrtype_str(attr->type));
 		radius_msg_dump_attr_val(attr);
 	}
 	fd_log_debug("-----------------------------\n");
