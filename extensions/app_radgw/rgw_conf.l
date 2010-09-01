@@ -198,11 +198,11 @@ BR_PORT		[[][0-9]+[]]
 
 
 	/* Servers section */
-(?i:"auth_server_enable")	{ return AUTH_ENABLE; 				}
+(?i:"auth_server_enable")	{ BEGIN(EXPECT_DECINT); return AUTH_ENABLE; 	}
 (?i:"auth_server_port")		{ BEGIN(EXPECT_DECINT); return AUTH_PORT; 	}
 (?i:"auth_server_ip4")		{ BEGIN(EXPECT_IP4); return AUTH_IP4; 		}
 (?i:"auth_server_ip6")		{ BEGIN(EXPECT_IP6); return AUTH_IP6; 		}
-(?i:"acct_server_enable")	{ return ACCT_ENABLE; 				}
+(?i:"acct_server_enable")	{ BEGIN(EXPECT_DECINT); return ACCT_ENABLE; 	}
 (?i:"acct_server_port")		{ BEGIN(EXPECT_DECINT); return ACCT_PORT; 	}
 (?i:"acct_server_ip4")		{ BEGIN(EXPECT_IP4); return ACCT_IP4; 		}
 (?i:"acct_server_ip6")		{ BEGIN(EXPECT_IP6); return ACCT_IP6; 		}
