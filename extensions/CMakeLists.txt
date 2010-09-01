@@ -76,10 +76,10 @@ OPTION(BUILD_RT_DEFAULT "Build rt_default? (Configurable routing rules for freeD
 	   SUBDIRS(rt_default)
 	ENDIF (BUILD_RT_DEFAULT)
 
-OPTION(BUILD_RT_UN_NUMBER "Build rt_un_number? (Load-balancing based on numerical User-Name AVP value)" OFF)
-	IF (BUILD_RT_UN_NUMBER)
-	   SUBDIRS(rt_un_number)
-	ENDIF (BUILD_RT_UN_NUMBER)
+OPTION(BUILD_RT_EREG "Build rt_ereg? (Configurable routing based on regexp matching of AVP values)" OFF)
+	IF (BUILD_RT_EREG)
+	   SUBDIRS(rt_ereg)
+	ENDIF (BUILD_RT_EREG)
 
 
 ####
