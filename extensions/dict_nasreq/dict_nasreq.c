@@ -2344,9 +2344,9 @@ static int dnr_entry(char * conffile)
 					};
 			struct local_rules_definition rules[] = 
 						{ 	 {  "Tunnel-Type", 			RULE_REQUIRED, -1, 1 }
-							,{  "Tunnel-Medium-Type",		RULE_REQUIRED, -1, 1 }
-							,{  "Tunnel-Client-Endpoint",		RULE_REQUIRED, -1, 1 }
-							,{  "Tunnel-Server-Endpoint",		RULE_REQUIRED, -1, 1 }
+							,{  "Tunnel-Medium-Type",		RULE_OPTIONAL, -1, 1 }
+							,{  "Tunnel-Client-Endpoint",		RULE_OPTIONAL, -1, 1 }
+							,{  "Tunnel-Server-Endpoint",		RULE_OPTIONAL, -1, 1 }
 							,{  "Tunnel-Preference",		RULE_OPTIONAL, -1, 1 }
 							,{  "Tunnel-Client-Auth-Id",		RULE_OPTIONAL, -1, 1 }
 							,{  "Tunnel-Server-Auth-Id",		RULE_OPTIONAL, -1, 1 }
