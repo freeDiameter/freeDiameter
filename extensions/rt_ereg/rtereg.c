@@ -60,6 +60,8 @@ static int proceed(char * value, size_t len, struct fd_list * candidates)
 		int err = 0;
 		struct fd_list * c;
 		
+		TRACE_DEBUG(ANNOYING, "Attempt pattern matching of '%.*s' with rule '%s'", len, value, r->pattern);
+		
 		#ifdef HAVE_REG_STARTEND
 		{
 			regmatch_t pmatch[1];

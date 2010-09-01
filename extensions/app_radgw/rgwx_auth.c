@@ -122,22 +122,27 @@ struct rgwp_config {
 	} dict; /* cache of the dictionary objects we use */
 	struct session_handler * sess_hdl; /* We store RADIUS request authenticator information in the session */
 	char * confstr;
+	
+	int ignore_nai;
 };
 
 /* Initialize the plugin */
-static int auth_conf_parse(char * conffile, struct rgwp_config ** state)
+static int auth_conf_parse(char * confstr, struct rgwp_config ** state)
 {
 	struct rgwp_config * new;
 	struct dict_object * app;
 	
-	TRACE_ENTRY("%p %p", conffile, state);
+	TRACE_ENTRY("%p %p", confstr, state);
 	CHECK_PARAMS( state );
 	
 	CHECK_MALLOC( new = malloc(sizeof(struct rgwp_config)) );
 	memset(new, 0, sizeof(struct rgwp_config));
 	
 	CHECK_FCT( fd_sess_handler_create( &new->sess_hdl, free ) );
-	new->confstr = conffile;
+	new->confstr = confstr;
+	
+	if (strstr(confstr, "nonai"))
+		new->ignore_nai = 1;
 	
 	/* Resolve all dictionary objects we use */
 	CHECK_FCT( fd_dict_search( fd_g_config->cnf_dict, DICT_AVP, AVP_BY_NAME, "ARAP-Password", &new->dict.ARAP_Password, ENOENT) );
@@ -417,7 +422,7 @@ static int auth_rad_req( struct rgwp_config * cs, struct session ** session, str
 		value.os.len = dr_len;
 	} else {
 		int i = 0;
-		if (un) {
+		if (un && ! cs->ignore_nai) {
 			/* Is there an '@' in the user name? We don't care for decorated NAI here */
 			for (i = un_len - 2; i > 0; i--) {
 				if (un[i] == '@') {

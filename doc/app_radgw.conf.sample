@@ -40,9 +40,12 @@
 # an error is logged if some RADIUS attributes of the message have not been handled.
 
 RGWX = "extensions/echodrop.rgwx" : "echodrop.rgwx.conf"; # See echodrop.rgwx.conf.sample file
-RGWX = "extensions/auth.rgwx" : auth;
+RGWX = "extensions/auth.rgwx" : auth; 
 RGWX = "extensions/acct.rgwx" : acct;
 # RGWX = "extensions/debug.rgwx"; # Uncomment to see the result of the translation plugins.
+
+# For some extensions (auth, acct), a false configuration file name 
+# can be passed to specify flags, such as "nonai" to ignore NAI-based routing.
 
 ##################
 # RADIUS Clients #

@@ -149,6 +149,8 @@ struct rgwp_config {
 	} dict; /* cache of the dictionary objects we use */
 	struct session_handler * sess_hdl; /* We store RADIUS request authenticator information in the session */
 	char * confstr;
+	
+	int ignore_nai;
 };
 
 /* The state we store in the session */
@@ -172,6 +174,9 @@ static int acct_conf_parse(char * conffile, struct rgwp_config ** state)
 	
 	CHECK_FCT( fd_sess_handler_create( &new->sess_hdl, free ) );
 	new->confstr = conffile;
+	
+	if (strstr(conffile, "nonai"))
+		new->ignore_nai = 1;
 	
 	/* Resolve all dictionary objects we use */
 	CHECK_FCT( fd_dict_search( fd_g_config->cnf_dict, DICT_AVP, AVP_BY_NAME, "Accounting-Record-Number", &new->dict.Accounting_Record_Number, ENOENT) );
@@ -460,7 +465,7 @@ static int acct_rad_req( struct rgwp_config * cs, struct session ** session, str
 	/* Add the Destination-Realm */
 	CHECK_FCT( fd_msg_avp_new ( cs->dict.Destination_Realm, 0, &avp ) );
 	idx = 0;
-	if (un) {
+	if (un && ! cs->ignore_nai) {
 		/* Is there an '@' in the user name? We don't care for decorated NAI here */
 		for (idx = un_len - 2; idx > 0; idx--) {
 			if (un[idx] == '@') {
