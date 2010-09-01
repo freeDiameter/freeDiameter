@@ -95,7 +95,7 @@
 # "Acct-Interim-Interval";
 # "Filter-Id";
 # "NAS-Filter-Rule";
-# "Qos-Filter-Rule"; 
+# "QoS-Filter-Rule"; 
 # "Login-IP-Host";
 # "Login-IPv6-Host";
 # "Login-LAT-Group";
