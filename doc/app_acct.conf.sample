@@ -109,7 +109,7 @@
 # This is the database table corresponding to this list:
 # CREATE TABLE incoming (
 #     "recorded_on" timestamp with time zone NOT NULL,
-#     "recorded_serv" bytea NOT NULL,
+#     "recorded_serv" bytea,
 #     "Origin-Host" bytea NOT NULL,
 #     "Origin-Realm" bytea NOT NULL,
 #     "Destination-Realm" bytea,
