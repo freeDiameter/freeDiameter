@@ -141,6 +141,12 @@ int acct_db_init(void)
 		ADD_EXTEND("\", ");
 	}
 	
+	if (acct_config->srvnfield) {
+		ADD_EXTEND("\"");
+		ADD_ESCAPE(acct_config->srvnfield);
+		ADD_EXTEND("\", ");
+	}
+	
 	for (li = emptyrecords.all.next; li != &emptyrecords.all; li = li->next) {
 		struct acct_record_item * i = (struct acct_record_item *)(li->o);
 		ADD_EXTEND("\"");
@@ -157,6 +163,11 @@ int acct_db_init(void)
 	
 	if (acct_config->tsfield) {
 		ADD_EXTEND("$%d, ", ++idx);
+	}
+	if (acct_config->srvnfield) {
+		ADD_EXTEND("\"");
+		ADD_ESCAPE(fd_g_config->cnf_diamid);
+		ADD_EXTEND("\", ");
 	}
 	
 	for (li = emptyrecords.all.next; li != &emptyrecords.all; li = li->next) {

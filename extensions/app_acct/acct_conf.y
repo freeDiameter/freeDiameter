@@ -101,6 +101,7 @@ int acct_conf_check(char * conffile)
 	fd_log_debug("   ConnInfo ...... : '%s'\n", acct_config->conninfo ?: "<null>");
 	fd_log_debug("   Table name .... : '%s'\n", acct_config->tablename ?: "<null>");
 	fd_log_debug("   Timestamp field : '%s'\n", acct_config->tsfield ?: "<null>");
+	fd_log_debug("   Server name fld : '%s'\n", acct_config->srvnfield ?: "<null>");
 	fd_log_debug(" AVPs that will be saved to the database:\n");
 	for (li = acct_config->avps.next; li != &acct_config->avps; li = li->next) {
 		struct acct_conf_avp * a = (struct acct_conf_avp *)li;
@@ -136,6 +137,7 @@ void acct_conf_free(void)
 	free(acct_config->conninfo);
 	free(acct_config->tablename);
 	free(acct_config->tsfield);
+	free(acct_config->srvnfield);
 	
 	/* Done */
 	free(acct_config);
@@ -204,6 +206,7 @@ static struct acct_conf_avp avpdata;
 %token 		CONNINFO
 %token 		TABLE
 %token 		TSFIELD
+%token 		SRVNFIELD
 
 /* Tokens and types */
 /* A (de)quoted string (malloc'd in lex parser; it must be freed after use) */
@@ -223,6 +226,7 @@ conffile:		/* empty grammar is OK for the parser (will be validated afterwards) 
 			| conffile conninfoline
 			| conffile tableline
 			| conffile tsfieldline
+			| conffile srvnfieldline
 			| conffile errors
 			{
 				yyerror(&yylloc, conffile, "An error occurred while parsing the configuration file.");
@@ -318,5 +322,15 @@ tsfieldline:		TSFIELD '=' QSTRING ';'
 					YYERROR;
 				}
 				acct_config->tsfield = $3
+			}
+			;
+
+srvnfieldline:		SRVNFIELD '=' QSTRING ';'
+			{
+				if (acct_config->srvnfield) {
+					yyerror (&yylloc, conffile, "Duplicate entry");
+					YYERROR;
+				}
+				acct_config->srvnfield = $3
 			}
 			;

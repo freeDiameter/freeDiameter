@@ -113,6 +113,10 @@ qstring		\"[^\"\n]*\"
 				return TSFIELD;
 			}
 
+(?i:"Server_name_field") {
+				return SRVNFIELD;
+			}
+
 (?i:"field")		{
 				return FIELD;
 			}

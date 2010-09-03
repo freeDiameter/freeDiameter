@@ -74,6 +74,7 @@ struct acct_conf {
 	char		*conninfo;	/* the connection string to the database, that is passed as is to the database library */
 	char 		*tablename;	/* the name of the table we are working with */
 	char 		*tsfield;	/* the name of the timestamp field, or NULL if not required */
+	char 		*srvnfield;	/* the name of the server name field, or NULL if not required */
 };
 
 /* A successfully parsed Accounting-Request produces a list of these: */
