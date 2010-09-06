@@ -141,7 +141,7 @@ static int auth_conf_parse(char * confstr, struct rgwp_config ** state)
 	CHECK_FCT( fd_sess_handler_create( &new->sess_hdl, free ) );
 	new->confstr = confstr;
 	
-	if (strstr(confstr, "nonai"))
+	if (confstr && strstr(confstr, "nonai"))
 		new->ignore_nai = 1;
 	
 	/* Resolve all dictionary objects we use */

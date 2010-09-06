@@ -175,7 +175,7 @@ static int acct_conf_parse(char * conffile, struct rgwp_config ** state)
 	CHECK_FCT( fd_sess_handler_create( &new->sess_hdl, free ) );
 	new->confstr = conffile;
 	
-	if (strstr(conffile, "nonai"))
+	if (conffile && strstr(conffile, "nonai"))
 		new->ignore_nai = 1;
 	
 	/* Resolve all dictionary objects we use */
