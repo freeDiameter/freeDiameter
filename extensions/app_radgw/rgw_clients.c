@@ -81,13 +81,18 @@ struct rgw_client {
 		size_t		len;
 	} 			key;
 	
-	/* information of previous msg received, for duplicate checks. */
+	/* information of previous msg received, for duplicate checks -- we keep the last DUPLICATE_MESSAGES_BUFFER messages on each port. */
+#define DUPLICATE_MESSAGES_BUFFER 200 /* This should actually be replaced with a time-based dynamic list! TODO... */
 	struct {
-		uint16_t		port;
-		uint8_t			id;
-		uint8_t			auth[16]; /* we also compare the request authenticator to avoid buggy NASes */
-		struct radius_msg * 	ans; /* to be able to resend a lost answer */
-	} last[2]; /*[0] for auth, [1] for acct. */
+		int	cnt;   /* Counts the number of (different) requests we received */
+		struct {
+			uint16_t	port;	  /* The source UDP port of the request */
+			uint8_t		id;	  /* The identifier in the request */
+			uint8_t		auth[16]; /* The request authenticator, because some NAS are not using identifier properly. */
+			struct radius_msg * ans;  /* When the answer has been sent already, keep it so we can send it back */
+			int		nbdup;	  /* count the number of duplicate RADIUS requests we received on this message */
+		} msg_info[DUPLICATE_MESSAGES_BUFFER];
+	} duplicates_info[2]; /*[0] for auth, [1] for acct. */
 };
 
 
@@ -168,6 +173,19 @@ static void client_unlink(struct rgw_client * client)
 		free(client->fqdn);
 		free(client->sa);
 		free(client->key.data);
+		
+		/* Free the duplicate info */
+		for (idx=0; idx <= 1; idx++){
+			int i = 0;
+			for (i = 0; i < DUPLICATE_MESSAGES_BUFFER; i++) {
+				if (client->duplicates_info[idx].msg_info[i].ans) {
+					/* Free this RADIUS message */
+					radius_msg_free(client->duplicates_info[idx].msg_info[i].ans);
+					free(client->duplicates_info[idx].msg_info[i].ans);
+				}
+			}
+		}
+		
 		free(client);
 	}
 }
@@ -268,47 +286,59 @@ int rgw_clients_search(struct sockaddr * ip_port, struct rgw_client ** ref)
 
 int rgw_clients_check_dup(struct rgw_radius_msg_meta **msg, struct rgw_client *cli)
 {
-	int idx;
+	int p, i, dup = 0;
 	
 	TRACE_ENTRY("%p %p", msg, cli);
 	
 	CHECK_PARAMS( msg && cli );
 	
 	if ((*msg)->serv_type == RGW_PLG_TYPE_AUTH)
-		idx = 0;
+		p = 0;
 	else
-		idx = 1;
+		p = 1;
 	
-	if ((cli->last[idx].id == (*msg)->radius.hdr->identifier) 
-	 && (cli->last[idx].port == (*msg)->port) 
-	 && !memcmp(&cli->last[idx].auth[0], &(*msg)->radius.hdr->authenticator[0], 16)) {
-		/* Duplicate! */
-		TRACE_DEBUG(INFO, "Received duplicated RADIUS message (id: %02hhx, port: %hu).", (*msg)->radius.hdr->identifier, ntohs((*msg)->port));
-		if (cli->last[idx].ans) {
-			/* Resend the answer */
-			CHECK_FCT_DO( rgw_servers_send((*msg)->serv_type, cli->last[idx].ans->buf, cli->last[idx].ans->buf_used, cli->sa, (*msg)->port),  );
+	/* Check in the previous DUPLICATE_MESSAGES_BUFFER messages if we have received the same identifier / authenticator / port combination */
+	for (i = cli->duplicates_info[p].cnt - 1; i >= cli->duplicates_info[p].cnt - DUPLICATE_MESSAGES_BUFFER; i--) {
+		if ( (cli->duplicates_info[p].msg_info[i % DUPLICATE_MESSAGES_BUFFER].id == (*msg)->radius.hdr->identifier) 
+		  && (cli->duplicates_info[p].msg_info[i % DUPLICATE_MESSAGES_BUFFER].port == (*msg)->port)
+		  && !memcmp(&cli->duplicates_info[p].msg_info[i % DUPLICATE_MESSAGES_BUFFER].auth[0], &(*msg)->radius.hdr->authenticator[0], 16)) {
+			/* We already received this request */
+			cli->duplicates_info[p].msg_info[i % DUPLICATE_MESSAGES_BUFFER].nbdup++;
+			dup = 1;
+			TRACE_DEBUG(INFO, "Received duplicated RADIUS message (id: %02hhx, port: %hu, dup #%d).", 
+					(*msg)->radius.hdr->identifier, 
+					ntohs((*msg)->port), 
+					cli->duplicates_info[p].msg_info[i % DUPLICATE_MESSAGES_BUFFER].nbdup);
+			if (cli->duplicates_info[p].msg_info[i % DUPLICATE_MESSAGES_BUFFER].ans) {
+				/* Resend the answer */
+				CHECK_FCT_DO( rgw_servers_send((*msg)->serv_type, 
+								cli->duplicates_info[p].msg_info[i % DUPLICATE_MESSAGES_BUFFER].ans->buf, 
+								cli->duplicates_info[p].msg_info[i % DUPLICATE_MESSAGES_BUFFER].ans->buf_used, 
+								cli->sa, 
+								(*msg)->port),  );
+			}
+			rgw_msg_free(msg);
+			break;
 		}
-		rgw_msg_free(msg);
-	} else {
-		/* We have not just received this message already */
-		if (cli->last[idx].port == 0) { /* first message from this client */
-			/* Just add the new information */
-			ASSERT(cli->last[idx].ans == NULL);
-			cli->last[idx].id = (*msg)->radius.hdr->identifier;
-			cli->last[idx].port = (*msg)->port;
-			memcpy(&cli->last[idx].auth[0], &(*msg)->radius.hdr->authenticator[0], 16);
-		} else { 
-			/* We have got previous message(s), update the info only if answered already */
-			if (cli->last[idx].ans) {
-				cli->last[idx].id = (*msg)->radius.hdr->identifier;
-				cli->last[idx].port = (*msg)->port;
-				memcpy(&cli->last[idx].auth[0], &(*msg)->radius.hdr->authenticator[0], 16);
-				/* Free the previous answer */
-				radius_msg_free(cli->last[idx].ans);
-				free(cli->last[idx].ans);
-				cli->last[idx].ans = NULL;
-			} 
+	}
+	
+	/* If we did no already receive this request, save it for later */
+	if (!dup) {
+		/* It's a new request, save its data */
+		int i = cli->duplicates_info[p].cnt % DUPLICATE_MESSAGES_BUFFER;
+		
+		cli->duplicates_info[p].msg_info[i].port = (*msg)->port;
+		cli->duplicates_info[p].msg_info[i].id   = (*msg)->radius.hdr->identifier;
+		memcpy(&cli->duplicates_info[p].msg_info[i].auth[0], &(*msg)->radius.hdr->authenticator[0], 16);
+		if (cli->duplicates_info[p].msg_info[i].ans) {
+			/* Free the old answer */
+			radius_msg_free(cli->duplicates_info[p].msg_info[i].ans);
+			free(cli->duplicates_info[p].msg_info[i].ans);
+			cli->duplicates_info[p].msg_info[i].ans = NULL;
 		}
+		cli->duplicates_info[p].msg_info[i].nbdup = 0;
+			
+		cli->duplicates_info[p].cnt += 1;
 	}
 	
 	return 0;
@@ -799,7 +829,7 @@ void rgw_clients_fini(void)
 
 int rgw_client_finish_send(struct radius_msg ** msg, struct rgw_radius_msg_meta * req, struct rgw_client * cli)
 {
-	int idx;
+	int p,i;
 	
 	TRACE_ENTRY("%p %p %p", msg, req, cli);
 	CHECK_PARAMS( msg && *msg && cli );
@@ -827,18 +857,35 @@ int rgw_client_finish_send(struct radius_msg ** msg, struct rgw_radius_msg_meta 
 
 	/* update the duplicate cache in rgw_clients */
 	if (req->serv_type == RGW_PLG_TYPE_AUTH)
-		idx = 0;
+		p = 0;
 	else
-		idx = 1;
-	if (cli->last[idx].ans) {
-		/* Free it */
-		radius_msg_free(cli->last[idx].ans);
-		free(cli->last[idx].ans);
+		p = 1;
+	for (i = cli->duplicates_info[p].cnt - 1; i >= cli->duplicates_info[p].cnt - DUPLICATE_MESSAGES_BUFFER; i--) {
+		/* Search the entry corresponding to the request */
+		if ( (cli->duplicates_info[p].msg_info[i % DUPLICATE_MESSAGES_BUFFER].id == req->radius.hdr->identifier) 
+		  && (cli->duplicates_info[p].msg_info[i % DUPLICATE_MESSAGES_BUFFER].port == req->port)
+		  && !memcmp(&cli->duplicates_info[p].msg_info[i % DUPLICATE_MESSAGES_BUFFER].auth[0], &req->radius.hdr->authenticator[0], 16)) {
+			/* This should not happen, but just in case */
+			if (cli->duplicates_info[p].msg_info[i % DUPLICATE_MESSAGES_BUFFER].ans) {
+				radius_msg_free(cli->duplicates_info[p].msg_info[i % DUPLICATE_MESSAGES_BUFFER].ans);
+				free(cli->duplicates_info[p].msg_info[i % DUPLICATE_MESSAGES_BUFFER].ans);
+			}
+			/* Now save the answer message */
+			cli->duplicates_info[p].msg_info[i % DUPLICATE_MESSAGES_BUFFER].ans = *msg;
+			*msg = NULL;
+			break;
+		}
 	}
-	cli->last[idx].ans = *msg;
-	cli->last[idx].id = req->radius.hdr->identifier;
-	cli->last[idx].port = req->port;
-	*msg = NULL;
+	
+	/* If we have not found the request in our circular buffer, it is probably too small */
+	if (*msg) {
+		TODO("Implement a dynamic list for RADIUS duplicates detection based on expiry time instead of number of messages");
+		TRACE_DEBUG(INFO, "The circular buffer has circled before the Diameter answer was received, you should definitely increase DUPLICATE_MESSAGES_BUFFER value.");
+		/* We don't re-save the value */
+		radius_msg_free(*msg);
+		free(*msg);
+		*msg = NULL;
+	}
 	
 	/* Finished */
 	return 0;

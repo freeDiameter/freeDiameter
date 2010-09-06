@@ -826,7 +826,20 @@ static int acct_rad_req( struct rgwp_config * cs, struct session ** session, str
 				CHECK_FCT( fd_msg_avp_add ( *diam_fw, MSG_BRW_LAST_CHILD, avp) );
 				
 				/* While here, we also add the Accouting-Record-Number AVP.
-				   We don't have a dedicated counter nor a state, so we just use the Diameter message End-to-end id here, which fits the conditions on the value. */
+					  The Accounting-Record-Number AVP (AVP Code 485) is of type Unsigned32
+					   and identifies this record within one session.  As Session-Id AVPs
+					   are globally unique, the combination of Session-Id and Accounting-
+					   Record-Number AVPs is also globally unique, and can be used in
+					   matching accounting records with confirmations.  An easy way to
+					   produce unique numbers is to set the value to 0 for records of type
+					   EVENT_RECORD and START_RECORD, and set the value to 1 for the first
+					   INTERIM_RECORD, 2 for the second, and so on until the value for
+					   STOP_RECORD is one more than for the last INTERIM_RECORD.
+					   
+				  -- we actually use the end-to-end id of the message here, which remains constant
+				    if we send a duplicate, so it has the same properties as the suggested algorithm.
+				    Anyway, it assumes that we are not converting twice the same RADIUS message.
+				   . */
 				CHECK_FCT( fd_msg_avp_new ( cs->dict.Accounting_Record_Number, 0, &avp ) );
 				value.u32 = e2eid;
 				CHECK_FCT( fd_msg_avp_setvalue ( avp, &value ) );
