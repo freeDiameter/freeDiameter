@@ -65,7 +65,7 @@ ssh root@192.168.1.1
 # echo "src/gz chavroux http://192.168.1.25/owrt/packages" >> /etc/opkg.conf 
 # opkg update
 
-8) Install freeDiameter, you're done. Optionnaly, install also certtool and libgnutls-extra on the router before, to 
+8) Install freeDiameter, you're done. Optionnaly, install also certtool on the router before, to 
    generate the TLS certificate.
 # opkg install freeDiameter
 
@@ -199,36 +199,42 @@ Install the newly compiled packages with:
 3) Missing packages:
 ==============================================
 
-There are other dependencies for freeDiameter that are not provided by OpenWRT packages. 
-For convenience, we include these meta-packages in the freeDiameter distribution -- but they
-might not be up-to-date.
+UPDATE: Starting from revision r22917, sctp and kmod-sctp are included in the OpenWRT distribution, and have been removed
+from freeDiameter package. One may consider using a freeDiameter package prior to 2010/09/05 in order to get the sctp 
+package, or a more recent OpenWRT environment. 
 
-a) Adding the contributed directory to the feeds
-  Add the following line in your feeds.conf file:
-src-link freediameter /path/to/freediameter/contrib/OpenWRT/packages/
-
-Then run: 
-$ scripts/feeds update
-
-This should allow you to install the missing dependencies as follow:
-
-
-b) SCTP library (note: you might alternatively compile freeDiameter without SCTP support).
-$ scripts/feeds install sctp
-
-
-c) Select these components in the menu:
-$ make menuconfig
-- Libraries --->
-   sctp (M)
-
-Quit and save the new config, then:
-$ make world
-
-
-d) Install this on the router as well:
- root@OpenWrt:~# opkg update
- root@OpenWrt:~# opkg install sctp
+PREVIOUS SITUATION: If you are using components prior to 2010/09/05, the following applies:
+P: 
+P: There are other dependencies for freeDiameter that are not provided by OpenWRT packages. 
+P: For convenience, we include these meta-packages in the freeDiameter distribution -- but they
+P: might not be up-to-date.
+P: 
+P: a) Adding the contributed directory to the feeds
+P:   Add the following line in your feeds.conf file:
+P: src-link freediameter /path/to/freediameter/contrib/OpenWRT/packages/
+P: 
+P: Then run: 
+P: $ scripts/feeds update
+P: 
+P: This should allow you to install the missing dependencies as follow:
+P: 
+P: 
+P: b) SCTP library (note: you might alternatively compile freeDiameter without SCTP support).
+P: $ scripts/feeds install sctp
+P: 
+P: 
+P: c) Select these components in the menu:
+P: $ make menuconfig
+P: - Libraries --->
+P:    sctp (M)
+P: 
+P: Quit and save the new config, then:
+P: $ make world
+P: 
+P: 
+P: d) Install this on the router as well:
+P:  root@OpenWrt:~# opkg update
+P:  root@OpenWrt:~# opkg install sctp
 
 
 ==============================================
@@ -247,6 +253,9 @@ $ make menuconfig
 Quit and save the new config, then:
 $ make world
 
+On your router, run:
+# opkg update
+# opkg install freeDiameter
 
 
 
