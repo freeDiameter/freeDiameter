@@ -165,9 +165,9 @@ int acct_db_init(void)
 		ADD_EXTEND("$%d, ", ++idx);
 	}
 	if (acct_config->srvnfield) {
-		ADD_EXTEND("\"");
+		ADD_EXTEND("'");
 		ADD_ESCAPE(fd_g_config->cnf_diamid);
-		ADD_EXTEND("\", ");
+		ADD_EXTEND("', ");
 	}
 	
 	for (li = emptyrecords.all.next; li != &emptyrecords.all; li = li->next) {
