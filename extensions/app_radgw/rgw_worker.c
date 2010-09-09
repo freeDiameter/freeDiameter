@@ -284,11 +284,6 @@ static void receive_diam_answer(void * paback, struct msg **ans)
 	}
 	
 	
-	if (!keepsession) {
-		/* Destroy remaining session data (stateless gateway) */
-		CHECK_FCT_DO( fd_sess_destroy(&pa->sess),  );
-	}
-	
 	/* Now try and send the RADIUS answer */
 	if (rad_ans) {
 		CHECK_FCT_DO( rgw_client_finish_send(&rad_ans, pa->rad, pa->cli), );	
@@ -299,6 +294,11 @@ out:
 	if (*ans) {
 		CHECK_FCT_DO( fd_msg_free(*ans),  );
 		*ans = NULL;
+	}
+	
+	if (!keepsession) {
+		/* Destroy remaining session data (stateless gateway) */
+		CHECK_FCT_DO( fd_sess_destroy(&pa->sess),  );
 	}
 	
 	/* Clear the RADIUS request */

@@ -489,7 +489,7 @@ static int acct_rad_req( struct rgwp_config * cs, struct session ** session, str
 	if (!*session) {
 		CHECK_FCT( fd_sess_fromsid ( (char *)/* cast should be removed later */si, si_len, session, NULL) );
 		
-		TRACE_DEBUG(FULL, "[auth.rgwx] Translating new accounting message for session '%.*s'...", si_len, si);
+		TRACE_DEBUG(FULL, "[acct.rgwx] Translating new accounting message for session '%.*s'...", si_len, si);
 		
 		/* Add the Session-Id AVP as first AVP */
 		CHECK_FCT( fd_msg_avp_new ( cs->dict.Session_Id, 0, &avp ) );
@@ -1261,25 +1261,25 @@ static int acct_diam_ans( struct rgwp_config * cs, struct session * session, str
 			break;
 		
 		default:
-			fd_log_debug("[auth.rgwx] Received Diameter answer with error code '%d' from server '%.*s', session %.*s, not translating into Accounting-Response\n",
+			fd_log_debug("[acct.rgwx] Received Diameter answer with error code '%d' from server '%.*s', session %.*s, not translating into Accounting-Response\n",
 					ahdr->avp_value->u32, 
 					oh->avp_value->os.len, oh->avp_value->os.data,
 					sid->avp_value->os.len, sid->avp_value->os.data);
 			CHECK_FCT( fd_msg_search_avp (*diam_ans, cs->dict.Error_Message, &avp) );
 			if (avp) {
 				CHECK_FCT( fd_msg_avp_hdr ( avp, &ahdr ) );
-				fd_log_debug("[auth.rgwx]   Error-Message content: '%.*s'\n",
+				fd_log_debug("[acct.rgwx]   Error-Message content: '%.*s'\n",
 						ahdr->avp_value->os.len, ahdr->avp_value->os.data);
 			}
 			CHECK_FCT( fd_msg_search_avp (*diam_ans, cs->dict.Error_Reporting_Host, &avp) );
 			if (avp) {
 				CHECK_FCT( fd_msg_avp_hdr ( avp, &ahdr ) );
-				fd_log_debug("[auth.rgwx]   Error-Reporting-Host: '%.*s'\n",
+				fd_log_debug("[acct.rgwx]   Error-Reporting-Host: '%.*s'\n",
 						ahdr->avp_value->os.len, ahdr->avp_value->os.data);
 			}
 			CHECK_FCT( fd_msg_search_avp (*diam_ans, cs->dict.Failed_AVP, &avp) );
 			if (avp) {
-				fd_log_debug("[auth.rgwx]   Failed-AVP was included in the message.\n");
+				fd_log_debug("[acct.rgwx]   Failed-AVP was included in the message.\n");
 				/* Dump its content ? */
 			}
 			return -1;
