@@ -348,12 +348,14 @@ int radius_msg_finish_srv(struct radius_msg *msg, const u8 *secret,
 	const u8 *addr[4];
 	size_t len[4];
 
-	os_memset(auth, 0, MD5_MAC_LEN);
-	attr = radius_msg_add_attr(msg, RADIUS_ATTR_MESSAGE_AUTHENTICATOR,
-				   auth, MD5_MAC_LEN);
-	if (attr == NULL) {
-		printf("WARNING: Could not add Message-Authenticator\n");
-		return -1;
+	if (msg->hdr->code != RADIUS_CODE_ACCOUNTING_RESPONSE) {
+	    os_memset(auth, 0, MD5_MAC_LEN);
+	    attr = radius_msg_add_attr(msg, RADIUS_ATTR_MESSAGE_AUTHENTICATOR,
+				       auth, MD5_MAC_LEN);
+	    if (attr == NULL) {
+		    printf("WARNING: Could not add Message-Authenticator\n");
+		    return -1;
+	    }
 	}
 	msg->hdr->length = htons(msg->buf_used);
 	os_memcpy(msg->hdr->authenticator, req_authenticator,
