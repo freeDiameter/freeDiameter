@@ -158,7 +158,16 @@ struct sess_state {
 	application_id_t auth_appl;	/* Auth-Application-Id used for this session, if available (stored in a Class attribute) */
 	int		 send_str;	/* If not 0, we must send a STR when the ACA is received. */
 	uint32_t	 term_cause;	/* If not 0, the Termination-Cause to put in the STR. */
+	/* Temporary : try sending the User-Name back in Accounting-Response for RADIUS */
+	uint8_t		*username;
+	size_t		 un_size;
 };
+
+static void free_sess_state(struct sess_state *s) {
+	if (s)
+		free(s->username);
+	free(s);
+}
 
 /* Initialize the plugin */
 static int acct_conf_parse(char * conffile, struct rgwp_config ** state)
@@ -172,7 +181,7 @@ static int acct_conf_parse(char * conffile, struct rgwp_config ** state)
 	CHECK_MALLOC( new = malloc(sizeof(struct rgwp_config)) );
 	memset(new, 0, sizeof(struct rgwp_config));
 	
-	CHECK_FCT( fd_sess_handler_create( &new->sess_hdl, free ) );
+	CHECK_FCT( fd_sess_handler_create( &new->sess_hdl, free_sess_state ) );
 	new->confstr = conffile;
 	
 	if (conffile && strstr(conffile, "nonai"))
@@ -1186,6 +1195,11 @@ static int acct_rad_req( struct rgwp_config * cs, struct session ** session, str
 			st->send_str = send_str;
 		}
 		st->term_cause = str_cause;
+		if (un && un_len) {
+			CHECK_MALLOC( st->username = malloc(un_len) );
+			memcpy(st->username, un, un_len);
+			st->un_size = un_len;
+		}
 		CHECK_FCT( fd_sess_state_store( cs->sess_hdl, *session, &st ) );
 	}
 	
@@ -1352,6 +1366,11 @@ static int acct_diam_ans( struct rgwp_config * cs, struct session * session, str
 		   Accounting-Response packets except Proxy-State and possibly Vendor-
 		   Specific.
 	*/
+	
+	/* Well, it seems some devices are expecting the user name ??? */
+	if (st->username) {
+		CHECK_MALLOC(radius_msg_add_attr(*rad_fw, RADIUS_ATTR_USER_NAME, st->username, st->un_size));
+	}
 
 	/* Now loop in the list of AVPs and convert those that we know how */
 	CHECK_FCT( fd_msg_browse(*diam_ans, MSG_BRW_FIRST_CHILD, &next, NULL) );
@@ -1424,6 +1443,8 @@ static int acct_diam_ans( struct rgwp_config * cs, struct session * session, str
 	      
 	      -- done in radius_msg_finish_srv 
 	*/
+	
+	free_sess_state(st);
 
 	return 0;
 }
