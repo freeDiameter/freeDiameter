@@ -840,12 +840,14 @@ int rgw_client_finish_send(struct radius_msg ** msg, struct rgw_radius_msg_meta 
 		return ENOTSUP;
 	}
 	
-	if (radius_msg_finish_srv(*msg, cli->key.data, cli->key.len, req->radius.hdr->authenticator)) {
-		TRACE_DEBUG(INFO, "An error occurred while preparing the RADIUS answer");
-		radius_msg_free(*msg);
-		free(*msg);
-		*msg = NULL;
-		return EINVAL;
+	if ((*msg)->hdr->code != RADIUS_CODE_ACCOUNTING_RESPONSE) {
+	    if (radius_msg_finish_srv(*msg, cli->key.data, cli->key.len, req->radius.hdr->authenticator)) {
+		    TRACE_DEBUG(INFO, "An error occurred while preparing the RADIUS answer");
+		    radius_msg_free(*msg);
+		    free(*msg);
+		    *msg = NULL;
+		    return EINVAL;
+	    }
 	}
 	
 	/* Debug */
