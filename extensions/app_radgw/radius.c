@@ -356,12 +356,14 @@ int radius_msg_finish_srv(struct radius_msg *msg, const u8 *secret,
 		    printf("WARNING: Could not add Message-Authenticator\n");
 		    return -1;
 	    }
+	    msg->hdr->length = htons(msg->buf_used);
+	    os_memcpy(msg->hdr->authenticator, req_authenticator,
+		      sizeof(msg->hdr->authenticator));
+	    hmac_md5(secret, secret_len, msg->buf, msg->buf_used,
+		     (u8 *) (attr + 1));
+	} else {
+	    msg->hdr->length = htons(msg->buf_used);
 	}
-	msg->hdr->length = htons(msg->buf_used);
-	os_memcpy(msg->hdr->authenticator, req_authenticator,
-		  sizeof(msg->hdr->authenticator));
-	hmac_md5(secret, secret_len, msg->buf, msg->buf_used,
-		 (u8 *) (attr + 1));
 
 	/* ResponseAuth = MD5(Code+ID+Length+RequestAuth+Attributes+Secret) */
 	addr[0] = (u8 *) msg->hdr;
