@@ -1425,6 +1425,8 @@ static int acct_diam_ans( struct rgwp_config * cs, struct session * session, str
 	      -- done in radius_msg_finish_srv 
 	*/
 
+	free(st);
+
 	return 0;
 }
 
