@@ -537,6 +537,11 @@ int fd_breakhere(void);
 	(    ((ts1)->tv_sec  < (ts2)->tv_sec ) 	\
 	  || (((ts1)->tv_sec  == (ts2)->tv_sec ) && ((ts1)->tv_nsec < (ts2)->tv_nsec) ))
 
+/* This gives a good size for buffered reads */
+#ifndef BUFSIZ
+#define BUFSIZ 96
+#endif /* BUFSIZ */
+
 
 
 /*============================================================*/

@@ -268,6 +268,140 @@ int fd_conf_parse()
 				 { TRACE_DEBUG(INFO, "Error in DH bits value : %d", GNUTLS_DEFAULT_DHBITS); return EINVAL; } );
 	}
 	
+	
+	/* Verify that our certificate is valid -- otherwise remote peers will reject it */
+	{
+		int ret = 0, i;
+		
+		gnutls_datum_t certfile;
+		size_t alloc = 0;
+		
+		gnutls_x509_crt_t * certs = NULL;
+		unsigned int cert_max = 0;
+		
+		gnutls_x509_crt_t * CA_list;
+		int CA_list_length;
+		
+		gnutls_x509_crl_t * CRL_list;
+		int CRL_list_length;
+		
+		unsigned int verify;
+		time_t now;
+		
+		memset(&certfile, 0, sizeof(certfile));
+		
+		/* Read the certificate file */
+		FILE *stream = fopen (fd_g_config->cnf_sec_data.cert_file, "rb");
+		if (!stream) {
+			int err = errno;
+			TRACE_DEBUG(INFO, "An error occurred while opening '%s': %s\n", fd_g_config->cnf_sec_data.cert_file, strerror(err));
+			return err; 
+		}
+		do {
+			uint8_t * realloced = NULL;
+			size_t read = 0;
+			
+			if (alloc < certfile.size + BUFSIZ + 1) {
+				alloc += alloc / 2 + BUFSIZ + 1;
+				CHECK_MALLOC_DO( realloced = realloc(certfile.data, alloc),
+					{
+						free(certfile.data);
+						return ENOMEM;
+					} )
+				certfile.data = realloced;
+			}
+			
+			read = fread( certfile.data + certfile.size, 1, alloc - certfile.size - 1, stream );
+			certfile.size += read;
+			
+			if (ferror(stream)) {
+				int err = errno;
+				TRACE_DEBUG(INFO, "An error occurred while reading '%s': %s\n", fd_g_config->cnf_sec_data.cert_file, strerror(err));
+				return err; 
+			}
+		} while (!feof(stream));
+		certfile.data[certfile.size] = '\0';
+		fclose(stream);
+		
+		/* Import the certificate(s) */
+		GNUTLS_TRACE( ret = gnutls_x509_crt_list_import(NULL, &cert_max, &certfile, GNUTLS_X509_FMT_PEM, GNUTLS_X509_CRT_LIST_IMPORT_FAIL_IF_EXCEED) );
+		if (ret != GNUTLS_E_SHORT_MEMORY_BUFFER) {
+			CHECK_GNUTLS_DO(ret, return EINVAL);
+		}
+		
+		CHECK_MALLOC( certs = calloc(cert_max, sizeof(gnutls_x509_crt_t)) );
+		CHECK_GNUTLS_DO( gnutls_x509_crt_list_import(certs, &cert_max, &certfile, GNUTLS_X509_FMT_PEM, 0),
+			{
+				TRACE_DEBUG(INFO, "Failed to import the data from file '%s'", fd_g_config->cnf_sec_data.cert_file);
+				free(certfile.data);
+				return EINVAL;
+			} );
+		free(certfile.data);
+		
+		ASSERT(cert_max >= 1);
+		
+		/* Now, verify the list against the local CA and CRL */
+		GNUTLS_TRACE( gnutls_certificate_get_x509_cas (fd_g_config->cnf_sec_data.credentials, &CA_list, (unsigned int *) &CA_list_length) );
+		GNUTLS_TRACE( gnutls_certificate_get_x509_crls (fd_g_config->cnf_sec_data.credentials, &CRL_list, (unsigned int *) &CRL_list_length) );
+		CHECK_GNUTLS_DO( gnutls_x509_crt_list_verify(certs, cert_max, CA_list, CA_list_length, CRL_list, CRL_list_length, 0, &verify),
+			{
+				TRACE_DEBUG(INFO, "Failed to verify the local certificate '%s' against local credentials. Please check your certificate is valid.", fd_g_config->cnf_sec_data.cert_file);
+				return EINVAL;
+			} );
+		if (verify) {
+			fd_log_debug("TLS: Local certificate chain '%s' is invalid :\n", fd_g_config->cnf_sec_data.cert_file);
+			if (verify & GNUTLS_CERT_INVALID)
+				fd_log_debug(" - The certificate is not trusted (unknown CA? expired?)\n");
+			if (verify & GNUTLS_CERT_REVOKED)
+				fd_log_debug(" - The certificate has been revoked.\n");
+			if (verify & GNUTLS_CERT_SIGNER_NOT_FOUND)
+				fd_log_debug(" - The certificate hasn't got a known issuer.\n");
+			if (verify & GNUTLS_CERT_SIGNER_NOT_CA)
+				fd_log_debug(" - The certificate signer is not a CA, or uses version 1, or 3 without basic constraints.\n");
+			if (verify & GNUTLS_CERT_INSECURE_ALGORITHM)
+				fd_log_debug(" - The certificate signature uses a weak algorithm.\n");
+			return EINVAL;
+		}
+	
+		/* Check the local Identity is valid with the certificate */
+		if (!gnutls_x509_crt_check_hostname (certs[0], fd_g_config->cnf_diamid)) {
+			fd_log_debug("TLS: Local certificate '%s' is invalid :\n", fd_g_config->cnf_sec_data.cert_file);
+			fd_log_debug(" - The certificate hostname does not match '%s'\n", fd_g_config->cnf_diamid);
+			return EINVAL;
+		}
+		
+		/* Check validity of all the certificates in the chain */
+		now = time(NULL);
+		for (i = 0; i < cert_max; i++)
+		{
+			time_t deadline;
+
+			GNUTLS_TRACE( deadline = gnutls_x509_crt_get_expiration_time(certs[i]) );
+			if ((deadline != (time_t)-1) && (deadline < now)) {
+				fd_log_debug("TLS: Local certificate chain '%s' is invalid :\n", fd_g_config->cnf_sec_data.cert_file);
+				fd_log_debug(" - The certificate %d in the chain is expired\n", i);
+				return EINVAL;
+			}
+
+			GNUTLS_TRACE( deadline = gnutls_x509_crt_get_activation_time(certs[i]) );
+			if ((deadline != (time_t)-1) && (deadline > now)) {
+				fd_log_debug("TLS: Local certificate chain '%s' is invalid :\n", fd_g_config->cnf_sec_data.cert_file);
+				fd_log_debug(" - The certificate %d in the chain is not yet activated\n", i);
+				return EINVAL;
+			}
+		}
+		
+		/* Everything checked OK, free the certificate list */
+		for (i = 0; i < cert_max; i++)
+		{
+			GNUTLS_TRACE( gnutls_x509_crt_deinit (certs[i]) );
+		}
+		free(certs);
+	}
+	
+	
+	/* gnutls_certificate_set_verify_limits -- so far the default values are fine... */
+	
 	return 0;
 }
 

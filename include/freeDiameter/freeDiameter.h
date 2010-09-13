@@ -69,7 +69,6 @@
 }
 
 
-
 /* Structure to hold the configuration of the freeDiameter daemon */
 struct fd_config {
 	int		 cnf_eyec;	/* Eye catcher: EYEC_CONFIG */

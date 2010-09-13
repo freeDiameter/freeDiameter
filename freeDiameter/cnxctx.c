@@ -1175,6 +1175,8 @@ int fd_tls_verify_credentials(gnutls_session_t session, struct cnxctx * conn, in
 		CHECK_GNUTLS_DO( gnutls_x509_crt_init (&cert), return EINVAL);
 		CHECK_GNUTLS_DO( gnutls_x509_crt_import (cert, &cert_list[i], GNUTLS_X509_FMT_DER), return EINVAL);
 		
+		/* When gnutls 2.10.1 is around, we should use gnutls_certificate_set_verify_function */
+		
 		GNUTLS_TRACE( deadline = gnutls_x509_crt_get_expiration_time(cert) );
 		if ((deadline != (time_t)-1) && (deadline < now)) {
 			if (TRACE_BOOL(INFO)) {
@@ -1252,6 +1254,9 @@ int fd_cnx_handshake(struct cnxctx * conn, int mode, char * priority, void * alt
 	/* Handshake master session */
 	{
 		int ret;
+		
+		/* When gnutls 2.10.1 is around, we should use gnutls_certificate_set_verify_function */
+		
 		CHECK_GNUTLS_DO( ret = gnutls_handshake(conn->cc_tls_para.session),
 			{
 				if (TRACE_BOOL(INFO)) {
