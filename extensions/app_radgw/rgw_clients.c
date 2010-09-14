@@ -157,6 +157,9 @@ static int dupl_purge_list(struct fd_list * clients) {
 				struct req_info * r = (struct req_info *)(client->dupl_info[p].dupl_by_time.next->o);
 				
 				if (now - r->received > DUPLICATE_CHECK_LIFETIME) {
+				
+					TRACE_DEBUG(ANNOYING + 1, "Purging RADIUS request (id: %02hhx, port: %hu, dup #%d, age %d secs)", r->id, ntohs(r->port), r->nbdup, now - r->received);
+					
 					/* Remove this record */
 					fd_list_unlink(&r->by_time);
 					fd_list_unlink(&r->by_id);
