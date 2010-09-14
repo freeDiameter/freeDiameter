@@ -136,11 +136,15 @@ static void dupl_free_req_info(struct req_info * r) {
 
 /* The core of the purge thread */
 static int dupl_purge_list(struct fd_list * clients) {
+
 	struct fd_list *li = NULL;
+	
 	for (li = clients->next; li != clients; li = li->next) {
 		struct rgw_client * client = (struct rgw_client *)li;
 		int p;
+		
 		for (p=0; p<=1; p++) {
+		
 			/* Lock this list */
 			time_t now;
 			CHECK_POSIX( pthread_mutex_lock(&client->dupl_info[p].dupl_lock) );
@@ -148,6 +152,7 @@ static int dupl_purge_list(struct fd_list * clients) {
 			now = time(NULL);
 			
 			while (!FD_IS_LIST_EMPTY(&client->dupl_info[p].dupl_by_time)) {
+			
 				/* Check the first item in the list */
 				struct req_info * r = (struct req_info *)(client->dupl_info[p].dupl_by_time.next->o);
 				
@@ -227,9 +232,9 @@ static int client_create(struct rgw_client ** res, struct sockaddr ** ip_port, u
 	
 	/* Initialize the duplicate list info */
 	for (i=0; i<=1; i++) {
-		CHECK_POSIX( pthread_mutex_init(&tmp->dupl_info[0].dupl_lock, NULL) );
-		fd_list_init(&tmp->dupl_info[0].dupl_by_id, NULL);
-		fd_list_init(&tmp->dupl_info[0].dupl_by_time, NULL);
+		CHECK_POSIX( pthread_mutex_init(&tmp->dupl_info[i].dupl_lock, NULL) );
+		fd_list_init(&tmp->dupl_info[i].dupl_by_id, NULL);
+		fd_list_init(&tmp->dupl_info[i].dupl_by_time, NULL);
 	}
 	tmp->type = type;
 	
