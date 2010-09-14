@@ -432,7 +432,7 @@ int rgw_clients_check_dup(struct rgw_radius_msg_meta **msg, struct rgw_client *c
 		cmp = memcmp(&r->auth[0], &(*msg)->radius.hdr->authenticator[0], 16);
 		if (cmp < 0)
 			continue;
-		if (cmp > 0);
+		if (cmp > 0)
 			break;
 		dup = 1;
 		break;
@@ -1012,7 +1012,7 @@ int rgw_client_finish_send(struct radius_msg ** msg, struct rgw_radius_msg_meta 
 		cmp = memcmp(&r->auth[0], &req->radius.hdr->authenticator[0], 16);
 		if (cmp < 0)
 			continue;
-		if (cmp > 0);
+		if (cmp > 0)
 			break;
 		
 		/* We have the request in our duplicate cache */
