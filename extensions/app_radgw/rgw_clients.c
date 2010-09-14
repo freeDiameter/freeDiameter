@@ -40,6 +40,7 @@
 #include "rgw.h"
 
 #define REVERSE_DNS_SIZE_MAX	512 /* length of our buffer for reverse DNS */
+#define DUPLICATE_CHECK_LIFETIME 60 /* number of seconds that the received RADIUS records are kept for duplicate checking . TODO: make it configurable if needed */
 
 /* Ordered lists of clients. The order relationship is a memcmp on the address zone. 
    For same addresses, the port is compared.
@@ -48,12 +49,27 @@
 static struct fd_list cli_ip = FD_LIST_INITIALIZER(cli_ip);
 static struct fd_list cli_ip6 = FD_LIST_INITIALIZER(cli_ip6);
 
-/* Mutex to protect the previous lists */
-static pthread_mutex_t cli_mtx = PTHREAD_MUTEX_INITIALIZER;
+/* Lock to protect the previous lists. We use a rwlock because this list is mostly static, to allow parallel reading */
+static pthread_rwlock_t cli_rwl = PTHREAD_RWLOCK_INITIALIZER;
+
+/* Structure describing one received RADIUS message, for duplicate checks purpose. */
+struct req_info {
+	uint16_t	port; 	/* UDP source port of the request */
+	uint8_t		id;	/* The identifier in the request header */
+	uint8_t		auth[16]; /* Request authenticator, since some RADIUS clients do not implement the id mechanism properly. */
+	struct radius_msg *ans; /* The replied answer if any, in case the previous answer got lost. */
+	
+	int		nbdup;  /* Number of times this request was received as a duplicate */
+	struct fd_list	by_id;	  /* The list of requests ordered by their id, port, and auth */
+	time_t 		received; /* When was the last duplicate received? */
+	struct fd_list  by_time;  /* The list of requests ordered by the 'received' value . */
+};
+
+static pthread_t dbt_expire = (pthread_t)NULL; /* The thread that will remove old requests information from all clients (one thread for all) */
 
 /* Structure describing one client */
 struct rgw_client {
-	/* Link information in global list */
+	/* Link information in global list (cli_ip or cli_ip6) */
 	struct fd_list		chain;
 	
 	/* Reference count */
@@ -81,28 +97,112 @@ struct rgw_client {
 		size_t		len;
 	} 			key;
 	
-	/* information of previous msg received, for duplicate checks -- we keep the last DUPLICATE_MESSAGES_BUFFER messages on each port. */
-#define DUPLICATE_MESSAGES_BUFFER 200 /* This should actually be replaced with a time-based dynamic list! TODO... */
+	/* information of previous msg received, for duplicate checks. */
 	struct {
-		int	cnt;   /* Counts the number of (different) requests we received */
-		struct {
-			uint16_t	port;	  /* The source UDP port of the request */
-			uint8_t		id;	  /* The identifier in the request */
-			uint8_t		auth[16]; /* The request authenticator, because some NAS are not using identifier properly. */
-			struct radius_msg * ans;  /* When the answer has been sent already, keep it so we can send it back */
-			int		nbdup;	  /* count the number of duplicate RADIUS requests we received on this message */
-		} msg_info[DUPLICATE_MESSAGES_BUFFER];
-	} duplicates_info[2]; /*[0] for auth, [1] for acct. */
+		pthread_mutex_t dupl_lock;    /* The mutex protecting the following lists */
+		struct fd_list 	dupl_by_id;   /* The list of req_info structures ordered by their id, port, and auth */
+		struct fd_list 	dupl_by_time; /* The list of req_info structures ordered by their time (approximative) */
+	} dupl_info[2]; /*[0] for auth, [1] for acct. */
 };
 
 
+/* Create a new req_info structure and initialize its data from a RADIUS request message */
+static struct req_info * dupl_new_req_info(struct rgw_radius_msg_meta *msg) {
+	struct req_info * ret = NULL;
+	CHECK_MALLOC_DO( ret = malloc(sizeof(struct req_info)), return NULL );
+	memset(ret, 0, sizeof(struct req_info));
+	ret->port = msg->port;
+	ret->id   = msg->radius.hdr->identifier;
+	memcpy(&ret->auth[0], &msg->radius.hdr->authenticator[0], 16);
+	fd_list_init(&ret->by_id, ret);
+	fd_list_init(&ret->by_time, ret);
+	ret->received = time(NULL);
+	return ret;
+}
 
-/* create a new rgw_client. the arguments are moved into the structure (to limit malloc & free calls). */
+/* Destroy a req_info structure, after it has been unlinked */
+static void dupl_free_req_info(struct req_info * r) {
+	CHECK_PARAMS_DO( r && FD_IS_LIST_EMPTY(&r->by_id) && FD_IS_LIST_EMPTY(&r->by_time), return );
+	if (r->ans) {
+		/* Free this RADIUS message */
+		radius_msg_free(r->ans);
+		free(r->ans);
+	}
+	
+	/* Use r->nbdup for some purpose? */
+	
+	free(r);
+}
+
+/* The core of the purge thread */
+static int dupl_purge_list(struct fd_list * clients) {
+	struct fd_list *li = NULL;
+	for (li = clients->next; li != clients; li = li->next) {
+		struct rgw_client * client = (struct rgw_client *)li;
+		int p;
+		for (p=0; p<=1; p++) {
+			/* Lock this list */
+			time_t now;
+			CHECK_POSIX( pthread_mutex_lock(&client->dupl_info[p].dupl_lock) );
+			
+			now = time(NULL);
+			
+			while (!FD_IS_LIST_EMPTY(&client->dupl_info[p].dupl_by_time)) {
+				/* Check the first item in the list */
+				struct req_info * r = (struct req_info *)(client->dupl_info[p].dupl_by_time.next->o);
+				
+				if (now - r->received > DUPLICATE_CHECK_LIFETIME) {
+					/* Remove this record */
+					fd_list_unlink(&r->by_time);
+					fd_list_unlink(&r->by_id);
+					dupl_free_req_info(r);
+				} else {
+					/* We are done for this list */
+					break;
+				}
+			}
+			
+			CHECK_POSIX( pthread_mutex_unlock(&client->dupl_info[p].dupl_lock) );
+		}
+	}
+	return 0;
+}
+
+/* Thread that purges old RADIUS requests */
+static void * dupl_th(void * arg) {
+	/* Set the thread name */
+	fd_log_threadname ( "app_radgw:duplicate_purge" );
+	
+	/* The thread will be canceled */
+	while (1) {
+		
+		/* We don't use a cond var, we simply wake up every 5 seconds. If the size of the duplicate cache is critical, it might be changed */
+		sleep(5);
+		
+		/* When we wake up, we will check all clients duplicate lists one by one */
+		CHECK_POSIX_DO( pthread_rwlock_rdlock(&cli_rwl), break );
+		
+		CHECK_FCT_DO( dupl_purge_list(&cli_ip), break );
+		CHECK_FCT_DO( dupl_purge_list(&cli_ip6), break );
+		
+		CHECK_POSIX_DO( pthread_rwlock_unlock(&cli_rwl), break );
+	
+		/* Loop */
+	}
+	
+	/* If we reach this part, some fatal error was encountered */
+	CHECK_FCT_DO(fd_event_send(fd_g_config->cnf_main_ev, FDEV_TERMINATE, 0, NULL), );
+	TRACE_DEBUG(FULL, "Thread terminated");	
+	return NULL;
+}
+
+
+/* create a new rgw_client. the arguments are MOVED into the structure (to limit malloc & free calls). */
 static int client_create(struct rgw_client ** res, struct sockaddr ** ip_port, unsigned char ** key, size_t keylen, enum rgw_cli_type type )
 {
 	struct rgw_client *tmp = NULL;
 	char buf[255];
-	int ret;
+	int ret, i;
 	int loc = 0;
 	
 	/* Check if the IP address is local */
@@ -125,6 +225,12 @@ static int client_create(struct rgw_client ** res, struct sockaddr ** ip_port, u
 	memset(tmp, 0, sizeof(struct rgw_client));
 	fd_list_init(&tmp->chain, NULL);
 	
+	/* Initialize the duplicate list info */
+	for (i=0; i<=1; i++) {
+		CHECK_POSIX( pthread_mutex_init(&tmp->dupl_info[0].dupl_lock, NULL) );
+		fd_list_init(&tmp->dupl_info[0].dupl_by_id, NULL);
+		fd_list_init(&tmp->dupl_info[0].dupl_by_time, NULL);
+	}
 	tmp->type = type;
 	
 	if (loc) {
@@ -155,7 +261,6 @@ static int client_create(struct rgw_client ** res, struct sockaddr ** ip_port, u
 	return 0;
 }
 
-
 /* Decrease refcount on a client; the lock must be held when this function is called. */
 static void client_unlink(struct rgw_client * client)
 {
@@ -176,14 +281,17 @@ static void client_unlink(struct rgw_client * client)
 		
 		/* Free the duplicate info */
 		for (idx=0; idx <= 1; idx++){
-			int i = 0;
-			for (i = 0; i < DUPLICATE_MESSAGES_BUFFER; i++) {
-				if (client->duplicates_info[idx].msg_info[i].ans) {
-					/* Free this RADIUS message */
-					radius_msg_free(client->duplicates_info[idx].msg_info[i].ans);
-					free(client->duplicates_info[idx].msg_info[i].ans);
-				}
+			CHECK_POSIX_DO( pthread_mutex_lock( &client->dupl_info[idx].dupl_lock ), /* continue */ );
+			
+			while (!FD_IS_LIST_EMPTY(&client->dupl_info[idx].dupl_by_id)) {
+				struct req_info * r = (struct req_info *)(client->dupl_info[idx].dupl_by_id.next->o);
+				fd_list_unlink( &r->by_id );
+				fd_list_unlink( &r->by_time );
+				dupl_free_req_info(r);
 			}
+			
+			CHECK_POSIX_DO( pthread_mutex_unlock( &client->dupl_info[idx].dupl_lock ), /* continue */ );
+
 		}
 		
 		free(client);
@@ -221,7 +329,7 @@ static void client_unlink(struct rgw_client * client)
 			return ENOENT;													\
 		}
 /* Function to look for an existing rgw_client, or the previous element. 
-   The cli_mtx must be held when calling this function. 
+   The cli_rwl must be held for reading (at least) when calling this function. 
    Returns ENOENT if the matching client does not exist, and res points to the previous element in the list. 
    Returns EEXIST if the matching client is found, and res points to this element. 
    Returns other error code on other error. */
@@ -269,7 +377,7 @@ int rgw_clients_search(struct sockaddr * ip_port, struct rgw_client ** ref)
 	
 	CHECK_PARAMS(ip_port && ref);
 	
-	CHECK_POSIX( pthread_mutex_lock(&cli_mtx) );
+	CHECK_POSIX( pthread_rwlock_rdlock(&cli_rwl) );
 
 	ret = client_search(ref, ip_port);
 	if (ret == EEXIST) {
@@ -279,14 +387,16 @@ int rgw_clients_search(struct sockaddr * ip_port, struct rgw_client ** ref)
 		*ref = NULL;
 	}
 	
-	CHECK_POSIX( pthread_mutex_unlock(&cli_mtx) );
+	CHECK_POSIX( pthread_rwlock_unlock(&cli_rwl) );
 	
 	return ret;
 }
 
 int rgw_clients_check_dup(struct rgw_radius_msg_meta **msg, struct rgw_client *cli)
 {
-	int p, i, dup = 0;
+	int p, dup = 0;
+	struct fd_list * li;
+	struct req_info * r;
 	
 	TRACE_ENTRY("%p %p", msg, cli);
 	
@@ -297,56 +407,63 @@ int rgw_clients_check_dup(struct rgw_radius_msg_meta **msg, struct rgw_client *c
 	else
 		p = 1;
 	
-	/* Check in the previous DUPLICATE_MESSAGES_BUFFER messages if we have received the same identifier / authenticator / port combination */
-	for (i = cli->duplicates_info[p].cnt - 1; i >= cli->duplicates_info[p].cnt - DUPLICATE_MESSAGES_BUFFER; i--) {
-		if ( (cli->duplicates_info[p].msg_info[i % DUPLICATE_MESSAGES_BUFFER].id == (*msg)->radius.hdr->identifier) 
-		  && (cli->duplicates_info[p].msg_info[i % DUPLICATE_MESSAGES_BUFFER].port == (*msg)->port)
-		  && !memcmp(&cli->duplicates_info[p].msg_info[i % DUPLICATE_MESSAGES_BUFFER].auth[0], &(*msg)->radius.hdr->authenticator[0], 16)) {
-			/* We already received this request */
-			cli->duplicates_info[p].msg_info[i % DUPLICATE_MESSAGES_BUFFER].nbdup++;
-			dup = 1;
-			TRACE_DEBUG(INFO, "Received duplicated RADIUS message (id: %02hhx, port: %hu, dup #%d).", 
-					(*msg)->radius.hdr->identifier, 
-					ntohs((*msg)->port), 
-					cli->duplicates_info[p].msg_info[i % DUPLICATE_MESSAGES_BUFFER].nbdup);
-			if (cli->duplicates_info[p].msg_info[i % DUPLICATE_MESSAGES_BUFFER].ans) {
-				/* Resend the answer */
-				CHECK_FCT_DO( rgw_servers_send((*msg)->serv_type, 
-								cli->duplicates_info[p].msg_info[i % DUPLICATE_MESSAGES_BUFFER].ans->buf, 
-								cli->duplicates_info[p].msg_info[i % DUPLICATE_MESSAGES_BUFFER].ans->buf_used, 
-								cli->sa, 
-								(*msg)->port),  );
-			}
-			rgw_msg_free(msg);
+	CHECK_POSIX( pthread_mutex_lock( &cli->dupl_info[p].dupl_lock ) );
+	
+	/* Search if we have this message in our list */
+	for (li = cli->dupl_info[p].dupl_by_id.next; li != &cli->dupl_info[p].dupl_by_id; li = li->next) {
+		int cmp = 0;
+		r = (struct req_info *)(li->o);
+		if (r->id < (*msg)->radius.hdr->identifier)
+			continue;
+		if (r->id > (*msg)->radius.hdr->identifier)
 			break;
-		}
+		if (r->port < (*msg)->port)
+			continue;
+		if (r->port > (*msg)->port)
+			break;
+		cmp = memcmp(&r->auth[0], &(*msg)->radius.hdr->authenticator[0], 16);
+		if (cmp < 0)
+			continue;
+		if (cmp > 0);
+			break;
+		dup = 1;
+		break;
 	}
 	
-	/* If we did no already receive this request, save it for later */
-	if (!dup) {
-		/* It's a new request, save its data */
-		int i = cli->duplicates_info[p].cnt % DUPLICATE_MESSAGES_BUFFER;
+	if (dup) {
+		time_t now = time(NULL);
+		r->nbdup += 1;
+		TRACE_DEBUG(INFO, "Received duplicated RADIUS message (id: %02hhx, port: %hu, dup #%d, previously seen %d secs ago).", 
+				r->id, ntohs(r->port), r->nbdup, now - r->received);
 		
-		cli->duplicates_info[p].msg_info[i].port = (*msg)->port;
-		cli->duplicates_info[p].msg_info[i].id   = (*msg)->radius.hdr->identifier;
-		memcpy(&cli->duplicates_info[p].msg_info[i].auth[0], &(*msg)->radius.hdr->authenticator[0], 16);
-		if (cli->duplicates_info[p].msg_info[i].ans) {
-			/* Free the old answer */
-			radius_msg_free(cli->duplicates_info[p].msg_info[i].ans);
-			free(cli->duplicates_info[p].msg_info[i].ans);
-			cli->duplicates_info[p].msg_info[i].ans = NULL;
-		}
-		cli->duplicates_info[p].msg_info[i].nbdup = 0;
+		if (r->ans) {
+			/* Resend the answer */
+			CHECK_FCT_DO( rgw_servers_send((*msg)->serv_type, r->ans->buf, r->ans->buf_used, cli->sa, r->port),  );
 			
-		cli->duplicates_info[p].cnt += 1;
+			/* Should we delete 'r' so that a further duplicate will again be converted to Diameter? */
+		}
+		
+		/* Update the timestamp */
+		r->received = now;
+		fd_list_unlink(&r->by_time);
+		fd_list_insert_before(&cli->dupl_info[p].dupl_by_time, &r->by_time); /* Move as last entry, since it is the most recent */
+		
+		/* Delete the request message */
+		rgw_msg_free(msg);
+		
+	} else {
+		/* The message was not a duplicate, we save it */
+		/* li currently points the the next entry in list_by_id */
+		CHECK_MALLOC_DO( r= dupl_new_req_info(*msg), { CHECK_POSIX_DO(pthread_mutex_unlock( &cli->dupl_info[p].dupl_lock ), ); return ENOMEM; } );
+		fd_list_insert_before(li, &r->by_id);
+		fd_list_insert_before(&cli->dupl_info[p].dupl_by_time, &r->by_time); /* it is the most recent */
 	}
+		
+	CHECK_POSIX( pthread_mutex_unlock( &cli->dupl_info[p].dupl_lock ) );
 	
 	return 0;
 }
 
-/* Check that the NAS-IP-Adress or NAS-Identifier is coherent with the IP the packet was received from */
-/* Also update the client list of aliases if needed */
-/* NOTE: This function does nothing if the client is a RADIUS Proxy... */
 /* Check if the message has a valid authenticator, and update the meta-data accordingly */
 int rgw_clients_auth_check(struct rgw_radius_msg_meta * msg, struct rgw_client * cli, uint8_t * req_auth)
 {
@@ -389,12 +506,18 @@ int rgw_clients_init(void)
 	CHECK_FCT( fd_dict_search(fd_g_config->cnf_dict, DICT_AVP, AVP_BY_NAME, "Origin-Host", &cache_orig_host, ENOENT) );
 	CHECK_FCT( fd_dict_search(fd_g_config->cnf_dict, DICT_AVP, AVP_BY_NAME, "Origin-Realm", &cache_orig_realm, ENOENT) );
 	CHECK_FCT( fd_dict_search(fd_g_config->cnf_dict, DICT_AVP, AVP_BY_NAME, "Route-Record", &cache_route_record, ENOENT) );
+	
+	/* Create the thread that will purge old RADIUS duplicates */
+	CHECK_POSIX( pthread_create( &dbt_expire, NULL, dupl_th, NULL) );
+	
 	return 0;
 }
 
 
 /* The following function checks if a RADIUS message contains a valid NAS identifier, and initializes an empty Diameter
  message with the appropriate routing information */
+/* Check that the NAS-IP-Adress or NAS-Identifier is coherent with the IP the packet was received from */
+/* Also update the client list of aliases if needed */
 int rgw_clients_create_origin(struct rgw_radius_msg_meta *msg, struct rgw_client * cli, struct msg ** diam)
 {
 	int idx;
@@ -713,10 +836,10 @@ void rgw_clients_dispose(struct rgw_client ** ref)
 	TRACE_ENTRY("%p", ref);
 	CHECK_PARAMS_DO(ref, return);
 	
-	CHECK_POSIX_DO( pthread_mutex_lock(&cli_mtx),  );
+	CHECK_POSIX_DO( pthread_rwlock_wrlock(&cli_rwl),  );
 	client_unlink(*ref);
 	*ref = NULL;
-	CHECK_POSIX_DO( pthread_mutex_unlock(&cli_mtx), );
+	CHECK_POSIX_DO( pthread_rwlock_unlock(&cli_rwl), );
 }
 
 int rgw_clients_add( struct sockaddr * ip_port, unsigned char ** key, size_t keylen, enum rgw_cli_type type )
@@ -738,7 +861,7 @@ int rgw_clients_add( struct sockaddr * ip_port, unsigned char ** key, size_t key
 	}
 	
 	/* Lock the lists */
-	CHECK_POSIX( pthread_mutex_lock(&cli_mtx) );
+	CHECK_POSIX( pthread_rwlock_wrlock(&cli_rwl) );
 	
 	/* Check if the same entry does not already exist */
 	ret = client_search(&prev, ip_port );
@@ -769,7 +892,7 @@ int rgw_clients_add( struct sockaddr * ip_port, unsigned char ** key, size_t key
 	}
 end:
 	/* release the lists */
-	CHECK_POSIX( pthread_mutex_unlock(&cli_mtx) );
+	CHECK_POSIX( pthread_rwlock_unlock(&cli_rwl) );
 	
 	return ret;
 }
@@ -790,7 +913,7 @@ void rgw_clients_dump(void)
 	if ( ! TRACE_BOOL(FULL) )
 		return;
 	
-	CHECK_POSIX_DO( pthread_mutex_lock(&cli_mtx), /* ignore error */ );
+	CHECK_POSIX_DO( pthread_rwlock_rdlock(&cli_rwl), /* ignore error */ );
 	
 	if (!FD_IS_LIST_EMPTY(&cli_ip))
 		fd_log_debug(" RADIUS IP clients list:\n");
@@ -800,7 +923,7 @@ void rgw_clients_dump(void)
 		fd_log_debug(" RADIUS IPv6 clients list:\n");
 	dump_cli_list(&cli_ip6);
 		
-	CHECK_POSIX_DO( pthread_mutex_unlock(&cli_mtx), /* ignore error */ );
+	CHECK_POSIX_DO( pthread_rwlock_unlock(&cli_rwl), /* ignore error */ );
 }
 
 void rgw_clients_fini(void)
@@ -809,8 +932,10 @@ void rgw_clients_fini(void)
 	
 	TRACE_ENTRY();
 	
-	CHECK_POSIX_DO( pthread_mutex_lock(&cli_mtx), /* ignore error */ );
+	CHECK_POSIX_DO( pthread_rwlock_wrlock(&cli_rwl), /* ignore error */ );
 	
+	CHECK_FCT_DO( fd_thr_term(&dbt_expire), /* continue */ );
+
 	/* empty the lists */
 	while ( ! FD_IS_LIST_EMPTY(&cli_ip) ) {
 		client = cli_ip.next;
@@ -823,13 +948,14 @@ void rgw_clients_fini(void)
 		client_unlink((struct rgw_client *)client);
 	}
 	
-	CHECK_POSIX_DO( pthread_mutex_unlock(&cli_mtx), /* ignore error */ );
+	CHECK_POSIX_DO( pthread_rwlock_unlock(&cli_rwl), /* ignore error */ );
 	
 }
 
 int rgw_client_finish_send(struct radius_msg ** msg, struct rgw_radius_msg_meta * req, struct rgw_client * cli)
 {
-	int p,i;
+	int p;
+	struct fd_list * li;
 	
 	TRACE_ENTRY("%p %p %p", msg, req, cli);
 	CHECK_PARAMS( msg && *msg && cli );
@@ -855,33 +981,60 @@ int rgw_client_finish_send(struct radius_msg ** msg, struct rgw_radius_msg_meta 
 	/* Send the message */
 	CHECK_FCT( rgw_servers_send(req->serv_type, (*msg)->buf, (*msg)->buf_used, cli->sa, req->port) );
 
-	/* update the duplicate cache in rgw_clients */
+	/* update the duplicate cache */
 	if (req->serv_type == RGW_PLG_TYPE_AUTH)
 		p = 0;
 	else
 		p = 1;
-	for (i = cli->duplicates_info[p].cnt - 1; i >= cli->duplicates_info[p].cnt - DUPLICATE_MESSAGES_BUFFER; i--) {
-		/* Search the entry corresponding to the request */
-		if ( (cli->duplicates_info[p].msg_info[i % DUPLICATE_MESSAGES_BUFFER].id == req->radius.hdr->identifier) 
-		  && (cli->duplicates_info[p].msg_info[i % DUPLICATE_MESSAGES_BUFFER].port == req->port)
-		  && !memcmp(&cli->duplicates_info[p].msg_info[i % DUPLICATE_MESSAGES_BUFFER].auth[0], &req->radius.hdr->authenticator[0], 16)) {
-			/* This should not happen, but just in case */
-			if (cli->duplicates_info[p].msg_info[i % DUPLICATE_MESSAGES_BUFFER].ans) {
-				radius_msg_free(cli->duplicates_info[p].msg_info[i % DUPLICATE_MESSAGES_BUFFER].ans);
-				free(cli->duplicates_info[p].msg_info[i % DUPLICATE_MESSAGES_BUFFER].ans);
-			}
-			/* Now save the answer message */
-			cli->duplicates_info[p].msg_info[i % DUPLICATE_MESSAGES_BUFFER].ans = *msg;
-			*msg = NULL;
-			break;
-		}
-	}
 	
-	/* If we have not found the request in our circular buffer, it is probably too small */
+	CHECK_POSIX( pthread_mutex_lock( &cli->dupl_info[p].dupl_lock ) );
+	
+	/* Search this message in our list */
+	for (li = cli->dupl_info[p].dupl_by_id.next; li != &cli->dupl_info[p].dupl_by_id; li = li->next) {
+		int cmp = 0;
+		struct req_info * r = (struct req_info *)(li->o);
+		if (r->id < req->radius.hdr->identifier)
+			continue;
+		if (r->id > req->radius.hdr->identifier)
+			break;
+		if (r->port < req->port)
+			continue;
+		if (r->port > req->port)
+			break;
+		cmp = memcmp(&r->auth[0], &req->radius.hdr->authenticator[0], 16);
+		if (cmp < 0)
+			continue;
+		if (cmp > 0);
+			break;
+		
+		/* We have the request in our duplicate cache */
+		/* This should not happen, but just in case... */
+		if (r->ans) {
+			radius_msg_free(r->ans);
+			free(r->ans);
+		}
+		
+		/* Now save the message */
+		r->ans = *msg;
+		*msg = NULL;
+		
+		/* Update the timestamp */
+		{
+			time_t now = time(NULL);
+			TRACE_DEBUG(FULL, "Sent RADIUS answer %d seconds after the request was received.", now - r->received);
+			r->received = now;
+			fd_list_unlink(&r->by_time); /* Move as last entry, since it is the most recent */
+			fd_list_insert_before(&cli->dupl_info[p].dupl_by_time, &r->by_time);
+		}
+		break;
+	}
+		
+	CHECK_POSIX( pthread_mutex_unlock( &cli->dupl_info[p].dupl_lock ) );
+	
+	/* If we have not found the request in our list, the purge time is probably too small */
 	if (*msg) {
-		TODO("Implement a dynamic list for RADIUS duplicates detection based on expiry time instead of number of messages");
-		TRACE_DEBUG(INFO, "The circular buffer has circled before the Diameter answer was received, you should definitely increase DUPLICATE_MESSAGES_BUFFER value.");
-		/* We don't re-save the value */
+		TODO("Augment the purge time...");
+		/* If we receive the duplicate request again, it will be converted to Diameter... */
 		radius_msg_free(*msg);
 		free(*msg);
 		*msg = NULL;
