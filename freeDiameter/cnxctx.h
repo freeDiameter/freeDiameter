@@ -127,7 +127,7 @@ struct sctps_ctx {
 
 int fd_sctps_init(struct cnxctx * conn);
 int fd_sctps_handshake_others(struct cnxctx * conn, char * priority, void * alt_creds);
-int fd_sctps_startthreads(struct cnxctx * conn);
+int fd_sctps_startthreads(struct cnxctx * conn, int others);
 void fd_sctps_bye(struct cnxctx * conn);
 void fd_sctps_waitthreadsterm(struct cnxctx * conn);
 void fd_sctps_gnutls_deinit_others(struct cnxctx * conn);

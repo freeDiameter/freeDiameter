@@ -597,18 +597,22 @@ int fd_sctps_handshake_others(struct cnxctx * conn, char * priority, void * alt_
 	return 0;
 }
 
-/* Receive messages from all stream pairs */
-int fd_sctps_startthreads(struct cnxctx * conn)
+/* Receive messages from others ? all other stream pairs : the master pair */
+int fd_sctps_startthreads(struct cnxctx * conn, int others)
 {
 	uint16_t i;
 	
 	TRACE_ENTRY("%p", conn);
 	CHECK_PARAMS( conn && conn->cc_sctps_data.array );
 	
-	for (i = 0; i < conn->cc_sctp_para.pairs; i++) {
-		
-		/* Start the decipher thread */
-		CHECK_POSIX( pthread_create( &conn->cc_sctps_data.array[i].thr, NULL, decipher, &conn->cc_sctps_data.array[i] ) );
+	if (others) {
+		for (i = 1; i < conn->cc_sctp_para.pairs; i++) {
+
+			/* Start the decipher thread */
+			CHECK_POSIX( pthread_create( &conn->cc_sctps_data.array[i].thr, NULL, decipher, &conn->cc_sctps_data.array[i] ) );
+		}
+	} else {
+		CHECK_POSIX( pthread_create( &conn->cc_sctps_data.array[0].thr, NULL, decipher, &conn->cc_sctps_data.array[0] ) );
 	}
 	return 0;
 }

@@ -994,7 +994,7 @@ int fd_tls_prepare(gnutls_session_t * session, int mode, char * priority, void *
 /* Verify remote credentials after successful handshake (return 0 if OK, EINVAL otherwise) */
 int fd_tls_verify_credentials(gnutls_session_t session, struct cnxctx * conn, int verbose)
 {
-	int i;
+	int i, ret = 0;
 	unsigned int gtret;
 	const gnutls_datum_t *cert_list;
 	unsigned int cert_list_size;
@@ -1175,15 +1175,13 @@ int fd_tls_verify_credentials(gnutls_session_t session, struct cnxctx * conn, in
 		CHECK_GNUTLS_DO( gnutls_x509_crt_init (&cert), return EINVAL);
 		CHECK_GNUTLS_DO( gnutls_x509_crt_import (cert, &cert_list[i], GNUTLS_X509_FMT_DER), return EINVAL);
 		
-		/* When gnutls 2.10.1 is around, we should use gnutls_certificate_set_verify_function */
-		
 		GNUTLS_TRACE( deadline = gnutls_x509_crt_get_expiration_time(cert) );
 		if ((deadline != (time_t)-1) && (deadline < now)) {
 			if (TRACE_BOOL(INFO)) {
 				fd_log_debug("TLS: Remote certificate invalid on socket %d (Remote: '%s')(Connection: '%s') :\n", conn->cc_socket, conn->cc_remid, conn->cc_id);
 				fd_log_debug(" - The certificate %d in the chain is expired\n", i);
 			}
-			return EINVAL;
+			ret = EINVAL;
 		}
 		
 		GNUTLS_TRACE( deadline = gnutls_x509_crt_get_activation_time(cert) );
@@ -1192,7 +1190,7 @@ int fd_tls_verify_credentials(gnutls_session_t session, struct cnxctx * conn, in
 				fd_log_debug("TLS: Remote certificate invalid on socket %d (Remote: '%s')(Connection: '%s') :\n", conn->cc_socket, conn->cc_remid, conn->cc_id);
 				fd_log_debug(" - The certificate %d in the chain is not yet activated\n", i);
 			}
-			return EINVAL;
+			ret = EINVAL;
 		}
 		
 		if ((i == 0) && (conn->cc_tls_para.cn)) {
@@ -1201,14 +1199,14 @@ int fd_tls_verify_credentials(gnutls_session_t session, struct cnxctx * conn, in
 					fd_log_debug("TLS: Remote certificate invalid on socket %d (Remote: '%s')(Connection: '%s') :\n", conn->cc_socket, conn->cc_remid, conn->cc_id);
 					fd_log_debug(" - The certificate hostname does not match '%s'\n", conn->cc_tls_para.cn);
 				}
-				return EINVAL;
+				ret = EINVAL;
 			}
 		}
 		
 		GNUTLS_TRACE( gnutls_x509_crt_deinit (cert) );
 	}
 
-	return 0;
+	return ret;
 }
 
 /* TLS handshake a connection; no need to have called start_clear before. Reception is active if handhsake is successful */
@@ -1255,7 +1253,7 @@ int fd_cnx_handshake(struct cnxctx * conn, int mode, char * priority, void * alt
 	{
 		int ret;
 		
-		/* When gnutls 2.10.1 is around, we should use gnutls_certificate_set_verify_function */
+		/* When gnutls 2.10.1 is around, we should use gnutls_certificate_set_verify_function and fd_tls_verify_credentials, so that handshake fails directly. */
 		
 		CHECK_GNUTLS_DO( ret = gnutls_handshake(conn->cc_tls_para.session),
 			{
@@ -1278,11 +1276,14 @@ int fd_cnx_handshake(struct cnxctx * conn, int mode, char * priority, void * alt
 	/* Multi-stream TLS: handshake other streams as well */
 	if (conn->cc_sctp_para.pairs > 1) {
 #ifndef DISABLE_SCTP
+		/* Start reading the messages from the master session. That way, if the remote peer closed, we are not stuck inside handshake */
+		CHECK_FCT(fd_sctps_startthreads(conn, 0));
+		
 		/* Resume all additional sessions from the master one. */
 		CHECK_FCT(fd_sctps_handshake_others(conn, priority, alt_creds));
 
 		/* Start decrypting the messages from all threads and queuing them in target queue */
-		CHECK_FCT(fd_sctps_startthreads(conn));
+		CHECK_FCT(fd_sctps_startthreads(conn, 1));
 #endif /* DISABLE_SCTP */
 	} else {
 		/* Start decrypting the data */
