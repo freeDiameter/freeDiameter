@@ -157,7 +157,7 @@ static void * server_thread(void * param)
 		msg->serv_type = me->type;
 		msg->port = port;
 		
-		rgw_msg_dump(msg);
+		rgw_msg_dump(msg, 1);
 		
 		/* queue the message for a worker thread */
 		CHECK_FCT_DO( rgw_work_add(msg, nas_info), break );

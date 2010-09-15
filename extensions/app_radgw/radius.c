@@ -309,8 +309,8 @@ static void radius_msg_dump_attr_val(struct radius_attr_hdr *hdr)
 	}
 }
 
-/* Dump a message  -- can be used safely with a struct radius_msg as parameter (we don't dump the metadata) */
-void rgw_msg_dump(struct rgw_radius_msg_meta * msg)
+/* Dump a message  */
+void rgw_msg_dump(struct rgw_radius_msg_meta * msg, int has_meta)
 {
 	unsigned char *auth;
 	size_t i;
@@ -330,7 +330,7 @@ void rgw_msg_dump(struct rgw_radius_msg_meta * msg)
 		fd_log_debug("    - Type: 0x%02hhx (%s)\n       Len: %-3hhu", attr->type, rgw_msg_attrtype_str(attr->type), attr->length);
 		radius_msg_dump_attr_val(attr);
 	}
-	if (msg->ps_nb) {
+	if (has_meta && msg->ps_nb) {
 		fd_log_debug("---- hidden attributes:\n");
 		for (i = msg->ps_first; i < msg->ps_first + msg->ps_nb; i++) {
 			struct radius_attr_hdr *attr = (struct radius_attr_hdr *)(msg->radius.buf + msg->radius.attr_pos[i]);

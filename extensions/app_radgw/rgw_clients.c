@@ -998,7 +998,7 @@ int rgw_client_finish_send(struct radius_msg ** msg, struct rgw_radius_msg_meta 
 	
 	/* Debug */
 	TRACE_DEBUG(FULL, "RADIUS message ready for sending:");
-	rgw_msg_dump((struct rgw_radius_msg_meta *)*msg);
+	rgw_msg_dump((struct rgw_radius_msg_meta *)*msg, 0);
 
 	/* Send the message */
 	CHECK_FCT( rgw_servers_send(req->serv_type, (*msg)->buf, (*msg)->buf_used, cli->sa, req->port) );

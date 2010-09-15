@@ -65,7 +65,7 @@ struct rgw_radius_msg_meta {
 };
 void rgw_msg_free(struct rgw_radius_msg_meta ** msg);
 int rgw_msg_parse(unsigned char * buf, size_t len, struct rgw_radius_msg_meta ** msg);
-void rgw_msg_dump(struct rgw_radius_msg_meta * msg);
+void rgw_msg_dump(struct rgw_radius_msg_meta * msg, int has_meta);
 
 /* Local RADIUS server(s) configuration */
 struct rgw_serv {
