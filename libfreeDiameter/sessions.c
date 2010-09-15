@@ -93,23 +93,23 @@ struct session {
 	char *		sid;	/* The \0-terminated Session-Id */
 	uint32_t	hash;	/* computed hash of sid */
 	struct fd_list	chain_h;/* chaining in the hash table of sessions. */
+	int		rc;	/* Reference counter on this object, freed only when it reaches 0. */
 	
 	struct timespec	timeout;/* Timeout date for the session */
 	struct fd_list	expire;	/* List of expiring sessions, ordered by timeouts. */
 	
 	pthread_mutex_t stlock;	/* A lock to protect the list of states associated with this session */
 	struct fd_list	states;	/* Sentinel for the list of states of this session. */
-	int		msg_cnt;/* Reference counter for the messages pointing to this session */
 };
 
 /* Sessions hash table, to allow fast sid to session retrieval */
 static struct {
-	struct fd_list	sentinel;	/* sentinel element for this sublist */
-	pthread_mutex_t lock;		/* the mutex for this sublist -- we might probably change it to rwlock for a little optimization */
+	struct fd_list	 sentinel;	/* sentinel element for this sublist */
+	pthread_rwlock_t rwlock;	/* the rwlock for this sublist */
 } sess_hash [ 1 << SESS_HASH_SIZE ] ;
 #define H_MASK( __hash ) ((__hash) & (( 1 << SESS_HASH_SIZE ) - 1))
-#define H_LIST( _hash ) (&(sess_hash[H_MASK(_hash)].sentinel))
-#define H_LOCK( _hash ) (&(sess_hash[H_MASK(_hash)].lock    ))
+#define H_LIST( _hash )   (&(sess_hash[H_MASK(_hash)].sentinel))
+#define H_RWLOCK( _hash ) (&(sess_hash[H_MASK(_hash)].rwlock  ))
 
 /* The following are used to generate sid values that are eternaly unique */
 static uint32_t   	sid_h;	/* initialized to the current time in fd_sess_init */
@@ -126,6 +126,7 @@ static pthread_t	exp_thr; 	/* The expiry thread that handles cleanup of expired 
  *  hash lock > state lock > expiry lock
  * i.e. state lock can be taken while holding the hash lock, but not while holding the expiry lock.
  * As well, the hash lock cannot be taken while holding a state lock.
+ * Never try to take another lock while holding the expiry one.
  */
 
 /********************************************************************************************************/
@@ -146,6 +147,7 @@ static struct session * new_session(char * sid, size_t sidlen)
 	sess->sid  = sid;
 	sess->hash = fd_hash(sid, sidlen);
 	fd_list_init(&sess->chain_h, sess);
+	sess->rc   = 0;
 	
 	CHECK_SYS_DO( clock_gettime(CLOCK_REALTIME, &sess->timeout), return NULL );
 	sess->timeout.tv_sec += SESS_DEFAULT_LIFETIME;
