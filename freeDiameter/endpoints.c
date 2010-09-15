@@ -74,7 +74,7 @@ int fd_ep_add_merge( struct fd_list * list, sSA * sa, socklen_t sl, uint32_t fla
 				if (IN_IS_ADDR_UNSPECIFIED(&ptr.sin->sin_addr) 
 				 || IN_IS_ADDR_LOOPBACK(&ptr.sin->sin_addr)
 				    /* the next one filters both EXPERIMENTAL, BADCLASS and MULTICAST. */
-				 || (((ptr.sin->sin_addr.s_addr) & ntohl(0xe0000000)) == ntohl(0xe0000000))
+				 || ((ntohl(ptr.sin->sin_addr.s_addr) & 0xe0000000) == 0xe0000000)
 				 || (ptr.sin->sin_addr.s_addr == INADDR_BROADCAST)) {
 					if (TRACE_BOOL(ANNOYING + 1)) {
 						TRACE_DEBUG(ANNOYING, "  DEBUG:fd_ep_add_merge  Address was ignored, not added.");
