@@ -1052,3 +1052,53 @@ int rgw_client_finish_send(struct radius_msg ** msg, struct rgw_radius_msg_meta 
 	return 0;
 }
 
+/* Call this function when a RADIUS request has explicitely no answer (mainly accounting) so 
+that we purge the duplicate cache and allow further message to be translated again.
+This is useful for example when a temporary error occurred in Diameter (like UNABLE_TO_DELIVER) */
+int rgw_client_finish_nosend(struct rgw_radius_msg_meta * req, struct rgw_client * cli)
+{
+	int p;
+	struct fd_list * li;
+	
+	TRACE_ENTRY("%p %p", req, cli);
+	CHECK_PARAMS( req && cli );
+	
+	/* update the duplicate cache */
+	if (req->serv_type == RGW_PLG_TYPE_AUTH)
+		p = 0;
+	else
+		p = 1;
+	
+	CHECK_POSIX( pthread_mutex_lock( &cli->dupl_info[p].dupl_lock ) );
+	
+	/* Search this message in our list */
+	for (li = cli->dupl_info[p].dupl_by_id.next; li != &cli->dupl_info[p].dupl_by_id; li = li->next) {
+		int cmp = 0;
+		struct req_info * r = (struct req_info *)(li->o);
+		if (r->id < req->radius.hdr->identifier)
+			continue;
+		if (r->id > req->radius.hdr->identifier)
+			break;
+		if (r->port < req->port)
+			continue;
+		if (r->port > req->port)
+			break;
+		cmp = memcmp(&r->auth[0], &req->radius.hdr->authenticator[0], 16);
+		if (cmp < 0)
+			continue;
+		if (cmp > 0)
+			break;
+		
+		/* We have the request in our duplicate cache, remove it */
+		fd_list_unlink(&r->by_id);
+		fd_list_unlink(&r->by_time);
+		dupl_free_req_info(r);
+		break;
+	}
+		
+	CHECK_POSIX( pthread_mutex_unlock( &cli->dupl_info[p].dupl_lock ) );
+	
+	/* Finished */
+	return 0;
+}
+

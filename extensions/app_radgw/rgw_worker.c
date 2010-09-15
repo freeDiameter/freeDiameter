@@ -287,6 +287,9 @@ static void receive_diam_answer(void * paback, struct msg **ans)
 	/* Now try and send the RADIUS answer */
 	if (rad_ans) {
 		CHECK_FCT_DO( rgw_client_finish_send(&rad_ans, pa->rad, pa->cli), );	
+	} else {
+		/* Remove the request from the duplicate cache */
+		CHECK_FCT_DO( rgw_client_finish_nosend(pa->rad, pa->cli), );
 	}
 
 out:

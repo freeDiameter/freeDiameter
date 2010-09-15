@@ -99,6 +99,7 @@ int rgw_clients_search(struct sockaddr * ip_port, struct rgw_client ** ref);
 int rgw_clients_check_dup(struct rgw_radius_msg_meta **msg, struct rgw_client *cli);
 int rgw_clients_create_origin(struct rgw_radius_msg_meta *msg, struct rgw_client * cli, struct msg ** diam);
 int rgw_client_finish_send(struct radius_msg ** msg, struct rgw_radius_msg_meta * req, struct rgw_client * cli);
+int rgw_client_finish_nosend(struct rgw_radius_msg_meta * req, struct rgw_client * cli);
 void rgw_clients_dispose(struct rgw_client ** ref);
 void rgw_clients_dump(void);
 int rgw_clients_init(void);
