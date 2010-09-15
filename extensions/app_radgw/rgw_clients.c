@@ -1043,7 +1043,6 @@ int rgw_client_finish_send(struct radius_msg ** msg, struct rgw_radius_msg_meta 
 		/* Update the timestamp */
 		{
 			time_t now = time(NULL);
-			TRACE_DEBUG(FULL, "Sent RADIUS answer %d seconds after the request was received.", now - r->received);
 			r->received = now;
 			fd_list_unlink(&r->by_time); /* Move as last entry, since it is the most recent */
 			fd_list_insert_before(&cli->dupl_info[p].dupl_by_time, &r->by_time);
