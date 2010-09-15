@@ -284,6 +284,7 @@ static void receive_diam_answer(void * paback, struct msg **ans)
 	}
 	
 	
+out:
 	/* Now try and send the RADIUS answer */
 	if (rad_ans) {
 		CHECK_FCT_DO( rgw_client_finish_send(&rad_ans, pa->rad, pa->cli), );	
@@ -292,7 +293,6 @@ static void receive_diam_answer(void * paback, struct msg **ans)
 		CHECK_FCT_DO( rgw_client_finish_nosend(pa->rad, pa->cli), );
 	}
 
-out:
 	/* Clear the Diameter message */
 	if (*ans) {
 		CHECK_FCT_DO( fd_msg_free(*ans),  );
