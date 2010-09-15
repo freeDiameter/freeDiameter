@@ -25,10 +25,9 @@
 #               and we match only this "Ext-Type" value (16 bits).
 #              This option should only be used with "CODE 26 VENDOR 0".
 #		
+# Note that the Proxy-State (code 33) attribute is handled directly as an ECHO parameter by the gateway core.
 
 # Examples:
 # DROP code 18 ; # Reply-Message attribute, should not be included in requests
 # DROP code 26 vendor 9 ; # Drop any Cisco-specific attribute
 # ECHO code 26 vendor 0 ext 256 ; # Echo any extended attribute with the type 256.
-
-ECHO code 33 ; # RADIUS Proxy-State attribute

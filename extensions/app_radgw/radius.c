@@ -1,18 +1,44 @@
-/*********************************************************************************/
+/*********************************************************************************************************
+* Software License Agreement (BSD License)                                                               *
+* Author: Sebastien Decugis <sdecugis@nict.go.jp>							 *
+*													 *
+* Copyright (c) 2010, WIDE Project and NICT								 *
+* All rights reserved.											 *
+* 													 *
+* Redistribution and use of this software in source and binary forms, with or without modification, are  *
+* permitted provided that the following conditions are met:						 *
+* 													 *
+* * Redistributions of source code must retain the above 						 *
+*   copyright notice, this list of conditions and the 							 *
+*   following disclaimer.										 *
+*    													 *
+* * Redistributions in binary form must reproduce the above 						 *
+*   copyright notice, this list of conditions and the 							 *
+*   following disclaimer in the documentation and/or other						 *
+*   materials provided with the distribution.								 *
+* 													 *
+* * Neither the name of the WIDE Project or NICT nor the 						 *
+*   names of its contributors may be used to endorse or 						 *
+*   promote products derived from this software without 						 *
+*   specific prior written permission of WIDE Project and 						 *
+*   NICT.												 *
+* 													 *
+* THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED *
+* WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A *
+* PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR *
+* ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT 	 *
+* LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS 	 *
+* INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR *
+* TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF   *
+* ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.								 *
+*********************************************************************************************************/
+
 /* freeDiameter author note:
- *  The content from this file comes directly from the hostap project.
+ *  The content from this file comes for the main part from the hostap project.
  * It is redistributed under the terms of the BSD license, as allowed
  * by the original copyright reproduced bellow.
- *  In addition to this notice, the following changes have been done:
- *   - created the radius_msg_dump_attr_val function
+ * The modifications to this file are placed under the copyright of the freeDiameter project.
  */
-#include "rgw_common.h"
-
-/* Overwrite printf */
-#define printf(args...) fd_log_debug(args)
-
-/*********************************************************************************/
-
 
 /*
  * hostapd / RADIUS message processing
@@ -27,6 +53,13 @@
  *
  * See README and COPYING for more details.
  */
+
+/*********************************************************************************/
+#include "rgw.h"
+
+/* Overwrite printf */
+#define printf(args...) fd_log_debug(args)
+
 
 static struct radius_attr_hdr *
 radius_get_attr_hdr(struct radius_msg *msg, int idx)
@@ -103,22 +136,17 @@ void radius_msg_free(struct radius_msg *msg)
 	msg->attr_size = msg->attr_used = 0;
 }
 
-
-static const char *radius_code_string(u8 code)
+/* Destroy a message */
+void rgw_msg_free(struct rgw_radius_msg_meta ** msg)
 {
-	switch (code) {
-	case RADIUS_CODE_ACCESS_REQUEST: return "Access-Request";
-	case RADIUS_CODE_ACCESS_ACCEPT: return "Access-Accept";
-	case RADIUS_CODE_ACCESS_REJECT: return "Access-Reject";
-	case RADIUS_CODE_ACCOUNTING_REQUEST: return "Accounting-Request";
-	case RADIUS_CODE_ACCOUNTING_RESPONSE: return "Accounting-Response";
-	case RADIUS_CODE_ACCESS_CHALLENGE: return "Access-Challenge";
-	case RADIUS_CODE_STATUS_SERVER: return "Status-Server";
-	case RADIUS_CODE_STATUS_CLIENT: return "Status-Client";
-	case RADIUS_CODE_RESERVED: return "Reserved";
-	default: return "?Unknown?";
-	}
+	if (!msg || !*msg)
+		return;
+	
+	radius_msg_free(&(*msg)->radius);
+	free(*msg);
+	*msg = NULL;
 }
+
 
 
 struct radius_attr_type {
@@ -218,7 +246,7 @@ static void print_char(char c)
 }
 
 
-void radius_msg_dump_attr_val(struct radius_attr_hdr *hdr)
+static void radius_msg_dump_attr_val(struct radius_attr_hdr *hdr)
 {
 	struct radius_attr_type *attr;
 	int i, len;
@@ -281,31 +309,36 @@ void radius_msg_dump_attr_val(struct radius_attr_hdr *hdr)
 	}
 }
 
-static void radius_msg_dump_attr(struct radius_attr_hdr *hdr)
+/* Dump a message  -- can be used safely with a struct radius_msg as parameter (we don't dump the metadata) */
+void rgw_msg_dump(struct rgw_radius_msg_meta * msg)
 {
-	struct radius_attr_type *attr;
-
-	attr = radius_get_attr_type(hdr->type);
-
-	printf("   Attribute %d (%s) length=%d\n",
-	       hdr->type, attr ? attr->name : "?Unknown?", hdr->length);
-	
-	radius_msg_dump_attr_val(hdr);
-}
-
-
-void radius_msg_dump(struct radius_msg *msg)
-{
+	unsigned char *auth;
 	size_t i;
-
-	printf("RADIUS message: code=%d (%s) identifier=%d length=%d\n",
-	       msg->hdr->code, radius_code_string(msg->hdr->code),
-	       msg->hdr->identifier, ntohs(msg->hdr->length));
-
-	for (i = 0; i < msg->attr_used; i++) {
-		struct radius_attr_hdr *attr = radius_get_attr_hdr(msg, i);
-		radius_msg_dump_attr(attr);
+	if (! TRACE_BOOL(FULL) )
+		return;
+	
+	auth =  &(msg->radius.hdr->authenticator[0]);
+	
+	fd_log_debug("------ RADIUS msg dump -------\n");
+	fd_log_debug(" id  : 0x%02hhx, code : %hhd (%s), length : %d\n", msg->radius.hdr->identifier, msg->radius.hdr->code, rgw_msg_code_str(msg->radius.hdr->code), ntohs(msg->radius.hdr->length));
+	fd_log_debug(" auth: %02hhx %02hhx %02hhx %02hhx  %02hhx %02hhx %02hhx %02hhx\n",
+			auth[0], auth[1], auth[2], auth[3], auth[4], auth[5], auth[6], auth[7]);
+	fd_log_debug("       %02hhx %02hhx %02hhx %02hhx  %02hhx %02hhx %02hhx %02hhx\n",
+			auth[8],  auth[9],  auth[10], auth[11], auth[12], auth[13], auth[14], auth[15]);
+	for (i = 0; i < msg->radius.attr_used; i++) {
+		struct radius_attr_hdr *attr = (struct radius_attr_hdr *)(msg->radius.buf + msg->radius.attr_pos[i]);
+		fd_log_debug("    - Type: 0x%02hhx (%s)\n       Len: %-3hhu", attr->type, rgw_msg_attrtype_str(attr->type), attr->length);
+		radius_msg_dump_attr_val(attr);
 	}
+	if (msg->ps_nb) {
+		fd_log_debug("---- hidden attributes:\n");
+		for (i = msg->ps_first; i < msg->ps_first + msg->ps_nb; i++) {
+			struct radius_attr_hdr *attr = (struct radius_attr_hdr *)(msg->radius.buf + msg->radius.attr_pos[i]);
+			fd_log_debug("    - Type: 0x%02hhx (%s)\n       Len: %-3hhu", attr->type, rgw_msg_attrtype_str(attr->type), attr->length);
+			radius_msg_dump_attr_val(attr);
+		}
+	}
+	fd_log_debug("-----------------------------\n");
 }
 
 
@@ -406,7 +439,7 @@ void radius_msg_finish_acct(struct radius_msg *msg, const u8 *secret,
 }
 
 
-static int radius_msg_add_attr_to_array(struct radius_msg *msg,
+int radius_msg_add_attr_to_array(struct radius_msg *msg,
 					struct radius_attr_hdr *attr)
 {
 	if (msg->attr_used >= msg->attr_size) {
@@ -473,69 +506,114 @@ struct radius_attr_hdr *radius_msg_add_attr(struct radius_msg *msg, u8 type,
 }
 
 
-struct radius_msg *radius_msg_parse(const u8 *data, size_t len)
+/* Modified version of radius_msg_parse */
+int rgw_msg_parse(unsigned char * buf, size_t len, struct rgw_radius_msg_meta ** msg)
 {
-	struct radius_msg *msg;
+	struct rgw_radius_msg_meta * temp_msg = NULL;
 	struct radius_hdr *hdr;
 	struct radius_attr_hdr *attr;
 	size_t msg_len;
 	unsigned char *pos, *end;
-
-	if (data == NULL || len < sizeof(*hdr))
-		return NULL;
-
-	hdr = (struct radius_hdr *) data;
-
+	int ret = 0;
+	
+	TRACE_ENTRY("%p %g %p", buf, len, msg);
+	
+	CHECK_PARAMS( buf && len >= sizeof(*hdr) && msg );
+	
+	*msg = NULL;
+	
+	/* Parse the RADIUS message */
+	hdr = (struct radius_hdr *) buf;
 	msg_len = ntohs(hdr->length);
 	if (msg_len < sizeof(*hdr) || msg_len > len) {
-		printf("Invalid RADIUS message length\n");
-		return NULL;
+		TRACE_DEBUG(INFO, "Invalid RADIUS message length\n");
+		return EINVAL;
 	}
 
 	if (msg_len < len) {
-		printf("Ignored %lu extra bytes after RADIUS message\n",
+		TRACE_DEBUG(INFO, "Ignored %lu extra bytes after RADIUS message\n",
 		       (unsigned long) len - msg_len);
 	}
 
-	msg = os_malloc(sizeof(*msg));
-	if (msg == NULL)
-		return NULL;
-
-	if (radius_msg_initialize(msg, msg_len)) {
-		os_free(msg);
-		return NULL;
+	CHECK_MALLOC( temp_msg = malloc(sizeof(struct rgw_radius_msg_meta)) );
+	memset(temp_msg, 0, sizeof(struct rgw_radius_msg_meta));
+	
+	if (radius_msg_initialize(&temp_msg->radius, msg_len)) {
+		TRACE_DEBUG(INFO, "Error in radius_msg_initialize, returning ENOMEM.");
+		free(temp_msg);
+		return ENOMEM;
 	}
-
-	os_memcpy(msg->buf, data, msg_len);
-	msg->buf_size = msg->buf_used = msg_len;
-
+	
+	/* Store the received data in the alloc'd buffer */
+	memcpy(temp_msg->radius.buf, buf, msg_len);
+	temp_msg->radius.buf_size = temp_msg->radius.buf_used = msg_len;
+	
 	/* parse attributes */
-	pos = (unsigned char *) (msg->hdr + 1);
-	end = msg->buf + msg->buf_used;
+	pos = (unsigned char *) (temp_msg->radius.hdr + 1);
+	end = temp_msg->radius.buf + temp_msg->radius.buf_used;
+	
 	while (pos < end) {
-		if ((size_t) (end - pos) < sizeof(*attr))
-			goto fail;
-
+		if ((size_t) (end - pos) < sizeof(*attr)) {
+			TRACE_DEBUG(INFO, "Trucated attribute found in RADIUS buffer, EINVAL.");
+			ret = EINVAL;
+			break;
+		}
+			
 		attr = (struct radius_attr_hdr *) pos;
+	
+		if (pos + attr->length > end || attr->length < sizeof(*attr)) {
+			TRACE_DEBUG(INFO, "Trucated attribute found in RADIUS buffer, EINVAL.");
+			ret = EINVAL;
+			break;
+		}
 
-		if (pos + attr->length > end || attr->length < sizeof(*attr))
-			goto fail;
-
-		/* TODO: check that attr->length is suitable for attr->type */
-
-		if (radius_msg_add_attr_to_array(msg, attr))
-			goto fail;
+		if (radius_msg_add_attr_to_array(&temp_msg->radius, attr)) {
+			TRACE_DEBUG(INFO, "Error in radius_msg_add_attr_to_array, ENOMEM");
+			ret = ENOMEM;
+			break;
+		}
+		
+		if (attr->type == RADIUS_ATTR_PROXY_STATE)
+			temp_msg->ps_nb += 1;
 
 		pos += attr->length;
 	}
-
-	return msg;
-
- fail:
-	radius_msg_free(msg);
-	os_free(msg);
-	return NULL;
+	
+	if (ret != 0) {
+		radius_msg_free(&temp_msg->radius);
+		free(temp_msg);
+		return ret;
+	}
+	
+	/* Now move all the proxy-state attributes at the end of the attr_pos array */
+	if (temp_msg->ps_nb) {
+		size_t *temp_ps = NULL;
+		int n, new_n = 0, p = 0;
+		
+		CHECK_MALLOC( temp_ps = calloc(temp_msg->ps_nb, sizeof(size_t *)) );
+		
+		/* Move all the Proxy-State attributes into the temp_ps array */
+		for (n=0; n < temp_msg->radius.attr_used; n++) {
+			struct radius_attr_hdr * attr = (struct radius_attr_hdr *)(temp_msg->radius.buf + temp_msg->radius.attr_pos[n]);
+			
+			if (attr->type == RADIUS_ATTR_PROXY_STATE) {
+				temp_ps[p++] = temp_msg->radius.attr_pos[n];
+			} else {
+				temp_msg->radius.attr_pos[new_n++] = temp_msg->radius.attr_pos[n];
+			}
+		}
+		temp_msg->radius.attr_used = new_n; /* hide the proxy-state to other modules */
+		temp_msg->ps_first = new_n;
+		
+		/* And back into the array */
+		memcpy(temp_msg->radius.attr_pos + new_n, temp_ps, p * sizeof(size_t *));
+		free(temp_ps);
+	}
+	
+	*msg = temp_msg;
+	return 0;
 }
+
 
 
 int radius_msg_add_eap(struct radius_msg *msg, const u8 *data, size_t data_len)

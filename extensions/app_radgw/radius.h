@@ -1,14 +1,45 @@
-/*********************************************************************************/
-/* freeDiameter author note:
- *  The content from this file comes directly from the hostap project.
- * It is redistributed under the terms of the BSD license, as allowed
- * by the original copyright reproduced bellow.
- *  The file has not been modified, except for this notice and
- * declaration of:
- *  void radius_msg_dump_attr_val(struct radius_attr_hdr *hdr);
- */
+/*********************************************************************************************************
+* Software License Agreement (BSD License)                                                               *
+* Author: Sebastien Decugis <sdecugis@nict.go.jp>							 *
+*													 *
+* Copyright (c) 2010, WIDE Project and NICT								 *
+* All rights reserved.											 *
+* 													 *
+* Redistribution and use of this software in source and binary forms, with or without modification, are  *
+* permitted provided that the following conditions are met:						 *
+* 													 *
+* * Redistributions of source code must retain the above 						 *
+*   copyright notice, this list of conditions and the 							 *
+*   following disclaimer.										 *
+*    													 *
+* * Redistributions in binary form must reproduce the above 						 *
+*   copyright notice, this list of conditions and the 							 *
+*   following disclaimer in the documentation and/or other						 *
+*   materials provided with the distribution.								 *
+* 													 *
+* * Neither the name of the WIDE Project or NICT nor the 						 *
+*   names of its contributors may be used to endorse or 						 *
+*   promote products derived from this software without 						 *
+*   specific prior written permission of WIDE Project and 						 *
+*   NICT.												 *
+* 													 *
+* THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED *
+* WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A *
+* PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR *
+* ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT 	 *
+* LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS 	 *
+* INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR *
+* TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF   *
+* ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.								 *
+*********************************************************************************************************/
 
 /*********************************************************************************/
+/* freeDiameter author note:
+ *  The content from this file comes mostly from the hostap project.
+ * It is redistributed under the terms of the BSD license, as allowed
+ * by the original copyright reproduced bellow.
+ * The changes to this file are placed under the copyright of the freeDiameter project.
+ */
 
 /*
  * hostapd / RADIUS message processing
@@ -23,6 +54,8 @@
  *
  * See README and COPYING for more details.
  */
+/*********************************************************************************/
+
 
 #ifndef RADIUS_H
 #define RADIUS_H
@@ -218,8 +251,6 @@ struct radius_msg *radius_msg_new(u8 code, u8 identifier);
 int radius_msg_initialize(struct radius_msg *msg, size_t init_len);
 void radius_msg_set_hdr(struct radius_msg *msg, u8 code, u8 identifier);
 void radius_msg_free(struct radius_msg *msg);
-void radius_msg_dump_attr_val(struct radius_attr_hdr *hdr);
-void radius_msg_dump(struct radius_msg *msg);
 int radius_msg_finish(struct radius_msg *msg, const u8 *secret,
 		      size_t secret_len);
 int radius_msg_finish_srv(struct radius_msg *msg, const u8 *secret,
@@ -228,7 +259,6 @@ void radius_msg_finish_acct(struct radius_msg *msg, const u8 *secret,
 			    size_t secret_len);
 struct radius_attr_hdr *radius_msg_add_attr(struct radius_msg *msg, u8 type,
 					    const u8 *data, size_t data_len);
-struct radius_msg *radius_msg_parse(const u8 *data, size_t len);
 int radius_msg_add_eap(struct radius_msg *msg, const u8 *data,
 		       size_t data_len);
 u8 *radius_msg_get_eap(struct radius_msg *msg, size_t *len);
@@ -266,6 +296,7 @@ static inline int radius_msg_add_attr_int32(struct radius_msg *msg, u8 type,
 	return radius_msg_add_attr(msg, type, (u8 *) &val, 4) != NULL;
 }
 
+int radius_msg_add_attr_to_array(struct radius_msg *msg, struct radius_attr_hdr *attr);
 static inline int radius_msg_get_attr_int32(struct radius_msg *msg, u8 type,
 					    u32 *value)
 {

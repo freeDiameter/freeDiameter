@@ -974,6 +974,20 @@ int rgw_client_finish_send(struct radius_msg ** msg, struct rgw_radius_msg_meta 
 		return ENOTSUP;
 	}
 	
+	/* Add all the Proxy-States back in the message */
+	for (p = 0; p < req->ps_nb; p++) {
+		struct radius_attr_hdr * attr = (struct radius_attr_hdr *)(req->radius.buf + req->radius.attr_pos[req->ps_first + p]);
+		
+		if (radius_msg_add_attr_to_array(*msg, attr)) {
+			TRACE_DEBUG(INFO, "Error in radius_msg_add_attr_to_array, ENOMEM");
+			radius_msg_free(*msg);
+			free(*msg);
+			*msg = NULL;
+			return ENOMEM;
+		}
+	}
+	
+	/* Add the Message-Authenticator if needed, and other final tasks */
 	if (radius_msg_finish_srv(*msg, cli->key.data, cli->key.len, req->radius.hdr->authenticator)) {
 		TRACE_DEBUG(INFO, "An error occurred while preparing the RADIUS answer");
 		radius_msg_free(*msg);

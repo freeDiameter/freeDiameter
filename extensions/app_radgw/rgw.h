@@ -59,6 +59,9 @@ struct rgw_radius_msg_meta {
 		unsigned	valid_mac :1;
 	};
 	
+	/* For Proxy-State attributes: */
+	int	ps_first;	/* The index of the first Proxy-State attribute in radius.attr_pos. It is always >= radius.attr_used */
+	int	ps_nb;		/* The number of Proxy-State attributes. The real radius.attr_pos size is attr_used + ps_nb */
 };
 void rgw_msg_free(struct rgw_radius_msg_meta ** msg);
 int rgw_msg_parse(unsigned char * buf, size_t len, struct rgw_radius_msg_meta ** msg);
