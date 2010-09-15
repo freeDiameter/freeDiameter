@@ -590,7 +590,7 @@ int rgw_msg_parse(unsigned char * buf, size_t len, struct rgw_radius_msg_meta **
 		size_t *temp_ps = NULL;
 		int n, new_n = 0, p = 0;
 		
-		CHECK_MALLOC( temp_ps = calloc(temp_msg->ps_nb, sizeof(size_t *)) );
+		CHECK_MALLOC( temp_ps = calloc(temp_msg->ps_nb, sizeof(size_t)) );
 		
 		/* Move all the Proxy-State attributes into the temp_ps array */
 		for (n=0; n < temp_msg->radius.attr_used; n++) {
@@ -606,7 +606,7 @@ int rgw_msg_parse(unsigned char * buf, size_t len, struct rgw_radius_msg_meta **
 		temp_msg->ps_first = new_n;
 		
 		/* And back into the array */
-		memcpy(temp_msg->radius.attr_pos + new_n, temp_ps, p * sizeof(size_t *));
+		memcpy(temp_msg->radius.attr_pos + new_n, temp_ps, p * sizeof(size_t));
 		free(temp_ps);
 	}
 	
