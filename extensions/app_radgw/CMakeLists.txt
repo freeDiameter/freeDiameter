@@ -48,7 +48,6 @@ SET( RGW_DEFAULT_SRC
 	rgw_conf.tab.h
 	rgw_clients.c
 	rgw_plugins.c
-	rgw_msg.c
 	rgw_servers.c
 	rgw_worker.c
 )
