@@ -8,13 +8,13 @@ freediameter (1.0.1) UNRELEASED; urgency=low
     disable NAI processing.
   * app_radgw.fdx: New support for RADIUS proxies.
   * app_radgw.fdx: many bug fixes.
-  * debian: some cleanups in the packaging (dependencies, meta-data)
-  * rt_ereg.fdx: New routing extension based on regular expression
-    matching in package freediameter-daemon.
   * daemon: Check the local certificate is valid during TLS
     initialization.
   * daemon: Fixed issue for IP addresses in the form x.x.x.235
   * daemon: new option --dbg_gnutls to get GNUTLS debug messages.
+  * debian: some cleanups in the packaging (dependencies, meta-data)
+  * rt_ereg.fdx: New routing extension based on regular expression
+    matching in package freediameter-daemon.
 
  -- Sebastien Decugis <sdecugis@nict.go.jp>  Wed, 15 Sep 2010 18:30:28 +0900
 
