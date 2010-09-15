@@ -1,3 +1,4 @@
 doc/freediameter.conf.sample
 doc/acl_wl.conf.sample
 doc/rt_default.conf.sample
+doc/rt_ereg.conf.sample
