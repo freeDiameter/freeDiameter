@@ -88,7 +88,7 @@ Description: RFC4740 (Diameter SIP) dictionary support.
 
 Package: freediameter-radius-gateway
 Architecture: any
-Depends: ${misc:Depends}, freediameter-dictionary-rfc4072 (= ${binary:Version}), freediameter-dictionary-rfc4740 (= ${binary:Version})
+Depends: ${misc:Depends}, freediameter-daemon (= ${binary:Version}), freediameter-dictionary-rfc4072 (= ${binary:Version}), freediameter-dictionary-rfc4740 (= ${binary:Version})
 Description: RADIUS/Diameter extensible gateway.
  This freeDiameter extension implements a RADIUS to Diameter
  gateway. It allows a RADIUS client to connect to a Diameter
@@ -118,6 +118,7 @@ Description: RADIUS/Diameter extensible gateway.
 Package: freediameter-accounting-server
 Architecture: any
 Depends: ${misc:Depends}, freediameter-daemon (= ${binary:Version}), libpq5
+Suggests: freediameter-dictionary-rfc4072
 Description: freeDiameter simple Accounting server.
  This freeDiameter extension implements the Diameter Base 
  Accounting application. It saves the accounting records
@@ -130,10 +131,13 @@ Description: freeDiameter simple Accounting server.
  .
  This extension requires a configuration file.
  See app_acct.conf.sample for more details.
+ .
+ You may find some useful resources to parse the saved records
+ in the contrib/app_acct_tools folder in source package.
 
 Package: freediameter-eap-server
 Architecture: any
-Depends: ${misc:Depends}, freediameter-daemon (= ${binary:Version}), mysql-client, freediameter-dictionary-rfc4072 (= ${binary:Version})
+Depends: ${misc:Depends}, freediameter-daemon (= ${binary:Version}), libmysqlclient16, freediameter-dictionary-rfc4072 (= ${binary:Version})
 Description: freeDiameter Diameter EAP server implementation.
  This freeDiameter extension implements a Diameter EAP server. 
  It supports EAP-MD5 and EAP-TLS methods currently.
@@ -148,7 +152,7 @@ Description: freeDiameter Diameter EAP server implementation.
 
 Package: freediameter-sip-server
 Architecture: any
-Depends: ${misc:Depends}, freediameter-daemon (= ${binary:Version}), mysql-client, freediameter-dictionary-rfc4740 (= ${binary:Version})
+Depends: ${misc:Depends}, freediameter-daemon (= ${binary:Version}), libmysqlclient16, freediameter-dictionary-rfc4740 (= ${binary:Version})
 Description: freeDiameter Diameter SIP server implementation.
  This freeDiameter extension implements a Diameter SIP server.
  See http://www.freediameter.net/trac/wiki/app_sip.fdx for

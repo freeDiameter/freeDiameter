@@ -12,27 +12,6 @@ IF (NOT CMAKE_BUILD_TYPE MATCHES "Debug")
 ENDIF (NOT CMAKE_BUILD_TYPE MATCHES "Debug")
 
 
-########### Utility library #############
-# utility libray for the extension and its plugins
-# See rgw_common.h for detail
-
-SET( RG_COMMON_SRC
-	radius.c
-	md5.c
-	rgw_msg_codes.c
-	rgw_msg_attrtype.c
-)
-SET( RG_COMMON_HEADER
-	rgw_common.h
-	radius.h
-	md5.h
-	hostap_compat.h
-)
-ADD_LIBRARY(rgw_common SHARED ${RG_COMMON_SRC})
-SET_TARGET_PROPERTIES(rgw_common PROPERTIES PREFIX "" )
-
-
-
 ########### Main app_radgw extension #############
 
 # Parser files
@@ -42,6 +21,10 @@ SET_SOURCE_FILES_PROPERTIES(lex.rgw_conf.c rgw_conf.tab.c PROPERTIES COMPILE_FLA
 
 # List of source files
 SET( RGW_DEFAULT_SRC
+	radius.c
+	md5.c
+	rgw_msg_codes.c
+	rgw_msg_attrtype.c
 	rgw_main.c
 	lex.rgw_conf.c
 	rgw_conf.tab.c
@@ -52,10 +35,15 @@ SET( RGW_DEFAULT_SRC
 	rgw_worker.c
 )
 
+SET( RG_COMMON_HEADER
+	rgw_common.h
+	radius.h
+	md5.h
+	hostap_compat.h
+)
+
 # Compile these files as a freeDiameter extension.
 FD_ADD_EXTENSION(app_radgw ${RGW_DEFAULT_SRC} ${RG_COMMON_HEADER})
-TARGET_LINK_LIBRARIES(app_radgw rgw_common)
-
 
 
 ########### RADIUS/Diameter translation agent plugins (support for RADIUS protocol) ############
@@ -66,7 +54,6 @@ MACRO(RGWX_ADD_PLUGIN PLGNAME)
   ADD_LIBRARY(${PLGNAME} MODULE ${ARGN})
   SET_TARGET_PROPERTIES(${PLGNAME} PROPERTIES PREFIX "" )
   SET_TARGET_PROPERTIES(${PLGNAME} PROPERTIES SUFFIX ".rgwx" )
-  TARGET_LINK_LIBRARIES(${PLGNAME} rgw_common)
   INSTALL(TARGETS ${PLGNAME}
 	LIBRARY DESTINATION ${INSTALL_EXTENSIONS_SUFFIX}
 	COMPONENT freeDiameter-radius-gateway)
@@ -125,8 +112,4 @@ INSTALL(TARGETS app_radgw
 	LIBRARY DESTINATION ${INSTALL_EXTENSIONS_SUFFIX}
 	COMPONENT freeDiameter-radius-gateway)
 	
-INSTALL(TARGETS rgw_common
-	LIBRARY DESTINATION ${INSTALL_LIBRARY_SUFFIX}
-	COMPONENT freeDiameter-radius-gateway)
-
 # Note that all compiled plugins are added by the RGWX_ADD_PLUGIN macro in the component freeDiameter-radius-gateway as well.

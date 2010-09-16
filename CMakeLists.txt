@@ -63,6 +63,9 @@ ENDIF( NOT BISON_EXECUTABLE OR NOT FLEX_EXECUTABLE )
 # Check that flex is at least 2.5.20 to support bison-bridge
 # how to do the check with cmake???
 
+# Add this to workaround an apparent bug in FreeBSD cmake (already defined in Linux)
+SET(CMAKE_SHARED_LIBRARY_LINK_C_FLAGS "-rdynamic")
+
 # Location for the include files
 INCLUDE_DIRECTORIES(include)
 INCLUDE_DIRECTORIES(${CMAKE_CURRENT_BINARY_DIR}/include)
@@ -72,5 +75,5 @@ SUBDIRS(include/freeDiameter)
 SUBDIRS(libfreeDiameter)
 SUBDIRS(freeDiameter)
 
-# Extensions (there is no point in freeDiameter without any extension)
+# Extensions (there is no use of freeDiameter without any extension)
 SUBDIRS(extensions)
