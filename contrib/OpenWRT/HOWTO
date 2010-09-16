@@ -42,6 +42,8 @@ $ make menuconfig
 
 - Network --->
    freeDiameter (M)
+   wpad (*)
+   wpad-mini ( )
 
 4) Build the image and packages, this takes a while
 $ make world
@@ -62,11 +64,11 @@ $ telnet 192.168.1.1
 
 7) Update the opkg router's config to get your new packages
 ssh root@192.168.1.1
-# echo "src/gz chavroux http://192.168.1.25/owrt/packages" >> /etc/opkg.conf 
+# echo "src/gz localrepo http://192.168.1.25/owrt/packages" >> /etc/opkg.conf 
 # opkg update
 
 8) Install freeDiameter, you're done. Optionnaly, install also certtool on the router before, to 
-   generate the TLS certificate.
+   generate the TLS certificate automatically.
 # opkg install freeDiameter
 
 ==============================================
