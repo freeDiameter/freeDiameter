@@ -249,10 +249,12 @@ void fd_rtd_candidate_extract(struct rt_data * rtd, struct fd_list ** candidates
 	return;
 }
 
-/* Reorder the list of peers */
+/* Reorder the list of peers. If several peer have the same highest score, they are randomized. */
 int  fd_rtd_candidate_reorder(struct fd_list * candidates)
 {
 	struct fd_list unordered = FD_LIST_INITIALIZER(unordered), *li;
+	struct fd_list highest = FD_LIST_INITIALIZER(highest);
+	int hs = -1;
 	
 	TRACE_ENTRY("%p", candidates);
 	CHECK_PARAMS( candidates );
@@ -266,16 +268,38 @@ int  fd_rtd_candidate_reorder(struct fd_list * candidates)
 		
 		fd_list_unlink(&c->chain);
 		
-		/* Find the position in ordered candidates list */
-		for (li = candidates->next; li != candidates; li = li->next) {
-			struct rtd_candidate * cnext = (struct rtd_candidate *) li;
-			if (cnext->score >= c->score)
-				break;
+		/* If this candidate has a higher score than the previous ones */
+		if (c->score > hs) {
+			/* Then we move the previous high score items at end of the list */
+			fd_list_move_end(candidates, &highest);
+			
+			/* And the new high score is this reset */
+			hs = c->score;
 		}
 		
-		/* Add the element there */
-		fd_list_insert_before(li, &c->chain);
+		/* If this candidate equals the higher score, add it into highest list at a random place */
+		if (c->score == hs) {
+			if (rand() & 1) {
+				fd_list_insert_after(&highest, &c->chain);
+			} else {
+				fd_list_insert_before(&highest, &c->chain);
+			}
+		/* Otherwise, insert at normal place in the list */
+		} else {
+			/* Find the position in ordered candidates list */
+			for (li = candidates->next; li != candidates; li = li->next) {
+				struct rtd_candidate * cnext = (struct rtd_candidate *) li;
+				if (cnext->score >= c->score)
+					break;
+			}
+
+			/* Add the element there */
+			fd_list_insert_before(li, &c->chain);
+		}
 	}
+	
+	/* Now simply move back all the "highest" candidates at the end of the list */
+	fd_list_move_end(candidates, &highest);
 	
 	return 0;
 }

@@ -843,7 +843,7 @@ static int msg_rt_out(struct msg ** pmsg)
 	if (rtd == NULL) {
 		CHECK_FCT( fd_rtd_init(&rtd) );
 
-		/* Add all peers in OPEN state */
+		/* Add all peers currently in OPEN state */
 		CHECK_FCT( pthread_rwlock_rdlock(&fd_g_activ_peers_rw) );
 		for (li = fd_g_activ_peers.next; li != &fd_g_activ_peers; li = li->next) {
 			struct fd_peer * p = (struct fd_peer *)li->o;
