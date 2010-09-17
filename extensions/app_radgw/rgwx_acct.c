@@ -1224,7 +1224,7 @@ out:
 
 static int acct_diam_ans( struct rgwp_config * cs, struct session * session, struct msg ** diam_ans, struct radius_msg ** rad_fw, struct rgw_client * cli, int * stateful )
 {
-	struct sess_state * st = NULL;
+	struct sess_state * st = NULL, stloc;
 	struct avp *avp, *next;
 	struct avp_hdr *ahdr, *sid, *oh, *or;
 	
@@ -1239,6 +1239,11 @@ static int acct_diam_ans( struct rgwp_config * cs, struct session * session, str
 		TRACE_DEBUG(INFO, "Received an ACA without corresponding session information, cannot translate to RADIUS");
 		return EINVAL;
 	}
+	
+	/* Free the state */
+	memcpy(&stloc, st, sizeof(struct sess_state));
+	free(st);
+	st = &stloc;
 	
 	/* Search these AVPs first */
 	CHECK_FCT( fd_msg_search_avp (*diam_ans, cs->dict.Session_Id, &avp) );
@@ -1282,6 +1287,11 @@ static int acct_diam_ans( struct rgwp_config * cs, struct session * session, str
 				fd_log_debug("[acct.rgwx]   Failed-AVP was included in the message.\n");
 				/* Dump its content ? */
 			}
+			
+			/* Now, destroy the Diameter message, since we know it is not converted to RADIUS */
+			CHECK_FCT( fd_msg_free(*diam_ans) );
+			*diam_ans = NULL;
+
 			return -1;
 	}
 	/* Remove this Result-Code avp */
@@ -1424,8 +1434,6 @@ static int acct_diam_ans( struct rgwp_config * cs, struct session * session, str
 	      
 	      -- done in radius_msg_finish_srv 
 	*/
-
-	free(st);
 
 	return 0;
 }
