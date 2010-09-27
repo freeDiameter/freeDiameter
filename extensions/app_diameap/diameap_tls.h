@@ -59,6 +59,9 @@ struct tls_config{
 	char * cafile;
 	char * crlfile;
 
+	//configuration parameters
+	boolean check_cert_cn_username;
+
 	int max_size;
 
 	gnutls_certificate_credentials_t cert_cred;

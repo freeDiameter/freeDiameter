@@ -69,6 +69,7 @@ int eap_tls_configure(char * configfile)
 	tls_global_conf.keyfile = NULL;
 	tls_global_conf.cafile = NULL;
 	tls_global_conf.crlfile = NULL;
+	tls_global_conf.check_cert_cn_username = FALSE;
 
 	/*Parse EAP TLS configuration file */
 	eaptlsin = fopen(tls_global_conf.conffile, "r");
@@ -184,8 +185,58 @@ int eap_tls_process(struct eap_state_machine *smd,
 			{
 				data->state = SUCCESS;
 				smd->user.success = TRUE;
+
+				if(tls_global_conf.check_cert_cn_username == TRUE){
+					unsigned int list_size;
+					const gnutls_datum_t * list = gnutls_certificate_get_peers (data->session, &list_size);
+					if(list_size<1){
+						goto failure;
+					}
+
+					gnutls_x509_crt_t cert;
+		
+					CHECK_GNUTLS_DO(gnutls_x509_crt_init(&cert),{
+						TRACE_DEBUG(NONE,"%s[EAP TLS plugin] [GnuTLS] error in initialization crt init",DIAMEAP_EXTENSION);
+						goto failure;});
+					
+					CHECK_GNUTLS_DO(gnutls_x509_crt_import(cert, &list[0], GNUTLS_X509_FMT_DER), {
+						TRACE_DEBUG(NONE,"%s[EAP TLS plugin] [GnuTLS] error parsing certificate",DIAMEAP_EXTENSION);
+						goto failure;});
+
+					void * buff;
+					size_t size_buffer;
+					int ret;
+					ret = gnutls_x509_crt_get_dn_by_oid(cert,GNUTLS_OID_X520_COMMON_NAME,0,0,NULL,&size_buffer);
+					if( ret != GNUTLS_E_SHORT_MEMORY_BUFFER){
+						CHECK_GNUTLS_DO(ret,{
+							TRACE_DEBUG(NONE,"%s[EAP TLS plugin] [GnuTLS] error get dn by oid",DIAMEAP_EXTENSION);
+							goto failure;});
+					}
+
+					CHECK_MALLOC_DO(buff=malloc(size_buffer), goto failure);
+
+					CHECK_GNUTLS_DO(gnutls_x509_crt_get_dn_by_oid(cert,GNUTLS_OID_X520_COMMON_NAME,0,0,buff,&size_buffer),{
+						TRACE_DEBUG(NONE,"%s[EAP TLS plugin] [GnuTLS] error get dn by oid",DIAMEAP_EXTENSION);
+						goto failure;});
+
+					if(strcmp((char *)smd->user.userid,buff)!=0){
+						goto failure;
+					}
+
+					gnutls_x509_crt_deinit(cert);				
+					goto next;
+
+					failure:
+					TRACE_DEBUG(NONE,"%s[EAP TLS plugin] Checking failed. certificate's CN does not match User_Name AVP value.",DIAMEAP_EXTENSION);
+					data->state = FAILURE;
+					smd->user.success = FALSE;
+					gnutls_x509_crt_deinit(cert);
+				}
+
+				next:
 				smd->methodData = (struct tls_data*) data;
 				return 0;
+
 			}
 
 			return 0;

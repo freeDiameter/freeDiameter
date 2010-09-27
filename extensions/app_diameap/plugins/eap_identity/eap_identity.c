@@ -137,9 +137,15 @@ int identity_process(struct eap_state_machine *smd, struct eap_packet eapRespDat
 	}
 	U8COPY((u8 *)user,0,len,Respdata);
 	user[length-5]='\0';
-
-	ret=diameap_get_eap_user(&(smd->user),user);
-
+	if(check_user_identity == FALSE){
+		ret=diameap_get_eap_user(&(smd->user),"Default User");
+		CHECK_MALLOC_DO(smd->user.userid=realloc(smd->user.userid,strlen(user)+1),{ret = 1; goto next;});
+		memcpy(smd->user.userid,user,strlen(user));
+		smd->user.useridLength = strlen(user);
+	} else {
+		ret=diameap_get_eap_user(&(smd->user),user);
+	}
+next:
 	if(ret==0)
 	{
 		smd->user.methodId = -1;

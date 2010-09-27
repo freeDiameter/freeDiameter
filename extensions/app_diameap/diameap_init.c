@@ -133,6 +133,8 @@ static int diameap_init_config(char * conffile)
 	diameap_config->diam_realm = strdup(fd_g_config->cnf_diamrlm);
 	diameap_config->max_invalid_eap_packet = 5;
 	diameap_config->multi_round_time_out = 30;
+	check_user_identity = TRUE;
+
 	return 0;
 }
 

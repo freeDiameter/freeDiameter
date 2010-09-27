@@ -94,6 +94,10 @@
 				return CRLPATH;
 			}
 
+(?i:"check_cert_cn_username")		{
+				return CHECK_CN_USERNAME;
+			}
+
 
 
 "="|";"|":"|","		{	/* Single characters for yyparse */ 

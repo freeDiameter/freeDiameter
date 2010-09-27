@@ -438,6 +438,11 @@ static int diameap_parse_eap_resp(struct eap_state_machine * eap_sm,
 		 eap_sm->user.methodId = 0;*/
 	}
 
+	if((eap_sm->respMethod == TYPE_IDENTITY) && (length < 6)){
+		TRACE_DEBUG(INFO,"%sUser Identity missing",DIAMEAP_EXTENSION);
+		return 0;
+	}
+
 	eap_sm->rxResp = TRUE;
 	return 0;
 }

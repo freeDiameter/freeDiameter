@@ -8,3 +8,6 @@
 
 #CRL file
 #CRL = "<Path to CRL file>";
+
+#Enable/disable checking certificate's CN
+check_cert_cn_username = 1;

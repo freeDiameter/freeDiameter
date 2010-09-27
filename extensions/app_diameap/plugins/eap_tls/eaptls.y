@@ -79,6 +79,7 @@ int eaptlslex(YYSTYPE *lvalp, YYLTYPE *llocp);
 %token 		CERTS
 %token 		CAPATH
 %token 		CRLPATH
+%token		CHECK_CN_USERNAME
 
 %%	
 
@@ -86,6 +87,7 @@ confparams : 	/* empty */
 		| confparams CERTS_files
 		| confparams CA_file
 		| confparams CRL_file
+		| confparams CHECK_CN_USERNAME_param
 		| confparams errors
 		{
 			return EINVAL;
@@ -219,7 +221,19 @@ CRL_file :	CRLPATH '=' iSTRING ';'
 			config->crlfile=$3;
 		}
 		;
-			
+
+CHECK_CN_USERNAME_param :	
+		CHECK_CN_USERNAME '=' NUM ';'
+		{
+			if((int)$3 == 0){
+				config->check_cert_cn_username = FALSE;
+			}
+			else
+			{
+				config->check_cert_cn_username = TRUE;			
+			}
+		}
+		;
 		
 %%
 

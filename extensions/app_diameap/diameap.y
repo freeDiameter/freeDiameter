@@ -83,6 +83,7 @@ int diameaplex(YYSTYPE *lvalp, YYLTYPE *llocp);
 %token 		DIAMEAP_MYSQL
 %token		MAX_INVALID_EAP_PACKET
 %token		MULTI_ROUND_TIMEOUT
+%token		CHECK_USER_IDENTITY
 
 %%	
 
@@ -92,6 +93,7 @@ confparams : 	/* empty */
 		| confparams DiamEAP_MySQL
 		| confparams MAX_Invalid_EAP_Packet
 		| confparams Multi_Round_Timeout
+		| confparams Check_User_Identity
 		| confparams errors
 		{
 			yyerror(&yylloc, config, "Unrecognized configuration parameter.");
@@ -173,8 +175,17 @@ Multi_Round_Timeout : MULTI_ROUND_TIMEOUT '=' NUM ';'
 		{
 		config->multi_round_time_out=(unsigned int)$3;
 		};
-				
+
+Check_User_Identity: CHECK_USER_IDENTITY '=' NUM ';'
+		{
+			if((int)$3){
+				check_user_identity = TRUE;
+			}else{
+				check_user_identity = FALSE;
+			}
+		};
 		
+	
 %%
 
 void yyerror(YYLTYPE *llocp, struct diameap_conf * config,const char *str)

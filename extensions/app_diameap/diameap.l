@@ -106,6 +106,9 @@
 				return MULTI_ROUND_TIMEOUT;
 			}
 
+(?i:"Check_user_identity")		{
+				return CHECK_USER_IDENTITY;
+			}
 
 "="|";"|":"|","		{	
 				return yytext[0]; 

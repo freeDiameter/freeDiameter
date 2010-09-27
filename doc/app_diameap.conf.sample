@@ -28,6 +28,9 @@
 
 Load_plugin = "EAP Identity":1:0:"/extensions/eap_identity.emp":"";
 
+# Enable/disable checking User's Identity. If disabled, default parameters value will be used for authentication and authorization attributes.
+# Default values are defined in database for 'Default User'.
+Check_User_Identity = 1;
 
 # In addition to authentication DiamEAP can be configured to check authorization of authenticated users. If set to 0 authorization is disabled, otherwise enabled.( by default disabled).
 Authorization = 1;
