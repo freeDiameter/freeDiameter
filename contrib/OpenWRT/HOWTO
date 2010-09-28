@@ -61,6 +61,7 @@ $ ssh root@192.168.1.1
 $ telnet 192.168.1.1
 # passwd
 # sync
+# exit
 
 7) Update the opkg router's config to get your new packages
 ssh root@192.168.1.1
