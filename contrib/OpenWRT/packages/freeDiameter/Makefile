@@ -98,7 +98,7 @@ define Package/freeDiameter/install
 		$(PKG_INSTALL_DIR)/usr/lib/* \
 		$(1)/usr/lib/
 	# Remove the app_test from the main package (see freeDiameter-test)
-	$(RM) $(1)/usr/lib/app_test*
+	$(RM) $(1)/usr/lib/freeDiameter/app_test*
 	
 	# configuration files
 	$(INSTALL_DIR) $(1)/etc/freeDiameter
@@ -140,10 +140,9 @@ define Package/freeDiameter/install
 endef
 
 define Package/freeDiameter-test/install
-	# libraries & extensions
-	$(INSTALL_DIR) $(1)/usr/lib/
-	$(CP) $(PKG_INSTALL_DIR)/usr/lib/app_test* \
-		$(1)/usr/lib/
+	# Only the test_app extension
+	$(CP) $(PKG_INSTALL_DIR)/usr/lib/freeDiameter/app_test* \
+		$(1)/usr/lib/freeDiameter/
 endef
 
 define Package/freeDiameter/postinst
