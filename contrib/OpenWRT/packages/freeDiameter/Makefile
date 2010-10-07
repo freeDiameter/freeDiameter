@@ -80,7 +80,7 @@ define Build/Configure
 		-DDEFAULT_CONF_PATH:PATH=/etc/freeDiameter \
 		-DBUILD_APP_RADGW:BOOL=ON \
 		-DBUILD_DBG_MONITOR:BOOL=ON \
-		-DBUILD_APP_TEST:BOOL=ON \
+		-DBUILD_TEST_APP:BOOL=ON \
 		VERBOSE=1 \
 	$(PKG_BUILD_DIR)/CMakeLists.txt 
 endef
@@ -97,8 +97,8 @@ define Package/freeDiameter/install
 	$(CP) \
 		$(PKG_INSTALL_DIR)/usr/lib/* \
 		$(1)/usr/lib/
-	# Remove the app_test from the main package (see freeDiameter-test)
-	$(RM) $(1)/usr/lib/freeDiameter/app_test*
+	# Remove the test_app from the main package (see freeDiameter-test)
+	$(RM) $(1)/usr/lib/freeDiameter/test_app*
 	
 	# configuration files
 	$(INSTALL_DIR) $(1)/etc/freeDiameter
@@ -117,9 +117,9 @@ define Package/freeDiameter/install
 	echo "LoadExtension = \"dict_eap.fdx\";" 	>> $(1)/etc/freeDiameter/freeDiameter.conf
 	echo "LoadExtension = \"app_radgw.fdx\":\"rgw.conf\";" \
 							>> $(1)/etc/freeDiameter/freeDiameter.conf
-	echo "# app_test.fdx provided in freeDiameter-test package:" \
+	echo "# test_app.fdx provided in freeDiameter-test package:" \
 							>> $(1)/etc/freeDiameter/freeDiameter.conf
-	echo "# LoadExtension = \"app_test.fdx\";"	>> $(1)/etc/freeDiameter/freeDiameter.conf
+	echo "# LoadExtension = \"test_app.fdx\";"	>> $(1)/etc/freeDiameter/freeDiameter.conf
 	echo "## Add overrides bellow this point" 	>> $(1)/etc/freeDiameter/freeDiameter.conf
 
 	
@@ -142,7 +142,7 @@ endef
 define Package/freeDiameter-test/install
 	# Only the test_app extension
 	$(INSTALL_DIR) $(1)/usr/lib/freeDiameter/
-	$(CP) $(PKG_INSTALL_DIR)/usr/lib/freeDiameter/app_test* \
+	$(CP) $(PKG_INSTALL_DIR)/usr/lib/freeDiameter/test_app* \
 		$(1)/usr/lib/freeDiameter/
 endef
 
