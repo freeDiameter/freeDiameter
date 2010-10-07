@@ -141,6 +141,7 @@ endef
 
 define Package/freeDiameter-test/install
 	# Only the test_app extension
+	$(INSTALL_DIR) $(1)/usr/lib/freeDiameter/
 	$(CP) $(PKG_INSTALL_DIR)/usr/lib/freeDiameter/app_test* \
 		$(1)/usr/lib/freeDiameter/
 endef
