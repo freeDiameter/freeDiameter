@@ -10,7 +10,7 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=freeDiameter
-PKG_REV:=502
+PKG_REV:=567
 PKG_VERSION:=r$(PKG_REV)
 PKG_RELEASE:=1
 
@@ -34,8 +34,21 @@ define Package/freeDiameter
   DEPENDS:=+sctp +libgnutls +libpthread +kmod-ipv6
 endef
 
+define Package/freeDiameter-test
+  SECTION:=freeDiameter
+  CATEGORY:=Network
+  TITLE:=freeDiameter-test
+  URL:=http://www.freediameter.net
+  DEPENDS:=+freeDiameter
+endef
+
 define Package/freeDiameter/description
  freeDiameter + RADIUS/Diameter gateway extension package.
+endef
+
+define Package/freeDiameter-test/description
+ The app_test.fdx extension for freeDiameter, useful only to perform some
+tests between freeDiameter peers (ping-like for Diameter).
 endef
 
 define Package/freeDiameter/conffiles
@@ -67,6 +80,7 @@ define Build/Configure
 		-DDEFAULT_CONF_PATH:PATH=/etc/freeDiameter \
 		-DBUILD_APP_RADGW:BOOL=ON \
 		-DBUILD_DBG_MONITOR:BOOL=ON \
+		-DBUILD_APP_TEST:BOOL=ON \
 		VERBOSE=1 \
 	$(PKG_BUILD_DIR)/CMakeLists.txt 
 endef
@@ -83,6 +97,8 @@ define Package/freeDiameter/install
 	$(CP) \
 		$(PKG_INSTALL_DIR)/usr/lib/* \
 		$(1)/usr/lib/
+	# Remove the app_test from the main package (see freeDiameter-test)
+	$(RM) $(1)/usr/lib/app_test*
 	
 	# configuration files
 	$(INSTALL_DIR) $(1)/etc/freeDiameter
@@ -101,6 +117,9 @@ define Package/freeDiameter/install
 	echo "LoadExtension = \"dict_eap.fdx\";" 	>> $(1)/etc/freeDiameter/freeDiameter.conf
 	echo "LoadExtension = \"app_radgw.fdx\":\"rgw.conf\";" \
 							>> $(1)/etc/freeDiameter/freeDiameter.conf
+	echo "# app_test.fdx provided in freeDiameter-test package:" \
+							>> $(1)/etc/freeDiameter/freeDiameter.conf
+	echo "# LoadExtension = \"app_test.fdx\";"	>> $(1)/etc/freeDiameter/freeDiameter.conf
 	echo "## Add overrides bellow this point" 	>> $(1)/etc/freeDiameter/freeDiameter.conf
 
 	
@@ -118,6 +137,13 @@ define Package/freeDiameter/install
 	echo "  auth_server_ip6 = ::1 ;" 		>> $(1)/etc/freeDiameter/rgw.conf
 	echo "  acct_server_ip4 = 127.0.0.1;" 		>> $(1)/etc/freeDiameter/rgw.conf
 	echo "  acct_server_ip6 = ::1 ;" 		>> $(1)/etc/freeDiameter/rgw.conf
+endef
+
+define Package/freeDiameter-test/install
+	# libraries & extensions
+	$(INSTALL_DIR) $(1)/usr/lib/
+	$(CP) $(PKG_INSTALL_DIR)/usr/lib/app_test* \
+		$(1)/usr/lib/
 endef
 
 define Package/freeDiameter/postinst
@@ -198,3 +224,4 @@ fi
 endef
 
 $(eval $(call BuildPackage,freeDiameter))
+$(eval $(call BuildPackage,freeDiameter-test))
