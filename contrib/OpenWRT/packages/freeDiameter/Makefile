@@ -113,6 +113,7 @@ define Package/freeDiameter/install
 	echo "TLS_CA = \"/etc/freeDiameter/freeDiameter.ca.pem\";" \
 							>> $(1)/etc/freeDiameter/freeDiameter.conf
 	echo "TLS_DH_Bits = 768;" 			>> $(1)/etc/freeDiameter/freeDiameter.conf
+	echo "SCTP_streams = 3;"			>> $(1)/etc/freeDiameter/freeDiameter.conf
 	echo "LoadExtension = \"dict_nasreq.fdx\";" 	>> $(1)/etc/freeDiameter/freeDiameter.conf
 	echo "LoadExtension = \"dict_eap.fdx\";" 	>> $(1)/etc/freeDiameter/freeDiameter.conf
 	echo "LoadExtension = \"app_radgw.fdx\":\"rgw.conf\";" \
