@@ -38,10 +38,6 @@
 #include "test_app.h"
 
 #include <semaphore.h>
-
-/* The number of messages that can be sent before waiting for a corresponding answer */
-#define NB_CONCURRENT_MESSAGES	100
-
 #include <stdio.h>
 
 struct ta_mess_info {
@@ -49,7 +45,7 @@ struct ta_mess_info {
 	struct timespec ts;		/* Time of sending the message */
 };
 
-static sem_t ta_sem;
+static sem_t ta_sem; /* To handle the concurrency */
 
 /* Cb called when an answer is received */
 static void ta_cb_ans(void * data, struct msg ** msg)
@@ -220,9 +216,9 @@ static void ta_bench_start(int sig) {
 	memcpy(&start, &ta_conf->stats, sizeof(struct ta_stats));
 	CHECK_POSIX_DO( pthread_mutex_unlock(&ta_conf->stats_lock), );
 	
-	/* We will run for 10 seconds */
+	/* We will run for ta_conf->bench_duration seconds */
 	CHECK_SYS_DO( clock_gettime(CLOCK_REALTIME, &end_time), );
-	end_time.tv_sec += 10;
+	end_time.tv_sec += ta_conf->bench_duration;
 	
 	/* Now loop until timeout is reached */
 	do {
@@ -253,23 +249,21 @@ static void ta_bench_start(int sig) {
 	fd_log_debug( "------- app_test Benchmark result ---------\n");
 	if (now.tv_nsec >= end_time.tv_nsec) {
 		fd_log_debug( " Executing for: %d.%06ld sec\n",
-				(int)(now.tv_sec + 10 - end_time.tv_sec),
+				(int)(now.tv_sec + ta_conf->bench_duration - end_time.tv_sec),
 				(long)(now.tv_nsec - end_time.tv_nsec) / 1000);
 	} else {
 		fd_log_debug( " Executing for: %d.%06ld sec\n",
-				(int)(now.tv_sec + 9 - end_time.tv_sec),
+				(int)(now.tv_sec + ta_conf->bench_duration - 1 - end_time.tv_sec),
 				(long)(now.tv_nsec + 1000000000 - end_time.tv_nsec) / 1000);
 	}
 	fd_log_debug( "   %llu messages sent\n", end.nb_sent - start.nb_sent);
-	fd_log_debug( "   %llu errors received\n", end.nb_errs - start.nb_errs);
-	fd_log_debug( "   %llu answers received\n", end.nb_recv - start.nb_recv);
+	fd_log_debug( "   %llu error(s) received\n", end.nb_errs - start.nb_errs);
+	fd_log_debug( "   %llu answer(s) received\n", end.nb_recv - start.nb_recv);
 	fd_log_debug( "   Overall:\n");
 	fd_log_debug( "     fastest: %ld.%06ld sec.\n", end.shortest / 1000000, end.shortest % 1000000);
 	fd_log_debug( "     slowest: %ld.%06ld sec.\n", end.longest / 1000000, end.longest % 1000000);
 	fd_log_debug( "     Average: %ld.%06ld sec.\n", end.avg / 1000000, end.avg % 1000000);
-	fd_log_debug( "   Throughput: %llu message / sec\n", (end.nb_recv - start.nb_recv) / (( now.tv_sec + 10 - end_time.tv_sec ) + ((now.tv_nsec - end_time.tv_nsec) / 1000000000)));
-	
-
+	fd_log_debug( "   Throughput: %llu messages / sec\n", (end.nb_recv - start.nb_recv) / (( now.tv_sec + ta_conf->bench_duration - end_time.tv_sec ) + ((now.tv_nsec - end_time.tv_nsec) / 1000000000)));
 	fd_log_debug( "-------------------------------------\n");
 
 }
@@ -277,7 +271,7 @@ static void ta_bench_start(int sig) {
 
 int ta_bench_init(void)
 {
-	CHECK_SYS( sem_init( &ta_sem, 0, NB_CONCURRENT_MESSAGES) );
+	CHECK_SYS( sem_init( &ta_sem, 0, ta_conf->bench_concur) );
 
 	CHECK_FCT( fd_sig_register(ta_conf->signal, "test_app.bench", ta_bench_start ) );
 	

@@ -187,6 +187,12 @@ bench:			BENCH ';'
 			{
 				ta_conf->mode |= MODE_BENCH;
 			}
+			| BENCH INTEGER INTEGER ';'
+			{
+				ta_conf->mode |= MODE_BENCH;
+				ta_conf->bench_duration = $2;
+				ta_conf->bench_concur   = $3;
+			}
 			;
 
 dstrealm:		DEST_REALM '=' QSTRING ';'

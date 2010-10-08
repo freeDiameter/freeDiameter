@@ -58,6 +58,8 @@ static int ta_conf_init(void)
 	ta_conf->dest_realm = strdup(fd_g_config->cnf_diamrlm);
 	ta_conf->dest_host  = NULL;
 	ta_conf->signal     = TEST_APP_DEFAULT_SIGNAL;
+	ta_conf->bench_concur   = 100;
+	ta_conf->bench_duration = 10;
 	
 	/* Initialize the mutex */
 	CHECK_POSIX( pthread_mutex_init(&ta_conf->stats_lock, NULL) );
@@ -81,7 +83,7 @@ static void ta_conf_dump(void)
 	fd_log_debug( "------- /app_test configuration dump ---------\n");
 }
 
-/* Function to display statistics every 10 seconds */
+/* Function to display statistics periodically */
 static void * ta_stats(void * arg) {
 
 	struct timespec start, now;
@@ -92,8 +94,8 @@ static void * ta_stats(void * arg) {
 	
 	/* Now, loop until canceled */
 	while (1) {
-		/* Display statistics every 30 seconds */
-		sleep(30);
+		/* Display statistics every XX seconds */
+		sleep(ta_conf->bench_duration * 3);
 		
 		/* Now, get the current stats */
 		CHECK_POSIX_DO( pthread_mutex_lock(&ta_conf->stats_lock), );
@@ -116,13 +118,13 @@ static void * ta_stats(void * arg) {
 		}
 		
 		if (ta_conf->mode & MODE_SERV) {
-			fd_log_debug( " Server: %llu messages echoed\n", copy.nb_echoed);
+			fd_log_debug( " Server: %llu message(s) echoed\n", copy.nb_echoed);
 		}
 		if (ta_conf->mode & MODE_CLI) {
 			fd_log_debug( " Client:\n");
-			fd_log_debug( "   %llu messages sent\n", copy.nb_sent);
-			fd_log_debug( "   %llu errors received\n", copy.nb_errs);
-			fd_log_debug( "   %llu answers received\n", copy.nb_recv);
+			fd_log_debug( "   %llu message(s) sent\n", copy.nb_sent);
+			fd_log_debug( "   %llu error(s) received\n", copy.nb_errs);
+			fd_log_debug( "   %llu answer(s) received\n", copy.nb_recv);
 			fd_log_debug( "     fastest: %ld.%06ld sec.\n", copy.shortest / 1000000, copy.shortest % 1000000);
 			fd_log_debug( "     slowest: %ld.%06ld sec.\n", copy.longest / 1000000, copy.longest % 1000000);
 			fd_log_debug( "     Average: %ld.%06ld sec.\n", copy.avg / 1000000, copy.avg % 1000000);

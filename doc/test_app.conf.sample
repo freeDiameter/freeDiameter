@@ -41,7 +41,11 @@
 # When this keyword appears, it changes the behavior as follow:
 #  - server is silent on message reception, only the activity summary is displayed every 30 seconds
 #  - client attempts to send as many messages as possible during 10 seconds and counts them.
-# benchmark;
+# The benchmark keyword can be followed optionaly by two integers:
+#   duration is the time for the measurement, in seconds (default 10).
+#   concurrency is the number of messages that can be on the wire before waiting for an answer (default 100).
+# benchmark [duration concurrency];
+
 
 #######################
 # Client-specific configuration

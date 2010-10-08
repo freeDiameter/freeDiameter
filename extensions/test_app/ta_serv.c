@@ -100,6 +100,11 @@ static int ta_tr_cb( struct msg ** msg, struct avp * avp, struct session * sess,
 	/* Send the answer */
 	CHECK_FCT( fd_msg_send( msg, NULL, NULL ) );
 	
+	/* Add this value to the stats */
+	CHECK_POSIX_DO( pthread_mutex_lock(&ta_conf->stats_lock), );
+	ta_conf->stats.nb_echoed++;
+	CHECK_POSIX_DO( pthread_mutex_unlock(&ta_conf->stats_lock), );
+	
 	return 0;
 }
 

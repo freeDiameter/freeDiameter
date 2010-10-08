@@ -64,6 +64,8 @@ struct ta_conf {
 	char 	*	dest_host;	/* default NULL */
 	char 	*	user_name;	/* default NULL */
 	int 		signal;		/* default TEST_APP_DEFAULT_SIGNAL */
+	int		bench_concur;	/* default 100 */
+	int		bench_duration; /* default 10 */
 	struct ta_stats {
 		unsigned long long	nb_echoed; /* server */
 		unsigned long long	nb_sent;   /* client */
