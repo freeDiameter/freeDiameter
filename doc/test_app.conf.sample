@@ -37,6 +37,12 @@
 # - both: acts as client and server
 # mode = both;
 
+# The behavior can be changed by specifying additional "benchmark;" keyword.
+# When this keyword appears, it changes the behavior as follow:
+#  - server is silent on message reception, only the activity summary is displayed every 30 seconds
+#  - client attempts to send as many messages as possible during 10 seconds and counts them.
+# benchmark;
+
 #######################
 # Client-specific configuration
 

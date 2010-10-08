@@ -63,16 +63,18 @@ static int ta_tr_cb( struct msg ** msg, struct avp * avp, struct session * sess,
 		return EINVAL;
 	
 	/* Value of Origin-Host */
-	fprintf(stderr, "ECHO Test-Request received from ");
-	CHECK_FCT( fd_msg_search_avp ( *msg, ta_origin_host, &a) );
-	if (a) {
-		struct avp_hdr * hdr;
-		CHECK_FCT( fd_msg_avp_hdr( a, &hdr ) );
-		fprintf(stderr, "'%.*s'", (int)hdr->avp_value->os.len, hdr->avp_value->os.data);
-	} else {
-		fprintf(stderr, "no_Origin-Host");
+	if (! (ta_conf->mode & MODE_BENCH)) {
+		fprintf(stderr, "ECHO Test-Request received from ");
+		CHECK_FCT( fd_msg_search_avp ( *msg, ta_origin_host, &a) );
+		if (a) {
+			struct avp_hdr * hdr;
+			CHECK_FCT( fd_msg_avp_hdr( a, &hdr ) );
+			fprintf(stderr, "'%.*s'", (int)hdr->avp_value->os.len, hdr->avp_value->os.data);
+		} else {
+			fprintf(stderr, "no_Origin-Host");
+		}
+		fprintf(stderr, ", replying...\n");
 	}
-	fprintf(stderr, ", replying...\n");
 	
 	/* Create answer header */
 	qry = *msg;

@@ -51,6 +51,7 @@
 /* Mode for the extension */
 #define MODE_SERV	0x1
 #define	MODE_CLI	0x2
+#define	MODE_BENCH	0x4
 
 /* The module configuration */
 struct ta_conf {
@@ -63,6 +64,16 @@ struct ta_conf {
 	char 	*	dest_host;	/* default NULL */
 	char 	*	user_name;	/* default NULL */
 	int 		signal;		/* default TEST_APP_DEFAULT_SIGNAL */
+	struct ta_stats {
+		unsigned long long	nb_echoed; /* server */
+		unsigned long long	nb_sent;   /* client */
+		unsigned long long	nb_recv;   /* client */
+		unsigned long long	nb_errs;   /* client */
+		unsigned long		shortest;  /* fastest answer, in microseconds */
+		unsigned long		longest;   /* slowest answer, in microseconds */
+		unsigned long		avg;       /* average answer time, in microseconds */
+	} stats;
+	pthread_mutex_t		stats_lock;
 };
 extern struct ta_conf * ta_conf;
 
@@ -76,6 +87,10 @@ void ta_serv_fini(void);
 /* Create outgoing message (client) */
 int ta_cli_init(void);
 void ta_cli_fini(void);
+
+/* Benchmark flavour */
+int ta_bench_init(void);
+void ta_bench_fini(void);
 
 /* Initialize dictionary definitions */
 int ta_dict_init(void);

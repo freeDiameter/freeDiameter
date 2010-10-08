@@ -42,6 +42,7 @@
 /* Initialize the configuration */
 struct ta_conf * ta_conf = NULL;
 static struct ta_conf _conf;
+static pthread_t ta_stats_th = (pthread_t)NULL;
 
 static int ta_conf_init(void)
 {
@@ -58,6 +59,9 @@ static int ta_conf_init(void)
 	ta_conf->dest_host  = NULL;
 	ta_conf->signal     = TEST_APP_DEFAULT_SIGNAL;
 	
+	/* Initialize the mutex */
+	CHECK_POSIX( pthread_mutex_init(&ta_conf->stats_lock, NULL) );
+	
 	return 0;
 }
 
@@ -70,11 +74,63 @@ static void ta_conf_dump(void)
 	fd_log_debug( " Application Id ..... : %u\n", ta_conf->appli_id);
 	fd_log_debug( " Command Id ......... : %u\n", ta_conf->cmd_id);
 	fd_log_debug( " AVP Id ............. : %u\n", ta_conf->avp_id);
-	fd_log_debug( " Mode ............... : %s%s\n", ta_conf->mode & MODE_SERV ? "Serv" : "", ta_conf->mode & MODE_CLI ? "Cli" : "" );
+	fd_log_debug( " Mode ............... : %s%s%s\n", ta_conf->mode & MODE_SERV ? "Serv" : "", ta_conf->mode & MODE_CLI ? "Cli" : "",  ta_conf->mode & MODE_BENCH ? " (Benchmark)" : "");
 	fd_log_debug( " Destination Realm .. : %s\n", ta_conf->dest_realm ?: "- none -");
 	fd_log_debug( " Destination Host ... : %s\n", ta_conf->dest_host ?: "- none -");
 	fd_log_debug( " Signal ............. : %i\n", ta_conf->signal);
 	fd_log_debug( "------- /app_test configuration dump ---------\n");
+}
+
+/* Function to display statistics every 10 seconds */
+static void * ta_stats(void * arg) {
+
+	struct timespec start, now;
+	struct ta_stats copy;
+	
+	/* Get the start time */
+	CHECK_SYS_DO( clock_gettime(CLOCK_REALTIME, &start), );
+	
+	/* Now, loop until canceled */
+	while (1) {
+		/* Display statistics every 30 seconds */
+		sleep(30);
+		
+		/* Now, get the current stats */
+		CHECK_POSIX_DO( pthread_mutex_lock(&ta_conf->stats_lock), );
+		memcpy(&copy, &ta_conf->stats, sizeof(struct ta_stats));
+		CHECK_POSIX_DO( pthread_mutex_unlock(&ta_conf->stats_lock), );
+		
+		/* Get the current execution time */
+		CHECK_SYS_DO( clock_gettime(CLOCK_REALTIME, &now), );
+		
+		/* Now, display everything */
+		fd_log_debug( "------- app_test statistics ---------\n");
+		if (now.tv_nsec >= start.tv_nsec) {
+			fd_log_debug( " Executing for: %d.%06ld sec\n",
+					(int)(now.tv_sec - start.tv_sec),
+					(long)(now.tv_nsec - start.tv_nsec) / 1000);
+		} else {
+			fd_log_debug( " Executing for: %d.%06ld sec\n",
+					(int)(now.tv_sec - 1 - start.tv_sec),
+					(long)(now.tv_nsec + 1000000000 - start.tv_nsec) / 1000);
+		}
+		
+		if (ta_conf->mode & MODE_SERV) {
+			fd_log_debug( " Server: %llu messages echoed\n", copy.nb_echoed);
+		}
+		if (ta_conf->mode & MODE_CLI) {
+			fd_log_debug( " Client:\n");
+			fd_log_debug( "   %llu messages sent\n", copy.nb_sent);
+			fd_log_debug( "   %llu errors received\n", copy.nb_errs);
+			fd_log_debug( "   %llu answers received\n", copy.nb_recv);
+			fd_log_debug( "     fastest: %ld.%06ld sec.\n", copy.shortest / 1000000, copy.shortest % 1000000);
+			fd_log_debug( "     slowest: %ld.%06ld sec.\n", copy.longest / 1000000, copy.longest % 1000000);
+			fd_log_debug( "     Average: %ld.%06ld sec.\n", copy.avg / 1000000, copy.avg % 1000000);
+		}
+		fd_log_debug( "-------------------------------------\n");
+	}
+	
+	return NULL; /* never called */
 }
 
 /* entry point */
@@ -103,11 +159,18 @@ static int ta_entry(char * conffile)
 	
 	/* Start the signal handler thread */
 	if (ta_conf->mode & MODE_CLI) {
-		CHECK_FCT( ta_cli_init() );
+		if (ta_conf->mode & MODE_BENCH) {
+			CHECK_FCT( ta_bench_init() );
+		} else {
+			CHECK_FCT( ta_cli_init() );
+		}
 	}
 	
 	/* Advertise the support for the test application in the peer */
 	CHECK_FCT( fd_disp_app_support ( ta_appli, ta_vendor, 1, 0 ) );
+	
+	/* Start the statistics thread */
+	CHECK_POSIX( pthread_create(&ta_stats_th, NULL, ta_stats, NULL) );
 	
 	return 0;
 }
@@ -119,6 +182,8 @@ void fd_ext_fini(void)
 		ta_cli_fini();
 	if (ta_conf->mode & MODE_SERV)
 		ta_serv_fini();
+	CHECK_FCT_DO( fd_thr_term(&ta_stats_th), );
+	CHECK_POSIX_DO( pthread_mutex_destroy(&ta_conf->stats_lock), );
 }
 
 EXTENSION_ENTRY("test_app", ta_entry);

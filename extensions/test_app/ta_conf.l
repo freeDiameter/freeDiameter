@@ -152,6 +152,10 @@
 				return SIGNAL;
 			}
 
+(?i:"Benchmark")	{
+				return BENCH;
+			}
+
 			
 	/* Valid single characters for yyparse */
 [=;]			{ return yytext[0]; }

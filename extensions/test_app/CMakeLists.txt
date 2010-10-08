@@ -15,6 +15,7 @@ SET( APP_TEST_SRC
 	ta_conf.tab.h
 	ta_dict.c
 	ta_cli.c
+	ta_bench.c
 	ta_serv.c
 )
 

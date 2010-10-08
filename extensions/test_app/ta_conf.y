@@ -125,6 +125,7 @@ void yyerror (YYLTYPE *ploc, char * conffile, char const *s)
 %token 		DEST_HOST
 %token 		USER_NAME
 %token 		SIGNAL
+%token		BENCH
 
 /* Tokens and types for routing table definition */
 /* A (de)quoted string (malloc'd in lex parser; it must be freed after use) */
@@ -149,6 +150,7 @@ conffile:		/* empty grammar is OK */
 			| conffile dsthost
 			| conffile usrname
 			| conffile signal
+			| conffile bench
 			;
 
 vendor:			VENDOR_ID '=' INTEGER ';'
@@ -177,7 +179,13 @@ avp:			AVP_ID '=' INTEGER ';'
 
 mode:			MODE '=' INTEGER ';'
 			{
-				ta_conf->mode = $3;
+				ta_conf->mode = $3 | (ta_conf->mode & ~3); /* overwrite the 2 lsb */
+			}
+			;
+
+bench:			BENCH ';'
+			{
+				ta_conf->mode |= MODE_BENCH;
 			}
 			;
 
