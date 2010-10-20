@@ -219,7 +219,7 @@ int eap_tls_process(struct eap_state_machine *smd,
 						TRACE_DEBUG(NONE,"%s[EAP TLS plugin] [GnuTLS] error get dn by oid",DIAMEAP_EXTENSION);
 						goto failure;});
 
-					if(strcmp((char *)smd->user.userid,buff)!=0){
+					if(strncmp((char *)smd->user.userid,buff,smd->user.useridLength)!=0){
 						goto failure;
 					}
 

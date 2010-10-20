@@ -160,8 +160,8 @@ static int diameap_initialize_diameap_sm(
 		{
 			diameap_sm->eap_sm.user.useridLength
 					= diameap_sess_data->user.useridLength;
-			CHECK_MALLOC(diameap_sm->eap_sm.user.userid= malloc(diameap_sm->eap_sm.user.useridLength));
-			U8COPY(diameap_sm->eap_sm.user.userid,0,diameap_sm->eap_sm.user.useridLength,diameap_sess_data->user.userid);
+			CHECK_MALLOC(diameap_sm->eap_sm.user.userid= malloc(diameap_sm->eap_sm.user.useridLength+1));
+			U8COPY(diameap_sm->eap_sm.user.userid,0,diameap_sm->eap_sm.user.useridLength+1,diameap_sess_data->user.userid);
 			free(diameap_sess_data->user.userid);
 			diameap_sess_data->user.userid = NULL;
 
@@ -178,8 +178,8 @@ static int diameap_initialize_diameap_sm(
 		{
 			diameap_sm->eap_sm.user.passwordLength
 					= diameap_sess_data->user.passwordLength;
-			CHECK_MALLOC(diameap_sm->eap_sm.user.password = malloc(diameap_sm->eap_sm.user.passwordLength));
-			U8COPY(diameap_sm->eap_sm.user.password,0,diameap_sm->eap_sm.user.passwordLength, diameap_sess_data->user.password);
+			CHECK_MALLOC(diameap_sm->eap_sm.user.password = malloc(diameap_sm->eap_sm.user.passwordLength+1));
+			U8COPY(diameap_sm->eap_sm.user.password,0,diameap_sm->eap_sm.user.passwordLength+1, diameap_sess_data->user.password);
 			free(diameap_sess_data->user.password);
 			diameap_sess_data->user.password = NULL;
 		}
@@ -1032,8 +1032,8 @@ static int diameap_sess_data_new(
 	{
 		diameap_sess_data->user.useridLength
 				= diameap_sm->eap_sm.user.useridLength;
-		CHECK_MALLOC(diameap_sess_data->user.userid= malloc(diameap_sess_data->user.useridLength));
-		U8COPY(diameap_sess_data->user.userid,0,diameap_sess_data->user.useridLength,diameap_sm->eap_sm.user.userid);
+		CHECK_MALLOC(diameap_sess_data->user.userid= malloc(diameap_sess_data->user.useridLength+1));
+		U8COPY(diameap_sess_data->user.userid,0,diameap_sess_data->user.useridLength+1,diameap_sm->eap_sm.user.userid);
 		free(diameap_sm->eap_sm.user.userid);
 		diameap_sm->eap_sm.user.userid = NULL;
 
@@ -1049,8 +1049,8 @@ static int diameap_sess_data_new(
 	{
 		diameap_sess_data->user.passwordLength
 				= diameap_sm->eap_sm.user.passwordLength;
-		CHECK_MALLOC(diameap_sess_data->user.password = malloc(diameap_sess_data->user.passwordLength));
-		U8COPY(diameap_sess_data->user.password,0,diameap_sess_data->user.passwordLength,diameap_sm->eap_sm.user.password);
+		CHECK_MALLOC(diameap_sess_data->user.password = malloc(diameap_sess_data->user.passwordLength+1));
+		U8COPY(diameap_sess_data->user.password,0,diameap_sess_data->user.passwordLength+1,diameap_sm->eap_sm.user.password);
 		free(diameap_sm->eap_sm.user.password);
 		diameap_sm->eap_sm.user.password = NULL;
 	}

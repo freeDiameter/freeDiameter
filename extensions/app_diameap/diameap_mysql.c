@@ -82,11 +82,11 @@ int diameap_get_eap_user(struct eap_user * user, char * username)
 	{
 
 		user->id = atoi(row[0]);
-		CHECK_MALLOC(user->userid=malloc(strlen(row[1])));
-		memcpy(user->userid,row[1],strlen(row[1]));
+		CHECK_MALLOC(user->userid=malloc(strlen(row[1])+1));
+		memcpy(user->userid,row[1],strlen(row[1])+1);
 		user->useridLength = strlen(row[1]);
-		CHECK_MALLOC(user->password=malloc(strlen(row[2])));
-		memcpy(user->password, row[2],strlen(row[2]));
+		CHECK_MALLOC(user->password=malloc(strlen(row[2])+1));
+		memcpy(user->password, row[2],strlen(row[2])+1);
 		user->passwordLength = strlen(row[2]);
 		user->proposed_eap_method = atoi(row[3]);
 		user->proposed_eap_method_vendor = atoi(row[4]);
