@@ -133,7 +133,10 @@ void fd_conf_dump()
 	fd_log_debug("          - CA (trust) ... : %s (%d certs)\n", fd_g_config->cnf_sec_data.ca_file ?: "(none)", fd_g_config->cnf_sec_data.ca_file_nr);
 	fd_log_debug("          - CRL .......... : %s\n", fd_g_config->cnf_sec_data.crl_file ?: "(none)");
 	fd_log_debug("          - Priority ..... : %s\n", fd_g_config->cnf_sec_data.prio_string ?: "(default: '" GNUTLS_DEFAULT_PRIORITY "')");
-	fd_log_debug("          - DH bits ...... : %d\n", fd_g_config->cnf_sec_data.dh_bits ?: GNUTLS_DEFAULT_DHBITS);
+	if (fd_g_config->cnf_sec_data.dh_file)
+		fd_log_debug("          - DH file ...... : %s\n", fd_g_config->cnf_sec_data.dh_file);
+	else
+		fd_log_debug("          - DH bits ...... : %d\n", fd_g_config->cnf_sec_data.dh_bits ?: GNUTLS_DEFAULT_DHBITS);
 	
 	fd_log_debug("  Origin-State-Id ........ : %u\n", fd_g_config->cnf_orstateid);
 }
@@ -260,14 +263,6 @@ int fd_conf_parse()
 					&err_pos),
 				 { TRACE_DEBUG(INFO, "Error in priority string at position : %s", err_pos); return EINVAL; } );
 	}
-	if (! fd_g_config->cnf_sec_data.dh_bits) {
-		TRACE_DEBUG(INFO, "Generating Diffie-Hellman parameters of size %d (this takes a few seconds)... ", GNUTLS_DEFAULT_DHBITS);
-		CHECK_GNUTLS_DO( gnutls_dh_params_generate2( 
-					fd_g_config->cnf_sec_data.dh_cache,
-					GNUTLS_DEFAULT_DHBITS),
-				 { TRACE_DEBUG(INFO, "Error in DH bits value : %d", GNUTLS_DEFAULT_DHBITS); return EINVAL; } );
-	}
-	
 	
 	/* Verify that our certificate is valid -- otherwise remote peers will reject it */
 	{
@@ -402,6 +397,56 @@ int fd_conf_parse()
 	
 	/* gnutls_certificate_set_verify_limits -- so far the default values are fine... */
 	
+	/* DH */
+	if (fd_g_config->cnf_sec_data.dh_file) {
+		gnutls_datum_t dhparams = { NULL, 0 };
+		size_t alloc = 0;
+		FILE *stream = fopen (fd_g_config->cnf_sec_data.dh_file, "rb");
+		if (!stream) {
+			int err = errno;
+			TRACE_DEBUG(INFO, "An error occurred while opening '%s': %s\n", fd_g_config->cnf_sec_data.dh_file, strerror(err));
+			return err; 
+		}
+		do {
+			uint8_t * realloced = NULL;
+			size_t read = 0;
+			
+			if (alloc < dhparams.size + BUFSIZ + 1) {
+				alloc += alloc / 2 + BUFSIZ + 1;
+				CHECK_MALLOC_DO( realloced = realloc(dhparams.data, alloc),
+					{
+						free(dhparams.data);
+						return ENOMEM;
+					} )
+				dhparams.data = realloced;
+			}
+			
+			read = fread( dhparams.data + dhparams.size, 1, alloc - dhparams.size - 1, stream );
+			dhparams.size += read;
+			
+			if (ferror(stream)) {
+				int err = errno;
+				TRACE_DEBUG(INFO, "An error occurred while reading '%s': %s\n", fd_g_config->cnf_sec_data.dh_file, strerror(err));
+				return err; 
+			}
+		} while (!feof(stream));
+		dhparams.data[dhparams.size] = '\0';
+		fclose(stream);
+		CHECK_GNUTLS_DO( gnutls_dh_params_import_pkcs3( 
+					fd_g_config->cnf_sec_data.dh_cache,
+					&dhparams,
+					GNUTLS_X509_FMT_PEM),
+					 { TRACE_DEBUG(INFO, "Error in DH bits value : %d", fd_g_config->cnf_sec_data.dh_bits ?: GNUTLS_DEFAULT_DHBITS); return EINVAL; } );
+		free(dhparams.data);
+		
+	} else {
+		TRACE_DEBUG(INFO, "Generating fresh Diffie-Hellman parameters of size %d (this takes some time)... ", fd_g_config->cnf_sec_data.dh_bits ?: GNUTLS_DEFAULT_DHBITS);
+		CHECK_GNUTLS_DO( gnutls_dh_params_generate2( 
+					fd_g_config->cnf_sec_data.dh_cache,
+					fd_g_config->cnf_sec_data.dh_bits ?: GNUTLS_DEFAULT_DHBITS),
+					 { TRACE_DEBUG(INFO, "Error in DH bits value : %d", fd_g_config->cnf_sec_data.dh_bits ?: GNUTLS_DEFAULT_DHBITS); return EINVAL; } );
+	}			
+	
 	return 0;
 }
 
@@ -421,6 +466,7 @@ int fd_conf_deinit()
 	free(fd_g_config->cnf_sec_data.ca_file); fd_g_config->cnf_sec_data.ca_file = NULL;
 	free(fd_g_config->cnf_sec_data.crl_file); fd_g_config->cnf_sec_data.crl_file = NULL;
 	free(fd_g_config->cnf_sec_data.prio_string); fd_g_config->cnf_sec_data.prio_string = NULL;
+	free(fd_g_config->cnf_sec_data.dh_file); fd_g_config->cnf_sec_data.dh_file = NULL;
 	
 	/* Destroy dictionary */
 	CHECK_FCT_DO( fd_dict_fini(&fd_g_config->cnf_dict), );

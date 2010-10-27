@@ -111,6 +111,7 @@ struct fd_config {
 		
 		char *				 prio_string;
 		unsigned int 			 dh_bits;
+		char *				 dh_file;
 		
 		/* GNUTLS parameters */
 		gnutls_priority_t 		 prio_cache;

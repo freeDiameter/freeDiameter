@@ -120,6 +120,13 @@ TLS_Cred = "/etc/ssl/certs/freeDiameter.pem", "/etc/ssl/private/freeDiameter.key
 # Default : 1024
 #TLS_DH_Bits = 1024;
 
+# Alternatively, you can specify a file to load the PKCS#3 encoded
+# DH parameters directly from. This accelerates the daemon start 
+# but is slightly less secure. If this file is provided, the
+# TLS_DH_Bits parameters has no effect.
+# Default : no default.
+#TLS_DH_File = "<file.PEM>";
+
 
 ##############################################################
 ##  Timers configuration

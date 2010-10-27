@@ -117,6 +117,7 @@ struct peer_info fddpi;
 %token		TLS_CRL
 %token		TLS_PRIO
 %token		TLS_DH_BITS
+%token		TLS_DH_FILE
 
 
 /* -------------------------------------- */
@@ -581,12 +582,19 @@ tls_prio:		TLS_PRIO '=' QSTRING ';'
 tls_dh:			TLS_DH_BITS '=' INTEGER ';'
 			{
 				conf->cnf_sec_data.dh_bits = $3;
-				TRACE_DEBUG(FULL, "Generating DH parameters...");
-				CHECK_GNUTLS_DO( gnutls_dh_params_generate2( 
-							conf->cnf_sec_data.dh_cache,
-							conf->cnf_sec_data.dh_bits),
-						{ yyerror (&yylloc, conf, "Error setting DH Bits parameters."); 
-						 YYERROR; } );
-				TRACE_DEBUG(FULL, "DH parameters generated.");
+			}
+			| TLS_DH_FILE '=' QSTRING ';'
+			{
+				FILE * fd;
+				free(conf->cnf_sec_data.dh_file);
+				conf->cnf_sec_data.dh_file = $3;
+				fd = fopen($3, "r");
+				if (fd == NULL) {
+					int ret = errno;
+					TRACE_DEBUG(INFO, "Unable to open DH file %s for reading: %s\n", $3, strerror(ret));
+					yyerror (&yylloc, conf, "Error on file name"); 
+					YYERROR;
+				}
+				fclose(fd);
 			}
 			;
