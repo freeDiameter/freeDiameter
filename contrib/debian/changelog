@@ -1,3 +1,10 @@
+freediameter (1.0.2) UNRELEASED; urgency=low
+
+  * Fix an issue in app_diameap.fdx with user names (#18)
+  * Allow DH parameters loaded from a file (#17) 
+
+ -- Sebastien Decugis <sdecugis@nict.go.jp>  Wed, 27 Oct 2010 11:17:32 +0900
+
 freediameter (1.0.1) UNRELEASED; urgency=low
 
   * app_acct.fdx: new set of PHP scripts available in source
