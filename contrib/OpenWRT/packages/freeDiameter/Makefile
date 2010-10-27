@@ -229,7 +229,7 @@ if [ ! -f "/etc/freeDiameter/freeDiameter.pem" ]; then
    echo "========================================================================"
 fi
 if [ ! -f "/etc/freeDiameter/dh.pem" ]; then
-   echo "Creating new Diffie-Hellmann parameters file. This operation takes a while..."
+   echo "Creating new Diffie-Hellman parameters file. This operation takes a while..."
    certtool --generate-dh-params --outfile /etc/freeDiameter/dh.pem
 fi
 endef
