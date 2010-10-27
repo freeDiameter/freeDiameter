@@ -10,7 +10,7 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=freeDiameter
-PKG_REV:=575
+PKG_REV:=578
 PKG_VERSION:=r$(PKG_REV)
 PKG_RELEASE:=1
 
@@ -112,7 +112,8 @@ define Package/freeDiameter/install
 							>> $(1)/etc/freeDiameter/freeDiameter.conf
 	echo "TLS_CA = \"/etc/freeDiameter/freeDiameter.ca.pem\";" \
 							>> $(1)/etc/freeDiameter/freeDiameter.conf
-	echo "TLS_DH_Bits = 768;" 			>> $(1)/etc/freeDiameter/freeDiameter.conf
+	echo "TLS_DH_File = \"/etc/freeDiameter/dh.pem\";"
+				 			>> $(1)/etc/freeDiameter/freeDiameter.conf
 	echo "SCTP_streams = 3;"			>> $(1)/etc/freeDiameter/freeDiameter.conf
 	echo "LoadExtension = \"dict_nasreq.fdx\";" 	>> $(1)/etc/freeDiameter/freeDiameter.conf
 	echo "LoadExtension = \"dict_eap.fdx\";" 	>> $(1)/etc/freeDiameter/freeDiameter.conf
@@ -182,15 +183,19 @@ fi
 
 # Certificate configuration    
 if [ ! -f "/usr/bin/certtool" ]; then
-   echo "certtool is not installed, skipping creation of default certificate."
+   echo "certtool is not installed, skipping creation of default certificate and DH parameters."
+   echo "The following files are expected by freeDiameter:"
+   echo "  /etc/freeDiameter/freeDiameter.key"
+   echo "  /etc/freeDiameter/freeDiameter.pem"
+   echo "  /etc/freeDiameter/freeDiameter.ca.pem"
+   echo "  /etc/freeDiameter/dh.pem"
    exit 0
 fi
+if [ ! -f "/etc/freeDiameter/freeDiameter.key" ]; then 
+   echo "Creating a new private key for freeDiameter, please wait"
+   certtool -p --outfile /etc/freeDiameter/freeDiameter.key
+fi
 if [ ! -f "/etc/freeDiameter/freeDiameter.pem" ]; then
-   if [ ! -f "/etc/freeDiameter/freeDiameter.key" ]; then 
-      echo "Creating a new private key for freeDiameter TLS layer, please wait"
-      certtool -p --outfile /etc/freeDiameter/freeDiameter.key
-   fi
-   echo "Creating a new certificate for freeDiameter TLS layer"
    echo "organization = freeDiameter"		> /tmp/template.cnf
    echo "unit = OpenWRT"			>>/tmp/template.cnf
    echo "state = internet"			>>/tmp/template.cnf
@@ -200,11 +205,12 @@ if [ ! -f "/etc/freeDiameter/freeDiameter.pem" ]; then
    echo "signing_key"				>>/tmp/template.cnf
    echo "encryption_key"			>>/tmp/template.cnf
    if [ ! -f "/etc/freeDiameter/freeDiameter.csr" ]; then 
-      echo "Creating a new CSR"
+      echo "Creating a new CSR (use if you have a separate CA)"
       certtool -q --load-privkey /etc/freeDiameter/freeDiameter.key \
                --outfile /etc/freeDiameter/freeDiameter.csr \
 	       --template /tmp/template.cnf
    fi
+   echo "Creating a new certificate for freeDiameter"
    certtool -s --load-privkey /etc/freeDiameter/freeDiameter.key \
                --outfile /etc/freeDiameter/freeDiameter.pem \
 	       --template /tmp/template.cnf
@@ -221,6 +227,10 @@ if [ ! -f "/etc/freeDiameter/freeDiameter.pem" ]; then
    echo "      Add your server's CA certificate into /etc/freeDiameter/freeDiameter.ca.pem"
    echo "      Add the content of /etc/freeDiameter/freeDiameter.pem into your server's trusted CA file"
    echo "========================================================================"
+fi
+if [ ! -f "/etc/freeDiameter/dh.pem" ]; then
+   echo "Creating new Diffie-Hellmann parameters file. This operation takes a while..."
+   certtool --generate-dh-params --outfile /etc/freeDiameter/dh.pem
 fi
 endef
 
