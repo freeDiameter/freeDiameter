@@ -446,7 +446,7 @@ static int sip_rad_req( struct rgwp_config * cs, struct session ** session, stru
 		int len;
 		/* Create a new Session-Id. The format is: {fqdn;hi32;lo32;username;diamid} */
 		CHECK_MALLOC( sid = malloc(un_len + 1 /* ';' */ + fd_g_config->cnf_diamid_len + 1 /* '\0' */) );
-		len = sprintf(sid, "%.*s;%s", un_len, un, fd_g_config->cnf_diamid);
+		len = sprintf(sid, "%.*s;%s", (int)un_len, un, fd_g_config->cnf_diamid);
 		CHECK_FCT( fd_sess_new(session, fqdn, sid, len) );
 		free(sid);
 	}

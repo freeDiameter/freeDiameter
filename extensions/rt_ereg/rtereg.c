@@ -144,9 +144,9 @@ static int rtereg_out(void * cbdata, struct msg * msg, struct fd_list * candidat
 		struct avp_hdr * ahdr = NULL;
 		CHECK_FCT( fd_msg_avp_hdr ( avp, &ahdr ) );
 		if (ahdr->avp_value != NULL) {
+#ifndef HAVE_REG_STARTEND
 			int ret;
 		
-#ifndef HAVE_REG_STARTEND
 			/* Lock the buffer */
 			CHECK_POSIX( pthread_mutex_lock(&mtx) );
 			
@@ -167,7 +167,7 @@ static int rtereg_out(void * cbdata, struct msg * msg, struct fd_list * candidat
 			
 			CHECK_FCT(ret);
 #else /* HAVE_REG_STARTEND */
-			CHECK_FCT( proceed(ahdr->avp_value->os.data, ahdr->avp_value->os.len, candidates) );
+			CHECK_FCT( proceed((char *) ahdr->avp_value->os.data, ahdr->avp_value->os.len, candidates) );
 #endif /* HAVE_REG_STARTEND */
 		}
 	}
