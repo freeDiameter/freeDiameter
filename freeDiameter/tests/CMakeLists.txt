@@ -54,7 +54,7 @@ ADD_LIBRARY(fDcore STATIC ${TEST_COMMON_SRC})
 ##############################
 # App_acct test
 
-IF(BUILD_APP_ACCT)
+IF(BUILD_APP_ACCT OR ALL_EXTENSIONS)
 	OPTION(TEST_APP_ACCT "Test app_acct extension? (Requires a configured database, see testappacct.c for details)" OFF)
 	IF(TEST_APP_ACCT)
 	
@@ -101,7 +101,7 @@ IF(BUILD_APP_ACCT)
 		ENDFOREACH(SRC_FILE)
 
 	ENDIF(TEST_APP_ACCT)
-ENDIF(BUILD_APP_ACCT)
+ENDIF(BUILD_APP_ACCT OR ALL_EXTENSIONS)
 
 
 #############################
