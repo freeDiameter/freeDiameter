@@ -59,50 +59,63 @@ MACRO(RGWX_ADD_PLUGIN PLGNAME)
 	COMPONENT freeDiameter-radius-gateway)
 ENDMACRO(RGWX_ADD_PLUGIN)
 
+# Ask unless ALL_EXTENSIONS is set:
+MACRO(FD_OPTION_PLUGIN PLGVAR DESCR DEFLT)
+   IF (NOT ALL_EXTENSIONS)
+     OPTION(BUILD_${PLGVAR} ${DESCR} ${DEFLT})
+   ENDIF (NOT ALL_EXTENSIONS)
+   IF (BUILD_${PLGVAR} OR ALL_EXTENSIONS)
+     SET(${PLGVAR} TRUE)
+   ELSE (BUILD_${PLGVAR} OR ALL_EXTENSIONS)
+     SET(${PLGVAR} FALSE)
+   ENDIF (BUILD_${PLGVAR} OR ALL_EXTENSIONS)
+ENDMACRO(FD_OPTION_PLUGIN PLGVAR DESCR DEFLT)
+
 
 ### Debug 
 # Example of plugin:
-OPTION(BUILD_RGWX_SAMPLE "Build sample plugin? (for developers only)" OFF)
- 	IF (BUILD_RGWX_SAMPLE)
+
+FD_OPTION_PLUGIN(RGWX_SAMPLE "Build sample plugin? (for developers only)" OFF)
+ 	IF (RGWX_SAMPLE)
  	   RGWX_ADD_PLUGIN(sample ${RG_COMMON_HEADER} rgwx_sample.c)
- 	ENDIF (BUILD_RGWX_SAMPLE)
+ 	ENDIF (RGWX_SAMPLE)
 
 # A plugin for debug: dumps RADIUS and Diameter messages state at the time the plugin is called.
-OPTION(BUILD_RGWX_DEBUG "Build debug plugin? (display status of RADIUS and Diameter messages)" ON)
- 	IF (BUILD_RGWX_DEBUG)
+FD_OPTION_PLUGIN(RGWX_DEBUG "Build debug plugin? (display status of RADIUS and Diameter messages)" ON)
+ 	IF (RGWX_DEBUG)
  	   RGWX_ADD_PLUGIN(debug ${RG_COMMON_HEADER} rgwx_debug.c)
- 	ENDIF (BUILD_RGWX_DEBUG)
+ 	ENDIF (RGWX_DEBUG)
 
 
 ### Authentication, Authorization messages translation.
-OPTION(BUILD_RGWX_AUTH "Build Authentication & Authorization RADIUS translation plugin? (RFC2865, RFC3579)" ON)
-	IF (BUILD_RGWX_AUTH)
+FD_OPTION_PLUGIN(RGWX_AUTH "Build Authentication & Authorization RADIUS translation plugin? (RFC2865, RFC3579)" ON)
+	IF (RGWX_AUTH)
  	   RGWX_ADD_PLUGIN(auth ${RG_COMMON_HEADER} rgwx_auth.c)
-	ENDIF (BUILD_RGWX_AUTH)
+	ENDIF (RGWX_AUTH)
 
 ### SIP Authentication, Authorization messages translation.
-OPTION(BUILD_RGWX_SIP "Build SIP RADIUS translation plugin? (RFC4740 or RFC5090)" OFF)
-        IF (BUILD_RGWX_SIP)
+FD_OPTION_PLUGIN(RGWX_SIP "Build SIP RADIUS translation plugin? (RFC4740 or RFC5090)" OFF)
+        IF (RGWX_SIP)
            RGWX_ADD_PLUGIN(sip ${RG_COMMON_HEADER} rgwx_sip.c)
-        ENDIF (BUILD_RGWX_SIP)
+        ENDIF (RGWX_SIP)
 
 
 
 ### Accounting messages translation.
-OPTION(BUILD_RGWX_ACCT "Build Accounting RADIUS translation plugin? (RFC2866)" ON)
-	IF (BUILD_RGWX_ACCT)
+FD_OPTION_PLUGIN(RGWX_ACCT "Build Accounting RADIUS translation plugin? (RFC2866)" ON)
+	IF (RGWX_ACCT)
  	   RGWX_ADD_PLUGIN(acct ${RG_COMMON_HEADER} rgwx_acct.c)
-	ENDIF (BUILD_RGWX_ACCT)
+	ENDIF (RGWX_ACCT)
 
 
 ### Generic plugin to handle some attributes (either delete them or simply echo them in the answer) 
-OPTION(BUILD_RGWX_ECHODROP "Build 'echo/drop' plugin? (drop specific RADIUS attributes or echo them in RADIUS answer)" ON)
-  	IF (BUILD_RGWX_ECHODROP)
+FD_OPTION_PLUGIN(RGWX_ECHODROP "Build 'echo/drop' plugin? (drop specific RADIUS attributes or echo them in RADIUS answer)" ON)
+  	IF (RGWX_ECHODROP)
   	   BISON_FILE(rgwx_echodrop.y)
   	   FLEX_FILE(rgwx_echodrop.l)
   	   SET_SOURCE_FILES_PROPERTIES(lex.rgwx_echodrop.c rgwx_echodrop.tab.c PROPERTIES COMPILE_FLAGS "-I ${CMAKE_CURRENT_SOURCE_DIR}")
  	   RGWX_ADD_PLUGIN(echodrop ${RG_COMMON_HEADER} rgwx_echodrop.h rgwx_echodrop.c lex.rgwx_echodrop.c rgwx_echodrop.tab.c rgwx_echodrop.tab.h )
-  	ENDIF (BUILD_RGWX_ECHODROP)
+  	ENDIF (RGWX_ECHODROP)
 	
 	
 ####

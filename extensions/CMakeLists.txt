@@ -12,6 +12,20 @@ MACRO(FD_ADD_EXTENSION EXTNAME)
   SET_TARGET_PROPERTIES(${EXTNAME} PROPERTIES SUFFIX ".fdx" )
 ENDMACRO(FD_ADD_EXTENSION)
 
+# Use the macro FD_EXTENSION_SUBDIR(extmacroname subdir descr default) to 
+# add a new extension subdirectory.
+MACRO(FD_EXTENSION_SUBDIR EXTSUBDIR EXTDESCR EXTDEFAULT)
+   STRING(TOUPPER ${EXTSUBDIR} EXTMACRONAME)
+   IF (NOT ALL_EXTENSIONS)
+     OPTION(BUILD_${EXTMACRONAME} "Build ${EXTSUBDIR}.fdx? (${EXTDESCR})" ${EXTDEFAULT})
+   ENDIF (NOT ALL_EXTENSIONS)
+   IF (BUILD_${EXTMACRONAME} OR ALL_EXTENSIONS)
+      SUBDIRS(${EXTSUBDIR})
+   ENDIF (BUILD_${EXTMACRONAME} OR ALL_EXTENSIONS)
+ENDMACRO(FD_EXTENSION_SUBDIR)
+
+OPTION(ALL_EXTENSIONS "Build ALL available extensions? (disable to select individual components)" OFF)
+
 # The extensions include the headers of freeDiameter that contains gnutls objects
 FIND_PACKAGE(GnuTLS REQUIRED)
 INCLUDE_DIRECTORIES(${GNUTLS_INCLUDE_DIR})
@@ -22,114 +36,53 @@ Endif ( NOT GCRYPT_INCLUDE_DIR )
 MARK_AS_ADVANCED(GCRYPT_INCLUDE_DIR)
 INCLUDE_DIRECTORIES(${GCRYPT_INCLUDE_DIR})
 
+
 ###########################
 # Extensions section
 
 ####
-# Diameter applications dictionary
+# Diameter applications dictionaries
 
-OPTION(BUILD_DICT_NASREQ "Build NASREQ (RFC4005) Dictionary definitions?" ON)
-	IF (BUILD_DICT_NASREQ)
-	   SUBDIRS(dict_nasreq)
-	ENDIF (BUILD_DICT_NASREQ)
-
-OPTION(BUILD_DICT_EAP "Build Diameter EAP (RFC4072) Dictionary definitions?" ON)
-	IF (BUILD_DICT_EAP)
-	   SUBDIRS(dict_eap)
-	ENDIF (BUILD_DICT_EAP)
-
-OPTION(BUILD_DICT_SIP "Build Diameter SIP (RFC4740) Dictionary definitions?" ON)
-	IF (BUILD_DICT_SIP)
-	   SUBDIRS(dict_sip)
-	ENDIF (BUILD_DICT_SIP)
-
+FD_EXTENSION_SUBDIR(dict_nasreq "NASREQ (RFC4005) Dictionary definitions?"       ON)
+FD_EXTENSION_SUBDIR(dict_eap    "Diameter EAP (RFC4072) Dictionary definitions?" ON)
+FD_EXTENSION_SUBDIR(dict_sip    "Diameter SIP (RFC4740) Dictionary definitions?" ON)
 
 
 ####
 # Diameter applications
 
-OPTION(BUILD_APP_RADGW "Build app_radgw? (one-way RADIUS/Diameter gateway - RADIUS NAS <-> Diameter server)" OFF)
-	IF (BUILD_APP_RADGW)
-	   SUBDIRS(app_radgw)
-	ENDIF (BUILD_APP_RADGW)
+FD_EXTENSION_SUBDIR(app_acct    "Simple accounting application that stores accounting records in flat database" OFF)
+FD_EXTENSION_SUBDIR(app_diameap "Diameter EAP Application server (RFC 4072)" 					OFF)
+FD_EXTENSION_SUBDIR(app_radgw   "RADIUS/Diameter gateway translation - RADIUS client to Diameter server" 	OFF)
+FD_EXTENSION_SUBDIR(app_sip     "Diameter SIP Authentication and Authorization server (RFC 4740)" 		OFF)
 
-OPTION(BUILD_APP_ACCT "Build app_acct? (simple accounting application that stores accounting records in flat database)" OFF)
-	IF (BUILD_APP_ACCT)
-	   SUBDIRS(app_acct)
-	ENDIF (BUILD_APP_ACCT)
-
-OPTION(BUILD_APP_SIP "Build app_sip? (Authentication and Authorization for Diameter SIP RFC4740)" OFF)
-	IF (BUILD_APP_SIP)
-	   SUBDIRS(app_sip)
-	ENDIF (BUILD_APP_SIP)
-
-OPTION(BUILD_APP_DIAMEAP "Build app_diameap? (Diameter EAP Application - RFC 4072 )" OFF)
-	IF (BUILD_APP_DIAMEAP)
-	   SUBDIRS(app_diameap)
-	ENDIF (BUILD_APP_DIAMEAP)
 
 ####
 # Routing extensions
 
-OPTION(BUILD_RT_DEFAULT "Build rt_default? (Configurable routing rules for freeDiameter)" ON)
-	IF (BUILD_RT_DEFAULT)
-	   SUBDIRS(rt_default)
-	ENDIF (BUILD_RT_DEFAULT)
-
-OPTION(BUILD_RT_EREG "Build rt_ereg? (Configurable routing based on regexp matching of AVP values)" OFF)
-	IF (BUILD_RT_EREG)
-	   SUBDIRS(rt_ereg)
-	ENDIF (BUILD_RT_EREG)
+FD_EXTENSION_SUBDIR(rt_default "Configurable routing rules for freeDiameter" 		     ON)
+FD_EXTENSION_SUBDIR(rt_ereg    "Configurable routing based on regexp matching of AVP values" OFF)
 
 
 ####
 # Peers security extensions
 
-OPTION(BUILD_ACL_WL "Build acl_wl? (White-list of remote connecting peers)" ON)
-	IF (BUILD_ACL_WL)
-		SUBDIRS(acl_wl)
- 	ENDIF (BUILD_ACL_WL)
-
+FD_EXTENSION_SUBDIR(acl_wl "White-list based authorization of incoming connections" ON)
 
 
 ####
 # Debug & test extensions
 
-OPTION(BUILD_DBG_MONITOR "Build dbg_monitor.fdx? (display periodical debug information on the console)" OFF)
-	IF (BUILD_DBG_MONITOR)
-	   SUBDIRS(dbg_monitor)
-	ENDIF (BUILD_DBG_MONITOR)
+FD_EXTENSION_SUBDIR(dbg_monitor "Outputs periodical status information"              OFF)
+FD_EXTENSION_SUBDIR(dbg_rt      "Routing extension for debugging the routing module" OFF)
+FD_EXTENSION_SUBDIR(test_app    "Testing application to send dummy message to another peer, like a Diameter 'ping'" OFF)
+FD_EXTENSION_SUBDIR(test_sip    "Testing application to simulate Diameter-SIP client (RFC4740)" OFF)
 
-OPTION(BUILD_DBG_RT "Build dbg_rt.fdx? (Routing extension for debugging the routing module)" OFF)
- 	IF (BUILD_DBG_RT)
- 	   SUBDIRS(dbg_rt)
- 	ENDIF (BUILD_DBG_RT)
 
-OPTION(BUILD_TEST_APP "Build test_app.fdx? (Testing application to send dummy message to another peer, for testing purpose only)" OFF)
- 	IF (BUILD_TEST_APP)
- 	   SUBDIRS(test_app)
- 	ENDIF (BUILD_TEST_APP)
-
-OPTION(BUILD_TEST_SIP "Build test_sip.fdx? (Testing application to simulate Diameter-SIP client (RFC4740), for testing purpose only)" OFF)
- 	IF (BUILD_TEST_SIP)
- 	   SUBDIRS(test_sip)
- 	ENDIF (BUILD_TEST_SIP)
- 	
 # The following extension have very little use except for specific tests, so we disable them except in Debug configurations.
 IF (CMAKE_BUILD_TYPE MATCHES "Debug")
-	OPTION(BUILD_SAMPLE "Build sample.fdx? (Simple extension to demonstrate extension mechanism, for developpers only)" OFF)
-		IF (BUILD_SAMPLE)
-		   SUBDIRS(_sample)
-		ENDIF (BUILD_SAMPLE)
-
-	OPTION(BUILD_TEST_ACCT "Build test_acct.fdx? (Receive Accounting-Requests and display the data, but no storage)" OFF)
-		IF (BUILD_TEST_ACCT)
-		   SUBDIRS(test_acct)
-		ENDIF (BUILD_TEST_ACCT)
-		
-	OPTION(BUILD_TEST_RT_ANY "Build test_rt_any.fdx? (Routing extension randomly sending message to any peer available, for testing purpose only)" OFF)
- 		IF (BUILD_TEST_RT_ANY)
- 		   SUBDIRS(test_rt_any)
- 		ENDIF (BUILD_TEST_RT_ANY)
+	FD_EXTENSION_SUBDIR(_sample     "Simple extension to demonstrate extension mechanism, for developpers" OFF)
+	FD_EXTENSION_SUBDIR(test_acct   "Receive Accounting-Requests and display the data, but no storage" OFF)
+	FD_EXTENSION_SUBDIR(test_rt_any "Routing extension randomly sending message to any peer available, for testing purpose" OFF)
 ENDIF (CMAKE_BUILD_TYPE MATCHES "Debug")
 
