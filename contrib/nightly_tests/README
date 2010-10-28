@@ -23,7 +23,7 @@ INSTRUCTIONS to setup a new build slave for the freeDiameter buildserver:
 
 2) Create the "test" database for app_acct test (we assume the tests are run as user "test" here)
       - check INSTALL.FreeBSD file for specific PostgreSQL pre-install instructions.
-      - These are the instructions for Ubuntu, adjust as needed:
+      - These are the instructions for Debian/Ubuntu, adjust as needed:
 	# su - postgres
 	# createuser test
 	 Shall the new role be a superuser? (y/n) n
