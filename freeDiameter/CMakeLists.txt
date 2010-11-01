@@ -59,6 +59,16 @@ Endif ( NOT GCRYPT_INCLUDE_DIR )
 MARK_AS_ADVANCED(GCRYPT_INCLUDE_DIR)
 INCLUDE_DIRECTORIES(${GCRYPT_INCLUDE_DIR})
 
+# Also we need libgcrypt to... display its version :(
+find_library(GCRYPT_LIBRARY 
+  NAMES gcrypt
+)
+If ( NOT GCRYPT_LIBRARY )
+	MESSAGE(SEND_ERROR "Unable to find libgcrypt, please install libgcrypt or equivalent")
+Endif ( NOT GCRYPT_LIBRARY )
+SET(FD_LIBS ${FD_LIBS} ${GCRYPT_LIBRARY})
+
+
 
 # Build the executable
 ADD_EXECUTABLE(freeDiameterd ${FD_COMMON_SRC} ${FD_COMMON_GEN_SRC} main.c)
