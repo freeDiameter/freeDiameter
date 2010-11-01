@@ -265,7 +265,7 @@ int fd_servers_start()
 		ASSERT(0);
 #else /* DISABLE_SCTP */
 		
-		/* Create the server on default port */
+		/* Create the server on unsecure port */
 		CHECK_MALLOC( s = new_serv(IPPROTO_SCTP, 0) );
 		CHECK_MALLOC( s->conn = fd_cnx_serv_sctp(fd_g_config->cnf_port, FD_IS_LIST_EMPTY(&fd_g_config->cnf_endpoints) ? NULL : &fd_g_config->cnf_endpoints) );
 		fd_list_insert_before( &FD_SERVERS, &s->chain );

@@ -730,7 +730,7 @@ redo:
 		int count = 0; /* number of sock addr in the array */
 		
 		/* Create the array of configured addresses */
-		CHECK_FCT( add_addresses_from_list_mask((void *)&sar, &sz, &count, family, port, list, EP_FL_CONF, EP_FL_CONF) );
+		CHECK_FCT( add_addresses_from_list_mask((void *)&sar, &sz, &count, family, htons(port), list, EP_FL_CONF, EP_FL_CONF) );
 		
 		if (!count) {
 			/* None of the addresses in the list came from configuration, we bind to default */
