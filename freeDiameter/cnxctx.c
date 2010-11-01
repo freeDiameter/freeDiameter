@@ -1049,11 +1049,12 @@ int fd_tls_verify_credentials(gnutls_session_t session, struct cnxctx * conn, in
 						gnutls_dh_get_prime_bits (session));
 				}
 				break;
-				
+#ifdef ENABLE_SRP				
 			case GNUTLS_CRD_SRP:
 				fd_log_debug("\t - SRP session with username %s\n",
 					gnutls_srp_server_get_username (session));
 				break;
+#endif /* ENABLE_SRP */
 
 			default:
 				fd_log_debug("\t - Different type of credentials for the session (%d).\n", cred);
