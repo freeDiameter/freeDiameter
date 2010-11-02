@@ -40,6 +40,10 @@ ADD_DEFINITIONS(-D_GNU_SOURCE)
 # SET(CMAKE_BUILD_TYPE Profiling)
 SET(CMAKE_C_FLAGS_PROFILING "-fprofile-arcs -ftest-coverage -fstack-protector -g -Wall")
 
+# Add a "MaxPerformance" build type -- this is very silent...
+# SET(CMAKE_BUILD_TYPE MaxPerformance)
+SET(CMAKE_C_FLAGS_MAXPERFORMANCE "${CMAKE_C_FLAGS_RELEASE} -DSTRIP_DEBUG_CODE")
+
 # Add a "DebianPackage" build type used when creating the Debian packages
 SET(CMAKE_C_FLAGS_DEBIANPACKAGE "${CMAKE_C_FLAGS_RELWITHDEBINFO}")
 

@@ -354,6 +354,28 @@ int fd_breakhere(void);
 	}															\
 }
 
+/* Report an error */
+#define TRACE_DEBUG_ERROR(format,args... ) \
+	TRACE_DEBUG(NONE, format, ##args)
+
+/******************
+ Optimized code: remove all debugging code
+ **/
+#ifdef STRIP_DEBUG_CODE
+#undef TRACE_DEBUG
+#undef TRACE_BOOL
+#undef TRACE_DEBUG_sSA
+#undef TRACE_DEBUG_BUFFER
+#undef TRACE_DEBUG_ERROR
+#define TRACE_DEBUG(level,format,args... )
+#define TRACE_BOOL(_level_) (0)
+#define TRACE_DEBUG_BUFFER(level, prefix, buf, bufsz, suffix )
+#define TRACE_DEBUG_sSA(level, prefix, sa, flags, suffix )
+#define TRACE_DEBUG_ERROR(format,args... ) {	\
+	fd_log_debug(format "\n", ## args); 	\
+}
+#endif /* STRIP_DEBUG_CODE */
+
 
 /*============================================================*/
 /*                  ERROR CHECKING MACRO                      */
@@ -370,7 +392,7 @@ int fd_breakhere(void);
 	__ret__ = (__call__);								\
 	if (__ret__ < 0) {								\
 		int __err__ = errno;	/* We may handle EINTR here */			\
-		TRACE_DEBUG(NONE, "ERROR: in '" #__call__ "' :\t%s", strerror(__err__));\
+		TRACE_DEBUG_ERROR("ERROR: in '" #__call__ "' :\t%s", strerror(__err__));\
 		__fallback__;								\
 	}										\
 }
@@ -381,7 +403,7 @@ int fd_breakhere(void);
 	__ret__ = (__call__);								\
 	if (__ret__ < 0) {								\
 		int __err__ = errno;	/* We may handle EINTR here */			\
-		TRACE_DEBUG(NONE, "ERROR: in '" #__call__ "' :\t%s", strerror(__err__));\
+		TRACE_DEBUG_ERROR("ERROR: in '" #__call__ "' :\t%s", strerror(__err__));\
 		return __err__;								\
 	}										\
 }
@@ -395,7 +417,7 @@ int fd_breakhere(void);
 		if (__ret__ == (__speval__)) {							\
 			__fallback1__;								\
 		} else {									\
-			TRACE_DEBUG(NONE, "ERROR: in '" #__call__ "':\t%s", strerror(__ret__));	\
+			TRACE_DEBUG_ERROR("ERROR: in '" #__call__ "':\t%s", strerror(__ret__));	\
 			__fallback2__;								\
 		}										\
 	}											\
@@ -418,7 +440,7 @@ int fd_breakhere(void);
 	__ret__ = (void *)( __call__ );							\
 	if (__ret__ == NULL) {								\
 		int __err__ = errno;							\
-		TRACE_DEBUG(NONE, "ERROR: in '" #__call__ "':\t%s", strerror(__err__));	\
+		TRACE_DEBUG_ERROR("ERROR: in '" #__call__ "':\t%s", strerror(__err__));	\
 		__fallback__;								\
 	}										\
 }
@@ -429,11 +451,11 @@ int fd_breakhere(void);
 
 
 /* Check parameters at function entry, execute fallback on error */
-#define CHECK_PARAMS_DO( __bool__, __fallback__ )					\
-	TRACE_DEBUG_ALL( "Check PARAMS: " #__bool__ );					\
-	if ( ! (__bool__) ) {								\
-		TRACE_DEBUG(INFO, "Invalid parameter received in '" #__bool__ "'");	\
-		__fallback__;								\
+#define CHECK_PARAMS_DO( __bool__, __fallback__ )						\
+	TRACE_DEBUG_ALL( "Check PARAMS: " #__bool__ );						\
+	if ( ! (__bool__) ) {									\
+		TRACE_DEBUG_ERROR("Warning: Invalid parameter received in '" #__bool__ "'");	\
+		__fallback__;									\
 	}
 /* Check parameters at function entry, return EINVAL if the boolean is false (similar to assert) */
 #define CHECK_PARAMS( __bool__ )							\
@@ -445,7 +467,7 @@ int fd_breakhere(void);
 	TRACE_DEBUG_ALL( "Check FCT: " #__call__ );					\
 	__ret__ = (__call__);								\
 	if (__ret__ != 0) {								\
-		TRACE_DEBUG(INFO, "Error in '" #__call__ "':\t%s", strerror(__ret__));	\
+		TRACE_DEBUG_ERROR("ERROR: in '" #__call__ "':\t%s", strerror(__ret__));	\
 		__fallback__;								\
 	}										\
 }
