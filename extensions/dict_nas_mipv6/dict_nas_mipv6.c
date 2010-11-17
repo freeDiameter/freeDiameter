@@ -33,7 +33,8 @@
 * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.								 *
 *********************************************************************************************************/
 
-/*********************************************************************************************************
+/*
+
 The following table lists the AVPs needed for the NAS to HAAA server interaction.
 We try to keep the structure of the grouped AVP by declaring the contained AVPs just before the grouped AVP they depend on.
 The number of '+' indicates the depth of the contained AVP.
@@ -48,20 +49,11 @@ DEPTH	NAME					AVP CODE	RFC	TYPE			IMPLEMENTED	NOTES
 +	MIP6-Home-Link-Prefix			125		5447	OctetString		yes
 	MIP6-Agent-Info				486		5447	Grouped			yes
 
-************************************************************************************************************/
+*/
 
 
 
 #include <freeDiameter/extension.h>
-
-/*
-	NOTES TO SELF
-
-	- il faudra verifier les regles particulieres (page 6 de la rfc) 'au moins un des deux avps'
-
-	- IMPLEMENTER LES AVPS QUI MANQUENT
-
-*/
 
 /* The content of this file follows the same structure as dict_base_proto.c */
 
@@ -138,6 +130,11 @@ int dict_nas_mipv6_init()
 
 	/* AVP section */
 	{
+		/* Loading the derived data formats */
+
+		struct dict_object * Address_type;
+		CHECK_dict_search( DICT_TYPE, TYPE_BY_NAME, "Address", &Address_type);
+
 		/* MIP6-Feature-Vector */
 		{
 			/*
@@ -157,12 +154,59 @@ int dict_nas_mipv6_init()
 		}
 
 		/* MIP-Home-Agent-Address - RFC 4004 */
+		{
+			/*
+
+			*/
+
+			struct dict_avp_data data = {
+					334, 					/* Code */
+					0, 					/* Vendor */
+					"MIP-Home-Agent-Address",		/* Name */
+					AVP_FLAG_VENDOR | AVP_FLAG_MANDATORY, 	/* Fixed flags */
+					AVP_FLAG_MANDATORY,		 	/* Fixed flag values */
+					AVP_TYPE_OCTETSTRING			/* base type of data */
+					};
+
+			CHECK_dict_new( DICT_AVP, &data , Address_type, NULL);
+		}
 
 		/* Destination-Host - Base Protocol */
 
 		/* Destination-Realm - Base Protocol */	
 
 		/* MIP-Home-Agent-Host - RFC 4004 */
+		{
+			/*
+			The MIP-Home-Agent-Host AVP (AVP Code 348) is of type Grouped and
+			contains the identity of the assigned Home Agent.  If the MIP-Home-
+			Agent-Host AVP is present in the AMR, the AAAH MUST copy it into the
+			HAR.
+
+			 MIP-Home-Agent-Host ::= < AVP Header: 348 >
+						  { Destination-Realm }
+						  { Destination-Host }
+						* [ AVP ]
+			*/
+
+			struct dict_object * avp;
+			struct dict_avp_data data = {
+					348, 					/* Code */
+					0, 					/* Vendor */
+					"MIP-Home-Agent-Host", 			/* Name */
+					AVP_FLAG_VENDOR | AVP_FLAG_MANDATORY, 	/* Fixed flags */
+					AVP_FLAG_MANDATORY,		 	/* Fixed flag values */
+					AVP_TYPE_GROUPED 			/* base type of data */
+					};
+
+			struct local_rules_definition rules[] =
+						{ 	 {  "Destination-Realm", 	RULE_REQUIRED, -1, 1 }
+							,{  "Destination-Host",		RULE_REQUIRED, -1, 1 }
+						};
+
+			CHECK_dict_new( DICT_AVP, &data , NULL, &avp);
+			PARSE_loc_rules( rules, avp );
+		}
 
 		/* MIP6-Home-Link-Prefix */
 		{

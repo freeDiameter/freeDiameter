@@ -33,7 +33,8 @@
 * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.								 *
 *********************************************************************************************************/
 
-/*********************************************************************************************************
+/*
+
 The following table complete the one in RFC 5778, page 18. The AVPs are implemented below following the order of this table.
 We try to keep the structure of the grouped AVP by declaring the contained AVPs just before the grouped AVP they depend on.
 The number of '+' indicates the depth of the contained AVP.
@@ -41,12 +42,12 @@ The number of '+' indicates the depth of the contained AVP.
 DEPTH	NAME					AVP	RFC		TYPE			NOTES
 
 	MIP6-Feature-Vector			124	5447		Unsigned64
-	User-Name				1	3588		UTF8String		implemented in base protocol
+	User-Name				1	3588		UTF8String
 	Service-Selection			493	5778		UTF8String
 	MIP-MN-AAA-SPI				341	5778		Unsigned32
 +	MIP-Home-Agent-Address			334	4004		Address
-++	Destination-Host			293	3588		DiameterIdentity	implemented in base protocol
-++	Destination-Realm			283	3588		DiameterIdentity	implemented in base protocol
+++	Destination-Host			293	3588		DiameterIdentity
+++	Destination-Realm			283	3588		DiameterIdentity
 +	MIP-Home-Agent-Host			348	4004		Grouped
 +	MIP6-Home-Link-Prefix			125	5447		OctetString
 	MIP6-Agent-Info				486	5447		Grouped
@@ -75,7 +76,7 @@ ACCOUNTING AVPs (section 6.21)
 	Accounting-Output-Octets		364	4004, 4005	Unsigned64
 	Accounting-Input-Packets		365	4004, 4005	Unsigned64
 	Accounting-Output-Packets		366	4004, 4005	Unsigned64
-	Acct-Multi-Session-Id			50	3588		UTF8String		implemented in base protocol
+	Acct-Multi-Session-Id			50	3588		UTF8String
 	Acct-Session-Time			46	2866, 4004	Unsigned32
 	MIP6-Feature-Vector			----------------------------------
 	MIP-Mobile-Node-Address			----------------------------------
@@ -86,81 +87,23 @@ ACCOUNTING AVPs (section 6.21)
 	QoS-Capability				----------------------------------
 	MIP-Careof-Address			----------------------------------
 
-REST OF THE AVPs IN THE MIR & MIA EXCLUDING *[AVP]
+RADIUS AVPs (contained in the MIR/MIA)
 
-MIP6-Request - Only a few radius AVPs have to be implemented.
+	NAS-Identifier				32	2865		radius (see avp)
+	NAS-IP-Address				4	2865            radius (see avp)
+	NAS-IPv6-Address			95	3162            radius (see avp)
+	NAS-Port-Type				61	2865            radius (see avp)
+	Called-Station-Id			30	2865            radius (see avp)
+	Calling-Station-Id			31	2865            radius (see avp)
 
-	Session-ID				263	3588 (diameter)
-	Auth-Application-Id			258	3588
-	User-Name				1	3588
-	Destination-Realm			283	3588
-	Origin-Host				264	3588
-	Origin-Realm				296	3588
-	Auth-Request-Type			274	3588
-	Destination-Host			293	3588
-	Origin-State-Id				278	3588
-	NAS-Identifier				32	2865 (radius)				needed
-	NAS-IP-Address				4	2865                                    needed
-	NAS-IPv6-Address			95	3162                                    needed
-	NAS-Port-Type				61	2865                                    needed
-	Called-Station-Id			30	2865                                    needed
-	Calling-Station-Id			31	2865                                    needed
-	MIP6-Feature-Vector			------------
-	MIP6-Auth-Mode				------------
-	MIP-MN-AAA-SPI				------------
-	MIP-MN-HA-SPI				------------
-	MIP-Mobile-Node-Address			------------
-	MIP6-Agent-Info				------------
-	MIP-Careof-Address			------------
-	MIP-Authenticator			------------
-	MIP-MAC-Mobility-Data			------------
-	MIP-Timestamp				------------
-	QoS-Capability				------------
-	QoS-Resources				------------
-	Chargeable-User-Identity		------------
-	Service-Selection			------------
-	Authorization-Lifetime			291	3588
-	Auth-Session-State			277	3588
-	Proxy-Info				284	3588
-	Route-Record				282	3588
 
-MIP6-Answer - All of them are already implemented as base protocol AVPs or implemented earlier.
-
-	Session-Id                              263	3588 (diameter)
-	Auth-Application-Id                     258	3588
-	Result-Code                             268	3588
-	Origin-Host                             264	3588
-	Origin-Realm                            296	3588
-	Auth-Request-Type                       274	3588
-	User-Name                               1	3588
-	Authorization-Lifetime                  291	3588
-	Auth-Session-State                      277	3588
-	Error-Message				281	3588
-	Error-Reporting-Host			294	3588
-	Re-Auth-Request-Type			285	3588
-	MIP6-Feature-Vector			-------------------
-	MIP-Agent-Info				-------------------
-	MIP-Mobile-Node-Address			-------------------
-	MIP-MN-HA-MSA				-------------------
-	QoS-Resources				-------------------
-	Chargeable-User-Identity		-------------------
-	Service-Selection			-------------------
-	Origin-State-Id				278	3588
-	Proxy-Info				284	3588
-	Redirect-Host				292	3588
-	Redirect-Host-Usage			261	3588
-	Redirect-Max-Cache-Time			262	3588
-	Failed-AVP				279	3588
-
-Other AVPs?
-
-************************************************************************************************************/
+*/
 
 /****************************************************************************************************************************************
 *																	*
 * This table is a copy of the registry named "MIP6 Authentication Mode Registry" and managed by IANA.					*
 * source : http://www.iana.org/assignments/aaa-parameters/aaa-parameters.txt								*
-*																	*
+* up to date on october 2010														*
 *																	*
 *      Value          Token       Reference												*
 *        0       Reserved         [RFC5778]												*
@@ -171,16 +114,10 @@ Other AVPs?
 
 
 /*
-	NOTES TO SELF
 
-	- Reflechir au rangement des avps
-	- Verifier si dans les grouped avps il faut aussi implementer les sous avp
-	- verifier si les avps sont up-to-date, et ecrire la date a laquelle ils sont up-to-date
+NOTES
 
-	- comment on fait pour les namespaces? (typiquement MIP6_AUTH_MN_AAA, RFC5778 page 30)
-	- (pour linstant jai fait un define)
-
-	-RELIRE ! jai peu quil y ait des fautes. surtout celle la.
+check for omissions !
 
 */
 
@@ -239,9 +176,11 @@ struct local_rules_definition {
 
 /* Defines if there are any */
 
-/* New Result-Code for MIP (RFC5778, Section 7.*) */
+//New Result-Code for MIP (RFC5778, Section 7.*)
 #define DIAMETER_SUCCESS_RELOCATE_HA 2009
 #define DIAMETER_ERROR_MIP6_AUTH_MODE 5041
+
+//Others
 #define MIP6_AUTH_MN_AAA 1
 
 /* Dictionary */
@@ -796,25 +735,359 @@ int dict_mip6a_init()
 			CHECK_dict_new( DICT_AVP, &data , NULL, NULL);
 		}
 
-	}
-
 	/////////////////////////////////////
 	/* Radius AVPs - used in MIR & MIA */
 	/////////////////////////////////////
 
-		/*
-		 *
-		 * voir MIP6I
-		 *
-		NAS-Identifier				32	2865 (radius)
-		NAS-IP-Address				4	2865
-		NAS-IPv6-Address			95	3162
-		NAS-Port-Type				61	2865
-		Called-Station-Id			30	2865
-		Calling-Station-Id			31	2865
-		 */
+	/*
+	We used the following correspondences for determining the type of the Radius AVPs
+
+		Radius		Diameter
+
+		text		UTF8Sting
+		string		OctetString
+		address		Address
+		integer		Unsigned32
+		time		Time
+	*/
 
 
+		/* NAS-Identifier				32	3575 */
+		{
+			/*
+			string -> OctetString
+			*/
+
+			struct dict_avp_data data = {
+					32, 					/* Code */
+					0, 					/* Vendor */
+					"NAS-Identifier",			/* Name */
+					AVP_FLAG_VENDOR | AVP_FLAG_MANDATORY, 	/* Fixed flags */
+					AVP_FLAG_MANDATORY,		 	/* Fixed flag values */
+					AVP_TYPE_OCTETSTRING			/* base type of data */
+					};
+
+			CHECK_dict_new( DICT_AVP, &data , NULL, NULL);
+		}
+
+		/* NAS-IP-Address				4	3575 */
+		{
+			/*
+			address -> Address
+			*/
+
+			struct dict_avp_data data = {
+					4, 					/* Code */
+					0, 					/* Vendor */
+					"NAS-IP-Address",			/* Name */
+					AVP_FLAG_VENDOR | AVP_FLAG_MANDATORY, 	/* Fixed flags */
+					AVP_FLAG_MANDATORY,		 	/* Fixed flag values */
+					AVP_TYPE_OCTETSTRING			/* base type of data */
+					};
+
+			CHECK_dict_new( DICT_AVP, &data , Address_type, NULL);
+		}
+
+		/* NAS-IPv6-Address			95	3162 */
+		{
+			/*
+			address -> Address
+			*/
+
+			struct dict_avp_data data = {
+					95, 					/* Code */
+					0, 					/* Vendor */
+					"NAS-IPv6-Address",			/* Name */
+					AVP_FLAG_VENDOR | AVP_FLAG_MANDATORY, 	/* Fixed flags */
+					AVP_FLAG_MANDATORY,		 	/* Fixed flag values */
+					AVP_TYPE_OCTETSTRING			/* base type of data */
+					};
+
+			CHECK_dict_new( DICT_AVP, &data , Address_type, NULL);
+		}
+
+		/* NAS-Port-Type			61	2865 */
+		{
+			/*
+			integer -> Unsigned32
+
+			   Value
+
+			      The Value field is four octets.  "Virtual" refers to a connection
+			      to the NAS via some transport protocol, instead of through a
+			      physical port.  For example, if a user telnetted into a NAS to
+			      authenticate himself as an Outbound-User, the Access-Request might
+			      include NAS-Port-Type = Virtual as a hint to the RADIUS server
+			      that the user was not on a physical port.
+
+			      0       Async
+			      1       Sync
+			      2       ISDN Sync
+			      3       ISDN Async V.120
+			      4       ISDN Async V.110
+			      5       Virtual
+			      6       PIAFS
+			      7       HDLC Clear Channel
+			      8       X.25
+			      9       X.75
+			      10      G.3 Fax
+			      11      SDSL - Symmetric DSL
+			      12      ADSL-CAP - Asymmetric DSL, Carrierless Amplitude Phase
+				      Modulation
+			      13      ADSL-DMT - Asymmetric DSL, Discrete Multi-Tone
+			      14      IDSL - ISDN Digital Subscriber Line
+			      15      Ethernet
+			      16      xDSL - Digital Subscriber Line of unknown type
+			      17      Cable
+			      18      Wireless - Other
+			      19      Wireless - IEEE 802.11
+
+			      PIAFS is a form of wireless ISDN commonly used in Japan, and
+			      stands for PHS (Personal Handyphone System) Internet Access Forum
+			      Standard (PIAFS).
+			*/
+
+			struct dict_avp_data data = {
+					61, 					/* Code */
+					0, 					/* Vendor */
+					"NAS-Port-Type",			/* Name */
+					AVP_FLAG_VENDOR | AVP_FLAG_MANDATORY, 	/* Fixed flags */
+					AVP_FLAG_MANDATORY,		 	/* Fixed flag values */
+					AVP_TYPE_UNSIGNED32			/* base type of data */
+					};
+
+			CHECK_dict_new( DICT_AVP, &data , NULL, NULL);
+		}
+
+		/* Called-Station-Id			30	2865 */
+		{
+			/*
+			string -> OctetString
+			*/
+
+			struct dict_avp_data data = {
+					30, 					/* Code */
+					0, 					/* Vendor */
+					"Called-Station-Id",			/* Name */
+					AVP_FLAG_VENDOR | AVP_FLAG_MANDATORY, 	/* Fixed flags */
+					AVP_FLAG_MANDATORY,		 	/* Fixed flag values */
+					AVP_TYPE_OCTETSTRING			/* base type of data */
+					};
+
+			CHECK_dict_new( DICT_AVP, &data , NULL, NULL);
+		}
+		/* Calling-Station-Id			31	2865 */
+		{
+			/*
+			string -> OctetString
+			*/
+
+			struct dict_avp_data data = {
+					31, 					/* Code */
+					0, 					/* Vendor */
+					"Calling-Station-Id",			/* Name */
+					AVP_FLAG_VENDOR | AVP_FLAG_MANDATORY, 	/* Fixed flags */
+					AVP_FLAG_MANDATORY,		 	/* Fixed flag values */
+					AVP_TYPE_OCTETSTRING			/* base type of data */
+					};
+
+			CHECK_dict_new( DICT_AVP, &data , NULL, NULL);
+		}
+	}
+
+/*******************/
+/* Command section */
+/*******************/
+
+	{
+		/* MIP6-Request (MIR) */
+		{
+			/*
+
+			The MIP6-Request (MIR), indicated by the Command-Code field set to
+			325 and the 'R' bit set in the Command Flags field, is sent by the
+			HA, acting as a Diameter client, in order to request the
+			authentication and authorization of an MN.
+
+			Although the HA provides the Diameter server with replay protection-
+			related information, the HA is responsible for the replay protection.
+
+			The message format is shown below.
+
+			<MIP6-Request> ::= < Diameter Header: 325, REQ, PXY >
+					   < Session-ID >
+					   { Auth-Application-Id }
+					   { User-Name }
+					   { Destination-Realm }
+					   { Origin-Host }
+					   { Origin-Realm }
+					   { Auth-Request-Type }
+					   [ Destination-Host ]
+					   [ Origin-State-Id ]
+					   [ NAS-Identifier ]
+					   [ NAS-IP-Address ]
+					   [ NAS-IPv6-Address ]
+					   [ NAS-Port-Type ]
+					   [ Called-Station-Id ]
+					   [ Calling-Station-Id ]
+					   [ MIP6-Feature-Vector ]
+					   { MIP6-Auth-Mode }
+					   [ MIP-MN-AAA-SPI ]
+					   [ MIP-MN-HA-SPI ]
+					1*2{ MIP-Mobile-Node-Address }
+					   { MIP6-Agent-Info }
+					   { MIP-Careof-Address }
+					   [ MIP-Authenticator ]
+					   [ MIP-MAC-Mobility-Data ]
+					   [ MIP-Timestamp ]
+					   [ QoS-Capability ]
+					 * [ QoS-Resources ]
+					   [ Chargeable-User-Identity ]
+					   [ Service-Selection ]
+					   [ Authorization-Lifetime ]
+					   [ Auth-Session-State ]
+					 * [ Proxy-Info ]
+					 * [ Route-Record ]
+					 * [ AVP ]
+
+			If the MN is both authenticated and authorized for the mobility
+			service, then the Auth-Request-Type AVP is set to the value
+			AUTHORIZE_AUTHENTICATE.  This is the case when the MIP6-Auth-Mode is
+			set to the value MIP6_AUTH_MN_AAA.
+
+			*/
+			struct dict_object * cmd;
+			struct dict_cmd_data data = {
+					325, 					/* Code */
+					"MIP6-Request", 			/* Name */
+					CMD_FLAG_REQUEST | CMD_FLAG_PROXIABLE | CMD_FLAG_ERROR, 	/* Fixed flags */
+					CMD_FLAG_PROXIABLE 						/* Fixed flag values */
+					};
+			struct local_rules_definition rules[] =
+						{ 	 {  "Session-Id", 			RULE_FIXED_HEAD, -1, 1 }
+							,{  "Auth-Application-Id", 		RULE_REQUIRED,   -1, 1 }
+							,{  "User-Name", 			RULE_REQUIRED,   -1, 1 }
+							,{  "Destination-Realm", 		RULE_REQUIRED,   -1, 1 }
+							,{  "Origin-Host", 			RULE_REQUIRED,   -1, 1 }
+							,{  "Origin-Realm", 			RULE_REQUIRED,   -1, 1 }
+							,{  "Auth-Request-Type", 		RULE_REQUIRED,   -1, 1 }
+							,{  "Destination-Host", 		RULE_OPTIONAL,   -1, 1 }
+							,{  "Origin-State-Id",	 		RULE_OPTIONAL,   -1, 1 }
+							,{  "NAS-Identifier", 			RULE_OPTIONAL,   -1, 1 }
+							,{  "NAS-IP-Address", 			RULE_OPTIONAL,   -1, 1 }
+							,{  "NAS-IPv6-Address", 		RULE_OPTIONAL,   -1, 1 }
+							,{  "NAS-Port-Type", 			RULE_OPTIONAL,   -1, 1 }
+							,{  "Called-Station-Id", 		RULE_OPTIONAL,   -1, 1 }
+							,{  "Calling-Station-Id", 		RULE_OPTIONAL,   -1, 1 }
+							,{  "MIP6-Feature-Vector", 		RULE_OPTIONAL,   -1, 1 }
+							,{  "MIP6-Auth-Mode", 			RULE_OPTIONAL,   -1, 1 }
+							,{  "MIP-MN-AAA-SPI", 			RULE_OPTIONAL,   -1, 1 }
+							,{  "MIP-MN-HA-SPI", 			RULE_OPTIONAL,   -1, 1 }
+							,{  "MIP-Mobile-Node-Address", 		RULE_OPTIONAL,    1, 2 }
+							,{  "MIP6-Agent-Info", 			RULE_OPTIONAL,   -1, 1 }
+							,{  "MIP-Careof-Address", 		RULE_OPTIONAL,   -1, 1 }
+							,{  "MIP-Authenticator", 		RULE_OPTIONAL,   -1, 1 }
+							,{  "MIP-MAC-Mobility-Data", 		RULE_OPTIONAL,   -1, 1 }
+							,{  "MIP-Timestamp", 			RULE_OPTIONAL,   -1, 1 }
+							,{  "QoS-Capability", 			RULE_OPTIONAL,   -1, 1 }
+							,{  "QoS-Resources", 			RULE_OPTIONAL,   -1, -1 }
+							,{  "Chargeable-User-Identity", 	RULE_OPTIONAL,   -1, 1 }
+							,{  "Service-Selection", 		RULE_OPTIONAL,   -1, 1 }
+							,{  "Authorization-Lifetime", 		RULE_OPTIONAL,   -1, 1 }
+							,{  "Auth-Session-State", 		RULE_OPTIONAL,   -1, 1 }
+							,{  "Proxy-Info", 			RULE_OPTIONAL,   -1, -1 }
+							,{  "Route-Record", 			RULE_OPTIONAL,   -1, -1 }
+						};
+
+			CHECK_dict_new( DICT_COMMAND, &data , mip6i, &cmd);
+			PARSE_loc_rules( rules, cmd );
+		}
+
+		/* MIP6-Answer (MIA) */
+		{
+			/*
+
+			The MIP6-Answer (MIA) message, indicated by the Command-Code field
+			set to 325 and the 'R' bit cleared in the Command Flags field, is
+			sent by the Diameter server in response to the MIP6-Request message.
+
+			The User-Name AVP MAY be included in the MIA if it is present in the
+			MIR.  The Result-Code AVP MAY contain one of the values defined in
+			Section 7, in addition to the values defined in [RFC3588].
+
+			An MIA message with the Result-Code AVP set to DIAMETER_SUCCESS MUST
+			include the MIP-Mobile-Node-Address AVP.
+
+			The message format is shown below.
+
+			<MIP6-Answer> ::= < Diameter Header: 325, PXY >
+					  < Session-Id >
+					  { Auth-Application-Id }
+					  { Result-Code }
+					  { Origin-Host }
+					  { Origin-Realm }
+					  { Auth-Request-Type }
+					  [ User-Name ]
+					  [ Authorization-Lifetime ]
+					  [ Auth-Session-State ]
+					  [ Error-Message ]
+					  [ Error-Reporting-Host ]
+					  [ Re-Auth-Request-Type ]
+					  [ MIP6-Feature-Vector ]
+					  [ MIP-Agent-Info ]
+					*2[ MIP-Mobile-Node-Address ]
+					  [ MIP-MN-HA-MSA ]
+					* [ QoS-Resources ]
+					  [ Chargeable-User-Identity ]
+					  [ Service-Selection ]
+					  [ Origin-State-Id ]
+					* [ Proxy-Info ]
+					* [ Redirect-Host ]
+					  [ Redirect-Host-Usage ]
+					  [ Redirect-Max-Cache-Time ]
+					* [ Failed-AVP ]
+					* [ AVP ]
+
+			*/
+			struct dict_object * cmd;
+			struct dict_cmd_data data = {
+					325, 					/* Code */
+					"MIP6-Answer", 				/* Name */
+					CMD_FLAG_PROXIABLE | CMD_FLAG_ERROR, 	/* Fixed flags */
+					CMD_FLAG_PROXIABLE 			/* Fixed flag values */
+					};
+			struct local_rules_definition rules[] =
+						{ 	 {  "Session-Id", 			RULE_FIXED_HEAD, -1, 1 }
+							,{  "Auth-Application-Id", 		RULE_REQUIRED,   -1, 1 }
+							,{  "Result-Code", 			RULE_REQUIRED,   -1, 1 }
+							,{  "Origin-Host", 			RULE_REQUIRED,   -1, 1 }
+							,{  "Origin-Realm", 			RULE_REQUIRED,   -1, 1 }
+							,{  "Auth-Request-Type", 		RULE_REQUIRED,   -1, 1 }
+							,{  "User-Name", 			RULE_OPTIONAL,   -1, 1 }
+							,{  "Authorization-Lifetime", 		RULE_OPTIONAL,   -1, 1 }
+							,{  "Auth-Session-State", 		RULE_OPTIONAL,   -1, 1 }
+							,{  "Error-Message", 			RULE_OPTIONAL,   -1, 1 }
+							,{  "Error-Reporting-Host", 		RULE_OPTIONAL,   -1, 1 }
+							,{  "Re-Auth-Request-Type", 		RULE_OPTIONAL,   -1, 1 }
+							,{  "MIP6-Feature-Vector", 		RULE_OPTIONAL,   -1, 1 }
+							,{  "MIP-Agent-Info", 			RULE_OPTIONAL,   -1, 1 }
+							,{  "MIP-Mobile-Node-Address", 		RULE_OPTIONAL,   -1, 2 }
+							,{  "MIP-MN-HA-MSA", 			RULE_OPTIONAL,   -1, 1 }
+							,{  "QoS-Resources", 			RULE_OPTIONAL,   -1, -1 }
+							,{  "Chargeable-User-Identity",		RULE_OPTIONAL,   -1, 1 }
+							,{  "Service-Selection", 		RULE_OPTIONAL,   -1, 1 }
+							,{  "Origin-State-Id", 			RULE_OPTIONAL,   -1, 1 }
+							,{  "Proxy-Info", 			RULE_OPTIONAL,   -1, -1 }
+							,{  "Redirect-Host", 			RULE_OPTIONAL,   -1, -1 }
+							,{  "Redirect-Host-Usage", 		RULE_OPTIONAL,   -1, 1 }
+							,{  "Redirect-Max-Cache-Time", 		RULE_OPTIONAL,   -1, 1 }
+							,{  "Failed-AVP", 			RULE_OPTIONAL,   -1, -1 }
+						};
+
+			CHECK_dict_new( DICT_COMMAND, &data , mip6i, &cmd);
+			PARSE_loc_rules( rules, cmd );
+		}
+	}
 	TRACE_DEBUG(INFO, "Dictionary Extension 'Diameter Mobile IPv6 Auth (MIP6A)' initialized");
 	return 0;
 }

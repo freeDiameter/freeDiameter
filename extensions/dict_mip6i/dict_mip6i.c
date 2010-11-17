@@ -33,7 +33,8 @@
 * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.								 *
 *********************************************************************************************************/
 
-/*********************************************************************************************************
+/*
+
 The following table complete the one in RFC 5778, page 18. The AVPs are implemented below following the order of this table.
 We try to keep the structure of the grouped AVP by declaring the contained AVPs just before the grouped AVP they depend on.
 The number of '+' indicates the depth of the contained AVP.
@@ -43,12 +44,12 @@ DEPTH	NAME					AVP	RFC		TYPE			NOTES
 	MIP6-Feature-Vector			124	5447		Unsigned64
 	MIP-Mobile-Node-Address			333	4004		Address
 +	MIP-Home-Agent-Address			334	4004		Address
-++	Destination-Host			293	3588		DiameterIdentity	implemented in base protocol
-++	Destination-Realm			283	3588		DiameterIdentity	implemented in base protocol
+++	Destination-Host			293	3588		DiameterIdentity
+++	Destination-Realm			283	3588		DiameterIdentity
 +	MIP-Home-Agent-Host			348	4004		Grouped
 +	MIP6-Home-Link-Prefix			125	5447		OctetString
 	MIP6-Agent-Info				486	5447		Grouped
-	User-Name				1	3588		UTF8String		implemented in base protocol
+	User-Name				1	3588		UTF8String
 	Service-Selection			493	5778		UTF8String
 +	MIP-Replay-Mode				346	4004		Enumerated
 +	MIP-Algorithm-Type			345	4004		Enumerated
@@ -69,7 +70,7 @@ ACCOUNTING AVPs (section 6.21)
 	Accounting-Output-Octets		364	4004, 4005	Unsigned64
 	Accounting-Input-Packets		365	4004, 4005	Unsigned64
 	Accounting-Output-Packets		366	4004, 4005	Unsigned64
-	Acct-Multi-Session-Id			50	3588		UTF8String		implemented in base protocol
+	Acct-Multi-Session-Id			50	3588		UTF8String
 	Acct-Session-Time			46	2866, 4004	Unsigned32
 	MIP6-Feature-Vector			----------------------------------
 	MIP-Mobile-Node-Address			----------------------------------
@@ -78,37 +79,36 @@ ACCOUNTING AVPs (section 6.21)
 	Service-Selection			----------------------------------
 	QoS-Resources				----------------------------------
 	QoS-Capability				----------------------------------
-	MIP-Careof-Address			487	5778		Address			needed in MIP6I at least for implementation reasons
+	MIP-Careof-Address			487	5778		Address			needed (appears in MIR/MIA)
 
-REST OF THE AVPs IN THE MIR & MIA EXCLUDING *[AVP]
+REST OF THE AVPs IN THE MIR & MIA EXCLUDING *[AVP] (as written on page 19 of RFC 5778)
 
 MIP6-Request
 
-	Session-ID				263	3588 (diameter)
+	Session-ID				263	3588
 	Auth-Application-Id			258	3588
 	User-Name				1	3588
 	Destination-Realm			283	3588
 	Origin-Host				264	3588
 	Origin-Realm				296	3588
 	Auth-Request-Type			274	3588
-	Destination-Host			293	3588
 	Origin-State-Id				278	3588
-	NAS-Identifier				32	2865 (radius)	string...		needed
-	NAS-IP-Address				4	2865             ??			needed
-	NAS-IPv6-Address			95	3162             ??			needed
-	NAS-Port-Type				61	2865             ??                     needed
-	Called-Station-Id			30	2865             ??                     needed
-	Calling-Station-Id			31	2865             ??                     needed
+	NAS-Identifier				32	2865		radius (see avp)        needed (radius)
+	NAS-IP-Address				4	2865            radius (see avp)        needed (radius)
+	NAS-IPv6-Address			95	3162            radius (see avp)        needed (radius)
+	NAS-Port-Type				61	2865            radius (see avp) 	needed (radius)
+	Called-Station-Id			30	2865            radius (see avp) 	needed (radius)
+	Calling-Station-Id			31	2865            radius (see avp)  	needed (radius)
 	MIP6-Feature-Vector			------------
-	MIP6-Auth-Mode				494	5778		Enumerated		needed in MIP6I at least for implementation reasons
-	MIP-MN-AAA-SPI				341	5778		Unsigned32		needed in MIP6I at least for implementation reasons
+	MIP6-Auth-Mode				494	5778		Enumerated		needed (mip6a)
+	MIP-MN-AAA-SPI				341	5778		Unsigned32		needed (mip6a)
 	MIP-MN-HA-SPI				------------
 	MIP-Mobile-Node-Address			------------
 	MIP6-Agent-Info				------------
 	MIP-Careof-Address			------------
-	MIP-Authenticator			488	5778		OctetString		needed in MIP6I at least for implementation reasons
-	MIP-MAC-Mobility-Data			489	5778		OctetString		needed in MIP6I at least for implementation reasons
-	MIP-Timestamp				490	5778		OctetString		needed in MIP6I at least for implementation reasons
+	MIP-Authenticator			488	5778		OctetString		needed (mip6a)
+	MIP-MAC-Mobility-Data			489	5778		OctetString		needed (mip6a)
+	MIP-Timestamp				490	5778		OctetString		needed (mip6a)
 	QoS-Capability				------------
 	QoS-Resources				------------
 	Chargeable-User-Identity		------------
@@ -120,41 +120,13 @@ MIP6-Request
 
 MIP6-Answer - All of them are already implemented as base protocol AVPs or implemented earlier.
 
-	Session-Id                              263	3588 (diameter)
-	Auth-Application-Id                     258	3588
-	Result-Code                             268	3588
-	Origin-Host                             264	3588
-	Origin-Realm                            296	3588
-	Auth-Request-Type                       274	3588
-	User-Name                               1	3588
-	Authorization-Lifetime                  291	3588
-	Auth-Session-State                      277	3588
-	Error-Message				281	3588
-	Error-Reporting-Host			294	3588
-	Re-Auth-Request-Type			285	3588
-	MIP6-Feature-Vector			-------------------
-	MIP-Agent-Info				-------------------
-	MIP-Mobile-Node-Address			-------------------
-	MIP-MN-HA-MSA				-------------------
-	QoS-Resources				-------------------
-	Chargeable-User-Identity		-------------------
-	Service-Selection			-------------------
-	Origin-State-Id				278	3588
-	Proxy-Info				284	3588
-	Redirect-Host				292	3588
-	Redirect-Host-Usage			261	3588
-	Redirect-Max-Cache-Time			262	3588
-	Failed-AVP				279	3588
-
-Other AVPs?
-
-************************************************************************************************************/
+*/
 
 /****************************************************************************************************************************************
 *																	*
 * This table is a copy of the registry named "MIP6 Authentication Mode Registry" and managed by IANA.					*
 * source : http://www.iana.org/assignments/aaa-parameters/aaa-parameters.txt								*
-*																	*
+* up to date on october 2010														*
 *																	*
 *      Value          Token       Reference												*
 *        0       Reserved         [RFC5778]												*
@@ -165,26 +137,10 @@ Other AVPs?
 
 
 /*
-	NOTES TO SELF
 
-	http://www.iana.org/assignments/aaa-parameters/aaa-parameters.txt
-	important, a suivre et verifier si il y a des evolutions
+NOTES
 
-	- a quoi sert le int dict---init juste avant le debut du dico?
-
-	-verifier si je ne fais pas des define pour rien
-
-	-dire de pas oublier d'inclure le dictionnaire eap
-
-	inclure la rfc5777? ou le faire dans un autre fichier?
-
-	la valeur MIP6_AUTH_MN_AAA est utilisee par quoi?? verifier.
-
-	ne pas oublier de changer la clause bsd
-
-
-
-
+check for omissions !
 
 */
 
@@ -243,9 +199,11 @@ struct local_rules_definition {
 
 /* Defines if there are any */
 
-/* New Result-Code for MIP (RFC5778, Section 7.*) */
+//New Result-Code for MIP (RFC5778, Section 7.*)
 #define DIAMETER_SUCCESS_RELOCATE_HA 2009
 #define DIAMETER_ERROR_MIP6_AUTH_MODE 5041
+
+//others
 #define MIP6_AUTH_MN_AAA 1
 
 /* Dictionary */
@@ -871,7 +829,7 @@ int dict_mip6i_init()
 		}
 
 	///////////////////////////////////////////////////////////
-	/* Other AVPs needed in MIP6I for implementation reasons */
+	/* REST OF THE AVP IN THE MIR AND MIA EXCLUDING *[AVP]   */
 	///////////////////////////////////////////////////////////
 
 		/* MIP6-Auth-Mode - RFC 5778 */

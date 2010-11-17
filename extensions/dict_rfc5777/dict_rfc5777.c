@@ -33,7 +33,8 @@
 * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.								 *
 *********************************************************************************************************/
 
-/*********************************************************************************************************
+/*
+
 The following table complete the one in RFC 5777. The AVPs are implemented in the order of the table.
 We try to keep the structure of the grouped AVP by declaring the contained AVPs just before the grouped AVP they depend on.
 The number of '+' indicates the depth of the contained AVP.
@@ -46,7 +47,7 @@ DEPTH	NAME					AVP	RFC	TYPE			NOTES
 	QoS-Capability				578	5777	Grouped
 +++	QoS-Parameters				576	5777	Grouped			no specific AVPs? see RFC 5624
 +++	QoS-Profile-Template			--------------------------------
-+++	Treatment-Action			572	5777	Enumerated		Unclear, grouped or enum?
++++	Treatment-Action			572	5777	Enumerated		Type is Enumerated. See Errata 2334 for RFC5777
 ++	Excess-Treatment			577	5777	Grouped
 ++	QoS-Parameters				--------------------------------
 ++	QoS-Profile-Template			--------------------------------
@@ -63,7 +64,7 @@ DEPTH	NAME					AVP	RFC	TYPE			NOTES
 +++	Day-Of-Week-Mask			563	5777	Unsigned32
 +++	Time-Of-Day-End				562	5777	Unsigned32
 +++	Time-Of-Day-Start			561	5777	Unsigned32
-++	Time-Of-Day-Condition			560	5777	Grouped
+++	Time-Of-Day-Condition			560	5777	Grouped			Some AVPs were omitted. See Errata 2333 for RFC5777
 +++++	High-User-Priority			559	5777	Unsigned32
 +++++	Low-User-Priority			558	5777	Unsigned32
 ++++	User-Priority-Range			557	5777	Grouped
@@ -77,7 +78,7 @@ DEPTH	NAME					AVP	RFC	TYPE			NOTES
 ++++	ETH-Proto-Type				549	5777	Grouped
 +++	ETH-Option				548	5777	Grouped
 ++++	Negated					517	5777	Enumerated
-++++	ICMP-Code				547	5777	Integer32		Changed from Enumerated. See AVP for details.
+++++	ICMP-Code				547	5777	Integer32		Changed from Enumerated for implementation reason. See AVP for details.
 ++++	ICMP-Type-Number			546	5777	Enumerated
 +++	ICMP-Type				545	5777	Grouped
 ++++	Negated					--------------------------------
@@ -98,7 +99,7 @@ DEPTH	NAME					AVP	RFC	TYPE			NOTES
 +++++	IP-Address-End				521	5777	Address
 ++++	IP-Address-Range			519	5777	Grouped
 +++++	IP-Address				--------------------------------
-+++++	IP-Mask-Bit-Mask-Width			523	5777	Unsigned32
++++++	IP-Mask-Bit-Mask-Width			523	5777	Unsigned32		Name is IP-Mask-Bit-Mask-Width. See Errata 2335 for RFC5777
 ++++	IP-Address-Mask				522	5777	Grouped
 ++++	MAC-Address				524	5777	OctetString
 +++++	MAC-Address				--------------------------------
@@ -127,7 +128,7 @@ DEPTH	NAME					AVP	RFC	TYPE			NOTES
 +	Filter-Rule				509	5777	Grouped			careful if we have to change vendor specifics or such.
 	QoS-Resources				508	5777	Grouped
 
-****************************/
+*/
 
 
 
@@ -150,13 +151,10 @@ DEPTH	NAME					AVP	RFC	TYPE			NOTES
 
 
 /*
-	NOTES TO SELF
 
-	verifier si on a besoin de tout les defines
-	- Que faut il faire pour la section 10.2 et 10.3?
-	- La definition de Filter-Rule est chelou
-	- La definition de QoS-Parameters est chelou
-	- relire la rfc en entier
+NOTES
+
+Sections 10.2 and 10.3 of the RFC5777 have been ignored
 
 */
 
@@ -1449,33 +1447,33 @@ int dict_rfc5777_init()
 			The Values have been copied from the following page :
 			http://www.iana.org/assignments/dscp-registry/dscp-registry.txt
 
-			Last updated : 2010-05-11
+			Last updated in code : 2010-05-11
 
 			*/
 			struct dict_object 	* 	type;
 			struct dict_type_data	 	tdata = { AVP_TYPE_INTEGER32,	"Enumerated(Diffserv-Code-Point)"	, NULL, NULL, NULL };
-			struct dict_enumval_data 	t_000000 = { "CS0",		{ .i32 = 0b000000 }};
-			struct dict_enumval_data 	t_001000 = { "CS1",		{ .i32 = 0b001000 }};
-			struct dict_enumval_data 	t_010000 = { "CS2",		{ .i32 = 0b010000 }};
-			struct dict_enumval_data 	t_011000 = { "CS3",		{ .i32 = 0b011000 }};
-			struct dict_enumval_data 	t_100000 = { "CS4",		{ .i32 = 0b100000 }};
-			struct dict_enumval_data 	t_101000 = { "CS5",		{ .i32 = 0b101000 }};
-			struct dict_enumval_data 	t_110000 = { "CS6",		{ .i32 = 0b110000 }};
-			struct dict_enumval_data 	t_111000 = { "CS7",		{ .i32 = 0b111000 }};
-			struct dict_enumval_data 	t_001010 = { "AF11",		{ .i32 = 0b001010 }};
-			struct dict_enumval_data 	t_001100 = { "AF12",		{ .i32 = 0b001100 }};
-			struct dict_enumval_data 	t_001110 = { "AF13",		{ .i32 = 0b001110 }};
-			struct dict_enumval_data 	t_010010 = { "AF21",		{ .i32 = 0b010010 }};
-			struct dict_enumval_data 	t_010100 = { "AF22",		{ .i32 = 0b010100 }};
-			struct dict_enumval_data 	t_010110 = { "AF23",		{ .i32 = 0b010110 }};
-			struct dict_enumval_data 	t_011010 = { "AF31",		{ .i32 = 0b011010 }};
-			struct dict_enumval_data 	t_011100 = { "AF32",		{ .i32 = 0b011100 }};
-			struct dict_enumval_data 	t_011110 = { "AF33",		{ .i32 = 0b011110 }};
-			struct dict_enumval_data 	t_100010 = { "AF41",		{ .i32 = 0b100010 }};
-			struct dict_enumval_data 	t_100100 = { "AF42",		{ .i32 = 0b100100 }};
-			struct dict_enumval_data 	t_100110 = { "AF43",		{ .i32 = 0b100110 }};
-			struct dict_enumval_data 	t_101110 = { "EF PHB",		{ .i32 = 0b101110 }};
-			struct dict_enumval_data 	t_101100 = { "VOICE-ADMIT",	{ .i32 = 0b101100 }};
+			struct dict_enumval_data 	t_0  = { "CS0",		{ .i32 = 0 }};
+			struct dict_enumval_data 	t_8  = { "CS1",		{ .i32 = 8 }};
+			struct dict_enumval_data 	t_16 = { "CS2",		{ .i32 = 16 }};
+			struct dict_enumval_data 	t_24 = { "CS3",		{ .i32 = 24 }};
+			struct dict_enumval_data 	t_32 = { "CS4",		{ .i32 = 32 }};
+			struct dict_enumval_data 	t_40 = { "CS5",		{ .i32 = 40 }};
+			struct dict_enumval_data 	t_48 = { "CS6",		{ .i32 = 48 }};
+			struct dict_enumval_data 	t_56 = { "CS7",		{ .i32 = 56 }};
+			struct dict_enumval_data 	t_10 = { "AF11",	{ .i32 = 10 }};
+			struct dict_enumval_data 	t_12 = { "AF12",	{ .i32 = 12 }};
+			struct dict_enumval_data 	t_14 = { "AF13",	{ .i32 = 14 }};
+			struct dict_enumval_data 	t_18 = { "AF21",	{ .i32 = 18 }};
+			struct dict_enumval_data 	t_20 = { "AF22",	{ .i32 = 20 }};
+			struct dict_enumval_data 	t_22 = { "AF23",	{ .i32 = 22 }};
+			struct dict_enumval_data 	t_26 = { "AF31",	{ .i32 = 26 }};
+			struct dict_enumval_data 	t_28 = { "AF32",	{ .i32 = 28 }};
+			struct dict_enumval_data 	t_30 = { "AF33",	{ .i32 = 30 }};
+			struct dict_enumval_data 	t_34 = { "AF41",	{ .i32 = 34 }};
+			struct dict_enumval_data 	t_36 = { "AF42",	{ .i32 = 36 }};
+			struct dict_enumval_data 	t_38 = { "AF43",	{ .i32 = 38 }};
+			struct dict_enumval_data 	t_46 = { "EF PHB",	{ .i32 = 46 }};
+			struct dict_enumval_data 	t_44 = { "VOICE-ADMIT",	{ .i32 = 44 }};
 
 			struct dict_avp_data 	data = {
 					535, 					/* Code */
@@ -1487,28 +1485,28 @@ int dict_rfc5777_init()
 					};
 			/* Create the Enumerated type, and then the AVP */
 			CHECK_dict_new( DICT_TYPE, &tdata , NULL, &type);
-			CHECK_dict_new( DICT_ENUMVAL, &t_000000 , type, NULL);
-			CHECK_dict_new( DICT_ENUMVAL, &t_001000 , type, NULL);
-			CHECK_dict_new( DICT_ENUMVAL, &t_010000 , type, NULL);
-			CHECK_dict_new( DICT_ENUMVAL, &t_011000 , type, NULL);
-			CHECK_dict_new( DICT_ENUMVAL, &t_100000 , type, NULL);
-			CHECK_dict_new( DICT_ENUMVAL, &t_101000 , type, NULL);
-			CHECK_dict_new( DICT_ENUMVAL, &t_110000 , type, NULL);
-			CHECK_dict_new( DICT_ENUMVAL, &t_111000 , type, NULL);
-			CHECK_dict_new( DICT_ENUMVAL, &t_001010 , type, NULL);
-			CHECK_dict_new( DICT_ENUMVAL, &t_001100 , type, NULL);
-			CHECK_dict_new( DICT_ENUMVAL, &t_001110 , type, NULL);
-			CHECK_dict_new( DICT_ENUMVAL, &t_010010 , type, NULL);
-			CHECK_dict_new( DICT_ENUMVAL, &t_010100 , type, NULL);
-			CHECK_dict_new( DICT_ENUMVAL, &t_010110 , type, NULL);
-			CHECK_dict_new( DICT_ENUMVAL, &t_011010 , type, NULL);
-			CHECK_dict_new( DICT_ENUMVAL, &t_011100 , type, NULL);
-			CHECK_dict_new( DICT_ENUMVAL, &t_011110 , type, NULL);
-			CHECK_dict_new( DICT_ENUMVAL, &t_100010 , type, NULL);
-			CHECK_dict_new( DICT_ENUMVAL, &t_100100 , type, NULL);
-			CHECK_dict_new( DICT_ENUMVAL, &t_100110 , type, NULL);
-			CHECK_dict_new( DICT_ENUMVAL, &t_101110 , type, NULL);
-			CHECK_dict_new( DICT_ENUMVAL, &t_101100 , type, NULL);
+			CHECK_dict_new( DICT_ENUMVAL, &t_0  , type, NULL);
+			CHECK_dict_new( DICT_ENUMVAL, &t_8  , type, NULL);
+			CHECK_dict_new( DICT_ENUMVAL, &t_16 , type, NULL);
+			CHECK_dict_new( DICT_ENUMVAL, &t_24 , type, NULL);
+			CHECK_dict_new( DICT_ENUMVAL, &t_32 , type, NULL);
+			CHECK_dict_new( DICT_ENUMVAL, &t_40 , type, NULL);
+			CHECK_dict_new( DICT_ENUMVAL, &t_48 , type, NULL);
+			CHECK_dict_new( DICT_ENUMVAL, &t_56 , type, NULL);
+			CHECK_dict_new( DICT_ENUMVAL, &t_10 , type, NULL);
+			CHECK_dict_new( DICT_ENUMVAL, &t_12 , type, NULL);
+			CHECK_dict_new( DICT_ENUMVAL, &t_14 , type, NULL);
+			CHECK_dict_new( DICT_ENUMVAL, &t_18 , type, NULL);
+			CHECK_dict_new( DICT_ENUMVAL, &t_20 , type, NULL);
+			CHECK_dict_new( DICT_ENUMVAL, &t_22 , type, NULL);
+			CHECK_dict_new( DICT_ENUMVAL, &t_26 , type, NULL);
+			CHECK_dict_new( DICT_ENUMVAL, &t_28 , type, NULL);
+			CHECK_dict_new( DICT_ENUMVAL, &t_30 , type, NULL);
+			CHECK_dict_new( DICT_ENUMVAL, &t_34 , type, NULL);
+			CHECK_dict_new( DICT_ENUMVAL, &t_36 , type, NULL);
+			CHECK_dict_new( DICT_ENUMVAL, &t_38 , type, NULL);
+			CHECK_dict_new( DICT_ENUMVAL, &t_46 , type, NULL);
+			CHECK_dict_new( DICT_ENUMVAL, &t_44 , type, NULL);
 			CHECK_dict_new( DICT_AVP, &data , type, NULL);
 		}
 
