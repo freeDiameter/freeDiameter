@@ -1,0 +1,26 @@
+This package uses CMake (cmake.org) as building system. You'll need the cmake tool in order 
+to generate the Makefiles for your platform. You can also select which extensions must be built.
+
+Building in a separate directory is recommended:
+# mkdir build
+# cd build
+# cmake ../
+# make
+
+You can pass options to instruct cmake about which components to compile on the command-line.
+You can also use a CMake front-end (for example ccmake or cmake-gui) or edit the CCmakeCache.txt file directly. 
+If your cmake installation is recent, the edit_cache target is a good help as well:
+# mkdir build
+# cd build
+# cmake ../
+# make help
+# make edit_cache
+# make
+
+You can disable the unit tests by doing:
+# cmake -DBUILD_TESTING:BOOL=OFF ../
+# make
+# make tests
+
+Note that there are dependencies on external tools that may not be enforced by the configure script.
+See the specific INSTALL.* files for additional information.

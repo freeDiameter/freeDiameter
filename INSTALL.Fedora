@@ -1,0 +1,22 @@
+### Very short install notes for Fedora (tested on Fedora 13)
+# Please refer to other INSTALL files for more detailed instructions.
+
+
+Dependencies on Fedora 13 (from minimal system):
+# yum install cmake make gcc flex bison lksctp-tools-devel gnutls-devel libgcrypt-devel
+# yum install mercurial
+
+Following dependencies are optional, depending on which extensions you plan to compile
+# yum install postgresql-server postgresql-devel
+# yum install mysql-server mysql-devel
+
+
+Fetching the latest source:
+# hg clone http://www.freediameter.net/hg/freeDiameter
+# cd freeDiameter
+
+Compiling in a separate directory:
+# mkdir test.build
+# cd test.build
+# cmake ..
+# make

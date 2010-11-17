@@ -1,0 +1,40 @@
+freediameter (1.0.2) UNRELEASED; urgency=low
+
+  * Fix an issue in app_diameap.fdx with user names (#18)
+  * Allow DH parameters loaded from a file (#17) 
+  * Fixed a few compilation warnings on 64bits architectures.
+  * New ALL_EXTENSIONS build option.
+
+ -- Sebastien Decugis <sdecugis@nict.go.jp>  Wed, 27 Oct 2010 11:17:32 +0900
+
+freediameter (1.0.1) UNRELEASED; urgency=low
+
+  * app_acct.fdx: new set of PHP scripts available in source
+    contrib/app_acct_tools
+  * app_acct.fdx: new directive 'Server_name_field' in the
+    configuration.
+  * app_radgw.fdx: new directive 'nonai' in acct and auth plugins to
+    disable NAI processing.
+  * app_radgw.fdx: New support for RADIUS proxies.
+  * app_radgw.fdx: many bug fixes.
+  * daemon: Check the local certificate is valid during TLS
+    initialization.
+  * daemon: Fixed issue for IP addresses in the form x.x.x.235
+  * daemon: new option --dbg_gnutls to get GNUTLS debug messages.
+  * debian: some cleanups in the packaging (dependencies, meta-data)
+  * rt_ereg.fdx: New routing extension based on regular expression
+    matching in package freediameter-daemon.
+
+ -- Sebastien Decugis <sdecugis@nict.go.jp>  Wed, 15 Sep 2010 18:30:28 +0900
+
+freediameter (1.0.0-2) experimental; urgency=low
+
+  * Official release 1.0.0 
+
+ -- Sebastien Decugis <sdecugis@nict.go.jp>  Thu, 29 Jul 2010 17:27:13 +0900
+
+freediameter (1.0.0-1) experimental; urgency=low
+
+  * Initial Release.
+  
+ -- Sebastien Decugis <sdecugis@nict.go.jp>  Wed, 19 May 2010 15:36:54 +0900

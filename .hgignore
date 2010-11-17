@@ -1,0 +1,10 @@
+syntax: glob
+*.orig
+*.rej
+*~
+*.log
+*.sum
+.hg
+build*
+test.*
+
