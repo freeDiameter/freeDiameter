@@ -48,3 +48,5 @@ to top-level README file.
 	tests run on freeDiameter. The results are published at the following URL:
 	http://www.freediameter.net/CDash/index.php?project=freeDiameter
 
+
+- dict_legacy: XML and DTD files for the dict_legacy_xml.fdx extension.

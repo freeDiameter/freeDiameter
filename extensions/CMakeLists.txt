@@ -53,6 +53,8 @@ FD_EXTENSION_SUBDIR(dict_mip6i     "Diameter Mobile IPv6 IKE Dictionary definiti
 FD_EXTENSION_SUBDIR(dict_nas_mipv6 "Diameter NAS-to-HAAA Interaction Dictionary definitions"  ON)
 FD_EXTENSION_SUBDIR(dict_rfc5777   "Classification and QoS (RFC 5777) Dictionary definitions" ON)
 
+FD_EXTENSION_SUBDIR(dict_legacy_xml "Load Diameter dictionary definitions from XML files."    OFF)
+
 
 ####
 # Diameter applications
