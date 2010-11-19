@@ -999,7 +999,7 @@ int dict_mip6a_init()
 							,{  "Route-Record", 			RULE_OPTIONAL,   -1, -1 }
 						};
 
-			CHECK_dict_new( DICT_COMMAND, &data , mip6i, &cmd);
+			CHECK_dict_new( DICT_COMMAND, &data , mip6a, &cmd);
 			PARSE_loc_rules( rules, cmd );
 		}
 
@@ -1084,7 +1084,7 @@ int dict_mip6a_init()
 							,{  "Failed-AVP", 			RULE_OPTIONAL,   -1, -1 }
 						};
 
-			CHECK_dict_new( DICT_COMMAND, &data , mip6i, &cmd);
+			CHECK_dict_new( DICT_COMMAND, &data , mip6a, &cmd);
 			PARSE_loc_rules( rules, cmd );
 		}
 	}
