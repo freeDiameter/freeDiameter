@@ -1209,7 +1209,8 @@ enum {
 	AVP_BY_CODE = 50,	/* "what" points to an avp_code_t, vendor is always 0 */
 	AVP_BY_NAME,		/* "what" points to a string, vendor is always 0 */
 	AVP_BY_CODE_AND_VENDOR,	/* "what" points to a struct dict_avp_request (see bellow), where avp_vendor and avp_code are set */
-	AVP_BY_NAME_AND_VENDOR	/* "what" points to a struct dict_avp_request (see bellow), where avp_vendor and avp_name are set */
+	AVP_BY_NAME_AND_VENDOR,	/* "what" points to a struct dict_avp_request (see bellow), where avp_vendor and avp_name are set */
+	AVP_BY_NAME_ALL_VENDORS /* "what" points to a string. Might be quite slow... */
 };
 
 /* Struct used for some researchs */

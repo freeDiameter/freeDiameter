@@ -591,11 +591,11 @@ in the local context where they are called. They are meant to be called only fro
 	int __cmp;								\
 	struct fd_list * __li;							\
 	ret = 0;								\
-	for  (__li = (sentinel); __li->next != (sentinel); __li = __li->next) {	\
-		__cmp = strcmp(__str, _O(__li->next->o)->data. datafield );	\
+	for  (__li = (sentinel)->next; __li != (sentinel); __li = __li->next) {	\
+		__cmp = strcmp(__str, _O(__li->o)->data. datafield );		\
 		if (__cmp == 0) {						\
 			if (result)						\
-				*result = _O(__li->next->o);			\
+				*result = _O(__li->o);				\
 			goto end;						\
 		}								\
 		if ((isindex) && (__cmp < 0))					\
@@ -969,6 +969,20 @@ static int search_avp ( struct dictionary * dict, int criteria, void * what, str
 				} else {
 					/* AVP_BY_CODE_AND_VENDOR */
 					SEARCH_scalar( _what->avp_code, &vendor->list[1],  avp.avp_code, 1, (struct dict_object *)NULL );
+				}
+			}
+			break;
+		
+		case AVP_BY_NAME_ALL_VENDORS:
+			{
+				struct fd_list * li;
+				
+				/* First, search for vendor 0 */
+				SEARCH_string( what, &dict->dict_vendors.list[2], avp.avp_name, 1);
+				
+				/* If not found, loop for all vendors, until found */
+				for (li = dict->dict_vendors.list[0].next; li != &dict->dict_vendors.list[0]; li = li->next) {
+					SEARCH_string( what, &_O(li->o)->list[2], avp.avp_name, 1);
 				}
 			}
 			break;
