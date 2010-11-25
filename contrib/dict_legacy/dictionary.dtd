@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!ELEMENT dictionary (vendor*, base, application*)>
+<!ELEMENT dictionary (vendor*, base*, application*)>
 
 <!ELEMENT vendor EMPTY>
 <!ATTLIST vendor
@@ -7,7 +7,7 @@
         name CDATA #REQUIRED
 >
 
-<!ELEMENT base (command*, typedefn+, avp+)>
+<!ELEMENT base (command*, typedefn*, avp*)>
 <!ATTLIST base
         uri CDATA #IMPLIED
 >
@@ -37,36 +37,33 @@
         name ID #REQUIRED
         description CDATA #IMPLIED
         code CDATA #REQUIRED
-        may-encrypt (yes | no) "yes"
-        mandatory (must | may | mustnot | shouldnot) "may"
-        protected (must | may | mustnot | shouldnot) "may"
+        mandatory CDATA
         vendor-id CDATA #IMPLIED
 >
 <!ELEMENT type EMPTY>
 <!ATTLIST type
         type-name IDREF #REQUIRED
 >
-<!ELEMENT grouped (gavp+)>
-<!ELEMENT gavp EMPTY>
-<!ATTLIST gavp
-        name IDREF #REQUIRED
-        vendor-id CDATA #IMPLIED
->
+<!ELEMENT grouped (fixedrules*, requiredrules*, optionalrules*)>
 <!ELEMENT enum EMPTY>
 <!ATTLIST enum
         name CDATA #REQUIRED
         code CDATA #REQUIRED
 >
 
-<!ELEMENT requestrules (avprule+)>
-<!ELEMENT answerrules (avprule+)>
+<!ELEMENT requestrules (fixedrules*, requiredrules*, optionalrules*)>
+<!ELEMENT answerrules (fixedrules*, requiredrules*, optionalrules*)>
+
+<!ELEMENT fixedrules    (avprule*)>
+<!ELEMENT requiredrules (avprule*)>
+<!ELEMENT optionalrules (avprule*)>
 
 <!ELEMENT avprule EMPTY>
 <!ATTLIST avprule
         name IDREF #REQUIRED
         position (first | last | unspecified)  "unspecified"
-        maximum CDATA "none"
-        minimum CDATA "0"
+        maximum CDATA
+        minimum CDATA
 >
 
 
