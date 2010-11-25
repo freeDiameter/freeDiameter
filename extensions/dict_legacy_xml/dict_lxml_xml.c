@@ -188,8 +188,8 @@ struct t_cmd {
 	struct fd_list  chain;    /* link in t_appl->commands */
 	uint32_t	code;
 	uint8_t *	name;
-	uint32_t	flags;
-	uint32_t	fmask;
+	uint8_t		flags;
+	uint8_t		fmask;
 	struct fd_list  reqrules_fixed;     /* list of t_rule */
 	struct fd_list  reqrules_required;  /* list of t_rule */
 	struct fd_list  reqrules_optional;  /* list of t_rule */
@@ -410,8 +410,8 @@ struct t_avp {
 	struct fd_list  chain;  /* link in t_appl->avps */
 	uint32_t	code;
 	uint8_t *	name;
-	uint32_t	flags;
-	uint32_t	fmask;
+	uint8_t		flags;
+	uint8_t		fmask;
 	uint32_t	vendor;
 	struct fd_list  type;             /* list of t_avptype -- there must be at max 1 item in the list */
 	struct fd_list  enums;            /* list of t_enum */
@@ -1195,7 +1195,7 @@ state_machine_error:
 	return;
 }
 
-/* The SAX parser sends a warning, error, fatalerror 
+/* The SAX parser sends a warning, error, fatalerror -- do we need these ?
 static void SAXwarning (void * ctx, const char * msg, ...)
 {
 
@@ -1210,13 +1210,476 @@ static void SAXfatal (void * ctx, const char * msg, ...)
 }
 */
 
+
+
+
 /*********************************************/
  /* 2nd pass: from memory to fD dictionary */
+/*********************************************/
 
-static int dict_to_fD(struct t_dictionary * dict, int * nb_created)
+/* Find or create a vendor */
+static int vend_to_fD(struct t_vend * v, struct dictionary * fD_dict, struct dict_object ** fd_v, int * nb_added)
 {
-	TODO("Parse the dict tree, add objects in the fD dictionary, update count");
-	return ENOTSUP;
+	int ret;
+	struct dict_object * prev = NULL;
+	struct dict_vendor_data vd;
+
+	TRACE_ENTRY("%p %p %p %p", v, fD_dict, fd_v, nb_added);
+	
+	CHECK_PARAMS(v && fD_dict);
+	
+	/* Prepare the data in fD's format */
+	memset(&vd, 0, sizeof(vd));
+	vd.vendor_id   = v->id;
+	vd.vendor_name = (char *)v->name;
+	
+	/* Create or search in the dictionary */
+	ret = fd_dict_new ( fD_dict, DICT_VENDOR, &vd, NULL, &prev );
+	if (fd_v)
+		*fd_v = prev;
+	if (ret == EEXIST) {
+		/* Conflict with existing entry */
+		CHECK_FCT( fd_dict_getval(prev, &vd) );
+		TRACE_DEBUG(INFO, "[dict_legacy_xml] Warning: Conflicting entry.");
+		TRACE_DEBUG(INFO, "[dict_legacy_xml]   New entry (ignored): %u - '%s'", v->id, (char *)v->name);
+		TRACE_DEBUG(INFO, "[dict_legacy_xml]   Old entry          : %u - '%s'", vd.vendor_id, vd.vendor_name);
+		return 0;
+	} else {
+		/* other errors are stoppers */
+		CHECK_FCT(ret);
+	}
+	
+	/* Update count */
+	if (nb_added)
+		*nb_added += 1;
+	
+	/* Done */
+	return 0;
+}
+
+/* Find the base fD type from a type name */
+static int resolve_base_type(struct dictionary * fD_dict, uint8_t * type_name, enum dict_avp_basetype * basetype, struct dict_object **type)
+{
+	int ret;
+	struct dict_type_data td;
+	struct dict_object *t;
+	
+	TRACE_ENTRY("%p, %p %p", fD_dict, type_name, basetype);
+	CHECK_PARAMS( fD_dict && type_name && basetype );
+	
+	/* First, check if the type is already in the dictionary */
+	ret = fd_dict_search ( fD_dict, DICT_TYPE, TYPE_BY_NAME, type_name, &t, ENOENT);
+	switch (ret) {
+		case 0: /* the type is already in the dictionary */
+			CHECK_FCT( fd_dict_getval(t, &td) );
+			*basetype = td.type_base;
+			if (type)
+				*type = t;
+			return 0;
+		
+		case ENOENT: /* We did not find it, it is maybe normal */
+			break;
+			
+		default:
+			/* An unexpected error occurred */
+			CHECK_FCT(ret);
+	}
+	
+	/* at this point we did not find the type in the dictionary */
+#define PREDEF_TYPES( _typename_, _basetype_ )			\
+	if (!strcasecmp((char *)type_name, (_typename_))) {	\
+		*basetype = (_basetype_);			\
+		return 0;					\
+	}
+	
+	PREDEF_TYPES( "OctetString", AVP_TYPE_OCTETSTRING );
+	PREDEF_TYPES( "Integer32",   AVP_TYPE_INTEGER32   );
+	PREDEF_TYPES( "Integer64",   AVP_TYPE_INTEGER64   );
+	PREDEF_TYPES( "Unsigned32",  AVP_TYPE_UNSIGNED32  );
+	PREDEF_TYPES( "Enumerated",  AVP_TYPE_UNSIGNED32  );
+	PREDEF_TYPES( "Unsigned64",  AVP_TYPE_UNSIGNED64  );
+	PREDEF_TYPES( "Float32",     AVP_TYPE_FLOAT32     );
+	PREDEF_TYPES( "Float64",     AVP_TYPE_FLOAT64     );
+	
+	/* When we reach this point, we have not yet found this type anywhere. */
+	TODO("Type not found. Maybe search in whole xmldictionary if it is defined later?");
+	TRACE_DEBUG(INFO, "The type '%s' could not be resolved. Please check it is defined before use.", type_name);
+	return ENOENT;
+}
+
+/* Find or create a type. */
+static int typdefn_to_fD(struct t_typedefn * t, struct dictionary * fD_dict, struct dict_object * fd_appl, struct dict_object ** fd_t, int * nb_added)
+{
+	int ret;
+	struct dict_object * prev = NULL;
+	struct dict_type_data td;
+
+	TRACE_ENTRY("%p %p %p %p %p", t, fD_dict, fd_appl, fd_t, nb_added);
+	
+	CHECK_PARAMS(t && fD_dict);
+	
+	/* Prepare the data in fD's format */
+	memset(&td, 0, sizeof(td));
+	td.type_name = (char *)t->name;
+	
+	/* infer td.type_base from t->parent_name */
+	CHECK_FCT( resolve_base_type(fD_dict, t->parent_name, &td.type_base, NULL) );
+	
+	/* Create or search in the dictionary */
+	ret = fd_dict_new ( fD_dict, DICT_TYPE, &td, fd_appl, &prev );
+	if (fd_t)
+		*fd_t = prev;
+	if (ret == EEXIST) {
+		/* Conflict with existing entry */
+		enum dict_avp_basetype xmlbt = td.type_base;
+		extern const char * type_base_name[]; /* in libfreeDiameter/dictionary.c */
+		CHECK_FCT( fd_dict_getval(prev, &td) );
+		TRACE_DEBUG(INFO, "[dict_legacy_xml] Warning: Conflicting entry.");
+		TRACE_DEBUG(INFO, "[dict_legacy_xml]   New entry (ignored): '%s' (%d - %s)", t->name, xmlbt, type_base_name[xmlbt] );
+		TRACE_DEBUG(INFO, "[dict_legacy_xml]   Old entry          : '%s' (%d - %s)", td.type_name, td.type_base, type_base_name[td.type_base]);
+		return 0;
+	} else {
+		/* other errors are stoppers */
+		CHECK_FCT(ret);
+	}
+	
+	/* Update count */
+	if (nb_added)
+		*nb_added += 1;
+	
+	/* Done */
+	return 0;
+}
+
+/* Process one list of rules */
+static int rules_to_fD_onelist(struct dictionary * fD_dict, struct dict_object * parent, enum rule_position position, struct fd_list * list, int * nb_added)
+{
+	struct dict_rule_data rd;
+	struct fd_list * li;
+	int order = 0;
+	int ret;
+
+	TRACE_ENTRY("%p %p %d %p %p", fD_dict, parent, position, list, nb_added);
+	
+	CHECK_PARAMS(fD_dict && parent && position && list);
+	
+	for (li = list->next; li != list; li = li->next) {
+		struct t_rule * r = (struct t_rule *)li;
+		
+		/* The [AVP] rule in all ABNF definitions is implicit in freeDiameter, skip it */
+		if (!strcmp((char *)r->avpname, "AVP"))
+			continue;
+		
+		/* Prepare rule data */
+		memset(&rd, 0, sizeof(rd));
+		rd.rule_position = position;
+		rd.rule_order = ++order; /* actually only used for fixed rules, but no harm for others */
+		rd.rule_min = r->min;
+		rd.rule_max = r->max;
+		
+		/* Resolve the AVP */
+		ret = fd_dict_search(fD_dict, DICT_AVP, AVP_BY_NAME_ALL_VENDORS, r->avpname, &rd.rule_avp, ENOENT);
+		if (ret == ENOENT) {
+			TRACE_DEBUG(INFO, "[dict_legacy_xml] Error: AVP '%s' used in a rule before being defined.", r->avpname);
+		}
+		CHECK_FCT(ret);
+		
+		/* Now create the new rule */
+		CHECK_FCT( fd_dict_new ( fD_dict, DICT_RULE, &rd, parent, NULL ) );
+		if (nb_added)
+			*nb_added += 1;
+	}
+	
+	return 0;
+}
+
+/* Process lists of rules */
+static int rules_to_fD(struct dictionary * fD_dict, struct dict_object * parent, struct fd_list * fixed, struct fd_list * required, struct fd_list * optional, int * nb_added)
+{
+	TRACE_ENTRY("%p %p %p %p %p %p", fD_dict, parent, fixed, required, optional, nb_added);
+	
+	/* Process the rules */
+	CHECK_FCT( rules_to_fD_onelist(fD_dict, parent, RULE_FIXED_HEAD, fixed, nb_added) );
+	CHECK_FCT( rules_to_fD_onelist(fD_dict, parent, RULE_REQUIRED, required, nb_added) );
+	CHECK_FCT( rules_to_fD_onelist(fD_dict, parent, RULE_OPTIONAL, optional, nb_added) );
+	
+	return 0;
+}
+
+/* Find or create an AVP (and dependent objects) */
+static int avp_to_fD(struct t_avp * a, struct dictionary * fD_dict, struct dict_object * fd_appl, struct dict_object ** fd_a, int * nb_added)
+{
+	int ret;
+	struct dict_object * prev = NULL, *type = NULL;
+	struct dict_avp_data ad;
+	struct fd_list * li;
+
+	TRACE_ENTRY("%p %p %p %p %p", a, fD_dict, fd_appl, fd_a, nb_added);
+	
+	CHECK_PARAMS(a && fD_dict);
+	
+	/* Prepare the data in fD's format */
+	memset(&ad, 0, sizeof(ad));
+	ad.avp_code   = a->code;
+	ad.avp_vendor = a->vendor;
+	ad.avp_name   = (char *)a->name;
+	ad.avp_flag_mask = a->fmask;
+	ad.avp_flag_val  = a->flags;
+	
+	if (!FD_IS_LIST_EMPTY(&a->type)) {
+		/* special exception: we use per-AVP enumerated types in fD */
+		if (strcasecmp("Enumerated", (char *)((struct t_avptype *)a->type.next)->type_name))
+			goto enumerated;
+		
+		/* The type was explicitly specified, resolve it */
+		CHECK_FCT( resolve_base_type(fD_dict, ((struct t_avptype *)a->type.next)->type_name, &ad.avp_basetype, &type) );
+	} else {
+		/* The type was not specified, try to infer it from provided data */
+		if (       !FD_IS_LIST_EMPTY(&a->grouped_optional)
+			|| !FD_IS_LIST_EMPTY(&a->grouped_required)
+			|| !FD_IS_LIST_EMPTY(&a->grouped_fixed) ) {
+			/* The AVP has rules, it is a grouped AVP */
+			CHECK_PARAMS( FD_IS_LIST_EMPTY(&a->enums) );
+			ad.avp_basetype = AVP_TYPE_GROUPED;
+		} else {
+			/* It should be an enumerated AVP... */
+			if (FD_IS_LIST_EMPTY(&a->enums)) {
+				TRACE_DEBUG(INFO, "[dict_legacy_xml] Error: Missing type information for AVP '%s'", ad.avp_name);
+				return EINVAL;
+			} else {
+				/* We create a new type to hold the enumerated values -- fD specifics */
+				char typename[256];
+				struct dict_type_data 	tdata;
+				
+enumerated:
+				snprintf(typename, sizeof(typename), "Enumerated*(%s)", ad.avp_name);
+				memset(&tdata, 0, sizeof(tdata));
+				tdata.type_base = AVP_TYPE_UNSIGNED32;
+				tdata.type_name = &typename[0];
+				CHECK_FCT( fd_dict_new ( fD_dict, DICT_TYPE, &tdata, fd_appl, &type ) );
+				if (nb_added)
+					*nb_added += 1;
+				
+				ad.avp_basetype = AVP_TYPE_UNSIGNED32;
+			}
+		}
+	}
+	
+	/* At this point, ad.avp_basetype is defined and type might also be */
+	
+	/* Create or search in the dictionary */
+	ret = fd_dict_new ( fD_dict, DICT_AVP, &ad, type, &prev );
+	if (fd_a)
+		*fd_a = prev;
+	if (ret == EEXIST) {
+		/* Conflict with existing entry */
+		CHECK_FCT( fd_dict_getval(prev, &ad) );
+		TRACE_DEBUG(INFO, "[dict_legacy_xml] Warning: Conflicting entry.");
+		TRACE_DEBUG(INFO, "[dict_legacy_xml]   New entry (ignored): %u - '%s'", a->code, (char *)a->name);
+		TRACE_DEBUG(INFO, "[dict_legacy_xml]   Old entry          : %u - '%s'", ad.avp_code, ad.avp_name);
+		goto inside;
+	} else {
+		/* other errors are stoppers */
+		CHECK_FCT(ret);
+	}
+	
+	/* Update count */
+	if (nb_added)
+		*nb_added += 1;
+	
+inside:
+	/* Now, the inner elements, if any */
+	
+	/* In case of enumeration, define the enum values */
+	ASSERT( FD_IS_LIST_EMPTY(&a->enums) || (type && (ad.avp_basetype == AVP_TYPE_UNSIGNED32)) ); /* u32 type must be defined for enumerators */
+	for (li = a->enums.next; li != &a->enums; li = li->next) {
+		struct t_enum * e = (struct t_enum *)li;
+		struct dict_enumval_data ed;
+		
+		memset(&ed, 0, sizeof(ed));
+		ed.enum_name = (char *)e->name;
+		ed.enum_value.u32 = e->code;
+		
+		CHECK_FCT( fd_dict_new ( fD_dict, DICT_ENUMVAL, &ed, type, NULL ) );
+		if (nb_added)
+			*nb_added += 1;
+	}
+	
+	/* In case of grouped AVP, check the type is really grouped */
+	if ( !FD_IS_LIST_EMPTY(&a->grouped_optional)
+	  || !FD_IS_LIST_EMPTY(&a->grouped_required)
+	  || !FD_IS_LIST_EMPTY(&a->grouped_fixed) ) {
+		CHECK_PARAMS( ad.avp_basetype == AVP_TYPE_GROUPED );
+		CHECK_FCT( rules_to_fD(fD_dict, prev, &a->grouped_fixed, &a->grouped_required, &a->grouped_optional, nb_added) );
+	}
+	
+	/* done! */
+	return 0;
+}
+
+/* Find or create a command. */
+static int cmd_to_fD(struct t_cmd * c, struct dictionary * fD_dict, struct dict_object * fd_appl, struct dict_object ** fd_req, int * nb_added)
+{
+	int ret;
+	struct dict_object * req = NULL, *ans = NULL;
+	struct dict_cmd_data cd;
+	char cmdname[512];
+
+	TRACE_ENTRY("%p %p %p %p %p", c, fD_dict, fd_appl, fd_req, nb_added);
+	
+	CHECK_PARAMS(c && fD_dict);
+	
+	/* Prepare the request data in fD's format */
+	memset(&cd, 0, sizeof(cd));
+	cd.cmd_code = c->code;
+	snprintf(cmdname, sizeof(cmdname), "%s-Request", (char *)c->name);
+	cd.cmd_name = &cmdname[0];
+	cd.cmd_flag_mask = c->fmask | CMD_FLAG_REQUEST;
+	cd.cmd_flag_val  = c->flags | CMD_FLAG_REQUEST;
+	
+	/* Create or search in the dictionary */
+	ret = fd_dict_new ( fD_dict, DICT_COMMAND, &cd, fd_appl, &req );
+	if (fd_req)
+		*fd_req = req;
+	if (ret == EEXIST) {
+		struct dict_cmd_data prevcd;
+		/* Conflict with existing entry */
+		CHECK_FCT( fd_dict_getval(req, &prevcd) );
+		TRACE_DEBUG(INFO, "[dict_legacy_xml] Warning: Conflicting entry.");
+		TRACE_DEBUG(INFO, "[dict_legacy_xml]   New entry (ignored): %u - '%s'", cd.cmd_code, cd.cmd_name);
+		TRACE_DEBUG(INFO, "[dict_legacy_xml]   Old entry          : %u - '%s'", prevcd.cmd_code, prevcd.cmd_name);
+		goto answer;
+	} else {
+		/* other errors are stoppers */
+		CHECK_FCT(ret);
+	}
+	
+	/* Update count */
+	if (nb_added)
+		*nb_added += 1;
+	
+answer:
+	/* update data for the answer */
+	snprintf(cmdname, sizeof(cmdname), "%s-Answer", (char *)c->name);
+	cd.cmd_flag_val &= ~CMD_FLAG_REQUEST;
+	
+	ret = fd_dict_new ( fD_dict, DICT_COMMAND, &cd, fd_appl, &ans );
+	if (ret == EEXIST) {
+		struct dict_cmd_data prevcd;
+		/* Conflict with existing entry */
+		CHECK_FCT( fd_dict_getval(ans, &prevcd) );
+		TRACE_DEBUG(INFO, "[dict_legacy_xml] Warning: Conflicting entry.");
+		TRACE_DEBUG(INFO, "[dict_legacy_xml]   New entry (ignored): %u - '%s'", cd.cmd_code, cd.cmd_name);
+		TRACE_DEBUG(INFO, "[dict_legacy_xml]   Old entry          : %u - '%s'", prevcd.cmd_code, prevcd.cmd_name);
+		goto rules;
+	} else {
+		/* other errors are stoppers */
+		CHECK_FCT(ret);
+	}
+	
+	/* Update count */
+	if (nb_added)
+		*nb_added += 1;
+	
+rules:
+	/* Now process the rules inside the command */
+	CHECK_FCT( rules_to_fD(fD_dict, req, &c->reqrules_fixed, &c->reqrules_required, &c->reqrules_optional, nb_added) );
+	CHECK_FCT( rules_to_fD(fD_dict, ans, &c->ansrules_fixed, &c->ansrules_required, &c->ansrules_optional, nb_added) );
+	
+	/* Done */
+	return 0;
+}
+
+/* Find or create an application (and dependent objects) */
+static int appl_to_fD(struct t_appl * a, struct dictionary * fD_dict, struct dict_object ** fd_a, int * nb_added)
+{
+	int ret;
+	struct dict_object * prev = NULL;
+	struct dict_application_data ad;
+	struct fd_list * li;
+
+	TRACE_ENTRY("%p %p %p %p", a, fD_dict, fd_a, nb_added);
+	
+	CHECK_PARAMS(a && fD_dict);
+	
+	if (a->id) { /* skip app 0 */
+	
+		/* Prepare the data in fD's format */
+		memset(&ad, 0, sizeof(ad));
+		ad.application_id   = a->id;
+		ad.application_name = (char *)a->name;
+
+		/* Create or search in the dictionary */
+		ret = fd_dict_new ( fD_dict, 
+					DICT_APPLICATION, 
+					&ad, 
+					NULL /* we don't have a parent vendor in XML files, so currently everything links to no vendor */, 
+					&prev );
+		if (fd_a)
+			*fd_a = prev;
+		if (ret == EEXIST) {
+			/* Conflict with existing entry */
+			CHECK_FCT( fd_dict_getval(prev, &ad) );
+			TRACE_DEBUG(INFO, "[dict_legacy_xml] Warning: Conflicting entry.");
+			TRACE_DEBUG(INFO, "[dict_legacy_xml]   New entry (ignored): %u - '%s'", a->id, (char *)a->name);
+			TRACE_DEBUG(INFO, "[dict_legacy_xml]   Old entry          : %u - '%s'", ad.application_id, ad.application_name);
+			goto inside;
+		} else {
+			/* other errors are stoppers */
+			CHECK_FCT(ret);
+		}
+
+		/* Update count */
+		if (nb_added)
+			*nb_added += 1;
+	}
+	
+inside:
+	/* Now, the inner elements */
+	
+	/* First, define all the types */
+	for (li = a->types.next; li != &a->types; li = li->next) {
+		CHECK_FCT( typdefn_to_fD((struct t_typedefn *)li, fD_dict, prev, NULL, nb_added) );
+	}
+	
+	/* Then, AVPs, enums, and grouped AVP rules */
+	for (li = a->avps.next; li != &a->avps; li = li->next) {
+		CHECK_FCT( avp_to_fD((struct t_avp *)li, fD_dict, prev, NULL, nb_added) );
+	}
+	
+	/* Finally, the commands and rules */
+	for (li = a->commands.next; li != &a->commands; li = li->next) {
+		CHECK_FCT( cmd_to_fD((struct t_cmd *)li, fD_dict, prev, NULL, nb_added) );
+	}
+	
+	/* done! */
+	return 0;
+}
+
+
+static int dict_to_fD(struct dictionary * fD_dict, struct t_dictionary * xmldict, int * nb_added)
+{
+	struct fd_list * li;
+	
+	TRACE_ENTRY("%p %p %p", fD_dict, xmldict, nb_added);
+	
+	CHECK_PARAMS(fD_dict && xmldict && nb_added);
+	
+	*nb_added = 0;
+	
+	/* Create all the vendors */
+	for (li = xmldict->vendors.next; li != &xmldict->vendors; li = li->next) {
+		CHECK_FCT( vend_to_fD((struct t_vend *)li, fD_dict, NULL, nb_added) );
+	}
+	
+	/* Now, process each application */
+	CHECK_FCT( appl_to_fD(&xmldict->base_and_applications, fD_dict, NULL, nb_added) );
+	for (li = xmldict->base_and_applications.chain.next; li != &xmldict->base_and_applications.chain; li = li->next) {
+		CHECK_FCT( appl_to_fD((struct t_appl *) li, fD_dict, NULL, nb_added) );
+	}
+	
+	/* Complete! */
+	return 0;
 }
 
 
@@ -1246,7 +1709,7 @@ int dict_lxml_parse(char * xmlfilename)
 	memset(&data, 0, sizeof(data));
 	fd_list_init( &data.dict.vendors, NULL );
 	fd_list_init( &data.dict.base_and_applications.chain, NULL );
-	data.dict.base_and_applications.name = (uint8_t *)"Diameter Base Protocol";
+	data.dict.base_and_applications.name = (uint8_t *)"[Diameter Base Protocol]";
 	fd_list_init( &data.dict.base_and_applications.commands, NULL );
 	fd_list_init( &data.dict.base_and_applications.types, NULL );
 	fd_list_init( &data.dict.base_and_applications.avps, NULL );
@@ -1260,14 +1723,18 @@ int dict_lxml_parse(char * xmlfilename)
 		return -1;
 	}
 	
-	TRACE_DEBUG(FULL, "XML Parsed successfully");
+	TRACE_DEBUG(FULL, "XML file parsing complete.");
 	if (TRACE_BOOL(ANNOYING)) {
 		dump_dict(&data.dict);
 	}
 	
 	/* Now, convert all the objects from the temporary tree into the freeDiameter dictionary */
-	ret = 0;
-	CHECK_FCT_DO( dict_to_fD(&data.dict, &ret), { del_dict_contents(&data.dict); return -1; } );
+	CHECK_FCT_DO( dict_to_fD(fd_g_config->cnf_dict, &data.dict, &ret), { del_dict_contents(&data.dict); return -1; } );
+	
+	TRACE_DEBUG(FULL, "Conversion to freeDiameter internal format complete.");
+	if (TRACE_BOOL(ANNOYING)) {
+		fd_dict_dump(fd_g_config->cnf_dict);
+	}
 	
 	/* Done */
 	del_dict_contents(&data.dict);
