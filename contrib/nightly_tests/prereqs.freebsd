@@ -1,0 +1,4 @@
+# 1: install base system and ports
+# 2: install wget with command: pkg_add -r -v wget
+# Finally, install the other packages from this file
+bash cmake mercurial flex bison gnutls postgresql84-client postgresql84-server mysql50-client libxml2
