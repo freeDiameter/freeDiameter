@@ -569,6 +569,7 @@ int fd_breakhere(void);
 /*============================================================*/
 /*                          THREADS                           */
 /*============================================================*/
+#ifndef SWIG
 
 /* Terminate a thread */
 static __inline__ int fd_thr_term(pthread_t * th)
@@ -632,6 +633,7 @@ static __inline__ void fd_cleanup_socket(void * sockptr)
 	}
 }
 
+#endif /* SWIG */
 
 /*============================================================*/
 /*                          SIGNALS                           */
