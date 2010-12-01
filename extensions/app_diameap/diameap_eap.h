@@ -58,8 +58,10 @@ struct diameap_eap_interface
 	boolean aaaSuccess;
 	boolean aaaFail;
 	struct eap_packet aaaEapReqData;
-	u8 *aaaEapKeyData;
-	int aaaEapKeyLength;
+	u8 *aaaEapMSKData;
+	int aaaEapMSKLength;
+	u8 *aaaEapEMSKData;
+	int aaaEapEMSKLength;
 	boolean aaaEapKeyAvailable;
 	int aaaMethodTimeout;
 

@@ -443,14 +443,17 @@ int diameap_eap_statemachine(struct eap_state_machine * eap_sm,
 			if ((*eap_sm->selectedMethod->eap_method_isDone)(eap_sm) == TRUE)
 			{
 				/*diameap_ba_PolicyUpdate();*/
-				eap_i->aaaEapKeyLength = 0;
+				eap_i->aaaEapMSKLength = 0;
+				eap_i->aaaEapEMSKLength = 0;
 				if (eap_sm->selectedMethod->eap_method_getKey)
 				{
 					if ((*eap_sm->selectedMethod->eap_method_getKey)(eap_sm,
-							&eap_i->aaaEapKeyData, &eap_i->aaaEapKeyLength))
+							&eap_i->aaaEapMSKData, &eap_i->aaaEapMSKLength,
+							&eap_i->aaaEapEMSKData, &eap_i->aaaEapEMSKLength))
 					{
 						TRACE_DEBUG(INFO,"%s[EAP Protocol] Generating EAP Master Key failed.",DIAMEAP_EXTENSION,eap_sm->selectedMethod->methodname)
-						eap_i->aaaEapKeyLength = 0;
+						eap_i->aaaEapMSKLength = 0;
+						eap_i->aaaEapEMSKLength = 0;
 						eap_i->aaaEapKeyAvailable = FALSE;
 					}
 					else
@@ -555,7 +558,7 @@ int diameap_eap_statemachine(struct eap_state_machine * eap_sm,
 				diameap_ba_nextid(eap_sm, &eap_sm->currentId);
 				CHECK_FCT(diameap_eap_new(EAP_SUCCESS, (u8) eap_sm->currentId, TYPE_NONE, NULL, 0,&eap_i->aaaEapReqData))
 				;
-				if (eap_i->aaaEapKeyData != NULL)
+				if (eap_i->aaaEapMSKData != NULL)
 				{
 					TRACE_DEBUG(FULL+1,"%s[EAP Protocol] EAP Key available [User: %s].",DIAMEAP_EXTENSION,eap_sm->user.userid);
 					eap_i->aaaEapKeyAvailable = TRUE;

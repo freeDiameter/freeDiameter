@@ -308,7 +308,8 @@ static int diameap_initialize_diameap_eap_interface(
 	eap_i->aaaSuccess = FALSE;
 	eap_i->aaaFail = FALSE;
 	eap_i->aaaEapReqData.data = NULL;
-	eap_i->aaaEapKeyData = NULL;
+	eap_i->aaaEapMSKData = NULL;
+	eap_i->aaaEapEMSKData = NULL;
 	eap_i->aaaEapKeyAvailable = FALSE;
 	eap_i->aaaMethodTimeout = 0;
 
@@ -2956,8 +2957,8 @@ static int diameap_add_eap_success_avps(
 	if (eap_i.aaaEapKeyAvailable == TRUE)
 	{
 		CHECK_FCT(fd_msg_avp_new(dataobj_eap_master_session_key, 0, &avp));
-		avp_val.os.data = eap_i.aaaEapKeyData;
-		avp_val.os.len = eap_i.aaaEapKeyLength;
+		avp_val.os.data = eap_i.aaaEapMSKData;
+		avp_val.os.len = eap_i.aaaEapMSKLength;
 		CHECK_FCT(fd_msg_avp_setvalue(avp, &avp_val));
 		CHECK_FCT( fd_msg_avp_add( ans, MSG_BRW_LAST_CHILD, avp ) );
 

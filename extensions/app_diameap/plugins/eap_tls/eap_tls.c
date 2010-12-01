@@ -49,7 +49,7 @@ boolean eap_tls_check(struct eap_state_machine *smd,
 int eap_tls_process(struct eap_state_machine *smd,
 		struct eap_packet eapRespData);
 boolean eap_tls_isDone(struct eap_state_machine *smd);
-int eap_tls_getKey(struct eap_state_machine *smd, u8** key, int * keylen);
+int eap_tls_getKey(struct eap_state_machine *smd, u8** msk, int * msklen, u8** emsk, int * emsklen);
 void eap_tls_unregister(void);
 void eap_tls_free(void * data);
 
@@ -288,23 +288,30 @@ boolean eap_tls_isDone(struct eap_state_machine *smd)
 	return TRUE;
 }
 
-int eap_tls_getKey(struct eap_state_machine *smd, u8 ** key, int *keylen)
+int eap_tls_getKey(struct eap_state_machine *smd, u8 ** msk, int *msklen, u8 ** emsk, int *emsklen)
 {
 	struct tls_data * data;
+	int len = emsk ? 128 : 64;
 	data = (struct tls_data *) smd->methodData;
-	*key = malloc(64);
+	*msk = malloc(len);
 	if (gnutls_prf(data->session, strlen("client EAP encryption"),
-			"client EAP encryption", 0, 0, NULL, 64, (char *) *key)
+			"client EAP encryption", 0, 0, NULL, len, (char *) *msk)
 			!= GNUTLS_E_SUCCESS)
 	{
-		free(*key);
-		*key = NULL;
-		*keylen = 0;
+		free(*msk);
+		*msk = NULL;
+		*msklen = 0;
 		return 1;
 	}
 	else
 	{
-		*keylen = 64;
+		*msklen = 64;
+	}
+	if (emsk) {
+		*emsk = malloc(64);
+		memcpy(*emsk, (*msk)+64, 64);
+		memset((*msk)+64, 0, 64);
+		*emsklen = 64;
 	}
 
 	return 0;

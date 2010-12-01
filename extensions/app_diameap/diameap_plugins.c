@@ -328,7 +328,7 @@ int diameap_plugin_load(void)
 		if (registerplugin->getKey)
 		{
 			plugin->eap_method_getKey = (int(*)(struct eap_state_machine *,
-					u8**, int*)) dlsym(plugin->handler, registerplugin->getKey);
+					u8**, int*,u8**, int*)) dlsym(plugin->handler, registerplugin->getKey);
 			if (plugin->eap_method_getKey == NULL)
 			{
 				TRACE_DEBUG(
