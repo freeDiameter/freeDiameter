@@ -26,6 +26,7 @@ INSTRUCTIONS to setup a new build slave for the freeDiameter buildserver:
 	$ sudo zypper install `wget http://www.freediameter.net/hg/freeDiameter/raw-file/tip/contrib/nightly_tests/prereqs.opensuse -O - | grep -v -e "^#"`
   
   d) Fedora:
+	$ sudo yum install wget
 	$ sudo yum install `wget http://www.freediameter.net/hg/freeDiameter/raw-file/tip/contrib/nightly_tests/prereqs.fedora -O - | grep -v -e "^#"`
         
 

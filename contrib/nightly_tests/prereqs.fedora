@@ -4,3 +4,7 @@ postgresql-server postgresql-devel
 mysql-server mysql-devel
 libxml2 libxml2-devel
 swig python-devel
+
+# For postgresql server to start automatically, you may have to issue:
+#   service postgresql initdb
+#   chkconfig --level 345 postgresql on
