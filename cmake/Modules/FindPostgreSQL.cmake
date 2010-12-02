@@ -12,7 +12,7 @@ endif (POSTGRESQL_INCLUDE_DIR AND POSTGRESQL_LIBRARIES)
 # Include dir
 find_path(POSTGRESQL_INCLUDE_DIR 
 	NAMES libpq-fe.h
-	PATH_SUFFIXES postgresql
+	PATH_SUFFIXES pgsql postgresql
 )
 
 # Library
