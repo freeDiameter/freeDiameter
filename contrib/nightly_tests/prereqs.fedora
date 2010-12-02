@@ -1,0 +1,6 @@
+# Fedora packages names of dependencies for nightly tests (using "yum install <packages>"):
+cmake make gcc flex bison lksctp-tools-devel gnutls-devel libgcrypt-devel mercurial
+postgresql-server postgresql-devel
+mysql-server mysql-devel
+libxml2 libxml2-devel
+swig python-devel

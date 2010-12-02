@@ -21,10 +21,17 @@ INSTRUCTIONS to setup a new build slave for the freeDiameter buildserver:
       - install freediameter dependencies as follow:
       # pkg_add -r -v wget
       # pkg_add -r -v `wget http://www.freediameter.net/hg/freeDiameter/raw-file/tip/contrib/nightly_tests/prereqs.freebsd -O - | grep -v -e "^#"`
+      
+  c) OpenSUSE:
+	$ sudo zypper install `wget http://www.freediameter.net/hg/freeDiameter/raw-file/tip/contrib/nightly_tests/prereqs.opensuse -O - | grep -v -e "^#"`
+  
+  d) Fedora:
+	$ sudo yum install `wget http://www.freediameter.net/hg/freeDiameter/raw-file/tip/contrib/nightly_tests/prereqs.fedora -O - | grep -v -e "^#"`
+        
 
 2) Create the "test" database for app_acct test (we assume the tests are run as user "test" here)
       - check INSTALL.FreeBSD file for specific PostgreSQL pre-install instructions.
-      - These are the instructions for Debian/Ubuntu, adjust as needed:
+      - These are the instructions for Debian/Ubuntu/OpenSUSE,  adjust as needed:
 	# su - postgres
 	# createuser test
 	 Shall the new role be a superuser? (y/n) n
@@ -49,6 +56,7 @@ INSTRUCTIONS to setup a new build slave for the freeDiameter buildserver:
 	 "Route-Record3" bytea,
 	 "Route-Record4" bytea );
 	 \q
+	 
 
 3) Create a directory ~/fDtests
 	$ cd
@@ -65,7 +73,7 @@ INSTRUCTIONS to setup a new build slave for the freeDiameter buildserver:
    For FreeBSD, in addition do:
    	$ echo "set(CTEST_BUILD_OPTIONS \"\${CTEST_BUILD_OPTIONS} -DFLEX_EXECUTABLE:FILEPATH=/usr/local/bin/flex\")" >> local.cmake
 	
-6) Run the runscript.sh script once to check it works properly (freeBSD might require: ln -s /usr/local/bin/bash /bin/bash)
+6) Run the runtests.sh script once to check it works properly (freeBSD might require: ln -s /usr/local/bin/bash /bin/bash)
 
 7) Set up a crontab to run the script
 	$ wget http://www.freediameter.net/hg/freeDiameter/raw-file/tip/contrib/nightly_tests/cronjob.sh

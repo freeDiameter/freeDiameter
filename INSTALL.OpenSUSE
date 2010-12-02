@@ -1,24 +1,25 @@
-### Very short install notes for Fedora (tested on Fedora 13 and 14)
+### Very short install notes for OpenSUSE (tested on OpenSUSE 11.3)
 # Please refer to other INSTALL files for more detailed instructions (e.g. extension-specific notes).
 
 
-Dependencies on Fedora 13 (from minimal system):
-# yum install cmake make gcc flex bison lksctp-tools-devel gnutls-devel libgcrypt-devel
-# yum install mercurial
+Dependencies on OpenSUSE 11.3 (from minimal server system installation):
+# zypper install cmake make gcc flex bison lksctp-tools-devel libgnutls-devel libgcrypt-devel
+# zypper install mercurial
 
 Following dependencies are optional, depending on which extensions you plan to compile
  app_acct:
-	# yum install postgresql-server postgresql-devel
+	# zypper install postgresql-server postgresql-devel
 
  app_sip:
  app_diameap:
-	# yum install mysql-server mysql-devel
+ 	# zypper install libmysqlclient-devel 
+	(would also need a server, not sure which package is appropriate)
 	
  dict_legacy_xml:
-	# yum install libxml2 libxml2-devel
+	# zypper install libxml2 libxml2-devel
 	
  dbg_interactive:
-	# yum install swig python-devel
+	# zypper install swig python-devel
 
 
 Fetching the latest source:
@@ -31,7 +32,6 @@ Compiling in a separate directory:
 # cmake ..
 # make
 
-
-There is currently no Fedora-specific package for freeDiameter.
+There is currently no OpenSUSE-specific package for freeDiameter.
 You are welcome to contribute packaging scripts! Please contact with
 dev@freediameter.net for more details.

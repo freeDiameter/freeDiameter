@@ -21,16 +21,27 @@ The following packages are required to compile freeDiameter from source:
 Additionnaly, these ones may be useful:
  mercurial gdb
  
-In order to build app_acct extension, you will also need the package libpq-dev.
-In order to build app_sip or app_diameap extension, you will also need the package libmysqlclient-dev.
-In order to build dict_legacy_xml extension, you will need libxml2-dev.
+Extensions additional dependencies:
+ app_acct:
+	libpq-dev
 
+ app_sip:
+ app_diameap:
+ 	libmysqlclient-dev
+	
+ dict_legacy_xml:
+ 	libxml2-dev
+	
+ dbg_interactive:
+ 	swig python-dev
+	
 
 If your debhelper environment is recent (> 7.3.9 to provide cmake support), 
 the following commands should generate the freeDiameter packages for you:
 
 # Install the dependencies for building the source:
-sudo apt-get -y install mercurial cmake make gcc bison flex libsctp-dev libgnutls-dev libgcrypt-dev libpq-dev libmysqlclient-dev libxml2-dev ssl-cert debhelper fakeroot
+sudo apt-get -y install mercurial cmake make gcc bison flex libsctp-dev libgnutls-dev libgcrypt-dev ssl-cert debhelper fakeroot \
+   libpq-dev libmysqlclient-dev libxml2-dev swig python-dev
 
 # Retrieve the latest version of the source package
 cd 
