@@ -120,7 +120,7 @@ struct local_rules_definition {
 
 /* Dictionary */
 
-int dict_nas_mipv6_init()
+int dict_nas_mipv6_init(char * conffile)
 {
 	struct dict_object * nas_mipv6;
 	{

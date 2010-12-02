@@ -90,7 +90,7 @@ struct local_rules_definition {
 
 
 
-int ds_dict_init()
+int ds_dict_init(char * conffile)
 {
 	struct dict_object * sip;
 	{

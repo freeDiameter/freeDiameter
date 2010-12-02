@@ -221,7 +221,7 @@ struct local_rules_definition {
 
 /* Dictionary */
 
-int dict_rfc5777_init()
+int dict_rfc5777_init(char * conffile)
 {
 	struct dict_object * rfc5777;
 	{

@@ -185,7 +185,7 @@ struct local_rules_definition {
 
 /* Dictionary */
 
-int dict_mip6a_init()
+int dict_mip6a_init(char * conffile)
 {
 	struct dict_object * mip6a;
 	{
