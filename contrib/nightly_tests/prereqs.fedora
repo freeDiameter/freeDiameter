@@ -8,3 +8,7 @@ swig python-devel
 # For postgresql server to start automatically, you may have to issue:
 #   service postgresql initdb
 #   chkconfig --level 345 postgresql on
+
+# To allow SCTP sockets to be bound in SELinux, I don't know the command,
+# so let's disable SELinux for the moment:
+#   setenforce Permissive

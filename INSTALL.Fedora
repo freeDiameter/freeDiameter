@@ -31,6 +31,10 @@ Compiling in a separate directory:
 # cmake ..
 # make
 
+NOTE: You may need to change something in SELinux to allow binding the SCTP socket on Diameter port.
+The following command is the very naive way to do it, you can probably do better (feedback appreciated!)
+# setenforce Permissive
+
 
 There is currently no Fedora-specific package for freeDiameter.
 You are welcome to contribute packaging scripts! Please contact with

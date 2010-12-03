@@ -28,6 +28,9 @@ INSTRUCTIONS to setup a new build slave for the freeDiameter buildserver:
   d) Fedora:
 	$ sudo yum install wget
 	$ sudo yum install `wget http://www.freediameter.net/hg/freeDiameter/raw-file/tip/contrib/nightly_tests/prereqs.fedora -O - | grep -v -e "^#"`
+	
+     You may also have issues with SELinux later, an easy workaround is to disable it (until better solution)
+        # setenforce Permissive
         
 
 2) Create the "test" database for app_acct test (we assume the tests are run as user "test" here)
