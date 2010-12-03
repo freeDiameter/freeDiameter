@@ -630,7 +630,8 @@ static void del_dict_contents(struct t_dictionary * d) {
 /* The states for the SAX parser, corresponding roughly to the expected structure of the XML file. 
 We use the states mostly to validate the XML file. */
 enum state {
-	START = 1, /* In "dictionary" */
+	INIT = 0,
+	START, /* In "dictionary" */
 	 IN_VENDOR,
 	 IN_APPLICATION,        /* note that "base" is equivalent to "application" for our state machine */
 	  IN_COMMAND,
@@ -714,7 +715,7 @@ static void SAXstartelem (void * ctx, const xmlChar * name, const xmlChar ** att
 		goto xml_tree_error;
 	
 	switch (data->state) {
-		case 0: /* we are just starting. We only expect a <dictionary> tag, reject anything else. */
+		case INIT: /* we are just starting. We only expect a <dictionary> tag, reject anything else. */
 			if (strcasecmp((char *)name, "dictionary"))
 				goto xml_tree_error;
 			
@@ -1028,7 +1029,7 @@ static void SAXendelem (void * ctx, const xmlChar * name)
 	}
 	
 	switch (data->state) {
-		case 0: 
+		case INIT: 
 			goto state_machine_error;
 			
 		case START:
