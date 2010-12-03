@@ -12,7 +12,13 @@ FIND_PACKAGE(SWIG REQUIRED)
 INCLUDE(${SWIG_USE_FILE})
 SET(CMAKE_SWIG_FLAGS "")
 
-# We create the module even if we don't use it, so that intermediate values are defined
+# Add the dependencies for re-swig-ing the file
+SET(SWIG_MODULE_diwrap_EXTRA_DEPS 
+	${CMAKE_BINARY_DIR}/include/freeDiameter/freeDiameter-host.h 
+	${CMAKE_SOURCE_DIR}/include/freeDiameter/libfreeDiameter.h 
+	${CMAKE_SOURCE_DIR}/include/freeDiameter/freeDiameter.h)
+
+# We create the module even if we don't use it, so that intermediate values are defined (OK, this is stupid...)
 SWIG_ADD_MODULE(diwrap python diwrap.i)
 
 #####

@@ -29,7 +29,7 @@
 * ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT 	 *
 * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS 	 *
 * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR *
-* TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF   *
+* TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY S_OUT OF THE USE OF THIS SOFTWARE, EVEN IF   *
 * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.								 *
 *********************************************************************************************************/
 
@@ -77,10 +77,19 @@
 #include <libgen.h>	/* for basename if --dbg_file is specified */
 #endif /* DEBUG */
 
+#ifdef SWIG
+#define S_INOUT(_p_) INOUT
+#define S_OUT(_p_) OUTPUT
+#else /* SWIG */
+#define S_INOUT(_p_) _p_
+#define S_OUT(_p_) _p_
+#endif /* SWIG */
 
 /*============================================================*/
 /*                          INIT                              */
 /*============================================================*/
+#ifndef SWIG  /* This section is not included in wrapper */
+
 
 /* This function must be called first, before any call to another library function */
 /* If the parameter is not 0, the support for signals (fd_sig_register) is enabled, otherwise it is disabled */
@@ -91,11 +100,11 @@ int fd_lib_init(int support_signals);
 void fd_lib_fini(void);
 
 
-
-
+#endif /* !SWIG */
 /*============================================================*/
 /*                          DEBUG                             */
 /*============================================================*/
+
 
 /*
  * FUNCTION:	fd_log_debug
@@ -116,7 +125,9 @@ void fd_lib_fini(void);
  *  None.
  */
 void fd_log_debug ( char * format, ... );
+#ifndef SWIG
 extern pthread_mutex_t	fd_log_lock;
+#endif /* !SWIG */
 extern char * fd_debug_one_function;
 extern char * fd_debug_one_file;
 
@@ -135,8 +146,10 @@ extern char * fd_debug_one_file;
  * RETURN VALUE:
  *  None.
  */
+#ifndef SWIG 
 void fd_log_threadname ( char * name );
 extern pthread_key_t	fd_log_thname;
+#endif /* !SWIG */
 
 /*
  * FUNCTION:	fd_log_time
@@ -159,9 +172,11 @@ char * fd_log_time ( struct timespec * ts, char * buf, size_t len );
 /*                    DEBUG MACROS                            */
 /*============================================================*/
 
+#ifndef SWIG 
 #ifndef ASSERT
 #define ASSERT(x) assert(x)
 #endif /* ASSERT */
+#endif /* !SWIG */
 
 /* levels definitions */
 #define NONE 0	/* Display no debug message */
@@ -172,17 +187,22 @@ char * fd_log_time ( struct timespec * ts, char * buf, size_t len );
 #define CALL 9  /* Display calls to most functions (with CHECK macros) */
 
 /* Default level is INFO */
+#ifndef SWIG 
 #ifndef TRACE_LEVEL 
 #define TRACE_LEVEL INFO
 #endif /* TRACE_LEVEL */
+#endif /* !SWIG */
 
 /* The level of the file being compiled. */
+#ifndef SWIG 
 static int local_debug_level = TRACE_LEVEL;
+#endif /* !SWIG */
 
 /* A global level, changed by configuration or cmd line for example. default is 0. */
 extern int fd_g_debug_lvl;
 
 /* Some portability code to get nice function name in __PRETTY_FUNCTION__ */
+#ifndef SWIG 
 #if __STDC_VERSION__ < 199901L
 # if __GNUC__ >= 2
 #  define __func__ __FUNCTION__
@@ -193,13 +213,17 @@ extern int fd_g_debug_lvl;
 #ifndef __PRETTY_FUNCTION__
 #define __PRETTY_FUNCTION__ __func__
 #endif /* __PRETTY_FUNCTION__ */
+#endif /* !SWIG */
 
 /* A version of __FILE__ without the full path */
+#ifndef SWIG 
 static char * file_bname = NULL;
 #define __STRIPPED_FILE__	(file_bname ?: (file_bname = basename(__FILE__)))
+#endif /* !SWIG */
 
 
 /* Boolean for tracing at a certain level */
+#ifndef SWIG 
 #ifdef DEBUG
 #define TRACE_BOOL(_level_) ( ((_level_) <= local_debug_level + fd_g_debug_lvl) 					\
 				|| (fd_debug_one_function && !strcmp(fd_debug_one_function, __PRETTY_FUNCTION__)) 	\
@@ -207,11 +231,13 @@ static char * file_bname = NULL;
 #else /* DEBUG */
 #define TRACE_BOOL(_level_) ((_level_) <= local_debug_level + fd_g_debug_lvl)
 #endif /* DEBUG */
+#endif /* !SWIG */
 
 
 /*************
  The general debug macro, each call results in two lines of debug messages (change the macro for more compact output) 
  *************/
+#ifndef SWIG 
 #ifdef DEBUG
 /* In DEBUG mode, we add (a lot of) meta-information along each trace. This makes multi-threading problems easier to debug. */
 #define TRACE_DEBUG(level,format,args... ) {											\
@@ -241,10 +267,12 @@ static char * file_bname = NULL;
 	}																\
 }
 #endif /* DEBUG */
+#endif /* !SWIG */
 
 /*************
  Derivatives from this macro 
  ************/
+#ifndef SWIG 
 /* Helper for function entry -- for very detailed trace of the execution */
 #define TRACE_ENTRY(_format,_args... ) \
 	TRACE_DEBUG(FCTS, "[enter] %s(" _format ") {" #_args "}", __PRETTY_FUNCTION__, ##_args );
@@ -376,6 +404,7 @@ int fd_breakhere(void);
 }
 #endif /* STRIP_DEBUG_CODE */
 
+#endif /* !SWIG */
 
 /*============================================================*/
 /*                  ERROR CHECKING MACRO                      */
@@ -384,6 +413,7 @@ int fd_breakhere(void);
 /* Macros to check a return value and branch out in case of error.
  * These macro should be used only when errors are improbable, not for expected errors.
  */
+#ifndef SWIG 
 
 /* Check the return value of a system function and execute fallback in case of error */
 #define CHECK_SYS_DO( __call__, __fallback__  ) { 					\
@@ -477,10 +507,14 @@ int fd_breakhere(void);
 	CHECK_FCT_DO( __v__ = (__call__), return __v__ );				\
 }
 
+#endif /* !SWIG */
+
 
 /*============================================================*/
 /*                  OTHER MACROS                              */
 /*============================================================*/
+
+#ifndef SWIG 
 
 /* helper macros (pre-processor hacks to allow macro arguments) */
 #define __str( arg )  #arg
@@ -564,12 +598,13 @@ int fd_breakhere(void);
 #define BUFSIZ 96
 #endif /* BUFSIZ */
 
+#endif /* !SWIG */
 
 
 /*============================================================*/
 /*                          THREADS                           */
 /*============================================================*/
-#ifndef SWIG
+#ifndef SWIG 
 
 /* Terminate a thread */
 static __inline__ int fd_thr_term(pthread_t * th)
@@ -632,8 +667,7 @@ static __inline__ void fd_cleanup_socket(void * sockptr)
 		*(int *)sockptr = -1;
 	}
 }
-
-#endif /* SWIG */
+#endif /* !SWIG */
 
 /*============================================================*/
 /*                          SIGNALS                           */
@@ -642,7 +676,9 @@ static __inline__ void fd_cleanup_socket(void * sockptr)
 /* Register a new callback to be called on reception of a given signal (it receives the signal as parameter) */
 /* EALREADY will be returned if there is already a callback registered on this signal */
 /* NOTE: the signal handler will be called from a new detached thread */
+#ifndef SWIG 
 int fd_sig_register(int signal, char * modname, void (*callback)(int signal));
+#endif /* !SWIG */
 
 /* Remove the handler for a given signal */
 int fd_sig_unregister(int signal);
@@ -671,7 +707,13 @@ struct fd_list {
 	{ .next = & _list_name, .prev = & _list_name, .head = & _list_name, .o = NULL }
 #define FD_LIST_INITIALIZER_O( _list_name, _obj ) \
 	{ .next = & _list_name, .prev = & _list_name, .head = & _list_name, .o = _obj }
-void fd_list_init ( struct fd_list * list, void *obj );
+#ifdef SWIG
+%apply struct fd_list * OUTPUT { struct fd_list * list };
+void fd_list_init ( struct fd_list * list, void * obj );
+%clear struct fd_list * list;
+#else
+void fd_list_init ( struct fd_list * list, void * obj );
+#endif
 
 /* Return boolean, true if the list is empty */
 #define FD_IS_LIST_EMPTY( _list ) ((((struct fd_list *)(_list))->head == (_list)) && (((struct fd_list *)(_list))->next == (_list)))
@@ -703,6 +745,7 @@ uint32_t fd_hash ( char * string, size_t len );
 /*============================================================*/
 /*                        DICTIONARY                          */
 /*============================================================*/
+
 /* Structure that contains the complete dictionary definitions */
 struct dictionary;
 
@@ -749,7 +792,7 @@ int fd_dict_fini(struct dictionary ** dict);
  *  (other standard errors may be returned, too, with their standard meaning. Example:
  *    ENOMEM 	: Memory allocation for the new object element failed.)
  */
-int fd_dict_new ( struct dictionary * dict, enum dict_object_type type, void * data, struct dict_object * parent, struct dict_object **ref );
+int fd_dict_new ( struct dictionary * dict, enum dict_object_type type, void * data, struct dict_object * parent, struct dict_object ** S_OUT(ref) );
 
 /*
  * FUNCTION: 	fd_dict_search
@@ -774,10 +817,10 @@ int fd_dict_new ( struct dictionary * dict, enum dict_object_type type, void * d
  *  EINVAL 	: A parameter is invalid.
  *  ENOENT	: No matching object has been found, and result was NULL.
  */
-int fd_dict_search ( struct dictionary * dict, enum dict_object_type type, int criteria, void * what, struct dict_object **result, int retval );
+int fd_dict_search ( struct dictionary * dict, enum dict_object_type type, int criteria, void * what, struct dict_object ** S_OUT(result), int retval );
 
 /* Special case: get the generic error command object */
-int fd_dict_get_error_cmd(struct dictionary * dict, struct dict_object **obj);
+int fd_dict_get_error_cmd(struct dictionary * dict, struct dict_object ** S_OUT(obj));
 
 /*
  * FUNCTION:	fd_dict_getval
@@ -795,9 +838,9 @@ int fd_dict_get_error_cmd(struct dictionary * dict, struct dict_object **obj);
  *  0      	: The content of the object has been retrieved.
  *  EINVAL 	: A parameter is invalid.
  */
-int fd_dict_getval ( struct dict_object * object, void * val);
-int fd_dict_gettype ( struct dict_object * object, enum dict_object_type * type);
-int fd_dict_getdict ( struct dict_object * object, struct dictionary ** dict);
+int fd_dict_getval ( struct dict_object * object, void * S_INOUT(val));
+int fd_dict_gettype ( struct dict_object * object, enum dict_object_type * S_OUT(type));
+int fd_dict_getdict ( struct dict_object * object, struct dictionary ** S_OUT(dict));
 
 /* Debug functions */
 void fd_dict_dump_object(struct dict_object * obj);
@@ -1552,7 +1595,9 @@ struct session;
 typedef void session_state;
 
 /* The following function must be called to activate the session expiry mechanism */
+#ifndef SWIG 
 int fd_sess_start(void);
+#endif /* !SWIG */
 
 /*
  * FUNCTION:	fd_sess_handler_create
@@ -1571,7 +1616,7 @@ int fd_sess_start(void);
  *  EINVAL 	: A parameter is invalid.
  *  ENOMEM	: Not enough memory to complete the operation
  */
-int fd_sess_handler_create_internal ( struct session_handler ** handler, void (*cleanup)(session_state * state, char * sid) );
+int fd_sess_handler_create_internal ( struct session_handler ** S_OUT(handler), void (*cleanup)(session_state * state, char * sid) );
 /* Macro to avoid casting everywhere */
 #define fd_sess_handler_create( _handler, _cleanup ) \
 	fd_sess_handler_create_internal( (_handler), (void (*)(session_state *, char *))(_cleanup) )
@@ -1619,7 +1664,7 @@ int fd_sess_handler_destroy ( struct session_handler ** handler );
  *  EALREADY	: A session with the same name already exists (returned in *session)
  *  ENOMEM	: Not enough memory to complete the operation
  */
-int fd_sess_new ( struct session ** session, char * diamId, char * opt, size_t optlen );
+int fd_sess_new ( struct session ** S_OUT(session), char * diamId, char * opt, size_t optlen );
 
 /*
  * FUNCTION:	fd_sess_fromsid
@@ -1639,7 +1684,7 @@ int fd_sess_new ( struct session ** session, char * diamId, char * opt, size_t o
  *  EINVAL 	: A parameter is invalid.
  *  ENOMEM	: Not enough memory to complete the operation
  */
-int fd_sess_fromsid ( char * sid, size_t len, struct session ** session, int * new);
+int fd_sess_fromsid ( char * sid, size_t len, struct session ** S_OUT(session), int * S_OUT(new));
 
 /*
  * FUNCTION:	fd_sess_getsid
@@ -1658,7 +1703,7 @@ int fd_sess_fromsid ( char * sid, size_t len, struct session ** session, int * n
  *  0      	: The sid parameter has been updated.
  *  EINVAL 	: A parameter is invalid.
  */
-int fd_sess_getsid ( struct session * session, char ** sid );
+int fd_sess_getsid ( struct session * session, char ** S_OUT(sid) );
 
 /*
  * FUNCTION:	fd_sess_settimeout
@@ -1759,7 +1804,7 @@ int fd_sess_state_store_internal ( struct session_handler * handler, struct sess
  *  0      	: *state is updated (NULL or points to the state if it was found).
  *  EINVAL 	: A parameter is invalid.
  */
-int fd_sess_state_retrieve_internal ( struct session_handler * handler, struct session * session, session_state ** state ); 
+int fd_sess_state_retrieve_internal ( struct session_handler * handler, struct session * session, session_state ** S_OUT(state) ); 
 #define fd_sess_state_retrieve( _handler, _session, _state ) \
 	fd_sess_state_retrieve_internal( (_handler), (_session), (void *)(_state) )
 
@@ -1767,7 +1812,6 @@ int fd_sess_state_retrieve_internal ( struct session_handler * handler, struct s
 /* For debug */
 void fd_sess_dump(int level, struct session * session);
 void fd_sess_dump_hdl(int level, struct session_handler * handler);
-
 
 /*============================================================*/
 /*                         ROUTING                            */
@@ -1780,7 +1824,7 @@ void fd_sess_dump_hdl(int level, struct session_handler * handler);
 struct rt_data;
 
 /* Following functions are helpers to create the routing data of a message */
-int  fd_rtd_init(struct rt_data ** rtd);
+int  fd_rtd_init(struct rt_data ** S_OUT(rtd));
 void fd_rtd_free(struct rt_data ** rtd);
 
 /* Add a peer to the candidates list */
@@ -1790,7 +1834,7 @@ int  fd_rtd_candidate_add(struct rt_data * rtd, char * peerid, char * realm);
 void fd_rtd_candidate_del(struct rt_data * rtd, char * peerid, size_t sz /* if !0, peerid does not need to be \0 terminated */);
 
 /* Extract the list of valid candidates, and initialize their scores to 0 */
-void fd_rtd_candidate_extract(struct rt_data * rtd, struct fd_list ** candidates, int ini_score);
+void fd_rtd_candidate_extract(struct rt_data * rtd, struct fd_list ** S_OUT(candidates), int ini_score);
 
 /* If a peer returned a protocol error for this message, save it so that we don't try to send it there again */
 int  fd_rtd_error_add(struct rt_data * rtd, char * sentto, uint8_t * origin, size_t originsz, uint32_t rcode);
@@ -1904,7 +1948,7 @@ enum msg_brw_dir {
  *  (other standard errors may be returned, too, with their standard meaning. Example:
  *    ENOMEM 	: Memory allocation for the new avp failed.)
  */
-int fd_msg_avp_new ( struct dict_object * model, int flags, struct avp ** avp );
+int fd_msg_avp_new ( struct dict_object * model, int flags, struct avp ** S_OUT(avp) );
 
 /*
  * FUNCTION:	fd_msg_new
@@ -1923,7 +1967,7 @@ int fd_msg_avp_new ( struct dict_object * model, int flags, struct avp ** avp );
  *  (other standard errors may be returned, too, with their standard meaning. Example:
  *    ENOMEM 	: Memory allocation for the new message failed.)
  */
-int fd_msg_new ( struct dict_object * model, int flags, struct msg ** msg );
+int fd_msg_new ( struct dict_object * model, int flags, struct msg ** S_OUT(msg) );
 
 /*
  * FUNCTION:	msg_new_answer_from_req
@@ -1944,7 +1988,7 @@ int fd_msg_new ( struct dict_object * model, int flags, struct msg ** msg );
  *  0      	: Operation complete.
  *  !0      	: an error occurred.
  */
-int fd_msg_new_answer_from_req ( struct dictionary * dict, struct msg ** msg, int flag );
+int fd_msg_new_answer_from_req ( struct dictionary * dict, struct msg ** S_INOUT(msg), int flag );
 
 /*
  * FUNCTION:	fd_msg_browse
@@ -1968,7 +2012,7 @@ int fd_msg_new_answer_from_req ( struct dictionary * dict, struct msg ** msg, in
  *  EINVAL 	: A parameter is invalid.
  *  ENOENT	: No element has been found where requested, and "found" was NULL (otherwise, *found is set to NULL and 0 is returned). 
  */
-int fd_msg_browse_internal ( msg_or_avp * reference, enum msg_brw_dir dir, msg_or_avp ** found, int * depth );
+int fd_msg_browse_internal ( msg_or_avp * reference, enum msg_brw_dir dir, msg_or_avp ** S_OUT(found), int * S_INOUT(depth) );
 /* Macro to avoid having to cast the third parameter everywhere */
 #define fd_msg_browse( ref, dir, found, depth )	\
 	fd_msg_browse_internal( (ref), (dir), (void *)(found), (depth) )
@@ -2012,7 +2056,7 @@ int fd_msg_avp_add ( msg_or_avp * reference, enum msg_brw_dir dir, struct avp *a
  *  EINVAL 	: A parameter is invalid.
  *  ENOENT	: No AVP has been found, and "avp" was NULL (otherwise, *avp is set to NULL and 0 returned).
  */
-int fd_msg_search_avp ( struct msg * msg, struct dict_object * what, struct avp ** avp );
+int fd_msg_search_avp ( struct msg * msg, struct dict_object * what, struct avp ** S_OUT(avp) );
 
 /*
  * FUNCTION:	fd_msg_free
@@ -2069,7 +2113,7 @@ void fd_msg_dump_one  ( int level, msg_or_avp *obj );
  *  0      	: The model has been set.
  *  EINVAL 	: A parameter is invalid.
  */
-int fd_msg_model ( msg_or_avp * reference, struct dict_object ** model );
+int fd_msg_model ( msg_or_avp * reference, struct dict_object ** S_OUT(model) );
 
 /*
  * FUNCTION:	fd_msg_hdr
@@ -2085,7 +2129,7 @@ int fd_msg_model ( msg_or_avp * reference, struct dict_object ** model );
  *  0      	: The location has been written.
  *  EINVAL 	: A parameter is invalid.
  */
-int fd_msg_hdr ( struct msg *msg, struct msg_hdr **pdata );
+int fd_msg_hdr ( struct msg *msg, struct msg_hdr ** S_OUT(pdata) );
 
 /*
  * FUNCTION:	fd_msg_avp_hdr
@@ -2101,7 +2145,7 @@ int fd_msg_hdr ( struct msg *msg, struct msg_hdr **pdata );
  *  0      	: The location has been written.
  *  EINVAL 	: A parameter is invalid.
  */
-int fd_msg_avp_hdr ( struct avp *avp, struct avp_hdr **pdata );
+int fd_msg_avp_hdr ( struct avp *avp, struct avp_hdr ** S_OUT(pdata) );
 
 /*
  * FUNCTION:	fd_msg_answ_associate, fd_msg_answ_getq, fd_msg_answ_detach
@@ -2122,7 +2166,7 @@ int fd_msg_avp_hdr ( struct avp *avp, struct avp_hdr **pdata );
  *  EINVAL: a parameter is invalid
  */
 int fd_msg_answ_associate( struct msg * answer, struct msg * query );
-int fd_msg_answ_getq     ( struct msg * answer, struct msg ** query );
+int fd_msg_answ_getq     ( struct msg * answer, struct msg ** S_OUT(query) );
 int fd_msg_answ_detach   ( struct msg * answer );
 
 /*
@@ -2141,8 +2185,10 @@ int fd_msg_answ_detach   ( struct msg * answer );
  *  0 	  : ok
  *  EINVAL: a parameter is invalid
  */
+#ifndef SWIG
 int fd_msg_anscb_associate( struct msg * msg, void ( *anscb)(void *, struct msg **), void  * data );
 int fd_msg_anscb_get      ( struct msg * msg, void (**anscb)(void *, struct msg **), void ** data );
+#endif /* !SWIG */
 
 /*
  * FUNCTION:	fd_msg_rt_associate, fd_msg_rt_get
@@ -2159,8 +2205,10 @@ int fd_msg_anscb_get      ( struct msg * msg, void (**anscb)(void *, struct msg 
  *  0 	  : ok
  *  EINVAL: a parameter is invalid
  */
+#ifndef SWIG
 int fd_msg_rt_associate( struct msg * msg, struct rt_data ** rtd );
-int fd_msg_rt_get      ( struct msg * msg, struct rt_data ** rtd );
+#endif /* !SWIG */
+int fd_msg_rt_get      ( struct msg * msg, struct rt_data ** S_OUT(rtd) );
 
 /*
  * FUNCTION:	fd_msg_is_routable
@@ -2197,8 +2245,10 @@ int fd_msg_is_routable ( struct msg * msg );
  *  0      	: Operation complete.
  *  !0      	: an error occurred.
  */
+#ifndef SWIG
 int fd_msg_source_set( struct msg * msg, char * diamid, int add_rr, struct dictionary * dict );
-int fd_msg_source_get( struct msg * msg, char ** diamid );
+#endif /* !SWIG */
+int fd_msg_source_get( struct msg * msg, char ** S_OUT(diamid) );
 
 /*
  * FUNCTION:	fd_msg_eteid_get
@@ -2233,7 +2283,7 @@ uint32_t fd_msg_eteid_get ( void );
  *  0 : success
  * !0 : standard error code.
  */
-int fd_msg_sess_get(struct dictionary * dict, struct msg * msg, struct session ** session, int * new);
+int fd_msg_sess_get(struct dictionary * dict, struct msg * msg, struct session ** S_OUT(session), int * S_OUT(new));
 
 /***************************************/
 /*   Manage AVP values                 */
@@ -2273,8 +2323,9 @@ int fd_msg_avp_setvalue ( struct avp *avp, union avp_value *value );
  *  EINVAL 	: A parameter is invalid.
  *  ENOTSUP 	: There is no appropriate callback registered with this AVP's type.
  */
+#ifndef SWIG
 int fd_msg_avp_value_encode ( void *data, struct avp *avp );
-
+#endif /* !SWIG */
 /*
  * FUNCTION:	fd_msg_avp_value_interpret
  *
@@ -2292,7 +2343,9 @@ int fd_msg_avp_value_encode ( void *data, struct avp *avp );
  *  EINVAL 	: A parameter is invalid.
  *  ENOTSUP 	: There is no appropriate callback registered with this AVP's type.
  */
+#ifndef SWIG
 int fd_msg_avp_value_interpret ( struct avp *avp, void *data );
+#endif /* !SWIG */
 
 
 /***************************************/
@@ -2316,7 +2369,7 @@ int fd_msg_avp_value_interpret ( struct avp *avp, void *data );
  *  EINVAL 	: The buffer does not contain a valid Diameter message.
  *  ENOMEM	: Unable to allocate enough memory to create the buffer object.
  */
-int fd_msg_bufferize ( struct msg * msg, unsigned char ** buffer, size_t * len );
+int fd_msg_bufferize ( struct msg * msg, unsigned char ** S_OUT(buffer), size_t * S_OUT(len) );
 
 /*
  * FUNCTION:	fd_msg_parse_buffer
@@ -2338,7 +2391,7 @@ int fd_msg_bufferize ( struct msg * msg, unsigned char ** buffer, size_t * len )
  *  EBADMSG	: The buffer does not contain a valid Diameter message (or is truncated).
  *  EINVAL 	: A parameter is invalid.
  */
-int fd_msg_parse_buffer ( unsigned char ** buffer, size_t buflen, struct msg ** msg );
+int fd_msg_parse_buffer ( unsigned char ** buffer, size_t buflen, struct msg ** S_OUT(msg) );
 
 /* Parsing Error Information structure */
 struct fd_pei {
@@ -2372,7 +2425,7 @@ struct fd_pei {
  *  ENOMEM	: Unable to allocate enough memory to complete the operation.
  *  ENOTSUP	: No dictionary definition for the command or one of the mandatory AVP was found.
  */
-int fd_msg_parse_dict ( msg_or_avp * object, struct dictionary * dict, struct fd_pei *error_info );
+int fd_msg_parse_dict ( msg_or_avp * object, struct dictionary * dict, struct fd_pei * S_OUT(error_info) );
 
 /*
  * FUNCTION:	fd_msg_parse_rules
@@ -2391,7 +2444,7 @@ int fd_msg_parse_dict ( msg_or_avp * object, struct dictionary * dict, struct fd
  *  EINVAL 	: The msg or avp object is invalid for this operation.
  *  ENOMEM	: Unable to allocate enough memory to complete the operation.
  */
-int fd_msg_parse_rules ( msg_or_avp * object, struct dictionary * dict, struct fd_pei *error_info);
+int fd_msg_parse_rules ( msg_or_avp * object, struct dictionary * dict, struct fd_pei * S_OUT(error_info));
 
 
 
@@ -2570,7 +2623,7 @@ struct disp_hdl;
  *  ENOMEM	: Not enough memory to complete the operation
  */
 int fd_disp_register ( int (*cb)( struct msg **, struct avp *, struct session *, enum disp_action *), 
-			enum disp_how how, struct disp_when * when, struct disp_hdl ** handle );
+			enum disp_how how, struct disp_when * when, struct disp_hdl ** S_OUT(handle) );
 
 /*
  * FUNCTION:	fd_disp_unregister
@@ -2636,7 +2689,7 @@ struct fifo;
  *  EINVAL 	: The parameter is invalid.
  *  ENOMEM	: Not enough memory to complete the creation.  
  */
-int fd_fifo_new ( struct fifo ** queue );
+int fd_fifo_new ( struct fifo ** S_OUT(queue) );
 
 /*
  * FUNCTION:	fd_fifo_del
@@ -2757,7 +2810,7 @@ int fd_fifo_post_int ( struct fifo * queue, void ** item );
  *  0		: A new element has been retrieved.
  *  EINVAL 	: A parameter is invalid.
  */
-int fd_fifo_get_int ( struct fifo * queue, void ** item );
+int fd_fifo_get_int ( struct fifo * queue, void ** S_OUT(item) );
 #define fd_fifo_get(queue, item) \
 	fd_fifo_get_int((queue), (void *)(item))
 
@@ -2777,7 +2830,7 @@ int fd_fifo_get_int ( struct fifo * queue, void ** item );
  *  EINVAL 	: A parameter is invalid.
  *  EWOULDBLOCK : The queue was empty.
  */
-int fd_fifo_tryget_int ( struct fifo * queue, void ** item );
+int fd_fifo_tryget_int ( struct fifo * queue, void ** S_OUT(item) );
 #define fd_fifo_tryget(queue, item) \
 	fd_fifo_tryget_int((queue), (void *)(item))
 
@@ -2799,7 +2852,7 @@ int fd_fifo_tryget_int ( struct fifo * queue, void ** item );
  *  EINVAL 	: A parameter is invalid.
  *  ETIMEDOUT   : The time out has passed and no item has been received.
  */
-int fd_fifo_timedget_int ( struct fifo * queue, void ** item, const struct timespec *abstime );
+int fd_fifo_timedget_int ( struct fifo * queue, void ** S_OUT(item), const struct timespec *abstime );
 #define fd_fifo_timedget(queue, item, abstime) \
 	fd_fifo_timedget_int((queue), (void *)(item), (abstime))
 

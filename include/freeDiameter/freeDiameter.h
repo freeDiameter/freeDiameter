@@ -46,6 +46,7 @@
 #define GNUTLS_VERSION LIBGNUTLS_VERSION
 #endif /* GNUTLS_VERSION */
 
+#ifndef SWIG
 /* GNUTLS calls debug level */
 #ifndef GNUTLS_DBG_LEVEL
 #define GNUTLS_DBG_LEVEL ANNOYING
@@ -67,7 +68,7 @@
 	TRACE_DEBUG(GNUTLS_DBG_LEVEL, "GNUTLS call: " #__call__ );	\
 	(__call__);							\
 }
-
+#endif /* !SWIG */
 
 /* Structure to hold the configuration of the freeDiameter daemon */
 struct fd_config {
@@ -126,7 +127,13 @@ struct fd_config {
 	struct dictionary *cnf_dict;	/* pointer to the global dictionary */
 	struct fifo	  *cnf_main_ev;	/* events for the daemon's main (struct fd_event items) */
 };
+#ifdef SWIG
+%immutable;
+#endif /* SWIG */
 extern struct fd_config *fd_g_config; /* The pointer to access the global configuration, initalized in main */
+#ifdef SWIG
+%mutable;
+#endif /* SWIG */
 
 
 /***************************************/
@@ -174,7 +181,13 @@ const char *peer_state_str[] = { 	\
 	, "STATE_REOPEN"		\
 	, "STATE_ZOMBIE"		\
 	};
+#ifndef SWIG
 extern const char *peer_state_str[];
+#else /* SWIG */
+%immutable;
+extern const char **peer_state_str;
+%mutable;
+#endif /* !SWIG */
 #define STATE_STR(state) \
 	(((unsigned)(state)) <= STATE_MAX ? peer_state_str[((unsigned)(state)) ] : "<Invalid>")
 
@@ -313,7 +326,7 @@ int fd_peer_add ( struct peer_info * info, char * orig_dbg, void (*cb)(struct pe
  *  0   : *peer has been updated (to NULL if the peer is not found).
  * !0	: An error occurred.
  */
-int fd_peer_getbyid( char * diamid, struct peer_hdr ** peer );
+int fd_peer_getbyid( char * diamid, struct peer_hdr ** S_OUT(peer) );
 
 /*
  * FUNCTION:	fd_peer_validate_register
@@ -536,7 +549,7 @@ enum fd_rt_fwd_dir {
  *  EINVAL 	: A parameter is invalid.
  *  ENOMEM	: Not enough memory to complete the operation
  */
-int fd_rt_fwd_register ( int (*rt_fwd_cb)(void * cbdata, struct msg ** msg), void * cbdata, enum fd_rt_fwd_dir dir, struct fd_rt_fwd_hdl ** handler );
+int fd_rt_fwd_register ( int (*rt_fwd_cb)(void * cbdata, struct msg ** msg), void * cbdata, enum fd_rt_fwd_dir dir, struct fd_rt_fwd_hdl ** S_OUT(handler) );
 /*
  * CALLBACK:	rt_fwd_cb
  *
@@ -610,7 +623,7 @@ enum fd_rt_out_score {
  *  EINVAL 	: A parameter is invalid.
  *  ENOMEM	: Not enough memory to complete the operation
  */
-int fd_rt_out_register ( int (*rt_out_cb)(void * cbdata, struct msg * msg, struct fd_list * candidates), void * cbdata, int priority, struct fd_rt_out_hdl ** handler );
+int fd_rt_out_register ( int (*rt_out_cb)(void * cbdata, struct msg * msg, struct fd_list * candidates), void * cbdata, int priority, struct fd_rt_out_hdl ** S_OUT(handler) );
 /*
  * CALLBACK:	rt_out_cb
  *
@@ -670,8 +683,8 @@ enum {
 };
 
 int fd_event_send(struct fifo *queue, int code, size_t datasz, void * data);
-int fd_event_get(struct fifo *queue, int *code, size_t *datasz, void ** data);
-int fd_event_timedget(struct fifo *queue, struct timespec * timeout, int timeoutcode, int *code, size_t *datasz, void ** data);
+int fd_event_get(struct fifo *queue, int * S_OUT(code), size_t * S_OUT(datasz), void ** S_OUT(data));
+int fd_event_timedget(struct fifo *queue, struct timespec * timeout, int timeoutcode, int * S_OUT(code), size_t * S_OUT(datasz), void ** S_OUT(data));
 void fd_event_destroy(struct fifo **queue, void (*free_cb)(void * data));
 const char * fd_ev_str(int event);
 
@@ -683,12 +696,17 @@ const char * fd_ev_str(int event);
 struct fd_endpoint {
 	struct fd_list  chain;	/* link in cnf_endpoints list */
 	
+#ifndef SWIG
 	union {
 		sSS		ss;	/* the socket information. List is always ordered by ss value (memcmp) -- see fd_ep_add_merge */
 		sSA4		sin;
 		sSA6		sin6;
 		sSA		sa;
 	};
+#else /* !SWIG */
+	/* SWIG does not support unions inside struct, we only define sa in this case */
+	sSA		sa;
+#endif /* !SWIG */
 	
 #define	EP_FL_CONF	(1 << 0)	/* This endpoint is statically configured in a configuration file */
 #define	EP_FL_DISC	(1 << 1)	/* This endpoint was resolved from the Diameter Identity or other DNS query */
@@ -725,7 +743,7 @@ struct fd_app {
 	
 int fd_app_merge(struct fd_list * list, application_id_t aid, vendor_id_t vid, int auth, int acct);
 int fd_app_check(struct fd_list * list, application_id_t aid, struct fd_app **detail);
-int fd_app_check_common(struct fd_list * list1, struct fd_list * list2, int * common_found);
+int fd_app_check_common(struct fd_list * list1, struct fd_list * list2, int * S_OUT(common_found));
 int fd_app_empty(struct fd_list * list);
 
 #endif /* _FREEDIAMETER_H */

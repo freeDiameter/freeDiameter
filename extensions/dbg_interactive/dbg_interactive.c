@@ -43,13 +43,15 @@ extern void init_diwrap(void);
 static pthread_t pyinterp = (pthread_t)NULL;
 static void * myinterp (void * arg)
 {
-	char * dum[2] = { arg, NULL };
+	char * dum[3] = { "<dbg_interactive>", arg, NULL };
 	TRACE_ENTRY("%p", arg);
+	
+	fd_log_threadname ( "[dbg_interactive python interpreter]" );
 	
 	sleep(1);
 	fd_log_debug("\nStarting python interpreter [experimental].\n");
 	fd_log_debug("Example syntax:\n>>> print fd_config_cnf_diamid_get(cvar.fd_g_config)\n\n");
-	Py_Main(arg ? 1 : 0, dum);
+	Py_Main(arg ? 2 : 1, dum);
 	
 	/* Upon exit, issue the order of terminating to fD */
 	CHECK_FCT_DO(fd_event_send(fd_g_config->cnf_main_ev, FDEV_TERMINATE, 0, NULL), );

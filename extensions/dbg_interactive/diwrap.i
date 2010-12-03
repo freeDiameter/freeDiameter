@@ -33,13 +33,21 @@
 * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.								 *
 *********************************************************************************************************/
 
+/* This interface file is processed by SWIG to create a python wrapper interface to freeDiameter framework. */
 %module diwrap
+
+/* Include standard types used in freeDiameter headers */
+%include <stdint.i>
+  
+/* Allow modification of the wrapper for OUTPUT vars */
+%include "typemaps.i"
+
 %{
-/* include the header in the wrapper code */
+/* Define types etc. */
 #include <freeDiameter/extension.h>
 %}
 
-/* Parse the header to generate the wrappers */
+/* Retrieve the compile-time definitions of freeDiameter */
 %include "freeDiameter/freeDiameter-host.h"
 %include "freeDiameter/libfreeDiameter.h"
 %include "freeDiameter/freeDiameter.h"
