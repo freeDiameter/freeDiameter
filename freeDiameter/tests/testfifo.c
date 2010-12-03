@@ -34,6 +34,7 @@
 *********************************************************************************************************/
 
 #include "tests.h"
+#include <unistd.h>
 
 /* Structure for testing threshold function */
 static struct thrh_test {
@@ -202,12 +203,23 @@ int main(int argc, char *argv[])
 		struct dict_object	*dwr_model = NULL;
 		int 			 count;
 		int			 i;
+		int			 nbr_threads;
+		
+		nbr_threads = sysconf(_SC_THREAD_THREADS_MAX);
+		if ((nbr_threads <= 0) || (nbr_threads > NBR_THREADS / 2)) {
+			nbr_threads = NBR_THREADS;
+		} else {
+			/* The local limit is bellow NBR_THREADS */
+			nbr_threads = (nbr_threads / 2) - 1;
+			/* Ensure we create at least a few threads! */
+			CHECK( 1, nbr_threads >= 10 ? 1 : 0 );
+		}
 		
 		/* Create the queue */
 		CHECK( 0, fd_fifo_new(&queue) );
 		
 		/* Create the barrier */
-		CHECK( 0, pthread_barrier_init(&bar, NULL, NBR_THREADS * 2 + 1) );
+		CHECK( 0, pthread_barrier_init(&bar, NULL, nbr_threads * 2 + 1) );
 		
 		/* Initialize the ts */
 		CHECK(0, clock_gettime(CLOCK_REALTIME, &ts));
@@ -215,7 +227,7 @@ int main(int argc, char *argv[])
 		
 		/* Create the messages */
 		CHECK( 0, fd_dict_search ( fd_g_config->cnf_dict, DICT_COMMAND, CMD_BY_NAME, "Device-Watchdog-Request",		&dwr_model, ENOENT ) );
-		for (i = 0; i < NBR_MSG * NBR_THREADS * 2; i++) {
+		for (i = 0; i < NBR_MSG * nbr_threads * 2; i++) {
 			CHECK( 0, fd_msg_new ( dwr_model, 0, &msgs[i] ) );
 		}
 		
@@ -230,7 +242,7 @@ int main(int argc, char *argv[])
 		td_2.nbr = NBR_MSG;
 		
 		/* Create the threads */
-		for (i=0; i < NBR_THREADS * 2; i++) {
+		for (i=0; i < nbr_threads * 2; i++) {
 			CHECK( 0, pthread_create( &thr[i], NULL, test_fct, (i & 1) ? &td_1 : &td_2 ) );
 		}
 		
@@ -245,13 +257,13 @@ int main(int argc, char *argv[])
 		}
 		
 		/* Now post all the messages */
-		for (i=0; i < NBR_MSG * NBR_THREADS * 2; i++) {
+		for (i=0; i < NBR_MSG * nbr_threads * 2; i++) {
 			msg = msgs[i];
 			CHECK( 0, fd_fifo_post(queue, &msg) );
 		}
 		
 		/* Join all threads. This blocks if messages are lost... */
-		for (i=0; i < NBR_THREADS * 2; i++) {
+		for (i=0; i < nbr_threads * 2; i++) {
 			CHECK( 0, pthread_join( thr[i], NULL ) );
 		}
 		
@@ -261,7 +273,7 @@ int main(int argc, char *argv[])
 		
 		/* Destroy this queue and the messages */
 		CHECK( 0, fd_fifo_del(&queue) );
-		for (i=0; i < NBR_MSG * NBR_THREADS * 2; i++) {
+		for (i=0; i < NBR_MSG * nbr_threads * 2; i++) {
 			CHECK( 0, fd_msg_free(  msgs[i] ) );
 		}
 	}
