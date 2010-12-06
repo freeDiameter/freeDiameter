@@ -326,7 +326,7 @@ int fd_peer_add ( struct peer_info * info, char * orig_dbg, void (*cb)(struct pe
  *  0   : *peer has been updated (to NULL if the peer is not found).
  * !0	: An error occurred.
  */
-int fd_peer_getbyid( char * diamid, struct peer_hdr ** S_OUT(peer) );
+int fd_peer_getbyid( char * diamid, struct peer_hdr ** peer );
 
 /*
  * FUNCTION:	fd_peer_validate_register
@@ -549,7 +549,7 @@ enum fd_rt_fwd_dir {
  *  EINVAL 	: A parameter is invalid.
  *  ENOMEM	: Not enough memory to complete the operation
  */
-int fd_rt_fwd_register ( int (*rt_fwd_cb)(void * cbdata, struct msg ** msg), void * cbdata, enum fd_rt_fwd_dir dir, struct fd_rt_fwd_hdl ** S_OUT(handler) );
+int fd_rt_fwd_register ( int (*rt_fwd_cb)(void * cbdata, struct msg ** msg), void * cbdata, enum fd_rt_fwd_dir dir, struct fd_rt_fwd_hdl ** handler );
 /*
  * CALLBACK:	rt_fwd_cb
  *
@@ -623,7 +623,7 @@ enum fd_rt_out_score {
  *  EINVAL 	: A parameter is invalid.
  *  ENOMEM	: Not enough memory to complete the operation
  */
-int fd_rt_out_register ( int (*rt_out_cb)(void * cbdata, struct msg * msg, struct fd_list * candidates), void * cbdata, int priority, struct fd_rt_out_hdl ** S_OUT(handler) );
+int fd_rt_out_register ( int (*rt_out_cb)(void * cbdata, struct msg * msg, struct fd_list * candidates), void * cbdata, int priority, struct fd_rt_out_hdl ** handler );
 /*
  * CALLBACK:	rt_out_cb
  *
@@ -683,8 +683,8 @@ enum {
 };
 
 int fd_event_send(struct fifo *queue, int code, size_t datasz, void * data);
-int fd_event_get(struct fifo *queue, int * S_OUT(code), size_t * S_OUT(datasz), void ** S_OUT(data));
-int fd_event_timedget(struct fifo *queue, struct timespec * timeout, int timeoutcode, int * S_OUT(code), size_t * S_OUT(datasz), void ** S_OUT(data));
+int fd_event_get(struct fifo *queue, int * code, size_t * datasz, void ** data);
+int fd_event_timedget(struct fifo *queue, struct timespec * timeout, int timeoutcode, int * code, size_t * datasz, void ** data);
 void fd_event_destroy(struct fifo **queue, void (*free_cb)(void * data));
 const char * fd_ev_str(int event);
 
@@ -743,7 +743,7 @@ struct fd_app {
 	
 int fd_app_merge(struct fd_list * list, application_id_t aid, vendor_id_t vid, int auth, int acct);
 int fd_app_check(struct fd_list * list, application_id_t aid, struct fd_app **detail);
-int fd_app_check_common(struct fd_list * list1, struct fd_list * list2, int * S_OUT(common_found));
+int fd_app_check_common(struct fd_list * list1, struct fd_list * list2, int * common_found);
 int fd_app_empty(struct fd_list * list);
 
 #endif /* _FREEDIAMETER_H */

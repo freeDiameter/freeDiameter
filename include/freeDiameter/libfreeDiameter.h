@@ -77,14 +77,6 @@
 #include <libgen.h>	/* for basename if --dbg_file is specified */
 #endif /* DEBUG */
 
-#ifdef SWIG
-#define S_INOUT(_p_) INOUT
-#define S_OUT(_p_) OUTPUT
-#else /* SWIG */
-#define S_INOUT(_p_) _p_
-#define S_OUT(_p_) _p_
-#endif /* SWIG */
-
 /*============================================================*/
 /*                          INIT                              */
 /*============================================================*/
@@ -707,13 +699,7 @@ struct fd_list {
 	{ .next = & _list_name, .prev = & _list_name, .head = & _list_name, .o = NULL }
 #define FD_LIST_INITIALIZER_O( _list_name, _obj ) \
 	{ .next = & _list_name, .prev = & _list_name, .head = & _list_name, .o = _obj }
-#ifdef SWIG
-%apply struct fd_list * OUTPUT { struct fd_list * list };
 void fd_list_init ( struct fd_list * list, void * obj );
-%clear struct fd_list * list;
-#else
-void fd_list_init ( struct fd_list * list, void * obj );
-#endif
 
 /* Return boolean, true if the list is empty */
 #define FD_IS_LIST_EMPTY( _list ) ((((struct fd_list *)(_list))->head == (_list)) && (((struct fd_list *)(_list))->next == (_list)))
@@ -792,7 +778,7 @@ int fd_dict_fini(struct dictionary ** dict);
  *  (other standard errors may be returned, too, with their standard meaning. Example:
  *    ENOMEM 	: Memory allocation for the new object element failed.)
  */
-int fd_dict_new ( struct dictionary * dict, enum dict_object_type type, void * data, struct dict_object * parent, struct dict_object ** S_OUT(ref) );
+int fd_dict_new ( struct dictionary * dict, enum dict_object_type type, void * data, struct dict_object * parent, struct dict_object ** ref );
 
 /*
  * FUNCTION: 	fd_dict_search
@@ -817,10 +803,10 @@ int fd_dict_new ( struct dictionary * dict, enum dict_object_type type, void * d
  *  EINVAL 	: A parameter is invalid.
  *  ENOENT	: No matching object has been found, and result was NULL.
  */
-int fd_dict_search ( struct dictionary * dict, enum dict_object_type type, int criteria, void * what, struct dict_object ** S_OUT(result), int retval );
+int fd_dict_search ( struct dictionary * dict, enum dict_object_type type, int criteria, void * what, struct dict_object ** result, int retval );
 
 /* Special case: get the generic error command object */
-int fd_dict_get_error_cmd(struct dictionary * dict, struct dict_object ** S_OUT(obj));
+int fd_dict_get_error_cmd(struct dictionary * dict, struct dict_object ** obj);
 
 /*
  * FUNCTION:	fd_dict_getval
@@ -838,9 +824,9 @@ int fd_dict_get_error_cmd(struct dictionary * dict, struct dict_object ** S_OUT(
  *  0      	: The content of the object has been retrieved.
  *  EINVAL 	: A parameter is invalid.
  */
-int fd_dict_getval ( struct dict_object * object, void * S_INOUT(val));
-int fd_dict_gettype ( struct dict_object * object, enum dict_object_type * S_OUT(type));
-int fd_dict_getdict ( struct dict_object * object, struct dictionary ** S_OUT(dict));
+int fd_dict_getval ( struct dict_object * object, void * val);
+int fd_dict_gettype ( struct dict_object * object, enum dict_object_type * type);
+int fd_dict_getdict ( struct dict_object * object, struct dictionary ** dict);
 
 /* Debug functions */
 void fd_dict_dump_object(struct dict_object * obj);
@@ -1616,7 +1602,7 @@ int fd_sess_start(void);
  *  EINVAL 	: A parameter is invalid.
  *  ENOMEM	: Not enough memory to complete the operation
  */
-int fd_sess_handler_create_internal ( struct session_handler ** S_OUT(handler), void (*cleanup)(session_state * state, char * sid) );
+int fd_sess_handler_create_internal ( struct session_handler ** handler, void (*cleanup)(session_state * state, char * sid) );
 /* Macro to avoid casting everywhere */
 #define fd_sess_handler_create( _handler, _cleanup ) \
 	fd_sess_handler_create_internal( (_handler), (void (*)(session_state *, char *))(_cleanup) )
@@ -1664,7 +1650,7 @@ int fd_sess_handler_destroy ( struct session_handler ** handler );
  *  EALREADY	: A session with the same name already exists (returned in *session)
  *  ENOMEM	: Not enough memory to complete the operation
  */
-int fd_sess_new ( struct session ** S_OUT(session), char * diamId, char * opt, size_t optlen );
+int fd_sess_new ( struct session ** session, char * diamId, char * opt, size_t optlen );
 
 /*
  * FUNCTION:	fd_sess_fromsid
@@ -1684,7 +1670,7 @@ int fd_sess_new ( struct session ** S_OUT(session), char * diamId, char * opt, s
  *  EINVAL 	: A parameter is invalid.
  *  ENOMEM	: Not enough memory to complete the operation
  */
-int fd_sess_fromsid ( char * sid, size_t len, struct session ** S_OUT(session), int * S_OUT(new));
+int fd_sess_fromsid ( char * sid, size_t len, struct session ** session, int * new);
 
 /*
  * FUNCTION:	fd_sess_getsid
@@ -1703,7 +1689,7 @@ int fd_sess_fromsid ( char * sid, size_t len, struct session ** S_OUT(session), 
  *  0      	: The sid parameter has been updated.
  *  EINVAL 	: A parameter is invalid.
  */
-int fd_sess_getsid ( struct session * session, char ** S_OUT(sid) );
+int fd_sess_getsid ( struct session * session, char ** sid );
 
 /*
  * FUNCTION:	fd_sess_settimeout
@@ -1804,7 +1790,7 @@ int fd_sess_state_store_internal ( struct session_handler * handler, struct sess
  *  0      	: *state is updated (NULL or points to the state if it was found).
  *  EINVAL 	: A parameter is invalid.
  */
-int fd_sess_state_retrieve_internal ( struct session_handler * handler, struct session * session, session_state ** S_OUT(state) ); 
+int fd_sess_state_retrieve_internal ( struct session_handler * handler, struct session * session, session_state ** state ); 
 #define fd_sess_state_retrieve( _handler, _session, _state ) \
 	fd_sess_state_retrieve_internal( (_handler), (_session), (void *)(_state) )
 
@@ -1824,7 +1810,7 @@ void fd_sess_dump_hdl(int level, struct session_handler * handler);
 struct rt_data;
 
 /* Following functions are helpers to create the routing data of a message */
-int  fd_rtd_init(struct rt_data ** S_OUT(rtd));
+int  fd_rtd_init(struct rt_data ** rtd);
 void fd_rtd_free(struct rt_data ** rtd);
 
 /* Add a peer to the candidates list */
@@ -1834,7 +1820,7 @@ int  fd_rtd_candidate_add(struct rt_data * rtd, char * peerid, char * realm);
 void fd_rtd_candidate_del(struct rt_data * rtd, char * peerid, size_t sz /* if !0, peerid does not need to be \0 terminated */);
 
 /* Extract the list of valid candidates, and initialize their scores to 0 */
-void fd_rtd_candidate_extract(struct rt_data * rtd, struct fd_list ** S_OUT(candidates), int ini_score);
+void fd_rtd_candidate_extract(struct rt_data * rtd, struct fd_list ** candidates, int ini_score);
 
 /* If a peer returned a protocol error for this message, save it so that we don't try to send it there again */
 int  fd_rtd_error_add(struct rt_data * rtd, char * sentto, uint8_t * origin, size_t originsz, uint32_t rcode);
@@ -1948,7 +1934,7 @@ enum msg_brw_dir {
  *  (other standard errors may be returned, too, with their standard meaning. Example:
  *    ENOMEM 	: Memory allocation for the new avp failed.)
  */
-int fd_msg_avp_new ( struct dict_object * model, int flags, struct avp ** S_OUT(avp) );
+int fd_msg_avp_new ( struct dict_object * model, int flags, struct avp ** avp );
 
 /*
  * FUNCTION:	fd_msg_new
@@ -1967,7 +1953,7 @@ int fd_msg_avp_new ( struct dict_object * model, int flags, struct avp ** S_OUT(
  *  (other standard errors may be returned, too, with their standard meaning. Example:
  *    ENOMEM 	: Memory allocation for the new message failed.)
  */
-int fd_msg_new ( struct dict_object * model, int flags, struct msg ** S_OUT(msg) );
+int fd_msg_new ( struct dict_object * model, int flags, struct msg ** msg );
 
 /*
  * FUNCTION:	msg_new_answer_from_req
@@ -1988,7 +1974,7 @@ int fd_msg_new ( struct dict_object * model, int flags, struct msg ** S_OUT(msg)
  *  0      	: Operation complete.
  *  !0      	: an error occurred.
  */
-int fd_msg_new_answer_from_req ( struct dictionary * dict, struct msg ** S_INOUT(msg), int flag );
+int fd_msg_new_answer_from_req ( struct dictionary * dict, struct msg ** msg, int flag );
 
 /*
  * FUNCTION:	fd_msg_browse
@@ -2012,7 +1998,7 @@ int fd_msg_new_answer_from_req ( struct dictionary * dict, struct msg ** S_INOUT
  *  EINVAL 	: A parameter is invalid.
  *  ENOENT	: No element has been found where requested, and "found" was NULL (otherwise, *found is set to NULL and 0 is returned). 
  */
-int fd_msg_browse_internal ( msg_or_avp * reference, enum msg_brw_dir dir, msg_or_avp ** S_OUT(found), int * S_INOUT(depth) );
+int fd_msg_browse_internal ( msg_or_avp * reference, enum msg_brw_dir dir, msg_or_avp ** found, int * depth );
 /* Macro to avoid having to cast the third parameter everywhere */
 #define fd_msg_browse( ref, dir, found, depth )	\
 	fd_msg_browse_internal( (ref), (dir), (void *)(found), (depth) )
@@ -2056,7 +2042,7 @@ int fd_msg_avp_add ( msg_or_avp * reference, enum msg_brw_dir dir, struct avp *a
  *  EINVAL 	: A parameter is invalid.
  *  ENOENT	: No AVP has been found, and "avp" was NULL (otherwise, *avp is set to NULL and 0 returned).
  */
-int fd_msg_search_avp ( struct msg * msg, struct dict_object * what, struct avp ** S_OUT(avp) );
+int fd_msg_search_avp ( struct msg * msg, struct dict_object * what, struct avp ** avp );
 
 /*
  * FUNCTION:	fd_msg_free
@@ -2113,7 +2099,7 @@ void fd_msg_dump_one  ( int level, msg_or_avp *obj );
  *  0      	: The model has been set.
  *  EINVAL 	: A parameter is invalid.
  */
-int fd_msg_model ( msg_or_avp * reference, struct dict_object ** S_OUT(model) );
+int fd_msg_model ( msg_or_avp * reference, struct dict_object ** model );
 
 /*
  * FUNCTION:	fd_msg_hdr
@@ -2129,7 +2115,7 @@ int fd_msg_model ( msg_or_avp * reference, struct dict_object ** S_OUT(model) );
  *  0      	: The location has been written.
  *  EINVAL 	: A parameter is invalid.
  */
-int fd_msg_hdr ( struct msg *msg, struct msg_hdr ** S_OUT(pdata) );
+int fd_msg_hdr ( struct msg *msg, struct msg_hdr ** pdata );
 
 /*
  * FUNCTION:	fd_msg_avp_hdr
@@ -2145,7 +2131,7 @@ int fd_msg_hdr ( struct msg *msg, struct msg_hdr ** S_OUT(pdata) );
  *  0      	: The location has been written.
  *  EINVAL 	: A parameter is invalid.
  */
-int fd_msg_avp_hdr ( struct avp *avp, struct avp_hdr ** S_OUT(pdata) );
+int fd_msg_avp_hdr ( struct avp *avp, struct avp_hdr ** pdata );
 
 /*
  * FUNCTION:	fd_msg_answ_associate, fd_msg_answ_getq, fd_msg_answ_detach
@@ -2166,7 +2152,7 @@ int fd_msg_avp_hdr ( struct avp *avp, struct avp_hdr ** S_OUT(pdata) );
  *  EINVAL: a parameter is invalid
  */
 int fd_msg_answ_associate( struct msg * answer, struct msg * query );
-int fd_msg_answ_getq     ( struct msg * answer, struct msg ** S_OUT(query) );
+int fd_msg_answ_getq     ( struct msg * answer, struct msg ** query );
 int fd_msg_answ_detach   ( struct msg * answer );
 
 /*
@@ -2208,7 +2194,7 @@ int fd_msg_anscb_get      ( struct msg * msg, void (**anscb)(void *, struct msg 
 #ifndef SWIG
 int fd_msg_rt_associate( struct msg * msg, struct rt_data ** rtd );
 #endif /* !SWIG */
-int fd_msg_rt_get      ( struct msg * msg, struct rt_data ** S_OUT(rtd) );
+int fd_msg_rt_get      ( struct msg * msg, struct rt_data ** rtd );
 
 /*
  * FUNCTION:	fd_msg_is_routable
@@ -2248,7 +2234,7 @@ int fd_msg_is_routable ( struct msg * msg );
 #ifndef SWIG
 int fd_msg_source_set( struct msg * msg, char * diamid, int add_rr, struct dictionary * dict );
 #endif /* !SWIG */
-int fd_msg_source_get( struct msg * msg, char ** S_OUT(diamid) );
+int fd_msg_source_get( struct msg * msg, char ** diamid );
 
 /*
  * FUNCTION:	fd_msg_eteid_get
@@ -2283,7 +2269,7 @@ uint32_t fd_msg_eteid_get ( void );
  *  0 : success
  * !0 : standard error code.
  */
-int fd_msg_sess_get(struct dictionary * dict, struct msg * msg, struct session ** S_OUT(session), int * S_OUT(new));
+int fd_msg_sess_get(struct dictionary * dict, struct msg * msg, struct session ** session, int * new);
 
 /***************************************/
 /*   Manage AVP values                 */
@@ -2369,7 +2355,7 @@ int fd_msg_avp_value_interpret ( struct avp *avp, void *data );
  *  EINVAL 	: The buffer does not contain a valid Diameter message.
  *  ENOMEM	: Unable to allocate enough memory to create the buffer object.
  */
-int fd_msg_bufferize ( struct msg * msg, unsigned char ** S_OUT(buffer), size_t * S_OUT(len) );
+int fd_msg_bufferize ( struct msg * msg, unsigned char ** buffer, size_t * len );
 
 /*
  * FUNCTION:	fd_msg_parse_buffer
@@ -2391,7 +2377,7 @@ int fd_msg_bufferize ( struct msg * msg, unsigned char ** S_OUT(buffer), size_t 
  *  EBADMSG	: The buffer does not contain a valid Diameter message (or is truncated).
  *  EINVAL 	: A parameter is invalid.
  */
-int fd_msg_parse_buffer ( unsigned char ** buffer, size_t buflen, struct msg ** S_OUT(msg) );
+int fd_msg_parse_buffer ( unsigned char ** buffer, size_t buflen, struct msg ** msg );
 
 /* Parsing Error Information structure */
 struct fd_pei {
@@ -2425,7 +2411,7 @@ struct fd_pei {
  *  ENOMEM	: Unable to allocate enough memory to complete the operation.
  *  ENOTSUP	: No dictionary definition for the command or one of the mandatory AVP was found.
  */
-int fd_msg_parse_dict ( msg_or_avp * object, struct dictionary * dict, struct fd_pei * S_OUT(error_info) );
+int fd_msg_parse_dict ( msg_or_avp * object, struct dictionary * dict, struct fd_pei * error_info );
 
 /*
  * FUNCTION:	fd_msg_parse_rules
@@ -2444,7 +2430,7 @@ int fd_msg_parse_dict ( msg_or_avp * object, struct dictionary * dict, struct fd
  *  EINVAL 	: The msg or avp object is invalid for this operation.
  *  ENOMEM	: Unable to allocate enough memory to complete the operation.
  */
-int fd_msg_parse_rules ( msg_or_avp * object, struct dictionary * dict, struct fd_pei * S_OUT(error_info));
+int fd_msg_parse_rules ( msg_or_avp * object, struct dictionary * dict, struct fd_pei * error_info);
 
 
 
@@ -2623,7 +2609,7 @@ struct disp_hdl;
  *  ENOMEM	: Not enough memory to complete the operation
  */
 int fd_disp_register ( int (*cb)( struct msg **, struct avp *, struct session *, enum disp_action *), 
-			enum disp_how how, struct disp_when * when, struct disp_hdl ** S_OUT(handle) );
+			enum disp_how how, struct disp_when * when, struct disp_hdl ** handle );
 
 /*
  * FUNCTION:	fd_disp_unregister
@@ -2689,7 +2675,7 @@ struct fifo;
  *  EINVAL 	: The parameter is invalid.
  *  ENOMEM	: Not enough memory to complete the creation.  
  */
-int fd_fifo_new ( struct fifo ** S_OUT(queue) );
+int fd_fifo_new ( struct fifo ** queue );
 
 /*
  * FUNCTION:	fd_fifo_del
@@ -2810,7 +2796,7 @@ int fd_fifo_post_int ( struct fifo * queue, void ** item );
  *  0		: A new element has been retrieved.
  *  EINVAL 	: A parameter is invalid.
  */
-int fd_fifo_get_int ( struct fifo * queue, void ** S_OUT(item) );
+int fd_fifo_get_int ( struct fifo * queue, void ** item );
 #define fd_fifo_get(queue, item) \
 	fd_fifo_get_int((queue), (void *)(item))
 
@@ -2830,7 +2816,7 @@ int fd_fifo_get_int ( struct fifo * queue, void ** S_OUT(item) );
  *  EINVAL 	: A parameter is invalid.
  *  EWOULDBLOCK : The queue was empty.
  */
-int fd_fifo_tryget_int ( struct fifo * queue, void ** S_OUT(item) );
+int fd_fifo_tryget_int ( struct fifo * queue, void ** item );
 #define fd_fifo_tryget(queue, item) \
 	fd_fifo_tryget_int((queue), (void *)(item))
 
@@ -2852,7 +2838,7 @@ int fd_fifo_tryget_int ( struct fifo * queue, void ** S_OUT(item) );
  *  EINVAL 	: A parameter is invalid.
  *  ETIMEDOUT   : The time out has passed and no item has been received.
  */
-int fd_fifo_timedget_int ( struct fifo * queue, void ** S_OUT(item), const struct timespec *abstime );
+int fd_fifo_timedget_int ( struct fifo * queue, void ** item, const struct timespec *abstime );
 #define fd_fifo_timedget(queue, item, abstime) \
 	fd_fifo_timedget_int((queue), (void *)(item), (abstime))
 
