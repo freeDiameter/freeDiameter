@@ -204,9 +204,12 @@ int main(int argc, char *argv[])
 		int 			 count;
 		int			 i;
 		int			 nbr_threads;
-		
+#ifdef _POSIX_THREAD_THREADS_MAX
+		nbr_threads = _POSIX_THREAD_THREADS_MAX;
+#else /* _POSIX_THREAD_THREADS_MAX */
 		nbr_threads = sysconf(_SC_THREAD_THREADS_MAX);
-		if ((nbr_threads <= 0) || (nbr_threads > NBR_THREADS / 2)) {
+#endif /* _POSIX_THREAD_THREADS_MAX */
+		if ((nbr_threads <= 0) || (nbr_threads > NBR_THREADS * 2)) {
 			nbr_threads = NBR_THREADS;
 		} else {
 			/* The local limit is bellow NBR_THREADS */
