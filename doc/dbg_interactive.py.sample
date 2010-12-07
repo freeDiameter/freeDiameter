@@ -1,0 +1,73 @@
+# Example file for the dbg_interactive.fdx extension.
+#
+# This extension provides an interactive python interpreter console that allows
+# interacting with freeDiameter framework.
+#
+# The adaptation layer between Python and C is provided by SWIG (http://swig.org). 
+# You may refer to SWIG documentation for more information on how the wrapper is generated and used.
+# Please note that the high-level wrapper file (python file) is not used in dbg_interactive at the moment,
+# but all symbols from the module are imported.
+#
+# Similar to all freeDiameter extensions, an optional filename can be specified in the
+# main freeDiameter.conf configuration file for the dbg_interactive.fdx extension.
+# If such file is provided, it will be passed to the python interpreter as a python script
+# to execute. Otherwise, the interpreter will be interactive.
+#
+# Bellow are some example use of the python interpreter:
+
+
+# Display current version
+print FD_PROJECT_NAME, FD_PROJECT_VERSION_MAJOR, FD_PROJECT_VERSION_MINOR, FD_PROJECT_VERSION_REV
+
+
+# Turn on debug for a specific function
+cvar.fd_debug_one_function = "gc_th_fct"
+
+
+# Use freeDiameter's debug facility
+fd_log_debug("3 + 4 = %d\n", 7)
+# Hum... Currently I get "3 + 4 = 0" output... need some fix...
+
+
+# Change the global debug level of the framework
+cvar.fd_g_debug_lvl = FULL
+
+
+# Display the local Diameter Identity:
+print "Local Diameter Identity:", fd_config_cnf_diamid_get(cvar.fd_g_config)
+print "Realm:", fd_config_cnf_diamrlm_get(cvar.fd_g_config)
+
+
+# Display some states information
+evl = fd_config_cnf_main_ev_get(cvar.fd_g_config)
+r = fd_event_send(evl, FDEV_DUMP_PEERS, 0, None)
+r = fd_event_send(evl, FDEV_DUMP_SERV, 0, None)
+r = fd_event_send(evl, FDEV_DUMP_EXT, 0, None)
+
+
+# Create a new peer_info structure and add the peer to the framework.
+mypeer = new_peer_info()
+peer_info_pi_diamid_set( mypeer, "nas.testbed.aaa" )
+myconfig = peer_info_config_get(mypeer)
+mypicflag = peer_info_config_pic_flags_get(myconfig)
+peer_info_config_pic_flags_pro4_set(mypicflag, 1)   # 1 for TCP
+fd_peer_add(mypeer, "python", None, None)
+
+
+# Lists
+mylist = new_fd_list()
+fd_list_init(mylist, None)
+l2 = new_fd_list()
+fd_list_init(l2, None)
+fd_list_insert_after(mylist, l2)
+fd_list_unlink(l2)
+delete_fd_list(l2)
+delete_fd_list(mylist)
+
+# Dictionary
+gdict = fd_config_cnf_dict_get(cvar.fd_g_config)
+@@@ fd_dict_search ( gdict, DICT_APPLICATION, APPLICATION_BY_ID, id, res, -1 )
+
+
+
+
