@@ -80,8 +80,6 @@
 /*============================================================*/
 /*                          INIT                              */
 /*============================================================*/
-#ifndef SWIG  /* This section is not included in wrapper */
-
 
 /* This function must be called first, before any call to another library function */
 /* If the parameter is not 0, the support for signals (fd_sig_register) is enabled, otherwise it is disabled */
@@ -92,7 +90,6 @@ int fd_lib_init(int support_signals);
 void fd_lib_fini(void);
 
 
-#endif /* !SWIG */
 /*============================================================*/
 /*                          DEBUG                             */
 /*============================================================*/
@@ -117,9 +114,7 @@ void fd_lib_fini(void);
  *  None.
  */
 void fd_log_debug ( char * format, ... );
-#ifndef SWIG
 extern pthread_mutex_t	fd_log_lock;
-#endif /* !SWIG */
 extern char * fd_debug_one_function;
 extern char * fd_debug_one_file;
 
@@ -138,10 +133,8 @@ extern char * fd_debug_one_file;
  * RETURN VALUE:
  *  None.
  */
-#ifndef SWIG 
 void fd_log_threadname ( char * name );
 extern pthread_key_t	fd_log_thname;
-#endif /* !SWIG */
 
 /*
  * FUNCTION:	fd_log_time
@@ -164,11 +157,9 @@ char * fd_log_time ( struct timespec * ts, char * buf, size_t len );
 /*                    DEBUG MACROS                            */
 /*============================================================*/
 
-#ifndef SWIG 
 #ifndef ASSERT
 #define ASSERT(x) assert(x)
 #endif /* ASSERT */
-#endif /* !SWIG */
 
 /* levels definitions */
 #define NONE 0	/* Display no debug message */
@@ -179,22 +170,17 @@ char * fd_log_time ( struct timespec * ts, char * buf, size_t len );
 #define CALL 9  /* Display calls to most functions (with CHECK macros) */
 
 /* Default level is INFO */
-#ifndef SWIG 
 #ifndef TRACE_LEVEL 
 #define TRACE_LEVEL INFO
 #endif /* TRACE_LEVEL */
-#endif /* !SWIG */
 
 /* The level of the file being compiled. */
-#ifndef SWIG 
 static int local_debug_level = TRACE_LEVEL;
-#endif /* !SWIG */
 
 /* A global level, changed by configuration or cmd line for example. default is 0. */
 extern int fd_g_debug_lvl;
 
 /* Some portability code to get nice function name in __PRETTY_FUNCTION__ */
-#ifndef SWIG 
 #if __STDC_VERSION__ < 199901L
 # if __GNUC__ >= 2
 #  define __func__ __FUNCTION__
@@ -205,17 +191,13 @@ extern int fd_g_debug_lvl;
 #ifndef __PRETTY_FUNCTION__
 #define __PRETTY_FUNCTION__ __func__
 #endif /* __PRETTY_FUNCTION__ */
-#endif /* !SWIG */
 
 /* A version of __FILE__ without the full path */
-#ifndef SWIG 
 static char * file_bname = NULL;
 #define __STRIPPED_FILE__	(file_bname ?: (file_bname = basename(__FILE__)))
-#endif /* !SWIG */
 
 
 /* Boolean for tracing at a certain level */
-#ifndef SWIG 
 #ifdef DEBUG
 #define TRACE_BOOL(_level_) ( ((_level_) <= local_debug_level + fd_g_debug_lvl) 					\
 				|| (fd_debug_one_function && !strcmp(fd_debug_one_function, __PRETTY_FUNCTION__)) 	\
@@ -223,13 +205,11 @@ static char * file_bname = NULL;
 #else /* DEBUG */
 #define TRACE_BOOL(_level_) ((_level_) <= local_debug_level + fd_g_debug_lvl)
 #endif /* DEBUG */
-#endif /* !SWIG */
 
 
 /*************
  The general debug macro, each call results in two lines of debug messages (change the macro for more compact output) 
  *************/
-#ifndef SWIG 
 #ifdef DEBUG
 /* In DEBUG mode, we add (a lot of) meta-information along each trace. This makes multi-threading problems easier to debug. */
 #define TRACE_DEBUG(level,format,args... ) {											\
@@ -259,12 +239,10 @@ static char * file_bname = NULL;
 	}																\
 }
 #endif /* DEBUG */
-#endif /* !SWIG */
 
 /*************
  Derivatives from this macro 
  ************/
-#ifndef SWIG 
 /* Helper for function entry -- for very detailed trace of the execution */
 #define TRACE_ENTRY(_format,_args... ) \
 	TRACE_DEBUG(FCTS, "[enter] %s(" _format ") {" #_args "}", __PRETTY_FUNCTION__, ##_args );
@@ -396,7 +374,6 @@ int fd_breakhere(void);
 }
 #endif /* STRIP_DEBUG_CODE */
 
-#endif /* !SWIG */
 
 /*============================================================*/
 /*                  ERROR CHECKING MACRO                      */
@@ -405,7 +382,6 @@ int fd_breakhere(void);
 /* Macros to check a return value and branch out in case of error.
  * These macro should be used only when errors are improbable, not for expected errors.
  */
-#ifndef SWIG 
 
 /* Check the return value of a system function and execute fallback in case of error */
 #define CHECK_SYS_DO( __call__, __fallback__  ) { 					\
@@ -499,14 +475,12 @@ int fd_breakhere(void);
 	CHECK_FCT_DO( __v__ = (__call__), return __v__ );				\
 }
 
-#endif /* !SWIG */
 
 
 /*============================================================*/
 /*                  OTHER MACROS                              */
 /*============================================================*/
 
-#ifndef SWIG 
 
 /* helper macros (pre-processor hacks to allow macro arguments) */
 #define __str( arg )  #arg
@@ -590,13 +564,11 @@ int fd_breakhere(void);
 #define BUFSIZ 96
 #endif /* BUFSIZ */
 
-#endif /* !SWIG */
 
 
 /*============================================================*/
 /*                          THREADS                           */
 /*============================================================*/
-#ifndef SWIG 
 
 /* Terminate a thread */
 static __inline__ int fd_thr_term(pthread_t * th)
@@ -659,7 +631,6 @@ static __inline__ void fd_cleanup_socket(void * sockptr)
 		*(int *)sockptr = -1;
 	}
 }
-#endif /* !SWIG */
 
 /*============================================================*/
 /*                          SIGNALS                           */
@@ -668,9 +639,7 @@ static __inline__ void fd_cleanup_socket(void * sockptr)
 /* Register a new callback to be called on reception of a given signal (it receives the signal as parameter) */
 /* EALREADY will be returned if there is already a callback registered on this signal */
 /* NOTE: the signal handler will be called from a new detached thread */
-#ifndef SWIG 
 int fd_sig_register(int signal, char * modname, void (*callback)(int signal));
-#endif /* !SWIG */
 
 /* Remove the handler for a given signal */
 int fd_sig_unregister(int signal);
@@ -1581,9 +1550,7 @@ struct session;
 typedef void session_state;
 
 /* The following function must be called to activate the session expiry mechanism */
-#ifndef SWIG 
 int fd_sess_start(void);
-#endif /* !SWIG */
 
 /*
  * FUNCTION:	fd_sess_handler_create
@@ -2171,10 +2138,8 @@ int fd_msg_answ_detach   ( struct msg * answer );
  *  0 	  : ok
  *  EINVAL: a parameter is invalid
  */
-#ifndef SWIG
 int fd_msg_anscb_associate( struct msg * msg, void ( *anscb)(void *, struct msg **), void  * data );
 int fd_msg_anscb_get      ( struct msg * msg, void (**anscb)(void *, struct msg **), void ** data );
-#endif /* !SWIG */
 
 /*
  * FUNCTION:	fd_msg_rt_associate, fd_msg_rt_get
@@ -2191,9 +2156,7 @@ int fd_msg_anscb_get      ( struct msg * msg, void (**anscb)(void *, struct msg 
  *  0 	  : ok
  *  EINVAL: a parameter is invalid
  */
-#ifndef SWIG
 int fd_msg_rt_associate( struct msg * msg, struct rt_data ** rtd );
-#endif /* !SWIG */
 int fd_msg_rt_get      ( struct msg * msg, struct rt_data ** rtd );
 
 /*
@@ -2231,9 +2194,7 @@ int fd_msg_is_routable ( struct msg * msg );
  *  0      	: Operation complete.
  *  !0      	: an error occurred.
  */
-#ifndef SWIG
 int fd_msg_source_set( struct msg * msg, char * diamid, int add_rr, struct dictionary * dict );
-#endif /* !SWIG */
 int fd_msg_source_get( struct msg * msg, char ** diamid );
 
 /*
@@ -2309,9 +2270,7 @@ int fd_msg_avp_setvalue ( struct avp *avp, union avp_value *value );
  *  EINVAL 	: A parameter is invalid.
  *  ENOTSUP 	: There is no appropriate callback registered with this AVP's type.
  */
-#ifndef SWIG
 int fd_msg_avp_value_encode ( void *data, struct avp *avp );
-#endif /* !SWIG */
 /*
  * FUNCTION:	fd_msg_avp_value_interpret
  *
@@ -2329,9 +2288,7 @@ int fd_msg_avp_value_encode ( void *data, struct avp *avp );
  *  EINVAL 	: A parameter is invalid.
  *  ENOTSUP 	: There is no appropriate callback registered with this AVP's type.
  */
-#ifndef SWIG
 int fd_msg_avp_value_interpret ( struct avp *avp, void *data );
-#endif /* !SWIG */
 
 
 /***************************************/

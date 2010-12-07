@@ -46,7 +46,6 @@
 #define GNUTLS_VERSION LIBGNUTLS_VERSION
 #endif /* GNUTLS_VERSION */
 
-#ifndef SWIG
 /* GNUTLS calls debug level */
 #ifndef GNUTLS_DBG_LEVEL
 #define GNUTLS_DBG_LEVEL ANNOYING
@@ -68,7 +67,6 @@
 	TRACE_DEBUG(GNUTLS_DBG_LEVEL, "GNUTLS call: " #__call__ );	\
 	(__call__);							\
 }
-#endif /* !SWIG */
 
 /* Structure to hold the configuration of the freeDiameter daemon */
 struct fd_config {
@@ -127,13 +125,7 @@ struct fd_config {
 	struct dictionary *cnf_dict;	/* pointer to the global dictionary */
 	struct fifo	  *cnf_main_ev;	/* events for the daemon's main (struct fd_event items) */
 };
-#ifdef SWIG
-%immutable;
-#endif /* SWIG */
 extern struct fd_config *fd_g_config; /* The pointer to access the global configuration, initalized in main */
-#ifdef SWIG
-%mutable;
-#endif /* SWIG */
 
 
 /***************************************/
@@ -181,13 +173,7 @@ const char *peer_state_str[] = { 	\
 	, "STATE_REOPEN"		\
 	, "STATE_ZOMBIE"		\
 	};
-#ifndef SWIG
 extern const char *peer_state_str[];
-#else /* SWIG */
-%immutable;
-extern const char **peer_state_str;
-%mutable;
-#endif /* !SWIG */
 #define STATE_STR(state) \
 	(((unsigned)(state)) <= STATE_MAX ? peer_state_str[((unsigned)(state)) ] : "<Invalid>")
 
@@ -696,17 +682,16 @@ const char * fd_ev_str(int event);
 struct fd_endpoint {
 	struct fd_list  chain;	/* link in cnf_endpoints list */
 	
-#ifndef SWIG
 	union {
 		sSS		ss;	/* the socket information. List is always ordered by ss value (memcmp) -- see fd_ep_add_merge */
 		sSA4		sin;
 		sSA6		sin6;
 		sSA		sa;
-	};
-#else /* !SWIG */
-	/* SWIG does not support unions inside struct, we only define sa in this case */
-	sSA		sa;
-#endif /* !SWIG */
+	}
+#ifdef SWIG /* nested anonymous unions are not supported yet */
+			s
+#endif /* SWIG */
+	;
 	
 #define	EP_FL_CONF	(1 << 0)	/* This endpoint is statically configured in a configuration file */
 #define	EP_FL_DISC	(1 << 1)	/* This endpoint was resolved from the Diameter Identity or other DNS query */

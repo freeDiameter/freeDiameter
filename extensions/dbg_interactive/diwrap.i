@@ -36,19 +36,35 @@
 /* This interface file is processed by SWIG to create a python wrapper interface to freeDiameter framework. */
 %module diwrap
 
-/* Include standard types used in freeDiameter headers */
+/* Include standard types & functions used in freeDiameter headers */
 %include <stdint.i>
-  
-/* Allow modification of the wrapper for OUTPUT vars */
-%include "typemaps.i"
 
 %{
 /* Define types etc. */
+#define SWIG
 #include <freeDiameter/extension.h>
 %}
+
+/* Some functions are not available through the wrapper */
+%ignore fd_lib_init;
+%ignore fd_lib_fini;
+%ignore fd_sess_start;
+
+/* Inline functions seems to give problems to SWIG -- just remove the inline definition */
+%define __inline__ 
+%enddef
+
+/* Make some global-variables read-only */
+%immutable fd_g_config;
+%immutable peer_state_str;
+
+/* Overwrite a few functions prototypes for usability */
+extern void fd_list_init ( struct fd_list * list, void * obj = NULL );
+
 
 /* Retrieve the compile-time definitions of freeDiameter */
 %include "freeDiameter/freeDiameter-host.h"
 %include "freeDiameter/libfreeDiameter.h"
 %include "freeDiameter/freeDiameter.h"
+
 
