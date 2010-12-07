@@ -1,3 +1,6 @@
+/* This interface file is processed by SWIG to create a python wrapper interface to freeDiameter framework. */
+%module diwrap
+%begin %{
 /*********************************************************************************************************
 * Software License Agreement (BSD License)                                                               *
 * Author: Sebastien Decugis <sdecugis@nict.go.jp>							 *
@@ -32,12 +35,12 @@
 * TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF   *
 * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.								 *
 *********************************************************************************************************/
+%}
 
-/* This interface file is processed by SWIG to create a python wrapper interface to freeDiameter framework. */
-%module diwrap
 
-/* Include standard types & functions used in freeDiameter headers */
-%include <stdint.i>
+%init %{
+/* TODO: How to load the proxy classes here? */
+%}
 
 %{
 /* Define types etc. */
@@ -45,21 +48,36 @@
 #include <freeDiameter/extension.h>
 %}
 
+
+/* Include standard types & functions used in freeDiameter headers */
+%include <stdint.i>
+%include <cpointer.i>
+%include <typemaps.i>
+
 /* Some functions are not available through the wrapper */
 %ignore fd_lib_init;
 %ignore fd_lib_fini;
-%ignore fd_sess_start;
 
 /* Inline functions seems to give problems to SWIG -- just remove the inline definition */
 %define __inline__ 
 %enddef
 
-/* Make some global-variables read-only */
+/* Make some global-variables read-only (mainly to avoid warnings) */
 %immutable fd_g_config;
 %immutable peer_state_str;
 
-/* Overwrite a few functions prototypes for usability */
+/* Overwrite a few functions prototypes for usability: default parameters values, OUTPUT typemaps, ... */
 extern void fd_list_init ( struct fd_list * list, void * obj = NULL );
+
+
+/*
+extern int fd_dict_new ( struct dictionary * dict, enum dict_object_type type, void * data, struct dict_object * parent, struct dict_object ** OUTPUT );
+extern int fd_dict_search ( struct dictionary * dict, enum dict_object_type type, int criteria, void * what, struct dict_object ** OUTPUT, int retval );
+extern int fd_dict_get_error_cmd(struct dictionary * dict, struct dict_object ** OUTPUT);
+extern int fd_dict_getval ( struct dict_object * object, void * INOUT);
+//extern int fd_dict_gettype ( struct dict_object * object, enum dict_object_type * OUTPUT);
+extern int fd_dict_getdict ( struct dict_object * object, struct dictionary ** OUTPUT);
+*/
 
 
 /* Retrieve the compile-time definitions of freeDiameter */
@@ -68,3 +86,65 @@ extern void fd_list_init ( struct fd_list * list, void * obj = NULL );
 %include "freeDiameter/freeDiameter.h"
 
 
+/* Some pointer types that are useful */
+%pointer_class(int, int_ptr);
+%pointer_class(enum dict_object_type, dict_object_type_ptr);
+%pointer_functions(struct dict_object *, dict_object_ptr);
+%pointer_functions(struct session *, session_ptr);
+
+
+
+
+/* Extend some structures for usability/debug in python */
+%extend fd_list {
+	fd_list(void * o = NULL) {
+		struct fd_list * li;
+		li = (struct fd_list *) malloc(sizeof(struct fd_list));
+		if (!li) {
+			fd_log_debug("Out of memory!\n");
+			return NULL;
+		}
+		fd_list_init(li, o);
+		return li;
+	}
+	~fd_list() {
+		fd_list_unlink($self);
+		free($self);
+	}
+	void dump() {
+		fd_log_debug("list: %p\n", $self);
+		fd_log_debug("  - next: %p\n", $self->next);
+		fd_log_debug("  - prev: %p\n", $self->prev);
+		fd_log_debug("  - head: %p\n", $self->head);
+		fd_log_debug("  - o   : %p\n", $self->o);
+	}
+};
+
+%extend dict_object_type_ptr {
+	void dump() {
+		%#define CASE_STR(x)  case x: fd_log_debug(#x "\n"); break;
+		switch (*$self) {
+			CASE_STR(DICT_VENDOR)
+			CASE_STR(DICT_APPLICATION)
+			CASE_STR(DICT_TYPE)
+			CASE_STR(DICT_ENUMVAL)
+			CASE_STR(DICT_AVP)
+			CASE_STR(DICT_COMMAND)
+			CASE_STR(DICT_RULE)
+			default: fd_log_debug("Invalid value (%d)", *$self); break;
+		}
+	}
+}
+
+%inline %{ 
+void session_ptr_showsid(struct session * s) {
+	char * sid;
+	int ret = fd_sess_getsid ( s, &sid );
+	if (ret != 0) {
+		fd_log_debug("Error %d\n", ret);
+		/* throw an exception in SWIG? */
+		return;
+	}
+	fd_log_debug("%s\n", sid);
+}
+%}

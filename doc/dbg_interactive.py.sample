@@ -20,17 +20,27 @@
 print FD_PROJECT_NAME, FD_PROJECT_VERSION_MAJOR, FD_PROJECT_VERSION_MINOR, FD_PROJECT_VERSION_REV
 
 
+# Change the global debug level of the framework (cvar contains all global variables)
+cvar.fd_g_debug_lvl = FULL
+
+
 # Turn on debug for a specific function
 cvar.fd_debug_one_function = "gc_th_fct"
 
 
-# Use freeDiameter's debug facility
+# Print messages to freeDiameter's debug facility
 fd_log_debug("3 + 4 = %d\n", 7)
 # Hum... Currently I get "3 + 4 = 0" output... need some fix...
 
 
-# Change the global debug level of the framework
-cvar.fd_g_debug_lvl = FULL
+# SWIG deals with structures as follow:
+# Take the structure:
+# struct foo { int a; }
+# The following functions are available to python:
+# s = new_foo()	   --> s = calloc(1, sizeof(struct foo))
+# foo_a_set(s, 2)  --> s->a = 2
+# foo_a_get(s)     --> returns s->a value
+# delete_foo(s)    --> free(s)
 
 
 # Display the local Diameter Identity:
@@ -55,19 +65,29 @@ fd_peer_add(mypeer, "python", None, None)
 
 
 # Lists
-mylist = new_fd_list()
-fd_list_init(mylist, None)
+l1 = new_fd_list()
 l2 = new_fd_list()
-fd_list_init(l2, None)
-fd_list_insert_after(mylist, l2)
-fd_list_unlink(l2)
+fd_list_insert_after(l1, l2)
+fd_list_dump(l1)
+fd_list_dump(l2)
 delete_fd_list(l2)
-delete_fd_list(mylist)
+fd_list_dump(l1)
+delete_fd_list(l1)
+
 
 # Dictionary
 gdict = fd_config_cnf_dict_get(cvar.fd_g_config)
-@@@ fd_dict_search ( gdict, DICT_APPLICATION, APPLICATION_BY_ID, id, res, -1 )
-
+id = new_int_ptr()
+int_ptr_assign(id, 3)
+res = new_dict_object_ptr()
+err = fd_dict_search ( gdict, DICT_APPLICATION, APPLICATION_BY_ID, id, res, -1 )
+obj = dict_object_ptr_value(res)
+t = new_dict_object_type_ptr()
+err = fd_dict_gettype(obj, t)
+dict_object_type_ptr_dump(t)
+v = new_dict_application_data()
+err = fd_dict_getval(obj, v)
+dict_application_data_application_name_get(v)
 
 
 
