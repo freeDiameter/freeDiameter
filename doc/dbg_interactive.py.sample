@@ -29,8 +29,8 @@ cvar.fd_debug_one_function = "gc_th_fct"
 
 
 # Print messages to freeDiameter's debug facility
-fd_log_debug("3 + 4 = %d\n", 7)
-# Hum... Currently I get "3 + 4 = 0" output... need some fix...
+fd_log_debug("3 + 4 = %d\n" % (7))
+# See SWIG documentation about varargs functions for more information
 
 
 # SWIG deals with structures as follow:
@@ -41,6 +41,12 @@ fd_log_debug("3 + 4 = %d\n", 7)
 # foo_a_set(s, 2)  --> s->a = 2
 # foo_a_get(s)     --> returns s->a value
 # delete_foo(s)    --> free(s)
+#
+# In addition, thanks to proxy (aka shadow) class, we can also do:
+# s = foo()
+# s.a = 2
+# s.a
+# del s
 
 
 # Display the local Diameter Identity:
@@ -62,6 +68,7 @@ myconfig = peer_info_config_get(mypeer)
 mypicflag = peer_info_config_pic_flags_get(myconfig)
 peer_info_config_pic_flags_pro4_set(mypicflag, 1)   # 1 for TCP
 fd_peer_add(mypeer, "python", None, None)
+delete_peer_info(mypeer)
 
 
 # Lists
@@ -77,17 +84,100 @@ delete_fd_list(l1)
 
 # Dictionary
 gdict = fd_config_cnf_dict_get(cvar.fd_g_config)
+
 id = new_int_ptr()
 int_ptr_assign(id, 3)
-res = new_dict_object_ptr()
-err = fd_dict_search ( gdict, DICT_APPLICATION, APPLICATION_BY_ID, id, res, -1 )
-obj = dict_object_ptr_value(res)
+pobj = new_dict_object_pptr()
+fd_dict_search ( gdict, DICT_APPLICATION, APPLICATION_BY_ID, id, pobj, -1 )
+delete_int_ptr(id)
+obj = dict_object_pptr_value(pobj)
+delete_dict_object_pptr(pobj)
 t = new_dict_object_type_ptr()
-err = fd_dict_gettype(obj, t)
+fd_dict_gettype(obj, t)
 dict_object_type_ptr_dump(t)
-v = new_dict_application_data()
-err = fd_dict_getval(obj, v)
-dict_application_data_application_name_get(v)
+delete_dict_object_type_ptr(t)
+objdata = new_dict_application_data()
+fd_dict_getval(obj, objdata)
+dict_application_data_application_name_get(objdata)
+delete_dict_application_data(objdata)
+
+vd = new_dict_vendor_data()
+dict_vendor_data_vendor_id_set(vd, 123)
+dict_vendor_data_vendor_name_set(vd, "my test vendor")
+pobj = new_dict_object_pptr()
+fd_dict_new ( gdict, DICT_VENDOR, vd, None, pobj)
+delete_dict_vendor_data(vd)
+obj = dict_object_pptr_value(pobj)
+delete_dict_object_pptr(pobj)
+fd_dict_dump_object(obj)
 
 
+# Sessions
+pmyhdl = new_session_handler_pptr()
+fd_sess_handler_create_internal(pmyhdl, None)
+### Have to work on this one, a cleanup handler is actually required.
+### How to define the handler in python ?
+myhdl = session_handler_pptr_value(pmyhdl)
+delete_session_handler_pptr(pmyhdl)
+
+psess = new_session_pptr()
+fd_sess_new (psess, fd_config_cnf_diamid_get(cvar.fd_g_config), "dbg_interactive", 0)
+sess = session_pptr_value(psess)
+fd_sess_dump(0, sess)
+fd_sess_destroy(psess)
+delete_session_pptr(psess)
+
+
+# Routing data
+prtd = new_rt_data_pptr()
+fd_rtd_init(prtd)
+fd_rtd_candidate_add(rt_data_pptr_value(prtd), "p1.testbed.aaa", "testbed.aaa")
+fd_rtd_candidate_add(rt_data_pptr_value(prtd), "p2.testbed.aaa", "testbed.aaa")
+fd_rtd_candidate_add(rt_data_pptr_value(prtd), "p3.testbed.aaa", "testbed.aaa")
+fd_rtd_candidate_del(rt_data_pptr_value(prtd), "p2.testbed.aaa", 0)
+pcands = new_fd_list_pptr()
+fd_rtd_candidate_extract(rt_data_pptr_value(prtd), pcands, 0)
+li = fd_list_pptr_value(pcands)
+li = fd_list_next_get(li)
+c = fd_list_to_rtd_candidate(li)
+rtd_candidate_diamid_get(c)
+li = fd_list_next_get(li)
+c = fd_list_to_rtd_candidate(li)
+rtd_candidate_diamid_get(c)
+
+
+# Messages
+gdict = fd_config_cnf_dict_get(cvar.fd_g_config)
+pobj = new_dict_object_pptr()
+fd_dict_search ( gdict, DICT_COMMAND, CMD_BY_NAME, char_to_void("Capabilities-Exchange-Request"), pobj, -1 )
+cerdict = dict_object_pptr_value(pobj)
+fd_dict_search ( gdict, DICT_AVP, AVP_BY_NAME, char_to_void("Origin-Host"), pobj, -1 )
+ohdict = dict_object_pptr_value(pobj)
+delete_dict_object_pptr(pobj)
+
+pmsg = new_msg_pptr()
+fd_msg_new(cerdict, MSGFL_ALLOC_ETEID, pmsg)
+msg = msg_pptr_value(pmsg);
+pavp = new_avp_pptr()
+fd_msg_avp_new(ohdict, 0, pavp)
+avp = avp_pptr_value(pavp);
+fd_msg_avp_add(msg, MSG_BRW_FIRST_CHILD, avp)
+fd_msg_dump_walk(0, msg)
+
+pahdr = new_avp_hdr_pptr()
+fd_msg_avp_hdr(avp, pahdr)
+ahdr = avp_hdr_pptr_value(pahdr)
+delete_avp_hdr_pptr(pahdr)
+avp_hdr_avp_code_get(ahdr)
+os = new_avp_value_os()
+avp_value_os_fromstr(os, fd_config_cnf_diamid_get(cvar.fd_g_config))
+val = new_avp_value()
+avp_value_os_set(val, os)
+delete_avp_value_os(os)
+fd_msg_avp_setvalue(avp, val)
+delete_avp_value(val)
+
+r,buf = fd_msg_bufferize_py(msg)
+fd_msg_free(msg)
+delete_avp_pptr(pavp)
 

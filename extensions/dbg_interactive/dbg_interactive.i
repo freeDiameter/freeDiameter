@@ -1,5 +1,5 @@
 /* This interface file is processed by SWIG to create a python wrapper interface to freeDiameter framework. */
-%module diwrap
+%module fDpy
 %begin %{
 /*********************************************************************************************************
 * Software License Agreement (BSD License)                                                               *
@@ -37,13 +37,8 @@
 *********************************************************************************************************/
 %}
 
-
-%init %{
-/* TODO: How to load the proxy classes here? */
-%}
-
 %{
-/* Define types etc. */
+/* This text is included in the generated wrapper verbatim */
 #define SWIG
 #include <freeDiameter/extension.h>
 %}
@@ -52,6 +47,8 @@
 /* Include standard types & functions used in freeDiameter headers */
 %include <stdint.i>
 %include <cpointer.i>
+%include <cdata.i>
+%include <cstring.i>
 %include <typemaps.i>
 
 /* Some functions are not available through the wrapper */
@@ -79,7 +76,6 @@ extern int fd_dict_getval ( struct dict_object * object, void * INOUT);
 extern int fd_dict_getdict ( struct dict_object * object, struct dictionary ** OUTPUT);
 */
 
-
 /* Retrieve the compile-time definitions of freeDiameter */
 %include "freeDiameter/freeDiameter-host.h"
 %include "freeDiameter/libfreeDiameter.h"
@@ -87,12 +83,26 @@ extern int fd_dict_getdict ( struct dict_object * object, struct dictionary ** O
 
 
 /* Some pointer types that are useful */
-%pointer_class(int, int_ptr);
-%pointer_class(enum dict_object_type, dict_object_type_ptr);
-%pointer_functions(struct dict_object *, dict_object_ptr);
-%pointer_functions(struct session *, session_ptr);
+%pointer_functions(int, int_ptr);
+%pointer_functions(uint8_t *, uint8_t_pptr);
+%pointer_cast(char *, void *, char_to_void);
 
+%pointer_functions(struct fd_list *, fd_list_pptr);
 
+%pointer_functions(enum dict_object_type, dict_object_type_ptr);
+%pointer_functions(struct dict_object *, dict_object_pptr);
+
+%pointer_functions(struct session *, session_pptr);
+%pointer_functions(struct session_handler *, session_handler_pptr);
+%pointer_functions(session_state *, session_state_pptr);
+
+%pointer_functions(struct rt_data *, rt_data_pptr);
+%pointer_cast(struct fd_list *, struct rtd_candidate *, fd_list_to_rtd_candidate);
+
+%pointer_functions(struct msg *, msg_pptr);
+%pointer_functions(struct msg_hdr *, msg_hdr_pptr);
+%pointer_functions(struct avp *, avp_pptr);
+%pointer_functions(struct avp_hdr *, avp_hdr_pptr);
 
 
 /* Extend some structures for usability/debug in python */
@@ -102,6 +112,7 @@ extern int fd_dict_getdict ( struct dict_object * object, struct dictionary ** O
 		li = (struct fd_list *) malloc(sizeof(struct fd_list));
 		if (!li) {
 			fd_log_debug("Out of memory!\n");
+			PyErr_SetString(PyExc_MemoryError,"Not enough memory");
 			return NULL;
 		}
 		fd_list_init(li, o);
@@ -120,31 +131,62 @@ extern int fd_dict_getdict ( struct dict_object * object, struct dictionary ** O
 	}
 };
 
-%extend dict_object_type_ptr {
-	void dump() {
-		%#define CASE_STR(x)  case x: fd_log_debug(#x "\n"); break;
-		switch (*$self) {
-			CASE_STR(DICT_VENDOR)
-			CASE_STR(DICT_APPLICATION)
-			CASE_STR(DICT_TYPE)
-			CASE_STR(DICT_ENUMVAL)
-			CASE_STR(DICT_AVP)
-			CASE_STR(DICT_COMMAND)
-			CASE_STR(DICT_RULE)
-			default: fd_log_debug("Invalid value (%d)", *$self); break;
-		}
+%inline %{
+void dict_object_type_ptr_dump(enum dict_object_type * t) {
+	#define CASE_STR(x)  case x: fd_log_debug(#x "\n"); break;
+	switch (*t) {
+		CASE_STR(DICT_VENDOR)
+		CASE_STR(DICT_APPLICATION)
+		CASE_STR(DICT_TYPE)
+		CASE_STR(DICT_ENUMVAL)
+		CASE_STR(DICT_AVP)
+		CASE_STR(DICT_COMMAND)
+		CASE_STR(DICT_RULE)
+		default: 
+			fd_log_debug("Invalid value (%d)", *t); 
+			PyErr_SetString(PyExc_IndexError,"Invalid dictionary type object");
 	}
-}
-
-%inline %{ 
-void session_ptr_showsid(struct session * s) {
-	char * sid;
-	int ret = fd_sess_getsid ( s, &sid );
-	if (ret != 0) {
-		fd_log_debug("Error %d\n", ret);
-		/* throw an exception in SWIG? */
-		return;
-	}
-	fd_log_debug("%s\n", sid);
 }
 %}
+
+%extend avp_value_os {
+	void fromstr(char * string) {
+		if ($self->data) free($self->data);
+		$self->data = (uint8_t *)strdup(string);
+		if (!$self->data) {
+			fd_log_debug("Out of memory!\n");
+			PyErr_SetString(PyExc_MemoryError,"Not enough memory");
+			$self->len = 0;
+			return;
+		}
+		$self->len = strlen(string);
+	}
+	%newobject as_str;
+	char * tostr() {
+		char * r;
+		if ($self->len == 0)
+			return NULL;
+		r = malloc($self->len + 1);
+		if (r) {
+			strncpy(r, (char *)$self->data, $self->len + 1);
+		} else {
+			fd_log_debug("Out of memory!\n");
+			PyErr_SetString(PyExc_MemoryError,"Not enough memory");
+		}
+		return r;
+	}
+};	
+
+%extend avp_value {
+	void os_set(void * os) {
+		memcpy(&$self->os, os, sizeof($self->os));
+	}
+};	
+
+%cstring_output_allocate_size(char ** swig_buffer, size_t * swig_len, free(*$1))
+%inline %{
+int fd_msg_bufferize_py ( struct msg * msg, char ** swig_buffer, size_t * swig_len ) {
+	return fd_msg_bufferize(msg, (void *)swig_buffer, swig_len);
+}
+%};
+
