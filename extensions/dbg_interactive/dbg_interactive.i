@@ -50,9 +50,20 @@
 %include <cstring.i>
 %include <typemaps.i>
 
-/* Some functions are not available through the wrapper */
+/* Some functions are not available through the wrapper, or accessed differently */
 %ignore fd_lib_init;
 %ignore fd_lib_fini;
+%ignore fd_dict_init;
+%ignore fd_dict_fini;
+%ignore fd_sess_handler_create_internal;
+%ignore fd_sess_handler_destroy;
+%ignore fd_sess_new;
+%ignore fd_sess_getsid;
+%ignore fd_sess_destroy;
+%ignore fd_sess_reclaim;
+%ignore fd_sess_state_store_internal;
+%ignore fd_sess_state_retrieve_internal;
+
 
 /* Inline functions seems to give problems to SWIG -- just remove the inline definition */
 %define __inline__ 
@@ -79,9 +90,13 @@
 	%append_output(SWIG_NewPointerObj(*$1, $*1_descriptor, 0));
 }
 %apply SWIGTYPE ** OUTPUT { struct dict_object ** ref };
+%apply SWIGTYPE ** OUTPUT { struct dict_object ** obj };
 %apply SWIGTYPE ** OUTPUT { struct dict_object ** result };
-
-
+%apply SWIGTYPE ** OUTPUT { struct dictionary  ** dict }; /* this is for fd_dict_getdict, not fd_dict_init (use constructor) */
+%apply int * OUTPUT { enum dict_object_type * type };
+%apply (char *STRING, size_t LENGTH) { (char * sid, size_t len) };
+%apply SWIGTYPE ** OUTPUT { struct session ** session };
+%apply int * OUTPUT { int * new };
 
 /*********************************************************
  Now, create wrappers for (almost) all objects from fD API 
@@ -210,12 +225,45 @@ int fd_dict_search_string ( struct dictionary * dict, enum dict_object_type type
 }
 %}
 
+/* The following wrapper leaks memory each time an union avp_value is assigned an octet string.
+ TODO: fix this leak by better understanding SWIG... 
+   -- the alternative is to uncomment the "free" statements bellow, but then it is easy to
+   create a segmentation fault by assigning first an integer, then an octetstring.
+ */
+%extend avp_value {
+	/* The following hack in the proxy file allows assigning the octet string directly like this:
+	avp_value.os = "blabla"
+	*/
+	%pythoncode
+	{
+    __swig_setmethods__["os"] = _fDpy.avp_value_os_set
+    if _newclass:os = _swig_property(_fDpy.avp_value_os_get, _fDpy.avp_value_os_set)
+	}
+	void os_set(char *STRING, size_t LENGTH) {
+		/* free($self->os.data);  -- do not free, in case the previous value was not an OS */
+		$self->os.data = malloc(LENGTH);
+		if (!$self->os.data) {
+			fd_log_debug("Out of memory!\n");
+			PyErr_SetString(PyExc_MemoryError,"Not enough memory");
+			return;
+		}
+		memcpy($self->os.data, STRING, LENGTH);
+		$self->os.len = LENGTH;
+	}
+	void os_set(avp_value_os * os) {
+		/* free($self->os.data);  -- do not free, in case the previous value was not an OS */
+		$self->os.data = malloc(os->len);
+		if (!$self->os.data) {
+			fd_log_debug("Out of memory!\n");
+			PyErr_SetString(PyExc_MemoryError,"Not enough memory");
+			return;
+		}
+		memcpy($self->os.data, os->data, os->len);
+		$self->os.len = os->len;
+	}
+};
 
 %extend avp_value_os {
-	~avp_value_os() {
-		if (self)
-			free(self->data);
-	}
 	void dump() {
 		if ($self) {
 			%#define LEN_MAX 20
@@ -230,30 +278,186 @@ int fd_dict_search_string ( struct dictionary * dict, enum dict_object_type type
 	}
 }
 
-%extend avp_value {
-	void os_set(char *STRING, size_t LENGTH) {
-		free($self->os.data);
-		$self->os.data = malloc(LENGTH);
-		if (!$self->os.data) {
-			fd_log_debug("Out of memory!\n");
-			PyErr_SetString(PyExc_MemoryError,"Not enough memory");
-			return;
-		}
-		memcpy($self->os.data, STRING, LENGTH);
-		$self->os.len = LENGTH;
-	}
-	void os_set(avp_value_os * os) {
-		free($self->os.data);
-		$self->os.data = malloc(os->len);
-		if (!$self->os.data) {
-			fd_log_debug("Out of memory!\n");
-			PyErr_SetString(PyExc_MemoryError,"Not enough memory");
-			return;
-		}
-		memcpy($self->os.data, os->data, os->len);
-		$self->os.len = os->len;
-	}
+/****** SESSIONS *********/
+
+%{
+/* At the moment, only 1 callback is supported... */
+static PyObject * py_cleanup_cb = NULL;
+static void call_the_python_cleanup_callback(session_state * state, char * sid) {
+	PyObject *result;
+	if (!py_cleanup_cb)
+		return;
+	
+	/* Call the function */
+	result = PyEval_CallFunction(py_cleanup_cb, "(Os)", state, sid);
+	
+	Py_XDECREF(result);
+	return;
+}
+%}
+
+struct session_handler {
 };
+
+%extend session_handler {
+	session_handler() {
+		fd_log_debug("Error: a cleanup callback parameter is required.\n");
+		PyErr_SetString(PyExc_SyntaxError,"Error: a cleanup callback parameter is required.\n");
+		return NULL;
+	}
+	session_handler(PyObject * PyCleanupCb) {
+		struct session_handler * hdl = NULL;
+		int ret;
+		if (py_cleanup_cb) {
+			fd_log_debug("dbg_interactive supports only 1 session handler in python at the moment\n");
+			PyErr_SetString(PyExc_SyntaxError,"dbg_interactive supports only 1 session handler in python at the moment\n");
+			return NULL;
+		}
+		if (!PyCallable_Check(PyCleanupCb)) {
+			PyErr_SetString(PyExc_TypeError, "Need a callable object!");
+			return NULL;
+		}
+		py_cleanup_cb = PyCleanupCb;
+		Py_XINCREF(py_cleanup_cb);
+		
+		ret = fd_sess_handler_create_internal ( &hdl, call_the_python_cleanup_callback );
+		if (ret != 0) {
+			fd_log_debug("Error: %s\n", strerror(ret));
+			PyErr_SetString(PyExc_MemoryError,"Not enough memory");
+			return NULL;
+		}
+		return hdl;
+	}
+	~session_handler() {
+		if (self) {
+			struct session_handler * hdl = self;
+			int ret = fd_sess_handler_destroy(&hdl);
+			if (ret != 0) {
+				fd_log_debug("Error: %s\n", strerror(ret));
+			}
+			return;
+		}
+	}
+	void dump() {
+		if ($self) {
+			fd_sess_dump_hdl(0, $self);
+		}
+	}
+}
+
+struct session {
+};
+
+%extend session {
+	/* The first two versions create a new session string. The third one allow to use an existing string. */
+	session() {
+		int ret;
+		struct session * s = NULL;
+		ret = fd_sess_new(&s, fd_g_config->cnf_diamid, "dbg_interactive", sizeof("dbg_interactive"));
+		if (ret != 0) {
+			fd_log_debug("Error: %s\n", strerror(ret));
+			PyErr_SetString(PyExc_MemoryError,"Not enough memory");
+			return NULL;
+		}
+		return s;
+	}
+	session(char * diamid, char * STRING, size_t LENGTH) {
+		int ret;
+		struct session * s = NULL;
+		ret = fd_sess_new(&s, diamid, STRING, LENGTH);
+		if (ret != 0) {
+			fd_log_debug("Error: %s\n", strerror(ret));
+			PyErr_SetString(PyExc_MemoryError,"Not enough memory");
+			return NULL;
+		}
+		return s;
+	}
+	session(char * STRING, size_t LENGTH) {
+		int ret, n;
+		struct session * s = NULL;
+		ret = fd_sess_fromsid(STRING, LENGTH, &s, &n);
+		if (ret != 0) {
+			fd_log_debug("Error: %s\n", strerror(ret));
+			PyErr_SetString(PyExc_MemoryError,"Not enough memory");
+			return NULL;
+		}
+		/* When defining n as OUTPUT parameter, we get something strange... Use fd_sess_fromsid if you need it */
+		if (n) {
+			fd_log_debug("A new session has been created\n");
+		} else {
+			fd_log_debug("A session with same id already existed\n");
+		}
+		return s;
+	}
+	~session() {
+		if (self) {
+			struct session * s = self;
+			int ret = fd_sess_reclaim(&s);
+			if (ret != 0) {
+				fd_log_debug("Error: %s\n", strerror(ret));
+			}
+			return;
+		}
+	}
+	char * getsid() {
+		int ret;
+		char * sid = NULL;
+		if (!$self)
+			return NULL;
+		ret = fd_sess_getsid( $self, &sid);
+		if (ret != 0) {
+			fd_log_debug("Error: %s\n", strerror(ret));
+			PyErr_SetString(PyExc_MemoryError,"Problem...");
+			return NULL;
+		}
+		return sid;
+	}
+	void settimeout(long seconds) {
+		struct timespec timeout;
+		int ret;
+		clock_gettime(CLOCK_REALTIME, &timeout);
+		timeout.tv_sec += seconds;
+		ret = fd_sess_settimeout( $self, &timeout );
+		if (ret != 0) {
+			fd_log_debug("Error: %s\n", strerror(ret));
+			PyErr_SetString(PyExc_MemoryError,"Problem...");
+		}
+	}
+	void dump() {
+		if ($self) {
+			fd_sess_dump(0, $self);
+		}
+	}
+	void store(struct session_handler * handler, PyObject * state) {
+		int ret;
+		void * store = state;
+		Py_INCREF(state);
+		ret = fd_sess_state_store_internal(handler, $self, (void *) &store);
+		if (ret != 0) {
+			fd_log_debug("Error: %s\n", strerror(ret));
+			PyErr_SetString(PyExc_MemoryError,"Problem...");
+		}
+	}
+	PyObject *  retrieve(struct session_handler * handler) {
+		int ret;
+		PyObject * state = NULL;
+		ret = fd_sess_state_retrieve_internal(handler, $self, (void *) &state);
+		if (ret != 0) {
+			fd_log_debug("Error: %s\n", strerror(ret));
+			PyErr_SetString(PyExc_MemoryError,"Problem...");
+		}
+		if (state == NULL) {
+			return Py_None;
+		}
+		Py_DECREF(state);
+		return state;
+	}
+}	
+
+
+
+/****** MESSAGES *********/
+
 
 %cstring_output_allocate_size(char ** swig_buffer, size_t * swig_len, free(*$1))
 %inline %{

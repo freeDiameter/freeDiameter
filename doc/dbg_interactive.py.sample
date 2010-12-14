@@ -86,7 +86,7 @@ hex(fd_hash("hello world"))	# A typemap is applied to accept binary data
 
 ############# Dictionary ############
 
-# Create a dedicated dictionary for our tests
+##### Create a dedicated dictionary for our tests
 d = dictionary()
 d.dump()
 
@@ -123,57 +123,131 @@ c.enum_value.i32 = 3
 fd_dict_new(d, DICT_ENUMVAL, c, my_type_int)
 
 c.enum_name = "A_BUFFER_CONSTANT"
-osval = avp_value_os("This is a very long AVP value that we prefer to represent as a constant")
-c.enum_value.os = osval
+c.enum_value.os = "This is a very long AVP value that we prefer to represent as a constant"
 c.enum_value.os.dump()
+fd_dict_new(d, DICT_ENUMVAL, c, my_type_os)
+del c
+
+# AVP
+a = dict_avp_data()
+a.avp_code = 234
+a.avp_name = "my integer avp"
+a.avp_flag_mask = AVP_FLAG_MANDATORY
+a.avp_basetype = AVP_TYPE_INTEGER32
+r, my_avp_int = fd_dict_new(d, DICT_AVP, a, my_type_int)
+
+a.avp_vendor = 123
+a.avp_name = "my OS avp"
+a.avp_flag_mask = AVP_FLAG_MANDATORY + AVP_FLAG_VENDOR
+a.avp_flag_val = AVP_FLAG_VENDOR
+a.avp_basetype = AVP_TYPE_OCTETSTRING
+r, my_avp_os = fd_dict_new(d, DICT_AVP, a, my_type_os)
+del a
+
+# Command
+c = dict_cmd_data()
+c.cmd_code = 345
+c.cmd_name = "My-Python-Request"
+c.cmd_flag_mask = CMD_FLAG_REQUEST + CMD_FLAG_PROXIABLE
+c.cmd_flag_val = CMD_FLAG_REQUEST + CMD_FLAG_PROXIABLE
+r, my_req = fd_dict_new(d, DICT_COMMAND, c, my_appl)
+c.cmd_name = "My-Python-Answer"
+c.cmd_flag_val = CMD_FLAG_PROXIABLE
+r, my_ans = fd_dict_new(d, DICT_COMMAND, c, my_appl)
+del c
+
+# Rule
+rd = dict_rule_data()
+rd.rule_avp = my_avp_int
+rd.rule_position = RULE_REQUIRED
+rd.rule_min = -1
+rd.rule_max = -1
+r, my_rule1 = fd_dict_new(d, DICT_RULE, rd, my_req)
+r, my_rule2 = fd_dict_new(d, DICT_RULE, rd, my_ans)
+rd.rule_avp = my_avp_os
+r, my_rule3 = fd_dict_new(d, DICT_RULE, rd, my_req)
+r, my_rule4 = fd_dict_new(d, DICT_RULE, rd, my_ans)
+del rd
+
+d.dump()
 del d
 
-c = dict_enumval_data()
-c.enum_value.os = "coucou"
-c.enum_value.os.dump()
 
+####### Now play with the "real" dictionary
 
 gdict = cvar.fd_g_config.cnf_dict
-r, obj = fd_dict_search ( gdict, DICT_APPLICATION, APPLICATION_BY_ID, 3, -1 )
+
+r, appl = fd_dict_search ( gdict, DICT_APPLICATION, APPLICATION_BY_ID, 3, -1 )
 obj.dump()
-r, obj = fd_dict_search( gdict, DICT_AVP, AVP_BY_NAME, "Origin-Host", -1)
+r, avp = fd_dict_search( gdict, DICT_AVP, AVP_BY_NAME, "Origin-Host", -1)
 obj.dump()
+r, errcmd = fd_dict_get_error_cmd( gdict )
 
-t = new_dict_object_type_ptr()
-fd_dict_gettype(obj, t)
-dict_object_type_ptr_dump(t)
-delete_dict_object_type_ptr(t)
-objdata = new_dict_application_data()
-fd_dict_getval(obj, objdata)
-dict_application_data_application_name_get(objdata)
-delete_dict_application_data(objdata)
+data = dict_avp_data()
+fd_dict_getval(avp, data)
+print data.avp_code
+del data
 
-vd = new_dict_vendor_data()
-dict_vendor_data_vendor_id_set(vd, 123)
-dict_vendor_data_vendor_name_set(vd, "my test vendor")
-pobj = new_dict_object_pptr()
-fd_dict_new ( gdict, DICT_VENDOR, vd, None, pobj)
-delete_dict_vendor_data(vd)
-obj = dict_object_pptr_value(pobj)
-delete_dict_object_pptr(pobj)
-fd_dict_dump_object(obj)
+r, t = fd_dict_gettype(appl)
+del t
+
+r, dict = fd_dict_getdict(avp)
+del dict
 
 
-# Sessions
-pmyhdl = new_session_handler_pptr()
-fd_sess_handler_create_internal(pmyhdl, None)
-### Have to work on this one, a cleanup handler is actually required.
-### How to define the handler in python ?
-myhdl = session_handler_pptr_value(pmyhdl)
-delete_session_handler_pptr(pmyhdl)
 
-psess = new_session_pptr()
-fd_sess_new (psess, fd_config_cnf_diamid_get(cvar.fd_g_config), "dbg_interactive", 0)
-sess = session_pptr_value(psess)
-fd_sess_dump(0, sess)
-fd_sess_destroy(psess)
-delete_session_pptr(psess)
+############# Sessions ############
 
+# handler
+def my_cleanup(state,sid):
+    print "Cleaning up python state for session:", sid
+    print "Received state:", state
+
+hdl = session_handler(my_cleanup)
+hdl.dump()
+del hdl
+
+hdl = session_handler(my_cleanup)
+
+
+# Session
+s1 = session()
+s1.getsid()
+s2 = session("this.is.a.full.session.id")
+r,s3,isnew = fd_sess_fromsid("this.is.a.full.session.id")
+s4 = session("host.id", "opt.part")
+
+s4.settimeout(30) # the python wrapper takes a number of seconds as parameter for simplicity
+s4.dump()
+
+
+# state
+mystate = [ 34, "clah", [ 32, 12 ] ]
+
+s4.store(hdl, mystate)
+
+
+
+## TODO : debug the following (segfault)
+
+def my_cleanup(state,sid):
+    print "Cleaning up python state for session:", sid
+    print "Received state:", state
+
+hdl = session_handler(my_cleanup)
+s4 = session("host.id", "opt.part")
+mystate = [ 34, "clah", [ 32, 12 ] ]
+s4.store(hdl, mystate)
+del hdl
+
+
+
+
+
+
+
+
+######################### old stuff (need update) ######################
 
 # Routing data
 prtd = new_rt_data_pptr()
