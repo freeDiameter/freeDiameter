@@ -28,7 +28,8 @@ Description: This package provides the development files for freeDiameter.
 Package: freediameter-daemon
 Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends}, freediameter-common (= ${binary:Version})
-Suggests: ssl-cert, freediameter-dictionary-rfc4005, freediameter-dictionary-rfc4072, freediameter-dictionary-legacy
+Suggests: ssl-cert, freediameter-dictionary-rfc4005, freediameter-dictionary-rfc4072, freediameter-dictionary-rfc4740,
+  freediameter-dictionary-mip6, freediameter-dictionary-legacy
 Description: The freeDiameter daemon. 
  The freeDiameter daemon provides support for the Diameter
  Base Protocol. Without any extension, the daemon can only
@@ -43,7 +44,8 @@ Description: The freeDiameter daemon.
 Package: freediameter-debug-tools
 Architecture: any
 Section: contrib/debug
-Depends: ${misc:Depends}, freediameter-daemon (= ${binary:Version}), python
+Depends: ${misc:Depends}, freediameter-daemon (= ${binary:Version})
+Suggests: python, libmysqlclient16
 Description: freeDiameter debug tools.
  This package provides useful tools to help tracking 
  problems in freeDiameter installation. For example,
