@@ -5,93 +5,140 @@
 #
 # The adaptation layer between Python and C is provided by SWIG (http://swig.org). 
 # You may refer to SWIG documentation for more information on how the wrapper is generated and used.
-# Please note that the high-level wrapper file (python file) is not used in dbg_interactive at the moment,
-# but all symbols from the module are imported.
+# The name of the module wrapping freeDiameter framework is: _fDpy
 #
 # Similar to all freeDiameter extensions, an optional filename can be specified in the
 # main freeDiameter.conf configuration file for the dbg_interactive.fdx extension.
 # If such file is provided, it will be passed to the python interpreter as a python script
 # to execute. Otherwise, the interpreter will be interactive.
 #
-# Bellow are some example use of the python interpreter:
+# SWIG deals with structures as follow:
+# Given the structure:
+# struct foo { int a; }
+# The following functions are available to python (their C equivalent processing is given in [ ]):
+# s = new_foo()	   [ s = calloc(1, sizeof(struct foo)) ]
+# foo_a_set(s, 2)  [ s->a = 2 ]
+# foo_a_get(s)     [ returns s->a value ]
+# delete_foo(s)    [ free(s)  ]
+#
+# In addition, thanks to the proxy (aka shadow) class, we can also do the more user-friendly:
+# s = foo()
+# s.a = 2
+# s.a
+# del s
+#
 
+# The remaining of this file gives some examples of how to use the python interpreter.
+# Note that the support is not yet totally usable. You'll probably have to extend some classes
+# or write some typemaps in the source code of the extension to do what you want.
+
+
+############# Compilation-time constants (from freeDiameter-host.h) ############
 
 # Display current version
-print FD_PROJECT_NAME, FD_PROJECT_VERSION_MAJOR, FD_PROJECT_VERSION_MINOR, FD_PROJECT_VERSION_REV
+print "%s %d.%d.%d" % (FD_PROJECT_NAME, FD_PROJECT_VERSION_MAJOR, FD_PROJECT_VERSION_MINOR, FD_PROJECT_VERSION_REV)
 
+
+############# Debug ############
 
 # Change the global debug level of the framework (cvar contains all global variables)
 cvar.fd_g_debug_lvl = FULL
 
 
-# Turn on debug for a specific function
+# Turn on debug for a specific function (if framework compiled with DEBUG support)
 cvar.fd_debug_one_function = "gc_th_fct"
 
 
 # Print messages to freeDiameter's debug facility
+# Note: the python version does not support printf-like argument list. The formating should be done in python.
+#       See SWIG documentation about varargs functions for more information.
 fd_log_debug("3 + 4 = %d\n" % (7))
-# See SWIG documentation about varargs functions for more information
 
 
-# SWIG deals with structures as follow:
-# Take the structure:
-# struct foo { int a; }
-# The following functions are available to python:
-# s = new_foo()	   --> s = calloc(1, sizeof(struct foo))
-# foo_a_set(s, 2)  --> s->a = 2
-# foo_a_get(s)     --> returns s->a value
-# delete_foo(s)    --> free(s)
-#
-# In addition, thanks to proxy (aka shadow) class, we can also do:
-# s = foo()
-# s.a = 2
-# s.a
-# del s
+# Display some framework state information
+r = fd_event_send(cvar.fd_g_config.cnf_main_ev, FDEV_DUMP_PEERS, 0, None)
+r = fd_event_send(cvar.fd_g_config.cnf_main_ev, FDEV_DUMP_SERV, 0, None)
+r = fd_event_send(cvar.fd_g_config.cnf_main_ev, FDEV_DUMP_EXT, 0, None)
 
+
+############# Global variables ############
 
 # Display the local Diameter Identity:
-print "Local Diameter Identity:", fd_config_cnf_diamid_get(cvar.fd_g_config)
-print "Realm:", fd_config_cnf_diamrlm_get(cvar.fd_g_config)
+print "Local Diameter Identity:", cvar.fd_g_config.cnf_diamid
+# Display realm, without using the low-level functions (skip proxy classe definitions):
+print "Realm:", _fDpy.fd_config_cnf_diamrlm_get(_fDpy.cvar.fd_g_config)
 
 
-# Display some states information
-evl = fd_config_cnf_main_ev_get(cvar.fd_g_config)
-r = fd_event_send(evl, FDEV_DUMP_PEERS, 0, None)
-r = fd_event_send(evl, FDEV_DUMP_SERV, 0, None)
-r = fd_event_send(evl, FDEV_DUMP_EXT, 0, None)
 
-
-# Create a new peer_info structure and add the peer to the framework.
-mypeer = new_peer_info()
-peer_info_pi_diamid_set( mypeer, "nas.testbed.aaa" )
-myconfig = peer_info_config_get(mypeer)
-mypicflag = peer_info_config_pic_flags_get(myconfig)
-peer_info_config_pic_flags_pro4_set(mypicflag, 1)   # 1 for TCP
-fd_peer_add(mypeer, "python", None, None)
-delete_peer_info(mypeer)
-
-
-# Lists
-l1 = new_fd_list()
-l2 = new_fd_list()
+############# Lists ############
+l1 = fd_list()   # The creator has an implicit fd_list_init call
+l2 = fd_list()
 fd_list_insert_after(l1, l2)
-fd_list_dump(l1)
-fd_list_dump(l2)
-delete_fd_list(l2)
-fd_list_dump(l1)
-delete_fd_list(l1)
+l1.dump()
+del l2		 # The destructor has an implicit fd_list_unlink call
+l1.dump()
+del l1
 
 
-# Dictionary
-gdict = fd_config_cnf_dict_get(cvar.fd_g_config)
+############# Hash ############
+hex(fd_hash("hello world"))	# A typemap is applied to accept binary data
 
-id = new_int_ptr()
-int_ptr_assign(id, 3)
-pobj = new_dict_object_pptr()
-fd_dict_search ( gdict, DICT_APPLICATION, APPLICATION_BY_ID, id, pobj, -1 )
-delete_int_ptr(id)
-obj = dict_object_pptr_value(pobj)
-delete_dict_object_pptr(pobj)
+
+############# Dictionary ############
+
+# Create a dedicated dictionary for our tests
+d = dictionary()
+d.dump()
+
+# New vendor
+v = dict_vendor_data()
+v.vendor_id = 123
+v.vendor_name = "My test vendor"
+r, my_vendor = fd_dict_new(d, DICT_VENDOR, v, None)
+del v
+d.dump()
+d.vendors_list()
+
+# New application
+a = dict_application_data()
+a.application_id = 99
+a.application_name = "My test appl"
+r, my_appl = fd_dict_new(d, DICT_APPLICATION, a, my_vendor)
+del a
+
+# New type (callbacks are not supported yet...)
+t = dict_type_data()
+t.type_base = AVP_TYPE_INTEGER32
+t.type_name = "My integer AVP"
+r, my_type_int = fd_dict_new(d, DICT_TYPE, t, my_appl)
+t.type_base = AVP_TYPE_OCTETSTRING
+t.type_name = "My binary buffer AVP"
+r, my_type_os = fd_dict_new(d, DICT_TYPE, t, my_appl)
+del t
+
+# Constants
+c = dict_enumval_data()
+c.enum_name = "AVP_VALUE_TROIS"
+c.enum_value.i32 = 3
+fd_dict_new(d, DICT_ENUMVAL, c, my_type_int)
+
+c.enum_name = "A_BUFFER_CONSTANT"
+osval = avp_value_os("This is a very long AVP value that we prefer to represent as a constant")
+c.enum_value.os = osval
+c.enum_value.os.dump()
+del d
+
+c = dict_enumval_data()
+c.enum_value.os = "coucou"
+c.enum_value.os.dump()
+
+
+gdict = cvar.fd_g_config.cnf_dict
+r, obj = fd_dict_search ( gdict, DICT_APPLICATION, APPLICATION_BY_ID, 3, -1 )
+obj.dump()
+r, obj = fd_dict_search( gdict, DICT_AVP, AVP_BY_NAME, "Origin-Host", -1)
+obj.dump()
+
 t = new_dict_object_type_ptr()
 fd_dict_gettype(obj, t)
 dict_object_type_ptr_dump(t)
@@ -180,4 +227,12 @@ delete_avp_value(val)
 r,buf = fd_msg_bufferize_py(msg)
 fd_msg_free(msg)
 delete_avp_pptr(pavp)
+
+
+# Create a new peer_info structure and add the peer to the framework.
+mypeer = peer_info()
+mypeer.pi_diamid = "nas.testbed.aaa"
+mypeer.config.pic_flags.pro4 = 1   # 1 for TCP, for some reason PI_P4_TCP is not defined
+fd_peer_add(mypeer, "python", None, None)
+del mypeer
 
