@@ -45,6 +45,7 @@ static void fd_shutdown(int signal);
 static int main_cmdline(int argc, char *argv[]);
 static void main_version(void);
 static void main_help( void );
+static int signal_framework_ready(void);
 
 /* The static configuration structure */
 static struct fd_config conf;
@@ -117,6 +118,7 @@ int main(int argc, char * argv[])
 	
 	/* Now, just wait for events */
 	TRACE_DEBUG(INFO, FD_PROJECT_BINARY " daemon initialized.");
+	CHECK_FCT( signal_framework_ready() );
 	while (1) {
 		int code; size_t sz; void * data;
 		CHECK_FCT_DO(  fd_event_get(fd_g_config->cnf_main_ev, &code, &sz, &data),  break  );
@@ -348,4 +350,31 @@ static void fd_shutdown(int signal)
 	CHECK_FCT_DO( fd_event_send(fd_g_config->cnf_main_ev, FDEV_TERMINATE, 0, NULL), exit(2) );
 	
 	return;
+}
+
+
+/* Signal extensions when the framework is completly initialized */
+static int             is_ready = 0;
+static pthread_mutex_t is_ready_mtx = PTHREAD_MUTEX_INITIALIZER;
+static pthread_cond_t  is_ready_cnd = PTHREAD_COND_INITIALIZER;
+static int signal_framework_ready(void)
+{
+	TRACE_ENTRY("");
+	CHECK_POSIX( pthread_mutex_lock( &is_ready_mtx ) );
+	is_ready = 1;
+	CHECK_POSIX( pthread_cond_broadcast( &is_ready_cnd ) );
+	CHECK_POSIX( pthread_mutex_unlock( &is_ready_mtx ) );
+	return 0;
+}
+int fd_wait_initialization_complete(void)
+{
+	TRACE_ENTRY("");
+	CHECK_POSIX( pthread_mutex_lock( &is_ready_mtx ) );
+	pthread_cleanup_push( fd_cleanup_mutex, &is_ready_mtx );
+	while (!is_ready) {
+		CHECK_POSIX( pthread_cond_wait( &is_ready_cnd, &is_ready_mtx ) );
+	}
+	pthread_cleanup_pop( 0 );
+	CHECK_POSIX( pthread_mutex_unlock( &is_ready_mtx ) );
+	return 0;
 }

@@ -675,6 +675,17 @@ void fd_event_destroy(struct fifo **queue, void (*free_cb)(void * data));
 const char * fd_ev_str(int event);
 
 
+/* The following function does not really use events, but it may be used 
+by extensions that need to start an action when the framework is fully initialized. 
+This function will block until all initializations are performed in the daemon.
+It is meant to be used as follow by extensions:
+ - in initialization callback, create a new thread.
+ - this new thread calls this function.
+ - when the function returns, the thread can start working and using all framework features.
+*/
+int fd_wait_initialization_complete(void);
+
+
 /***************************************/
 /*   Endpoints lists helpers           */
 /***************************************/
