@@ -1,3 +1,13 @@
+freediameter (1.0.3) UNRELEASED; urgency=low
+
+  * Fixed a couple of issues for portability (#21, #22, #23)
+  * Fixed issue with ListenOn bit ordering (#20)
+  * Added dictionary support for MIPv6 application objects.
+  * Added dictionary support for legacy XML files.
+  * Added new debug extension based on python (experimental). 
+
+ -- Sebastien Decugis <sdecugis@nict.go.jp>  Tue, 14 Dec 2010 11:39:29 +0900
+
 freediameter (1.0.2) UNRELEASED; urgency=low
 
   * Fix an issue in app_diameap.fdx with user names (#18)

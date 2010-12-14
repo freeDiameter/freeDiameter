@@ -4,7 +4,8 @@ Priority: extra
 Maintainer: Sebastien Decugis <sdecugis@nict.go.jp>
 Build-Depends: debhelper ( >= 7.3.9),
  cmake, make, gcc, bison, flex,
- libsctp-dev, libgnutls-dev, libgcrypt-dev, libpq-dev, libmysqlclient-dev
+ libsctp-dev, libgnutls-dev, libgcrypt-dev, 
+ libpq-dev, libmysqlclient-dev, libxml2-dev, swig, python-dev
 Standards-Version: 3.8.3
 Homepage: http://www.freediameter.net
 
@@ -27,7 +28,7 @@ Description: This package provides the development files for freeDiameter.
 Package: freediameter-daemon
 Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends}, freediameter-common (= ${binary:Version})
-Suggests: ssl-cert, freediameter-dictionary-rfc4005, freediameter-dictionary-rfc4072
+Suggests: ssl-cert, freediameter-dictionary-rfc4005, freediameter-dictionary-rfc4072, freediameter-dictionary-legacy
 Description: The freeDiameter daemon. 
  The freeDiameter daemon provides support for the Diameter
  Base Protocol. Without any extension, the daemon can only
@@ -42,10 +43,12 @@ Description: The freeDiameter daemon.
 Package: freediameter-debug-tools
 Architecture: any
 Section: contrib/debug
-Depends: ${misc:Depends}, freediameter-daemon (= ${binary:Version})
+Depends: ${misc:Depends}, freediameter-daemon (= ${binary:Version}), python
 Description: freeDiameter debug tools.
  This package provides useful tools to help tracking 
- problems in freeDiameter installation.
+ problems in freeDiameter installation. For example,
+ the dbg_interactive.fdx extension allows access to the 
+ framework via a python interpreter console.  
 
 Package: freediameter-dictionary-rfc4005
 Architecture: any
@@ -85,6 +88,38 @@ Description: RFC4740 (Diameter SIP) dictionary support.
  See freeDiameter documentation for more details. 
  .
  This extension does not require a configuration file.
+
+Package: freediameter-dictionary-mip6
+Architecture: any
+Depends: ${misc:Depends}
+Description: Diameter Mobile IPv6 application dictionary support.
+ This package contains a set of extensions to provide the support
+ for commands and AVP defined in several RFCs related to
+ Diameter MIPv6. It is split is several extensions:
+ mip6a, mip6i, nas-mipv6, rfc5777.
+ .
+ In order to use these extensions, your main freeDiameter 
+ configuration file must contain LoadExtension directives. 
+ See freeDiameter documentation for more details. 
+ .
+ These extensions do not require a configuration file.
+
+Package: freediameter-dictionary-legacy
+Architecture: any
+Depends: ${misc:Depends}, libxml2
+Description: Legacy XML dictionary files support.
+ This freeDiameter extension allows the use of XML dictionary
+ files with the freeDiameter framework. Please note that
+ dictionaries provided as XML files come with less features
+ than native binary format, so the later should be preferred
+ when possible.
+ .
+ In order to use this extension, your main freeDiameter 
+ configuration file must contain a LoadExtension directive. 
+ See freeDiameter documentation for more details. 
+ .
+ This extension requires a configuration file. See 
+ dict_legacy_xml.conf.sample for documentation.
 
 Package: freediameter-radius-gateway
 Architecture: any
