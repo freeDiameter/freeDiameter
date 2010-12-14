@@ -30,7 +30,6 @@ TARGET_LINK_LIBRARIES(dict_legacy_xml ${LIBXML2_LIBRARIES} )
 ####
 ## INSTALL section ##
 
-# We install with the daemon component because it is a base feature.
 INSTALL(TARGETS dict_legacy_xml
 	LIBRARY DESTINATION ${INSTALL_EXTENSIONS_SUFFIX}
-	COMPONENT freeDiameter-daemon)
+	COMPONENT freeDiameter-dictionary-legacy)

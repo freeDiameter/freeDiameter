@@ -10,4 +10,4 @@ FD_ADD_EXTENSION(dict_nas_mipv6 dict_nas_mipv6.c)
 
 INSTALL(TARGETS dict_nas_mipv6
 	LIBRARY DESTINATION ${INSTALL_EXTENSIONS_SUFFIX}
-	COMPONENT freeDiameter-dictionary-nas_mipv6)
+	COMPONENT freeDiameter-dictionary-mip6)

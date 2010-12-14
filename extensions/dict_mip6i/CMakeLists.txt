@@ -10,4 +10,4 @@ FD_ADD_EXTENSION(dict_mip6i dict_mip6i.c)
 
 INSTALL(TARGETS dict_mip6i
 	LIBRARY DESTINATION ${INSTALL_EXTENSIONS_SUFFIX}
-	COMPONENT freeDiameter-dictionary-mip6i)
+	COMPONENT freeDiameter-dictionary-mip6)
