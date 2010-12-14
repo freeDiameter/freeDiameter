@@ -41,7 +41,7 @@ ADD_CUSTOM_COMMAND(
     "fDpy.py"
     "fDpy-inc.c"
     MAIN_DEPENDENCY "${swig_extra_generated_files}"
-    COMMENT "Converting swig proxy class to C string") 
+    COMMENT "Shadow definitions") 
 
 # Ensure that the generated source files are removed
 GET_DIRECTORY_PROPERTY(swig_extra_clean_files ADDITIONAL_MAKE_CLEAN_FILES)
@@ -54,3 +54,10 @@ SET_DIRECTORY_PROPERTIES(PROPERTIES
 FD_ADD_EXTENSION(dbg_interactive dbg_interactive.c ${swig_generated_sources} fDpy-inc.c)
 TARGET_LINK_LIBRARIES(dbg_interactive ${PYTHON_LIBRARIES})
 
+
+####
+## INSTALL section ##
+
+INSTALL(TARGETS dbg_interactive
+	LIBRARY DESTINATION ${INSTALL_EXTENSIONS_SUFFIX}
+	COMPONENT freeDiameter-debug-tools)

@@ -56,13 +56,16 @@ static void * myinterp (void * arg)
 	char * dum[3] = { "<dbg_interactive>", arg, NULL };
 	TRACE_ENTRY("%p", arg);
 	
-	fd_log_threadname ( "[dbg_interactive python interpreter]" );
+	fd_log_threadname ( "fDpy" );
 	
-	sleep(1);
-	fd_log_debug("\nStarting python interpreter [experimental].\n");
-	fd_log_debug("Example syntax:\n>>> print fd_config_cnf_diamid_get(cvar.fd_g_config)\n\n");
+	CHECK_FCT_DO(fd_wait_initialization_complete(), goto end);
+	
+	fd_log_debug("\nStarting interactive python interpreter [experimental].\n");
+	if (!arg) 
+		fd_log_debug("Example syntax:\n   >>> print cvar.fd_g_config.cnf_diamid\n   '%s'\n", fd_g_config->cnf_diamid);
 	Py_Main(arg ? 2 : 1, dum);
 	
+end:	
 	/* Upon exit, issue the order of terminating to fD */
 	CHECK_FCT_DO(fd_event_send(fd_g_config->cnf_main_ev, FDEV_TERMINATE, 0, NULL), );
 
@@ -99,11 +102,6 @@ static int di_main(char * conffile)
 	if (mustfree)
 		free(shadow_hlp);
 		
-	
-	if (TRACE_BOOL(INFO)) {
-		PyRun_SimpleString("print \"[dbg_interactive] \",FD_PROJECT_NAME,FD_PROJECT_VERSION_MAJOR,FD_PROJECT_VERSION_MINOR,FD_PROJECT_VERSION_REV\n");
-	}
-	
 	CHECK_POSIX( pthread_create(&pyinterp, NULL, myinterp, conffile) );
  
 	return 0;

@@ -46,7 +46,6 @@
 
 /* Include standard types & functions used in freeDiameter headers */
 %include <stdint.i>
-%include <cpointer.i>
 %include <cdata.i>
 %include <cstring.i>
 %include <typemaps.i>
@@ -63,50 +62,45 @@
 %immutable fd_g_config;
 %immutable peer_state_str;
 
-/* Overwrite a few functions prototypes for usability: default parameters values, OUTPUT typemaps, ... */
-extern void fd_list_init ( struct fd_list * list, void * obj = NULL );
 
 
-/*
-extern int fd_dict_new ( struct dictionary * dict, enum dict_object_type type, void * data, struct dict_object * parent, struct dict_object ** OUTPUT );
-extern int fd_dict_search ( struct dictionary * dict, enum dict_object_type type, int criteria, void * what, struct dict_object ** OUTPUT, int retval );
-extern int fd_dict_get_error_cmd(struct dictionary * dict, struct dict_object ** OUTPUT);
-extern int fd_dict_getval ( struct dict_object * object, void * INOUT);
-//extern int fd_dict_gettype ( struct dict_object * object, enum dict_object_type * OUTPUT);
-extern int fd_dict_getdict ( struct dict_object * object, struct dictionary ** OUTPUT);
-*/
+/***********************************
+ Some types & typemaps for usability 
+ ***********************************/
 
-/* Retrieve the compile-time definitions of freeDiameter */
+/* for fd_hash */
+%apply (char *STRING, size_t LENGTH) { ( char * string, size_t len ) };
+
+/* for dictionary functions */
+%typemap(in, numinputs=0,noblock=1) SWIGTYPE ** OUTPUT (void *temp = NULL) {
+	$1 = (void *)&temp;
+}
+%typemap(argout,noblock=1) SWIGTYPE ** OUTPUT {
+	%append_output(SWIG_NewPointerObj(*$1, $*1_descriptor, 0));
+}
+%apply SWIGTYPE ** OUTPUT { struct dict_object ** ref };
+%apply SWIGTYPE ** OUTPUT { struct dict_object ** result };
+
+
+
+/*********************************************************
+ Now, create wrappers for (almost) all objects from fD API 
+ *********************************************************/
 %include "freeDiameter/freeDiameter-host.h"
 %include "freeDiameter/libfreeDiameter.h"
 %include "freeDiameter/freeDiameter.h"
 
 
-/* Some pointer types that are useful */
-%pointer_functions(int, int_ptr);
-%pointer_functions(uint8_t *, uint8_t_pptr);
-%pointer_cast(char *, void *, char_to_void);
 
-%pointer_functions(struct fd_list *, fd_list_pptr);
+/**********************************************************/
+/* The remaining of this file allows easier manipulation of
+the structures and functions of fD by providing wrapper-specific
+extensions to the freeDiameter API.
 
-%pointer_functions(enum dict_object_type, dict_object_type_ptr);
-%pointer_functions(struct dict_object *, dict_object_pptr);
+/****** LISTS *********/
 
-%pointer_functions(struct session *, session_pptr);
-%pointer_functions(struct session_handler *, session_handler_pptr);
-%pointer_functions(session_state *, session_state_pptr);
-
-%pointer_functions(struct rt_data *, rt_data_pptr);
-%pointer_cast(struct fd_list *, struct rtd_candidate *, fd_list_to_rtd_candidate);
-
-%pointer_functions(struct msg *, msg_pptr);
-%pointer_functions(struct msg_hdr *, msg_hdr_pptr);
-%pointer_functions(struct avp *, avp_pptr);
-%pointer_functions(struct avp_hdr *, avp_hdr_pptr);
-
-
-/* Extend some structures for usability/debug in python */
 %extend fd_list {
+	/* allow a parameter in the constructor, and perform the fd_list_init operation */
 	fd_list(void * o = NULL) {
 		struct fd_list * li;
 		li = (struct fd_list *) malloc(sizeof(struct fd_list));
@@ -118,10 +112,12 @@ extern int fd_dict_getdict ( struct dict_object * object, struct dictionary ** O
 		fd_list_init(li, o);
 		return li;
 	}
+	/* Unlink before freeing */
 	~fd_list() {
 		fd_list_unlink($self);
 		free($self);
 	}
+	/* For debug, show the values of the list */
 	void dump() {
 		fd_log_debug("list: %p\n", $self);
 		fd_log_debug("  - next: %p\n", $self->next);
@@ -131,57 +127,133 @@ extern int fd_dict_getdict ( struct dict_object * object, struct dictionary ** O
 	}
 };
 
-%inline %{
-void dict_object_type_ptr_dump(enum dict_object_type * t) {
-	#define CASE_STR(x)  case x: fd_log_debug(#x "\n"); break;
-	switch (*t) {
-		CASE_STR(DICT_VENDOR)
-		CASE_STR(DICT_APPLICATION)
-		CASE_STR(DICT_TYPE)
-		CASE_STR(DICT_ENUMVAL)
-		CASE_STR(DICT_AVP)
-		CASE_STR(DICT_COMMAND)
-		CASE_STR(DICT_RULE)
-		default: 
-			fd_log_debug("Invalid value (%d)", *t); 
-			PyErr_SetString(PyExc_IndexError,"Invalid dictionary type object");
-	}
-}
-%}
+/****** DICTIONARY *********/
 
-%extend avp_value_os {
-	void fromstr(char * string) {
-		if ($self->data) free($self->data);
-		$self->data = (uint8_t *)strdup(string);
-		if (!$self->data) {
-			fd_log_debug("Out of memory!\n");
+struct dictionary {
+};
+
+%extend dictionary {
+	dictionary() {
+		struct dictionary * r = NULL;
+		int ret = fd_dict_init(&r);
+		if (ret != 0) {
+			fd_log_debug("Error: %s\n", strerror(ret));
 			PyErr_SetString(PyExc_MemoryError,"Not enough memory");
-			$self->len = 0;
-			return;
-		}
-		$self->len = strlen(string);
-	}
-	%newobject as_str;
-	char * tostr() {
-		char * r;
-		if ($self->len == 0)
 			return NULL;
-		r = malloc($self->len + 1);
-		if (r) {
-			strncpy(r, (char *)$self->data, $self->len + 1);
-		} else {
-			fd_log_debug("Out of memory!\n");
-			PyErr_SetString(PyExc_MemoryError,"Not enough memory");
 		}
 		return r;
 	}
-};	
+	~dictionary() {
+		if (self) {
+			struct dictionary *d = self;
+			int ret = fd_dict_fini(&d);
+			if (ret != 0) {
+				fd_log_debug("Error: %s\n", strerror(ret));
+			}
+			return;
+		}
+	}
+	void dump() {
+		if ($self) {
+			fd_dict_dump($self);
+		}
+	}
+	PyObject * vendors_list() {
+		uint32_t *list = NULL, *li;
+		PyObject * ret;
+		if (!$self) {
+			PyErr_SetString(PyExc_SyntaxError,"dict_object cannot be created directly. Use fd_dict_new.");
+			return NULL;
+		}
+		ret = PyList_New(0);
+		list = fd_dict_get_vendorid_list($self);
+		for (li = list; *li != 0; li++) {
+			PyList_Append(ret, PyInt_FromLong((long)*li));
+		}
+		free(list);
+		return ret;
+	}
+	
+}
+
+struct dict_object {
+};
+
+%extend dict_object {
+	dict_object() {
+		fd_log_debug("Error: dict_object cannot be created directly. Use fd_dict_new\n");
+		PyErr_SetString(PyExc_SyntaxError,"dict_object cannot be created directly. Use fd_dict_new.");
+		return NULL;
+	}
+	~dict_object() {
+		fd_log_debug("Error: dict_object cannot be destroyed directly. Destroy the parent dictionary.\n");
+		return;
+	}
+	void dump() {
+		if ($self) {
+			fd_dict_dump_object($self);
+		}
+	}
+}
+
+/* overload the search function to allow passing integers & string criteria directly */
+%rename(fd_dict_search) fd_dict_search_int;
+%inline %{
+int fd_dict_search_int ( struct dictionary * dict, enum dict_object_type type, int criteria, int what_by_val, struct dict_object ** result, int retval ) {
+	return fd_dict_search ( dict, type, criteria, &what_by_val, result, retval );
+}
+%}
+%rename(fd_dict_search) fd_dict_search_string;
+%inline %{
+int fd_dict_search_string ( struct dictionary * dict, enum dict_object_type type, int criteria, char * what_by_string, struct dict_object ** result, int retval ) {
+	return fd_dict_search ( dict, type, criteria, what_by_string, result, retval );
+}
+%}
+
+
+%extend avp_value_os {
+	~avp_value_os() {
+		if (self)
+			free(self->data);
+	}
+	void dump() {
+		if ($self) {
+			%#define LEN_MAX 20
+			int i, n=LEN_MAX;
+			if ($self->len < LEN_MAX)
+				n = $self->len;
+			fd_log_debug("l:%u, v:[", $self->len);
+			for (i=0; i < n; i++)
+				fd_log_debug("%02.2X", $self->data[i]);
+			fd_log_debug("] '%.*s%s'\n", n, $self->data, n == LEN_MAX ? "..." : "");
+		}
+	}
+}
 
 %extend avp_value {
-	void os_set(void * os) {
-		memcpy(&$self->os, os, sizeof($self->os));
+	void os_set(char *STRING, size_t LENGTH) {
+		free($self->os.data);
+		$self->os.data = malloc(LENGTH);
+		if (!$self->os.data) {
+			fd_log_debug("Out of memory!\n");
+			PyErr_SetString(PyExc_MemoryError,"Not enough memory");
+			return;
+		}
+		memcpy($self->os.data, STRING, LENGTH);
+		$self->os.len = LENGTH;
 	}
-};	
+	void os_set(avp_value_os * os) {
+		free($self->os.data);
+		$self->os.data = malloc(os->len);
+		if (!$self->os.data) {
+			fd_log_debug("Out of memory!\n");
+			PyErr_SetString(PyExc_MemoryError,"Not enough memory");
+			return;
+		}
+		memcpy($self->os.data, os->data, os->len);
+		$self->os.len = os->len;
+	}
+};
 
 %cstring_output_allocate_size(char ** swig_buffer, size_t * swig_len, free(*$1))
 %inline %{
