@@ -94,7 +94,7 @@ d.dump()
 v = dict_vendor_data()
 v.vendor_id = 123
 v.vendor_name = "My test vendor"
-r, my_vendor = fd_dict_new(d, DICT_VENDOR, v, None)
+my_vendor = d.new_obj(DICT_VENDOR, v)
 del v
 d.dump()
 d.vendors_list()
@@ -103,29 +103,29 @@ d.vendors_list()
 a = dict_application_data()
 a.application_id = 99
 a.application_name = "My test appl"
-r, my_appl = fd_dict_new(d, DICT_APPLICATION, a, my_vendor)
+my_appl = d.new_obj(DICT_APPLICATION, a, my_vendor)
 del a
 
 # New type (callbacks are not supported yet...)
 t = dict_type_data()
 t.type_base = AVP_TYPE_INTEGER32
 t.type_name = "My integer AVP"
-r, my_type_int = fd_dict_new(d, DICT_TYPE, t, my_appl)
+my_type_int = d.new_obj(DICT_TYPE, t, my_appl)
 t.type_base = AVP_TYPE_OCTETSTRING
 t.type_name = "My binary buffer AVP"
-r, my_type_os = fd_dict_new(d, DICT_TYPE, t, my_appl)
+my_type_os = d.new_obj(DICT_TYPE, t, my_appl)
 del t
 
 # Constants
 c = dict_enumval_data()
 c.enum_name = "AVP_VALUE_TROIS"
 c.enum_value.i32 = 3
-fd_dict_new(d, DICT_ENUMVAL, c, my_type_int)
+d.new_obj(DICT_ENUMVAL, c, my_type_int)
 
 c.enum_name = "A_BUFFER_CONSTANT"
 c.enum_value.os = "This is a very long AVP value that we prefer to represent as a constant"
 c.enum_value.os.dump()
-fd_dict_new(d, DICT_ENUMVAL, c, my_type_os)
+d.new_obj(DICT_ENUMVAL, c, my_type_os)
 del c
 
 # AVP
@@ -134,14 +134,14 @@ a.avp_code = 234
 a.avp_name = "my integer avp"
 a.avp_flag_mask = AVP_FLAG_MANDATORY
 a.avp_basetype = AVP_TYPE_INTEGER32
-r, my_avp_int = fd_dict_new(d, DICT_AVP, a, my_type_int)
+my_avp_int = d.new_obj(DICT_AVP, a, my_type_int)
 
 a.avp_vendor = 123
 a.avp_name = "my OS avp"
 a.avp_flag_mask = AVP_FLAG_MANDATORY + AVP_FLAG_VENDOR
 a.avp_flag_val = AVP_FLAG_VENDOR
 a.avp_basetype = AVP_TYPE_OCTETSTRING
-r, my_avp_os = fd_dict_new(d, DICT_AVP, a, my_type_os)
+my_avp_os = d.new_obj(DICT_AVP, a, my_type_os)
 del a
 
 # Command
@@ -150,24 +150,24 @@ c.cmd_code = 345
 c.cmd_name = "My-Python-Request"
 c.cmd_flag_mask = CMD_FLAG_REQUEST + CMD_FLAG_PROXIABLE
 c.cmd_flag_val = CMD_FLAG_REQUEST + CMD_FLAG_PROXIABLE
-r, my_req = fd_dict_new(d, DICT_COMMAND, c, my_appl)
+my_req = d.new_obj(DICT_COMMAND, c, my_appl)
 c.cmd_name = "My-Python-Answer"
 c.cmd_flag_val = CMD_FLAG_PROXIABLE
-r, my_ans = fd_dict_new(d, DICT_COMMAND, c, my_appl)
+my_ans = d.new_obj(DICT_COMMAND, c, my_appl)
 del c
 
 # Rule
-rd = dict_rule_data()
-rd.rule_avp = my_avp_int
-rd.rule_position = RULE_REQUIRED
-rd.rule_min = -1
-rd.rule_max = -1
-r, my_rule1 = fd_dict_new(d, DICT_RULE, rd, my_req)
-r, my_rule2 = fd_dict_new(d, DICT_RULE, rd, my_ans)
-rd.rule_avp = my_avp_os
-r, my_rule3 = fd_dict_new(d, DICT_RULE, rd, my_req)
-r, my_rule4 = fd_dict_new(d, DICT_RULE, rd, my_ans)
-del rd
+r = dict_rule_data()
+r.rule_avp = my_avp_int
+r.rule_position = RULE_REQUIRED
+r.rule_min = -1
+r.rule_max = -1
+d.new_obj(DICT_RULE, r, my_req)
+d.new_obj(DICT_RULE, r, my_ans)
+r.rule_avp = my_avp_os
+d.new_obj(DICT_RULE, r, my_req)
+d.new_obj(DICT_RULE, r, my_ans)
+del r
 
 d.dump()
 del d
@@ -177,23 +177,22 @@ del d
 
 gdict = cvar.fd_g_config.cnf_dict
 
-r, appl = fd_dict_search ( gdict, DICT_APPLICATION, APPLICATION_BY_ID, 3, -1 )
-obj.dump()
-r, avp = fd_dict_search( gdict, DICT_AVP, AVP_BY_NAME, "Origin-Host", -1)
-obj.dump()
-r, errcmd = fd_dict_get_error_cmd( gdict )
+appl = gdict.search ( DICT_APPLICATION, APPLICATION_BY_ID, 3 )
+appl.dump()
+avp = gdict.search ( DICT_AVP, AVP_BY_NAME, "Origin-Host")
+avp.dump()
+errcmd = gdict.error_cmd()
 
-data = dict_avp_data()
-fd_dict_getval(avp, data)
-print data.avp_code
-del data
+v = avp.getval()
+print v.avp_code
+del v
 
-r, t = fd_dict_gettype(appl)
+t = avp.gettype()
+print t
 del t
 
-r, dict = fd_dict_getdict(avp)
+dict = avp.getdict()
 del dict
-
 
 
 ############# Sessions ############
@@ -202,45 +201,46 @@ del dict
 def my_cleanup(state,sid):
     print "Cleaning up python state for session:", sid
     print "Received state:", state
+    del state
 
 hdl = session_handler(my_cleanup)
 hdl.dump()
 del hdl
 
-hdl = session_handler(my_cleanup)
-
-
 # Session
+hdl = session_handler(my_cleanup)
 s1 = session()
 s1.getsid()
 s2 = session("this.is.a.full.session.id")
 r,s3,isnew = fd_sess_fromsid("this.is.a.full.session.id")
 s4 = session("host.id", "opt.part")
-
 s4.settimeout(30) # the python wrapper takes a number of seconds as parameter for simplicity
 s4.dump()
 
-
-# state
-mystate = [ 34, "clah", [ 32, 12 ] ]
-
-s4.store(hdl, mystate)
-
-
-
-## TODO : debug the following (segfault)
-
-def my_cleanup(state,sid):
-    print "Cleaning up python state for session:", sid
-    print "Received state:", state
-
-hdl = session_handler(my_cleanup)
-s4 = session("host.id", "opt.part")
-mystate = [ 34, "clah", [ 32, 12 ] ]
-s4.store(hdl, mystate)
-del hdl
+# states
+mystate = [ 34, "blah", [ 32, 12 ] ]
+s1.store(hdl, mystate)
+del mystate
+gotstate = s1.retrieve(hdl)
+print gotstate
+del gotstate
 
 
+############# Routing ############
+
+rd = rt_data()
+
+rd.add("p1.testbed.aaa", "testbed.aaa")
+rd.add("p2.testbed.aaa", "testbed.aaa")
+rd.add("p3.testbed.aaa", "testbed.aaa")
+rd.add("p4.testbed.aaa", "testbed.aaa")
+
+rd.remove("p2.testbed.aaa")
+
+rd.error("p3.testbed.aaa", "relay.testbed.aaa", 3002)
+
+list = rd.extract(-1)
+list[0].dump()
 
 
 
@@ -249,22 +249,6 @@ del hdl
 
 ######################### old stuff (need update) ######################
 
-# Routing data
-prtd = new_rt_data_pptr()
-fd_rtd_init(prtd)
-fd_rtd_candidate_add(rt_data_pptr_value(prtd), "p1.testbed.aaa", "testbed.aaa")
-fd_rtd_candidate_add(rt_data_pptr_value(prtd), "p2.testbed.aaa", "testbed.aaa")
-fd_rtd_candidate_add(rt_data_pptr_value(prtd), "p3.testbed.aaa", "testbed.aaa")
-fd_rtd_candidate_del(rt_data_pptr_value(prtd), "p2.testbed.aaa", 0)
-pcands = new_fd_list_pptr()
-fd_rtd_candidate_extract(rt_data_pptr_value(prtd), pcands, 0)
-li = fd_list_pptr_value(pcands)
-li = fd_list_next_get(li)
-c = fd_list_to_rtd_candidate(li)
-rtd_candidate_diamid_get(c)
-li = fd_list_next_get(li)
-c = fd_list_to_rtd_candidate(li)
-rtd_candidate_diamid_get(c)
 
 
 # Messages

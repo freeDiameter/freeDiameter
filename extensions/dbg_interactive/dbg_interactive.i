@@ -50,9 +50,10 @@
 %include <cstring.i>
 %include <typemaps.i>
 
-/* Some functions are not available through the wrapper, or accessed differently */
+/* Some functions are not available through the wrapper */
 %ignore fd_lib_init;
 %ignore fd_lib_fini;
+/* -- the following functions are better accessed differently, but we leave their definitions just in case
 %ignore fd_dict_init;
 %ignore fd_dict_fini;
 %ignore fd_sess_handler_create_internal;
@@ -63,7 +64,13 @@
 %ignore fd_sess_reclaim;
 %ignore fd_sess_state_store_internal;
 %ignore fd_sess_state_retrieve_internal;
-
+%ignore fd_rtd_init;
+%ignore fd_rtd_free;
+%ignore fd_rtd_candidate_add;
+%ignore fd_rtd_candidate_del;
+%ignore fd_rtd_candidate_extract;
+%ignore fd_rtd_error_add;
+*/
 
 /* Inline functions seems to give problems to SWIG -- just remove the inline definition */
 %define __inline__ 
@@ -74,29 +81,76 @@
 %immutable peer_state_str;
 
 
+/* Create a generic error handling mechanism so that functions can provoke an exception */
+%{
+/* This is not thread-safe etc. but it should work /most of the time/. */
+static int wrapper_errno;
+static PyObject* wrapper_errno_py;
+static char * wrapper_error_txt; /* if NULL, use strerror(errno) */
+#define DI_ERROR(code, pycode, str) {	\
+	fd_log_debug("[dbg_interactive] ERROR: %s: %s\n", __PRETTY_FUNCTION__, str ? str : strerror(code)); \
+	wrapper_errno = code;		\
+	wrapper_errno_py = pycode;	\
+	wrapper_error_txt = str;	\
+}
+
+#define DI_ERROR_MALLOC	\
+	 DI_ERROR(ENOMEM, PyExc_MemoryError, NULL)
+
+%}
+
+%exception {
+	/* reset the errno */
+	wrapper_errno = 0;
+	/* Call the function  -- it will use DI_ERROR macro in case of error */
+	$action
+	/* Now, test for error */
+	if (wrapper_errno) {
+		char * str = wrapper_error_txt ? wrapper_error_txt : strerror(wrapper_errno);
+		PyObject * exc = wrapper_errno_py;
+		if (!exc) {
+			switch (wrapper_errno) {
+				case ENOMEM: exc = PyExc_MemoryError; break;
+				case EINVAL: exc = PyExc_ValueError; break;
+				default: exc = PyExc_RuntimeError;
+			}
+		}
+		SWIG_PYTHON_THREAD_BEGIN_BLOCK;
+		PyErr_SetString(exc, str);
+		SWIG_fail;
+		SWIG_PYTHON_THREAD_END_BLOCK;
+	}
+}
+
 
 /***********************************
  Some types & typemaps for usability 
  ***********************************/
 
-/* for fd_hash */
 %apply (char *STRING, size_t LENGTH) { ( char * string, size_t len ) };
 
-/* for dictionary functions */
 %typemap(in, numinputs=0,noblock=1) SWIGTYPE ** OUTPUT (void *temp = NULL) {
 	$1 = (void *)&temp;
 }
 %typemap(argout,noblock=1) SWIGTYPE ** OUTPUT {
 	%append_output(SWIG_NewPointerObj(*$1, $*1_descriptor, 0));
 }
-%apply SWIGTYPE ** OUTPUT { struct dict_object ** ref };
-%apply SWIGTYPE ** OUTPUT { struct dict_object ** obj };
-%apply SWIGTYPE ** OUTPUT { struct dict_object ** result };
-%apply SWIGTYPE ** OUTPUT { struct dictionary  ** dict }; /* this is for fd_dict_getdict, not fd_dict_init (use constructor) */
+
 %apply int * OUTPUT { enum dict_object_type * type };
 %apply (char *STRING, size_t LENGTH) { (char * sid, size_t len) };
 %apply SWIGTYPE ** OUTPUT { struct session ** session };
 %apply int * OUTPUT { int * new };
+
+/* Callbacks defined in python */
+%typemap(in) PyObject *PyCb {
+	if (!PyCallable_Check($input)) {
+		PyErr_SetString(PyExc_TypeError, "Need a callable object!");
+		SWIG_fail;
+	}
+	$1 = $input;
+}
+
+
 
 /*********************************************************
  Now, create wrappers for (almost) all objects from fD API 
@@ -120,8 +174,7 @@ extensions to the freeDiameter API.
 		struct fd_list * li;
 		li = (struct fd_list *) malloc(sizeof(struct fd_list));
 		if (!li) {
-			fd_log_debug("Out of memory!\n");
-			PyErr_SetString(PyExc_MemoryError,"Not enough memory");
+			DI_ERROR_MALLOC;
 			return NULL;
 		}
 		fd_list_init(li, o);
@@ -152,43 +205,80 @@ struct dictionary {
 		struct dictionary * r = NULL;
 		int ret = fd_dict_init(&r);
 		if (ret != 0) {
-			fd_log_debug("Error: %s\n", strerror(ret));
-			PyErr_SetString(PyExc_MemoryError,"Not enough memory");
+			DI_ERROR(ret, NULL, NULL);
 			return NULL;
 		}
 		return r;
 	}
 	~dictionary() {
-		if (self) {
-			struct dictionary *d = self;
-			int ret = fd_dict_fini(&d);
-			if (ret != 0) {
-				fd_log_debug("Error: %s\n", strerror(ret));
-			}
-			return;
+		struct dictionary *d = self;
+		int ret = fd_dict_fini(&d);
+		if (ret != 0) {
+			DI_ERROR(ret, NULL, NULL);
 		}
+		return;
 	}
 	void dump() {
-		if ($self) {
-			fd_dict_dump($self);
-		}
+		fd_dict_dump($self);
 	}
 	PyObject * vendors_list() {
 		uint32_t *list = NULL, *li;
 		PyObject * ret;
-		if (!$self) {
-			PyErr_SetString(PyExc_SyntaxError,"dict_object cannot be created directly. Use fd_dict_new.");
-			return NULL;
-		}
+		SWIG_PYTHON_THREAD_BEGIN_BLOCK;
 		ret = PyList_New(0);
 		list = fd_dict_get_vendorid_list($self);
 		for (li = list; *li != 0; li++) {
 			PyList_Append(ret, PyInt_FromLong((long)*li));
 		}
 		free(list);
+		SWIG_PYTHON_THREAD_END_BLOCK;
 		return ret;
 	}
-	
+	struct dict_object * new_obj(enum dict_object_type type, void * data, struct dict_object * parent = NULL) {
+		struct dict_object * obj = NULL;
+		int ret = fd_dict_new($self, type, data, parent, &obj);
+		if (ret != 0) {
+			DI_ERROR(ret, NULL, NULL);
+			return NULL;
+		}
+		return obj;
+	}
+	struct dict_object * search(enum dict_object_type type, int criteria, int what_by_val) {
+		struct dict_object * obj = NULL;
+		int ret = fd_dict_search ( $self, type, criteria, &what_by_val, &obj, ENOENT );
+		if (ret != 0) {
+			DI_ERROR(ret, NULL, NULL);
+			return NULL;
+		}
+		return obj;
+	}
+	struct dict_object * search(enum dict_object_type type, int criteria, char * what_by_string) {
+		struct dict_object * obj = NULL;
+		int ret = fd_dict_search ( $self, type, criteria, what_by_string, &obj, ENOENT );
+		if (ret != 0) {
+			DI_ERROR(ret, NULL, NULL);
+			return NULL;
+		}
+		return obj;
+	}
+	struct dict_object * search(enum dict_object_type type, int criteria, void * what) {
+		struct dict_object * obj = NULL;
+		int ret = fd_dict_search ( $self, type, criteria, what, &obj, ENOENT );
+		if (ret != 0) {
+			DI_ERROR(ret, NULL, NULL);
+			return NULL;
+		}
+		return obj;
+	}
+	struct dict_object * error_cmd() {
+		struct dict_object * obj = NULL;
+		int ret = fd_dict_get_error_cmd ( $self, &obj );
+		if (ret != 0) {
+			DI_ERROR(ret, NULL, NULL);
+			return NULL;
+		}
+		return obj;
+	}
 }
 
 struct dict_object {
@@ -196,34 +286,80 @@ struct dict_object {
 
 %extend dict_object {
 	dict_object() {
-		fd_log_debug("Error: dict_object cannot be created directly. Use fd_dict_new\n");
-		PyErr_SetString(PyExc_SyntaxError,"dict_object cannot be created directly. Use fd_dict_new.");
+		DI_ERROR(EINVAL, PyExc_SyntaxError, "dict_object cannot be created directly. Use fd_dict_new().");
 		return NULL;
 	}
 	~dict_object() {
-		fd_log_debug("Error: dict_object cannot be destroyed directly. Destroy the parent dictionary.\n");
+		DI_ERROR(EINVAL, PyExc_SyntaxError, "dict_object cannot be destroyed directly. Destroy the parent dictionary.");
 		return;
 	}
 	void dump() {
-		if ($self) {
-			fd_dict_dump_object($self);
+		fd_dict_dump_object($self);
+	}
+	enum dict_object_type gettype() {
+		enum dict_object_type t;
+		int ret = fd_dict_gettype ( $self, &t);
+		if (ret != 0) {
+			DI_ERROR(ret, NULL, NULL);
+			return 0;
 		}
+		return t;
+	}
+	struct dictionary * getdict() {
+		struct dictionary *d;
+		int ret = fd_dict_getdict ( $self, &d );
+		if (ret != 0) {
+			DI_ERROR(ret, NULL, NULL);
+			return NULL;
+		}
+		return d;
+	}
+	/* Since casting the pointer requires intelligence, we do it here instead of giving it to SWIG */
+	PyObject * getval() {
+		/* first, get the type */
+		enum dict_object_type t;
+		int ret = fd_dict_gettype ( $self, &t);
+		if (ret != 0) {
+			DI_ERROR(ret, NULL, NULL);
+			return NULL;
+		}
+		switch (t) {
+%define %GETVAL_CASE(TYPE,STRUCT)
+			case TYPE: {
+				PyObject * v = NULL;
+				struct STRUCT * data = NULL;
+				data = malloc(sizeof(struct STRUCT));
+				if (!data) {
+					DI_ERROR_MALLOC;
+					return NULL;
+				}
+				ret = fd_dict_getval($self, data);
+				if (ret != 0) {
+					DI_ERROR(ret, NULL, NULL);
+					free(data);
+					return NULL;
+				}
+				SWIG_PYTHON_THREAD_BEGIN_BLOCK;
+				v = SWIG_NewPointerObj((void *)data, SWIGTYPE_p_##STRUCT, SWIG_POINTER_OWN );
+				Py_XINCREF(v);
+				SWIG_PYTHON_THREAD_END_BLOCK;
+				return v;
+			} break
+%enddef
+			%GETVAL_CASE( DICT_VENDOR, 	dict_vendor_data );
+			%GETVAL_CASE( DICT_APPLICATION, dict_application_data );
+			%GETVAL_CASE( DICT_TYPE, 	dict_type_data );
+			%GETVAL_CASE( DICT_ENUMVAL, 	dict_enumval_data );
+			%GETVAL_CASE( DICT_AVP, 	dict_avp_data );
+			%GETVAL_CASE( DICT_COMMAND, 	dict_cmd_data );
+			%GETVAL_CASE( DICT_RULE, 	dict_rule_data );
+			default:
+				DI_ERROR(EINVAL, PyExc_SystemError, "Internal error: Got invalid object type");
+		}
+		return NULL;
 	}
 }
 
-/* overload the search function to allow passing integers & string criteria directly */
-%rename(fd_dict_search) fd_dict_search_int;
-%inline %{
-int fd_dict_search_int ( struct dictionary * dict, enum dict_object_type type, int criteria, int what_by_val, struct dict_object ** result, int retval ) {
-	return fd_dict_search ( dict, type, criteria, &what_by_val, result, retval );
-}
-%}
-%rename(fd_dict_search) fd_dict_search_string;
-%inline %{
-int fd_dict_search_string ( struct dictionary * dict, enum dict_object_type type, int criteria, char * what_by_string, struct dict_object ** result, int retval ) {
-	return fd_dict_search ( dict, type, criteria, what_by_string, result, retval );
-}
-%}
 
 /* The following wrapper leaks memory each time an union avp_value is assigned an octet string.
  TODO: fix this leak by better understanding SWIG... 
@@ -243,8 +379,7 @@ int fd_dict_search_string ( struct dictionary * dict, enum dict_object_type type
 		/* free($self->os.data);  -- do not free, in case the previous value was not an OS */
 		$self->os.data = malloc(LENGTH);
 		if (!$self->os.data) {
-			fd_log_debug("Out of memory!\n");
-			PyErr_SetString(PyExc_MemoryError,"Not enough memory");
+			DI_ERROR_MALLOC;
 			return;
 		}
 		memcpy($self->os.data, STRING, LENGTH);
@@ -254,8 +389,7 @@ int fd_dict_search_string ( struct dictionary * dict, enum dict_object_type type
 		/* free($self->os.data);  -- do not free, in case the previous value was not an OS */
 		$self->os.data = malloc(os->len);
 		if (!$self->os.data) {
-			fd_log_debug("Out of memory!\n");
-			PyErr_SetString(PyExc_MemoryError,"Not enough memory");
+			DI_ERROR_MALLOC;
 			return;
 		}
 		memcpy($self->os.data, os->data, os->len);
@@ -265,33 +399,33 @@ int fd_dict_search_string ( struct dictionary * dict, enum dict_object_type type
 
 %extend avp_value_os {
 	void dump() {
-		if ($self) {
-			%#define LEN_MAX 20
-			int i, n=LEN_MAX;
-			if ($self->len < LEN_MAX)
-				n = $self->len;
-			fd_log_debug("l:%u, v:[", $self->len);
-			for (i=0; i < n; i++)
-				fd_log_debug("%02.2X", $self->data[i]);
-			fd_log_debug("] '%.*s%s'\n", n, $self->data, n == LEN_MAX ? "..." : "");
-		}
+		%#define LEN_MAX 20
+		int i, n=LEN_MAX;
+		if ($self->len < LEN_MAX)
+			n = $self->len;
+		fd_log_debug("l:%u, v:[", $self->len);
+		for (i=0; i < n; i++)
+			fd_log_debug("%02.2X", $self->data[i]);
+		fd_log_debug("] '%.*s%s'\n", n, $self->data, n == LEN_MAX ? "..." : "");
 	}
 }
 
 /****** SESSIONS *********/
 
 %{
-/* At the moment, only 1 callback is supported... */
+/* store the python callback function here */
 static PyObject * py_cleanup_cb = NULL;
+/* call it (might be called from a different thread than the interpreter, when session times out) */
 static void call_the_python_cleanup_callback(session_state * state, char * sid) {
 	PyObject *result;
 	if (!py_cleanup_cb)
 		return;
 	
 	/* Call the function */
+	SWIG_PYTHON_THREAD_BEGIN_BLOCK;
 	result = PyEval_CallFunction(py_cleanup_cb, "(Os)", state, sid);
-	
 	Py_XDECREF(result);
+	SWIG_PYTHON_THREAD_END_BLOCK;
 	return;
 }
 %}
@@ -301,47 +435,39 @@ struct session_handler {
 
 %extend session_handler {
 	session_handler() {
-		fd_log_debug("Error: a cleanup callback parameter is required.\n");
-		PyErr_SetString(PyExc_SyntaxError,"Error: a cleanup callback parameter is required.\n");
+		DI_ERROR(EINVAL, PyExc_SyntaxError, "a cleanup callback parameter is required.");
 		return NULL;
 	}
-	session_handler(PyObject * PyCleanupCb) {
+	session_handler(PyObject * PyCb) {
 		struct session_handler * hdl = NULL;
 		int ret;
 		if (py_cleanup_cb) {
-			fd_log_debug("dbg_interactive supports only 1 session handler in python at the moment\n");
-			PyErr_SetString(PyExc_SyntaxError,"dbg_interactive supports only 1 session handler in python at the moment\n");
+			DI_ERROR(EINVAL, PyExc_SyntaxError, "Only one session handler at a time is supported at the moment in this extension\n.");
 			return NULL;
 		}
-		if (!PyCallable_Check(PyCleanupCb)) {
-			PyErr_SetString(PyExc_TypeError, "Need a callable object!");
-			return NULL;
-		}
-		py_cleanup_cb = PyCleanupCb;
+		py_cleanup_cb = PyCb;
 		Py_XINCREF(py_cleanup_cb);
 		
 		ret = fd_sess_handler_create_internal ( &hdl, call_the_python_cleanup_callback );
 		if (ret != 0) {
-			fd_log_debug("Error: %s\n", strerror(ret));
-			PyErr_SetString(PyExc_MemoryError,"Not enough memory");
+			DI_ERROR(ret, NULL, NULL);
 			return NULL;
 		}
 		return hdl;
 	}
 	~session_handler() {
-		if (self) {
-			struct session_handler * hdl = self;
-			int ret = fd_sess_handler_destroy(&hdl);
-			if (ret != 0) {
-				fd_log_debug("Error: %s\n", strerror(ret));
-			}
-			return;
+		struct session_handler * hdl = self;
+		int ret = fd_sess_handler_destroy(&hdl);
+		if (ret != 0) {
+			DI_ERROR(ret, NULL, NULL);
 		}
+		/* Now free the callback */
+		Py_XDECREF(py_cleanup_cb);
+		py_cleanup_cb = NULL;
+		return;
 	}
 	void dump() {
-		if ($self) {
-			fd_sess_dump_hdl(0, $self);
-		}
+		fd_sess_dump_hdl(0, $self);
 	}
 }
 
@@ -355,8 +481,7 @@ struct session {
 		struct session * s = NULL;
 		ret = fd_sess_new(&s, fd_g_config->cnf_diamid, "dbg_interactive", sizeof("dbg_interactive"));
 		if (ret != 0) {
-			fd_log_debug("Error: %s\n", strerror(ret));
-			PyErr_SetString(PyExc_MemoryError,"Not enough memory");
+			DI_ERROR(ret, NULL, NULL);
 			return NULL;
 		}
 		return s;
@@ -366,8 +491,7 @@ struct session {
 		struct session * s = NULL;
 		ret = fd_sess_new(&s, diamid, STRING, LENGTH);
 		if (ret != 0) {
-			fd_log_debug("Error: %s\n", strerror(ret));
-			PyErr_SetString(PyExc_MemoryError,"Not enough memory");
+			DI_ERROR(ret, NULL, NULL);
 			return NULL;
 		}
 		return s;
@@ -377,37 +501,34 @@ struct session {
 		struct session * s = NULL;
 		ret = fd_sess_fromsid(STRING, LENGTH, &s, &n);
 		if (ret != 0) {
-			fd_log_debug("Error: %s\n", strerror(ret));
-			PyErr_SetString(PyExc_MemoryError,"Not enough memory");
+			DI_ERROR(ret, NULL, NULL);
 			return NULL;
 		}
 		/* When defining n as OUTPUT parameter, we get something strange... Use fd_sess_fromsid if you need it */
+		#if 0
 		if (n) {
 			fd_log_debug("A new session has been created\n");
 		} else {
 			fd_log_debug("A session with same id already existed\n");
 		}
+		#endif /* 0 */
+		
 		return s;
 	}
 	~session() {
-		if (self) {
-			struct session * s = self;
-			int ret = fd_sess_reclaim(&s);
-			if (ret != 0) {
-				fd_log_debug("Error: %s\n", strerror(ret));
-			}
-			return;
+		struct session * s = self;
+		int ret = fd_sess_reclaim(&s);
+		if (ret != 0) {
+			DI_ERROR(ret, NULL, NULL);
 		}
+		return;
 	}
 	char * getsid() {
 		int ret;
 		char * sid = NULL;
-		if (!$self)
-			return NULL;
 		ret = fd_sess_getsid( $self, &sid);
 		if (ret != 0) {
-			fd_log_debug("Error: %s\n", strerror(ret));
-			PyErr_SetString(PyExc_MemoryError,"Problem...");
+			DI_ERROR(ret, NULL, NULL);
 			return NULL;
 		}
 		return sid;
@@ -419,23 +540,19 @@ struct session {
 		timeout.tv_sec += seconds;
 		ret = fd_sess_settimeout( $self, &timeout );
 		if (ret != 0) {
-			fd_log_debug("Error: %s\n", strerror(ret));
-			PyErr_SetString(PyExc_MemoryError,"Problem...");
+			DI_ERROR(ret, NULL, NULL);
 		}
 	}
 	void dump() {
-		if ($self) {
-			fd_sess_dump(0, $self);
-		}
+		fd_sess_dump(0, $self);
 	}
 	void store(struct session_handler * handler, PyObject * state) {
 		int ret;
 		void * store = state;
-		Py_INCREF(state);
+		Py_XINCREF(state);
 		ret = fd_sess_state_store_internal(handler, $self, (void *) &store);
 		if (ret != 0) {
-			fd_log_debug("Error: %s\n", strerror(ret));
-			PyErr_SetString(PyExc_MemoryError,"Problem...");
+			DI_ERROR(ret, NULL, NULL);
 		}
 	}
 	PyObject *  retrieve(struct session_handler * handler) {
@@ -443,20 +560,160 @@ struct session {
 		PyObject * state = NULL;
 		ret = fd_sess_state_retrieve_internal(handler, $self, (void *) &state);
 		if (ret != 0) {
-			fd_log_debug("Error: %s\n", strerror(ret));
-			PyErr_SetString(PyExc_MemoryError,"Problem...");
+			DI_ERROR(ret, NULL, NULL);
+			return NULL;
 		}
 		if (state == NULL) {
+			Py_INCREF(Py_None);
 			return Py_None;
 		}
-		Py_DECREF(state);
 		return state;
 	}
 }	
 
+/****** ROUTING *********/
+
+struct rt_data {
+};
+
+%extend rt_data {
+	rt_data() {
+		struct rt_data * r = NULL;
+		int ret = fd_rtd_init(&r);
+		if (ret != 0) {
+			DI_ERROR(ret, NULL, NULL);
+			return NULL;
+		}
+		return r;
+	}
+	~rt_data() {
+		struct rt_data *r = self;
+		fd_rtd_free(&r);
+	}
+	void add(char * peerid, char * realm) {
+		int ret = fd_rtd_candidate_add($self, peerid, realm);
+		if (ret != 0) {
+			DI_ERROR(ret, NULL, NULL);
+		}
+	}
+	void remove(char * STRING, size_t LENGTH) {
+		fd_rtd_candidate_del($self, STRING, LENGTH);
+	}
+	void error(char * dest, char * STRING, size_t LENGTH, uint32_t rcode) {
+		int ret =  fd_rtd_error_add($self, dest, (uint8_t *)STRING, LENGTH, rcode);
+		if (ret != 0) {
+			DI_ERROR(ret, NULL, NULL);
+		}
+	}
+	struct fd_list * extract_li(int score = 0) {
+		struct fd_list * li = NULL;
+		fd_rtd_candidate_extract($self, &li, score);
+		return li;
+	}
+	PyObject * extract(int score = 0) {
+		struct fd_list * list = NULL, *li;
+		PyObject * rl;
+		fd_rtd_candidate_extract($self, &list, score);
+		rl = PyList_New(0);
+		SWIG_PYTHON_THREAD_BEGIN_BLOCK;
+		for (li = list->next; li != list; li = li->next) {
+			PyList_Append(rl, SWIG_NewPointerObj((void *)li, SWIGTYPE_p_rtd_candidate, 0 ));
+		}
+		Py_XINCREF(rl);
+		SWIG_PYTHON_THREAD_END_BLOCK;
+		
+		return rl;
+	}
+}
+
+%extend rtd_candidate {
+	void dump() {
+		fd_log_debug("candidate %p\n", $self);
+		fd_log_debug("  id : %s\n",  $self->diamid);
+		fd_log_debug("  rlm: %s\n", $self->realm);
+		fd_log_debug("  sc : %d\n", $self->score);
+	}
+}
+
 
 
 /****** MESSAGES *********/
+
+struct msg {
+};
+
+%extend msg {
+	msg() {
+		DI_ERROR(EINVAL, PyExc_SyntaxError, "A DICT_COMMAND object parameter (or None) is required.");
+		return NULL;
+	}
+	msg(struct dict_object * model, int flags = MSGFL_ALLOC_ETEID) {
+		struct msg * m = NULL;
+		int ret = fd_msg_new( model, flags, &m);
+		if (ret != 0) {
+			DI_ERROR(ret, NULL, NULL);
+		}
+		return m;
+	}
+	~msg() {
+		int ret = fd_msg_free($self);
+		if (ret != 0) {
+			DI_ERROR(ret, NULL, NULL);
+		}
+	}
+	%newobject create_answer;
+	struct msg * create_answer(struct dictionary * dict = NULL, int flags = 0) {
+		/* if dict is not provided, attempt to get it from the request model */
+		struct dictionary * d = dict;
+		struct msg * m = $self;
+		int ret;
+		if (!d) {
+			struct dict_object * mo = NULL;
+			ret = fd_msg_model($self, &mo);
+			if (ret != 0) {
+				DI_ERROR(ret, NULL, "Cannot guess the dictionary to use, please provide it as parameter.");
+				return NULL;
+			}
+			ret = fd_dict_getdict ( mo, &d );
+			if (ret != 0) {
+				DI_ERROR(ret, NULL, "Cannot guess the dictionary to use, please provide it as parameter.");
+				return NULL;
+			}
+		}
+		ret = fd_msg_new_answer_from_req(d, &m, flags);
+		if (ret != 0) {
+			DI_ERROR(ret, NULL, "Cannot guess the dictionary to use, please provide it as parameter.");
+			return NULL;
+		}
+		return m;
+	}
+}
+
+struct avp {
+};
+
+%extend avp {
+	avp() {
+		DI_ERROR(EINVAL, PyExc_SyntaxError, "A DICT_AVP object parameter (or None) is required.");
+		return NULL;
+	}
+	avp(struct dict_object * model, int flags = 0) {
+		struct avp * a = NULL;
+		int ret = fd_msg_avp_new( model, flags, &a);
+		if (ret != 0) {
+			DI_ERROR(ret, NULL, NULL);
+		}
+		return a;
+	}
+	~avp() {
+		int ret = fd_msg_free($self);
+		if (ret != 0) {
+			DI_ERROR(ret, NULL, NULL);
+		}
+	}
+}
+	
+
 
 
 %cstring_output_allocate_size(char ** swig_buffer, size_t * swig_len, free(*$1))
