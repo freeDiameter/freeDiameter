@@ -2181,7 +2181,6 @@ int fd_msg_is_routable ( struct msg * msg );
  * PARAMETERS:
  *  msg		: A msg object.
  *  diamid	: The diameter id of the peer from which this message was received.
- *  hash	: The hash for the diamid value.
  *  add_rr	: if true, a Route-Record AVP is added to the message with content diamid. In that case, dict must be supplied.
  *  dict	: a dictionary with definition of Route-Record AVP (if add_rr is true)
  *
@@ -2360,7 +2359,7 @@ struct fd_pei {
  *   - for octetstring AVPs, the string is copied into a new buffer and its address is saved in avp_value. 
  *  If the dictionary definition is not found, avp_model is set to NULL and
  *  the content of the AVP is saved as an octetstring in an internal structure. avp_value is NULL.
- *  As a result, after this function has been called, there is no more dependency of the msg object to the message buffer, that is be freed.
+ *  As a result, after this function has been called, there is no more dependency of the msg object to the message buffer, that is freed.
  *
  * RETURN VALUE:
  *  0      	: The message has been fully parsed as described.

@@ -117,6 +117,7 @@ struct msg {
 	uint8_t			*msg_rawbuffer;		/* data buffer that was received, saved during fd_msg_parse_buffer and freed in fd_msg_parse_dict */
 	int			 msg_routable;		/* Is this a routable message? (0: undef, 1: routable, 2: non routable) */
 	struct msg		*msg_query;		/* the associated query if the message is a received answer */
+	int			 msg_associated;	/* and the counter part information in the query, to avoid double free */
 	struct rt_data		*msg_rtdata;		/* Routing list for the query */
 	struct session		*msg_sess;		/* Cached message session if any */
 	struct {
@@ -341,6 +342,7 @@ int fd_msg_new_answer_from_req ( struct dictionary * dict, struct msg ** msg, in
 	
 	/* associate with query */
 	ans->msg_query = qry;
+	qry->msg_associated = 1;
 	
 	/* Done */
 	*msg = ans;
@@ -628,8 +630,14 @@ int fd_msg_free ( msg_or_avp * object )
 	
 	if (CHECK_MSG(object)) {
 		if (_M(object)->msg_query) {
+			_M(_M(object)->msg_query)->msg_associated = 0;
 			CHECK_FCT(  fd_msg_free( _M(object)->msg_query )  );
 			_M(object)->msg_query = NULL;
+		} else {
+			if (_M(object)->msg_associated) {
+				TRACE_DEBUG(INFO, "Not freeing query %p referenced in an answer (will be freed along the answer).", object);
+				return 0;
+			}
 		}
 	}
 	
@@ -688,8 +696,8 @@ public:
 		msg->msg_public.msg_hbhid,
 		msg->msg_public.msg_eteid
 		);
-	fd_log_debug(INOBJHDR "intern: rwb:%p rt:%d cb:%p(%p) qry:%p sess:%p src:%s\n", 
-			INOBJHDRVAL, msg->msg_rawbuffer, msg->msg_routable, msg->msg_cb.fct, msg->msg_cb.data, msg->msg_query, msg->msg_sess, msg->msg_src_id?:"(nil)");
+	fd_log_debug(INOBJHDR "intern: rwb:%p rt:%d cb:%p(%p) qry:%p asso:%d sess:%p src:%s\n", 
+			INOBJHDRVAL, msg->msg_rawbuffer, msg->msg_routable, msg->msg_cb.fct, msg->msg_cb.data, msg->msg_query, msg->msg_associated, msg->msg_sess, msg->msg_src_id?:"(nil)");
 }
 
 /* Dump an avp object */
@@ -861,6 +869,7 @@ int fd_msg_answ_associate( struct msg * answer, struct msg * query )
 	CHECK_PARAMS(  CHECK_MSG(answer) && CHECK_MSG(query) && (answer->msg_query == NULL )  );
 	
 	answer->msg_query = query;
+	query->msg_associated = 1;
 	
 	return 0;
 }	
@@ -882,6 +891,7 @@ int fd_msg_answ_detach( struct msg * answer )
 	
 	CHECK_PARAMS(  CHECK_MSG(answer) );
 	
+	answer->msg_query->msg_associated = 0;
 	answer->msg_query = NULL;
 	
 	return 0;

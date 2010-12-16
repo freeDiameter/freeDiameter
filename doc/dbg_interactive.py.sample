@@ -65,18 +65,40 @@ r = fd_event_send(cvar.fd_g_config.cnf_main_ev, FDEV_DUMP_EXT, 0, None)
 
 # Display the local Diameter Identity:
 print "Local Diameter Identity:", cvar.fd_g_config.cnf_diamid
-# Display realm, without using the low-level functions (skip proxy classe definitions):
+
+# Display realm, using the low-level functions (skip proxy classe definitions):
 print "Realm:", _fDpy.fd_config_cnf_diamrlm_get(_fDpy.cvar.fd_g_config)
 
 
 
 ############# Lists ############
-l1 = fd_list()   # The creator has an implicit fd_list_init call
+
+# Note: we use different names from the C API here, for usability.
+l1 = fd_list()   # Will be our sentinel
 l2 = fd_list()
-fd_list_insert_after(l1, l2)
+l3 = fd_list()
+l1.isempty()
+l1.insert_next(l2)   # l1 -> l2
+l1.isempty()
+l1.insert_prev(l3)   # l1 -> l2 -> l3 (circular list)
 l1.dump()
-del l2		 # The destructor has an implicit fd_list_unlink call
-l1.dump()
+l3.detach()          # l1 -> l2
+l4=fd_list()
+l5=fd_list()
+l3.insert_next(l4)   #   l3 -> l4
+l3.insert_next(l5)   #   l3 -> l5 -> l4
+l1.concat(l3)        # l1 -> l2 -> l5 -> l4
+
+elements = l1.enum_as()  # default: enumerates as fd_list. Warning: this a copy, changing the python list has no effect on the underlying list.
+for li in elements:
+  li.dump()
+
+del elements
+del l2
+del l3
+del l4
+del l5
+l1.isempty() # The destructor has an implicit fd_list_unlink call
 del l1
 
 
@@ -213,7 +235,7 @@ s1 = session()
 s1.getsid()
 s2 = session("this.is.a.full.session.id")
 r,s3,isnew = fd_sess_fromsid("this.is.a.full.session.id")
-s4 = session("host.id", "opt.part")
+s4 = session("host.id", "optional.part")
 s4.settimeout(30) # the python wrapper takes a number of seconds as parameter for simplicity
 s4.dump()
 
@@ -240,7 +262,135 @@ rd.remove("p2.testbed.aaa")
 rd.error("p3.testbed.aaa", "relay.testbed.aaa", 3002)
 
 list = rd.extract(-1)
-list[0].dump()
+for c in list.enum_as("struct rtd_candidate *"):
+  print "%s (%s): %s" % (c.diamid, c.realm, c.score)
+
+
+
+############# Messages, AVPs ############
+
+## AVP
+
+# Create empty (as for messages, pass None or a dictionary object as 1st param, and flags as optional 2nd param)
+blank_avp = avp()
+del blank_avp
+
+oh = avp(cvar.fd_g_config.cnf_dict.search ( DICT_AVP, AVP_BY_NAME, "Origin-Host"))	                # Octet String
+vi = avp(cvar.fd_g_config.cnf_dict.search ( DICT_AVP, AVP_BY_NAME, "Vendor-Id"))                        # U32
+vsai = avp(cvar.fd_g_config.cnf_dict.search ( DICT_AVP, AVP_BY_NAME, "Vendor-Specific-Application-Id")) # Grouped
+
+# Set values
+val = avp_value()
+val.u32 = 123
+vi.setval(None)  # this cleans a previous value (not needed)
+vi.setval(val)
+val.os = "my.origin.host"
+oh.setval(val)
+vsai.add_child(vi) # call as add_child(vi, 1) to add the new AVP at the beginning, default is at the end
+
+
+## Messages
+
+# Create empty
+a_msg = msg()
+a_msg.dump()
+del a_msg
+
+# It is also possible to pass MSGFL_* flags in second parameter (ALLOC_ETEID is default)
+msg_no_eid = msg(None, 0)
+msg_no_eid.dump()
+del msg_no_eid
+
+# Create from dictionary
+dwr_dict = cvar.fd_g_config.cnf_dict.search ( DICT_COMMAND, CMD_BY_NAME, "Device-Watchdog-Request" )
+dwr = msg(dwr_dict)
+dwr.dump()
+
+# Create msg from a binary buffer (then you should call parse_dict and parse_rules methods)
+dwr2 = msg("\x01\x00\x00\x14\x80\x00\x01\x18\x00\x00\x00\x00\x00\x00\x00\x00\x1b\xf0\x00\x01")
+
+# Create answer from request (optional parameters: dictionary to use, and flags):
+dwr3 = msg(cvar.fd_g_config.cnf_dict.search ( DICT_COMMAND, CMD_BY_NAME, "Device-Watchdog-Request" ))
+dwa3 = dwr3.create_answer()
+dwr3cpy = dwa3.get_query()
+
+
+## Other functions with AVPs & messages
+
+# Add the AVPs in the message
+dwr.add_child(oh)
+oh.add_next(vsai)   # equivalent to add_child on the parent
+
+# Create a network byte buffer from the message
+dwr.bufferize()
+
+# Get first child AVP (fast)
+avp = dwr.first_child()
+
+# then:
+avp = avp.get_next() # when last AVP, returns None
+
+
+# Get all 1st level children (slower) -- warning, changes to the python list will not be reflected on the underlying message. read-only use.
+dwr.children()
+# example use:
+for a in dwr.children()
+  a.dump(0)  # 0 means: dump only this object, do not walk the tree
+
+
+# Search the first AVP of a given type
+oh_dict = cvar.fd_g_config.cnf_dict.search( DICT_AVP, AVP_BY_NAME, "Origin-Host")
+oh = dwr.search( oh_dict )
+
+# After adding AVPs, the length in the message header is outdated, refresh as follow:
+dwr.update_length()
+
+# Get dictionary model for a message or avp
+dwr.model()
+oh.model().dump()
+
+# Retrieve the header of messages & avp:
+dwr_hdr = dwr.header()
+dwr_hdr.msg_version
+dwr_hdr.msg_hbhid
+
+oh_hdr = oh.header()
+hex(oh_hdr.avp_flags)
+oh_hdr.avp_vendor
+oh_hdr.avp_value.os.dump()  # The initial avp value must be set with setval(), but then this accessor is allowed.
+
+# Get or set the routing data
+rd = rt_data()
+dwr.set_rtd(rd)
+rd = dwr.get_rtd()
+
+# Test if message is routable
+dwr.is_routable()
+
+# Which peer the message was received from (when received from network)
+dwr.source()
+
+# The session corresponding to this message (returns None when no Session-Id AVP is included)
+dwr.get_session()
+
+
+# Parse a buffer
+buf = "\x01\x00\x00@\x80\x00\x01\x18\x00\x00\x00\x00\x00\x00\x00\x00N\x10\x00\x00\x00\x00\x01\x08@\x00\x00\x16my.origin.host\x00\x00\x00\x00\x01\x04@\x00\x00\x14\x00\x00\x01\n@\x00\x00\x0c\x00\x00\x00{"
+mydwr = msg(buf)
+# Resolve objects in the dictionary. Return value is None or a struct pei_error in case of problem.
+mydwr.parse_dict()  # if not using the fD global dict, pass it as parameter
+err = mydwr.parse_rules()
+err.pei_errcode
+
+
+# Grouped AVPs are browsed with same methods as messages:
+gavp = dwr.children()[1]
+gavp.first_child().dump()
+gavp.children()
+
+
+
+
 
 
 
@@ -248,43 +398,6 @@ list[0].dump()
 
 
 ######################### old stuff (need update) ######################
-
-
-
-# Messages
-gdict = fd_config_cnf_dict_get(cvar.fd_g_config)
-pobj = new_dict_object_pptr()
-fd_dict_search ( gdict, DICT_COMMAND, CMD_BY_NAME, char_to_void("Capabilities-Exchange-Request"), pobj, -1 )
-cerdict = dict_object_pptr_value(pobj)
-fd_dict_search ( gdict, DICT_AVP, AVP_BY_NAME, char_to_void("Origin-Host"), pobj, -1 )
-ohdict = dict_object_pptr_value(pobj)
-delete_dict_object_pptr(pobj)
-
-pmsg = new_msg_pptr()
-fd_msg_new(cerdict, MSGFL_ALLOC_ETEID, pmsg)
-msg = msg_pptr_value(pmsg);
-pavp = new_avp_pptr()
-fd_msg_avp_new(ohdict, 0, pavp)
-avp = avp_pptr_value(pavp);
-fd_msg_avp_add(msg, MSG_BRW_FIRST_CHILD, avp)
-fd_msg_dump_walk(0, msg)
-
-pahdr = new_avp_hdr_pptr()
-fd_msg_avp_hdr(avp, pahdr)
-ahdr = avp_hdr_pptr_value(pahdr)
-delete_avp_hdr_pptr(pahdr)
-avp_hdr_avp_code_get(ahdr)
-os = new_avp_value_os()
-avp_value_os_fromstr(os, fd_config_cnf_diamid_get(cvar.fd_g_config))
-val = new_avp_value()
-avp_value_os_set(val, os)
-delete_avp_value_os(os)
-fd_msg_avp_setvalue(avp, val)
-delete_avp_value(val)
-
-r,buf = fd_msg_bufferize_py(msg)
-fd_msg_free(msg)
-delete_avp_pptr(pavp)
 
 
 # Create a new peer_info structure and add the peer to the framework.

@@ -16,7 +16,16 @@ SET(CMAKE_SWIG_FLAGS -castmode -threads)
 SET(SWIG_MODULE_fDpy_EXTRA_DEPS 
 	${CMAKE_BINARY_DIR}/include/freeDiameter/freeDiameter-host.h 
 	${CMAKE_SOURCE_DIR}/include/freeDiameter/libfreeDiameter.h 
-	${CMAKE_SOURCE_DIR}/include/freeDiameter/freeDiameter.h)
+	${CMAKE_SOURCE_DIR}/include/freeDiameter/freeDiameter.h
+	lists.i
+	dictionary.i
+	sessions.i
+	routing.i
+	messages.i
+	dispatch.i
+	queues.i
+	peers.i
+	)
 SET_SOURCE_FILES_PROPERTIES(dbg_interactive.i PROPERTIES SWIG_MODULE_NAME fDpy)
 
 # The following code is inspired from SWIG_ADD_MODULE, but we do only what we need
