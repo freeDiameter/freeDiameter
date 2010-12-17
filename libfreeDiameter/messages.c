@@ -139,6 +139,7 @@ struct msg {
 
 
 /* Macro to validate a MSGFL_ value */
+#define CHECK_AVPFL(_fl) ( ((_fl) & (- (AVPFL_MAX << 1) )) == 0 )
 #define CHECK_MSGFL(_fl) ( ((_fl) & (- (MSGFL_MAX << 1) )) == 0 )
 
 
@@ -199,7 +200,7 @@ int fd_msg_avp_new ( struct dict_object * model, int flags, struct avp ** avp )
 	TRACE_ENTRY("%p %x %p", model, flags, avp);
 	
 	/* Check the parameters */
-	CHECK_PARAMS(  avp && CHECK_MSGFL(flags)  );
+	CHECK_PARAMS(  avp && CHECK_AVPFL(flags)  );
 	
 	if (model) {
 		enum dict_object_type 	 dicttype;
@@ -222,6 +223,10 @@ int fd_msg_avp_new ( struct dict_object * model, int flags, struct avp ** avp )
 		new->avp_public.avp_flags   = dictdata.avp_flag_val;
 		new->avp_public.avp_len = GETINITIALSIZE(dictdata.avp_basetype, dictdata.avp_flag_val );
 		new->avp_public.avp_vendor  = dictdata.avp_vendor;
+	}
+	
+	if (flags & AVPFL_SET_BLANK_VALUE) {
+		new->avp_public.avp_value = &new->avp_storage;
 	}
 	
 	/* The new object is ready, return */

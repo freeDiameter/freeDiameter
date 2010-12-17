@@ -35,3 +35,111 @@
 
 /* Do not include this directly, use dbg_interactive.i instead */
 
+/****** FIFO QUEUES *********/
+
+struct fifo {
+};
+
+%extend fifo {
+	fifo() {
+		struct fifo * q = NULL;
+		int ret = fd_fifo_new(&q);
+		if (ret != 0) {
+			DI_ERROR(ret, NULL, NULL);
+			return NULL;
+		}
+		return q;
+	}
+	~fifo() {
+		struct fifo *q = self;
+		fd_fifo_del(&q);
+	}
+	
+	/* Move all elements to another queue */
+	void move(struct fifo * to) {
+		int ret = fd_fifo_move($self, to, NULL);
+		if (ret != 0) {
+			DI_ERROR(ret, NULL, NULL);
+		}
+	}
+	
+	/* Get the length of the queue (nb elements) */
+	int length() {
+		int l;
+		int ret = fd_fifo_length ( $self, &l );
+		if (ret != 0) {
+			DI_ERROR(ret, NULL, NULL);
+		}
+		return l;
+	}
+
+	/* Is the threashold function useful here? TODO... */
+	
+	/* Post an item */
+	void post(PyObject * item) {
+		int ret;
+		PyObject * i = item;
+		
+		Py_XINCREF(i);
+		ret = fd_fifo_post($self, &i);
+		if (ret != 0) {
+			DI_ERROR(ret, NULL, NULL);
+		}
+	}
+	
+	/* Get (blocking) */
+	PyObject * get() {
+		int ret;
+		PyObject * i = NULL;
+		
+		ret = fd_fifo_get($self, &i);
+		if (ret != 0) {
+			DI_ERROR(ret, NULL, NULL);
+		}
+		
+		return i;
+	}
+	
+	/* TryGet (non-blocking, returns None on empty queue) */
+	PyObject * tryget() {
+		int ret;
+		PyObject * i = NULL;
+		
+		ret = fd_fifo_tryget($self, &i);
+		if (ret == EWOULDBLOCK) {
+			Py_XINCREF(Py_None);
+			return Py_None;
+		}
+		if (ret != 0) {
+			DI_ERROR(ret, NULL, NULL);
+		}
+		
+		return i;
+	}
+	
+	/* TimedGet (blocking for a while) */
+	PyObject * timedget(long seconds) {
+		int ret;
+		PyObject * i = NULL;
+		struct timespec ts;
+		
+		clock_gettime(CLOCK_REALTIME, &ts);
+		ts.tv_sec += seconds;
+		
+		ret = fd_fifo_timedget($self, &i, &ts);
+		if (ret == ETIMEDOUT) {
+			Py_XINCREF(Py_None);
+			return Py_None;
+		}
+		if (ret != 0) {
+			DI_ERROR(ret, NULL, NULL);
+		}
+		
+		return i;
+	}
+	
+}		
+	
+	
+	
+	

@@ -1876,6 +1876,9 @@ enum msg_brw_dir {
 };
 
 /* Some flags used in the functions bellow */
+#define AVPFL_SET_BLANK_VALUE	0x01	/* When creating an AVP, initialize its value to a blank area */
+#define AVPFL_MAX		AVPFL_SET_BLANK_VALUE	/* The biggest valid flag value */
+	
 #define MSGFL_ALLOC_ETEID	0x01	/* When creating a message, a new end-to-end ID is allocated and set in the message */
 #define MSGFL_ANSW_ERROR	0x02	/* When creating an answer message, set the 'E' bit and use the generic error ABNF instead of command-specific ABNF */
 #define MSGFL_ANSW_NOSID	0x04	/* When creating an answer message, do not add the Session-Id even if present in request */
@@ -1889,7 +1892,7 @@ enum msg_brw_dir {
  *
  * PARAMETERS:
  *  model 	: Pointer to a DICT_AVP dictionary object describing the avp to create, or NULL.
- *  flags	: Flags to use in creation (not used yet, should be 0).
+ *  flags	: Flags to use in creation (AVPFL_*).
  *  avp 	: Upon success, pointer to the new avp is stored here.
  *
  * DESCRIPTION: 

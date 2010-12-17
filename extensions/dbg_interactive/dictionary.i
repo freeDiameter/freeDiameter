@@ -241,4 +241,171 @@ struct dict_object {
 			fd_log_debug("%02.2X", $self->data[i]);
 		fd_log_debug("] '%.*s%s'\n", n, $self->data, n == LEN_MAX ? "..." : "");
 	}
+	%cstring_output_allocate_size(char ** outbuffer, size_t * outlen, free(*$1));
+	void as_str ( char ** outbuffer, size_t * outlen ) {
+		char * b;
+		if (!$self->len) {
+			*outlen = 0;
+			*outbuffer = NULL;
+			return;
+		}
+		b = malloc($self->len);
+		if (!b) {
+			DI_ERROR_MALLOC;
+			return;
+		}
+		memcpy(b, $self->data, $self->len);
+		*outlen = $self->len;
+		*outbuffer = b;
+	}
 }
+
+
+/* Allow constructors with parameters for the dict_*_data */
+%extend dict_vendor_data {
+	dict_vendor_data(uint32_t id = 0, char * name = NULL) {
+		struct dict_vendor_data * d = (struct dict_vendor_data *)calloc(1, sizeof(struct dict_vendor_data));
+		if (!d) {
+			DI_ERROR_MALLOC;
+			return NULL;
+		}
+		d->vendor_id = id;
+		if (name) {
+			d->vendor_name = strdup(name);
+			if (!d->vendor_name) {
+				DI_ERROR_MALLOC;
+				free(d);
+				return NULL;
+			}
+		}
+		return d;
+	}
+}
+
+%extend dict_application_data {
+	dict_application_data(uint32_t id = 0, char * name = NULL) {
+		struct dict_application_data * d = (struct dict_application_data *)calloc(1, sizeof(struct dict_application_data));
+		if (!d) {
+			DI_ERROR_MALLOC;
+			return NULL;
+		}
+		d->application_id = id;
+		if (name) {
+			d->application_name = strdup(name);
+			if (!d->application_name) {
+				DI_ERROR_MALLOC;
+				free(d);
+				return NULL;
+			}
+		}
+		return d;
+	}
+}
+
+%extend dict_type_data {
+	dict_type_data(enum dict_avp_basetype base = 0, char * name = NULL) {
+		struct dict_type_data * d = (struct dict_type_data *)calloc(1, sizeof(struct dict_type_data));
+		if (!d) {
+			DI_ERROR_MALLOC;
+			return NULL;
+		}
+		d->type_base = base;
+		if (name) {
+			d->type_name = strdup(name);
+			if (!d->type_name) {
+				DI_ERROR_MALLOC;
+				free(d);
+				return NULL;
+			}
+		}
+		return d;
+	}
+}
+
+%extend dict_enumval_data {
+	dict_enumval_data(char * name = NULL, uint32_t v = 0) {
+		struct dict_enumval_data * d = (struct dict_enumval_data *)calloc(1, sizeof(struct dict_enumval_data));
+		if (!d) {
+			DI_ERROR_MALLOC;
+			return NULL;
+		}
+		if (name) {
+			d->enum_name = strdup(name);
+			if (!d->enum_name) {
+				DI_ERROR_MALLOC;
+				free(d);
+				return NULL;
+			}
+		}
+		d->enum_value.u32 = v;
+		return d;
+	}
+}
+
+%extend dict_avp_data {
+	dict_avp_data(uint32_t code = 0, char * name = NULL, enum dict_avp_basetype basetype = 0, uint32_t vendor = 0, int mandatory=0) {
+		struct dict_avp_data * d = (struct dict_avp_data *)calloc(1, sizeof(struct dict_avp_data));
+		if (!d) {
+			DI_ERROR_MALLOC;
+			return NULL;
+		}
+		if (name) {
+			d->avp_name = strdup(name);
+			if (!d->avp_name) {
+				DI_ERROR_MALLOC;
+				free(d);
+				return NULL;
+			}
+		}
+		d->avp_code = code;
+		d->avp_basetype = basetype;
+		d->avp_vendor = vendor;
+		if (vendor) {
+			d->avp_flag_val |= AVP_FLAG_VENDOR;
+			d->avp_flag_mask |= AVP_FLAG_VENDOR;
+		}
+		d->avp_flag_mask |= AVP_FLAG_MANDATORY;
+		if (mandatory)
+			d->avp_flag_val |= AVP_FLAG_MANDATORY;
+		return d;
+	}
+}
+
+%extend dict_cmd_data {
+	dict_cmd_data(uint32_t code = 0, char * name = NULL, int request = 1) {
+		struct dict_cmd_data * d = (struct dict_cmd_data *)calloc(1, sizeof(struct dict_cmd_data));
+		if (!d) {
+			DI_ERROR_MALLOC;
+			return NULL;
+		}
+		if (name) {
+			d->cmd_name = strdup(name);
+			if (!d->cmd_name) {
+				DI_ERROR_MALLOC;
+				free(d);
+				return NULL;
+			}
+		}
+		d->cmd_code = code;
+		d->cmd_flag_mask = CMD_FLAG_REQUEST | CMD_FLAG_PROXIABLE;
+		d->cmd_flag_val = CMD_FLAG_PROXIABLE | ( request ? CMD_FLAG_REQUEST : 0 );
+		return d;
+	}
+}
+
+%extend dict_rule_data {
+	dict_rule_data(struct dict_object *avp = NULL, enum rule_position pos = 0, int min = -1, int max = -1 ) {
+		struct dict_rule_data * d = (struct dict_rule_data *)calloc(1, sizeof(struct dict_rule_data));
+		if (!d) {
+			DI_ERROR_MALLOC;
+			return NULL;
+		}
+		d->rule_avp = avp;
+		d->rule_position = pos;
+		d->rule_order = 1;
+		d->rule_min = min;
+		d->rule_max = max;
+		return d;
+	}
+}
+

@@ -35,3 +35,120 @@
 
 /* Do not include this directly, use dbg_interactive.i instead */
 
+/****** DISPATCH *********/
+
+
+%{
+/* store the python callback function here */
+static PyObject * py_dispatch_cb = NULL;
+static int        py_dispatch_cb_n = 0;
+/* call it (will be called from a different thread than the interpreter, when message arrives) */
+static int call_the_python_dispatch_callback(struct msg **msg, struct avp *avp, struct session *session, enum disp_action *action) {
+	PyObject *PyMsg, *PyAvp, *PySess;
+	PyObject *result = NULL;
+	int ret = 0;
+	
+	if (!py_dispatch_cb)
+		return ENOTSUP;
+	
+	SWIG_PYTHON_THREAD_BEGIN_BLOCK;
+	/* Convert the arguments */
+	PyMsg  = SWIG_NewPointerObj((void *)*msg,     SWIGTYPE_p_msg,     0 );
+	PyAvp  = SWIG_NewPointerObj((void *) avp,     SWIGTYPE_p_avp,     0 );
+	PySess = SWIG_NewPointerObj((void *) session, SWIGTYPE_p_session, 0 );
+	
+	/* Call the function */
+	result = PyEval_CallFunction(py_dispatch_cb, "(OOO)", PyMsg, PyAvp, PySess);
+	
+	/* The result is supposedly composed of: [ ret, *msg, *action ] */
+	if ((result == NULL) || (!PyList_Check(result)) || (PyList_Size(result) != 3)) {
+		fd_log_debug("Error: The Python callback did not return [ ret, msg, action ].\n");
+		ret = EINVAL;
+		goto out;
+	}
+	
+	/* Convert the return values */
+	if (!SWIG_IsOK(SWIG_AsVal_int(PyList_GetItem(result, 0), &ret))) {
+		fd_log_debug("Error: Cannot convert the first return value to integer.\n");
+		ret = EINVAL;
+		goto out;
+	}
+	if (ret) {
+		TRACE_DEBUG(INFO, "The Python callback returned the error code %d (%s)\n", ret, strerror(ret));
+		goto out;
+	}
+	
+	if (!SWIG_IsOK(SWIG_ConvertPtr(PyList_GetItem(result, 1), (void *)msg, SWIGTYPE_p_msg, SWIG_POINTER_DISOWN))) {
+		fd_log_debug("Error: Cannot convert the second return value to message.\n");
+		ret = EINVAL;
+		goto out;
+	}
+	
+	if (!SWIG_IsOK(SWIG_AsVal_int(PyList_GetItem(result, 2), (int *)action))) {
+		fd_log_debug("Error: Cannot convert the third return value to integer.\n");
+		ret = EINVAL;
+		goto out;
+	}
+	
+	TRACE_DEBUG(FULL, "Python callback return: *action = %d\n", *action);
+out:	
+	Py_XDECREF(result);
+	
+	SWIG_PYTHON_THREAD_END_BLOCK;
+	return ret;
+}
+%}
+
+struct disp_hdl {
+};
+
+%nodefaultctor disp_hdl;
+%extend disp_hdl {
+	disp_hdl(PyObject * PyCb, enum disp_how how, struct disp_when * when) {
+		struct disp_hdl * hdl = NULL;
+		int ret;
+		if (py_dispatch_cb && (py_dispatch_cb != PyCb)) {
+			DI_ERROR(EINVAL, PyExc_SyntaxError, "Only one dispatch callback is supported at the moment in this extension\n.");
+			return NULL;
+		}
+		py_dispatch_cb = PyCb;
+		py_dispatch_cb_n += 1;
+		Py_XINCREF(py_dispatch_cb);
+		
+		ret = fd_disp_register ( call_the_python_dispatch_callback, how, when, &hdl );
+		if (ret != 0) {
+			DI_ERROR(ret, NULL, NULL);
+			return NULL;
+		}
+		return hdl;
+	}
+	~disp_hdl() {
+		struct disp_hdl * hdl = self;
+		int ret = fd_disp_unregister(&hdl);
+		if (ret != 0) {
+			DI_ERROR(ret, NULL, NULL);
+		}
+		/* Now free the callback */
+		Py_XDECREF(py_dispatch_cb);
+		py_dispatch_cb_n -= 1;
+		if (!py_dispatch_cb_n)
+			py_dispatch_cb = NULL;
+		return;
+	}
+}
+
+
+%extend disp_when {
+	disp_when(struct dict_object * app = NULL, struct dict_object * command = NULL, struct dict_object * avp = NULL, struct dict_object * value = NULL) {
+      		struct disp_when * w = (struct disp_when *)calloc(1, sizeof(struct disp_when));
+		if (!w) {
+			DI_ERROR_MALLOC;
+			return NULL;
+		}
+		w->app = app;
+		w->command = command;
+		w->avp = avp;
+		w->value = value;
+		return w;
+	}
+}

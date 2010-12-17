@@ -35,3 +35,55 @@
 
 /* Do not include this directly, use dbg_interactive.i instead */
 
+/****** PEERS *********/
+
+%{
+static void fd_add_cb(struct peer_info *peer, void *data) {
+	/* Callback called when the peer connection completes (or fails) */
+	PyObject *PyPeer, *PyFunc;
+	PyObject *result = NULL;
+	
+	if (!data) {
+		TRACE_DEBUG(INFO, "Internal error: missing callback\n");
+		return;
+	}
+	PyFunc = data;
+	
+	SWIG_PYTHON_THREAD_BEGIN_BLOCK;
+	
+	/* Convert the argument */
+	PyPeer  = SWIG_NewPointerObj((void *)peer,     SWIGTYPE_p_peer_info,     0 );
+	
+	/* Call the function */
+	result = PyEval_CallFunction(PyFunc, "(O)", PyPeer);
+	
+	Py_XDECREF(result);
+	Py_XDECREF(PyFunc);
+	
+	SWIG_PYTHON_THREAD_END_BLOCK;
+	return;
+}
+%}
+
+%extend peer_info {
+	/* Wrapper around fd_peer_add to allow calling the python callback */
+	void add(PyObject * PyCb=NULL) {
+		int ret;
+		
+		if (PyCb) {
+			Py_XINCREF(PyCb);
+			ret = fd_peer_add ( $self, "dbg_interactive", fd_add_cb, PyCb );
+		} else {
+			ret = fd_peer_add ( $self, "dbg_interactive", NULL, NULL );
+		}
+		if (ret != 0) {
+			DI_ERROR(ret, NULL, NULL);
+		}
+	}
+
+	/* Add an endpoint */
+	void add_endpoint(char * endpoint) {
+		fd_log_debug("What is the best way in python to pass an endpoint? (ip + port)");
+	}
+
+}

@@ -37,6 +37,49 @@
 
 /****** MESSAGES *********/
 
+%{
+struct anscb_py_layer {
+	PyObject * cb;
+	PyObject * data;
+};
+
+/* If a python callback was provided, it is received in cbdata */
+static void anscb_python(void *cbdata, struct msg ** msg) {
+	/* The python callback is received in cbdata */
+	PyObject * result, *PyMsg;
+	struct anscb_py_layer * l = cbdata;
+	
+	if (!l) {
+		fd_log_debug("Internal error! Python callback disappeared...\n");
+		return;
+	}
+	
+	SWIG_PYTHON_THREAD_BEGIN_BLOCK;
+	
+	if (!msg || !*msg) {
+		PyMsg = Py_None;
+	} else {
+		PyMsg = SWIG_NewPointerObj((void *)*msg,     SWIGTYPE_p_msg,     0 );
+	}
+	
+	result = PyEval_CallFunction(l->cb, "(OO)", PyMsg, l->data);
+	Py_XDECREF(l->cb);
+	Py_XDECREF(l->data);
+	free(l);
+	
+	/* The callback is supposed to return a message or NULL */
+	if (!SWIG_IsOK(SWIG_ConvertPtr(result, (void *)msg, SWIGTYPE_p_msg, SWIG_POINTER_DISOWN))) {
+		fd_log_debug("Error: Cannot convert the return value to message.\n");
+		*msg = NULL;
+	}
+	
+	Py_XDECREF(result);
+	
+	SWIG_PYTHON_THREAD_END_BLOCK;
+	
+}
+%}
+
 struct msg {
 };
 
@@ -74,6 +117,34 @@ struct msg {
 			DI_ERROR(ret, NULL, NULL);
 		}
 	}
+	
+	/* SEND THE MESSAGE */
+	%delobject send; /* when this has been called, the msg must not be freed anymore */
+	void send(PyObject * PyCb = NULL, PyObject * data = NULL) {
+		int ret;
+		struct msg * m = $self;
+		struct anscb_py_layer * l = NULL;
+		
+		if (PyCb) {
+			l = malloc(sizeof(struct anscb_py_layer));
+			if (!l) {
+				DI_ERROR_MALLOC;
+				return;
+			}
+
+			Py_XINCREF(PyCb);
+			Py_XINCREF(data);
+			l->cb = PyCb;
+			l->data = data;
+		}
+		
+		ret = fd_msg_send(&m, PyCb ? anscb_python : NULL, l);
+		if (ret != 0) {
+			DI_ERROR(ret, NULL, NULL);
+		}
+	}
+	
+	/* Create an answer */
 	%delobject create_answer; /* when this has been called, the original msg should not be freed anymore */
 	struct msg * create_answer(struct dictionary * dict = NULL, int flags = 0) {
 		/* if dict is not provided, attempt to get it from the request model */
@@ -312,6 +383,23 @@ struct msg {
 			DI_ERROR(ret, NULL, NULL);
 		}
 	}
+	
+	/* Set the result code */
+	void rescode_set(char * rescode = "DIAMETER_SUCCESS", char * errormsg = NULL, struct avp * optavp = NULL, int type_id = 0) {
+		int ret = fd_msg_rescode_set( $self, rescode, errormsg, optavp, type_id );
+		if (ret) {
+			DI_ERROR(ret, NULL, NULL);
+		}
+	}
+	
+	/* Add the origin */
+	void add_origin(int osi = 0) {
+		int ret = fd_msg_add_origin( $self, osi );
+		if (ret) {
+			DI_ERROR(ret, NULL, NULL);
+		}
+	}
+	
 }
 
 struct avp {

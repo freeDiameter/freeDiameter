@@ -128,6 +128,11 @@ static char * wrapper_error_txt; /* if NULL, use strerror(errno) */
 }
 
 
+/* Forward declaration for the peers module */
+%{
+static void fd_add_cb(struct peer_info *peer, void *data);
+%}
+
 /*********************************************************
  Now, create wrappers for (almost) all objects from fD API 
  *********************************************************/

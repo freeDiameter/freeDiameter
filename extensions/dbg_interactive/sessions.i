@@ -58,11 +58,8 @@ static void call_the_python_cleanup_callback(session_state * state, char * sid) 
 struct session_handler {
 };
 
+%nodefaultctor session_handler;
 %extend session_handler {
-	session_handler() {
-		DI_ERROR(EINVAL, PyExc_SyntaxError, "a cleanup callback parameter is required.");
-		return NULL;
-	}
 	session_handler(PyObject * PyCb) {
 		struct session_handler * hdl = NULL;
 		int ret;
@@ -95,6 +92,7 @@ struct session_handler {
 		fd_sess_dump_hdl(0, $self);
 	}
 }
+
 
 struct session {
 };

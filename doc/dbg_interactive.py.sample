@@ -103,7 +103,8 @@ del l1
 
 
 ############# Hash ############
-hex(fd_hash("hello world"))	# A typemap is applied to accept binary data
+
+hex(fd_hash("hello world"))	# It accepts binary data
 
 
 ############# Dictionary ############
@@ -121,12 +122,19 @@ del v
 d.dump()
 d.vendors_list()
 
+# Compact invocation also possible:
+v2 = dict_vendor_data(124, "My test vendor 2")
+del v2
+
 # New application
 a = dict_application_data()
 a.application_id = 99
 a.application_name = "My test appl"
 my_appl = d.new_obj(DICT_APPLICATION, a, my_vendor)
 del a
+
+a2 = dict_application_data(99, "My test appl 2")
+del a2
 
 # New type (callbacks are not supported yet...)
 t = dict_type_data()
@@ -137,6 +145,9 @@ t.type_base = AVP_TYPE_OCTETSTRING
 t.type_name = "My binary buffer AVP"
 my_type_os = d.new_obj(DICT_TYPE, t, my_appl)
 del t
+
+t2 = dict_type_data(AVP_TYPE_UNSIGNED32, "u32 type")
+del t2
 
 # Constants
 c = dict_enumval_data()
@@ -149,6 +160,12 @@ c.enum_value.os = "This is a very long AVP value that we prefer to represent as 
 c.enum_value.os.dump()
 d.new_obj(DICT_ENUMVAL, c, my_type_os)
 del c
+
+c2 = dict_enumval_data("enum 23", 23)  # The constructor only accepts unsigned32, for other values, set them afterwards
+c3 = dict_enumval_data("enum other")
+c3.os = "other value"
+del c2
+del c3
 
 # AVP
 a = dict_avp_data()
@@ -166,6 +183,16 @@ a.avp_basetype = AVP_TYPE_OCTETSTRING
 my_avp_os = d.new_obj(DICT_AVP, a, my_type_os)
 del a
 
+a2 = dict_avp_data(235, "no vendor, not mandatory", AVP_TYPE_OCTETSTRING)
+a3 = dict_avp_data(236, "vendor 12, not mandatory", AVP_TYPE_OCTETSTRING, 12)
+a4 = dict_avp_data(237, "vendor 12, mandatory", AVP_TYPE_OCTETSTRING, 12, 1)
+a5 = dict_avp_data(238, "no vendor, mandatory", AVP_TYPE_OCTETSTRING, 0, 1)
+del a2
+del a3
+del a4
+del a5
+
+
 # Command
 c = dict_cmd_data()
 c.cmd_code = 345
@@ -177,6 +204,11 @@ c.cmd_name = "My-Python-Answer"
 c.cmd_flag_val = CMD_FLAG_PROXIABLE
 my_ans = d.new_obj(DICT_COMMAND, c, my_appl)
 del c
+
+c2 = dict_cmd_data(346, "Second-Request", 1) # Default created with PROXIABLE flag.
+c3 = dict_cmd_data(346, "Second-Answer",  0) 
+del c2
+del c3
 
 # Rule
 r = dict_rule_data()
@@ -194,6 +226,12 @@ del r
 d.dump()
 del d
 
+r2 = dict_rule_data(my_avp_int, RULE_REQUIRED) # min & max are optional parameters, default to -1
+r3 = dict_rule_data(my_avp_int, RULE_REQUIRED, 2, 3) # min is 2, max is 3
+r4 = dict_rule_data(my_avp_int, RULE_FIXED_HEAD) # The r4.rule_order = 1 by default, change afterwards if needed.
+del r2
+del r3
+del r4
 
 ####### Now play with the "real" dictionary
 
@@ -271,10 +309,11 @@ for c in list.enum_as("struct rtd_candidate *"):
 
 ## AVP
 
-# Create empty (as for messages, pass None or a dictionary object as 1st param, and flags as optional 2nd param)
+# Create empty
 blank_avp = avp()
 del blank_avp
 
+# Create from dictionary definitions
 oh = avp(cvar.fd_g_config.cnf_dict.search ( DICT_AVP, AVP_BY_NAME, "Origin-Host"))	                # Octet String
 vi = avp(cvar.fd_g_config.cnf_dict.search ( DICT_AVP, AVP_BY_NAME, "Vendor-Id"))                        # U32
 vsai = avp(cvar.fd_g_config.cnf_dict.search ( DICT_AVP, AVP_BY_NAME, "Vendor-Specific-Application-Id")) # Grouped
@@ -288,10 +327,15 @@ val.os = "my.origin.host"
 oh.setval(val)
 vsai.add_child(vi) # call as add_child(vi, 1) to add the new AVP at the beginning, default is at the end
 
+# It is possible to initialize the AVP with a blank value as follow:
+blank_with_value = avp(None, AVPFL_SET_BLANK_VALUE)
+# it enables this without doing the setval call:
+blank_with_value.header().avp_value.u32 = 12
+
 
 ## Messages
 
-# Create empty
+# Create empt (as for avps, pass None or a dictionary object as 1st param, and flags as optional 2nd param)y
 a_msg = msg()
 a_msg.dump()
 del a_msg
@@ -357,7 +401,8 @@ dwr_hdr.msg_hbhid
 oh_hdr = oh.header()
 hex(oh_hdr.avp_flags)
 oh_hdr.avp_vendor
-oh_hdr.avp_value.os.dump()  # The initial avp value must be set with setval(), but then this accessor is allowed.
+oh_hdr.avp_value.os.as_str() 
+
 
 # Get or set the routing data
 rd = rt_data()
@@ -389,21 +434,206 @@ gavp.first_child().dump()
 gavp.children()
 
 
+# Send a message:
+mydwr.send()
+
+# Optionaly, a callback can be registered when a message is sent, with an optional object.
+# This callback takes the answer message as parameter and should return None or a message. (cf. fd_msg_send)
+def send_callback(msg, obj):
+    print "Received answer:"
+    msg.dump()
+    print "Associated data:"
+    obj
+    return None
+
+mydwr.send(send_callback, some_object)
+
+
+# Set a result code in an answer message.
+dwa = mydwr.create_answer()
+dwa.rescode_set()   # This adds the DIAMETER_SUCCESS result code
+dwa.rescode_set("DIAMETER_LIMITED_SUCCESS" )   # This adds a different result code
+dwa.rescode_set("DIAMETER_LIMITED_SUCCESS", "Something went not so well" )   # This adds a different result code + specified Error-Message
+dwa.rescode_set("DIAMETER_INVALID_AVP", None, faulty_avp )   # This adds a Failed-AVP
+dwa.rescode_set("DIAMETER_SUCCESS", None, None, 1 )   # This adds origin information (see fd_msg_rescode_set's type_id for more info)
+
+# Set the origin to local host
+mydwr.add_origin()  # adds Origin-Host & Origin-Realm
+mydwr.add_origin(1) # adds Origin-State-Id in addition.
+
+
+############# DISPATCH (aka. server application) ############
+
+# As for sessions, only one dispatch handler can be registered in this extension at the moment.
+# The callback for the handler has the following syntax:
+def dispatch_cb_model(inmsg, inavp, insession):
+   print "Callback trigged on message: "
+   inmsg.dump()
+   # inavp is None or the AVP that trigged the callback, depending on how it was registered.
+   if inavp:
+     print "From the following AVP:"
+     inavp.dump()
+   else:
+     print "No AVP"
+   # Session is provided only if a Session-Id is in the message
+   if insession:
+     print "The session is: ", insession.getsid()
+   else:
+     print "No session"
+   # Now, for the return value.
+   # This callback must return 3 elements:
+   # - an integer which is interpreted as an error code (errno.h)
+   # - a message or None, depending on the next item
+   # - an enum disp_action value, with the same meaning as in C (see libfreeDiameter.h)
+   del inmsg
+   return [ 0, None, DISP_ACT_CONT ]
+
+
+### Example use: rebuild the server-side of test_app.fdx in python
+
+# The following block defines the dictionary objects from the test_app.fdx application that we use on the remote peer
+gdict = cvar.fd_g_config.cnf_dict
+d_si = gdict.search ( DICT_AVP, AVP_BY_NAME, "Session-Id" )
+d_oh  = gdict.search ( DICT_AVP, AVP_BY_NAME, "Origin-Host" )
+d_or  = gdict.search ( DICT_AVP, AVP_BY_NAME, "Origin-Realm" )
+d_dh  = gdict.search ( DICT_AVP, AVP_BY_NAME, "Destination-Host" )
+d_dr  = gdict.search ( DICT_AVP, AVP_BY_NAME, "Destination-Realm" )
+d_rc  = gdict.search ( DICT_AVP, AVP_BY_NAME, "Result-Code" )
+d_vnd = gdict.new_obj(DICT_VENDOR, 	dict_vendor_data(999999, 	"app_test_py vendor") )
+d_app = gdict.new_obj(DICT_APPLICATION, dict_application_data(0xffffff, "app_test_py appli"), d_vnd)
+d_req = gdict.new_obj(DICT_COMMAND, 	dict_cmd_data(0xfffffe, "Test_py-Request", 1), d_app)
+d_ans = gdict.new_obj(DICT_COMMAND, 	dict_cmd_data(0xfffffe, "Test_py-Answer",  0), d_app)
+d_avp = gdict.new_obj(DICT_AVP, 	dict_avp_data(0xffffff, "app_test_py avp", AVP_TYPE_INTEGER32, 999999 ))
+gdict.new_obj(DICT_RULE, dict_rule_data(d_si, RULE_FIXED_HEAD, 1, 1), d_req)
+gdict.new_obj(DICT_RULE, dict_rule_data(d_si, RULE_FIXED_HEAD, 1, 1), d_ans)
+gdict.new_obj(DICT_RULE, dict_rule_data(d_avp, RULE_REQUIRED, 1, 1), d_req)
+gdict.new_obj(DICT_RULE, dict_rule_data(d_avp, RULE_REQUIRED, 1, 1), d_ans)
+gdict.new_obj(DICT_RULE, dict_rule_data(d_oh, RULE_REQUIRED, 1, 1), d_req)
+gdict.new_obj(DICT_RULE, dict_rule_data(d_oh, RULE_REQUIRED, 1, 1), d_ans)
+gdict.new_obj(DICT_RULE, dict_rule_data(d_or, RULE_REQUIRED, 1, 1), d_req)
+gdict.new_obj(DICT_RULE, dict_rule_data(d_or, RULE_REQUIRED, 1, 1), d_ans)
+gdict.new_obj(DICT_RULE, dict_rule_data(d_dr, RULE_REQUIRED, 1, 1), d_req)
+gdict.new_obj(DICT_RULE, dict_rule_data(d_dh, RULE_OPTIONAL, 0, 1), d_req)
+gdict.new_obj(DICT_RULE, dict_rule_data(d_rc, RULE_REQUIRED, 1, 1), d_ans)
+
+# Now, create the Test_app server callback:
+def test_app_cb(inmsg, inavp, insession):
+   tval = inmsg.search(d_avp).header().avp_value.u32
+   print "Py ECHO Test message from '%s' with test value %x, replying..." % (inmsg.search(d_oh).header().avp_value.os.as_str(), tval)
+   answ = inmsg.create_answer()
+   answ.rescode_set()
+   answ.add_origin()
+   ta = avp(d_avp, AVPFL_SET_BLANK_VALUE)
+   ta.header().avp_value.u32 = tval
+   answ.add_child(ta)
+   return [ 0, answ, DISP_ACT_SEND ]
+
+# Register the callback for dispatch thread:
+hdl = disp_hdl(test_app_cb, DISP_HOW_CC, disp_when(d_app, d_req))  # disp_when() takes 0 to 4 arguments as follow: (app=NULL, cmd=NULL, avp=NULL, val=NULL)
+
+# Don't forget to register the application in the daemon for CER/CEA capabilities.
+fd_disp_app_support ( d_app, d_vnd, 1, 0 )
+
+
+###  For the fun, the client part of the test_app:
+
+def receive_answer(ans, testval):
+   try:
+     tval = ans.search(d_avp).header().avp_value.u32
+   except:
+     print "Error in receive_answer: no Test-AVP included"
+     tval = 0
+   try:
+     print "Py RECV %x (expected: %x) Status: %d From: '%s'" % (tval, testval, ans.search(d_rc).header().avp_value.u32, ans.search(d_oh).header().avp_value.os.as_str())
+   except:
+     print "Error in receive_answer: Result-Code or Origin-Host are missing"
+   del ans
+   return None
+
+import random
+
+def send_query(destrealm="localdomain"):
+   qry = msg(d_req)
+   sess = session()
+   tv = random.randint(1, 1<<32)
+   # Session-Id
+   a = avp(d_si, AVPFL_SET_BLANK_VALUE)
+   a.header().avp_value.os = sess.getsid()
+   qry.add_child(a)
+   # Destination-Realm
+   a = avp(d_dr, AVPFL_SET_BLANK_VALUE)
+   a.header().avp_value.os = destrealm
+   qry.add_child(a)
+   # Origin-Host, Origin-Realm
+   qry.add_origin()
+   # Test-AVP
+   a = avp(d_avp, AVPFL_SET_BLANK_VALUE)
+   a.header().avp_value.u32 = tv
+   qry.add_child(a)
+   print "Py SEND %x to '%s'" % (tv, destrealm)
+   qry.send(receive_answer, tv)
+
+send_query()
+
+
+############# FIFO queues ############
+
+myqueue = fifo()
+
+# enqueue any object
+myqueue.post(3)
+myqueue.post("blah")
+myqueue.post( [ 3, 2 ] )
+
+# Simple get (blocks when the queue is empty)
+myqueue.get()
+
+# Try get: returns the next object, or None if the queue is empty
+myqueue.tryget()
+
+# timed get: like get, but returns None after x seconds
+myqueue.timedget(3)
+
+# Show the number of items in the queue
+myqueue.length()
+
+del myqueue
+
+
+
+############# PEERS ############
+
+# Get the list of peers defined in the system 
+# (well, we are supposed actually to readlock fd_g_peers_rw before doing this, but it should be fine most of the time)
+peers = cvar.fd_g_peers.enum_as("struct peer_hdr *")
+for p in peers:
+   print "Peer:", p.info.pi_diamid
+
+
+# Create a new peer
+np = peer_info()
+np.pi_diamid = "nas.localdomain"
+np.config.pic_flags.pro4 = 1   # 1 for TCP, for some reason PI_P4_TCP is not defined
 
 
 
 
+# Add this peer into the framework.
+np.add()
 
+# It is possible to specify a callback for when the connection completes or fails to this peer.
+# The prototype is as follow:
+def add_cb(peer):
+    if peer:
+        if peer.runtime.pir_state == STATE_OPEN:
+	   print "Connection to peer '%s' completed" % (peer.pi_diamid)
+	   # can find more information in peer.runtime.*
+	else:
+	   print "Connection to peer '%s' failed (state:%d)" % (peer.pi_diamid, peer.runtime.pir_state)
+    else:
+        print "The peer has been destroyed before it completed the connection."
 
+# Then add the peer simply like this:
+np.add(add_cb)
 
-
-######################### old stuff (need update) ######################
-
-
-# Create a new peer_info structure and add the peer to the framework.
-mypeer = peer_info()
-mypeer.pi_diamid = "nas.testbed.aaa"
-mypeer.config.pic_flags.pro4 = 1   # 1 for TCP, for some reason PI_P4_TCP is not defined
-fd_peer_add(mypeer, "python", None, None)
-del mypeer
 
