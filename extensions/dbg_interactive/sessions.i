@@ -38,17 +38,17 @@
 /****** SESSIONS *********/
 
 %{
-/* store the python callback function here */
-static PyObject * py_cleanup_cb = NULL;
 /* call it (might be called from a different thread than the interpreter, when session times out) */
-static void call_the_python_cleanup_callback(session_state * state, char * sid) {
+static void call_the_python_cleanup_callback(session_state * state, char * sid, void * cb) {
 	PyObject *result;
-	if (!py_cleanup_cb)
+	if (!cb) {
+		fd_log_debug("Internal error: missing callback object!\n");
 		return;
+	}
 	
 	/* Call the function */
 	SWIG_PYTHON_THREAD_BEGIN_BLOCK;
-	result = PyEval_CallFunction(py_cleanup_cb, "(Os)", state, sid);
+	result = PyEval_CallFunction((PyObject *)cb, "(Os)", state, sid);
 	Py_XDECREF(result);
 	SWIG_PYTHON_THREAD_END_BLOCK;
 	return;
@@ -63,14 +63,10 @@ struct session_handler {
 	session_handler(PyObject * PyCb) {
 		struct session_handler * hdl = NULL;
 		int ret;
-		if (py_cleanup_cb) {
-			DI_ERROR(EINVAL, PyExc_SyntaxError, "Only one session handler at a time is supported at the moment in this extension\n.");
-			return NULL;
-		}
-		py_cleanup_cb = PyCb;
-		Py_XINCREF(py_cleanup_cb);
 		
-		ret = fd_sess_handler_create_internal ( &hdl, call_the_python_cleanup_callback );
+		Py_XINCREF(PyCb);
+		
+		ret = fd_sess_handler_create_internal ( &hdl, call_the_python_cleanup_callback, PyCb );
 		if (ret != 0) {
 			DI_ERROR(ret, NULL, NULL);
 			return NULL;
@@ -79,13 +75,14 @@ struct session_handler {
 	}
 	~session_handler() {
 		struct session_handler * hdl = self;
-		int ret = fd_sess_handler_destroy(&hdl);
+		PyObject * cb = NULL;
+		
+		int ret = fd_sess_handler_destroy(&hdl, (void *)&cb);
 		if (ret != 0) {
 			DI_ERROR(ret, NULL, NULL);
 		}
 		/* Now free the callback */
-		Py_XDECREF(py_cleanup_cb);
-		py_cleanup_cb = NULL;
+		Py_XDECREF(cb);
 		return;
 	}
 	void dump() {

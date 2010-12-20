@@ -114,10 +114,10 @@ int test_sip_UAR_cb();
 int test_sip_SAR_cb();
 int test_sipSL_LIR_cb();
 
-int test_sip_default_cb( struct msg ** msg, struct avp * avp, struct session * sess, enum disp_action * act);
-int test_sip_MAA_cb( struct msg ** msg, struct avp * avp, struct session * sess, enum disp_action * act);
-int test_sip_RTR_cb( struct msg ** msg, struct avp * avp, struct session * sess, enum disp_action * act);
-int test_sip_UAA_cb( struct msg ** msg, struct avp * avp, struct session * sess, enum disp_action * act);
-int test_sip_LIA_cb( struct msg ** msg, struct avp * avp, struct session * sess, enum disp_action * act);
-int test_sip_SAA_cb( struct msg ** msg, struct avp * avp, struct session * sess, enum disp_action * act);
-int test_sipSL_LIA_cb( struct msg ** msg, struct avp * avp, struct session * sess, enum disp_action * act);
+int test_sip_default_cb( struct msg ** msg, struct avp * avp, struct session * sess, void * opaque, enum disp_action * act);
+int test_sip_MAA_cb( struct msg ** msg, struct avp * avp, struct session * sess, void * opaque, enum disp_action * act);
+int test_sip_RTR_cb( struct msg ** msg, struct avp * avp, struct session * sess, void * opaque, enum disp_action * act);
+int test_sip_UAA_cb( struct msg ** msg, struct avp * avp, struct session * sess, void * opaque, enum disp_action * act);
+int test_sip_LIA_cb( struct msg ** msg, struct avp * avp, struct session * sess, void * opaque, enum disp_action * act);
+int test_sip_SAA_cb( struct msg ** msg, struct avp * avp, struct session * sess, void * opaque, enum disp_action * act);
+int test_sipSL_LIA_cb( struct msg ** msg, struct avp * avp, struct session * sess, void * opaque, enum disp_action * act);

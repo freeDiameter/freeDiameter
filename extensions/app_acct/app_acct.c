@@ -45,7 +45,7 @@ static struct {
 
 
 /* Callback for incoming Base Accounting Accounting-Request messages */
-static int acct_cb( struct msg ** msg, struct avp * avp, struct session * sess, enum disp_action * act)
+static int acct_cb( struct msg ** msg, struct avp * avp, struct session * sess, void * opaque, enum disp_action * act)
 {
 	struct msg * m;
 	struct avp * a = NULL;
@@ -134,7 +134,7 @@ static int acct_entry(char * conffile)
 	memset(&data, 0, sizeof(data));
 	CHECK_FCT( fd_dict_search( fd_g_config->cnf_dict, DICT_APPLICATION, APPLICATION_BY_NAME, "Diameter Base Accounting", &data.app, ENOENT) );
 	CHECK_FCT( fd_dict_search( fd_g_config->cnf_dict, DICT_COMMAND, CMD_BY_NAME, "Accounting-Request", &data.command, ENOENT) );
-	CHECK_FCT( fd_disp_register( acct_cb, DISP_HOW_CC, &data, NULL ) );
+	CHECK_FCT( fd_disp_register( acct_cb, DISP_HOW_CC, &data, NULL, NULL ) );
 	
 	/* Advertise the support for the Diameter Base Accounting application in the peer */
 	CHECK_FCT( fd_disp_app_support ( data.app, NULL, 0, 1 ) );

@@ -14,7 +14,7 @@ SET(FD_PROJECT_VERSION_MINOR 0)
 SET(FD_PROJECT_VERSION_REV 3)
 
 # Version of the API with the library
-SET(FD_PROJECT_VERSION_API 1)
+SET(FD_PROJECT_VERSION_API 2)
 
 # The test framework, using CTest and CDash.
 INCLUDE(CTest)

@@ -55,7 +55,8 @@ struct disp_hdl {
 	struct fd_list	 parent;/* link in dictionary cb_list or in any_handlers */
 	enum disp_how	 how;	/* Copy of registration parameter */
 	struct disp_when when;	/* Copy of registration parameter */
-	int		(*cb)( struct msg **, struct avp *, struct session *, enum disp_action *);	/* The callback itself */
+	int		(*cb)( struct msg **, struct avp *, struct session *, void *, enum disp_action *);	/* The callback itself */
+	void            *opaque; /* opaque data passed back to the callback */
 };
 
 #define DISP_EYEC	0xD15241C1
@@ -92,7 +93,7 @@ int fd_disp_call_cb_int( struct fd_list * cb_list, struct msg ** msg, struct avp
 			continue;
 		
 		/* We have a match, the cb must be called. */
-		CHECK_FCT( (*hdl->cb)(msg, avp, sess, action) );
+		CHECK_FCT( (*hdl->cb)(msg, avp, sess, hdl->opaque, action) );
 		
 		if (*action != DISP_ACT_CONT)
 			break;
@@ -108,8 +109,8 @@ int fd_disp_call_cb_int( struct fd_list * cb_list, struct msg ** msg, struct avp
 /**************************************************************************************/
 
 /* Create a new handler and link it */
-int fd_disp_register ( int (*cb)( struct msg **, struct avp *, struct session *, enum disp_action *), 
-			enum disp_how how, struct disp_when * when, struct disp_hdl ** handle )
+int fd_disp_register ( int (*cb)( struct msg **, struct avp *, struct session *, void *, enum disp_action *), 
+			enum disp_how how, struct disp_when * when, void * opaque, struct disp_hdl ** handle )
 {
 	struct fd_list * cb_list = NULL;
 	struct disp_hdl * new;
@@ -170,6 +171,7 @@ int fd_disp_register ( int (*cb)( struct msg **, struct avp *, struct session *,
 			new->when.app     = when->app;
 	}
 	new->cb = cb;
+	new->opaque = opaque;
 	
 	/* Now, link this new element in the appropriate lists */
 	CHECK_POSIX( pthread_rwlock_wrlock(&fd_disp_lock) );
@@ -185,7 +187,7 @@ int fd_disp_register ( int (*cb)( struct msg **, struct avp *, struct session *,
 }
 
 /* Delete a handler */
-int fd_disp_unregister ( struct disp_hdl ** handle )
+int fd_disp_unregister ( struct disp_hdl ** handle, void ** opaque )
 {
 	struct disp_hdl * del;
 	TRACE_ENTRY("%p", handle);
@@ -198,6 +200,9 @@ int fd_disp_unregister ( struct disp_hdl ** handle )
 	fd_list_unlink(&del->parent);
 	CHECK_POSIX( pthread_rwlock_unlock(&fd_disp_lock) );
 	
+	if (opaque)
+		*opaque = del->opaque;
+	
 	free(del);
 	return 0;
 }
@@ -207,7 +212,7 @@ void fd_disp_unregister_all ( void )
 {
 	TRACE_ENTRY("");
 	while (!FD_IS_LIST_EMPTY(&all_handlers)) {
-		CHECK_FCT_DO( fd_disp_unregister((void *)&(all_handlers.next->o)), /* continue */ );
+		CHECK_FCT_DO( fd_disp_unregister((void *)&(all_handlers.next->o), NULL), /* continue */ );
 	}
 	return;
 }

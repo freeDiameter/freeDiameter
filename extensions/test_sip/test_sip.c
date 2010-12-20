@@ -63,7 +63,7 @@ static struct ts_conf test_sip_conf;
 //dictionary of SIP
 struct sip_dict sip_dict;
 
-int test_sip_default_cb( struct msg ** msg, struct avp * avp, struct session * sess, enum disp_action * act)
+int test_sip_default_cb( struct msg ** msg, struct avp * avp, struct session * sess, void * opaque, enum disp_action * act)
 {
 	TRACE_ENTRY("%p %p %p %p", msg, avp, sess, act);
 	
@@ -186,26 +186,26 @@ int ts_entry(char * conffile)
 	/**/
 	//MAA
 	CHECK_FCT( fd_dict_search( fd_g_config->cnf_dict, DICT_COMMAND, CMD_BY_NAME, "Multimedia-Auth-Answer", &data.command, ENOENT) );
-	CHECK_FCT( fd_disp_register( test_sip_MAA_cb, DISP_HOW_CC, &data, &test_sip_MAA_hdl ) );
+	CHECK_FCT( fd_disp_register( test_sip_MAA_cb, DISP_HOW_CC, &data, NULL, &test_sip_MAA_hdl ) );
 	
 	//UAA
 	CHECK_FCT( fd_dict_search( fd_g_config->cnf_dict, DICT_COMMAND, CMD_BY_NAME, "User-Authorization-Answer", &data.command, ENOENT) );
-	CHECK_FCT( fd_disp_register( test_sip_UAA_cb, DISP_HOW_CC, &data, &test_sip_UAA_hdl ) );
+	CHECK_FCT( fd_disp_register( test_sip_UAA_cb, DISP_HOW_CC, &data, NULL, &test_sip_UAA_hdl ) );
 	
 	//RTR
 	CHECK_FCT( fd_dict_search( fd_g_config->cnf_dict, DICT_COMMAND, CMD_BY_NAME, "Registration-Termination-Request", &data.command, ENOENT) );
-	CHECK_FCT( fd_disp_register( test_sip_RTR_cb, DISP_HOW_CC, &data, &test_sip_RTR_hdl ) );
+	CHECK_FCT( fd_disp_register( test_sip_RTR_cb, DISP_HOW_CC, &data, NULL, &test_sip_RTR_hdl ) );
 	
 	//LIA
 	CHECK_FCT( fd_dict_search( fd_g_config->cnf_dict, DICT_COMMAND, CMD_BY_NAME, "Location-Info-Answer", &data.command, ENOENT) );
-	CHECK_FCT( fd_disp_register( test_sip_LIA_cb, DISP_HOW_CC, &data, &test_sip_LIA_hdl ) );
+	CHECK_FCT( fd_disp_register( test_sip_LIA_cb, DISP_HOW_CC, &data, NULL, &test_sip_LIA_hdl ) );
 	
 	//LIA
 	CHECK_FCT( fd_dict_search( fd_g_config->cnf_dict, DICT_COMMAND, CMD_BY_NAME, "Server-Assignment-Answer", &data.command, ENOENT) );
-	CHECK_FCT( fd_disp_register( test_sip_SAA_cb, DISP_HOW_CC, &data, &test_sip_SAA_hdl ) );
+	CHECK_FCT( fd_disp_register( test_sip_SAA_cb, DISP_HOW_CC, &data, NULL, &test_sip_SAA_hdl ) );
 	
 	//Callback for unexpected messages
-	CHECK_FCT( fd_disp_register( test_sip_default_cb, DISP_HOW_APPID, &data, &test_sip_default_hdl ) );
+	CHECK_FCT( fd_disp_register( test_sip_default_cb, DISP_HOW_APPID, &data, NULL, &test_sip_default_hdl ) );
 	
 	/*
 	//We start database connection
@@ -213,7 +213,7 @@ int ts_entry(char * conffile)
 		return 1;
 	*/
 	
-	CHECK_FCT(fd_sess_handler_create(&ts_sess_hdl, free));
+	CHECK_FCT(fd_sess_handler_create(&ts_sess_hdl, free, NULL));
 	//CHECK_FCT( fd_sig_register(30, "test_sip", (void *)test_sipSL_LIR_cb ) );
 	CHECK_FCT( fd_sig_register(30, "test_sip", (void *)test_sip_SAR_cb ) );
 	CHECK_FCT( fd_sig_register(31, "test_sip", (void *)test_sip_LIR_cb ) );

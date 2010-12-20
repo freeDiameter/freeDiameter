@@ -36,7 +36,7 @@
 #include "app_sip.h"
 
 
-int app_sip_SAR_cb( struct msg ** msg, struct avp * paramavp, struct session * sess, enum disp_action * act)
+int app_sip_SAR_cb( struct msg ** msg, struct avp * paramavp, struct session * sess, void * opaque, enum disp_action * act)
 {
 	TRACE_ENTRY("%p %p %p %p", msg, paramavp, sess, act);
 	

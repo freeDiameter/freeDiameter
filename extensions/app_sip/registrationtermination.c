@@ -257,7 +257,7 @@ int app_sip_RTR_cb(struct rtrsipaor structure)
 }
 
 //Called when an RTA arrive
-int app_sip_RTA_cb( struct msg ** msg, struct avp * paramavp, struct session * sess, enum disp_action * act)
+int app_sip_RTA_cb( struct msg ** msg, struct avp * paramavp, struct session * sess, void * opaque, enum disp_action * act)
 {
 	//TODO: RTA reception
 /*

@@ -1558,6 +1558,7 @@ int fd_sess_start(void);
  * PARAMETERS:
  *  handler	: location where the new handler must be stored.
  *  cleanup	: a callback function that must be called when the session with associated data is destroyed.
+ *  opaque      : A pointer that is passed to the cleanup callback -- the content is never examined by the framework.
  *
  * DESCRIPTION: 
  *  Create a new session handler. This is needed by a module to associate a state with a session object.
@@ -1569,10 +1570,10 @@ int fd_sess_start(void);
  *  EINVAL 	: A parameter is invalid.
  *  ENOMEM	: Not enough memory to complete the operation
  */
-int fd_sess_handler_create_internal ( struct session_handler ** handler, void (*cleanup)(session_state * state, char * sid) );
+int fd_sess_handler_create_internal ( struct session_handler ** handler, void (*cleanup)(session_state * state, char * sid, void * opaque), void * opaque );
 /* Macro to avoid casting everywhere */
-#define fd_sess_handler_create( _handler, _cleanup ) \
-	fd_sess_handler_create_internal( (_handler), (void (*)(session_state *, char *))(_cleanup) )
+#define fd_sess_handler_create( _handler, _cleanup, _opaque ) \
+	fd_sess_handler_create_internal( (_handler), (void (*)(session_state *, char *, void *))(_cleanup), (void *)(_opaque) )
 
 	
 /*
@@ -1580,6 +1581,7 @@ int fd_sess_handler_create_internal ( struct session_handler ** handler, void (*
  *
  * PARAMETERS:
  *  handler	: location of an handler created by fd_sess_handler_create.
+ *  opaque      : the opaque pointer registered with the callback is restored here (if ! NULL).
  *
  * DESCRIPTION: 
  *  This destroys a session handler (typically called when an application is shutting down).
@@ -1590,7 +1592,7 @@ int fd_sess_handler_create_internal ( struct session_handler ** handler, void (*
  *  EINVAL 	: A parameter is invalid.
  *  ENOMEM	: Not enough memory to complete the operation
  */
-int fd_sess_handler_destroy ( struct session_handler ** handler );
+int fd_sess_handler_destroy ( struct session_handler ** handler, void **opaque );
 
 
 
@@ -2525,6 +2527,7 @@ enum disp_action {
  *  msg 	: the received message on function entry. may be updated to answer on return (see description)
  *  avp 	: for callbacks registered with DISP_HOW_AVP or DISP_HOW_AVP_ENUMVAL, direct link to the triggering AVP.
  *  session	: if the message contains a Session-Id AVP, the corresponding session object, NULL otherwise.
+ *  opaque      : An opaque pointer that is registered along the session handler.
  *  action	: upon return, this tells the daemon what to do next.
  *
  * DESCRIPTION: 
@@ -2556,6 +2559,7 @@ struct disp_hdl;
  *  cb 		  : The callback function to register (see dispatch_callback description above).
  *  how	  	  : How the callback must be registered.
  *  when          : Values that must match, depending on the how argument.
+ *  opaque        : A pointer that is passed back to the handler. The content is not interpreted by the framework.
  *  handle        : On success, a handler to the registered callback is stored here if not NULL. 
  *		   This handler can be used to unregister the cb.
  *
@@ -2567,14 +2571,15 @@ struct disp_hdl;
  *  EINVAL 	: A parameter is invalid.
  *  ENOMEM	: Not enough memory to complete the operation
  */
-int fd_disp_register ( int (*cb)( struct msg **, struct avp *, struct session *, enum disp_action *), 
-			enum disp_how how, struct disp_when * when, struct disp_hdl ** handle );
+int fd_disp_register ( int (*cb)( struct msg **, struct avp *, struct session *, void *, enum disp_action *), 
+			enum disp_how how, struct disp_when * when, void * opaque, struct disp_hdl ** handle );
 
 /*
  * FUNCTION:	fd_disp_unregister
  *
  * PARAMETERS:
  *  handle       : Location of the handle of the callback that must be unregistered.
+ *  opaque       : If not NULL, the opaque data that was registered is restored here.
  *
  * DESCRIPTION: 
  *   Removes a callback previously registered by fd_disp_register.
@@ -2583,7 +2588,7 @@ int fd_disp_register ( int (*cb)( struct msg **, struct avp *, struct session *,
  *  0      	: The callback is unregistered.
  *  EINVAL 	: A parameter is invalid.
  */
-int fd_disp_unregister ( struct disp_hdl ** handle );
+int fd_disp_unregister ( struct disp_hdl ** handle, void ** opaque );
 
 /* Destroy all handlers */
 void fd_disp_unregister_all ( void );

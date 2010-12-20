@@ -35,23 +35,27 @@
 
 #include "tests.h"
 	
-#define Define_cb( __int, __extra )										\
-int cb_##__int( struct msg ** msg, struct avp * avp, struct session * session, enum disp_action * action )	\
-{														\
-	CHECK( 1, msg ? 1 : 0 );										\
-	CHECK( 1, action ? 1 : 0 );										\
-	CHECK( sess, session );											\
-	*action = DISP_ACT_CONT;										\
-	cbcalled[__int] += 1;											\
-	do {													\
-		__extra ;											\
-	} while (0);												\
-	return 0;												\
+#define Define_cb( __int, __extra )												\
+int cb_##__int( struct msg ** msg, struct avp * avp, struct session * session, void * opaque, enum disp_action * action )	\
+{																\
+	CHECK( 1, msg ? 1 : 0 );												\
+	CHECK( 1, action ? 1 : 0 );												\
+	CHECK( sess, session );													\
+	if (opaque) {														\
+		CHECK( 1, opaque == g_opaque ? 1 : 0 );										\
+	}															\
+	*action = DISP_ACT_CONT;												\
+	cbcalled[__int] += 1;													\
+	do {															\
+		__extra ;													\
+	} while (0);														\
+	return 0;														\
 }
 
 #define NB_CB	10
 char cbcalled[NB_CB];
 struct session * sess;
+void * g_opaque = (void *)"test";
 
 /* cb_0 */  Define_cb( 0, );
 /* cb_1 */  Define_cb( 1, );
@@ -141,11 +145,11 @@ int main(int argc, char *argv[])
 	
 	/* Register first handler, very simple test */
 	{
-		CHECK( 0, fd_disp_register( cb_0, DISP_HOW_ANY, NULL, &hdl[0] ) );
+		CHECK( 0, fd_disp_register( cb_0, DISP_HOW_ANY, NULL, NULL, &hdl[0] ) );
 		CHECK( 1, hdl[0] ? 1 : 0 );
-		CHECK( 0, fd_disp_unregister( &hdl[0] ) );
+		CHECK( 0, fd_disp_unregister( &hdl[0], NULL ) );
 		CHECK( NULL, hdl[0] );
-		CHECK( 0, fd_disp_register( cb_0, DISP_HOW_ANY, NULL, &hdl[0] ) );
+		CHECK( 0, fd_disp_register( cb_0, DISP_HOW_ANY, NULL, NULL, &hdl[0] ) );
 	
 		/* Check this handler is called for a message */
 		msg = new_msg( 0, cmd1, avp1, NULL, 0 );
@@ -156,20 +160,20 @@ int main(int argc, char *argv[])
 		
 		/* Delete the message */
 		CHECK( 0, fd_msg_free( msg ) );
-		CHECK( 0, fd_disp_unregister( &hdl[0] ) );
+		CHECK( 0, fd_disp_unregister( &hdl[0], NULL ) );
 	}
 	
 	/* Handlers for applications */
 	{
-		CHECK( 0, fd_disp_register( cb_0, DISP_HOW_ANY, &when, &hdl[0] ) );
+		CHECK( 0, fd_disp_register( cb_0, DISP_HOW_ANY, &when, NULL, &hdl[0] ) );
 		when.app = app1;
-		CHECK( 0, fd_disp_register( cb_1, DISP_HOW_APPID, &when, &hdl[1] ) );
+		CHECK( 0, fd_disp_register( cb_1, DISP_HOW_APPID, &when, NULL, &hdl[1] ) );
 		when.app = app2;
-		CHECK( 0, fd_disp_register( cb_2, DISP_HOW_APPID, &when, &hdl[2] ) );
+		CHECK( 0, fd_disp_register( cb_2, DISP_HOW_APPID, &when, NULL, &hdl[2] ) );
 		when.avp = avp2;
-		CHECK( 0, fd_disp_register( cb_3, DISP_HOW_APPID, &when, &hdl[3] ) );
+		CHECK( 0, fd_disp_register( cb_3, DISP_HOW_APPID, &when, NULL, &hdl[3] ) );
 		when.avp = avp1;
-		CHECK( 0, fd_disp_register( cb_4, DISP_HOW_APPID, &when, &hdl[4] ) );
+		CHECK( 0, fd_disp_register( cb_4, DISP_HOW_APPID, &when, NULL, &hdl[4] ) );
 	
 		/* Check the callbacks are called as appropriate */
 		memset(cbcalled, 0, sizeof(cbcalled));
@@ -205,27 +209,27 @@ int main(int argc, char *argv[])
 		CHECK( DISP_ACT_CONT, action );
 		CHECK( 0, fd_msg_free( msg ) );
 		
-		CHECK( 0, fd_disp_unregister( &hdl[0] ) );
-		CHECK( 0, fd_disp_unregister( &hdl[1] ) );
-		CHECK( 0, fd_disp_unregister( &hdl[2] ) );
-		CHECK( 0, fd_disp_unregister( &hdl[3] ) );
-		CHECK( 0, fd_disp_unregister( &hdl[4] ) );
+		CHECK( 0, fd_disp_unregister( &hdl[0], NULL ) );
+		CHECK( 0, fd_disp_unregister( &hdl[1], NULL ) );
+		CHECK( 0, fd_disp_unregister( &hdl[2], NULL ) );
+		CHECK( 0, fd_disp_unregister( &hdl[3], NULL ) );
+		CHECK( 0, fd_disp_unregister( &hdl[4], NULL ) );
 	}
 	
 	/* Handlers for commands */
 	{
 		when.app = NULL;
 		when.command = NULL;
-		CHECK( 0, fd_disp_register( cb_0, DISP_HOW_ANY, &when, &hdl[0] ) );
-		CHECK( EINVAL, fd_disp_register( cb_1, DISP_HOW_CC, &when, &hdl[1] ) );
+		CHECK( 0, fd_disp_register( cb_0, DISP_HOW_ANY, &when, NULL, &hdl[0] ) );
+		CHECK( EINVAL, fd_disp_register( cb_1, DISP_HOW_CC, &when, NULL, &hdl[1] ) );
 		when.command = cmd1;
-		CHECK( 0, fd_disp_register( cb_1, DISP_HOW_CC, &when, &hdl[1] ) ); /* cmd1 */
+		CHECK( 0, fd_disp_register( cb_1, DISP_HOW_CC, &when, NULL, &hdl[1] ) ); /* cmd1 */
 		when.app = app2;
-		CHECK( 0, fd_disp_register( cb_2, DISP_HOW_CC, &when, &hdl[2] ) ); /* app2 + cmd1 */
+		CHECK( 0, fd_disp_register( cb_2, DISP_HOW_CC, &when, NULL, &hdl[2] ) ); /* app2 + cmd1 */
 		when.command = cmd2;
 		when.app = NULL;
 		when.avp = avp1;
-		CHECK( 0, fd_disp_register( cb_3, DISP_HOW_CC, &when, &hdl[3] ) ); /* cmd2 (avp1 ignored) */
+		CHECK( 0, fd_disp_register( cb_3, DISP_HOW_CC, &when, NULL, &hdl[3] ) ); /* cmd2 (avp1 ignored) */
 		
 		/* Check the callbacks are called as appropriate */
 		memset(cbcalled, 0, sizeof(cbcalled));
@@ -268,10 +272,10 @@ int main(int argc, char *argv[])
 		CHECK( DISP_ACT_CONT, action );
 		CHECK( 0, fd_msg_free( msg ) );
 		
-		CHECK( 0, fd_disp_unregister( &hdl[0] ) );
-		CHECK( 0, fd_disp_unregister( &hdl[1] ) );
-		CHECK( 0, fd_disp_unregister( &hdl[2] ) );
-		CHECK( 0, fd_disp_unregister( &hdl[3] ) );
+		CHECK( 0, fd_disp_unregister( &hdl[0], NULL ) );
+		CHECK( 0, fd_disp_unregister( &hdl[1], NULL ) );
+		CHECK( 0, fd_disp_unregister( &hdl[2], NULL ) );
+		CHECK( 0, fd_disp_unregister( &hdl[3], NULL ) );
 	}
 	
 	/* Handlers for AVPs */
@@ -280,30 +284,30 @@ int main(int argc, char *argv[])
 		when.command = NULL;
 		when.avp = NULL;
 	
-		CHECK( 0, fd_disp_register( cb_0, DISP_HOW_ANY, &when, &hdl[0] ) ); /* all */
-		CHECK( EINVAL, fd_disp_register( cb_1, DISP_HOW_AVP, &when, &hdl[1] ) );
+		CHECK( 0, fd_disp_register( cb_0, DISP_HOW_ANY, &when, NULL, &hdl[0] ) ); /* all */
+		CHECK( EINVAL, fd_disp_register( cb_1, DISP_HOW_AVP, &when, NULL, &hdl[1] ) );
 		
 		when.avp = avp1;
-		CHECK( 0, fd_disp_register( cb_1, DISP_HOW_AVP, &when, &hdl[1] ) ); /* avp1 */
+		CHECK( 0, fd_disp_register( cb_1, DISP_HOW_AVP, &when, NULL, &hdl[1] ) ); /* avp1 */
 		
 		when.command = cmd1;
-		CHECK( 0, fd_disp_register( cb_2, DISP_HOW_AVP, &when, &hdl[2] ) ); /* avp1 + cmd1 */
+		CHECK( 0, fd_disp_register( cb_2, DISP_HOW_AVP, &when, NULL, &hdl[2] ) ); /* avp1 + cmd1 */
 		
 		when.command = NULL;
 		when.app = app1;
-		CHECK( 0, fd_disp_register( cb_3, DISP_HOW_AVP, &when, &hdl[3] ) ); /* avp1 + app1 */
+		CHECK( 0, fd_disp_register( cb_3, DISP_HOW_AVP, &when, NULL, &hdl[3] ) ); /* avp1 + app1 */
 		
 		when.command = cmd1;
-		CHECK( 0, fd_disp_register( cb_4, DISP_HOW_AVP, &when, &hdl[4] ) ); /* avp1 + cmd1 + app1 */
+		CHECK( 0, fd_disp_register( cb_4, DISP_HOW_AVP, &when, NULL, &hdl[4] ) ); /* avp1 + cmd1 + app1 */
 		
 		when.app = NULL;
 		when.command = NULL;
 		when.avp = avp2;
 		when.value = enu1;
-		CHECK( 0, fd_disp_register( cb_5, DISP_HOW_AVP, &when, &hdl[5] ) ); /* avp2 */
+		CHECK( 0, fd_disp_register( cb_5, DISP_HOW_AVP, &when, NULL, &hdl[5] ) ); /* avp2 */
 		
 		when.value = enu2;
-		CHECK( 0, fd_disp_register( cb_7, DISP_HOW_AVP, &when, &hdl[6] ) ); /* avp2 */
+		CHECK( 0, fd_disp_register( cb_7, DISP_HOW_AVP, &when, NULL, &hdl[6] ) ); /* avp2 */
 		
 		
 		
@@ -395,13 +399,13 @@ int main(int argc, char *argv[])
 		CHECK( DISP_ACT_CONT, action );
 		CHECK( 0, fd_msg_free( msg ) );
 		
-		CHECK( 0, fd_disp_unregister( &hdl[0] ) );
-		CHECK( 0, fd_disp_unregister( &hdl[1] ) );
-		CHECK( 0, fd_disp_unregister( &hdl[2] ) );
-		CHECK( 0, fd_disp_unregister( &hdl[3] ) );
-		CHECK( 0, fd_disp_unregister( &hdl[4] ) );
-		CHECK( 0, fd_disp_unregister( &hdl[5] ) );
-		CHECK( 0, fd_disp_unregister( &hdl[6] ) );
+		CHECK( 0, fd_disp_unregister( &hdl[0], NULL ) );
+		CHECK( 0, fd_disp_unregister( &hdl[1], NULL ) );
+		CHECK( 0, fd_disp_unregister( &hdl[2], NULL ) );
+		CHECK( 0, fd_disp_unregister( &hdl[3], NULL ) );
+		CHECK( 0, fd_disp_unregister( &hdl[4], NULL ) );
+		CHECK( 0, fd_disp_unregister( &hdl[5], NULL ) );
+		CHECK( 0, fd_disp_unregister( &hdl[6], NULL ) );
 	}
 		
 	/* Handlers for enum values */
@@ -411,22 +415,22 @@ int main(int argc, char *argv[])
 		when.avp = NULL;
 		when.value = NULL;
 		
-		CHECK( 0, fd_disp_register( cb_0, DISP_HOW_ANY, &when, &hdl[0] ) ); /* all */
-		CHECK( EINVAL, fd_disp_register( cb_1, DISP_HOW_AVP_ENUMVAL, &when, &hdl[1] ) );
+		CHECK( 0, fd_disp_register( cb_0, DISP_HOW_ANY, &when, NULL, &hdl[0] ) ); /* all */
+		CHECK( EINVAL, fd_disp_register( cb_1, DISP_HOW_AVP_ENUMVAL, &when, NULL, &hdl[1] ) );
 		when.value = enu1;
-		CHECK( EINVAL, fd_disp_register( cb_1, DISP_HOW_AVP_ENUMVAL, &when, &hdl[1] ) );
+		CHECK( EINVAL, fd_disp_register( cb_1, DISP_HOW_AVP_ENUMVAL, &when, NULL, &hdl[1] ) );
 		when.avp = avp1;
-		CHECK( EINVAL, fd_disp_register( cb_1, DISP_HOW_AVP_ENUMVAL, &when, &hdl[1] ) );
+		CHECK( EINVAL, fd_disp_register( cb_1, DISP_HOW_AVP_ENUMVAL, &when, NULL, &hdl[1] ) );
 		when.avp = avp2;
-		CHECK( 0, fd_disp_register( cb_1, DISP_HOW_AVP_ENUMVAL, &when, &hdl[1] ) ); /* avp2, enu1 */
+		CHECK( 0, fd_disp_register( cb_1, DISP_HOW_AVP_ENUMVAL, &when, NULL, &hdl[1] ) ); /* avp2, enu1 */
 		
 		when.command = cmd1;
-		CHECK( 0, fd_disp_register( cb_2, DISP_HOW_AVP_ENUMVAL, &when, &hdl[2] ) ); /* avp2, enu1 + cmd1 */
+		CHECK( 0, fd_disp_register( cb_2, DISP_HOW_AVP_ENUMVAL, &when, NULL, &hdl[2] ) ); /* avp2, enu1 + cmd1 */
 		
 		when.command = NULL;
 		when.app = app1;
 		when.value = enu2;
-		CHECK( 0, fd_disp_register( cb_3, DISP_HOW_AVP_ENUMVAL, &when, &hdl[3] ) ); /* avp2, enu2 + app1 */
+		CHECK( 0, fd_disp_register( cb_3, DISP_HOW_AVP_ENUMVAL, &when, NULL, &hdl[3] ) ); /* avp2, enu2 + app1 */
 		
 		/* Check the callbacks are called as appropriate */
 		memset(cbcalled, 0, sizeof(cbcalled));
@@ -497,19 +501,19 @@ int main(int argc, char *argv[])
 		CHECK( DISP_ACT_CONT, action );
 		CHECK( 0, fd_msg_free( msg ) );
 		
-		CHECK( 0, fd_disp_unregister( &hdl[0] ) );
-		CHECK( 0, fd_disp_unregister( &hdl[1] ) );
-		CHECK( 0, fd_disp_unregister( &hdl[2] ) );
-		CHECK( 0, fd_disp_unregister( &hdl[3] ) );
+		CHECK( 0, fd_disp_unregister( &hdl[0], NULL ) );
+		CHECK( 0, fd_disp_unregister( &hdl[1], NULL ) );
+		CHECK( 0, fd_disp_unregister( &hdl[2], NULL ) );
+		CHECK( 0, fd_disp_unregister( &hdl[3], NULL ) );
 	}
 	
 	/* Test behavior of handlers */
 	{
-		CHECK( 0, fd_disp_register( cb_0, DISP_HOW_ANY, &when, &hdl[0] ) );
-		CHECK( 0, fd_disp_register( cb_1, DISP_HOW_ANY, &when, &hdl[1] ) );
-		CHECK( 0, fd_disp_register( cb_6, DISP_HOW_ANY, &when, &hdl[2] ) );
-		CHECK( 0, fd_disp_register( cb_2, DISP_HOW_ANY, &when, &hdl[3] ) );
-		CHECK( 0, fd_disp_register( cb_3, DISP_HOW_ANY, &when, &hdl[4] ) );
+		CHECK( 0, fd_disp_register( cb_0, DISP_HOW_ANY, &when, NULL, &hdl[0] ) );
+		CHECK( 0, fd_disp_register( cb_1, DISP_HOW_ANY, &when, NULL, &hdl[1] ) );
+		CHECK( 0, fd_disp_register( cb_6, DISP_HOW_ANY, &when, NULL, &hdl[2] ) );
+		CHECK( 0, fd_disp_register( cb_2, DISP_HOW_ANY, &when, NULL, &hdl[3] ) );
+		CHECK( 0, fd_disp_register( cb_3, DISP_HOW_ANY, &when, NULL, &hdl[4] ) );
 		
 		memset(cbcalled, 0, sizeof(cbcalled));
 		msg = new_msg( 1, cmd1, avp1, avp2, 1 );
@@ -521,17 +525,17 @@ int main(int argc, char *argv[])
 		CHECK( 0, cbcalled[3] );
 		CHECK( 0, fd_msg_free( msg ) );
 		
-		CHECK( 0, fd_disp_unregister( &hdl[0] ) );
-		CHECK( 0, fd_disp_unregister( &hdl[1] ) );
-		CHECK( 0, fd_disp_unregister( &hdl[2] ) );
-		CHECK( 0, fd_disp_unregister( &hdl[3] ) );
-		CHECK( 0, fd_disp_unregister( &hdl[4] ) );
+		CHECK( 0, fd_disp_unregister( &hdl[0], NULL ) );
+		CHECK( 0, fd_disp_unregister( &hdl[1], NULL ) );
+		CHECK( 0, fd_disp_unregister( &hdl[2], NULL ) );
+		CHECK( 0, fd_disp_unregister( &hdl[3], NULL ) );
+		CHECK( 0, fd_disp_unregister( &hdl[4], NULL ) );
 		
-		CHECK( 0, fd_disp_register( cb_0, DISP_HOW_ANY, &when, &hdl[0] ) );
-		CHECK( 0, fd_disp_register( cb_1, DISP_HOW_ANY, &when, &hdl[1] ) );
-		CHECK( 0, fd_disp_register( cb_8, DISP_HOW_ANY, &when, &hdl[2] ) );
-		CHECK( 0, fd_disp_register( cb_2, DISP_HOW_ANY, &when, &hdl[3] ) );
-		CHECK( 0, fd_disp_register( cb_3, DISP_HOW_ANY, &when, &hdl[4] ) );
+		CHECK( 0, fd_disp_register( cb_0, DISP_HOW_ANY, &when, NULL, &hdl[0] ) );
+		CHECK( 0, fd_disp_register( cb_1, DISP_HOW_ANY, &when, NULL, &hdl[1] ) );
+		CHECK( 0, fd_disp_register( cb_8, DISP_HOW_ANY, &when, NULL, &hdl[2] ) );
+		CHECK( 0, fd_disp_register( cb_2, DISP_HOW_ANY, &when, NULL, &hdl[3] ) );
+		CHECK( 0, fd_disp_register( cb_3, DISP_HOW_ANY, &when, NULL, &hdl[4] ) );
 		
 		memset(cbcalled, 0, sizeof(cbcalled));
 		msg = new_msg( 1, cmd1, avp1, avp2, 1 );
@@ -543,17 +547,17 @@ int main(int argc, char *argv[])
 		CHECK( 0, cbcalled[3] );
 		CHECK( NULL, msg );
 		
-		CHECK( 0, fd_disp_unregister( &hdl[0] ) );
-		CHECK( 0, fd_disp_unregister( &hdl[1] ) );
-		CHECK( 0, fd_disp_unregister( &hdl[2] ) );
-		CHECK( 0, fd_disp_unregister( &hdl[3] ) );
-		CHECK( 0, fd_disp_unregister( &hdl[4] ) );
+		CHECK( 0, fd_disp_unregister( &hdl[0], NULL ) );
+		CHECK( 0, fd_disp_unregister( &hdl[1], NULL ) );
+		CHECK( 0, fd_disp_unregister( &hdl[2], NULL ) );
+		CHECK( 0, fd_disp_unregister( &hdl[3], NULL ) );
+		CHECK( 0, fd_disp_unregister( &hdl[4], NULL ) );
 		
-		CHECK( 0, fd_disp_register( cb_0, DISP_HOW_ANY, &when, &hdl[0] ) );
-		CHECK( 0, fd_disp_register( cb_1, DISP_HOW_ANY, &when, &hdl[1] ) );
-		CHECK( 0, fd_disp_register( cb_9, DISP_HOW_ANY, &when, &hdl[2] ) );
-		CHECK( 0, fd_disp_register( cb_2, DISP_HOW_ANY, &when, &hdl[3] ) );
-		CHECK( 0, fd_disp_register( cb_3, DISP_HOW_ANY, &when, &hdl[4] ) );
+		CHECK( 0, fd_disp_register( cb_0, DISP_HOW_ANY, &when, NULL, &hdl[0] ) );
+		CHECK( 0, fd_disp_register( cb_1, DISP_HOW_ANY, &when, NULL, &hdl[1] ) );
+		CHECK( 0, fd_disp_register( cb_9, DISP_HOW_ANY, &when, NULL, &hdl[2] ) );
+		CHECK( 0, fd_disp_register( cb_2, DISP_HOW_ANY, &when, NULL, &hdl[3] ) );
+		CHECK( 0, fd_disp_register( cb_3, DISP_HOW_ANY, &when, NULL, &hdl[4] ) );
 		
 		memset(cbcalled, 0, sizeof(cbcalled));
 		msg = new_msg( 1, cmd1, avp1, avp2, 1 );
@@ -566,11 +570,11 @@ int main(int argc, char *argv[])
 		CHECK( DISP_ACT_SEND, action );
 		CHECK( 0, fd_msg_free( msg ) );
 		
-		CHECK( 0, fd_disp_unregister( &hdl[0] ) );
-		CHECK( 0, fd_disp_unregister( &hdl[1] ) );
-		CHECK( 0, fd_disp_unregister( &hdl[2] ) );
-		CHECK( 0, fd_disp_unregister( &hdl[3] ) );
-		CHECK( 0, fd_disp_unregister( &hdl[4] ) );
+		CHECK( 0, fd_disp_unregister( &hdl[0], NULL ) );
+		CHECK( 0, fd_disp_unregister( &hdl[1], NULL ) );
+		CHECK( 0, fd_disp_unregister( &hdl[2], NULL ) );
+		CHECK( 0, fd_disp_unregister( &hdl[3], NULL ) );
+		CHECK( 0, fd_disp_unregister( &hdl[4], NULL ) );
 	}
 		
 	/* Test order of handlers */
@@ -580,11 +584,11 @@ int main(int argc, char *argv[])
 		when.avp = avp2;
 		when.value = enu2;
 		
-		CHECK( 0, fd_disp_register( cb_0, DISP_HOW_ANY, &when, &hdl[0] ) );
-		CHECK( 0, fd_disp_register( cb_1, DISP_HOW_AVP_ENUMVAL, &when, &hdl[1] ) );
-		CHECK( 0, fd_disp_register( cb_2, DISP_HOW_AVP, &when, &hdl[2] ) );
-		CHECK( 0, fd_disp_register( cb_3, DISP_HOW_CC, &when, &hdl[3] ) );
-		CHECK( 0, fd_disp_register( cb_4, DISP_HOW_APPID, &when, &hdl[4] ) );
+		CHECK( 0, fd_disp_register( cb_0, DISP_HOW_ANY, &when, NULL, &hdl[0] ) );
+		CHECK( 0, fd_disp_register( cb_1, DISP_HOW_AVP_ENUMVAL, &when, NULL, &hdl[1] ) );
+		CHECK( 0, fd_disp_register( cb_2, DISP_HOW_AVP, &when, NULL, &hdl[2] ) );
+		CHECK( 0, fd_disp_register( cb_3, DISP_HOW_CC, &when, NULL, &hdl[3] ) );
+		CHECK( 0, fd_disp_register( cb_4, DISP_HOW_APPID, &when, NULL, &hdl[4] ) );
 		
 		memset(cbcalled, 0, sizeof(cbcalled));
 		msg = new_msg( 2, cmd2, avp1, avp2, 2 );
@@ -597,7 +601,7 @@ int main(int argc, char *argv[])
 		CHECK( 0, cbcalled[9] );
 		CHECK( 0, fd_msg_free( msg ) );
 		
-		CHECK( 0, fd_disp_register( cb_9, DISP_HOW_ANY, &when, &hdl[5] ) );
+		CHECK( 0, fd_disp_register( cb_9, DISP_HOW_ANY, &when, NULL, &hdl[5] ) );
 		memset(cbcalled, 0, sizeof(cbcalled));
 		msg = new_msg( 2, cmd2, avp1, avp2, 2 );
 		CHECK( 0, fd_msg_dispatch ( &msg, sess, &action, &ec ) );
@@ -608,9 +612,9 @@ int main(int argc, char *argv[])
 		CHECK( 0, cbcalled[4] );
 		CHECK( 1, cbcalled[9] );
 		CHECK( 0, fd_msg_free( msg ) );
-		CHECK( 0, fd_disp_unregister( &hdl[5] ) );
+		CHECK( 0, fd_disp_unregister( &hdl[5], NULL ) );
 		
-		CHECK( 0, fd_disp_register( cb_9, DISP_HOW_AVP_ENUMVAL, &when, &hdl[5] ) );
+		CHECK( 0, fd_disp_register( cb_9, DISP_HOW_AVP_ENUMVAL, &when, NULL, &hdl[5] ) );
 		memset(cbcalled, 0, sizeof(cbcalled));
 		msg = new_msg( 2, cmd2, avp1, avp2, 2 );
 		CHECK( 0, fd_msg_dispatch ( &msg, sess, &action, &ec ) );
@@ -621,9 +625,9 @@ int main(int argc, char *argv[])
 		CHECK( 0, cbcalled[4] );
 		CHECK( 1, cbcalled[9] );
 		CHECK( 0, fd_msg_free( msg ) );
-		CHECK( 0, fd_disp_unregister( &hdl[5] ) );
+		CHECK( 0, fd_disp_unregister( &hdl[5], NULL ) );
 		
-		CHECK( 0, fd_disp_register( cb_9, DISP_HOW_AVP, &when, &hdl[5] ) );
+		CHECK( 0, fd_disp_register( cb_9, DISP_HOW_AVP, &when, NULL, &hdl[5] ) );
 		memset(cbcalled, 0, sizeof(cbcalled));
 		msg = new_msg( 2, cmd2, avp1, avp2, 2 );
 		CHECK( 0, fd_msg_dispatch ( &msg, sess, &action, &ec ) );
@@ -634,9 +638,9 @@ int main(int argc, char *argv[])
 		CHECK( 0, cbcalled[4] );
 		CHECK( 1, cbcalled[9] );
 		CHECK( 0, fd_msg_free( msg ) );
-		CHECK( 0, fd_disp_unregister( &hdl[5] ) );
+		CHECK( 0, fd_disp_unregister( &hdl[5], NULL ) );
 		
-		CHECK( 0, fd_disp_register( cb_9, DISP_HOW_CC, &when, &hdl[5] ) );
+		CHECK( 0, fd_disp_register( cb_9, DISP_HOW_CC, &when, NULL, &hdl[5] ) );
 		memset(cbcalled, 0, sizeof(cbcalled));
 		msg = new_msg( 2, cmd2, avp1, avp2, 2 );
 		CHECK( 0, fd_msg_dispatch ( &msg, sess, &action, &ec ) );
@@ -647,9 +651,9 @@ int main(int argc, char *argv[])
 		CHECK( 0, cbcalled[4] );
 		CHECK( 1, cbcalled[9] );
 		CHECK( 0, fd_msg_free( msg ) );
-		CHECK( 0, fd_disp_unregister( &hdl[5] ) );
+		CHECK( 0, fd_disp_unregister( &hdl[5], NULL ) );
 		
-		CHECK( 0, fd_disp_register( cb_9, DISP_HOW_APPID, &when, &hdl[5] ) );
+		CHECK( 0, fd_disp_register( cb_9, DISP_HOW_APPID, &when, NULL, &hdl[5] ) );
 		memset(cbcalled, 0, sizeof(cbcalled));
 		msg = new_msg( 2, cmd2, avp1, avp2, 2 );
 		CHECK( 0, fd_msg_dispatch ( &msg, sess, &action, &ec ) );
@@ -660,13 +664,13 @@ int main(int argc, char *argv[])
 		CHECK( 1, cbcalled[4] );
 		CHECK( 1, cbcalled[9] );
 		CHECK( 0, fd_msg_free( msg ) );
-		CHECK( 0, fd_disp_unregister( &hdl[5] ) );
+		CHECK( 0, fd_disp_unregister( &hdl[5], NULL ) );
 		
-		CHECK( 0, fd_disp_unregister( &hdl[0] ) );
-		CHECK( 0, fd_disp_unregister( &hdl[1] ) );
-		CHECK( 0, fd_disp_unregister( &hdl[2] ) );
-		CHECK( 0, fd_disp_unregister( &hdl[3] ) );
-		CHECK( 0, fd_disp_unregister( &hdl[4] ) );
+		CHECK( 0, fd_disp_unregister( &hdl[0], NULL ) );
+		CHECK( 0, fd_disp_unregister( &hdl[1], NULL ) );
+		CHECK( 0, fd_disp_unregister( &hdl[2], NULL ) );
+		CHECK( 0, fd_disp_unregister( &hdl[3], NULL ) );
+		CHECK( 0, fd_disp_unregister( &hdl[4], NULL ) );
 	}			
 	
 	/* Test application support advertisement */
@@ -695,6 +699,24 @@ int main(int argc, char *argv[])
 		#if 0
 		fd_conf_dump();
 		#endif
+	}
+	
+	/* Test opaque pointer management */
+	{
+		void * ptr;
+		CHECK( 0, fd_disp_register( cb_0, DISP_HOW_ANY, NULL, g_opaque, &hdl[0] ) );
+	
+		/* Check this handler is called for a message */
+		msg = new_msg( 0, cmd1, avp1, NULL, 0 );
+		memset(cbcalled, 0, sizeof(cbcalled));
+		CHECK( 0, fd_msg_dispatch ( &msg, sess, &action, &ec ) );
+		CHECK( 1, cbcalled[0] );
+		CHECK( DISP_ACT_CONT, action );
+		
+		/* Delete the message */
+		CHECK( 0, fd_msg_free( msg ) );
+		CHECK( 0, fd_disp_unregister( &hdl[0], &ptr ) );
+		CHECK( 1, ptr == g_opaque ? 1 : 0 );
 	}
 	
 	/* That's all for the tests yet */

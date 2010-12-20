@@ -233,7 +233,7 @@ out:
 
 int ta_cli_init(void)
 {
-	CHECK_FCT( fd_sess_handler_create(&ta_cli_reg, free) );
+	CHECK_FCT( fd_sess_handler_create(&ta_cli_reg, free, NULL) );
 	
 	CHECK_FCT( fd_sig_register(ta_conf->signal, "test_app.cli", ta_cli_test_message ) );
 	
@@ -244,7 +244,7 @@ void ta_cli_fini(void)
 {
 	CHECK_FCT_DO( fd_sig_unregister(ta_conf->signal), /* continue */ );
 	
-	CHECK_FCT_DO( fd_sess_handler_destroy(&ta_cli_reg), /* continue */ );
+	CHECK_FCT_DO( fd_sess_handler_destroy(&ta_cli_reg, NULL), /* continue */ );
 	
 	return;
 };

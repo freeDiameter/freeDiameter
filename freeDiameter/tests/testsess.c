@@ -44,9 +44,10 @@ struct mystate {
 	int	eyec;	/* TEST_EYEC */
 	char *  sid; 	/* the session with which the data was registered */
 	int  *  freed;	/* location where to write the freed status */
+	void *  opaque; /* if opaque was provided, this is the value we expect */
 };
 
-static void mycleanup( struct mystate * data, char * sid )
+static void mycleanup( struct mystate * data, char * sid, void * opaque )
 {
 	/* sanity */
 	CHECK( 1, sid ? 1 : 0 );
@@ -55,6 +56,9 @@ static void mycleanup( struct mystate * data, char * sid )
 	CHECK( 0, strcmp(sid, data->sid) );
 	if (data->freed)
 		*(data->freed) += 1;
+	if (data->opaque) {
+		CHECK( 1, opaque == data->opaque ? 1 : 0 );  
+	}
 	/* Now, free the data */
 	free(data->sid);
 	free(data);
@@ -72,6 +76,8 @@ static __inline__ struct mystate * new_state(char * sid, int *freed)
 	new->freed = freed;
 	return new;
 }
+
+void * g_opaque = (void *)"test";
 	
 
 /* Main test routine */
@@ -87,10 +93,12 @@ int main(int argc, char *argv[])
 	
 	/* Test functions related to handlers (simple situation) */
 	{
-		CHECK( 0, fd_sess_handler_create ( &hdl1, mycleanup ) );
-		CHECK( 0, fd_sess_handler_create ( &hdl2, mycleanup ) );
-		CHECK( 0, fd_sess_handler_destroy( &hdl2 ) );
-		CHECK( 0, fd_sess_handler_create ( &hdl2, mycleanup ) );
+		void * testptr = NULL;
+		CHECK( 0, fd_sess_handler_create ( &hdl1, mycleanup, NULL ) );
+		CHECK( 0, fd_sess_handler_create ( &hdl2, mycleanup, NULL ) );
+		CHECK( 0, fd_sess_handler_destroy( &hdl2, &testptr ) );
+		CHECK( 1, testptr == NULL ? 1 : 0 );
+		CHECK( 0, fd_sess_handler_create ( &hdl2, mycleanup, g_opaque ) );
 		#if 0
 		fd_sess_dump_hdl(0, hdl1);
 		fd_sess_dump_hdl(0, hdl2);
@@ -236,6 +244,7 @@ int main(int argc, char *argv[])
 		struct mystate * ms[6], *tms;
 		int freed[6];
 		struct timespec timeout;
+		void * testptr = NULL;
 		
 		/* Create three sessions */
 		CHECK( 0, fd_sess_new( &sess1, TEST_DIAM_ID, NULL, 0 ) );
@@ -266,8 +275,8 @@ int main(int argc, char *argv[])
 		CHECK( 0, fd_sess_state_retrieve( hdl1, sess2, &tms ) );
 		CHECK( NULL, tms );
 		
-		mycleanup(ms[0], str1);
-		mycleanup(ms[1], str1);
+		mycleanup(ms[0], str1, NULL);
+		mycleanup(ms[1], str1, NULL);
 		
 		/* Now create 6 states */
 		memset(&freed[0], 0, sizeof(freed));
@@ -280,6 +289,7 @@ int main(int argc, char *argv[])
 		CHECK( 0, fd_sess_getsid(sess3, &str1) );
 		ms[4] = new_state(str1, &freed[4]);
 		ms[5] = new_state(str1, &freed[5]);
+		ms[5]->opaque = g_opaque;
 		str2 = strdup(str1);
 		CHECK( 1, str2 ? 1 : 0 );
 		
@@ -307,13 +317,14 @@ int main(int argc, char *argv[])
 		CHECK( 1, freed[5] );
 		
 		/* Destroy handler 2 */
-		CHECK( 0, fd_sess_handler_destroy( &hdl2 ) );
+		CHECK( 0, fd_sess_handler_destroy( &hdl2, &testptr ) );
 		CHECK( 0, freed[0] );
 		CHECK( 1, freed[1] );
 		CHECK( 0, freed[2] );
 		CHECK( 1, freed[3] );
 		CHECK( 1, freed[4] );
 		CHECK( 1, freed[5] );
+		CHECK( 1, testptr == g_opaque ? 1 : 0 );
 		
 		#if 1
 		fd_sess_dump(0, sess1);
@@ -348,7 +359,7 @@ int main(int argc, char *argv[])
 		/* Check the last data can still be retrieved */
 		CHECK( 0, fd_sess_state_retrieve( hdl1, sess1, &tms ) );
 		CHECK( 0, fd_sess_getsid(sess1, &str1) );
-		mycleanup(tms, str1);
+		mycleanup(tms, str1, NULL);
 	}
 	
 	

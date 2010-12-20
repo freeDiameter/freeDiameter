@@ -41,7 +41,7 @@ static struct disp_hdl * ta_hdl_fb = NULL; /* handler for fallback cb */
 static struct disp_hdl * ta_hdl_tr = NULL; /* handler for Test-Request req cb */
 
 /* Default callback for the application. */
-static int ta_fb_cb( struct msg ** msg, struct avp * avp, struct session * sess, enum disp_action * act)
+static int ta_fb_cb( struct msg ** msg, struct avp * avp, struct session * sess, void * opaque, enum disp_action * act)
 {
 	/* This CB should never be called */
 	TRACE_ENTRY("%p %p %p %p", msg, avp, sess, act);
@@ -52,7 +52,7 @@ static int ta_fb_cb( struct msg ** msg, struct avp * avp, struct session * sess,
 }
 
 /* Callback for incoming Test-Request messages */
-static int ta_tr_cb( struct msg ** msg, struct avp * avp, struct session * sess, enum disp_action * act)
+static int ta_tr_cb( struct msg ** msg, struct avp * avp, struct session * sess, void * opaque, enum disp_action * act)
 {
 	struct msg *ans, *qry;
 	struct avp * a;
@@ -119,10 +119,10 @@ int ta_serv_init(void)
 	data.command = ta_cmd_r;
 	
 	/* fallback CB if command != Test-Request received */
-	CHECK_FCT( fd_disp_register( ta_fb_cb, DISP_HOW_APPID, &data, &ta_hdl_fb ) );
+	CHECK_FCT( fd_disp_register( ta_fb_cb, DISP_HOW_APPID, &data, NULL, &ta_hdl_fb ) );
 	
 	/* Now specific handler for Test-Request */
-	CHECK_FCT( fd_disp_register( ta_tr_cb, DISP_HOW_CC, &data, &ta_hdl_tr ) );
+	CHECK_FCT( fd_disp_register( ta_tr_cb, DISP_HOW_CC, &data, NULL, &ta_hdl_tr ) );
 	
 	return 0;
 }
@@ -130,10 +130,10 @@ int ta_serv_init(void)
 void ta_serv_fini(void)
 {
 	if (ta_hdl_fb) {
-		(void) fd_disp_unregister(&ta_hdl_fb);
+		(void) fd_disp_unregister(&ta_hdl_fb, NULL);
 	}
 	if (ta_hdl_tr) {
-		(void) fd_disp_unregister(&ta_hdl_tr);
+		(void) fd_disp_unregister(&ta_hdl_tr, NULL);
 	}
 	
 	return;

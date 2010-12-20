@@ -38,7 +38,7 @@
 #include "rgwx_echodrop.h"
 
 /* If a session is destroyed, empty the list of ed_saved_attribute */
-static void state_delete(void * arg, char * sid) {
+static void state_delete(void * arg, char * sid, void * opaque) {
 	struct fd_list * list = (struct fd_list *)arg;
 	
 	CHECK_PARAMS_DO( list, return );
@@ -68,7 +68,7 @@ static int ed_conf_parse(char * conffile, struct rgwp_config ** state)
 	fd_list_init(&new->attributes, NULL);
 	
 	/* Create the session handler */
-	CHECK_FCT( fd_sess_handler_create( &new->sess_hdl, state_delete ) );
+	CHECK_FCT( fd_sess_handler_create( &new->sess_hdl, state_delete, NULL ) );
 	
 	/* Parse the configuration file */
 	CHECK_FCT( ed_conffile_parse(conffile, new) );
@@ -106,7 +106,7 @@ static void ed_conf_free(struct rgwp_config * state)
 {
 	TRACE_ENTRY("%p", state);
 	CHECK_PARAMS_DO( state, return );
-	CHECK_FCT_DO( fd_sess_handler_destroy( &state->sess_hdl ),  );
+	CHECK_FCT_DO( fd_sess_handler_destroy( &state->sess_hdl, NULL ),  );
 	while (! FD_IS_LIST_EMPTY(&state->attributes) ) {
 		struct fd_list * li = state->attributes.next;
 		fd_list_unlink(li);

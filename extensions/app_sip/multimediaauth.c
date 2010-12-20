@@ -36,7 +36,7 @@
 #include "app_sip.h"
 
 
-int app_sip_MAR_cb( struct msg ** msg, struct avp * paramavp, struct session * sess, enum disp_action * act)
+int app_sip_MAR_cb( struct msg ** msg, struct avp * paramavp, struct session * sess, void * opaque, enum disp_action * act)
 {
 	struct msg *ans, *qry;
 	struct avp *avp, *a2, *authdataitem;

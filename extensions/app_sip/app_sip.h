@@ -139,17 +139,17 @@ int app_sip_PPR_cb(struct pprsipaor structure);
 
 int ds_entry();
 void fd_ext_fini(void);
-int app_sip_default_cb( struct msg ** msg, struct avp * avp, struct session * sess, enum disp_action * act);
-int app_sip_MAR_cb( struct msg ** msg, struct avp * avp, struct session * sess, enum disp_action * act);
-int app_sip_RTA_cb( struct msg ** msg, struct avp * avp, struct session * sess, enum disp_action * act);
-int app_sip_PPA_cb( struct msg ** msg, struct avp * avp, struct session * sess, enum disp_action * act);
-int app_sip_LIR_cb( struct msg ** msg, struct avp * avp, struct session * sess, enum disp_action * act);
-int app_sip_UAR_cb( struct msg ** msg, struct avp * avp, struct session * sess, enum disp_action * act);
-int app_sip_SAR_cb( struct msg ** msg, struct avp * avp, struct session * sess, enum disp_action * act);
+int app_sip_default_cb( struct msg ** msg, struct avp * avp, struct session * sess, void * opaque, enum disp_action * act);
+int app_sip_MAR_cb( struct msg ** msg, struct avp * avp, struct session * sess, void * opaque, enum disp_action * act);
+int app_sip_RTA_cb( struct msg ** msg, struct avp * avp, struct session * sess, void * opaque, enum disp_action * act);
+int app_sip_PPA_cb( struct msg ** msg, struct avp * avp, struct session * sess, void * opaque, enum disp_action * act);
+int app_sip_LIR_cb( struct msg ** msg, struct avp * avp, struct session * sess, void * opaque, enum disp_action * act);
+int app_sip_UAR_cb( struct msg ** msg, struct avp * avp, struct session * sess, void * opaque, enum disp_action * act);
+int app_sip_SAR_cb( struct msg ** msg, struct avp * avp, struct session * sess, void * opaque, enum disp_action * act);
 
 //Suscriber Locator
-int app_sip_SL_LIR_cb( struct msg ** msg, struct avp * paramavp, struct session * sess, enum disp_action * act);
-//int app_sip_SL_SAR_cb( struct msg ** msg, struct avp * paramavp, struct session * sess, enum disp_action * act);
+int app_sip_SL_LIR_cb( struct msg ** msg, struct avp * paramavp, struct session * sess, void * opaque, enum disp_action * act);
+//int app_sip_SL_SAR_cb( struct msg ** msg, struct avp * paramavp, struct session * sess, void * opaque, enum disp_action * act);
 
 #define SQL_GETPASSWORD "SELECT `password` FROM ds_users WHERE `username` ='%s'"
 #define SQL_GETPASSWORD_LEN sizeof(SQL_GETPASSWORD)-2

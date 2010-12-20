@@ -58,9 +58,9 @@ static struct as_conf app_sip_conf;
 //dictionary of SIP
 struct app_sip_dict sip_dict;
 
-int app_sip_default_cb( struct msg ** msg, struct avp * avp, struct session * sess, enum disp_action * act)
+int app_sip_default_cb( struct msg ** msg, struct avp * avp, struct session * sess, void * opaque, enum disp_action * act)
 {
-	TRACE_ENTRY("%p %p %p %p", msg, avp, sess, act);
+	TRACE_ENTRY("%p %p %p %p %p", msg, avp, sess, opaque, act);
 	
 	return 0;
 }
@@ -178,41 +178,41 @@ int as_entry(char * conffile)
 	
 	if(as_conf->mode==1)
 	{
-	  //**Command Codes
+	  // **Command Codes
 	  //MAR
 	  CHECK_FCT( fd_dict_search( fd_g_config->cnf_dict, DICT_COMMAND, CMD_BY_NAME, "Multimedia-Auth-Request", &data.command, ENOENT) );
-	  CHECK_FCT( fd_disp_register( app_sip_MAR_cb, DISP_HOW_CC, &data, &app_sip_MAR_hdl ) );
+	  CHECK_FCT( fd_disp_register( app_sip_MAR_cb, DISP_HOW_CC, &data, NULL, &app_sip_MAR_hdl ) );
 	  //RTA
 	  CHECK_FCT( fd_dict_search( fd_g_config->cnf_dict, DICT_COMMAND, CMD_BY_NAME, "Registration-Termination-Answer", &data.command, ENOENT) );
-	  CHECK_FCT( fd_disp_register( app_sip_RTA_cb, DISP_HOW_CC, &data, &app_sip_RTA_hdl ) );
+	  CHECK_FCT( fd_disp_register( app_sip_RTA_cb, DISP_HOW_CC, &data, NULL, &app_sip_RTA_hdl ) );
 	  //PPA
 	  CHECK_FCT( fd_dict_search( fd_g_config->cnf_dict, DICT_COMMAND, CMD_BY_NAME, "Push-Profile-Answer", &data.command, ENOENT) );
-	  CHECK_FCT( fd_disp_register( app_sip_PPA_cb, DISP_HOW_CC, &data, &app_sip_PPA_hdl ) );
+	  CHECK_FCT( fd_disp_register( app_sip_PPA_cb, DISP_HOW_CC, &data, NULL, &app_sip_PPA_hdl ) );
 	  //LIR
 	  CHECK_FCT( fd_dict_search( fd_g_config->cnf_dict, DICT_COMMAND, CMD_BY_NAME, "Location-Info-Request", &data.command, ENOENT) );
-	  CHECK_FCT( fd_disp_register( app_sip_LIR_cb, DISP_HOW_CC, &data, &app_sip_LIR_hdl ) );
+	  CHECK_FCT( fd_disp_register( app_sip_LIR_cb, DISP_HOW_CC, &data, NULL, &app_sip_LIR_hdl ) );
 	  //UAR
 	  CHECK_FCT( fd_dict_search( fd_g_config->cnf_dict, DICT_COMMAND, CMD_BY_NAME, "User-Authorization-Request", &data.command, ENOENT) );
-	  CHECK_FCT( fd_disp_register( app_sip_UAR_cb, DISP_HOW_CC, &data, &app_sip_UAR_hdl ) );
+	  CHECK_FCT( fd_disp_register( app_sip_UAR_cb, DISP_HOW_CC, &data, NULL, &app_sip_UAR_hdl ) );
 	  //SAR
 	  CHECK_FCT( fd_dict_search( fd_g_config->cnf_dict, DICT_COMMAND, CMD_BY_NAME, "Server-Assignment-Request", &data.command, ENOENT) );
-	  CHECK_FCT( fd_disp_register( app_sip_SAR_cb, DISP_HOW_CC, &data, &app_sip_SAR_hdl ) );
+	  CHECK_FCT( fd_disp_register( app_sip_SAR_cb, DISP_HOW_CC, &data, NULL, &app_sip_SAR_hdl ) );
 	}
 	if(as_conf->mode==2)
 	{
 	  //LIR
 	  CHECK_FCT( fd_dict_search( fd_g_config->cnf_dict, DICT_COMMAND, CMD_BY_NAME, "Location-Info-Request", &data.command, ENOENT) );
-	  CHECK_FCT( fd_disp_register( app_sip_SL_LIR_cb, DISP_HOW_CC, &data, &app_sip_SL_LIR_hdl ) );
+	  CHECK_FCT( fd_disp_register( app_sip_SL_LIR_cb, DISP_HOW_CC, &data, NULL, &app_sip_SL_LIR_hdl ) );
 	}
 	//Callback for unexpected messages
-	CHECK_FCT( fd_disp_register( app_sip_default_cb, DISP_HOW_APPID, &data, &app_sip_default_hdl ) );
+	CHECK_FCT( fd_disp_register( app_sip_default_cb, DISP_HOW_APPID, &data, NULL, &app_sip_default_hdl ) );
 	
 	
 	//We start database connection
 	if(start_mysql_connection())
 		return EINVAL;
 	
-	CHECK_FCT(fd_sess_handler_create(&ds_sess_hdl, free));
+	CHECK_FCT(fd_sess_handler_create(&ds_sess_hdl, free, NULL));
 	
 	//Creation of thread for Registration Termination	
 	if(pthread_create(&rtr_thread, NULL,rtr_socket, NULL))
@@ -236,8 +236,8 @@ void fd_ext_fini(void)
 {
 	//TODO:unregister other callbacks
 	
-	(void) fd_disp_unregister(&app_sip_MAR_hdl);
-	CHECK_FCT_DO( fd_sess_handler_destroy(&ds_sess_hdl),return);
+	(void) fd_disp_unregister(&app_sip_MAR_hdl, NULL);
+	CHECK_FCT_DO( fd_sess_handler_destroy(&ds_sess_hdl, NULL),return);
 	
 	
 	//We close database connection

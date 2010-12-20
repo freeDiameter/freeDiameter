@@ -158,7 +158,7 @@ int test_sip_UAR_cb()
 	return 0;
 }
 
-int test_sip_UAA_cb( struct msg ** msg, struct avp * paramavp, struct session * sess, enum disp_action * act)
+int test_sip_UAA_cb( struct msg ** msg, struct avp * paramavp, struct session * sess, void * opaque, enum disp_action * act)
 {
 	
 	return 0;

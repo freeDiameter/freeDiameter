@@ -39,17 +39,17 @@
 
 
 %{
-/* store the python callback function here */
-static PyObject * py_dispatch_cb = NULL;
-static int        py_dispatch_cb_n = 0;
 /* call it (will be called from a different thread than the interpreter, when message arrives) */
-static int call_the_python_dispatch_callback(struct msg **msg, struct avp *avp, struct session *session, enum disp_action *action) {
+static int call_the_python_dispatch_callback(struct msg **msg, struct avp *avp, struct session *session, void * pycb, enum disp_action *action) {
 	PyObject *PyMsg, *PyAvp, *PySess;
-	PyObject *result = NULL;
+	PyObject *cb, *result = NULL;
 	int ret = 0;
 	
-	if (!py_dispatch_cb)
+	if (!pycb) {
+		fd_log_debug("Internal error: missing the callback!\n");
 		return ENOTSUP;
+	}
+	cb = pycb;
 	
 	SWIG_PYTHON_THREAD_BEGIN_BLOCK;
 	/* Convert the arguments */
@@ -58,7 +58,7 @@ static int call_the_python_dispatch_callback(struct msg **msg, struct avp *avp, 
 	PySess = SWIG_NewPointerObj((void *) session, SWIGTYPE_p_session, 0 );
 	
 	/* Call the function */
-	result = PyEval_CallFunction(py_dispatch_cb, "(OOO)", PyMsg, PyAvp, PySess);
+	result = PyEval_CallFunction(cb, "(OOO)", PyMsg, PyAvp, PySess);
 	
 	/* The result is supposedly composed of: [ ret, *msg, *action ] */
 	if ((result == NULL) || (!PyList_Check(result)) || (PyList_Size(result) != 3)) {
@@ -107,15 +107,10 @@ struct disp_hdl {
 	disp_hdl(PyObject * PyCb, enum disp_how how, struct disp_when * when) {
 		struct disp_hdl * hdl = NULL;
 		int ret;
-		if (py_dispatch_cb && (py_dispatch_cb != PyCb)) {
-			DI_ERROR(EINVAL, PyExc_SyntaxError, "Only one dispatch callback is supported at the moment in this extension\n.");
-			return NULL;
-		}
-		py_dispatch_cb = PyCb;
-		py_dispatch_cb_n += 1;
-		Py_XINCREF(py_dispatch_cb);
 		
-		ret = fd_disp_register ( call_the_python_dispatch_callback, how, when, &hdl );
+		Py_XINCREF(PyCb);
+		
+		ret = fd_disp_register ( call_the_python_dispatch_callback, how, when, PyCb, &hdl );
 		if (ret != 0) {
 			DI_ERROR(ret, NULL, NULL);
 			return NULL;
@@ -124,15 +119,12 @@ struct disp_hdl {
 	}
 	~disp_hdl() {
 		struct disp_hdl * hdl = self;
-		int ret = fd_disp_unregister(&hdl);
+		PyObject * cb = NULL;
+		int ret = fd_disp_unregister(&hdl, (void *)&cb);
 		if (ret != 0) {
 			DI_ERROR(ret, NULL, NULL);
 		}
-		/* Now free the callback */
-		Py_XDECREF(py_dispatch_cb);
-		py_dispatch_cb_n -= 1;
-		if (!py_dispatch_cb_n)
-			py_dispatch_cb = NULL;
+		Py_XDECREF(cb);
 		return;
 	}
 }

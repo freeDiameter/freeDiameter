@@ -261,7 +261,7 @@ static int sip_conf_parse(char * conffile, struct rgwp_config ** state)
 	CHECK_MALLOC( new = malloc(sizeof(struct rgwp_config)) );
 	memset(new, 0, sizeof(struct rgwp_config));
 	
-	CHECK_FCT( fd_sess_handler_create( &new->sess_hdl, free ) );
+	CHECK_FCT( fd_sess_handler_create( &new->sess_hdl, free, NULL ) );
 	new->confstr = conffile;
 	
 	/* Resolve all dictionary objects we use */
@@ -315,7 +315,7 @@ static void sip_conf_free(struct rgwp_config * state)
 	TRACE_ENTRY("%p", state);
 	CHECK_PARAMS_DO( state, return );
 	
-	CHECK_FCT_DO( fd_sess_handler_destroy( &state->sess_hdl ),  );
+	CHECK_FCT_DO( fd_sess_handler_destroy( &state->sess_hdl, NULL ),  );
 	
 	nonce_deletelistnonce(state);
 	CHECK_POSIX_DO(pthread_mutex_destroy(&state->nonce_mutex), /*continue*/);

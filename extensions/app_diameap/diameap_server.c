@@ -84,7 +84,7 @@ struct avp_max_occurences auth_avps[] =
 
 
 
-void diameap_cli_sess_cleanup(void * arg, char * sid)
+void diameap_cli_sess_cleanup(void * arg, char * sid, void * opaque)
 {
 
 	struct diameap_sess_data_sm * diameap_sess_data =
@@ -3059,7 +3059,7 @@ static int diameap_add_eap_reissued_payload(struct msg * ans, struct msg * req)
 
 
 static int diameap_server_callback(struct msg ** rmsg, struct avp * ravp,
-		struct session * sess, enum disp_action * action)
+		struct session * sess, void * opaque, enum disp_action * action)
 {
 	TRACE_ENTRY("%p %p %p %p", rmsg, ravp, sess, action);
 
@@ -3388,7 +3388,7 @@ int diameap_start_server(void)
 	struct disp_when when;
 
 	/*create handler for sessions */
-	CHECK_FCT(fd_sess_handler_create(&diameap_server_reg, diameap_cli_sess_cleanup));
+	CHECK_FCT(fd_sess_handler_create(&diameap_server_reg, diameap_cli_sess_cleanup, NULL));
 
 	/* Register the callback */
 	memset(&when, 0, sizeof(when));
@@ -3396,7 +3396,7 @@ int diameap_start_server(void)
 	when.app = dataobj_diameap_app;
 
 	/* Register the callback for EAP Application */
-	CHECK_FCT(fd_disp_register(diameap_server_callback, DISP_HOW_CC, &when,
+	CHECK_FCT(fd_disp_register(diameap_server_callback, DISP_HOW_CC, &when, NULL,
 					&handle));
 
 	if (handle == NULL)
@@ -3409,8 +3409,8 @@ int diameap_start_server(void)
 
 int diameap_stop_server(void)
 {
-	CHECK_FCT(fd_sess_handler_destroy(&diameap_server_reg));
-	CHECK_FCT(fd_disp_unregister(&handle));
+	CHECK_FCT(fd_sess_handler_destroy(&diameap_server_reg, NULL));
+	CHECK_FCT(fd_disp_unregister(&handle, NULL));
 
 	return 0;
 }

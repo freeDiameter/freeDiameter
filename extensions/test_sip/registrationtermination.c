@@ -36,7 +36,7 @@
 #include "test_sip.h"
 
 
-int test_sip_RTR_cb( struct msg ** msg, struct avp * paramavp, struct session * sess, enum disp_action * act)
+int test_sip_RTR_cb( struct msg ** msg, struct avp * paramavp, struct session * sess, void * opaque, enum disp_action * act)
 {
 	
 	return 0;

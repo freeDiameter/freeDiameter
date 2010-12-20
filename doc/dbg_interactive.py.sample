@@ -621,7 +621,7 @@ np.config.pic_flags.pro4 = 1   # 1 for TCP, for some reason PI_P4_TCP is not def
 # Add this peer into the framework.
 np.add()
 
-# It is possible to specify a callback for when the connection completes or fails to this peer.
+# It is possible to specify a callback for when the connection completes or fails with this peer.
 # The prototype is as follow:
 def add_cb(peer):
     if peer:

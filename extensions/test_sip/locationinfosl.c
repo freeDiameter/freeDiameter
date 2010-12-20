@@ -126,7 +126,7 @@ int test_sipSL_LIR_cb()
 	return 0;
 }
 
-int test_sipSL_LIA_cb( struct msg ** msg, struct avp * paramavp, struct session * sess, enum disp_action * act)
+int test_sipSL_LIA_cb( struct msg ** msg, struct avp * paramavp, struct session * sess, void * opaque, enum disp_action * act)
 {
 	
 	return 0;
