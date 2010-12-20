@@ -67,7 +67,7 @@
 /* This is not thread-safe etc. but it should work /most of the time/. */
 static int wrapper_errno;
 static PyObject* wrapper_errno_py;
-static char * wrapper_error_txt; /* if NULL, use strerror(errno) */
+static const char * wrapper_error_txt; /* if NULL, use strerror(errno) */
 #define DI_ERROR(code, pycode, str) {	\
 	fd_log_debug("[dbg_interactive] ERROR: %s: %s\n", __PRETTY_FUNCTION__, str ? str : strerror(code)); \
 	wrapper_errno = code;		\
@@ -87,7 +87,7 @@ static char * wrapper_error_txt; /* if NULL, use strerror(errno) */
 	$action
 	/* Now, test for error */
 	if (wrapper_errno) {
-		char * str = wrapper_error_txt ? wrapper_error_txt : strerror(wrapper_errno);
+		const char * str = wrapper_error_txt ? wrapper_error_txt : strerror(wrapper_errno);
 		PyObject * exc = wrapper_errno_py;
 		if (!exc) {
 			switch (wrapper_errno) {
@@ -108,7 +108,7 @@ static char * wrapper_error_txt; /* if NULL, use strerror(errno) */
  Some types & typemaps for usability 
  ***********************************/
 
-%apply (char *STRING, size_t LENGTH) { ( char * string, size_t len ) }; /* fd_hash */
+%apply (char *STRING, size_t LENGTH) { ( char * string, size_t len ) };
 
 /* Generic typemap for functions that create something */
 %typemap(in, numinputs=0,noblock=1) SWIGTYPE ** OUTPUT (void *temp = NULL) {
@@ -118,20 +118,41 @@ static char * wrapper_error_txt; /* if NULL, use strerror(errno) */
 	%append_output(SWIG_NewPointerObj(*$1, $*1_descriptor, 0));
 }
 
-/* To allow passing callback functions defined in python */
-%typemap(in) PyObject *PyCb {
-	if (!PyCallable_Check($input)) {
-		PyErr_SetString(PyExc_TypeError, "Need a callable object!");
-		SWIG_fail;
-	}
-	$1 = $input;
+/* Typemap to return a boolean value as output parameter */
+%typemap(in, numinputs=0,noblock=1) int * BOOL_OUT (int temp) {
+	$1 = &temp;
+}
+%typemap(argout,noblock=1) int * BOOL_OUT {
+	PyObject * r;
+	if (*$1)
+		r = Py_True;
+	else
+		r = Py_False;
+	Py_XINCREF(r);
+	%append_output(r);
 }
 
+/* To allow passing callback functions defined in python */
+%typemap(in) PyObject *PyCb {
+	if (!$input || ($input == Py_None)) {
+		$1 = NULL;
+	} else {
+		if (!PyCallable_Check($input)) {
+			PyErr_SetString(PyExc_TypeError, "Need a callable object!");
+			SWIG_fail;
+		}
+		$1 = $input;
+	}
+}
 
-/* Forward declaration for the peers module */
 %{
+/* Forward declaration for the peers module */
 static void fd_add_cb(struct peer_info *peer, void *data);
 %}
+
+/* Overwrite declaration to apply typemaps */
+int fd_sess_fromsid ( char * STRING, size_t LENGTH, struct session ** OUTPUT, int * BOOL_OUT);
+
 
 /*********************************************************
  Now, create wrappers for (almost) all objects from fD API 
@@ -154,3 +175,5 @@ for more usable python-style versions.
 %include "queues.i"
 
 %include "peers.i"
+%include "events.i"
+%include "endpoints.i"

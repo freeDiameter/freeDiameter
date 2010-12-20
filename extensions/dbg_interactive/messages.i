@@ -292,8 +292,14 @@ struct msg {
 	}
 	
 	/* Is routable? */
-	int is_routable() {
-		return fd_msg_is_routable($self);
+	PyObject * is_routable() {
+		PyObject * r;
+		if (fd_msg_is_routable($self))
+			r = Py_True;
+		else
+			r = Py_False;
+		Py_XINCREF(r);
+		return r;
 	}
 	
 	/* Get the source */

@@ -25,6 +25,8 @@ SET(SWIG_MODULE_fDpy_EXTRA_DEPS
 	dispatch.i
 	queues.i
 	peers.i
+	events.i
+	endpoints.i
 	)
 SET_SOURCE_FILES_PROPERTIES(dbg_interactive.i PROPERTIES SWIG_MODULE_NAME fDpy)
 

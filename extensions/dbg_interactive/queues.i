@@ -76,36 +76,75 @@ struct fifo {
 	/* Is the threashold function useful here? TODO... */
 	
 	/* Post an item */
-	void post(PyObject * item) {
+	void post(PyObject * item, char * type = NULL) {
 		int ret;
-		PyObject * i = item;
-		
-		Py_XINCREF(i);
-		ret = fd_fifo_post($self, &i);
+		if (type) {
+			void * real_obj = NULL;
+			swig_type_info * desttype = NULL;
+			desttype = SWIG_TypeQuery(type);
+			if (!desttype) {
+				DI_ERROR(EINVAL, NULL, "Unable to resolve this type. Please check the form: 'struct blahbla *'");
+				return;
+			}
+			/* Now, get the "real" value under the shadow umbrella */
+			ret = SWIG_ConvertPtr(item, &real_obj, desttype, SWIG_POINTER_DISOWN );
+			if (!SWIG_IsOK(ret)) {
+				DI_ERROR(EINVAL, SWIG_ErrorType(ret), "Unable to convert the item to given type");
+				return;
+			}
+			ret = fd_fifo_post($self, &real_obj);
+		} else {
+			PyObject * i = item;
+			Py_XINCREF(i);
+			ret = fd_fifo_post($self, &i);
+		}
 		if (ret != 0) {
 			DI_ERROR(ret, NULL, NULL);
 		}
 	}
 	
 	/* Get (blocking) */
-	PyObject * get() {
+	PyObject * get(char * type = NULL) {
 		int ret;
 		PyObject * i = NULL;
+		void * obj = NULL;
+		swig_type_info * desttype = NULL;
+		if (type) {
+			desttype = SWIG_TypeQuery(type);
+			if (!desttype) {
+				DI_ERROR(EINVAL, NULL, "Unable to resolve this type. Please check the form: 'struct blahbla *'");
+				return NULL;
+			}
+		}
 		
-		ret = fd_fifo_get($self, &i);
+		ret = fd_fifo_get($self, &obj);
 		if (ret != 0) {
 			DI_ERROR(ret, NULL, NULL);
 		}
 		
-		return i;
+		if (type) {
+			return SWIG_NewPointerObj(obj, desttype, 0 );
+		} else {
+			i = obj;
+			return i;
+		}
 	}
 	
 	/* TryGet (non-blocking, returns None on empty queue) */
-	PyObject * tryget() {
+	PyObject * tryget(char * type = NULL) {
 		int ret;
 		PyObject * i = NULL;
+		void * obj = NULL;
+		swig_type_info * desttype = NULL;
+		if (type) {
+			desttype = SWIG_TypeQuery(type);
+			if (!desttype) {
+				DI_ERROR(EINVAL, NULL, "Unable to resolve this type. Please check the form: 'struct blahbla *'");
+				return NULL;
+			}
+		}
 		
-		ret = fd_fifo_tryget($self, &i);
+		ret = fd_fifo_tryget($self, &obj);
 		if (ret == EWOULDBLOCK) {
 			Py_XINCREF(Py_None);
 			return Py_None;
@@ -114,19 +153,33 @@ struct fifo {
 			DI_ERROR(ret, NULL, NULL);
 		}
 		
-		return i;
+		if (type) {
+			return SWIG_NewPointerObj(obj, desttype, 0 );
+		} else {
+			i = obj;
+			return i;
+		}
 	}
 	
 	/* TimedGet (blocking for a while) */
-	PyObject * timedget(long seconds) {
+	PyObject * timedget(long seconds, char * type = NULL) {
 		int ret;
 		PyObject * i = NULL;
 		struct timespec ts;
+		void * obj = NULL;
+		swig_type_info * desttype = NULL;
+		if (type) {
+			desttype = SWIG_TypeQuery(type);
+			if (!desttype) {
+				DI_ERROR(EINVAL, NULL, "Unable to resolve this type. Please check the form: 'struct blahbla *'");
+				return NULL;
+			}
+		}
 		
 		clock_gettime(CLOCK_REALTIME, &ts);
 		ts.tv_sec += seconds;
 		
-		ret = fd_fifo_timedget($self, &i, &ts);
+		ret = fd_fifo_timedget($self, &obj, &ts);
 		if (ret == ETIMEDOUT) {
 			Py_XINCREF(Py_None);
 			return Py_None;
@@ -135,7 +188,12 @@ struct fifo {
 			DI_ERROR(ret, NULL, NULL);
 		}
 		
-		return i;
+		if (type) {
+			return SWIG_NewPointerObj(obj, desttype, 0 );
+		} else {
+			i = obj;
+			return i;
+		}
 	}
 	
 }		

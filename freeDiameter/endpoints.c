@@ -52,6 +52,11 @@ int fd_ep_add_merge( struct fd_list * list, sSA * sa, socklen_t sl, uint32_t fla
 	TRACE_ENTRY("%p %p %u %x", list, sa, sl, flags);
 	CHECK_PARAMS( list && sa && (sl <= sizeof(sSS)) );
 	
+	if (list->next == NULL) {
+		/* the list is not initialized yet, do it */
+		fd_list_init(list, NULL);
+	}
+	
 	if (TRACE_BOOL(ANNOYING + 1)) {
 		TRACE_DEBUG(ANNOYING, "  DEBUG:fd_ep_add_merge  Current list:");
 		fd_ep_dump( 4, list );

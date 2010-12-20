@@ -69,9 +69,9 @@
 }
 
 /* Structure to hold the configuration of the freeDiameter daemon */
+#define	EYEC_CONFIG	0xC011F16
 struct fd_config {
 	int		 cnf_eyec;	/* Eye catcher: EYEC_CONFIG */
-			#define	EYEC_CONFIG	0xC011F16
 	
 	char		*cnf_file;	/* Configuration file to parse, default is DEFAULT_CONF_FILE */
 	
@@ -177,6 +177,29 @@ extern const char *peer_state_str[];
 #define STATE_STR(state) \
 	(((unsigned)(state)) <= STATE_MAX ? peer_state_str[((unsigned)(state)) ] : "<Invalid>")
 
+/* Constants for the peer_info structure bellow */
+#define PI_P3_DEFAULT	0	/* Use any available protocol */
+#define PI_P3_IP	1	/* Use only IP to connect to this peer */
+#define PI_P3_IPv6	2	/* resp, IPv6 */
+
+#define PI_P4_DEFAULT	0	/* Attempt any available protocol */
+#define PI_P4_TCP	1	/* Only use TCP */
+#define PI_P4_SCTP	2	/* Only use SCTP */
+
+#define PI_ALGPREF_SCTP	0	/* SCTP is  attempted first (default) */
+#define PI_ALGPREF_TCP	1	/* TCP is attempted first */
+
+#define PI_SEC_DEFAULT	0	/* New TLS security (handshake after connection, protecting also CER/CEA) */
+#define PI_SEC_NONE	1	/* Transparent security with this peer (IPsec) */
+#define PI_SEC_TLS_OLD	2	/* Old TLS security (use Inband-Security-Id AVP during CER/CEA) */
+				/* Set sec = 3 to authorize use of (Inband-Security-Id == NONE) with this peer, sec = 2 only authorizing TLS */
+
+#define PI_EXP_NONE	0	/* the peer entry does not expire */
+#define PI_EXP_INACTIVE	1	/* the peer entry expires (i.e. is deleted) after pi_lft seconds without activity */
+
+#define PI_PRST_NONE	0	/* the peer entry is deleted after disconnection / error */
+#define PI_PRST_ALWAYS	1	/* the peer entry is persistant (will be kept as ZOMBIE in case of error) */
+			
 /* Information about a remote peer */
 struct peer_info {
 	
@@ -184,32 +207,12 @@ struct peer_info {
 	
 	struct {
 		struct {
-			#define PI_P3_DEFAULT	0	/* Use any available protocol */
-			#define PI_P3_IP	1	/* Use only IP to connect to this peer */
-			#define PI_P3_IPv6	2	/* resp, IPv6 */
-			unsigned	pro3 :2;
-
-			#define PI_P4_DEFAULT	0	/* Attempt any available protocol */
-			#define PI_P4_TCP	1	/* Only use TCP */
-			#define PI_P4_SCTP	2	/* Only use SCTP */
-			unsigned	pro4 :2;
-
-			#define PI_ALGPREF_SCTP	0	/* SCTP is  attempted first (default) */
-			#define PI_ALGPREF_TCP	1	/* TCP is attempted first */
-			unsigned	alg :1;
-
-			#define PI_SEC_DEFAULT	0	/* New TLS security (handshake after connection, protecting also CER/CEA) */
-			#define PI_SEC_NONE	1	/* Transparent security with this peer (IPsec) */
-			#define PI_SEC_TLS_OLD	2	/* Old TLS security (use Inband-Security-Id AVP during CER/CEA) */
-			unsigned	sec :2;		/* Set sec = 3 to authorize use of (Inband-Security-Id == NONE) with this peer, sec = 2 only authorizing TLS */
-
-			#define PI_EXP_NONE	0	/* the peer entry does not expire */
-			#define PI_EXP_INACTIVE	1	/* the peer entry expires (i.e. is deleted) after pi_lft seconds without activity */
-			unsigned	exp :1;
-
-			#define PI_PRST_NONE	0	/* the peer entry is deleted after disconnection / error */
-			#define PI_PRST_ALWAYS	1	/* the peer entry is persistant (will be kept as ZOMBIE in case of error) */
-			unsigned	persist :1;
+			unsigned	pro3 :2;	/* PI_P3_* */
+			unsigned	pro4 :2;	/* PI_P4_* */
+			unsigned	alg :1;		/* PI_ALGPREF_* */
+			unsigned	sec :2;		/* PI_SEC_* */
+			unsigned	exp :1;		/* PI_EXP_* */
+			unsigned	persist :1;	/* PI_PRST_* */
 			
 		}		pic_flags;	/* Flags influencing the connection to the remote peer */
 		

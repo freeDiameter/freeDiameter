@@ -89,7 +89,7 @@ l3.insert_next(l4)   #   l3 -> l4
 l3.insert_next(l5)   #   l3 -> l5 -> l4
 l1.concat(l3)        # l1 -> l2 -> l5 -> l4
 
-elements = l1.enum_as()  # default: enumerates as fd_list. Warning: this a copy, changing the python list has no effect on the underlying list.
+elements = l1.enum_as()  # default: enumerates as fd_list. Warning: this a copy, changing the python list has no effect on the underlying fd_list.
 for li in elements:
   li.dump()
 
@@ -223,15 +223,15 @@ d.new_obj(DICT_RULE, r, my_req)
 d.new_obj(DICT_RULE, r, my_ans)
 del r
 
-d.dump()
-del d
-
 r2 = dict_rule_data(my_avp_int, RULE_REQUIRED) # min & max are optional parameters, default to -1
 r3 = dict_rule_data(my_avp_int, RULE_REQUIRED, 2, 3) # min is 2, max is 3
 r4 = dict_rule_data(my_avp_int, RULE_FIXED_HEAD) # The r4.rule_order = 1 by default, change afterwards if needed.
 del r2
 del r3
 del r4
+
+d.dump()
+del d
 
 ####### Now play with the "real" dictionary
 
@@ -272,7 +272,7 @@ hdl = session_handler(my_cleanup)
 s1 = session()
 s1.getsid()
 s2 = session("this.is.a.full.session.id")
-r,s3,isnew = fd_sess_fromsid("this.is.a.full.session.id")
+r,s3,isnew = fd_sess_fromsid("this.is.a.full.session.id")  # use this call if "isnew" is really needed...
 s4 = session("host.id", "optional.part")
 s4.settimeout(30) # the python wrapper takes a number of seconds as parameter for simplicity
 s4.dump()
@@ -303,6 +303,31 @@ list = rd.extract(-1)
 for c in list.enum_as("struct rtd_candidate *"):
   print "%s (%s): %s" % (c.diamid, c.realm, c.score)
 
+del rd
+
+
+# A rt_fwd callback has the following prototype:
+def my_rtfwd_cb(msg):
+    print "Forwarding the following message:"
+    msg.dump()
+    return [ 0, msg ]  # return None instead of msg to stop forwarding.
+
+fwdhdl = fd_rt_fwd_hdl( my_rtfwd_cb, RT_FWD_REQ )
+
+
+# A rt_out cb has the following prototype:
+def my_rtout_cb(msg, list):
+    print "Sending out the following message:"
+    msg.dump()
+    print "The possible candidates are:"
+    for c in list.enum_as("struct rtd_candidate *"):
+       print "%s (%s): %s" % (c.diamid, c.realm, c.score)
+    return 0   # returns an error code (standard errno values)
+
+outhdl = fd_rt_out_hdl( my_rtout_cb )  # a priority can be specified as 2nd parameter, default is 0.
+
+
+
 
 
 ############# Messages, AVPs ############
@@ -321,7 +346,7 @@ vsai = avp(cvar.fd_g_config.cnf_dict.search ( DICT_AVP, AVP_BY_NAME, "Vendor-Spe
 # Set values
 val = avp_value()
 val.u32 = 123
-vi.setval(None)  # this cleans a previous value (not needed)
+vi.setval(None)  # this cleans a previous value (usually not needed)
 vi.setval(val)
 val.os = "my.origin.host"
 oh.setval(val)
@@ -378,7 +403,7 @@ avp = avp.get_next() # when last AVP, returns None
 # Get all 1st level children (slower) -- warning, changes to the python list will not be reflected on the underlying message. read-only use.
 dwr.children()
 # example use:
-for a in dwr.children()
+for a in dwr.children():
   a.dump(0)  # 0 means: dump only this object, do not walk the tree
 
 
@@ -435,6 +460,7 @@ gavp.children()
 
 
 # Send a message:
+mydwr = msg(buf)
 mydwr.send()
 
 # Optionaly, a callback can be registered when a message is sent, with an optional object.
@@ -446,10 +472,12 @@ def send_callback(msg, obj):
     obj
     return None
 
+mydwr = msg(buf)
 mydwr.send(send_callback, some_object)
 
 
 # Set a result code in an answer message.
+mydwr = msg(buf)
 dwa = mydwr.create_answer()
 dwa.rescode_set()   # This adds the DIAMETER_SUCCESS result code
 dwa.rescode_set("DIAMETER_LIMITED_SUCCESS" )   # This adds a different result code
@@ -597,6 +625,21 @@ myqueue.timedget(3)
 # Show the number of items in the queue
 myqueue.length()
 
+
+## Variants:
+# All the previous calls are suitable to queue Python objects.
+# In order to interact with objects queued / poped by C counterpart,
+# a second parameter must be passed to specify the object type,
+# as follow:
+ev = fd_event()
+ev.code = FDEV_DUMP_EXT
+cvar.fd_g_config.cnf_main_ev.post(ev, "struct fd_event *")
+
+# Similarly, for *get, we can specify the structure that was queued:
+myqueue.get("struct fd_event *")
+myqueue.tryget("struct fd_event *")
+myqueue.timedget(3, "struct fd_event *")
+
 del myqueue
 
 
@@ -613,9 +656,7 @@ for p in peers:
 # Create a new peer
 np = peer_info()
 np.pi_diamid = "nas.localdomain"
-np.config.pic_flags.pro4 = 1   # 1 for TCP, for some reason PI_P4_TCP is not defined
-
-
+np.config.pic_flags.pro4 = PI_P4_TCP
 
 
 # Add this peer into the framework.
@@ -633,7 +674,55 @@ def add_cb(peer):
     else:
         print "The peer has been destroyed before it completed the connection."
 
-# Then add the peer simply like this:
+# Then add the peer like this:
 np.add(add_cb)
+
+
+# Search a peer by its diameter id (returns a peer_hdr object if found) -- similar to fd_peer_getbyid
+p = peer_search("nas.domain.aaa")
+
+
+## Validation callback (see fd_peer_validate_register documentation)
+
+# cb2 prototype:
+def my_validate_cb2(pinfo):
+    print "Cb2 callback trigged for peer %s" % (pinfo.pi_diamid)
+    # Usually, this would be used only to check some TLS properties, 
+    # which is not really possible yet through the python interpreter...
+    return 0   # return an error code if the peer is not validated
+
+# cb prototype:
+def my_validate_cb(pinfo):
+    print "Validate callback trigged for peer %s" % (pinfo.pi_diamid)
+    # If the peer is not allowed to connect:
+    #return -1
+    # If the peer is authorized:
+    #return 1
+    # In addition, if IPsec is allowed,
+    #pinfo.config.pic_flags.sec = PI_SEC_NONE
+    # If no decision has been made:
+    #return 0
+    # If the peer is temporarily authorized but a second callback must be called after TLS negociation:
+    return my_validate_cb2
+
+# Register the callback, it will be called on new incoming connections.
+peer_validate_register(my_validate_cb)
+
+
+
+############# ENDPOINTS ############
+
+ep = fd_endpoint("129.168.168.192")
+
+# with port:
+ep = fd_endpoint("129.168.168.192", 3868)
+
+# With different flags:
+ep = fd_endpoint("129.168.168.192", 3868, EP_FL_PRIMARY)
+
+# Add IP information for the peer
+np = peer_info()
+ep.add_merge(np.pi_endpoints)
+fd_ep_dump(0, np.pi_endpoints)
 
 

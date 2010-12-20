@@ -35,98 +35,96 @@
 
 /* Do not include this directly, use dbg_interactive.i instead */
 
-/****** LISTS *********/
+/****** ENDPOINTS *********/
 
-%extend fd_list {
-	/* allow a parameter in the constructor, and perform the fd_list_init operation */
-	fd_list(void * o = NULL) {
-		struct fd_list * li;
-		li = (struct fd_list *) malloc(sizeof(struct fd_list));
-		if (!li) {
+%{
+
+#include <sys/socket.h>
+#include <netdb.h>
+
+%}
+
+%extend fd_endpoint {
+	fd_endpoint() {
+		struct fd_endpoint *np = (struct fd_endpoint *)calloc(1, sizeof(struct fd_endpoint));
+		if (!np) {
 			DI_ERROR_MALLOC;
 			return NULL;
 		}
-		fd_list_init(li, o);
-		return li;
-	}
-	/* Unlink before freeing */
-	~fd_list() {
-		fd_list_unlink($self);
-		free($self);
-	}
-	/* For debug, show the values of the list */
-	void dump() {
-		fd_log_debug("list: %p\n", $self);
-		fd_log_debug("  - next: %p\n", $self->next);
-		fd_log_debug("  - prev: %p\n", $self->prev);
-		fd_log_debug("  - head: %p\n", $self->head);
-		fd_log_debug("  - o   : %p\n", $self->o);
-	}
-	/* Insert before/after wrapper */
-	void insert_prev(struct fd_list * li) {
-		fd_list_insert_before($self, li);
-	}
-	void insert_next(struct fd_list * li) {
-		fd_list_insert_after($self, li);
-	}
-	/* Test for emptyness */
-	PyObject * isempty() {
-		PyObject * ret;
-		if (FD_IS_LIST_EMPTY($self))
-			ret = Py_True;
-		else
-			ret = Py_False;
-		Py_XINCREF(ret);
-		return ret;
-	}
-	/* Concatenate two lists */
-	void concat(struct fd_list * li) {
-		fd_list_move_end($self, li);
-	}
-	/* Unlink without freeing */
-	void detach() {
-		fd_list_unlink($self);
+		fd_list_init(&np->chain, np);
+		return np;
 	}
 	
-	/* Return the list as python list of elements */
-	PyObject * enum_as(char * type = NULL, int dont_use_o = 0) {
-		struct fd_list *li;
-		swig_type_info * desttype = NULL;
-		PyObject * rl;
+	fd_endpoint(const char * endpoint, uint16_t port = 0, uint32_t flags = EP_FL_CONF) {
+		struct addrinfo hints;
+		struct addrinfo *ai = NULL;
+		int ret;
 		
-		if ($self->head != $self) {
-			DI_ERROR(EINVAL, NULL, "This method can only be called on the list sentinel.");
+		memset(&hints, 0, sizeof(hints));
+		hints.ai_family= AF_UNSPEC;
+		hints.ai_flags = AI_NUMERICHOST;
+		
+		ret = getaddrinfo(endpoint, NULL, &hints, &ai);
+		if (ret) {
+			DI_ERROR(ret, PyExc_ValueError, gai_strerror(ret));
 			return NULL;
 		}
 		
-		if (type) {
-			desttype = SWIG_TypeQuery(type);
-			if (!desttype) {
-				DI_ERROR(EINVAL, NULL, "Unable to resolve this type. Please check the form: 'struct blahbla *'");
-				return NULL;
+		if (port) {
+			switch (ai->ai_family) {
+				case AF_INET:
+					((sSA4 *)ai->ai_addr)->sin_port = htons(port);
+					break;
+				case AF_INET6:
+					((sSA6 *)ai->ai_addr)->sin6_port = htons(port);
+					break;
+				default:
+					DI_ERROR(EINVAL, PyExc_RuntimeError, "Unknown family returned by getaddrinfo");
+					return NULL;
 			}
 		}
-		if (desttype == NULL) {
-			/* fallback to fd_list */
-			desttype = SWIGTYPE_p_fd_list;
-			/* in this case, don't follow the 'o' link */
-			dont_use_o = 1;
-		}
 		
-		rl = PyList_New(0);
-		SWIG_PYTHON_THREAD_BEGIN_BLOCK;
-		for (li = $self->next; li != $self; li = li->next) {
-			void * obj = NULL;
-			if (dont_use_o || li->o == NULL)
-				obj = li;
-			else
-				obj = li->o;
-			PyList_Append(rl, SWIG_NewPointerObj(obj, desttype, 0 ));
+		struct fd_endpoint *np = (struct fd_endpoint *)calloc(1, sizeof(struct fd_endpoint));
+		if (!np) {
+			DI_ERROR_MALLOC;
+			return NULL;
 		}
-		Py_XINCREF(rl);
-		SWIG_PYTHON_THREAD_END_BLOCK;
+		fd_list_init(&np->chain, np);
 		
-		return rl;
+		memcpy(&np->s.sa, ai->ai_addr, ai->ai_addrlen);
+		
+		freeaddrinfo(ai);
+		
+		np->flags = flags;
+		
+		return np;
 	}
-};
-
+	
+	~fd_endpoint() {
+		fd_list_unlink(&$self->chain);
+		free($self);
+	}
+	
+	/* Merge to a list */
+	%delobject add_merge;
+	void add_merge(struct fd_list * eplist) {
+		int ret;
+		
+		if (!eplist) {
+			DI_ERROR(EINVAL, NULL, NULL);
+			return;
+		}
+		
+		ret = fd_ep_add_merge( eplist, &$self->s.sa, sSAlen(&$self->s.sa), $self->flags );
+		if (ret) {
+			DI_ERROR(ret, NULL, NULL);
+			return;
+		}
+		
+		return;
+	}
+	
+	void dump() {
+		fd_ep_dump_one( "", $self, "\n" );
+	}
+}
