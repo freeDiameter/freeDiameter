@@ -177,3 +177,5 @@ for more usable python-style versions.
 %include "peers.i"
 %include "events.i"
 %include "endpoints.i"
+
+%include "posix.i"

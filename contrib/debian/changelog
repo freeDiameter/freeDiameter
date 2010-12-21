@@ -1,12 +1,12 @@
 freediameter (1.0.3) UNRELEASED; urgency=low
 
-  * Added parameters to fd_disp_register and fd_sess_handler_create,
-    Bumped API version number accordingly.
   * Fixed a couple of issues for portability (#21, #22, #23)
   * Fixed issue with ListenOn bit ordering (#20)
   * Added dictionary support for MIPv6 application objects.
   * Added dictionary support for legacy XML files.
-  * Added new debug extension based on python (experimental). 
+  * Added python interface dbg_interactive (experimental). 
+  * Added parameters to fd_disp_register() and fd_sess_handler_create(),
+    Bumped API version number accordingly.
 
  -- Sebastien Decugis <sdecugis@nict.go.jp>  Tue, 14 Dec 2010 11:39:29 +0900
 

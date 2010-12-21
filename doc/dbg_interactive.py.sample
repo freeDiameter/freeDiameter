@@ -647,8 +647,10 @@ del myqueue
 ############# PEERS ############
 
 # Get the list of peers defined in the system 
-# (well, we are supposed actually to readlock fd_g_peers_rw before doing this, but it should be fine most of the time)
+# (we are supposed to readlock fd_g_peers_rw before accessing this list)
+cvar.fd_g_peers_rw.rdlock()
 peers = cvar.fd_g_peers.enum_as("struct peer_hdr *")
+cvar.fd_g_peers_rw.unlock()
 for p in peers:
    print "Peer:", p.info.pi_diamid
 
@@ -726,3 +728,23 @@ ep.add_merge(np.pi_endpoints)
 fd_ep_dump(0, np.pi_endpoints)
 
 
+
+############# POSIX functions wrappers ############
+
+# The interface also provides wrappers around base POSIX 
+# synchronization functions:
+
+m = pthread_mutex_t()
+m.lock()
+m.unlock()
+
+c = pthread_cond_t()
+c.signal()
+c.broadcast()
+c.wait(m)
+c.timedwait(m, 5)  # it takes a relative time
+
+r = pthread_rwlock_t()
+r.rdlock()
+r.unlock()
+r.wrlock()

@@ -27,6 +27,7 @@ SET(SWIG_MODULE_fDpy_EXTRA_DEPS
 	peers.i
 	events.i
 	endpoints.i
+	posix.i
 	)
 SET_SOURCE_FILES_PROPERTIES(dbg_interactive.i PROPERTIES SWIG_MODULE_NAME fDpy)
 
