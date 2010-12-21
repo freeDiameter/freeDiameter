@@ -14,6 +14,7 @@ All related files are in the directory "contrib/debian" of the distribution.
 As a first step, you have to link this directory from your top-level dir:
   ln -s contrib/debian
  
+============================================
 
 The following packages are required to compile freeDiameter from source:
  cmake make gcc flex bison libsctp1 libsctp-dev libgnutls-dev libgcrypt-dev
@@ -35,8 +36,9 @@ Extensions additional dependencies:
  dbg_interactive:
  	swig python-dev
 	
+============================================
 
-If your debhelper environment is recent (> 7.3.9 to provide cmake support), 
+If your debhelper environment is recent (> 7.3.9 for cmake support), 
 the following commands should generate the freeDiameter packages for you:
 
 # Install the dependencies for building the source:
@@ -69,7 +71,7 @@ freeDiameterd
 ===========================================
 
 freeDiameter has been tested on the following distributions (compiled from source as described bellow):
-Ubuntu Intrepid, Jaunty, Karmic, Lucid. 
+Ubuntu Intrepid, Jaunty, Karmic, Lucid, Maverick, Natty. 
 Debian Lenny.
 
 Ubuntu Hardy support is known to be broken.

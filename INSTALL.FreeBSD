@@ -4,7 +4,7 @@ See INSTALL file for general instructions on building freeDiameter.
 QUICK INSTRUCTIONS
 ------------------
 
-On FreeBSD-8.0 the following packages were required (should be same on FreeBSD-7.x):
+On FreeBSD-8.0 at least the following ports packages were required (should be same on FreeBSD-7.x):
  cmake flex bison gnutls
 
 Then the cmake command had to look like:
@@ -54,7 +54,7 @@ COMPLETE INSTRUCTIONS
 9) Install
    # make install
    
-10) Run (the install path can be changed in cmake step):
+10) Run (the install path can be changed during cmake step):
    # /usr/local/bin/freeDiameterd --help
 
 

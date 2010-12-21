@@ -22,16 +22,6 @@ Following dependencies are optional, depending on which extensions you plan to c
 	# zypper install swig python-devel
 
 
-Fetching the latest source:
-# hg clone http://www.freediameter.net/hg/freeDiameter
-# cd freeDiameter
-
-Compiling in a separate directory:
-# mkdir test.build
-# cd test.build
-# cmake ..
-# make
-
 There is currently no OpenSUSE-specific package for freeDiameter.
 You are welcome to contribute packaging scripts! Please contact with
 dev@freediameter.net for more details.

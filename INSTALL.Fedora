@@ -4,15 +4,21 @@
 
 Dependencies on Fedora 13 (from minimal system):
 # yum install cmake make gcc flex bison lksctp-tools-devel gnutls-devel libgcrypt-devel
+
+In addition, if you have not already retrieved the latest source:
 # yum install mercurial
 
 Following dependencies are optional, depending on which extensions you plan to compile
  app_acct:
-	# yum install postgresql-server postgresql-devel
+	# yum install postgresql-devel
+	optional:
+	# yum install postgresql-server
 
  app_sip:
  app_diameap:
-	# yum install mysql-server mysql-devel
+	# yum install mysql-devel
+	optional:
+	# yum install mysql-server 
 	
  dict_legacy_xml:
 	# yum install libxml2 libxml2-devel
@@ -21,21 +27,11 @@ Following dependencies are optional, depending on which extensions you plan to c
 	# yum install swig python-devel
 
 
-Fetching the latest source:
-# hg clone http://www.freediameter.net/hg/freeDiameter
-# cd freeDiameter
-
-Compiling in a separate directory:
-# mkdir test.build
-# cd test.build
-# cmake ..
-# make
-
 NOTE: You may need to change something in SELinux to allow binding the SCTP socket on Diameter port.
 The following command is the very naive way to do it, you can probably do better (feedback appreciated!)
 # setenforce Permissive
 
 
 There is currently no Fedora-specific package for freeDiameter.
-You are welcome to contribute packaging scripts! Please contact with
-dev@freediameter.net for more details.
+You are welcome to contribute packaging scripts. 
+Please contact dev@freediameter.net for more details.
