@@ -2134,6 +2134,7 @@ int fd_msg_answ_detach   ( struct msg * answer );
  *  msg		: the answer message
  *  anscb	: the callback to associate with the message
  *  data	: the data to pass to the callback
+ *  timeout     : (optional, use NULL if no timeout) a timeout associated with calling the cb.
  *
  * DESCRIPTION:
  *  Associate or retrieve a callback with an answer message.
@@ -2143,7 +2144,7 @@ int fd_msg_answ_detach   ( struct msg * answer );
  *  0 	  : ok
  *  EINVAL: a parameter is invalid
  */
-int fd_msg_anscb_associate( struct msg * msg, void ( *anscb)(void *, struct msg **), void  * data );
+int fd_msg_anscb_associate( struct msg * msg, void ( *anscb)(void *, struct msg **), void  * data, const struct timespec *timeout );
 int fd_msg_anscb_get      ( struct msg * msg, void (**anscb)(void *, struct msg **), void ** data );
 
 /*

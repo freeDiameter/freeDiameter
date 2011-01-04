@@ -123,6 +123,7 @@ struct msg {
 	struct {
 			void (*fct)(void *, struct msg **);
 			void * data;
+			struct timespec timeout;
 		}		 msg_cb;		/* Callback to be called when an answer is received, if not NULL */
 	char *			 msg_src_id;		/* Diameter Id of the peer this message was received from. This string is malloc'd and must be freed */
 };
@@ -903,7 +904,7 @@ int fd_msg_answ_detach( struct msg * answer )
 }
 
 /* Associate / get answer callbacks */
-int fd_msg_anscb_associate( struct msg * msg, void ( *anscb)(void *, struct msg **), void  * data )
+int fd_msg_anscb_associate( struct msg * msg, void ( *anscb)(void *, struct msg **), void  * data, const struct timespec *timeout )
 {
 	TRACE_ENTRY("%p %p %p", msg, anscb, data);
 	
@@ -915,6 +916,11 @@ int fd_msg_anscb_associate( struct msg * msg, void ( *anscb)(void *, struct msg 
 	/* Associate callback and data with the message, if any */
 	msg->msg_cb.fct = anscb;
 	msg->msg_cb.data = data;
+	if (timeout) {
+		memcpy(&msg->msg_cb.timeout, timeout, sizeof(struct timespec));
+	} else {
+		memset(&msg->msg_cb.timeout, 0, sizeof(struct timespec)); /* clear the area */
+	}
 	
 	return 0;
 }	

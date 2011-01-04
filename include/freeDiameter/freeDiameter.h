@@ -370,12 +370,14 @@ int fd_peer_validate_register ( int (*peer_validate)(struct peer_info * /* info 
 /***************************************/
 
 /*
- * FUNCTION:	fd_msg_send
+ * FUNCTION:	fd_msg_send, fd_msg_send_timeout  
  *
  * PARAMETERS:
  *  pmsg 	: Location of the message to be sent on the network (set to NULL on function return to avoid double deletion).
- *  anscb	: A callback to be called when answer is received, if msg is a request (optional)
+ *  anscb	: A callback to be called when answer is received, if msg is a request (optional for fd_msg_send)
  *  anscb_data	: opaque data to be passed back to the anscb when it is called.
+ *  timeout     : (only for fd_msg_send_timeout) sets the absolute time until when to wait for an answer. Past this time,
+ *                the anscb is called with the request as parameter and the answer will be discarded when received.
  *
  * DESCRIPTION: 
  *   Sends a message on the network. (actually simply queues it in a global queue, to be picked by a daemon's thread)
@@ -398,12 +400,20 @@ int fd_peer_validate_register ( int (*peer_validate)(struct peer_info * /* info 
  * 
  * If no callback is registered to handle an answer, the message is discarded and an error is logged.
  *
+ *  fd_msg_send_timeout is similar to fd_msg_send, except that it takes an additional argument "timeout" and can be called
+ * only with requests as parameters, and an anscb callback.
+ * If the matching answer or error is received before the timeout date passes, everything occurs as with fd_msg_send. Otherwise,
+ * the request is removed from the queue (meaning the matching answer will be discarded upon reception) and passed to the answcb 
+ * function. This function can easily distinguish between timeout case and answer case by checking if the message received is 
+ * a request. Upon return, if the *msg parameter is not NULL, it is freed (not passed to other callbacks).
+ *
  * RETURN VALUE:
  *  0      	: The message has been queued for sending (sending may fail asynchronously).
  *  EINVAL 	: A parameter is invalid (ex: anscb provided but message is not a request).
  *  ...
  */
 int fd_msg_send ( struct msg ** pmsg, void (*anscb)(void *, struct msg **), void * data );
+int fd_msg_send_timeout ( struct msg ** pmsg, void (*anscb)(void *, struct msg **), void * data, const struct timespec *timeout );
 
 /*
  * FUNCTION:	fd_msg_rescode_set

@@ -268,7 +268,7 @@ int fd_msg_send ( struct msg ** pmsg, void (*anscb)(void *, struct msg **), void
 	
 	/* Save the callback in the message */
 	if (anscb) {
-		CHECK_FCT(  fd_msg_anscb_associate( *pmsg, anscb, data )  );
+		CHECK_FCT(  fd_msg_anscb_associate( *pmsg, anscb, data, NULL /* we should maybe use a safeguard here like 1 hour or so? */ )  );
 	}
 	
 	/* Post the message in the outgoing queue */
@@ -276,6 +276,22 @@ int fd_msg_send ( struct msg ** pmsg, void (*anscb)(void *, struct msg **), void
 	
 	return 0;
 }
+
+/* The variation of the same function with a timeout callback */
+int fd_msg_send_timeout ( struct msg ** pmsg, void (*anscb)(void *, struct msg **), void * data, const struct timespec *timeout )
+{
+	TRACE_ENTRY("%p %p %p", pmsg, anscb, data, timeout);
+	CHECK_PARAMS( pmsg && anscb && timeout );
+	
+	/* Save the callback in the message, with the timeout */
+	CHECK_FCT(  fd_msg_anscb_associate( *pmsg, anscb, data, timeout )  );
+	
+	/* Post the message in the outgoing queue */
+	CHECK_FCT( fd_fifo_post(fd_g_outgoing, pmsg) );
+	
+	return 0;
+}
+
 
 /* Parse a message against our dictionary, and in case of error log and eventually build the error reply -- returns the parsing status */
 int fd_msg_parse_or_error( struct msg ** msg )
