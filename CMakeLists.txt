@@ -29,9 +29,9 @@ SET(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/Modules/")
 SET(DEFAULT_CONF_PATH ${CMAKE_INSTALL_PREFIX}/etc/freeDiameter CACHE PATH "Default location of freeDiameter configuration files")
 
 SET(INSTALL_HEADERS_SUFFIX 		include/freeDiameter 	CACHE PATH "Directory where the headers are installed (relative to CMAKE_INSTALL_PREFIX).")
-SET(INSTALL_EXTENSIONS_SUFFIX 		lib/freeDiameter	CACHE PATH "Directory where the extensions are installed / searched (relative to CMAKE_INSTALL_PREFIX).")
 SET(INSTALL_DAEMON_SUFFIX 		bin 			CACHE PATH "Directory where the daemon binary is installed (relative to CMAKE_INSTALL_PREFIX).")
 SET(INSTALL_LIBRARY_SUFFIX 		lib 			CACHE PATH "Directory where the libfreeDiameter library is installed (relative to CMAKE_INSTALL_PREFIX).")
+SET(INSTALL_EXTENSIONS_SUFFIX 	${INSTALL_LIBRARY_SUFFIX}/freeDiameter	CACHE PATH "Directory where the extensions are installed / searched (relative to CMAKE_INSTALL_PREFIX).")
 
 # All source code should be POSIX 200112L compatible, but some other extensions might be used, so:
 ADD_DEFINITIONS(-D_GNU_SOURCE)
