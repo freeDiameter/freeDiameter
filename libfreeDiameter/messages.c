@@ -918,8 +918,6 @@ int fd_msg_anscb_associate( struct msg * msg, void ( *anscb)(void *, struct msg 
 	msg->msg_cb.data = data;
 	if (timeout) {
 		memcpy(&msg->msg_cb.timeout, timeout, sizeof(struct timespec));
-	} else {
-		memset(&msg->msg_cb.timeout, 0, sizeof(struct timespec)); /* clear the area */
 	}
 	
 	return 0;
@@ -937,7 +935,21 @@ int fd_msg_anscb_get( struct msg * msg, void (**anscb)(void *, struct msg **), v
 	*data  = msg->msg_cb.data;
 	
 	return 0;
-}	
+}
+
+struct timespec *fd_msg_anscb_gettimeout( struct msg * msg )
+{
+	TRACE_ENTRY("%p", msg);
+	
+	/* Check the parameters */
+	CHECK_PARAMS_DO( CHECK_MSG(msg), return NULL );
+	
+	if (!msg->msg_cb.timeout.tv_sec) {
+		return NULL;
+	}
+	
+	return &msg->msg_cb.timeout;
+}
 
 /* Associate routing lists */
 int fd_msg_rt_associate( struct msg * msg, struct rt_data ** rtd )

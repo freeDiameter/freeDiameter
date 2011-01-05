@@ -798,7 +798,7 @@ static int msg_rt_out(struct msg ** pmsg)
 	/* Read the message header */
 	CHECK_FCT( fd_msg_hdr(*pmsg, &hdr) );
 	is_req = hdr->msg_flags & CMD_FLAG_REQUEST;
-		
+	
 	/* For answers, the routing is very easy */
 	if ( ! is_req ) {
 		struct msg * qry;

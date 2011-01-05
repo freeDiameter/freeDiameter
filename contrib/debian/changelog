@@ -1,6 +1,6 @@
 freediameter (1.0.4) UNRELEASED; urgency=low
 
-  * Added new option to specify timeout on receiving answer (#10) 
+  * Added new API to specify timeout on receiving answer (#10) 
   * Bumped API version number accordingly.
 
  -- Sebastien Decugis <sdecugis@nict.go.jp>  Tue, 04 Jan 2011 16:18:53 +0900

@@ -2146,6 +2146,7 @@ int fd_msg_answ_detach   ( struct msg * answer );
  */
 int fd_msg_anscb_associate( struct msg * msg, void ( *anscb)(void *, struct msg **), void  * data, const struct timespec *timeout );
 int fd_msg_anscb_get      ( struct msg * msg, void (**anscb)(void *, struct msg **), void ** data );
+struct timespec *fd_msg_anscb_gettimeout( struct msg * msg ); /* returns NULL or a valid non-0 timespec */
 
 /*
  * FUNCTION:	fd_msg_rt_associate, fd_msg_rt_get

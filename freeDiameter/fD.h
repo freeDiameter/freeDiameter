@@ -117,8 +117,11 @@ int fd_rtdisp_cleanup(void);
 
 /* Sentinel for the sent requests list */
 struct sr_list {
-	struct fd_list 	srs;
-	pthread_mutex_t	mtx;
+	struct fd_list 	srs; /* requests ordered by hop-by-hop id */
+	struct fd_list  exp; /* requests that have a timeout set, ordered by timeout */
+	pthread_mutex_t	mtx; /* mutex to protect these lists */
+	pthread_cond_t  cnd; /* cond var used by the thread that handles timeouts */
+	pthread_t       thr; /* the thread that handles timeouts (and calls the anscb) */
 };
 
 /* Peers */
@@ -289,6 +292,8 @@ void fd_p_cnx_abort(struct fd_peer * peer, int cleanup_all);
 /* Peer sent requests cache */
 int fd_p_sr_store(struct sr_list * srlist, struct msg **req, uint32_t *hbhloc, uint32_t hbh_restore);
 int fd_p_sr_fetch(struct sr_list * srlist, uint32_t hbh, struct msg **req);
+int fd_p_sr_start(struct sr_list * srlist);
+int fd_p_sr_stop(struct sr_list * srlist);
 void fd_p_sr_failover(struct sr_list * srlist);
 
 /* Local Link messages (CER/CEA, DWR/DWA, DPR/DPA) */

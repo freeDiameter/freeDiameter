@@ -463,7 +463,7 @@ gavp.children()
 mydwr = msg(buf)
 mydwr.send()
 
-# Optionaly, a callback can be registered when a message is sent, with an optional object.
+# Optionaly, a callback can be registered when a request is sent, with an optional object.
 # This callback takes the answer message as parameter and should return None or a message. (cf. fd_msg_send)
 def send_callback(msg, obj):
     print "Received answer:"
@@ -474,6 +474,21 @@ def send_callback(msg, obj):
 
 mydwr = msg(buf)
 mydwr.send(send_callback, some_object)
+
+# Again optionaly, a time limit can be specified in this case as follow:
+mydwr.send(send_callback, some_object, 10)
+# In that case, if no answer / error is received after 10 seconds (the value specified), 
+# the callback is called with the request as parameter.
+# Testing for timeout case is done by using msg.is_request()
+def send_callback(msg, obj):
+    if (msg.is_request()):
+        print "Request timed out without answer:"
+    else:
+        print "Received answer:"
+    msg.dump()
+    print "Associated data:"
+    obj
+    return None
 
 
 # Set a result code in an answer message.

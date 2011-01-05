@@ -54,29 +54,36 @@ static void anscb_python(void *cbdata, struct msg ** msg) {
 		return;
 	}
 	
-	SWIG_PYTHON_THREAD_BEGIN_BLOCK;
+	if (l->cb) {
 	
-	if (!msg || !*msg) {
-		PyMsg = Py_None;
-	} else {
-		PyMsg = SWIG_NewPointerObj((void *)*msg,     SWIGTYPE_p_msg,     0 );
+		SWIG_PYTHON_THREAD_BEGIN_BLOCK;
+
+		if (!msg || !*msg) {
+			PyMsg = Py_None;
+		} else {
+			PyMsg = SWIG_NewPointerObj((void *)*msg,     SWIGTYPE_p_msg,     0 );
+		}
+
+		result = PyEval_CallFunction(l->cb, "(OO)", PyMsg, l->data);
+		Py_XDECREF(l->cb);
+		Py_XDECREF(l->data);
+		free(l);
+
+		/* The callback is supposed to return a message or NULL */
+		if (!SWIG_IsOK(SWIG_ConvertPtr(result, (void *)msg, SWIGTYPE_p_msg, SWIG_POINTER_DISOWN))) {
+			fd_log_debug("Error: Cannot convert the return value to message.\n");
+			*msg = NULL;
+		}
+
+		Py_XDECREF(result);
+
+		SWIG_PYTHON_THREAD_END_BLOCK;
+		
 	}
-	
-	result = PyEval_CallFunction(l->cb, "(OO)", PyMsg, l->data);
-	Py_XDECREF(l->cb);
-	Py_XDECREF(l->data);
-	free(l);
-	
-	/* The callback is supposed to return a message or NULL */
-	if (!SWIG_IsOK(SWIG_ConvertPtr(result, (void *)msg, SWIGTYPE_p_msg, SWIG_POINTER_DISOWN))) {
-		fd_log_debug("Error: Cannot convert the return value to message.\n");
-		*msg = NULL;
-	}
-	
-	Py_XDECREF(result);
-	
-	SWIG_PYTHON_THREAD_END_BLOCK;
-	
+	/* else */
+		/* Only the timeout was specified, without a callback */
+		/* in this case, just delete the message */
+		/* it actually happens automatically when we do nothing. */
 }
 %}
 
@@ -120,12 +127,12 @@ struct msg {
 	
 	/* SEND THE MESSAGE */
 	%delobject send; /* when this has been called, the msg must not be freed anymore */
-	void send(PyObject * PyCb = NULL, PyObject * data = NULL) {
+	void send(PyObject * PyCb = NULL, PyObject * data = NULL, unsigned int timeout = 0) {
 		int ret;
 		struct msg * m = $self;
 		struct anscb_py_layer * l = NULL;
 		
-		if (PyCb) {
+		if (PyCb || timeout) {
 			l = malloc(sizeof(struct anscb_py_layer));
 			if (!l) {
 				DI_ERROR_MALLOC;
@@ -138,7 +145,14 @@ struct msg {
 			l->data = data;
 		}
 		
-		ret = fd_msg_send(&m, PyCb ? anscb_python : NULL, l);
+		if (timeout) {
+			struct timespec ts;
+			(void) clock_gettime(CLOCK_REALTIME, &ts);
+			ts.tv_sec += timeout;
+			ret = fd_msg_send_timeout(&m, anscb_python, l, &ts);
+		} else {
+			ret = fd_msg_send(&m, PyCb ? anscb_python : NULL, l);
+		}
 		if (ret != 0) {
 			DI_ERROR(ret, NULL, NULL);
 		}
@@ -295,6 +309,24 @@ struct msg {
 	PyObject * is_routable() {
 		PyObject * r;
 		if (fd_msg_is_routable($self))
+			r = Py_True;
+		else
+			r = Py_False;
+		Py_XINCREF(r);
+		return r;
+	}
+	
+	/* Is request? (shortcut) */
+	PyObject * is_request() {
+		PyObject * r;
+		int ret;
+		struct msg_hdr * h;
+		
+		ret = fd_msg_hdr($self, &h);
+		if (ret != 0) {
+			DI_ERROR(ret, NULL, NULL);
+		}
+		if (h->msg_flags & CMD_FLAG_REQUEST) 
 			r = Py_True;
 		else
 			r = Py_False;

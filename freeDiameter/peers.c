@@ -78,7 +78,9 @@ int fd_peer_alloc(struct fd_peer ** ptr)
 	p->p_hbh = lrand48();
 	
 	fd_list_init(&p->p_sr.srs, p);
+	fd_list_init(&p->p_sr.exp, p);
 	CHECK_POSIX( pthread_mutex_init(&p->p_sr.mtx, NULL) );
+	CHECK_POSIX( pthread_cond_init(&p->p_sr.cnd, NULL) );
 	
 	fd_list_init(&p->p_connparams, p);
 	
@@ -250,6 +252,7 @@ int fd_peer_free(struct fd_peer ** ptr)
 	
 	CHECK_FCT_DO( fd_fifo_del(&p->p_tosend), /* continue */ );
 	CHECK_POSIX_DO( pthread_mutex_destroy(&p->p_sr.mtx), /* continue */);
+	CHECK_POSIX_DO( pthread_cond_destroy(&p->p_sr.cnd), /* continue */);
 	
 	/* If the callback is still around... */
 	if (p->p_cb)
