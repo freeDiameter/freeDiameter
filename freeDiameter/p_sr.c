@@ -180,6 +180,7 @@ static void * sr_expiry_th(void * arg) {
 		/* loop */
 	} while (1);
 error:	
+	; /* pthread_cleanup_pop sometimes expands as "} ..." and the label beofre this cause some compilers to complain... */
 	pthread_cleanup_pop( 1 );
 	return NULL;
 }
