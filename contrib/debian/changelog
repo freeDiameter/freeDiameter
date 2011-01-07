@@ -2,6 +2,7 @@ freediameter (1.0.4) UNRELEASED; urgency=low
 
   * Added new API to specify timeout on receiving answer (#10) 
   * Bumped API version number accordingly.
+  * New test_netemul extension (simple network emulator proxy)
 
  -- Sebastien Decugis <sdecugis@nict.go.jp>  Tue, 04 Jan 2011 16:18:53 +0900
 
