@@ -294,7 +294,7 @@ int tne_process_init()
 	CHECK_POSIX( pthread_create(&thr, NULL, tne_process_th, NULL) );
 	
 	#if 0 /* debug */
-	int i = 30;
+	int i;
 	for (i=0; i< 20; i++) {
 		printf("LAT: %lu\n", get_latency()); 
 	}

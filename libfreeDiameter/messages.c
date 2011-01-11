@@ -1002,7 +1002,7 @@ int fd_msg_source_set( struct msg * msg, char * diamid, int add_rr, struct dicti
 	TRACE_ENTRY( "%p %p %d %p", msg, diamid, add_rr, dict);
 	
 	/* Check we received a valid message */
-	CHECK_PARAMS( CHECK_MSG(msg) && dict );
+	CHECK_PARAMS( CHECK_MSG(msg) && ( (! add_rr) || dict ) );
 	
 	/* Cleanup any previous source */
 	free(msg->msg_src_id); msg->msg_src_id = NULL;
