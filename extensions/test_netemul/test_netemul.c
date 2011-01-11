@@ -56,6 +56,7 @@ static int tne_fwd_cb(void * cbdata, struct msg ** msg)
 	m = *msg;
 	*msg = NULL;
 	
+	TRACE_DEBUG(FULL, "[tne] Processing message %p", m);
 	CHECK_FCT( tne_process_message(m) );
 	
 	return 0;

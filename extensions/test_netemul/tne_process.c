@@ -97,6 +97,7 @@ static int do_duplicates()
 				/* create the duplicate */
 				struct process_item * npi;
 				struct msg * nm;
+				struct msg_hdr * nh;
 				unsigned char * buf;
 				size_t len;
 				
@@ -104,6 +105,9 @@ static int do_duplicates()
 				CHECK_FCT( fd_msg_bufferize(m, &buf, &len) );
 				CHECK_FCT( fd_msg_parse_buffer(&buf, len, &nm) );
 				CHECK_FCT( fd_msg_source_set(nm, src, 0, NULL) );
+				CHECK_FCT( fd_msg_hdr(nm, &nh) );
+				nh->msg_flags |= CMD_FLAG_RETRANSMIT; /* Add the 'T' flag */
+				TRACE_DEBUG(FULL, "[tne] Duplicated message %p as %p", m, nm);
 				
 				/* Duplicate the pi */
 				CHECK_MALLOC( npi = malloc(sizeof(struct process_item)) );
@@ -178,6 +182,7 @@ static int do_latency()
 		/* If there is a latency to add */
 		if (tne_conf.lat_avg) {
 			unsigned long l = get_latency();
+			TRACE_DEBUG(FULL, "[tne] Set %lu ms latency for %p", l, pi->chain.o);
 			pi->ts.tv_sec += l / 1000;
 			l %= 1000;
 			pi->ts.tv_nsec += l * 1000000;
@@ -222,6 +227,7 @@ static int send_all_ready()
 		m = pi->chain.o;
 		free(pi);
 		
+		TRACE_DEBUG(FULL, "[tne] Sending now %p", m);
 		CHECK_FCT( fd_msg_send(&m, NULL, NULL) );
 	}
 	
