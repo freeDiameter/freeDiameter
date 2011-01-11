@@ -44,7 +44,7 @@ static struct {
 } tac_dict;
 	
 /* Callback for incoming Base Accounting application messages */
-static int tac_cb( struct msg ** msg, struct avp * avp, struct session * sess, enum disp_action * act)
+static int tac_cb( struct msg ** msg, struct avp * avp, struct session * sess, void * data, enum disp_action * act)
 {
 	struct msg_hdr *hdr = NULL;
 	
@@ -133,7 +133,7 @@ static int tac_entry(char * conffile)
 	CHECK_FCT( fd_dict_search( fd_g_config->cnf_dict, DICT_AVP, AVP_BY_NAME, "Accounting-Record-Type", &tac_dict.Accounting_Record_Type, ENOENT) );
 	
 	/* Register the dispatch callback */
-	CHECK_FCT( fd_disp_register( tac_cb, DISP_HOW_APPID, &data, NULL ) );
+	CHECK_FCT( fd_disp_register( tac_cb, DISP_HOW_APPID, &data, NULL, NULL ) );
 	
 	/* Advertise the support for the Diameter Base Accounting application in the peer */
 	CHECK_FCT( fd_disp_app_support ( data.app, NULL, 0, 1 ) );
