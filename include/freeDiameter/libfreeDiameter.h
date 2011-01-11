@@ -113,7 +113,7 @@ void fd_lib_fini(void);
  * RETURN VALUE:
  *  None.
  */
-void fd_log_debug ( char * format, ... );
+void fd_log_debug ( const char * format, ... );
 extern pthread_mutex_t	fd_log_lock;
 extern char * fd_debug_one_function;
 extern char * fd_debug_one_file;
@@ -194,7 +194,7 @@ extern int fd_g_debug_lvl;
 
 /* A version of __FILE__ without the full path */
 static char * file_bname = NULL;
-#define __STRIPPED_FILE__	(file_bname ?: (file_bname = basename(__FILE__)))
+#define __STRIPPED_FILE__	(file_bname ?: (file_bname = basename((char *)__FILE__)))
 
 
 /* Boolean for tracing at a certain level */
@@ -215,7 +215,7 @@ static char * file_bname = NULL;
 #define TRACE_DEBUG(level,format,args... ) {											\
 	if ( TRACE_BOOL(level) ) {												\
 		char __buf[25];													\
-		char * __thn = ((char *)pthread_getspecific(fd_log_thname) ?: "unnamed");					\
+		const char * __thn = ((char *)pthread_getspecific(fd_log_thname) ?: "unnamed");					\
 		fd_log_debug("\t | tid:%-20s\t%s\tin %s@%s:%d\n"								\
 			  "\t%s|%*s" format "\n",  										\
 					__thn, fd_log_time(NULL, __buf, sizeof(__buf)), __PRETTY_FUNCTION__, __FILE__, __LINE__,\
@@ -228,7 +228,7 @@ static char * file_bname = NULL;
 	if ( TRACE_BOOL(level) ) {													\
 		if (fd_g_debug_lvl > FULL) {												\
 			char __buf[25];													\
-			char * __thn = ((char *)pthread_getspecific(fd_log_thname) ?: "unnamed");					\
+			const char * __thn = ((char *)pthread_getspecific(fd_log_thname) ?: "unnamed");					\
 			fd_log_debug("\t | tid:%-20s\t%s\tin %s@%s:%d\n"								\
 				  "\t%s|%*s" format "\n",  										\
 						__thn, fd_log_time(NULL, __buf, sizeof(__buf)), __PRETTY_FUNCTION__, __FILE__, __LINE__,\
@@ -483,8 +483,8 @@ int fd_breakhere(void);
 
 
 /* helper macros (pre-processor hacks to allow macro arguments) */
-#define __str( arg )  #arg
-#define _stringize( arg ) __str( arg )
+#define __tostr( arg )  #arg
+#define _stringize( arg ) __tostr( arg )
 #define __agr( arg1, arg2 ) arg1 ## arg2
 #define _aggregate( arg1, arg2 ) __agr( arg1, arg2 )
 
@@ -1628,7 +1628,7 @@ int fd_sess_new ( struct session ** session, char * diamId, char * opt, size_t o
  *  sid	  	: pointer to a string containing a Session-Id (UTF-8).
  *  len		: length of the sid string (which does not need to be '\0'-terminated)
  *  session	: On success, pointer to the session object created / retrieved.
- *  new		: if not NULL, set to 1 on return if the session object has been created, 0 if it was simply retrieved.
+ *  isnew	: if not NULL, set to 1 on return if the session object has been created, 0 if it was simply retrieved.
  *
  * DESCRIPTION: 
  *   Retrieve a session object from a Session-Id string. In case no session object was previously existing with this 
@@ -1639,7 +1639,7 @@ int fd_sess_new ( struct session ** session, char * diamId, char * opt, size_t o
  *  EINVAL 	: A parameter is invalid.
  *  ENOMEM	: Not enough memory to complete the operation
  */
-int fd_sess_fromsid ( char * sid, size_t len, struct session ** session, int * new);
+int fd_sess_fromsid ( char * sid, size_t len, struct session ** session, int * isnew);
 
 /*
  * FUNCTION:	fd_sess_getsid
@@ -2225,7 +2225,7 @@ uint32_t fd_msg_eteid_get ( void );
  *  dict	: the dictionary that contains the Session-Id AVP definition
  *  msg		: A valid message.
  *  session	: Location to store the session pointer when retrieved.
- *  new		: Indicates if the session has been created.
+ *  isnew	: Indicates if the session has been created.
  *
  * DESCRIPTION:
  *  This function retrieves or creates the session object corresponding to a message.
@@ -2236,7 +2236,7 @@ uint32_t fd_msg_eteid_get ( void );
  *  0 : success
  * !0 : standard error code.
  */
-int fd_msg_sess_get(struct dictionary * dict, struct msg * msg, struct session ** session, int * new);
+int fd_msg_sess_get(struct dictionary * dict, struct msg * msg, struct session ** session, int * isnew);
 
 /***************************************/
 /*   Manage AVP values                 */
@@ -2663,8 +2663,8 @@ int fd_fifo_del ( struct fifo  ** queue );
  * FUNCTION:	fd_fifo_move
  *
  * PARAMETERS:
- *  old		: Location of a FIFO that is to be emptied.
- *  new		: A FIFO that will receive the old data.
+ *  oldq	: Location of a FIFO that is to be emptied.
+ *  newq	: A FIFO that will receive the old data.
  *  loc_update	: if non NULL, a place to store the pointer to new FIFO atomically with the move.
  *
  * DESCRIPTION: 
@@ -2674,7 +2674,7 @@ int fd_fifo_del ( struct fifo  ** queue );
  *  0		: The queue has been destroyed successfully.
  *  EINVAL 	: A parameter is invalid.
  */
-int fd_fifo_move ( struct fifo * old, struct fifo * new, struct fifo ** loc_update );
+int fd_fifo_move ( struct fifo * oldq, struct fifo * newq, struct fifo ** loc_update );
 
 /*
  * FUNCTION:	fd_fifo_length

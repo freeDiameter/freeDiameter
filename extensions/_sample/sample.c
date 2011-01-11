@@ -36,6 +36,9 @@
 /* Sample extension to test extensions mechanism in freeDiameter */
 #include <freeDiameter/extension.h>
 
+/* from sample.cpp */
+void mycppfunc();
+
 static int sample_main(char * conffile);
 
 /* Define the entry point. A convenience macro is provided */
@@ -84,6 +87,9 @@ static int sample_main(char * conffile)
 		fd_dict_dump_object(example_avp_avp);
 	}
 	TRACE_DEBUG(INFO, "'Example-AVP' created without error\n");
+	
+	/* Call the c++ function */
+	mycppfunc();
 	
 	/* The initialization function returns an error code with the standard POSIX meaning (ENOMEM, and so on) */
 	return 0;

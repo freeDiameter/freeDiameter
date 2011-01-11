@@ -1,5 +1,5 @@
 # The sample extension
-PROJECT("Sample extension" C)
+PROJECT("Sample extension")
 
 # Overwrite the debug level for the extension code if configured
 OPTION(DEBUG_LEVEL__SAMPLE "Overwrite debug level for the extension _sample if defined (valid values: FULL, ANNOYING, CALL...)" OFF)
@@ -11,7 +11,7 @@ IF (NOT CMAKE_BUILD_TYPE MATCHES "Debug")
 ENDIF (NOT CMAKE_BUILD_TYPE MATCHES "Debug")
 
 # Compile as a module
-FD_ADD_EXTENSION(dbg_sample sample.c fini.c)
+FD_ADD_EXTENSION(dbg_sample sample.c hello.cpp fini.c)
 
 
 ####
