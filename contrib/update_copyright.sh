@@ -3,7 +3,7 @@
 # This script will search all copyrights dates from source files, and update these if 
 # the file has been modified at a later date.
 
-if [ ! -f include/freeDiameter/freeDiameter.h ];
+if [ ! -f include/freeDiameter/libfdcore.h ];
 then echo "This script must be run from the source top directory"
 exit 1;
 fi;
