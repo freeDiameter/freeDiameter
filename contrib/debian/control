@@ -13,16 +13,24 @@ Package: freediameter-common
 Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends}
 Description: The freeDiameter libraries.
- This package contains the libraries required by all freeDiameter components.
+ This package contains the freeDiameter framework core libraries, 
+ required by all freeDiameter components.
  It may also be useful for other projects which need to 
  perform operations on Diameter messages. 
+ .
+ The freeDiameter framework provides support for the Diameter
+ Base Protocol. Without any extension, the framework can only
+ be used as a Diameter routing agent. You probably want to 
+ install some freeDiameter extension(s) to extend its 
+ features, and also the freediameter-daemon package that
+ will initialize the framework for you.
  .
  See 'freeDiameter-dev' package to retrieve the API for the library.
 
 Package: freediameter-dev
 Architecture: any
 Section: contrib/devel
-Depends: freediameter-daemon (= ${binary:Version}), libsctp-dev, libgnutls-dev, libgcrypt-dev
+Depends: freediameter-common (= ${binary:Version}), libsctp-dev, libgnutls-dev, libgcrypt-dev
 Description: This package provides the development files for freeDiameter.
 
 Package: freediameter-daemon
@@ -31,20 +39,15 @@ Depends: ${shlibs:Depends}, ${misc:Depends}, freediameter-common (= ${binary:Ver
 Suggests: ssl-cert, freediameter-dictionary-rfc4005, freediameter-dictionary-rfc4072, freediameter-dictionary-rfc4740,
   freediameter-dictionary-mip6, freediameter-dictionary-legacy
 Description: The freeDiameter daemon. 
- The freeDiameter daemon provides support for the Diameter
- Base Protocol. Without any extension, the daemon can only
- be used as a Diameter routing agent. You probably want to 
- install some freeDiameter extension(s) to extend its 
- features.
- .
- The daemon is shipped with a small set of extensions, for
+ This daemon is a simple loader for the freeDiameter framework.
+ It is shipped with a small set of extensions, for
  example to configure the routing behavior. See the 
- examples for more details.
+ examples in /usr/share/freediameter* for more details.
 
 Package: freediameter-debug-tools
 Architecture: any
 Section: contrib/debug
-Depends: ${misc:Depends}, freediameter-daemon (= ${binary:Version})
+Depends: ${misc:Depends}, freediameter-common (= ${binary:Version})
 Suggests: python, libmysqlclient16
 Description: freeDiameter debug tools.
  This package provides useful tools to help tracking 
@@ -54,7 +57,7 @@ Description: freeDiameter debug tools.
 
 Package: freediameter-dictionary-rfc4005
 Architecture: any
-Depends: ${misc:Depends}, freediameter-daemon (= ${binary:Version})
+Depends: ${misc:Depends}, freediameter-common (= ${binary:Version})
 Description: RFC4005 (NASREQ) dictionary support.
  This freeDiameter extension provides the dictionary support
  for commands and AVP defined in RFC4005 (NASREQ).
@@ -67,7 +70,7 @@ Description: RFC4005 (NASREQ) dictionary support.
 
 Package: freediameter-dictionary-rfc4072
 Architecture: any
-Depends: ${misc:Depends}, freediameter-dictionary-rfc4005 (= ${binary:Version})
+Depends: ${misc:Depends}, freediameter-common (= ${binary:Version}), freediameter-dictionary-rfc4005 (= ${binary:Version})
 Description: RFC4072 (Diameter EAP) dictionary support.
  This freeDiameter extension provides the dictionary support
  for commands and AVP defined in RFC4072 (Diameter EAP).
@@ -80,7 +83,7 @@ Description: RFC4072 (Diameter EAP) dictionary support.
 
 Package: freediameter-dictionary-rfc4740
 Architecture: any
-Depends: ${misc:Depends}
+Depends: ${misc:Depends}, freediameter-common (= ${binary:Version})
 Description: RFC4740 (Diameter SIP) dictionary support.
  This freeDiameter extension provides the dictionary support
  for commands and AVP defined in RFC4740 (Diameter SIP).
@@ -93,7 +96,7 @@ Description: RFC4740 (Diameter SIP) dictionary support.
 
 Package: freediameter-dictionary-mip6
 Architecture: any
-Depends: ${misc:Depends}
+Depends: ${misc:Depends}, freediameter-common (= ${binary:Version})
 Description: Diameter Mobile IPv6 application dictionary support.
  This package contains a set of extensions to provide the support
  for commands and AVP defined in several RFCs related to
@@ -108,7 +111,7 @@ Description: Diameter Mobile IPv6 application dictionary support.
 
 Package: freediameter-dictionary-legacy
 Architecture: any
-Depends: ${misc:Depends}, libxml2
+Depends: ${misc:Depends}, freediameter-common (= ${binary:Version}), libxml2
 Description: Legacy XML dictionary files support.
  This freeDiameter extension allows the use of XML dictionary
  files with the freeDiameter framework. Please note that
@@ -125,7 +128,8 @@ Description: Legacy XML dictionary files support.
 
 Package: freediameter-radius-gateway
 Architecture: any
-Depends: ${misc:Depends}, freediameter-daemon (= ${binary:Version}), freediameter-dictionary-rfc4072 (= ${binary:Version}), freediameter-dictionary-rfc4740 (= ${binary:Version})
+Depends: ${misc:Depends}, freediameter-common (= ${binary:Version})
+Suggests: freediameter-dictionary-rfc4072 (= ${binary:Version}), freediameter-dictionary-rfc4740 (= ${binary:Version})
 Description: RADIUS/Diameter extensible gateway.
  This freeDiameter extension implements a RADIUS to Diameter
  gateway. It allows a RADIUS client to connect to a Diameter
@@ -140,10 +144,13 @@ Description: RADIUS/Diameter extensible gateway.
   - auth.rgwx : Convert Access-Request to Diameter AAR or DER.
                 Requests For Comments: RADIUS: 2865, 3162, 2868,
 		2869, 3579; Diameter: 4005, 4072.
+		Requires freediameter-dictionary-rfc4072.
   - sip.rgwx  : Convert Access-Request to Diameter SIP messages.
                 Requests For Comments: Diameter: 4740.
+		Requires freediameter-dictionary-rfc4740.
   - acct.rgwx : Converts Accounting-Request (2866) to Diameter 
                 ACR (3588).
+		Requires freediameter-dictionary-rfc4072.
  .
  In order to use this extension, your main freeDiameter 
  configuration file must contain a LoadExtension directive. 
@@ -154,7 +161,7 @@ Description: RADIUS/Diameter extensible gateway.
 
 Package: freediameter-accounting-server
 Architecture: any
-Depends: ${misc:Depends}, freediameter-daemon (= ${binary:Version}), libpq5
+Depends: ${misc:Depends}, freediameter-common (= ${binary:Version}), libpq5
 Suggests: freediameter-dictionary-rfc4072
 Description: freeDiameter simple Accounting server.
  This freeDiameter extension implements the Diameter Base 
@@ -174,7 +181,7 @@ Description: freeDiameter simple Accounting server.
 
 Package: freediameter-eap-server
 Architecture: any
-Depends: ${misc:Depends}, freediameter-daemon (= ${binary:Version}), libmysqlclient16, freediameter-dictionary-rfc4072 (= ${binary:Version})
+Depends: ${misc:Depends}, freediameter-common (= ${binary:Version}), libmysqlclient16, freediameter-dictionary-rfc4072 (= ${binary:Version})
 Description: freeDiameter Diameter EAP server implementation.
  This freeDiameter extension implements a Diameter EAP server. 
  It supports EAP-MD5 and EAP-TLS methods currently.
@@ -189,9 +196,10 @@ Description: freeDiameter Diameter EAP server implementation.
 
 Package: freediameter-sip-server
 Architecture: any
-Depends: ${misc:Depends}, freediameter-daemon (= ${binary:Version}), libmysqlclient16, freediameter-dictionary-rfc4740 (= ${binary:Version})
+Depends: ${misc:Depends}, freediameter-common (= ${binary:Version}), libmysqlclient16, freediameter-dictionary-rfc4740 (= ${binary:Version})
 Description: freeDiameter Diameter SIP server implementation.
- This freeDiameter extension implements a Diameter SIP server.
+ This freeDiameter extension implements a prototype 
+ Diameter SIP server.
  See http://www.freediameter.net/trac/wiki/app_sip.fdx for
  status information.
  .

@@ -10,7 +10,7 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=freeDiameter
-PKG_REV:=578
+PKG_REV:=660
 PKG_VERSION:=r$(PKG_REV)
 PKG_RELEASE:=1
 

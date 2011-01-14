@@ -1,3 +1,15 @@
+freediameter (1.1.0) UNRELEASED; urgency=low
+
+  * Source package restructured. Most of the 
+    framework now contained in the libfdcore library.
+    libfreeDiameter renamed as libfdproto.
+    This closes #15.
+  * API version bumped to version 4 accordingly.
+  * Improved fd_dict_new() when the same object already exists.
+  * Improvements to dict_legacy_xml extension.
+
+ -- Sebastien Decugis <sdecugis@nict.go.jp>  Fri, 14 Jan 2011 16:04:41 +0900
+
 freediameter (1.0.4) UNRELEASED; urgency=low
 
   * Added new API to specify timeout on receiving answer (#10) 

@@ -11,17 +11,23 @@ for example Network Access Servers (RFC4005), EAP (RFC4072), ...
 
 
 The implementation consists in several components:
- - libfreeDiameter : the shared library provides the functions to manipulate Diameter
-      messages and dictionary. This library is meant to be re-used for other projects
+ - libfdproto : this shared library provides the functions to manipulate Diameter
+      messages and dictionary. This library is meant to be re-used by other projects
       that would require parsing or manipulating Diameter messages.
       
- - freeDiameterd : the daemon establishes the network connections with other Diameter
-      peers and performs the tasks described in Diameter Base Protocol, such as
-      watchdogs, basic routing, ...
+ - libfdcore : this shared library contains the core of the framework. It establishes 
+      the network connections with other Diameter peers and performs the tasks described 
+      in Diameter Base Protocol, such as watchdogs, basic routing, ... It also handles 
+      the loading of extensions (see bellow).
+      
+ - freeDiameterd : this simple daemon parses the command line and initializes the
+      freeDiameter framework. Use it for your Diameter server & agent components.
+      In case of Diameter clients, you probably will prefer linking the libfdcore 
+      directly with your client application that must be made Diameter-aware.
       
  - extensions : the extensions provide the mean to augment the features of the
-      freeDiameterd daemon. Extensions can provide the handling of a Diameter 
-      application, but also advanced routing features, peer management, etc.
+      freeDiameterd framework. Extensions can provide the handling of a Diameter 
+      server application, but also advanced routing features, peer management, etc.
 
 
 See http://www.freediameter.net/ for more information on the project.

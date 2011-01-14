@@ -31,7 +31,7 @@ You can disable the unit tests by doing:
 # cmake -DBUILD_TESTING:BOOL=OFF ../
 # make
 
-When the tests are not disabled, you can run them with:
+When the tests are enabled, you can run them with:
 # make tests
 
 See the INSTALL.* files for additional platform-specific information.

@@ -72,7 +72,7 @@ freeDiameterd
 
 freeDiameter has been tested on the following distributions (compiled from source as described bellow):
 Ubuntu Intrepid, Jaunty, Karmic, Lucid, Maverick, Natty. 
-Debian Lenny.
+Debian Lenny (with small patch, see ticket #24).
 
 Ubuntu Hardy support is known to be broken.
 
