@@ -33,75 +33,32 @@
 * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.								 *
 *********************************************************************************************************/
 
-/* Monitoring extension:
- - periodically display queues and peers information
- - upon SIGUSR2, display additional debug information
- */
+#include "fdproto-internal.h"
 
-#include <freeDiameter/extension.h>
-#include <signal.h>
+/* Only for CPU cache flush */
+pthread_mutex_t fd_cpu_mtx_dummy = PTHREAD_MUTEX_INITIALIZER;
 
-#ifndef MONITOR_SIGNAL
-#define MONITOR_SIGNAL	SIGUSR2
-#endif /* MONITOR_SIGNAL */
-
-static int 	 monitor_main(char * conffile);
-
-EXTENSION_ENTRY("dbg_monitor", monitor_main);
-
-/* Thread to display periodical debug information */
-static pthread_t thr;
-static void * mn_thr(void * arg)
+/* Initialize library variables and threads */
+int fd_libproto_init()
 {
-	int i = 0;
-	fd_log_threadname("Monitor thread");
+	int ret = 0;
 	
-	/* Loop */
-	while (1) {
-		#ifdef DEBUG
-		for (i++; i % 30; i++) {
-			fd_log_debug("[dbg_monitor] %ih%*im%*is\n", i/3600, 2, (i/60) % 60 , 2, i%60); /* This makes it easier to detect inactivity periods in the log file */
-			sleep(1);
-		}
-		#else /* DEBUG */
-		sleep(3600); /* 1 hour */
-		#endif /* DEBUG */
-		fd_log_debug("[dbg_monitor] Dumping current information\n");
-		CHECK_FCT_DO(fd_event_send(fd_g_config->cnf_main_ev, FDEV_DUMP_QUEUES, 0, NULL), /* continue */);
-		CHECK_FCT_DO(fd_event_send(fd_g_config->cnf_main_ev, FDEV_DUMP_SERV, 0, NULL), /* continue */);
-		CHECK_FCT_DO(fd_event_send(fd_g_config->cnf_main_ev, FDEV_DUMP_PEERS, 0, NULL), /* continue */);
-		sleep(1);
+	/* Create the thread key that contains thread name for debug messages */
+	ret = pthread_key_create(&fd_log_thname, free);
+	if (ret != 0) {
+		fprintf(stderr, "Error initializing the libfreeDiameter library: %s\n", strerror(ret) );
+		return ret;
 	}
 	
-	return NULL;
-}
-
-/* Function called on receipt of MONITOR_SIGNAL */
-static void got_sig()
-{
-	fd_log_debug("[dbg_monitor] Dumping extra information\n");
-	CHECK_FCT_DO(fd_event_send(fd_g_config->cnf_main_ev, FDEV_DUMP_DICT, 0, NULL), /* continue */);
-	CHECK_FCT_DO(fd_event_send(fd_g_config->cnf_main_ev, FDEV_DUMP_CONFIG, 0, NULL), /* continue */);
-	CHECK_FCT_DO(fd_event_send(fd_g_config->cnf_main_ev, FDEV_DUMP_EXT, 0, NULL), /* continue */);
-}
-
-/* Entry point */
-static int monitor_main(char * conffile)
-{
-	TRACE_ENTRY("%p", conffile);
+	/* Initialize the modules that need it */
+	fd_msg_eteid_init();
+	CHECK_FCT( fd_sess_init() );
 	
-	/* Catch signal SIGUSR1 */
-	CHECK_FCT( fd_event_trig_regcb(MONITOR_SIGNAL, "dbg_monitor", got_sig));
-	
-	CHECK_POSIX( pthread_create( &thr, NULL, mn_thr, NULL ) );
 	return 0;
 }
 
-/* Cleanup */
-void fd_ext_fini(void)
+/* Stop all threads created in the library */
+void fd_libproto_fini(void)
 {
-	TRACE_ENTRY();
-	CHECK_FCT_DO( fd_thr_term(&thr), /* continue */ );
-	return ;
+	fd_sess_fini();
 }
-

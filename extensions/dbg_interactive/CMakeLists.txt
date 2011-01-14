@@ -15,8 +15,8 @@ SET(CMAKE_SWIG_FLAGS -castmode -threads)
 # Add the dependencies for re-swig-ing the file
 SET(SWIG_MODULE_fDpy_EXTRA_DEPS 
 	${CMAKE_BINARY_DIR}/include/freeDiameter/freeDiameter-host.h 
-	${CMAKE_SOURCE_DIR}/include/freeDiameter/libfreeDiameter.h 
-	${CMAKE_SOURCE_DIR}/include/freeDiameter/freeDiameter.h
+	${CMAKE_SOURCE_DIR}/include/freeDiameter/libfdcore.h 
+	${CMAKE_SOURCE_DIR}/include/freeDiameter/libfdproto.h 
 	lists.i
 	dictionary.i
 	sessions.i

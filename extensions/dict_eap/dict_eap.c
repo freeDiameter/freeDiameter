@@ -295,7 +295,7 @@ static int deap_entry(char * conffile)
 			struct dict_cmd_data data = { 
 					268, 					/* Code */
 					"Diameter-EAP-Request", 		/* Name */
-					CMD_FLAG_REQUEST | CMD_FLAG_PROXIABLE | CMD_FLAG_RETRANSMIT | CMD_FLAG_ERROR, 	/* Fixed flags */
+					CMD_FLAG_REQUEST | CMD_FLAG_PROXIABLE | CMD_FLAG_ERROR, /* Fixed flags */
 					CMD_FLAG_REQUEST | CMD_FLAG_PROXIABLE 			/* Fixed flag values */
 					};
 			struct local_rules_definition rules[] = 

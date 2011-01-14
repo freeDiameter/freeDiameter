@@ -932,6 +932,13 @@ static void SAXstartelem (void * ctx, const xmlChar * name, const xmlChar ** att
 				CHECK_PARAMS_DO(xname, 
 					{ TRACE_DEBUG(INFO, "Invalid 'type' tag found without 'name' attribute."); goto xml_tree_error; } );
 				
+				/* Check there is only 1 type */
+				if (!FD_IS_LIST_EMPTY(&data->cur_avp->type)) {
+					TRACE_DEBUG(INFO, "Multiple 'type' tags found for AVP.");
+					goto xml_tree_error;
+				}
+				
+				/* Add the new type */
 				CHECK_FCT_DO( new_avptype(&data->cur_avp->type, xname),
 					{ TRACE_DEBUG(INFO, "An error occurred while parsing a type tag. Entry ignored."); goto xml_tree_error; } )
 				
@@ -1010,6 +1017,15 @@ xml_tree_error:
 		TRACE_DEBUG(INFO, "Unexpected XML element found: '%s'. Ignoring...", name);
 	}
 	data->error_depth += 1;
+	if (data->cur_app || data->cur_cmd || data->cur_avp) {
+		TRACE_DEBUG(INFO, "Error encountered while parsing tag of:");
+		if (data->cur_app)
+			fd_log_debug("  Application: '%s'\n", data->cur_app->name);
+		if (data->cur_cmd)
+			fd_log_debug("  Command    : '%s'\n", data->cur_cmd->name);
+		if (data->cur_avp)
+			fd_log_debug("  AVP        : '%s'\n", data->cur_avp->name);
+	}
 	return;
 }
 
@@ -1386,7 +1402,8 @@ static int rules_to_fD_onelist(struct dictionary * fD_dict, struct dict_object *
 		CHECK_FCT(ret);
 		
 		/* Now create the new rule */
-		CHECK_FCT( fd_dict_new ( fD_dict, DICT_RULE, &rd, parent, NULL ) );
+		CHECK_FCT_DO( ret = fd_dict_new ( fD_dict, DICT_RULE, &rd, parent, NULL ),
+			{ TRACE_DEBUG(INFO, "Error creating rule for sub-AVP '%s'", r->avpname); return ret; } );
 		if (nb_added)
 			*nb_added += 1;
 	}
@@ -1397,12 +1414,17 @@ static int rules_to_fD_onelist(struct dictionary * fD_dict, struct dict_object *
 /* Process lists of rules */
 static int rules_to_fD(struct dictionary * fD_dict, struct dict_object * parent, struct fd_list * fixed, struct fd_list * required, struct fd_list * optional, int * nb_added)
 {
+	int ret;
+	
 	TRACE_ENTRY("%p %p %p %p %p %p", fD_dict, parent, fixed, required, optional, nb_added);
 	
 	/* Process the rules */
-	CHECK_FCT( rules_to_fD_onelist(fD_dict, parent, RULE_FIXED_HEAD, fixed, nb_added) );
-	CHECK_FCT( rules_to_fD_onelist(fD_dict, parent, RULE_REQUIRED, required, nb_added) );
-	CHECK_FCT( rules_to_fD_onelist(fD_dict, parent, RULE_OPTIONAL, optional, nb_added) );
+	CHECK_FCT_DO( ret = rules_to_fD_onelist(fD_dict, parent, RULE_FIXED_HEAD, fixed, nb_added),
+		{ TRACE_DEBUG(INFO, "Error processing FIXED rules"); return ret; } );
+	CHECK_FCT_DO( ret = rules_to_fD_onelist(fD_dict, parent, RULE_REQUIRED, required, nb_added),
+		{ TRACE_DEBUG(INFO, "Error processing REQUIRED rules"); return ret; } );
+	CHECK_FCT_DO( ret = rules_to_fD_onelist(fD_dict, parent, RULE_OPTIONAL, optional, nb_added),
+		{ TRACE_DEBUG(INFO, "Error processing OPTIONAL rules"); return ret; } );
 	
 	return 0;
 }
@@ -1424,12 +1446,15 @@ static int avp_to_fD(struct t_avp * a, struct dictionary * fD_dict, struct dict_
 	ad.avp_code   = a->code;
 	ad.avp_vendor = a->vendor;
 	ad.avp_name   = (char *)a->name;
-	ad.avp_flag_mask = a->fmask;
+	ad.avp_flag_mask = a->fmask | AVP_FLAG_VENDOR;
 	ad.avp_flag_val  = a->flags;
 	
 	if (!FD_IS_LIST_EMPTY(&a->type)) {
 		/* special exception: we use per-AVP enumerated types in fD */
-		if (strcasecmp("Enumerated", (char *)((struct t_avptype *)a->type.next)->type_name))
+		if (!strcasecmp("Enumerated", (char *)((struct t_avptype *)a->type.next)->type_name))
+			goto enumerated;
+		/* Let's allow "Unsigned32" instead of "Enumerated" also... */
+		if ((!FD_IS_LIST_EMPTY(&a->enums)) && (!strcasecmp("Unsigned32", (char *)((struct t_avptype *)a->type.next)->type_name)))
 			goto enumerated;
 		
 		/* The type was explicitly specified, resolve it */
@@ -1440,12 +1465,13 @@ static int avp_to_fD(struct t_avp * a, struct dictionary * fD_dict, struct dict_
 			|| !FD_IS_LIST_EMPTY(&a->grouped_required)
 			|| !FD_IS_LIST_EMPTY(&a->grouped_fixed) ) {
 			/* The AVP has rules, it is a grouped AVP */
-			CHECK_PARAMS( FD_IS_LIST_EMPTY(&a->enums) );
+			CHECK_PARAMS_DO( FD_IS_LIST_EMPTY(&a->enums), 
+				{ TRACE_DEBUG(INFO, "Conflict: The AVP '%s' has both enum values and rules.", ad.avp_name); return EINVAL; } );
 			ad.avp_basetype = AVP_TYPE_GROUPED;
 		} else {
 			/* It should be an enumerated AVP... */
 			if (FD_IS_LIST_EMPTY(&a->enums)) {
-				TRACE_DEBUG(INFO, "[dict_legacy_xml] Error: Missing type information for AVP '%s'", ad.avp_name);
+				TRACE_DEBUG(INFO, "Error: Missing type information for AVP '%s'", ad.avp_name);
 				return EINVAL;
 			} else {
 				/* We create a new type to hold the enumerated values -- fD specifics */
@@ -1491,8 +1517,12 @@ enumerated:
 inside:
 	/* Now, the inner elements, if any */
 	
+	if ( (!FD_IS_LIST_EMPTY(&a->enums)) && (ad.avp_basetype != AVP_TYPE_UNSIGNED32)) {
+		TRACE_DEBUG(INFO, "AVP '%s' type is not an Unsigned32 but it has enum values (invalid in this extension).", ad.avp_name);
+		return EINVAL;
+	}
+
 	/* In case of enumeration, define the enum values */
-	ASSERT( FD_IS_LIST_EMPTY(&a->enums) || (type && (ad.avp_basetype == AVP_TYPE_UNSIGNED32)) ); /* u32 type must be defined for enumerators */
 	for (li = a->enums.next; li != &a->enums; li = li->next) {
 		struct t_enum * e = (struct t_enum *)li;
 		struct dict_enumval_data ed;
@@ -1501,7 +1531,11 @@ inside:
 		ed.enum_name = (char *)e->name;
 		ed.enum_value.u32 = e->code;
 		
-		CHECK_FCT( fd_dict_new ( fD_dict, DICT_ENUMVAL, &ed, type, NULL ) );
+		CHECK_FCT_DO( ret = fd_dict_new ( fD_dict, DICT_ENUMVAL, &ed, type, NULL ),
+			{
+				TRACE_DEBUG(INFO, "Error defining constant value '%s' for AVP '%s': %s", ed.enum_name, ad.avp_name, strerror(ret));
+				return ret;
+			} );
 		if (nb_added)
 			*nb_added += 1;
 	}
@@ -1510,8 +1544,10 @@ inside:
 	if ( !FD_IS_LIST_EMPTY(&a->grouped_optional)
 	  || !FD_IS_LIST_EMPTY(&a->grouped_required)
 	  || !FD_IS_LIST_EMPTY(&a->grouped_fixed) ) {
-		CHECK_PARAMS( ad.avp_basetype == AVP_TYPE_GROUPED );
-		CHECK_FCT( rules_to_fD(fD_dict, prev, &a->grouped_fixed, &a->grouped_required, &a->grouped_optional, nb_added) );
+		CHECK_PARAMS_DO( ad.avp_basetype == AVP_TYPE_GROUPED, 
+			{ TRACE_DEBUG(INFO, "Got rules for non-grouped AVP '%s'", ad.avp_name); return EINVAL;} );
+		CHECK_FCT_DO( ret = rules_to_fD(fD_dict, prev, &a->grouped_fixed, &a->grouped_required, &a->grouped_optional, nb_added),
+			{ TRACE_DEBUG(INFO, "Error processing rules for AVP '%s': %s", ad.avp_name, strerror(ret)); return ret; } );
 	}
 	
 	/* done! */
@@ -1535,7 +1571,7 @@ static int cmd_to_fD(struct t_cmd * c, struct dictionary * fD_dict, struct dict_
 	cd.cmd_code = c->code;
 	snprintf(cmdname, sizeof(cmdname), "%s-Request", (char *)c->name);
 	cd.cmd_name = &cmdname[0];
-	cd.cmd_flag_mask = c->fmask | CMD_FLAG_REQUEST;
+	cd.cmd_flag_mask = c->fmask | CMD_FLAG_REQUEST | CMD_FLAG_ERROR;
 	cd.cmd_flag_val  = c->flags | CMD_FLAG_REQUEST;
 	
 	/* Create or search in the dictionary */
@@ -1563,6 +1599,7 @@ answer:
 	/* update data for the answer */
 	snprintf(cmdname, sizeof(cmdname), "%s-Answer", (char *)c->name);
 	cd.cmd_flag_val &= ~CMD_FLAG_REQUEST;
+	cd.cmd_flag_mask &= ~CMD_FLAG_ERROR;
 	
 	ret = fd_dict_new ( fD_dict, DICT_COMMAND, &cd, fd_appl, &ans );
 	if (ret == EEXIST) {
@@ -1584,8 +1621,16 @@ answer:
 	
 rules:
 	/* Now process the rules inside the command */
-	CHECK_FCT( rules_to_fD(fD_dict, req, &c->reqrules_fixed, &c->reqrules_required, &c->reqrules_optional, nb_added) );
-	CHECK_FCT( rules_to_fD(fD_dict, ans, &c->ansrules_fixed, &c->ansrules_required, &c->ansrules_optional, nb_added) );
+	CHECK_FCT_DO( ret = rules_to_fD(fD_dict, req, &c->reqrules_fixed, &c->reqrules_required, &c->reqrules_optional, nb_added),
+			{
+				TRACE_DEBUG(INFO, "Error converting data from request rules: %s", strerror(ret));
+				return ret;
+			}   );
+	CHECK_FCT_DO( ret = rules_to_fD(fD_dict, ans, &c->ansrules_fixed, &c->ansrules_required, &c->ansrules_optional, nb_added),
+			{
+				TRACE_DEBUG(INFO, "Error converting data from answer rules: %s", strerror(ret));
+				return ret;
+			}   );
 	
 	/* Done */
 	return 0;
@@ -1640,17 +1685,29 @@ inside:
 	
 	/* First, define all the types */
 	for (li = a->types.next; li != &a->types; li = li->next) {
-		CHECK_FCT( typdefn_to_fD((struct t_typedefn *)li, fD_dict, prev, NULL, nb_added) );
+		CHECK_FCT_DO( ret = typdefn_to_fD((struct t_typedefn *)li, fD_dict, prev, NULL, nb_added),
+			{
+				TRACE_DEBUG(INFO, "Error converting data from typedefn '%s': %s", ((struct t_typedefn *)li)->name, strerror(ret));
+				return ret;
+			}  );
 	}
 	
 	/* Then, AVPs, enums, and grouped AVP rules */
 	for (li = a->avps.next; li != &a->avps; li = li->next) {
-		CHECK_FCT( avp_to_fD((struct t_avp *)li, fD_dict, prev, NULL, nb_added) );
+		CHECK_FCT_DO( ret = avp_to_fD((struct t_avp *)li, fD_dict, prev, NULL, nb_added),
+			{
+				TRACE_DEBUG(INFO, "Error converting data from AVP '%s': %s", ((struct t_avp *)li)->name, strerror(ret));
+				return ret;
+			}  );
 	}
 	
 	/* Finally, the commands and rules */
 	for (li = a->commands.next; li != &a->commands; li = li->next) {
-		CHECK_FCT( cmd_to_fD((struct t_cmd *)li, fD_dict, prev, NULL, nb_added) );
+		CHECK_FCT_DO( ret = cmd_to_fD((struct t_cmd *)li, fD_dict, prev, NULL, nb_added),
+			{
+				TRACE_DEBUG(INFO, "Error converting data from command '%s': %s", ((struct t_cmd *)li)->name, strerror(ret));
+				return ret;
+			}  );
 	}
 	
 	/* done! */
@@ -1661,6 +1718,7 @@ inside:
 static int dict_to_fD(struct dictionary * fD_dict, struct t_dictionary * xmldict, int * nb_added)
 {
 	struct fd_list * li;
+	int ret;
 	
 	TRACE_ENTRY("%p %p %p", fD_dict, xmldict, nb_added);
 	
@@ -1670,13 +1728,25 @@ static int dict_to_fD(struct dictionary * fD_dict, struct t_dictionary * xmldict
 	
 	/* Create all the vendors */
 	for (li = xmldict->vendors.next; li != &xmldict->vendors; li = li->next) {
-		CHECK_FCT( vend_to_fD((struct t_vend *)li, fD_dict, NULL, nb_added) );
+		CHECK_FCT_DO( ret = vend_to_fD((struct t_vend *)li, fD_dict, NULL, nb_added),
+			{
+				TRACE_DEBUG(INFO, "Error converting data from vendor '%s': %s", ((struct t_vend *)li)->name, strerror(ret));
+				return ret;
+			} );
 	}
 	
 	/* Now, process each application */
-	CHECK_FCT( appl_to_fD(&xmldict->base_and_applications, fD_dict, NULL, nb_added) );
+	CHECK_FCT_DO( ret = appl_to_fD(&xmldict->base_and_applications, fD_dict, NULL, nb_added),
+			{
+				TRACE_DEBUG(INFO, "Error converting data from Base application: %s", strerror(ret));
+				return ret;
+			} );
 	for (li = xmldict->base_and_applications.chain.next; li != &xmldict->base_and_applications.chain; li = li->next) {
-		CHECK_FCT( appl_to_fD((struct t_appl *) li, fD_dict, NULL, nb_added) );
+		CHECK_FCT_DO( ret = appl_to_fD((struct t_appl *) li, fD_dict, NULL, nb_added),
+			{
+				TRACE_DEBUG(INFO, "Error converting data from application '%s': %s", ((struct t_appl *)li)->name, strerror(ret));
+				return ret;
+			}  );
 	}
 	
 	/* Complete! */
@@ -1724,15 +1794,20 @@ int dict_lxml_parse(char * xmlfilename)
 		return -1;
 	}
 	
-	TRACE_DEBUG(FULL, "XML file parsing complete.");
+	TRACE_DEBUG(FULL, "XML file parsing, 1st pass completed.");
 	if (TRACE_BOOL(ANNOYING)) {
 		dump_dict(&data.dict);
 	}
 	
 	/* Now, convert all the objects from the temporary tree into the freeDiameter dictionary */
-	CHECK_FCT_DO( dict_to_fD(fd_g_config->cnf_dict, &data.dict, &ret), { del_dict_contents(&data.dict); return -1; } );
+	CHECK_FCT_DO( dict_to_fD(fd_g_config->cnf_dict, &data.dict, &ret), 
+		{ 
+			TRACE_DEBUG(INFO, "Error while converting data read from file '%s'", xmlfilename);
+			del_dict_contents(&data.dict); 
+			return -1; 
+		} );
 	
-	TRACE_DEBUG(FULL, "Conversion to freeDiameter internal format complete.");
+	TRACE_DEBUG(FULL, "Conversion from '%s' to freeDiameter internal format complete.", xmlfilename);
 	if (TRACE_BOOL(ANNOYING)) {
 		fd_dict_dump(fd_g_config->cnf_dict);
 	}

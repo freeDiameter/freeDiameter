@@ -135,7 +135,7 @@ static void ta_cb_ans(void * data, struct msg ** msg)
 }
 
 /* Create a test message */
-static void ta_cli_test_message(int sig)
+static void ta_cli_test_message()
 {
 	struct msg * req = NULL;
 	struct avp * avp;
@@ -235,14 +235,14 @@ int ta_cli_init(void)
 {
 	CHECK_FCT( fd_sess_handler_create(&ta_cli_reg, free, NULL) );
 	
-	CHECK_FCT( fd_sig_register(ta_conf->signal, "test_app.cli", ta_cli_test_message ) );
+	CHECK_FCT( fd_event_trig_regcb(ta_conf->signal, "test_app.cli", ta_cli_test_message ) );
 	
 	return 0;
 }
 
 void ta_cli_fini(void)
 {
-	CHECK_FCT_DO( fd_sig_unregister(ta_conf->signal), /* continue */ );
+	// CHECK_FCT_DO( fd_sig_unregister(ta_conf->signal), /* continue */ );
 	
 	CHECK_FCT_DO( fd_sess_handler_destroy(&ta_cli_reg, NULL), /* continue */ );
 	

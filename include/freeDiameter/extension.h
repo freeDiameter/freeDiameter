@@ -2,7 +2,7 @@
 * Software License Agreement (BSD License)                                                               *
 * Author: Sebastien Decugis <sdecugis@nict.go.jp>							 *
 *													 *
-* Copyright (c) 2009, WIDE Project and NICT								 *
+* Copyright (c) 2011, WIDE Project and NICT								 *
 * All rights reserved.											 *
 * 													 *
 * Redistribution and use of this software in source and binary forms, with or without modification, are  *
@@ -38,7 +38,7 @@
 
 /* Include definition of freeDiameter API */
 #include <freeDiameter/freeDiameter-host.h>
-#include <freeDiameter/freeDiameter.h>
+#include <freeDiameter/libfdcore.h>
 
 /* Macro that define the entry point of the extension */
 #define EXTENSION_ENTRY(_name, _function)						\

@@ -10,11 +10,11 @@ SET(FD_PROJECT_COPYRIGHT "Copyright (c) 2008-2011, WIDE Project (www.wide.ad.jp)
 
 # Version of the source code
 SET(FD_PROJECT_VERSION_MAJOR 1)
-SET(FD_PROJECT_VERSION_MINOR 0)
-SET(FD_PROJECT_VERSION_REV 4)
+SET(FD_PROJECT_VERSION_MINOR 1)
+SET(FD_PROJECT_VERSION_REV 0)
 
 # Version of the API with the library
-SET(FD_PROJECT_VERSION_API 3)
+SET(FD_PROJECT_VERSION_API 4)
 
 # The test framework, using CTest and CDash.
 INCLUDE(CTest)
@@ -30,7 +30,7 @@ SET(DEFAULT_CONF_PATH ${CMAKE_INSTALL_PREFIX}/etc/freeDiameter CACHE PATH "Defau
 
 SET(INSTALL_HEADERS_SUFFIX 		include/freeDiameter 	CACHE PATH "Directory where the headers are installed (relative to CMAKE_INSTALL_PREFIX).")
 SET(INSTALL_DAEMON_SUFFIX 		bin 			CACHE PATH "Directory where the daemon binary is installed (relative to CMAKE_INSTALL_PREFIX).")
-SET(INSTALL_LIBRARY_SUFFIX 		lib 			CACHE PATH "Directory where the libfreeDiameter library is installed (relative to CMAKE_INSTALL_PREFIX).")
+SET(INSTALL_LIBRARY_SUFFIX 		lib 			CACHE PATH "Directory where the freeDiameter libraries are installed (relative to CMAKE_INSTALL_PREFIX).")
 SET(INSTALL_EXTENSIONS_SUFFIX 	${INSTALL_LIBRARY_SUFFIX}/freeDiameter	CACHE PATH "Directory where the extensions are installed / searched (relative to CMAKE_INSTALL_PREFIX).")
 
 # All source code should be POSIX 200112L compatible, but some other extensions might be used, so:
@@ -76,8 +76,15 @@ INCLUDE_DIRECTORIES(${CMAKE_CURRENT_BINARY_DIR}/include)
 SUBDIRS(include/freeDiameter)
 
 # Location for the source code
-SUBDIRS(libfreeDiameter)
-SUBDIRS(freeDiameter)
+SUBDIRS(libfdproto)
+SUBDIRS(libfdcore)
+SUBDIRS(freeDiameterd)
 
 # Extensions (there is no use of freeDiameter without any extension)
 SUBDIRS(extensions)
+
+# The unary tests directory
+IF ( BUILD_TESTING )
+	SUBDIRS(tests)
+ENDIF ( BUILD_TESTING )
+

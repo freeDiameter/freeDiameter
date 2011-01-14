@@ -1,1 +1,2 @@
-usr/lib/libfreeDiameter.so*
+usr/lib/libfdproto.so*
+usr/lib/libfdcore.so*

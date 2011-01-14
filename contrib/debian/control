@@ -12,8 +12,8 @@ Homepage: http://www.freediameter.net
 Package: freediameter-common
 Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends}
-Description: The libfreeDiameter library.
- This library is required by all freeDiameter components.
+Description: The freeDiameter libraries.
+ This package contains the libraries required by all freeDiameter components.
  It may also be useful for other projects which need to 
  perform operations on Diameter messages. 
  .

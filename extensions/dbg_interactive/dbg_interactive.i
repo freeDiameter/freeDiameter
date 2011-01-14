@@ -158,8 +158,8 @@ int fd_sess_fromsid ( char * STRING, size_t LENGTH, struct session ** OUTPUT, in
  Now, create wrappers for (almost) all objects from fD API 
  *********************************************************/
 %include "freeDiameter/freeDiameter-host.h"
-%include "freeDiameter/libfreeDiameter.h"
-%include "freeDiameter/freeDiameter.h"
+%include "freeDiameter/libfdproto.h"
+%include "freeDiameter/libfdcore.h"
 
 /* Most of the functions from the API are not directly usable "as is".
 See the specific following files and the dbg_interactive.py.sample file

@@ -58,7 +58,7 @@ static void * myinterp (void * arg)
 	
 	fd_log_threadname ( "fDpy" );
 	
-	CHECK_FCT_DO(fd_wait_initialization_complete(), goto end);
+	CHECK_FCT_DO(fd_core_waitstartcomplete(), goto end);
 	
 	fd_log_debug("\nStarting interactive python interpreter [experimental].\n");
 	if (!arg) 

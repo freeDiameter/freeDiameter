@@ -3004,7 +3004,7 @@ static int dnr_entry(char * conffile)
 			struct dict_cmd_data data = { 
 					265, 					/* Code */
 					"AA-Request", 				/* Name */
-					CMD_FLAG_REQUEST | CMD_FLAG_PROXIABLE | CMD_FLAG_RETRANSMIT | CMD_FLAG_ERROR, 	/* Fixed flags */
+					CMD_FLAG_REQUEST | CMD_FLAG_PROXIABLE | CMD_FLAG_ERROR, /* Fixed flags */
 					CMD_FLAG_REQUEST | CMD_FLAG_PROXIABLE 			/* Fixed flag values */
 					};
 			struct local_rules_definition rules[] = 

@@ -33,75 +33,33 @@
 * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.								 *
 *********************************************************************************************************/
 
-/* Monitoring extension:
- - periodically display queues and peers information
- - upon SIGUSR2, display additional debug information
- */
+/* This file contains the definitions for internal use in the freeDiameter protocol library */
 
-#include <freeDiameter/extension.h>
-#include <signal.h>
+#ifndef _LIBFDPROTO_INTERNAL_H
+#define _LIBFDPROTO_INTERNAL_H
 
-#ifndef MONITOR_SIGNAL
-#define MONITOR_SIGNAL	SIGUSR2
-#endif /* MONITOR_SIGNAL */
+#include <freeDiameter/freeDiameter-host.h>
+#include <freeDiameter/libfdproto.h>
 
-static int 	 monitor_main(char * conffile);
+/* Internal to the library */
+extern const char * type_base_name[];
+void fd_msg_eteid_init(void);
+int fd_sess_init(void);
+void fd_sess_fini(void);
 
-EXTENSION_ENTRY("dbg_monitor", monitor_main);
+/* Iterator on the rules of a parent object */
+int fd_dict_iterate_rules ( struct dict_object *parent, void * data, int (*cb)(void *, struct dict_rule_data *) );
 
-/* Thread to display periodical debug information */
-static pthread_t thr;
-static void * mn_thr(void * arg)
-{
-	int i = 0;
-	fd_log_threadname("Monitor thread");
-	
-	/* Loop */
-	while (1) {
-		#ifdef DEBUG
-		for (i++; i % 30; i++) {
-			fd_log_debug("[dbg_monitor] %ih%*im%*is\n", i/3600, 2, (i/60) % 60 , 2, i%60); /* This makes it easier to detect inactivity periods in the log file */
-			sleep(1);
-		}
-		#else /* DEBUG */
-		sleep(3600); /* 1 hour */
-		#endif /* DEBUG */
-		fd_log_debug("[dbg_monitor] Dumping current information\n");
-		CHECK_FCT_DO(fd_event_send(fd_g_config->cnf_main_ev, FDEV_DUMP_QUEUES, 0, NULL), /* continue */);
-		CHECK_FCT_DO(fd_event_send(fd_g_config->cnf_main_ev, FDEV_DUMP_SERV, 0, NULL), /* continue */);
-		CHECK_FCT_DO(fd_event_send(fd_g_config->cnf_main_ev, FDEV_DUMP_PEERS, 0, NULL), /* continue */);
-		sleep(1);
-	}
-	
-	return NULL;
-}
+/* Dispatch / messages / dictionary API */
+int fd_dict_disp_cb(enum dict_object_type type, struct dict_object *obj, struct fd_list ** cb_list);
+void fd_dict_dump_avp_value(union avp_value *avp_value, struct dict_object * model, int indent);
+int fd_disp_call_cb_int( struct fd_list * cb_list, struct msg ** msg, struct avp *avp, struct session *sess, enum disp_action *action, 
+			struct dict_object * obj_app, struct dict_object * obj_cmd, struct dict_object * obj_avp, struct dict_object * obj_enu);
+extern pthread_rwlock_t fd_disp_lock;
 
-/* Function called on receipt of MONITOR_SIGNAL */
-static void got_sig()
-{
-	fd_log_debug("[dbg_monitor] Dumping extra information\n");
-	CHECK_FCT_DO(fd_event_send(fd_g_config->cnf_main_ev, FDEV_DUMP_DICT, 0, NULL), /* continue */);
-	CHECK_FCT_DO(fd_event_send(fd_g_config->cnf_main_ev, FDEV_DUMP_CONFIG, 0, NULL), /* continue */);
-	CHECK_FCT_DO(fd_event_send(fd_g_config->cnf_main_ev, FDEV_DUMP_EXT, 0, NULL), /* continue */);
-}
+/* Messages / sessions API */
+int fd_sess_fromsid_msg ( unsigned char * sid, size_t len, struct session ** session, int * new);
+int fd_sess_ref_msg ( struct session * session );
+int fd_sess_reclaim_msg ( struct session ** session );
 
-/* Entry point */
-static int monitor_main(char * conffile)
-{
-	TRACE_ENTRY("%p", conffile);
-	
-	/* Catch signal SIGUSR1 */
-	CHECK_FCT( fd_event_trig_regcb(MONITOR_SIGNAL, "dbg_monitor", got_sig));
-	
-	CHECK_POSIX( pthread_create( &thr, NULL, mn_thr, NULL ) );
-	return 0;
-}
-
-/* Cleanup */
-void fd_ext_fini(void)
-{
-	TRACE_ENTRY();
-	CHECK_FCT_DO( fd_thr_term(&thr), /* continue */ );
-	return ;
-}
-
+#endif /* _LIBFDPROTO_INTERNAL_H */

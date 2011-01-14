@@ -207,7 +207,7 @@ out:
 }
 
 /* The function called when the signal is received */
-static void ta_bench_start(int sig) {
+static void ta_bench_start() {
 	struct timespec end_time, now;
 	struct ta_stats start, end;
 	
@@ -273,14 +273,14 @@ int ta_bench_init(void)
 {
 	CHECK_SYS( sem_init( &ta_sem, 0, ta_conf->bench_concur) );
 
-	CHECK_FCT( fd_sig_register(ta_conf->signal, "test_app.bench", ta_bench_start ) );
+	CHECK_FCT( fd_event_trig_regcb(ta_conf->signal, "test_app.bench", ta_bench_start ) );
 	
 	return 0;
 }
 
 void ta_bench_fini(void)
 {
-	CHECK_FCT_DO( fd_sig_unregister(ta_conf->signal), /* continue */ );
+	// CHECK_FCT_DO( fd_sig_unregister(ta_conf->signal), /* continue */ );
 	
 	CHECK_SYS_DO( sem_destroy(&ta_sem), );
 	

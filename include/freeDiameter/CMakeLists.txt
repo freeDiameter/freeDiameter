@@ -1,6 +1,6 @@
 #CMake configuration for freeDiameter include directory
 
-Project("freeDiameter include directory" C)
+Project("freeDiameter includes directory" C)
 
 ########################
 # Configurable parameters
@@ -67,8 +67,8 @@ ELSE (HAVE_CLOCK_GETTIME)
    ENDIF (HAVE_LIBRT)
 ENDIF (HAVE_CLOCK_GETTIME)
 
-# LFD_LIBS = libraries required by the libfreeDiameter.
-SET(LFD_LIBS ${CLOCK_GETTIME_LIBS} ${CMAKE_THREAD_LIBS_INIT})
+# LFDPROTO_LIBS = libraries required by the libfdproto.
+SET(LFDPROTO_LIBS ${CLOCK_GETTIME_LIBS} ${CMAKE_THREAD_LIBS_INIT})
 
 
 # dlopen and dlclose: CMAKE_DL_LIBS
@@ -97,8 +97,28 @@ ELSE (NOT DISABLE_SCTP)
 ENDIF(NOT DISABLE_SCTP)
 
 
-# FD_LIBS = libraries required by the daemon
-SET(FD_LIBS ${CMAKE_DL_LIBS} ${SCTP_LIBRARIES})
+# Require GNU TLS for building the library
+FIND_PACKAGE(GnuTLS REQUIRED)
+INCLUDE_DIRECTORIES(${GNUTLS_INCLUDE_DIR})
+
+find_path(GCRYPT_INCLUDE_DIR NAMES gcrypt.h)
+If ( NOT GCRYPT_INCLUDE_DIR )
+	MESSAGE(SEND_ERROR "Unable to find gcrypt.h, please install libgcrypt-dev or equivalent")
+Endif ( NOT GCRYPT_INCLUDE_DIR )
+MARK_AS_ADVANCED(GCRYPT_INCLUDE_DIR)
+INCLUDE_DIRECTORIES(${GCRYPT_INCLUDE_DIR})
+
+# Also we need libgcrypt to... display its version :(
+find_library(GCRYPT_LIBRARY 
+  NAMES gcrypt
+)
+If ( NOT GCRYPT_LIBRARY )
+	MESSAGE(SEND_ERROR "Unable to find libgcrypt, please install libgcrypt or equivalent")
+Endif ( NOT GCRYPT_LIBRARY )
+
+
+# LFDCORE_LIBS = libraries required by the libfdcore
+SET(LFDCORE_LIBS ${CMAKE_DL_LIBS} ${SCTP_LIBRARIES} ${GCRYPT_LIBRARY} ${GNUTLS_LIBRARIES})
 
 ##########################
 # Create the absolute path for searching extensions
@@ -110,15 +130,15 @@ SET(DEFAULT_EXTENSIONS_PATH ${CMAKE_INSTALL_PREFIX}/${INSTALL_EXTENSIONS_SUFFIX}
 CONFIGURE_FILE(${CMAKE_CURRENT_SOURCE_DIR}/freeDiameter-host.h.in ${CMAKE_CURRENT_BINARY_DIR}/freeDiameter-host.h)
 
 # Save some variables for the other directories
-SET(FD_LIBS  ${FD_LIBS}  PARENT_SCOPE)
-SET(LFD_LIBS ${LFD_LIBS} PARENT_SCOPE)
+SET(LFDPROTO_LIBS ${LFDPROTO_LIBS} PARENT_SCOPE)
+SET(LFDCORE_LIBS  ${LFDCORE_LIBS}  PARENT_SCOPE)
 SET(CMAKE_THREAD_LIBS_INIT ${CMAKE_THREAD_LIBS_INIT} PARENT_SCOPE)
 
 ####
 ## INSTALL section ##
 
 # The headers from this directory are required to develop new extensions for freeDiameter.
-INSTALL(FILES ${CMAKE_CURRENT_BINARY_DIR}/freeDiameter-host.h libfreeDiameter.h freeDiameter.h extension.h
+INSTALL(FILES ${CMAKE_CURRENT_BINARY_DIR}/freeDiameter-host.h libfdproto.h libfdcore.h extension.h
 	DESTINATION ${INSTALL_HEADERS_SUFFIX}
 	COMPONENT freeDiameter-dev)
 

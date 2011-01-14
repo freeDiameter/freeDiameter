@@ -2,7 +2,7 @@
 * Software License Agreement (BSD License)                                                               *
 * Author: Sebastien Decugis <sdecugis@nict.go.jp>							 *
 *													 *
-* Copyright (c) 2010, WIDE Project and NICT								 *
+* Copyright (c) 2009, WIDE Project and NICT								 *
 * All rights reserved.											 *
 * 													 *
 * Redistribution and use of this software in source and binary forms, with or without modification, are  *
@@ -33,75 +33,49 @@
 * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.								 *
 *********************************************************************************************************/
 
-/* Monitoring extension:
- - periodically display queues and peers information
- - upon SIGUSR2, display additional debug information
- */
+#include "fdcore-internal.h"
 
-#include <freeDiameter/extension.h>
-#include <signal.h>
+/* The global message queues */
+struct fifo * fd_g_incoming = NULL;
+struct fifo * fd_g_outgoing = NULL;
+struct fifo * fd_g_local = NULL;
 
-#ifndef MONITOR_SIGNAL
-#define MONITOR_SIGNAL	SIGUSR2
-#endif /* MONITOR_SIGNAL */
-
-static int 	 monitor_main(char * conffile);
-
-EXTENSION_ENTRY("dbg_monitor", monitor_main);
-
-/* Thread to display periodical debug information */
-static pthread_t thr;
-static void * mn_thr(void * arg)
+/* Initialize the message queues. */
+int fd_queues_init(void)
 {
-	int i = 0;
-	fd_log_threadname("Monitor thread");
-	
-	/* Loop */
-	while (1) {
-		#ifdef DEBUG
-		for (i++; i % 30; i++) {
-			fd_log_debug("[dbg_monitor] %ih%*im%*is\n", i/3600, 2, (i/60) % 60 , 2, i%60); /* This makes it easier to detect inactivity periods in the log file */
-			sleep(1);
-		}
-		#else /* DEBUG */
-		sleep(3600); /* 1 hour */
-		#endif /* DEBUG */
-		fd_log_debug("[dbg_monitor] Dumping current information\n");
-		CHECK_FCT_DO(fd_event_send(fd_g_config->cnf_main_ev, FDEV_DUMP_QUEUES, 0, NULL), /* continue */);
-		CHECK_FCT_DO(fd_event_send(fd_g_config->cnf_main_ev, FDEV_DUMP_SERV, 0, NULL), /* continue */);
-		CHECK_FCT_DO(fd_event_send(fd_g_config->cnf_main_ev, FDEV_DUMP_PEERS, 0, NULL), /* continue */);
-		sleep(1);
-	}
-	
-	return NULL;
-}
-
-/* Function called on receipt of MONITOR_SIGNAL */
-static void got_sig()
-{
-	fd_log_debug("[dbg_monitor] Dumping extra information\n");
-	CHECK_FCT_DO(fd_event_send(fd_g_config->cnf_main_ev, FDEV_DUMP_DICT, 0, NULL), /* continue */);
-	CHECK_FCT_DO(fd_event_send(fd_g_config->cnf_main_ev, FDEV_DUMP_CONFIG, 0, NULL), /* continue */);
-	CHECK_FCT_DO(fd_event_send(fd_g_config->cnf_main_ev, FDEV_DUMP_EXT, 0, NULL), /* continue */);
-}
-
-/* Entry point */
-static int monitor_main(char * conffile)
-{
-	TRACE_ENTRY("%p", conffile);
-	
-	/* Catch signal SIGUSR1 */
-	CHECK_FCT( fd_event_trig_regcb(MONITOR_SIGNAL, "dbg_monitor", got_sig));
-	
-	CHECK_POSIX( pthread_create( &thr, NULL, mn_thr, NULL ) );
+	TRACE_ENTRY();
+	CHECK_FCT( fd_fifo_new ( &fd_g_incoming ) );
+	CHECK_FCT( fd_fifo_new ( &fd_g_outgoing ) );
+	CHECK_FCT( fd_fifo_new ( &fd_g_local ) );
 	return 0;
 }
 
-/* Cleanup */
-void fd_ext_fini(void)
+/* Destroy a queue after emptying it (and dumping the content) */
+int fd_queues_fini(struct fifo ** queue)
 {
-	TRACE_ENTRY();
-	CHECK_FCT_DO( fd_thr_term(&thr), /* continue */ );
-	return ;
-}
+	struct msg * msg;
+	int ret = 0;
+	
+	TRACE_ENTRY("%p", queue);
+	
+	/* Note : the threads that post into this queue should already been stopped before this !!! */
 
+	/* Empty all contents */
+	while (1) {
+		/* Check if there is a message in the queue */
+		ret = fd_fifo_tryget(*queue, &msg);
+		if (ret == EWOULDBLOCK)
+			break;
+		CHECK_FCT(ret);
+		
+		/* We got one! */
+		fd_log_debug("The following message is lost because the daemon is stopping:\n");
+		fd_msg_dump_walk(NONE, msg);
+		fd_msg_free(msg);
+	}
+	
+	/* Now, delete the empty queue */
+	CHECK_FCT( fd_fifo_del ( queue ) );
+	
+	return 0;
+}

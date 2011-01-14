@@ -214,9 +214,9 @@ int ts_entry(char * conffile)
 	*/
 	
 	CHECK_FCT(fd_sess_handler_create(&ts_sess_hdl, free, NULL));
-	//CHECK_FCT( fd_sig_register(30, "test_sip", (void *)test_sipSL_LIR_cb ) );
-	CHECK_FCT( fd_sig_register(30, "test_sip", (void *)test_sip_SAR_cb ) );
-	CHECK_FCT( fd_sig_register(31, "test_sip", (void *)test_sip_LIR_cb ) );
+	//CHECK_FCT( fd_event_trig_regcb(30, "test_sip", (void *)test_sipSL_LIR_cb ) );
+	CHECK_FCT( fd_event_trig_regcb(30, "test_sip", (void *)test_sip_SAR_cb ) );
+	CHECK_FCT( fd_event_trig_regcb(31, "test_sip", (void *)test_sip_LIR_cb ) );
 	
 	return 0;
 }

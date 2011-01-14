@@ -33,75 +33,93 @@
 * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.								 *
 *********************************************************************************************************/
 
-/* Monitoring extension:
- - periodically display queues and peers information
- - upon SIGUSR2, display additional debug information
- */
+#include "fdproto-internal.h"
 
-#include <freeDiameter/extension.h>
-#include <signal.h>
+#include <stdarg.h>
 
-#ifndef MONITOR_SIGNAL
-#define MONITOR_SIGNAL	SIGUSR2
-#endif /* MONITOR_SIGNAL */
+pthread_mutex_t fd_log_lock = PTHREAD_MUTEX_INITIALIZER;
+pthread_key_t	fd_log_thname;
+int fd_g_debug_lvl = 0;
 
-static int 	 monitor_main(char * conffile);
+/* These may be used to pass specific debug requests via the command-line parameters */
+char * fd_debug_one_function = NULL;
+char * fd_debug_one_file = NULL;
 
-EXTENSION_ENTRY("dbg_monitor", monitor_main);
+/* Useless function, only to ease setting up a breakpoint in gdb (break fd_breakhere) -- use TRACE_HERE */
+int fd_breaks = 0;
+int fd_breakhere(void) { return ++fd_breaks; }
 
-/* Thread to display periodical debug information */
-static pthread_t thr;
-static void * mn_thr(void * arg)
+static void fd_cleanup_mutex_silent( void * mutex )
 {
-	int i = 0;
-	fd_log_threadname("Monitor thread");
+	(void)pthread_mutex_unlock((pthread_mutex_t *)mutex);
+}
+
+
+/* Log a debug message */
+void fd_log_debug ( const char * format, ... )
+{
+	va_list ap;
 	
-	/* Loop */
-	while (1) {
-		#ifdef DEBUG
-		for (i++; i % 30; i++) {
-			fd_log_debug("[dbg_monitor] %ih%*im%*is\n", i/3600, 2, (i/60) % 60 , 2, i%60); /* This makes it easier to detect inactivity periods in the log file */
-			sleep(1);
-		}
-		#else /* DEBUG */
-		sleep(3600); /* 1 hour */
-		#endif /* DEBUG */
-		fd_log_debug("[dbg_monitor] Dumping current information\n");
-		CHECK_FCT_DO(fd_event_send(fd_g_config->cnf_main_ev, FDEV_DUMP_QUEUES, 0, NULL), /* continue */);
-		CHECK_FCT_DO(fd_event_send(fd_g_config->cnf_main_ev, FDEV_DUMP_SERV, 0, NULL), /* continue */);
-		CHECK_FCT_DO(fd_event_send(fd_g_config->cnf_main_ev, FDEV_DUMP_PEERS, 0, NULL), /* continue */);
-		sleep(1);
+	(void)pthread_mutex_lock(&fd_log_lock);
+	
+	pthread_cleanup_push(fd_cleanup_mutex_silent, &fd_log_lock);
+	
+	va_start(ap, format);
+	vfprintf( stdout, format, ap);
+	va_end(ap);
+	fflush(stdout);
+
+	pthread_cleanup_pop(0);
+	
+	(void)pthread_mutex_unlock(&fd_log_lock);
+}
+
+/* Function to set the thread's friendly name */
+void fd_log_threadname ( char * name )
+{
+	void * val = NULL;
+	
+	TRACE_ENTRY("%p(%s)", name, name?:"/");
+	
+	/* First, check if a value is already assigned to the current thread */
+	val = pthread_getspecific(fd_log_thname);
+	if (val != NULL) {
+		TRACE_DEBUG(FULL, "Freeing old thread name: %s", val);
+		free(val);
 	}
 	
-	return NULL;
-}
-
-/* Function called on receipt of MONITOR_SIGNAL */
-static void got_sig()
-{
-	fd_log_debug("[dbg_monitor] Dumping extra information\n");
-	CHECK_FCT_DO(fd_event_send(fd_g_config->cnf_main_ev, FDEV_DUMP_DICT, 0, NULL), /* continue */);
-	CHECK_FCT_DO(fd_event_send(fd_g_config->cnf_main_ev, FDEV_DUMP_CONFIG, 0, NULL), /* continue */);
-	CHECK_FCT_DO(fd_event_send(fd_g_config->cnf_main_ev, FDEV_DUMP_EXT, 0, NULL), /* continue */);
-}
-
-/* Entry point */
-static int monitor_main(char * conffile)
-{
-	TRACE_ENTRY("%p", conffile);
+	/* Now create the new string */
+	if (name == NULL) {
+		CHECK_POSIX_DO( pthread_setspecific(fd_log_thname, NULL), /* continue */);
+		return;
+	}
 	
-	/* Catch signal SIGUSR1 */
-	CHECK_FCT( fd_event_trig_regcb(MONITOR_SIGNAL, "dbg_monitor", got_sig));
+	CHECK_MALLOC_DO( val = strdup(name), return );
 	
-	CHECK_POSIX( pthread_create( &thr, NULL, mn_thr, NULL ) );
-	return 0;
+	CHECK_POSIX_DO( pthread_setspecific(fd_log_thname, val), /* continue */);
+	return;
 }
 
-/* Cleanup */
-void fd_ext_fini(void)
+/* Write time into a buffer */
+char * fd_log_time ( struct timespec * ts, char * buf, size_t len )
 {
-	TRACE_ENTRY();
-	CHECK_FCT_DO( fd_thr_term(&thr), /* continue */ );
-	return ;
-}
+	int ret;
+	size_t offset = 0;
+	struct timespec tp;
+	struct tm tm;
+	
+	/* Get current time */
+	if (!ts) {
+		ret = clock_gettime(CLOCK_REALTIME, &tp);
+		if (ret != 0) {
+			snprintf(buf, len, "%s", strerror(ret));
+			return buf;
+		}
+		ts = &tp;
+	}
+	
+	offset += strftime(buf + offset, len - offset, "%D,%T", localtime_r( &ts->tv_sec , &tm ));
+	offset += snprintf(buf + offset, len - offset, ".%6.6ld", ts->tv_nsec / 1000);
 
+	return buf;
+}
