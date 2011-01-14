@@ -190,6 +190,7 @@ static void *call_cb_detached(void * arg)
 	TRACE_ENTRY("%p", arg);
 	(*cb)();
 	TRACE_DEBUG(ANNOYING, "Callback %p completed", cb);
+	return NULL;
 }
 
 int fd_event_trig_call_cb(int trigger_val)
