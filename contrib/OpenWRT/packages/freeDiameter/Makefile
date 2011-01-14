@@ -1,7 +1,7 @@
 #
 # Software License Agreement (BSD License)
 #
-# Copyright (c) 2010, WIDE Project and NICT
+# Copyright (c) 2011, WIDE Project and NICT
 # All rights reserved.
 #
 # See LICENSE file from freeDiameter source package for more information.
