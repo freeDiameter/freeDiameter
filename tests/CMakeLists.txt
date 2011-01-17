@@ -29,6 +29,7 @@ ADD_DEFINITIONS(-DTRACE_LEVEL=NONE)
 
 INCLUDE_DIRECTORIES( "../libfdproto" )
 INCLUDE_DIRECTORIES( "../libfdcore" )
+INCLUDE_DIRECTORIES(${LFDCORE_INCLUDES})
 
 
 ##############################

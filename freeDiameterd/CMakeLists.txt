@@ -1,6 +1,9 @@
 # The subproject name
 Project("freeDiameter simple daemon" C)
 
+# Since it uses the libfdcore.h, it needs the include dependencies
+INCLUDE_DIRECTORIES(${LFDCORE_INCLUDES})
+
 # Build the executable
 ADD_EXECUTABLE(freeDiameterd main.c)
 
