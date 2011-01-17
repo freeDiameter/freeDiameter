@@ -19,6 +19,7 @@ SET(TEST_LIST
 	testsess
 	testdisp
 	testcnx
+	testloadext
 )
 
 #############################
@@ -26,6 +27,7 @@ SET(TEST_LIST
 
 ADD_DEFINITIONS(-DTEST_DEBUG)
 ADD_DEFINITIONS(-DTRACE_LEVEL=NONE)
+ADD_DEFINITIONS(-DBUILD_DIR="${CMAKE_BINARY_DIR}")
 
 INCLUDE_DIRECTORIES( "../libfdproto" )
 INCLUDE_DIRECTORIES( "../libfdcore" )
