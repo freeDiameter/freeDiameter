@@ -128,7 +128,7 @@ Description: Legacy XML dictionary files support.
 
 Package: freediameter-radius-gateway
 Architecture: any
-Depends: ${misc:Depends}, freediameter-common (= ${binary:Version})
+Depends: ${misc:Depends}, freediameter-daemon (= ${binary:Version})
 Suggests: freediameter-dictionary-rfc4072 (= ${binary:Version}), freediameter-dictionary-rfc4740 (= ${binary:Version})
 Description: RADIUS/Diameter extensible gateway.
  This freeDiameter extension implements a RADIUS to Diameter
@@ -161,7 +161,7 @@ Description: RADIUS/Diameter extensible gateway.
 
 Package: freediameter-accounting-server
 Architecture: any
-Depends: ${misc:Depends}, freediameter-common (= ${binary:Version}), libpq5
+Depends: ${misc:Depends}, freediameter-daemon (= ${binary:Version}), libpq5
 Suggests: freediameter-dictionary-rfc4072
 Description: freeDiameter simple Accounting server.
  This freeDiameter extension implements the Diameter Base 
@@ -181,7 +181,7 @@ Description: freeDiameter simple Accounting server.
 
 Package: freediameter-eap-server
 Architecture: any
-Depends: ${misc:Depends}, freediameter-common (= ${binary:Version}), libmysqlclient16, freediameter-dictionary-rfc4072 (= ${binary:Version})
+Depends: ${misc:Depends}, freediameter-daemon (= ${binary:Version}), libmysqlclient16, freediameter-dictionary-rfc4072 (= ${binary:Version})
 Description: freeDiameter Diameter EAP server implementation.
  This freeDiameter extension implements a Diameter EAP server. 
  It supports EAP-MD5 and EAP-TLS methods currently.
@@ -196,7 +196,7 @@ Description: freeDiameter Diameter EAP server implementation.
 
 Package: freediameter-sip-server
 Architecture: any
-Depends: ${misc:Depends}, freediameter-common (= ${binary:Version}), libmysqlclient16, freediameter-dictionary-rfc4740 (= ${binary:Version})
+Depends: ${misc:Depends}, freediameter-daemon (= ${binary:Version}), libmysqlclient16, freediameter-dictionary-rfc4740 (= ${binary:Version})
 Description: freeDiameter Diameter SIP server implementation.
  This freeDiameter extension implements a prototype 
  Diameter SIP server.
