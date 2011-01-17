@@ -79,7 +79,6 @@ IF(NOT DISABLE_SCTP)
 	CHECK_FUNCTION_EXISTS(sctp_connectx HAVE_NATIVE_SCTP)
 	IF(NOT HAVE_NATIVE_SCTP)
 		FIND_PACKAGE(SCTP REQUIRED)
-		INCLUDE_DIRECTORIES(${SCTP_INCLUDE_DIR})
 	ENDIF(NOT HAVE_NATIVE_SCTP)
 	# Now check the number of args of this function, since it changed between Ubuntu 9.04 and 9.10
    	SET(CHECK_SCTP_CONNECTX_4_ARGS_SOURCE_CODE "
@@ -99,14 +98,12 @@ ENDIF(NOT DISABLE_SCTP)
 
 # Require GNU TLS for building the library
 FIND_PACKAGE(GnuTLS REQUIRED)
-INCLUDE_DIRECTORIES(${GNUTLS_INCLUDE_DIR})
 
 find_path(GCRYPT_INCLUDE_DIR NAMES gcrypt.h)
 If ( NOT GCRYPT_INCLUDE_DIR )
 	MESSAGE(SEND_ERROR "Unable to find gcrypt.h, please install libgcrypt-dev or equivalent")
 Endif ( NOT GCRYPT_INCLUDE_DIR )
 MARK_AS_ADVANCED(GCRYPT_INCLUDE_DIR)
-INCLUDE_DIRECTORIES(${GCRYPT_INCLUDE_DIR})
 
 # Also we need libgcrypt to... display its version :(
 find_library(GCRYPT_LIBRARY 
@@ -119,6 +116,7 @@ Endif ( NOT GCRYPT_LIBRARY )
 
 # LFDCORE_LIBS = libraries required by the libfdcore
 SET(LFDCORE_LIBS ${CMAKE_DL_LIBS} ${SCTP_LIBRARIES} ${GCRYPT_LIBRARY} ${GNUTLS_LIBRARIES} PARENT_SCOPE)
+SET(LFDCORE_INCLUDES ${SCTP_INCLUDE_DIR} ${GNUTLS_INCLUDE_DIR} ${GCRYPT_INCLUDE_DIR} PARENT_SCOPE)
 
 ##########################
 # Create the absolute path for searching extensions
