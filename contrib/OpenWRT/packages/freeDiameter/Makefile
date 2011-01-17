@@ -12,7 +12,7 @@ include $(TOPDIR)/rules.mk
 PKG_NAME:=freeDiameter
 PKG_REV:=671
 PKG_VERSION:=r$(PKG_REV)
-PKG_RELEASE:=1
+PKG_RELEASE:=2
 
 PKG_SOURCE_PROTO:=hg
 PKG_SOURCE_VERSION:=$(PKG_REV)
@@ -112,7 +112,7 @@ define Package/freeDiameter/install
 							>> $(1)/etc/freeDiameter/freeDiameter.conf
 	echo "TLS_CA = \"/etc/freeDiameter/freeDiameter.ca.pem\";" \
 							>> $(1)/etc/freeDiameter/freeDiameter.conf
-	echo "TLS_DH_File = \"/etc/freeDiameter/dh.pem\";"
+	echo "TLS_DH_File = \"/etc/freeDiameter/dh.pem\";" \
 				 			>> $(1)/etc/freeDiameter/freeDiameter.conf
 	echo "SCTP_streams = 3;"			>> $(1)/etc/freeDiameter/freeDiameter.conf
 	echo "LoadExtension = \"dict_nasreq.fdx\";" 	>> $(1)/etc/freeDiameter/freeDiameter.conf
