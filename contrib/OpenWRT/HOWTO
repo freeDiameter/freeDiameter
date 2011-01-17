@@ -42,6 +42,7 @@ $ make menuconfig
 
 - Network --->
    freeDiameter (M)
+   freeDiameter-test (M)
    wpad (*)
    wpad-mini ( )
 
