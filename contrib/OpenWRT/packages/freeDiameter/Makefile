@@ -10,9 +10,9 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=freeDiameter
-PKG_REV:=671
+PKG_REV:=675
 PKG_VERSION:=r$(PKG_REV)
-PKG_RELEASE:=2
+PKG_RELEASE:=1
 
 PKG_SOURCE_PROTO:=hg
 PKG_SOURCE_VERSION:=$(PKG_REV)
@@ -231,7 +231,9 @@ fi
 if [ ! -f "/etc/freeDiameter/dh.pem" ]; then
    echo "Creating new Diffie-Hellman parameters file. This operation takes a while..."
    certtool --generate-dh-params --outfile /etc/freeDiameter/dh.pem
+   echo "Done."
 fi
+echo "freeDiameter configuration completed and stored in /etc/freeDiameter/."
 endef
 
 $(eval $(call BuildPackage,freeDiameter))
