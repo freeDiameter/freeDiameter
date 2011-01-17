@@ -7,8 +7,9 @@ freediameter (1.1.0) UNRELEASED; urgency=low
   * API version bumped to version 4 accordingly.
   * Improved fd_dict_new() when the same object already exists.
   * Improvements to dict_legacy_xml extension.
+  * Cleanups in links to shared libraries
 
- -- Sebastien Decugis <sdecugis@nict.go.jp>  Fri, 14 Jan 2011 16:04:41 +0900
+ -- Sebastien Decugis <sdecugis@nict.go.jp>  Mon, 17 Jan 2011 18:00:43 +0900
 
 freediameter (1.0.4) UNRELEASED; urgency=low
 
