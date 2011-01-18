@@ -1298,7 +1298,43 @@ static int auth_diam_ans( struct rgwp_config * cs, struct session * session, str
 		
 		if (!(ahdr->avp_flags & AVP_FLAG_VENDOR)) {
 			switch (ahdr->avp_code) {
+		/* In case of Diameter error, include the Reply-Message attribute */
+				case DIAM_ATTR_ERROR_MESSAGE:
+					CONV2RAD_STR(RADIUS_ATTR_REPLY_MESSAGE, ahdr->avp_value->os.data, ahdr->avp_value->os.len, 2);
+					break;
+					
+				case DIAM_ATTR_ERROR_REPORTING_HOST:
+					{
+						char buf[254];
+						int bsz = snprintf(buf, sizeof(buf), "Error-Reporting-Host: %*s", ahdr->avp_value->os.len, ahdr->avp_value->os.data);
+						CONV2RAD_STR(RADIUS_ATTR_REPLY_MESSAGE, (uint8_t *)buf, bsz, 2);
+					}
+					break;
 				
+				case DIAM_ATTR_FAILED_AVP:
+					{
+						struct avp * favp;
+						CHECK_FCT( fd_msg_browse(avp, MSG_BRW_FIRST_CHILD, &favp, NULL) );
+						if (favp) {
+							char buf[254];
+							int bsz;
+							struct dict_object * favp_model;
+							
+							CHECK_FCT( fd_msg_model(favp, &favp_model) );
+							if (favp_model) {
+								struct dict_avp_data fadata;
+								CHECK_FCT( fd_dict_getval(favp_model, &fadata) );
+								bsz = snprintf(buf, sizeof(buf), "Failed-AVP: %s", fadata.avp_name);
+							} else {
+								struct avp_hdr * favp_hdr;
+								CHECK_FCT( fd_msg_avp_hdr ( favp, &favp_hdr ) );
+								bsz = snprintf(buf, sizeof(buf), "Failed-AVP: code %u, vendor %u", favp_hdr->avp_code, favp_hdr->avp_vendor);
+							}
+							CONV2RAD_STR(RADIUS_ATTR_REPLY_MESSAGE, (uint8_t *)buf, bsz, 2);
+						}
+					}
+					break;
+					
 		/* RFC 4005 (AVP in the order of the AA-Request/Answer AVP Table) */
 				case DIAM_ATTR_ACCT_INTERIM_INTERVAL:
 					CONV2RAD_32B(RADIUS_ATTR_ACCT_INTERIM_INTERVAL, ahdr->avp_value->u32);
