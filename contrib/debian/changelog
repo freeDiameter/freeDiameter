@@ -8,8 +8,10 @@ freediameter (1.1.0) UNRELEASED; urgency=low
   * Improved fd_dict_new() when the same object already exists.
   * Improvements to dict_legacy_xml extension.
   * Cleanups in links to shared libraries
+  * (app_radgw.fdx) Better handling conversion of DEA with error status
+    to RADIUS (closes #25)
 
- -- Sebastien Decugis <sdecugis@nict.go.jp>  Mon, 17 Jan 2011 18:00:43 +0900
+ -- Sebastien Decugis <sdecugis@nict.go.jp>  Tue, 18 Jan 2011 14:53:52 +0900
 
 freediameter (1.0.4) UNRELEASED; urgency=low
 
