@@ -67,6 +67,8 @@
 #define FAILTEST( message... ){				\
 	fprintf(stderr, ## message);			\
 	TRACE_DEBUG(INFO, "Test failed");		\
+	(void)fd_core_shutdown();			\
+	(void)fd_core_wait_shutdown_complete();		\
 	exit(FAIL);					\
 }
 
@@ -74,6 +76,8 @@
 #define PASSTEST( ){					\
 	fprintf(stderr, "Test %s passed\n", __FILE__);	\
 	TRACE_DEBUG(INFO, "Test passed");		\
+	(void)fd_core_shutdown();			\
+	(void)fd_core_wait_shutdown_complete();		\
 	exit(PASS);					\
 }
 

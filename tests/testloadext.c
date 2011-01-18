@@ -59,11 +59,10 @@ int main(int argc, char *argv[])
 	CHECK( 0, fd_rtdisp_init()  );
 	
 	/* Find all extensions which have been compiled along the test */
-	if (test_verbo > 0) {
-		printf("Loading from: '%s'\n", BUILD_DIR "/extensions");
-	}
+	TRACE_DEBUG(INFO, "Loading from: '%s'\n", BUILD_DIR "/extensions");
 	CHECK( 0, (dir = opendir (BUILD_DIR "/extensions")) == NULL ? 1 : 0 );
 	pathlen = snprintf(fullname, sizeof(fullname), BUILD_DIR "/extensions/");
+	
 	while ((dp = readdir (dir)) != NULL) {
 		char * dot = strrchr(dp->d_name, '.');
 		if (dot && !(strcmp(dot, ".fdx"))) {
@@ -72,28 +71,26 @@ int main(int argc, char *argv[])
 			int r;
 			snprintf(fullname + pathlen, sizeof(fullname) - pathlen, "%s", dp->d_name);
 			
-			if (test_verbo > 0) {
-				printf("Extension: '%s'\n", dp->d_name);
-			}
+			TRACE_DEBUG(INFO, "Extension: '%s'\n", dp->d_name);
 			
 			/* load */
 			hdl = dlopen(fullname, RTLD_NOW | RTLD_GLOBAL);
 			if (!hdl) {
-				printf("Unable to load '%s': %s.\n", fullname, dlerror());
+				TRACE_DEBUG(INFO, "Unable to load '%s': %s.\n", fullname, dlerror());
 			}
 			CHECK( 0, hdl == NULL ? 1 : 0 );
 			
 			/* resolve entry */
 			ep = dlsym( hdl, "fd_ext_init" );
 			if (!ep) {
-				printf("No 'fd_ext_init' entry point in '%s': %s.\n", fullname, dlerror());
+				TRACE_DEBUG(INFO, "No 'fd_ext_init' entry point in '%s': %s.\n", fullname, dlerror());
 			}
 			CHECK( 0, ep == NULL ? 1 : 0 );
 			
 			/* Done, now unload */
 			r = dlclose(hdl);
 			if (r) {
-				printf("Unable to dlclose '%s': %s.\n", fullname, dlerror());
+				TRACE_DEBUG(INFO, "Unable to dlclose '%s': %s.\n", fullname, dlerror());
 			}
 			CHECK( 0, r );
 		}
