@@ -143,8 +143,11 @@ SET(LFDCORE_LIBS ${CLOCK_GETTIME_LIBS} ${CMAKE_DL_LIBS} ${SCTP_LIBRARIES} ${GCRY
 # And includes paths
 SET(LFDCORE_INCLUDES ${SCTP_INCLUDE_DIR} ${GNUTLS_INCLUDE_DIR} ${GCRYPT_INCLUDE_DIR} PARENT_SCOPE)
 # And dependencies
-SET(LFDCORE_LINK_INTERFACES "" PARENT_SCOPE) # We don't force any other library, the programs will link with what they needs 
-                                             # (such as libgnutls if they use GNUTLS_DEBUG() macro)
+SET(LFDCORE_LINK_INTERFACES "" PARENT_SCOPE) 
+		# We don't force other libraries, the programs will link with what it needs
+                # (such as libgnutls if it uses GNUTLS_DEBUG() macro
+		# or libfdproto if it uses some of its interfaces directly)
+		# See freeDiameterd/CMakeLists.txt for an example.
 
 ##########################
 
