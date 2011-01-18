@@ -1165,20 +1165,20 @@ static int auth_diam_ans( struct rgwp_config * cs, struct session * session, str
 					ahdr->avp_value->u32, 
 					oh->avp_value->os.len, oh->avp_value->os.data,
 					sid->avp_value->os.len, sid->avp_value->os.data);
-			CHECK_FCT( fd_msg_search_avp (*diam_ans, cs->dict.Error_Message, &avp) );
-			if (avp) {
-				CHECK_FCT( fd_msg_avp_hdr ( avp, &ahdr ) );
+			CHECK_FCT( fd_msg_search_avp (*diam_ans, cs->dict.Error_Message, &avp_x) );
+			if (avp_x) {
+				CHECK_FCT( fd_msg_avp_hdr ( avp_x, &ahdr ) );
 				fd_log_debug("[auth.rgwx]   Error-Message content: '%.*s'\n",
 						ahdr->avp_value->os.len, ahdr->avp_value->os.data);
 			}
-			CHECK_FCT( fd_msg_search_avp (*diam_ans, cs->dict.Error_Reporting_Host, &avp) );
-			if (avp) {
-				CHECK_FCT( fd_msg_avp_hdr ( avp, &ahdr ) );
+			CHECK_FCT( fd_msg_search_avp (*diam_ans, cs->dict.Error_Reporting_Host, &avp_x) );
+			if (avp_x) {
+				CHECK_FCT( fd_msg_avp_hdr ( avp_x, &ahdr ) );
 				fd_log_debug("[auth.rgwx]   Error-Reporting-Host: '%.*s'\n",
 						ahdr->avp_value->os.len, ahdr->avp_value->os.data);
 			}
-			CHECK_FCT( fd_msg_search_avp (*diam_ans, cs->dict.Failed_AVP, &avp) );
-			if (avp) {
+			CHECK_FCT( fd_msg_search_avp (*diam_ans, cs->dict.Failed_AVP, &avp_x) );
+			if (avp_x) {
 				fd_log_debug("[auth.rgwx]   Failed-AVP was included in the message.\n");
 				/* Dump its content ? */
 			}
