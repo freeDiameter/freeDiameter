@@ -61,7 +61,7 @@ int main(int argc, char * argv[])
 	int ret;
 	sigset_t sig_all;
 	
-	/* Block all signals from the current thread and all its future children */
+	/* Block all signals from the current thread and all its future children -- we will catch everything in catch_signals */
 	sigfillset(&sig_all);
 	ret = pthread_sigmask(SIG_BLOCK, &sig_all, NULL);
 	ASSERT(ret == 0);
@@ -268,6 +268,9 @@ static void * catch_signals(void * arg)
 	/* Signals that send an event */
 	sigaddset(&ss, SIGUSR1);
 	sigaddset(&ss, SIGUSR2);
+	
+	/* We unblock all other signals, so that their default handler is used (such as SIGTSTP) */
+	CHECK_SYS_DO( pthread_sigmask( SIG_SETMASK, &ss, NULL ), goto out );
 	
 	/* Now loop on the reception of the signal */
 	while (1) {

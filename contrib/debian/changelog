@@ -10,8 +10,10 @@ freediameter (1.1.0) UNRELEASED; urgency=low
   * Cleanups in links to shared libraries
   * (app_radgw.fdx) Better handling conversion of DEA with error status
     to RADIUS (closes #25)
+  * Allow default signals such as SIGTSTP (ctrl-z) to be used with
+    freeDiameterd
 
- -- Sebastien Decugis <sdecugis@nict.go.jp>  Tue, 18 Jan 2011 14:53:52 +0900
+ -- Sebastien Decugis <sdecugis@nict.go.jp>  Tue, 18 Jan 2011 15:13:00 +0900
 
 freediameter (1.0.4) UNRELEASED; urgency=low
 
