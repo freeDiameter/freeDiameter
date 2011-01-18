@@ -1182,7 +1182,6 @@ static int auth_diam_ans( struct rgwp_config * cs, struct session * session, str
 				fd_log_debug("[auth.rgwx]   Failed-AVP was included in the message.\n");
 				/* Dump its content ? */
 			}
-			return 0;
 	}
 	/* Remove this Result-Code avp */
 	CHECK_FCT( fd_msg_free( avp ) );
