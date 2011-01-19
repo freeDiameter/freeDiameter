@@ -35,10 +35,10 @@
 
 #include "fdcore-internal.h"
 
-/* Server (listening) part of the daemon */
+/* Server (listening) part of the framework */
 
-struct fd_list		FD_SERVERS = FD_LIST_INITIALIZER(FD_SERVERS);	/* The list of all server objects */
-/* We don't need to protect this list, it is only accessed from the main daemon thread. */
+static struct fd_list	FD_SERVERS = FD_LIST_INITIALIZER(FD_SERVERS);	/* The list of all server objects */
+/* We don't need to protect this list, it is only accessed from the main framework thread. */
 
 /* Servers information */
 struct server {
@@ -82,7 +82,7 @@ void fd_servers_dump()
 				((s->status == 2) ? "Thread terminated" :
 							  "Thread status unknown")));
 		/* Dump the client list of this server */
-		(void) pthread_mutex_lock(&s->clients_mtx);
+		CHECK_POSIX_DO( pthread_mutex_lock(&s->clients_mtx), );
 		for (cli = s->clients.next; cli != &s->clients; cli = cli->next) {
 			struct client * c = (struct client *)cli;
 			char bufts[128];
@@ -90,7 +90,7 @@ void fd_servers_dump()
 					fd_cnx_getid(c->conn),
 					fd_log_time(&c->ts, bufts, sizeof(bufts)));
 		}
-		(void) pthread_mutex_unlock(&s->clients_mtx);
+		CHECK_POSIX_DO( pthread_mutex_unlock(&s->clients_mtx), );
 	}
 }
 

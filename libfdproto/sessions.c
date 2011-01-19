@@ -121,7 +121,7 @@ static pthread_mutex_t 	sid_lock = PTHREAD_MUTEX_INITIALIZER;
 static struct fd_list	exp_sentinel = FD_LIST_INITIALIZER(exp_sentinel);	/* list of sessions ordered by their timeout date */
 static pthread_mutex_t	exp_lock = PTHREAD_MUTEX_INITIALIZER;	/* lock protecting the list. */
 static pthread_cond_t	exp_cond = PTHREAD_COND_INITIALIZER;	/* condvar used by the expiry mecahinsm. */
-static pthread_t	exp_thr; 	/* The expiry thread that handles cleanup of expired sessions */
+static pthread_t	exp_thr = (pthread_t)NULL; 	/* The expiry thread that handles cleanup of expired sessions */
 
 /* Hierarchy of the locks, to avoid deadlocks:
  *  hash lock > state lock > expiry lock

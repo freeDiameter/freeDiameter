@@ -456,6 +456,9 @@ int fd_conf_deinit()
 {
 	TRACE_ENTRY();
 	
+	if (!fd_g_config)
+		return 0;
+	
 	/* Free the TLS parameters */
 	gnutls_priority_deinit(fd_g_config->cnf_sec_data.prio_cache);
 	gnutls_dh_params_deinit(fd_g_config->cnf_sec_data.dh_cache);

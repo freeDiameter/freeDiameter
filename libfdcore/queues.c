@@ -59,6 +59,10 @@ int fd_queues_fini(struct fifo ** queue)
 	TRACE_ENTRY("%p", queue);
 	
 	/* Note : the threads that post into this queue should already been stopped before this !!! */
+	
+	CHECK_PARAMS(queue);
+	if (*queue == NULL)
+		return 0; /* the queue was not already initialized */
 
 	/* Empty all contents */
 	while (1) {

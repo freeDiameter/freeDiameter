@@ -1108,8 +1108,8 @@ int fd_msg_sess_get(struct dictionary * dict, struct msg * msg, struct session *
 
 
 /******************* End-to-end counter *********************/
-uint32_t fd_eteid;
-pthread_mutex_t fd_eteid_lck = PTHREAD_MUTEX_INITIALIZER;
+static uint32_t fd_eteid;
+static pthread_mutex_t fd_eteid_lck = PTHREAD_MUTEX_INITIALIZER;
 
 void fd_msg_eteid_init(void)
 {

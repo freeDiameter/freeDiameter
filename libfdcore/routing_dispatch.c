@@ -972,11 +972,11 @@ static enum { RUN = 0, STOP = 1 } order_val = RUN;
 static pthread_mutex_t order_lock = PTHREAD_MUTEX_INITIALIZER;
 
 /* Threads report their status */
-enum thread_state { INITIAL = 0, RUNNING = 1, TERMINATED = 2 };
+enum thread_state { NOTRUNNING = 0, RUNNING = 1 };
 static void cleanup_state(void * state_loc)
 {
 	if (state_loc)
-		*(enum thread_state *)state_loc = TERMINATED;
+		*(enum thread_state *)state_loc = NOTRUNNING;
 }
 
 /* This is the common thread code (same for routing and dispatching) */
@@ -1079,10 +1079,10 @@ static enum thread_state * disp_state = NULL;
 
 /* Later: make this more dynamic */
 static pthread_t rt_out = (pthread_t)NULL;
-static enum thread_state out_state = INITIAL;
+static enum thread_state out_state = NOTRUNNING;
 
 static pthread_t rt_in  = (pthread_t)NULL;
-static enum thread_state in_state = INITIAL;
+static enum thread_state in_state = NOTRUNNING;
 
 /* Initialize the routing and dispatch threads */
 int fd_rtdisp_init(void)
@@ -1090,8 +1090,8 @@ int fd_rtdisp_init(void)
 	int i;
 	
 	/* Prepare the array for dispatch */
-	CHECK_MALLOC( dispatch = calloc(fd_g_config->cnf_dispthr, sizeof(pthread_t)) );
 	CHECK_MALLOC( disp_state = calloc(fd_g_config->cnf_dispthr, sizeof(enum thread_state)) );
+	CHECK_MALLOC( dispatch = calloc(fd_g_config->cnf_dispthr, sizeof(pthread_t)) );
 	
 	/* Create the threads */
 	for (i=0; i < fd_g_config->cnf_dispthr; i++) {
@@ -1125,7 +1125,7 @@ static void stop_thread_delayed(enum thread_state *st, pthread_t * thr, char * t
 
 	/* Wait for a second for the thread to complete, by monitoring my_state */
 	fd_cpu_flush_cache();
-	if (*st != TERMINATED) {
+	if (*st != NOTRUNNING) {
 		TRACE_DEBUG(INFO, "Waiting for the %s thread to have a chance to terminate", th_name);
 		do {
 			struct timespec	 ts, ts_final;
@@ -1136,7 +1136,8 @@ static void stop_thread_delayed(enum thread_state *st, pthread_t * thr, char * t
 			ts_final.tv_nsec = ts.tv_nsec;
 			
 			while (TS_IS_INFERIOR( &ts, &ts_final )) {
-				if (*st == TERMINATED)
+				fd_cpu_flush_cache();
+				if (*st == NOTRUNNING)
 					break;
 				
 				usleep(100000);
@@ -1170,9 +1171,17 @@ int fd_rtdisp_fini(void)
 	/* Destroy the local queue */
 	CHECK_FCT_DO( fd_queues_fini(&fd_g_local), /* ignore */);
 	
-	/* Stop the Dispatch thread */
-	for (i=0; i < fd_g_config->cnf_dispthr; i++) {
-		stop_thread_delayed(&disp_state[i], &dispatch[i], "Dispatching");
+	/* Stop the Dispatch threads */
+	if (dispatch != NULL) {
+		for (i=0; i < fd_g_config->cnf_dispthr; i++) {
+			stop_thread_delayed(&disp_state[i], &dispatch[i], "Dispatching");
+		}
+		free(dispatch);
+		dispatch = NULL;
+	}
+	if (disp_state != NULL) {
+		free(disp_state);
+		disp_state = NULL;
 	}
 	
 	return 0;

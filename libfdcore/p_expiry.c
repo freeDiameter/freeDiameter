@@ -38,8 +38,8 @@
 /* Delay for garbage collection of expired peers, in seconds */
 #define GC_TIME		120
 
-static pthread_t       exp_thr;
-static pthread_t       gc_thr;
+static pthread_t       exp_thr = (pthread_t)NULL;
+static pthread_t       gc_thr  = (pthread_t)NULL;
 static struct fd_list  exp_list = FD_LIST_INITIALIZER( exp_list );
 static pthread_cond_t  exp_cnd  = PTHREAD_COND_INITIALIZER;
 static pthread_mutex_t exp_mtx  = PTHREAD_MUTEX_INITIALIZER;

@@ -38,8 +38,8 @@
 #include <gcrypt.h>
 
 /* The static configuration structure */
-static struct fd_config conf;
-struct fd_config * fd_g_config = &conf;
+static struct fd_config g_conf;
+struct fd_config * fd_g_config = NULL;
 
 /* gcrypt functions to support posix threads */
 GCRY_THREAD_OPTION_PTHREAD_IMPL;
@@ -61,10 +61,17 @@ static int signal_framework_ready(void)
 
 /* Thread that process incoming events on the main queue -- and terminates the framework when requested */
 static pthread_t core_runner = (pthread_t)NULL;
+enum core_mode {
+	CORE_MODE_EVENTS,
+	CORE_MODE_IMMEDIATE
+};
 
 static void * core_runner_thread(void * arg) 
 {
 	fd_log_threadname("Core Runner");
+	
+	if (arg && (*(int *)arg == CORE_MODE_IMMEDIATE))
+		goto end;
 	
 	/* Handle events incoming on the main event queue */
 	while (1) {
@@ -160,8 +167,6 @@ int fd_core_initialize(void)
 {
 	int ret;
 	
-	memset(fd_g_config, 0, sizeof(struct fd_config));
-	
 	/* Initialize the library -- must come first since it initializes the debug facility */
 	ret = fd_libproto_init();
 	if (ret != 0) {
@@ -186,6 +191,8 @@ int fd_core_initialize(void)
 	}
 	
 	/* Initialize the config with default values */
+	memset(&g_conf, 0, sizeof(struct fd_config));
+	fd_g_config = &g_conf;
 	CHECK_FCT( fd_conf_init() );
 
 	/* Add definitions of the base protocol */
@@ -268,8 +275,14 @@ int fd_core_start(void)
 /* Initialize shutdown of the framework. This is not blocking. */
 int fd_core_shutdown(void)
 {
-	/* Signal the framework to terminate */
-	CHECK_FCT( fd_event_send(fd_g_config->cnf_main_ev, FDEV_TERMINATE, 0, NULL) );
+	if (core_runner != (pthread_t)NULL) {
+		/* Signal the framework to terminate */
+		CHECK_FCT( fd_event_send(fd_g_config->cnf_main_ev, FDEV_TERMINATE, 0, NULL) );
+	} else {
+		/* The framework was maybe not fully initialized (ex: tests) */
+		enum core_mode arg = CORE_MODE_IMMEDIATE;
+		(void) core_runner_thread(&arg);
+	}
 	
 	return 0;
 }
@@ -281,11 +294,13 @@ int fd_core_wait_shutdown_complete(void)
 	int ret;
 	void * th_ret = NULL;
 	
-	/* Just wait for core_runner_thread to complete and return gracefully */
-	ret = pthread_join(core_runner, &th_ret);
-	if (ret != 0) {
-		fprintf(stderr, "Unable to wait for main framework thread termination: %s\n", strerror(ret));
-		return ret;
+	if (core_runner != (pthread_t)NULL) {
+		/* Just wait for core_runner_thread to complete and return gracefully */
+		ret = pthread_join(core_runner, &th_ret);
+		if (ret != 0) {
+			fprintf(stderr, "Unable to wait for main framework thread termination: %s\n", strerror(ret));
+			return ret;
+		}
 	}
 	
 	return 0;
