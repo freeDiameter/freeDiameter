@@ -94,9 +94,11 @@ void fd_libproto_fini(void);
 
 
 /*
- * FUNCTION:	fd_log_debug
+ * FUNCTION:	fd_log_debug_fstr
+ * MACRO:	fd_log_debug
  *
  * PARAMETERS:
+ *  fstr	: Stream where the text will be sent (default: stdout) 
  *  format 	: Same format string as in the printf function
  *  ...		: Same list as printf
  *
@@ -111,7 +113,9 @@ void fd_libproto_fini(void);
  * RETURN VALUE:
  *  None.
  */
-void fd_log_debug ( const char * format, ... );
+void fd_log_debug_fstr ( FILE * fstr, const char * format, ... );
+#define fd_log_debug(format,args...) fd_log_debug_fstr(NULL, format, ## args)
+
 extern pthread_mutex_t	fd_log_lock;
 extern char * fd_debug_one_function;
 extern char * fd_debug_one_file;
@@ -1009,7 +1013,7 @@ struct dict_type_data {
 	char 			*type_name;	/* The name of this type */
 	dict_avpdata_interpret	 type_interpret;/* cb to convert the AVP value in more comprehensive format (or NULL) */
 	dict_avpdata_encode	 type_encode;	/* cb to convert formatted data into an AVP value (or NULL) */
-	void			(*type_dump)(union avp_value * val);	/* cb called by fd_msg_dump_one for this type of data (if != NULL), to dump the AVP value in debug */
+	void			(*type_dump)(union avp_value * val, FILE * fstr);	/* cb called by fd_msg_dump_one for this type of data (if != NULL), to dump the AVP value in fstr */
 };
 
 /* The criteria for searching a type object in the dictionary */
@@ -2032,6 +2036,36 @@ int fd_msg_free ( msg_or_avp * object );
 void fd_msg_dump_walk ( int level, msg_or_avp *obj );
 void fd_msg_dump_one  ( int level, msg_or_avp *obj );
 
+/*
+ * FUNCTION:	fd_msg_log
+ *
+ * PARAMETERS:
+ *  cause	 : Context for calling this function. This allows the log facility to be configured precisely.
+ *  msg		 : The message to log.
+ *  prefix_format: Printf-style format message that is printed ahead of the message. Might be reason for drop or so.
+ *
+ * DESCRIPTION: 
+ *   This function is called when a Diameter message reaches some particular points in the fD framework.
+ * The actual effect is configurable: log in a separate file, dump in the debug log, etc.
+ *
+ * RETURN VALUE:
+ *   -
+ */
+enum fd_msg_log_cause {
+	FD_MSG_LOG_DROPPED = 0,  /* message has been dropped by the framework */ 
+	FD_MSG_LOG_RECEIVED,     /* message received from the network */ 
+	FD_MSG_LOG_SENT          /* message sent to another peer */ 
+};
+#define FD_MSG_LOG_MAX FD_MSG_LOG_SENT
+void fd_msg_log( enum fd_msg_log_cause cause, struct msg * msg, const char * prefix_format, ... );
+
+/* configure the msg_log facility */
+enum fd_msg_log_method {
+	FD_MSG_LOGTO_DEBUGONLY = 0, /* Simply log the message with other debug information, at the INFO level. This is default */
+	FD_MSG_LOGTO_FILE,    /* Messages are dumped in a single file, defined in arg */
+	FD_MSG_LOGTO_DIR    /* Messages are dumped in different files within one directory defined in arg. */
+};
+int fd_msg_log_config(enum fd_msg_log_cause cause, enum fd_msg_log_method method, const char * arg);
 
 /*********************************************/
 /*   Message metadata management functions   */

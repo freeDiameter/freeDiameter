@@ -144,7 +144,7 @@ static int Address_interpret(union avp_value * avp_value, void * interpreted)
 }
 
 /* Dump the content of an Address AVP */
-static void Address_dump(union avp_value * avp_value)
+static void Address_dump(union avp_value * avp_value, FILE * fstr)
 {
 	union {
 		sSA	sa;
@@ -158,7 +158,7 @@ static void Address_dump(union avp_value * avp_value)
 	
 	/* The first two octets represent the address family, http://www.iana.org/assignments/address-family-numbers/ */
 	if (avp_value->os.len < 2) {
-		fd_log_debug("[invalid length: %d]", avp_value->os.len);
+		fd_log_debug_fstr(fstr, "[invalid length: %d]", avp_value->os.len);
 		return;
 	}
 	
@@ -169,7 +169,7 @@ static void Address_dump(union avp_value * avp_value)
 			/* IP */
 			s.sa.sa_family = AF_INET;
 			if (avp_value->os.len != 6) {
-				fd_log_debug("[invalid IP length: %d]", avp_value->os.len);
+				fd_log_debug_fstr(fstr, "[invalid IP length: %d]", avp_value->os.len);
 				return;
 			}
 			memcpy(&s.sin.sin_addr.s_addr, avp_value->os.data + 2, 4);
@@ -178,25 +178,33 @@ static void Address_dump(union avp_value * avp_value)
 			/* IP6 */
 			s.sa.sa_family = AF_INET6;
 			if (avp_value->os.len != 18) {
-				fd_log_debug("[invalid IP6 length: %d]", avp_value->os.len);
+				fd_log_debug_fstr(fstr, "[invalid IP6 length: %d]", avp_value->os.len);
 				return;
 			}
 			memcpy(&s.sin6.sin6_addr.s6_addr, avp_value->os.data + 2, 16);
 			break;
 		default:
-			fd_log_debug("[unsupported family: 0x%hx]", fam);
+			fd_log_debug_fstr(fstr, "[unsupported family: 0x%hx]", fam);
 			return;
 	}
-
-	sSA_DUMP_NODE(&s.sa, NI_NUMERICHOST);
+	
+	{
+		char addrbuf[INET6_ADDRSTRLEN];
+		int rc = getnameinfo(&s.sa, sSAlen(&s.sa), addrbuf, INET6_ADDRSTRLEN, NULL, 0, NI_NUMERICHOST);
+		if (rc)
+			fd_log_debug_fstr(fstr, "%s", (char *)gai_strerror(rc));
+		else
+			fd_log_debug_fstr(fstr, "%s", addrbuf);
+		
+	}
 }
 
-static void UTF8String_dump(union avp_value * avp_value)
+static void UTF8String_dump(union avp_value * avp_value, FILE * fstr)
 {
 	size_t len = avp_value->os.len;
 	if (len > 42)
 		len = 42; /* avoid very long strings */
-	fd_log_debug("%.*s", len, avp_value->os.data);
+	fd_log_debug_fstr(fstr, "%.*s", len, avp_value->os.data);
 }
 
 

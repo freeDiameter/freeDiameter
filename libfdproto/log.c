@@ -54,9 +54,8 @@ static void fd_cleanup_mutex_silent( void * mutex )
 	(void)pthread_mutex_unlock((pthread_mutex_t *)mutex);
 }
 
-
 /* Log a debug message */
-void fd_log_debug ( const char * format, ... )
+void fd_log_debug_fstr ( FILE * fstr, const char * format, ... )
 {
 	va_list ap;
 	
@@ -65,9 +64,9 @@ void fd_log_debug ( const char * format, ... )
 	pthread_cleanup_push(fd_cleanup_mutex_silent, &fd_log_lock);
 	
 	va_start(ap, format);
-	vfprintf( stdout, format, ap);
+	vfprintf( fstr ?: stdout, format, ap);
 	va_end(ap);
-	fflush(stdout);
+	fflush(fstr ?: stdout);
 
 	pthread_cleanup_pop(0);
 	

@@ -47,12 +47,15 @@ void fd_msg_eteid_init(void);
 int fd_sess_init(void);
 void fd_sess_fini(void);
 
+/* Where debug messages are sent */
+FILE * fd_g_debug_fstr;
+
 /* Iterator on the rules of a parent object */
 int fd_dict_iterate_rules ( struct dict_object *parent, void * data, int (*cb)(void *, struct dict_rule_data *) );
 
 /* Dispatch / messages / dictionary API */
 int fd_dict_disp_cb(enum dict_object_type type, struct dict_object *obj, struct fd_list ** cb_list);
-void fd_dict_dump_avp_value(union avp_value *avp_value, struct dict_object * model, int indent);
+void fd_dict_dump_avp_value(union avp_value *avp_value, struct dict_object * model, int indent, FILE * fstr);
 int fd_disp_call_cb_int( struct fd_list * cb_list, struct msg ** msg, struct avp *avp, struct session *sess, enum disp_action *action, 
 			struct dict_object * obj_app, struct dict_object * obj_cmd, struct dict_object * obj_avp, struct dict_object * obj_enu);
 extern pthread_rwlock_t fd_disp_lock;

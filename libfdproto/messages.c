@@ -660,20 +660,20 @@ int fd_msg_free ( msg_or_avp * object )
 #define INOBJHDRVAL 	indent<0 ? 1 : indent, indent<0 ? "-" : "|"
 
 /* Dump a msg_t object */
-static void obj_dump_msg (struct msg * msg, int indent )
+static void obj_dump_msg (struct msg * msg, int indent, FILE * fstr )
 {
 	int ret = 0;
 	
-	fd_log_debug("%*sMSG: %p\n", INOBJHDRVAL, msg);
+	fd_log_debug_fstr(fstr, "%*sMSG: %p\n", INOBJHDRVAL, msg);
 	
 	if (!CHECK_MSG(msg)) {
-		fd_log_debug(INOBJHDR "INVALID!\n", INOBJHDRVAL);
+		fd_log_debug_fstr(fstr, INOBJHDR "INVALID!\n", INOBJHDRVAL);
 		return;
 	}
 	
 	if (!msg->msg_model) {
 		
-		fd_log_debug(INOBJHDR "(no model)\n", INOBJHDRVAL);
+		fd_log_debug_fstr(fstr, INOBJHDR "(no model)\n", INOBJHDRVAL);
 		
 	} else {
 		
@@ -681,19 +681,19 @@ static void obj_dump_msg (struct msg * msg, int indent )
 		struct dict_cmd_data  dictdata;
 		ret = fd_dict_gettype(msg->msg_model, &dicttype);
 		if (ret || (dicttype != DICT_COMMAND)) {
-			fd_log_debug(INOBJHDR "(invalid model: %d %d)\n", INOBJHDRVAL, ret, dicttype);
+			fd_log_debug_fstr(fstr, INOBJHDR "(invalid model: %d %d)\n", INOBJHDRVAL, ret, dicttype);
 			goto public;
 		}
 		ret = fd_dict_getval(msg->msg_model, &dictdata);
 		if (ret != 0) {
-			fd_log_debug(INOBJHDR "(error getting model data: %s)\n", INOBJHDRVAL, strerror(ret));
+			fd_log_debug_fstr(fstr, INOBJHDR "(error getting model data: %s)\n", INOBJHDRVAL, strerror(ret));
 			goto public;
 		}
-		fd_log_debug(INOBJHDR "model : v/m:" DUMP_CMDFL_str "/" DUMP_CMDFL_str ", %u \"%s\"\n", INOBJHDRVAL, 
+		fd_log_debug_fstr(fstr, INOBJHDR "model : v/m:" DUMP_CMDFL_str "/" DUMP_CMDFL_str ", %u \"%s\"\n", INOBJHDRVAL, 
 			DUMP_CMDFL_val(dictdata.cmd_flag_val), DUMP_CMDFL_val(dictdata.cmd_flag_mask), dictdata.cmd_code, dictdata.cmd_name);
 	}
 public:	
-	fd_log_debug(INOBJHDR "public: V:%d L:%d fl:" DUMP_CMDFL_str " CC:%u A:%d hi:%x ei:%x\n", INOBJHDRVAL, 
+	fd_log_debug_fstr(fstr, INOBJHDR "public: V:%d L:%d fl:" DUMP_CMDFL_str " CC:%u A:%d hi:%x ei:%x\n", INOBJHDRVAL, 
 		msg->msg_public.msg_version,
 		msg->msg_public.msg_length,
 		DUMP_CMDFL_val(msg->msg_public.msg_flags),
@@ -702,24 +702,24 @@ public:
 		msg->msg_public.msg_hbhid,
 		msg->msg_public.msg_eteid
 		);
-	fd_log_debug(INOBJHDR "intern: rwb:%p rt:%d cb:%p(%p) qry:%p asso:%d sess:%p src:%s\n", 
+	fd_log_debug_fstr(fstr, INOBJHDR "intern: rwb:%p rt:%d cb:%p(%p) qry:%p asso:%d sess:%p src:%s\n", 
 			INOBJHDRVAL, msg->msg_rawbuffer, msg->msg_routable, msg->msg_cb.fct, msg->msg_cb.data, msg->msg_query, msg->msg_associated, msg->msg_sess, msg->msg_src_id?:"(nil)");
 }
 
 /* Dump an avp object */
-static void obj_dump_avp ( struct avp * avp, int indent )
+static void obj_dump_avp ( struct avp * avp, int indent, FILE * fstr )
 {
 	int ret = 0;
 	enum dict_avp_basetype type = -1;
 	
 	if (!CHECK_AVP(avp)) {
-		fd_log_debug(INOBJHDR "INVALID!\n", INOBJHDRVAL);
+		fd_log_debug_fstr(fstr, INOBJHDR "INVALID!\n", INOBJHDRVAL);
 		return;
 	}
 	
 	if (!avp->avp_model) {
 		
-		fd_log_debug(INOBJHDR "(no model)\n", INOBJHDRVAL);
+		fd_log_debug_fstr(fstr, INOBJHDR "(no model)\n", INOBJHDRVAL);
 		
 	} else {
 		
@@ -727,15 +727,15 @@ static void obj_dump_avp ( struct avp * avp, int indent )
 		struct dict_avp_data dictdata;
 		ret = fd_dict_gettype(avp->avp_model, &dicttype);
 		if (ret || (dicttype != DICT_AVP)) {
-			fd_log_debug(INOBJHDR "(invalid model: %d %d)\n", INOBJHDRVAL, ret, dicttype);
+			fd_log_debug_fstr(fstr, INOBJHDR "(invalid model: %d %d)\n", INOBJHDRVAL, ret, dicttype);
 			goto public;
 		}
 		ret = fd_dict_getval(avp->avp_model, &dictdata);
 		if (ret != 0) {
-			fd_log_debug(INOBJHDR "(error getting model data: %s)\n", INOBJHDRVAL, strerror(ret));
+			fd_log_debug_fstr(fstr, INOBJHDR "(error getting model data: %s)\n", INOBJHDRVAL, strerror(ret));
 			goto public;
 		}
-		fd_log_debug(INOBJHDR "model : v/m:" DUMP_AVPFL_str "/" DUMP_AVPFL_str ", %12s, %u \"%s\"\n", INOBJHDRVAL, 
+		fd_log_debug_fstr(fstr, INOBJHDR "model : v/m:" DUMP_AVPFL_str "/" DUMP_AVPFL_str ", %12s, %u \"%s\"\n", INOBJHDRVAL, 
 			DUMP_AVPFL_val(dictdata.avp_flag_val), 
 			DUMP_AVPFL_val(dictdata.avp_flag_mask), 
 			type_base_name[dictdata.avp_basetype], 
@@ -744,7 +744,7 @@ static void obj_dump_avp ( struct avp * avp, int indent )
 		type = dictdata.avp_basetype;
 	}
 public:	
-	fd_log_debug(INOBJHDR "public: C:%u fl:" DUMP_AVPFL_str " L:%d V:%u  data:@%p\n", INOBJHDRVAL, 
+	fd_log_debug_fstr(fstr, INOBJHDR "public: C:%u fl:" DUMP_AVPFL_str " L:%d V:%u  data:@%p\n", INOBJHDRVAL, 
 		avp->avp_public.avp_code,
 		DUMP_AVPFL_val(avp->avp_public.avp_flags),
 		avp->avp_public.avp_len,
@@ -754,17 +754,17 @@ public:
 	/* Dump the value if set */
 	if (avp->avp_public.avp_value) {
 		if (!avp->avp_model) {
-			fd_log_debug(INOBJHDR "(data set but no model: ERROR)\n", INOBJHDRVAL);
+			fd_log_debug_fstr(fstr, INOBJHDR "(data set but no model: ERROR)\n", INOBJHDRVAL);
 		} else {
-			fd_dict_dump_avp_value(avp->avp_public.avp_value, avp->avp_model, indent);
+			fd_dict_dump_avp_value(avp->avp_public.avp_value, avp->avp_model, indent, fstr);
 		}
 	}
 
-	fd_log_debug(INOBJHDR "intern: src:%p mf:%d raw:%p(%d)\n", INOBJHDRVAL, avp->avp_source, avp->avp_mustfreeos, avp->avp_rawdata, avp->avp_rawlen);
+	fd_log_debug_fstr(fstr, INOBJHDR "intern: src:%p mf:%d raw:%p(%d)\n", INOBJHDRVAL, avp->avp_source, avp->avp_mustfreeos, avp->avp_rawdata, avp->avp_rawlen);
 }
 
 /* Dump a single object content */
-static void msg_dump_intern ( int level, msg_or_avp * obj, int indent )
+static void msg_dump_intern ( int level, msg_or_avp * obj, int indent, FILE * fstr )
 {
 	/* Log only if we are at least at level */
 	if ( ! TRACE_BOOL(level) )
@@ -772,23 +772,38 @@ static void msg_dump_intern ( int level, msg_or_avp * obj, int indent )
 	
 	/* Check the object */
 	if (!VALIDATE_OBJ(obj)) {
-		fd_log_debug( ">>> invalid object (%p)!.\n", obj);
+		fd_log_debug_fstr(fstr, ">>> invalid object (%p)!.\n", obj);
 		return;
 	}
 	
 	/* Dump the object */
 	switch (_C(obj)->type) {
 		case MSG_AVP:
-			obj_dump_avp ( _A(obj), indent );
+			obj_dump_avp ( _A(obj), indent, fstr );
 			break;
 		
 		case MSG_MSG:
-			obj_dump_msg ( _M(obj), indent );
+			obj_dump_msg ( _M(obj), indent, fstr );
 			break;
 		
 		default:
 			ASSERT(0);
 	}
+}
+
+/* Dump a message to a specified file stream */
+static void fd_msg_dump_fstr ( struct msg * msg, FILE * fstr )
+{
+	msg_or_avp * ref = msg;
+	int indent = 2;
+	do {
+		msg_dump_intern ( NONE, ref, indent, fstr );
+		
+		/* Now find the next object */
+		CHECK_FCT_DO(  fd_msg_browse ( ref, MSG_BRW_WALK, &ref, &indent ), break  );
+		
+		/* dump next object */
+	} while (ref);
 }
 
 /* Dump a message content -- for debug mostly */
@@ -799,7 +814,7 @@ void fd_msg_dump_walk ( int level, msg_or_avp *obj )
 	
 	TRACE_DEBUG(level, "------ Dumping object %p (w)-------", obj);
 	do {
-		msg_dump_intern ( level, ref, indent );
+		msg_dump_intern ( level, ref, indent, fd_g_debug_fstr );
 		
 		/* Now find the next object */
 		CHECK_FCT_DO(  fd_msg_browse ( ref, MSG_BRW_WALK, &ref, &indent ), break  );
@@ -814,7 +829,7 @@ void fd_msg_dump_walk ( int level, msg_or_avp *obj )
 void fd_msg_dump_one ( int level, msg_or_avp * obj )
 {
 	TRACE_DEBUG(level, "------ Dumping object %p (s)-------", obj);
-	msg_dump_intern ( level, obj, 1 );
+	msg_dump_intern ( level, obj, 1, fd_g_debug_fstr );
 	TRACE_DEBUG(level, "------ /end of object %p -------", obj);
 }
 
@@ -1644,7 +1659,7 @@ static int parsedict_do_avp(struct dictionary * dict, struct avp * avp, int mand
 		
 		if (mandatory && (avp->avp_public.avp_flags & AVP_FLAG_MANDATORY)) {
 			TRACE_DEBUG(INFO, "Unsupported mandatory AVP found:");
-			msg_dump_intern(INFO, avp, 2);
+			msg_dump_intern(INFO, avp, 2, fd_g_debug_fstr);
 			if (error_info) {
 				error_info->pei_errcode = "DIAMETER_AVP_UNSUPPORTED";
 				error_info->pei_avp = avp;
@@ -2308,3 +2323,123 @@ error:
 	CHECK_POSIX_DO(pthread_rwlock_unlock(&fd_disp_lock), /* ignore */ );
 	return ret;
 }
+
+
+/***************************************************************************************************************/
+/* messages logging facility */
+#include <stdarg.h>
+
+static struct {
+	struct {
+		enum fd_msg_log_method 	meth;
+		const char * 		metharg;
+	} causes[FD_MSG_LOG_MAX + 1];
+	pthread_mutex_t lock;
+	int		init;
+} ml_conf = { .lock = PTHREAD_MUTEX_INITIALIZER, .init = 0 };
+
+static void ml_conf_init(void) 
+{
+	memset(&ml_conf.causes, 0, sizeof(ml_conf.causes));
+	ml_conf.init = 1;
+}
+
+/* Set a configuration property */
+int fd_msg_log_config(enum fd_msg_log_cause cause, enum fd_msg_log_method method, const char * arg)
+{
+	/* Check the parameters are valid */
+	TRACE_ENTRY("%d %d %p", cause, method, arg);
+	CHECK_PARAMS( (cause >= 0) && (cause <= FD_MSG_LOG_MAX) );
+	CHECK_PARAMS( (method >= FD_MSG_LOGTO_DEBUGONLY) && (method <= FD_MSG_LOGTO_DIR) );
+	CHECK_PARAMS( (method == FD_MSG_LOGTO_DEBUGONLY) || (arg != NULL) );
+	
+	/* Lock the configuration */
+	CHECK_POSIX( pthread_mutex_lock(&ml_conf.lock) );
+	if (!ml_conf.init) {
+		ml_conf_init();
+	}
+	
+	/* Now set the parameter */
+	ml_conf.causes[cause].meth = method;
+	ml_conf.causes[cause].metharg = arg;
+	
+	if (method) {
+		TRACE_DEBUG(INFO, "Logging %s messages set to %s '%s'", 
+			(cause == FD_MSG_LOG_DROPPED) ? "DROPPED" :
+				(cause == FD_MSG_LOG_RECEIVED) ? "RECEIVED" :
+					(cause == FD_MSG_LOG_SENT) ? "SENT" :
+						"???",
+			(method == FD_MSG_LOGTO_FILE) ? "file" :
+				(method == FD_MSG_LOGTO_DIR) ? "directory" :
+					"???",
+			arg);
+	}
+	
+	CHECK_POSIX( pthread_mutex_unlock(&ml_conf.lock) );
+	
+	/* Done */
+	return 0;
+}
+
+/* Do not log anything within this one, since log lock is held */
+static void fd_cleanup_mutex_silent( void * mutex )
+{
+	(void)pthread_mutex_unlock((pthread_mutex_t *)mutex);
+}
+
+/* Really log the message */
+void fd_msg_log( enum fd_msg_log_cause cause, struct msg * msg, const char * prefix_format, ... )
+{
+	va_list ap;
+	enum fd_msg_log_method 	meth;
+	const char * 		metharg;
+	FILE * fstr;
+	
+	TRACE_ENTRY("%d %p %p", cause, msg, prefix_format);
+	CHECK_PARAMS_DO( (cause >= 0) && (cause <= FD_MSG_LOG_MAX),
+	{
+		TRACE_DEBUG(INFO, "Invalid cause received (%d)! Message was:", cause);
+		fd_msg_dump_walk(INFO, msg);
+	} );
+	
+	/* First retrieve the config for this message */
+	CHECK_POSIX_DO( pthread_mutex_lock(&ml_conf.lock), );
+	if (!ml_conf.init) {
+		ml_conf_init();
+	}
+	meth    = ml_conf.causes[cause].meth;
+	metharg = ml_conf.causes[cause].metharg;
+	CHECK_POSIX_DO( pthread_mutex_unlock(&ml_conf.lock), );
+	
+	/* Okay, now we will create the file descriptor */
+	switch (meth) {
+		case FD_MSG_LOGTO_DEBUGONLY:
+			fstr = fd_g_debug_fstr;
+			break;
+			
+		case FD_MSG_LOGTO_FILE:
+			TODO("Log to arg file");
+			break;
+		case FD_MSG_LOGTO_DIR:
+			TODO("Log to arg directory in a new file");
+			break;
+	}
+	
+	/* Then dump the prefix message to this stream */
+	(void)pthread_mutex_lock(&fd_log_lock);
+	pthread_cleanup_push(fd_cleanup_mutex_silent, &fd_log_lock);
+	va_start(ap, prefix_format);
+	vfprintf( fstr, prefix_format, ap);
+	va_end(ap);
+	fflush(fstr);
+	pthread_cleanup_pop(0);
+	(void)pthread_mutex_unlock(&fd_log_lock);
+	fd_log_debug_fstr(fstr, "\n\n");
+	
+	/* And now the message itself */
+	fd_msg_dump_fstr(msg, fstr);
+	
+	/* And finally close the stream if needed */
+	TODO("close?");
+}
+
