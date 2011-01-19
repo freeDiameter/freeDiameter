@@ -792,7 +792,7 @@ static void msg_dump_intern ( int level, msg_or_avp * obj, int indent, FILE * fs
 }
 
 /* Dump a message to a specified file stream */
-static void fd_msg_dump_fstr ( struct msg * msg, FILE * fstr )
+void fd_msg_dump_fstr ( struct msg * msg, FILE * fstr )
 {
 	msg_or_avp * ref = msg;
 	int indent = 2;
@@ -2262,8 +2262,7 @@ int fd_msg_dispatch ( struct msg ** msg, struct session * session, enum disp_act
 				*error_code = "DIAMETER_APPLICATION_UNSUPPORTED";
 			*action = DISP_ACT_ERROR;
 		} else {
-			TRACE_DEBUG(INFO, "Received an answer to a local query with an unsupported application %d, discarding...",  (*msg)->msg_public.msg_appl);
-			fd_msg_dump_walk(INFO, *msg);
+			fd_msg_log( FD_MSG_LOG_DROPPED, *msg, "Internal error: Received this answer to a local query with an unsupported application %d", (*msg)->msg_public.msg_appl);
 			fd_msg_free(*msg);
 			*msg = NULL;
 		}
@@ -2336,12 +2335,14 @@ static struct {
 	} causes[FD_MSG_LOG_MAX + 1];
 	pthread_mutex_t lock;
 	int		init;
+	struct dictionary *dict;	
 } ml_conf = { .lock = PTHREAD_MUTEX_INITIALIZER, .init = 0 };
 
-static void ml_conf_init(void) 
+void ml_conf_init(struct dictionary *dict) 
 {
 	memset(&ml_conf.causes, 0, sizeof(ml_conf.causes));
 	ml_conf.init = 1;
+	ml_conf.dict = dict;
 }
 
 /* Set a configuration property */
@@ -2356,7 +2357,7 @@ int fd_msg_log_config(enum fd_msg_log_cause cause, enum fd_msg_log_method method
 	/* Lock the configuration */
 	CHECK_POSIX( pthread_mutex_lock(&ml_conf.lock) );
 	if (!ml_conf.init) {
-		ml_conf_init();
+		ASSERT(0);
 	}
 	
 	/* Now set the parameter */
@@ -2405,7 +2406,7 @@ void fd_msg_log( enum fd_msg_log_cause cause, struct msg * msg, const char * pre
 	/* First retrieve the config for this message */
 	CHECK_POSIX_DO( pthread_mutex_lock(&ml_conf.lock), );
 	if (!ml_conf.init) {
-		ml_conf_init();
+		ASSERT(0);
 	}
 	meth    = ml_conf.causes[cause].meth;
 	metharg = ml_conf.causes[cause].metharg;
@@ -2419,13 +2420,20 @@ void fd_msg_log( enum fd_msg_log_cause cause, struct msg * msg, const char * pre
 			
 		case FD_MSG_LOGTO_FILE:
 			TODO("Log to arg file");
+			TODO("Log a note to debug stream");
 			break;
 		case FD_MSG_LOGTO_DIR:
 			TODO("Log to arg directory in a new file");
+			TODO("Log a note to debug stream");
 			break;
 	}
 	
-	/* Then dump the prefix message to this stream */
+	/* For file methods, let's parse the message so it looks better */
+	if ((meth != FD_MSG_LOGTO_DEBUGONLY) && ml_conf.dict) {
+		CHECK_FCT_DO( fd_msg_parse_dict( msg, ml_conf.dict, NULL ), );
+	}
+	
+	/* Then dump the prefix message to this stream, & to debug stream */
 	(void)pthread_mutex_lock(&fd_log_lock);
 	pthread_cleanup_push(fd_cleanup_mutex_silent, &fd_log_lock);
 	va_start(ap, prefix_format);

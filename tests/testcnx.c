@@ -641,7 +641,7 @@ int main(int argc, char *argv[])
 		/* Add the AVP */
 		CHECK( 0, fd_msg_avp_add( cer, MSG_BRW_LAST_CHILD, oh) );
 
-		#if 1
+		#if 0
 		/* For debug: dump the object */
 		fd_log_debug("Dumping CER\n");
 		fd_msg_dump_walk(0, cer);

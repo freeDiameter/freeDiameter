@@ -165,6 +165,7 @@ void fd_psm_events_free(struct fd_peer * peer)
 			
 			case FDEVP_CNX_INCOMING: {
 				struct cnx_incoming * evd = ev->data;
+				fd_msg_log( FD_MSG_LOG_DROPPED, evd->cer, "Message discarded while cleaning peer state machine queue." );
 				CHECK_FCT_DO( fd_msg_free(evd->cer), /* continue */);
 				fd_cnx_destroy(evd->cnx);
 			}
@@ -393,13 +394,8 @@ psm_loop:
 				goto psm_loop;
 			} );
 		
-		TRACE_DEBUG(FULL, "Received a message (%zdb) from '%s'", ev_sz, peer->p_hdr.info.pi_diamid);
-		if (TRACE_BOOL(FULL+1)) {
-			CHECK_FCT_DO( fd_msg_parse_dict( msg, fd_g_config->cnf_dict, NULL ), );
-			fd_msg_dump_walk(FULL, msg);
-		} else {
-			fd_msg_dump_one(FULL, msg);
-		}
+		/* Log incoming message */
+		fd_msg_log( FD_MSG_LOG_RECEIVED, msg, "Received %zdb from '%s'", ev_sz, peer->p_hdr.info.pi_diamid );
 	
 		/* Extract the header */
 		CHECK_FCT_DO( fd_msg_hdr(msg, &hdr), goto psm_end );
@@ -410,8 +406,7 @@ psm_loop:
 			/* Search matching request (same hbhid) */
 			CHECK_FCT_DO( fd_p_sr_fetch(&peer->p_sr, hdr->msg_hbhid, &req), goto psm_end );
 			if (req == NULL) {
-				fd_log_debug("Received a Diameter answer message with no corresponding sent request, discarding.\n");
-				fd_msg_dump_walk(NONE, msg);
+				fd_msg_log( FD_MSG_LOG_DROPPED, msg, "Answer received with no corresponding sent request." );
 				fd_msg_free(msg);
 				goto psm_loop;
 			}
@@ -452,8 +447,7 @@ psm_loop:
 				case STATE_CLOSED:
 				default:
 					/* In such case, just discard the message */
-					fd_log_debug("Received a routable message while not in OPEN state from peer '%s', discarded.\n", peer->p_hdr.info.pi_diamid);
-					fd_msg_dump_walk(NONE, msg);
+					fd_msg_log( FD_MSG_LOG_DROPPED, msg, "Received from peer '%s' while connection was not in OPEN state.", peer->p_hdr.info.pi_diamid );
 					fd_msg_free(msg);
 			}
 			goto psm_loop;
@@ -467,8 +461,10 @@ psm_loop:
 			} else {
 				if (msg) {
 					/* Send the error back to the peer */
-					CHECK_FCT_DO( fd_out_send(&msg, NULL, peer, FD_CNX_ORDERED), /* In case of error the message has already been dumped */ );
+					CHECK_FCT_DO( ret = fd_out_send(&msg, NULL, peer, FD_CNX_ORDERED),  );
 					if (msg) {
+						/* Only if an error occurred & the message was not saved / dumped */
+						fd_msg_log( FD_MSG_LOG_DROPPED, msg, "Internal error: Problem while sending (%s)\n", strerror(ret) );
 						CHECK_FCT_DO( fd_msg_free(msg), goto psm_end);
 					}
 				} else {
@@ -497,8 +493,7 @@ psm_loop:
 			
 			default:
 				/* Unknown / unexpected / invalid message */
-				fd_log_debug("Received an unknown local message from peer '%s', discarded.\n", peer->p_hdr.info.pi_diamid);
-				fd_msg_dump_walk(NONE, msg);
+				TRACE_DEBUG(INFO, "Invalid non-routable command received: %u.", hdr->msg_code);
 				if (hdr->msg_flags & CMD_FLAG_REQUEST) {
 					do {
 						/* Reply with an error code */
@@ -517,6 +512,7 @@ psm_loop:
 				
 				/* Cleanup the message if not done */
 				if (msg) {
+					fd_msg_log( FD_MSG_LOG_DROPPED, msg, "Received un-handled non-routable command from peer '%s'.", peer->p_hdr.info.pi_diamid );
 					CHECK_FCT_DO( fd_msg_free(msg), /* continue */);
 					msg = NULL;
 				}
@@ -524,8 +520,7 @@ psm_loop:
 		
 		/* At this point the message must have been fully handled already */
 		if (msg) {
-			fd_log_debug("Internal error: unhandled message (discarded)!\n");
-			fd_msg_dump_walk(NONE, msg);
+			fd_msg_log( FD_MSG_LOG_DROPPED, msg, "Internal error: unhandled message.", peer->p_hdr.info.pi_diamid );
 			fd_msg_free(msg);
 		}
 		
@@ -601,6 +596,7 @@ psm_loop:
 			params->cnx = NULL;
 		}
 		if (params->cer) {
+			fd_msg_log( FD_MSG_LOG_DROPPED, params->cer, "Internal error: this CER was not handled as expected." );
 			CHECK_FCT_DO( fd_msg_free(params->cer), );
 			params->cer = NULL;
 		}

@@ -312,8 +312,8 @@ int fd_msg_parse_or_error( struct msg ** msg )
 		&& (ret != ENOTSUP))	/* Command is not supported / Mandatory AVP is not supported */
 		return ret;
 	
-	fd_log_debug("The following message does not comply to the dictionary and/or rules (%s):\n", pei.pei_errcode);
-	fd_msg_dump_walk(NONE, m);
+	TRACE_DEBUG(INFO, "A message does not comply to the dictionary and/or rules (%s)", pei.pei_errcode);
+	fd_msg_dump_walk(FULL, m);
 	
 	CHECK_FCT( fd_msg_hdr(m, &hdr) );
 	
@@ -363,6 +363,7 @@ int fd_msg_parse_or_error( struct msg ** msg )
 		} while (0);
 		
 		/* Just discard */
+		fd_msg_log( FD_MSG_LOG_DROPPED, m, "Answer not compliant to dictionary's ABNF (%s)", pei.pei_errcode  );
 		CHECK_FCT( fd_msg_free( m ) );
 		*msg = NULL;
 	}

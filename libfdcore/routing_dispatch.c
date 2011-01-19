@@ -408,8 +408,7 @@ static int return_error(struct msg ** pmsg, char * error_code, char * error_mess
 			CHECK_FCT( fd_peer_getbyid( id, (void *)&peer ) );
 
 			if (!peer) {
-				TRACE_DEBUG(INFO, "Unable to send error '%s' to deleted peer '%s' in reply to:", error_code, id);
-				fd_msg_dump_walk(INFO, *pmsg);
+				fd_msg_log(FD_MSG_LOG_DROPPED, *pmsg, "Unable to send error '%s' to deleted peer '%s' in reply to this message.", error_code, id);
 				fd_msg_free(*pmsg);
 				*pmsg = NULL;
 				return 0;
@@ -466,8 +465,7 @@ static int msg_dispatch(struct msg ** pmsg)
 				CHECK_FCT( fd_fifo_post(fd_g_outgoing, pmsg) );
 			}
 			if (*pmsg) {	/* another error happen'd */
-				TRACE_DEBUG(INFO, "An unexpected error occurred (%s), discarding a message:", strerror(ret));
-				fd_msg_dump_walk(INFO, *pmsg);
+				fd_msg_log( FD_MSG_LOG_DROPPED, *pmsg,  "An unexpected error occurred while parsing the message (%s)", strerror(ret));
 				CHECK_FCT_DO( fd_msg_free(*pmsg), /* continue */);
 				*pmsg = NULL;
 			}
@@ -521,8 +519,7 @@ static int msg_dispatch(struct msg ** pmsg)
 				}
 				
 				if (!is_req) {
-					TRACE_DEBUG(INFO, "Received an answer to a localy issued query, but no handler processed this answer!");
-					fd_msg_dump_walk(INFO, *pmsg);
+					fd_msg_log( FD_MSG_LOG_DROPPED, *pmsg,  "Internal error: Answer received to locally issued request, but not handled by any handler.");
 					fd_msg_free(*pmsg);
 					*pmsg = NULL;
 					break;
@@ -747,6 +744,7 @@ static int msg_rt_in(struct msg ** pmsg)
 		/* requests: dir = 1 & 2 => in order; answers = 3 & 2 => in reverse order */
 		for (	li = (is_req ? rt_fwd_list.next : rt_fwd_list.prev) ; *pmsg && (li != &rt_fwd_list) ; li = (is_req ? li->next : li->prev) ) {
 			struct rt_hdl * rh = (struct rt_hdl *)li;
+			int ret;
 
 			if (is_req && (rh->dir > RT_FWD_ALL))
 				break;
@@ -755,10 +753,9 @@ static int msg_rt_in(struct msg ** pmsg)
 
 			/* Ok, call this cb */
 			TRACE_DEBUG(ANNOYING, "Calling next FWD callback on %p : %p", *pmsg, rh->rt_fwd_cb);
-			CHECK_FCT_DO( (*rh->rt_fwd_cb)(rh->cbdata, pmsg),
+			CHECK_FCT_DO( ret = (*rh->rt_fwd_cb)(rh->cbdata, pmsg),
 				{
-					TRACE_DEBUG(INFO, "A FWD routing callback returned an error, message discarded.");
-					fd_msg_dump_walk(INFO, *pmsg);
+					fd_msg_log( FD_MSG_LOG_DROPPED, *pmsg, "Internal error: a FWD routing callback returned an error (%s)", strerror(ret));
 					fd_msg_free(*pmsg);
 					*pmsg = NULL;
 				} );
@@ -816,8 +813,7 @@ static int msg_rt_out(struct msg ** pmsg)
 		CHECK_FCT( fd_peer_getbyid( qry_src, (void *) &peer ) );
 		fd_cpu_flush_cache();
 		if ((!peer) || (peer->p_hdr.info.runtime.pir_state != STATE_OPEN)) {
-			TRACE_DEBUG(INFO, "Unable to forward answer message to peer '%s', deleted or not in OPEN state.", qry_src);
-			fd_msg_dump_walk(INFO, *pmsg);
+			fd_msg_log( FD_MSG_LOG_DROPPED, *pmsg, "Unable to forward answer to deleted / closed peer '%s'.", qry_src);
 			fd_msg_free(*pmsg);
 			*pmsg = NULL;
 			return 0;
@@ -896,8 +892,7 @@ static int msg_rt_out(struct msg ** pmsg)
 			TRACE_DEBUG(ANNOYING, "Calling next OUT callback on %p : %p (prio %d)", *pmsg, rh->rt_out_cb, rh->prio);
 			CHECK_FCT_DO( ret = (*rh->rt_out_cb)(rh->cbdata, *pmsg, candidates),
 				{
-					TRACE_DEBUG(INFO, "An OUT routing callback returned an error (%s) ! Message discarded.", strerror(ret));
-					fd_msg_dump_walk(INFO, *pmsg);
+					fd_msg_log( FD_MSG_LOG_DROPPED, *pmsg, "Internal error: an OUT routing callback returned an error (%s)", strerror(ret));
 					fd_msg_free(*pmsg);
 					*pmsg = NULL;
 					break;
@@ -946,8 +941,7 @@ static int msg_rt_out(struct msg ** pmsg)
 
 	/* If the message has not been sent, return an error */
 	if (*pmsg) {
-		TRACE_DEBUG(INFO, "Could not send the following message, replying with UNABLE_TO_DELIVER");
-		fd_msg_dump_walk(INFO, *pmsg);
+		fd_msg_log( FD_MSG_LOG_NODELIVER, *pmsg, "No suitable candidate to route the message to." );
 		return_error( pmsg, "DIAMETER_UNABLE_TO_DELIVER", "No suitable candidate to route the message to", NULL);
 	}
 

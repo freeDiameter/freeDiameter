@@ -210,8 +210,11 @@ void fd_peer_failover_msg(struct fd_peer * peer)
 	/* Requeue all messages in the "out" queue */
 	while ( fd_fifo_tryget(peer->p_tosend, &m) == 0 ) {
 		CHECK_FCT_DO(fd_fifo_post(fd_g_outgoing, &m), 
+			{
 				/* fallback: destroy the message */
-				CHECK_FCT_DO(fd_msg_free(m), /* What can we do more? */));
+				fd_msg_log(FD_MSG_LOG_DROPPED, m, "Internal error: unable to requeue this message during failover process");
+				CHECK_FCT_DO(fd_msg_free(m), /* What can we do more? */)
+			} );
 	}
 	
 	/* Requeue all routable sent requests */

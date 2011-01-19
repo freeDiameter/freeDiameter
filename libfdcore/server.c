@@ -142,8 +142,6 @@ static void * client_sm(void * arg)
 	/* We expect a CER, it must parse with our dictionary and rules */
 	CHECK_FCT_DO( fd_msg_parse_rules( msg, fd_g_config->cnf_dict, NULL ), /* Parsing failed -- trace details ? */ goto cleanup );
 	
-	fd_msg_dump_walk(FULL, msg);
-	
 	/* Now check we received a CER */
 	CHECK_FCT_DO( fd_msg_hdr ( msg, &hdr ), goto fatal_error );
 	CHECK_PARAMS_DO( (hdr->msg_appl == 0) && (hdr->msg_flags & CMD_FLAG_REQUEST) && (hdr->msg_code == CC_CAPABILITIES_EXCHANGE),
@@ -163,17 +161,18 @@ cleanup:
 	fd_list_unlink( &c->chain );
 	CHECK_POSIX_DO( pthread_mutex_unlock(&s->clients_mtx), goto fatal_error );
 	
+	/* Cleanup the parsed message if any */
+	if (msg) {
+		fd_msg_log( FD_MSG_LOG_DROPPED, msg, "Received invalid/unexpected message from connecting client '%s'", fd_cnx_getid(c->conn) );
+		CHECK_FCT_DO( fd_msg_free(msg), /* continue */);
+	}
+	
 	/* Destroy the connection object if present */
 	if (c->conn)
 		fd_cnx_destroy(c->conn);
 	
 	/* Cleanup the received buffer if any */
 	free(buf);
-	
-	/* Cleanup the parsed message if any */
-	if (msg) {
-		CHECK_FCT_DO( fd_msg_free(msg), /* continue */);
-	}
 	
 	/* Detach the thread, cleanup the client structure */
 	pthread_detach(pthread_self());

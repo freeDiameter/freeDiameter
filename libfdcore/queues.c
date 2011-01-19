@@ -73,8 +73,7 @@ int fd_queues_fini(struct fifo ** queue)
 		CHECK_FCT(ret);
 		
 		/* We got one! */
-		fd_log_debug("The following message is lost because the daemon is stopping:\n");
-		fd_msg_dump_walk(NONE, msg);
+		fd_msg_log( FD_MSG_LOG_DROPPED, msg, "Message lost because framework is terminating." );
 		fd_msg_free(msg);
 	}
 	

@@ -1214,7 +1214,7 @@ static void handle_sta(void * data, struct msg ** answer)
 		
 out:
 	if (answer && *answer) {
-		TRACE_DEBUG(INFO, "Received the following problematic STA message, discarding...");
+		TRACE_DEBUG(INFO, "Received the following problematic STA message, discarding anyway...");
 		fd_msg_dump_walk( INFO, *answer );
 		fd_msg_free(*answer);
 		*answer = NULL;

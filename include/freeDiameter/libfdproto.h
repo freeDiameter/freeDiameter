@@ -2054,9 +2054,10 @@ void fd_msg_dump_one  ( int level, msg_or_avp *obj );
 enum fd_msg_log_cause {
 	FD_MSG_LOG_DROPPED = 0,  /* message has been dropped by the framework */ 
 	FD_MSG_LOG_RECEIVED,     /* message received from the network */ 
-	FD_MSG_LOG_SENT          /* message sent to another peer */ 
+	FD_MSG_LOG_SENT,         /* message sent to another peer */ 
+	FD_MSG_LOG_NODELIVER     /* message could not be delivered to any peer */ 
 };
-#define FD_MSG_LOG_MAX FD_MSG_LOG_SENT
+#define FD_MSG_LOG_MAX FD_MSG_LOG_NODELIVER
 void fd_msg_log( enum fd_msg_log_cause cause, struct msg * msg, const char * prefix_format, ... );
 
 /* configure the msg_log facility */
@@ -2066,6 +2067,7 @@ enum fd_msg_log_method {
 	FD_MSG_LOGTO_DIR    /* Messages are dumped in different files within one directory defined in arg. */
 };
 int fd_msg_log_config(enum fd_msg_log_cause cause, enum fd_msg_log_method method, const char * arg);
+void ml_conf_init(struct dictionary *dict);
 
 /*********************************************/
 /*   Message metadata management functions   */

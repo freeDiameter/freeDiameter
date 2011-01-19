@@ -194,6 +194,9 @@ int fd_core_initialize(void)
 	memset(&g_conf, 0, sizeof(struct fd_config));
 	fd_g_config = &g_conf;
 	CHECK_FCT( fd_conf_init() );
+	
+	/* Initialize the message logging facility */
+	ml_conf_init(fd_g_config->cnf_dict);
 
 	/* Add definitions of the base protocol */
 	CHECK_FCT( fd_dict_base_protocol(fd_g_config->cnf_dict) );

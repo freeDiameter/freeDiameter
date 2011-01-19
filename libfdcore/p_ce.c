@@ -597,6 +597,7 @@ static void receiver_reject(struct cnxctx * recv_cnx, struct msg ** cer, char * 
 destroy:
 	fd_cnx_destroy(recv_cnx);
 	if (*cer) {
+		fd_msg_log(FD_MSG_LOG_DROPPED, *cer, "An error occurred while rejecting a CER.");
 		fd_msg_free(*cer);
 		*cer = NULL;
 	}
@@ -664,8 +665,7 @@ int fd_p_ce_msgrcv(struct msg ** msg, int req, struct fd_peer * peer)
 	fd_cpu_flush_cache();
 	if (req || (peer->p_hdr.info.runtime.pir_state != STATE_WAITCEA)) {
 		if (*msg) {
-			fd_log_debug("Received CER/CEA message while in state '%s', discarded.\n", STATE_STR(peer->p_hdr.info.runtime.pir_state));
-			fd_msg_dump_walk(NONE, *msg);
+			fd_msg_log( FD_MSG_LOG_DROPPED, *msg, "Received CER/CEA while in '%s' state.\n", STATE_STR(peer->p_hdr.info.runtime.pir_state));
 			CHECK_FCT_DO( fd_msg_free(*msg), /* continue */);
 			*msg = NULL;
 		}
@@ -910,6 +910,7 @@ error_abort:
 	
 cleanup:
 	if (msg) {
+		fd_msg_log(FD_MSG_LOG_DROPPED, msg, "An error occurred while processing a CER.");
 		fd_msg_free(msg);
 	}
 	fd_p_ce_clear_cnx(peer, NULL);

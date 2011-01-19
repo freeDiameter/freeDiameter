@@ -59,16 +59,12 @@ static int do_send(struct msg ** msg, uint32_t flags, struct cnxctx * cnx, uint3
 		*hbh = hdr->msg_hbhid + 1;
 	}
 	
-	/* Log the message */
-	if (TRACE_BOOL(FULL)) {
-		CHECK_FCT_DO(  fd_msg_update_length(*msg), /* continue */  );
-		TRACE_DEBUG(FULL, "Sending the following message on connection '%s':", fd_cnx_getid(cnx));
-		fd_msg_dump_walk(FULL, *msg);
-	}
-	
 	/* Create the message buffer */
 	CHECK_FCT(fd_msg_bufferize( *msg, &buf, &sz ));
 	pthread_cleanup_push( free, buf );
+	
+	/* Log the message */
+	fd_msg_log( FD_MSG_LOG_SENT, *msg, "Sent to '%s'", fd_cnx_getid(cnx));
 	
 	/* Save a request before sending so that there is no race condition with the answer */
 	if (msg_is_a_req) {
@@ -92,7 +88,10 @@ static void cleanup_requeue(void * arg)
 {
 	struct msg *msg = arg;
 	CHECK_FCT_DO(fd_fifo_post(fd_g_outgoing, &msg),
-			CHECK_FCT_DO(fd_msg_free(msg), /* What can we do more? */));
+		{
+			fd_msg_log( FD_MSG_LOG_DROPPED, msg, "An error occurred while attempting to requeue this message during cancellation of the sending function");
+			CHECK_FCT_DO(fd_msg_free(msg), /* What can we do more? */);
+		} );
 }
 
 /* The code of the "out" thread */
@@ -111,6 +110,7 @@ static void * out_thr(void * arg)
 	/* Loop until cancelation */
 	while (1) {
 		struct msg * msg;
+		int ret;
 		
 		/* Retrieve next message to send */
 		CHECK_FCT_DO( fd_fifo_get(peer->p_tosend, &msg), goto error );
@@ -119,11 +119,10 @@ static void * out_thr(void * arg)
 		pthread_cleanup_push(cleanup_requeue, msg);
 		
 		/* Send the message, log any error */
-		CHECK_FCT_DO( do_send(&msg, 0, peer->p_cnxctx, &peer->p_hbh, &peer->p_sr),
+		CHECK_FCT_DO( ret = do_send(&msg, 0, peer->p_cnxctx, &peer->p_hbh, &peer->p_sr),
 			{
 				if (msg) {
-					fd_log_debug("An error occurred while sending this message, it was lost:\n");
-					fd_msg_dump_walk(NONE, msg);
+					fd_msg_log( FD_MSG_LOG_DROPPED, msg, "Internal error: Problem while sending (%s)\n", strerror(ret) );
 					fd_msg_free(msg);
 				}
 			} );
@@ -150,6 +149,7 @@ int fd_out_send(struct msg ** msg, struct cnxctx * cnx, struct fd_peer * peer, u
 		CHECK_FCT( fd_fifo_post(peer->p_tosend, msg) );
 		
 	} else {
+		int ret;
 		uint32_t *hbh = NULL;
 		
 		/* In other cases, the thread is not running, so we handle the sending directly */
@@ -160,11 +160,10 @@ int fd_out_send(struct msg ** msg, struct cnxctx * cnx, struct fd_peer * peer, u
 			cnx = peer->p_cnxctx;
 
 		/* Do send the message */
-		CHECK_FCT_DO( do_send(msg, flags, cnx, hbh, peer ? &peer->p_sr : NULL),
+		CHECK_FCT_DO( ret = do_send(msg, flags, cnx, hbh, peer ? &peer->p_sr : NULL),
 			{
 				if (msg) {
-					fd_log_debug("An error occurred while sending this message, it was lost:\n");
-					fd_msg_dump_walk(NONE, *msg);
+					fd_msg_log( FD_MSG_LOG_DROPPED, *msg, "Internal error: Problem while sending (%s)\n", strerror(ret) );
 					fd_msg_free(*msg);
 					*msg = NULL;
 				}

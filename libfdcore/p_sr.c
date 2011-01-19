@@ -108,6 +108,7 @@ static void * call_anscb_expire(void * arg) {
 	
 	/* If the callback did not dispose of the message, do it now */
 	if (expired_req) {
+		fd_msg_log(FD_MSG_LOG_DROPPED, expired_req, "Expiration period completed without an answer, and the expiry callback did not dispose of the message.");
 		CHECK_FCT_DO( fd_msg_free(expired_req), /* ignore */ );
 	}
 	
@@ -295,6 +296,7 @@ void fd_p_sr_failover(struct sr_list * srlist)
 		fd_list_unlink(&sr->expire);
 		if (fd_msg_is_routable(sr->req)) {
 			struct msg_hdr * hdr = NULL;
+			int ret;
 			
 			/* Set the 'T' flag */
 			CHECK_FCT_DO(fd_msg_hdr(sr->req, &hdr), /* continue */);
@@ -302,10 +304,14 @@ void fd_p_sr_failover(struct sr_list * srlist)
 				hdr->msg_flags |= CMD_FLAG_RETRANSMIT;
 			
 			/* Requeue for sending to another peer */
-			CHECK_FCT_DO(fd_fifo_post(fd_g_outgoing, &sr->req),
-					CHECK_FCT_DO(fd_msg_free(sr->req), /* What can we do more? */));
+			CHECK_FCT_DO( ret = fd_fifo_post(fd_g_outgoing, &sr->req),
+				{
+					fd_msg_log( FD_MSG_LOG_DROPPED, sr->req, "Internal error: error while requeuing during failover: %s", strerror(ret) );
+					CHECK_FCT_DO(fd_msg_free(sr->req), /* What can we do more? */)
+				});
 		} else {
-			/* Just free the request... */
+			/* Just free the request. */
+			fd_msg_log( FD_MSG_LOG_DROPPED, sr->req, "Local message discarded during failover" );
 			CHECK_FCT_DO(fd_msg_free(sr->req), /* Ignore */);
 		}
 		free(sr);
