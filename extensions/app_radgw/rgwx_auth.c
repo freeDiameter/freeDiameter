@@ -1306,7 +1306,7 @@ static int auth_diam_ans( struct rgwp_config * cs, struct session * session, str
 				case DIAM_ATTR_ERROR_REPORTING_HOST:
 					{
 						char buf[254];
-						int bsz = snprintf(buf, sizeof(buf), "Error-Reporting-Host: %*s", ahdr->avp_value->os.len, ahdr->avp_value->os.data);
+						int bsz = snprintf(buf, sizeof(buf), "Error-Reporting-Host: %*s", (int)(ahdr->avp_value->os.len), ahdr->avp_value->os.data);
 						CONV2RAD_STR(RADIUS_ATTR_REPLY_MESSAGE, (uint8_t *)buf, bsz, 2);
 					}
 					break;
