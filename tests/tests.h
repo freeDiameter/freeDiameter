@@ -67,8 +67,6 @@
 #define FAILTEST( message... ){				\
 	fprintf(stderr, ## message);			\
 	TRACE_DEBUG(INFO, "Test failed");		\
-	(void)fd_core_shutdown();			\
-	(void)fd_core_wait_shutdown_complete();		\
 	exit(FAIL);					\
 }
 
@@ -78,6 +76,7 @@
 	TRACE_DEBUG(INFO, "Test passed");		\
 	(void)fd_core_shutdown();			\
 	(void)fd_core_wait_shutdown_complete();		\
+	(void)fd_thr_term(&timeout_thr);		\
 	exit(PASS);					\
 }
 
@@ -184,6 +183,9 @@ static inline void test_init(int argc, char * argv[])
 	
 	/* Initialize the config */
 	CHECK( 0, fd_conf_init() );
+
+	/* Initialize the message logging facility */
+	fd_msg_log_init(fd_g_config->cnf_dict);
 
 	/* Add definitions of the base protocol */
 	CHECK( 0, fd_dict_base_protocol(fd_g_config->cnf_dict) );

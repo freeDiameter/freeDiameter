@@ -11,6 +11,7 @@ SET(LFDPROTO_SRC
 	lists.c
 	log.c
 	messages.c
+	msg_log.c
 	rt_data.c
 	sessions.c
 	)

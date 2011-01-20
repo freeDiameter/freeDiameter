@@ -2067,7 +2067,7 @@ enum fd_msg_log_method {
 	FD_MSG_LOGTO_DIR    /* Messages are dumped in different files within one directory defined in arg. */
 };
 int fd_msg_log_config(enum fd_msg_log_cause cause, enum fd_msg_log_method method, const char * arg);
-void ml_conf_init(struct dictionary *dict);
+void fd_msg_log_init(struct dictionary *dict);
 
 /*********************************************/
 /*   Message metadata management functions   */

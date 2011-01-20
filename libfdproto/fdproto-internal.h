@@ -50,6 +50,9 @@ void fd_sess_fini(void);
 /* Where debug messages are sent */
 FILE * fd_g_debug_fstr;
 
+/* Special message dump function */
+void fd_msg_dump_fstr ( struct msg * msg, FILE * fstr );
+
 /* Iterator on the rules of a parent object */
 int fd_dict_iterate_rules ( struct dict_object *parent, void * data, int (*cb)(void *, struct dict_rule_data *) );
 
