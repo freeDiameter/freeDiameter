@@ -259,7 +259,6 @@ int main(int argc, char *argv[])
 
 	/* That's all for the tests yet */
 	free(sess_bkp);
-	fd_ext_fini();
 	
 	PASSTEST();
 } 
