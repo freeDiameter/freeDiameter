@@ -54,17 +54,18 @@ static pthread_cond_t   started_cnd = PTHREAD_COND_INITIALIZER;
 /* Wait for start signal */
 static int fd_psm_waitstart()
 {
+	int ret = 0;
 	TRACE_ENTRY("");
 	CHECK_POSIX( pthread_mutex_lock(&started_mtx) );
 awake:	
-	if (! started) {
+	if (!ret && !started) {
 		pthread_cleanup_push( fd_cleanup_mutex, &started_mtx );
-		CHECK_POSIX( pthread_cond_wait(&started_cnd, &started_mtx) );
+		CHECK_POSIX_DO( ret = pthread_cond_wait(&started_cnd, &started_mtx), );
 		pthread_cleanup_pop( 0 );
 		goto awake;
 	}
 	CHECK_POSIX( pthread_mutex_unlock(&started_mtx) );
-	return 0;
+	return ret;
 }
 
 /* Allow the state machines to start */

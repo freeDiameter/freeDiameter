@@ -240,19 +240,21 @@ int fd_core_parseconf(char * conffile)
 /* For threads that would need to wait complete start of the framework (ex: in extensions) */
 int fd_core_waitstartcomplete(void)
 {
+	int ret = 0;
+	
 	TRACE_ENTRY("");
 	
 	CHECK_POSIX( pthread_mutex_lock( &is_ready_mtx ) );
 	pthread_cleanup_push( fd_cleanup_mutex, &is_ready_mtx );
 	
-	while (!is_ready) {
-		CHECK_POSIX( pthread_cond_wait( &is_ready_cnd, &is_ready_mtx ) );
+	while (!ret && !is_ready) {
+		CHECK_POSIX_DO( ret = pthread_cond_wait( &is_ready_cnd, &is_ready_mtx ),  );
 	}
 	
 	pthread_cleanup_pop( 0 );
 	CHECK_POSIX( pthread_mutex_unlock( &is_ready_mtx ) );
 	
-	return 0;
+	return ret;
 }
 
 /* Start the server & client threads */

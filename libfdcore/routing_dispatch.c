@@ -999,9 +999,9 @@ static void * process_thr(void * arg, int (*action_cb)(struct msg ** pmsg), stru
 		/* Test the current order */
 		{
 			int must_stop;
-			CHECK_POSIX_DO( pthread_mutex_lock(&order_lock), goto end ); /* we lock to flush the caches */
+			CHECK_POSIX_DO( pthread_mutex_lock(&order_lock), { ASSERT(0); } ); /* we lock to flush the caches */
 			must_stop = (order_val == STOP);
-			CHECK_POSIX_DO( pthread_mutex_unlock(&order_lock), goto end );
+			CHECK_POSIX_DO( pthread_mutex_unlock(&order_lock), { ASSERT(0); } );
 			if (must_stop)
 				goto end;
 			

@@ -246,39 +246,35 @@ static void * tne_process_th(void * arg)
 	fd_log_threadname ( "test_netemul/process" );
 	
 	CHECK_POSIX_DO( pthread_mutex_lock(&mtx), goto error );
+	pthread_cleanup_push( fd_cleanup_mutex, &mtx );
 	
 	/* The loop */
 	while (1) {
 		/* First, test if we are canceled */
-		CHECK_POSIX_DO( pthread_mutex_unlock(&mtx), goto error );
 		pthread_testcancel();
-		CHECK_POSIX_DO( pthread_mutex_lock(&mtx), goto error );
-		
-		pthread_cleanup_push( fd_cleanup_mutex, &mtx );
 		
 		/* Send all messages that are ready (free resources before using new ones) */
-		CHECK_FCT_DO( send_all_ready(), goto error_ul );
+		CHECK_FCT_DO( send_all_ready(), break );
 		
 		/* Now process the new messages in input list for duplicate filter */
-		CHECK_FCT_DO( do_duplicates(), goto error_ul );
+		CHECK_FCT_DO( do_duplicates(), break );
 		
 		/* Now compute the latency for each new item */
-		CHECK_FCT_DO( do_latency(), goto error_ul );
+		CHECK_FCT_DO( do_latency(), break );
 		
 		/* Now, wait then loop */
 		if (FD_IS_LIST_EMPTY(&waitlist)) {
-			CHECK_POSIX_DO( pthread_cond_wait(&cnd, &mtx), goto error_ul );
+			CHECK_POSIX_DO( pthread_cond_wait(&cnd, &mtx), break );
 		} else {
 			CHECK_POSIX_DO2( pthread_cond_timedwait(&cnd, &mtx, &((struct process_item *)(waitlist.next))->ts), 
 				ETIMEDOUT, /* ETIMEDOUT is a normal return value, continue */,
-					/* on other error, */ goto error_ul );
+					/* on other error, */ break );
 		}
 		
-		pthread_cleanup_pop( 0 );
 		/* loop */
 	}
 
-error_ul:
+	pthread_cleanup_pop( 0 );
 	CHECK_POSIX_DO( pthread_mutex_unlock(&mtx),  );
 error:
 	TRACE_DEBUG(INFO, "A fatal error occurred in test_netemul/process thread!");

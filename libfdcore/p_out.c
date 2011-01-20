@@ -68,12 +68,17 @@ static int do_send(struct msg ** msg, uint32_t flags, struct cnxctx * cnx, uint3
 	
 	/* Save a request before sending so that there is no race condition with the answer */
 	if (msg_is_a_req) {
-		CHECK_FCT_DO( ret = fd_p_sr_store(srl, msg, &hdr->msg_hbhid, bkp_hbh), { free(buf); return ret; } );
+		CHECK_FCT_DO( ret = fd_p_sr_store(srl, msg, &hdr->msg_hbhid, bkp_hbh), goto out );
 	}
 	
 	/* Send the message */
-	CHECK_FCT_DO( ret = fd_cnx_send(cnx, buf, sz, flags), { free(buf); return ret; } );
+	CHECK_FCT_DO( ret = fd_cnx_send(cnx, buf, sz, flags), );
+out:
+	;	
 	pthread_cleanup_pop(1);
+	
+	if (ret)
+		return ret;
 	
 	/* Free remaining messages (i.e. answers) */
 	if (*msg) {

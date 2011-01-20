@@ -150,7 +150,7 @@ static void * client_sm(void * arg)
 	/* Finally, pass the information to the peers module which will handle it next */
 	pthread_cleanup_push((void *)fd_cnx_destroy, c->conn);
 	pthread_cleanup_push((void *)fd_msg_free, msg);
-	CHECK_FCT_DO( fd_peer_handle_newCER( &msg, &c->conn ), goto cleanup );
+	CHECK_FCT_DO( fd_peer_handle_newCER( &msg, &c->conn ),  );
 	pthread_cleanup_pop(0);
 	pthread_cleanup_pop(0);
 	

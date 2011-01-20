@@ -133,11 +133,11 @@ int fd_tcp_client( int *sock, sSA * sa, socklen_t salen )
 	/* Create the socket */
 	CHECK_SYS(  s = socket(sa->sa_family, SOCK_STREAM, IPPROTO_TCP)  );
 	
-	/* Cleanup if we are cancelled */
-	pthread_cleanup_push(fd_cleanup_socket, &s);
-	
 	/* Set the socket options */
 	CHECK_FCT(  fd_tcp_setsockopt(sa->sa_family, s)  );
+	
+	/* Cleanup if we are cancelled */
+	pthread_cleanup_push(fd_cleanup_socket, &s);
 	
 	TRACE_DEBUG_sSA(FULL, "Attempting TCP connection with peer: ", sa, NI_NUMERICHOST | NI_NUMERICSERV, "..." );
 	

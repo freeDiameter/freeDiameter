@@ -210,6 +210,7 @@ static void * connect_thr(void * arg)
 	struct cnxctx * cnx = NULL;
 	struct next_conn * nc = NULL;
 	int rebuilt = 0;
+	int fatal_error=0;
 	
 	TRACE_ENTRY("%p", arg);
 	CHECK_PARAMS_DO( CHECK_PEER(peer), return NULL );
@@ -225,13 +226,13 @@ static void * connect_thr(void * arg)
 		/* Rebuild the list if needed, if it is empty -- but at most once */
 		if (FD_IS_LIST_EMPTY(&peer->p_connparams)) {
 			if (! rebuilt) {
-				CHECK_FCT_DO( prepare_connection_list(peer), goto fatal_error );
+				CHECK_FCT_DO( fatal_error = prepare_connection_list(peer), goto out );
 				rebuilt ++;
 			}
 			if (FD_IS_LIST_EMPTY(&peer->p_connparams)) {
 				/* We encountered an error or we have looped over all the addresses of the peer. */
 				TRACE_DEBUG(INFO, "Unable to connect to the peer %s, aborting attempts for now.", peer->p_hdr.info.pi_diamid);
-				CHECK_FCT_DO( fd_event_send(peer->p_events, FDEVP_CNX_FAILED, 0, NULL), goto fatal_error );
+				CHECK_FCT_DO( fatal_error = fd_event_send(peer->p_events, FDEVP_CNX_FAILED, 0, NULL), goto out );
 				return NULL;
 			}
 		}
@@ -276,27 +277,30 @@ static void * connect_thr(void * arg)
 				fd_cnx_destroy(cnx);
 				empty_connection_list(peer);
 				fd_ep_filter(&peer->p_hdr.info.pi_endpoints, EP_FL_CONF);
-				return NULL;
+				goto out_pop;
 			} );
 	} else {
 		/* Prepare to receive the next message */
-		CHECK_FCT_DO( fd_cnx_start_clear(cnx, 0), goto fatal_error );
+		CHECK_FCT_DO( fatal_error = fd_cnx_start_clear(cnx, 0), goto out_pop );
 	}
 	
 	/* Upon success, generate FDEVP_CNX_ESTABLISHED */
-	CHECK_FCT_DO( fd_event_send(peer->p_events, FDEVP_CNX_ESTABLISHED, 0, cnx), goto fatal_error );
-	
+	CHECK_FCT_DO( fatal_error = fd_event_send(peer->p_events, FDEVP_CNX_ESTABLISHED, 0, cnx),  );
+out_pop:
+	;	
 	pthread_cleanup_pop(0);
 	
-	return NULL;
+out:
 	
-fatal_error:
-	/* Cleanup the connection */
-	if (cnx)
-		fd_cnx_destroy(cnx);
+	if (fatal_error) {
+	
+		/* Cleanup the connection */
+		if (cnx)
+			fd_cnx_destroy(cnx);
 
-	/* Generate a termination event */
-	CHECK_FCT_DO(fd_event_send(fd_g_config->cnf_main_ev, FDEV_TERMINATE, 0, NULL), );
+		/* Generate a termination event */
+		CHECK_FCT_DO(fd_event_send(fd_g_config->cnf_main_ev, FDEV_TERMINATE, 0, NULL), );
+	}
 	
 	return NULL;
 }

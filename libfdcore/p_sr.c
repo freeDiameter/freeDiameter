@@ -116,7 +116,7 @@ static void * call_anscb_expire(void * arg) {
 	return NULL;
 }
 
-/* thread that handles messages expiring. The thread is started / stopped only when needed */
+/* thread that handles messages expiring. The thread is started / cancelled only when needed */
 static void * sr_expiry_th(void * arg) {
 	struct sr_list * srlist = arg;
 	struct msg * expired_req;
@@ -183,6 +183,7 @@ static void * sr_expiry_th(void * arg) {
 error:	
 	; /* pthread_cleanup_pop sometimes expands as "} ..." and the label beofre this cause some compilers to complain... */
 	pthread_cleanup_pop( 1 );
+	ASSERT(0); /* we have encountered a problem, maybe time to signal the framework to terminate? */
 	return NULL;
 }
 

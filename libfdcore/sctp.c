@@ -821,12 +821,12 @@ int fd_sctp_client( int *sock, int no_ip6, uint16_t port, struct fd_list * list 
 	pthread_cleanup_push(fd_cleanup_socket, sock);
 	
 	/* Set the socket options */
-	CHECK_FCT_DO( ret = fd_setsockopt_prebind(*sock), goto fail );
+	CHECK_FCT_DO( ret = fd_setsockopt_prebind(*sock), goto out );
 	
 	/* Create the array of addresses, add first the configured addresses, then the discovered, then the other ones */
-	CHECK_FCT_DO( ret = add_addresses_from_list_mask(&sar.buf, &size, &count, family, htons(port), list, EP_FL_CONF,              EP_FL_CONF	), goto fail );
-	CHECK_FCT_DO( ret = add_addresses_from_list_mask(&sar.buf, &size, &count, family, htons(port), list, EP_FL_CONF | EP_FL_DISC, EP_FL_DISC	), goto fail );
-	CHECK_FCT_DO( ret = add_addresses_from_list_mask(&sar.buf, &size, &count, family, htons(port), list, EP_FL_CONF | EP_FL_DISC, 0		), goto fail );
+	CHECK_FCT_DO( ret = add_addresses_from_list_mask(&sar.buf, &size, &count, family, htons(port), list, EP_FL_CONF,              EP_FL_CONF	), goto out );
+	CHECK_FCT_DO( ret = add_addresses_from_list_mask(&sar.buf, &size, &count, family, htons(port), list, EP_FL_CONF | EP_FL_DISC, EP_FL_DISC	), goto out );
+	CHECK_FCT_DO( ret = add_addresses_from_list_mask(&sar.buf, &size, &count, family, htons(port), list, EP_FL_CONF | EP_FL_DISC, 0		), goto out );
 	
 	/* Try connecting */
 	if (TRACE_BOOL(FULL)) {
@@ -865,26 +865,28 @@ int fd_sctp_client( int *sock, int no_ip6, uint16_t port, struct fd_list * list 
 		}
 		/* Some errors are expected, we log at different level */
 		TRACE_DEBUG( lvl, "sctp_connectx returned an error: %s", strerror(ret));
-		goto fail;
+		goto out;
 	}
 	
 	free(sar.buf); sar.buf = NULL;
 	
 	/* Set the remaining sockopts */
-	CHECK_FCT_DO( ret = fd_setsockopt_postbind(*sock, 1), goto fail_deco );
+	CHECK_FCT_DO( ret = fd_setsockopt_postbind(*sock, 1), 
+		{ 
+			CHECK_SYS_DO( shutdown(*sock, SHUT_RDWR), /* continue */ );
+		} );
 	
-	/* Done! */
+out:
+	;
 	pthread_cleanup_pop(0);
-	return 0;
 	
-fail_deco:
-	CHECK_SYS_DO( shutdown(*sock, SHUT_RDWR), /* continue */ );
-fail:
-	if (*sock > 0) {
-		CHECK_SYS_DO( close(*sock), /* continue */ );
-		*sock = -1;
+	if (ret) {
+		if (*sock > 0) {
+			CHECK_SYS_DO( close(*sock), /* continue */ );
+			*sock = -1;
+		}
+		free(sar.buf);
 	}
-	free(sar.buf);
 	return ret;
 }
 

@@ -532,8 +532,10 @@ int fd_peer_validate( struct fd_peer * peer )
 	for (v = validators.next; v != &validators; v = v->next) {
 		int auth = 0;
 		pthread_cleanup_push(fd_cleanup_rwlock, &validators_rw);
-		CHECK_FCT_DO( ret = ((int(*)(struct peer_info *, int *, int (**)(struct peer_info *)))(v->o)) (&peer->p_hdr.info, &auth, &peer->p_cb2), goto out );
+		CHECK_FCT_DO( ret = ((int(*)(struct peer_info *, int *, int (**)(struct peer_info *)))(v->o)) (&peer->p_hdr.info, &auth, &peer->p_cb2),  );
 		pthread_cleanup_pop(0);
+		if (ret)
+			goto out;
 		if (auth) {
 			ret = (auth > 0) ? 0 : -1;
 			goto out;

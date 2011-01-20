@@ -175,7 +175,7 @@ again:
 		/* Check if there are expiring sessions available */
 		if (FD_IS_LIST_EMPTY(&exp_sentinel)) {
 			/* Just wait for a change or cancelation */
-			CHECK_POSIX_DO( pthread_cond_wait( &exp_cond, &exp_lock ), break );
+			CHECK_POSIX_DO( pthread_cond_wait( &exp_cond, &exp_lock ), break /* this might not pop the cleanup handler, but since we ASSERT(0), it is not the big issue... */ );
 			/* Restart the loop on wakeup */
 			goto again;
 		}
@@ -206,7 +206,7 @@ again:
 		
 	} while (1);
 	
-	TRACE_DEBUG(INFO, "An error occurred in session module! Expiry thread is terminating...");
+	TRACE_DEBUG(INFO, "A system error occurred in session module! Expiry thread is terminating...");
 	ASSERT(0);
 	return NULL;
 }
@@ -441,7 +441,7 @@ int fd_sess_new ( struct session ** session, char * diamId, char * opt, size_t o
 
 		/* We added a new expiring element, we must signal */
 		if (li == &exp_sentinel) {
-			CHECK_POSIX( pthread_cond_signal(&exp_cond) );
+			CHECK_POSIX_DO( pthread_cond_signal(&exp_cond), { ASSERT(0); } ); /* if it fails, we might not pop the cleanup handlers, but this should not happen -- and we'd have a serious problem otherwise */
 		}
 		
 		#if 0
@@ -457,7 +457,7 @@ int fd_sess_new ( struct session ** session, char * diamId, char * opt, size_t o
 		
 		/* We're done */
 		pthread_cleanup_pop(0);
-		CHECK_POSIX( pthread_mutex_unlock( &exp_lock ) );
+		CHECK_POSIX_DO( pthread_mutex_unlock( &exp_lock ), { ASSERT(0); } ); /* if it fails, we might not pop the cleanup handler, but this should not happen -- and we'd have a serious problem otherwise */
 	}
 	
 	pthread_cleanup_pop(0);
@@ -539,7 +539,7 @@ int fd_sess_settimeout( struct session * session, const struct timespec * timeou
 
 	/* We added a new expiring element, we must signal if it was in first position */
 	if (session->expire.prev == &exp_sentinel) {
-		CHECK_POSIX( pthread_cond_signal(&exp_cond) );
+		CHECK_POSIX_DO( pthread_cond_signal(&exp_cond), { ASSERT(0); /* so that we don't have a pending cancellation handler */ } );
 	}
 
 	#if 0
@@ -572,15 +572,15 @@ int fd_sess_destroy ( struct session ** session )
 	*session = NULL;
 	
 	/* Unlink and invalidate */
-	CHECK_FCT( pthread_mutex_lock( H_LOCK(sess->hash) ) );
+	CHECK_POSIX( pthread_mutex_lock( H_LOCK(sess->hash) ) );
 	pthread_cleanup_push( fd_cleanup_mutex, H_LOCK(sess->hash) );
-	CHECK_FCT( pthread_mutex_lock( &exp_lock ) );
+	CHECK_POSIX_DO( pthread_mutex_lock( &exp_lock ), { ASSERT(0); /* otherwise cleanup handler is not pop'd */ } );
 	fd_list_unlink( &sess->chain_h );
 	fd_list_unlink( &sess->expire ); /* no need to signal the condition here */
 	sess->eyec = 0xdead;
-	CHECK_FCT( pthread_mutex_unlock( &exp_lock ) );
+	CHECK_POSIX_DO( pthread_mutex_unlock( &exp_lock ), { ASSERT(0); /* otherwise cleanup handler is not pop'd */ } );
 	pthread_cleanup_pop(0);
-	CHECK_FCT( pthread_mutex_unlock( H_LOCK(sess->hash) ) );
+	CHECK_POSIX( pthread_mutex_unlock( H_LOCK(sess->hash) ) );
 	
 	/* Now destroy all states associated -- we don't take the lock since nobody can access this session anymore (in theory) */
 	while (!FD_IS_LIST_EMPTY(&sess->states)) {
@@ -613,7 +613,7 @@ int fd_sess_reclaim ( struct session ** session )
 	
 	CHECK_POSIX( pthread_mutex_lock( H_LOCK(sess->hash) ) );
 	pthread_cleanup_push( fd_cleanup_mutex, H_LOCK(sess->hash) );
-	CHECK_POSIX( pthread_mutex_lock( &exp_lock ) );
+	CHECK_POSIX_DO( pthread_mutex_lock( &exp_lock ), { ASSERT(0); /* otherwise, cleanup not poped on FreeBSD */ } );
 	if (FD_IS_LIST_EMPTY(&sess->states)) {
 		fd_list_unlink( &sess->chain_h );
 		fd_list_unlink( &sess->expire );
@@ -621,7 +621,7 @@ int fd_sess_reclaim ( struct session ** session )
 		free(sess->sid);
 		free(sess);
 	}
-	CHECK_POSIX( pthread_mutex_unlock( &exp_lock ) );
+	CHECK_POSIX_DO( pthread_mutex_unlock( &exp_lock ), { ASSERT(0); /* otherwise, cleanup not poped on FreeBSD */ } );
 	pthread_cleanup_pop(0);
 	CHECK_POSIX( pthread_mutex_unlock( H_LOCK(hash) ) );
 	
@@ -634,6 +634,7 @@ int fd_sess_state_store_internal ( struct session_handler * handler, struct sess
 	struct state *new;
 	struct fd_list * li;
 	int already = 0;
+	int ret = 0;
 	
 	TRACE_ENTRY("%p %p %p", handler, session, state);
 	CHECK_PARAMS( handler && VALIDATE_SH(handler) && session && VALIDATE_SI(session) && state );
@@ -643,7 +644,7 @@ int fd_sess_state_store_internal ( struct session_handler * handler, struct sess
 	pthread_cleanup_push( fd_cleanup_mutex, &session->stlock );
 			
 	/* Create the new state object */
-	CHECK_MALLOC(new = malloc(sizeof(struct state)) );
+	CHECK_MALLOC_DO(new = malloc(sizeof(struct state)), { ret = ENOMEM; goto out; } );
 	memset(new, 0, sizeof(struct state));
 	
 	new->eyec = SD_EYEC;
@@ -660,7 +661,7 @@ int fd_sess_state_store_internal ( struct session_handler * handler, struct sess
 		
 		if (st->hdl->id == handler->id) {
 			TRACE_DEBUG(INFO, "A state was already stored for session '%s' and handler '%p', at location %p", session->sid, st->hdl, st->state);
-			already = 1;
+			already = EALREADY;
 		}
 		
 		break;
@@ -672,11 +673,12 @@ int fd_sess_state_store_internal ( struct session_handler * handler, struct sess
 	} else {
 		free(new);
 	}
-	
+out:
+	;	
 	pthread_cleanup_pop(0);
 	CHECK_POSIX( pthread_mutex_unlock(&session->stlock) );
 	
-	return already ? EALREADY : 0;
+	return ret ?: already;
 }
 
 /* Get the data back */

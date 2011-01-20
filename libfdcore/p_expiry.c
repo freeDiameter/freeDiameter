@@ -97,7 +97,7 @@ static void * exp_th_fct(void * arg)
 	fd_log_threadname ( "Peers/expire" );
 	TRACE_ENTRY( "%p", arg );
 	
-	CHECK_POSIX_DO( pthread_mutex_lock(&exp_mtx),  goto error );
+	CHECK_POSIX_DO( pthread_mutex_lock(&exp_mtx), { ASSERT(0); } );
 	pthread_cleanup_push( fd_cleanup_mutex, &exp_mtx );
 	
 	do {
@@ -107,7 +107,7 @@ static void * exp_th_fct(void * arg)
 		/* Check if there are expiring sessions available */
 		if (FD_IS_LIST_EMPTY(&exp_list)) {
 			/* Just wait for a change or cancelation */
-			CHECK_POSIX_DO( pthread_cond_wait( &exp_cnd, &exp_mtx ), goto error );
+			CHECK_POSIX_DO( pthread_cond_wait( &exp_cnd, &exp_mtx ), { ASSERT(0); } );
 			/* Restart the loop on wakeup */
 			continue;
 		}
@@ -117,14 +117,14 @@ static void * exp_th_fct(void * arg)
 		ASSERT( CHECK_PEER(first) );
 		
 		/* Get the current time */
-		CHECK_SYS_DO(  clock_gettime(CLOCK_REALTIME, &now),  goto error  );
+		CHECK_SYS_DO(  clock_gettime(CLOCK_REALTIME, &now),  { ASSERT(0); }  );
 
 		/* If first peer is not expired, we just wait until it happens */
 		if ( TS_IS_INFERIOR( &now, &first->p_exp_timer ) ) {
 			
 			CHECK_POSIX_DO2(  pthread_cond_timedwait( &exp_cnd, &exp_mtx, &first->p_exp_timer ),  
 					ETIMEDOUT, /* ETIMEDOUT is a normal return value, continue */,
-					/* on other error, */ goto error );
+					/* on other error, */ { ASSERT(0); } );
 	
 			/* on wakeup, loop */
 			continue;
@@ -132,14 +132,13 @@ static void * exp_th_fct(void * arg)
 		
 		/* Now, the first peer in the list is expired; signal it */
 		fd_list_unlink( &first->p_expiry );
-		CHECK_FCT_DO( fd_event_send(first->p_events, FDEVP_TERMINATE, 0, "DO_NOT_WANT_TO_TALK_TO_YOU"), goto error );
+		CHECK_FCT_DO( fd_event_send(first->p_events, FDEVP_TERMINATE, 0, "DO_NOT_WANT_TO_TALK_TO_YOU"), break );
 		
 	} while (1);
 	
 	pthread_cleanup_pop( 1 );
-error:
+
 	TRACE_DEBUG(INFO, "An error occurred in peers module! Expiry thread is terminating...");
-	ASSERT(0);
 	CHECK_FCT_DO(fd_event_send(fd_g_config->cnf_main_ev, FDEV_TERMINATE, 0, NULL), );
 	return NULL;
 }
