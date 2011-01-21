@@ -109,7 +109,7 @@ static void * timeout_catch(void * arg)
 {
 	int sig;
 	sigset_t ss;
-	fd_log_threadname ( "timeout catcher" );
+	fd_log_threadname ( "Test alarm catcher" );
 	
 	sigemptyset(&ss);
 	sigaddset(&ss, SIGALRM);

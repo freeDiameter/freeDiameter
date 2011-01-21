@@ -171,6 +171,7 @@ int fd_ext_term( void )
 			(*ext->fini)();
 		}
 		
+#ifndef SKIP_DLCLOSE
 		/* Now unload the extension */
 		if (ext->handler) {
 			TRACE_DEBUG (FULL, "Unloading %s", ext->filename);
@@ -178,6 +179,7 @@ int fd_ext_term( void )
 				TRACE_DEBUG (INFO, "Unloading [%s] failed : %s\n", ext->filename, dlerror());
 			}
 		}
+#endif /* SKIP_DLCLOSE */
 		
 		/* Free the object and continue */
 		free(ext->filename);

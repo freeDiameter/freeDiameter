@@ -68,7 +68,6 @@ int main(int argc, char *argv[])
 		if (dot && !(strcmp(dot, ".fdx"))) {
 			/* We found a file with name *.fdx, attempt to load it */
 			void *hdl, * ep;
-			int r;
 			snprintf(fullname + pathlen, sizeof(fullname) - pathlen, "%s", dp->d_name);
 			
 			TRACE_DEBUG(INFO, "Extension: '%s'", dp->d_name);
@@ -88,11 +87,9 @@ int main(int argc, char *argv[])
 			CHECK( 0, ep == NULL ? 1 : 0 );
 			
 			/* Done, now unload */
-			r = dlclose(hdl);
-			if (r) {
-				TRACE_DEBUG(INFO, "Unable to dlclose '%s': %s.", fullname, dlerror());
-			}
-			CHECK( 0, r );
+#ifndef SKIP_DLCLOSE
+			CHECK( 0, dlclose(hdl) );
+#endif /* SKIP_DLCLOSE */
 		}
 	}
 	
