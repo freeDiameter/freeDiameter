@@ -100,3 +100,26 @@ Here is additional steps in order to run the test for app_acct
   # make test
   
   
+----------------------------------
+Segmentation fault on program exit
+----------------------------------
+
+In case you encounter a segmentation fault on program termination like this:
+  [...]
+  freeDiameterd framework is terminated.
+  Segmentation fault: 11 (core dumped)
+
+with a backtrace like this:
+  #0  0x0000000801a414a0 in ?? ()
+  #1  0x0000000800f99274 in __cxa_finalize () from /lib/libc.so.7
+  #2  0x0000000800f460b7 in exit () from /lib/libc.so.7
+  
+You may try to add the following compilation directive in cmake:
+  -DSKIP_DLCLOSE:BOOL=ON
+
+Note: this segmentation fault was experienced with:
+ - FreeBSD 8.1
+ - 64 bits architecture only.
+ - Profiling mode only.
+
+
