@@ -38,13 +38,23 @@
 /* Only for CPU cache flush */
 pthread_mutex_t fd_cpu_mtx_dummy = PTHREAD_MUTEX_INITIALIZER;
 
+/* function to free the threadnames */
+static void freelogstr(void * str) {
+	if (TRACE_BOOL(ANNOYING)) {
+		if (str) {
+			fd_log_debug("(Thread '%s' terminating)\n", (char *)str);
+		}
+	}
+	free(str);
+}
+
 /* Initialize library variables and threads */
 int fd_libproto_init()
 {
 	int ret = 0;
 	
 	/* Create the thread key that contains thread name for debug messages */
-	ret = pthread_key_create(&fd_log_thname, free);
+	ret = pthread_key_create(&fd_log_thname, freelogstr);
 	if (ret != 0) {
 		fprintf(stderr, "Error initializing the libfreeDiameter library: %s\n", strerror(ret) );
 		return ret;

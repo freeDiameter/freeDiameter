@@ -68,10 +68,10 @@ enum core_mode {
 
 static void * core_runner_thread(void * arg) 
 {
-	fd_log_threadname("Core Runner");
-	
 	if (arg && (*(int *)arg == CORE_MODE_IMMEDIATE))
 		goto end;
+	
+	fd_log_threadname("fD Core Runner");
 	
 	/* Handle events incoming on the main event queue */
 	while (1) {
@@ -130,6 +130,7 @@ static void * core_runner_thread(void * arg)
 	
 end:
 	TRACE_DEBUG(INFO, FD_PROJECT_BINARY " framework is stopping...");
+	fd_log_threadname("fD Core Shutdown");
 	
 	/* cleanups */
 	CHECK_FCT_DO( fd_servers_stop(), /* Stop accepting new connections */ );

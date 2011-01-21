@@ -168,13 +168,13 @@ static inline void parse_cmdline(int argc, char * argv[]) {
 	}
 }
  
-static inline void test_init(int argc, char * argv[])
+static inline void test_init(int argc, char * argv[], char *fname)
 {
 	memset(fd_g_config, 0, sizeof(struct fd_config));
 	
 	CHECK( 0, fd_libproto_init() );
 	
-	fd_log_threadname(basename(__FILE__));
+	fd_log_threadname(basename(fname));
 	
 	/* Initialize gcrypt and gnutls */
 	(void) gcry_control (GCRYCTL_SET_THREAD_CBS, &gcry_threads_pthread);
@@ -198,6 +198,6 @@ static inline void test_init(int argc, char * argv[])
 	
 	return;
 }
-#define INIT_FD()  test_init(argc, argv);
+#define INIT_FD()  test_init(argc, argv, __FILE__);
 
 #endif /* _TESTS_H */
