@@ -14,7 +14,7 @@ Therefore, the OpenWRT port is NOT usable properly at this moment with uClibc.
 A test software is included in test_required for checking if new uClibc distributions 
 support the required features. You'll have to adapt the Makefile according to your environment.
 
-An alternative choice if your hardware allows it is to use glibc in your openwrt image.
+An alternative choice if your hardware allows it is to use (e)glibc in your openwrt image.
 
 #####################
 
@@ -73,7 +73,7 @@ $ make menuconfig
 
 - Advanced configuration options (for developers) --->
   - Toolchain Options ---->
-    C Library implementation (Use glibc)
+    C Library implementation (Use eglibc)
 
 
 5) Build the image and packages, this takes a while
@@ -154,7 +154,7 @@ Change the option as follow:
 
 - Advanced configuration options (for developers) --->
   - Toolchain Options ---->
-    C Library implementation (Use glibc)
+    C Library implementation (Use eglibc)
 
 f) Once configured, create the toolchain and default image (this takes a while):
 $ make world
