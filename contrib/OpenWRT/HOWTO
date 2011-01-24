@@ -1,3 +1,23 @@
+#####################
+#  !! IMPORTANT !!  #
+#####################
+
+The uClibc library that is shipped with OpenWRT lacks support for several POSIX thread
+features, such as pthread_cleanup_{push,pop}, that are required by the freeDiameter
+framework.
+
+Until these features are included in the base OpenWRT system, the framework will not 
+behave correctly on this platform.
+
+Therefore, the OpenWRT port is NOT usable at this moment.
+
+A test software is included in test_required for checking if new uClibc distributions 
+support the required features. You'll have to adapt the Makefile according to your environment.
+
+#####################
+
+
+
 This HOWTO describes how to generate a set of ipkg modules for 
 providing support of freeDiameter in an OpenWRT system.
 
