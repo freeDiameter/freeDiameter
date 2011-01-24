@@ -9,10 +9,12 @@ framework.
 Until these features are included in the base OpenWRT system, the framework will not 
 behave correctly on this platform.
 
-Therefore, the OpenWRT port is NOT usable at this moment.
+Therefore, the OpenWRT port is NOT usable properly at this moment with uClibc.
 
 A test software is included in test_required for checking if new uClibc distributions 
 support the required features. You'll have to adapt the Makefile according to your environment.
+
+An alternative choice if your hardware allows it is to use glibc in your openwrt image.
 
 #####################
 
@@ -65,14 +67,22 @@ $ make menuconfig
    freeDiameter-test (M)
    wpad (*)
    wpad-mini ( )
+   
 
-4) Build the image and packages, this takes a while
+4) Set the C library to glibc instead of uClibc (broken support, see #26)
+
+- Advanced configuration options (for developers) --->
+  - Toolchain Options ---->
+    C Library implementation (Use glibc)
+
+
+5) Build the image and packages, this takes a while
 $ make world
 
-5) Export the bin/* directory through a webserver. 
+6) Export the bin/* directory through a webserver. 
    We assume it is available at http://192.168.1.25/owrt
    
-6) Flash the router with your new image -- THIS DESTROYS ALL CONFIG ON THE ROUTER!
+7) Flash the router with your new image -- THIS DESTROYS ALL CONFIG ON THE ROUTER!
 $ ssh root@192.168.1.1
 # cd /tmp
 # wget http://192.168.1.25/owrt/openwrt-brcm47xx-squashfs.trx
@@ -84,12 +94,12 @@ $ telnet 192.168.1.1
 # sync
 # exit
 
-7) Update the opkg router's config to get your new packages
+8) Update the opkg router's config to get your new packages
 ssh root@192.168.1.1
 # echo "src/gz localrepo http://192.168.1.25/owrt/packages" >> /etc/opkg.conf 
 # opkg update
 
-8) Install freeDiameter, you're done. Optionnaly, install also certtool on the router before, to 
+9) Install freeDiameter, you're done. Optionnaly, install also certtool on the router before, to 
    generate the TLS certificate automatically.
 # opkg install freeDiameter
 
@@ -139,8 +149,15 @@ For many routeurs, the recommended kernel is a 2.4x version. I have NOT tried wi
 and the SCTP support is likely to be different in this generation of kernels. I strongly recommend
 to go with a 2.6x kernel, whenever possible. 
    
-e) Once configured, create the toolchain and default image (this takes a while):
-$ make
+e) As per freeDiameter ticket #26, you also need to change the library to glibc instead of uClibc.
+Change the option as follow:
+
+- Advanced configuration options (for developers) --->
+  - Toolchain Options ---->
+    C Library implementation (Use glibc)
+
+f) Once configured, create the toolchain and default image (this takes a while):
+$ make world
 
 After this command completes successfully, your build environment is ready.
 The resulting image and packages are stored in the "bin/" subdirectory.
@@ -165,13 +182,14 @@ You can check for the available packages with the script:
 $ ./scripts/feeds search <package>
 
 We will now describe how to install these dependencies. At the time this HOWTO is written, 
-the OpenWRT repositories contain ipv6, gnutls, pthreads and hostapd. Follow these instruction to
-build them.
+the OpenWRT repositories contains packages for sctp, ipv6, gnutls, pthreads and hostapd. 
+Follow these instructions to build them.
 
 Alternatively, you can find these packages pre-compiled in the OpenWRT packages repository.
 
-a) GNU TLS packages
+a) Add the packages
 $ scripts/feeds install libgnutls
+$ scripts/feeds install sctp
 
 b) Select the following components in the menu:
 $ make menuconfig
@@ -179,6 +197,7 @@ $ make menuconfig
    libpthread (M)
    
 - Network --->
+   sctp (M)
    hostapd (M)
    wpad-mini ( )
 
@@ -196,7 +215,7 @@ $ make world
 This will add a bunch of modules in your bin directory that will be required for freeDiameter.
 Since we are removing the wpad-mini daemon from the base image, this image (trx or bin file) is also recompiled.
 
-Note that if you are setting your device as WPA supplicant also (wireless client), you can select wpad instead of hostapd.
+Note that if you are setting your device as WPA supplicant also (wireless client), you must select wpad instead of hostapd.
 (in any case, the -mini version is not suitable since we will use the RADIUS authentication).
 
 
@@ -217,7 +236,7 @@ you can run the following command on your router:
  root@OpenWrt:~# opkg update
 
 Install the newly compiled packages with:
- root@OpenWrt:~# opkg install kmod-ipv6 hostapd libpthread
+ root@OpenWrt:~# opkg install kmod-ipv6 hostapd libpthread sctp
 
 ==============================================
 3) Missing packages:
@@ -273,6 +292,7 @@ Note that in order to build this package, you need to have cmake & flex on your 
 $ make menuconfig
 - Network --->
    freeDiameter (M)
+   freeDiameter-test (M)
    
 Quit and save the new config, then:
 $ make world
