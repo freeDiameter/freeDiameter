@@ -134,7 +134,7 @@ struct msg {
 /* Macro to cast a msg_avp_t */
 #define _M(_x) ((struct msg *)(_x))
 /* Check the type and eyecatcher */
-#define CHECK_MSG(_x) ((_C(_x)->type == MSG_MSG) && (_M(_x)->msg_eyec == MSG_MSG_EYEC))
+#define CHECK_MSG(_x) ((_x) && (_C(_x)->type == MSG_MSG) && (_M(_x)->msg_eyec == MSG_MSG_EYEC))
 
 #define VALIDATE_OBJ(_x) ( (CHECK_MSG(_x)) || (CHECK_AVP(_x)) )
 
