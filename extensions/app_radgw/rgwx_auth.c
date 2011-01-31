@@ -50,8 +50,6 @@
 #define ACV_OAP_RADIUS			1	/* RADIUS */
 #define ACV_ASS_STATE_MAINTAINED	0	/* STATE_MAINTAINED */
 #define ACV_ASS_NO_STATE_MAINTAINED	1	/* NO_STATE_MAINTAINED */
-#define ER_DIAMETER_MULTI_ROUND_AUTH	1001
-#define ER_DIAMETER_LIMITED_SUCCESS	2002
 
 /* The state we keep for this plugin */
 struct rgwp_config {
@@ -1075,6 +1073,7 @@ static int auth_diam_ans( struct rgwp_config * cs, struct session * session, str
 	int no_str = 0; /* indicate if an STR is required for this server */
 	uint8_t	tuntag = 0;
 	unsigned char * req_auth = NULL;
+	int error_cause = 0;
 	
 	TRACE_ENTRY("%p %p %p %p %p", cs, session, diam_ans, rad_fw, cli);
 	CHECK_PARAMS(cs && session && diam_ans && *diam_ans && rad_fw && *rad_fw);
@@ -1160,6 +1159,78 @@ static int auth_diam_ans( struct rgwp_config * cs, struct session * session, str
 			break;
 		
 		default:
+			/* Can we convert the value to a natural Error-Cause ? */
+			switch (ahdr->avp_value->u32) {
+				case ER_DIAMETER_AVP_UNSUPPORTED:
+					error_cause = 401; /* Unsupported Attribute */
+					break;
+					
+				case ER_DIAMETER_MISSING_AVP:
+					error_cause = 402; /* Missing Attribute */
+					break;
+					
+				case ER_DIAMETER_UNABLE_TO_COMPLY:
+					error_cause = 404; /* Invalid Request */
+					break;
+					
+				case ER_DIAMETER_APPLICATION_UNSUPPORTED:
+					error_cause = 405; /* Unsupported Service */
+					break;
+					
+				case ER_DIAMETER_COMMAND_UNSUPPORTED:
+					error_cause = 406; /* Unsupported Extension */
+					break;
+					
+				case ER_DIAMETER_INVALID_AVP_VALUE:
+					error_cause = 407; /* Invalid Attribute Value */
+					break;
+					
+				case ER_DIAMETER_AVP_NOT_ALLOWED:
+					error_cause = 501; /* Administratively Prohibited */
+					break;
+					
+				case ER_DIAMETER_REALM_NOT_SERVED:
+				case ER_DIAMETER_LOOP_DETECTED:
+				case ER_DIAMETER_UNKNOWN_PEER:
+				case ER_DIAMETER_UNABLE_TO_DELIVER:
+					error_cause = 502; /* Request Not Routable (Proxy) */
+					break;
+					
+				case ER_DIAMETER_UNKNOWN_SESSION_ID:
+					error_cause = 503; /* Session Context Not Found */
+					break;
+					
+				case ER_DIAMETER_TOO_BUSY:
+				case ER_DIAMETER_OUT_OF_SPACE:
+					error_cause = 506; /* Resources Unavailable */
+					break;
+					
+#if 0
+			/* remaining Diameter Result-Code & RADIUS Error-Cause */
+				case ER_DIAMETER_REDIRECT_INDICATION:
+				case ER_DIAMETER_INVALID_HDR_BITS:
+				case ER_DIAMETER_INVALID_AVP_BITS:
+				case ER_DIAMETER_AUTHENTICATION_REJECTED:
+				case ER_ELECTION_LOST:
+				case ER_DIAMETER_AUTHORIZATION_REJECTED:
+				case ER_DIAMETER_RESOURCES_EXCEEDED:
+				case ER_DIAMETER_CONTRADICTING_AVPS:
+				case ER_DIAMETER_AVP_OCCURS_TOO_MANY_TIMES
+				case ER_DIAMETER_NO_COMMON_APPLICATION:
+				case ER_DIAMETER_UNSUPPORTED_VERSION:
+				case ER_DIAMETER_INVALID_BIT_IN_HEADER:
+				case ER_DIAMETER_INVALID_AVP_LENGTH:
+				case ER_DIAMETER_INVALID_MESSAGE_LENGTH:
+				case ER_DIAMETER_INVALID_AVP_BIT_COMBO:
+				case ER_DIAMETER_NO_COMMON_SECURITY:
+					error_cause = 403; /* NAS Identification Mismatch */
+					error_cause = 504; /* Session Context Not Removable */
+					error_cause = 505; /* Other Proxy Processing Error */
+					error_cause = 507; /* Request Initiated */
+					error_cause = 508; /* Multiple Session Selection Unsupported */
+#endif /* 0 */
+			}
+			/* In any case, the following is processed: */
 			(*rad_fw)->hdr->code = RADIUS_CODE_ACCESS_REJECT;
 			fd_log_debug("[auth.rgwx] Received Diameter answer with error code '%d' from server '%.*s', session %.*s, translating into Access-Reject\n",
 					ahdr->avp_value->u32, 
@@ -1824,10 +1895,7 @@ static int auth_diam_ans( struct rgwp_config * cs, struct session * session, str
 						return ENOMEM;
 					}
 					
-					if ( ! radius_msg_add_attr_int32(*rad_fw, RADIUS_ATTR_ERROR_CAUSE, 202) ) {
-						TRACE_DEBUG(INFO, "Error while adding Error-Cause attribute in RADIUS message");
-						return ENOMEM;
-					}
+					error_cause = 202; /* Invalid EAP Packet */
 					break;
 			
 				default:
@@ -1851,6 +1919,13 @@ static int auth_diam_ans( struct rgwp_config * cs, struct session * session, str
 	CHECK_FCT( fd_msg_free( asid ) );
 	CHECK_FCT( fd_msg_free( aoh ) );
 	free(req_auth);
+	
+	if (error_cause) {
+		if ( ! radius_msg_add_attr_int32(*rad_fw, RADIUS_ATTR_ERROR_CAUSE, error_cause) ) {
+			TRACE_DEBUG(INFO, "Error while adding Error-Cause attribute in RADIUS message");
+			return ENOMEM;
+		}
+	}		
 
 	if ((*rad_fw)->hdr->code == RADIUS_CODE_ACCESS_ACCEPT) {
 		/* Add the auth-application-id required for STR, or 0 if no STR is required */
