@@ -49,9 +49,11 @@ struct rt_data {
 
 /* Items of the errors list */
 struct rtd_error {
-	struct fd_list	chain;	/* link in the list, ordered by nexthop */
-	char * 		nexthop;/* the peer the message was sent to */
-	char *		erh;	/* the origin of the error */
+	struct fd_list	chain;	/* link in the list, ordered by nexthop (fd_os_cmp) */
+	DiamId_t 	nexthop;/* the peer the message was sent to */
+	size_t		nexthoplen; /* cached string length */
+	DiamId_t	erh;	/* the origin of the error */
+	size_t		erhlen; /* cached string length */
 	uint32_t	code;	/* the error code */
 };
 
@@ -106,19 +108,19 @@ void fd_rtd_free(struct rt_data ** rtd)
 	return;
 }
 
-/* Add a peer to the candidates list */
-int  fd_rtd_candidate_add(struct rt_data * rtd, char * peerid, char * realm)
+/* Add a peer to the candidates list. The source is our local peer list, so no need to care for the case here. */
+int  fd_rtd_candidate_add(struct rt_data * rtd, DiamId_t peerid, size_t peeridlen, DiamId_t realm, size_t realmlen)
 {
 	struct fd_list * prev;
 	struct rtd_candidate * new;
 	
-	TRACE_ENTRY("%p %p", rtd, peerid);
-	CHECK_PARAMS(rtd && peerid);
+	TRACE_ENTRY("%p %p %zd %p %zd", rtd, peerid, peeridlen, realm, realmlen);
+	CHECK_PARAMS(rtd && peerid && peeridlen);
 	
 	/* Since the peers are ordered when they are added (fd_g_activ_peers) we search for the position from the end -- this should be efficient */
 	for (prev = rtd->candidates.prev; prev != &rtd->candidates; prev = prev->prev) {
 		struct rtd_candidate * cp = (struct rtd_candidate *) prev;
-		int cmp = strcmp(peerid, cp->diamid);
+		int cmp = fd_os_cmp(peerid, peeridlen, cp->diamid, cp->diamidlen);
 		if (cmp > 0)
 			break;
 		if (cmp == 0)
@@ -126,41 +128,39 @@ int  fd_rtd_candidate_add(struct rt_data * rtd, char * peerid, char * realm)
 			return 0;
 	}
 	
+	/* Create the new entry */
 	CHECK_MALLOC( new = malloc(sizeof(struct rtd_candidate)) );
 	memset(new, 0, sizeof(struct rtd_candidate) );
 	fd_list_init(&new->chain, NULL);
-	CHECK_MALLOC( new->diamid = strdup(peerid) );
-	CHECK_MALLOC( new->realm = strdup(realm) );
+	CHECK_MALLOC( new->diamid = os0dup(peerid, peeridlen) )
+	new->diamidlen = peeridlen;
+	if (realm) {
+		CHECK_MALLOC( new->realm = os0dup(realm, realmlen) )
+		new->realmlen = realmlen;
+	}
 	
+	/* insert in the list at the correct position */
 	fd_list_insert_after(prev, &new->chain);
 	
 	return 0;
 }
 
-/* Remove a peer from the candidates (if it is found) */
-void fd_rtd_candidate_del(struct rt_data * rtd, char * peerid, size_t sz /* if !0, peerid does not need to be \0 terminated */)
+/* Remove a peer from the candidates (if it is found). Case insensitive search since the names are received from other peers */
+void fd_rtd_candidate_del(struct rt_data * rtd, uint8_t * id, size_t idsz)
 {
 	struct fd_list * li;
 	
-	TRACE_ENTRY("%p %p %zd", rtd, peerid, sz);
-	CHECK_PARAMS_DO( rtd && peerid , return );
+	TRACE_ENTRY("%p %p %zd", rtd, id, idsz);
+	CHECK_PARAMS_DO( rtd && id && idsz, return );
+	
+	if (!fd_os_is_valid_DiameterIdentity(id, idsz))
+		/* it cannot be in the list */
+		return;
 	
 	for (li = rtd->candidates.next; li != &rtd->candidates; li = li->next) {
 		struct rtd_candidate * c = (struct rtd_candidate *) li;
-		int cmp;
-		if (sz) {
-			cmp = strncmp(peerid, c->diamid, sz);
-			if (!cmp) {
-				int len = strlen(c->diamid);
-				if (sz < len)
-					cmp = -1;
-				else if (sz == len)
-					cmp = 0;
-				else cmp = 1;
-			}
-		} else {
-			cmp = strcmp(peerid, c->diamid);
-		}
+		
+		int cmp = fd_os_almostcasecmp(id, idsz, c->diamid, c->diamidlen);
 		
 		if (!cmp) {
 			/* Found it! Remove it */
@@ -174,7 +174,7 @@ void fd_rtd_candidate_del(struct rt_data * rtd, char * peerid, size_t sz /* if !
 		if (cmp > 0)
 			continue;
 		
-		/* The list is ordered only if not extracted */
+		/* The list is guaranteed to be ordered only if not extracted */
 		if (! rtd->extracted)
 			break;
 	}
@@ -182,19 +182,20 @@ void fd_rtd_candidate_del(struct rt_data * rtd, char * peerid, size_t sz /* if !
 	return;
 }
 
-/* If a peer returned a protocol error for this message, save it so that we don't try to send it there again */
-int  fd_rtd_error_add(struct rt_data * rtd, char * sentto, uint8_t * origin, size_t originsz, uint32_t rcode)
+/* If a peer returned a protocol error for this message, save it so that we don't try to send it there again.
+ Case insensitive search since the names are received from other peers*/
+int  fd_rtd_error_add(struct rt_data * rtd, DiamId_t sentto, size_t senttolen, uint8_t * origin, size_t originsz, uint32_t rcode)
 {
 	struct fd_list * li;
 	int match = 0;
 	
-	TRACE_ENTRY("%p %p %p %d", rtd, sentto, origin, rcode);
-	CHECK_PARAMS( rtd && sentto ); /* origin may be NULL */
+	TRACE_ENTRY("%p %p %zd %p %zd %u", rtd, sentto, senttolen, origin, originsz, rcode);
+	CHECK_PARAMS( rtd && sentto && senttolen ); /* origin may be NULL */
 	
 	/* First add the new error entry */
 	for (li = rtd->errors.next; li != &rtd->errors; li = li->next) {
 		struct rtd_error * e = (struct rtd_error *) li;
-		int cmp = strcmp(sentto, e->nexthop);
+		int cmp = fd_os_cmp(sentto, senttolen, e->nexthop, e->nexthoplen);
 		if (cmp > 0)
 			continue;
 		if (!cmp)
@@ -202,27 +203,40 @@ int  fd_rtd_error_add(struct rt_data * rtd, char * sentto, uint8_t * origin, siz
 		break;
 	}
 	
-	/* If we already had this entry, we should not have sent the message again to this peer... anyway... */
+	/* If we already had this entry, we should not have sent the message again to this peer... anyway, let's close our eyes. */
+	/* in the normal case, we save the error */
 	if (!match) {
 		/* Add a new entry in the error list */
 		struct rtd_error * new;
 		CHECK_MALLOC( new = malloc(sizeof(struct rtd_error)) );
 		memset(new, 0, sizeof(struct rtd_error));
 		fd_list_init(&new->chain, NULL);
-		CHECK_MALLOC(new->nexthop = strdup(sentto));
+
+		CHECK_MALLOC(new->nexthop = os0dup(sentto, senttolen));
+		new->nexthoplen = senttolen;
+		
 		if (origin) {
-			CHECK_MALLOC( new->erh = malloc(originsz + 1) );
-			memcpy(new->erh, origin, originsz);
-			new->erh[originsz] = '\0';
+			if (!originsz) {
+				originsz=strlen((char *)origin);
+			} else {
+				if (!fd_os_is_valid_DiameterIdentity(origin, originsz)){
+					TRACE_DEBUG(FULL, "Received error %d from peer with invalid Origin-Host AVP, not saved", rcode);
+					origin = NULL;
+					goto after_origin;
+				}
+			}
+			CHECK_MALLOC( new->erh = (DiamId_t)os0dup(origin, originsz) );
+			new->erhlen = originsz;
 		}
+after_origin:
 		new->code = rcode;
 		fd_list_insert_before(li, &new->chain);
 	}
 	
 	/* Finally, remove this (these) peers from the candidate list */
-	fd_rtd_candidate_del(rtd, sentto, 0);
+	fd_rtd_candidate_del(rtd, (os0_t)sentto, senttolen);
 	if (origin)
-		fd_rtd_candidate_del(rtd, (char *)origin, originsz);
+		fd_rtd_candidate_del(rtd, origin, originsz);
 	
 	/* Done! */
 	return 0;
@@ -273,7 +287,7 @@ int  fd_rtd_candidate_reorder(struct fd_list * candidates)
 			/* Then we move the previous high score items at end of the list */
 			fd_list_move_end(candidates, &highest);
 			
-			/* And the new high score is this reset */
+			/* And the new high score is set */
 			hs = c->score;
 		}
 		

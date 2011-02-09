@@ -47,7 +47,8 @@ struct cnxctx {
 
 	int 		cc_family;	/* AF_INET or AF_INET6 (mixed) */
 	int 		cc_proto;	/* IPPROTO_TCP or IPPROTO_SCTP */
-	uint32_t	cc_status;	/* True if the object is being destroyed: we don't send events anymore */
+	
+	uint32_t	cc_state;	/* True if the object is being destroyed: we don't send events anymore. access with fd_cnx_getstate() */
 	#define 	CC_STATUS_CLOSING	1
 	#define 	CC_STATUS_ERROR		2
 	#define 	CC_STATUS_SIGNALED	4
@@ -58,11 +59,10 @@ struct cnxctx {
 	
 	struct fifo *	cc_incoming;	/* FIFO queue of events received on the connection, FDEVP_CNX_* */
 	struct fifo *	cc_alt;		/* alternate fifo to send FDEVP_CNX_* events to. */
-	#define Target_Queue(cnx)	((cnx)->cc_alt ?: (cnx)->cc_incoming)
 
 	/* If cc_tls == true */
 	struct {
-		char 				*cn;		/* If not NULL, remote certif will be checked to match this Common Name */
+		DiamId_t 			 cn;		/* If not NULL, remote certif will be checked to match this Common Name */
 		int				 mode; 		/* GNUTLS_CLIENT / GNUTLS_SERVER */
 		gnutls_session_t 		 session;	/* Session object (stream #0 in case of SCTP) */
 	}		cc_tls_para;
@@ -83,6 +83,12 @@ struct cnxctx {
 };
 
 void fd_cnx_markerror(struct cnxctx * conn);
+uint32_t fd_cnx_getstate(struct cnxctx * conn);
+int  fd_cnx_teststate(struct cnxctx * conn, uint32_t flag);
+void fd_cnx_addstate(struct cnxctx * conn, uint32_t orstate);
+void fd_cnx_setstate(struct cnxctx * conn, uint32_t abstate);
+struct fifo * fd_cnx_target_queue(struct cnxctx * conn);
+
 
 /* Socket */
 ssize_t fd_cnx_s_recv(struct cnxctx * conn, void *buffer, size_t length);
@@ -108,8 +114,8 @@ int fd_sctp_client( int *sock, int no_ip6, uint16_t port, struct fd_list * list 
 int fd_sctp_get_local_ep(int sock,  struct fd_list * list);
 int fd_sctp_get_remote_ep(int sock, struct fd_list * list);
 int fd_sctp_get_str_info( int sock, uint16_t *in, uint16_t *out, sSS *primary );
-int fd_sctp_sendstr(int sock, uint16_t strid, uint8_t * buf, size_t len, uint32_t * cc_closing);
-int fd_sctp_recvmeta(int sock, uint16_t * strid, uint8_t ** buf, size_t * len, int *event, uint32_t * cc_closing);
+int fd_sctp_sendstr(struct cnxctx * conn, uint16_t strid, uint8_t * buf, size_t len);
+int fd_sctp_recvmeta(struct cnxctx * conn, uint16_t * strid, uint8_t ** buf, size_t * len, int *event);
 
 /* TLS over SCTP (multi-stream) */
 struct sctps_ctx {

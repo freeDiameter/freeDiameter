@@ -82,8 +82,14 @@ void fd_log_threadname ( char * name )
 	
 	/* First, check if a value is already assigned to the current thread */
 	val = pthread_getspecific(fd_log_thname);
+	if (TRACE_BOOL(ANNOYING)) {
+		if (val) {
+			fd_log_debug("(Thread '%s' renamed to '%s')\n", (char *)val, name);
+		} else {
+			fd_log_debug("(Thread %p named '%s')\n", pthread_self(), name?:"(nil)");
+		}
+	}
 	if (val != NULL) {
-		TRACE_DEBUG(FULL, "Freeing old thread name: %s", val);
 		free(val);
 	}
 	

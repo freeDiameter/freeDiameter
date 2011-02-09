@@ -137,6 +137,10 @@ struct fd_peer { /* The "real" definition of the peer structure */
 	/* Origin of this peer object, for debug */
 	char		*p_dbgorig;
 	
+	/* State of the peer, and its lock */
+	enum peer_state	 p_state;
+	pthread_mutex_t  p_state_mtx;
+	
 	/* Chaining in peers sublists */
 	struct fd_list	 p_actives;	/* list of peers in the STATE_OPEN state -- used by routing */
 	struct fd_list	 p_expiry; 	/* list of expiring peers, ordered by their timeout value */
@@ -146,6 +150,7 @@ struct fd_peer { /* The "real" definition of the peer structure */
 	struct {
 		unsigned pf_responder	: 1;	/* The peer has been created to handle incoming connection */
 		unsigned pf_delete	: 1;	/* Destroy the peer when the connection is terminated */
+		unsigned pf_localterm	: 1;	/* If the latest DPR/DPA was initiated from this side */
 		
 		unsigned pf_dw_pending 	: 1;	/* A DWR message was sent and not answered yet */
 		
@@ -191,6 +196,9 @@ struct fd_peer { /* The "real" definition of the peer structure */
 };
 #define CHECK_PEER( _p ) \
 	(((_p) != NULL) && (((struct fd_peer *)(_p))->p_eyec == EYEC_PEER))
+
+#define fd_peer_getstate(peer)  fd_peer_get_state((struct peer_hdr *)(peer))
+
 
 /* Events codespace for struct fd_peer->p_events */
 enum {
@@ -307,6 +315,7 @@ int fd_p_dw_timeout(struct fd_peer * peer);
 int fd_p_dw_reopen(struct fd_peer * peer);
 int fd_p_dp_handle(struct msg ** msg, int req, struct fd_peer * peer);
 int fd_p_dp_initiate(struct fd_peer * peer, char * reason);
+int fd_p_dp_newdelay(struct fd_peer * peer);
 
 /* Active peers -- routing process should only ever take the read lock, the write lock is managed by PSMs */
 extern struct fd_list fd_g_activ_peers;
@@ -326,11 +335,12 @@ struct cnxctx * fd_cnx_serv_accept(struct cnxctx * serv);
 struct cnxctx * fd_cnx_cli_connect_tcp(sSA * sa, socklen_t addrlen);
 struct cnxctx * fd_cnx_cli_connect_sctp(int no_ip6, uint16_t port, struct fd_list * list);
 int             fd_cnx_start_clear(struct cnxctx * conn, int loop);
-void		fd_cnx_sethostname(struct cnxctx * conn, char * hn);
+void		fd_cnx_sethostname(struct cnxctx * conn, DiamId_t hn);
 int             fd_cnx_handshake(struct cnxctx * conn, int mode, char * priority, void * alt_creds);
 char *          fd_cnx_getid(struct cnxctx * conn);
 int		fd_cnx_getproto(struct cnxctx * conn);
 int		fd_cnx_getTLS(struct cnxctx * conn);
+int		fd_cnx_isMultichan(struct cnxctx * conn);
 int             fd_cnx_getcred(struct cnxctx * conn, const gnutls_datum_t **cert_list, unsigned int *cert_list_size);
 int 		fd_cnx_get_local_eps(struct fd_list * list);
 int             fd_cnx_getremoteeps(struct cnxctx * conn, struct fd_list * eps);
@@ -342,6 +352,5 @@ void            fd_cnx_destroy(struct cnxctx * conn);
 
 /* Flags for the fd_cnx_send function : */
 #define FD_CNX_ORDERED		(1 << 0)	/* All messages sent with this flag set will be delivered in the same order. No guarantee on other messages */
-#define FD_CNX_BROADCAST	(1 << 1)	/* The message is sent over all stream pairs, in case of SCTP. No effect on TCP */
 
 #endif /* _FDCORE_INTERNAL_H */

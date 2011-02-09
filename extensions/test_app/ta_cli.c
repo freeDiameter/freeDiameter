@@ -149,7 +149,8 @@ static void ta_cli_test_message()
 	CHECK_FCT_DO( fd_msg_new( ta_cmd_r, MSGFL_ALLOC_ETEID, &req ), goto out );
 	
 	/* Create a new session */
-	CHECK_FCT_DO( fd_sess_new( &sess, fd_g_config->cnf_diamid, "app_test", 8 ), goto out );
+	#define TEST_APP_SID_OPT  "app_test"
+	CHECK_FCT_DO( fd_sess_new( &sess, fd_g_config->cnf_diamid, fd_g_config->cnf_diamid_len, (os0_t)TEST_APP_SID_OPT, CONSTSTRLEN(TEST_APP_SID_OPT) ), goto out );
 	
 	/* Create the random value to store with the session */
 	mi = malloc(sizeof(struct ta_mess_info));
@@ -164,11 +165,12 @@ static void ta_cli_test_message()
 	
 	/* Session-Id */
 	{
-		char * sid;
-		CHECK_FCT_DO( fd_sess_getsid ( sess, &sid ), goto out );
+		os0_t sid;
+		size_t sidlen;
+		CHECK_FCT_DO( fd_sess_getsid ( sess, &sid, &sidlen ), goto out );
 		CHECK_FCT_DO( fd_msg_avp_new ( ta_sess_id, 0, &avp ), goto out );
-		val.os.data = (uint8_t *)sid;
-		val.os.len  = strlen(sid);
+		val.os.data = sid;
+		val.os.len  = sidlen;
 		CHECK_FCT_DO( fd_msg_avp_setvalue( avp, &val ), goto out );
 		CHECK_FCT_DO( fd_msg_avp_add( req, MSG_BRW_FIRST_CHILD, avp ), goto out );
 		

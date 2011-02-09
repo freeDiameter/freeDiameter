@@ -305,9 +305,9 @@ static int acct_rad_req( struct rgwp_config * cs, struct session ** session, str
 	
 	const char * prefix = "Diameter/";
 	size_t pref_len;
-	uint8_t * si = NULL;
+	os0_t si = NULL;
 	size_t si_len = 0;
-	uint8_t * un = NULL;
+	os0_t un = NULL;
 	size_t un_len = 0;
 	
 	TRACE_ENTRY("%p %p %p %p %p %p", cs, session, rad_req, rad_ans, diam_fw, cli);
@@ -486,7 +486,7 @@ static int acct_rad_req( struct rgwp_config * cs, struct session ** session, str
 	
 	/* Create the Session-Id AVP if needed */
 	if (!*session) {
-		CHECK_FCT( fd_sess_fromsid ( (char *)/* cast should be removed later */si, si_len, session, NULL) );
+		CHECK_FCT( fd_sess_fromsid ( si, si_len, session, NULL) );
 		
 		TRACE_DEBUG(FULL, "[acct.rgwx] Translating new accounting message for session '%.*s'...", si_len, si);
 		
@@ -662,13 +662,13 @@ static int acct_rad_req( struct rgwp_config * cs, struct session ** session, str
 					char buf[32];
 					char * attr_val, *auth_val;
 					attr_val = (char *)(attr + 1);
-					auth_val = attr_val + strlen(CLASS_AAI_PREFIX);
-					if (	(attr->length > sizeof(struct radius_attr_hdr) + strlen(CLASS_AAI_PREFIX)  )
-						&& (attr->length < sizeof(struct radius_attr_hdr) + strlen(CLASS_AAI_PREFIX) + sizeof(buf))
-						&& ! strncmp(attr_val, CLASS_AAI_PREFIX, strlen(CLASS_AAI_PREFIX))) {
+					auth_val = attr_val + CONSTSTRLEN(CLASS_AAI_PREFIX);
+					if (	(attr->length > sizeof(struct radius_attr_hdr) + CONSTSTRLEN(CLASS_AAI_PREFIX)  )
+						&& (attr->length < sizeof(struct radius_attr_hdr) + CONSTSTRLEN(CLASS_AAI_PREFIX) + sizeof(buf))
+						&& ! strncmp(attr_val, CLASS_AAI_PREFIX, CONSTSTRLEN(CLASS_AAI_PREFIX))) {
 					
 						memset(buf, 0, sizeof(buf));
-						memcpy(buf, auth_val, attr->length - sizeof(struct radius_attr_hdr) - strlen(CLASS_AAI_PREFIX));
+						memcpy(buf, auth_val, attr->length - sizeof(struct radius_attr_hdr) - CONSTSTRLEN(CLASS_AAI_PREFIX));
 						if (sscanf(buf, "%u", &auth_appl) == 1) {
 							TRACE_DEBUG(ANNOYING, "Found Class attribute with '%s' prefix (attr #%d), AAI:%u.", CLASS_AAI_PREFIX, idx, auth_appl);
 						}
@@ -1300,8 +1300,10 @@ static int acct_diam_ans( struct rgwp_config * cs, struct session * session, str
 	if (st->send_str) {
 		struct msg * str = NULL;
 		struct msg_hdr * hdr = NULL;
-		char * fqdn;
-		char * realm;
+		DiamId_t fqdn;
+		size_t fqdn_len;
+		DiamId_t realm;
+		size_t realm_len;
 		union avp_value avp_val;
 		
 		/* Create a new STR message */
@@ -1322,13 +1324,13 @@ static int acct_diam_ans( struct rgwp_config * cs, struct session * session, str
 		CHECK_FCT( fd_msg_avp_add ( str, MSG_BRW_LAST_CHILD, avp) );
 
 		/* Get information on the NAS */
-		CHECK_FCT( rgw_clients_get_origin(cli, &fqdn, &realm) );
+		CHECK_FCT( rgw_clients_get_origin(cli, &fqdn, &fqdn_len, &realm, &realm_len) );
 
 		/* Add the Origin-Host as next AVP */
 		CHECK_FCT( fd_msg_avp_new ( cs->dict.Origin_Host, 0, &avp ) );
 		memset(&avp_val, 0, sizeof(avp_val));
 		avp_val.os.data = (unsigned char *)fqdn;
-		avp_val.os.len = strlen(fqdn);
+		avp_val.os.len = fqdn_len;
 		CHECK_FCT( fd_msg_avp_setvalue ( avp, &avp_val ) );
 		CHECK_FCT( fd_msg_avp_add ( str, MSG_BRW_LAST_CHILD, avp) );
 
@@ -1336,7 +1338,7 @@ static int acct_diam_ans( struct rgwp_config * cs, struct session * session, str
 		CHECK_FCT( fd_msg_avp_new ( cs->dict.Origin_Realm, 0, &avp ) );
 		memset(&avp_val, 0, sizeof(avp_val));
 		avp_val.os.data = (unsigned char *)realm;
-		avp_val.os.len = strlen(realm);
+		avp_val.os.len = realm_len;
 		CHECK_FCT( fd_msg_avp_setvalue ( avp, &avp_val ) );
 		CHECK_FCT( fd_msg_avp_add ( str, MSG_BRW_LAST_CHILD, avp) );
 		

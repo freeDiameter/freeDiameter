@@ -56,7 +56,7 @@ int fd_ext_add( char * filename, char * conffile )
 {
 	struct fd_ext_info * new;
 	
-	TRACE_ENTRY("%p(%s) %p(%s)", filename, filename?filename:"", conffile, conffile?conffile:"");
+	TRACE_ENTRY("%p %p", filename, conffile);
 	
 	/* Check the filename is valid */
 	CHECK_PARAMS( filename );
@@ -105,7 +105,7 @@ int fd_ext_load()
 #ifndef DEBUG
 		ext->handler = dlopen(ext->filename, RTLD_LAZY | RTLD_GLOBAL);
 #else /* DEBUG */
-		/* We resolve immediatly so it's easier to find problems in ABI */
+		/* We resolve symbols immediatly so it's easier to find problems in ABI */
 		ext->handler = dlopen(ext->filename, RTLD_NOW | RTLD_GLOBAL);
 #endif /* DEBUG */
 		if (ext->handler == NULL) {

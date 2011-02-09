@@ -58,7 +58,7 @@ struct rgw_client;
 
 int    rgw_clients_getkey(struct rgw_client * cli, unsigned char **key, size_t *key_len);
 char * rgw_clients_id(struct rgw_client *cli);
-int    rgw_clients_get_origin(struct rgw_client *cli, char **fqdn, char **realm);
+int    rgw_clients_get_origin(struct rgw_client *cli, DiamId_t *fqdn, size_t *fqdnlen, DiamId_t *realm, size_t *realmlen);
 
 /* Each plugin must provide the following structure. */
 extern struct rgw_api {

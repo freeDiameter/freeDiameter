@@ -207,8 +207,8 @@ static int dont_send_if_no_common_app(void * cbdata, struct msg * msg, struct fd
 		struct rtd_candidate *c = (struct rtd_candidate *) li;
 		struct fd_peer * peer;
 		struct fd_app *found;
-		CHECK_FCT( fd_peer_getbyid( c->diamid, (void *)&peer ) );
-		if (peer && (peer->p_hdr.info.runtime.pir_relay == 0)) {
+		CHECK_FCT( fd_peer_getbyid( c->diamid, c->diamidlen, 0, (void *)&peer ) );
+		if (peer && !peer->p_hdr.info.runtime.pir_relay) {
 			/* Check if the remote peer advertised the message's appli */
 			CHECK_FCT( fd_app_check(&peer->p_hdr.info.runtime.pir_apps, hdr->msg_appl, &found) );
 			if (!found)
@@ -263,23 +263,23 @@ static int score_destination_avp(void * cbdata, struct msg * msg, struct fd_list
 	/* Now, check each candidate against these AVP values */
 	for (li = candidates->next; li != candidates; li = li->next) {
 		struct rtd_candidate *c = (struct rtd_candidate *) li;
+		
+	    #if 0 /* this is actually useless since the sending process will also ensure that the peer is still available */
 		struct fd_peer * peer;
-		CHECK_FCT( fd_peer_getbyid( c->diamid, (void *)&peer ) );
-		if (peer) {
-			if (dh 
-				&& (dh->os.len == strlen(peer->p_hdr.info.pi_diamid)) 
-				/* Here again we use strncasecmp on UTF8 data... This should probably be changed. */
-				&& (strncasecmp(peer->p_hdr.info.pi_diamid, (char *)dh->os.data, dh->os.len) == 0)) {
-				/* The candidate is the Destination-Host */
-				c->score += FD_SCORE_FINALDEST;
-			} else {
-				if (dr  && peer->p_hdr.info.runtime.pir_realm 
-					&& (dr->os.len == strlen(peer->p_hdr.info.runtime.pir_realm)) 
-					/* Yet another case where we use strncasecmp on UTF8 data... Hmmm :-( */
-					&& (strncasecmp(peer->p_hdr.info.runtime.pir_realm, (char *)dr->os.data, dr->os.len) == 0)) {
-					/* The candidate's realm matchs the Destination-Realm */
-					c->score += FD_SCORE_REALM;
-				}
+		/* Since the candidates list comes from the peers list, we do not have any issue with upper/lower case to find the peer object */
+		CHECK_FCT( fd_peer_getbyid( c->diamid, c->diamidlen, 0, (void *)&peer ) );
+		if (!peer)
+			continue; /* it has been deleted since the candidate list was generated; avoid sending to this one in that case. */
+	    #endif /* 0 */
+		
+		/* In the AVPs, the value comes from the network, so let's be case permissive */
+		if (dh && !fd_os_almostcasecmp(dh->os.data, dh->os.len, c->diamid, c->diamidlen) ) {
+			/* The candidate is the Destination-Host */
+			c->score += FD_SCORE_FINALDEST;
+		} else {
+			if (dr && !fd_os_almostcasecmp(dr->os.data, dr->os.len, c->realm, c->realmlen) ) {
+				/* The candidate's realm matchs the Destination-Realm */
+				c->score += FD_SCORE_REALM;
 			}
 		}
 	}
@@ -297,8 +297,10 @@ static void nai_get_indexes(union avp_value * un, int * excl_idx, int * at_idx)
 	int i;
 	
 	TRACE_ENTRY("%p %p %p", un, excl_idx, at_idx);
-	CHECK_PARAMS_DO( un && excl_idx, return );
+	CHECK_PARAMS_DO( un && excl_idx && at_idx, return );
+	
 	*excl_idx = 0;
+	*at_idx = 0;
 	
 	/* Search if there is a '!' before any '@' -- do we need to check it contains a '.' ? */
 	for (i = 0; i < un->os.len; i++) {
@@ -306,31 +308,20 @@ static void nai_get_indexes(union avp_value * un, int * excl_idx, int * at_idx)
 		if ( un->os.data[i] == (unsigned char) '!' ) {
 			if (!*excl_idx)
 				*excl_idx = i;
-			if (!at_idx)
-				return;
+			continue;
 		}
 		/* If we reach the realm part, we can stop */
 		if ( un->os.data[i] == (unsigned char) '@' ) {
-			if (at_idx)
-				*at_idx = i;
+			*at_idx = i;
 			break;
+		}
+		/* Stop if we find a \0 in the middle */
+		if ( un->os.data[i] == 0 ) {
+			return;
 		}
 		/* Skip escaped characters */
 		if ( un->os.data[i] == (unsigned char) '\\' ) {
 			i++;
-			continue;
-		}
-		/* Skip UTF-8 characters spanning on several bytes */
-		if ( (un->os.data[i] & 0xF8) == 0xF0 ) { /* 11110zzz */
-			i += 3;
-			continue;
-		}
-		if ( (un->os.data[i] & 0xF0) == 0xE0 ) { /* 1110yyyy */
-			i += 2;
-			continue;
-		}
-		if ( (un->os.data[i] & 0xE0) == 0xC0 ) { /* 110yyyxx */
-			i += 1;
 			continue;
 		}
 	}
@@ -339,34 +330,25 @@ static void nai_get_indexes(union avp_value * un, int * excl_idx, int * at_idx)
 }	
 
 /* Test if a User-Name AVP contains a Decorated NAI -- RFC4282, RFC5729 */
-static int is_decorated_NAI(union avp_value * un)
-{
-	int i;
-	TRACE_ENTRY("%p", un);
-	
-	/* If there was no User-Name, we return false */
-	if (un == NULL)
-		return 0;
-	
-	nai_get_indexes(un, &i, NULL);
-	
-	return i;
-}
-
 /* Create new User-Name and Destination-Realm values */
-static int process_decorated_NAI(union avp_value * un, union avp_value * dr)
+static int process_decorated_NAI(int * was_nai, union avp_value * un, union avp_value * dr)
 {
-	int at_idx = 0, sep_idx = 0;
+	int at_idx, sep_idx;
 	unsigned char * old_un;
-	TRACE_ENTRY("%p %p", un, dr);
-	CHECK_PARAMS(un && dr);
+	TRACE_ENTRY("%p %p %p", was_nai, un, dr);
+	CHECK_PARAMS(was_nai && un && dr);
 	
 	/* Save the decorated User-Name, for example 'homerealm.example.net!user@otherrealm.example.net' */
 	old_un = un->os.data;
 	
 	/* Search the positions of the first '!' and the '@' in the string */
 	nai_get_indexes(un, &sep_idx, &at_idx);
-	CHECK_PARAMS( (0 < sep_idx) && (sep_idx < at_idx) && (at_idx < un->os.len));
+	if ((!sep_idx) || (sep_idx > at_idx) || !fd_os_is_valid_DiameterIdentity(old_un, sep_idx /* this is the new realm part */)) {
+		*was_nai = 0;
+		return 0;
+	}
+	
+	*was_nai = 1;
 	
 	/* Create the new User-Name value */
 	CHECK_MALLOC( un->os.data = malloc( at_idx ) );
@@ -389,6 +371,7 @@ static int process_decorated_NAI(union avp_value * un, union avp_value * dr)
 	return 0;
 }
 
+
 /* Function to return an error to an incoming request */
 static int return_error(struct msg ** pmsg, char * error_code, char * error_message, struct avp * failedavp)
 {
@@ -397,15 +380,16 @@ static int return_error(struct msg ** pmsg, char * error_code, char * error_mess
 
 	/* Get the source of the message */
 	{
-		char * id;
-		CHECK_FCT( fd_msg_source_get( *pmsg, &id ) );
+		DiamId_t id;
+		size_t   idlen;
+		CHECK_FCT( fd_msg_source_get( *pmsg, &id, &idlen ) );
 		
 		if (id == NULL) {
 			is_loc = 1; /* The message was issued locally */
 		} else {
 		
 			/* Search the peer with this id */
-			CHECK_FCT( fd_peer_getbyid( id, (void *)&peer ) );
+			CHECK_FCT( fd_peer_getbyid( id, idlen, 0, (void *)&peer ) );
 
 			if (!peer) {
 				fd_msg_log(FD_MSG_LOG_DROPPED, *pmsg, "Unable to send error '%s' to deleted peer '%s' in reply to this message.", error_code, id);
@@ -438,7 +422,6 @@ static int return_error(struct msg ** pmsg, char * error_code, char * error_mess
 /*         Second part : threads moving messages in the daemon              */
 /****************************************************************************/
 
-/* These are the functions of each threads: dispatch & routing */
 /* The DISPATCH message processing */
 static int msg_dispatch(struct msg ** pmsg)
 {
@@ -446,8 +429,8 @@ static int msg_dispatch(struct msg ** pmsg)
 	int is_req = 0, ret;
 	struct session * sess;
 	enum disp_action action;
-	const char * ec = NULL;
-	const char * em = NULL;
+	char * ec = NULL;
+	char * em = NULL;
 
 	/* Read the message header */
 	CHECK_FCT( fd_msg_hdr(*pmsg, &hdr) );
@@ -459,7 +442,7 @@ static int msg_dispatch(struct msg ** pmsg)
 	/* At this point, we need to understand the message content, so parse it */
 	CHECK_FCT_DO( ret = fd_msg_parse_or_error( pmsg ),
 		{
-			/* in case of error, the message is already dump'd */
+			/* in case of error */
 			if ((ret == EBADMSG) && (*pmsg != NULL)) {
 				/* msg now contains the answer message to send back */
 				CHECK_FCT( fd_fifo_post(fd_g_outgoing, pmsg) );
@@ -511,7 +494,7 @@ static int msg_dispatch(struct msg ** pmsg)
 				/* No callback has handled the message, let's reply with a generic error */
 				em = "The message was not handled by any extension callback";
 				ec = "DIAMETER_COMMAND_UNSUPPORTED";
-			
+				/* and continue as if an error occurred... */
 			case DISP_ACT_ERROR:
 				/* We have a problem with delivering the message */
 				if (ec == NULL) {
@@ -527,7 +510,7 @@ static int msg_dispatch(struct msg ** pmsg)
 				
 				/* Create an answer with the error code and message */
 				CHECK_FCT( fd_msg_new_answer_from_req ( fd_g_config->cnf_dict, pmsg, 0 ) );
-				CHECK_FCT( fd_msg_rescode_set(*pmsg, (char *)ec, (char *)em, NULL, 1 ) );
+				CHECK_FCT( fd_msg_rescode_set(*pmsg, ec, em, NULL, 1 ) );
 				
 			case DISP_ACT_SEND:
 				/* Now, send the message */
@@ -544,7 +527,8 @@ static int msg_rt_in(struct msg ** pmsg)
 	struct msg_hdr * hdr;
 	int is_req = 0;
 	int is_err = 0;
-	char * qry_src = NULL;
+	DiamId_t qry_src = NULL;
+	size_t   qry_src_len = 0;
 
 	/* Read the message header */
 	CHECK_FCT( fd_msg_hdr(*pmsg, &hdr) );
@@ -571,7 +555,8 @@ static int msg_rt_in(struct msg ** pmsg)
 
 		/* Check if we have local support for the message application */
 		if ( (hdr->msg_appl == 0) || (hdr->msg_appl == AI_RELAY) ) {
-			TRACE_DEBUG(INFO, "Received a routable message with application id 0, returning DIAMETER_APPLICATION_UNSUPPORTED");
+			TRACE_DEBUG(INFO, "Received a routable message with application id 0 or " _stringize(AI_RELAY) " (relay),\n"
+					  " returning DIAMETER_APPLICATION_UNSUPPORTED");
 			CHECK_FCT( return_error( pmsg, "DIAMETER_APPLICATION_UNSUPPORTED", "Routable message with application id 0 or relay", NULL) );
 			return 0;
 		} else {
@@ -586,6 +571,9 @@ static int msg_rt_in(struct msg ** pmsg)
 			struct avp_hdr * ahdr;
 			struct fd_pei error_info;
 			int ret;
+			
+			memset(&error_info, 0, sizeof(struct fd_pei)); 
+			
 			CHECK_FCT(  fd_msg_avp_hdr( avp, &ahdr )  );
 
 			if (! (ahdr->avp_flags & AVP_FLAG_VENDOR)) {
@@ -603,11 +591,10 @@ static int msg_rt_in(struct msg ** pmsg)
 							} );
 						ASSERT( ahdr->avp_value );
 						/* Compare the Destination-Host AVP of the message with our identity */
-						if (ahdr->avp_value->os.len != fd_g_config->cnf_diamid_len) {
-							is_dest_host = NO;
+						if (!fd_os_almostcasecmp(ahdr->avp_value->os.data, ahdr->avp_value->os.len, fd_g_config->cnf_diamid, fd_g_config->cnf_diamid_len)) {
+							is_dest_host = YES;
 						} else {
-							is_dest_host = (strncasecmp(fd_g_config->cnf_diamid, (char *)ahdr->avp_value->os.data, fd_g_config->cnf_diamid_len) 
-										? NO : YES);
+							is_dest_host = NO;
 						}
 						break;
 
@@ -625,14 +612,14 @@ static int msg_rt_in(struct msg ** pmsg)
 						ASSERT( ahdr->avp_value );
 						dr_val = ahdr->avp_value;
 						/* Compare the Destination-Realm AVP of the message with our identity */
-						if (ahdr->avp_value->os.len != fd_g_config->cnf_diamrlm_len) {
-							is_dest_realm = NO;
+						if (!fd_os_almostcasecmp(dr_val->os.data, dr_val->os.len, fd_g_config->cnf_diamrlm, fd_g_config->cnf_diamrlm_len)) {
+							is_dest_realm = YES;
 						} else {
-							is_dest_realm = (strncasecmp(fd_g_config->cnf_diamrlm, (char *)ahdr->avp_value->os.data, fd_g_config->cnf_diamrlm_len) 
-										? NO : YES);
+							is_dest_realm = NO;
 						}
 						break;
 
+					/* we also use User-Name for decorated NAI */
 					case AC_USER_NAME:
 						/* Parse this AVP */
 						CHECK_FCT_DO( ret = fd_msg_parse_dict ( avp, fd_g_config->cnf_dict, &error_info ),
@@ -651,6 +638,7 @@ static int msg_rt_in(struct msg ** pmsg)
 				}
 			}
 
+			/* Stop when we found all 3 AVPs -- they are supposed to be at the beginning of the message, so this should be fast */
 			if ((is_dest_host != UNKNOWN) && (is_dest_realm != UNKNOWN) && un)
 				break;
 
@@ -681,22 +669,23 @@ static int msg_rt_in(struct msg ** pmsg)
 		/* If the message is explicitely for someone else */
 		if ((is_dest_host == NO) || (is_dest_realm == NO)) {
 			if (fd_g_config->cnf_flags.no_fwd) {
-				CHECK_FCT( return_error( pmsg, "DIAMETER_UNABLE_TO_DELIVER", "This peer is not an agent", NULL) );
+				CHECK_FCT( return_error( pmsg, "DIAMETER_UNABLE_TO_DELIVER", "I am not a Diameter agent", NULL) );
 				return 0;
 			}
 		} else {
 		/* Destination-Host was not set, and Destination-Realm is matching : we may handle or pass to a fellow peer */
+			int is_nai = 0;
 
 			/* test for decorated NAI  (RFC5729 section 4.4) */
-			if (is_decorated_NAI(un_val)) {
-				/* Handle the decorated NAI */
-				CHECK_FCT_DO( process_decorated_NAI(un_val, dr_val),
-					{
-						/* If the process failed, we assume it is because of the AVP format */
-						CHECK_FCT( return_error( pmsg, "DIAMETER_INVALID_AVP_VALUE", "Failed to process decorated NAI", un) );
-						return 0;
-					} );
-
+			/* Handle the decorated NAI */
+			CHECK_FCT_DO( process_decorated_NAI(&is_nai, un_val, dr_val),
+				{
+					/* If the process failed, we assume it is because of the AVP format */
+					CHECK_FCT( return_error( pmsg, "DIAMETER_INVALID_AVP_VALUE", "Failed to process decorated NAI", un) );
+					return 0;
+				} );
+				
+			if (is_nai) {
 				/* We have transformed the AVP, now submit it again in the queue */
 				CHECK_FCT(fd_fifo_post(fd_g_incoming, pmsg) );
 				return 0;
@@ -723,7 +712,7 @@ static int msg_rt_in(struct msg ** pmsg)
 
 		/* Retrieve the corresponding query and its origin */
 		CHECK_FCT( fd_msg_answ_getq( *pmsg, &qry ) );
-		CHECK_FCT( fd_msg_source_get( qry, &qry_src ) );
+		CHECK_FCT( fd_msg_source_get( qry, &qry_src, &qry_src_len ) );
 
 		if ((!qry_src) && (!is_err)) {
 			/* The message is a normal answer to a request issued localy, we do not call the callbacks chain on it. */
@@ -732,6 +721,7 @@ static int msg_rt_in(struct msg ** pmsg)
 		}
 
 		/* From that point, for answers, we will call the registered callbacks, then pass it to the dispatch module or forward it */
+		TODO("Callback for answers with a Redirect code?");
 	}
 
 	/* Call all registered callbacks for this message */
@@ -799,20 +789,20 @@ static int msg_rt_out(struct msg ** pmsg)
 	/* For answers, the routing is very easy */
 	if ( ! is_req ) {
 		struct msg * qry;
-		char * qry_src = NULL;
+		DiamId_t qry_src = NULL;
+		size_t qry_src_len = 0;
 		struct msg_hdr * qry_hdr;
 		struct fd_peer * peer = NULL;
 
 		/* Retrieve the corresponding query and its origin */
 		CHECK_FCT( fd_msg_answ_getq( *pmsg, &qry ) );
-		CHECK_FCT( fd_msg_source_get( qry, &qry_src ) );
+		CHECK_FCT( fd_msg_source_get( qry, &qry_src, &qry_src_len ) );
 
 		ASSERT( qry_src ); /* if it is NULL, the message should have been in the LOCAL queue! */
 
 		/* Find the peer corresponding to this name */
-		CHECK_FCT( fd_peer_getbyid( qry_src, (void *) &peer ) );
-		fd_cpu_flush_cache();
-		if ((!peer) || (peer->p_hdr.info.runtime.pir_state != STATE_OPEN)) {
+		CHECK_FCT( fd_peer_getbyid( qry_src, qry_src_len, 0, (void *) &peer ) );
+		if (fd_peer_getstate(peer) != STATE_OPEN) {
 			fd_msg_log( FD_MSG_LOG_DROPPED, *pmsg, "Unable to forward answer to deleted / closed peer '%s'.", qry_src);
 			fd_msg_free(*pmsg);
 			*pmsg = NULL;
@@ -843,7 +833,12 @@ static int msg_rt_out(struct msg ** pmsg)
 		CHECK_FCT( pthread_rwlock_rdlock(&fd_g_activ_peers_rw) );
 		for (li = fd_g_activ_peers.next; li != &fd_g_activ_peers; li = li->next) {
 			struct fd_peer * p = (struct fd_peer *)li->o;
-			CHECK_FCT_DO( ret = fd_rtd_candidate_add(rtd, p->p_hdr.info.pi_diamid, p->p_hdr.info.runtime.pir_realm), { CHECK_FCT_DO( pthread_rwlock_unlock(&fd_g_activ_peers_rw), ); return ret; } );
+			CHECK_FCT_DO( ret = fd_rtd_candidate_add(rtd, 
+							p->p_hdr.info.pi_diamid, 
+							p->p_hdr.info.pi_diamidlen, 
+							p->p_hdr.info.runtime.pir_realm,
+							p->p_hdr.info.runtime.pir_realmlen), 
+				{ CHECK_FCT_DO( pthread_rwlock_unlock(&fd_g_activ_peers_rw), ); return ret; } );
 		}
 		CHECK_FCT( pthread_rwlock_unlock(&fd_g_activ_peers_rw) );
 
@@ -866,8 +861,8 @@ static int msg_rt_out(struct msg ** pmsg)
 						}
 					} );
 				ASSERT( ahdr->avp_value );
-				/* Remove this value from the list */
-				fd_rtd_candidate_del(rtd, (char *)ahdr->avp_value->os.data, ahdr->avp_value->os.len);
+				/* Remove this value from the list. We don't need to pay special attention to the contents here. */
+				fd_rtd_candidate_del(rtd, ahdr->avp_value->os.data, ahdr->avp_value->os.len);
 			}
 
 			/* Go to next AVP */
@@ -875,7 +870,7 @@ static int msg_rt_out(struct msg ** pmsg)
 		}
 	}
 
-	/* Note: we reset the scores and pass the message to the callbacks, maybe we could re-use the saved scores when we have received an error ? */
+	/* Note: we reset the scores and pass the message to the callbacks, maybe we could re-use the saved scores when we have received an error ? -- TODO */
 
 	/* Ok, we have our list in rtd now, let's (re)initialize the scores */
 	fd_rtd_candidate_extract(rtd, &candidates, FD_SCORE_INI);
@@ -927,10 +922,9 @@ static int msg_rt_out(struct msg ** pmsg)
 			break;
 
 		/* Search for the peer */
-		CHECK_FCT( fd_peer_getbyid( c->diamid, (void *)&peer ) );
+		CHECK_FCT( fd_peer_getbyid( c->diamid, c->diamidlen, 0, (void *)&peer ) );
 
-		fd_cpu_flush_cache();
-		if (peer && (peer->p_hdr.info.runtime.pir_state == STATE_OPEN)) {
+		if (fd_peer_getstate(peer) == STATE_OPEN) {
 			/* Send to this one */
 			CHECK_FCT_DO( fd_out_send(pmsg, NULL, peer, 0), continue );
 			
@@ -963,14 +957,15 @@ static int msg_rt_out(struct msg ** pmsg)
 
 /* Control of the threads */
 static enum { RUN = 0, STOP = 1 } order_val = RUN;
-static pthread_mutex_t order_lock = PTHREAD_MUTEX_INITIALIZER;
+static pthread_mutex_t order_state_lock = PTHREAD_MUTEX_INITIALIZER;
 
 /* Threads report their status */
 enum thread_state { NOTRUNNING = 0, RUNNING = 1 };
 static void cleanup_state(void * state_loc)
 {
-	if (state_loc)
-		*(enum thread_state *)state_loc = NOTRUNNING;
+	CHECK_POSIX_DO( pthread_mutex_lock(&order_state_lock), );
+	*(enum thread_state *)state_loc = NOTRUNNING;
+	CHECK_POSIX_DO( pthread_mutex_unlock(&order_state_lock), );
 }
 
 /* This is the common thread code (same for routing and dispatching) */
@@ -990,8 +985,9 @@ static void * process_thr(void * arg, int (*action_cb)(struct msg ** pmsg), stru
 	pthread_cleanup_push( cleanup_state, arg );
 	
 	/* Mark the thread running */
+	CHECK_POSIX_DO( pthread_mutex_lock(&order_state_lock), );
 	*(enum thread_state *)arg = RUNNING;
-	fd_cpu_flush_cache();
+	CHECK_POSIX_DO( pthread_mutex_unlock(&order_state_lock), );
 	
 	do {
 		struct msg * msg;
@@ -999,9 +995,9 @@ static void * process_thr(void * arg, int (*action_cb)(struct msg ** pmsg), stru
 		/* Test the current order */
 		{
 			int must_stop;
-			CHECK_POSIX_DO( pthread_mutex_lock(&order_lock), { ASSERT(0); } ); /* we lock to flush the caches */
+			CHECK_POSIX_DO( pthread_mutex_lock(&order_state_lock), { ASSERT(0); } ); /* we lock to flush the caches */
 			must_stop = (order_val == STOP);
-			CHECK_POSIX_DO( pthread_mutex_unlock(&order_lock), { ASSERT(0); } );
+			CHECK_POSIX_DO( pthread_mutex_unlock(&order_state_lock), { ASSERT(0); } );
 			if (must_stop)
 				goto end;
 			
@@ -1013,7 +1009,15 @@ static void * process_thr(void * arg, int (*action_cb)(struct msg ** pmsg), stru
 		/* Get the next message from the queue */
 		{
 			int ret;
-			ret = fd_fifo_get ( queue, &msg );
+			struct timespec ts;
+			
+			CHECK_SYS_DO( clock_gettime(CLOCK_REALTIME, &ts), goto fatal_error );
+			ts.tv_sec += 1;
+			
+			ret = fd_fifo_timedget ( queue, &msg, &ts );
+			if (ret == ETIMEDOUT)
+				/* loop, check if the thread must stop now */
+				continue;
 			if (ret == EPIPE)
 				/* The queue was destroyed, we are probably exiting */
 				goto end;
@@ -1099,15 +1103,18 @@ int fd_rtdisp_init(void)
 	/* Register the built-in callbacks */
 	CHECK_FCT( fd_rt_out_register( dont_send_if_no_common_app, NULL, 10, NULL ) );
 	CHECK_FCT( fd_rt_out_register( score_destination_avp, NULL, 10, NULL ) );
+	
+	TODO("built-in callbacks for Redirect messages?");
+	
 	return 0;
 }
 
 /* Ask the thread to terminate after next iteration */
 int fd_rtdisp_cleanstop(void)
 {
-	CHECK_POSIX( pthread_mutex_lock(&order_lock) );
+	CHECK_POSIX_DO( pthread_mutex_lock(&order_state_lock), );
 	order_val = STOP;
-	CHECK_POSIX( pthread_mutex_unlock(&order_lock) );
+	CHECK_POSIX_DO( pthread_mutex_unlock(&order_state_lock), );
 
 	return 0;
 }
@@ -1116,10 +1123,15 @@ static void stop_thread_delayed(enum thread_state *st, pthread_t * thr, char * t
 {
 	TRACE_ENTRY("%p %p", st, thr);
 	CHECK_PARAMS_DO(st && thr, return);
+	int terminated;
+	
+	CHECK_POSIX_DO( pthread_mutex_lock(&order_state_lock), );
+	terminated = (*st == NOTRUNNING);
+	CHECK_POSIX_DO( pthread_mutex_unlock(&order_state_lock), );
+	
 
 	/* Wait for a second for the thread to complete, by monitoring my_state */
-	fd_cpu_flush_cache();
-	if (*st != NOTRUNNING) {
+	if (!terminated) {
 		TRACE_DEBUG(INFO, "Waiting for the %s thread to have a chance to terminate", th_name);
 		do {
 			struct timespec	 ts, ts_final;
@@ -1130,8 +1142,11 @@ static void stop_thread_delayed(enum thread_state *st, pthread_t * thr, char * t
 			ts_final.tv_nsec = ts.tv_nsec;
 			
 			while (TS_IS_INFERIOR( &ts, &ts_final )) {
-				fd_cpu_flush_cache();
-				if (*st == NOTRUNNING)
+			
+				CHECK_POSIX_DO( pthread_mutex_lock(&order_state_lock), );
+				terminated = (*st == NOTRUNNING);
+				CHECK_POSIX_DO( pthread_mutex_unlock(&order_state_lock), );
+				if (terminated)
 					break;
 				
 				usleep(100000);

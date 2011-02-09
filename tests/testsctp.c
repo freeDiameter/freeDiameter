@@ -55,12 +55,12 @@ int main(int argc, char *argv[])
 	/* In this case, we don't perform this simple test */
 	PASSTEST();
 #else /* DISABLE_SCTP */
-	int sock, srvsock, clisock;
+	struct cnxctx cli, srv; /* we use only their cc_socket & cc_state */
+	int sock;
 	char buf1[]="abcdef";
 	char *buf2;
 	size_t sz;
 	struct fd_list eps = FD_LIST_INITIALIZER(eps);
-	uint32_t status = 0;
 	uint16_t str;
 	int ev;
 	
@@ -79,6 +79,9 @@ int main(int argc, char *argv[])
 		freeaddrinfo(ai);
 	}
 	
+	memset(&cli, 0, sizeof(cli));
+	memset(&srv, 0, sizeof(srv));
+	
 	/* First, initialize the daemon modules */
 	INIT_FD();
 	
@@ -92,38 +95,38 @@ int main(int argc, char *argv[])
 	CHECK( 0, fd_sctp_listen( sock ));
 	
 	/* Now, create the client socket */
-	CHECK( 0, fd_sctp_client( &clisock, 0, TEST_PORT, &eps ));
+	CHECK( 0, fd_sctp_client( &cli.cc_socket, 0, TEST_PORT, &eps ));
 	
 	/* Accept this connection */
-	srvsock = accept(sock, NULL, NULL);
+	srv.cc_socket = accept(sock, NULL, NULL);
 	
 	/* Send a first message */
-	CHECK( 0, fd_sctp_sendstr(srvsock, 1, (uint8_t *)buf1, sizeof(buf1), &status) );
-	CHECK( 0, status);
+	CHECK( 0, fd_sctp_sendstr(&srv, 1, (uint8_t *)buf1, sizeof(buf1) ) );
+	CHECK( 0, srv.cc_state);
 	
 	/* Receive this message */
 redo1:
-	CHECK( 0, fd_sctp_recvmeta(clisock, &str, (uint8_t **)&buf2, &sz, &ev, &status) );
+	CHECK( 0, fd_sctp_recvmeta(&cli, &str, (uint8_t **)&buf2, &sz, &ev) );
 	if (ev == FDEVP_CNX_EP_CHANGE)
 		goto redo1;
 	CHECK( FDEVP_CNX_MSG_RECV, ev);
-	CHECK( 0, status);
+	CHECK( 0, cli.cc_state);
 	CHECK( 1, str);
 	CHECK( sizeof(buf1), sz );
 	CHECK( 0, memcmp(buf1, buf2, sz) );
 	free(buf2); buf2 = NULL;
 	
 	/* Send in the other direction */
-	CHECK( 0, fd_sctp_sendstr(clisock, 2, (uint8_t *)buf1, sizeof(buf1), &status) );
-	CHECK( 0, status);
+	CHECK( 0, fd_sctp_sendstr(&cli, 2, (uint8_t *)buf1, sizeof(buf1)) );
+	CHECK( 0, cli.cc_state);
 	
 	/* Receive this message */
 redo2:
-	CHECK( 0, fd_sctp_recvmeta(srvsock, &str, (uint8_t **)&buf2, &sz, &ev, &status) );
+	CHECK( 0, fd_sctp_recvmeta(&srv, &str, (uint8_t **)&buf2, &sz, &ev) );
 	if (ev == FDEVP_CNX_EP_CHANGE)
 		goto redo2;
 	CHECK( FDEVP_CNX_MSG_RECV, ev);
-	CHECK( 0, status);
+	CHECK( 0, srv.cc_state);
 	CHECK( 2, str);
 	CHECK( sizeof(buf1), sz );
 	CHECK( 0, memcmp(buf1, buf2, sz) );

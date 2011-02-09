@@ -72,6 +72,8 @@ int fd_peer_alloc(struct fd_peer ** ptr)
 	fd_list_init(&p->p_hdr.info.runtime.pir_apps, p);
 	
 	p->p_eyec = EYEC_PEER;
+	CHECK_POSIX( pthread_mutex_init(&p->p_state_mtx, NULL) );
+	
 	fd_list_init(&p->p_actives, p);
 	fd_list_init(&p->p_expiry, p);
 	CHECK_FCT( fd_fifo_new(&p->p_tosend) );
@@ -93,22 +95,32 @@ int fd_peer_add ( struct peer_info * info, char * orig_dbg, void (*cb)(struct pe
 	struct fd_peer *p = NULL;
 	struct fd_list * li;
 	int ret = 0;
+	
 	TRACE_ENTRY("%p %p %p %p", info, orig_dbg, cb, cb_data);
 	CHECK_PARAMS(info && info->pi_diamid);
+	
+	if (info->config.pic_realm) {
+		if (!fd_os_is_valid_DiameterIdentity((os0_t)info->config.pic_realm, strlen(info->config.pic_realm))) {
+			TRACE_DEBUG(INFO, "'%s' is not a valid DiameterIdentity.", info->config.pic_realm);
+			return EINVAL;
+		}
+	}
 	
 	/* Create a structure to contain the new peer information */
 	CHECK_FCT( fd_peer_alloc(&p) );
 	
 	/* Copy the informations from the parameters received */
-	CHECK_MALLOC( p->p_hdr.info.pi_diamid = strdup(info->pi_diamid) );
+	p->p_hdr.info.pi_diamid = info->pi_diamid;
+	CHECK_FCT( fd_os_validate_DiameterIdentity(&p->p_hdr.info.pi_diamid, &p->p_hdr.info.pi_diamidlen, 1) );
 	
 	memcpy( &p->p_hdr.info.config, &info->config, sizeof(p->p_hdr.info.config) );
+	
 	/* Duplicate the strings if provided */
 	if (info->config.pic_realm) {
 		CHECK_MALLOC( p->p_hdr.info.config.pic_realm = strdup(info->config.pic_realm) );
 	}
 	if (info->config.pic_priority) {
-		CHECK_MALLOC( p->p_hdr.info.config.pic_realm = strdup(info->config.pic_priority) );
+		CHECK_MALLOC( p->p_hdr.info.config.pic_priority = strdup(info->config.pic_priority) );
 	}
 	
 	/* Move the list of endpoints into the peer */
@@ -123,7 +135,7 @@ int fd_peer_add ( struct peer_info * info, char * orig_dbg, void (*cb)(struct pe
 	if (orig_dbg) {
 		CHECK_MALLOC( p->p_dbgorig = strdup(orig_dbg) );
 	} else {
-		CHECK_MALLOC( p->p_dbgorig = strdup("unknown") );
+		CHECK_MALLOC( p->p_dbgorig = strdup("unspecified") );
 	}
 	p->p_cb = cb;
 	p->p_cb_data = cb_data;
@@ -133,7 +145,8 @@ int fd_peer_add ( struct peer_info * info, char * orig_dbg, void (*cb)(struct pe
 	
 	for (li = fd_g_peers.next; li != &fd_g_peers; li = li->next) {
 		struct fd_peer * next = (struct fd_peer *)li;
-		int cmp = strcasecmp( p->p_hdr.info.pi_diamid, next->p_hdr.info.pi_diamid );
+		int cmp = fd_os_almostcasecmp( p->p_hdr.info.pi_diamid, p->p_hdr.info.pi_diamidlen, 
+						next->p_hdr.info.pi_diamid, next->p_hdr.info.pi_diamidlen );
 		if (cmp > 0)
 			continue;
 		if (cmp == 0)
@@ -161,12 +174,11 @@ int fd_peer_add ( struct peer_info * info, char * orig_dbg, void (*cb)(struct pe
 }
 
 /* Search for a peer */
-int fd_peer_getbyid( char * diamid, struct peer_hdr ** peer )
+int fd_peer_getbyid( DiamId_t diamid, size_t diamidlen, int igncase, struct peer_hdr ** peer )
 {
 	struct fd_list * li;
-	
-	TRACE_ENTRY("%p %p", diamid, peer);
-	CHECK_PARAMS( diamid && peer );
+	TRACE_ENTRY("%p %zd %d %p", diamid, diamidlen, igncase, peer);
+	CHECK_PARAMS( diamid && diamidlen && peer );
 	
 	*peer = NULL;
 	
@@ -174,7 +186,11 @@ int fd_peer_getbyid( char * diamid, struct peer_hdr ** peer )
 	CHECK_POSIX( pthread_rwlock_rdlock(&fd_g_peers_rw) );
 	for (li = fd_g_peers.next; li != &fd_g_peers; li = li->next) {
 		struct fd_peer * next = (struct fd_peer *)li;
-		int cmp = strcasecmp( diamid, next->p_hdr.info.pi_diamid );
+		int cmp;
+		if (igncase)
+			cmp = fd_os_almostcasecmp( diamid, diamidlen, next->p_hdr.info.pi_diamid, next->p_hdr.info.pi_diamidlen );
+		else
+			cmp = fd_os_cmp( diamid, diamidlen, next->p_hdr.info.pi_diamid, next->p_hdr.info.pi_diamidlen );
 		if (cmp > 0)
 			continue;
 		if (cmp == 0)
@@ -254,6 +270,7 @@ int fd_peer_free(struct fd_peer ** ptr)
 	fd_list_unlink(&p->p_actives);
 	
 	CHECK_FCT_DO( fd_fifo_del(&p->p_tosend), /* continue */ );
+	CHECK_POSIX_DO( pthread_mutex_destroy(&p->p_state_mtx), /* continue */);
 	CHECK_POSIX_DO( pthread_mutex_destroy(&p->p_sr.mtx), /* continue */);
 	CHECK_POSIX_DO( pthread_cond_destroy(&p->p_sr.cnd), /* continue */);
 	
@@ -282,10 +299,9 @@ int fd_peer_fini()
 	
 	CHECK_FCT_DO( pthread_rwlock_wrlock(&fd_g_peers_rw), /* continue */ );
 	for (li = fd_g_peers.next; li != &fd_g_peers; li = li->next) {
-		struct fd_peer * peer = (struct fd_peer *)li;
+		struct fd_peer * peer = (struct fd_peer *)li->o;
 		
-		fd_cpu_flush_cache();
-		if (peer->p_hdr.info.runtime.pir_state != STATE_ZOMBIE) {
+		if (fd_peer_getstate(peer) != STATE_ZOMBIE) {
 			CHECK_FCT_DO( fd_psm_terminate(peer, "REBOOTING"), /* continue */ );
 		} else {
 			li = li->prev; /* to avoid breaking the loop */
@@ -306,14 +322,13 @@ int fd_peer_fini()
 	while ((!list_empty) && (TS_IS_INFERIOR(&now, &wait_until))) {
 		
 		/* Allow the PSM(s) to execute */
-		sched_yield();
+		usleep(100000);
 		
 		/* Remove zombie peers */
 		CHECK_FCT_DO( pthread_rwlock_wrlock(&fd_g_peers_rw), /* continue */ );
 		for (li = fd_g_peers.next; li != &fd_g_peers; li = li->next) {
-			struct fd_peer * peer = (struct fd_peer *)li;
-			fd_cpu_flush_cache();
-			if (peer->p_hdr.info.runtime.pir_state == STATE_ZOMBIE) {
+			struct fd_peer * peer = (struct fd_peer *)li->o;
+			if (fd_peer_getstate(peer) == STATE_ZOMBIE) {
 				li = li->prev; /* to avoid breaking the loop */
 				fd_list_unlink(&peer->p_hdr.chain);
 				fd_list_insert_before(&purge, &peer->p_hdr.chain);
@@ -328,7 +343,7 @@ int fd_peer_fini()
 		TRACE_DEBUG(INFO, "Forcing connections shutdown");
 		CHECK_FCT_DO( pthread_rwlock_wrlock(&fd_g_peers_rw), /* continue */ );
 		while (!FD_IS_LIST_EMPTY(&fd_g_peers)) {
-			struct fd_peer * peer = (struct fd_peer *)(fd_g_peers.next);
+			struct fd_peer * peer = (struct fd_peer *)(fd_g_peers.next->o);
 			fd_psm_abord(peer);
 			fd_list_unlink(&peer->p_hdr.chain);
 			fd_list_insert_before(&purge, &peer->p_hdr.chain);
@@ -338,7 +353,7 @@ int fd_peer_fini()
 	
 	/* Free memory objects of all peers */
 	while (!FD_IS_LIST_EMPTY(&purge)) {
-		struct fd_peer * peer = (struct fd_peer *)(purge.next);
+		struct fd_peer * peer = (struct fd_peer *)(purge.next->o);
 		fd_list_unlink(&peer->p_hdr.chain);
 		fd_peer_free(&peer);
 	}
@@ -363,9 +378,9 @@ void fd_peer_dump(struct fd_peer * peer, int details)
 		return;
 	}
 
-	fd_log_debug(">  %s\t%s", STATE_STR(peer->p_hdr.info.runtime.pir_state), peer->p_hdr.info.pi_diamid);
+	fd_log_debug(">  %s\t%s", STATE_STR(fd_peer_getstate(peer)), peer->p_hdr.info.pi_diamid);
 	if (details > INFO) {
-		fd_log_debug("\t(rlm:%s)", peer->p_hdr.info.runtime.pir_realm ?: "(unknown)");
+		fd_log_debug("\t(rlm:%s)", peer->p_hdr.info.runtime.pir_realm ?: "<unknown>");
 		if (peer->p_hdr.info.runtime.pir_prodname)
 			fd_log_debug("\t['%s' %u]", peer->p_hdr.info.runtime.pir_prodname, peer->p_hdr.info.runtime.pir_firmrev);
 	}
@@ -397,19 +412,20 @@ void fd_peer_dump_list(int details)
 	CHECK_FCT_DO( pthread_rwlock_rdlock(&fd_g_peers_rw), /* continue */ );
 	
 	for (li = fd_g_peers.next; li != &fd_g_peers; li = li->next) {
-		struct fd_peer * np = (struct fd_peer *)li;
+		struct fd_peer * np = (struct fd_peer *)li->o;
 		fd_peer_dump(np, details);
 	}
 	
 	CHECK_FCT_DO( pthread_rwlock_unlock(&fd_g_peers_rw), /* continue */ );
 }
 
+static struct dict_object *avp_oh_model = NULL;
+static pthread_mutex_t cache_avp_lock = PTHREAD_MUTEX_INITIALIZER;
+
 /* Handle an incoming CER request on a new connection */
 int fd_peer_handle_newCER( struct msg ** cer, struct cnxctx ** cnx )
 {
 	struct msg * msg;
-	struct dict_object *avp_oh_model;
-	avp_code_t code = AC_ORIGIN_HOST;
 	struct avp *avp_oh;
 	struct avp_hdr * avp_hdr;
 	struct fd_list * li;
@@ -423,10 +439,30 @@ int fd_peer_handle_newCER( struct msg ** cer, struct cnxctx ** cnx )
 	
 	msg = *cer; 
 	
+	/* If needed, resolve the dictioanry model for Origin-Host */
+	CHECK_POSIX( pthread_mutex_lock(&cache_avp_lock) );
+	if (!avp_oh_model) {
+		avp_code_t code = AC_ORIGIN_HOST;
+		int ret;
+		CHECK_FCT_DO( ret = fd_dict_search ( fd_g_config->cnf_dict, DICT_AVP, AVP_BY_CODE, &code, &avp_oh_model, ENOENT),
+			{ CHECK_POSIX( pthread_mutex_unlock(&cache_avp_lock) ); return ret; } );
+	}
+	CHECK_POSIX( pthread_mutex_unlock(&cache_avp_lock) );
+	
 	/* Find the Diameter Identity of the remote peer in the message */
-	CHECK_FCT( fd_dict_search ( fd_g_config->cnf_dict, DICT_AVP, AVP_BY_CODE, &code, &avp_oh_model, ENOENT) );
 	CHECK_FCT( fd_msg_search_avp ( msg, avp_oh_model, &avp_oh ) );
+	ASSERT(avp_oh); /* otherwise it should not have passed rules validation, right? */
 	CHECK_FCT( fd_msg_avp_hdr ( avp_oh, &avp_hdr ) );
+	
+	/* First, check if the Origin-Host value  */
+	if (!fd_os_is_valid_DiameterIdentity(avp_hdr->avp_value->os.data, avp_hdr->avp_value->os.len)) {
+		TRACE_DEBUG(INFO, "Received new CER with invalid \\0 in its Origin-Host");
+		CHECK_FCT( fd_msg_new_answer_from_req ( fd_g_config->cnf_dict, cer, MSGFL_ANSW_ERROR ) );
+		CHECK_FCT( fd_msg_rescode_set(*cer, "ER_DIAMETER_INVALID_AVP_VALUE", 
+							"Your Origin-Host contains invalid characters.", avp_oh, 1 ) );
+		CHECK_FCT( fd_out_send(cer, *cnx, NULL, FD_CNX_ORDERED) );
+		return EINVAL;
+	}
 	
 	/* Search if we already have this peer id in our list. We take directly the write lock so that we don't need to upgrade if it is a new peer.
 	 * There is space for a small optimization here if needed.
@@ -434,9 +470,9 @@ int fd_peer_handle_newCER( struct msg ** cer, struct cnxctx ** cnx )
 	CHECK_POSIX( pthread_rwlock_wrlock(&fd_g_peers_rw) );
 	
 	for (li = fd_g_peers.next; li != &fd_g_peers; li = li->next) {
-		peer = (struct fd_peer *)li;
-		/* It is probably unwise to use strcasecmp on UTF8 data... To be improved! */
-		int cmp = strncasecmp( (char *)avp_hdr->avp_value->os.data, peer->p_hdr.info.pi_diamid, avp_hdr->avp_value->os.len );
+		int cmp;
+		peer = (struct fd_peer *)li->o;
+		cmp = fd_os_almostcasecmp( avp_hdr->avp_value->os.data, avp_hdr->avp_value->os.len, peer->p_hdr.info.pi_diamid, peer->p_hdr.info.pi_diamidlen );
 		if (cmp > 0)
 			continue;
 		if (cmp == 0)
@@ -450,9 +486,9 @@ int fd_peer_handle_newCER( struct msg ** cer, struct cnxctx ** cnx )
 		CHECK_FCT_DO( ret = fd_peer_alloc(&peer), goto out );
 		
 		/* Set the peer Diameter Id and the responder flag parameters */
-		CHECK_MALLOC_DO( peer->p_hdr.info.pi_diamid = malloc(avp_hdr->avp_value->os.len + 1), { ret = ENOMEM; goto out; } );
-		memcpy(peer->p_hdr.info.pi_diamid, avp_hdr->avp_value->os.data, avp_hdr->avp_value->os.len);
-		peer->p_hdr.info.pi_diamid[avp_hdr->avp_value->os.len] = '\0';
+		CHECK_MALLOC_DO( peer->p_hdr.info.pi_diamid = os0dup(avp_hdr->avp_value->os.data, avp_hdr->avp_value->os.len), 
+			{ ret = ENOMEM; goto out; } );
+		peer->p_hdr.info.pi_diamidlen = avp_hdr->avp_value->os.len;
 		CHECK_MALLOC_DO( peer->p_dbgorig = strdup(fd_cnx_getid(*cnx)), { ret = ENOMEM; goto out; } );
 		peer->p_flags.pf_responder = 1;
 		peer->p_flags.pf_delete = 1;
@@ -469,16 +505,18 @@ int fd_peer_handle_newCER( struct msg ** cer, struct cnxctx ** cnx )
 		CHECK_FCT_DO( ret = fd_psm_begin(peer), goto out );
 	} else {
 		/* Check if the peer is in zombie state */
-		fd_cpu_flush_cache();
-		if (peer->p_hdr.info.runtime.pir_state == STATE_ZOMBIE) {
+		if (fd_peer_getstate(peer) == STATE_ZOMBIE) {
 			/* Re-activate the peer */
 			if (peer->p_hdr.info.config.pic_flags.exp)
 				peer->p_flags.pf_responder = 1;
-			peer->p_hdr.info.runtime.pir_state = STATE_NEW;
+			CHECK_POSIX_DO( pthread_mutex_lock(&peer->p_state_mtx), );
+			peer->p_state = STATE_NEW;
+			CHECK_POSIX_DO( pthread_mutex_unlock(&peer->p_state_mtx), );
+			peer->p_flags.pf_localterm = 0;
 			CHECK_FCT_DO( ret = fd_psm_begin(peer), goto out );
 		}
 	}
-		
+	
 	/* Send the new connection event to the PSM */
 	CHECK_MALLOC_DO( ev_data = malloc(sizeof(struct cnx_incoming)), { ret = ENOMEM; goto out; } );
 	memset(ev_data, 0, sizeof(ev_data));

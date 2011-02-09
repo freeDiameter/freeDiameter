@@ -44,6 +44,7 @@
  * The file contains the following parts:
  *	DEBUG
  *	MACROS
+ *      OCTET STRINGS
  *	THREADS
  *	LISTS
  *	DICTIONARY
@@ -566,6 +567,64 @@ int fd_breakhere(void);
 #define BUFSIZ 96
 #endif /* BUFSIZ */
 
+/* This gives the length of a const string */
+#define CONSTSTRLEN( str ) (sizeof(str) - 1)
+
+
+/*============================================================*/
+/*                         BINARY STRINGS                     */
+/*============================================================*/
+
+/* Compute a hash value of a binary string. 
+The hash must remain local to this machine, there is no guarantee that same input
+will give same output on a different system (endianness) */
+uint32_t fd_os_hash ( uint8_t * string, size_t len );
+
+/* This type used for binary strings that contain no \0 except as their last character. 
+It means some string operations can be used on it. */
+typedef uint8_t * os0_t;
+
+/* Same as strdup but for os0_t strings */
+os0_t os0dup_int(os0_t s, size_t l);
+#define os0dup( _s, _l)  (void *)os0dup_int((os0_t)(_s), _l)
+
+/* Check that an octet string value can be used as os0_t */
+static __inline__ int fd_os_is_valid_os0(uint8_t * os, size_t oslen) {
+	/* The only situation where it is not valid is when it contains a \0 inside the octet string */
+	return (memchr(os, '\0', oslen) == NULL);
+}
+
+/* The following type denotes a verified DiameterIdentity value (that contains only pure letters, digits, hyphen, dot) */
+typedef char * DiamId_t;
+
+/* Maximum length of a hostname we accept */
+#ifndef HOST_NAME_MAX
+#define HOST_NAME_MAX 512
+#endif /* HOST_NAME_MAX */
+
+/* Check if a binary string contains a valid Diameter Identity value.
+  rfc3588 states explicitely that such a Diameter Identity consists only of ASCII characters. */
+int fd_os_is_valid_DiameterIdentity(uint8_t * os, size_t ossz);
+
+/* This checks a string is a valid DiameterIdentity and applies IDNA transformations otherwise (xn--...) */
+int fd_os_validate_DiameterIdentity(char ** id, size_t * outsz, int memory /* 0: *id can be realloc'd. 1: *id must be malloc'd on output (was static) */ );
+
+/* Create an order relationship for binary strings (not needed to be \0 terminated). 
+   It does NOT mimic strings relationships so that it is more efficient. It is case sensitive.
+   (the strings are actually first ordered by their lengh, then by their bytes contents)
+   returns: -1 if os1 < os2;  +1 if os1 > os2;  0 if they are equal */
+int fd_os_cmp_int(os0_t os1, size_t os1sz, os0_t os2, size_t os2sz);
+#define fd_os_cmp(_o1, _l1, _o2, _l2)  fd_os_cmp_int((os0_t)(_o1), _l1, (os0_t)(_o2), _l2)
+
+/* A roughly case-insensitive variant, which actually only compares ASCII chars (0-127) in a case-insentitive maneer 
+  -- this should be OK with (old) DNS names. Not sure how it works with IDN...
+  -- it also clearly does not support locales where a lowercase letter uses more space than upper case, such as ß -> ss
+ It is slower than fd_os_cmp... 
+ This function should give the same order as fd_os_cmp, except when it finds 2 strings to be equal.
+ Note that the result is NOT the same as strcasecmp !!!
+ */
+int fd_os_almostcasecmp_int(uint8_t * os1, size_t os1sz, uint8_t * os2, size_t os2sz);
+#define fd_os_almostcasecmp(_o1, _l1, _o2, _l2)  fd_os_almostcasecmp_int((os0_t)(_o1), _l1, (os0_t)(_o2), _l2)
 
 
 /*============================================================*/
@@ -599,13 +658,6 @@ static __inline__ int fd_thr_term(pthread_t * th)
 	*th = (pthread_t)NULL;
 	
 	return 0;
-}
-
-/* Force flushing the cache of a CPU before reading a shared memory area (use only for atomic reads such as int and void*) */
-extern pthread_mutex_t fd_cpu_mtx_dummy; /* only for the macro bellow, so that we have reasonably fresh pir_state value when needed */
-#define fd_cpu_flush_cache() {				\
-	(void)pthread_mutex_lock(&fd_cpu_mtx_dummy);	\
-	(void)pthread_mutex_unlock(&fd_cpu_mtx_dummy);	\
 }
 
 
@@ -670,14 +722,6 @@ int fd_list_insert_ordered( struct fd_list * head, struct fd_list * item, int (*
 /* Unlink an item from a list */
 void fd_list_unlink ( struct fd_list * item );
 
-
-
-/*============================================================*/
-/*                          HASH                              */
-/*============================================================*/
-
-/* Compute a hash value of a string (session id, diameter id, ...) */
-uint32_t fd_hash ( char * string, size_t len );
 
 
 
@@ -801,13 +845,13 @@ typedef uint32_t	vendor_id_t;
 /* Type to hold data associated to a vendor */
 struct dict_vendor_data {
 	vendor_id_t	 vendor_id;	/* ID of a vendor */
-	char 		*vendor_name;	/* The name of this vendor */
+	char *	 	 vendor_name;	/* The name of this vendor */
 };
 
 /* The criteria for searching a vendor object in the dictionary */
 enum {
 	VENDOR_BY_ID = 10,	/* "what" points to a vendor_id_t */
-	VENDOR_BY_NAME,		/* "what" points to a string */
+	VENDOR_BY_NAME,		/* "what" points to a char * */
 	VENDOR_OF_APPLICATION	/* "what" points to a struct dict_object containing an application (see bellow) */
 };
 
@@ -871,13 +915,13 @@ typedef uint32_t	application_id_t;
 /* Type to hold data associated to an application */
 struct dict_application_data {
 	application_id_t	 application_id;	/* ID of the application */
-	char 			*application_name;	/* The name of this application */
+	char *	 		 application_name;	/* The name of this application */
 };
 
 /* The criteria for searching an application object in the dictionary */
 enum {
 	APPLICATION_BY_ID = 20,		/* "what" points to a application_id_t */
-	APPLICATION_BY_NAME,		/* "what" points to a string */
+	APPLICATION_BY_NAME,		/* "what" points to a char * */
 	APPLICATION_OF_TYPE,		/* "what" points to a struct dict_object containing a type object (see bellow) */
 	APPLICATION_OF_COMMAND		/* "what" points to a struct dict_object containing a command (see bellow) */
 };
@@ -946,7 +990,7 @@ union avp_value {
 	struct {
 		uint8_t *data;	/* bytes buffer */
 		size_t   len;	/* length of the data buffer */
-	}           os;		/* Storage for an octet string, data is alloc'd and must be freed */
+	}           os;		/* Storage for an octet string */
 	int32_t     i32;	/* integer 32 */
 	int64_t     i64;	/* integer 64 */
 	uint32_t    u32;	/* unsigned 32 */
@@ -1010,7 +1054,7 @@ typedef int (*dict_avpdata_encode) (void * data, union avp_value * val);
 /* Type to hold data associated to a derived AVP data type */
 struct dict_type_data {
 	enum dict_avp_basetype	 type_base;	/* How the data of such AVP must be interpreted */
-	char 			*type_name;	/* The name of this type */
+	char *	 		 type_name;	/* The name of this type */
 	dict_avpdata_interpret	 type_interpret;/* cb to convert the AVP value in more comprehensive format (or NULL) */
 	dict_avpdata_encode	 type_encode;	/* cb to convert formatted data into an AVP value (or NULL) */
 	void			(*type_dump)(union avp_value * val, FILE * fstr);	/* cb called by fd_msg_dump_one for this type of data (if != NULL), to dump the AVP value in fstr */
@@ -1018,7 +1062,7 @@ struct dict_type_data {
 
 /* The criteria for searching a type object in the dictionary */
 enum {
-	TYPE_BY_NAME = 30,		/* "what" points to a string */
+	TYPE_BY_NAME = 30,		/* "what" points to a char * */
 	TYPE_OF_ENUMVAL,		/* "what" points to a struct dict_object containing an enumerated constant (DICT_ENUMVAL, see bellow). */
 	TYPE_OF_AVP			/* "what" points to a struct dict_object containing an AVP object. */
 };
@@ -1067,7 +1111,7 @@ enum {
 
 /* Type to hold data of named constants for AVP */
 struct dict_enumval_data {
-	char 		*enum_name;	/* The name of this constant */
+	char *	 	 enum_name;	/* The name of this constant */
 	union avp_value  enum_value;	/* Value of the constant. Union term depends on parent type's base type. */
 };
 
@@ -1079,7 +1123,7 @@ enum {
 struct dict_enumval_request {
 	/* Identifier of the parent type, one of the following must not be NULL */
 	struct dict_object	*type_obj;
-	char			*type_name;
+	char *			 type_name;
 	
 	/* Search criteria for the constant */
 	struct dict_enumval_data search; /* search.enum_value is used only if search.enum_name == NULL */
@@ -1182,7 +1226,7 @@ typedef uint32_t	avp_code_t;
 struct dict_avp_data {
 	avp_code_t	 	 avp_code;	/* Code of the avp */
 	vendor_id_t	 	 avp_vendor;	/* Vendor of the AVP, or 0 */
-	char			*avp_name;	/* Name of this AVP */
+	char *			 avp_name;	/* Name of this AVP */
 	uint8_t		 	 avp_flag_mask;	/* Mask of fixed AVP flags */
 	uint8_t		 	 avp_flag_val;	/* Values of the fixed flags */
 	enum dict_avp_basetype 	 avp_basetype;	/* Basic type of data found in the AVP */
@@ -1191,7 +1235,7 @@ struct dict_avp_data {
 /* The criteria for searching an avp object in the dictionary */
 enum {
 	AVP_BY_CODE = 50,	/* "what" points to an avp_code_t, vendor is always 0 */
-	AVP_BY_NAME,		/* "what" points to a string, vendor is always 0 */
+	AVP_BY_NAME,		/* "what" points to a char *, vendor is always 0 */
 	AVP_BY_CODE_AND_VENDOR,	/* "what" points to a struct dict_avp_request (see bellow), where avp_vendor and avp_code are set */
 	AVP_BY_NAME_AND_VENDOR,	/* "what" points to a struct dict_avp_request (see bellow), where avp_vendor and avp_name are set */
 	AVP_BY_NAME_ALL_VENDORS /* "what" points to a string. Might be quite slow... */
@@ -1201,7 +1245,7 @@ enum {
 struct dict_avp_request {
 	vendor_id_t	 avp_vendor;
 	avp_code_t	 avp_code;
-	char		*avp_name;
+	char *		 avp_name;
 };
 
 
@@ -1309,14 +1353,14 @@ typedef uint32_t	command_code_t;
 /* Type to hold data associated to a command */
 struct dict_cmd_data {
 	command_code_t	 cmd_code;	/* code of the command */
-	char		*cmd_name;	/* Name of the command */
+	char *		 cmd_name;	/* Name of the command */
 	uint8_t		 cmd_flag_mask;	/* Mask of fixed-value flags */
 	uint8_t		 cmd_flag_val;	/* values of the fixed flags */
 };
 
 /* The criteria for searching an avp object in the dictionary */
 enum {
-	CMD_BY_NAME = 60,	/* "what" points to a string */
+	CMD_BY_NAME = 60,	/* "what" points to a char * */
 	CMD_BY_CODE_R,		/* "what" points to a command_code_t. The "Request" command is returned. */
 	CMD_BY_CODE_A,		/* "what" points to a command_code_t. The "Answer" command is returned. */
 	CMD_ANSWER		/* "what" points to a struct dict_object of a request command. The corresponding "Answer" command is returned. */
@@ -1589,10 +1633,10 @@ int fd_sess_start(void);
  *  EINVAL 	: A parameter is invalid.
  *  ENOMEM	: Not enough memory to complete the operation
  */
-int fd_sess_handler_create_internal ( struct session_handler ** handler, void (*cleanup)(session_state * state, char * sid, void * opaque), void * opaque );
+int fd_sess_handler_create_internal ( struct session_handler ** handler, void (*cleanup)(session_state * state, os0_t sid, void * opaque), void * opaque );
 /* Macro to avoid casting everywhere */
 #define fd_sess_handler_create( _handler, _cleanup, _opaque ) \
-	fd_sess_handler_create_internal( (_handler), (void (*)(session_state *, char *, void *))(_cleanup), (void *)(_opaque) )
+	fd_sess_handler_create_internal( (_handler), (void (*)(session_state *, os0_t, void *))(_cleanup), (void *)(_opaque) )
 
 	
 /*
@@ -1620,8 +1664,9 @@ int fd_sess_handler_destroy ( struct session_handler ** handler, void **opaque )
  *
  * PARAMETERS:
  *  session	  : The location where the session object will be created upon success.
- *  diamId	  : \0-terminated string containing a Diameter Identity.
- *  opt           : Additional string. Usage is described bellow.
+ *  diamid	  : a Diameter Identity, or NULL.
+ *  diamidlen	  : if diamid is \0-terminated, this can be 0. Otherwise, the length of diamid.
+ *  opt           : Additional string, or NULL. Usage is described bellow.
  *  optlen	  : if opt is \0-terminated, this can be 0. Otherwise, the length of opt.
  *
  * DESCRIPTION: 
@@ -1638,13 +1683,13 @@ int fd_sess_handler_destroy ( struct session_handler ** handler, void **opaque )
  *  EALREADY	: A session with the same name already exists (returned in *session)
  *  ENOMEM	: Not enough memory to complete the operation
  */
-int fd_sess_new ( struct session ** session, char * diamId, char * opt, size_t optlen );
+int fd_sess_new ( struct session ** session, DiamId_t diamid, size_t diamidlen, uint8_t * opt, size_t optlen );
 
 /*
  * FUNCTION:	fd_sess_fromsid
  *
  * PARAMETERS:
- *  sid	  	: pointer to a string containing a Session-Id (UTF-8).
+ *  sid	  	: pointer to a string containing a Session-Id (should be UTF-8).
  *  len		: length of the sid string (which does not need to be '\0'-terminated)
  *  session	: On success, pointer to the session object created / retrieved.
  *  isnew	: if not NULL, set to 1 on return if the session object has been created, 0 if it was simply retrieved.
@@ -1658,26 +1703,26 @@ int fd_sess_new ( struct session ** session, char * diamId, char * opt, size_t o
  *  EINVAL 	: A parameter is invalid.
  *  ENOMEM	: Not enough memory to complete the operation
  */
-int fd_sess_fromsid ( char * sid, size_t len, struct session ** session, int * isnew);
+int fd_sess_fromsid ( uint8_t * sid, size_t len, struct session ** session, int * isnew);
 
 /*
  * FUNCTION:	fd_sess_getsid
  *
  * PARAMETERS:
  *  session	: Pointer to a session object.
- *  sid	  	: On success, the location of a (\0-terminated) string is stored here.
+ *  sid	  	: On success, the location of the sid is stored here.
  *
  * DESCRIPTION: 
  *   Retrieve the session identifier (Session-Id) corresponding to a session object.
- *  The returned sid is an UTF-8 string terminated by \0, suitable for calls to strlen and strcpy.
+ *  The returned sid is a \0-terminated binary string which might be UTF-8 (but there is no guarantee in the framework).
  *  It may be used for example to set the value of an AVP.
  *  Note that the sid string is not copied, just its reference... do not free it!
  *
  * RETURN VALUE:
- *  0      	: The sid parameter has been updated.
+ *  0      	: The sid & len parameters have been updated.
  *  EINVAL 	: A parameter is invalid.
  */
-int fd_sess_getsid ( struct session * session, char ** sid );
+int fd_sess_getsid ( struct session * session, os0_t * sid, size_t * sidlen );
 
 /*
  * FUNCTION:	fd_sess_settimeout
@@ -1710,8 +1755,10 @@ int fd_sess_settimeout( struct session * session, const struct timespec * timeou
  *  session	: Pointer to a session object.
  *
  * DESCRIPTION: 
- *   Destroys a session an all associated data, if any.
+ *   Destroys all associated states of a session, if any.
  * Equivalent to a session timeout expired, but the effect is immediate.
+ * The session itself is marked as deleted, and will be freed when it is not referenced 
+ * by any message anymore.
  *
  * RETURN VALUE:
  *  0      	: The session no longer exists.
@@ -1726,10 +1773,11 @@ int fd_sess_destroy ( struct session ** session );
  *  session	: Pointer to a session object.
  *
  * DESCRIPTION: 
- *   Destroys the resources of a session, only if no session_state is associated with it.
+ *   Equivalent to fd_sess_destroy, only if no session_state is associated with the session.
+ *  Otherwise, this function has no effect (except that it sets *session to NULL).
  *
  * RETURN VALUE:
- *  0      	: The session no longer exists.
+ *  0      	: The session was reclaimed.
  *  EINVAL 	: A parameter is invalid.
  */
 int fd_sess_reclaim ( struct session ** session );
@@ -1801,27 +1849,29 @@ struct rt_data;
 int  fd_rtd_init(struct rt_data ** rtd);
 void fd_rtd_free(struct rt_data ** rtd);
 
-/* Add a peer to the candidates list */
-int  fd_rtd_candidate_add(struct rt_data * rtd, char * peerid, char * realm);
+/* Add a peer to the candidates list. */
+int  fd_rtd_candidate_add(struct rt_data * rtd, DiamId_t peerid, size_t peeridlen, DiamId_t realm, size_t realmlen);
 
-/* Remove a peer from the candidates (if it is found) */
-void fd_rtd_candidate_del(struct rt_data * rtd, char * peerid, size_t sz /* if !0, peerid does not need to be \0 terminated */);
+/* Remove a peer from the candidates (if it is found). The search is case-insensitive. */
+void fd_rtd_candidate_del(struct rt_data * rtd, uint8_t * id, size_t idsz);
 
 /* Extract the list of valid candidates, and initialize their scores to 0 */
 void fd_rtd_candidate_extract(struct rt_data * rtd, struct fd_list ** candidates, int ini_score);
 
 /* If a peer returned a protocol error for this message, save it so that we don't try to send it there again */
-int  fd_rtd_error_add(struct rt_data * rtd, char * sentto, uint8_t * origin, size_t originsz, uint32_t rcode);
+int  fd_rtd_error_add(struct rt_data * rtd, DiamId_t sentto, size_t senttolen, uint8_t * origin, size_t originsz, uint32_t rcode);
 
 /* The extracted list items have the following structure: */
 struct rtd_candidate {
 	struct fd_list	chain;	/* link in the list returned by the previous fct */
-	char *		diamid;	/* the diameter Id of the peer */
-	char *		realm;	/* the diameter realm of the peer (if known) */
+	DiamId_t	diamid;	/* the diameter Id of the peer */
+	size_t		diamidlen; /* cached size of the diamid string */
+	DiamId_t	realm;	/* the diameter realm of the peer */
+	size_t		realmlen; /* cached size of realm */
 	int		score;	/* the current routing score for this peer, see fd_rt_out_register definition for details */
 };
 
-/* Reorder the list of peers */
+/* Reorder the list of peers by score */
 int  fd_rtd_candidate_reorder(struct fd_list * candidates);
 
 /* Note : it is fine for a callback to add a new entry in the candidates list after the list has been extracted. The diamid must then be malloc'd. */
@@ -2238,7 +2288,7 @@ int fd_msg_is_routable ( struct msg * msg );
  *
  * PARAMETERS:
  *  msg		: A msg object.
- *  diamid	: The diameter id of the peer from which this message was received.
+ *  diamid,len	: The diameter id of the peer from which this message was received.
  *  add_rr	: if true, a Route-Record AVP is added to the message with content diamid. In that case, dict must be supplied.
  *  dict	: a dictionary with definition of Route-Record AVP (if add_rr is true)
  *
@@ -2251,8 +2301,8 @@ int fd_msg_is_routable ( struct msg * msg );
  *  0      	: Operation complete.
  *  !0      	: an error occurred.
  */
-int fd_msg_source_set( struct msg * msg, char * diamid, int add_rr, struct dictionary * dict );
-int fd_msg_source_get( struct msg * msg, char ** diamid );
+int fd_msg_source_set( struct msg * msg, DiamId_t diamid, size_t diamidlen, int add_rr, struct dictionary * dict );
+int fd_msg_source_get( struct msg * msg, DiamId_t *diamid, size_t * diamidlen );
 
 /*
  * FUNCTION:	fd_msg_eteid_get
@@ -2369,7 +2419,7 @@ int fd_msg_avp_value_interpret ( struct avp *avp, void *data );
  *  EINVAL 	: The buffer does not contain a valid Diameter message.
  *  ENOMEM	: Unable to allocate enough memory to create the buffer object.
  */
-int fd_msg_bufferize ( struct msg * msg, unsigned char ** buffer, size_t * len );
+int fd_msg_bufferize ( struct msg * msg, uint8_t ** buffer, size_t * len );
 
 /*
  * FUNCTION:	fd_msg_parse_buffer
@@ -2391,7 +2441,7 @@ int fd_msg_bufferize ( struct msg * msg, unsigned char ** buffer, size_t * len )
  *  EBADMSG	: The buffer does not contain a valid Diameter message (or is truncated).
  *  EINVAL 	: A parameter is invalid.
  */
-int fd_msg_parse_buffer ( unsigned char ** buffer, size_t buflen, struct msg ** msg );
+int fd_msg_parse_buffer ( uint8_t ** buffer, size_t buflen, struct msg ** msg );
 
 /* Parsing Error Information structure */
 struct fd_pei {
@@ -2653,6 +2703,7 @@ void fd_disp_unregister_all ( void );
  *  msg 	: A msg object that have already been fd_msg_parse_dict.
  *  session	: The session corresponding to this object, if any.
  *  action	: Upon return, the action that must be taken on the message
+ *  error_code	: Upon return with action == DISP_ACT_ERROR, contains the error (such as "DIAMETER_UNABLE_TO_COMPLY")
  *
  * DESCRIPTION: 
  *   Call all handlers registered for a given message.
@@ -2665,7 +2716,7 @@ void fd_disp_unregister_all ( void );
  *  EINVAL 	: A parameter is invalid.
  *  (other errors)
  */
-int fd_msg_dispatch ( struct msg ** msg, struct session * session, enum disp_action *action, const char ** error_code );
+int fd_msg_dispatch ( struct msg ** msg, struct session * session, enum disp_action *action, char ** error_code );
 
 
 

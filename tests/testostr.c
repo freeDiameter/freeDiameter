@@ -35,8 +35,7 @@
 
 #include "tests.h"
 
-#define TEST_STR "This is my test string (with extra unused data)"
-#define TEST_STRLEN 22
+#define TEST_STR (os0_t)"This is my test string (with extra unused data)"
 
 /* Main test routine */
 int main(int argc, char *argv[])
@@ -46,26 +45,26 @@ int main(int argc, char *argv[])
 	
 	/* Check the hash function */
 	{
-		char buf[30];
+		uint8_t buf[30];
 		
-		uint32_t hash = fd_hash(TEST_STR, TEST_STRLEN); /* reference value */
+		uint32_t hash = fd_os_hash(TEST_STR, CONSTSTRLEN(TEST_STR)); /* reference value */
 		
 		/* Check that a hash of a substring / surstring is different */
-		CHECK( 1, hash != fd_hash(TEST_STR, TEST_STRLEN - 1) ? 1 : 0 );
-		CHECK( 1, hash != fd_hash(TEST_STR, TEST_STRLEN + 1) ? 1 : 0 );
+		CHECK( 1, hash != fd_os_hash(TEST_STR, CONSTSTRLEN(TEST_STR) - 1) ? 1 : 0 );
+		CHECK( 1, hash != fd_os_hash(TEST_STR, CONSTSTRLEN(TEST_STR) + 1) ? 1 : 0 );
 		
 		/* Check alignment of the string is not important */
-		memcpy(buf + 4, TEST_STR, TEST_STRLEN);
-		CHECK( hash, fd_hash(buf + 4, TEST_STRLEN) );
+		memcpy(buf + 4, TEST_STR, CONSTSTRLEN(TEST_STR));
+		CHECK( hash, fd_os_hash(buf + 4, CONSTSTRLEN(TEST_STR)) );
 		
-		memcpy(buf + 3, TEST_STR, TEST_STRLEN);
-		CHECK( hash, fd_hash(buf + 3, TEST_STRLEN) );
+		memcpy(buf + 3, TEST_STR, CONSTSTRLEN(TEST_STR));
+		CHECK( hash, fd_os_hash(buf + 3, CONSTSTRLEN(TEST_STR)) );
 		
-		memcpy(buf + 2, TEST_STR, TEST_STRLEN);
-		CHECK( hash, fd_hash(buf + 2, TEST_STRLEN) );
+		memcpy(buf + 2, TEST_STR, CONSTSTRLEN(TEST_STR));
+		CHECK( hash, fd_os_hash(buf + 2, CONSTSTRLEN(TEST_STR)) );
 		
-		memcpy(buf + 1, TEST_STR, TEST_STRLEN);
-		CHECK( hash, fd_hash(buf + 1, TEST_STRLEN) );
+		memcpy(buf + 1, TEST_STR, CONSTSTRLEN(TEST_STR));
+		CHECK( hash, fd_os_hash(buf + 1, CONSTSTRLEN(TEST_STR)) );
 	}
 
 	/* That's all for the tests yet */

@@ -54,17 +54,19 @@ struct rt_data {
 		struct rt_data *r = self;
 		fd_rtd_free(&r);
 	}
-	void add(char * peerid, char * realm) {
-		int ret = fd_rtd_candidate_add($self, peerid, realm);
+	%apply (char *STRING, int LENGTH) { (char * peerid, size_t peeridlen) };
+	%apply (char *STRING, int LENGTH) { (char * realm, size_t realmlen) };
+	void add(char * peerid, size_t peeridlen, char * realm, size_t realmlen) {
+		int ret = fd_rtd_candidate_add($self, peerid, peeridlen, realm, realmlen);
 		if (ret != 0) {
 			DI_ERROR(ret, NULL, NULL);
 		}
 	}
 	void remove(char * STRING, size_t LENGTH) {
-		fd_rtd_candidate_del($self, STRING, LENGTH);
+		fd_rtd_candidate_del($self, (os0_t)STRING, LENGTH);
 	}
-	void error(char * dest, char * STRING, size_t LENGTH, uint32_t rcode) {
-		int ret =  fd_rtd_error_add($self, dest, (uint8_t *)STRING, LENGTH, rcode);
+	void error(char * peerid, size_t peeridlen, char * STRING, size_t LENGTH, uint32_t rcode) {
+		int ret =  fd_rtd_error_add($self, peerid, peeridlen, (os0_t)STRING, LENGTH, rcode);
 		if (ret != 0) {
 			DI_ERROR(ret, NULL, NULL);
 		}

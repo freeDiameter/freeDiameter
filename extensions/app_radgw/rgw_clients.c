@@ -85,10 +85,14 @@ struct rgw_client {
 	/* The FQDN, realm, and optional aliases */
 	int			 is_local; /* true if the RADIUS client runs on the same host -- we use Diameter Identity in that case */
 	enum rgw_cli_type 	 type; /* is it a proxy ? */
-	char 			*fqdn;
+	DiamId_t		 fqdn; /* malloc'd here */
 	size_t			 fqdn_len;
-	char			*realm;
-	char			**aliases;
+	DiamId_t		 realm; /* references another string, do not free */
+	size_t			 realm_len;
+	struct {
+		os0_t		 name;
+		size_t		 len;
+	}			*aliases; /* Received aliases */
 	size_t			 aliases_nb;
 	
 	/* The secret key data. */
@@ -209,7 +213,8 @@ static void * dupl_th(void * arg) {
 static int client_create(struct rgw_client ** res, struct sockaddr ** ip_port, unsigned char ** key, size_t keylen, enum rgw_cli_type type )
 {
 	struct rgw_client *tmp = NULL;
-	char buf[255];
+	DiamId_t fqdn;
+	size_t fqdn_len;
 	int ret, i;
 	int loc = 0;
 	
@@ -219,6 +224,7 @@ static int client_create(struct rgw_client ** res, struct sockaddr ** ip_port, u
 		/* The client is local */
 		loc = 1;
 	} else {
+		char buf[255];
 	
 		/* Search FQDN for the client */
 		ret = getnameinfo( *ip_port, sizeof(struct sockaddr_storage), &buf[0], sizeof(buf), NULL, 0, 0 );
@@ -226,6 +232,12 @@ static int client_create(struct rgw_client ** res, struct sockaddr ** ip_port, u
 			TRACE_DEBUG(INFO, "Unable to resolve peer name: %s", gai_strerror(ret));
 			return EINVAL;
 		}
+		fqdn = &buf[0];
+		CHECK_FCT_DO( ret = fd_os_validate_DiameterIdentity(&fqdn, &fqdn_len, 1),
+			{
+				TRACE_DEBUG(INFO, "Unable to use resolved peer name '%s' as DiameterIdentity: %s", buf, strerror(ret));
+				return ret;
+			} );
 	}
 	
 	/* Create the new object */
@@ -245,14 +257,19 @@ static int client_create(struct rgw_client ** res, struct sockaddr ** ip_port, u
 		tmp->is_local = 1;
 	} else {
 		/* Copy the fqdn */
-		CHECK_MALLOC( tmp->fqdn = strdup(buf) );
-		tmp->fqdn_len = strlen(tmp->fqdn);
+		tmp->fqdn = fqdn;
+		tmp->fqdn_len = fqdn_len;
+
 		/* Find an appropriate realm */
-		tmp->realm = strchr(tmp->fqdn, '.');
-		if (tmp->realm)
+		tmp->realm = strchr(fqdn, '.');
+		if (tmp->realm) {
 			tmp->realm += 1;
-		if ((!tmp->realm) || (*tmp->realm == '\0')) /* in case the fqdn was "localhost." for example, if it is possible... */
+			tmp->realm_len = tmp->fqdn_len - (tmp->realm - fqdn);
+		}
+		if ((!tmp->realm) || (*tmp->realm == '\0')) { /* in case the fqdn was "localhost." for example, if it is possible... */
 			tmp->realm = fd_g_config->cnf_diamrlm;
+			tmp->realm_len = fd_g_config->cnf_diamrlm_len;
+		}
 	}
 	
 	/* move the sa info reference */
@@ -281,7 +298,7 @@ static void client_unlink(struct rgw_client * client)
 		
 		/* Free the data */
 		for (idx = 0; idx < client->aliases_nb; idx++)
-			free(client->aliases[idx]);
+			free(client->aliases[idx].name);
 		free(client->aliases);
 		free(client->fqdn);
 		free(client->sa);
@@ -531,9 +548,10 @@ int rgw_clients_create_origin(struct rgw_radius_msg_meta *msg, struct rgw_client
 	int idx;
 	int valid_nas_info = 0;
 	struct radius_attr_hdr *nas_ip = NULL, *nas_ip6 = NULL, *nas_id = NULL;
-	char * oh_str = NULL;
-	char * or_str = NULL;
-	char * rr_str = NULL;
+	size_t nas_id_len;
+	char * oh_str = NULL; size_t oh_strlen; int oh_free = 0;
+	char * or_str = NULL; size_t or_strlen;
+	char * rr_str = NULL; size_t rr_strlen;
 	char buf[REVERSE_DNS_SIZE_MAX]; /* to store DNS lookups results */
 	
 	struct avp *avp = NULL;
@@ -554,6 +572,7 @@ int rgw_clients_create_origin(struct rgw_radius_msg_meta *msg, struct rgw_client
 			
 		if ((attr->type == RADIUS_ATTR_NAS_IDENTIFIER) && (attr_len > 0)) {
 			nas_id = attr;
+			nas_id_len = attr_len;
 			continue;
 		}
 			
@@ -567,7 +586,7 @@ int rgw_clients_create_origin(struct rgw_radius_msg_meta *msg, struct rgw_client
 		TRACE_DEBUG(FULL, "The message does not contain any NAS identification attribute.");
 		
 		/* Get information on this peer */
-		CHECK_FCT( rgw_clients_get_origin(cli, &oh_str, &or_str) );
+		CHECK_FCT( rgw_clients_get_origin(cli, &oh_str, &oh_strlen, &or_str, &or_strlen) );
 		
 		goto diameter;
 	}
@@ -618,12 +637,14 @@ int rgw_clients_create_origin(struct rgw_radius_msg_meta *msg, struct rgw_client
 				TRACE_DEBUG(INFO, "Message received with a NAS-IP-Address or NAS-IPv6-Address different \nfrom the sender's. Please configure as Proxy if this is expected.\n Message discarded.");
 				return EINVAL;
 			} else {
-				/* the peer is configured as a proxy, or running on localhost, so accept the message */
+				int ret;
 				sSS ss;
+				/* the peer is configured as a proxy, or running on localhost, so accept the message */
 				
 				/* In that case, the cli will be stored as Route-Record and the NAS-IP-Address as origin */
 				if (!cli->is_local) {
 					rr_str = cli->fqdn;
+					rr_strlen = cli->fqdn_len;
 				}
 				
 				/* We must DNS-reverse the NAS-IP*-Address */
@@ -640,25 +661,39 @@ int rgw_clients_create_origin(struct rgw_radius_msg_meta *msg, struct rgw_client
 				CHECK_SYS_DO( getnameinfo( (sSA *)&ss, sSAlen(&ss), &buf[0], sizeof(buf), NULL, 0, NI_NAMEREQD),
 					{
 						if (cli->is_local) {
-							CHECK_FCT( rgw_clients_get_origin(cli, &oh_str, &or_str) );
+							CHECK_FCT( rgw_clients_get_origin(cli, &oh_str, &oh_strlen, &or_str, &or_strlen) );
 							goto diameter;
 						}
 						
 						TRACE_DEBUG(INFO, "The NAS-IP*-Address cannot be DNS reversed in order to create the Origin-Host AVP; rejecting the message (translation is impossible).");
 						return EINVAL;
 					} );
-				
+					
 				oh_str = &buf[0];
+				CHECK_FCT_DO( ret = fd_os_validate_DiameterIdentity(&oh_str, &oh_strlen, 1),
+					{
+						if (cli->is_local) {
+							CHECK_FCT( rgw_clients_get_origin(cli, &oh_str, &oh_strlen, &or_str, &or_strlen) );
+							goto diameter;
+						}
+						
+						TRACE_DEBUG(INFO, "Unable to use resolved client name '%s' as DiameterIdentity: %s", buf, strerror(ret));
+						return ret;
+					} );
+				oh_free = 1;
+				
 				or_str = strchr(oh_str, '.');
 				if (or_str) {
 					or_str ++; /* move after the first dot */
 					if (*or_str == '\0')
 						or_str = NULL; /* Discard this realm, we will use the local realm later */
+					else
+						or_strlen = oh_strlen - (or_str - oh_str);
 				}
 			}
 		} else {
 			/* The attribute matches the source address, just use this in origin-host */
-			CHECK_FCT( rgw_clients_get_origin(cli, &oh_str, &or_str) );
+			CHECK_FCT( rgw_clients_get_origin(cli, &oh_str, &oh_strlen, &or_str, &or_strlen) );
 		}
 		
 		goto diameter; /* we ignore the nas_id in that case */
@@ -667,7 +702,7 @@ int rgw_clients_create_origin(struct rgw_radius_msg_meta *msg, struct rgw_client
 	/* We don't have a NAS-IP*-Address attribute if we are here */
 	if (cli->is_local) {
 		/* Simple: we use our own configuration */
-		CHECK_FCT( rgw_clients_get_origin(cli, &oh_str, &or_str) );
+		CHECK_FCT( rgw_clients_get_origin(cli, &oh_str, &oh_strlen, &or_str, &or_strlen) );
 		goto diameter;
 	}
 	
@@ -696,14 +731,14 @@ int rgw_clients_create_origin(struct rgw_radius_msg_meta *msg, struct rgw_client
 		*/
 		
 		/* first, check if the nas_id is the fqdn of the peer or a known alias */
-		if ((cli->fqdn_len == (nas_id->length - sizeof(struct radius_attr_hdr))) 
-		&& (!strncasecmp((char *)(nas_id + 1), cli->fqdn, nas_id->length - sizeof(struct radius_attr_hdr)))) {
+		if (!fd_os_almostcasecmp(nas_id + 1, nas_id_len, 
+						cli->fqdn, cli->fqdn_len)) {
 			TRACE_DEBUG(FULL, "NAS-Identifier contains the fqdn of the client");
 			found = 1;
 		} else {
 			for (idx = 0; idx < cli->aliases_nb; idx++) {
-				if (((nas_id->length - sizeof(struct radius_attr_hdr)) == strlen(cli->aliases[idx])) 
-				&& (!strncasecmp((char *)(nas_id + 1), cli->aliases[idx], nas_id->length - sizeof(struct radius_attr_hdr)))) {
+				if (!fd_os_cmp(nas_id + 1, nas_id_len, 
+						cli->aliases[idx].name, cli->aliases[idx].len)) {
 					TRACE_DEBUG(FULL, "NAS-Identifier valid value found in the cache");
 					found = 1;
 					break;
@@ -713,14 +748,14 @@ int rgw_clients_create_origin(struct rgw_radius_msg_meta *msg, struct rgw_client
 		
 		if (found) {
 			/* The NAS-Identifier matches the source IP */
-			CHECK_FCT( rgw_clients_get_origin(cli, &oh_str, &or_str) );
+			CHECK_FCT( rgw_clients_get_origin(cli, &oh_str, &oh_strlen, &or_str, &or_strlen) );
 
 			goto diameter;
 		}
 		
 		/* Attempt DNS resolution of the identifier */
-		ASSERT( nas_id->length - sizeof(struct radius_attr_hdr) < sizeof(buf) );
-		memcpy(buf, nas_id + 1, nas_id->length - sizeof(struct radius_attr_hdr));
+		ASSERT( nas_id_len < sizeof(buf) );
+		memcpy(buf, nas_id + 1, nas_id_len);
 		buf[nas_id->length - sizeof(struct radius_attr_hdr)] = '\0';
 		
 		/* Now check if this alias is valid for this peer */
@@ -744,44 +779,56 @@ int rgw_clients_create_origin(struct rgw_radius_msg_meta *msg, struct rgw_client
 			if (!found) {
 				if (cli->type == RGW_CLI_NAS) {
 					TRACE_DEBUG(INFO, "The NAS-Identifier value '%.*s' resolves to a different IP than the client's, discarding the message. \nConfigure this client as a Proxy if this message should be valid.", 
-						nas_id->length - sizeof(struct radius_attr_hdr), nas_id + 1);
+						nas_id_len, nas_id + 1);
 					return EINVAL;
 				} else {
 					/* This identifier matches a different IP, assume it is a proxied message */
 					if (!cli->is_local) {
 						rr_str = cli->fqdn;
+						rr_strlen = cli->fqdn_len;
 					}
 					oh_str = &buf[0]; /* The canonname resolved */
+					CHECK_FCT_DO( ret = fd_os_validate_DiameterIdentity(&oh_str, &oh_strlen, 1),
+						{
+							TRACE_DEBUG(INFO, "Unable to use resolved client name '%s' as DiameterIdentity: %s", buf, strerror(ret));
+							return ret;
+						} );
+					oh_free = 1;
 					or_str = strchr(oh_str, '.');
 					if (or_str) {
 						or_str ++; /* move after the first dot */
 						if (*or_str == '\0')
 							or_str = NULL; /* Discard this realm, we will use the local realm later */
+						else
+							or_strlen = oh_strlen - (or_str - oh_str);
 					}
 				}
 			} else {
 				/* It is a valid alias, save it */
-				CHECK_MALLOC( cli->aliases = realloc(cli->aliases, (cli->aliases_nb + 1) * sizeof(char *)) );
-				CHECK_MALLOC( cli->aliases[cli->aliases_nb + 1] = malloc( 1 + nas_id->length - sizeof(struct radius_attr_hdr) ));
-				memcpy( cli->aliases[cli->aliases_nb + 1], nas_id + 1, nas_id->length - sizeof(struct radius_attr_hdr));
-				*(cli->aliases[cli->aliases_nb + 1] + nas_id->length - sizeof(struct radius_attr_hdr)) = '\0';
+				CHECK_MALLOC( cli->aliases = realloc(cli->aliases, (cli->aliases_nb + 1) * sizeof(cli->aliases[0])) );
+				
+				CHECK_MALLOC( cli->aliases[cli->aliases_nb + 1].name = os0dup(nas_id + 1, nas_id_len ) );
+				cli->aliases[cli->aliases_nb + 1].len = nas_id_len;
+
 				cli->aliases_nb ++;
-				TRACE_DEBUG(FULL, "Saved valid alias for client: '%s' -> '%s'", cli->aliases[cli->aliases_nb + 1], cli->fqdn);
-				CHECK_FCT( rgw_clients_get_origin(cli, &oh_str, &or_str) );
+				TRACE_DEBUG(FULL, "Saved valid alias for client: '%.*s' -> '%s'", nas_id_len, nas_id + 1, cli->fqdn);
+				CHECK_FCT( rgw_clients_get_origin(cli, &oh_str, &oh_strlen, &or_str, &or_strlen) );
 			}
 		} else {
 			/* Error resolving the name */
 			TRACE_DEBUG(INFO, "NAS-Identifier '%s' cannot be resolved: %s. Ignoring...", buf, gai_strerror(ret));
 			/* Assume this is a valid identifier for the client */
-			CHECK_FCT( rgw_clients_get_origin(cli, &oh_str, &or_str) );
+			CHECK_FCT( rgw_clients_get_origin(cli, &oh_str, &oh_strlen, &or_str, &or_strlen) );
 		}
 	}
 	
 	/* Now, let's create the empty Diameter message with Origin-Host, -Realm, and Route-Record if needed. */
 diameter:
 	ASSERT(oh_str); /* If it is not defined here, there is a bug... */
-	if (!or_str)
+	if (!or_str) {
 		or_str = fd_g_config->cnf_diamrlm; /* Use local realm in that case */
+		or_strlen = fd_g_config->cnf_diamrlm_len;
+	}
 	
 	/* Create an empty Diameter message so that extensions can store their AVPs */
 	CHECK_FCT(  fd_msg_new ( NULL, MSGFL_ALLOC_ETEID, diam )  );
@@ -790,7 +837,7 @@ diameter:
 	CHECK_FCT( fd_msg_avp_new ( cache_orig_host, 0, &avp ) );
 	memset(&avp_val, 0, sizeof(avp_val));
 	avp_val.os.data = (unsigned char *)oh_str;
-	avp_val.os.len = strlen(oh_str);
+	avp_val.os.len = oh_strlen;
 	CHECK_FCT( fd_msg_avp_setvalue ( avp, &avp_val ) );
 	CHECK_FCT( fd_msg_avp_add ( *diam, MSG_BRW_LAST_CHILD, avp) );
 	
@@ -798,7 +845,7 @@ diameter:
 	CHECK_FCT( fd_msg_avp_new ( cache_orig_realm, 0, &avp ) );
 	memset(&avp_val, 0, sizeof(avp_val));
 	avp_val.os.data = (unsigned char *)or_str;
-	avp_val.os.len = strlen(or_str);
+	avp_val.os.len = or_strlen;
 	CHECK_FCT( fd_msg_avp_setvalue ( avp, &avp_val ) );
 	CHECK_FCT( fd_msg_avp_add ( *diam, MSG_BRW_LAST_CHILD, avp) );
 	
@@ -806,28 +853,37 @@ diameter:
 		CHECK_FCT( fd_msg_avp_new ( cache_route_record, 0, &avp ) );
 		memset(&avp_val, 0, sizeof(avp_val));
 		avp_val.os.data = (unsigned char *)rr_str;
-		avp_val.os.len = strlen(rr_str);
+		avp_val.os.len = rr_strlen;
 		CHECK_FCT( fd_msg_avp_setvalue ( avp, &avp_val ) );
 		CHECK_FCT( fd_msg_avp_add ( *diam, MSG_BRW_LAST_CHILD, avp) );
 	}
+	
+	if (oh_free)
+		free(oh_str);
 	
 	/* Done! */
 	return 0;
 }
 
-int rgw_clients_get_origin(struct rgw_client *cli, char **fqdn, char **realm)
+int rgw_clients_get_origin(struct rgw_client *cli, DiamId_t *fqdn, size_t *fqdnlen, DiamId_t *realm, size_t *realmlen)
 {
-	TRACE_ENTRY("%p %p %p", cli, fqdn, realm);
-	CHECK_PARAMS(cli && fqdn);
+	TRACE_ENTRY("%p %p %p %p %p", cli, fqdn, fqdnlen, realm, realmlen);
+	CHECK_PARAMS(cli && fqdn && fqdnlen);
 	
 	if (cli->is_local) {
 		*fqdn = fd_g_config->cnf_diamid;
+		*fqdnlen = fd_g_config->cnf_diamid_len;
 		if (realm)
 			*realm= fd_g_config->cnf_diamrlm;
+		if (realmlen)
+			*realmlen= fd_g_config->cnf_diamrlm_len;
 	} else {
 		*fqdn = cli->fqdn;
+		*fqdnlen = cli->fqdn_len;
 		if (realm)
 			*realm= cli->realm;
+		if (realmlen)
+			*realmlen= cli->realm_len;
 	}
 		
 	return 0;

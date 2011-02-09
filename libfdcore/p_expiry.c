@@ -58,10 +58,9 @@ static void * gc_th_fct(void * arg)
 		CHECK_FCT_DO( pthread_rwlock_wrlock(&fd_g_peers_rw), goto error );
 		
 		for (li = fd_g_peers.next; li != &fd_g_peers; li = li->next) {
-			struct fd_peer * peer = (struct fd_peer *)li;
+			struct fd_peer * peer = (struct fd_peer *)li->o;
 			
-			fd_cpu_flush_cache();
-			if (peer->p_hdr.info.runtime.pir_state != STATE_ZOMBIE)
+			if (fd_peer_getstate(peer) != STATE_ZOMBIE)
 				continue;
 			
 			if (peer->p_hdr.info.config.pic_flags.persist == PI_PRST_ALWAYS)
@@ -77,7 +76,7 @@ static void * gc_th_fct(void * arg)
 		
 		/* Now delete peers that are in the purge list */
 		while (!FD_IS_LIST_EMPTY(&purge)) {
-			struct fd_peer * peer = (struct fd_peer *)(purge.next);
+			struct fd_peer * peer = (struct fd_peer *)(purge.next->o);
 			fd_list_unlink(&peer->p_hdr.chain);
 			TRACE_DEBUG(INFO, "Garbage Collect: delete zombie peer '%s'", peer->p_hdr.info.pi_diamid);
 			CHECK_FCT_DO( fd_peer_free(&peer), /* Continue... what else to do ? */ );
@@ -104,7 +103,7 @@ static void * exp_th_fct(void * arg)
 		struct timespec	now;
 		struct fd_peer * first;
 		
-		/* Check if there are expiring sessions available */
+		/* Check if there are expiring peers available */
 		if (FD_IS_LIST_EMPTY(&exp_list)) {
 			/* Just wait for a change or cancelation */
 			CHECK_POSIX_DO( pthread_cond_wait( &exp_cnd, &exp_mtx ), { ASSERT(0); } );
@@ -182,7 +181,7 @@ int fd_p_expi_update(struct fd_peer * peer )
 		struct fd_list * li;
 		
 		/* update the p_exp_timer value */
-		CHECK_SYS(  clock_gettime(CLOCK_REALTIME, &peer->p_exp_timer)  );
+		CHECK_SYS_DO(  clock_gettime(CLOCK_REALTIME, &peer->p_exp_timer), { ASSERT(0); }  );
 		peer->p_exp_timer.tv_sec += peer->p_hdr.info.config.pic_lft;
 		
 		/* add to the expiry list in appropriate position (probably around the end) */

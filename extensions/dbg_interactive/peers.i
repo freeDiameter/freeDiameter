@@ -96,9 +96,9 @@ static void fd_add_cb(struct peer_info *peer, void *data) {
 }
 
 %inline %{
-static struct peer_hdr * peer_search(char *diamid) {
+static struct peer_hdr * peer_search(char *STRING, size_t LENGTH) {
 	struct peer_hdr *r = NULL;
-	int ret = fd_peer_getbyid( diamid, &r );
+	int ret = fd_peer_getbyid( STRING, LENGTH, 0, &r );
 	if (ret) {
 		DI_ERROR(ret, NULL, NULL);
 		return NULL;

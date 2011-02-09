@@ -104,7 +104,7 @@ del l1
 
 ############# Hash ############
 
-hex(fd_hash("hello world"))	# It accepts binary data
+hex(fd_os_hash("hello world"))	# It accepts binary data
 
 
 ############# Dictionary ############

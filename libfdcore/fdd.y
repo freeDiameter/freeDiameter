@@ -235,7 +235,7 @@ norelay:		NORELAY ';'
 
 appservthreads:		APPSERVTHREADS '=' INTEGER ';'
 			{
-				CHECK_PARAMS_DO( ($3 > 0) && ($3 < 1024),
+				CHECK_PARAMS_DO( ($3 > 0) && ($3 < 256),
 					{ yyerror (&yylloc, conf, "Invalid value"); YYERROR; } );
 				conf->cnf_dispthr = (uint16_t)$3;
 			}

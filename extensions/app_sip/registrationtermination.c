@@ -146,12 +146,14 @@ int app_sip_RTR_cb(struct rtrsipaor structure)
 	
 	// Create a new session 
 	{
-		CHECK_FCT( fd_sess_new( &sess, fd_g_config->cnf_diamid, "app_sip", 7 ));
-		char * sid;
-		CHECK_FCT( fd_sess_getsid ( sess, &sid ));
+		#define APP_SIP_SID_OPT  "app_sip"
+		CHECK_FCT( fd_sess_new( &sess, fd_g_config->cnf_diamid, fd_g_config->cnf_diamid_len, (os0_t)APP_SIP_SID_OPT, CONSTSTRLEN(APP_SIP_SID_OPT) ));
+		os0_t sid;
+		size_t sidlen;
+		CHECK_FCT( fd_sess_getsid ( sess, &sid, &sidlen ));
 		CHECK_FCT( fd_msg_avp_new ( sip_dict.Session_Id, 0, &avp ));
-		value.os.data = (uint8_t *)sid;
-		value.os.len  = strlen(sid);
+		value.os.data = sid;
+		value.os.len  = sidlen;
 		CHECK_FCT( fd_msg_avp_setvalue( avp, &value ));
 		CHECK_FCT( fd_msg_avp_add( message, MSG_BRW_FIRST_CHILD, avp ));
 	}

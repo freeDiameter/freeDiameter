@@ -37,19 +37,39 @@
 
 /* This file contains code to handle Disconnect Peer messages (DPR and DPA) */
 
+/* Delay to use before next reconnect attempt */
+int fd_p_dp_newdelay(struct fd_peer * peer) 
+{
+	int delay = peer->p_hdr.info.config.pic_tctimer ?: fd_g_config->cnf_timer_tc;
+	
+	switch (peer->p_hdr.info.runtime.pir_lastDC) {
+		case ACV_DC_REBOOTING:
+		default:
+			/* We use TcTimer to attempt reconnection */
+			break;
+		case ACV_DC_BUSY:
+			/* No need to hammer the overloaded peer */
+			delay *= 10;
+			break;
+		case ACV_DC_NOT_FRIEND:
+			/* He does not want to speak to us... let's retry a *lot* later maybe */
+			delay *= 200;
+			break;
+	}
+	return delay;
+}
+
 /* Handle a received message */
 int fd_p_dp_handle(struct msg ** msg, int req, struct fd_peer * peer)
 {
 	TRACE_ENTRY("%p %d %p", msg, req, peer);
 	
 	if (req) {
-		/* We received a DPR, save the Disconnect-Cause and terminate the connection */
+		/* We received a DPR, save the Disconnect-Cause and go to CLOSING_GRACE or terminate the connection */
 		struct avp * dc;
-		int delay = peer->p_hdr.info.config.pic_tctimer ?: fd_g_config->cnf_timer_tc;
 		
 		CHECK_FCT( fd_msg_search_avp ( *msg, fd_dict_avp_DC, &dc ));
 		if (dc) {
-			/* Check the value is consistent with the saved one */
 			struct avp_hdr * hdr;
 			CHECK_FCT(  fd_msg_avp_hdr( dc, &hdr )  );
 			if (hdr->avp_value == NULL) {
@@ -59,30 +79,20 @@ int fd_p_dp_handle(struct msg ** msg, int req, struct fd_peer * peer)
 				ASSERT(0); /* To check if this really happens, and understand why... */
 			}
 
+			/* save the cause */
 			peer->p_hdr.info.runtime.pir_lastDC = hdr->avp_value->u32;
-			
-			switch (hdr->avp_value->u32) {
-				case ACV_DC_REBOOTING:
-				default:
-					/* We use TcTimer to attempt reconnection */
-					break;
-				case ACV_DC_BUSY:
-					/* No need to hammer the overloaded peer */
-					delay *= 10;
-					break;
-				case ACV_DC_NOT_FRIEND:
-					/* He does not want to speak to us... let's retry a lot later maybe */
-					delay *= 200;
-					break;
-			}
 		}
 		if (TRACE_BOOL(INFO)) {
 			if (dc) {
-				struct dict_object * dictobj = NULL;
+				struct dict_object * dictobj;
 				struct dict_enumval_request er;
 				memset(&er, 0, sizeof(er));
+				
+				/* prepare the request */
 				CHECK_FCT( fd_dict_search( fd_g_config->cnf_dict, DICT_TYPE, TYPE_OF_AVP, fd_dict_avp_DC, &er.type_obj, ENOENT )  );
 				er.search.enum_value.u32 = peer->p_hdr.info.runtime.pir_lastDC;
+				
+				/* Search the enum value */
 				CHECK_FCT( fd_dict_search( fd_g_config->cnf_dict, DICT_ENUMVAL, ENUMVAL_BY_STRUCT, &er, &dictobj, 0 )  );
 				if (dictobj) {
 					CHECK_FCT( fd_dict_getval( dictobj, &er.search ) );
@@ -99,30 +109,43 @@ int fd_p_dp_handle(struct msg ** msg, int req, struct fd_peer * peer)
 		CHECK_FCT( fd_msg_new_answer_from_req ( fd_g_config->cnf_dict, msg, 0 ) );
 		CHECK_FCT( fd_msg_rescode_set( *msg, "DIAMETER_SUCCESS", NULL, NULL, 1 ) );
 		
-		/* Move to CLOSING state to failover outgoing messages (and avoid failing the DPA...) */
+		/* Move to CLOSING state to failover outgoing messages (and avoid failing over the DPA...) */
 		CHECK_FCT( fd_psm_change_state(peer, STATE_CLOSING) );
 		
 		/* Now send the DPA */
 		CHECK_FCT( fd_out_send( msg, NULL, peer, FD_CNX_ORDERED) );
 		
-		/* Move to CLOSED state */
-		fd_psm_cleanup(peer, 0);
-		
-		/* Reset the timer for next connection attempt -- we'll retry sooner or later depending on the disconnection cause */
-		fd_psm_next_timeout(peer, 1, delay);
-		
+		if (fd_cnx_isMultichan(peer->p_cnxctx)) {
+			/* There is a possibililty that messages are still in the pipe coming here, so let's grace for 1 second */
+			CHECK_FCT( fd_psm_change_state(peer, STATE_CLOSING_GRACE) );
+			fd_psm_next_timeout(peer, 0, 1);
+			
+		} else {
+			/* Move to CLOSED state */
+			fd_psm_cleanup(peer, 0);
+
+			/* Reset the timer for next connection attempt -- we'll retry sooner or later depending on the disconnection cause */
+			fd_psm_next_timeout(peer, 1, fd_p_dp_newdelay(peer));
+		}
 	} else {
 		/* We received a DPA */
-		fd_cpu_flush_cache();
-		if (peer->p_hdr.info.runtime.pir_state != STATE_CLOSING) {
-			TRACE_DEBUG(INFO, "Ignoring DPA received in state %s", STATE_STR(peer->p_hdr.info.runtime.pir_state));
+		int curstate = fd_peer_getstate(peer);
+		if (curstate != STATE_CLOSING) {
+			TRACE_DEBUG(INFO, "Ignoring DPA received in state %s", STATE_STR(curstate));
 		}
 			
 		/* In theory, we should control the Result-Code AVP. But since we will not go back to OPEN state here anyway, let's skip it */
+		
+		/* TODO("Control Result-Code in the DPA") */
 		CHECK_FCT_DO( fd_msg_free( *msg ), /* continue */ );
 		*msg = NULL;
 		
-		/* The calling function handles cleaning the PSM and terminating the peer since we return in CLOSING state */
+		if (fd_cnx_isMultichan(peer->p_cnxctx)) {
+			CHECK_FCT( fd_psm_change_state(peer, STATE_CLOSING_GRACE) );
+			fd_psm_next_timeout(peer, 0, 1);
+			peer->p_flags.pf_localterm = 1;
+		}
+		/* otherwise, return in CLOSING state, the psm will handle it */
 	}
 	
 	return 0;
@@ -152,7 +175,7 @@ int fd_p_dp_initiate(struct fd_peer * peer, char * reason)
 	memset(&er, 0, sizeof(er));
 	CHECK_FCT( fd_dict_search( fd_g_config->cnf_dict, DICT_TYPE, TYPE_OF_AVP, fd_dict_avp_DC, &er.type_obj, ENOENT )  );
 	er.search.enum_name = reason ?: "REBOOTING";
-	CHECK_FCT( fd_dict_search( fd_g_config->cnf_dict, DICT_ENUMVAL, ENUMVAL_BY_STRUCT, &er, &dictobj, ENOENT )  );
+	CHECK_FCT_DO( fd_dict_search( fd_g_config->cnf_dict, DICT_ENUMVAL, ENUMVAL_BY_STRUCT, &er, &dictobj, ENOENT ), { ASSERT(0); /* internal error: unknown reason */ }  );
 	CHECK_FCT( fd_dict_getval( dictobj, &er.search ) );
 	
 	/* Set the value in the AVP */

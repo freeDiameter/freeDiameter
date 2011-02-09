@@ -107,9 +107,9 @@ struct fd_config {
 	
 	char		*cnf_file;	/* Configuration file to parse, default is DEFAULT_CONF_FILE */
 	
-	char   		*cnf_diamid;	/* Diameter Identity of the local peer (FQDN -- UTF-8) */
-	size_t		 cnf_diamid_len;	/* length of the previous string */
-	char		*cnf_diamrlm;	/* Diameter realm of the local peer, default to realm part of diam_id */
+	DiamId_t  	 cnf_diamid;	/* Diameter Identity of the local peer (FQDN -- ASCII) */
+	size_t		 cnf_diamid_len;/* cached length of the previous string */
+	DiamId_t	 cnf_diamrlm;	/* Diameter realm of the local peer, default to realm part of cnf_diamid */
 	size_t		 cnf_diamrlm_len;/* length of the previous string */
 	
 	unsigned int	 cnf_timer_tc;	/* The value in seconds of the default Tc timer */
@@ -187,6 +187,10 @@ enum peer_state {
 	STATE_SUSPECT,		/* A DWR was sent and not answered within TwTime. Failover in progress. */
 	STATE_REOPEN,		/* Connection has been re-established, waiting for 3 DWR/DWA exchanges before putting back to service */
 	
+	/* Ordering issues with multistream & state machine. -- see top of p_psm.c for explanation */
+	STATE_OPEN_NEW, 	/* after CEA is sent, until a new message is received. Force ordering in this state */
+	STATE_CLOSING_GRACE,	/* after DPA is sent or received, give a short delay for messages in the pipe to be received. */
+	
 	/* Error state */
 	STATE_ZOMBIE		/* The PSM thread is not running anymore; it must be re-started or peer should be deleted. */
 #define STATE_MAX STATE_ZOMBIE
@@ -204,6 +208,8 @@ const char *peer_state_str[] = { 	\
 	, "STATE_OPEN_HANDSHAKE"	\
 	, "STATE_SUSPECT"		\
 	, "STATE_REOPEN"		\
+	, "STATE_OPEN_NEW"		\
+	, "STATE_CLOSING_GRACE"		\
 	, "STATE_ZOMBIE"		\
 	};
 extern const char *peer_state_str[];
@@ -236,7 +242,8 @@ extern const char *peer_state_str[];
 /* Information about a remote peer */
 struct peer_info {
 	
-	char * 		pi_diamid;	/* UTF-8, \0 terminated. The Diameter Identity of the remote peer. */
+	DiamId_t	pi_diamid;	/* (supposedly) UTF-8, \0 terminated. The Diameter Identity of the remote peer. */
+	size_t		pi_diamidlen;	/* cached length of pi_diamid */
 	
 	struct {
 		struct {
@@ -249,7 +256,7 @@ struct peer_info {
 			
 		}		pic_flags;	/* Flags influencing the connection to the remote peer */
 		
-		char * 		pic_realm;	/* If configured, the daemon will match the received realm in CER/CEA matches this. */
+		DiamId_t	pic_realm;	/* If configured, the daemon will check the received realm in CER/CEA matches this. */
 		uint16_t	pic_port; 	/* port to connect to. 0: default. */
 		
 		uint32_t 	pic_lft;	/* lifetime of this peer when inactive (see pic_flags.exp definition) */
@@ -262,13 +269,15 @@ struct peer_info {
 	
 	struct {
 		
-		enum peer_state	pir_state;	/* Current state of the peer in the state machine. fd_cpu_flush_cache() might be useful before reading. */
+		/* enum peer_state	pir_state; */ 
+		/* Since 1.1.0, read the state with fd_peer_getstate(peer). */
 		
-		char * 		pir_realm;	/* The received realm in CER/CEA. */
+		DiamId_t	pir_realm;	/* The received realm in CER/CEA. */
+		size_t		pir_realmlen;	/* length of the realm */
 		
 		uint32_t	pir_vendorid;	/* Content of the Vendor-Id AVP, or 0 by default */
 		uint32_t	pir_orstate;	/* Origin-State-Id value */
-		char *		pir_prodname;	/* copy of UTF-8 Product-Name AVP (\0 terminated) */
+		os0_t		pir_prodname;	/* copy of Product-Name AVP (\0 terminated) */
 		uint32_t	pir_firmrev;	/* Content of the Firmware-Revision AVP */
 		int		pir_relay;	/* The remote peer advertized the relay application */
 		struct fd_list	pir_apps;	/* applications advertised by the remote peer, except relay (pi_flags.relay) */
@@ -289,7 +298,7 @@ struct peer_info {
 
 
 struct peer_hdr {
-	struct fd_list	 chain;	/* List of all the peers, ordered by their Diameter Id */
+	struct fd_list	 chain;	/* Link into the list of all the peers, ordered by their Diameter Id (fd_os_cmp) */
 	struct peer_info info;	/* The public data */
 	
 	/* This header is followed by more data in the private peer structure definition */
@@ -338,7 +347,9 @@ int fd_peer_add ( struct peer_info * info, char * orig_dbg, void (*cb)(struct pe
  * FUNCTION:	fd_peer_getbyid
  *
  * PARAMETERS:
- *  diamid 	: A \0 terminated string.
+ *  diamid 	: an UTF8 string describing the diameter Id of the peer to seek
+ *  diamidlen	: length of the diamid
+ *  igncase	: perform an almost-case-insensitive search? (slower)
  *  peer	: The peer is stored here if it exists.
  *
  * DESCRIPTION: 
@@ -348,7 +359,22 @@ int fd_peer_add ( struct peer_info * info, char * orig_dbg, void (*cb)(struct pe
  *  0   : *peer has been updated (to NULL if the peer is not found).
  * !0	: An error occurred.
  */
-int fd_peer_getbyid( char * diamid, struct peer_hdr ** peer );
+int fd_peer_getbyid( DiamId_t diamid, size_t diamidlen, int igncase, struct peer_hdr ** peer );
+
+/* 
+ * FUNCTION:	fd_peer_get_state
+ *
+ * PARAMETERS:
+ *  peer	: The peer which state to read
+ *
+ * DESCRIPTION: 
+ *   Returns the current state of the peer.
+ *
+ * RETURN VALUE:
+ *  -1  : peer is invalid
+ * >=0	: the state of the peer at the time of reading.
+ */
+int fd_peer_get_state(struct peer_hdr *peer);
 
 /*
  * FUNCTION:	fd_peer_validate_register
@@ -473,6 +499,10 @@ int fd_msg_rescode_set( struct msg * msg, char * rescode, char * errormsg, struc
 
 /* Add Origin-Host, Origin-Realm, (if osi) Origin-State-Id AVPS at the end of the message */
 int fd_msg_add_origin ( struct msg * msg, int osi ); 
+
+/* Generate a new Session-Id and add it at the beginning of the message (opt is added at the end of the sid if provided) */
+int fd_msg_new_session( struct msg * msg, os0_t opt, size_t optlen );
+
 
 /* Parse a message against our dictionary, and in case of error log and eventually build the error reply (on return and EBADMSG, *msg == NULL or *msg is the error message ready to send) */
 int fd_msg_parse_or_error( struct msg ** msg );

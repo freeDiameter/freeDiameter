@@ -44,7 +44,7 @@ struct fd_config * fd_g_config = NULL;
 /* gcrypt functions to support posix threads */
 GCRY_THREAD_OPTION_PTHREAD_IMPL;
 
-/* Signal extensions when the framework is completly initialized */
+/* Signal extensions when the framework is completly initialized (they are waiting in fd_core_waitstartcomplete()) */
 static int             is_ready = 0;
 static pthread_mutex_t is_ready_mtx = PTHREAD_MUTEX_INITIALIZER;
 static pthread_cond_t  is_ready_cnd = PTHREAD_COND_INITIALIZER;
@@ -61,6 +61,8 @@ static int signal_framework_ready(void)
 
 /* Thread that process incoming events on the main queue -- and terminates the framework when requested */
 static pthread_t core_runner = (pthread_t)NULL;
+
+/* How the thread is terminated */
 enum core_mode {
 	CORE_MODE_EVENTS,
 	CORE_MODE_IMMEDIATE

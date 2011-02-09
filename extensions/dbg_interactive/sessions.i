@@ -39,7 +39,7 @@
 
 %{
 /* call it (might be called from a different thread than the interpreter, when session times out) */
-static void call_the_python_cleanup_callback(session_state * state, char * sid, void * cb) {
+static void call_the_python_cleanup_callback(session_state * state, os0_t sid, void * cb) {
 	PyObject *result;
 	if (!cb) {
 		fd_log_debug("Internal error: missing callback object!\n");
@@ -99,7 +99,7 @@ struct session {
 	session() {
 		int ret;
 		struct session * s = NULL;
-		ret = fd_sess_new(&s, fd_g_config->cnf_diamid, "dbg_interactive", sizeof("dbg_interactive"));
+		ret = fd_sess_new(&s, fd_g_config->cnf_diamid, fd_g_config->cnf_diamid_len, (os0_t)"dbg_interactive", CONSTSTRLEN("dbg_interactive"));
 		if (ret != 0) {
 			DI_ERROR(ret, NULL, NULL);
 			return NULL;
@@ -109,7 +109,7 @@ struct session {
 	session(char * diamid, char * STRING, size_t LENGTH) {
 		int ret;
 		struct session * s = NULL;
-		ret = fd_sess_new(&s, diamid, STRING, LENGTH);
+		ret = fd_sess_new(&s, diamid, 0, (os0_t)STRING, LENGTH);
 		if (ret != 0) {
 			DI_ERROR(ret, NULL, NULL);
 			return NULL;
@@ -119,7 +119,7 @@ struct session {
 	session(char * STRING, size_t LENGTH) {
 		int ret, n;
 		struct session * s = NULL;
-		ret = fd_sess_fromsid(STRING, LENGTH, &s, &n);
+		ret = fd_sess_fromsid((os0_t)STRING, LENGTH, &s, &n);
 		if (ret != 0) {
 			DI_ERROR(ret, NULL, NULL);
 			return NULL;
@@ -143,15 +143,16 @@ struct session {
 		}
 		return;
 	}
-	char * getsid() {
+	
+	%cstring_output_allocate_size(char ** outsid, size_t * sidlen, /* do not free */);
+	void getsid(char ** outsid, size_t * sidlen) {
 		int ret;
-		char * sid = NULL;
-		ret = fd_sess_getsid( $self, &sid);
+		ret = fd_sess_getsid( $self, (void *)outsid, sidlen);
 		if (ret != 0) {
 			DI_ERROR(ret, NULL, NULL);
-			return NULL;
+			return;
 		}
-		return sid;
+		return;
 	}
 	void settimeout(long seconds) {
 		struct timespec timeout;

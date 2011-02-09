@@ -145,6 +145,7 @@ void fd_conf_dump()
 int fd_conf_parse()
 {
 	extern FILE * fddin;
+	char * orig = NULL;
 	
 	/* Attempt to find the configuration file */
 	if (!fd_g_config->cnf_file)
@@ -153,14 +154,22 @@ int fd_conf_parse()
 	fddin = fopen(fd_g_config->cnf_file, "r");
 	if ((fddin == NULL) && (*fd_g_config->cnf_file != '/')) {
 		/* We got a relative path, attempt to add the default directory prefix */
-		char * bkp = fd_g_config->cnf_file;
-		CHECK_MALLOC( fd_g_config->cnf_file = malloc(strlen(bkp) + strlen(DEFAULT_CONF_PATH) + 2) ); /* we will not free it, but not important */
-		sprintf( fd_g_config->cnf_file, DEFAULT_CONF_PATH "/%s", bkp );
+		orig = fd_g_config->cnf_file;
+		CHECK_MALLOC( fd_g_config->cnf_file = malloc(strlen(orig) + strlen(DEFAULT_CONF_PATH) + 2) ); /* we will not free it, but not important */
+		sprintf( fd_g_config->cnf_file, DEFAULT_CONF_PATH "/%s", orig );
 		fddin = fopen(fd_g_config->cnf_file, "r");
 	}
 	if (fddin == NULL) {
 		int ret = errno;
-		fprintf(stderr, "Unable to open configuration file %s for reading: %s\n", fd_g_config->cnf_file, strerror(ret));
+		if (orig) {
+			fprintf(stderr, "Unable to open configuration file for reading\n"
+					"Tried the following locations:\n"
+					" - %s\n"
+					" - %s\n"
+					"Error: %s\n", orig, fd_g_config->cnf_file, strerror(ret));
+		} else {
+			fprintf(stderr, "Unable to open '%s' for reading: %s\n", fd_g_config->cnf_file, strerror(ret));
+		}
 		return ret;
 	}
 	
@@ -177,11 +186,22 @@ int fd_conf_parse()
 		return EINVAL;
 	}
 	
+	/* If the CA is not provided, let's use the same file (assuming self-signed certificate) */
+	if (! fd_g_config->cnf_sec_data.ca_file) {
+		CHECK_MALLOC( fd_g_config->cnf_sec_data.ca_file = strdup(fd_g_config->cnf_sec_data.cert_file) );
+		CHECK_GNUTLS_DO( fd_g_config->cnf_sec_data.ca_file_nr += gnutls_certificate_set_x509_trust_file( 
+					fd_g_config->cnf_sec_data.credentials,
+					fd_g_config->cnf_sec_data.ca_file,
+					GNUTLS_X509_FMT_PEM),
+				{ 
+					TRACE_DEBUG(INFO, "Unable to use the local certificate as trusted security anchor (CA), please provide a valid TLS_CA='...' directive.");
+					return EINVAL;
+				} );
+	}
+	
+	
 	/* Resolve hostname if not provided */
 	if (fd_g_config->cnf_diamid == NULL) {
-#ifndef HOST_NAME_MAX
-#define HOST_NAME_MAX 1024
-#endif /* HOST_NAME_MAX */
 		char buf[HOST_NAME_MAX + 1];
 		struct addrinfo hints, *info;
 		int ret;
@@ -201,12 +221,12 @@ int fd_conf_parse()
 					buf, gai_strerror(ret));
 			return EINVAL;
 		}
-		CHECK_MALLOC( fd_g_config->cnf_diamid = strdup(info->ai_canonname) );
+		fd_g_config->cnf_diamid = info->ai_canonname;
+		CHECK_FCT( fd_os_validate_DiameterIdentity(&fd_g_config->cnf_diamid, &fd_g_config->cnf_diamid_len, 1) );
 		freeaddrinfo(info);
+	} else {
+		CHECK_FCT( fd_os_validate_DiameterIdentity(&fd_g_config->cnf_diamid, &fd_g_config->cnf_diamid_len, 0) );
 	}
-	
-	/* cache the length of the diameter id for the session module */
-	fd_g_config->cnf_diamid_len = strlen(fd_g_config->cnf_diamid);
 	
 	/* Handle the realm part */
 	if (fd_g_config->cnf_diamrlm == NULL) {
@@ -219,11 +239,13 @@ int fd_conf_parse()
 					"Please fix your Identity setting or provide Realm.\n",
 					fd_g_config->cnf_diamid);
 			return EINVAL;
-		}		
+		}
 		
-		CHECK_MALLOC( fd_g_config->cnf_diamrlm = strdup( start + 1 )  ); 
+		fd_g_config->cnf_diamrlm = start + 1;
+		CHECK_FCT( fd_os_validate_DiameterIdentity(&fd_g_config->cnf_diamrlm, &fd_g_config->cnf_diamrlm_len, 1) );
+	} else {
+		CHECK_FCT( fd_os_validate_DiameterIdentity(&fd_g_config->cnf_diamrlm, &fd_g_config->cnf_diamrlm_len, 0) );
 	}
-	fd_g_config->cnf_diamrlm_len = strlen(fd_g_config->cnf_diamrlm);
 	
 	/* Validate some flags */
 	if (fd_g_config->cnf_flags.no_ip4 && fd_g_config->cnf_flags.no_ip6) {

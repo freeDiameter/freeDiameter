@@ -109,13 +109,14 @@ int main(int argc, char *argv[])
 	enum disp_action action;
 	struct disp_hdl * hdl[NB_CB];
 	struct disp_when when;
-	const char * ec;
+	char * ec;
 	
 	/* First, initialize the daemon modules */
 	INIT_FD();
 	
 	/* Create a dummy session, we don't use it anyway */
-	CHECK( 0, fd_sess_new( &sess, "test.disp", NULL, 0 ) );
+	#define DUMMY_SID "test.disp"
+	CHECK( 0, fd_sess_new( &sess, DUMMY_SID, CONSTSTRLEN(DUMMY_SID), NULL, 0 ) );
 	
 	memset(&when, 0xff, sizeof(when)); /* check that we don't use un-initialized parts */
 	

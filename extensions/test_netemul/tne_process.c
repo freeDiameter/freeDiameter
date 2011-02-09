@@ -87,11 +87,12 @@ static int do_duplicates()
 		
 		/* Duplicate eventually, unless deactivated */
 		if (tne_conf.dupl_proba != 0.0) {
-			char * src;
+			DiamId_t src;
+			size_t srclen;
 			/* Pick a random value in [0, 1] */
 			double my_rand = drand48();
 			m = pi->chain.o;
-			CHECK_FCT( fd_msg_source_get(m, &src) );
+			CHECK_FCT( fd_msg_source_get(m, &src, &srclen) );
 			
 			while (my_rand < (double) tne_conf.dupl_proba) {
 				/* create the duplicate */
@@ -104,7 +105,7 @@ static int do_duplicates()
 				/* Duplicate the message */
 				CHECK_FCT( fd_msg_bufferize(m, &buf, &len) );
 				CHECK_FCT( fd_msg_parse_buffer(&buf, len, &nm) );
-				CHECK_FCT( fd_msg_source_set(nm, src, 0, NULL) );
+				CHECK_FCT( fd_msg_source_set(nm, src, srclen, 0, NULL) );
 				CHECK_FCT( fd_msg_hdr(nm, &nh) );
 				nh->msg_flags |= CMD_FLAG_RETRANSMIT; /* Add the 'T' flag */
 				TRACE_DEBUG(FULL, "[tne] Duplicated message %p as %p", m, nm);

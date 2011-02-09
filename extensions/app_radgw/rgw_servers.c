@@ -147,8 +147,9 @@ static void * server_thread(void * param)
 		/* parse the message, loop if message is invalid */
 		CHECK_FCT_DO( rgw_msg_parse(&buf[0], len, &msg), 
 			{
-				char * cliname = NULL;
-				CHECK_FCT_DO( rgw_clients_get_origin(nas_info, &cliname, NULL), );
+				DiamId_t cliname = NULL;
+				size_t clisz;
+				CHECK_FCT_DO( rgw_clients_get_origin(nas_info, &cliname, &clisz, NULL, NULL), );
 				TRACE_DEBUG(INFO, "Discarding invalid RADIUS message from '%s'", cliname);
 				rgw_clients_dispose(&nas_info);
 				continue; 

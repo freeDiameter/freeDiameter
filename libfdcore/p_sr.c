@@ -35,10 +35,6 @@
 
 #include "fdcore-internal.h"
 
-#ifndef SR_DEBUG_LVL
-#define SR_DEBUG_LVL ANNOYING
-#endif /* SR_DEBUG_LVL */
-
 /* Structure to store a sent request */
 struct sentreq {
 	struct fd_list	chain; 	/* the "o" field points directly to the hop-by-hop of the request (uint32_t *)  */
@@ -68,17 +64,23 @@ static void srl_dump(const char * text, struct fd_list * srlist)
 {
 	struct fd_list * li;
 	struct timespec now;
-	if (!TRACE_BOOL(SR_DEBUG_LVL))
+	
+	if (!TRACE_BOOL(ANNOYING))
 		return;
-	CHECK_SYS_DO( clock_gettime(CLOCK_REALTIME, &now), );
+	
 	fd_log_debug("%sSentReq list @%p:\n", text, srlist);
+	
+	CHECK_SYS_DO( clock_gettime(CLOCK_REALTIME, &now), );
+	
 	for (li = srlist->next; li != srlist; li = li->next) {
 		struct sentreq * sr = (struct sentreq *)li;
 		uint32_t * nexthbh = li->o;
-		fd_log_debug(" - Next req (%x): [since %ld.%06ld sec]\n", *nexthbh, 
+		
+		fd_log_debug(" - Next req (hbh:%x): [since %ld.%06ld sec]\n", *nexthbh, 
 			(now.tv_nsec >= sr->added_on.tv_nsec) ? (now.tv_sec - sr->added_on.tv_sec) : (now.tv_sec - sr->added_on.tv_sec - 1),
 			(now.tv_nsec >= sr->added_on.tv_nsec) ? (now.tv_nsec - sr->added_on.tv_nsec) / 1000 : (now.tv_nsec - sr->added_on.tv_nsec + 1000000000) / 1000);
-		fd_msg_dump_one(SR_DEBUG_LVL + 1, sr->req);
+		
+		fd_msg_dump_one(ANNOYING + 1, sr->req);
 	}
 }
 
@@ -116,7 +118,7 @@ static void * call_anscb_expire(void * arg) {
 	return NULL;
 }
 
-/* thread that handles messages expiring. The thread is started / cancelled only when needed */
+/* thread that handles messages expiring. The thread is started only when needed */
 static void * sr_expiry_th(void * arg) {
 	struct sr_list * srlist = arg;
 	struct msg * expired_req;
@@ -128,7 +130,7 @@ static void * sr_expiry_th(void * arg) {
 	/* Set the thread name */
 	{
 		char buf[48];
-		sprintf(buf, "ReqExp/%.*s", (int)sizeof(buf) - 8, ((struct fd_peer *)(srlist->exp.o))->p_hdr.info.pi_diamid);
+		snprintf(buf, sizeof(buf), "ReqExp/%s", ((struct fd_peer *)(srlist->exp.o))->p_hdr.info.pi_diamid);
 		fd_log_threadname ( buf );
 	}
 	
@@ -312,7 +314,7 @@ void fd_p_sr_failover(struct sr_list * srlist)
 				});
 		} else {
 			/* Just free the request. */
-			fd_msg_log( FD_MSG_LOG_DROPPED, sr->req, "Local message discarded during failover" );
+			fd_msg_log( FD_MSG_LOG_DROPPED, sr->req, "Sent & unanswered local message discarded during failover." );
 			CHECK_FCT_DO(fd_msg_free(sr->req), /* Ignore */);
 		}
 		free(sr);

@@ -998,7 +998,7 @@ stop:
 }
 
 /* Send a buffer over a specified stream */
-int fd_sctp_sendstr(int sock, uint16_t strid, uint8_t * buf, size_t len, uint32_t * cc_status)
+int fd_sctp_sendstr(struct cnxctx * conn, uint16_t strid, uint8_t * buf, size_t len)
 {
 	struct msghdr mhdr;
 	struct iovec  iov;
@@ -1008,8 +1008,8 @@ int fd_sctp_sendstr(int sock, uint16_t strid, uint8_t * buf, size_t len, uint32_
 	ssize_t ret;
 	int timedout = 0;
 	
-	TRACE_ENTRY("%d %hu %p %zd %p", sock, strid, buf, len, cc_status);
-	CHECK_PARAMS(cc_status);
+	TRACE_ENTRY("%p %hu %p %zd", conn, strid, buf, len);
+	CHECK_PARAMS(conn && buf && len);
 	
 	memset(&mhdr, 0, sizeof(mhdr));
 	memset(&iov,  0, sizeof(iov));
@@ -1036,12 +1036,12 @@ int fd_sctp_sendstr(int sock, uint16_t strid, uint8_t * buf, size_t len, uint32_
 	mhdr.msg_control    = anci;
 	mhdr.msg_controllen = sizeof(anci);
 	
-	TRACE_DEBUG(FULL, "Sending %db data on stream %hu of socket %d", len, strid, sock);
+	TRACE_DEBUG(FULL, "Sending %db data on stream %hu of socket %d", len, strid, conn->cc_socket);
 again:	
-	ret = sendmsg(sock, &mhdr, 0);
+	ret = sendmsg(conn->cc_socket, &mhdr, 0);
 	/* Handle special case of timeout */
 	if ((ret < 0) && (errno == EAGAIN)) {
-		if (!(*cc_status & CC_STATUS_CLOSING))
+		if (! fd_cnx_teststate(conn, CC_STATUS_CLOSING ))
 			goto again; /* don't care, just ignore */
 		if (!timedout) {
 			timedout ++; /* allow for one timeout while closing */
@@ -1056,7 +1056,7 @@ again:
 }
 
 /* Receive the next data from the socket, or next notification */
-int fd_sctp_recvmeta(int sock, uint16_t * strid, uint8_t ** buf, size_t * len, int *event, uint32_t * cc_status)
+int fd_sctp_recvmeta(struct cnxctx * conn, uint16_t * strid, uint8_t ** buf, size_t * len, int *event)
 {
 	ssize_t 		 ret = 0;
 	struct msghdr 		 mhdr;
@@ -1067,8 +1067,8 @@ int fd_sctp_recvmeta(int sock, uint16_t * strid, uint8_t ** buf, size_t * len, i
 	size_t			 mempagesz = sysconf(_SC_PAGESIZE); /* We alloc buffer by memory pages for efficiency */
 	int 			 timedout = 0;
 	
-	TRACE_ENTRY("%d %p %p %p %p %p", sock, strid, buf, len, event, cc_status);
-	CHECK_PARAMS( (sock > 0) && buf && len && event && cc_status );
+	TRACE_ENTRY("%p %p %p %p %p", conn, strid, buf, len, event);
+	CHECK_PARAMS( conn && buf && len && event );
 	
 	/* Cleanup out parameters */
 	*buf = NULL;
@@ -1097,12 +1097,12 @@ incomplete:
 	/* Receive data from the socket */
 again:
 	pthread_cleanup_push(free, data);
-	ret = recvmsg(sock, &mhdr, 0);
+	ret = recvmsg(conn->cc_socket, &mhdr, 0);
 	pthread_cleanup_pop(0);
 	
 	/* First, handle timeouts (same as fd_cnx_s_recv) */
 	if ((ret < 0) && (errno == EAGAIN)) {
-		if (!(*cc_status & CC_STATUS_CLOSING))
+		if (! fd_cnx_teststate(conn, CC_STATUS_CLOSING ))
 			goto again; /* don't care, just ignore */
 		if (!timedout) {
 			timedout ++; /* allow for one timeout while closing */
@@ -1131,7 +1131,7 @@ again:
 	if (mhdr.msg_flags & MSG_NOTIFICATION) {
 		union sctp_notification * notif = (union sctp_notification *) data;
 		
-		TRACE_DEBUG(FULL, "Received %db data of notification on socket %d", datasize, sock);
+		TRACE_DEBUG(FULL, "Received %db data of notification on socket %d", datasize, conn->cc_socket);
 	
 		switch (notif->sn_header.sn_type) {
 			
@@ -1225,9 +1225,9 @@ again:
 
 			*strid = sndrcv->sinfo_stream;
 		}
-		TRACE_DEBUG(FULL, "Received %db data on socket %d, stream %hu", datasize, sock, *strid);
+		TRACE_DEBUG(FULL, "Received %db data on socket %d, stream %hu", datasize, conn->cc_socket, *strid);
 	} else {
-		TRACE_DEBUG(FULL, "Received %db data on socket %d (stream ignored)", datasize, sock);
+		TRACE_DEBUG(FULL, "Received %db data on socket %d (stream ignored)", datasize, conn->cc_socket);
 	}
 	
 	return 0;

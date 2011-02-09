@@ -4,7 +4,7 @@ freediameter (1.1.0) UNRELEASED; urgency=low
     framework now contained in the libfdcore library.
     libfreeDiameter renamed as libfdproto.
     This closes #15.
-  * API version bumped to version 4 accordingly.
+  * API version bumped to version 4.
   * Improved fd_dict_new() when the same object already exists.
   * Improvements to dict_legacy_xml extension.
   * Cleanups in links to shared libraries
@@ -12,8 +12,15 @@ freediameter (1.1.0) UNRELEASED; urgency=low
     to RADIUS (closes #25)
   * Allow default signals such as SIGTSTP (ctrl-z) to be used with
     freeDiameterd
+  * Improved DiameterIdentity handling (esp. interationalization issues), 
+    and improve efficiency of some string operations in peers, sessions, 
+    and dictionary modules (closes #7)
+  * Cleanup in the session module to free only unreferenced sessions (#16)
+  * Removed fd_cpu_flush_cache(), replaced by more robust alternatives.
+  * Improved peer state machine algorithm to counter SCTP multistream race 
+    condition.
 
- -- Sebastien Decugis <sdecugis@nict.go.jp>  Tue, 18 Jan 2011 15:13:00 +0900
+ -- Sebastien Decugis <sdecugis@nict.go.jp>  Mon, 07 Feb 2011 17:24:20 +0900
 
 freediameter (1.0.4) UNRELEASED; urgency=low
 

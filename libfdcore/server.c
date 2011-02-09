@@ -40,6 +40,13 @@
 static struct fd_list	FD_SERVERS = FD_LIST_INITIALIZER(FD_SERVERS);	/* The list of all server objects */
 /* We don't need to protect this list, it is only accessed from the main framework thread. */
 
+enum s_state {
+	NOT_CREATED=0,
+	RUNNING,
+	TERMINATED,
+	ERROR	/* an error occurred, this is not a valid status */
+};
+
 /* Servers information */
 struct server {
 	struct fd_list	chain;		/* link in the FD_SERVERS list */
@@ -49,11 +56,12 @@ struct server {
 	int 		secur;		/* TLS is started immediatly after connection ? */
 	
 	pthread_t	thr;		/* The thread listening for new connections */
-	int		status;		/* 0 : not created; 1 : running; 2 : terminated */
+	enum s_state	state;		/* state of the thread */
 	
 	struct fd_list	clients;	/* List of clients connected to this server, not yet identified */
 	pthread_mutex_t	clients_mtx;	/* Mutex to protect the list of clients */
 };
+
 
 /* Client information (connecting peer for which we don't have the CER yet) */
 struct client {
@@ -64,6 +72,26 @@ struct client {
 };
 
 
+
+/* Micro functions to read/change the status thread-safely */
+static pthread_mutex_t s_lock = PTHREAD_MUTEX_INITIALIZER;
+static enum s_state get_status(struct server * s)
+{
+	enum s_state r;
+	CHECK_POSIX_DO( pthread_mutex_lock(&s_lock), return ERROR );
+	r = s->state;
+	CHECK_POSIX_DO( pthread_mutex_unlock(&s_lock), return ERROR );
+	return r;
+}
+static void set_status(struct server * s, enum s_state st)
+{
+	CHECK_POSIX_DO( pthread_mutex_lock(&s_lock), return );
+	s->state = st;
+	CHECK_POSIX_DO( pthread_mutex_unlock(&s_lock), return );
+}
+	
+
+
 /* Dump all servers information */
 void fd_servers_dump()
 {
@@ -72,14 +100,14 @@ void fd_servers_dump()
 	fd_log_debug("Dumping servers list :\n");
 	for (li = FD_SERVERS.next; li != &FD_SERVERS; li = li->next) {
 		struct server * s = (struct server *)li;
-		fd_cpu_flush_cache();
+		enum s_state st = get_status(s);
 		fd_log_debug("  Serv %p '%s': %s, %s, %s\n", 
 				s, fd_cnx_getid(s->conn), 
 				IPPROTO_NAME( s->proto ),
 				s->secur ? "Secur" : "NotSecur",
-				(s->status == 0) ? "Thread not created" :
-				((s->status == 1) ? "Thread running" :
-				((s->status == 2) ? "Thread terminated" :
+				(st == NOT_CREATED) ? "Thread not created" :
+				((st == RUNNING) ? "Thread running" :
+				((st == TERMINATED) ? "Thread terminated" :
 							  "Thread status unknown")));
 		/* Dump the client list of this server */
 		CHECK_POSIX_DO( pthread_mutex_lock(&s->clients_mtx), );
@@ -191,8 +219,7 @@ static void * serv_th(void * arg)
 	
 	CHECK_PARAMS_DO(s, goto error);
 	fd_log_threadname ( fd_cnx_getid(s->conn) );
-	s->status = 1;
-	fd_cpu_flush_cache();
+	set_status(s, RUNNING);
 	
 	/* Accept incoming connections */
 	CHECK_FCT_DO( fd_cnx_serv_listen(s->conn), goto error );
@@ -224,7 +251,7 @@ static void * serv_th(void * arg)
 	
 error:	
 	if (s)
-		s->status = 2;
+		set_status(s, TERMINATED);
 	/* Send error signal to the daemon */
 	TRACE_DEBUG(INFO, "An error occurred in server module! Thread is terminating...");
 	CHECK_FCT_DO(fd_event_send(fd_g_config->cnf_main_ev, FDEV_TERMINATE, 0, NULL), );
@@ -265,16 +292,20 @@ int fd_servers_start()
 #else /* DISABLE_SCTP */
 		
 		/* Create the server on unsecure port */
-		CHECK_MALLOC( s = new_serv(IPPROTO_SCTP, 0) );
-		CHECK_MALLOC( s->conn = fd_cnx_serv_sctp(fd_g_config->cnf_port, FD_IS_LIST_EMPTY(&fd_g_config->cnf_endpoints) ? NULL : &fd_g_config->cnf_endpoints) );
-		fd_list_insert_before( &FD_SERVERS, &s->chain );
-		CHECK_POSIX( pthread_create( &s->thr, NULL, serv_th, s ) );
+		if (fd_g_config->cnf_port) {
+			CHECK_MALLOC( s = new_serv(IPPROTO_SCTP, 0) );
+			CHECK_MALLOC( s->conn = fd_cnx_serv_sctp(fd_g_config->cnf_port, empty_conf_ep ? NULL : &fd_g_config->cnf_endpoints) );
+			fd_list_insert_before( &FD_SERVERS, &s->chain );
+			CHECK_POSIX( pthread_create( &s->thr, NULL, serv_th, s ) );
+		}
 		
 		/* Create the server on secure port */
-		CHECK_MALLOC( s = new_serv(IPPROTO_SCTP, 1) );
-		CHECK_MALLOC( s->conn = fd_cnx_serv_sctp(fd_g_config->cnf_port_tls, FD_IS_LIST_EMPTY(&fd_g_config->cnf_endpoints) ? NULL : &fd_g_config->cnf_endpoints) );
-		fd_list_insert_before( &FD_SERVERS, &s->chain );
-		CHECK_POSIX( pthread_create( &s->thr, NULL, serv_th, s ) );
+		if (fd_g_config->cnf_port_tls) {
+			CHECK_MALLOC( s = new_serv(IPPROTO_SCTP, 1) );
+			CHECK_MALLOC( s->conn = fd_cnx_serv_sctp(fd_g_config->cnf_port_tls, empty_conf_ep ? NULL : &fd_g_config->cnf_endpoints) );
+			fd_list_insert_before( &FD_SERVERS, &s->chain );
+			CHECK_POSIX( pthread_create( &s->thr, NULL, serv_th, s ) );
+		}
 		
 #endif /* DISABLE_SCTP */
 	}
@@ -286,28 +317,37 @@ int fd_servers_start()
 			/* Bind TCP servers on [0.0.0.0] */
 			if (!fd_g_config->cnf_flags.no_ip4) {
 				
-				CHECK_MALLOC( s = new_serv(IPPROTO_TCP, 0) );
-				CHECK_MALLOC( s->conn = fd_cnx_serv_tcp(fd_g_config->cnf_port, AF_INET, NULL) );
-				fd_list_insert_before( &FD_SERVERS, &s->chain );
-				CHECK_POSIX( pthread_create( &s->thr, NULL, serv_th, s ) );
+				if (fd_g_config->cnf_port) {
+					CHECK_MALLOC( s = new_serv(IPPROTO_TCP, 0) );
+					CHECK_MALLOC( s->conn = fd_cnx_serv_tcp(fd_g_config->cnf_port, AF_INET, NULL) );
+					fd_list_insert_before( &FD_SERVERS, &s->chain );
+					CHECK_POSIX( pthread_create( &s->thr, NULL, serv_th, s ) );
+				}
 
-				CHECK_MALLOC( s = new_serv(IPPROTO_TCP, 1) );
-				CHECK_MALLOC( s->conn = fd_cnx_serv_tcp(fd_g_config->cnf_port_tls, AF_INET, NULL) );
-				fd_list_insert_before( &FD_SERVERS, &s->chain );
-				CHECK_POSIX( pthread_create( &s->thr, NULL, serv_th, s ) );
+				if (fd_g_config->cnf_port_tls) {
+					CHECK_MALLOC( s = new_serv(IPPROTO_TCP, 1) );
+					CHECK_MALLOC( s->conn = fd_cnx_serv_tcp(fd_g_config->cnf_port_tls, AF_INET, NULL) );
+					fd_list_insert_before( &FD_SERVERS, &s->chain );
+					CHECK_POSIX( pthread_create( &s->thr, NULL, serv_th, s ) );
+				}
 			}
+			
 			/* Bind TCP servers on [::] */
 			if (!fd_g_config->cnf_flags.no_ip6) {
-				
-				CHECK_MALLOC( s = new_serv(IPPROTO_TCP, 0) );
-				CHECK_MALLOC( s->conn = fd_cnx_serv_tcp(fd_g_config->cnf_port, AF_INET6, NULL) );
-				fd_list_insert_before( &FD_SERVERS, &s->chain );
-				CHECK_POSIX( pthread_create( &s->thr, NULL, serv_th, s ) );
 
-				CHECK_MALLOC( s = new_serv(IPPROTO_TCP, 1) );
-				CHECK_MALLOC( s->conn = fd_cnx_serv_tcp(fd_g_config->cnf_port_tls, AF_INET6, NULL) );
-				fd_list_insert_before( &FD_SERVERS, &s->chain );
-				CHECK_POSIX( pthread_create( &s->thr, NULL, serv_th, s ) );
+				if (fd_g_config->cnf_port) {
+					CHECK_MALLOC( s = new_serv(IPPROTO_TCP, 0) );
+					CHECK_MALLOC( s->conn = fd_cnx_serv_tcp(fd_g_config->cnf_port, AF_INET6, NULL) );
+					fd_list_insert_before( &FD_SERVERS, &s->chain );
+					CHECK_POSIX( pthread_create( &s->thr, NULL, serv_th, s ) );
+				}
+
+				if (fd_g_config->cnf_port_tls) {
+					CHECK_MALLOC( s = new_serv(IPPROTO_TCP, 1) );
+					CHECK_MALLOC( s->conn = fd_cnx_serv_tcp(fd_g_config->cnf_port_tls, AF_INET6, NULL) );
+					fd_list_insert_before( &FD_SERVERS, &s->chain );
+					CHECK_POSIX( pthread_create( &s->thr, NULL, serv_th, s ) );
+				}
 			}
 		} else {
 			/* Create all endpoints -- check flags */
@@ -322,24 +362,30 @@ int fd_servers_start()
 				if (fd_g_config->cnf_flags.no_ip6 && (sa->sa_family == AF_INET6))
 					continue;
 				
-				CHECK_MALLOC( s = new_serv(IPPROTO_TCP, 0) );
-				CHECK_MALLOC( s->conn = fd_cnx_serv_tcp(fd_g_config->cnf_port, sa->sa_family, ep) );
-				fd_list_insert_before( &FD_SERVERS, &s->chain );
-				CHECK_POSIX( pthread_create( &s->thr, NULL, serv_th, s ) );
+				if (fd_g_config->cnf_port) {
+					CHECK_MALLOC( s = new_serv(IPPROTO_TCP, 0) );
+					CHECK_MALLOC( s->conn = fd_cnx_serv_tcp(fd_g_config->cnf_port, sa->sa_family, ep) );
+					fd_list_insert_before( &FD_SERVERS, &s->chain );
+					CHECK_POSIX( pthread_create( &s->thr, NULL, serv_th, s ) );
+				}
 
-				CHECK_MALLOC( s = new_serv(IPPROTO_TCP, 1) );
-				CHECK_MALLOC( s->conn = fd_cnx_serv_tcp(fd_g_config->cnf_port_tls, sa->sa_family, ep) );
-				fd_list_insert_before( &FD_SERVERS, &s->chain );
-				CHECK_POSIX( pthread_create( &s->thr, NULL, serv_th, s ) );
+				if (fd_g_config->cnf_port_tls) {
+					CHECK_MALLOC( s = new_serv(IPPROTO_TCP, 1) );
+					CHECK_MALLOC( s->conn = fd_cnx_serv_tcp(fd_g_config->cnf_port_tls, sa->sa_family, ep) );
+					fd_list_insert_before( &FD_SERVERS, &s->chain );
+					CHECK_POSIX( pthread_create( &s->thr, NULL, serv_th, s ) );
+				}
 			}
 		}
 	}
 	
-	/* Now, if we still have not got the list of local adresses, try to read it from the kernel directly */
-	if (FD_IS_LIST_EMPTY(&fd_g_config->cnf_endpoints)) {
+	/* Now, if we had an empty list of local adresses (no address configured), try to read the real addresses from the kernel */
+	if (empty_conf_ep) {
 		CHECK_FCT(fd_cnx_get_local_eps(&fd_g_config->cnf_endpoints));
 		if (FD_IS_LIST_EMPTY(&fd_g_config->cnf_endpoints)) {
-			TRACE_DEBUG(INFO, "Unable to find the addresses of the local system. Please use \"ListenOn\" parameter in the configuration.");
+			TRACE_DEBUG(INFO, "Unable to find the address(es) of the local system.\n" 
+					"Please use \"ListenOn\" parameter in the configuration.\n"
+					"This information is required to generate the CER/CEA messages.\n");
 			return EINVAL;
 		}
 	}

@@ -210,6 +210,7 @@ TLS_Cred = "/etc/ssl/certs/freeDiameter.pem", "/etc/ssl/private/freeDiameter.key
 #  ConnectTo = "202.249.37.5";
 #  ConnectTo = "2001:200:903:2::202:1";
 #  TLS_Prio = "NORMAL";
+#  Realm = "realm.net"; # Reject the peer if it does not advertise this realm.
 # Examples:
 #ConnectPeer = "aaa.wide.ad.jp";
 #ConnectPeer = "old.diameter.serv" { TcTimer = 60; TLS_old_method; No_SCTP; } ;

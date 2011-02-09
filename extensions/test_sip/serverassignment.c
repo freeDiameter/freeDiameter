@@ -70,12 +70,13 @@ int test_sip_SAR_cb()
 	
 	// Create a new session 
 	{
-		CHECK_FCT( fd_sess_new( &sess, fd_g_config->cnf_diamid, "appsip", 6 ));
-		char * sid;
-		CHECK_FCT( fd_sess_getsid ( sess, &sid ));
+		CHECK_FCT( fd_sess_new( &sess, fd_g_config->cnf_diamid, fd_g_config->cnf_diamid_len, (os0_t)"appsip", 6 ));
+		os0_t sid;
+		size_t sidlen;
+		CHECK_FCT( fd_sess_getsid ( sess, &sid, &sidlen ));
 		CHECK_FCT( fd_msg_avp_new ( sip_dict.Session_Id, 0, &avp ));
-		value.os.data = (uint8_t *)sid;
-		value.os.len  = strlen(sid);
+		value.os.data = sid;
+		value.os.len  = sidlen;
 		CHECK_FCT( fd_msg_avp_setvalue( avp, &value ));
 		CHECK_FCT( fd_msg_avp_add( message, MSG_BRW_FIRST_CHILD, avp ));
 	}

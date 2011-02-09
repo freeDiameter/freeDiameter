@@ -56,7 +56,7 @@ Architecture of this wrapper:
 This complexity is required because we cannot read a socket for a given stream only; we can only get the next message and find its stream.
 */
 
-
+/* TODO: change this whole wrapper to DTLS which should not require many different threads */
 
 /*************************************************************/
 /*                      threads                              */
@@ -82,12 +82,11 @@ static void * demuxer(void * arg)
 	}
 	
 	ASSERT( conn->cc_proto == IPPROTO_SCTP );
-	ASSERT( Target_Queue(conn) );
+	ASSERT( fd_cnx_target_queue(conn) );
 	ASSERT( conn->cc_sctps_data.array );
 	
 	do {
-		fd_cpu_flush_cache();
-		CHECK_FCT_DO( fd_sctp_recvmeta(conn->cc_socket, &strid, &buf, &bufsz, &event, &conn->cc_status), goto fatal );
+		CHECK_FCT_DO( fd_sctp_recvmeta(conn, &strid, &buf, &bufsz, &event), goto fatal );
 		switch (event) {
 			case FDEVP_CNX_MSG_RECV:
 				/* Demux this message to the appropriate fifo, another thread will pull, gnutls process, and send to target queue */
@@ -101,8 +100,7 @@ static void * demuxer(void * arg)
 				
 			case FDEVP_CNX_EP_CHANGE:
 				/* Send this event to the target queue */
-				fd_cpu_flush_cache();
-				CHECK_FCT_DO( fd_event_send( Target_Queue(conn), event, bufsz, buf), goto fatal );
+				CHECK_FCT_DO( fd_event_send( fd_cnx_target_queue(conn), event, bufsz, buf), goto fatal );
 				break;
 			
 			case FDEVP_CNX_ERROR:
@@ -143,7 +141,7 @@ static void * decipher(void * arg)
 	TRACE_ENTRY("%p", arg);
 	CHECK_PARAMS_DO(ctx && ctx->raw_recv && ctx->parent, goto error);
 	cnx = ctx->parent;
-	ASSERT( Target_Queue(cnx) );
+	ASSERT( fd_cnx_target_queue(cnx) );
 	
 	/* Set the thread name */
 	{
@@ -172,8 +170,7 @@ static ssize_t sctps_push(gnutls_transport_ptr_t tr, const void * data, size_t l
 	TRACE_ENTRY("%p %p %zd", tr, data, len);
 	CHECK_PARAMS_DO( tr && data, { errno = EINVAL; return -1; } );
 	
-	fd_cpu_flush_cache();
-	CHECK_FCT_DO( fd_sctp_sendstr(ctx->parent->cc_socket, ctx->strid, (uint8_t *)data, len, &ctx->parent->cc_status), /* errno is already set */ return -1 );
+	CHECK_FCT_DO( fd_sctp_sendstr(ctx->parent, ctx->strid, (uint8_t *)data, len), /* errno is already set */ return -1 );
 	
 	return len;
 }
@@ -305,15 +302,7 @@ static struct fd_list * find_or_next(struct sr_store * sto, gnutls_datum_t key, 
 		int cmp = 0;
 		struct sr_data * sr = (struct sr_data *)ret;
 		
-		if ( key.size < sr->key.size )
-			break;
-		
-		if ( key.size > sr->key.size )
-			continue;
-		
-		/* Key sizes are equal */
-		cmp = memcmp( key.data, sr->key.data, key.size );
-		
+		cmp = fd_os_cmp(key.data, key.size, sr->key.data, sr->key.size);
 		if (cmp > 0)
 			continue;
 		
@@ -626,8 +615,7 @@ void fd_sctps_bye(struct cnxctx * conn)
 	
 	/* End all TLS sessions, in series (not as efficient as paralel, but simpler) */
 	for (i = 1; i < conn->cc_sctp_para.pairs; i++) {
-		fd_cpu_flush_cache();
-		if ( ! (conn->cc_status & CC_STATUS_ERROR)) {
+		if ( ! fd_cnx_teststate(conn, CC_STATUS_ERROR)) {
 			CHECK_GNUTLS_DO( gnutls_bye(conn->cc_sctps_data.array[i].session, GNUTLS_SHUT_WR), fd_cnx_markerror(conn) );
 		}
 	}

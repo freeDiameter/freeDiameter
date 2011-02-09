@@ -37,16 +37,17 @@
 
 /* This file contains code to handle Device Watchdog messages (DWR and DWA) */
 
-/* Check the value of Origin-State-Id is consistent in a DWR or  DWA -- we just log if it is not the case */
-static void check_state_id(struct msg * msg, struct fd_peer * peer)
+/* Check the value of Origin-State-Id is consistent in a DWR or DWA -- we return an error otherwise */
+static int check_state_id(struct msg * msg, struct fd_peer * peer)
 {
 	struct avp * osi;
+	
 	/* Check if the request contains the Origin-State-Id */
-	CHECK_FCT_DO( fd_msg_search_avp ( msg, fd_dict_avp_OSI, &osi ), return );
+	CHECK_FCT( fd_msg_search_avp ( msg, fd_dict_avp_OSI, &osi ) );
 	if (osi) {
 		/* Check the value is consistent with the saved one */
 		struct avp_hdr * hdr;
-		CHECK_FCT_DO(  fd_msg_avp_hdr( osi, &hdr ), return  );
+		CHECK_FCT(  fd_msg_avp_hdr( osi, &hdr )  );
 		if (hdr->avp_value == NULL) {
 			/* This is a sanity check */
 			TRACE_DEBUG(NONE, "BUG: Unset value in Origin-State-Id in DWR / DWA");
@@ -55,12 +56,14 @@ static void check_state_id(struct msg * msg, struct fd_peer * peer)
 		}
 
 		if (peer->p_hdr.info.runtime.pir_orstate != hdr->avp_value->u32) {
-			fd_log_debug("Received a new Origin-State-Id from peer %s! (%x / %x)\n", 
+			TRACE_DEBUG(INFO, "Received a new Origin-State-Id from peer '%s'! (%x -> %x); resetting the connection.\n", 
 				peer->p_hdr.info.pi_diamid, 
-				hdr->avp_value->u32,
-				peer->p_hdr.info.runtime.pir_orstate );
+				peer->p_hdr.info.runtime.pir_orstate,
+				hdr->avp_value->u32 );
+			return EINVAL;
 		}
 	}
+	return 0;
 }
 
 /* Create and send a DWR */
@@ -91,7 +94,7 @@ int fd_p_dw_handle(struct msg ** msg, int req, struct fd_peer * peer)
 	TRACE_ENTRY("%p %d %p", msg, req, peer);
 	
 	/* Check the value of OSI for information */
-	check_state_id(*msg, peer);
+	CHECK_FCT( check_state_id(*msg, peer) );
 	
 	if (req) {
 		/* If we receive a DWR, send back a DWA */
@@ -101,7 +104,7 @@ int fd_p_dw_handle(struct msg ** msg, int req, struct fd_peer * peer)
 		CHECK_FCT( fd_out_send( msg, peer->p_cnxctx, peer, FD_CNX_ORDERED) );
 		
 	} else {
-		/* Just discard the DWA */
+		/* Discard the DWA */
 		CHECK_FCT_DO( fd_msg_free(*msg), /* continue */ );
 		*msg = NULL;
 		
@@ -122,8 +125,7 @@ int fd_p_dw_handle(struct msg ** msg, int req, struct fd_peer * peer)
 	}
 	
 	/* If we are in REOPEN state, increment the counter */
-	fd_cpu_flush_cache();
-	if (peer->p_hdr.info.runtime.pir_state == STATE_REOPEN) {
+	if (fd_peer_getstate(peer) == STATE_REOPEN) {
 		peer->p_flags.pf_reopen_cnt += 1;
 		
 		if (peer->p_flags.pf_reopen_cnt) {

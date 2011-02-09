@@ -35,9 +35,6 @@
 
 #include "fdproto-internal.h"
 
-/* Only for CPU cache flush */
-pthread_mutex_t fd_cpu_mtx_dummy = PTHREAD_MUTEX_INITIALIZER;
-
 /* function to free the threadnames */
 static void freelogstr(void * str) {
 	if (TRACE_BOOL(ANNOYING)) {

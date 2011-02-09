@@ -62,14 +62,16 @@ struct dict_object {
 	struct dictionary	*dico;  /* The dictionary this object belongs to */
 	
 	union {
-		struct dict_vendor_data		vendor;
-		struct dict_application_data	application;
-		struct dict_type_data		type;
-		struct dict_enumval_data	enumval;
-		struct dict_avp_data		avp;
-		struct dict_cmd_data		cmd;
-		struct dict_rule_data		rule;
+		struct dict_vendor_data		vendor;		/* datastr_len = strlen(vendor_name) */
+		struct dict_application_data	application;	/* datastr_len = strlen(application_name) */
+		struct dict_type_data		type;		/* datastr_len = strlen(type_name) */
+		struct dict_enumval_data	enumval;	/* datastr_len = strlen(enum_name) */
+		struct dict_avp_data		avp;		/* datastr_len = strlen(avp_name) */
+		struct dict_cmd_data		cmd;		/* datastr_len = strlen(cmd_name) */
+		struct dict_rule_data		rule;		/* datastr_len = 0 */
 	} data;				/* The data of this object */
+	
+	size_t			datastr_len; /* cached length of the string inside the data. Saved when the object is created. */
 	
 	struct dict_object *	parent; /* The parent of this object, if any */
 	
@@ -87,7 +89,7 @@ struct dict_object {
 	 => VENDORS:
 	 list[0]: list of the vendors, ordered by their id. The sentinel is g_dict_vendors (vendor with id 0)
 	 list[1]: sentinel for the list of AVPs from this vendor, ordered by AVP code.
-	 list[2]: sentinel for the list of AVPs from this vendor, ordered by AVP name.
+	 list[2]: sentinel for the list of AVPs from this vendor, ordered by AVP name (fd_os_cmp).
 	 
 	 => APPLICATIONS:
 	 list[0]: list of the applications, ordered by their id. The sentinel is g_dict_applications (application with id 0)
@@ -96,26 +98,26 @@ struct dict_object {
 	 
 	 => TYPES:
 	 list[0]: list of the types, ordered by their names. The sentinel is g_list_types.
-	 list[1]: sentinel for the type_enum list of this type, ordered by their constant name.
+	 list[1]: sentinel for the type_enum list of this type, ordered by their constant name (fd_os_cmp).
 	 list[2]: sentinel for the type_enum list of this type, ordered by their constant value.
 	 
 	 => TYPE_ENUMS:
-	 list[0]: list of the contants for a given type, ordered by the constant name. Sentinel is a (list[1]) element of a TYPE object.
+	 list[0]: list of the contants for a given type, ordered by the constant name (fd_os_cmp). Sentinel is a (list[1]) element of a TYPE object.
 	 list[1]: list of the contants for a given type, ordered by the constant value. Sentinel is a (list[2]) element of a TYPE object.
 	 list[2]: not used
 	 
 	 => AVPS:
 	 list[0]: list of the AVP from a given vendor, ordered by avp code. Sentinel is a list[1] element of a VENDOR object.
-	 list[1]: list of the AVP from a given vendor, ordered by avp name. Sentinel is a list[2] element of a VENDOR object.
+	 list[1]: list of the AVP from a given vendor, ordered by avp name (fd_os_cmp). Sentinel is a list[2] element of a VENDOR object.
 	 list[2]: sentinel for the rule list that apply to this AVP.
 	 
 	 => COMMANDS:
-	 list[0]: list of the commands, ordered by their names. The sentinel is g_list_cmd_name.
+	 list[0]: list of the commands, ordered by their names (fd_os_cmp). The sentinel is g_list_cmd_name.
 	 list[1]: list of the commands, ordered by their command code and 'R' flag. The sentinel is g_list_cmd_code.
 	 list[2]: sentinel for the rule list that apply to this command.
 	 
 	 => RULES:
-	 list[0]: list of the rules for a given (grouped) AVP or Command, ordered by the AVP name to which they refer. sentinel is list[2] of a command or (grouped) avp.
+	 list[0]: list of the rules for a given (grouped) AVP or Command, ordered by the AVP vendor & code to which they refer. sentinel is list[2] of a command or (grouped) avp.
 	 list[1]: not used
 	 list[2]: not used.
 	 
@@ -222,10 +224,10 @@ static struct {
 
 /* Functions to manage the objects creation and destruction. */
 
-/* Duplicate a string inplace */
-#define DUP_string( str ) {				\
-	char * __str = (str);				\
-	CHECK_MALLOC( (str) = strdup(__str) );		\
+/* Duplicate a string inplace, save its length */
+#define DUP_string_len( str, plen ) {		\
+	*(plen) = strlen((str));		\
+	str = os0dup( str, *(plen));		\
 }
 	
 /* Initialize an object */
@@ -258,39 +260,39 @@ static void init_object( struct dict_object * obj, enum dict_object_type type )
 }
 
 /* Initialize the "data" part of an object */
-static int init_object_data(void * dest, void * source, enum dict_object_type type)
+static int init_object_data(struct dict_object * dest, void * source, enum dict_object_type type)
 {
 	TRACE_ENTRY("%p %p %d", dest, source, type);
 	CHECK_PARAMS( dest && source && CHECK_TYPE(type) );
 	
 	/* Generic: copy the full data structure */	
-	memcpy( dest, source, dict_obj_info[type].datasize );
+	memcpy( &dest->data, source, dict_obj_info[type].datasize );
 	
 	/* Then strings must be duplicated, not copied */
 	/* This function might be simplified by always defining the "name" field as the first field of the structures, but... it's error-prone */
 	switch (type) {
 		case DICT_VENDOR:
-			DUP_string( ((struct dict_vendor_data *)dest)->vendor_name );
+			DUP_string_len( dest->data.vendor.vendor_name, &dest->datastr_len );
 			break;
 		
 		case DICT_APPLICATION:
-			DUP_string( ((struct dict_application_data *)dest)->application_name );
+			DUP_string_len( dest->data.application.application_name, &dest->datastr_len );
 			break;
 			
 		case DICT_TYPE:
-			DUP_string( ((struct dict_type_data *)dest)->type_name );
+			DUP_string_len( dest->data.type.type_name, &dest->datastr_len );
 			break;
 			
 		case DICT_ENUMVAL:
-			DUP_string( ((struct dict_enumval_data *)dest)->enum_name );
+			DUP_string_len( dest->data.enumval.enum_name, &dest->datastr_len );
 			break;
 
 		case DICT_AVP:
-			DUP_string( ((struct dict_avp_data *)dest)->avp_name );
+			DUP_string_len( dest->data.avp.avp_name, &dest->datastr_len );
 			break;
 			
 		case DICT_COMMAND:
-			DUP_string( ((struct dict_cmd_data *)dest)->cmd_name );
+			DUP_string_len( dest->data.cmd.cmd_name, &dest->datastr_len );
 			break;
 		
 		default:
@@ -455,7 +457,7 @@ static int order_type_by_name ( struct dict_object *o1, struct dict_object *o2 )
 {
 	TRACE_ENTRY("%p %p", o1, o2);
 	
-	return strcmp( o1->data.type.type_name, o2->data.type.type_name );
+	return fd_os_cmp( o1->data.type.type_name, o1->datastr_len, o2->data.type.type_name, o2->datastr_len );
 }
 
 /* Compare two type_enum objects by their names (checks already performed) */
@@ -463,25 +465,19 @@ static int order_enum_by_name ( struct dict_object *o1, struct dict_object *o2 )
 {
 	TRACE_ENTRY("%p %p", o1, o2);
 	
-	return strcmp( o1->data.enumval.enum_name, o2->data.enumval.enum_name );
+	return fd_os_cmp( o1->data.enumval.enum_name, o1->datastr_len, o2->data.enumval.enum_name, o2->datastr_len );
 }
 
 /* Compare two type_enum objects by their values (checks already performed) */
 static int order_enum_by_val  ( struct dict_object *o1, struct dict_object *o2 )
 {
-	size_t oslen;
-	int cmp = 0;
-	
 	TRACE_ENTRY("%p %p", o1, o2);
 	
 	/* The comparison function depends on the type of data */
 	switch ( o1->parent->data.type.type_base ) {
 		case AVP_TYPE_OCTETSTRING:
-			oslen = o1->data.enumval.enum_value.os.len;
-			if (o2->data.enumval.enum_value.os.len < oslen)
-				oslen = o2->data.enumval.enum_value.os.len;
-			cmp = memcmp(o1->data.enumval.enum_value.os.data, o2->data.enumval.enum_value.os.data, oslen );
-			return (cmp ? cmp : ORDER_scalar(o1->data.enumval.enum_value.os.len,o2->data.enumval.enum_value.os.len));
+			return fd_os_cmp( o1->data.enumval.enum_value.os.data, o1->data.enumval.enum_value.os.len, 
+					  o2->data.enumval.enum_value.os.data, o2->data.enumval.enum_value.os.len);
 		
 		case AVP_TYPE_INTEGER32:
 			return ORDER_scalar( o1->data.enumval.enum_value.i32, o2->data.enumval.enum_value.i32 );
@@ -521,7 +517,7 @@ static int order_avp_by_name  ( struct dict_object *o1, struct dict_object *o2 )
 {
 	TRACE_ENTRY("%p %p", o1, o2);
 	
-	return strcmp( o1->data.avp.avp_name, o2->data.avp.avp_name );
+	return fd_os_cmp( o1->data.avp.avp_name, o1->datastr_len, o2->data.avp.avp_name, o2->datastr_len );
 }
 
 /* Compare two command objects by their names (checks already performed) */
@@ -529,7 +525,7 @@ static int order_cmd_by_name  ( struct dict_object *o1, struct dict_object *o2 )
 {
 	TRACE_ENTRY("%p %p", o1, o2);
 	
-	return strcmp( o1->data.cmd.cmd_name, o2->data.cmd.cmd_name );
+	return fd_os_cmp( o1->data.cmd.cmd_name, o1->datastr_len, o2->data.cmd.cmd_name, o2->datastr_len );
 }
 
 /* Compare two command objects by their codes and flags (request or answer) (checks already performed) */
@@ -554,7 +550,7 @@ static int order_cmd_by_codefl( struct dict_object *o1, struct dict_object *o2 )
 }
 
 /* Compare two rule object by the AVP vendor & code that they refer (checks already performed) */
-static int order_rule_by_avpn ( struct dict_object *o1, struct dict_object *o2 )
+static int order_rule_by_avpvc ( struct dict_object *o1, struct dict_object *o2 )
 {
 	TRACE_ENTRY("%p %p", o1, o2);
 	
@@ -589,13 +585,16 @@ in the local context where they are called. They are meant to be called only fro
 }
 
 /* For search of strings in lists. isindex= 1 if the string is the ordering key of the list */
-#define SEARCH_string( str, sentinel, datafield, isindex ) {			\
-	char * __str = (char *) str;						\
+/* it is expected that object->datastr_len is the length of the datafield parameter */
+#define SEARCH_os0_l( str, len, sentinel, datafield, isindex ) {		\
+	char *  __str = (char *) (str);						\
+	size_t __strlen = (size_t)(len);					\
 	int __cmp;								\
 	struct fd_list * __li;							\
 	ret = 0;								\
 	for  (__li = (sentinel)->next; __li != (sentinel); __li = __li->next) {	\
-		__cmp = strcmp(__str, _O(__li->o)->data. datafield );		\
+		__cmp = fd_os_cmp(__str, __strlen,				\
+			_O(__li->o)->data. datafield, _O(__li->o)->datastr_len);\
 		if (__cmp == 0) {						\
 			if (result)						\
 				*result = _O(__li->o);				\
@@ -610,27 +609,28 @@ in the local context where they are called. They are meant to be called only fro
 		ret = ENOENT;							\
 }
 
-/* For search of octetstrings in lists (not \0 terminated). */
-#define SEARCH_ocstring( ostr, length, sentinel, osdatafield, isindex ) {	\
-	unsigned char * __ostr = (unsigned char *) ostr;			\
+/* When len is not provided */
+#define SEARCH_os0( str, sentinel, datafield, isindex ) {			\
+	char *  _str = (char *) (str);						\
+	size_t  _strlen = strlen(_str);						\
+	SEARCH_os0_l( _str, _strlen, sentinel, datafield, isindex );		\
+}
+
+
+/* For search of octetstrings in lists. */
+#define SEARCH_os(  str, strlen, sentinel, osdatafield, isindex ) {		\
+	uint8_t * __str = (uint8_t *) (str);					\
+	size_t __strlen = (size_t)(strlen);					\
 	int __cmp;								\
-	size_t __len;								\
 	struct fd_list * __li;							\
 	ret = 0;								\
-	for  (__li = (sentinel); __li->next != (sentinel); __li = __li->next) {	\
-		__len = _O(__li->next->o)->data. osdatafield .len;		\
-		if ( __len > (length) )						\
-			__len = (length);					\
-		__cmp = memcmp(__ostr, 						\
-				_O(__li->next->o)->data. osdatafield .data, 	\
-				__len);						\
-		if (! __cmp) {							\
-			__cmp = ORDER_scalar( length,				\
-				_O(__li->next->o)->data. osdatafield .len); 	\
-		}								\
+	for  (__li = (sentinel)->next; __li != (sentinel); __li = __li->next) {	\
+		__cmp = fd_os_cmp(__str, __strlen,				\
+			_O(__li->o)->data. osdatafield .data,			\
+			_O(__li->o)->data. osdatafield .len);			\
 		if (__cmp == 0) {						\
 			if (result)						\
-				*result = _O(__li->next->o);			\
+				*result = _O(__li->o);				\
 			goto end;						\
 		}								\
 		if ((isindex) && (__cmp < 0))					\
@@ -643,17 +643,19 @@ in the local context where they are called. They are meant to be called only fro
 }
 
 /* For search of AVP name in rule lists. */
-#define SEARCH_ruleavpname( str, sentinel ) {					\
-	char * __str = (char *) str;						\
+#define SEARCH_ruleavpname( str, strlen, sentinel ) {				\
+	char * __str = (char *) (str);						\
+	size_t __strlen = (size_t) (strlen);					\
 	int __cmp;								\
 	struct fd_list * __li;							\
 	ret = 0;								\
-	for  (__li = (sentinel); __li->next != (sentinel); __li = __li->next) {	\
-		__cmp = strcmp(__str, 						\
-		  _O(__li->next->o)->data.rule.rule_avp->data.avp.avp_name);\
+	for  (__li = (sentinel)->next; __li != (sentinel); __li = __li->next) {	\
+		__cmp = fd_os_cmp(__str, __strlen, 				\
+		  	_O(__li->o)->data.rule.rule_avp->data.avp.avp_name,	\
+			_O(__li->o)->data.rule.rule_avp->datastr_len);		\
 		if (__cmp == 0) {						\
 			if (result)						\
-				*result = _O(__li->next->o);			\
+				*result = _O(__li->o);				\
 			goto end;						\
 		}								\
 		if (__cmp < 0)							\
@@ -676,11 +678,11 @@ in the local context where they are called. They are meant to be called only fro
 			*result = _O(defaultobj);				\
 		goto end;							\
 	}									\
-	for  (__li = (sentinel); __li->next != (sentinel); __li = __li->next) {	\
-		__cmp= ORDER_scalar(value, _O(__li->next->o)->data. datafield );\
+	for  (__li = (sentinel)->next; __li != (sentinel); __li = __li->next) {	\
+		__cmp= ORDER_scalar(value, _O(__li->o)->data. datafield );	\
 		if (__cmp == 0) {						\
 			if (result)						\
-				*result = _O(__li->next->o);			\
+				*result = _O(__li->o);				\
 			goto end;						\
 		}								\
 		if ((isindex) && (__cmp < 0))					\
@@ -697,21 +699,19 @@ in the local context where they are called. They are meant to be called only fro
 	int __cmp;								\
 	struct fd_list * __li;							\
 	ret = 0;								\
-	for  (	  __li = (sentinel);	 					\
-		  __li->next != (sentinel); 					\
-		  __li = __li->next) {						\
+	for  (__li = (sentinel)->next; __li != (sentinel); __li = __li->next) {	\
 		__cmp = ORDER_scalar(value, 					\
-				_O(__li->next->o)->data.cmd.cmd_code );		\
+				_O(__li->o)->data.cmd.cmd_code );		\
 		if (__cmp == 0) {						\
 			uint8_t __mask, __val;					\
-			__mask = _O(__li->next->o)->data.cmd.cmd_flag_mask;	\
-			__val  = _O(__li->next->o)->data.cmd.cmd_flag_val;	\
+			__mask = _O(__li->o)->data.cmd.cmd_flag_mask;		\
+			__val  = _O(__li->o)->data.cmd.cmd_flag_val;		\
 			if ( ! (__mask & CMD_FLAG_REQUEST) )			\
 				continue;					\
 			if ( ( __val & CMD_FLAG_REQUEST ) != R_flag_val )	\
 				continue;					\
 			if (result)						\
-				*result = _O(__li->next->o);			\
+				*result = _O(__li->o);				\
 			goto end;						\
 		}								\
 		if (__cmp < 0)							\
@@ -738,7 +738,7 @@ static int search_vendor ( struct dictionary * dict, int criteria, void * what, 
 				
 		case VENDOR_BY_NAME:
 			/* "what" is a vendor name */
-			SEARCH_string( what, &dict->dict_vendors.list[0], vendor.vendor_name, 0);
+			SEARCH_os0( what, &dict->dict_vendors.list[0], vendor.vendor_name, 0);
 			break;
 			
 		case VENDOR_OF_APPLICATION:
@@ -770,7 +770,7 @@ static int search_application ( struct dictionary * dict, int criteria, void * w
 				
 		case APPLICATION_BY_NAME:
 			/* "what" is an application name */
-			SEARCH_string( what, &dict->dict_applications.list[0], application.application_name, 0);
+			SEARCH_os0( what, &dict->dict_applications.list[0], application.application_name, 0);
 			break;
 			
 		case APPLICATION_OF_TYPE:
@@ -800,7 +800,7 @@ static int search_type ( struct dictionary * dict, int criteria, void * what, st
 	switch (criteria) {
 		case TYPE_BY_NAME:
 			/* "what" is a type name */
-			SEARCH_string( what, &dict->dict_types, type.type_name, 1);
+			SEARCH_os0( what, &dict->dict_types, type.type_name, 1);
 			break;
 			
 		case TYPE_OF_ENUMVAL:
@@ -849,12 +849,12 @@ static int search_enumval ( struct dictionary * dict, int criteria, void * what,
 				
 				if ( _what->search.enum_name != NULL ) {
 					/* We are looking for this string */
-					SEARCH_string(  _what->search.enum_name, &parent->list[1], enumval.enum_name, 1 );
+					SEARCH_os0(  _what->search.enum_name, &parent->list[1], enumval.enum_name, 1 );
 				} else {
 					/* We are looking for the value in enum_value */
 					switch (parent->data.type.type_base) {
 						case AVP_TYPE_OCTETSTRING:
-							SEARCH_ocstring( _what->search.enum_value.os.data, 
+							SEARCH_os(	 _what->search.enum_value.os.data, 
 									 _what->search.enum_value.os.len, 
 									 &parent->list[2], 
 									 enumval.enum_value.os , 
@@ -945,7 +945,7 @@ static int search_avp ( struct dictionary * dict, int criteria, void * what, str
 				
 		case AVP_BY_NAME:
 			/* "what" is the AVP name, vendor 0 */
-			SEARCH_string( what, &dict->dict_vendors.list[2], avp.avp_name, 1);
+			SEARCH_os0( what, &dict->dict_vendors.list[2], avp.avp_name, 1);
 			break;
 			
 		case AVP_BY_CODE_AND_VENDOR:
@@ -968,10 +968,10 @@ static int search_avp ( struct dictionary * dict, int criteria, void * what, str
 				
 				/* We now have our vendor = head of the appropriate avp list */
 				if (criteria == AVP_BY_NAME_AND_VENDOR) {
-					SEARCH_string( _what->avp_name, &vendor->list[2], avp.avp_name, 1);
+					SEARCH_os0( _what->avp_name, &vendor->list[2], avp.avp_name, 1);
 				} else {
 					/* AVP_BY_CODE_AND_VENDOR */
-					SEARCH_scalar( _what->avp_code, &vendor->list[1],  avp.avp_code, 1, (struct dict_object *)NULL );
+					SEARCH_scalar( _what->avp_code, &vendor->list[1], avp.avp_code, 1, (struct dict_object *)NULL );
 				}
 			}
 			break;
@@ -979,13 +979,14 @@ static int search_avp ( struct dictionary * dict, int criteria, void * what, str
 		case AVP_BY_NAME_ALL_VENDORS:
 			{
 				struct fd_list * li;
+				size_t wl = strlen((char *)what);
 				
 				/* First, search for vendor 0 */
-				SEARCH_string( what, &dict->dict_vendors.list[2], avp.avp_name, 1);
+				SEARCH_os0_l( what, wl, &dict->dict_vendors.list[2], avp.avp_name, 1);
 				
 				/* If not found, loop for all vendors, until found */
 				for (li = dict->dict_vendors.list[0].next; li != &dict->dict_vendors.list[0]; li = li->next) {
-					SEARCH_string( what, &_O(li->o)->list[2], avp.avp_name, 1);
+					SEARCH_os0_l( what, wl, &_O(li->o)->list[2], avp.avp_name, 1);
 				}
 			}
 			break;
@@ -1007,7 +1008,7 @@ static int search_cmd ( struct dictionary * dict, int criteria, void * what, str
 	switch (criteria) {
 		case CMD_BY_NAME:
 			/* "what" is a command name */
-			SEARCH_string( what, &dict->dict_cmd_name, cmd.cmd_name, 1);
+			SEARCH_os0( what, &dict->dict_cmd_name, cmd.cmd_name, 1);
 			break;
 			
 		case CMD_BY_CODE_R:
@@ -1095,7 +1096,7 @@ static int search_rule ( struct dictionary * dict, int criteria, void * what, st
 				CHECK_PARAMS( verify_object(avp) && (avp->type == DICT_AVP) );
 				
 				/* Perform the search */
-				SEARCH_ruleavpname( avp->data.avp.avp_name, &parent->list[2]);
+				SEARCH_ruleavpname( avp->data.avp.avp_name, avp->datastr_len, &parent->list[2]);
 				
 			}
 			break;
@@ -1273,23 +1274,23 @@ void fd_dict_dump(struct dictionary * dict)
 	
 	dump_object( &dict->dict_vendors, 0, 3, 0 );
 	
-	fd_log_debug("###### Dumping applications #######\n");
+	fd_log_debug("######          Dumping applications           #######\n");
 
 	dump_object( &dict->dict_applications, 0, 1, 0 );
 	
-	fd_log_debug("###### Dumping types #######\n");
+	fd_log_debug("######             Dumping types               #######\n");
 
 	dump_list( &dict->dict_types, 0, 2, 0 );
 	
-	fd_log_debug("###### Dumping commands per name #######\n");
+	fd_log_debug("######      Dumping commands per name          #######\n");
 
 	dump_list( &dict->dict_cmd_name, 0, 2, 0 );
 	
-	fd_log_debug("###### Dumping commands per code and flags #######\n");
+	fd_log_debug("######   Dumping commands per code and flags   #######\n");
 
 	dump_list( &dict->dict_cmd_code, 0, 0, 0 );
 	
-	fd_log_debug("###### Statistics #######\n");
+	fd_log_debug("######             Statistics                  #######\n");
 
 	for (i=1; i<=DICT_TYPE_MAX; i++)
 		fd_log_debug(" %5d objects of type %s\n", dict->dict_count[i], dict_obj_info[i].name);
@@ -1560,7 +1561,7 @@ int fd_dict_new ( struct dictionary * dict, enum dict_object_type type, void * d
 	
 	/* Initialize the data of the new object */
 	init_object(new, type);
-	init_object_data(&new->data, data, type);
+	init_object_data(new, data, type);
 	new->dico = dict;
 	new->parent = parent;
 	
@@ -1631,7 +1632,7 @@ int fd_dict_new ( struct dictionary * dict, enum dict_object_type type, void * d
 		
 		case DICT_RULE:
 			/* A rule object is linked in list[2] of its parent command or AVP by the name of the AVP it refers */
-			ret = fd_list_insert_ordered ( &parent->list[2], &new->list[0], (int (*)(void*, void *))order_rule_by_avpn, (void **)&locref );
+			ret = fd_list_insert_ordered ( &parent->list[2], &new->list[0], (int (*)(void*, void *))order_rule_by_avpvc, (void **)&locref );
 			if (ret)
 				goto error_unlock;
 			break;
@@ -1658,8 +1659,9 @@ error_unlock:
 		/* We have a duplicate key in locref. Check if the pointed object is the same or not */
 		switch (type) {
 			case DICT_VENDOR:
-				/* if we are here, it meas the two vendor id are identical */
-				if (strcmp(locref->data.vendor.vendor_name, new->data.vendor.vendor_name)) {
+				/* if we are here, it means the two vendors id are identical */
+				if (fd_os_cmp(locref->data.vendor.vendor_name, locref->datastr_len, 
+						new->data.vendor.vendor_name, new->datastr_len)) {
 					TRACE_DEBUG(FULL, "Conflicting vendor name");
 					break;
 				}
@@ -1669,7 +1671,8 @@ error_unlock:
 
 			case DICT_APPLICATION:
 				/* got same id */
-				if (strcmp(locref->data.application.application_name, new->data.application.application_name)) {
+				if (fd_os_cmp(locref->data.application.application_name, locref->datastr_len, 
+						new->data.application.application_name, new->datastr_len)) {
 					TRACE_DEBUG(FULL, "Conflicting application name");
 					break;
 				}
@@ -1762,7 +1765,7 @@ error_unlock:
 				break;
 
 			case DICT_RULE:
-				/* Both rules point to the same AVPs */
+				/* Both rules point to the same AVPs (code & vendor) */
 				if (locref->data.rule.rule_position != new->data.rule.rule_position) {
 					TRACE_DEBUG(FULL, "Conflicting rule position");
 					break;
@@ -1846,7 +1849,7 @@ int fd_dict_init ( struct dictionary ** dict)
 {
 	struct dictionary * new = NULL;
 	
-	TRACE_ENTRY("");
+	TRACE_ENTRY("%p", dict);
 	
 	/* Sanity checks */
 	ASSERT( (sizeof(type_base_name) / sizeof(type_base_name[0])) == (AVP_TYPE_MAX + 1) );
@@ -1864,13 +1867,17 @@ int fd_dict_init ( struct dictionary ** dict)
 	
 	/* Initialize the sentinel for vendors and AVP lists */
 	init_object( &new->dict_vendors, DICT_VENDOR );
-	new->dict_vendors.data.vendor.vendor_name = "(no vendor)";
+	#define NO_VENDOR_NAME	"(no vendor)"
+	new->dict_vendors.data.vendor.vendor_name = NO_VENDOR_NAME;
+	new->dict_vendors.datastr_len = CONSTSTRLEN(NO_VENDOR_NAME);
 	new->dict_vendors.list[0].o = NULL; /* overwrite since element is also sentinel for this list. */
 	new->dict_vendors.dico = new;
 	
 	/* Initialize the sentinel for applications */
 	init_object( &new->dict_applications, DICT_APPLICATION );
-	new->dict_applications.data.application.application_name = "Diameter Common Messages";
+	#define APPLICATION_0_NAME	"Diameter Common Messages"
+	new->dict_applications.data.application.application_name = APPLICATION_0_NAME;
+	new->dict_applications.datastr_len = CONSTSTRLEN(APPLICATION_0_NAME);
 	new->dict_applications.list[0].o = NULL; /* overwrite since since element is also sentinel for this list. */
 	new->dict_applications.dico = new;
 			
@@ -1883,7 +1890,9 @@ int fd_dict_init ( struct dictionary ** dict)
 	
 	/* Initialize the error command object */
 	init_object( &new->dict_cmd_error, DICT_COMMAND );
-	new->dict_cmd_error.data.cmd.cmd_name="(generic error format)";
+	#define GENERIC_ERROR_NAME	"(generic error format)"
+	new->dict_cmd_error.data.cmd.cmd_name = GENERIC_ERROR_NAME;
+	new->dict_cmd_error.datastr_len = CONSTSTRLEN(GENERIC_ERROR_NAME);
 	new->dict_cmd_error.data.cmd.cmd_flag_mask=CMD_FLAG_ERROR | CMD_FLAG_REQUEST | CMD_FLAG_RETRANSMIT;
 	new->dict_cmd_error.data.cmd.cmd_flag_val =CMD_FLAG_ERROR;
 	new->dict_cmd_error.dico = new;

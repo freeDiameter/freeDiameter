@@ -125,7 +125,8 @@ struct msg {
 			void * data;
 			struct timespec timeout;
 		}		 msg_cb;		/* Callback to be called when an answer is received, if not NULL */
-	char *			 msg_src_id;		/* Diameter Id of the peer this message was received from. This string is malloc'd and must be freed */
+	DiamId_t		 msg_src_id;		/* Diameter Id of the peer this message was received from. This string is malloc'd and must be freed */
+	size_t			 msg_src_id_len;	/* cached length of this string */
 };
 
 /* Macro to compute the message header size */
@@ -331,15 +332,16 @@ int fd_msg_new_answer_from_req ( struct dictionary * dict, struct msg ** msg, in
 	/* Add the Session-Id AVP if session is known */
 	if (sess && dict) {
 		struct dict_object * sess_id_avp;
-		char * sid;
+		os0_t sid;
+		size_t sidlen;
 		struct avp * avp;
 		union avp_value val;
 		
 		CHECK_FCT( fd_dict_search( dict, DICT_AVP, AVP_BY_NAME, "Session-Id", &sess_id_avp, ENOENT) );
-		CHECK_FCT( fd_sess_getsid ( sess, &sid ) );
+		CHECK_FCT( fd_sess_getsid ( sess, &sid, &sidlen ) );
 		CHECK_FCT( fd_msg_avp_new ( sess_id_avp, 0, &avp ) );
-		val.os.data = (unsigned char *)sid;
-		val.os.len  = strlen(sid);
+		val.os.data = sid;
+		val.os.len  = sidlen;
 		CHECK_FCT( fd_msg_avp_setvalue( avp, &val ) );
 		CHECK_FCT( fd_msg_avp_add( ans, MSG_BRW_FIRST_CHILD, avp ) );
 		ans->msg_sess = sess;
@@ -702,8 +704,8 @@ public:
 		msg->msg_public.msg_hbhid,
 		msg->msg_public.msg_eteid
 		);
-	fd_log_debug_fstr(fstr, INOBJHDR "intern: rwb:%p rt:%d cb:%p(%p) qry:%p asso:%d sess:%p src:%s\n", 
-			INOBJHDRVAL, msg->msg_rawbuffer, msg->msg_routable, msg->msg_cb.fct, msg->msg_cb.data, msg->msg_query, msg->msg_associated, msg->msg_sess, msg->msg_src_id?:"(nil)");
+	fd_log_debug_fstr(fstr, INOBJHDR "intern: rwb:%p rt:%d cb:%p(%p) qry:%p asso:%d sess:%p src:%s(%zd)\n", 
+			INOBJHDRVAL, msg->msg_rawbuffer, msg->msg_routable, msg->msg_cb.fct, msg->msg_cb.data, msg->msg_query, msg->msg_associated, msg->msg_sess, msg->msg_src_id?:"(nil)", msg->msg_src_id_len);
 }
 
 /* Dump an avp object */
@@ -1011,16 +1013,21 @@ int fd_msg_is_routable ( struct msg * msg )
 	return (msg->msg_routable == 1) ? 1 : 0;
 }
 
+/* cache the dictionary model for next function to avoid re-searching at every incoming message */
+static struct dict_object *cached_avp_rr_model = NULL;
+static struct dictionary  *cached_avp_rr_dict  = NULL;
+static pthread_mutex_t     cached_avp_rr_lock = PTHREAD_MUTEX_INITIALIZER;
+
 /* Associate source peer */
-int fd_msg_source_set( struct msg * msg, char * diamid, int add_rr, struct dictionary * dict )
+int fd_msg_source_set( struct msg * msg, DiamId_t diamid, size_t diamidlen, int add_rr, struct dictionary * dict )
 {
-	TRACE_ENTRY( "%p %p %d %p", msg, diamid, add_rr, dict);
+	TRACE_ENTRY( "%p %p %zd %d %p", msg, diamid, diamidlen, add_rr, dict);
 	
 	/* Check we received a valid message */
 	CHECK_PARAMS( CHECK_MSG(msg) && ( (! add_rr) || dict ) );
 	
 	/* Cleanup any previous source */
-	free(msg->msg_src_id); msg->msg_src_id = NULL;
+	free(msg->msg_src_id); msg->msg_src_id = NULL; msg->msg_src_id_len = 0;
 	
 	/* If the request is to cleanup the source, we are done */
 	if (diamid == NULL) {
@@ -1028,24 +1035,42 @@ int fd_msg_source_set( struct msg * msg, char * diamid, int add_rr, struct dicti
 	}
 	
 	/* Otherwise save the new informations */
-	CHECK_MALLOC( msg->msg_src_id = strdup(diamid) );
+	CHECK_MALLOC( msg->msg_src_id = os0dup(diamid, diamidlen) );
+	msg->msg_src_id_len = diamidlen;
+	
 	
 	if (add_rr) {
-		struct dict_object 	*avp_rr_model;
+		struct dict_object 	*avp_rr_model = NULL;
 		avp_code_t 		 code = AC_ROUTE_RECORD;
 		struct avp 		*avp;
 		union avp_value		 val;
 		
-		/* Find the model for Route-Record in the dictionary */
-		CHECK_FCT( fd_dict_search ( dict, DICT_AVP, AVP_BY_CODE, &code, &avp_rr_model, ENOENT) );
+		/* Lock the cached values */
+		CHECK_POSIX( pthread_mutex_lock(&cached_avp_rr_lock) );
+		if (cached_avp_rr_dict == dict) {
+			avp_rr_model = cached_avp_rr_model;
+		}
+		CHECK_POSIX( pthread_mutex_unlock(&cached_avp_rr_lock) );
+		
+		/* If it was not cached */
+		if (!avp_rr_model) {
+			/* Find the model for Route-Record in the dictionary */
+			CHECK_FCT( fd_dict_search ( dict, DICT_AVP, AVP_BY_CODE, &code, &avp_rr_model, ENOENT) );
+			
+			/* Now cache this result */
+			CHECK_POSIX( pthread_mutex_lock(&cached_avp_rr_lock) );
+			cached_avp_rr_dict  = dict;
+			cached_avp_rr_model = avp_rr_model;
+			CHECK_POSIX( pthread_mutex_unlock(&cached_avp_rr_lock) );
+		}
 		
 		/* Create the AVP with this model */
 		CHECK_FCT( fd_msg_avp_new ( avp_rr_model, 0, &avp ) );
 		
 		/* Set the AVP value with the diameter id */
 		memset(&val, 0, sizeof(val));
-		val.os.data = (unsigned char *)diamid;
-		val.os.len  = strlen(diamid);
+		val.os.data = (uint8_t *)diamid;
+		val.os.len  = diamidlen;
 		CHECK_FCT( fd_msg_avp_setvalue( avp, &val ) );
 
 		/* Add the AVP in the message */
@@ -1056,9 +1081,9 @@ int fd_msg_source_set( struct msg * msg, char * diamid, int add_rr, struct dicti
 	return 0;
 }
 
-int fd_msg_source_get( struct msg * msg, char ** diamid )
+int fd_msg_source_get( struct msg * msg, DiamId_t* diamid, size_t * diamidlen )
 {
-	TRACE_ENTRY( "%p %p", msg, diamid);
+	TRACE_ENTRY( "%p %p %p", msg, diamid, diamidlen);
 	
 	/* Check we received valid parameters */
 	CHECK_PARAMS( CHECK_MSG(msg) );
@@ -1066,6 +1091,9 @@ int fd_msg_source_get( struct msg * msg, char ** diamid )
 	
 	/* Copy the informations */
 	*diamid = msg->msg_src_id;
+	
+	if (diamidlen)
+		*diamidlen = msg->msg_src_id_len;
 	
 	/* done */
 	return 0;
@@ -2224,7 +2252,7 @@ int fd_msg_update_length ( msg_or_avp * object )
 		goto out;
 
 /* Call all dispatch callbacks for a given message */
-int fd_msg_dispatch ( struct msg ** msg, struct session * session, enum disp_action *action, const char ** error_code)
+int fd_msg_dispatch ( struct msg ** msg, struct session * session, enum disp_action *action, char ** error_code)
 {
 	struct dictionary  * dict;
 	struct dict_object * app;

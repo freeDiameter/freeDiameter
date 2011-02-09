@@ -35,6 +35,9 @@
 
 #include "fdcore-internal.h"
 
+
+/* TODO: change the behavior to handle properly forced ordering at beginning & end of OPEN state */
+
 /* This file contains code used by a peer state machine to initiate a connection to remote peer */
 
 struct next_conn {
@@ -86,7 +89,7 @@ static int prepare_connection_list(struct fd_peer * peer)
 		hints.ai_flags = AI_ADDRCONFIG;
 		ret = getaddrinfo(peer->p_hdr.info.pi_diamid, NULL, &hints, &ai);
 		if (ret) {
-			fd_log_debug("Unable to resolve address for peer '%s' (%s), aborting\n", peer->p_hdr.info.pi_diamid, gai_strerror(ret));
+			TRACE_DEBUG(INFO, "Unable to resolve address for peer '%s' (%s), aborting\n", peer->p_hdr.info.pi_diamid, gai_strerror(ret));
 			if (ret != EAI_AGAIN)
 				fd_psm_terminate( peer, NULL );
 			return 0;
@@ -122,7 +125,8 @@ static int prepare_connection_list(struct fd_peer * peer)
 	
 	/* Now check we have at least one address to attempt */
 	if (FD_IS_LIST_EMPTY(&peer->p_hdr.info.pi_endpoints)) {
-		fd_log_debug("No address %savailable to connect to peer '%s', aborting\n", peer->p_hdr.info.config.pic_flags.pro3 ? "in the configured family " : "", peer->p_hdr.info.pi_diamid);
+		TRACE_DEBUG(INFO, "No address %savailable to connect to peer '%s', aborting\n", 
+					peer->p_hdr.info.config.pic_flags.pro3 ? "in the configured family " : "", peer->p_hdr.info.pi_diamid);
 		fd_psm_terminate( peer, NULL );
 		return 0;
 	}
@@ -218,7 +222,7 @@ static void * connect_thr(void * arg)
 	/* Set the thread name */
 	{
 		char buf[48];
-		sprintf(buf, "ConnTo:%.*s", (int)(sizeof(buf)) - 8, peer->p_hdr.info.pi_diamid);
+		snprintf(buf, sizeof(buf), "ConnTo:%s", peer->p_hdr.info.pi_diamid);
 		fd_log_threadname ( buf );
 	}
 	
@@ -246,7 +250,8 @@ static void * connect_thr(void * arg)
 				break;
 #ifndef DISABLE_SCTP			
 			case IPPROTO_SCTP:
-				cnx = fd_cnx_cli_connect_sctp((peer->p_hdr.info.config.pic_flags.pro3 == PI_P3_IP) ?: fd_g_config->cnf_flags.no_ip6, nc->port, &peer->p_hdr.info.pi_endpoints);
+				cnx = fd_cnx_cli_connect_sctp((peer->p_hdr.info.config.pic_flags.pro3 == PI_P3_IP) ?: fd_g_config->cnf_flags.no_ip6, 
+							nc->port, &peer->p_hdr.info.pi_endpoints);
 				break;
 #endif /* DISABLE_SCTP */
 		}
@@ -259,7 +264,7 @@ static void * connect_thr(void * arg)
 		
 		pthread_testcancel();
 		
-	} while (!cnx); /* and until cancellation */
+	} while (!cnx); /* and until cancellation or all addresses attempted without success */
 	
 	/* Now, we have an established connection in cnx */
 	
@@ -273,7 +278,7 @@ static void * connect_thr(void * arg)
 		CHECK_FCT_DO( fd_cnx_handshake(cnx, GNUTLS_CLIENT, peer->p_hdr.info.config.pic_priority, NULL),
 			{
 				/* Handshake failed ...  */
-				fd_log_debug("TLS Handshake failed with peer '%s', resetting the connection\n", peer->p_hdr.info.pi_diamid);
+				TRACE_DEBUG(INFO, "TLS Handshake failed with peer '%s', resetting the connection\n", peer->p_hdr.info.pi_diamid);
 				fd_cnx_destroy(cnx);
 				empty_connection_list(peer);
 				fd_ep_filter(&peer->p_hdr.info.pi_endpoints, EP_FL_CONF);

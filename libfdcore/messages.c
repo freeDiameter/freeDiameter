@@ -35,6 +35,7 @@
 
 #include "fdcore-internal.h"
 
+static struct dict_object * dict_avp_SI  = NULL; /* Session-Id */
 static struct dict_object * dict_avp_OH  = NULL; /* Origin-Host */
 static struct dict_object * dict_avp_OR  = NULL; /* Origin-Realm */
 static struct dict_object * dict_avp_EM  = NULL; /* Error-Message */
@@ -53,6 +54,7 @@ int fd_msg_init(void)
 	TRACE_ENTRY("");
 	
 	/* Initialize the dictionary objects that we may use frequently */
+	CHECK_FCT(  fd_dict_search( fd_g_config->cnf_dict, DICT_AVP, AVP_BY_NAME, "Session-Id", 	&dict_avp_SI , ENOENT)  );
 	CHECK_FCT(  fd_dict_search( fd_g_config->cnf_dict, DICT_AVP, AVP_BY_NAME, "Origin-Host",     	&dict_avp_OH  , ENOENT)  );
 	CHECK_FCT(  fd_dict_search( fd_g_config->cnf_dict, DICT_AVP, AVP_BY_NAME, "Origin-Realm",    	&dict_avp_OR  , ENOENT)  );
 	CHECK_FCT(  fd_dict_search( fd_g_config->cnf_dict, DICT_AVP, AVP_BY_NAME, "Origin-State-Id", 	&fd_dict_avp_OSI , ENOENT)  );
@@ -88,7 +90,7 @@ int fd_msg_add_origin ( struct msg * msg, int osi )
 	
 	/* Set its value */
 	memset(&val, 0, sizeof(val));
-	val.os.data = (unsigned char *)fd_g_config->cnf_diamid;
+	val.os.data = (os0_t)fd_g_config->cnf_diamid;
 	val.os.len  = fd_g_config->cnf_diamid_len;
 	CHECK_FCT( fd_msg_avp_setvalue( avp_OH, &val ) );
 	
@@ -101,7 +103,7 @@ int fd_msg_add_origin ( struct msg * msg, int osi )
 	
 	/* Set its value */
 	memset(&val, 0, sizeof(val));
-	val.os.data = (unsigned char *)fd_g_config->cnf_diamrlm;
+	val.os.data = (os0_t)fd_g_config->cnf_diamrlm;
 	val.os.len  = fd_g_config->cnf_diamrlm_len;
 	CHECK_FCT( fd_msg_avp_setvalue( avp_OR, &val ) );
 	
@@ -123,6 +125,43 @@ int fd_msg_add_origin ( struct msg * msg, int osi )
 	
 	return 0;
 }
+
+/* Create a new Session-Id and add at the beginning of the message. */
+int fd_msg_new_session( struct msg * msg, os0_t opt, size_t optlen )
+{
+	union avp_value val;
+	struct avp * avp  = NULL;
+	struct session * sess = NULL;
+	os0_t sid;
+	size_t sidlen;
+	
+	TRACE_ENTRY("%p %p %zd", msg, opt, optlen);
+	CHECK_PARAMS(  msg  );
+	
+	/* Check there is not already a session in the message */
+	CHECK_FCT( fd_msg_sess_get(fd_g_config->cnf_dict, msg, &sess, NULL) );
+	CHECK_PARAMS( sess == NULL );
+	
+	/* Ok, now create the session */
+	CHECK_FCT( fd_sess_new ( &sess, fd_g_config->cnf_diamid, fd_g_config->cnf_diamid_len, opt, optlen ) );
+	CHECK_FCT( fd_sess_getsid( sess, &sid, &sidlen) );
+	
+	/* Create an AVP to hold it */
+	CHECK_FCT( fd_msg_avp_new( dict_avp_SI, 0, &avp ) );
+	
+	/* Set its value */
+	memset(&val, 0, sizeof(val));
+	val.os.data = sid;
+	val.os.len  = sidlen;
+	CHECK_FCT( fd_msg_avp_setvalue( avp, &val ) );
+	
+	/* Add it to the message */
+	CHECK_FCT( fd_msg_avp_add( msg, MSG_BRW_FIRST_CHILD, avp ) );
+	
+	/* Done! */
+	return 0;
+}
+
 
 /* Add Result-Code and eventually Failed-AVP, Error-Message and Error-Reporting-Host AVPs */
 int fd_msg_rescode_set( struct msg * msg, char * rescode, char * errormsg, struct avp * optavp, int type_id )
@@ -146,7 +185,7 @@ int fd_msg_rescode_set( struct msg * msg, char * rescode, char * errormsg, struc
 		struct dict_enumval_request req;
 		memset(&req, 0, sizeof(struct dict_enumval_request));
 		
-		/* First, get the enumerated type of the Result-Code AVP */
+		/* First, get the enumerated type of the Result-Code AVP (this is fast, no need to cache the object) */
 		CHECK_FCT(  fd_dict_search( fd_g_config->cnf_dict, DICT_TYPE, TYPE_OF_AVP, dict_avp_RC, &(req.type_obj), ENOENT  )  );
 		
 		/* Now search for the value given as parameter */
@@ -183,7 +222,7 @@ int fd_msg_rescode_set( struct msg * msg, char * rescode, char * errormsg, struc
 
 		/* Set its value */
 		memset(&val, 0, sizeof(val));
-		val.os.data = (unsigned char *)fd_g_config->cnf_diamid;
+		val.os.data = (uint8_t *)fd_g_config->cnf_diamid;
 		val.os.len  = fd_g_config->cnf_diamid_len;
 		CHECK_FCT( fd_msg_avp_setvalue( avp_ERH, &val ) );
 
@@ -245,10 +284,10 @@ int fd_msg_rescode_set( struct msg * msg, char * rescode, char * errormsg, struc
 		memset(&val, 0, sizeof(val));
 		
 		if (errormsg) {
-			val.os.data = (unsigned char *)errormsg;
+			val.os.data = (uint8_t *)errormsg;
 			val.os.len  = strlen(errormsg);
 		} else {
-			val.os.data = (unsigned char *)rescode;
+			val.os.data = (uint8_t *)rescode;
 			val.os.len  = strlen(rescode);
 		}
 		CHECK_FCT( fd_msg_avp_setvalue( avp_EM, &val ) );
@@ -310,7 +349,7 @@ int fd_msg_parse_or_error( struct msg ** msg )
 	ret = fd_msg_parse_rules ( m, fd_g_config->cnf_dict, &pei);
 	if 	((ret != EBADMSG) 	/* Parsing grouped AVP failed / Conflicting rule found */
 		&& (ret != ENOTSUP))	/* Command is not supported / Mandatory AVP is not supported */
-		return ret;
+		return ret; /* 0 or another error */
 	
 	TRACE_DEBUG(INFO, "A message does not comply to the dictionary and/or rules (%s)", pei.pei_errcode);
 	fd_msg_dump_walk(FULL, m);

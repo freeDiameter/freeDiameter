@@ -238,13 +238,13 @@ static int auth_rad_req( struct rgwp_config * cs, struct session ** session, str
 	int got_empty_eap = 0;
 	const char * prefix = "Diameter/";
 	size_t pref_len;
-	uint8_t * dh = NULL;
+	os0_t dh = NULL;
 	size_t dh_len = 0;
-	uint8_t * dr = NULL;
+	os0_t dr = NULL;
 	size_t dr_len = 0;
-	uint8_t * si = NULL;
+	os0_t si = NULL;
 	size_t si_len = 0;
-	uint8_t * un = NULL;
+	os0_t un = NULL;
 	size_t un_len = 0;
 	size_t nattr_used = 0;
 	struct avp ** avp_tun = NULL, *avp = NULL;
@@ -292,7 +292,7 @@ static int auth_rad_req( struct rgwp_config * cs, struct session ** session, str
         	 to the NAS-IP-Address attribute (preferred if available),
         	 and/or to the NAS-Identifier attribute.  (Note that the RADIUS
         	 NAS-Identifier is not required to be an FQDN.)
-		     -> done in rgw_msg_create_base.
+		     -> done in rgw_clients_create_origin.
 
 	      -  The response MUST have an Origin-AAA-Protocol AVP added,
         	 indicating the protocol of origin of the message.
@@ -452,27 +452,30 @@ static int auth_rad_req( struct rgwp_config * cs, struct session ** session, str
 	
 	/* Create the session if it is not already done */
 	if (*session == NULL) {
-		char * sess_str = NULL;
+		os0_t sess_str = NULL;
+		size_t sess_strlen;
 		
 		if (si_len) {
 			/* We already have the Session-Id, just use it */
-			CHECK_FCT( fd_sess_fromsid ( (char *) /* this cast will be removed later */ si, si_len, session, NULL) );
+			CHECK_FCT( fd_sess_fromsid ( si, si_len, session, NULL) );
 		} else {
 			/* Create a new Session-Id string */
 			
-			char * fqdn;
-			char * realm;
+			DiamId_t fqdn;
+			size_t fqdnlen;
+			DiamId_t realm;
+			size_t realmlen;
 			
 			/* Get information on the RADIUS client */
-			CHECK_FCT( rgw_clients_get_origin(cli, &fqdn, &realm) );
+			CHECK_FCT( rgw_clients_get_origin(cli, &fqdn, &fqdnlen, &realm, &realmlen) );
 			
 			/* If we have a user name, create the new session with it */
 			if (un) {
 				int len;
-				/* If not found, create a new Session-Id. The format is: {fqdn;hi32;lo32;username;diamid} */
+				/* If not found, create a new Session-Id. Our format is: {fqdn;hi32;lo32;username;diamid} */
 				CHECK_MALLOC( sess_str = malloc(un_len + 1 /* ';' */ + fd_g_config->cnf_diamid_len + 1 /* '\0' */) );
-				len = sprintf(sess_str, "%.*s;%s", (int)un_len, un, fd_g_config->cnf_diamid);
-				CHECK_FCT( fd_sess_new(session, fqdn, sess_str, len) );
+				len = sprintf((char *)sess_str, "%.*s;%s", (int)un_len, un, fd_g_config->cnf_diamid);
+				CHECK_FCT( fd_sess_new(session, fqdn, fqdnlen, sess_str, len) );
 				free(sess_str);
 			} else {
 				/* We don't have enough information to create the Session-Id, the RADIUS message is probably invalid */
@@ -482,14 +485,14 @@ static int auth_rad_req( struct rgwp_config * cs, struct session ** session, str
 		}
 		
 		/* Now, add the Session-Id AVP at beginning of Diameter message */
-		CHECK_FCT( fd_sess_getsid(*session, &sess_str) );
+		CHECK_FCT( fd_sess_getsid(*session, &sess_str, &sess_strlen) );
 		
 		TRACE_DEBUG(FULL, "[auth.rgwx] Translating new message for session '%s'...", sess_str);
 		
 		/* Add the Session-Id AVP as first AVP */
 		CHECK_FCT( fd_msg_avp_new ( cs->dict.Session_Id, 0, &avp ) );
-		value.os.data = (unsigned char *)sess_str;
-		value.os.len = strlen(sess_str);
+		value.os.data = sess_str;
+		value.os.len = sess_strlen;
 		CHECK_FCT( fd_msg_avp_setvalue ( avp, &value ) );
 		CHECK_FCT( fd_msg_avp_add ( *diam_fw, MSG_BRW_FIRST_CHILD, avp) );
 	}
@@ -563,18 +566,18 @@ static int auth_rad_req( struct rgwp_config * cs, struct session ** session, str
 			
 			/* This macro converts a RADIUS attribute to a Diameter AVP of type OctetString */
 			#define CONV2DIAM_STR( _dictobj_ )	\
-				CHECK_PARAMS( attr->length >= 2 );						\
+				CHECK_PARAMS( attr->length >= sizeof(struct radius_attr_hdr) );			\
 				/* Create the AVP with the specified dictionary model */			\
 				CHECK_FCT( fd_msg_avp_new ( cs->dict._dictobj_, 0, &avp ) );			\
-				value.os.len = attr->length - 2;						\
-				value.os.data = (unsigned char *)(attr + 1);					\
+				value.os.len = attr->length - sizeof(struct radius_attr_hdr);			\
+				value.os.data = (os0_t)(attr + 1);						\
 				CHECK_FCT( fd_msg_avp_setvalue ( avp, &value ) );				\
 				/* Add the AVP in the Diameter message. */					\
 				CHECK_FCT( fd_msg_avp_add ( *diam_fw, MSG_BRW_LAST_CHILD, avp) );		\
 				
 			/* Same thing, for scalar AVPs of 32 bits */
 			#define CONV2DIAM_32B( _dictobj_ )	\
-				CHECK_PARAMS( attr->length == 6 );						\
+				CHECK_PARAMS( attr->length == sizeof(struct radius_attr_hdr)+sizeof(uint32_t) );\
 				CHECK_FCT( fd_msg_avp_new ( cs->dict._dictobj_, 0, &avp ) );			\
 				{										\
 					uint8_t * v = (uint8_t *)(attr + 1);					\
@@ -588,7 +591,7 @@ static int auth_rad_req( struct rgwp_config * cs, struct session ** session, str
 				
 			/* And the 64b version */
 			#define CONV2DIAM_64B( _dictobj_ )	\
-				CHECK_PARAMS( attr->length == 10);						\
+				CHECK_PARAMS( attr->length == sizeof(struct radius_attr_hdr)+sizeof(uint64_t) );\
 				CHECK_FCT( fd_msg_avp_new ( cs->dict._dictobj_, 0, &avp ) );			\
 				{										\
 					uint8_t * v = (uint8_t *)(attr + 1);					\
@@ -608,7 +611,7 @@ static int auth_rad_req( struct rgwp_config * cs, struct session ** session, str
 			/*
 			      -  The Destination-Realm AVP is created from the information found
         			 in the RADIUS User-Name attribute.
-				 	-> done in rgw_msg_create_base
+				 	-> done in rgw_clients_create_origin
 			*/
 			case RADIUS_ATTR_USER_NAME:
 				CONV2DIAM_STR( User_Name );

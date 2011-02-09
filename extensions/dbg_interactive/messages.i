@@ -340,14 +340,14 @@ struct msg {
 	}
 	
 	/* Get the source */
-	char *source() {
-		char * s = NULL;
-		int ret = fd_msg_source_get($self, &s);
+	%cstring_output_allocate_size(char ** outid, size_t * outlen, /* do not free */);
+	void source(char ** outid, size_t * outlen) {
+		int ret = fd_msg_source_get($self, outid, outlen);
 		if (ret != 0) {
 			DI_ERROR(ret, NULL, NULL);
-			return NULL;
+			return;
 		}
-		return s;
+		return;
 	}
 	
 	/* Get the session */

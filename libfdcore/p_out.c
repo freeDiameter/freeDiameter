@@ -108,7 +108,7 @@ static void * out_thr(void * arg)
 	/* Set the thread name */
 	{
 		char buf[48];
-		sprintf(buf, "OUT/%.*s", (int)sizeof(buf) - 5, peer->p_hdr.info.pi_diamid);
+		snprintf(buf, sizeof(buf), "OUT/%s", peer->p_hdr.info.pi_diamid);
 		fd_log_threadname ( buf );
 	}
 	
@@ -148,8 +148,7 @@ int fd_out_send(struct msg ** msg, struct cnxctx * cnx, struct fd_peer * peer, u
 	TRACE_ENTRY("%p %p %p %x", msg, cnx, peer, flags);
 	CHECK_PARAMS( msg && *msg && (cnx || (peer && peer->p_cnxctx)));
 	
-	fd_cpu_flush_cache();
-	if (peer && (peer->p_hdr.info.runtime.pir_state == STATE_OPEN)) {
+	if (fd_peer_getstate(peer) == STATE_OPEN) {
 		/* Normal case: just queue for the out thread to pick it up */
 		CHECK_FCT( fd_fifo_post(peer->p_tosend, msg) );
 		

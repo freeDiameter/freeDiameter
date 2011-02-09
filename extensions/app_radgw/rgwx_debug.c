@@ -101,8 +101,9 @@ static int debug_rad_req( struct rgwp_config * cs, struct session ** session, st
 	if (!session || ! *session) {
 		fd_log_debug(" Diameter session: NULL pointer\n");
 	} else {
-		char * str;
-		CHECK_FCT( fd_sess_getsid(*session, &str) );
+		os0_t str;
+		size_t str_len;
+		CHECK_FCT( fd_sess_getsid(*session, &str, &str_len) );
 
 		fd_log_debug(" Diameter session: %s\n", str);
 	}
