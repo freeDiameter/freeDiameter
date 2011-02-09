@@ -3,7 +3,7 @@
 
 
 Dependencies on OpenSUSE 11.3 (from minimal server system installation):
-# zypper install cmake make gcc flex bison lksctp-tools-devel libgnutls-devel libgcrypt-devel
+# zypper install cmake make gcc flex bison lksctp-tools-devel libgnutls-devel libgcrypt-devel libidn-devel
 # zypper install mercurial
 
 Following dependencies are optional, depending on which extensions you plan to compile

@@ -19,7 +19,7 @@ COMPLETE INSTRUCTIONS
    Install minimal system + ports using initial installer /usr/sbin/sysinstall
 
 
-2) Install cmake
+2) Install 'cmake'
 
  a) from sources:
     # cd /usr/ports/devel/cmake
@@ -29,12 +29,12 @@ COMPLETE INSTRUCTIONS
     # pkg_add -v -r cmake
 	
  
-3) Install mercurial (optional)
-  (replace "cmake" by "mercurial" in the previous command) 
+3) Install 'mercurial' (optional)
+  (replace 'cmake' by 'mercurial' in the previous command) 
 
-4) Install flex and bison, same way.
+4) Install 'flex' and 'bison', same way.
 
-5) Install gnutls, same way also.
+5) Install 'gnutls' and 'libidn', same way also.
 
 6) Retrieve freeDiameter source code:
    # cd ~

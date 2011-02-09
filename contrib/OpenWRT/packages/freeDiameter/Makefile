@@ -75,6 +75,7 @@ define Build/Configure
     cmake \
 		-DCMAKE_PREFIX_PATH:PATH=$(STAGING_DIR)/usr \
     		-DCMAKE_INSTALL_PREFIX:PATH=/usr \
+                -DDIAMID_IDNA_REJECT:BOOL=ON \
                 -DBUILD_TESTING:BOOL=OFF \
 		-DCMAKE_BUILD_TYPE:STRING=DebianPackage \
 		-DDEFAULT_CONF_PATH:PATH=/etc/freeDiameter \

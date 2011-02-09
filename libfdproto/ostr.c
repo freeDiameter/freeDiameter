@@ -35,6 +35,11 @@
 
 #include "fdproto-internal.h"
 
+#if (!defined(DIAMID_IDNA_IGNORE) && !defined(DIAMID_IDNA_REJECT))
+/* Process IDNA with stringprep -- See RFC5890 -- and libidn documentation... */
+#include <idna.h> /* idna_to_ascii_8z() */
+#endif /* !defined(DIAMID_IDNA_IGNORE) && !defined(DIAMID_IDNA_REJECT) */
+
 /* Similar to strdup with (must be verified) os0_t */
 os0_t os0dup_int(os0_t s, size_t l) {
 	os0_t r;
@@ -88,9 +93,15 @@ int fd_os_almostcasecmp_int(uint8_t * os1, size_t os1sz, uint8_t * os2, size_t o
 /* Check if the string contains only ASCII */
 int fd_os_is_valid_DiameterIdentity(uint8_t * os, size_t ossz)
 {
+#ifdef DIAMID_IDNA_IGNORE
+	
+	/* Allow anything */
+	
+#else /* DIAMID_IDNA_IGNORE */
+	
 	int i;
 	
-	/* Allow letters, digits, hyphen, dot */
+	/* Allow only letters, digits, hyphen, dot */
 	for (i=0; i < ossz; i++) {
 		if (os[i] > 'z')
 			break;
@@ -105,9 +116,53 @@ int fd_os_is_valid_DiameterIdentity(uint8_t * os, size_t ossz)
 		break;
 	}
 	if (i < ossz) {
-		TRACE_DEBUG(INFO, "Invalid character '%c' in DiameterIdentity '%.*s'", os[i], ossz, os);
+		int nb = 1;
+		/* To get a better display, check if the invalid char is UTF-8 */
+		if ((os[i] & 0xE0) == 0xC0 /* 110xxxxx */) {
+			if ((i < ossz - 1) && ((os[i + 1] & 0xC0) == 0x80 /* 10xxxxxx */))
+				nb = 2;
+			goto disp;
+		}
+		if ((os[i] & 0xF0) == 0xE0 /* 1110xxxx */) {
+			if ((i < ossz - 2) && ((os[i + 1] & 0xC0) == 0x80 /* 10xxxxxx */)
+					   && ((os[i + 2] & 0xC0) == 0x80 /* 10xxxxxx */))
+				nb = 3;
+			goto disp;
+		}
+		if ((os[i] & 0xF8) == 0xF0 /* 11110xxx */) {
+			if ((i < ossz - 3) && ((os[i + 1] & 0xC0) == 0x80 /* 10xxxxxx */)
+					   && ((os[i + 2] & 0xC0) == 0x80 /* 10xxxxxx */)
+					   && ((os[i + 3] & 0xC0) == 0x80 /* 10xxxxxx */))
+				nb = 4;
+			goto disp;
+		}
+		if ((os[i] & 0xFC) == 0xF8 /* 111110xx */) {
+			if ((i < ossz - 4) && ((os[i + 1] & 0xC0) == 0x80 /* 10xxxxxx */)
+					   && ((os[i + 2] & 0xC0) == 0x80 /* 10xxxxxx */)
+					   && ((os[i + 3] & 0xC0) == 0x80 /* 10xxxxxx */)
+					   && ((os[i + 4] & 0xC0) == 0x80 /* 10xxxxxx */))
+				nb = 5;
+			goto disp;
+		}
+		if ((os[i] & 0xFE) == 0xFC /* 1111110x */) {
+			if ((i < ossz - 5) && ((os[i + 1] & 0xC0) == 0x80 /* 10xxxxxx */)
+					   && ((os[i + 2] & 0xC0) == 0x80 /* 10xxxxxx */)
+					   && ((os[i + 3] & 0xC0) == 0x80 /* 10xxxxxx */)
+					   && ((os[i + 4] & 0xC0) == 0x80 /* 10xxxxxx */)
+					   && ((os[i + 5] & 0xC0) == 0x80 /* 10xxxxxx */))
+				nb = 6;
+			goto disp;
+		}
+		/* otherwise, we just display the hex code */
+		TRACE_DEBUG(INFO, "Invalid character (0xhhX) at offset %d in DiameterIdentity '%.*s'", os[i], i+1, ossz, os);
+		return 0;
+disp:
+		TRACE_DEBUG(INFO, "Invalid character '%.*s' at offset %d in DiameterIdentity '%.*s'", nb, os + i, i+1, ossz, os);
 		return 0;
 	}
+	
+#endif /* DIAMID_IDNA_IGNORE */
+	
 	return 1;
 }
 
@@ -118,24 +173,44 @@ int fd_os_validate_DiameterIdentity(char ** id, size_t * outsz, int memory /* 0:
 	
 	*outsz = strlen(*id);
 	
+#ifndef DIAMID_IDNA_IGNORE
+	
 	if (!fd_os_is_valid_DiameterIdentity((os0_t)*id, *outsz)) {
-		char buf[HOST_NAME_MAX];
+	
+#ifdef DIAMID_IDNA_REJECT
 		
-		TODO("Stringprep in into buf");
-		TRACE_DEBUG(INFO, "The string '%s' is not a valid DiameterIdentity, it was changed to '%s'", *id, buf);
-		TODO("Realloc *id if !memory");
-		/* copy buf */
-		/* update the size */
-		return ENOTSUP;
-	} else {
+		TRACE_DEBUG(INFO, "The string '%s' is not a valid DiameterIdentity!", *id);
+		TRACE_DEBUG(INFO, "Returning EINVAL since fD is compiled with option DIAMID_IDNA_REJECT.");
+		return EINVAL;
+	
+#else /* DIAMID_IDNA_REJECT */
+	
+		char *processed;
+		int ret;
+		
+		ret = idna_to_ascii_8z ( *id, &processed, IDNA_USE_STD3_ASCII_RULES );
+		if (ret == IDNA_SUCCESS) {
+			TRACE_DEBUG(INFO, "The string '%s' is not a valid DiameterIdentity, it was changed to '%s'", *id, processed);
+			if (memory == 0)
+				free(*id);
+			*id = processed;
+			*outsz = strlen(processed);
+			/* Done! */
+		} else {
+			TRACE_DEBUG(INFO, "The string '%s' is not a valid DiameterIdentity and cannot be sanitanized: %s", *id, idna_strerror (ret));
+			return EINVAL;
+		}
+	
+#endif /* DIAMID_IDNA_REJECT */
+	} else
+#endif /* ! DIAMID_IDNA_IGNORE */
+	{
 		if (memory == 1) {
 			CHECK_MALLOC( *id = os0dup(*id, *outsz) );
 		}
 	}
 	return 0;
 }
-
-
 
 
 

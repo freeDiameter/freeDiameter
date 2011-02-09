@@ -1,4 +1,6 @@
 allext
 alldefault
 nosctp
+idnaignore
+idnareject
 #noext

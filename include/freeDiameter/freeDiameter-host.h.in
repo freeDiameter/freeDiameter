@@ -48,6 +48,8 @@
 #cmakedefine SCTP_USE_MAPPED_ADDRESSES
 #cmakedefine SCTP_CONNECTX_4_ARGS
 #cmakedefine SKIP_DLCLOSE
+#cmakedefine DIAMID_IDNA_IGNORE
+#cmakedefine DIAMID_IDNA_REJECT
 
 #cmakedefine ERRORS_ON_TODO
 #cmakedefine DEBUG

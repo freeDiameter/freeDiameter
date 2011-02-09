@@ -37,6 +37,10 @@
 
 #define TEST_STR (os0_t)"This is my test string (with extra unused data)"
 
+/* The following string contains UTF-8 encoded characters (Chinese characters) */
+#define TEST_IDN_UTF8  "freeDiameter.中国"
+#define TEST_IDN_CONV  "freeDiameter.xn--fiqs8s"
+
 /* Main test routine */
 int main(int argc, char *argv[])
 {
@@ -66,7 +70,62 @@ int main(int argc, char *argv[])
 		memcpy(buf + 1, TEST_STR, CONSTSTRLEN(TEST_STR));
 		CHECK( hash, fd_os_hash(buf + 1, CONSTSTRLEN(TEST_STR)) );
 	}
+	
+	/* Check the Diameter Identity functions */
+	{
+		char * res;
+		size_t len;
+		
+		/* A valid ASCII domain name */
+		res = TEST_IDN_CONV;
+		CHECK( 0, fd_os_validate_DiameterIdentity(&res, &len, 1) );
+		CHECK( 0, strcasecmp(res, TEST_IDN_CONV) ); /* the function does not change a valid DN */
+		CHECK( 0, fd_os_validate_DiameterIdentity(&res, &len, 0) );
+		CHECK( 0, strcasecmp(res, TEST_IDN_CONV) );
+		CHECK( CONSTSTRLEN(TEST_IDN_CONV), len );
+		free(res);
+		
+		/* Now, an invalid string */
+		res = TEST_IDN_UTF8;
+		
+		#ifdef DIAMID_IDNA_IGNORE
+		
+		/* The UTF-8 chars are considered valid */
+		CHECK( 1, fd_os_is_valid_DiameterIdentity((os0_t)TEST_IDN_UTF8, CONSTSTRLEN(TEST_IDN_UTF8) );
+		
+		/* The string should be passed unmodified */
+		CHECK( 0, fd_os_validate_DiameterIdentity(&res, &len, 1) );
+		CHECK( 0, strcasecmp(res, TEST_IDN_UTF8) );
+		CHECK( 0, fd_os_cmp(res, len, TEST_IDN_UTF8, CONSTSTRLEN(TEST_IDN_UTF8)) );
+		CHECK( 0, fd_os_almostcasecmp(res, len, TEST_IDN_UTF8, CONSTSTRLEN(TEST_IDN_UTF8)) );
+		CHECK( 0, fd_os_validate_DiameterIdentity(&res, &len, 0) );
+		CHECK( 0, strcasecmp(res, TEST_IDN_UTF8) );
+		CHECK( CONSTSTRLEN(TEST_IDN_UTF8), len );
+		free(res);
+		
+		#else /* DIAMID_IDNA_IGNORE */
+		
+		/* The UTF-8 chars are recognized as invalid DiameterIdentity */
+		CHECK( 0, fd_os_is_valid_DiameterIdentity((os0_t)TEST_IDN_UTF8, CONSTSTRLEN(TEST_IDN_UTF8) ));
+		
+		# ifdef DIAMID_IDNA_REJECT
+		
+		/* The string must be rejected */
+		CHECK( EINVAL, fd_os_validate_DiameterIdentity(&res, &len, 1) );
+		
+		# else /* DIAMID_IDNA_REJECT */
+		
+		/* The string should be transformed into TEST_IDN_CONV */
+		CHECK( 0, fd_os_validate_DiameterIdentity(&res, &len, 1) );
+		CHECK( 0, strcasecmp(res, TEST_IDN_CONV) );
+		CHECK( CONSTSTRLEN(TEST_IDN_CONV), len );
+		free(res);
+		
+		# endif /* DIAMID_IDNA_REJECT */
+		#endif /* DIAMID_IDNA_IGNORE */
 
+	}
+	
 	/* That's all for the tests yet */
 	PASSTEST();
 } 

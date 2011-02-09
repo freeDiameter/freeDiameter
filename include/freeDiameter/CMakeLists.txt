@@ -18,8 +18,13 @@ OPTION(ERRORS_ON_TODO "(development) Generate compilation errors on TODO items ?
 # Create the absolute path for searching extensions
 SET(DEFAULT_EXTENSIONS_PATH ${CMAKE_INSTALL_PREFIX}/${INSTALL_EXTENSIONS_SUFFIX})
 
+# IDNA considerations
+OPTION(DIAMID_IDNA_IGNORE "Ignore completly invalid characters in Diameter Identities (process blindly)?" OFF)
+IF (NOT DIAMID_IDNA_IGNORE)
+	OPTION (DIAMID_IDNA_REJECT "Reject internationalized Diameter Identities, do not attempt to convert it (stringprep) ?" OFF)
+ENDIF (NOT DIAMID_IDNA_IGNORE)
 
-MARK_AS_ADVANCED(DISABLE_SCTP DEBUG_SCTP SCTP_USE_MAPPED_ADDRESSES ERRORS_ON_TODO)
+MARK_AS_ADVANCED(DISABLE_SCTP DEBUG_SCTP SCTP_USE_MAPPED_ADDRESSES ERRORS_ON_TODO DIAMID_IDNA_IGNORE DIAMID_IDNA_REJECT)
 
 ########################
 ### System checks part
@@ -108,6 +113,27 @@ ENDIF(NOT DISABLE_SCTP)
 SET(SCTP_INCLUDE_DIR ${SCTP_INCLUDE_DIR} PARENT_SCOPE)
 SET(SCTP_LIBRARIES ${SCTP_LIBRARIES} PARENT_SCOPE)
 
+# IDNA process: we use libidn from GNU (unless the function & header files are included in libc)
+IF(NOT DIAMID_IDNA_IGNORE  AND NOT DIAMID_IDNA_REJECT)
+	FIND_PACKAGE(IDNA)
+   	SET(CHECK_IDNA_SOURCE_CODE "
+		#include <idna.h>
+		int main() {
+		   return idna_to_ascii_8z(NULL, NULL, 0);
+		}
+		")
+	SET(CMAKE_REQUIRED_INCLUDES ${IDNA_INCLUDE_DIR})
+	SET(CMAKE_REQUIRED_LIBRARIES ${IDNA_LIBRARIES})
+	CHECK_C_SOURCE_COMPILES("${CHECK_IDNA_SOURCE_CODE}" HAS_IDNA_SUPPORT)
+	IF(NOT HAS_IDNA_SUPPORT)
+		MESSAGE(SEND_ERROR "Unable to find idna.h header or idna_to_ascii_8z function, please install libidn-dev or equivalent, or set DIAMID_IDNA_IGNORE or DIAMID_IDNA_REJECT")
+	ENDIF(NOT HAS_IDNA_SUPPORT)
+ELSE (NOT DIAMID_IDNA_IGNORE  AND NOT DIAMID_IDNA_REJECT)
+	MESSAGE(STATUS "Non-default Internationalized Domain Names (IDN) behavior selected (no stringprep).")
+ENDIF(NOT DIAMID_IDNA_IGNORE  AND NOT DIAMID_IDNA_REJECT)
+SET(IDNA_INCLUDE_DIR ${IDNA_INCLUDE_DIR} PARENT_SCOPE)
+SET(IDNA_LIBRARIES ${IDNA_LIBRARIES} PARENT_SCOPE)
+
 
 # Require GNU TLS for building the library
 FIND_PACKAGE(GnuTLS REQUIRED)
@@ -134,7 +160,9 @@ SET(GCRYPT_LIBRARY ${GCRYPT_LIBRARY} PARENT_SCOPE)
 ##########################
 
 # LFDPROTO_LIBS = libraries required by the libfdproto.
-SET(LFDPROTO_LIBS ${CLOCK_GETTIME_LIBS} ${CMAKE_THREAD_LIBS_INIT} PARENT_SCOPE)
+SET(LFDPROTO_LIBS ${CLOCK_GETTIME_LIBS} ${CMAKE_THREAD_LIBS_INIT} ${IDNA_LIBRARIES} PARENT_SCOPE)
+# And includes paths
+SET(LFDPROTO_INCLUDES ${IDNA_INCLUDE_DIR} PARENT_SCOPE)
 # Dependencies: the libraries required by any code linking to libfdproto.
 SET(LFDPROTO_LINK_INTERFACES ${CMAKE_THREAD_LIBS_INIT} PARENT_SCOPE)
 
