@@ -246,7 +246,7 @@ struct cnxctx * fd_cnx_serv_accept(struct cnxctx * serv)
 		char portbuf[10];
 		int  rc;
 		
-		rc = getnameinfo((sSA *)&ss, sSAlen(&ss), addrbuf, sizeof(addrbuf), portbuf, sizeof(portbuf), NI_NUMERICHOST | NI_NUMERICSERV);
+		rc = getnameinfo((sSA *)&ss, ss_len, addrbuf, sizeof(addrbuf), portbuf, sizeof(portbuf), NI_NUMERICHOST | NI_NUMERICSERV);
 		if (rc) {
 			snprintf(addrbuf, sizeof(addrbuf), "[err:%s]", gai_strerror(rc));
 			portbuf[0] = '\0';
@@ -258,7 +258,7 @@ struct cnxctx * fd_cnx_serv_accept(struct cnxctx * serv)
 		
 		
 		/* ...Name for log messages */
-		rc = getnameinfo((sSA *)&ss, sSAlen(&ss), cli->cc_remid, sizeof(cli->cc_remid), NULL, 0, 0);
+		rc = getnameinfo((sSA *)&ss, ss_len, cli->cc_remid, sizeof(cli->cc_remid), NULL, 0, 0);
 		if (rc)
 			snprintf(cli->cc_remid, sizeof(cli->cc_remid), "[err:%s]", gai_strerror(rc));
 	}
