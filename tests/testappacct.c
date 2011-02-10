@@ -84,6 +84,9 @@ static int add_avp_in_conf(char * avpname, int multi)
 	return 0;
 }
 
+#define LOCAL_ID	"test.app.acct"
+#define LOCAL_REALM	"app.acct"
+
 /* Main test routine */
 int main(int argc, char *argv[])
 {
@@ -91,14 +94,15 @@ int main(int argc, char *argv[])
 	extern int fd_ext_init(int major, int minor, char * conffile); /* defined in include's extension.h */
 	extern void fd_ext_fini(void); /* defined in the extension itself */
 	struct msg * msg;
-	char * sess_bkp;
+	os0_t sess_bkp;
+	size_t sess_bkp_len;
 	
 	/* First, initialize the daemon modules */
 	INIT_FD();
-	fd_g_config->cnf_diamid = strdup("test.app.acct");
-	fd_g_config->cnf_diamid_len = strlen(fd_g_config->cnf_diamid);
-	fd_g_config->cnf_diamrlm = strdup("app.acct");
-	fd_g_config->cnf_diamrlm_len = strlen(fd_g_config->cnf_diamrlm);
+	fd_g_config->cnf_diamid = strdup(LOCAL_ID);
+	fd_g_config->cnf_diamid_len = CONSTSTRLEN(LOCAL_ID);
+	fd_g_config->cnf_diamrlm = strdup(LOCAL_REALM);
+	fd_g_config->cnf_diamrlm_len = CONSTSTRLEN(LOCAL_REALM);
 	
 	CHECK( 0, fd_queues_init()  );
 	CHECK( 0, fd_msg_init()  );
@@ -165,16 +169,16 @@ int main(int argc, char *argv[])
 		/* sid */
 		{
 			struct session * sess = NULL;
-			char * s;
-			CHECK( 0, fd_sess_new( &sess, fd_g_config->cnf_diamid, NULL, 0) );
-			CHECK( 0, fd_sess_getsid(sess, &s) );
-			sess_bkp = strdup(s);
+			os0_t s;
+			CHECK( 0, fd_sess_new( &sess, fd_g_config->cnf_diamid, fd_g_config->cnf_diamid_len, NULL, 0) );
+			CHECK( 0, fd_sess_getsid(sess, &s, &sess_bkp_len) );
+			CHECK( 1, (sess_bkp = os0dup(s, sess_bkp_len)) ? 1 : 0);
 
 			CHECK( 0, fd_dict_search ( fd_g_config->cnf_dict, DICT_AVP, AVP_BY_NAME, "Session-Id", &d, ENOENT ) );
 			CHECK( 0, fd_msg_avp_new ( d, 0, &avp ) );
 			memset(&avp_val, 0, sizeof(avp_val));
-			avp_val.os.data = (unsigned char *)sess_bkp;
-			avp_val.os.len = strlen(sess_bkp);
+			avp_val.os.data = sess_bkp;
+			avp_val.os.len = sess_bkp_len;
 			CHECK( 0, fd_msg_avp_setvalue ( avp, &avp_val ) );
 			CHECK( 0, fd_msg_avp_add ( msg, MSG_BRW_FIRST_CHILD, avp) );
 		}
@@ -232,7 +236,7 @@ int main(int argc, char *argv[])
 		}
 		
 		/* Source */
-		CHECK( 0, fd_msg_source_set( msg, "peer3", 1, fd_g_config->cnf_dict ) );
+		CHECK( 0, fd_msg_source_set( msg, "peer3", CONSTSTRLEN("peer3"), 1, fd_g_config->cnf_dict ) );
 	}
 	
 	/* Now, have the daemon handle this */
@@ -252,7 +256,7 @@ int main(int argc, char *argv[])
 		
 		/* We also check that the Session-Id we retrieve is the same as what we generated earlier (not trashed in the process) */
 		s = PQgetvalue(res, 0, 0);
-		CHECK( 0, strcmp(s, sess_bkp) );
+		CHECK( 0, strcmp(s, (char *)sess_bkp) );
 		
 		PQclear(res);
 	}  
