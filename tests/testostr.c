@@ -91,7 +91,7 @@ int main(int argc, char *argv[])
 		#ifdef DIAMID_IDNA_IGNORE
 		
 		/* The UTF-8 chars are considered valid */
-		CHECK( 1, fd_os_is_valid_DiameterIdentity((os0_t)TEST_IDN_UTF8, CONSTSTRLEN(TEST_IDN_UTF8) );
+		CHECK( 1, fd_os_is_valid_DiameterIdentity((os0_t)TEST_IDN_UTF8, CONSTSTRLEN(TEST_IDN_UTF8) ) );
 		
 		/* The string should be passed unmodified */
 		CHECK( 0, fd_os_validate_DiameterIdentity(&res, &len, 1) );

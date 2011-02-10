@@ -155,7 +155,8 @@ struct cnxctx * fd_cnx_serv_sctp(uint16_t port, struct fd_list * ep_list)
 #ifdef DISABLE_SCTP
 	TRACE_DEBUG(INFO, "This function should never been called when SCTP is disabled...");
 	ASSERT(0);
-	CHECK_FCT_DO( ENOTSUP, return NULL);
+	CHECK_FCT_DO( ENOTSUP, );
+	return NULL;
 #else /* DISABLE_SCTP */
 	struct cnxctx * cnx = NULL;
 
@@ -354,7 +355,8 @@ struct cnxctx * fd_cnx_cli_connect_sctp(int no_ip6, uint16_t port, struct fd_lis
 #ifdef DISABLE_SCTP
 	TRACE_DEBUG(INFO, "This function should never be called when SCTP is disabled...");
 	ASSERT(0);
-	CHECK_FCT_DO( ENOTSUP, return NULL);
+	CHECK_FCT_DO( ENOTSUP, );
+	return NULL;
 #else /* DISABLE_SCTP */
 	int sock = 0;
 	struct cnxctx * cnx = NULL;
@@ -498,7 +500,7 @@ int fd_cnx_getTLS(struct cnxctx * conn)
 int fd_cnx_isMultichan(struct cnxctx * conn)
 {
 	CHECK_PARAMS_DO( conn, return 0 );
-	#ifdef DISABLE_SCTP
+	#ifndef DISABLE_SCTP
 	if (conn->cc_proto == IPPROTO_SCTP)
 		return (conn->cc_sctp_para.str_in > 1) || (conn->cc_sctp_para.str_out > 1);
 	#endif /* DISABLE_SCTP */

@@ -647,7 +647,7 @@ static int sip_rad_req( struct rgwp_config * cs, struct session ** session, stru
 			#define SIP_PREFIX	"sip:"
 			size_t temp_len = attr->length - sizeof(struct radius_attr_hdr) + CONSTSTRLEN(SIP_PREFIX) + 1;
 			CHECK_MALLOC( temp = malloc(temp_len) );
-			temp_len = snprintf((char *)temp, temp_len, SIP_PREFIX "%.*s", attr->length - sizeof(struct radius_attr_hdr), (char *)(attr + 1));
+			temp_len = snprintf((char *)temp, temp_len, SIP_PREFIX "%.*s", (int)(attr->length - sizeof(struct radius_attr_hdr)), (char *)(attr + 1));
 			
 			value.os.data=temp;
 			value.os.len=temp_len;
