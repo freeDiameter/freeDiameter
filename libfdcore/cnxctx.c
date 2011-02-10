@@ -621,8 +621,9 @@ ssize_t fd_cnx_s_recv(struct cnxctx * conn, void *buffer, size_t length)
 	int timedout = 0;
 again:
 	ret = recv(conn->cc_socket, buffer, length, 0);
-	/* Handle special case of timeout */
-	if ((ret < 0) && (errno == EAGAIN)) {
+	/* Handle special case of timeout / interrupts */
+	if ((ret < 0) && ((errno == EAGAIN) || (errno == EINTR))) {
+		pthread_testcancel();
 		if (! fd_cnx_teststate(conn, CC_STATUS_CLOSING ))
 			goto again; /* don't care, just ignore */
 		if (!timedout) {
@@ -648,7 +649,8 @@ static ssize_t fd_cnx_s_send(struct cnxctx * conn, void *buffer, size_t length)
 again:
 	ret = send(conn->cc_socket, buffer, length, 0);
 	/* Handle special case of timeout */
-	if ((ret < 0) && (errno == EAGAIN)) {
+	if ((ret < 0) && ((errno == EAGAIN) || (errno == EINTR))) {
+		pthread_testcancel();
 		if (! fd_cnx_teststate(conn, CC_STATUS_CLOSING ))
 			goto again; /* don't care, just ignore */
 		if (!timedout) {

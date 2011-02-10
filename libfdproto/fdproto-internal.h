@@ -51,6 +51,7 @@ void fd_sess_fini(void);
 FILE * fd_g_debug_fstr;
 
 /* Special message dump function */
+void fd_msg_dump_fstr_one ( struct msg * msg, FILE * fstr );
 void fd_msg_dump_fstr ( struct msg * msg, FILE * fstr );
 
 /* Iterator on the rules of a parent object */

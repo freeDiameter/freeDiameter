@@ -1040,7 +1040,8 @@ int fd_sctp_sendstr(struct cnxctx * conn, uint16_t strid, uint8_t * buf, size_t 
 again:	
 	ret = sendmsg(conn->cc_socket, &mhdr, 0);
 	/* Handle special case of timeout */
-	if ((ret < 0) && (errno == EAGAIN)) {
+	if ((ret < 0) && ((errno == EAGAIN) || (errno == EINTR))) {
+		pthread_testcancel();
 		if (! fd_cnx_teststate(conn, CC_STATUS_CLOSING ))
 			goto again; /* don't care, just ignore */
 		if (!timedout) {
@@ -1098,10 +1099,11 @@ incomplete:
 again:
 	pthread_cleanup_push(free, data);
 	ret = recvmsg(conn->cc_socket, &mhdr, 0);
+	pthread_testcancel();
 	pthread_cleanup_pop(0);
 	
 	/* First, handle timeouts (same as fd_cnx_s_recv) */
-	if ((ret < 0) && (errno == EAGAIN)) {
+	if ((ret < 0) && ((errno == EAGAIN) || (errno == EINTR))) {
 		if (! fd_cnx_teststate(conn, CC_STATUS_CLOSING ))
 			goto again; /* don't care, just ignore */
 		if (!timedout) {

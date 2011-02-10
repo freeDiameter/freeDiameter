@@ -108,6 +108,11 @@ void fd_msg_log( enum fd_msg_log_cause cause, struct msg * msg, const char * pre
 	const char * 		metharg;
 	FILE * fstr;
 	
+	char buftime[256];
+	size_t offset = 0;
+	struct timespec ts;
+	struct tm tm;
+	
 	TRACE_ENTRY("%d %p %p", cause, msg, prefix_format);
 	CHECK_PARAMS_DO( (cause >= 0) && (cause <= FD_MSG_LOG_MAX),
 	{
@@ -124,6 +129,12 @@ void fd_msg_log( enum fd_msg_log_cause cause, struct msg * msg, const char * pre
 	metharg = ml_conf.causes[cause].metharg;
 	CHECK_POSIX_DO( pthread_mutex_unlock(&ml_conf.lock), );
 	
+	/* Get current time */
+	CHECK_SYS_DO( clock_gettime(CLOCK_REALTIME, &ts), /* continue */);
+	offset += strftime(buftime + offset, sizeof(buftime) - offset, "%D,%T", localtime_r( &ts.tv_sec , &tm ));
+	offset += snprintf(buftime + offset, sizeof(buftime) - offset, ".%6.6ld", ts.tv_nsec / 1000);
+	
+
 	/* Okay, now we will create the file descriptor */
 	switch (meth) {
 		case FD_MSG_LOGTO_DEBUGONLY:
@@ -141,7 +152,7 @@ void fd_msg_log( enum fd_msg_log_cause cause, struct msg * msg, const char * pre
 	}
 	
 	/* For file methods, let's parse the message so it looks better */
-	if ((meth != FD_MSG_LOGTO_DEBUGONLY) && ml_conf.dict) {
+	if (((meth != FD_MSG_LOGTO_DEBUGONLY) || (fd_g_debug_lvl > FULL)) && ml_conf.dict) {
 		CHECK_FCT_DO( fd_msg_parse_dict( msg, ml_conf.dict, NULL ), );
 	}
 	
@@ -154,12 +165,29 @@ void fd_msg_log( enum fd_msg_log_cause cause, struct msg * msg, const char * pre
 	fflush(fstr);
 	pthread_cleanup_pop(0);
 	(void)pthread_mutex_unlock(&fd_log_lock);
-	fd_log_debug_fstr(fstr, "\n\n");
+	
+	fd_log_debug_fstr(fstr, "\nLogged: %s\n\n", buftime);
 	
 	/* And now the message itself */
-	fd_msg_dump_fstr(msg, fstr);
+	if ((meth == FD_MSG_LOGTO_DEBUGONLY) && (fd_g_debug_lvl <= INFO)) {
+		/* dump only the header */
+		fd_msg_dump_fstr_one(msg, fstr);
+	} else {
+		/* dump the full content */
+		fd_msg_dump_fstr(msg, fstr);
+	}
 	
 	/* And finally close the stream if needed */
-	TODO("close?");
+	switch (meth) {
+		case FD_MSG_LOGTO_DEBUGONLY:
+			break;
+			
+		case FD_MSG_LOGTO_FILE:
+			TODO("close?");
+			break;
+		case FD_MSG_LOGTO_DIR:
+			TODO("close?");
+			break;
+	}
 }
 

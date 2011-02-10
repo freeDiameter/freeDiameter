@@ -807,6 +807,10 @@ void fd_msg_dump_fstr ( struct msg * msg, FILE * fstr )
 		/* dump next object */
 	} while (ref);
 }
+void fd_msg_dump_fstr_one ( struct msg * msg, FILE * fstr ) /* just the header */
+{
+	msg_dump_intern ( NONE, msg, 2, fstr );
+}
 
 /* Dump a message content -- for debug mostly */
 void fd_msg_dump_walk ( int level, msg_or_avp *obj )
