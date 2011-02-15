@@ -723,7 +723,6 @@ static int msg_rt_in(struct msg ** pmsg)
 		}
 
 		/* From that point, for answers, we will call the registered callbacks, then pass it to the dispatch module or forward it */
-		TODO("Callback for answers with a Redirect code?");
 	}
 
 	/* Call all registered callbacks for this message */
