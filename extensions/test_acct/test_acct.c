@@ -61,7 +61,8 @@ static int tac_cb( struct msg ** msg, struct avp * avp, struct session * sess, v
 		struct msg *ans, *qry;
 		struct avp * a = NULL;
 		struct avp_hdr * h = NULL;
-		char * s;
+		os0_t s;
+		size_t sl;
 	
 		qry = *msg;
 		/* Create the answer message, including the Session-Id AVP */
@@ -73,8 +74,8 @@ static int tac_cb( struct msg ** msg, struct avp * avp, struct session * sess, v
 		
 		fd_log_debug("--------------Received the following Accounting message:--------------\n");
 		
-		CHECK_FCT( fd_sess_getsid ( sess, &s ) );
-		fd_log_debug("Session: %s\n", s);
+		CHECK_FCT( fd_sess_getsid ( sess, &s, &sl ) );
+		fd_log_debug("Session: %.*s\n", (int)sl, s);
 		
 		/* The AVPs that we copy in the answer */
 		CHECK_FCT( fd_msg_search_avp ( qry, tac_dict.Accounting_Record_Type, &a) );
