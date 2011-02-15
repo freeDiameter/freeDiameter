@@ -21,6 +21,8 @@ Following dependencies are optional, depending on which extensions you plan to c
  dbg_interactive:
 	# zypper install swig python-devel
 
+ sample:
+	# zypper install gcc-c++
 
 There is currently no OpenSUSE-specific package for freeDiameter.
 You are welcome to contribute packaging scripts! Please contact with
