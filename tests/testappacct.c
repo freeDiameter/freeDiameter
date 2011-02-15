@@ -44,7 +44,7 @@
 DROP TABLE <table>;
 CREATE TABLE <table>
 (
-  ts timestamp with time zone NOT NULL,
+  recorded_on timestamp with time zone NOT NULL,
   "Accounting-Record-Type" integer,
   "Session-Id" bytea,
   "Accounting-Record-Number" integer,

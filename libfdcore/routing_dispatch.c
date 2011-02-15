@@ -678,12 +678,14 @@ static int msg_rt_in(struct msg ** pmsg)
 
 			/* test for decorated NAI  (RFC5729 section 4.4) */
 			/* Handle the decorated NAI */
-			CHECK_FCT_DO( process_decorated_NAI(&is_nai, un_val, dr_val),
-				{
-					/* If the process failed, we assume it is because of the AVP format */
-					CHECK_FCT( return_error( pmsg, "DIAMETER_INVALID_AVP_VALUE", "Failed to process decorated NAI", un) );
-					return 0;
-				} );
+			if (un_val) {
+				CHECK_FCT_DO( process_decorated_NAI(&is_nai, un_val, dr_val),
+					{
+						/* If the process failed, we assume it is because of the AVP format */
+						CHECK_FCT( return_error( pmsg, "DIAMETER_INVALID_AVP_VALUE", "Failed to process decorated NAI", un) );
+						return 0;
+					} );
+			}
 				
 			if (is_nai) {
 				/* We have transformed the AVP, now submit it again in the queue */
