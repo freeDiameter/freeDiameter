@@ -35,6 +35,7 @@
 
 #include "tests.h"
 #include <unistd.h>
+#include <limits.h>
 
 /* Structure for testing threshold function */
 static struct thrh_test {
@@ -212,6 +213,7 @@ int main(int argc, char *argv[])
 		if ((nbr_threads <= 0) || (nbr_threads > NBR_THREADS * 2)) {
 			nbr_threads = NBR_THREADS;
 		} else {
+			TRACE_DEBUG(INFO, "Local limit on number of threads: %d", nbr_threads);
 			/* The local limit is bellow NBR_THREADS */
 			nbr_threads = (nbr_threads / 2) - 1;
 			/* Ensure we create at least a few threads! */
