@@ -657,6 +657,7 @@ struct fd_rt_out_hdl;
 
 enum fd_rt_out_score {
 	FD_SCORE_NO_DELIVERY	 = -70,	/* We should not send this message to this candidate */
+	FD_SCORE_SENT_REDIRECT	 = -60, /* If this peer previously sent a Redirect indication that applies to this message */
 	FD_SCORE_INI		 =  -2, /* All candidates are initialized with this value */
 	FD_SCORE_LOAD_BALANCE	 =   1,	/* Use this to differentiate between several peers with the same score */
 	FD_SCORE_DEFAULT	 =   5,	/* The peer is a default route for all messages */
@@ -668,6 +669,7 @@ enum fd_rt_out_score {
 	FD_SCORE_REDIR_REALM_APP =  40,	/* If there is a redirect rule with REALM_AND_APPLICATION for these message and peer */
 	FD_SCORE_REDIR_USER	 =  45,	/* If there is a redirect rule with ALL_USER for these message and peer */
 	FD_SCORE_REDIR_SESSION	 =  50,	/* If there is a redirect rule with ALL_SESSION for these message and peer */
+	FD_SCORE_REDIR_ONCE	 =  55,	/* If there is a redirect rule with DONT_CACHE for these message and peer */
 	FD_SCORE_FINALDEST	 = 100	/* If the peer is the final recipient of the message (i.e. matching Destination-Host), it receives a big score. */
 };
 

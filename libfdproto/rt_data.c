@@ -131,7 +131,7 @@ int  fd_rtd_candidate_add(struct rt_data * rtd, DiamId_t peerid, size_t peeridle
 	/* Create the new entry */
 	CHECK_MALLOC( new = malloc(sizeof(struct rtd_candidate)) );
 	memset(new, 0, sizeof(struct rtd_candidate) );
-	fd_list_init(&new->chain, NULL);
+	fd_list_init(&new->chain, new);
 	CHECK_MALLOC( new->diamid = os0dup(peerid, peeridlen) )
 	new->diamidlen = peeridlen;
 	if (realm) {

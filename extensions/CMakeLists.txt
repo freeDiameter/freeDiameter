@@ -61,8 +61,9 @@ FD_EXTENSION_SUBDIR(app_sip     "Diameter SIP Authentication and Authorization s
 ####
 # Routing extensions
 
-FD_EXTENSION_SUBDIR(rt_default "Configurable routing rules for freeDiameter" 		     ON)
-FD_EXTENSION_SUBDIR(rt_ereg    "Configurable routing based on regexp matching of AVP values" OFF)
+FD_EXTENSION_SUBDIR(rt_default   "Configurable routing rules for freeDiameter" 		     	ON)
+FD_EXTENSION_SUBDIR(rt_redirect  "Handling of Diameter Redirect messages" 			ON)
+FD_EXTENSION_SUBDIR(rt_ereg      "Configurable routing based on regexp matching of AVP values" OFF)
 
 
 ####

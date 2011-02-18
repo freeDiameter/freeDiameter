@@ -74,7 +74,7 @@ int main(int argc, char *argv[])
 	/* Check the Diameter Identity functions */
 	{
 		char * res;
-		size_t len;
+		size_t len=0;
 		
 		/* A valid ASCII domain name */
 		res = TEST_IDN_CONV;
@@ -87,6 +87,7 @@ int main(int argc, char *argv[])
 		
 		/* Now, an invalid string */
 		res = TEST_IDN_UTF8;
+		len = 0;
 		
 		#ifdef DIAMID_IDNA_IGNORE
 		

@@ -721,7 +721,7 @@ static int msg_rt_in(struct msg ** pmsg)
 			CHECK_FCT(fd_fifo_post(fd_g_local, pmsg) );
 			return 0;
 		}
-
+		
 		/* From that point, for answers, we will call the registered callbacks, then pass it to the dispatch module or forward it */
 	}
 
@@ -1104,8 +1104,6 @@ int fd_rtdisp_init(void)
 	/* Register the built-in callbacks */
 	CHECK_FCT( fd_rt_out_register( dont_send_if_no_common_app, NULL, 10, NULL ) );
 	CHECK_FCT( fd_rt_out_register( score_destination_avp, NULL, 10, NULL ) );
-	
-	TODO("built-in callbacks for Redirect messages?");
 	
 	return 0;
 }

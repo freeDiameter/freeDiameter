@@ -594,7 +594,7 @@ static int sip_rad_req( struct rgwp_config * cs, struct session ** session, stru
 			{
 				//We extract Realm from Digest_URI
 				DiamId_t realm=NULL;
-				size_t realm_len;
+				size_t realm_len = 0;
 				os0_t temp;
 				
 				temp = (os0_t)(attr + 1);

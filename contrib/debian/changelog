@@ -19,8 +19,9 @@ freediameter (1.1.0) UNRELEASED; urgency=low
   * Removed fd_cpu_flush_cache(), replaced by more robust alternatives.
   * Improved peer state machine algorithm to counter SCTP multistream race 
     condition.
+  * New extension rt_redirect.fdx that handles the Diameter Redirect errors.
 
- -- Sebastien Decugis <sdecugis@nict.go.jp>  Mon, 07 Feb 2011 17:24:20 +0900
+ -- Sebastien Decugis <sdecugis@nict.go.jp>  Fri, 18 Feb 2011 14:47:24 +0900
 
 freediameter (1.0.4) UNRELEASED; urgency=low
 

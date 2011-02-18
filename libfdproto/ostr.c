@@ -166,16 +166,25 @@ disp:
 	return 1;
 }
 
-/* The following function validates a string as a Diameter Identity or applies the IDNA transformation on it */
-int fd_os_validate_DiameterIdentity(char ** id, size_t * outsz, int memory /* 0: *id can be realloc'd. 1: *id must be malloc'd on output (was static) */)
+/* The following function validates a string as a Diameter Identity or applies the IDNA transformation on it 
+ if *inoutsz is != 0 on entry, *id may not be \0-terminated.
+ memory has the following meaning: 0: *id can be realloc'd. 1: *id must be malloc'd on output (was static)
+*/
+int fd_os_validate_DiameterIdentity(char ** id, size_t * inoutsz, int memory)
 {
-	TRACE_ENTRY("%p %p", id, outsz);
+	int gotsize = 0;
 	
-	*outsz = strlen(*id);
+	TRACE_ENTRY("%p %p", id, inoutsz);
+	CHECK_PARAMS( id && *id && inoutsz );
+	
+	if (!*inoutsz)
+		*inoutsz = strlen(*id);
+	else
+		gotsize = 1;
 	
 #ifndef DIAMID_IDNA_IGNORE
 	
-	if (!fd_os_is_valid_DiameterIdentity((os0_t)*id, *outsz)) {
+	if (!fd_os_is_valid_DiameterIdentity((os0_t)*id, *inoutsz)) {
 	
 #ifdef DIAMID_IDNA_REJECT
 		
@@ -188,13 +197,23 @@ int fd_os_validate_DiameterIdentity(char ** id, size_t * outsz, int memory /* 0:
 		char *processed;
 		int ret;
 		
+		if (gotsize) { /* make it \0-terminated */
+			if (memory) {
+				CHECK_MALLOC( *id = os0dup(*id, *inoutsz) );
+				memory = 0;
+			} else {
+				CHECK_MALLOC( *id = realloc(*id, *inoutsz + 1) );
+				(*id)[*inoutsz] = '0';
+			}
+		}
+		
 		ret = idna_to_ascii_8z ( *id, &processed, IDNA_USE_STD3_ASCII_RULES );
 		if (ret == IDNA_SUCCESS) {
 			TRACE_DEBUG(INFO, "The string '%s' is not a valid DiameterIdentity, it was changed to '%s'", *id, processed);
 			if (memory == 0)
 				free(*id);
 			*id = processed;
-			*outsz = strlen(processed);
+			*inoutsz = strlen(processed);
 			/* Done! */
 		} else {
 			TRACE_DEBUG(INFO, "The string '%s' is not a valid DiameterIdentity and cannot be sanitanized: %s", *id, idna_strerror (ret));
@@ -206,12 +225,197 @@ int fd_os_validate_DiameterIdentity(char ** id, size_t * outsz, int memory /* 0:
 #endif /* ! DIAMID_IDNA_IGNORE */
 	{
 		if (memory == 1) {
-			CHECK_MALLOC( *id = os0dup(*id, *outsz) );
+			CHECK_MALLOC( *id = os0dup(*id, *inoutsz) );
 		}
 	}
 	return 0;
 }
 
+/* Analyze a DiameterURI and return its components. 
+  Return EINVAL if the URI is not valid. 
+  *diamid is malloc'd on function return and must be freed (it is processed by fd_os_validate_DiameterIdentity).
+  *secure is 0 (no security) or 1 (security enabled) on return.
+  *port is 0 (default) or a value in host byte order on return.
+  *transport is 0 (default) or IPPROTO_* on return.
+  *proto is 0 (default) or 'd' (diameter), 'r' (radius), or 't' (tacacs+) on return.
+  */
+int fd_os_parse_DiameterURI(uint8_t * uri, size_t urisz, DiamId_t * diamid, size_t * diamidlen, int * secure, uint16_t * port, int * transport, char *proto)
+{
+	size_t offset = 0;
+	DiamId_t fqdn = NULL;
+	size_t   fqdnlen;
+	TRACE_ENTRY("%p %zd %p %p %p %p %p %p", uri, urisz, diamid, diamidlen, secure, port, transport, proto);
+	CHECK_PARAMS( uri && urisz );
+	
+	CHECK_PARAMS( urisz > 7 ); /* "aaa" + "://" + something else at least */
+	
+	/* Initialize values */
+	if (secure)
+		*secure = 0;
+	if (port)
+		*port = 0;
+	if (transport)
+		*transport = 0;
+	if (proto)
+		*proto = 0;
+	
+	/* Check the beginning */
+	if (memcmp( uri, "aaa", 3)) {
+		TRACE_DEBUG(INFO, "Invalid DiameterURI prefix: got '%.*s', expected 'aaa'", 3, uri);
+		return EINVAL;
+	}
+	offset += 3;
+	
+	/* Secure? */
+	if (uri[offset] == (uint8_t)'s') {
+		if (secure)
+			*secure = 1;
+		offset += 1;
+	}
+	
+	/* Remaining of URI marker */
+	if (memcmp( uri + offset, "://", 3)) {
+		TRACE_DEBUG(INFO, "Invalid DiameterURI prefix: got '%.*s', expected 'aaa://' or 'aaas://'", offset + 3, uri);
+		return EINVAL;
+	}
+	offset += 3;
+	
+	/* This is the start of the FQDN */
+	fqdn = (DiamId_t)uri + offset;
+	for ( ; offset < urisz ; offset++ ) {
+		/* Stop only when we find ':' or ';' */
+		if ((uri[offset] == (uint8_t)':') || (uri[offset] == (uint8_t)';'))
+			break;
+	}
+	fqdnlen = offset - (fqdn - (DiamId_t)uri);
+	CHECK_FCT(fd_os_validate_DiameterIdentity(&fqdn, &fqdnlen, 1));
+	if (diamid)
+		*diamid = fqdn;
+	else
+		free(fqdn);
+	if (diamidlen)
+		*diamidlen = fqdnlen;
+	
+	if (offset == urisz)
+		return 0; /* Finished */
+	
+	/* Is there a port ? */
+	if (uri[offset] == ':') {
+		uint16_t p = 0;
+		do {
+			offset++;
+
+			if (offset == urisz)
+				break;
+
+			uint32_t t = (uint32_t)((char)uri[offset] - '0');
+			if (t > 9)
+				break; /* we did not get a digit */
+
+			t += p * 10; /* the port is specified in decimal base */
+			
+			if (t >= (1<<16)) {
+				TRACE_DEBUG(INFO, "Invalid DiameterURI: port value is too big, ignored.");
+				p = 0;
+				break;
+			}
+
+			p = t;
+		} while (1);
+
+		if (port)
+			*port = p;
+	}
+	
+	if (offset == urisz)
+		return 0; /* Finished */
+	
+	/* Is there a transport? */
+	if ( (urisz - offset > CONSTSTRLEN(";transport=")) 
+		&& !strncasecmp((char *)uri + offset, ";transport=", CONSTSTRLEN(";transport=")) ) {
+	
+		offset += CONSTSTRLEN(";transport=");
+
+		if (urisz - offset < 3) {
+			TRACE_DEBUG(INFO, "Invalid DiameterURI: transport string is too short, ignored.");
+			return 0;
+		}		
+		if (!strncasecmp((char *)uri + offset, "tcp", CONSTSTRLEN("tcp"))) {
+			if (transport)
+				*transport = IPPROTO_TCP;
+			offset += CONSTSTRLEN("tcp");
+			goto after_transport;
+		}
+		if (!strncasecmp((char *)uri + offset, "udp", CONSTSTRLEN("udp"))) {
+			if (transport)
+				*transport = IPPROTO_UDP;
+			offset += CONSTSTRLEN("udp");
+			goto after_transport;
+		}
+		if ((urisz - offset > 3) && !strncasecmp((char *)uri + offset, "sctp", CONSTSTRLEN("sctp"))) {
+			if (transport) {
+#ifndef DISABLE_SCTP
+				*transport = IPPROTO_SCTP;
+#else /* DISABLE_SCTP */
+				TRACE_DEBUG(INFO, "Received DiameterURI with 'transport=sctp' but DISABLE_SCTP was selected");
+				*transport = 0;
+#endif /* DISABLE_SCTP */
+			}
+			offset += CONSTSTRLEN("sctp");
+			goto after_transport;
+		}
+		
+		TRACE_DEBUG(INFO, "Invalid DiameterURI: transport string is not recognized ('%.*s'), ignored.", urisz - offset, uri + offset);
+		
+		/* eat the remaining of invalid transport until a ';' */
+		for (; (offset < urisz) && ((char)uri[offset] != ';'); offset++);
+	}
+after_transport:
+	if (offset == urisz)
+		return 0; /* Finished */
+	
+	/* Is there a protocol? */
+	if ( ((urisz - offset) > CONSTSTRLEN(";protocol=")) 
+		&& (!strncasecmp((char *)uri + offset, ";protocol=", CONSTSTRLEN(";protocol="))) ) {
+	
+		offset += CONSTSTRLEN(";protocol=");
+
+		if ( ((urisz - offset) >= CONSTSTRLEN("diameter")) 
+		    && (!strncasecmp((char *)uri + offset, "diameter", CONSTSTRLEN("diameter"))) ) {
+			if (proto)
+				*proto = 'd';
+			offset += CONSTSTRLEN("diameter");
+			goto after_proto;
+		}
+		
+		if ( ((urisz - offset) >= CONSTSTRLEN("radius")) 
+		    && (!strncasecmp((char *)uri + offset, "radius", CONSTSTRLEN("radius"))) ) {
+			if (proto)
+				*proto = 'r';
+			offset += CONSTSTRLEN("radius");
+			goto after_proto;
+		}
+		
+		if ( ((urisz - offset) >= CONSTSTRLEN("tacacs+")) 
+		    && (!strncasecmp((char *)uri + offset, "tacacs+", CONSTSTRLEN("tacacs+"))) ) {
+			if (proto)
+				*proto = 't';
+			offset += CONSTSTRLEN("tacacs+");
+			goto after_proto;
+		}
+		
+		TRACE_DEBUG(INFO, "Invalid DiameterURI: protocol string is not recognized ('%.*s'), ignored.", urisz - offset, uri + offset);
+		
+		/* eat the remaining of invalid transport until a ';' */
+		for (; (offset < urisz) && ((char)uri[offset] != ';'); offset++);
+	}
+after_proto:
+	if (offset == urisz)
+		return 0; /* Finished */
+	
+	TRACE_DEBUG(INFO, "Invalid DiameterURI: string is not recognized ('%.*s'), ignored.", urisz - offset, uri + offset);
+	return 0;
+}
 
 
 /********************************************************************************************************/

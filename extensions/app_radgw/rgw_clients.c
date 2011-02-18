@@ -214,7 +214,7 @@ static int client_create(struct rgw_client ** res, struct sockaddr ** ip_port, u
 {
 	struct rgw_client *tmp = NULL;
 	DiamId_t fqdn;
-	size_t fqdn_len;
+	size_t fqdn_len = 0;
 	int ret, i;
 	int loc = 0;
 	
@@ -549,9 +549,9 @@ int rgw_clients_create_origin(struct rgw_radius_msg_meta *msg, struct rgw_client
 	int valid_nas_info = 0;
 	struct radius_attr_hdr *nas_ip = NULL, *nas_ip6 = NULL, *nas_id = NULL;
 	size_t nas_id_len;
-	char * oh_str = NULL; size_t oh_strlen; int oh_free = 0;
-	char * or_str = NULL; size_t or_strlen;
-	char * rr_str = NULL; size_t rr_strlen;
+	char * oh_str = NULL; size_t oh_strlen = 0; int oh_free = 0;
+	char * or_str = NULL; size_t or_strlen = 0;
+	char * rr_str = NULL; size_t rr_strlen = 0;
 	char buf[REVERSE_DNS_SIZE_MAX]; /* to store DNS lookups results */
 	
 	struct avp *avp = NULL;
@@ -788,6 +788,7 @@ int rgw_clients_create_origin(struct rgw_radius_msg_meta *msg, struct rgw_client
 						rr_strlen = cli->fqdn_len;
 					}
 					oh_str = &buf[0]; /* The canonname resolved */
+					oh_strlen = 0;
 					CHECK_FCT_DO( ret = fd_os_validate_DiameterIdentity(&oh_str, &oh_strlen, 1),
 						{
 							TRACE_DEBUG(INFO, "Unable to use resolved client name '%s' as DiameterIdentity: %s", buf, strerror(ret));

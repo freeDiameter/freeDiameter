@@ -606,8 +606,11 @@ typedef char * DiamId_t;
   rfc3588 states explicitely that such a Diameter Identity consists only of ASCII characters. */
 int fd_os_is_valid_DiameterIdentity(uint8_t * os, size_t ossz);
 
-/* This checks a string is a valid DiameterIdentity and applies IDNA transformations otherwise (xn--...) */
-int fd_os_validate_DiameterIdentity(char ** id, size_t * outsz, int memory /* 0: *id can be realloc'd. 1: *id must be malloc'd on output (was static) */ );
+/* The following function validates a string as a Diameter Identity or applies the IDNA transformation on it 
+ if *inoutsz is != 0 on entry, *id may not be \0-terminated.
+ memory has the following meaning: 0: *id can be realloc'd. 1: *id must be malloc'd on output (was static)
+*/
+int fd_os_validate_DiameterIdentity(char ** id, size_t * inoutsz, int memory);
 
 /* Create an order relationship for binary strings (not needed to be \0 terminated). 
    It does NOT mimic strings relationships so that it is more efficient. It is case sensitive.
@@ -626,6 +629,15 @@ int fd_os_cmp_int(os0_t os1, size_t os1sz, os0_t os2, size_t os2sz);
 int fd_os_almostcasecmp_int(uint8_t * os1, size_t os1sz, uint8_t * os2, size_t os2sz);
 #define fd_os_almostcasecmp(_o1, _l1, _o2, _l2)  fd_os_almostcasecmp_int((os0_t)(_o1), _l1, (os0_t)(_o2), _l2)
 
+/* Analyze a DiameterURI and return its components. 
+  Return EINVAL if the URI is not valid. 
+  *diamid is malloc'd on function return and must be freed (it is processed by fd_os_validate_DiameterIdentity).
+  *secure is 0 (no security) or 1 (security enabled) on return.
+  *port is 0 (default) or a value in host byte order on return.
+  *transport is 0 (default) or IPPROTO_* on return.
+  *proto is 0 (default) or 'd' (diameter), 'r' (radius), or 't' (tacacs+) on return.
+  */
+int fd_os_parse_DiameterURI(uint8_t * uri, size_t urisz, DiamId_t * diamid, size_t * diamidlen, int * secure, uint16_t * port, int * transport, char *proto);
 
 /*============================================================*/
 /*                          THREADS                           */
