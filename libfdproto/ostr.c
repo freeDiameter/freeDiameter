@@ -315,9 +315,8 @@ int fd_os_parse_DiameterURI(uint8_t * uri, size_t urisz, DiamId_t * diamid, size
 			t += p * 10; /* the port is specified in decimal base */
 			
 			if (t >= (1<<16)) {
-				TRACE_DEBUG(INFO, "Invalid DiameterURI: port value is too big, ignored.");
-				p = 0;
-				break;
+				TRACE_DEBUG(INFO, "Invalid DiameterURI: port value is too big.");
+				return EINVAL;
 			}
 
 			p = t;
@@ -365,10 +364,8 @@ int fd_os_parse_DiameterURI(uint8_t * uri, size_t urisz, DiamId_t * diamid, size
 			goto after_transport;
 		}
 		
-		TRACE_DEBUG(INFO, "Invalid DiameterURI: transport string is not recognized ('%.*s'), ignored.", urisz - offset, uri + offset);
-		
-		/* eat the remaining of invalid transport until a ';' */
-		for (; (offset < urisz) && ((char)uri[offset] != ';'); offset++);
+		TRACE_DEBUG(INFO, "Invalid DiameterURI: transport string is not recognized ('%.*s').", urisz - offset, uri + offset);
+		return EINVAL;
 	}
 after_transport:
 	if (offset == urisz)
@@ -404,17 +401,16 @@ after_transport:
 			goto after_proto;
 		}
 		
-		TRACE_DEBUG(INFO, "Invalid DiameterURI: protocol string is not recognized ('%.*s'), ignored.", urisz - offset, uri + offset);
+		TRACE_DEBUG(INFO, "Invalid DiameterURI: protocol string is not recognized ('%.*s').", urisz - offset, uri + offset);
+		return EINVAL;
 		
-		/* eat the remaining of invalid transport until a ';' */
-		for (; (offset < urisz) && ((char)uri[offset] != ';'); offset++);
 	}
 after_proto:
 	if (offset == urisz)
 		return 0; /* Finished */
 	
-	TRACE_DEBUG(INFO, "Invalid DiameterURI: string is not recognized ('%.*s'), ignored.", urisz - offset, uri + offset);
-	return 0;
+	TRACE_DEBUG(INFO, "Invalid DiameterURI: final part of string is not recognized ('%.*s').", urisz - offset, uri + offset);
+	return EINVAL;
 }
 
 
