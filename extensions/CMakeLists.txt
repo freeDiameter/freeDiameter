@@ -57,6 +57,8 @@ FD_EXTENSION_SUBDIR(app_diameap "Diameter EAP Application server (RFC 4072)" 			
 FD_EXTENSION_SUBDIR(app_radgw   "RADIUS/Diameter gateway translation - RADIUS client to Diameter server" 	OFF)
 FD_EXTENSION_SUBDIR(app_sip     "Diameter SIP Authentication and Authorization server (RFC 4740)" 		OFF)
 
+FD_EXTENSION_SUBDIR(app_redirect "Diameter Redirect server: send configurable Redirect indications to other peers" OFF)
+
 
 ####
 # Routing extensions
