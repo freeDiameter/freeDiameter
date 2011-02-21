@@ -261,9 +261,7 @@ static int compare_match(char * str, size_t len, struct match_data * md, int * r
 	{
 		/* We have to create a copy of the string in this case */
 		char *mystrcpy;
-		CHECK_MALLOC( mystrcpy = malloc(len + 1) );
-		memcpy(mystrcpy, str, len);
-		mystrcpy[len] = '\0';
+		CHECK_MALLOC( mystrcpy = os0dup(str, len) );
 		err = regexec(&md->preg, mystrcpy, 0, NULL, 0);
 		free(mystrcpy);
 	}
