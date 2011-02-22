@@ -819,6 +819,11 @@ int fd_p_ce_process_receiver(struct fd_peer * peer)
 		}
 	}
 	
+	/* Save the credentials if handshake already occurred */
+	if ( fd_cnx_getTLS(peer->p_cnxctx) ) {
+		CHECK_FCT( fd_cnx_getcred(peer->p_cnxctx, &peer->p_hdr.info.runtime.pir_cert_list, &peer->p_hdr.info.runtime.pir_cert_list_size) );
+	}
+	
 	/* Validate the peer if needed */
 	if (peer->p_flags.pf_responder) {
 		int res = fd_peer_validate( peer );

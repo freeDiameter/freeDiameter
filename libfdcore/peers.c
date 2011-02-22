@@ -456,7 +456,7 @@ int fd_peer_handle_newCER( struct msg ** cer, struct cnxctx ** cnx )
 	
 	/* First, check if the Origin-Host value  */
 	if (!fd_os_is_valid_DiameterIdentity(avp_hdr->avp_value->os.data, avp_hdr->avp_value->os.len)) {
-		TRACE_DEBUG(INFO, "Received new CER with invalid \\0 in its Origin-Host");
+		TRACE_DEBUG(INFO, "Received new CER with invalid Origin-Host");
 		CHECK_FCT( fd_msg_new_answer_from_req ( fd_g_config->cnf_dict, cer, MSGFL_ANSW_ERROR ) );
 		CHECK_FCT( fd_msg_rescode_set(*cer, "ER_DIAMETER_INVALID_AVP_VALUE", 
 							"Your Origin-Host contains invalid characters.", avp_oh, 1 ) );
