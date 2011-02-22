@@ -102,16 +102,16 @@ static int str_match(struct ard_criteria * c, uint8_t *s, size_t l, int is0term,
 		memset(pmatch, 0, sizeof(pmatch));
 		pmatch[0].rm_so = 0;
 		pmatch[0].rm_eo = l;
-		err = regexec(&c->preg, s, 0, pmatch, REG_STARTEND);
+		err = regexec(&c->preg, (char *)s, 0, pmatch, REG_STARTEND);
 #else /* HAVE_REG_STARTEND */
 		if (!is0term) {
 			/* We have to create a copy of the string in this case */
 			char *mystrcpy;
-			CHECK_MALLOC( mystrcpy = os0dup(s, l) );
+			CHECK_MALLOC( mystrcpy = (char *)os0dup(s, l) );
 			err = regexec(&c->preg, mystrcpy, 0, NULL, 0);
 			free(mystrcpy);
 		} else {
-			err = regexec(&c->preg, s, 0, NULL, 0);
+			err = regexec(&c->preg, (char *)s, 0, NULL, 0);
 		}
 #endif /* HAVE_REG_STARTEND */
 		
@@ -183,12 +183,12 @@ static int find_rule(struct msg * msg, struct ard_rule ** found)
 					break;
 					
 				case FROM_ID:
-					CHECK_FCT( str_match(c, phdr->info.pi_diamid, phdr->info.pi_diamidlen, 1, &is_match) );
+					CHECK_FCT( str_match(c, (uint8_t *)phdr->info.pi_diamid, phdr->info.pi_diamidlen, 1, &is_match) );
 					break;
 				
 				case FROM_REALM:
 					if (phdr->info.runtime.pir_realm) {
-						CHECK_FCT( str_match(c, phdr->info.runtime.pir_realm, phdr->info.runtime.pir_realmlen, 1, &is_match) );
+						CHECK_FCT( str_match(c, (uint8_t *)phdr->info.runtime.pir_realm, phdr->info.runtime.pir_realmlen, 1, &is_match) );
 					} else {
 						/* since we don't have the realm it was received from, assume it does not match */
 						TRACE_DEBUG(INFO, "Missing realm info for peer '%s', skipping rule %p", phdr->info.pi_diamid, r);
