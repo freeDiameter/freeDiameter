@@ -41,7 +41,7 @@ The steps are:
  	dch -lfD "Added support for Diameter over TLS over SCTP"
 	
  - Create a new package, this might take a while
-	debian/rules binary
+	fakeroot debian/rules binary
 
  - Install the modified version
  	sudo dpkg --install ../wireshark-common_*fD*.deb ../wireshark_*fD*.deb
