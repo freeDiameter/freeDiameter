@@ -76,7 +76,7 @@
 	TRACE_DEBUG(INFO, "Test passed");		\
 	(void)fd_core_shutdown();			\
 	(void)fd_core_wait_shutdown_complete();		\
-	(void)fd_thr_term(&timeout_thr);		\
+	(void)fd_thr_term(&signal_thr);			\
 	exit(PASS);					\
 }
 
@@ -104,18 +104,23 @@ struct fd_config * fd_g_config = &conf;
 	}}						\
 }
 
-static pthread_t timeout_thr;
-static void * timeout_catch(void * arg)
+static pthread_t signal_thr;
+static void * signal_catch(void * arg)
 {
 	int sig;
 	sigset_t ss;
-	fd_log_threadname ( "Test alarm catcher" );
+	fd_log_threadname ( "Signal catcher" );
 	
 	sigemptyset(&ss);
+	
+	/* We use SIGALRM */
 	sigaddset(&ss, SIGALRM);
 	
-	CHECK_POSIX_DO( sigwait(&ss, &sig),  );
+	/* Unblock any other signal for this thread, so that default handler is enabled */
+	CHECK_SYS_DO( pthread_sigmask( SIG_SETMASK, &ss, NULL ), );
 	
+	/* Now wait for sigwait or cancelation */
+	CHECK_POSIX_DO( sigwait(&ss, &sig),  );
 	FAILTEST("The timeout (" _stringize(TEST_TIMEOUT) " sec) was reached. Use -n or change TEST_TIMEOUT if the test needs more time to execute.");
 	
 	return NULL;
@@ -164,17 +169,25 @@ static inline void parse_cmdline(int argc, char * argv[]) {
 	fd_g_debug_lvl = (test_verbo > 0) ? (test_verbo - 1) : 0;
 	if (!no_timeout) {
 		alarm(TEST_TIMEOUT);
-		CHECK( 0, pthread_create(&timeout_thr, NULL, timeout_catch, NULL) );
 	}
+	CHECK( 0, pthread_create(&signal_thr, NULL, signal_catch, NULL) );
 }
  
 static inline void test_init(int argc, char * argv[], char *fname)
 {
+	sigset_t sig_all;
+	sigfillset(&sig_all);
+	
+	CHECK( 0, pthread_sigmask(SIG_BLOCK, &sig_all, NULL));
+	
 	memset(fd_g_config, 0, sizeof(struct fd_config));
 	
 	CHECK( 0, fd_libproto_init() );
 	
 	fd_log_threadname(basename(fname));
+	
+	/* Parse the command line */
+	parse_cmdline(argc, argv);
 	
 	/* Initialize gcrypt and gnutls */
 	(void) gcry_control (GCRYCTL_SET_THREAD_CBS, &gcry_threads_pthread);
@@ -192,9 +205,6 @@ static inline void test_init(int argc, char * argv[], char *fname)
 	
 	/* Initialize only the sessions */
 	CHECK( 0, fd_sess_start()  );
-	
-	/* Parse the command line */
-	parse_cmdline(argc, argv);
 	
 	return;
 }

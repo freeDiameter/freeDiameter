@@ -77,6 +77,8 @@ int main(int argc, char *argv[])
 			aip = aip->ai_next;
 		};
 		freeaddrinfo(ai);
+		
+		CHECK( 0, FD_IS_LIST_EMPTY(&eps) ? 1 : 0 );
 	}
 	
 	memset(&cli, 0, sizeof(cli));

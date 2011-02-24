@@ -465,15 +465,54 @@ static char notrust_priv_data[]="-----BEGIN RSA PRIVATE KEY-----\n"
 				"9Axy6Ee66Php+eWDNP4Ln4axrapD0732wD8DcmGDVHij\n"
 				"-----END RSA PRIVATE KEY-----\n";
 
+/* Diffie-Hellman parameters, generated with GNUTLS certtool:
+certtool --generate-dh-params
+				Generator: 06
 
-struct fd_list eps = FD_LIST_INITIALIZER(eps);
+				Prime: ea:c3:75:0b:32:cf:d9:17:98:5c:da:d1
+					e0:1d:b9:7c:be:29:60:b0:6f:68:a9:f6
+					8d:75:05:59:69:04:ae:39:7c:2b:74:04
+					3c:e2:da:28:8a:9b:93:aa:67:05:a7:3e
+					06:3e:0d:31:63:88:55:ad:5a:bd:41:22
+					b7:58:a7:45:b3:d5:03:ad:de:3c:8d:69
+					42:bf:84:3d:c1:90:e7:39:6a:4b:87:01
+					19:e5:f3:a4:e5:8e:e2:45:d5:0c:6b:17
+					22:2b:2e:50:83:91:0c:5b:82:fc:72:27
+					49:3b:9f:29:11:53:c7:90:b8:8d:87:73
+					1a:7b:05:ab:cb:30:59:16:71:30:60:1b
+					4c:80:15:3a:a2:d3:47:b7:4a:61:de:64
+					7e:79:de:88:53:b7:7a:c6:a2:9a:bb:55
+					40:2d:7a:71:c7:41:b5:29:df:d7:5c:fb
+					42:e4:d8:5e:0b:99:d3:3c:93:0f:33:51
+					8b:f4:60:e4:c5:b5:58:21:c0:51:c4:43
+					25:7c:37:fe:5c:d3:62:6c:2a:af:a7:2a
+					82:d5:d3:e2:bb:5d:ad:84:15:f6:78:d9
+					d5:a8:f7:f0:48:5c:8d:e0:3d:04:ac:cf
+					aa:34:3f:5d:f2:0d:3d:ee:ec:b8:d8:e8
+					ad:dc:d3:40:59:a0:fd:45:62:47:63:c0
+					bd:f5:df:8b
+*/
+static char dh_params_data[] =  "-----BEGIN DH PARAMETERS-----\n"
+				"MIIBCAKCAQEA6sN1CzLP2ReYXNrR4B25fL4pYLBvaKn2jXUFWWkErjl8K3QEPOLa\n"
+				"KIqbk6pnBac+Bj4NMWOIVa1avUEit1inRbPVA63ePI1pQr+EPcGQ5zlqS4cBGeXz\n"
+				"pOWO4kXVDGsXIisuUIORDFuC/HInSTufKRFTx5C4jYdzGnsFq8swWRZxMGAbTIAV\n"
+				"OqLTR7dKYd5kfnneiFO3esaimrtVQC16ccdBtSnf11z7QuTYXguZ0zyTDzNRi/Rg\n"
+				"5MW1WCHAUcRDJXw3/lzTYmwqr6cqgtXT4rtdrYQV9njZ1aj38EhcjeA9BKzPqjQ/\n"
+				"XfINPe7suNjordzTQFmg/UViR2PAvfXfiwIBBg==\n"
+				"-----END DH PARAMETERS-----\n";
 
+
+/* List server endpoints */
+static struct fd_list eps = FD_LIST_INITIALIZER(eps);
+
+/* Pass parameters to the connect thread */
 struct connect_flags {
 	int	proto;
 	int	expect_failure; /* 0 or 1 */
 };
 
-void * connect_thr(void * arg)
+/* Client's side of the connection established from a separate thread */
+static void * connect_thr(void * arg)
 {
 	struct connect_flags * cf = arg;
 	struct cnxctx * cnx = NULL;
@@ -505,21 +544,24 @@ void * connect_thr(void * arg)
 	return cnx;
 }
 
+/* Parameters to the handshake thread */
 struct handshake_flags {
 	struct cnxctx * cnx;
 	gnutls_certificate_credentials_t	creds;
 	int ret;
 };
 
-void * handshake_thr(void * arg)
+/* Handshake the client's side */
+static void * handshake_thr(void * arg)
 {
 	struct handshake_flags * hf = arg;
 	fd_log_threadname ( "testcnx:handshake" );
 	hf->ret = fd_cnx_handshake(hf->cnx, GNUTLS_CLIENT, NULL, hf->creds);
 	return NULL;
 }
-	
-void * destroy_thr(void * arg)
+
+/* Terminate the client's connection side */
+static void * destroy_thr(void * arg)
 {
 	struct cnxctx * cnx = arg;
 	fd_log_threadname ( "testcnx:destroy" );
@@ -540,13 +582,18 @@ int main(int argc, char *argv[])
 	gnutls_datum_t notrust_ca 	= { (uint8_t *)notrust_ca_data, 	sizeof(notrust_ca_data)   };
 	gnutls_datum_t notrust_cert 	= { (uint8_t *)notrust_cert_data, 	sizeof(notrust_cert_data) };
 	gnutls_datum_t notrust_priv 	= { (uint8_t *)notrust_priv_data, 	sizeof(notrust_priv_data) };
+	gnutls_datum_t dh_params	= { (uint8_t *)dh_params_data, 		sizeof(dh_params_data) 	  };
 	
+	/* Listening socket, server side */
 	struct cnxctx * listener;
 #ifndef DISABLE_SCTP
 	struct cnxctx * listener_sctp;
 #endif /* DISABLE_SCTP */
+	
+	/* Server & client connected sockets */
 	struct cnxctx * server_side;
 	struct cnxctx * client_side;
+	
 	pthread_t thr;
 	int ret, i;
 	uint8_t * cer_buf;
@@ -578,10 +625,11 @@ int main(int argc, char *argv[])
 	CHECK( GNUTLS_E_SUCCESS, ret );
 	
 	/* Set default DH params */
-	CHECK_GNUTLS_DO( ret = gnutls_dh_params_generate2( fd_g_config->cnf_sec_data.dh_cache, GNUTLS_DEFAULT_DHBITS), );
+	CHECK_GNUTLS_DO( ret = gnutls_dh_params_import_pkcs3( fd_g_config->cnf_sec_data.dh_cache, &dh_params, GNUTLS_X509_FMT_PEM), );
 	CHECK( GNUTLS_E_SUCCESS, ret );
 	
-	/* Initialize the server addresses */
+	
+	/* Initialize the server address (this should give a safe loopback address + port, even on non-standard configs) */
 	{
 		struct addrinfo hints, *ai, *aip;
 		memset(&hints, 0, sizeof(hints));
@@ -594,6 +642,8 @@ int main(int argc, char *argv[])
 			aip = aip->ai_next;
 		};
 		freeaddrinfo(ai);
+		
+		CHECK( 0, FD_IS_LIST_EMPTY(&eps) ? 1 : 0 );
 	}
 	
 	/* Start the server(s) */
@@ -646,7 +696,7 @@ int main(int argc, char *argv[])
 		fd_log_debug("Dumping CER\n");
 		fd_msg_dump_walk(0, cer);
 		#endif
-			
+		
 		CHECK( 0, fd_msg_bufferize( cer, &cer_buf, &cer_sz ) );
 		CHECK( 0, fd_msg_free(cer) );
 	}
@@ -659,7 +709,7 @@ int main(int argc, char *argv[])
 		cf.proto = IPPROTO_TCP;
 		
 		/* Start the client thread */
-		CHECK( 0, pthread_create(&thr, 0, connect_thr, &cf) );
+		CHECK( 0, pthread_create(&thr, NULL, connect_thr, &cf) );
 
 		/* Accept the connection of the client */
 		server_side = fd_cnx_serv_accept(listener);
@@ -685,7 +735,7 @@ int main(int argc, char *argv[])
 		CHECK( 0, memcmp( rcv_buf, cer_buf, cer_sz ) );
 		free(rcv_buf);
 		
-		/* Now close the connection */
+		/* Now close the connections */
 		fd_cnx_destroy(client_side);
 		fd_cnx_destroy(server_side);
 	}
@@ -699,7 +749,7 @@ int main(int argc, char *argv[])
 		cf.proto = IPPROTO_SCTP;
 		
 		/* Start the client thread */
-		CHECK( 0, pthread_create(&thr, 0, connect_thr, &cf) );
+		CHECK( 0, pthread_create(&thr, NULL, connect_thr, &cf) );
 
 		/* Accept the connection of the client */
 		server_side = fd_cnx_serv_accept(listener_sctp);
@@ -761,7 +811,7 @@ int main(int argc, char *argv[])
 		CHECK( GNUTLS_E_SUCCESS, ret );
 		
 		/* Start the client thread */
-		CHECK( 0, pthread_create(&thr, 0, connect_thr, &cf) );
+		CHECK( 0, pthread_create(&thr, NULL, connect_thr, &cf) );
 
 		/* Accept the connection of the client */
 		server_side = fd_cnx_serv_accept(listener);
@@ -792,7 +842,7 @@ int main(int argc, char *argv[])
 		free(rcv_buf);
 		
 		/* At this point in legacy Diameter we start the handshake */
-		CHECK( 0, pthread_create(&thr, 0, handshake_thr, &hf) );
+		CHECK( 0, pthread_create(&thr, NULL, handshake_thr, &hf) );
 		CHECK( 0, fd_cnx_handshake(server_side, GNUTLS_SERVER, NULL, NULL) );
 		CHECK( 0, pthread_join(thr, NULL) );
 		CHECK( 0, hf.ret );
@@ -814,7 +864,7 @@ int main(int argc, char *argv[])
 		
 		
 		/* Now close the connection */
-		CHECK( 0, pthread_create(&thr, 0, destroy_thr, client_side) );
+		CHECK( 0, pthread_create(&thr, NULL, destroy_thr, client_side) );
 		fd_cnx_destroy(server_side);
 		CHECK( 0, pthread_join(thr, NULL) );
 		
@@ -846,7 +896,7 @@ int main(int argc, char *argv[])
 		CHECK( GNUTLS_E_SUCCESS, ret );
 		
 		/* Start the client thread */
-		CHECK( 0, pthread_create(&thr, 0, connect_thr, &cf) );
+		CHECK( 0, pthread_create(&thr, NULL, connect_thr, &cf) );
 
 		/* Accept the connection of the client */
 		server_side = fd_cnx_serv_accept(listener_sctp);
@@ -877,7 +927,7 @@ int main(int argc, char *argv[])
 		free(rcv_buf);
 		
 		/* At this point in legacy Diameter we start the handshake */
-		CHECK( 0, pthread_create(&thr, 0, handshake_thr, &hf) );
+		CHECK( 0, pthread_create(&thr, NULL, handshake_thr, &hf) );
 		CHECK( 0, fd_cnx_handshake(server_side, GNUTLS_SERVER, NULL, NULL) );
 		CHECK( 0, pthread_join(thr, NULL) );
 		CHECK( 0, hf.ret );
@@ -899,7 +949,7 @@ int main(int argc, char *argv[])
 		
 		
 		/* Now close the connection */
-		CHECK( 0, pthread_create(&thr, 0, destroy_thr, client_side) );
+		CHECK( 0, pthread_create(&thr, NULL, destroy_thr, client_side) );
 		fd_cnx_destroy(server_side);
 		CHECK( 0, pthread_join(thr, NULL) );
 		
@@ -931,7 +981,7 @@ int main(int argc, char *argv[])
 		CHECK( GNUTLS_E_SUCCESS, ret );
 		
 		/* Start the client thread */
-		CHECK( 0, pthread_create(&thr, 0, connect_thr, &cf) );
+		CHECK( 0, pthread_create(&thr, NULL, connect_thr, &cf) );
 
 		/* Accept the connection of the client */
 		server_side = fd_cnx_serv_accept(listener);
@@ -943,7 +993,7 @@ int main(int argc, char *argv[])
 		hf.cnx = client_side;
 		
 		/* Start the handshake directly */
-		CHECK( 0, pthread_create(&thr, 0, handshake_thr, &hf) );
+		CHECK( 0, pthread_create(&thr, NULL, handshake_thr, &hf) );
 		CHECK( 0, fd_cnx_handshake(server_side, GNUTLS_SERVER, NULL, NULL) );
 		CHECK( 0, pthread_join(thr, NULL) );
 		CHECK( 0, hf.ret );
@@ -964,7 +1014,7 @@ int main(int argc, char *argv[])
 		}
 		
 		/* Now close the connection */
-		CHECK( 0, pthread_create(&thr, 0, destroy_thr, client_side) );
+		CHECK( 0, pthread_create(&thr, NULL, destroy_thr, client_side) );
 		fd_cnx_destroy(server_side);
 		CHECK( 0, pthread_join(thr, NULL) );
 		
@@ -996,7 +1046,7 @@ int main(int argc, char *argv[])
 		CHECK( GNUTLS_E_SUCCESS, ret );
 		
 		/* Start the client thread */
-		CHECK( 0, pthread_create(&thr, 0, connect_thr, &cf) );
+		CHECK( 0, pthread_create(&thr, NULL, connect_thr, &cf) );
 
 		/* Accept the connection of the client */
 		server_side = fd_cnx_serv_accept(listener_sctp);
@@ -1008,12 +1058,12 @@ int main(int argc, char *argv[])
 		hf.cnx = client_side;
 		
 		/* Start the handshake directly */
-		CHECK( 0, pthread_create(&thr, 0, handshake_thr, &hf) );
+		CHECK( 0, pthread_create(&thr, NULL, handshake_thr, &hf) );
 		CHECK( 0, fd_cnx_handshake(server_side, GNUTLS_SERVER, NULL, NULL) );
 		CHECK( 0, pthread_join(thr, NULL) );
 		CHECK( 0, hf.ret );
 		
-		/* Send a few TLS protected message, and replies */
+		/* Send a few TLS protected messages, and replies */
 		for (i = 0; i < 2 * NB_STREAMS; i++) {
 			CHECK( 0, fd_cnx_send(server_side, cer_buf, cer_sz, 0));
 			CHECK( 0, fd_cnx_receive(client_side, NULL, &rcv_buf, &rcv_sz));
@@ -1030,7 +1080,7 @@ int main(int argc, char *argv[])
 		
 		
 		/* Now close the connection */
-		CHECK( 0, pthread_create(&thr, 0, destroy_thr, client_side) );
+		CHECK( 0, pthread_create(&thr, NULL, destroy_thr, client_side) );
 		fd_cnx_destroy(server_side);
 		CHECK( 0, pthread_join(thr, NULL) );
 		
@@ -1064,7 +1114,7 @@ int main(int argc, char *argv[])
 		
 		/* Start the client thread with more streams than the server */
 		fd_g_config->cnf_sctp_str = 2 * NB_STREAMS;
-		CHECK( 0, pthread_create(&thr, 0, connect_thr, &cf) );
+		CHECK( 0, pthread_create(&thr, NULL, connect_thr, &cf) );
 
 		/* Accept the connection of the client */
 		server_side = fd_cnx_serv_accept(listener_sctp);
@@ -1076,7 +1126,7 @@ int main(int argc, char *argv[])
 		hf.cnx = client_side;
 		
 		/* Start the handshake directly */
-		CHECK( 0, pthread_create(&thr, 0, handshake_thr, &hf) );
+		CHECK( 0, pthread_create(&thr, NULL, handshake_thr, &hf) );
 		CHECK( 0, fd_cnx_handshake(server_side, GNUTLS_SERVER, NULL, NULL) );
 		CHECK( 0, pthread_join(thr, NULL) );
 		CHECK( 0, hf.ret );
@@ -1097,13 +1147,13 @@ int main(int argc, char *argv[])
 		}
 		
 		/* Now close the connection */
-		CHECK( 0, pthread_create(&thr, 0, destroy_thr, client_side) );
+		CHECK( 0, pthread_create(&thr, NULL, destroy_thr, client_side) );
 		fd_cnx_destroy(server_side);
 		CHECK( 0, pthread_join(thr, NULL) );
 		
 		/* Do the same test but with more streams on the server this time */
 		fd_g_config->cnf_sctp_str = NB_STREAMS / 2;
-		CHECK( 0, pthread_create(&thr, 0, connect_thr, &cf) );
+		CHECK( 0, pthread_create(&thr, NULL, connect_thr, &cf) );
 
 		/* Accept the connection of the client */
 		server_side = fd_cnx_serv_accept(listener_sctp);
@@ -1115,7 +1165,7 @@ int main(int argc, char *argv[])
 		hf.cnx = client_side;
 		
 		/* Start the handshake directly */
-		CHECK( 0, pthread_create(&thr, 0, handshake_thr, &hf) );
+		CHECK( 0, pthread_create(&thr, NULL, handshake_thr, &hf) );
 		CHECK( 0, fd_cnx_handshake(server_side, GNUTLS_SERVER, NULL, NULL) );
 		CHECK( 0, pthread_join(thr, NULL) );
 		CHECK( 0, hf.ret );
@@ -1136,7 +1186,7 @@ int main(int argc, char *argv[])
 		}
 		
 		/* Now close the connection */
-		CHECK( 0, pthread_create(&thr, 0, destroy_thr, client_side) );
+		CHECK( 0, pthread_create(&thr, NULL, destroy_thr, client_side) );
 		fd_cnx_destroy(server_side);
 		CHECK( 0, pthread_join(thr, NULL) );
 		
@@ -1173,7 +1223,7 @@ int main(int argc, char *argv[])
 		CHECK( GNUTLS_E_SUCCESS, ret );
 		
 		/* Start the client thread */
-		CHECK( 0, pthread_create(&thr, 0, connect_thr, &cf) );
+		CHECK( 0, pthread_create(&thr, NULL, connect_thr, &cf) );
 
 		/* Accept the connection of the client */
 		server_side = fd_cnx_serv_accept(listener);
@@ -1185,12 +1235,12 @@ int main(int argc, char *argv[])
 		hf.cnx = client_side;
 		
 		/* Start the handshake directly */
-		CHECK( 0, pthread_create(&thr, 0, handshake_thr, &hf) );
+		CHECK( 0, pthread_create(&thr, NULL, handshake_thr, &hf) );
 		CHECK( EINVAL, fd_cnx_handshake(server_side, GNUTLS_SERVER, NULL, NULL) );
 		CHECK( 0, pthread_join(thr, NULL) );
 		
 		/* Now close the connection */
-		CHECK( 0, pthread_create(&thr, 0, destroy_thr, client_side) );
+		CHECK( 0, pthread_create(&thr, NULL, destroy_thr, client_side) );
 		fd_cnx_destroy(server_side);
 		CHECK( 0, pthread_join(thr, NULL) );
 		
@@ -1223,7 +1273,7 @@ int main(int argc, char *argv[])
 		CHECK( GNUTLS_E_SUCCESS, ret );
 		
 		/* Start the client thread */
-		CHECK( 0, pthread_create(&thr, 0, connect_thr, &cf) );
+		CHECK( 0, pthread_create(&thr, NULL, connect_thr, &cf) );
 
 		/* Accept the connection of the client */
 		server_side = fd_cnx_serv_accept(listener_sctp);
@@ -1235,12 +1285,12 @@ int main(int argc, char *argv[])
 		hf.cnx = client_side;
 		
 		/* Start the handshake directly */
-		CHECK( 0, pthread_create(&thr, 0, handshake_thr, &hf) );
+		CHECK( 0, pthread_create(&thr, NULL, handshake_thr, &hf) );
 		CHECK( EINVAL, fd_cnx_handshake(server_side, GNUTLS_SERVER, NULL, NULL) );
 		CHECK( 0, pthread_join(thr, NULL) );
 		
 		/* Now close the connection */
-		CHECK( 0, pthread_create(&thr, 0, destroy_thr, client_side) );
+		CHECK( 0, pthread_create(&thr, NULL, destroy_thr, client_side) );
 		fd_cnx_destroy(server_side);
 		CHECK( 0, pthread_join(thr, NULL) );
 		
@@ -1272,7 +1322,7 @@ int main(int argc, char *argv[])
 		CHECK( GNUTLS_E_SUCCESS, ret );
 		
 		/* Start the client thread */
-		CHECK( 0, pthread_create(&thr, 0, connect_thr, &cf) );
+		CHECK( 0, pthread_create(&thr, NULL, connect_thr, &cf) );
 
 		/* Accept the connection of the client */
 		server_side = fd_cnx_serv_accept(listener);
@@ -1284,12 +1334,12 @@ int main(int argc, char *argv[])
 		hf.cnx = client_side;
 		
 		/* Start the handshake directly */
-		CHECK( 0, pthread_create(&thr, 0, handshake_thr, &hf) );
+		CHECK( 0, pthread_create(&thr, NULL, handshake_thr, &hf) );
 		CHECK( EINVAL, fd_cnx_handshake(server_side, GNUTLS_SERVER, NULL, NULL) );
 		CHECK( 0, pthread_join(thr, NULL) );
 		
 		/* Now close the connection */
-		CHECK( 0, pthread_create(&thr, 0, destroy_thr, client_side) );
+		CHECK( 0, pthread_create(&thr, NULL, destroy_thr, client_side) );
 		fd_cnx_destroy(server_side);
 		CHECK( 0, pthread_join(thr, NULL) );
 		
@@ -1321,7 +1371,7 @@ int main(int argc, char *argv[])
 		CHECK( GNUTLS_E_SUCCESS, ret );
 		
 		/* Start the client thread */
-		CHECK( 0, pthread_create(&thr, 0, connect_thr, &cf) );
+		CHECK( 0, pthread_create(&thr, NULL, connect_thr, &cf) );
 
 		/* Accept the connection of the client */
 		server_side = fd_cnx_serv_accept(listener);
@@ -1336,18 +1386,18 @@ int main(int argc, char *argv[])
 		fd_cnx_sethostname(server_side, "client.test");
 		
 		/* Start the handshake, check it is successful */
-		CHECK( 0, pthread_create(&thr, 0, handshake_thr, &hf) );
+		CHECK( 0, pthread_create(&thr, NULL, handshake_thr, &hf) );
 		CHECK( 0, fd_cnx_handshake(server_side, GNUTLS_SERVER, NULL, NULL) );
 		CHECK( 0, pthread_join(thr, NULL) );
 		CHECK( 0, hf.ret );
 		
 		/* Now close the connection */
-		CHECK( 0, pthread_create(&thr, 0, destroy_thr, client_side) );
+		CHECK( 0, pthread_create(&thr, NULL, destroy_thr, client_side) );
 		fd_cnx_destroy(server_side);
 		CHECK( 0, pthread_join(thr, NULL) );
 		
 		/* Do it again with an invalid hostname */
-		CHECK( 0, pthread_create(&thr, 0, connect_thr, &cf) );
+		CHECK( 0, pthread_create(&thr, NULL, connect_thr, &cf) );
 
 		/* Accept the connection of the client */
 		server_side = fd_cnx_serv_accept(listener);
@@ -1362,12 +1412,12 @@ int main(int argc, char *argv[])
 		fd_cnx_sethostname(server_side, "nomatch.test");
 		
 		/* Start the handshake, check it is successful */
-		CHECK( 0, pthread_create(&thr, 0, handshake_thr, &hf) );
+		CHECK( 0, pthread_create(&thr, NULL, handshake_thr, &hf) );
 		CHECK( EINVAL, fd_cnx_handshake(server_side, GNUTLS_SERVER, NULL, NULL) );
 		CHECK( 0, pthread_join(thr, NULL) );
 		
 		/* Now close the connection */
-		CHECK( 0, pthread_create(&thr, 0, destroy_thr, client_side) );
+		CHECK( 0, pthread_create(&thr, NULL, destroy_thr, client_side) );
 		fd_cnx_destroy(server_side);
 		CHECK( 0, pthread_join(thr, NULL) );
 		
@@ -1404,7 +1454,7 @@ int main(int argc, char *argv[])
 		CHECK( GNUTLS_E_SUCCESS, ret );
 		
 		/* Start the client thread */
-		CHECK( 0, pthread_create(&thr, 0, connect_thr, &cf) );
+		CHECK( 0, pthread_create(&thr, NULL, connect_thr, &cf) );
 
 		/* Accept the connection of the client */
 		server_side = fd_cnx_serv_accept(listener);
@@ -1416,7 +1466,7 @@ int main(int argc, char *argv[])
 		hf.cnx = client_side;
 		
 		/* Start the handshake */
-		CHECK( 0, pthread_create(&thr, 0, handshake_thr, &hf) );
+		CHECK( 0, pthread_create(&thr, NULL, handshake_thr, &hf) );
 		CHECK( 0, fd_cnx_handshake(server_side, GNUTLS_SERVER, NULL, NULL) );
 		CHECK( 0, pthread_join(thr, NULL) );
 		CHECK( 0, hf.ret );
@@ -1458,7 +1508,7 @@ int main(int argc, char *argv[])
 		fd_event_destroy(&myfifo, free);
 		
 		/* Now close the connection */
-		CHECK( 0, pthread_create(&thr, 0, destroy_thr, client_side) );
+		CHECK( 0, pthread_create(&thr, NULL, destroy_thr, client_side) );
 		fd_cnx_destroy(server_side);
 		CHECK( 0, pthread_join(thr, NULL) );
 		
@@ -1496,7 +1546,7 @@ int main(int argc, char *argv[])
 		CHECK( GNUTLS_E_SUCCESS, ret );
 		
 		/* Start the client thread */
-		CHECK( 0, pthread_create(&thr, 0, connect_thr, &cf) );
+		CHECK( 0, pthread_create(&thr, NULL, connect_thr, &cf) );
 
 		/* Accept the connection of the client */
 		server_side = fd_cnx_serv_accept(listener_sctp);
@@ -1508,7 +1558,7 @@ int main(int argc, char *argv[])
 		hf.cnx = client_side;
 		
 		/* Start the handshake */
-		CHECK( 0, pthread_create(&thr, 0, handshake_thr, &hf) );
+		CHECK( 0, pthread_create(&thr, NULL, handshake_thr, &hf) );
 		CHECK( 0, fd_cnx_handshake(server_side, GNUTLS_SERVER, NULL, NULL) );
 		CHECK( 0, pthread_join(thr, NULL) );
 		CHECK( 0, hf.ret );
@@ -1549,7 +1599,7 @@ int main(int argc, char *argv[])
 		} while (ev_code != FDEVP_CNX_MSG_RECV);
 		
 		/* Now close the connection */
-		CHECK( 0, pthread_create(&thr, 0, destroy_thr, client_side) );
+		CHECK( 0, pthread_create(&thr, NULL, destroy_thr, client_side) );
 		fd_cnx_destroy(server_side);
 		CHECK( 0, pthread_join(thr, NULL) );
 		
@@ -1580,7 +1630,7 @@ int main(int argc, char *argv[])
 		cf.expect_failure = 1;
 		
 		/* Start the client thread, that should fail */
-		CHECK( 0, pthread_create(&thr, 0, connect_thr, &cf) );
+		CHECK( 0, pthread_create(&thr, NULL, connect_thr, &cf) );
 		CHECK( 0, pthread_join( thr, (void *)&client_side ) );
 		CHECK( 0, client_side ? 1 : 0 );
 	}
@@ -1594,7 +1644,7 @@ int main(int argc, char *argv[])
 		cf.expect_failure = 1;
 		
 		/* Start the client thread, that should fail */
-		CHECK( 0, pthread_create(&thr, 0, connect_thr, &cf) );
+		CHECK( 0, pthread_create(&thr, NULL, connect_thr, &cf) );
 		CHECK( 0, pthread_join( thr, (void *)&client_side ) );
 		CHECK( 0, client_side ? 1 : 0 );
 	}
