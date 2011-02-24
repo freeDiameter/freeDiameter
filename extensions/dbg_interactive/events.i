@@ -45,8 +45,29 @@
 			return NULL;
 		}
 		fd->code = code;
-		fd->data = STRING; /* Should maybe malloc it ? */
+		fd->data = os0dup(STRING, LENGTH);
+		if (!fd->data) {
+			DI_ERROR_MALLOC;
+			return NULL;
+		};
 		fd->size = LENGTH;
+		return fd;
+	}
+	
+	fd_event(int code, int value) {
+		struct fd_event * fd = calloc(1, sizeof(struct fd_event));
+		if (!fd) {
+			DI_ERROR_MALLOC;
+			return NULL;
+		}
+		fd->code = code;
+		fd->data = malloc(sizeof(int));
+		if (!fd->data) {
+			DI_ERROR_MALLOC;
+			return NULL;
+		};
+		*((int *)fd->data) = value;
+		fd->size = sizeof(int);
 		return fd;
 	}
 }	
