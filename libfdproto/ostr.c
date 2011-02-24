@@ -40,11 +40,12 @@
 #include <idna.h> /* idna_to_ascii_8z() */
 #endif /* !defined(DIAMID_IDNA_IGNORE) && !defined(DIAMID_IDNA_REJECT) */
 
-/* Similar to strdup with (must be verified) os0_t */
+/* Similar to strdup with (must have been verified) os0_t */
 os0_t os0dup_int(os0_t s, size_t l) {
 	os0_t r;
-	CHECK_MALLOC_DO( r = calloc(l+1, 1), return NULL );
+	CHECK_MALLOC_DO( r = malloc(l+1), return NULL );
 	memcpy(r, s, l); /* this might be faster than a strcpy or strdup because it can work with 32 or 64b blocks */
+	r[l] = '\0';
 	return r;
 }
 

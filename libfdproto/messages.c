@@ -1217,12 +1217,11 @@ int fd_msg_avp_setvalue ( struct avp *avp, union avp_value *value )
 	/* Now we have to set the value */
 	memcpy(&avp->avp_storage, value, sizeof(union avp_value));
 	
-	/* Copy an octetstring if needed. */
+	/* Duplicate an octetstring if needed. */
 	if (type == AVP_TYPE_OCTETSTRING) {
 		if (value->os.len) {
-			CHECK_MALLOC(  avp->avp_storage.os.data = malloc(value->os.len)  );
+			CHECK_MALLOC(  avp->avp_storage.os.data = os0dup(value->os.data, value->os.len)  );
 			avp->avp_mustfreeos = 1;
-			memcpy(avp->avp_storage.os.data, value->os.data, value->os.len);
 		} else {
 			avp->avp_storage.os.data = NULL;
 		}

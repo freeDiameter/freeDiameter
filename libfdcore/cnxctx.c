@@ -107,6 +107,7 @@ struct cnxctx * fd_cnx_serv_tcp(uint16_t port, int family, struct fd_endpoint * 
 	CHECK_PARAMS_DO( port, return NULL );
 	CHECK_PARAMS_DO( ep || family, return NULL );
 	CHECK_PARAMS_DO( (! family) || (family == AF_INET) || (family == AF_INET6), return NULL );
+	CHECK_PARAMS_DO( (! ep) || (ep->ss.ss_family == AF_INET) || (ep->ss.ss_family == AF_INET6), return NULL );
 	CHECK_PARAMS_DO( (! ep) || (!family) || (ep->ss.ss_family == family), return NULL );
 
 	/* The connection object */
