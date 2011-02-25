@@ -50,7 +50,7 @@
 
 /* Test timeout duration, unless -n is passed on the command line */
 #ifndef TEST_TIMEOUT
-#define TEST_TIMEOUT	30	/* in seconds */
+#define TEST_TIMEOUT	120	/* in seconds */
 #endif /* TEST_TIMEOUT */
 
 /* Standard includes */
