@@ -45,6 +45,9 @@ struct fd_ext_info {
 	char 		*filename;	/* extension filename. must be a dynamic library with fd_ext_init symbol. */
 	char 		*conffile;	/* optional configuration file name for the extension */
 	void 		*handler;	/* object returned by dlopen() */
+	const char 	**depends;	/* names of the other extensions this one depends on (if provided) */
+	char		*ext_name;	/* points to the extension name, either inside depends, or basename(filename) */
+	int		free_ext_name;	/* must be freed if it was malloc'd */
 	void		(*fini)(void);	/* optional address of the fd_ext_fini callback */
 };
 
@@ -86,6 +89,53 @@ void fd_ext_dump(void)
 	}
 }
 
+/* Check the dependencies. The object must have been dlopened already. */
+static int check_dependencies(struct fd_ext_info * ext) 
+{
+	int i = 1;
+	TRACE_ENTRY( "%p", ext );
+	
+	/* Attempt to resolve the dependency array */
+	ext->depends = dlsym( ext->handler, "fd_ext_depends" );
+	if (!ext->depends) {
+		/* Duplicate the filename */
+		char * tmp = strdup(ext->filename);
+		ext->ext_name = strdup(basename(tmp));
+		free(tmp);
+		ext->free_ext_name = 1;
+		TRACE_DEBUG(FULL, "Old extension's [%s] API: missing dependencies (ignored)", ext->ext_name);
+		return 0;
+	}
+	
+	ext->ext_name = (char *)ext->depends[0];
+	
+	TRACE_DEBUG(FULL, "Checking dependencies for '%s'...", ext->ext_name);
+	
+	while (ext->depends[i]) {
+		struct fd_list * li;
+		for (li = ext_list.next; li != &ext->chain; li = li->next)
+		{
+			struct fd_ext_info * e = (struct fd_ext_info *)li;
+			if (!strcasecmp(e->ext_name, ext->depends[i])) {
+				/* the dependency was already loaded */
+				break;
+			}
+		}
+		
+		if (li == &ext->chain) {
+			/* the dependency was not found */
+			TRACE_DEBUG(NONE, "Error: extension [%s] depends on [%s] which was not loaded first.\nPlease fix your configuration file.",
+				ext->ext_name, ext->depends[i]);
+			return ESRCH;
+		}
+		
+		i++;
+	}
+
+	/* All dependencies resolved successfully */
+	return 0;
+}
+
 /* Load all extensions in the list */
 int fd_ext_load()
 {
@@ -110,9 +160,20 @@ int fd_ext_load()
 #endif /* DEBUG */
 		if (ext->handler == NULL) {
 			/* An error occured */
-			TRACE_DEBUG( NONE, "Loading of extension %s failed:\n %s\n", ext->filename, dlerror());
+			TRACE_DEBUG( NONE, "Loading of extension %s failed:\n %s", ext->filename, dlerror());
+			#ifdef DEBUG
+			ext->handler = dlopen(ext->filename, RTLD_LAZY | RTLD_GLOBAL);
+			if (ext->handler) {
+				if (!check_dependencies(ext)) {
+					TRACE_DEBUG( NONE, "In addition, all declared dependencies are satisfied (Internal Error!)\n");
+				}
+			}
+			#endif /* DEBUG */
 			return EINVAL;
 		}
+		
+		/* Check if declared dependencies are satisfied. */
+		CHECK_FCT( check_dependencies(ext) );
 		
 		/* Resolve the entry point of the extension */
 		fd_ext_init = ( int (*) (int, int, char *) )dlsym( ext->handler, "fd_ext_init" );
@@ -167,21 +228,23 @@ int fd_ext_term( void )
 		
 		/* Call the exit point of the extension, if it was resolved */
 		if (ext->fini != NULL) {
-			TRACE_DEBUG (FULL, "Calling [%s]->fd_ext_fini function.", ext->filename);
+			TRACE_DEBUG (FULL, "Calling [%s]->fd_ext_fini function.", ext->ext_name ?: ext->filename);
 			(*ext->fini)();
 		}
 		
 #ifndef SKIP_DLCLOSE
 		/* Now unload the extension */
 		if (ext->handler) {
-			TRACE_DEBUG (FULL, "Unloading %s", ext->filename);
+			TRACE_DEBUG (FULL, "Unloading %s", ext->ext_name ?: ext->filename);
 			if ( dlclose(ext->handler) != 0 ) {
-				TRACE_DEBUG (INFO, "Unloading [%s] failed : %s\n", ext->filename, dlerror());
+				TRACE_DEBUG (INFO, "Unloading [%s] failed : %s\n", ext->ext_name ?: ext->filename, dlerror());
 			}
 		}
 #endif /* SKIP_DLCLOSE */
 		
 		/* Free the object and continue */
+		if (ext->free_ext_name)
+			free(ext->ext_name);
 		free(ext->filename);
 		free(ext->conffile);
 		free(ext);

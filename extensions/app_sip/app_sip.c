@@ -249,4 +249,4 @@ void fd_ext_fini(void)
 	return ;
 }
 
-EXTENSION_ENTRY("app_sip", as_entry);
+EXTENSION_ENTRY("app_sip", as_entry, "dict_sip");

@@ -527,4 +527,4 @@ static int deap_entry(char * conffile)
 	return 0;
 }
 
-EXTENSION_ENTRY("dict_eap", deap_entry);
+EXTENSION_ENTRY("dict_eap", deap_entry, "dict_nasreq");

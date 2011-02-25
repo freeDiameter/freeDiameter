@@ -41,7 +41,8 @@
 #include <freeDiameter/libfdcore.h>
 
 /* Macro that define the entry point of the extension */
-#define EXTENSION_ENTRY(_name, _function)						\
+#define EXTENSION_ENTRY(_name, _function, _depends...)					\
+const char *fd_ext_depends[] = { _name , ## _depends , NULL };				\
 static int extension_loaded = 0;							\
 int fd_ext_init(int major, int minor, char * conffile) {				\
 	if ((major != FD_PROJECT_VERSION_MAJOR)						\

@@ -83,5 +83,5 @@ void fd_ext_fini(void)
 }
 
 /* Define the entry point */
-EXTENSION_ENTRY("DiamEAP", diameap_main)
+EXTENSION_ENTRY("DiamEAP", diameap_main, "dict_eap")
 ;

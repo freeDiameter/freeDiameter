@@ -239,5 +239,5 @@ void fd_ext_fini(void)
 	return ;
 }
 
-EXTENSION_ENTRY("test_sip", ts_entry);
+EXTENSION_ENTRY("test_sip", ts_entry, "dict_sip");
 
