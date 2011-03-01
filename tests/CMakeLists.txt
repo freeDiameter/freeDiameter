@@ -2,7 +2,7 @@
 PROJECT("freeDiameter tests" C)
 
 # give the possibility to configure the timeout duration for the tests
-OPTION(TEST_TIMEOUT "Timeout for the tests, in seconds (default: 5)?")
+OPTION(TEST_TIMEOUT "Timeout for the tests, in seconds (default: 120)?")
 IF(TEST_TIMEOUT)
 	ADD_DEFINITIONS(-DTEST_TIMEOUT=${TEST_TIMEOUT})
 ENDIF(TEST_TIMEOUT)
