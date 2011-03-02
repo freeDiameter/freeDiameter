@@ -170,7 +170,7 @@ static int apply_rule(struct redir_entry * e, struct msg * msg, struct fd_list *
 		
 		/* Special case: ALL_HOST rules: we decrease the score of the Origin-Host if present */
 		if (e->type == ALL_HOST) {
-			cmp = fd_os_almostcasecmp(cand->diamid, cand->diamidlen, e->data.host.s, e->data.host.l);
+			cmp = fd_os_almostcasesrch(cand->diamid, cand->diamidlen, e->data.host.s, e->data.host.l, NULL);
 			if (!cmp) {
 				TRACE_DEBUG(FULL, "Redirect msg %p: peer '%.*s' += %d (previous ALL_HOST Redirect originated from this peer)", msg, cand->diamidlen, cand->diamid, FD_SCORE_SENT_REDIRECT);
 				cand->score += FD_SCORE_SENT_REDIRECT;
@@ -197,19 +197,20 @@ static int apply_rule(struct redir_entry * e, struct msg * msg, struct fd_list *
 		/* the candidates list is not guaranteed to be ordered at this time, so we cannot avoid the two imbricated loops */
 		struct rtd_candidate * cand = (struct rtd_candidate *) lic;
 		
-		/* Is this candidate in the "Redirect-Host" list ? */
+		/* Is this candidate in the "Redirect-Host" list ? We must search caseinsentive here. */
 		for (lirh = e->target_peers_list.next; lirh != &e->target_peers_list; lirh = lirh->next) {
 			struct redir_host * host = lirh->o;
+			int cont;
 			
-			cmp = fd_os_cmp( cand->diamid, cand->diamidlen, host->id, host->len );
-			
-			if (cmp < 0)
-				break; /* targets are ordered */
+			cmp = fd_os_almostcasesrch( cand->diamid, cand->diamidlen, host->id, host->len, &cont );
 			
 			if (cmp == 0) {
 				TRACE_DEBUG(FULL, "Redirect msg %p: peer '%.*s' += %d (rule t:%d @%p)", msg, cand->diamidlen, cand->diamid, redirects_usages[e->type].score, e->type, e);
 				cand->score += redirects_usages[e->type].score;
+				break;
 			}
+			if (!cont)
+				break;
 		}
 	}
 	

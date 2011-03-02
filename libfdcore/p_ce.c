@@ -303,8 +303,8 @@ static int save_remote_CE_info(struct msg * msg, struct fd_peer * peer, struct f
 				}
 				
 				/* We check that the value matches what we know, otherwise disconnect the peer */
-				if (fd_os_almostcasecmp(hdr->avp_value->os.data, hdr->avp_value->os.len, 
-							peer->p_hdr.info.pi_diamid, peer->p_hdr.info.pi_diamidlen)) {
+				if (fd_os_almostcasesrch(hdr->avp_value->os.data, hdr->avp_value->os.len, 
+							peer->p_hdr.info.pi_diamid, peer->p_hdr.info.pi_diamidlen, NULL)) {
 					TRACE_DEBUG(INFO, "Received a message with Origin-Host set to '%.*s' while expecting '%s'\n", 
 							hdr->avp_value->os.len, hdr->avp_value->os.data, peer->p_hdr.info.pi_diamid);
 					error->pei_errcode = "ER_DIAMETER_AVP_NOT_ALLOWED";
@@ -812,7 +812,7 @@ int fd_p_ce_process_receiver(struct fd_peer * peer)
 	/* Validate the realm if needed */
 	if (peer->p_hdr.info.config.pic_realm) {
 		size_t len = strlen(peer->p_hdr.info.config.pic_realm);
-		if (fd_os_almostcasecmp(peer->p_hdr.info.config.pic_realm, len, peer->p_hdr.info.runtime.pir_realm, peer->p_hdr.info.runtime.pir_realmlen)) {
+		if (fd_os_almostcasesrch(peer->p_hdr.info.config.pic_realm, len, peer->p_hdr.info.runtime.pir_realm, peer->p_hdr.info.runtime.pir_realmlen, NULL)) {
 			TRACE_DEBUG(INFO, "Rejected CER from peer '%s', realm mismatch with configured value (returning DIAMETER_UNKNOWN_PEER).\n", peer->p_hdr.info.pi_diamid);
 			pei.pei_errcode = "DIAMETER_UNKNOWN_PEER"; /* maybe AVP_NOT_ALLOWED would be better fit? */
 			goto error_abort;

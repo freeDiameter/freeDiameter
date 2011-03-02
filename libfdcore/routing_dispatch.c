@@ -273,11 +273,11 @@ static int score_destination_avp(void * cbdata, struct msg * msg, struct fd_list
 	    #endif /* 0 */
 		
 		/* In the AVPs, the value comes from the network, so let's be case permissive */
-		if (dh && !fd_os_almostcasecmp(dh->os.data, dh->os.len, c->diamid, c->diamidlen) ) {
+		if (dh && !fd_os_almostcasesrch(dh->os.data, dh->os.len, c->diamid, c->diamidlen, NULL) ) {
 			/* The candidate is the Destination-Host */
 			c->score += FD_SCORE_FINALDEST;
 		} else {
-			if (dr && !fd_os_almostcasecmp(dr->os.data, dr->os.len, c->realm, c->realmlen) ) {
+			if (dr && !fd_os_almostcasesrch(dr->os.data, dr->os.len, c->realm, c->realmlen, NULL) ) {
 				/* The candidate's realm matchs the Destination-Realm */
 				c->score += FD_SCORE_REALM;
 			}
@@ -591,7 +591,7 @@ static int msg_rt_in(struct msg ** pmsg)
 							} );
 						ASSERT( ahdr->avp_value );
 						/* Compare the Destination-Host AVP of the message with our identity */
-						if (!fd_os_almostcasecmp(ahdr->avp_value->os.data, ahdr->avp_value->os.len, fd_g_config->cnf_diamid, fd_g_config->cnf_diamid_len)) {
+						if (!fd_os_almostcasesrch(ahdr->avp_value->os.data, ahdr->avp_value->os.len, fd_g_config->cnf_diamid, fd_g_config->cnf_diamid_len, NULL)) {
 							is_dest_host = YES;
 						} else {
 							is_dest_host = NO;
@@ -612,7 +612,7 @@ static int msg_rt_in(struct msg ** pmsg)
 						ASSERT( ahdr->avp_value );
 						dr_val = ahdr->avp_value;
 						/* Compare the Destination-Realm AVP of the message with our identity */
-						if (!fd_os_almostcasecmp(dr_val->os.data, dr_val->os.len, fd_g_config->cnf_diamrlm, fd_g_config->cnf_diamrlm_len)) {
+						if (!fd_os_almostcasesrch(dr_val->os.data, dr_val->os.len, fd_g_config->cnf_diamrlm, fd_g_config->cnf_diamrlm_len, NULL)) {
 							is_dest_realm = YES;
 						} else {
 							is_dest_realm = NO;

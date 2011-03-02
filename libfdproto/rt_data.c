@@ -159,8 +159,8 @@ void fd_rtd_candidate_del(struct rt_data * rtd, uint8_t * id, size_t idsz)
 	
 	for (li = rtd->candidates.next; li != &rtd->candidates; li = li->next) {
 		struct rtd_candidate * c = (struct rtd_candidate *) li;
-		
-		int cmp = fd_os_almostcasecmp(id, idsz, c->diamid, c->diamidlen);
+		int cont;
+		int cmp = fd_os_almostcasesrch(id, idsz, c->diamid, c->diamidlen, &cont);
 		
 		if (!cmp) {
 			/* Found it! Remove it */
@@ -171,7 +171,7 @@ void fd_rtd_candidate_del(struct rt_data * rtd, uint8_t * id, size_t idsz)
 			break;
 		}
 		
-		if (cmp > 0)
+		if (cont)
 			continue;
 		
 		/* The list is guaranteed to be ordered only if not extracted */

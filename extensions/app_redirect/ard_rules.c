@@ -93,7 +93,7 @@ static int str_match(struct ard_criteria * c, uint8_t *s, size_t l, int is0term,
 	*match = 0;
 	
 	if (c->is_regex == 0) {
-		if ( ! fd_os_almostcasecmp(c->s, c->sl, s, l) )
+		if ( ! fd_os_almostcasesrch(c->s, c->sl, s, l, NULL) )
 			*match = 1;
 	} else {
 		int err;

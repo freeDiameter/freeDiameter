@@ -620,14 +620,21 @@ int fd_os_cmp_int(os0_t os1, size_t os1sz, os0_t os2, size_t os2sz);
 #define fd_os_cmp(_o1, _l1, _o2, _l2)  fd_os_cmp_int((os0_t)(_o1), _l1, (os0_t)(_o2), _l2)
 
 /* A roughly case-insensitive variant, which actually only compares ASCII chars (0-127) in a case-insentitive maneer 
-  -- this should be OK with (old) DNS names. Not sure how it works with IDN...
-  -- it also clearly does not support locales where a lowercase letter uses more space than upper case, such as ß -> ss
- It is slower than fd_os_cmp... 
- This function should give the same order as fd_os_cmp, except when it finds 2 strings to be equal.
+  -- it does not support locales where a lowercase letter uses more space than upper case, such as ß -> ss
+ It is slower than fd_os_cmp.
  Note that the result is NOT the same as strcasecmp !!!
+ 
+ This function gives the same order as fd_os_cmp, except when it finds 2 strings to be equal.
+ However this is not always sufficient:
+ 	for example fd_os_cmp gives: "Ac" < "aB" < "aa"
+	if you attempt to fd_os_almostcasesrch "Aa" you will actually have to go past "aB" which is > "Aa".
+	Therefore you can use the maybefurther parameter.
+	This parameter is 1 on return if os1 may have been stored further that os2 (assuming os2 values are ordered by fd_os_cmp)
+	and 0 if we are sure that it is not the case.
+	When looping through a list of fd_os_cmp classified values, this parameter must be used to stop looping, in addition to the comp result.
  */
-int fd_os_almostcasecmp_int(uint8_t * os1, size_t os1sz, uint8_t * os2, size_t os2sz);
-#define fd_os_almostcasecmp(_o1, _l1, _o2, _l2)  fd_os_almostcasecmp_int((os0_t)(_o1), _l1, (os0_t)(_o2), _l2)
+int fd_os_almostcasesrch_int(uint8_t * os1, size_t os1sz, uint8_t * os2, size_t os2sz, int * maybefurther);
+#define fd_os_almostcasesrch(_o1, _l1, _o2, _l2, _mb)  fd_os_almostcasesrch_int((os0_t)(_o1), _l1, (os0_t)(_o2), _l2, _mb)
 
 /* Analyze a DiameterURI and return its components. 
   Return EINVAL if the URI is not valid. 

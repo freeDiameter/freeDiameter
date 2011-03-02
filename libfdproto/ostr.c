@@ -68,13 +68,22 @@ static inline uint8_t asciitolower(uint8_t a)
 	return a;
 }
 
-/* a little less sensitive to case, slower. */
-int fd_os_almostcasecmp_int(uint8_t * os1, size_t os1sz, uint8_t * os2, size_t os2sz)
+/* less sensitive to case, slower. */
+int fd_os_almostcasesrch_int(uint8_t * os1, size_t os1sz, uint8_t * os2, size_t os2sz, int *maybefurther)
 {
 	int i;
+	int res = 0;
+	
 	ASSERT( os1 && os2);
+	if (maybefurther)
+		*maybefurther = 0;
+	
 	if (os1sz < os2sz)
 		return -1;
+	
+	if (maybefurther)
+		*maybefurther = 1;
+	
 	if (os1sz > os2sz)
 		return 1;
 	
@@ -82,10 +91,13 @@ int fd_os_almostcasecmp_int(uint8_t * os1, size_t os1sz, uint8_t * os2, size_t o
 		if (os1[i] == os2[i])
 			continue;
 		
+		if (!res) 
+			res = os1[i] < os2[i] ? -1 : 1;
+		
 		if (asciitolower(os1[i]) == asciitolower(os2[i])) 
 			continue;
 		
-		return os1[i] < os2[i] ? -1 : 1;
+		return res;
 	}
 	
 	return 0;

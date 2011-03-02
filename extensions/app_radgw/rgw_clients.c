@@ -731,8 +731,8 @@ int rgw_clients_create_origin(struct rgw_radius_msg_meta *msg, struct rgw_client
 		*/
 		
 		/* first, check if the nas_id is the fqdn of the peer or a known alias */
-		if (!fd_os_almostcasecmp(nas_id + 1, nas_id_len, 
-						cli->fqdn, cli->fqdn_len)) {
+		if (!fd_os_almostcasesrch(nas_id + 1, nas_id_len, 
+						cli->fqdn, cli->fqdn_len, NULL)) {
 			TRACE_DEBUG(FULL, "NAS-Identifier contains the fqdn of the client");
 			found = 1;
 		} else {

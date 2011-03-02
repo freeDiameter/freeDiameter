@@ -93,7 +93,7 @@ int fd_peer_alloc(struct fd_peer ** ptr)
 int fd_peer_add ( struct peer_info * info, char * orig_dbg, void (*cb)(struct peer_info *, void *), void * cb_data )
 {
 	struct fd_peer *p = NULL;
-	struct fd_list * li;
+	struct fd_list * li, *li_inf;
 	int ret = 0;
 	
 	TRACE_ENTRY("%p %p %p %p", info, orig_dbg, cb, cb_data);
@@ -142,16 +142,22 @@ int fd_peer_add ( struct peer_info * info, char * orig_dbg, void (*cb)(struct pe
 	
 	/* Ok, now check if we don't already have an entry with the same Diameter Id, and insert this one */
 	CHECK_POSIX( pthread_rwlock_wrlock(&fd_g_peers_rw) );
-	
+	li_inf = &fd_g_peers;
 	for (li = fd_g_peers.next; li != &fd_g_peers; li = li->next) {
 		struct fd_peer * next = (struct fd_peer *)li;
-		int cmp = fd_os_almostcasecmp( p->p_hdr.info.pi_diamid, p->p_hdr.info.pi_diamidlen, 
-						next->p_hdr.info.pi_diamid, next->p_hdr.info.pi_diamidlen );
-		if (cmp > 0)
-			continue;
-		if (cmp == 0)
+		int cont;
+		int cmp = fd_os_almostcasesrch( p->p_hdr.info.pi_diamid, p->p_hdr.info.pi_diamidlen, 
+						next->p_hdr.info.pi_diamid, next->p_hdr.info.pi_diamidlen,
+						&cont );
+		if (cmp < 0)
+			li_inf = li;
+		
+		if (cmp == 0) {
 			ret = EEXIST;
-		break;
+			break;
+		}
+		if (!cont)
+			break;
 	}
 	
 	/* We can insert the new peer object */
@@ -161,7 +167,7 @@ int fd_peer_add ( struct peer_info * info, char * orig_dbg, void (*cb)(struct pe
 			CHECK_FCT_DO( ret = fd_p_expi_update( p ), break );
 
 			/* Insert the new element in the list */
-			fd_list_insert_before( li, &p->p_hdr.chain );
+			fd_list_insert_after( li_inf, &p->p_hdr.chain );
 		} while (0);
 
 	CHECK_POSIX( pthread_rwlock_unlock(&fd_g_peers_rw) );
@@ -184,19 +190,28 @@ int fd_peer_getbyid( DiamId_t diamid, size_t diamidlen, int igncase, struct peer
 	
 	/* Search in the list */
 	CHECK_POSIX( pthread_rwlock_rdlock(&fd_g_peers_rw) );
-	for (li = fd_g_peers.next; li != &fd_g_peers; li = li->next) {
-		struct fd_peer * next = (struct fd_peer *)li;
-		int cmp;
-		if (igncase)
-			cmp = fd_os_almostcasecmp( diamid, diamidlen, next->p_hdr.info.pi_diamid, next->p_hdr.info.pi_diamidlen );
-		else
-			cmp = fd_os_cmp( diamid, diamidlen, next->p_hdr.info.pi_diamid, next->p_hdr.info.pi_diamidlen );
-		if (cmp > 0)
-			continue;
-		if (cmp == 0)
-			*peer = &next->p_hdr;
-		break;
-	}
+	if (igncase)
+		for (li = fd_g_peers.next; li != &fd_g_peers; li = li->next) {
+			struct fd_peer * next = (struct fd_peer *)li;
+			int cmp, cont;
+			cmp = fd_os_almostcasesrch( diamid, diamidlen, next->p_hdr.info.pi_diamid, next->p_hdr.info.pi_diamidlen, &cont );
+			if (cmp == 0) {
+				*peer = &next->p_hdr;
+				break;
+			}
+			if (!cont)
+				break;
+		}
+	else
+		for (li = fd_g_peers.next; li != &fd_g_peers; li = li->next) {
+			struct fd_peer * next = (struct fd_peer *)li;
+			int cmp = fd_os_cmp( diamid, diamidlen, next->p_hdr.info.pi_diamid, next->p_hdr.info.pi_diamidlen );
+			if (cmp > 0)
+				continue;
+			if (cmp == 0)
+				*peer = &next->p_hdr;
+			break;
+		}
 	CHECK_POSIX( pthread_rwlock_unlock(&fd_g_peers_rw) );
 	
 	return 0;
@@ -428,7 +443,7 @@ int fd_peer_handle_newCER( struct msg ** cer, struct cnxctx ** cnx )
 	struct msg * msg;
 	struct avp *avp_oh;
 	struct avp_hdr * avp_hdr;
-	struct fd_list * li;
+	struct fd_list * li, *li_inf;
 	int found = 0;
 	int ret = 0;
 	struct fd_peer * peer;
@@ -469,15 +484,21 @@ int fd_peer_handle_newCER( struct msg ** cer, struct cnxctx ** cnx )
 	 */
 	CHECK_POSIX( pthread_rwlock_wrlock(&fd_g_peers_rw) );
 	
+	li_inf = &fd_g_peers;
 	for (li = fd_g_peers.next; li != &fd_g_peers; li = li->next) {
-		int cmp;
+		int cmp, cont;
 		peer = (struct fd_peer *)li->o;
-		cmp = fd_os_almostcasecmp( avp_hdr->avp_value->os.data, avp_hdr->avp_value->os.len, peer->p_hdr.info.pi_diamid, peer->p_hdr.info.pi_diamidlen );
-		if (cmp > 0)
+		cmp = fd_os_almostcasesrch( avp_hdr->avp_value->os.data, avp_hdr->avp_value->os.len, peer->p_hdr.info.pi_diamid, peer->p_hdr.info.pi_diamidlen, &cont );
+		if (cmp < 0) {
+			li_inf = li;
 			continue;
-		if (cmp == 0)
+		}
+		if (cmp == 0) {
 			found = 1;
-		break;
+			break;
+		}
+		if (!cont)
+			break;
 	}
 	
 	if (!found) {
@@ -499,7 +520,7 @@ int fd_peer_handle_newCER( struct msg ** cer, struct cnxctx ** cnx )
 		-- RFC3539 states that this must not be inferior to BRINGDOWN_INTERVAL = 5 minutes */
 		
 		/* Insert the new peer in the list (the PSM will take care of setting the expiry after validation) */
-		fd_list_insert_before( li, &peer->p_hdr.chain );
+		fd_list_insert_after( li_inf, &peer->p_hdr.chain );
 		
 		/* Start the PSM, which will receive the event bellow */
 		CHECK_FCT_DO( ret = fd_psm_begin(peer), goto out );

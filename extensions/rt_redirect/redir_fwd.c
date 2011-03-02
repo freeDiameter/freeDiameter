@@ -149,7 +149,7 @@ int redir_fwd_cb(void * cbdata, struct msg ** msg)
 						/* The list is kept ordered by id so that it is faster to compare to candidates later */
 						for (li = task.rh.next; li != &task.rh; li = li->next) {
 							struct redir_host * nhost = li->o;
-							if ( fd_os_almostcasecmp(id, len, nhost->id, nhost->len) <= 0 )
+							if ( fd_os_cmp(id, len, nhost->id, nhost->len) <= 0 )
 								break;
 						}
 						fd_list_insert_before(li, &h->chain);
