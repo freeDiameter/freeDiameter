@@ -172,15 +172,15 @@ char * fd_log_time ( struct timespec * ts, char * buf, size_t len );
 #define FCTS 6  /* Display entry parameters of most functions */
 #define CALL 9  /* Display calls to most functions (with CHECK macros) */
 
-/* Default level is INFO */
+/* Increment the debug level for a file at compilation time by defining -DTRACE_LEVEL=FULL for example. */
 #ifndef TRACE_LEVEL 
-#define TRACE_LEVEL INFO
+#define TRACE_LEVEL NONE
 #endif /* TRACE_LEVEL */
 
 /* The level of the file being compiled. */
 static int local_debug_level = TRACE_LEVEL;
 
-/* A global level, changed by configuration or cmd line for example. default is 0. */
+/* A global level, changed by configuration or cmd line for example. Default is INFO (in libfdproto/log.c). */
 extern int fd_g_debug_lvl;
 
 /* Some portability code to get nice function name in __PRETTY_FUNCTION__ */
