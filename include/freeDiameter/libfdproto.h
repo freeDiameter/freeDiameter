@@ -357,7 +357,7 @@ int fd_breakhere(void);
 
 /* Report an error */
 #define TRACE_DEBUG_ERROR(format,args... ) \
-	TRACE_DEBUG(NONE, format, ##args)
+	TRACE_DEBUG(INFO, format, ##args)
 
 /******************
  Optimized code: remove all debugging code
