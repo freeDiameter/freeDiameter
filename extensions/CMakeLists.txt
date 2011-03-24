@@ -39,6 +39,8 @@ INCLUDE_DIRECTORIES(${LFDCORE_INCLUDES})
 FD_EXTENSION_SUBDIR(dict_nasreq "NASREQ (RFC4005) Dictionary definitions"       ON)
 FD_EXTENSION_SUBDIR(dict_eap    "Diameter EAP (RFC4072) Dictionary definitions" ON)
 
+FD_EXTENSION_SUBDIR(dict_dcca   "Diameter CC (RFC4006) Dictionary definitions [incomplete]" ON)
+
 FD_EXTENSION_SUBDIR(dict_sip    "Diameter SIP (RFC4740) Dictionary definitions" ON)
 
 FD_EXTENSION_SUBDIR(dict_mip6a     "Diameter Mobile IPv6 Auth Dictionary definitions"         ON)
