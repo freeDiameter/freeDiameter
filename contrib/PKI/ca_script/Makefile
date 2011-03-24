@@ -37,7 +37,7 @@ DAYS = 365
 
 #Values for the CA
 CA_CN = mgr.testbed.aaa
-CA_mail = sdecugis@nict.go.jp
+CA_mail = sdecugis@freediameter.net
 
 #Disable "make destroy"
 force = 

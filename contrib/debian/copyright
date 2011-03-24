@@ -1,6 +1,6 @@
 Format-Specification: http://dep.debian.net/deps/dep5/
 Name: freeDiameter
-Maintainer: Sebastien Decugis <sdecugis@nict.go.jp>
+Maintainer: Sebastien Decugis <sdecugis@freediameter.net>
 Source: http://www.freediameter.net
 
 Files: *

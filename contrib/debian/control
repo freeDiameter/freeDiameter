@@ -1,7 +1,7 @@
 Source: freediameter
 Section: contrib/net
 Priority: extra
-Maintainer: Sebastien Decugis <sdecugis@nict.go.jp>
+Maintainer: Sebastien Decugis <sdecugis@freediameter.net>
 Build-Depends: debhelper ( >= 7.3.9),
  cmake, make, gcc, bison, flex,
  libsctp-dev, libgnutls-dev, libgcrypt-dev, libidn11-dev,

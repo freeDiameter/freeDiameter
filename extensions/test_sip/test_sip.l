@@ -5,7 +5,7 @@
 * Copyright (c) 2010, Alexandre Westfahl, Teraoka Laboratory (Keio University), and the WIDE Project. 	 *		
 *													 *
 * All rights reserved.											 *
-* Based on ta_conf.l (Sebastien Decugis <sdecugis@nict.go.jp>)					 *
+* Based on ta_conf.l (Sebastien Decugis <sdecugis@freediameter.net>)					 *
 * 													 *
 * Redistribution and use of this software in source and binary forms, with or without modification, are  *
 * permitted provided that the following conditions are met:						 *

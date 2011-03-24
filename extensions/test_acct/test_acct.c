@@ -1,6 +1,6 @@
 /*********************************************************************************************************
 * Software License Agreement (BSD License)                                                               *
-* Author: Sebastien Decugis <sdecugis@nict.go.jp>							 *
+* Author: Sebastien Decugis <sdecugis@freediameter.net>							 *
 *													 *
 * Copyright (c) 2011, WIDE Project and NICT								 *
 * All rights reserved.											 *
