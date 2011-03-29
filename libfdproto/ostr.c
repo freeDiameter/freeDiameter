@@ -69,6 +69,7 @@ static inline uint8_t asciitolower(uint8_t a)
 }
 
 /* less sensitive to case, slower. */
+/* the semantics of "maybefurther" assume you are searching for os1 in a list of elements ordered, each element passed as os2 */
 int fd_os_almostcasesrch_int(uint8_t * os1, size_t os1sz, uint8_t * os2, size_t os2sz, int *maybefurther)
 {
 	int i;

@@ -149,11 +149,11 @@ int fd_peer_add ( struct peer_info * info, char * orig_dbg, void (*cb)(struct pe
 		int cmp = fd_os_almostcasesrch( p->p_hdr.info.pi_diamid, p->p_hdr.info.pi_diamidlen, 
 						next->p_hdr.info.pi_diamid, next->p_hdr.info.pi_diamidlen,
 						&cont );
-		if (cmp < 0)
-			li_inf = li;
+		if (cmp > 0)
+			li_inf = li; /* it will come after this element, for sure */
 		
 		if (cmp == 0) {
-			ret = EEXIST;
+			ret = EEXIST; /* we have a duplicate */
 			break;
 		}
 		if (!cont)
@@ -190,7 +190,7 @@ int fd_peer_getbyid( DiamId_t diamid, size_t diamidlen, int igncase, struct peer
 	
 	/* Search in the list */
 	CHECK_POSIX( pthread_rwlock_rdlock(&fd_g_peers_rw) );
-	if (igncase)
+	if (igncase) {
 		for (li = fd_g_peers.next; li != &fd_g_peers; li = li->next) {
 			struct fd_peer * next = (struct fd_peer *)li;
 			int cmp, cont;
@@ -202,7 +202,7 @@ int fd_peer_getbyid( DiamId_t diamid, size_t diamidlen, int igncase, struct peer
 			if (!cont)
 				break;
 		}
-	else
+	} else {
 		for (li = fd_g_peers.next; li != &fd_g_peers; li = li->next) {
 			struct fd_peer * next = (struct fd_peer *)li;
 			int cmp = fd_os_cmp( diamid, diamidlen, next->p_hdr.info.pi_diamid, next->p_hdr.info.pi_diamidlen );
@@ -212,6 +212,7 @@ int fd_peer_getbyid( DiamId_t diamid, size_t diamidlen, int igncase, struct peer
 				*peer = &next->p_hdr;
 			break;
 		}
+	}
 	CHECK_POSIX( pthread_rwlock_unlock(&fd_g_peers_rw) );
 	
 	return 0;
