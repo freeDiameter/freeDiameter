@@ -22,8 +22,10 @@ freediameter (1.1.0) UNRELEASED; urgency=low
   * New extension rt_redirect.fdx that handles the Diameter Redirect errors.
   * New extension app_redirect that allows sending Redirect indications to 
     other peers. See doc/app_redirect.conf.sample for more information.
+  * Added incomplete dictionary extension for rfc4006 (DCCA), courtesy
+    of Konstantin Chekushin <koch@lmt.lv>
 
- -- Sebastien Decugis <sdecugis@nict.go.jp>  Fri, 18 Feb 2011 15:25:19 +0900
+ -- Sebastien Decugis <sdecugis@freediameter.net>  Tue, 29 Mar 2011 10:41:19 +0900
 
 freediameter (1.0.4) UNRELEASED; urgency=low
 

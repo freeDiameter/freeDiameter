@@ -10,4 +10,4 @@ FD_ADD_EXTENSION(dict_dcca dict_dcca.c)
 
 INSTALL(TARGETS dict_dcca
 	LIBRARY DESTINATION ${INSTALL_EXTENSIONS_SUFFIX}
-	COMPONENT freeDiameter-dictionary-dcca)
+	COMPONENT freeDiameter-dictionary-rfc4006)

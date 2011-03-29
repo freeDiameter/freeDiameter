@@ -68,6 +68,22 @@ Description: RFC4005 (NASREQ) dictionary support.
  .
  This extension does not require a configuration file.
 
+Package: freediameter-dictionary-rfc4006
+Architecture: any
+Depends: ${misc:Depends}, freediameter-common (= ${binary:Version})
+Description: RFC4006 (DCCA) dictionary support (incomplete).
+ This freeDiameter extension provides the dictionary support
+ for commands and AVP defined in RFC4006 (DCCA).
+ .
+ In order to use this extension, your main freeDiameter 
+ configuration file must contain a LoadExtension directive. 
+ See freeDiameter documentation for more details. 
+ .
+ This extension does not require a configuration file.
+ .
+ Currently this extension is not complete: only AVP definitions 
+ are included. See the source file for more details.
+
 Package: freediameter-dictionary-rfc4072
 Architecture: any
 Depends: ${misc:Depends}, freediameter-common (= ${binary:Version}), freediameter-dictionary-rfc4005 (= ${binary:Version})
