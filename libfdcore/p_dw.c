@@ -55,6 +55,11 @@ static int check_state_id(struct msg * msg, struct fd_peer * peer)
 			ASSERT(0); /* To check if this really happens, and understand why... */
 		}
 
+		if (! peer->p_hdr.info.runtime.pir_orstate) {
+			/* It was not already received in CER/CEA, save it now */
+			peer->p_hdr.info.runtime.pir_orstate = hdr->avp_value->u32;
+		}
+
 		if (peer->p_hdr.info.runtime.pir_orstate != hdr->avp_value->u32) {
 			TRACE_DEBUG(INFO, "Received a new Origin-State-Id from peer '%s'! (%x -> %x); resetting the connection.\n", 
 				peer->p_hdr.info.pi_diamid, 
