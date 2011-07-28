@@ -50,6 +50,7 @@
 #cmakedefine SKIP_DLCLOSE
 #cmakedefine DIAMID_IDNA_IGNORE
 #cmakedefine DIAMID_IDNA_REJECT
+#cmakedefine GNUTLS_NEW_VERSION
 
 #cmakedefine ERRORS_ON_TODO
 #cmakedefine DEBUG

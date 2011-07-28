@@ -183,14 +183,20 @@ int fd_core_initialize(void)
 	fd_log_threadname("Main");
 	
 	/* Initialize gcrypt and gnutls */
+	#ifndef GNUTLS_NEW_VERSION
 	GNUTLS_TRACE( (void) gcry_control (GCRYCTL_SET_THREAD_CBS, &gcry_threads_pthread) );
 	GNUTLS_TRACE( (void) gcry_control (GCRYCTL_ENABLE_QUICK_RANDOM, 0) );
+	#endif /* GNUTLS_NEW_VERSION */
 	CHECK_GNUTLS_DO( gnutls_global_init(), return EINVAL );
 	if ( ! gnutls_check_version(GNUTLS_VERSION) ) {
 		fprintf(stderr, "The GNUTLS library is too old; found '%s', need '" GNUTLS_VERSION "'\n", gnutls_check_version(NULL));
 		return EINVAL;
 	} else {
+	#ifdef GNUTLS_NEW_VERSION
+		TRACE_DEBUG(INFO, "libgnutls '%s' initialized.", gnutls_check_version(NULL) );
+	#else /* GNUTLS_NEW_VERSION */
 		TRACE_DEBUG(INFO, "libgnutls '%s', libgcrypt '%s', initialized.", gnutls_check_version(NULL), gcry_check_version(NULL) );
+	#endif /* GNUTLS_NEW_VERSION */
 	}
 	
 	/* Initialize the config with default values */
