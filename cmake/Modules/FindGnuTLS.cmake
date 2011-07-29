@@ -4,7 +4,7 @@
 #  GNUTLS_FOUND - True if gnutls found.
 #  GNUTLS_INCLUDE_DIR - where to find gnutls.h, etc.
 #  GNUTLS_LIBRARIES - List of libraries when using gnutls.
-#  GNUTLS_NEW_VERSION - true if GnuTLS version is <= 2.10.0 (does not require additional separate gcrypt initialization)
+#  GNUTLS_NEW_VERSION - true if GnuTLS version is >= 2.10.0 (does not require additional separate gcrypt initialization)
 
 if (GNUTLS_INCLUDE_DIR AND GNUTLS_LIBRARIES)
   set(GNUTLS_FIND_QUIETLY TRUE)
