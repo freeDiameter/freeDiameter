@@ -21,6 +21,7 @@ ENDIF(OPT_TEST_ARGUMENT)
 SET(TEST_LIST
 	testsctp
 	testostr
+	testpeers
 	testdict
 	testmesg
 	testfifo
