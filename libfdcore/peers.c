@@ -455,7 +455,7 @@ int fd_peer_handle_newCER( struct msg ** cer, struct cnxctx ** cnx )
 	
 	msg = *cer; 
 	
-	/* If needed, resolve the dictioanry model for Origin-Host */
+	/* If needed, resolve the dictionary model for Origin-Host */
 	CHECK_POSIX( pthread_mutex_lock(&cache_avp_lock) );
 	if (!avp_oh_model) {
 		avp_code_t code = AC_ORIGIN_HOST;
@@ -470,7 +470,7 @@ int fd_peer_handle_newCER( struct msg ** cer, struct cnxctx ** cnx )
 	ASSERT(avp_oh); /* otherwise it should not have passed rules validation, right? */
 	CHECK_FCT( fd_msg_avp_hdr ( avp_oh, &avp_hdr ) );
 	
-	/* First, check if the Origin-Host value  */
+	/* First, check if the Origin-Host value is valid */
 	if (!fd_os_is_valid_DiameterIdentity(avp_hdr->avp_value->os.data, avp_hdr->avp_value->os.len)) {
 		TRACE_DEBUG(INFO, "Received new CER with invalid Origin-Host");
 		CHECK_FCT( fd_msg_new_answer_from_req ( fd_g_config->cnf_dict, cer, MSGFL_ANSW_ERROR ) );
@@ -488,11 +488,10 @@ int fd_peer_handle_newCER( struct msg ** cer, struct cnxctx ** cnx )
 	li_inf = &fd_g_peers;
 	for (li = fd_g_peers.next; li != &fd_g_peers; li = li->next) {
 		int cmp, cont;
-		peer = (struct fd_peer *)li->o;
+		peer = (struct fd_peer *)li;
 		cmp = fd_os_almostcasesrch( avp_hdr->avp_value->os.data, avp_hdr->avp_value->os.len, peer->p_hdr.info.pi_diamid, peer->p_hdr.info.pi_diamidlen, &cont );
-		if (cmp < 0) {
+		if (cmp > 0) {
 			li_inf = li;
-			continue;
 		}
 		if (cmp == 0) {
 			found = 1;
@@ -519,6 +518,8 @@ int fd_peer_handle_newCER( struct msg ** cer, struct cnxctx ** cnx )
 		peer->p_hdr.info.config.pic_flags.exp 	= PI_EXP_INACTIVE;
 		peer->p_hdr.info.config.pic_lft		= 3600;	/* 1 hour without any message 
 		-- RFC3539 states that this must not be inferior to BRINGDOWN_INTERVAL = 5 minutes */
+		CHECK_FCT_DO( ret = fd_p_expi_update( peer ), goto out );
+
 		
 		/* Insert the new peer in the list (the PSM will take care of setting the expiry after validation) */
 		fd_list_insert_after( li_inf, &peer->p_hdr.chain );
