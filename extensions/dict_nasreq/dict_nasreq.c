@@ -3510,7 +3510,7 @@ static int dnr_entry(char * conffile)
 			struct dict_object * cmd;
 			struct local_rules_definition rules[] = 
 						{ 	 {  "Origin-AAA-Protocol",		RULE_OPTIONAL,   -1, 1 }
-							,{  "State", 				RULE_REQUIRED,   -1, 1 }
+							,{  "State", 				RULE_OPTIONAL,   -1, 1 }
 						};
 			
 			CHECK_dict_search( DICT_COMMAND, CMD_BY_NAME, "Abort-Session-Answer", &cmd);
