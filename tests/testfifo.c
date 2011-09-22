@@ -187,6 +187,17 @@ int main(int argc, char *argv[])
 		CHECK( 0, fd_fifo_length(queue, &count) );
 		CHECK( 0, count);
 		
+		/* Check the timedget actually timesout */
+		CHECK(0, clock_gettime(CLOCK_REALTIME, &ts));
+		ts.tv_nsec += 1000000; /* 1 millisecond */
+		if (ts.tv_nsec >= 1000000000L) {
+			ts.tv_nsec -= 1000000000L;
+			ts.tv_sec += 1;
+		}
+		CHECK( ETIMEDOUT, fd_fifo_timedget(queue, &msg, &ts) );
+		CHECK( 0, fd_fifo_length(queue, &count) );
+		CHECK( 0, count);
+		
 		/* We're done for basic tests */
 		CHECK( 0, fd_fifo_del(&queue) );
 	}
