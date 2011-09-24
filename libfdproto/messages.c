@@ -1770,12 +1770,8 @@ static int parsedict_do_avp(struct dictionary * dict, struct avp * avp, int mand
 					return EBADMSG;
 				} );
 			avp->avp_storage.os.len = avp->avp_public.avp_len - GETAVPHDRSZ( avp->avp_public.avp_flags );
-			if (avp->avp_storage.os.len) {
-				CHECK_MALLOC(  avp->avp_storage.os.data = os0dup(avp->avp_source, avp->avp_storage.os.len)  );
-				avp->avp_mustfreeos = 1;
-			} else {
-				avp->avp_storage.os.data = NULL;
-			}
+			CHECK_MALLOC(  avp->avp_storage.os.data = os0dup(avp->avp_source, avp->avp_storage.os.len)  );
+			avp->avp_mustfreeos = 1;
 			break;
 		
 		case AVP_TYPE_INTEGER32:

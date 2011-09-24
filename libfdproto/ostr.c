@@ -44,7 +44,8 @@
 os0_t os0dup_int(os0_t s, size_t l) {
 	os0_t r;
 	CHECK_MALLOC_DO( r = malloc(l+1), return NULL );
-	memcpy(r, s, l); /* this might be faster than a strcpy or strdup because it can work with 32 or 64b blocks */
+	if (l)
+		memcpy(r, s, l); /* this might be faster than a strcpy or strdup because it can work with 32 or 64b blocks */
 	r[l] = '\0';
 	return r;
 }
@@ -57,7 +58,7 @@ int fd_os_cmp_int(uint8_t * os1, size_t os1sz, uint8_t * os2, size_t os2sz)
 		return -1;
 	if (os1sz > os2sz)
 		return 1;
-	return memcmp(os1, os2, os1sz);
+	return os1sz ? memcmp(os1, os2, os1sz) : 0;
 }
 
 /* a local version of tolower() that does not depend on LC_CTYPE locale */
