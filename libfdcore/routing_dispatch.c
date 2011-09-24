@@ -491,7 +491,13 @@ static int msg_dispatch(struct msg ** pmsg)
 	if (*pmsg)
 		switch ( action ) {
 			case DISP_ACT_CONT:
-				/* No callback has handled the message, let's reply with a generic error */
+				/* No callback has handled the message, let's reply with a generic error or relay it */
+				if (!fd_g_config->cnf_flags.no_fwd) {
+					/* requeue to fd_g_outgoing */
+					CHECK_FCT( fd_fifo_post(fd_g_outgoing, pmsg) );
+					break;
+				}
+				/* We don't relay => reply error */
 				em = "The message was not handled by any extension callback";
 				ec = "DIAMETER_COMMAND_UNSUPPORTED";
 				/* and continue as if an error occurred... */
