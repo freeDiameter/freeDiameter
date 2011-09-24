@@ -1219,12 +1219,8 @@ int fd_msg_avp_setvalue ( struct avp *avp, union avp_value *value )
 	
 	/* Duplicate an octetstring if needed. */
 	if (type == AVP_TYPE_OCTETSTRING) {
-		if (value->os.len) {
-			CHECK_MALLOC(  avp->avp_storage.os.data = os0dup(value->os.data, value->os.len)  );
-			avp->avp_mustfreeos = 1;
-		} else {
-			avp->avp_storage.os.data = NULL;
-		}
+		CHECK_MALLOC(  avp->avp_storage.os.data = os0dup(value->os.data, value->os.len)  );
+		avp->avp_mustfreeos = 1;
 	}
 	
 	/* Set the data pointer of the public part */
