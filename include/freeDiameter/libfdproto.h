@@ -108,15 +108,14 @@ void fd_libproto_fini(void);
  * The format and arguments may contain UTF-8 encoded data. The
  * output medium (file or console) is expected to support this encoding.
  *
- * This function assumes that a global mutex called "fd_log_lock" exists
- * in the address space of the current process.
- *
  * RETURN VALUE:
  *  None.
  */
 void fd_log_debug_fstr ( FILE * fstr, const char * format, ... );
 #define fd_log_debug(format,args...) fd_log_debug_fstr(NULL, format, ## args)
 
+/* these are internal objects of the debug facility, 
+might be useful to control the behavior from outside */
 extern pthread_mutex_t	fd_log_lock;
 extern char * fd_debug_one_function;
 extern char * fd_debug_one_file;
