@@ -488,7 +488,7 @@ peerparams:		/* empty */
 				}
 				if (ret) { yyerror (&yylloc, conf, gai_strerror(ret)); YYERROR; }
 				
-				CHECK_FCT_DO( fd_ep_add_merge( &fddpi.pi_endpoints, ai->ai_addr, ai->ai_addrlen, EP_FL_CONF | disc ), YYERROR );
+				CHECK_FCT_DO( fd_ep_add_merge( &fddpi.pi_endpoints, ai->ai_addr, ai->ai_addrlen, EP_FL_CONF | (disc ?: EP_ACCEPTALL) ), YYERROR );
 				free($4);
 				freeaddrinfo(ai);
 			}
