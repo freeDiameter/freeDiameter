@@ -1,3 +1,12 @@
+freediameter (1.1.1) UNRELEASED; urgency=low
+
+  * Bug fix release
+  * Supports newer GNUTLS versions
+  * Allow empty OctetString AVPs (l=0)
+  * Allow two instances of freeDiameter on a single host.
+
+ -- Sebastien Decugis <sdecugis@nict.go.jp>  Fri, 30 Sep 2011 21:56:50 +0200
+
 freediameter (1.1.0) UNRELEASED; urgency=low
 
   * Source package restructured. Most of the 
