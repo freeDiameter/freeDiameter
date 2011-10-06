@@ -129,6 +129,11 @@ void fd_msg_log( enum fd_msg_log_cause cause, struct msg * msg, const char * pre
 	metharg = ml_conf.causes[cause].metharg;
 	CHECK_POSIX_DO( pthread_mutex_unlock(&ml_conf.lock), );
 	
+	/* Do not log if the level is not at least INFO */
+	if ((meth == FD_MSG_LOGTO_DEBUGONLY) && (fd_g_debug_lvl < INFO)) {
+		return;
+	}
+	
 	/* Get current time */
 	CHECK_SYS_DO( clock_gettime(CLOCK_REALTIME, &ts), /* continue */);
 	offset += strftime(buftime + offset, sizeof(buftime) - offset, "%D,%T", localtime_r( &ts.tv_sec , &tm ));
