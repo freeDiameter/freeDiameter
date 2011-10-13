@@ -250,7 +250,7 @@ avpline:		{
 				struct dict_avp_data dictdata;
 				
 				/* Validate the avp name first */
-				CHECK_FCT_DO( fd_dict_search( fd_g_config->cnf_dict, DICT_AVP, AVP_BY_NAME, $2, &dict, ENOENT),
+				CHECK_FCT_DO( fd_dict_search( fd_g_config->cnf_dict, DICT_AVP, AVP_BY_NAME_ALL_VENDORS, $2, &dict, ENOENT),
 					{ yyerror (&yylloc, conffile, "AVP definition not found in the dictionary. Was the appropriate dict_*.fdx extension loaded?"); YYERROR; } );
 				CHECK_FCT( fd_dict_getval( dict, &dictdata ));
 				
