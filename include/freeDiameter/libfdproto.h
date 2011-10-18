@@ -847,6 +847,10 @@ int fd_dict_getdict ( struct dict_object * object, struct dictionary ** dict);
 void fd_dict_dump_object(struct dict_object * obj);
 void fd_dict_dump(struct dictionary * dict);
 
+/* Function to access full contents of the dictionary, see doc in dictionary.c */
+int fd_dict_getlistof(int criteria, void * parent, struct fd_list * sentinel);
+
+
 /*
  ***************************************************************************
  *
@@ -1136,6 +1140,8 @@ struct dict_enumval_data {
 /* The criteria for searching a constant in the dictionary */
 enum {
 	ENUMVAL_BY_STRUCT = 40,	/* "what" points to a struct dict_enumval_request as defined bellow */
+	ENUMVAL_BY_NAME,	/* This cannot be used for researches */
+	ENUMVAL_BY_VALUE	/* This cannot be used for researches */
 };
 
 struct dict_enumval_request {

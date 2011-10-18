@@ -1836,6 +1836,104 @@ int fd_dict_search ( struct dictionary * dict, enum dict_object_type type, int c
 	return ret;
 }
 
+/* Function to retrieve list of objects in the dictionary. Use with care (read only).
+
+All returned list must be accessed like this:
+
+  for (li = sentinel->next; li=li->next; li != sentinel) {
+	struct dict_object * obj = li->o;
+	...
+  }
+
+The following criteria are allowed, with corresponding parent. 
+The parent is either struct dictionary * or struct dict_object *
+		
+VENDOR_BY_ID : (parent = dictionary) returns list of vendors ordered by ID
+APPLICATION_BY_ID : (parent = dictionary) returns list of applications ordered by ID
+  ** for these two lists, the Vendor with id 0 and applciation with id 0 are excluded. 
+     You must resolve them separatly with dict_search.
+		
+TYPE_BY_NAME : (parent = dictionary) returns list of types ordered by name
+ENUMVAL_BY_NAME : (parent = type object) return list of constants for this type ordered by name
+ENUMVAL_BY_VALUE : (parent = type object) return list of constants for this type ordered by values
+AVP_BY_NAME : (parent = vendor object) return list of AVP for this vendor ordered by name
+AVP_BY_CODE : (parent = vendor object) return list of AVP for this vendor ordered by code
+CMD_BY_NAME : (parent = dictionary) returns list of commands ordered by name
+CMD_BY_CODE_R : (parent = dictionary) returns list of commands ordered by code
+RULE_BY_AVP_AND_PARENT: (parent = command or grouped AVP object) return list of rules for this object ordered by AVP vendor/code
+
+All other criteria are rejected.
+ */
+int fd_dict_getlistof(int criteria, void * parent, struct fd_list * sentinel)
+{
+	struct dictionary * dict = parent;
+	struct dict_object * obj_parent = parent;
+	
+	TRACE_ENTRY("%i %p %p", criteria, parent, sentinel);
+	
+	CHECK_PARAMS(sentinel && parent);
+	
+	switch(criteria) {
+		case VENDOR_BY_ID: /* parent must be the dictionary */
+			CHECK_PARAMS(dict->dict_eyec == DICT_EYECATCHER);
+			sentinel = &dict->dict_vendors.list[0];
+			break;
+			
+		case APPLICATION_BY_ID: /* parent must be the dictionary */
+			CHECK_PARAMS(dict->dict_eyec == DICT_EYECATCHER);
+			sentinel = &dict->dict_applications.list[0];
+			break;
+			
+		case TYPE_BY_NAME: /* parent must be the dictionary */
+			CHECK_PARAMS(dict->dict_eyec == DICT_EYECATCHER);
+			sentinel = &dict->dict_types;
+			break;
+			
+		case ENUMVAL_BY_NAME: /* parent must be a type object */
+			CHECK_PARAMS(verify_object(obj_parent) && (obj_parent->type == DICT_TYPE));
+			sentinel = &obj_parent->list[1];
+			break;
+			
+		case ENUMVAL_BY_VALUE: /* parent must be a type object */
+			CHECK_PARAMS(verify_object(obj_parent) && (obj_parent->type == DICT_TYPE));
+			sentinel = &obj_parent->list[2];
+			break;
+			
+		case AVP_BY_NAME: /* parent must be a AVP object */
+			CHECK_PARAMS(verify_object(obj_parent) && (obj_parent->type == DICT_AVP));
+			sentinel = &obj_parent->list[2];
+			break;
+			
+		case AVP_BY_CODE: /* parent must be a AVP object */
+			CHECK_PARAMS(verify_object(obj_parent) && (obj_parent->type == DICT_AVP));
+			sentinel = &obj_parent->list[1];
+			break;
+			
+		case CMD_BY_NAME: /* parent must be the dictionary */
+			CHECK_PARAMS(dict->dict_eyec == DICT_EYECATCHER);
+			sentinel = &dict->dict_cmd_name;
+			break;
+			
+		case CMD_BY_CODE_R: /* parent must be the dictionary */
+			CHECK_PARAMS(dict->dict_eyec == DICT_EYECATCHER);
+			sentinel = &dict->dict_cmd_code;
+			break;
+			
+		case RULE_BY_AVP_AND_PARENT: /* parent must be command or grouped AVP */
+			CHECK_PARAMS(verify_object(obj_parent));
+			CHECK_PARAMS(	(obj_parent->type == DICT_COMMAND) ||
+					((obj_parent->type == DICT_AVP) 
+					  && (obj_parent->data.avp.avp_basetype == AVP_TYPE_GROUPED)) );
+			sentinel = &obj_parent->list[2];
+			break;
+			
+		default:
+			CHECK_PARAMS(0);
+	}
+	
+	return 0;
+}
+
 /*******************************************************************************************************/
 /*******************************************************************************************************/
 /*                                                                                                     */
