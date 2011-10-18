@@ -149,6 +149,7 @@ void fd_msg_log( enum fd_msg_log_cause cause, struct msg * msg, const char * pre
 		case FD_MSG_LOGTO_FILE:
 			TODO("Log to arg file");
 			TODO("Log a note to debug stream");
+			TRACE_DEBUG(INFO, "%s", metharg);
 			break;
 		case FD_MSG_LOGTO_DIR:
 			TODO("Log to arg directory in a new file");

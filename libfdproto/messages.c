@@ -712,7 +712,6 @@ public:
 static void obj_dump_avp ( struct avp * avp, int indent, FILE * fstr )
 {
 	int ret = 0;
-	enum dict_avp_basetype type = -1;
 	
 	if (!CHECK_AVP(avp)) {
 		fd_log_debug_fstr(fstr, INOBJHDR "INVALID!\n", INOBJHDRVAL);
@@ -743,7 +742,6 @@ static void obj_dump_avp ( struct avp * avp, int indent, FILE * fstr )
 			type_base_name[dictdata.avp_basetype], 
 			dictdata.avp_code, 
 			dictdata.avp_name );
-		type = dictdata.avp_basetype;
 	}
 public:	
 	fd_log_debug_fstr(fstr, INOBJHDR "public: C:%u fl:" DUMP_AVPFL_str " L:%d V:%u  data:@%p\n", INOBJHDRVAL, 
