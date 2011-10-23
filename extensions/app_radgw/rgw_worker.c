@@ -326,7 +326,7 @@ int rgw_work_start(void)
 	
 	memset(workers, 0, sizeof(workers));
 	
-	CHECK_FCT( fd_fifo_new ( &work_stack ) );
+	CHECK_FCT( fd_fifo_new ( &work_stack, 30 ) );
 	
 	/* Create the worker thread(s) */
 	for (i = 0; i < NB_WORKERS; i++) {

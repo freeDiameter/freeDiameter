@@ -68,7 +68,7 @@ int fd_conf_init()
 	fd_g_config->cnf_orstateid = (uint32_t) time(NULL);
 	
 	CHECK_FCT( fd_dict_init(&fd_g_config->cnf_dict) );
-	CHECK_FCT( fd_fifo_new(&fd_g_config->cnf_main_ev) );
+	CHECK_FCT( fd_fifo_new(&fd_g_config->cnf_main_ev, 0) );
 	
 	/* TLS parameters */
 	CHECK_GNUTLS_DO( gnutls_certificate_allocate_credentials (&fd_g_config->cnf_sec_data.credentials), return ENOMEM );

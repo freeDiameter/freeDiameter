@@ -76,7 +76,7 @@ int fd_peer_alloc(struct fd_peer ** ptr)
 	
 	fd_list_init(&p->p_actives, p);
 	fd_list_init(&p->p_expiry, p);
-	CHECK_FCT( fd_fifo_new(&p->p_tosend) );
+	CHECK_FCT( fd_fifo_new(&p->p_tosend, 5) );
 	p->p_hbh = lrand48();
 	
 	fd_list_init(&p->p_sr.srs, p);

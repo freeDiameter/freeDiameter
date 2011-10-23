@@ -2758,6 +2758,8 @@ struct fifo;
  *
  * PARAMETERS:
  *  queue	: Upon success, a pointer to the new queue is saved here.
+ *  max		: max number of items in the queue. Above this number, adding a new item becomes a
+ *		  blocking operation. Use 0 to disable this maximum.
  *
  * DESCRIPTION: 
  *  Create a new empty queue.
@@ -2767,7 +2769,7 @@ struct fifo;
  *  EINVAL 	: The parameter is invalid.
  *  ENOMEM	: Not enough memory to complete the creation.  
  */
-int fd_fifo_new ( struct fifo ** queue );
+int fd_fifo_new ( struct fifo ** queue, int max );
 
 /*
  * FUNCTION:	fd_fifo_del

@@ -1498,7 +1498,7 @@ int main(int argc, char *argv[])
 		
 		/* fd_cnx_recv_setaltfifo */
 		CHECK( 0, fd_cnx_send(client_side, cer_buf, cer_sz, 0));
-		CHECK( 0, fd_fifo_new(&myfifo) );
+		CHECK( 0, fd_fifo_new(&myfifo, 0) );
 		CHECK( 0, fd_cnx_recv_setaltfifo(server_side, myfifo) );
 		CHECK( 0, clock_gettime(CLOCK_REALTIME, &now) );
 		do {
@@ -1590,7 +1590,7 @@ int main(int argc, char *argv[])
 		
 		/* fd_cnx_recv_setaltfifo */
 		CHECK( 0, fd_cnx_send(client_side, cer_buf, cer_sz, 0));
-		CHECK( 0, fd_fifo_new(&myfifo) );
+		CHECK( 0, fd_fifo_new(&myfifo, 0) );
 		CHECK( 0, fd_cnx_recv_setaltfifo(server_side, myfifo) );
 		CHECK( 0, clock_gettime(CLOCK_REALTIME, &now) );
 		do {

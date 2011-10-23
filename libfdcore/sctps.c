@@ -496,7 +496,7 @@ int fd_sctps_init(struct cnxctx * conn)
 	for (i = 0; i < conn->cc_sctp_para.pairs; i++) {
 		conn->cc_sctps_data.array[i].parent = conn;
 		conn->cc_sctps_data.array[i].strid  = i;
-		CHECK_FCT( fd_fifo_new(&conn->cc_sctps_data.array[i].raw_recv) );
+		CHECK_FCT( fd_fifo_new(&conn->cc_sctps_data.array[i].raw_recv, 10) );
 	}
 	
 	/* Set push/pull functions in the master session, using fifo in array[0] */

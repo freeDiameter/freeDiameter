@@ -44,9 +44,9 @@ struct fifo * fd_g_local = NULL;
 int fd_queues_init(void)
 {
 	TRACE_ENTRY();
-	CHECK_FCT( fd_fifo_new ( &fd_g_incoming ) );
-	CHECK_FCT( fd_fifo_new ( &fd_g_outgoing ) );
-	CHECK_FCT( fd_fifo_new ( &fd_g_local ) );
+	CHECK_FCT( fd_fifo_new ( &fd_g_incoming, 20 ) );
+	CHECK_FCT( fd_fifo_new ( &fd_g_outgoing, 30 ) );
+	CHECK_FCT( fd_fifo_new ( &fd_g_local, 25 ) );
 	return 0;
 }
 

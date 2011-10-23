@@ -52,11 +52,15 @@ struct fifo {
 	int		eyec;	/* An eye catcher, also used to check a queue is valid. FIFO_EYEC */
 	
 	pthread_mutex_t	mtx;	/* Mutex protecting this queue */
-	pthread_cond_t	cond;	/* condition variable of the list */
+	pthread_cond_t	cond_pull;	/* condition variable for pulling threads */
+	pthread_cond_t	cond_push;	/* condition variable for pushing threads */
 	
 	struct fd_list	list;	/* sentinel for the list of elements */
 	int		count;	/* number of objects in the list */
 	int		thrs;	/* number of threads waiting for a new element (when count is 0) */
+	
+	int 		max;	/* maximum number of items to accept if not 0 */
+	int		thrs_push; /* number of threads waitnig to push an item */
 	
 	uint16_t	high;	/* High level threshold (see libfreeDiameter.h for details) */
 	uint16_t	low;	/* Low level threshhold */
@@ -74,8 +78,8 @@ struct fifo {
 #define CHECK_FIFO( _queue ) (( (_queue) != NULL) && ( (_queue)->eyec == FIFO_EYEC) )
 
 
-/* Create a new queue */
-int fd_fifo_new ( struct fifo ** queue )
+/* Create a new queue, with max number of items -- use 0 for no max */
+int fd_fifo_new ( struct fifo ** queue, int max )
 {
 	struct fifo * new;
 	
@@ -91,7 +95,9 @@ int fd_fifo_new ( struct fifo ** queue )
 	
 	new->eyec = FIFO_EYEC;
 	CHECK_POSIX( pthread_mutex_init(&new->mtx, NULL) );
-	CHECK_POSIX( pthread_cond_init(&new->cond, NULL) );
+	CHECK_POSIX( pthread_cond_init(&new->cond_pull, NULL) );
+	CHECK_POSIX( pthread_cond_init(&new->cond_push, NULL) );
+	new->max = max;
 	
 	fd_list_init(&new->list, NULL);
 	
@@ -118,6 +124,7 @@ void fd_fifo_dump(int level, char * name, struct fifo * queue, void (*dump_item)
 	
 	CHECK_POSIX_DO(  pthread_mutex_lock( &queue->mtx ), /* continue */  );
 	fd_log_debug("   %d elements in queue / %d threads waiting\n", queue->count, queue->thrs);
+	fd_log_debug("   %d elements max / %d threads waiting to push\n", queue->max, queue->thrs_push);
 	fd_log_debug("   thresholds: %d / %d (h:%d), cb: %p,%p (%p), highest: %d\n",
 			queue->high, queue->low, queue->highest, 
 			queue->h_cb, queue->l_cb, queue->data,
@@ -161,11 +168,8 @@ int fd_fifo_del ( struct fifo  ** queue )
 	/* Have all waiting threads return an error */
 	while (q->thrs) {
 		CHECK_POSIX(  pthread_mutex_unlock( &q->mtx ));
-		CHECK_POSIX(  pthread_cond_signal(&q->cond)  );
-		sched_yield();
-		if (loops >= 10)
-			/* sleep for a few milliseconds */
-			usleep(50000);
+		CHECK_POSIX(  pthread_cond_signal(&q->cond_pull)  );
+		usleep(1000);
 		
 		CHECK_POSIX(  pthread_mutex_lock( &q->mtx )  );
 		ASSERT( ++loops < 20 ); /* detect infinite loops */
@@ -177,7 +181,9 @@ int fd_fifo_del ( struct fifo  ** queue )
 	/* And destroy it */
 	CHECK_POSIX(  pthread_mutex_unlock( &q->mtx )  );
 	
-	CHECK_POSIX_DO(  pthread_cond_destroy( &q->cond ),  );
+	CHECK_POSIX_DO(  pthread_cond_destroy( &q->cond_pull ),  );
+	
+	CHECK_POSIX_DO(  pthread_cond_destroy( &q->cond_push ),  );
 	
 	CHECK_POSIX_DO(  pthread_mutex_destroy( &q->mtx ),  );
 	
@@ -206,26 +212,29 @@ int fd_fifo_move ( struct fifo * old, struct fifo * new, struct fifo ** loc_upda
 	
 	/* Lock the queues */
 	CHECK_POSIX(  pthread_mutex_lock( &old->mtx )  );
+	
+	CHECK_PARAMS_DO( (! old->thrs_push), {
+			pthread_mutex_unlock( &old->mtx );
+			return EINVAL;
+		} );
+	
 	CHECK_POSIX(  pthread_mutex_lock( &new->mtx )  );
 	
 	/* Any waiting thread on the old queue returns an error */
 	old->eyec = 0xdead;
 	while (old->thrs) {
 		CHECK_POSIX(  pthread_mutex_unlock( &old->mtx ));
-		CHECK_POSIX(  pthread_cond_signal(&old->cond)  );
-		sched_yield();
-		if (loops >= 10)
-			/* sleep for a few milliseconds */
-			usleep(50000);
+		CHECK_POSIX(  pthread_cond_signal( &old->cond_pull )  );
+		usleep(1000);
 		
 		CHECK_POSIX(  pthread_mutex_lock( &old->mtx )  );
-		ASSERT( ++loops < 20 ); /* detect infinite loops */
+		ASSERT( loops < 20 ); /* detect infinite loops */
 	}
 	
 	/* Move all data from old to new */
 	fd_list_move_end( &new->list, &old->list );
 	if (old->count && (!new->count)) {
-		CHECK_POSIX(  pthread_cond_signal(&new->cond)  );
+		CHECK_POSIX(  pthread_cond_signal(&new->cond_pull)  );
 	}
 	new->count += old->count;
 	
@@ -295,6 +304,24 @@ int fd_fifo_setthrhd ( struct fifo * queue, void * data, uint16_t high, void (*h
 	return 0;
 }
 
+
+/* This handler is called when a thread is blocked on a queue, and cancelled */
+static void fifo_cleanup_push(void * queue)
+{
+	struct fifo * q = (struct fifo *)queue;
+	TRACE_ENTRY( "%p", queue );
+	
+	/* The thread has been cancelled, therefore it does not wait on the queue anymore */
+	q->thrs_push--;
+	
+	/* Now unlock the queue, and we're done */
+	CHECK_POSIX_DO(  pthread_mutex_unlock( &q->mtx ),  /* nothing */  );
+	
+	/* End of cleanup handler */
+	return;
+}
+
+
 /* Post a new item in the queue */
 int fd_fifo_post_int ( struct fifo * queue, void ** item )
 {
@@ -306,14 +333,31 @@ int fd_fifo_post_int ( struct fifo * queue, void ** item )
 	/* Check the parameters */
 	CHECK_PARAMS( CHECK_FIFO( queue ) && item && *item );
 	
+	/* lock the queue */
+	CHECK_POSIX(  pthread_mutex_lock( &queue->mtx )  );
+	
+	if (queue->max) {
+		while (queue->count >= queue->max) {
+			int ret = 0;
+			
+			/* We have to wait for an item to be pulled */
+			queue->thrs_push++ ;
+			pthread_cleanup_push( fifo_cleanup_push, queue);
+			ret = pthread_cond_wait( &queue->cond_push, &queue->mtx );
+			pthread_cleanup_pop(0);
+			queue->thrs_push-- ;
+			
+			ASSERT( ret == 0 );
+		}
+	}
+	
 	/* Create a new list item */
-	CHECK_MALLOC(  new = malloc (sizeof (struct fd_list))  );
+	CHECK_MALLOC_DO(  new = malloc (sizeof (struct fd_list)) , {
+			pthread_mutex_unlock( &queue->mtx );
+		} );
 	
 	fd_list_init(new, *item);
 	*item = NULL;
-	
-	/* lock the queue */
-	CHECK_POSIX(  pthread_mutex_lock( &queue->mtx )  );
 	
 	/* Add the new item at the end */
 	fd_list_insert_before( &queue->list, new);
@@ -327,7 +371,11 @@ int fd_fifo_post_int ( struct fifo * queue, void ** item )
 	
 	/* Signal if threads are asleep */
 	if (queue->thrs > 0) {
-		CHECK_POSIX(  pthread_cond_signal(&queue->cond)  );
+		CHECK_POSIX(  pthread_cond_signal(&queue->cond_pull)  );
+	}
+	if (queue->thrs_push > 0) {
+		/* cascade */
+		CHECK_POSIX(  pthread_cond_signal(&queue->cond_push)  );
 	}
 	
 	/* Unlock */
@@ -353,6 +401,10 @@ static void * mq_pop(struct fifo * queue)
 	queue->count--;
 	ret = li->o;
 	free(li);
+	
+	if (queue->thrs_push) {
+		CHECK_POSIX_DO( pthread_cond_signal( &queue->cond_push ), );
+	}
 	
 	return ret;
 }
@@ -387,10 +439,21 @@ int fd_fifo_tryget_int ( struct fifo * queue, void ** item )
 	
 	/* Check queue status */
 	if (queue->count > 0) {
+got_item:
 		/* There are elements in the queue, so pick the first one */
 		*item = mq_pop(queue);
 		call_cb = test_l_cb(queue);
 	} else {
+		if (queue->thrs_push > 0) {
+			/* A thread is trying to push something, let's give it a chance */
+			CHECK_POSIX(  pthread_mutex_unlock( &queue->mtx )  );
+			CHECK_POSIX(  pthread_cond_signal( &queue->cond_push )  );
+			usleep(1000);
+			CHECK_POSIX(  pthread_mutex_lock( &queue->mtx )  );
+			if (queue->count > 0)
+				goto got_item;
+		}
+		
 		wouldblock = 1;
 		*item = NULL;
 	}
@@ -456,9 +519,9 @@ awaken:
 		queue->thrs++ ;
 		pthread_cleanup_push( fifo_cleanup, queue);
 		if (istimed) {
-			ret = pthread_cond_timedwait( &queue->cond, &queue->mtx, abstime );
+			ret = pthread_cond_timedwait( &queue->cond_pull, &queue->mtx, abstime );
 		} else {
-			ret = pthread_cond_wait( &queue->cond, &queue->mtx );
+			ret = pthread_cond_wait( &queue->cond_pull, &queue->mtx );
 		}
 		pthread_cleanup_pop(0);
 		queue->thrs-- ;

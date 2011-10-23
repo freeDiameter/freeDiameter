@@ -855,7 +855,7 @@ int fd_psm_begin(struct fd_peer * peer )
 	CHECK_PARAMS( fd_peer_getstate(peer) == STATE_NEW );
 	
 	/* Create the FIFO for events */
-	CHECK_FCT( fd_fifo_new(&peer->p_events) );
+	CHECK_FCT( fd_fifo_new(&peer->p_events, 0) );
 	
 	/* Create the PSM controler thread */
 	CHECK_POSIX( pthread_create( &peer->p_psm, NULL, p_psm_th, peer ) );

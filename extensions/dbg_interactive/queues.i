@@ -41,9 +41,9 @@ struct fifo {
 };
 
 %extend fifo {
-	fifo() {
+	fifo(int max = 0) {
 		struct fifo * q = NULL;
-		int ret = fd_fifo_new(&q);
+		int ret = fd_fifo_new(&q, max);
 		if (ret != 0) {
 			DI_ERROR(ret, NULL, NULL);
 			return NULL;
@@ -146,7 +146,7 @@ struct fifo {
 		
 		ret = fd_fifo_tryget($self, &obj);
 		if (ret == EWOULDBLOCK) {
-			Py_XINCREF(Py_None);
+			Py_INCREF(Py_None);
 			return Py_None;
 		}
 		if (ret != 0) {
@@ -181,7 +181,7 @@ struct fifo {
 		
 		ret = fd_fifo_timedget($self, &obj, &ts);
 		if (ret == ETIMEDOUT) {
-			Py_XINCREF(Py_None);
+			Py_INCREF(Py_None);
 			return Py_None;
 		}
 		if (ret != 0) {

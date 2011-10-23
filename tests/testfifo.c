@@ -110,6 +110,25 @@ static void * test_fct(void * data)
 	return NULL;
 }
 
+/* The test function, to be threaded */
+static int iter  = 0;
+static void * test_fct2(void * data)
+{
+	int i;
+	int * item;
+	struct test_data * td = (struct test_data *) data;
+	
+	for (i=0; i< td->nbr; i++) {
+		item = malloc(sizeof(int));
+		CHECK( 1, item ? 1 : 0 );
+		*item = i;
+		CHECK( 0, fd_fifo_post(td->queue, &item) );
+		iter++;
+	}
+	
+	return NULL;
+}
+
 
 /* Main test routine */
 int main(int argc, char *argv[])
@@ -144,7 +163,7 @@ int main(int argc, char *argv[])
 		struct msg * msg  = NULL;
 		
 		/* Create the queue */
-		CHECK( 0, fd_fifo_new(&queue) );
+		CHECK( 0, fd_fifo_new(&queue, 0) );
 		
 		/* Check the count is 0 */
 		CHECK( 0, fd_fifo_length(queue, &count) );
@@ -232,7 +251,7 @@ int main(int argc, char *argv[])
 		}
 		
 		/* Create the queue */
-		CHECK( 0, fd_fifo_new(&queue) );
+		CHECK( 0, fd_fifo_new(&queue, 0) );
 		
 		/* Create the barrier */
 		CHECK( 0, pthread_barrier_init(&bar, NULL, nbr_threads * 2 + 1) );
@@ -302,7 +321,7 @@ int main(int argc, char *argv[])
 		pthread_t		 th;
 		
 		/* Create the queue */
-		CHECK( 0, fd_fifo_new(&queue) );
+		CHECK( 0, fd_fifo_new(&queue, 0) );
 		
 		/* Create the barrier */
 		CHECK( 0, pthread_barrier_init(&bar, NULL, 2) );
@@ -369,7 +388,7 @@ int main(int argc, char *argv[])
 		struct msg * msg  = NULL;
 		
 		/* Create the queue */
-		CHECK( 0, fd_fifo_new(&queue) );
+		CHECK( 0, fd_fifo_new(&queue, 0) );
 		
 		/* Prepare the test data */
 		memset(&thrh_td, 0, sizeof(thrh_td));
@@ -439,6 +458,57 @@ int main(int argc, char *argv[])
 		
 		/* We're done for this test */
 		CHECK( 0, fd_fifo_del(&queue) );
+	}
+	
+	/* Test max queue limit */
+	{
+		struct fifo      	*queue = NULL;
+		struct test_data	 td;
+		pthread_t		 th;
+		int *			item, i;
+		
+		/* Create the queue */
+		CHECK( 0, fd_fifo_new(&queue, 10) );
+		
+		/* Initialize the test data structures */
+		td.queue = queue;
+		td.nbr = 15;
+		
+		CHECK( 0, pthread_create( &th, NULL, test_fct2, &td ) );
+		
+		usleep(1000); /* 1 millisec */
+		
+		CHECK( 10, iter );
+		
+		CHECK( 0, fd_fifo_tryget(queue, &item) );
+		CHECK( 0, *item);
+		free(item);
+		
+		usleep(1000); /* 1 millisec */
+		
+		CHECK( 11, iter );
+		
+		for (i=1; i<4; i++) {
+			CHECK( 0, fd_fifo_get(queue, &item) );
+			CHECK( i, *item);
+			free(item);
+		}
+		
+		usleep(1000); /* 1 millisec */
+		
+		CHECK( 14, iter );
+		
+		/* fd_fifo_dump(0, "test", queue, NULL); */
+		
+		for (; i < td.nbr; i++) {
+			CHECK( 0, fd_fifo_tryget(queue, &item) );
+			CHECK( i, *item);
+			free(item);
+		}
+		
+		CHECK( 0, pthread_join( th, NULL ) );
+		CHECK( 15, iter );
+		
 	}
 	
 	/* Delete the messages */

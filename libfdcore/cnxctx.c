@@ -89,7 +89,7 @@ static struct cnxctx * fd_cnx_init(int full)
 	memset(conn, 0, sizeof(struct cnxctx));
 
 	if (full) {
-		CHECK_FCT_DO( fd_fifo_new ( &conn->cc_incoming ), return NULL );
+		CHECK_FCT_DO( fd_fifo_new ( &conn->cc_incoming, 5 ), return NULL );
 	}
 
 	return conn;
