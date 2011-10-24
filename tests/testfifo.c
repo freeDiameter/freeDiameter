@@ -476,7 +476,7 @@ int main(int argc, char *argv[])
 		
 		CHECK( 0, pthread_create( &th, NULL, test_fct2, &td ) );
 		
-		usleep(1000); /* 1 millisec */
+		usleep(100000); /* 100 millisec */
 		
 		CHECK( 10, iter );
 		
@@ -484,7 +484,7 @@ int main(int argc, char *argv[])
 		CHECK( 0, *item);
 		free(item);
 		
-		usleep(1000); /* 1 millisec */
+		usleep(100000); /* 100 millisec */
 		
 		CHECK( 11, iter );
 		
@@ -494,7 +494,7 @@ int main(int argc, char *argv[])
 			free(item);
 		}
 		
-		usleep(1000); /* 1 millisec */
+		usleep(100000); /* 100 millisec */
 		
 		CHECK( 14, iter );
 		
