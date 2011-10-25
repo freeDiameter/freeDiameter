@@ -1840,7 +1840,7 @@ int fd_dict_search ( struct dictionary * dict, enum dict_object_type type, int c
 
 All returned list must be accessed like this:
 
-  for (li = sentinel->next; li=li->next; li != sentinel) {
+  for (li = sentinel->next; li != sentinel; li=li->next) {
 	struct dict_object * obj = li->o;
 	...
   }
@@ -1853,18 +1853,18 @@ APPLICATION_BY_ID : (parent = dictionary) returns list of applications ordered b
   ** for these two lists, the Vendor with id 0 and applciation with id 0 are excluded. 
      You must resolve them separatly with dict_search.
 		
-TYPE_BY_NAME : (parent = dictionary) returns list of types ordered by name
-ENUMVAL_BY_NAME : (parent = type object) return list of constants for this type ordered by name
+TYPE_BY_NAME : (parent = dictionary) returns list of types ordered by name (osstring order)
+ENUMVAL_BY_NAME : (parent = type object) return list of constants for this type ordered by name (osstring order)
 ENUMVAL_BY_VALUE : (parent = type object) return list of constants for this type ordered by values
-AVP_BY_NAME : (parent = vendor object) return list of AVP for this vendor ordered by name
+AVP_BY_NAME : (parent = vendor object) return list of AVP for this vendor ordered by name (osstring order)
 AVP_BY_CODE : (parent = vendor object) return list of AVP for this vendor ordered by code
-CMD_BY_NAME : (parent = dictionary) returns list of commands ordered by name
+CMD_BY_NAME : (parent = dictionary) returns list of commands ordered by name (osstring order)
 CMD_BY_CODE_R : (parent = dictionary) returns list of commands ordered by code
 RULE_BY_AVP_AND_PARENT: (parent = command or grouped AVP object) return list of rules for this object ordered by AVP vendor/code
 
 All other criteria are rejected.
  */
-int fd_dict_getlistof(int criteria, void * parent, struct fd_list * sentinel)
+int fd_dict_getlistof(int criteria, void * parent, struct fd_list ** sentinel)
 {
 	struct dictionary * dict = parent;
 	struct dict_object * obj_parent = parent;
@@ -1876,47 +1876,47 @@ int fd_dict_getlistof(int criteria, void * parent, struct fd_list * sentinel)
 	switch(criteria) {
 		case VENDOR_BY_ID: /* parent must be the dictionary */
 			CHECK_PARAMS(dict->dict_eyec == DICT_EYECATCHER);
-			sentinel = &dict->dict_vendors.list[0];
+			*sentinel = &dict->dict_vendors.list[0];
 			break;
 			
 		case APPLICATION_BY_ID: /* parent must be the dictionary */
 			CHECK_PARAMS(dict->dict_eyec == DICT_EYECATCHER);
-			sentinel = &dict->dict_applications.list[0];
+			*sentinel = &dict->dict_applications.list[0];
 			break;
 			
 		case TYPE_BY_NAME: /* parent must be the dictionary */
 			CHECK_PARAMS(dict->dict_eyec == DICT_EYECATCHER);
-			sentinel = &dict->dict_types;
+			*sentinel = &dict->dict_types;
 			break;
 			
 		case ENUMVAL_BY_NAME: /* parent must be a type object */
 			CHECK_PARAMS(verify_object(obj_parent) && (obj_parent->type == DICT_TYPE));
-			sentinel = &obj_parent->list[1];
+			*sentinel = &obj_parent->list[1];
 			break;
 			
 		case ENUMVAL_BY_VALUE: /* parent must be a type object */
 			CHECK_PARAMS(verify_object(obj_parent) && (obj_parent->type == DICT_TYPE));
-			sentinel = &obj_parent->list[2];
+			*sentinel = &obj_parent->list[2];
 			break;
 			
-		case AVP_BY_NAME: /* parent must be a AVP object */
-			CHECK_PARAMS(verify_object(obj_parent) && (obj_parent->type == DICT_AVP));
-			sentinel = &obj_parent->list[2];
+		case AVP_BY_NAME: /* parent must be a VENDOR object */
+			CHECK_PARAMS(verify_object(obj_parent) && (obj_parent->type == DICT_VENDOR));
+			*sentinel = &obj_parent->list[2];
 			break;
 			
-		case AVP_BY_CODE: /* parent must be a AVP object */
-			CHECK_PARAMS(verify_object(obj_parent) && (obj_parent->type == DICT_AVP));
-			sentinel = &obj_parent->list[1];
+		case AVP_BY_CODE: /* parent must be a VENDOR object */
+			CHECK_PARAMS(verify_object(obj_parent) && (obj_parent->type == DICT_VENDOR));
+			*sentinel = &obj_parent->list[1];
 			break;
 			
 		case CMD_BY_NAME: /* parent must be the dictionary */
 			CHECK_PARAMS(dict->dict_eyec == DICT_EYECATCHER);
-			sentinel = &dict->dict_cmd_name;
+			*sentinel = &dict->dict_cmd_name;
 			break;
 			
 		case CMD_BY_CODE_R: /* parent must be the dictionary */
 			CHECK_PARAMS(dict->dict_eyec == DICT_EYECATCHER);
-			sentinel = &dict->dict_cmd_code;
+			*sentinel = &dict->dict_cmd_code;
 			break;
 			
 		case RULE_BY_AVP_AND_PARENT: /* parent must be command or grouped AVP */
@@ -1924,7 +1924,7 @@ int fd_dict_getlistof(int criteria, void * parent, struct fd_list * sentinel)
 			CHECK_PARAMS(	(obj_parent->type == DICT_COMMAND) ||
 					((obj_parent->type == DICT_AVP) 
 					  && (obj_parent->data.avp.avp_basetype == AVP_TYPE_GROUPED)) );
-			sentinel = &obj_parent->list[2];
+			*sentinel = &obj_parent->list[2];
 			break;
 			
 		default:

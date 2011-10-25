@@ -128,6 +128,35 @@ int main(int argc, char *argv[])
 		CHECK( 0, fd_dict_iterate_rules ( example_avp_avp, &nbr, iter_test) );
 		CHECK( 2, nbr );
 	}
+	
+	/* Test list function */
+	{
+		struct fd_list * li = NULL;
+		struct fd_list * sentinel = NULL;
+		enum dict_object_type	type;
+		struct dict_object * defvnd=NULL;
+		vendor_id_t vid = 0;
+		
+		CHECK( 0, fd_dict_getlistof(VENDOR_BY_ID, fd_g_config->cnf_dict, &sentinel));
+		
+		for (li = sentinel->next; li != sentinel; li = li->next) {
+			CHECK(0, fd_dict_gettype(li->o, &type));
+			CHECK(DICT_VENDOR, type);
+		}
+		
+		CHECK( 0, fd_dict_search(fd_g_config->cnf_dict, DICT_VENDOR, VENDOR_BY_ID, &vid, &defvnd, ENOENT) );
+		
+		CHECK( 0, fd_dict_getlistof(AVP_BY_NAME, defvnd, &sentinel));
+		for (li = sentinel->next; li != sentinel; li = li->next) {
+			CHECK(0, fd_dict_gettype(li->o, &type));
+			CHECK(DICT_AVP, type);
+#if 0
+			struct dict_avp_data data;
+			CHECK( 0, fd_dict_getval(li->o, &data) );
+			printf("%d : %s\n", data.avp_code, data.avp_name);
+#endif
+		}
+	}
 
 	/* That's all for the tests yet */
 	PASSTEST();

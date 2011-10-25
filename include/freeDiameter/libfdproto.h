@@ -848,7 +848,7 @@ void fd_dict_dump_object(struct dict_object * obj);
 void fd_dict_dump(struct dictionary * dict);
 
 /* Function to access full contents of the dictionary, see doc in dictionary.c */
-int fd_dict_getlistof(int criteria, void * parent, struct fd_list * sentinel);
+int fd_dict_getlistof(int criteria, void * parent, struct fd_list ** sentinel);
 
 
 /*
