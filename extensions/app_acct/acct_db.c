@@ -35,6 +35,10 @@
 
 /* Database interface module */
 
+/* There is one connection to the db per thread. 
+The connection is stored in the pthread_key_t variable */
+
+
 #include "app_acct.h"
 #include <libpq-fe.h>
 
@@ -53,7 +57,8 @@ static const char * stmt = "acct_db_stmt";
 #ifndef TEST_DEBUG
 static 
 #endif /* TEST_DEBUG */
-PGconn *conn = NULL;
+pthread_key_t connk;
+
 
 /* Initialize the database context: connection to the DB, prepared statement to insert new records */
 int acct_db_init(void)
@@ -65,6 +70,7 @@ int acct_db_init(void)
 	size_t sql_offset = 0; /* The actual data already written in this buffer */
 	int idx = 0;
 	PGresult * res;
+	PGconn *conn;
 	#define REALLOC_SIZE	1024	/* We extend the buffer by this amount */
 	
 	TRACE_ENTRY();
@@ -194,6 +200,9 @@ int acct_db_init(void)
 	free(sql);
 	acct_rec_empty(&emptyrecords);
 	
+	CHECK_POSIX( pthread_key_create(&connk, (void (*)(void*))PQfinish) );
+	CHECK_POSIX( pthread_setspecific(connk, conn) );
+	
 	/* Ok, ready */
 	return 0;
 }
@@ -201,11 +210,7 @@ int acct_db_init(void)
 /* Terminate the connection to the DB */
 void acct_db_free(void)
 {	
-	if (conn) {
-		/* Note: the prepared statement is automatically freed when the session terminates */
-		PQfinish(conn);
-		conn = NULL;
-	}
+	CHECK_POSIX_DO(pthread_key_delete(connk) , );
 }
 
 /* When a new message has been received, insert the content of the parsed mapping into the DB (using prepared statement) */
@@ -218,9 +223,16 @@ int acct_db_insert(struct acct_record_list * records)
 	int	  size = 0;
 	PGresult *res;
 	struct fd_list *li;
+	PGconn *conn;
 	
 	TRACE_ENTRY("%p", records);
-	CHECK_PARAMS( conn && records );
+	CHECK_PARAMS( records );
+	
+	conn = pthread_getspecific(connk);
+	if (!conn) {
+		conn = PQconnectdb(acct_config->conninfo);
+		CHECK_POSIX( pthread_setspecific(connk, conn) );
+	}
 	
 	/* First, check if the connection with the DB has not staled, and eventually try to fix it */
 	if (PQstatus(conn) != CONNECTION_OK) {

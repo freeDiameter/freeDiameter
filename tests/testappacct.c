@@ -90,7 +90,8 @@ static int add_avp_in_conf(char * avpname, int multi)
 /* Main test routine */
 int main(int argc, char *argv[])
 {
-	extern PGconn *conn; /* in acct_db.c */
+	extern pthread_key_t connk; /* in acct_db.c */
+	PGconn *conn;
 	extern int fd_ext_init(int major, int minor, char * conffile); /* defined in include's extension.h */
 	extern void fd_ext_fini(void); /* defined in the extension itself */
 	struct msg * msg;
@@ -121,6 +122,7 @@ int main(int argc, char *argv[])
 		
 		/* Now, call the one of the extension */
 		CHECK( 0, fd_ext_init(FD_PROJECT_VERSION_MAJOR, FD_PROJECT_VERSION_MINOR,NULL) );
+		conn = pthread_getspecific(connk);
 	}
 	
 	/* Drop and recreate the table for the test */
