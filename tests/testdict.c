@@ -136,12 +136,19 @@ int main(int argc, char *argv[])
 		enum dict_object_type	type;
 		struct dict_object * defvnd=NULL;
 		vendor_id_t vid = 0;
+		int first = 1;
 		
 		CHECK( 0, fd_dict_getlistof(VENDOR_BY_ID, fd_g_config->cnf_dict, &sentinel));
 		
-		for (li = sentinel->next; li != sentinel; li = li->next) {
+		for (li = sentinel; (li != sentinel) || (first != 0); li = li->next) {
+			first = 0;
 			CHECK(0, fd_dict_gettype(li->o, &type));
 			CHECK(DICT_VENDOR, type);
+#if 0
+			struct dict_vendor_data data;
+			CHECK( 0, fd_dict_getval(li->o, &data) );
+			printf("%d : %s\n", data.vendor_id, data.vendor_name);
+#endif
 		}
 		
 		CHECK( 0, fd_dict_search(fd_g_config->cnf_dict, DICT_VENDOR, VENDOR_BY_ID, &vid, &defvnd, ENOENT) );

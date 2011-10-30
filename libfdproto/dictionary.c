@@ -1968,7 +1968,7 @@ int fd_dict_init ( struct dictionary ** dict)
 	#define NO_VENDOR_NAME	"(no vendor)"
 	new->dict_vendors.data.vendor.vendor_name = NO_VENDOR_NAME;
 	new->dict_vendors.datastr_len = CONSTSTRLEN(NO_VENDOR_NAME);
-	new->dict_vendors.list[0].o = NULL; /* overwrite since element is also sentinel for this list. */
+	/* new->dict_vendors.list[0].o = NULL; *//* overwrite since element is also sentinel for this list. */
 	new->dict_vendors.dico = new;
 	
 	/* Initialize the sentinel for applications */
@@ -1976,7 +1976,7 @@ int fd_dict_init ( struct dictionary ** dict)
 	#define APPLICATION_0_NAME	"Diameter Common Messages"
 	new->dict_applications.data.application.application_name = APPLICATION_0_NAME;
 	new->dict_applications.datastr_len = CONSTSTRLEN(APPLICATION_0_NAME);
-	new->dict_applications.list[0].o = NULL; /* overwrite since since element is also sentinel for this list. */
+	/* new->dict_applications.list[0].o = NULL; *//* overwrite since since element is also sentinel for this list. */
 	new->dict_applications.dico = new;
 			
 	/* Initialize the sentinel for types */
