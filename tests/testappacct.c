@@ -252,15 +252,21 @@ int main(int argc, char *argv[])
 	/* Now, check the record was actually registered properly */
 	{
 		PGresult * res;
-		char * s;
+		uint8_t * bs;
+		char * es;
+		size_t l;
+		int i;
 		res = PQexec(conn, "SELECT \"Session-Id\" from " TABLE ";");
 		CHECK( PGRES_TUPLES_OK, PQresultStatus(res) );
 		
 		/* We also check that the Session-Id we retrieve is the same as what we generated earlier (not trashed in the process) */
-		s = PQgetvalue(res, 0, 0);
-		CHECK( 0, strcmp(s, (char *)sess_bkp) );
+		es = PQgetvalue(res, 0, 0);
+		bs = PQunescapeBytea((uint8_t *)es, &l);
+		
+		CHECK( 0, fd_os_cmp(bs, l, sess_bkp, sess_bkp_len) );
 		
 		PQclear(res);
+		PQfreemem(bs);
 	}  
 
 	/* That's all for the tests yet */

@@ -58,6 +58,8 @@ static const char * stmt = "acct_db_stmt";
 static 
 #endif /* TEST_DEBUG */
 pthread_key_t connk;
+static char * sql = NULL;   /* The buffer that will contain the SQL query */
+static int nbrecords = 0;
 
 
 /* Initialize the database context: connection to the DB, prepared statement to insert new records */
@@ -65,7 +67,6 @@ int acct_db_init(void)
 {
 	struct acct_record_list emptyrecords;
 	struct fd_list * li;
-	char * sql=NULL;   /* The buffer that will contain the SQL query */
 	size_t sql_allocd = 0; /* The malloc'd size of the buffer */
 	size_t sql_offset = 0; /* The actual data already written in this buffer */
 	int idx = 0;
@@ -196,8 +197,8 @@ int acct_db_init(void)
 		return EINVAL;
         }
 	PQclear(res);
+	nbrecords = emptyrecords.nball;
 	
-	free(sql);
 	acct_rec_empty(&emptyrecords);
 	
 	CHECK_POSIX( pthread_key_create(&connk, (void (*)(void*))PQfinish) );
@@ -211,6 +212,7 @@ int acct_db_init(void)
 void acct_db_free(void)
 {	
 	CHECK_POSIX_DO(pthread_key_delete(connk) , );
+	free(sql);
 }
 
 /* When a new message has been received, insert the content of the parsed mapping into the DB (using prepared statement) */
@@ -224,6 +226,7 @@ int acct_db_insert(struct acct_record_list * records)
 	PGresult *res;
 	struct fd_list *li;
 	PGconn *conn;
+	int new = 0;
 	
 	TRACE_ENTRY("%p", records);
 	CHECK_PARAMS( records );
@@ -232,6 +235,8 @@ int acct_db_insert(struct acct_record_list * records)
 	if (!conn) {
 		conn = PQconnectdb(acct_config->conninfo);
 		CHECK_POSIX( pthread_setspecific(connk, conn) );
+		
+		new = 1;
 	}
 	
 	/* First, check if the connection with the DB has not staled, and eventually try to fix it */
@@ -243,6 +248,18 @@ int acct_db_insert(struct acct_record_list * records)
 			TODO("Terminate the freeDiameter instance completly?");
 			return ENOTCONN;
 		}
+	}
+	
+	if (new) {
+		/* Create the prepared statement for this ocnnection, it is not shared */
+		res = PQprepare(conn, stmt, sql, nbrecords, NULL);
+		if (PQresultStatus(res) != PGRES_COMMAND_OK) {
+			TRACE_DEBUG(INFO, "Preparing statement '%s' failed: %s",
+				sql, PQerrorMessage(conn));
+			PQclear(res);
+			return EINVAL;
+        	}
+		PQclear(res);
 	}
 	
 	size = 	acct_config->tsfield ? records->nball + 1 : records->nball;
