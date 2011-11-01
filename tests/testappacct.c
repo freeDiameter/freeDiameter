@@ -255,7 +255,7 @@ int main(int argc, char *argv[])
 		uint8_t * bs;
 		char * es;
 		size_t l;
-		int i;
+		
 		res = PQexec(conn, "SELECT \"Session-Id\" from " TABLE ";");
 		CHECK( PGRES_TUPLES_OK, PQresultStatus(res) );
 		
