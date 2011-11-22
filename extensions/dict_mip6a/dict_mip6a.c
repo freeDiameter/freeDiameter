@@ -1091,4 +1091,4 @@ int dict_mip6a_init(char * conffile)
 	TRACE_DEBUG(INFO, "Dictionary Extension 'Diameter Mobile IPv6 Auth (MIP6A)' initialized");
 	return 0;
 }
-EXTENSION_ENTRY("dict_mip6a",dict_mip6a_init);
+EXTENSION_ENTRY("dict_mip6a", dict_mip6a_init, "dict_rfc5777");
