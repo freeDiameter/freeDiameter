@@ -319,7 +319,7 @@ int dict_rfc5777_init(char * conffile)
 			struct dict_avp_data data = {
 					576, 					/* Code */
 					0, 					/* Vendor */
-					"QoS-parameters",			/* Name */
+					"QoS-Parameters",			/* Name */
 					AVP_FLAG_VENDOR | AVP_FLAG_MANDATORY, 	/* Fixed flags */
 					AVP_FLAG_MANDATORY,		 	/* Fixed flag values */
 					AVP_TYPE_GROUPED 			/* base type of data */
@@ -1104,7 +1104,7 @@ int dict_rfc5777_init(char * conffile)
 			*/
 
 			struct dict_avp_data data = {
-					539, 					/* Code */
+					544, 					/* Code */
 					0, 					/* Vendor */
 					"TCP-Flag-Type",			/* Name */
 					AVP_FLAG_VENDOR | AVP_FLAG_MANDATORY, 	/* Fixed flags */
@@ -1392,7 +1392,7 @@ int dict_rfc5777_init(char * conffile)
 			struct dict_avp_data data = {
 					537, 					/* Code */
 					0, 					/* Vendor */
-					"TCP-Option",				/* Name */
+					"IP-Option",				/* Name */
 					AVP_FLAG_VENDOR | AVP_FLAG_MANDATORY, 	/* Fixed flags */
 					AVP_FLAG_MANDATORY,		 	/* Fixed flag values */
 					AVP_TYPE_GROUPED 			/* base type of data */
@@ -1629,7 +1629,7 @@ int dict_rfc5777_init(char * conffile)
 
 			struct local_rules_definition rules[] =
 						{ 	 {  "IP-Address",		RULE_REQUIRED, -1, 1 }
-							,{  "IP-Bit-Mask-Width",	RULE_REQUIRED, -1, 1 }
+							,{  "IP-Mask-Bit-Mask-Width",	RULE_REQUIRED, -1, 1 }
 						};
 
 			CHECK_dict_new( DICT_AVP, &data , NULL, &avp);
