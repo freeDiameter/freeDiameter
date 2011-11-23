@@ -74,7 +74,7 @@ ACCOUNTING AVPs (section 6.21)
 	Acct-Session-Time			46	2866, 4004	Unsigned32
 	MIP6-Feature-Vector			----------------------------------
 	MIP-Mobile-Node-Address			----------------------------------
-	MIP-Agent-Info				----------------------------------
+	MIP6-Agent-Info				----------------------------------
 	Chargeable-User-Identity		----------------------------------
 	Service-Selection			----------------------------------
 	QoS-Resources				----------------------------------
@@ -1003,7 +1003,7 @@ int dict_mip6i_init(char * conffile)
 					325, 					/* Code */
 					"MIP6-Request", 			/* Name */
 					CMD_FLAG_REQUEST | CMD_FLAG_PROXIABLE | CMD_FLAG_ERROR, 	/* Fixed flags */
-					CMD_FLAG_PROXIABLE 						/* Fixed flag values */
+					CMD_FLAG_REQUEST | CMD_FLAG_PROXIABLE 						/* Fixed flag values */
 					};
 			struct local_rules_definition rules[] =
 						{ 	 {  "Session-Id", 			RULE_FIXED_HEAD, -1, 1 }
@@ -1041,7 +1041,7 @@ int dict_mip6i_init(char * conffile)
 							,{  "Route-Record", 			RULE_OPTIONAL,   -1, -1 }
 						};
 
-			CHECK_dict_new( DICT_COMMAND, &data , mip6i, &cmd);
+			CHECK_dict_new( DICT_COMMAND, &data, mip6i, &cmd);
 			PARSE_loc_rules( rules, cmd );
 		}
 
@@ -1076,7 +1076,7 @@ int dict_mip6i_init(char * conffile)
 					  [ Error-Reporting-Host ]
 					  [ Re-Auth-Request-Type ]
 					  [ MIP6-Feature-Vector ]
-					  [ MIP-Agent-Info ]
+					  [ MIP6-Agent-Info ]
 					*2[ MIP-Mobile-Node-Address ]
 					  [ MIP-MN-HA-MSA ]
 					* [ QoS-Resources ]
@@ -1095,7 +1095,7 @@ int dict_mip6i_init(char * conffile)
 			struct dict_cmd_data data = {
 					325, 					/* Code */
 					"MIP6-Answer", 				/* Name */
-					CMD_FLAG_PROXIABLE | CMD_FLAG_ERROR, 	/* Fixed flags */
+					CMD_FLAG_REQUEST | CMD_FLAG_PROXIABLE | CMD_FLAG_ERROR, 	/* Fixed flags */
 					CMD_FLAG_PROXIABLE 			/* Fixed flag values */
 					};
 			struct local_rules_definition rules[] =
@@ -1112,7 +1112,7 @@ int dict_mip6i_init(char * conffile)
 							,{  "Error-Reporting-Host", 		RULE_OPTIONAL,   -1, 1 }
 							,{  "Re-Auth-Request-Type", 		RULE_OPTIONAL,   -1, 1 }
 							,{  "MIP6-Feature-Vector", 		RULE_OPTIONAL,   -1, 1 }
-							,{  "MIP-Agent-Info", 			RULE_OPTIONAL,   -1, 1 }
+							,{  "MIP6-Agent-Info", 			RULE_OPTIONAL,   -1, 1 }
 							,{  "MIP-Mobile-Node-Address", 		RULE_OPTIONAL,   -1, 2 }
 							,{  "MIP-MN-HA-MSA", 			RULE_OPTIONAL,   -1, 1 }
 							,{  "QoS-Resources", 			RULE_OPTIONAL,   -1, -1 }
@@ -1126,7 +1126,7 @@ int dict_mip6i_init(char * conffile)
 							,{  "Failed-AVP", 			RULE_OPTIONAL,   -1, -1 }
 						};
 
-			CHECK_dict_new( DICT_COMMAND, &data , mip6i, &cmd);
+			CHECK_dict_new( DICT_COMMAND, &data, mip6i, &cmd);
 			PARSE_loc_rules( rules, cmd );
 		}
 	}
