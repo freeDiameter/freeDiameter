@@ -1811,6 +1811,44 @@ error_free:
 	return ret;
 }
 
+
+int fd_dict_delete(struct dict_object * obj)
+{
+	int i;
+	struct dictionary * dict;
+	int ret=0;
+	
+	/* check params */
+	CHECK_PARAMS( verify_object(obj) && obj->dico);
+	dict = obj->dico;
+
+	/* Lock the dictionary for change */
+	CHECK_POSIX(  pthread_rwlock_wrlock(&dict->dict_lock)  );
+	
+	/* check the object is not sentinel for another list */
+	for (i=0; i<NB_LISTS_PER_OBJ; i++) {
+		if (!_OBINFO(obj).haslist[i] && !(FD_IS_LIST_EMPTY(&obj->list[i]))) {
+			/* There are children, this is not good */
+			ret = EINVAL;
+			TRACE_DEBUG (FULL, "Cannot delete object, list %d not empty:", i);
+			#if 0
+			dump_list(&obj->list[i], 0,0,0);
+			#endif
+			break;
+		}
+	}
+	
+	/* ok, now destroy the object */
+	if (!ret)
+		destroy_object(obj);
+	
+	/* Unlock */
+	CHECK_POSIX(  pthread_rwlock_unlock(&dict->dict_lock)  );
+	
+	return ret;
+}
+
+
 int fd_dict_search ( struct dictionary * dict, enum dict_object_type type, int criteria, void * what, struct dict_object **result, int retval )
 {
 	int ret = 0;

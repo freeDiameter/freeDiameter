@@ -173,6 +173,22 @@ int main(int argc, char *argv[])
 		CHECK( 0, fd_sess_destroy( &sess2 ) );
 		CHECK( 0, fd_sess_destroy( &sess1 ) );
 	}
+	
+	/* Test fd_sess_getcount */
+	{
+		uint32_t cnt;
+		CHECK( 0, fd_sess_new( &sess1, TEST_DIAM_ID, CONSTSTRLEN(TEST_DIAM_ID), NULL, 0 ) );
+		CHECK( 0, fd_sess_new( &sess2, TEST_DIAM_ID, CONSTSTRLEN(TEST_DIAM_ID), NULL, 0 ) );
+		CHECK( 0, fd_sess_getcount(&cnt));
+		CHECK( 2, cnt);
+		CHECK( 0, fd_sess_destroy( &sess2 ) );
+		CHECK( 0, fd_sess_getcount(&cnt));
+		CHECK( 1, cnt);
+		CHECK( 0, fd_sess_destroy( &sess1 ) );
+		CHECK( 0, fd_sess_getcount(&cnt));
+		CHECK( 0, cnt);
+		
+	}
 		
 	/* Test fd_sess_fromsid */
 	{

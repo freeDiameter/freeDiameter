@@ -165,6 +165,44 @@ int main(int argc, char *argv[])
 		}
 	}
 
+	/* Test delete function */
+	{
+		struct fd_list * li = NULL;
+		struct fd_list * sentinel = NULL;
+		struct dict_object * obj=NULL;
+		vendor_id_t vid = 0;
+		int count = 0, cntbkp;
+		
+		CHECK( 0, fd_dict_search(fd_g_config->cnf_dict, DICT_VENDOR, VENDOR_BY_ID, &vid, &obj, ENOENT) );
+		
+		CHECK( EINVAL, fd_dict_delete(obj) );
+			
+		
+		CHECK( 0, fd_dict_getlistof(AVP_BY_NAME, obj, &sentinel));
+		obj = NULL;
+		
+		for (li = sentinel->next; li != sentinel; li = li->next) {
+			struct dict_avp_data data;
+			CHECK( 0, fd_dict_getval(li->o, &data) );
+			count++;
+			if (data.avp_basetype != AVP_TYPE_GROUPED)
+				obj = li->o;
+		}
+		
+		CHECK(1, obj ? 1 : 0 );
+#if 1
+		fd_dict_dump_object(obj);
+#endif
+		CHECK( 0, fd_dict_delete(obj) );
+		cntbkp = count;
+		count = 0;
+		for (li = sentinel->next; li != sentinel; li = li->next) {
+			count++;
+		}
+		CHECK( 1, cntbkp - count );
+		
+	}
+	
 	/* That's all for the tests yet */
 	PASSTEST();
 } 

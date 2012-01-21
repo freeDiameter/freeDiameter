@@ -114,6 +114,8 @@ static struct {
 #define H_LIST( _hash ) (&(sess_hash[H_MASK(_hash)].sentinel))
 #define H_LOCK( _hash ) (&(sess_hash[H_MASK(_hash)].lock    ))
 
+static uint32_t		sess_cnt = 0; /* counts all active session (that are in the expiry list) */
+
 /* The following are used to generate sid values that are eternaly unique */
 static uint32_t   	sid_h;	/* initialized to the current time in fd_sess_init */
 static uint32_t   	sid_l;	/* incremented each time a session id is created */
@@ -484,6 +486,7 @@ int fd_sess_new ( struct session ** session, DiamId_t diamid, size_t diamidlen, 
 			break;
 	}
 	fd_list_insert_after( li, &sess->expire );
+	sess_cnt++;
 
 	/* We added a new expiring element, we must signal */
 	if (li == &exp_sentinel) {
@@ -611,7 +614,10 @@ int fd_sess_destroy ( struct session ** session )
 	
 	/* Unlink from the expiry list */
 	CHECK_POSIX_DO( pthread_mutex_lock( &exp_lock ), { ASSERT(0); /* otherwise cleanup handler is not pop'd */ } );
-	fd_list_unlink( &sess->expire ); /* no need to signal the condition here */
+	if (!FD_IS_LIST_EMPTY(&sess->expire)) {
+		sess_cnt--;
+		fd_list_unlink( &sess->expire ); /* no need to signal the condition here */
+	}
 	CHECK_POSIX_DO( pthread_mutex_unlock( &exp_lock ), { ASSERT(0); /* otherwise cleanup handler is not pop'd */ } );
 	
 	/* Now move all states associated to this session into deleted_states */
@@ -889,3 +895,12 @@ void fd_sess_dump_hdl(int level, struct session_handler * handler)
 	}
 	fd_log_debug("\t  %*s -- end of handler @%p --\n", level, "", handler);
 }	
+
+int fd_sess_getcount(uint32_t *cnt)
+{
+	CHECK_PARAMS(cnt);
+	CHECK_POSIX( pthread_mutex_lock( &exp_lock ) );
+	*cnt = sess_cnt;
+	CHECK_POSIX( pthread_mutex_unlock( &exp_lock ) );
+	return 0;
+}

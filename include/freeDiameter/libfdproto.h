@@ -850,6 +850,10 @@ void fd_dict_dump(struct dictionary * dict);
 /* Function to access full contents of the dictionary, see doc in dictionary.c */
 int fd_dict_getlistof(int criteria, void * parent, struct fd_list ** sentinel);
 
+/* Function to remove an entry from the dictionary.
+  This cannot be used if the object has children (for example a vendor with vendor-specific AVPs).
+  In such case, the children must be removed first. */
+int fd_dict_delete(struct dict_object * obj);
 
 /*
  ***************************************************************************
@@ -1858,6 +1862,9 @@ int fd_sess_state_retrieve_internal ( struct session_handler * handler, struct s
 /* For debug */
 void fd_sess_dump(int level, struct session * session);
 void fd_sess_dump_hdl(int level, struct session_handler * handler);
+
+/* For statistics / monitoring: get the number of struct session in memory */
+int fd_sess_getcount(uint32_t *cnt);
 
 /*============================================================*/
 /*                         ROUTING                            */
