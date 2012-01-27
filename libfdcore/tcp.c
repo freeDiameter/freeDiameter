@@ -80,13 +80,10 @@ static int fd_tcp_setsockopt(int family, int sk)
 	}
 	#endif /* IPV6_V6ONLY */
 	
-#ifdef DEBUG
 	{
 		opt = 1;
 		CHECK_SYS(  setsockopt(sk, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt))  );
 	}
-#endif /* DEBUG	*/
-	
 	
 	/* There are also others sockopt that can be set, but nothing useful for us AFAICT */
 	
