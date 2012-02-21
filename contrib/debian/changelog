@@ -1,3 +1,15 @@
+freediameter (1.1.2) UNRELEASED; urgency=low
+
+  * FIFO queues are now capped to avoid memory exhaustion.
+  * Cleanups in MIPv6 dictionaries.
+  * app_acct upgraded: enabled vendor-specific AVP logging, thread-safe version.
+  * New function: fd_dict_getlistof to list dictionary contents.
+  * New function: fd_dict_delete to remove an entry (dangerous function!)
+  * New function: fd_sess_getcount to get count of session objects.
+  * A few additional bug fixes, check hg log for details.
+
+ -- Sebastien Decugis <sdecugis@freediameter.net>  Tue, 21 Feb 2012 18:38:10 +0100
+
 freediameter (1.1.1) UNRELEASED; urgency=low
 
   * Bug fix release
