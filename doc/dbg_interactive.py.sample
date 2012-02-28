@@ -52,7 +52,7 @@ cvar.fd_debug_one_function = "gc_th_fct"
 # Print messages to freeDiameter's debug facility
 # Note: the python version does not support printf-like argument list. The formating should be done in python.
 #       See SWIG documentation about varargs functions for more information.
-fd_log_debug("3 + 4 = %d\n" % (7))
+fd_log_debug_fstr(None, "3 + 4 = %d\n" % (7))
 
 
 # Display some framework state information

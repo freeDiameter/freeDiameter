@@ -109,6 +109,7 @@ static const char * wrapper_error_txt; /* if NULL, use strerror(errno) */
  ***********************************/
 
 %apply (char *STRING, size_t LENGTH) { ( char * string, size_t len ) };
+%apply (char *STRING, size_t LENGTH) { ( uint8_t * string, size_t len ) };
 
 /* Generic typemap for functions that create something */
 %typemap(in, numinputs=0,noblock=1) SWIGTYPE ** OUTPUT (void *temp = NULL) {
@@ -152,6 +153,7 @@ static void fd_add_cb(struct peer_info *peer, void *data);
 
 /* Overwrite declaration to apply typemaps */
 int fd_sess_fromsid ( unsigned char * STRING, size_t LENGTH, struct session ** OUTPUT, int * BOOL_OUT);
+
 
 
 /*********************************************************
