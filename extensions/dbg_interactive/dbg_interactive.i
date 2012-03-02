@@ -152,7 +152,7 @@ static void fd_add_cb(struct peer_info *peer, void *data);
 %}
 
 /* Overwrite declaration to apply typemaps */
-int fd_sess_fromsid ( unsigned char * STRING, size_t LENGTH, struct session ** OUTPUT, int * BOOL_OUT);
+int fd_sess_fromsid ( uint8_t * string, size_t len, struct session ** OUTPUT, int * BOOL_OUT);
 
 
 
