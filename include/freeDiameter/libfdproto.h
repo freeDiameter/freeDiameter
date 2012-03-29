@@ -154,6 +154,37 @@ extern pthread_key_t	fd_log_thname;
  */
 char * fd_log_time ( struct timespec * ts, char * buf, size_t len );
 
+/*
+ * FUNCTION:    fd_log_handler_register
+ * MACRO:
+ *
+ * PARAMETERS:
+ *  fstr        : Stream where the text will be sent (default: stdout)
+ *  format      : Same format string as in the printf function
+ *  va_list     : Argument list
+ *
+ * DESCRIPTION:
+ * Register an external method for logging purposes.
+ *
+ * RETURN VALUE:
+ * int          : Success or failure
+ */
+int fd_log_handler_register ( void (*logger)(const char * format, va_list *args) );
+
+/*
+ * FUNCTION:    fd_log_handler_unregister
+ * MACRO:
+ *
+ * PARAMETERS:
+ *
+ * DESCRIPTION:
+ * Unregister the external logging function.
+ *
+ * RETURN VALUE:
+ * int          : Success or failure
+ */
+int fd_log_handler_unregister ( void );
+
 
 /*============================================================*/
 /*                    DEBUG MACROS                            */

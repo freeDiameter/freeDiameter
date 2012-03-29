@@ -49,6 +49,32 @@ char * fd_debug_one_file = NULL;
 int fd_breaks = 0;
 int fd_breakhere(void) { return ++fd_breaks; }
 
+/* Allow passing of the log and debug information from base stack to extensions */
+void (*fd_external_logger)( const char * format, va_list *args ) = NULL;
+
+/* Register an dexternal call back for tracing and debug */
+int fd_log_handler_register( void (*logger)(const char * format, va_list *args))
+{
+        CHECK_PARAMS( logger );
+
+        if ( fd_external_logger != NULL )
+        {
+               return EALREADY; /* only one registeration allowed */
+        }
+        else
+        {
+               fd_external_logger = logger;
+        }
+        return 0;
+}
+
+/* Implement a simple reset function here */
+int fd_log_handler_unregister ( void )
+{
+        fd_external_logger = NULL;
+        return 0; /* Successfull in all cases. */
+}
+
 static void fd_cleanup_mutex_silent( void * mutex )
 {
 	(void)pthread_mutex_unlock((pthread_mutex_t *)mutex);
@@ -64,9 +90,16 @@ void fd_log_debug_fstr ( FILE * fstr, const char * format, ... )
 	pthread_cleanup_push(fd_cleanup_mutex_silent, &fd_log_lock);
 	
 	va_start(ap, format);
-	vfprintf( fstr ?: stdout, format, ap);
+        if ( fd_external_logger != NULL )
+        {
+               fd_external_logger( format, &ap );
+        }
+        else
+        {
+               vfprintf( fstr ?: stdout, format, ap);
+               fflush(fstr ?: stdout);
+        }
 	va_end(ap);
-	fflush(fstr ?: stdout);
 
 	pthread_cleanup_pop(0);
 	
