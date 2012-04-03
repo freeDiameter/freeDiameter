@@ -867,7 +867,7 @@ void fd_sess_dump(int level, struct session * session)
 		fd_log_debug("\t  %*s  Invalid session object\n", level, "");
 	} else {
 		
-		fd_log_debug("\t  %*s  sid '%s'(%zd), hash %x\n", level, "", session->sid, session->sidlen, session->hash);
+		fd_log_debug("\t  %*s  sid '%s'(%zd), hash %x, msg %d, destroyed %d\n", level, "", session->sid, session->sidlen, session->hash, session->msg_cnt, session->is_destroyed);
 
 		strftime(buf, sizeof(buf), "%D,%T", localtime_r( &session->timeout.tv_sec , &tm ));
 		fd_log_debug("\t  %*s  timeout %s.%09ld\n", level, "", buf, session->timeout.tv_nsec);
