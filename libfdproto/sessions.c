@@ -455,11 +455,13 @@ int fd_sess_new ( struct session ** session, DiamId_t diamid, size_t diamidlen, 
 		CHECK_MALLOC_DO(sess = new_session(sid, sidlen, hash),
 			{
 				ret = ENOMEM;
+				free(sid);
 				goto out;
 			} );
 	
 		fd_list_insert_before(li, &sess->chain_h); /* hash table */
 	} else {
+		free(sid);
 		/* it was found: was it previously destroyed? */
 		if ((*session)->is_destroyed == 0) {
 			ret = EALREADY;
