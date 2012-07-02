@@ -44,19 +44,19 @@
 <!ATTLIST type
         type-name IDREF #REQUIRED
 >
-<!ELEMENT grouped (fixedrules*, requiredrules*, optionalrules*)>
+<!ELEMENT grouped (fixed*, required*, optional*)>
 <!ELEMENT enum EMPTY>
 <!ATTLIST enum
         name CDATA #REQUIRED
         code CDATA #REQUIRED
 >
 
-<!ELEMENT requestrules (fixedrules*, requiredrules*, optionalrules*)>
-<!ELEMENT answerrules (fixedrules*, requiredrules*, optionalrules*)>
+<!ELEMENT requestrules (fixed*, required*, optional*)>
+<!ELEMENT answerrules (fixed*, required*, optional*)>
 
-<!ELEMENT fixedrules    (avprule*)>
-<!ELEMENT requiredrules (avprule*)>
-<!ELEMENT optionalrules (avprule*)>
+<!ELEMENT fixed    (avprule*)>
+<!ELEMENT required (avprule*)>
+<!ELEMENT optional (avprule*)>
 
 <!ELEMENT avprule EMPTY>
 <!ATTLIST avprule
