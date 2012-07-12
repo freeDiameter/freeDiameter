@@ -1326,8 +1326,7 @@ int fd_msg_avp_value_interpret ( struct avp *avp, void *data )
 /* The location is not on 64b boundary, so we split the writing in two operations to avoid sigbus */
 #define PUT_in_buf_64( _u64data, _bufptr ) {							\
 	uint64_t __v = htonll((uint64_t)(_u64data));						\
-	*(uint32_t *)(_bufptr) = (uint32_t)(__v);						\
-	*(((uint32_t *)(_bufptr))+1) = (uint32_t)(__v >> 32);					\
+	memcpy(_bufptr, &__v, sizeof(__v));							\
 }
 
 /* Write a message header in the buffer */
