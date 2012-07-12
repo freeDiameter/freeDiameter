@@ -1322,8 +1322,12 @@ int fd_msg_avp_value_interpret ( struct avp *avp, void *data )
 #define PUT_in_buf_32( _u32data, _bufptr ) {							\
 	*(uint32_t *)(_bufptr) = htonl((uint32_t)(_u32data));					\
 }
+
+/* The location is not on 64b boundary, so we split the writing in two operations to avoid sigbus */
 #define PUT_in_buf_64( _u64data, _bufptr ) {							\
-	*(uint64_t *)(_bufptr) = htonll((uint64_t)(_u64data));					\
+	uint64_t __v = htonll((uint64_t)(_u64data));						\
+	*(uint32_t *)(_bufptr) = (uint32_t)(__v);						\
+	*(((uint32_t *)(_bufptr))+1) = (uint32_t)(__v >> 32);					\
 }
 
 /* Write a message header in the buffer */
@@ -1773,7 +1777,12 @@ static int parsedict_do_avp(struct dictionary * dict, struct avp * avp, int mand
 			break;
 	
 		case AVP_TYPE_INTEGER64:
-			avp->avp_storage.i64 = (int64_t)ntohll(*(uint64_t *)avp->avp_source);
+			/* the storage might not be aligned on 64b boundary, so no direct indirection here is possible */
+			{
+				uint64_t __stor;
+				memcpy(&__stor, avp->avp_source, sizeof(__stor));
+				avp->avp_storage.i64 = (int64_t)ntohll(__stor);
+			}
 			break;
 	
 		case AVP_TYPE_UNSIGNED32:
@@ -1783,7 +1792,11 @@ static int parsedict_do_avp(struct dictionary * dict, struct avp * avp, int mand
 	
 		case AVP_TYPE_UNSIGNED64:
 		case AVP_TYPE_FLOAT64: /* same as 32 bits */
-			avp->avp_storage.u64 = (uint64_t)ntohll(*(uint64_t *)avp->avp_source);
+			{
+				uint64_t __stor;
+				memcpy(&__stor, avp->avp_source, sizeof(__stor));
+				avp->avp_storage.u64 = (uint64_t)ntohll(__stor);
+			}
 			break;
 	
 	}
