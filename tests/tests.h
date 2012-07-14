@@ -129,10 +129,17 @@ static void * signal_catch(void * arg)
 
 GCRY_THREAD_OPTION_PTHREAD_IMPL;
 
+/* gnutls debug */
+static void fd_gnutls_debug(int level, const char * str) {
+	fd_log_debug(" [gnutls:%d] %s", level, str);
+}
+static int gnutls_debug = 0;
+
+
 static inline void parse_cmdline(int argc, char * argv[]) {
 	int c;
 	int no_timeout = 0;
-	while ((c = getopt (argc, argv, "dqnf:F:")) != -1) {
+	while ((c = getopt (argc, argv, "dqnf:F:g:")) != -1) {
 		switch (c) {
 			case 'd':	/* Increase verbosity of debug messages.  */
 				test_verbo++;
@@ -160,6 +167,10 @@ static inline void parse_cmdline(int argc, char * argv[]) {
 				#else /* DEBUG */
 				TRACE_DEBUG(INFO, "Error: must compile with DEBUG support to use this feature");
 				#endif /* DEBUG */
+				break;
+				
+			case 'g':	/* Set a debug level and function for GNU TLS calls.  */
+				gnutls_debug = (int)atoi(optarg);
 				break;
 				
 			default:	/* bug: option not considered.  */
@@ -193,6 +204,12 @@ static inline void test_init(int argc, char * argv[], char *fname)
 	(void) gcry_control (GCRYCTL_SET_THREAD_CBS, &gcry_threads_pthread);
 	(void) gcry_control (GCRYCTL_ENABLE_QUICK_RANDOM, 0);
 	CHECK( 0, gnutls_global_init());
+	/* Set gnutls debug level ? */
+	if (gnutls_debug) {
+		gnutls_global_set_log_function((gnutls_log_func)fd_gnutls_debug);
+		gnutls_global_set_log_level (gnutls_debug);
+		TRACE_DEBUG(INFO, "Enabled GNUTLS debug at level %d", gnutls_debug);
+	}
 	
 	/* Initialize the config */
 	CHECK( 0, fd_conf_init() );
