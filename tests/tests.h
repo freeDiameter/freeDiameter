@@ -129,9 +129,10 @@ static void * signal_catch(void * arg)
 
 GCRY_THREAD_OPTION_PTHREAD_IMPL;
 
-/* gnutls debug */
+/* gnutls debug. */
 static void fd_gnutls_debug(int level, const char * str) {
-	fd_log_debug(" [gnutls:%d] %s", level, str);
+	const char * __thn = ((char *)pthread_getspecific(fd_log_thname) ?: "unnamed");	
+	fd_log_debug("tid:%-20s[gnutls:%d] %s", __thn, level, str);
 }
 static int gnutls_debug = 0;
 
