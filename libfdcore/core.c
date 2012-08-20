@@ -42,7 +42,9 @@ static struct fd_config g_conf;
 struct fd_config * fd_g_config = NULL;
 
 /* gcrypt functions to support posix threads */
+#ifndef GNUTLS_VERSION_210
 GCRY_THREAD_OPTION_PTHREAD_IMPL;
+#endif /* GNUTLS_VERSION_210 */
 
 /* Signal extensions when the framework is completly initialized (they are waiting in fd_core_waitstartcomplete()) */
 static int             is_ready = 0;
