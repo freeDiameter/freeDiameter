@@ -301,7 +301,7 @@ conninfoline:		CONNINFO '=' QSTRING ';'
 					yyerror (&yylloc, conffile, "Duplicate entry");
 					YYERROR;
 				}
-				acct_config->conninfo = $3
+				acct_config->conninfo = $3;
 			}
 			;
 
@@ -311,7 +311,7 @@ tableline:		TABLE '=' QSTRING ';'
 					yyerror (&yylloc, conffile, "Duplicate entry");
 					YYERROR;
 				}
-				acct_config->tablename = $3
+				acct_config->tablename = $3;
 			}
 			;
 
@@ -321,7 +321,7 @@ tsfieldline:		TSFIELD '=' QSTRING ';'
 					yyerror (&yylloc, conffile, "Duplicate entry");
 					YYERROR;
 				}
-				acct_config->tsfield = $3
+				acct_config->tsfield = $3;
 			}
 			;
 
@@ -331,6 +331,6 @@ srvnfieldline:		SRVNFIELD '=' QSTRING ';'
 					yyerror (&yylloc, conffile, "Duplicate entry");
 					YYERROR;
 				}
-				acct_config->srvnfield = $3
+				acct_config->srvnfield = $3;
 			}
 			;
