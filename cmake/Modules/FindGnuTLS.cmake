@@ -4,7 +4,8 @@
 #  GNUTLS_FOUND - True if gnutls found.
 #  GNUTLS_INCLUDE_DIR - where to find gnutls.h, etc.
 #  GNUTLS_LIBRARIES - List of libraries when using gnutls.
-#  GNUTLS_NEW_VERSION - true if GnuTLS version is >= 2.10.0 (does not require additional separate gcrypt initialization)
+#  GNUTLS_VERSION_210 - true if GnuTLS version is >= 2.10.0 (does not require additional separate gcrypt initialization)
+#  GNUTLS_VERSION_300 - true if GnuTLS version is >= 3.00.0 (x509 verification functions changed)
 
 if (GNUTLS_INCLUDE_DIR AND GNUTLS_LIBRARIES)
   set(GNUTLS_FIND_QUIETLY TRUE)
@@ -38,12 +39,16 @@ ENDIF(GNUTLS_FOUND)
 MARK_AS_ADVANCED( GNUTLS_LIBRARY GNUTLS_INCLUDE_DIR )
 
 # Now check if the library is recent. gnutls_hash was added in 2.10.0.
+# Also test library is even more recent. gnutls_x509_trust_list_verify_crt was added in 3.00.0.
 IF( NOT( "${GNUTLS_VERSION_TEST_FOR}" STREQUAL "${GNUTLS_LIBRARY}" ))
   INCLUDE (CheckLibraryExists) 
-  MESSAGE(STATUS "Rechecking GNUTLS_NEW_VERSION")
-  UNSET(GNUTLS_NEW_VERSION)
-  UNSET(GNUTLS_NEW_VERSION CACHE)
+  MESSAGE(STATUS "Rechecking GNUTLS_VERSION_210 and GNUTLS_VERSION_300")
+  UNSET(GNUTLS_VERSION_210)
+  UNSET(GNUTLS_VERSION_210 CACHE)
+  UNSET(GNUTLS_VERSION_300)
+  UNSET(GNUTLS_VERSION_300 CACHE)
   GET_FILENAME_COMPONENT(GNUTLS_PATH ${GNUTLS_LIBRARY} PATH)
-  CHECK_LIBRARY_EXISTS(gnutls gnutls_hash ${GNUTLS_PATH} GNUTLS_NEW_VERSION) 
+  CHECK_LIBRARY_EXISTS(gnutls gnutls_hash ${GNUTLS_PATH} GNUTLS_VERSION_210) 
+  CHECK_LIBRARY_EXISTS(gnutls gnutls_x509_trust_list_verify_crt ${GNUTLS_PATH} GNUTLS_VERSION_300) 
   SET( GNUTLS_VERSION_TEST_FOR ${GNUTLS_LIBRARY} CACHE INTERNAL "Version the test was made against" )
 ENDIF (NOT( "${GNUTLS_VERSION_TEST_FOR}" STREQUAL "${GNUTLS_LIBRARY}" ))
