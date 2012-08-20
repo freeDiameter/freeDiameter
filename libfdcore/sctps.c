@@ -224,7 +224,10 @@ static void set_sess_transport(gnutls_session_t session, struct sctps_ctx *ctx)
 	GNUTLS_TRACE( gnutls_transport_set_ptr( session, (gnutls_transport_ptr_t) ctx ) );
 	
 	/* Reset the low water value, since we don't use sockets */
+#ifndef GNUTLS_VERSION_300
+	/* starting version 2.12, this call is not needed */
 	GNUTLS_TRACE( gnutls_transport_set_lowat( session, 0 ) );
+#endif /* GNUTLS_VERSION_300 */
 	
 	/* Set the push and pull callbacks */
 	GNUTLS_TRACE( gnutls_transport_set_pull_function(session, sctps_pull) );
