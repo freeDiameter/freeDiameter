@@ -51,5 +51,7 @@ to top-level README file.
 
 - dict_legacy: XML and DTD files for the dict_legacy_xml.fdx extension.
 
+- dict_dcca: partial implementations of the DCCA dictionary
+
 - wireshark: This contains some information on how to use Wireshark to monitor Diameter
 	exchange protected with TLS. It involves patching the wireshark software.

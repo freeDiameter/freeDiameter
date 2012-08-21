@@ -1,10 +1,8 @@
 /****************
  Contributed by: Konstantin Chekushin <koch@lmt.lv>
- License: to be specified.
+ License: same as freeDiameter
  TODO:
-  - CCR/CCA definition missing.
   - rules for CCR/CCA and all Grouped AVPs
-  - new Result-Code values
  ****************/
 
 
@@ -81,6 +79,51 @@ static int dict_dcca_entry(char * conffile)
   
 	}
 	
+    /* Result codes */
+    {
+        struct dict_object *ResultCodeType;
+        CHECK_dict_search(DICT_TYPE, TYPE_BY_NAME, "Enumerated*(Result-Code)", &ResultCodeType);
+
+        {
+            struct dict_enumval_data error_code = {"END_USER_SERVICE_DENIED",
+                { .u32 = 4010}};
+            CHECK_dict_new(DICT_ENUMVAL, &error_code, ResultCodeType, NULL);
+        }
+        {
+            struct dict_enumval_data error_code = {"CREDIT_CONTROL_NOT_APPLICABLE",
+                { .u32 = 4011}};
+            CHECK_dict_new(DICT_ENUMVAL, &error_code, ResultCodeType, NULL);
+        }
+
+    }
+
+
+    /* Commands section */
+    {
+        /*Credit Control Request*/
+        {
+            struct dict_object * cmd;
+            struct dict_cmd_data data = {
+                272, /* Code */
+                "Credit-Control-Request", /* Name */
+                CMD_FLAG_REQUEST | CMD_FLAG_PROXIABLE | CMD_FLAG_ERROR, /* Fixed flags */
+                CMD_FLAG_REQUEST | CMD_FLAG_PROXIABLE /* Fixed flag values */
+            };
+            CHECK_dict_new(DICT_COMMAND, &data, NULL, &cmd);
+        }
+
+        /*Credit Control Response*/
+        {
+            struct dict_object * cmd;
+            struct dict_cmd_data data = {
+                272, /* Code */
+                "Credit-Control-Answer", /* Name */
+                CMD_FLAG_REQUEST | CMD_FLAG_PROXIABLE, /* Fixed flags */
+                CMD_FLAG_PROXIABLE /* Fixed flag values */
+            };
+            CHECK_dict_new(DICT_COMMAND, &data, NULL, &cmd);
+        }
+    }
 	
 	/* AVP section */
         {
