@@ -462,6 +462,9 @@ static void * handshake_resume_th(void * arg)
 	}
 	
 	TRACE_DEBUG(FULL, "Starting TLS resumed handshake on stream %hu", ctx->strid);
+#ifdef GNUTLS_VERSION_310
+	GNUTLS_TRACE( gnutls_handshake_set_timeout( ctx->session, GNUTLS_DEFAULT_HANDSHAKE_TIMEOUT));
+#endif /* GNUTLS_VERSION_310 */
 	CHECK_GNUTLS_DO( gnutls_handshake( ctx->session ), return NULL);
 			
 	GNUTLS_TRACE( resumed = gnutls_session_is_resumed(ctx->session) );

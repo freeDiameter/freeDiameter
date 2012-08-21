@@ -841,7 +841,10 @@ again:
 		{
 			switch (ret) {
 				case GNUTLS_E_REHANDSHAKE: 
-					if (!fd_cnx_teststate(conn, CC_STATUS_CLOSING))
+					if (!fd_cnx_teststate(conn, CC_STATUS_CLOSING)) {
+						#ifdef GNUTLS_VERSION_310
+						GNUTLS_TRACE( gnutls_handshake_set_timeout( session, GNUTLS_DEFAULT_HANDSHAKE_TIMEOUT));
+						#endif /* GNUTLS_VERSION_310 */
 						CHECK_GNUTLS_DO( ret = gnutls_handshake(session),
 							{
 								if (TRACE_BOOL(INFO)) {
@@ -849,6 +852,7 @@ again:
 								}
 								goto end;
 							} );
+					}
 
 				case GNUTLS_E_AGAIN:
 				case GNUTLS_E_INTERRUPTED:
@@ -885,7 +889,11 @@ again:
 		{
 			switch (ret) {
 				case GNUTLS_E_REHANDSHAKE: 
-					if (!fd_cnx_teststate(conn, CC_STATUS_CLOSING))
+					if (!fd_cnx_teststate(conn, CC_STATUS_CLOSING)) {
+						#ifdef GNUTLS_VERSION_310
+						GNUTLS_TRACE( gnutls_handshake_set_timeout( session, GNUTLS_DEFAULT_HANDSHAKE_TIMEOUT));
+						#endif /* GNUTLS_VERSION_310 */
+
 						CHECK_GNUTLS_DO( ret = gnutls_handshake(session),
 							{
 								if (TRACE_BOOL(INFO)) {
@@ -893,6 +901,7 @@ again:
 								}
 								goto end;
 							} );
+					}
 
 				case GNUTLS_E_AGAIN:
 				case GNUTLS_E_INTERRUPTED:
@@ -1286,7 +1295,10 @@ int fd_cnx_handshake(struct cnxctx * conn, int mode, char * priority, void * alt
 	/* Handshake master session */
 	{
 		int ret;
-		
+		#ifdef GNUTLS_VERSION_310
+		GNUTLS_TRACE( gnutls_handshake_set_timeout( conn->cc_tls_para.session, GNUTLS_DEFAULT_HANDSHAKE_TIMEOUT));
+		#endif /* GNUTLS_VERSION_310 */
+
 		/* When gnutls 2.10.1 is around, we should use gnutls_certificate_set_verify_function and fd_tls_verify_credentials, so that handshake fails directly. */
 		
 		CHECK_GNUTLS_DO( ret = gnutls_handshake(conn->cc_tls_para.session),
