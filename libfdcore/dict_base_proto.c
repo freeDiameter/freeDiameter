@@ -144,8 +144,10 @@ static int Address_interpret(union avp_value * avp_value, void * interpreted)
 }
 
 /* Dump the content of an Address AVP */
-static void Address_dump(union avp_value * avp_value, FILE * fstr)
+static char * Address_dump(union avp_value * avp_value)
 {
+	char * ret;
+	#define STR_LEN	1024
 	union {
 		sSA	sa;
 		sSS	ss;
@@ -156,10 +158,12 @@ static void Address_dump(union avp_value * avp_value, FILE * fstr)
 	
 	memset(&s, 0, sizeof(s));
 	
+	CHECK_MALLOC_DO( ret = malloc(STR_LEN), return NULL );
+	
 	/* The first two octets represent the address family, http://www.iana.org/assignments/address-family-numbers/ */
 	if (avp_value->os.len < 2) {
-		fd_log_debug_fstr(fstr, "[invalid length: %d]", avp_value->os.len);
-		return;
+		snprintf(ret, STR_LEN, "[invalid length: %d]", avp_value->os.len);
+		return ret;
 	}
 	
 	/* Following octets are the address in network byte order already */
@@ -169,8 +173,8 @@ static void Address_dump(union avp_value * avp_value, FILE * fstr)
 			/* IP */
 			s.sa.sa_family = AF_INET;
 			if (avp_value->os.len != 6) {
-				fd_log_debug_fstr(fstr, "[invalid IP length: %d]", avp_value->os.len);
-				return;
+				snprintf(ret, STR_LEN, "[invalid IP length: %d]", avp_value->os.len);
+				return ret;
 			}
 			memcpy(&s.sin.sin_addr.s_addr, avp_value->os.data + 2, 4);
 			break;
@@ -178,33 +182,28 @@ static void Address_dump(union avp_value * avp_value, FILE * fstr)
 			/* IP6 */
 			s.sa.sa_family = AF_INET6;
 			if (avp_value->os.len != 18) {
-				fd_log_debug_fstr(fstr, "[invalid IP6 length: %d]", avp_value->os.len);
-				return;
+				snprintf(ret, STR_LEN, "[invalid IP6 length: %d]", avp_value->os.len);
+				return ret;
 			}
 			memcpy(&s.sin6.sin6_addr.s6_addr, avp_value->os.data + 2, 16);
 			break;
 		default:
-			fd_log_debug_fstr(fstr, "[unsupported family: 0x%hx]", fam);
-			return;
+			snprintf(ret, STR_LEN, "[unsupported family: 0x%hx]", fam);
+			return ret;
 	}
 	
 	{
-		char addrbuf[INET6_ADDRSTRLEN];
-		int rc = getnameinfo(&s.sa, sSAlen(&s.sa), addrbuf, INET6_ADDRSTRLEN, NULL, 0, NI_NUMERICHOST);
+		int rc = getnameinfo(&s.sa, sSAlen(&s.sa), ret, STR_LEN, NULL, 0, NI_NUMERICHOST);
 		if (rc)
-			fd_log_debug_fstr(fstr, "%s", (char *)gai_strerror(rc));
-		else
-			fd_log_debug_fstr(fstr, "%s", addrbuf);
-		
+			snprintf(ret, STR_LEN, "%s", (char *)gai_strerror(rc));
 	}
+	
+	return ret;
 }
 
-static void UTF8String_dump(union avp_value * avp_value, FILE * fstr)
+static char * UTF8String_dump(union avp_value * avp_value)
 {
-	size_t len = avp_value->os.len;
-	if (len > 42)
-		len = 42; /* avoid very long strings */
-	fd_log_debug_fstr(fstr, "%.*s", len, avp_value->os.data);
+	return strndup((char *)avp_value->os.data, 42); /* avoid very long strings */
 }
 
 

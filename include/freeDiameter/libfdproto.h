@@ -1114,7 +1114,7 @@ struct dict_type_data {
 	char *	 		 type_name;	/* The name of this type */
 	dict_avpdata_interpret	 type_interpret;/* cb to convert the AVP value in more comprehensive format (or NULL) */
 	dict_avpdata_encode	 type_encode;	/* cb to convert formatted data into an AVP value (or NULL) */
-	void			(*type_dump)(union avp_value * val, FILE * fstr);	/* cb called by fd_msg_dump_one for this type of data (if != NULL), to dump the AVP value in fstr */
+	char * 			(*type_dump)(union avp_value * val);	/* cb called by fd_msg_dump_one for this type of data (if != NULL). Returned string must be freed.  */
 };
 
 /* The criteria for searching a type object in the dictionary */

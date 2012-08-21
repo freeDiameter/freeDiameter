@@ -1304,50 +1304,57 @@ void fd_dict_dump(struct dictionary * dict)
 /**************************** Dump AVP values ********************************/
 
 /* Default dump functions */
-static void dump_val_os(union avp_value * value, FILE * fstr)
+static int dump_val_os(union avp_value * value, char **outstr, size_t *offset, size_t *outlen)
 {
 	int i;
 	for (i = 0; i < value->os.len; i++) {
 		if (i == 24) { /* Dump only up to 24 bytes of the buffer */
-			fd_log_debug_fstr(fstr, "[...] (len=%zd)", value->os.len);
+			CHECK_FCT( dump_add_str(outstr, offset, outlen, "[...] (len=%zd)", value->os.len) );
 			break;
 		}
-		fd_log_debug_fstr(fstr, "%02.2X ", value->os.data[i]);
+		CHECK_FCT( dump_add_str(outstr, offset, outlen, "%02.2X ", value->os.data[i]) );
 	}
+	return 0;
 }
 
-static void dump_val_i32(union avp_value * value, FILE * fstr)
+static int dump_val_i32(union avp_value * value, char **outstr, size_t *offset, size_t *outlen)
 {
-	fd_log_debug_fstr(fstr, "%i (0x%x)", value->i32, value->i32);
+	CHECK_FCT( dump_add_str(outstr, offset, outlen, "%i (0x%x)", value->i32, value->i32) );
+	return 0;
 }
 
-static void dump_val_i64(union avp_value * value, FILE * fstr)
+static int dump_val_i64(union avp_value * value, char **outstr, size_t *offset, size_t *outlen)
 {
-	fd_log_debug_fstr(fstr, "%lli (0x%llx)", value->i64, value->i64);
+	CHECK_FCT( dump_add_str(outstr, offset, outlen, "%lli (0x%llx)", value->i64, value->i64) );
+	return 0;
 }
 
-static void dump_val_u32(union avp_value * value, FILE * fstr)
+static int dump_val_u32(union avp_value * value, char **outstr, size_t *offset, size_t *outlen)
 {
-	fd_log_debug_fstr(fstr, "%u (0x%x)", value->u32, value->u32);
+	CHECK_FCT( dump_add_str(outstr, offset, outlen, "%u (0x%x)", value->u32, value->u32) );
+	return 0;
 }
 
-static void dump_val_u64(union avp_value * value, FILE * fstr)
+static int dump_val_u64(union avp_value * value, char **outstr, size_t *offset, size_t *outlen)
 {
-	fd_log_debug_fstr(fstr, "%llu (0x%llx)", value->u64, value->u64);
+	CHECK_FCT( dump_add_str(outstr, offset, outlen, "%llu (0x%llx)", value->u64, value->u64) );
+	return 0;
 }
 
-static void dump_val_f32(union avp_value * value, FILE * fstr)
+static int dump_val_f32(union avp_value * value, char **outstr, size_t *offset, size_t *outlen)
 {
-	fd_log_debug_fstr(fstr, "%f", value->f32);
+	CHECK_FCT( dump_add_str(outstr, offset, outlen, "%f", value->f32) );
+	return 0;
 }
 
-static void dump_val_f64(union avp_value * value, FILE * fstr)
+static int dump_val_f64(union avp_value * value, char **outstr, size_t *offset, size_t *outlen)
 {
-	fd_log_debug_fstr(fstr, "%g", value->f64);
+	CHECK_FCT( dump_add_str(outstr, offset, outlen, "%g", value->f64) );
+	return 0;
 }
 
 /* Get the dump function for basic dict_avp_basetype */
-static void (*get_default_dump_val_cb(enum dict_avp_basetype datatype))(union avp_value *, FILE *)
+static int (*get_default_dump_val_cb(enum dict_avp_basetype datatype))(union avp_value *, char **, size_t *, size_t *)
 {
 	switch (datatype) {
 		case AVP_TYPE_OCTETSTRING:
@@ -1382,43 +1389,60 @@ static void (*get_default_dump_val_cb(enum dict_avp_basetype datatype))(union av
 #define INOBJHDRVAL 	indent<0 ? 1 : indent, indent<0 ? "-" : "|"
 
 /* Formater for the AVP value dump line */
-static void dump_avp_val(union avp_value *avp_value, void (*dump_val_cb)(union avp_value *, FILE *), enum dict_avp_basetype datatype, char * type_name, char * const_name, int indent, FILE * fstr)
+static int dump_avp_val(union avp_value *avp_value, 
+			int (*def_dump_val_cb)(union avp_value *, char **, size_t *, size_t *), 
+			char * (*dump_val_cb)(union avp_value *), 
+			enum dict_avp_basetype datatype, 
+			char * type_name, 
+			char * const_name, 
+			int indent, 
+			char **outstr, 
+			size_t *offset, 
+			size_t *outlen)
 {
 	/* Header for all AVP values dumps: */
-	fd_log_debug_fstr(fstr, INOBJHDR "value ", INOBJHDRVAL);
+	CHECK_FCT( dump_add_str(outstr, offset, outlen, INOBJHDR "value ", INOBJHDRVAL) );
 	
 	/* If the type is provided, write it */
-	if (type_name)
-		fd_log_debug_fstr(fstr, "t: '%s' ", type_name);
+	if (type_name) {
+		CHECK_FCT( dump_add_str(outstr, offset, outlen, "t: '%s' ", type_name) );
+	}
 	
 	/* Always give the base datatype anyway */
-	fd_log_debug_fstr(fstr, "(%s) ", type_base_name[datatype]);
+	CHECK_FCT( dump_add_str(outstr, offset, outlen, "(%s) ", type_base_name[datatype]) );
 	
 	/* Now, the value */
-	fd_log_debug_fstr(fstr, "v: ");
-	if (const_name)
-		fd_log_debug_fstr(fstr, "'%s' (", const_name);
-	(*dump_val_cb)(avp_value, fstr);
-	if (const_name)
-		fd_log_debug_fstr(fstr, ")");
+	CHECK_FCT( dump_add_str(outstr, offset, outlen, "v: ") );
+	if (const_name) {
+		CHECK_FCT( dump_add_str(outstr, offset, outlen, "'%s' (", const_name) );
+	}
+	if (dump_val_cb) {
+		char * str;
+		CHECK_MALLOC_DO( str = (*dump_val_cb)(avp_value), dump_add_str(outstr, offset, outlen, "(dump failed)") );
+		CHECK_FCT( dump_add_str(outstr, offset, outlen, "%s", str) );
+		free(str);
+	} else {
+		CHECK_FCT( (*def_dump_val_cb)(avp_value, outstr, offset, outlen) );
+	}
+	if (const_name) {
+		CHECK_FCT( dump_add_str(outstr, offset, outlen, ")") );
+	}
 	
 	/* Done! */
-	fd_log_debug_fstr(fstr, "\n");
+	CHECK_FCT( dump_add_str(outstr, offset, outlen, "\n") );
+	return 0;
 }
 
-/* Dump the value of an AVP of known type */
-void fd_dict_dump_avp_value(union avp_value *avp_value, struct dict_object * model, int indent, FILE * fstr)
+/* Dump the value of an AVP of known type into the returned str */
+int fd_dict_dump_avp_value(union avp_value *avp_value, struct dict_object * model, int indent, char **outstr, size_t *offset, size_t *outlen)
 {
-	void (*dump_val_cb)(union avp_value *avp_value, FILE * fstr);
+	char * (*dump_val_cb)(union avp_value *avp_value) = NULL;
 	struct dict_object * type = NULL;
 	char * type_name = NULL;
 	char * const_name = NULL;
 	
 	/* Check the parameters are correct */
-	CHECK_PARAMS_DO( avp_value && verify_object(model) && (model->type == DICT_AVP), return );
-	
-	/* Default: display the value with the formatter for the AVP datatype */
-	CHECK_PARAMS_DO( dump_val_cb = get_default_dump_val_cb(model->data.avp.avp_basetype), return );
+	CHECK_PARAMS( avp_value && verify_object(model) && (model->type == DICT_AVP) );
 	
 	/* Get the type definition of this AVP */
 	type = model->parent;
@@ -1444,7 +1468,8 @@ void fd_dict_dump_avp_value(union avp_value *avp_value, struct dict_object * mod
 	}
 	
 	/* And finally, dump the value */
-	dump_avp_val(avp_value, dump_val_cb, model->data.avp.avp_basetype, type_name, const_name, indent, fstr);
+	CHECK_FCT( dump_avp_val(avp_value, get_default_dump_val_cb(model->data.avp.avp_basetype), dump_val_cb, model->data.avp.avp_basetype, type_name, const_name, indent, outstr, offset, outlen) );
+	return 0;
 }
 
 /*******************************************************************************************************/
