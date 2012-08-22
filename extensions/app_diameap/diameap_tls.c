@@ -455,9 +455,6 @@ int diameap_tls_process_receive(struct tls_data * data)
 	int ret;
 
 	data->p_length = data->tlsResp.datalength;
-	#ifdef GNUTLS_VERSION_310
-	gnutls_handshake_set_timeout( data->session, GNUTLS_DEFAULT_HANDSHAKE_TIMEOUT);
-	#endif /* GNUTLS_VERSION_310 */
 
 	ret = gnutls_handshake(data->session);
 
