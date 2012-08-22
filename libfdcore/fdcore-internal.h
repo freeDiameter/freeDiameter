@@ -79,6 +79,8 @@ int fd_conf_deinit();
 void fd_conf_dump();
 int fd_conf_parse();
 int fddparse(struct fd_config * conf); /* yacc generated */
+int fd_conf_stream_to_gnutls_datum(FILE * pemfile, gnutls_datum_t *out);
+
 
 /* Extensions */
 int fd_ext_add( char * filename, char * conffile );

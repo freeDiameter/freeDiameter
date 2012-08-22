@@ -528,13 +528,32 @@ tls_cred:		TLS_CRED '=' QSTRING ',' QSTRING ';'
 tls_ca:			TLS_CA '=' QSTRING ';'
 			{
 				FILE * fd;
-				fd = fopen($3, "r");
+				fd = fopen($3, "rb");
 				if (fd == NULL) {
 					int ret = errno;
 					TRACE_DEBUG(INFO, "Unable to open CA file %s for reading: %s\n", $3, strerror(ret));
 					yyerror (&yylloc, conf, "Error on file name"); 
 					YYERROR;
 				}
+				#ifdef GNUTLS_VERSION_300
+				{
+					/* We import these CA in the trust list */
+					gnutls_x509_crt_t * calist;
+					unsigned int cacount;
+					gnutls_datum_t cafile;
+					
+					CHECK_FCT_DO( fd_conf_stream_to_gnutls_datum(fd, &cafile), 
+							{ yyerror (&yylloc, conf, "Error reading CA file."); YYERROR; } );
+							
+					CHECK_GNUTLS_DO( gnutls_x509_crt_list_import2(&calist, &cacount, &cafile, GNUTLS_X509_FMT_PEM, 
+										GNUTLS_X509_CRT_LIST_FAIL_IF_UNSORTED),
+							{ yyerror (&yylloc, conf, "Error importing CA file."); YYERROR; } );
+					free(cafile.data);
+					
+					CHECK_GNUTLS_DO( gnutls_x509_trust_list_add_cas (fd_g_config->cnf_sec_data.trustlist, calist, cacount, 0),
+							{ yyerror (&yylloc, conf, "Error saving CA in trust list."); YYERROR; } );
+				}
+				#endif /* GNUTLS_VERSION_300 */
 				fclose(fd);
 				conf->cnf_sec_data.ca_file = $3;
 				CHECK_GNUTLS_DO( conf->cnf_sec_data.ca_file_nr += gnutls_certificate_set_x509_trust_file( 
@@ -542,19 +561,40 @@ tls_ca:			TLS_CA '=' QSTRING ';'
 							conf->cnf_sec_data.ca_file,
 							GNUTLS_X509_FMT_PEM),
 						{ yyerror (&yylloc, conf, "Error setting CA parameters."); YYERROR; } );
+						
 			}
 			;
 			
 tls_crl:		TLS_CRL '=' QSTRING ';'
 			{
 				FILE * fd;
-				fd = fopen($3, "r");
+				fd = fopen($3, "rb");
 				if (fd == NULL) {
 					int ret = errno;
 					TRACE_DEBUG(INFO, "Unable to open CRL file %s for reading: %s\n", $3, strerror(ret));
 					yyerror (&yylloc, conf, "Error on file name"); 
 					YYERROR;
 				}
+				#ifdef GNUTLS_VERSION_300
+				{
+					/* We import these CRL in the trust list */
+					gnutls_x509_crl_t * crllist;
+					unsigned int crlcount;
+					gnutls_datum_t crlfile;
+					
+					CHECK_FCT_DO( fd_conf_stream_to_gnutls_datum(fd, &crlfile), 
+							{ yyerror (&yylloc, conf, "Error reading CRL file."); YYERROR; } );
+							
+					CHECK_GNUTLS_DO( gnutls_x509_crl_list_import2(&crllist, &crlcount, &crlfile, GNUTLS_X509_FMT_PEM, 0),
+							{ yyerror (&yylloc, conf, "Error importing CRL file."); YYERROR; } );
+					free(crlfile.data);
+					
+					CHECK_GNUTLS_DO( gnutls_x509_trust_list_add_crls (fd_g_config->cnf_sec_data.trustlist, crllist, crlcount, 
+									GNUTLS_TL_VERIFY_CRL,
+									0),
+							{ yyerror (&yylloc, conf, "Error importing CRL in trust list."); YYERROR; } );
+				}
+				#endif /* GNUTLS_VERSION_300 */
 				fclose(fd);
 				conf->cnf_sec_data.crl_file = $3;
 				CHECK_GNUTLS_DO( gnutls_certificate_set_x509_crl_file( 

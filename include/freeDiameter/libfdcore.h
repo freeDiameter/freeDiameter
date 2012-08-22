@@ -51,6 +51,7 @@
 #define GNUTLS_DBG_LEVEL ANNOYING
 #endif /* GNUTLS_DBG_LEVEL */
 
+
 /* Check the return value of a GNUTLS function, log and propagate */
 #define CHECK_GNUTLS_DO( __call__, __fallback__ ) {						\
 	int __ret__;										\
@@ -149,7 +150,10 @@ struct fd_config {
 		gnutls_dh_params_t 		 dh_cache;
 		
 		/* GNUTLS server credential(s) */
-		gnutls_certificate_credentials_t credentials;
+		gnutls_certificate_credentials_t credentials; /* contains local cert + trust anchors */
+		#ifdef GNUTLS_VERSION_300
+		gnutls_x509_trust_list_t         trustlist; /* the logic to check local certificate has changed */
+		#endif /* GNUTLS_VERSION_300 */
 		
 	} 		 cnf_sec_data;
 	

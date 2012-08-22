@@ -142,10 +142,10 @@ int diameap_tls_init_session(struct tls_config * tls_conf,
 	gnutls_transport_set_pull_function(data->session, diameap_tls_receive);
 	gnutls_transport_set_push_function(data->session, diameap_tls_send);
 	gnutls_transport_set_ptr(data->session, (gnutls_transport_ptr) data);
-#ifndef GNUTLS_VERSION_300
+
 	/* starting version 2.12, this call is not needed */
-	gnutls_transport_set_lowat(data->session, 0);
-#endif /* GNUTLS_VERSION_300 */
+	//gnutls_transport_set_lowat(data->session, 0);
+	
 	return ret;
 }
 
