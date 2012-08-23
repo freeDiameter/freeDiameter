@@ -104,7 +104,6 @@ static void * demuxer(void * arg)
 				break;
 			
 			case FDEVP_CNX_ERROR:
-				fd_cnx_markerror(conn);
 				goto out;
 				
 			case FDEVP_CNX_SHUTDOWN:
@@ -120,9 +119,11 @@ static void * demuxer(void * arg)
 out:
 	/* Signal termination of the connection to all decipher threads */
 	for (strid = 0; strid < conn->cc_sctp_para.pairs; strid++) {
-		if (conn->cc_sctps_data.array[strid].raw_recv)
+		if (conn->cc_sctps_data.array[strid].raw_recv) {
 			CHECK_FCT_DO(fd_event_send(conn->cc_sctps_data.array[strid].raw_recv, FDEVP_CNX_ERROR, 0, NULL), goto fatal );
+		}
 	}
+	fd_cnx_markerror(conn);
 	TRACE_DEBUG(FULL, "Thread terminated");	
 	return NULL;
 	
@@ -170,7 +171,7 @@ static ssize_t sctps_push(gnutls_transport_ptr_t tr, const void * data, size_t l
 	TRACE_ENTRY("%p %p %zd", tr, data, len);
 	CHECK_PARAMS_DO( tr && data, { errno = EINVAL; return -1; } );
 	
-	CHECK_FCT_DO( fd_sctp_sendstr(ctx->parent, ctx->strid, (uint8_t *)data, len), /* errno is already set */ return -1 );
+	CHECK_FCT_DO( fd_sctp_sendstr(ctx->parent, ctx->strid, (uint8_t *)data, len), return -1 );
 	
 	return len;
 }
@@ -183,14 +184,16 @@ static ssize_t sctps_pull(gnutls_transport_ptr_t tr, void * buf, size_t len)
 	int emptied;
 	
 	TRACE_ENTRY("%p %p %zd", tr, buf, len);
-	CHECK_PARAMS_DO( tr && buf, { errno = EINVAL; return -1; } );
+	CHECK_PARAMS_DO( tr && buf, { errno = EINVAL; goto error; } );
 	
 	/* If we don't have data available now, pull new message from the fifo -- this is blocking (until the queue is destroyed) */
 	if (!ctx->partial.buf) {
 		int ev;
-		CHECK_FCT_DO( errno = fd_event_get(ctx->raw_recv, &ev, &ctx->partial.bufsz, (void *)&ctx->partial.buf), return -1 );
-		if (ev == FDEVP_CNX_ERROR) 
-			return 0; /* connection closed */
+		CHECK_FCT_DO( errno = fd_event_get(ctx->raw_recv, &ev, &ctx->partial.bufsz, (void *)&ctx->partial.buf), goto error );
+		if (ev == FDEVP_CNX_ERROR) {
+			/* Documentations says to return 0 on connection closed, but it does hang within gnutls_handshake */
+			return -1;
+		}
 	}
 		
 	pulled = ctx->partial.bufsz - ctx->partial.offset;
@@ -215,6 +218,10 @@ static ssize_t sctps_pull(gnutls_transport_ptr_t tr, void * buf, size_t len)
 
 	/* We are done */
 	return pulled;
+	
+error:
+	gnutls_transport_set_errno (ctx->session, errno);
+	return -1;
 }
 
 /* Set the parameters of a session to use the appropriate fifo and stream information */
@@ -462,21 +469,21 @@ static void * handshake_resume_th(void * arg)
 	}
 	
 	TRACE_DEBUG(FULL, "Starting TLS resumed handshake on stream %hu", ctx->strid);
-#ifdef GNUTLS_VERSION_310
-	GNUTLS_TRACE( gnutls_handshake_set_timeout( ctx->session, GNUTLS_DEFAULT_HANDSHAKE_TIMEOUT));
-#endif /* GNUTLS_VERSION_310 */
+
 	CHECK_GNUTLS_DO( gnutls_handshake( ctx->session ), return NULL);
 			
 	GNUTLS_TRACE( resumed = gnutls_session_is_resumed(ctx->session) );
+	#ifndef GNUTLS_VERSION_300
 	if (!resumed) {
 		/* Check the credentials here also */
 		CHECK_FCT_DO( fd_tls_verify_credentials(ctx->session, ctx->parent, 0), return NULL );
 	}
+	#endif /* GNUTLS_VERSION_300 */
 	if (TRACE_BOOL(FULL)) {
 		if (resumed) {
 			fd_log_debug("Session was resumed successfully on stream %hu (conn: '%s')\n", ctx->strid, fd_cnx_getid(ctx->parent));
 		} else {
-			fd_log_debug("Session was NOT resumed on stream %hu  (full handshake + verif) (conn: '%s')\n", ctx->strid, fd_cnx_getid(ctx->parent));
+			fd_log_debug("Session was NOT resumed on stream %hu  (full handshake) (conn: '%s')\n", ctx->strid, fd_cnx_getid(ctx->parent));
 		}
 	}
 			
@@ -554,6 +561,24 @@ int fd_sctps_handshake_others(struct cnxctx * conn, char * priority, void * alt_
 		/* Set credentials and priority */
 		CHECK_FCT( fd_tls_prepare(&conn->cc_sctps_data.array[i].session, conn->cc_tls_para.mode, priority, alt_creds) );
 		
+		/* additional initialization for gnutls 3.x */
+		#ifdef GNUTLS_VERSION_300
+			/* the verify function has already been set in the global initialization in config.c */
+
+		/* fd_tls_verify_credentials_2 uses the connection */
+		gnutls_session_set_ptr (conn->cc_sctps_data.array[i].session, (void *) conn);
+
+		if ((conn->cc_tls_para.cn != NULL) && (conn->cc_tls_para.mode == GNUTLS_CLIENT)) {
+			/* this might allow virtual hosting on the remote peer */
+			CHECK_GNUTLS_DO( gnutls_server_name_set (conn->cc_sctps_data.array[i].session, GNUTLS_NAME_DNS, conn->cc_tls_para.cn, strlen(conn->cc_tls_para.cn)), /* ignore failure */);
+		}
+
+		#endif /* GNUTLS_VERSION_300 */
+
+		#ifdef GNUTLS_VERSION_310
+		GNUTLS_TRACE( gnutls_handshake_set_timeout( conn->cc_sctps_data.array[i].session, GNUTLS_DEFAULT_HANDSHAKE_TIMEOUT));
+		#endif /* GNUTLS_VERSION_310 */
+
 		/* For the client, copy data from master session; for the server, set session resuming pointers */
 		if (conn->cc_tls_para.mode == GNUTLS_CLIENT) {
 			CHECK_GNUTLS_DO( gnutls_session_set_data(conn->cc_sctps_data.array[i].session, master_data.data, master_data.size), return ENOMEM );

@@ -351,6 +351,9 @@ int             fd_cnx_receive(struct cnxctx * conn, struct timespec * timeout, 
 int             fd_cnx_recv_setaltfifo(struct cnxctx * conn, struct fifo * alt_fifo); /* send FDEVP_CNX_MSG_RECV event to the fifo list */
 int             fd_cnx_send(struct cnxctx * conn, unsigned char * buf, size_t len, uint32_t flags);
 void            fd_cnx_destroy(struct cnxctx * conn);
+#ifdef GNUTLS_VERSION_300
+int             fd_tls_verify_credentials_2(gnutls_session_t session);
+#endif /* GNUTLS_VERSION_300 */
 
 /* Flags for the fd_cnx_send function : */
 #define FD_CNX_ORDERED		(1 << 0)	/* All messages sent with this flag set will be delivered in the same order. No guarantee on other messages */

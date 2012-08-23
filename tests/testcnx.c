@@ -613,6 +613,26 @@ int main(int argc, char *argv[])
 									 GNUTLS_X509_FMT_PEM), );
 	CHECK( 1, ret );
 	
+	#ifdef GNUTLS_VERSION_300
+	{
+		/* We import these CA in the trust list */
+		gnutls_x509_crt_t * calist;
+		unsigned int cacount = 0;
+		
+		CHECK_GNUTLS_DO( ret = gnutls_x509_crt_list_import2(&calist, &cacount, &ca, GNUTLS_X509_FMT_PEM, 
+							GNUTLS_X509_CRT_LIST_FAIL_IF_UNSORTED), );
+		CHECK( 1, cacount );
+
+		CHECK_GNUTLS_DO( ret = gnutls_x509_trust_list_add_cas (fd_g_config->cnf_sec_data.trustlist, calist, cacount, 0), );
+		CHECK( 1, ret );
+	}
+		
+	/* Use certificate verification during the handshake */
+	gnutls_certificate_set_verify_function (fd_g_config->cnf_sec_data.credentials, fd_tls_verify_credentials_2);
+	
+	#endif /* GNUTLS_VERSION_300 */
+							
+	
 	/* Set the server credentials (in config) */
 	CHECK_GNUTLS_DO( ret = gnutls_certificate_set_x509_key_mem( fd_g_config->cnf_sec_data.credentials,
 									&server_cert,
@@ -1200,7 +1220,7 @@ int main(int argc, char *argv[])
 	
 	
 	/* Basic operation tested successfully, now test we detect error conditions */
-	
+
 	/* Untrusted certificate, TCP */
 	{
 		struct connect_flags cf;
@@ -1237,11 +1257,12 @@ int main(int argc, char *argv[])
 		/* Start the handshake directly */
 		CHECK( 0, pthread_create(&thr, NULL, handshake_thr, &hf) );
 		CHECK( EINVAL, fd_cnx_handshake(server_side, GNUTLS_SERVER, NULL, NULL) );
+		fd_cnx_destroy(server_side);
+		
 		CHECK( 0, pthread_join(thr, NULL) );
 		
 		/* Now close the connection */
 		CHECK( 0, pthread_create(&thr, NULL, destroy_thr, client_side) );
-		fd_cnx_destroy(server_side);
 		CHECK( 0, pthread_join(thr, NULL) );
 		
 		/* Free the credentials */
@@ -1266,13 +1287,7 @@ int main(int argc, char *argv[])
 		CHECK( GNUTLS_E_SUCCESS, ret );
 		/* Set the CA */
 		CHECK_GNUTLS_DO( ret = gnutls_certificate_set_x509_trust_mem( hf.creds, &notrust_ca, GNUTLS_X509_FMT_PEM), );
-		/* TODO: fix me.
-		 We should not get stuck when the server fails the handshake but the client succeeds.
-		 However, at the moment we do get stuck.
-		 FFS, is this a test problem or a problem in the code?
-		 
-		 CHECK_GNUTLS_DO( ret = gnutls_certificate_set_x509_trust_mem( hf.creds, &ca, GNUTLS_X509_FMT_PEM), );
-		 */
+		CHECK_GNUTLS_DO( ret = gnutls_certificate_set_x509_trust_mem( hf.creds, &ca, GNUTLS_X509_FMT_PEM), );
 		CHECK( 1, ret );
 		/* Set the key */
 		CHECK_GNUTLS_DO( ret = gnutls_certificate_set_x509_key_mem( hf.creds, &notrust_cert, &notrust_priv, GNUTLS_X509_FMT_PEM), );
@@ -1293,11 +1308,11 @@ int main(int argc, char *argv[])
 		/* Start the handshake directly */
 		CHECK( 0, pthread_create(&thr, NULL, handshake_thr, &hf) );
 		CHECK( EINVAL, fd_cnx_handshake(server_side, GNUTLS_SERVER, NULL, NULL) );
+		fd_cnx_destroy(server_side);
 		CHECK( 0, pthread_join(thr, NULL) );
 		
 		/* Now close the connection */
 		CHECK( 0, pthread_create(&thr, NULL, destroy_thr, client_side) );
-		fd_cnx_destroy(server_side);
 		CHECK( 0, pthread_join(thr, NULL) );
 		
 		/* Free the credentials */
@@ -1342,11 +1357,11 @@ int main(int argc, char *argv[])
 		/* Start the handshake directly */
 		CHECK( 0, pthread_create(&thr, NULL, handshake_thr, &hf) );
 		CHECK( EINVAL, fd_cnx_handshake(server_side, GNUTLS_SERVER, NULL, NULL) );
+		fd_cnx_destroy(server_side);
 		CHECK( 0, pthread_join(thr, NULL) );
 		
 		/* Now close the connection */
 		CHECK( 0, pthread_create(&thr, NULL, destroy_thr, client_side) );
-		fd_cnx_destroy(server_side);
 		CHECK( 0, pthread_join(thr, NULL) );
 		
 		/* Free the credentials */
@@ -1420,11 +1435,11 @@ int main(int argc, char *argv[])
 		/* Start the handshake, check it is successful */
 		CHECK( 0, pthread_create(&thr, NULL, handshake_thr, &hf) );
 		CHECK( EINVAL, fd_cnx_handshake(server_side, GNUTLS_SERVER, NULL, NULL) );
+		fd_cnx_destroy(server_side);
 		CHECK( 0, pthread_join(thr, NULL) );
 		
 		/* Now close the connection */
 		CHECK( 0, pthread_create(&thr, NULL, destroy_thr, client_side) );
-		fd_cnx_destroy(server_side);
 		CHECK( 0, pthread_join(thr, NULL) );
 		
 		/* Free the credentials */

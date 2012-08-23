@@ -537,6 +537,11 @@ int fd_conf_parse()
 	
 	/* gnutls_certificate_set_verify_limits -- so far the default values are fine... */
 	
+	#ifdef GNUTLS_VERSION_300
+	/* Use certificate verification during the handshake */
+	gnutls_certificate_set_verify_function (fd_g_config->cnf_sec_data.credentials, fd_tls_verify_credentials_2);
+	#endif /* GNUTLS_VERSION_300 */
+	
 	/* DH */
 	if (fd_g_config->cnf_sec_data.dh_file) {
 		gnutls_datum_t dhparams = { NULL, 0 };
