@@ -73,6 +73,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <stdarg.h>
 
 #ifdef DEBUG
 #include <libgen.h>	/* for basename if --dbg_file is specified */
@@ -159,7 +160,7 @@ char * fd_log_time ( struct timespec * ts, char * buf, size_t len );
  * MACRO:
  *
  * PARAMETERS:
- *  fstr        : Stream where the text will be sent (default: stdout)
+ *  fstr        : Stream where the text will be sent to (default: stdout)
  *  format      : Same format string as in the printf function
  *  va_list     : Argument list
  *
@@ -214,13 +215,13 @@ static int local_debug_level = TRACE_LEVEL;
 extern int fd_g_debug_lvl;
 
 /* Some portability code to get nice function name in __PRETTY_FUNCTION__ */
-#if __STDC_VERSION__ < 199901L
+#if (!defined( __func__)) && (__STDC_VERSION__ < 199901L)
 # if __GNUC__ >= 2
 #  define __func__ __FUNCTION__
 # else /* __GNUC__ >= 2 */
 #  define __func__ "<unknown>"
 # endif /* __GNUC__ >= 2 */
-#endif /* __STDC_VERSION__ < 199901L */
+#endif /*(!defined( __func__)) && (__STDC_VERSION__ < 199901L) */
 #ifndef __PRETTY_FUNCTION__
 #define __PRETTY_FUNCTION__ __func__
 #endif /* __PRETTY_FUNCTION__ */
