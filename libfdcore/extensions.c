@@ -36,6 +36,7 @@
 #include "fdcore-internal.h"
 
 #include <dlfcn.h>	/* We may use libtool's <ltdl.h> later for better portability.... */
+#include <libgen.h>	/* for "basename" */
 
 /* plugins management */
 
