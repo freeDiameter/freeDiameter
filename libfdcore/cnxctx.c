@@ -1295,7 +1295,7 @@ int fd_tls_verify_credentials_2(gnutls_session_t session)
 				break;
 
 
-			#ifdef ENABLE_SRP
+			#if (defined(ENABLE_SRP) || defined(GNUTLS_VERSION_300))
 			case GNUTLS_CRD_SRP:
 				fd_log_debug("\t - SRP session with username %s\n",
 					gnutls_srp_server_get_username (session));

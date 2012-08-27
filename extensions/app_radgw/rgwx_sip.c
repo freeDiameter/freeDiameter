@@ -329,10 +329,7 @@ static int sip_rad_req( struct rgwp_config * cs, struct session ** session, stru
 	int got_Drealm = 0;
 	int got_Duri = 0;
 	int got_Dmethod = 0;
-	int got_Dqop = 0;
-	int got_Dnonce_count = 0;
 	int got_Dnonce = 0;
-	int got_Dcnonce = 0;
 	int got_Dresponse = 0;
 	int got_Dalgorithm = 0;
 	os0_t sid = NULL;
@@ -385,12 +382,12 @@ static int sip_rad_req( struct rgwp_config * cs, struct session ** session, stru
 			case RADIUS_ATTR_DIGEST_METHOD:
 				got_Dmethod = 1;
 			break;
-			case RADIUS_ATTR_DIGEST_QOP:
-				got_Dqop = 1;
-			break;
-			case RADIUS_ATTR_DIGEST_NONCE_COUNT:
-				got_Dnonce_count = 1;
-			break;
+			// case RADIUS_ATTR_DIGEST_QOP:
+			// 	got_Dqop = 1;
+			// break;
+			// case RADIUS_ATTR_DIGEST_NONCE_COUNT:
+			// 	got_Dnonce_count = 1;
+			// break;
 			case RADIUS_ATTR_DIGEST_NONCE:
 				got_Dnonce = 1;
 				
@@ -405,9 +402,9 @@ static int sip_rad_req( struct rgwp_config * cs, struct session ** session, stru
 							
 				
 			break;
-			case RADIUS_ATTR_DIGEST_CNONCE:
-				got_Dcnonce = 1;
-			break;
+			// case RADIUS_ATTR_DIGEST_CNONCE:
+			// 	got_Dcnonce = 1;
+			// break;
 			case RADIUS_ATTR_DIGEST_RESPONSE:
 				got_Dresponse = 1;
 			break;			
@@ -743,7 +740,6 @@ static int sip_diam_ans( struct rgwp_config * cs, struct session * session, stru
 	struct avp_hdr *ahdr, *sid;
 	//char buf[254]; /* to store some attributes values (with final '\0') */
 	unsigned char * req_sip = NULL;
-	int in_success=0;
 	
 	TRACE_ENTRY("%p %p %p %p %p", cs, session, diam_ans, rad_fw, cli);
 	CHECK_PARAMS(cs && session && diam_ans && *diam_ans && rad_fw && *rad_fw);
@@ -800,7 +796,7 @@ static int sip_diam_ans( struct rgwp_config * cs, struct session * session, stru
 		case ER_DIAMETER_SUCCESS_SERVER_NAME_NOT_STORED:
 		case ER_DIAMETER_SUCCESS:
 			(*rad_fw)->hdr->code = RADIUS_CODE_ACCESS_ACCEPT;
-			in_success=1;
+			// in_success=1;
 			break;
 		
 		default:
