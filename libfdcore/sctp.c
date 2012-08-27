@@ -408,7 +408,7 @@ static int fd_setsockopt_prebind(int sk)
 	
 	/* Set the v4 mapped addresses option */
 	#ifdef SCTP_I_WANT_MAPPED_V4_ADDR
-	{
+	if (!fd_g_config->cnf_flags.no_ip6) {
 		int v4mapped;
 		
 		if (TRACE_BOOL(SCTP_LEVEL)) {
@@ -437,6 +437,8 @@ static int fd_setsockopt_prebind(int sk)
 			CHECK_SYS(  getsockopt(sk, IPPROTO_SCTP, SCTP_I_WANT_MAPPED_V4_ADDR, &v4mapped, &sz)  );
 			fd_log_debug( "New SCTP_I_WANT_MAPPED_V4_ADDR value : %s\n", v4mapped ? "true" : "false");
 		}
+	} else {
+		TRACE_DEBUG(SCTP_LEVEL, "Skipping SCTP_I_WANT_MAPPED_V4_ADDR, since IPv6 disabled.");
 	}
 	#else /* SCTP_I_WANT_MAPPED_V4_ADDR */
 	TRACE_DEBUG(SCTP_LEVEL, "Skipping SCTP_I_WANT_MAPPED_V4_ADDR");
