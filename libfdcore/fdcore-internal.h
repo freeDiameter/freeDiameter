@@ -46,6 +46,10 @@
 #define IPPROTO_SCTP	(2 = 4) /* some compilation error to spot the references */
 #endif /* DISABLE_SCTP */
 
+#ifndef HAVE_AI_ADDRCONFIG
+#define AI_ADDRCONFIG 0 /* ignore this flag at the moment */
+#endif /* HAVE_AI_ADDRCONFIG */
+
 /* Timeout for establishing a connection */
 #ifndef CNX_TIMEOUT
 #define  CNX_TIMEOUT	10	/* in seconds */

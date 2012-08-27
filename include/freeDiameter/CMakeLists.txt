@@ -157,6 +157,11 @@ Endif ( NOT GCRYPT_LIBRARY )
 SET(GCRYPT_LIBRARY ${GCRYPT_LIBRARY} PARENT_SCOPE)
 
 
+# Check if AI_ADDRCONFIG is available on the system
+CHECK_SYMBOL_EXISTS(AI_ADDRCONFIG "netdb.h" HAVE_AI_ADDRCONFIG)
+
+
+
 ##########################
 
 # LFDPROTO_LIBS = libraries required by the libfdproto.
