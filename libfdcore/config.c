@@ -397,7 +397,13 @@ int fd_conf_parse()
 		}
 		
 		CHECK_MALLOC( certs = calloc(cert_max, sizeof(gnutls_x509_crt_t)) );
-		CHECK_GNUTLS_DO( gnutls_x509_crt_list_import(certs, &cert_max, &certfile, GNUTLS_X509_FMT_PEM, GNUTLS_X509_CRT_LIST_FAIL_IF_UNSORTED),
+		CHECK_GNUTLS_DO( gnutls_x509_crt_list_import(certs, &cert_max, &certfile, GNUTLS_X509_FMT_PEM, 
+				#ifdef GNUTLS_VERSION_300
+				GNUTLS_X509_CRT_LIST_FAIL_IF_UNSORTED
+				#else /* GNUTLS_VERSION_300 */
+				0
+				#endif /* GNUTLS_VERSION_300 */
+				),
 			{
 				TRACE_DEBUG(INFO, "Failed to import the data from file '%s'", fd_g_config->cnf_sec_data.cert_file);
 				free(certfile.data);
