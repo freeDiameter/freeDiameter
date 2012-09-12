@@ -3,6 +3,7 @@ PROJECT("Diameter EAP Application extension" C)
 
 # Find MySQL 
 FIND_PACKAGE(MySQL REQUIRED)
+FIND_PACKAGE(Gcrypt REQUIRED)
 INCLUDE_DIRECTORIES(${MySQL_INCLUDE_DIR})
 
 # Parse plugins
@@ -45,7 +46,7 @@ set( diameapsrc
 
 FD_ADD_EXTENSION(app_diameap ${diameapsrc})
 
-TARGET_LINK_LIBRARIES(app_diameap ${MySQL_LIBRARY})
+TARGET_LINK_LIBRARIES(app_diameap ${GCRYPT_LIBRARY} ${MySQL_LIBRARY})
 
 ####
 ## INSTALL section ##
