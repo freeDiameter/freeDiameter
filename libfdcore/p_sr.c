@@ -104,6 +104,9 @@ static void * call_anscb_expire(void * arg) {
 	/* Retrieve callback in the message */
 	CHECK_FCT_DO( fd_msg_anscb_get( expired_req, &anscb, &data ), return NULL);
 	ASSERT(anscb);
+	
+	/* Clean up this data from the message */
+	CHECK_FCT_DO( fd_msg_anscb_associate( expired_req, NULL, NULL, NULL ), return NULL);
 
 	/* Call it */
 	(*anscb)(data, &expired_req);
