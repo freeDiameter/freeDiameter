@@ -83,7 +83,7 @@ int eap_tls_configure(char * configfile)
 	CHECK_FCT(eaptlsparse(&tls_global_conf));
 
 
-	tls_global_conf.max_size = 1013;
+	tls_global_conf.max_size = 64*1024 /* As per RFC 5216 recommendation */;
 
 	/* Initializing GnuTLS library */
 	ret = diameap_tls_init(&tls_global_conf);
