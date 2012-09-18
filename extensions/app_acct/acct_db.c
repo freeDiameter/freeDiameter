@@ -77,6 +77,11 @@ int acct_db_init(void)
 	TRACE_ENTRY();
 	CHECK_PARAMS( acct_config && acct_config->conninfo && acct_config->tablename ); 
 	
+	CHECK_PARAMS_DO( PQisthreadsafe() == 1, {
+		fd_log_debug("You PostGreSQL installation is not thread-safe!\n");
+		return EINVAL;
+	} );			
+	
 	/* Use the information from acct_config to create the connection and prepare the query */
 	conn = PQconnectdb(acct_config->conninfo);
 	
