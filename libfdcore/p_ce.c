@@ -307,7 +307,7 @@ static int save_remote_CE_info(struct msg * msg, struct fd_peer * peer, struct f
 							peer->p_hdr.info.pi_diamid, peer->p_hdr.info.pi_diamidlen, NULL)) {
 					TRACE_DEBUG(INFO, "Received a message with Origin-Host set to '%.*s' while expecting '%s'\n", 
 							hdr->avp_value->os.len, hdr->avp_value->os.data, peer->p_hdr.info.pi_diamid);
-					error->pei_errcode = "ER_DIAMETER_AVP_NOT_ALLOWED";
+					error->pei_errcode = "DIAMETER_AVP_NOT_ALLOWED";
 					error->pei_message = "Your Origin-Host value does not match my configuration.";
 					error->pei_avp = avp;
 					return EINVAL;
@@ -327,7 +327,7 @@ static int save_remote_CE_info(struct msg * msg, struct fd_peer * peer, struct f
 				/* In case of multiple AVPs */
 				if (peer->p_hdr.info.runtime.pir_realm) {
 					TRACE_DEBUG(INFO, "Multiple instances of the Origin-Realm AVP");
-					error->pei_errcode = "ER_DIAMETER_AVP_OCCURS_TOO_MANY_TIMES";
+					error->pei_errcode = "DIAMETER_AVP_OCCURS_TOO_MANY_TIMES";
 					error->pei_message = "I found several Origin-Realm AVPs";
 					error->pei_avp = avp;
 					return EINVAL;
@@ -335,7 +335,7 @@ static int save_remote_CE_info(struct msg * msg, struct fd_peer * peer, struct f
 				
 				/* If the octet string contains a \0 */
 				if (!fd_os_is_valid_DiameterIdentity(hdr->avp_value->os.data, hdr->avp_value->os.len)) {
-					error->pei_errcode = "ER_DIAMETER_INVALID_AVP_VALUE";
+					error->pei_errcode = "DIAMETER_INVALID_AVP_VALUE";
 					error->pei_message = "Your Origin-Realm contains invalid characters.";
 					error->pei_avp = avp;
 					return EINVAL;
@@ -362,7 +362,7 @@ static int save_remote_CE_info(struct msg * msg, struct fd_peer * peer, struct f
 					CHECK_FCT_DO( fd_msg_avp_value_interpret( avp, &ss),
 						{
 							/* in case of error, assume the AVP value was wrong */
-							error->pei_errcode = "ER_DIAMETER_INVALID_AVP_VALUE";
+							error->pei_errcode = "DIAMETER_INVALID_AVP_VALUE";
 							error->pei_avp = avp;
 							return EINVAL;
 						} );
@@ -384,7 +384,7 @@ static int save_remote_CE_info(struct msg * msg, struct fd_peer * peer, struct f
 				/* In case of multiple AVPs */
 				if (peer->p_hdr.info.runtime.pir_vendorid) {
 					TRACE_DEBUG(INFO, "Multiple instances of the Vendor-Id AVP");
-					error->pei_errcode = "ER_DIAMETER_AVP_OCCURS_TOO_MANY_TIMES";
+					error->pei_errcode = "DIAMETER_AVP_OCCURS_TOO_MANY_TIMES";
 					error->pei_message = "I found several Vendor-Id AVPs";
 					error->pei_avp = avp;
 					return EINVAL;
@@ -405,7 +405,7 @@ static int save_remote_CE_info(struct msg * msg, struct fd_peer * peer, struct f
 				/* In case of multiple AVPs */
 				if (peer->p_hdr.info.runtime.pir_prodname) {
 					TRACE_DEBUG(INFO, "Multiple instances of the Product-Name AVP");
-					error->pei_errcode = "ER_DIAMETER_AVP_OCCURS_TOO_MANY_TIMES";
+					error->pei_errcode = "DIAMETER_AVP_OCCURS_TOO_MANY_TIMES";
 					error->pei_message = "I found several Product-Name AVPs";
 					error->pei_avp = avp;
 					return EINVAL;
@@ -427,7 +427,7 @@ static int save_remote_CE_info(struct msg * msg, struct fd_peer * peer, struct f
 				/* In case of multiple AVPs */
 				if (peer->p_hdr.info.runtime.pir_orstate) {
 					TRACE_DEBUG(INFO, "Multiple instances of the Origin-State-Id AVP");
-					error->pei_errcode = "ER_DIAMETER_AVP_OCCURS_TOO_MANY_TIMES";
+					error->pei_errcode = "DIAMETER_AVP_OCCURS_TOO_MANY_TIMES";
 					error->pei_message = "I found several Origin-State-Id AVPs";
 					error->pei_avp = avp;
 					return EINVAL;
@@ -502,7 +502,7 @@ static int save_remote_CE_info(struct msg * msg, struct fd_peer * peer, struct f
 					if (auth + acct != 1) {
 						TRACE_DEBUG(FULL, "Invalid Vendor-Specific-Application-Id AVP received, ignored");
 						fd_msg_dump_one(FULL, avp);
-						error->pei_errcode = "ER_DIAMETER_INVALID_AVP_VALUE";
+						error->pei_errcode = "DIAMETER_INVALID_AVP_VALUE";
 						error->pei_avp = avp;
 						return EINVAL;
 					} else {
@@ -566,7 +566,7 @@ static int save_remote_CE_info(struct msg * msg, struct fd_peer * peer, struct f
 					goto next;
 				}
 				if (hdr->avp_value->u32 >= 32 ) {
-					error->pei_errcode = "ER_DIAMETER_INVALID_AVP_VALUE";
+					error->pei_errcode = "DIAMETER_INVALID_AVP_VALUE";
 					error->pei_message = "I don't support this Inband-Security-Id value (yet).";
 					error->pei_avp = avp;
 					return EINVAL;
@@ -693,7 +693,7 @@ int fd_p_ce_msgrcv(struct msg ** msg, int req, struct fd_peer * peer)
 		CHECK_FCT( fd_msg_new_answer_from_req ( fd_g_config->cnf_dict, msg, MSGFL_ANSW_ERROR ) );
 		
 		/* Set the error code */
-		CHECK_FCT( fd_msg_rescode_set(*msg, "ER_DIAMETER_UNABLE_TO_COMPLY", "No CER allowed in current state", NULL, 1 ) );
+		CHECK_FCT( fd_msg_rescode_set(*msg, "DIAMETER_UNABLE_TO_COMPLY", "No CER allowed in current state", NULL, 1 ) );
 
 		/* msg now contains an answer message to send back */
 		CHECK_FCT_DO( fd_out_send(msg, NULL, peer, FD_CNX_ORDERED), /* In case of error the message has already been dumped */ );
