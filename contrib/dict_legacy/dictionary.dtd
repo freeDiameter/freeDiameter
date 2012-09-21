@@ -37,7 +37,7 @@
         name ID #REQUIRED
         description CDATA #IMPLIED
         code CDATA #REQUIRED
-        mandatory CDATA
+        mandatory CDATA #IMPLIED
         vendor-id CDATA #IMPLIED
 >
 <!ELEMENT type EMPTY>
@@ -62,8 +62,8 @@
 <!ATTLIST avprule
         name IDREF #REQUIRED
         position (first | last | unspecified)  "unspecified"
-        maximum CDATA
-        minimum CDATA
+        maximum CDATA #IMPLIED
+        minimum CDATA #IMPLIED
 >
 
 
