@@ -1264,6 +1264,7 @@ void fd_dict_dump_object(struct dict_object * obj)
 void fd_dict_dump(struct dictionary * dict)
 {
 	int i;
+	struct fd_list * li;
 	
 	CHECK_PARAMS_DO(dict && (dict->dict_eyec == DICT_EYECATCHER), return);
 	
@@ -1273,10 +1274,14 @@ void fd_dict_dump(struct dictionary * dict)
 	fd_log_debug("###### Dumping vendors, AVPs and related rules #######\n");
 	
 	dump_object( &dict->dict_vendors, 0, 3, 0 );
+	for (li = dict->dict_vendors.list[0].next; li != &dict->dict_vendors.list[0]; li = li->next)
+		dump_object( li->o, 0, 3, 0 );
 	
 	fd_log_debug("######          Dumping applications           #######\n");
 
 	dump_object( &dict->dict_applications, 0, 1, 0 );
+	for (li = dict->dict_applications.list[0].next; li != &dict->dict_applications.list[0]; li = li->next)
+		dump_object( li->o, 0, 1, 0 );
 	
 	fd_log_debug("######             Dumping types               #######\n");
 
