@@ -53,5 +53,7 @@ to top-level README file.
 
 - dict_dcca: partial implementations of the DCCA dictionary
 
+- dict_gx: untested implementation of the Gx interface.
+
 - wireshark: This contains some information on how to use Wireshark to monitor Diameter
 	exchange protected with TLS. It involves patching the wireshark software.
