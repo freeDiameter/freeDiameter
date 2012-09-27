@@ -265,6 +265,23 @@ static int dict_dcca_3gpp_entry(char * conffile)
                   CHECK_dict_new( DICT_AVP, &data , Address_type, NULL);
                 }
 
+                /* 3GPP-IMSI */
+                {
+                  /*
+		    IMSI encoded in UTF-8 per 3GPP TS 23.003. No
+		    padding. Maximum length of data: 15.
+                  */
+                  struct dict_avp_data data = { 
+                    1,                                    /* Code */
+                    10415,                                      /* Vendor */
+                    "3GPP-IMSI",                            /* Name */
+                    AVP_FLAG_VENDOR | AVP_FLAG_MANDATORY,   /* Fixed flags */
+                    AVP_FLAG_VENDOR | AVP_FLAG_MANDATORY,                     /* Fixed flag values */
+                    AVP_TYPE_OCTETSTRING                      /* base type of data */
+                  };
+                  CHECK_dict_new( DICT_AVP, &data , UTF8String_type, NULL);
+                }
+
                 /* 3GPP-Charging-Id */
                 {
                   /*
@@ -294,6 +311,10 @@ static int dict_dcca_3gpp_entry(char * conffile)
                     Enumerated. (3GPP TS 29.061 Rel7 ). Type of 
                     PDP context, for example, IP or PPP. Present in 
                     the initial CCR only.
+		    0 = IPv4
+		    1 = PPP
+		    2 = IPv6
+		    3 = IPv4v6
                   */
                   struct dict_avp_data    data = { 
                     3,                                    /* Code */
@@ -301,7 +322,7 @@ static int dict_dcca_3gpp_entry(char * conffile)
                     "3GPP-PDP-Type",                    /* Name */
                     AVP_FLAG_VENDOR | AVP_FLAG_MANDATORY,   /* Fixed flags */
                     AVP_FLAG_VENDOR | AVP_FLAG_MANDATORY,                     /* Fixed flag values */
-                    AVP_TYPE_INTEGER32                      /* base type of data */
+                    AVP_TYPE_UNSIGNED32                      /* base type of data */
                   };
                   CHECK_dict_new( DICT_AVP, &data , NULL, NULL);
                 }
@@ -323,10 +344,10 @@ static int dict_dcca_3gpp_entry(char * conffile)
                     AVP_FLAG_VENDOR,                     /* Fixed flag values */
                     AVP_TYPE_OCTETSTRING                     /* base type of data */
                   };
-                  CHECK_dict_new( DICT_AVP, &data , NULL, NULL);
+                  CHECK_dict_new( DICT_AVP, &data , Address_type, NULL);
                 }
 
-                /* 3GPP-GPRS-Neg-QoS-Profile */
+                /* 3GPP-GPRS-Negotiated-QoS-Profile */
                 {
                   /* 
                      UTF8String. (3GPP TS 29.061 Rel7 ). The QoS 
@@ -334,11 +355,14 @@ static int dict_dcca_3gpp_entry(char * conffile)
                      mination requests, this AVP is present only when 
                      the CCR has been triggered by a PDP context 
                      update affecting the negotiated QoS
+		     Each octet is described by two UTF-8-encoded
+                     characters denoting the hexadecimal
+                     representation.
                   */
                   struct dict_avp_data data = { 
                     5,                                    /* Code */
                     10415,                                      /* Vendor */
-                    "3GPP-GPRS-Neg-QoS-Profile",                    /* Name */
+                    "3GPP-GPRS-Negotiated-QoS-Profile",                    /* Name */
                     AVP_FLAG_VENDOR | AVP_FLAG_MANDATORY,   /* Fixed flags */
                     AVP_FLAG_VENDOR | AVP_FLAG_MANDATORY,                     /* Fixed flag values */
                     AVP_TYPE_OCTETSTRING                      /* base type of data */
@@ -346,7 +370,7 @@ static int dict_dcca_3gpp_entry(char * conffile)
                   CHECK_dict_new( DICT_AVP, &data , UTF8String_type, NULL);
                 }
 
-                /* 3GPP-SGSN-IP-Address */
+                /* 3GPP-SGSN-Address */
                 {
                   /*
                     OctetString. (3GPP TS 29.061 Rel4). The address 
@@ -358,15 +382,15 @@ static int dict_dcca_3gpp_entry(char * conffile)
                   struct dict_avp_data data = { 
                     6,                                    /* Code */
                     10415,                                      /* Vendor */
-                    "3GPP-SGSN-IP-Address",                      /* Name */
+                    "3GPP-SGSN-Address",                      /* Name */
                     AVP_FLAG_VENDOR | AVP_FLAG_MANDATORY,   /* Fixed flags */
                     AVP_FLAG_VENDOR,                     /* Fixed flag values */
                     AVP_TYPE_OCTETSTRING                     /* base type of data */
                   };
-                  CHECK_dict_new( DICT_AVP, &data , NULL, NULL);
+                  CHECK_dict_new( DICT_AVP, &data , Address_type, NULL);
                 }               
 
-                /* 3GPP-GGSN-IP-Address */
+                /* 3GPP-GGSN-Address */
                 {
                   /*
                     OctetString. (3GPP TS 29.061 Rel4). Usually the 
@@ -378,12 +402,12 @@ static int dict_dcca_3gpp_entry(char * conffile)
                   struct dict_avp_data data = { 
                     7,                                    /* Code */
                     10415,                                      /* Vendor */
-                    "3GPP-GGSN-IP-Address",                      /* Name */
+                    "3GPP-GGSN-Address",                      /* Name */
                     AVP_FLAG_VENDOR | AVP_FLAG_MANDATORY,   /* Fixed flags */
                     AVP_FLAG_VENDOR,                     /* Fixed flag values */
                     AVP_TYPE_OCTETSTRING                     /* base type of data */
                   };
-                  CHECK_dict_new( DICT_AVP, &data , NULL, NULL);
+                  CHECK_dict_new( DICT_AVP, &data , Address_type, NULL);
                 }
 
                 /* 3GPP-IMSI-MCC-MNC */
@@ -447,6 +471,26 @@ static int dict_dcca_3gpp_entry(char * conffile)
                   CHECK_dict_new( DICT_AVP, &data , UTF8String_type, NULL);
                 }
 
+                /* 3GPP-Session-Stop-Indicator */
+                {
+                  /*
+                    OctetString. (3GPP TS 29.061 Rel4). The 
+                    presence of this AVP indicates that the last 
+                    context of the PDP session has been deleted. May 
+                    be present in the termination CCR only. Contains 
+                    one octet that has a value of 0xff.
+                  */
+                  struct dict_avp_data data = { 
+                    11,                                    /* Code */
+                    10415,                                      /* Vendor */
+                    "3GPP-Session-Stop-Indicator",                      /* Name */
+                    AVP_FLAG_VENDOR | AVP_FLAG_MANDATORY,   /* Fixed flags */
+                    AVP_FLAG_VENDOR,                     /* Fixed flag values */
+                    AVP_TYPE_OCTETSTRING                     /* base type of data */
+                  };
+                  CHECK_dict_new( DICT_AVP, &data , NULL, NULL);
+                }
+
                 /* 3GPP-Selection-Mode */
                 {
                   /*
@@ -487,6 +531,76 @@ static int dict_dcca_3gpp_entry(char * conffile)
                   CHECK_dict_new( DICT_AVP, &data , UTF8String_type, NULL);
                 }
 
+                /* 3GPP-CG-IPv6-Address */
+                {
+                  /*
+                    UTF8String.. (3GPP TS 29.061 Rel? (<=10) ). The 
+		    IPv6 address of the charging gateway.
+                  */
+                  struct dict_avp_data data = { 
+                    14,                                    /* Code */
+                    10415,                                      /* Vendor */
+                    "3GPP-CG-IPv6-Address",                    /* Name */
+                    AVP_FLAG_VENDOR | AVP_FLAG_MANDATORY,   /* Fixed flags */
+                    AVP_FLAG_VENDOR | AVP_FLAG_MANDATORY,                     /* Fixed flag values */
+                    AVP_TYPE_OCTETSTRING                      /* base type of data */
+                  };
+                  CHECK_dict_new( DICT_AVP, &data , UTF8String_type, NULL);
+                }
+
+                /* 3GPP-SGSN-IPv6-Address */
+                {
+                  /*
+                    UTF8String.. (3GPP TS 29.061 Rel? (<=10) ). The 
+		    IPv6 address of the SGSN.
+                  */
+                  struct dict_avp_data data = { 
+                    15,                                    /* Code */
+                    10415,                                      /* Vendor */
+                    "3GPP-SGSN-IPv6-Address",                    /* Name */
+                    AVP_FLAG_VENDOR | AVP_FLAG_MANDATORY,   /* Fixed flags */
+                    AVP_FLAG_VENDOR | AVP_FLAG_MANDATORY,                     /* Fixed flag values */
+                    AVP_TYPE_OCTETSTRING                      /* base type of data */
+                  };
+                  CHECK_dict_new( DICT_AVP, &data , UTF8String_type, NULL);
+                }
+
+                /* 3GPP-GGSN-IPv6-Address */
+                {
+                  /*
+                    UTF8String.. (3GPP TS 29.061 Rel? (<=10) ). The 
+		    IPv6 address of the GGSN.
+                  */
+                  struct dict_avp_data data = { 
+                    16,                                    /* Code */
+                    10415,                                      /* Vendor */
+                    "3GPP-CG-IPv6-Address",                    /* Name */
+                    AVP_FLAG_VENDOR | AVP_FLAG_MANDATORY,   /* Fixed flags */
+                    AVP_FLAG_VENDOR | AVP_FLAG_MANDATORY,                     /* Fixed flag values */
+                    AVP_TYPE_OCTETSTRING                      /* base type of data */
+                  };
+                  CHECK_dict_new( DICT_AVP, &data , UTF8String_type, NULL);
+                }
+
+                /* 3GPP-GGSN-IPv6-DNS-Servers */
+                {
+                  /*
+                    UTF8String.. (3GPP TS 29.061 Rel? (<=10) ). List
+		    of IPv6 addresses of DNS servers for an APN in
+		    order of preference (max. 15 servers, 16 bytes
+		    each).
+                  */
+                  struct dict_avp_data data = { 
+                    17,                                    /* Code */
+                    10415,                                      /* Vendor */
+                    "3GPP-CG-IPv6-Address",                    /* Name */
+                    AVP_FLAG_VENDOR | AVP_FLAG_MANDATORY,   /* Fixed flags */
+                    AVP_FLAG_VENDOR | AVP_FLAG_MANDATORY,                     /* Fixed flag values */
+                    AVP_TYPE_OCTETSTRING                      /* base type of data */
+                  };
+                  CHECK_dict_new( DICT_AVP, &data , UTF8String_type, NULL);
+                }
+
                 /* 3GPP-SGSN-MCC-MNC */
                 {
                   /* 
@@ -504,6 +618,24 @@ static int dict_dcca_3gpp_entry(char * conffile)
                     AVP_FLAG_VENDOR | AVP_FLAG_MANDATORY,   /* Fixed flags */
                     AVP_FLAG_VENDOR | AVP_FLAG_MANDATORY,                     /* Fixed flag values */
                     AVP_TYPE_OCTETSTRING                      /* base type of data */
+                  };
+                  CHECK_dict_new( DICT_AVP, &data , UTF8String_type, NULL);
+                }
+
+                /* Missing: 3GPP-Teardown-Indicator (19) */
+
+                /* 3GPP-IMEISV */
+                {
+                  /*
+		    IMEI(SV) encoded as sequence of UTF8 characters.
+                  */
+                  struct dict_avp_data data = { 
+                    20,                                    /* Code */
+                    10415,                                      /* Vendor */
+                    "3GPP-IMEISV",                      /* Name */
+                    AVP_FLAG_VENDOR | AVP_FLAG_MANDATORY,   /* Fixed flags */
+                    AVP_FLAG_VENDOR | AVP_FLAG_MANDATORY,                     /* Fixed flag values */
+                    AVP_TYPE_OCTETSTRING                     /* base type of data */
                   };
                   CHECK_dict_new( DICT_AVP, &data , UTF8String_type, NULL);
                 }
@@ -571,63 +703,10 @@ static int dict_dcca_3gpp_entry(char * conffile)
                   CHECK_dict_new( DICT_AVP, &data , NULL, NULL);
                 }
 
-                /* 3GPP-GGSN-Address */
-                {
-                  /*
-                    Address. (3GPP TS 32.299 Rel7 ). Usually the IP 
-                    address of Flexi ISN. The only exception is when 
-                    the Flexi ISN acts as a NAS server and the 
-                    charging ID selection is set to NAS Client; then the 
-                    GGSN IP address will be the NAIP address. Present in the initial CCR only.S client
-                  */
-                  struct dict_avp_data data = { 
-                    847,                                    /* Code */
-                    10415,                                      /* Vendor */
-                    "3GPP-GGSN-Address",                      /* Name */
-                    AVP_FLAG_VENDOR | AVP_FLAG_MANDATORY,   /* Fixed flags */
-                    AVP_FLAG_VENDOR | AVP_FLAG_MANDATORY,                     /* Fixed flag values */
-                    AVP_TYPE_OCTETSTRING                    /* base type of data */
-                  };
-                  CHECK_dict_new( DICT_AVP, &data , Address_type, NULL);
-                }
-
-                /* 3GPP-SGSN-Address */
-                {
-                  /* 
-                     Address. (3GPP TS 32.299 Rel7 ). The IP address 
-                     of the SGSN Gn interface. In update and termina-
-                     tion requests, this AVP is present only when the 
-                     CCR has been triggered by a routing area update.
-                  */
-                  struct dict_avp_data data = { 
-                    1228,                                    /* Code */
-                    10415,                                      /* Vendor */
-                    "3GPP-SGSN-Address",                      /* Name */
-                    AVP_FLAG_VENDOR | AVP_FLAG_MANDATORY,   /* Fixed flags */
-                    AVP_FLAG_VENDOR | AVP_FLAG_MANDATORY,                     /* Fixed flag values */
-                    AVP_TYPE_OCTETSTRING                    /* base type of data */
-                  };
-                  CHECK_dict_new( DICT_AVP, &data , Address_type, NULL);
-                }
-
-                /* CG-Address */
-                {
-                  /*
-                    Address. (3GPP 32.299 Rel7). The address of the 
-                    charging gateway that has been marked as the 
-                    default charging gateway for the PDP context. 
-                    Present in the initial CCR only.
-                  */
-                  struct dict_avp_data data = { 
-                    846,                                    /* Code */
-                    10415,                                      /* Vendor */
-                    "CG-Address",                      /* Name */
-                    AVP_FLAG_VENDOR | AVP_FLAG_MANDATORY,   /* Fixed flags */
-                    AVP_FLAG_VENDOR | AVP_FLAG_MANDATORY,                     /* Fixed flag values */
-                    AVP_TYPE_OCTETSTRING                    /* base type of data */
-                  };
-                  CHECK_dict_new( DICT_AVP, &data , Address_type, NULL);
-                }
+		/* Missing: 3GPP-CAMEL-Charging-Info (24) */
+		/* Missing: 3GPP-Packet-Filter (25) */
+		/* Missing: 3GPP-Negotiated-DSCP (26) */
+		/* Missing: 3GPP-Allocate-IP-Type (27) */
 
                 /* PDP-Context-Type */
                 {
@@ -736,26 +815,6 @@ static int dict_dcca_3gpp_entry(char * conffile)
                   CHECK_dict_new( DICT_AVP, &data , NULL, NULL);
                 }
 
-                /* Session-Stop-Indicator */
-                {
-                  /*
-                    OctetString. (3GPP TS 29.061 Rel4). The 
-                    presence of this AVP indicates that the last 
-                    context of the PDP session has been deleted. May 
-                    be present in the termination CCR only. Contains 
-                    one octet that has a value of 0xff.
-                  */
-                  struct dict_avp_data data = { 
-                    11,                                    /* Code */
-                    10415,                                      /* Vendor */
-                    "Session-Stop-Indicator",                      /* Name */
-                    AVP_FLAG_VENDOR | AVP_FLAG_MANDATORY,   /* Fixed flags */
-                    AVP_FLAG_VENDOR,                     /* Fixed flag values */
-                    AVP_TYPE_OCTETSTRING                     /* base type of data */
-                  };
-                  CHECK_dict_new( DICT_AVP, &data , NULL, NULL);
-                }
-                
                 /* QoS-Information */
                 {
                   /*
