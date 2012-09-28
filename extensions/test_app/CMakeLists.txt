@@ -1,4 +1,4 @@
-# The dict_nasreq extension
+# The test_app extension
 PROJECT("Test Diameter Application" C)
 
 # Parser files

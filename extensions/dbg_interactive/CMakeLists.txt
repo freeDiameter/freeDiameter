@@ -1,4 +1,4 @@
-# The rt_debug extension
+# The dbg_interactive extension
 PROJECT("Interactive debug facility based on SWIG" C)
 
 

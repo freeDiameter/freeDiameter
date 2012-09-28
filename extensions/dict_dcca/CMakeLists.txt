@@ -1,4 +1,4 @@
-# The dict_nasreq extension
+# The dict_dcca extension
 PROJECT("Diameter DCCA (Diameter Credit Control Application ) dictionary definitions" C)
 
 # Compile as a module

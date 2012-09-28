@@ -1,4 +1,4 @@
-# The dict_nasreq extension
+# The app_sip extension
 PROJECT("Diameter SIP Application (RFC4740)" C)
 
 FIND_PACKAGE(MySQL REQUIRED)

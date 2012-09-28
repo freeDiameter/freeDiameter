@@ -1,4 +1,4 @@
-# The dict_nasreq extension
+# The acl_wl extension
 PROJECT("Access Control / White List" C)
 
 # Parser files

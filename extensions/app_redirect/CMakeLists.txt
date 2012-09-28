@@ -1,4 +1,4 @@
-# The rt_default extension
+# The app_redirect extension
 PROJECT("Configurable Redirects server extension" C)
 
 # Check if REG_STARTEND is provided on the host

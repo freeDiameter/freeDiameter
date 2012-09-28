@@ -1,4 +1,4 @@
-# The dict_nasreq extension
+# The dict_eap extension
 PROJECT("Diameter EAP (RFC4072) dictionary definitions" C)
 
 # Compile as a module

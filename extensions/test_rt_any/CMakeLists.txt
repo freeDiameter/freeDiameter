@@ -1,4 +1,4 @@
-# The rt_debug extension
+# The test_rt_any extension
 PROJECT("Random routing extension (for tests)" C)
 
 # Compile as a module

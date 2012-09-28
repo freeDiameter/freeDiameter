@@ -1,4 +1,4 @@
-# The dict_nasreq extension
+# The app_acct extension
 PROJECT("Simple Accounting server" C)
 
 ########################

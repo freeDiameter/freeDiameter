@@ -1,4 +1,4 @@
-# The dict_nasreq extension
+# The dict_sip extension
 PROJECT("Diameter SIP (RFC4740) dictionary definitions" C)
 
 # Compile as a module
