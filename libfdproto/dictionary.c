@@ -1827,6 +1827,12 @@ error_unlock:
 		}
 		if (ret) {
 			TRACE_DEBUG(INFO, "An existing object with different non-key data was found: EEXIST");
+			if (TRACE_BOOL(INFO)) {
+				fd_log_debug("New object to insert:\n");
+				dump_object(new, 0, 0, 3);
+				fd_log_debug("Object already in dictionary:\n");			
+				dump_object(locref, 0, 0 , 3);
+			}
 		} else {
 			TRACE_DEBUG(FULL, "An existing object with the same data was found, ignoring the error...");
 		}
