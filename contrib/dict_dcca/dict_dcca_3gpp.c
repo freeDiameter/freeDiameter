@@ -574,7 +574,7 @@ static int dict_dcca_3gpp_entry(char * conffile)
                   struct dict_avp_data data = { 
                     16,                                    /* Code */
                     10415,                                      /* Vendor */
-                    "3GPP-CG-IPv6-Address",                    /* Name */
+                    "3GPP-GGSN-IPv6-Address",                    /* Name */
                     AVP_FLAG_VENDOR | AVP_FLAG_MANDATORY,   /* Fixed flags */
                     AVP_FLAG_VENDOR | AVP_FLAG_MANDATORY,                     /* Fixed flag values */
                     AVP_TYPE_OCTETSTRING                      /* base type of data */
@@ -593,7 +593,7 @@ static int dict_dcca_3gpp_entry(char * conffile)
                   struct dict_avp_data data = { 
                     17,                                    /* Code */
                     10415,                                      /* Vendor */
-                    "3GPP-CG-IPv6-Address",                    /* Name */
+                    "3GPP-GGSN-IPv6-DNS-Servers",                    /* Name */
                     AVP_FLAG_VENDOR | AVP_FLAG_MANDATORY,   /* Fixed flags */
                     AVP_FLAG_VENDOR | AVP_FLAG_MANDATORY,                     /* Fixed flag values */
                     AVP_TYPE_OCTETSTRING                      /* base type of data */
