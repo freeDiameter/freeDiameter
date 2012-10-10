@@ -603,6 +603,17 @@ int fd_breakhere(void);
 
 
 /*============================================================*/
+/*                         PORTABILITY                        */
+/*============================================================*/
+#ifndef HAVE_CLOCK_GETTIME
+  #define CLOCK_REALTIME  0
+  #include <sys/time.h>
+  int clock_gettime(int clk_id, struct timespec* ts);
+#endif /* HAVE_CLOCK_GETTIME */
+
+
+
+/*============================================================*/
 /*                         BINARY STRINGS                     */
 /*============================================================*/
 

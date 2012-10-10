@@ -2,7 +2,7 @@
 * Software License Agreement (BSD License)                                                               *
 * Author: Sebastien Decugis <sdecugis@freediameter.net>							 *
 *													 *
-* Copyright (c) 2012, WIDE Project and NICT								 *
+* Copyright (c) 2011, WIDE Project and NICT								 *
 * All rights reserved.											 *
 * 													 *
 * Redistribution and use of this software in source and binary forms, with or without modification, are  *
@@ -33,57 +33,15 @@
 * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.								 *
 *********************************************************************************************************/
 
-/* Configuration from compile-time */
-#ifndef FD_IS_CONFIG
-#define FD_IS_CONFIG
+#include "fdproto-internal.h"
 
-#cmakedefine HAVE_NTOHLL
-#cmakedefine HAVE_MALLOC_H
-#cmakedefine HAVE_SIGNALENT_H
-#cmakedefine HAVE_AI_ADDRCONFIG
-#cmakedefine HAVE_CLOCK_GETTIME
-
-#cmakedefine HOST_BIG_ENDIAN @HOST_BIG_ENDIAN@
-
-#cmakedefine DISABLE_SCTP
-#cmakedefine DEBUG_SCTP
-#cmakedefine SCTP_USE_MAPPED_ADDRESSES
-#cmakedefine SCTP_CONNECTX_4_ARGS
-#cmakedefine SKIP_DLCLOSE
-#cmakedefine DIAMID_IDNA_IGNORE
-#cmakedefine DIAMID_IDNA_REJECT
-#cmakedefine GNUTLS_VERSION_210
-#cmakedefine GNUTLS_VERSION_300
-#cmakedefine GNUTLS_VERSION_310
-
-#cmakedefine ERRORS_ON_TODO
-#cmakedefine DEBUG
-
-#cmakedefine FD_PROJECT_BINARY "@FD_PROJECT_BINARY@"
-#cmakedefine FD_PROJECT_NAME "@FD_PROJECT_NAME@"
-#cmakedefine FD_PROJECT_VERSION_MAJOR @FD_PROJECT_VERSION_MAJOR@
-#ifndef FD_PROJECT_VERSION_MAJOR
-# define FD_PROJECT_VERSION_MAJOR 0
-#endif /*FD_PROJECT_VERSION_MAJOR*/
-#cmakedefine FD_PROJECT_VERSION_MINOR @FD_PROJECT_VERSION_MINOR@
-#ifndef FD_PROJECT_VERSION_MINOR
-# define FD_PROJECT_VERSION_MINOR 0
-#endif /*FD_PROJECT_VERSION_MINOR*/
-#cmakedefine FD_PROJECT_VERSION_REV   @FD_PROJECT_VERSION_REV@
-#ifndef FD_PROJECT_VERSION_REV
-# define FD_PROJECT_VERSION_REV 0
-#endif /*FD_PROJECT_VERSION_REV*/
-#cmakedefine FD_PROJECT_VERSION_API   @FD_PROJECT_VERSION_API@
-#ifndef FD_PROJECT_VERSION_API
-# define FD_PROJECT_VERSION_API 0
-#endif /*FD_PROJECT_VERSION_API*/
-#cmakedefine FD_PROJECT_COPYRIGHT "@FD_PROJECT_COPYRIGHT@"
-
-#cmakedefine DEFAULT_CONF_PATH "@DEFAULT_CONF_PATH@"
-#cmakedefine DEFAULT_EXTENSIONS_PATH "@DEFAULT_EXTENSIONS_PATH@"
-
-#ifndef FD_DEFAULT_CONF_FILENAME
-#define FD_DEFAULT_CONF_FILENAME "freeDiameter.conf"
-#endif /* FD_DEFAULT_CONF_FILENAME */
-
-#endif /* FD_IS_CONFIG */
+/* Replacement for clock_gettime for the Mac OS */
+#ifndef HAVE_CLOCK_GETTIME
+int clock_gettime(int clk_id, struct timespec* ts)
+{
+	struct timeval tv;
+	gettimeofday (&tv, NULL);
+	ts->tv_sec = tv.tv_sec;
+	ts->tv_nsec = tv.tv_usec * 1000;
+}
+#endif /* HAVE_CLOCK_GETTIME */
