@@ -162,7 +162,7 @@ static char * Address_dump(union avp_value * avp_value)
 	
 	/* The first two octets represent the address family, http://www.iana.org/assignments/address-family-numbers/ */
 	if (avp_value->os.len < 2) {
-		snprintf(ret, STR_LEN, "[invalid length: %d]", avp_value->os.len);
+		snprintf(ret, STR_LEN, "[invalid length: %zd]", avp_value->os.len);
 		return ret;
 	}
 	
@@ -173,7 +173,7 @@ static char * Address_dump(union avp_value * avp_value)
 			/* IP */
 			s.sa.sa_family = AF_INET;
 			if (avp_value->os.len != 6) {
-				snprintf(ret, STR_LEN, "[invalid IP length: %d]", avp_value->os.len);
+				snprintf(ret, STR_LEN, "[invalid IP length: %zd]", avp_value->os.len);
 				return ret;
 			}
 			memcpy(&s.sin.sin_addr.s_addr, avp_value->os.data + 2, 4);
@@ -182,7 +182,7 @@ static char * Address_dump(union avp_value * avp_value)
 			/* IP6 */
 			s.sa.sa_family = AF_INET6;
 			if (avp_value->os.len != 18) {
-				snprintf(ret, STR_LEN, "[invalid IP6 length: %d]", avp_value->os.len);
+				snprintf(ret, STR_LEN, "[invalid IP6 length: %zd]", avp_value->os.len);
 				return ret;
 			}
 			memcpy(&s.sin6.sin6_addr.s6_addr, avp_value->os.data + 2, 16);
