@@ -46,7 +46,7 @@ set( diameapsrc
 
 FD_ADD_EXTENSION(app_diameap ${diameapsrc})
 
-TARGET_LINK_LIBRARIES(app_diameap ${GCRYPT_LIBRARY} ${MySQL_LIBRARY})
+TARGET_LINK_LIBRARIES(app_diameap ${GCRYPT_LIBRARY} ${GNUTLS_LIBRARIES} ${MySQL_LIBRARY} )
 
 ####
 ## INSTALL section ##
