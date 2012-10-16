@@ -1,8 +1,8 @@
 /****************
- Contributed by: Konstantin Chekushin <koch@lmt.lv>
+ Contributed by: Konstantin Chekushin <koch@lmt.lv> and Thomas Klausner <tk@giga.or.at>
  License: same as freeDiameter
  TODO:
-  - rules for CCR/CCA and all Grouped AVPs
+  - rules for all Grouped AVPs
  ****************/
 
 
@@ -66,18 +66,17 @@ struct local_rules_definition {
 
 static int dict_dcca_entry(char * conffile)
 {
-	struct dict_object * dcca;
-	TRACE_ENTRY("%p", conffile);		
+    struct dict_object * dcca;
+    TRACE_ENTRY("%p", conffile);		
 	
-	/* Applications section */
+    /* Applications section */
+    {
+	/* DCCA */
 	{
-		/* DCCA */
-		{
-			struct dict_application_data data = {        4, "Diameter Credit Control Application" 			};
-			CHECK_dict_new( DICT_APPLICATION, &data, NULL, &dcca);
-		}                                
-  
-	}
+	    struct dict_application_data data = {        4, "Diameter Credit Control Application" 			};
+	    CHECK_dict_new( DICT_APPLICATION, &data, NULL, &dcca);
+	}                                
+    }
 	
     /* Result codes */
     {
@@ -98,32 +97,6 @@ static int dict_dcca_entry(char * conffile)
     }
 
 
-    /* Commands section */
-    {
-        /*Credit Control Request*/
-        {
-            struct dict_object * cmd;
-            struct dict_cmd_data data = {
-                272, /* Code */
-                "Credit-Control-Request", /* Name */
-                CMD_FLAG_REQUEST | CMD_FLAG_PROXIABLE | CMD_FLAG_ERROR, /* Fixed flags */
-                CMD_FLAG_REQUEST | CMD_FLAG_PROXIABLE /* Fixed flag values */
-            };
-            CHECK_dict_new(DICT_COMMAND, &data, NULL, &cmd);
-        }
-
-        /*Credit Control Response*/
-        {
-            struct dict_object * cmd;
-            struct dict_cmd_data data = {
-                272, /* Code */
-                "Credit-Control-Answer", /* Name */
-                CMD_FLAG_REQUEST | CMD_FLAG_PROXIABLE, /* Fixed flags */
-                CMD_FLAG_PROXIABLE /* Fixed flag values */
-            };
-            CHECK_dict_new(DICT_COMMAND, &data, NULL, &cmd);
-        }
-    }
 	
 	/* AVP section */
         {
@@ -180,7 +153,7 @@ static int dict_dcca_entry(char * conffile)
                   /*
                     Grouped
                   */
-
+		    
                   struct dict_avp_data data = {
                     413,                                    /* Code */
                     0,                                      /* Vendor */
@@ -1151,7 +1124,245 @@ static int dict_dcca_entry(char * conffile)
                                                                          
         }
 
-	
+
+	/* Commands section */
+	{
+	/* Credit-Control-Request (CCR) Command */
+	{
+		/*
+		  From RFC 4006:
+
+		  3.1.  Credit-Control-Request (CCR) Command
+		  
+		     The Credit-Control-Request message (CCR) is indicated by the
+		     command-code field being set to 272 and the 'R' bit being set in the
+		     Command Flags field.  It is used between the Diameter credit-control
+		     client and the credit-control server to request credit authorization
+		     for a given service.
+		  
+		     The Auth-Application-Id MUST be set to the value 4, indicating the
+		     Diameter credit-control application.
+		  
+		     Message Format
+		  
+		        <Credit-Control-Request> ::= < Diameter Header: 272, REQ, PXY >
+		                                     < Session-Id >
+		                                     { Origin-Host }
+		                                     { Origin-Realm }
+		                                     { Destination-Realm }
+		                                     { Auth-Application-Id }
+		                                     { Service-Context-Id }
+		                                     { CC-Request-Type }
+		                                     { CC-Request-Number }
+		                                     [ Destination-Host ]
+		                                     [ User-Name ]
+		                                     [ CC-Sub-Session-Id ]
+		                                     [ Acct-Multi-Session-Id ]
+		                                     [ Origin-State-Id ]
+		                                     [ Event-Timestamp ]
+		                                    *[ Subscription-Id ]
+		                                     [ Service-Identifier ]
+		                                     [ Termination-Cause ]
+		                                     [ Requested-Service-Unit ]
+		                                     [ Requested-Action ]
+		                                    *[ Used-Service-Unit ]
+		                                     [ Multiple-Services-Indicator ]
+		                                    *[ Multiple-Services-Credit-Control ]
+		                                    *[ Service-Parameter-Info ]
+		                                     [ CC-Correlation-Id ]
+		                                     [ User-Equipment-Info ]
+		                                    *[ Proxy-Info ]
+		                                    *[ Route-Record ]
+		                                    *[ AVP ]
+		  
+		  10.1.  Credit-Control AVP Table
+		  
+		     The table in this section is used to represent which credit-control
+		     applications specific AVPs defined in this document are to be present
+		     in the credit-control messages.
+		  
+		                                         +-----------+
+		                                         |  Command  |
+		                                         |   Code    |
+		                                         |-----+-----+
+		           Attribute Name                | CCR | CCA |
+		           ------------------------------|-----+-----+
+		           Acct-Multi-Session-Id         | 0-1 | 0-1 |
+		           Auth-Application-Id           | 1   | 1   |
+		           CC-Correlation-Id             | 0-1 | 0   |
+		           CC-Session-Failover           | 0   | 0-1 |
+		           CC-Request-Number             | 1   | 1   |
+		           CC-Request-Type               | 1   | 1   |
+		           CC-Sub-Session-Id             | 0-1 | 0-1 |
+		           Check-Balance-Result          | 0   | 0-1 |
+		           Cost-Information              | 0   | 0-1 |
+		           Credit-Control-Failure-       | 0   | 0-1 |
+		              Handling                   |     |     |
+		           Destination-Host              | 0-1 | 0   |
+		           Destination-Realm             | 1   | 0   |
+		           Direct-Debiting-Failure-      | 0   | 0-1 |
+		              Handling                   |     |     |
+		           Event-Timestamp               | 0-1 | 0-1 |
+		           Failed-AVP                    | 0   | 0+  |
+		           Final-Unit-Indication         | 0   | 0-1 |
+		           Granted-Service-Unit          | 0   | 0-1 |
+		           Multiple-Services-Credit-     | 0+  | 0+  |
+		              Control                    |     |     |
+		           Multiple-Services-Indicator   | 0-1 | 0   |
+		           Origin-Host                   | 1   | 1   |
+		           Origin-Realm                  | 1   | 1   |
+		           Origin-State-Id               | 0-1 | 0-1 |
+		           Proxy-Info                    | 0+  | 0+  |
+		           Redirect-Host                 | 0   | 0+  |
+		           Redirect-Host-Usage           | 0   | 0-1 |
+		           Redirect-Max-Cache-Time       | 0   | 0-1 |
+		           Requested-Action              | 0-1 | 0   |
+		           Requested-Service-Unit        | 0-1 | 0   |
+		           Route-Record                  | 0+  | 0+  |
+		           Result-Code                   | 0   | 1   |
+		           Service-Context-Id            | 1   | 0   |
+		           Service-Identifier            | 0-1 | 0   |
+		           Service-Parameter-Info        | 0+  | 0   |
+		           Session-Id                    | 1   | 1   |
+		           Subscription-Id               | 0+  | 0   |
+		           Termination-Cause             | 0-1 | 0   |
+		           User-Equipment-Info           | 0-1 | 0   |
+		           Used-Service-Unit             | 0+  | 0   |
+		           User-Name                     | 0-1 | 0-1 |
+		           Validity-Time                 | 0   | 0-1 |
+		           ------------------------------|-----+-----+
+		  
+
+		  */
+		struct dict_object * cmd;
+		struct dict_cmd_data data = { 
+			272, 					/* Code */
+			"Credit-Control-Request", 		/* Name */
+			CMD_FLAG_REQUEST | CMD_FLAG_PROXIABLE, 	/* Fixed flags */
+			CMD_FLAG_REQUEST | CMD_FLAG_PROXIABLE 			/* Fixed flag values */
+		};
+		struct local_rules_definition rules[] = 
+		    { 	 { "Session-Id", RULE_FIXED_HEAD, -1, 1 },
+			 { "Origin-Host", RULE_REQUIRED, -1, 1 },
+			 { "Origin-Realm", RULE_REQUIRED, -1, 1 },
+			 { "Destination-Realm", RULE_REQUIRED, -1, 1 },
+			 { "Auth-Application-Id", RULE_REQUIRED, -1, 1 },
+			 { "Service-Context-Id", RULE_REQUIRED, -1, 1 },
+			 { "CC-Request-Type", RULE_REQUIRED, -1, 1 },
+			 { "CC-Request-Number", RULE_REQUIRED, -1, 1 },
+			 { "Destination-Host", RULE_OPTIONAL, -1, 1 },
+			 { "User-Name", RULE_OPTIONAL, -1, 1 },
+			 { "CC-Sub-Session-Id", RULE_OPTIONAL, -1, 1 },
+			 { "Acct-Multi-Session-Id", RULE_OPTIONAL, -1, 1 },
+			 { "Origin-State-Id", RULE_OPTIONAL, -1, 1 },
+			 { "Event-Timestamp", RULE_OPTIONAL, -1, 1 },
+			 { "Subscription-Id", RULE_OPTIONAL, -1, -1 },
+			 { "Service-Identifier", RULE_OPTIONAL, -1, 1 },
+			 { "Termination-Cause", RULE_OPTIONAL, -1, 1 },
+			 { "Requested-Service-Unit", RULE_OPTIONAL, -1, 1 },
+			 { "Requested-Action", RULE_OPTIONAL, -1, 1 },
+			 { "Used-Service-Unit", RULE_OPTIONAL, -1, -1 },
+			 { "Multiple-Services-Indicator", RULE_OPTIONAL, -1, 1 },
+			 { "Multiple-Services-Credit-Control", RULE_OPTIONAL, -1, -1 },
+			 { "Service-Parameter-Info", RULE_OPTIONAL, -1, -1 },
+			 { "CC-Correlation-Id", RULE_OPTIONAL, -1, 1 },
+			 { "User-Equipment-Info", RULE_OPTIONAL, -1, 1 },
+			 { "Proxy-Info", RULE_OPTIONAL, -1, -1 },
+			 { "Route-Record", RULE_OPTIONAL, -1, -1 }
+			 /* plus any additional AVPs { "AVP", RULE_OPTIONAL, -1, -1 } */
+		    };
+
+		CHECK_dict_new( DICT_COMMAND, &data, dcca, &cmd);
+		PARSE_loc_rules( rules, cmd );
+	}
+
+	/* Credit-Control-Answer (CCA) Command */
+	{
+		/*
+		  From RFC 4006:
+		  3.2.  Credit-Control-Answer (CCA) Command
+		  
+		     The Credit-Control-Answer message (CCA) is indicated by the command-
+		     code field being set to 272 and the 'R' bit being cleared in the
+		     Command Flags field.  It is used between the credit-control server
+		     and the Diameter credit-control client to acknowledge a Credit-
+		     Control-Request command.
+		  
+		     Message Format
+		  
+		        <Credit-Control-Answer> ::= < Diameter Header: 272, PXY >
+		                                    < Session-Id >
+		                                    { Result-Code }
+		                                    { Origin-Host }
+		                                    { Origin-Realm }
+		                                    { Auth-Application-Id }
+		                                    { CC-Request-Type }
+		                                    { CC-Request-Number }
+		                                    [ User-Name ]
+		                                    [ CC-Session-Failover ]
+		                                    [ CC-Sub-Session-Id ]
+		                                    [ Acct-Multi-Session-Id ]
+		                                    [ Origin-State-Id ]
+		                                    [ Event-Timestamp ]
+		                                    [ Granted-Service-Unit ]
+		                                   *[ Multiple-Services-Credit-Control ]
+		                                    [ Cost-Information]
+		                                    [ Final-Unit-Indication ]
+		                                    [ Check-Balance-Result ]
+		                                    [ Credit-Control-Failure-Handling ]
+		                                    [ Direct-Debiting-Failure-Handling ]
+		                                    [ Validity-Time]
+		                                   *[ Redirect-Host]
+		                                    [ Redirect-Host-Usage ]
+		                                    [ Redirect-Max-Cache-Time ]
+		                                   *[ Proxy-Info ]
+		                                   *[ Route-Record ]
+		                                   *[ Failed-AVP ]
+		                                   *[ AVP ]
+		  
+		  */
+		struct dict_object * cmd;
+		struct dict_cmd_data data = { 
+			272, 					/* Code */
+			"Credit-Control-Answer", 		/* Name */
+			CMD_FLAG_REQUEST | CMD_FLAG_PROXIABLE | CMD_FLAG_ERROR,	/* Fixed flags */
+			CMD_FLAG_PROXIABLE 			/* Fixed flag values */
+		};
+		struct local_rules_definition rules[] = 
+		    { 	 { "Session-Id", RULE_FIXED_HEAD, -1, 1 },
+			 { "Result-Code", RULE_REQUIRED, -1, 1 },
+			 { "Origin-Host", RULE_REQUIRED, -1, 1 },
+			 { "Origin-Realm", RULE_REQUIRED, -1, 1 },
+			 { "Auth-Application-Id", RULE_REQUIRED, -1, 1 },
+			 { "CC-Request-Type", RULE_REQUIRED, -1, 1 },
+			 { "CC-Request-Number", RULE_REQUIRED, -1, 1 },
+			 { "User-Name", RULE_OPTIONAL, -1, 1 },
+			 { "CC-Session-Failover", RULE_OPTIONAL, -1, 1 },
+			 { "CC-Sub-Session-Id", RULE_OPTIONAL, -1, 1 },
+			 { "Acct-Multi-Session-Id", RULE_OPTIONAL, -1, 1 },
+			 { "Origin-State-Id", RULE_OPTIONAL, -1, 1 },
+			 { "Event-Timestamp", RULE_OPTIONAL, -1, 1 },
+			 { "Granted-Service-Unit", RULE_OPTIONAL, -1, 1 },
+			 { "Multiple-Services-Credit-Control", RULE_OPTIONAL, -1, -1 },
+			 { "Cost-Information", RULE_OPTIONAL, -1, 1 },
+			 { "Final-Unit-Indication", RULE_OPTIONAL, -1, 1 },
+			 { "Check-Balance-Result", RULE_OPTIONAL, -1, 1 },
+			 { "Credit-Control-Failure-Handling", RULE_OPTIONAL, -1, 1 },
+			 { "Direct-Debiting-Failure-Handling", RULE_OPTIONAL, -1, 1 },
+			 { "Validity-Time", RULE_OPTIONAL, -1, 1 },
+			 { "Redirect-Host", RULE_OPTIONAL, -1, -1 },
+			 { "Redirect-Host-Usage", RULE_OPTIONAL, -1, 1 },
+			 { "Redirect-Max-Cache-Time", RULE_OPTIONAL, -1, 1 },
+			 { "Proxy-Info", RULE_OPTIONAL, -1, -1 },
+			 { "Route-Record", RULE_OPTIONAL, -1, -1 },
+			 { "Failed-AVP", RULE_OPTIONAL, -1, -1 }
+			 /* plus any additional AVPs { "AVP", RULE_OPTIONAL, -1, -1 } */
+		    };
+
+		CHECK_dict_new( DICT_COMMAND, &data, dcca, &cmd);
+		PARSE_loc_rules( rules, cmd );
+	}
+	}
 	TRACE_DEBUG(INFO, "Extension 'Dictionary definitions for DCCA (rfc4006)' initialized");
 	return 0;
 }
