@@ -7,4 +7,6 @@ syntax: glob
 .hg
 build*
 test.*
-
+GPATH
+GRTAGS
+GTAGS
