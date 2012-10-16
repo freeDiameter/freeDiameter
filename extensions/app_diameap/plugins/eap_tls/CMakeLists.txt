@@ -15,4 +15,3 @@ EAP_ADD_METHOD(eap_tls
     eaptls.tab.h
     )
 
-TARGET_LINK_LIBRARIES(eap_tls ${GNUTLS_LIBRARIES})

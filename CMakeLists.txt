@@ -74,6 +74,11 @@ ENDIF( NOT BISON_EXECUTABLE OR NOT FLEX_EXECUTABLE )
 # Add this to workaround an apparent bug in FreeBSD cmake (already defined in Linux)
 SET(CMAKE_SHARED_LIBRARY_LINK_C_FLAGS "-rdynamic")
 
+# For Darwin systems
+IF(APPLE)
+   SET(CMAKE_SHARED_MODULE_CREATE_C_FLAGS "${CMAKE_SHARED_MODULE_CREATE_C_FLAGS} -flat_namespace -undefined suppress")
+ENDIF(APPLE) 
+
 # Location for the include files
 INCLUDE_DIRECTORIES(include)
 INCLUDE_DIRECTORIES(${CMAKE_CURRENT_BINARY_DIR}/include)
