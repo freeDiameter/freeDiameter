@@ -82,7 +82,7 @@
 
 static int test_verbo = 0;
 static struct fd_config conf;
-struct fd_config * fd_g_config = &conf;
+extern struct fd_config * fd_g_config;
 
 /* Define the standard check routines */
 #define CHECK( _val, _assert ){				\
@@ -192,6 +192,7 @@ static inline void test_init(int argc, char * argv[], char *fname)
 	
 	CHECK( 0, pthread_sigmask(SIG_BLOCK, &sig_all, NULL));
 	
+	fd_g_config = &conf;
 	memset(fd_g_config, 0, sizeof(struct fd_config));
 	
 	CHECK( 0, fd_libproto_init() );
