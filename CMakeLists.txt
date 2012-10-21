@@ -1,7 +1,7 @@
 # This file is the source for generating the Makefile for the project, using cmake tool (cmake.org)
 
-# Name of the project, and language
-PROJECT("freeDiameter" C)
+# Name of the project
+PROJECT("freeDiameter")
 
 # Informations to display in daemon's help
 SET(FD_PROJECT_NAME freeDiameter)
@@ -76,7 +76,8 @@ SET(CMAKE_SHARED_LIBRARY_LINK_C_FLAGS "-rdynamic")
 
 # For Darwin systems
 IF(APPLE)
-   SET(CMAKE_SHARED_MODULE_CREATE_C_FLAGS "${CMAKE_SHARED_MODULE_CREATE_C_FLAGS} -flat_namespace -undefined suppress")
+   SET(CMAKE_SHARED_MODULE_CREATE_C_FLAGS "${CMAKE_SHARED_MODULE_CREATE_C_FLAGS} -flat_namespace -undefined dynamic_lookup")
+   SET(CMAKE_SHARED_MODULE_CREATE_CXX_FLAGS "${CMAKE_SHARED_MODULE_CREATE_CXX_FLAGS} -flat_namespace -undefined dynamic_lookup")
 ENDIF(APPLE) 
 
 # Location for the include files
