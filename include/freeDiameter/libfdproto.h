@@ -611,6 +611,9 @@ int fd_breakhere(void);
   int clock_gettime(int clk_id, struct timespec* ts);
 #endif /* HAVE_CLOCK_GETTIME */
 
+#ifndef HAVE_STRNDUP
+char * strndup (char const *s, size_t n);
+#endif /* HAVE_STRNDUP */
 
 
 /*============================================================*/

@@ -45,3 +45,17 @@ int clock_gettime(int clk_id, struct timespec* ts)
 	ts->tv_nsec = tv.tv_usec * 1000;
 }
 #endif /* HAVE_CLOCK_GETTIME */
+
+/* Replacement for strndup for the Mac OS */
+#ifndef HAVE_STRNDUP
+char * strndup (char *str, size_t len)
+{
+	char * output;
+	size_t outlen = strnlen (str, len);
+	CHECK_MALLOC_DO( output = malloc (outlen + 1), return NULL );
+
+	output[outlen] = '\0';
+	memcpy (output, str, outlen);
+	return output;
+}
+#endif /* HAVE_STRNDUP */

@@ -63,6 +63,9 @@ CHECK_SYMBOL_EXISTS(ntohll "" HAVE_NTOHLL)
 # malloc.h ?
 CHECK_INCLUDE_FILES (malloc.h HAVE_MALLOC_H)
 
+# strndup ? Missing on OS X
+CHECK_FUNCTION_EXISTS (strndup HAVE_STRNDUP)
+
 
 ### System checks -- for includes / link
 
