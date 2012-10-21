@@ -57,7 +57,7 @@ char * strndup (char *str, size_t len)
 	if (output == NULL) {
 		outlen = len;
 	} else {
-		outlen = term - str;
+		outlen = output - str;
 	}
 	
 	CHECK_MALLOC_DO( output = malloc (outlen + 1), return NULL );
