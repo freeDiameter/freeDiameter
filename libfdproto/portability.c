@@ -43,6 +43,7 @@ int clock_gettime(int clk_id, struct timespec* ts)
 	gettimeofday (&tv, NULL);
 	ts->tv_sec = tv.tv_sec;
 	ts->tv_nsec = tv.tv_usec * 1000;
+	return 0;
 }
 #endif /* HAVE_CLOCK_GETTIME */
 
