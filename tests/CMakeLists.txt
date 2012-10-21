@@ -24,12 +24,19 @@ SET(TEST_LIST
 	testpeers
 	testdict
 	testmesg
-	testfifo
 	testsess
 	testdisp
 	testcnx
 	testloadext
 )
+
+IF(HAVE_PTHREAD_BAR)
+SET(TEST_LIST
+	${TEST_LIST}
+	testfifo
+)
+ENDIF(HAVE_PTHREAD_BAR)
+
 
 #############################
 # Some parameters for the tests
