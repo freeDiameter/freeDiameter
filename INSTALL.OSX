@@ -11,3 +11,38 @@ QUICK INSTRUCTIONS
 2) Starting from version 1.1.5, a brew is available for freeDiameter: 
 
    brew install freediameter-server
+
+
+Thanks to Moxie Dee for contribution of this package.
+
+------------
+FROM SOURCES
+------------
+
+1) Dependencies
+ a) install Xcode from App Store
+ b) install homebrew (might require to re-install perl and git also)
+ c) brew install the following packages:
+   cmake mercurial gnutls mysql postgresql
+
+2) Retrieve source folder
+ hg clone http://www.freediameter.net/hg/freeDiameter
+
+3) Configure your build -- execute from your build folder
+ ccmake /path/to/freeDiameter/sources
+
+ (you have to disable IDN and SCTP at the moment, before initial configuration)
+Example:
+  mkdir freeDiameter-build
+  cd freeDiameter-build
+  ccmake -DDISABLE_SCTP:BOOL=ON -DDIAMID_IDNA_IGNORE:BOOL=ON /path/to/freeDiameter/sources
+  /* Select 'c' then choose your options, then 'c' again and 'g' */
+  make
+
+4) make
+
+/* note: on my system I have to make a second time for compilation to complete, it seems something is wrong with swig processing order */
+
+These instructions have been tested on Mac OS X 10.6.8 (Snow Leopard). 
+They should work smoothly on more recent versions as well.
+
