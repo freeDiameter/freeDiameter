@@ -612,7 +612,7 @@ int fd_breakhere(void);
 #endif /* HAVE_CLOCK_GETTIME */
 
 #ifndef HAVE_STRNDUP
-char * strndup (char const *s, size_t n);
+char * strndup (char *str, size_t len);
 #endif /* HAVE_STRNDUP */
 
 
