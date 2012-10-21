@@ -1526,12 +1526,13 @@ int main(int argc, char *argv[])
 			CHECK( 0, fd_event_timedget(myfifo, &now, ETIMEDOUT, &ev_code, NULL, (void *)&rcv_buf) );
 			free(rcv_buf);
 		} while (ev_code != FDEVP_CNX_MSG_RECV);
-		fd_event_destroy(&myfifo, free);
 		
 		/* Now close the connection */
 		CHECK( 0, pthread_create(&thr, NULL, destroy_thr, client_side) );
 		fd_cnx_destroy(server_side);
 		CHECK( 0, pthread_join(thr, NULL) );
+		
+		fd_event_destroy(&myfifo, free);
 		
 		/* Free the credentials */
 		gnutls_certificate_free_keys(hf.creds);
