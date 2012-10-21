@@ -51,7 +51,15 @@ int clock_gettime(int clk_id, struct timespec* ts)
 char * strndup (char *str, size_t len)
 {
 	char * output;
-	size_t outlen = strnlen (str, len);
+	size_t outlen;
+	
+	output = memchr(str, 0, len);
+	if (output == NULL) {
+		outlen = len;
+	} else {
+		outlen = term - str;
+	}
+	
 	CHECK_MALLOC_DO( output = malloc (outlen + 1), return NULL );
 
 	output[outlen] = '\0';
