@@ -225,21 +225,22 @@ static void ta_bench_start() {
 	/* Now loop until timeout is reached */
 	do {
 		/* Do not create more that NB_CONCURRENT_MESSAGES in paralel */
-		int ret = sem_timedwait(&ta_sem, &end_time);
+		int ret = sem_wait(&ta_sem);
 		if (ret == -1) {
 			ret = errno;
-			if (ret != ETIMEDOUT) {
-				CHECK_POSIX_DO(ret, ); /* Just to log it */
-			}
+			CHECK_POSIX_DO(ret, ); /* Just to log it */
 			break;
 		}
 		
-		/* Create and send a new test message */
-		ta_bench_test_message();
-		
 		/* Update the current time */
 		CHECK_SYS_DO( clock_gettime(CLOCK_REALTIME, &now), );
-	} while (TS_IS_INFERIOR(&now, &end_time));
+		
+		if (!TS_IS_INFERIOR(&now, &end_time))
+			break;
+		
+		/* Create and send a new test message */
+		ta_bench_test_message();
+	} while (1);
 	
 	/* Save the stats now */
 	CHECK_POSIX_DO( pthread_mutex_lock(&ta_conf->stats_lock), );
