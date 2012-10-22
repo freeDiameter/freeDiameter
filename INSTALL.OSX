@@ -21,7 +21,7 @@ FROM SOURCES
  a) install Xcode from App Store
  b) install homebrew (might require to re-install perl and git also)
  c) brew install the following packages:
-   cmake mercurial gnutls mysql postgresql
+   cmake mercurial gnutls mysql postgresql libidn
 
 2) Retrieve source folder
  hg clone http://www.freediameter.net/hg/freeDiameter
@@ -29,11 +29,11 @@ FROM SOURCES
 3) Configure your build -- execute from your build folder
  ccmake /path/to/freeDiameter/sources
 
- (you have to disable IDN and SCTP at the moment, before initial configuration)
+ (you have to disable SCTP at the moment, before initial configuration)
 Example:
   mkdir freeDiameter-build
   cd freeDiameter-build
-  ccmake -DDISABLE_SCTP:BOOL=ON -DDIAMID_IDNA_IGNORE:BOOL=ON /path/to/freeDiameter/sources
+  ccmake -DDISABLE_SCTP:BOOL=ON /path/to/freeDiameter/sources
   /* Select 'c' then choose your options, then 'c' again and 'g' */
   make
 
