@@ -13,8 +13,6 @@ QUICK INSTRUCTIONS
    brew install freediameter-server
 
 
-Thanks to Moxie Dee for contribution of this package.
-
 ------------
 FROM SOURCES
 ------------
