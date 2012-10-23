@@ -43,8 +43,8 @@ Available commands:\n\
        Regenerates the CRL of CA caname. Should be run periodically.\n\
 \n\
 ";
-	
-# Destroy the CA hierarchy completly. Use with care.
+
+# Destroy the CA hierarchy completely. Use with care.
 destroy:
 	@if [ -z "$(force)" ]; then echo "Destroy disabled, use: make destroy force=y"; exit 1; fi
 	@if [ ! -d $(SCRIPT_DIR) ]; then echo "Error in setup"; exit 1; fi
@@ -65,7 +65,7 @@ structure:
 	@echo "01" > $(DATA_DIR)/$(caname)/serial
 	@echo "01" > $(DATA_DIR)/$(caname)/crlnumber
 	@touch $(DATA_DIR)/$(caname)/index.txt
-	
+
 # Initialize the top-level CA structure and keys.
 init:
 	@if [ -z "$(topca)" ]; then echo "Please specify the name of the root CA. Ex: make init topca=rootca.testbed.aaa"; exit 1; fi
@@ -166,7 +166,7 @@ revoke:
 	# Revoke the certificate
 	@CA_ROOT_DIR=$(DATA_DIR)/$(ca) openssl ca $(CONFIG) -revoke $(DATA_DIR)/$(ca)/clients/$(name)/cert.pem;
 	@$(REMAKE) gencrl ca=$(ca)
-	
+
 # Regenerate the Certificate Revocation List.
 gencrl:
 	@if [ -z "$(ca)" ]; then echo "Missing parameter. Ex: make gencrl ca=ca.testbed.aaa"; exit 1; fi

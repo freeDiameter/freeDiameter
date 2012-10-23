@@ -2,7 +2,7 @@
 #
 # This file is designed to automatize the CA tasks such as:
 #  -> init  : create the initial CA tree and the CA root certificate.
-#  -> newcsr: create a new private key and csr. $name and $email must be set. C, ST, L, O, OU may be overwitten (exemple: make newcsr C=FR)
+#  -> newcsr: create a new private key and csr. $name and $email must be set. C, ST, L, O, OU may be overwitten (example: make newcsr C=FR)
 #  -> cert  : sign a pending CSR and generate the certificate. $name must be provided.
 #  -> revoke: revoke a certificate. $name must be provided.
 #  -> gencrl: update/create the CRL.
@@ -69,8 +69,8 @@ Notes:\n\
    The URL to CRL should be set in openssl.cnf.\n\
    A cron job should execute make gencrl once a month.\n\
 ";
-	
-# Destroy the CA completly. Use with care.
+
+# Destroy the CA completely. Use with care.
 destroy:
 	@if [ -z "$(force)" ]; then echo "Restart disabled, use: make destroy force=y"; exit 1; fi
 	@if [ ! -d $(STATIC_DIR) ]; then echo "Error in setup"; exit 1; fi
@@ -78,7 +78,6 @@ destroy:
 	@rm -rf $(DIR)/*
 	@ln -sf $(STATIC_DIR)/Makefile $(DIR)
 	@ln -sf $(STATIC_DIR)/openssl.cnf $(DIR)
-	
 
 # Initialize the CA structure and keys.
 init:
@@ -146,5 +145,5 @@ revoke:
 	@openssl ca $(CONFIG) -revoke $(DIR)/clients/certs/$(name).cert;
 	@rm -f $(DIR)/certs/`openssl x509 -noout -hash < $(DIR)/clients/certs/$(name).cert`.0
 	@$(MAKE) gencrl
-	
+
 # End of file...
