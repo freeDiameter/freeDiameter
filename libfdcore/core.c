@@ -46,7 +46,7 @@ struct fd_config * fd_g_config = NULL;
 GCRY_THREAD_OPTION_PTHREAD_IMPL;
 #endif /* GNUTLS_VERSION_210 */
 
-/* Signal extensions when the framework is completly initialized (they are waiting in fd_core_waitstartcomplete()) */
+/* Signal extensions when the framework is completely initialized (they are waiting in fd_core_waitstartcomplete()) */
 static int             is_ready = 0;
 static pthread_mutex_t is_ready_mtx = PTHREAD_MUTEX_INITIALIZER;
 static pthread_cond_t  is_ready_cnd = PTHREAD_COND_INITIALIZER;

@@ -175,7 +175,7 @@ TLS_Cred = "/etc/ssl/certs/freeDiameter.pem", "/etc/ssl/private/freeDiameter.key
 # Format:
 #LoadExtension = "/path/to/extension" [ : "/optional/configuration/file" ] ;
 #
-# Exemples:
+# Examples:
 #LoadExtension = "extensions/sample.so";
 #LoadExtension = "extensions/sample.so":"conf/sample.conf";
 

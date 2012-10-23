@@ -1966,7 +1966,7 @@ struct	avp;	/* AVP object */
  *
  *  A message is made of a header ( msg ) and 0 or more AVPs ( avp ).
  * The structure is a kind of tree, where some AVPs (grouped AVPs) can contain other AVPs.
- * Exemple:
+ * Example:
  * msg
  *  |-avp
  *  |-gavp

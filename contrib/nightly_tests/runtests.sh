@@ -14,7 +14,7 @@ WORKDIR=$ROOTDIR/data
 # The script requires a local.cmake file to exist and define the following:
 # CTEST_SITE=
 #     the name of the build slave.
-# Exemple: SET(CTEST_SITE "Ubuntu-Lucid-64b")
+# Example: SET(CTEST_SITE "Ubuntu-Lucid-64b")
 if [ ! -e $ROOTDIR/local.cmake ]; then
    echo "Missing $ROOTDIR/local.cmake file, generating one (edit as needed, and run the script again)";
    echo "SET(CTEST_SITE \""`hostname --fqdn`"\")" > $ROOTDIR/local.cmake

@@ -5,7 +5,7 @@ Project("freeDiameter includes directory" C)
 ########################
 # Configurable parameters
 
-# Disable SCTP support completly ?
+# Disable SCTP support completely ?
 OPTION(DISABLE_SCTP "Disable SCTP support?" OFF)
 IF (NOT DISABLE_SCTP)
 	OPTION(DEBUG_SCTP "Verbose SCTP (for debug)?" OFF)
@@ -19,7 +19,7 @@ OPTION(ERRORS_ON_TODO "(development) Generate compilation errors on TODO items ?
 SET(DEFAULT_EXTENSIONS_PATH ${CMAKE_INSTALL_PREFIX}/${INSTALL_EXTENSIONS_SUFFIX})
 
 # IDNA considerations
-OPTION(DIAMID_IDNA_IGNORE "Ignore completly invalid characters in Diameter Identities (process blindly)?" OFF)
+OPTION(DIAMID_IDNA_IGNORE "Ignore completely invalid characters in Diameter Identities (process blindly)?" OFF)
 IF (NOT DIAMID_IDNA_IGNORE)
 	OPTION (DIAMID_IDNA_REJECT "Reject internationalized Diameter Identities, do not attempt to convert it (stringprep) ?" OFF)
 ENDIF (NOT DIAMID_IDNA_IGNORE)
