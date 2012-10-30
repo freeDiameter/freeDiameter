@@ -95,17 +95,6 @@ static int deap_entry(char * conffile)
 	struct dict_object * eap;
 	TRACE_ENTRY("%p", conffile);
 	
-	/* Since we need many AVP from the NASREQ application, check that it is already defined in the dictionary */
-	{
-		application_id_t nasreqid = 1;
-		CHECK_FCT_DO( fd_dict_search( fd_g_config->cnf_dict, DICT_APPLICATION, APPLICATION_BY_ID, &nasreqid, NULL, ENOENT),
-		   {
-			fprintf(stderr, "The dict_eap extension needs definitions from NASREQ application (RFC4005).\n"
-				  "Please load the 'dict_nasreq' extension prior to this one.\n");
-			return ENOTSUP;
-		   }  );
-	}
-	
 	/* Applications section */
 	{
 		/* EAP (RFC 4072) */
