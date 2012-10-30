@@ -32,7 +32,7 @@ You can disable the unit tests by doing:
 # make
 
 When the tests are enabled, you can run them with:
-# make tests
+# make test
 
 See the INSTALL.* files for additional platform-specific information.
 Note that the most up-to-date INSTALL file is the Ubuntu one. You may want to read there
