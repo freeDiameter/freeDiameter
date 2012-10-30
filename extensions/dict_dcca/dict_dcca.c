@@ -1,8 +1,6 @@
 /****************
  Contributed by: Konstantin Chekushin <koch@lmt.lv> and Thomas Klausner <tk@giga.or.at>
  License: same as freeDiameter
- TODO:
-  - rules for all Grouped AVPs
 ****************/
 
 
@@ -1369,4 +1367,5 @@ static int dict_dcca_entry(char * conffile)
     return 0;
 }
 
-EXTENSION_ENTRY("dict_dcca", dict_dcca_entry);
+/* needs dict_nasreq for Filter-Id */
+EXTENSION_ENTRY("dict_dcca", dict_dcca_entry, "dict_nasreq");
