@@ -4,43 +4,77 @@ See INSTALL file for general instructions on building freeDiameter.
 QUICK INSTRUCTIONS
 ------------------
 
+Starting from version 1.1.5, freeDiameter is available through Homebrew:
+
 1) Install Homebrew
+   a) Install Command Line Tools for Xcode or Xcode:
+      - Command Line Tools (your OS X Version) for Xcode:
+         https://developer.apple.com/downloads (Free Apple Developer ID Registration Required)
+      - or Xcode: 
+         https://itunes.apple.com/us/app/xcode/id497799835 (Free App Store Account Required)
 
-   ruby -e "$(curl -fsSkL raw.github.com/mxcl/homebrew/go)"
+   b) Install Homebrew
+     $ ruby -e "$(curl -fsSkL raw.github.com/mxcl/homebrew/go)"
 
-2) Starting from version 1.1.5, a brew is available for freeDiameter: 
+2) Install freeDiameter 
+     $ brew install freediameter-server
 
-   brew install freediameter-server
+   After installation is done "Cavets" section will provide information 
+   how to start freeDiameterd through launchd at system startup.
 
+   To view this information again: 
+     $ brew cavets freediameter-server
+
+   To learn more about freeDiameter configuration option, read:
+      http://www.freediameter.net/trac/wiki/Configuration
+
+   For more information on available extension and how to configure them, read:
+      http://www.freediameter.net/trac/wiki/Extensions
 
 ------------
 FROM SOURCES
 ------------
 
-1) Dependencies
- a) install Xcode from App Store
- b) install homebrew (might require to re-install perl and git also)
- c) brew install the following packages:
-   cmake mercurial gnutls mysql postgresql libidn
+1) Install Homebrew:
+   See QUICK INSTRUCTION Step #1 above.
 
-2) Retrieve source folder
- hg clone http://www.freediameter.net/hg/freeDiameter
+2) Install Dependencies
+    $ brew install mercurial cmake gnutls postgres mysql libidn
 
-3) Configure your build -- execute from your build folder
- ccmake /path/to/freeDiameter/sources
+   Note: GNU IDN (libidn) is optional, see bellow
 
- (you have to disable SCTP at the moment, before initial configuration)
-Example:
-  mkdir freeDiameter-build
-  cd freeDiameter-build
-  ccmake -DDISABLE_SCTP:BOOL=ON /path/to/freeDiameter/sources
-  /* Select 'c' then choose your options, then 'c' again and 'g' */
-  make
+3) Retrieve Source
+    $ hg clone http://www.freediameter.net/hg/freeDiameter
 
-4) make
+4) Enter Source Folder:
+    $ cd freeDiameter
 
-/* note: on my system I have to make a second time for compilation to complete, it seems something is wrong with swig processing order */
+5) Create Build Folder:
+    $ mkdir freeDiameter-build
 
-These instructions have been tested on Mac OS X 10.6.8 (Snow Leopard). 
-They should work smoothly on more recent versions as well.
+6) Enter build folder:
+    $ cd freeDiameter-build
 
+7) Configure
+    $ cmake .. -DDISABLE_SCTP:BOOL=ON
+   or for ncurses based configuration:
+    $ ccmake .. -DDISABLE_SCTP:BOOL=ON
+
+   Notes:
+   * SCTP is not currently supported on OS X platform
+   * GNU IDN (Support for International Domain Names) can be disabled with:
+      -DDIAMID_IDNA_IGNORE=ON or -DDIAMID_IDNA_REJECT=ON
+   * For more information on available configuration options read: http://www.freediameter.net/trac/wiki/Installation
+
+8) Compile
+    $ make
+
+9) Install
+    # make install
+
+------------------------------------------------
+
+These instructions have been tested on OS X:
+   - 10.6.8 (Snow Leopard)
+   - 10.7.5 (Lion)
+   - 10.8.2 (Mountain Lion)
