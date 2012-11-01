@@ -25,7 +25,7 @@ Starting from version 1.1.5, freeDiameter is available through Homebrew:
    To view this information again: 
      $ brew cavets freediameter-server
 
-   To learn more about freeDiameter configuration option, read:
+   To learn more about freeDiameter configuration options, read:
       http://www.freediameter.net/trac/wiki/Configuration
 
    For more information on available extension and how to configure them, read:
