@@ -36,41 +36,45 @@ FROM SOURCES
 ------------
 
 1) Install Homebrew:
-   See QUICK INSTRUCTION Step #1 above.
+   See QUICK INSTRUCTIONS Step #1 above.
 
-2) Install Dependencies
+2) Install dependencies:
     $ brew install mercurial cmake gnutls postgres mysql libidn
 
-   Note: GNU IDN (libidn) is optional, see bellow
+   Notes: 
+    * GNU IDN (libidn) is optional, see bellow
+    * When libusrsctp package is available, you can use it as well.
 
-3) Retrieve Source
+3) Retrieve source code:
     $ hg clone http://www.freediameter.net/hg/freeDiameter
 
-4) Enter Source Folder:
+4) Enter source folder:
     $ cd freeDiameter
 
-5) Create Build Folder:
+5) Create build folder:
     $ mkdir freeDiameter-build
 
 6) Enter build folder:
     $ cd freeDiameter-build
 
-7) Configure
+7) Configure:
     $ cmake .. -DDISABLE_SCTP:BOOL=ON
-   or for ncurses based configuration:
+    
+   or for ncurses-based configuration:
     $ ccmake .. -DDISABLE_SCTP:BOOL=ON
 
    Notes:
-   * SCTP is not currently supported on OS X platform
-   * GNU IDN (Support for International Domain Names) can be disabled with:
-      -DDIAMID_IDNA_IGNORE=ON or -DDIAMID_IDNA_REJECT=ON
-   * For more information on available configuration options read: http://www.freediameter.net/trac/wiki/Installation
+    * If you have installed libusrsctp, you can turn off the DISABLE_SCTP switch.
+    * GNU IDN (Support for International Domain Names) can be disabled with:
+       -DDIAMID_IDNA_IGNORE=ON or -DDIAMID_IDNA_REJECT=ON
+    * For more information on available configuration options read: 
+       http://www.freediameter.net/trac/wiki/Installation
 
-8) Compile
+8) Compile:
     $ make
 
-9) Install
-    # make install
+9) Install (might require to be root):
+    $ make install
 
 ------------------------------------------------
 
