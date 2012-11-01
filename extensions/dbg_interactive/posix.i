@@ -38,7 +38,7 @@
 /****** POSIX wrappers around useful functions for fD *********/
 
 /**** MUTEX ****/
-typedef struct pthread_mutex_swig {
+typedef struct {
 } pthread_mutex_t;
 
 %extend pthread_mutex_t {
@@ -82,7 +82,7 @@ typedef struct pthread_mutex_swig {
 }
 
 /**** CONDVAR ****/
-typedef struct pthread_cond_swig {
+typedef struct {
 } pthread_cond_t;
 
 %extend pthread_cond_t {
@@ -144,7 +144,7 @@ typedef struct pthread_cond_swig {
 }
 
 /**** RWLOCK ****/
-typedef struct pthread_rwlock_swig {
+typedef struct {
 } pthread_rwlock_t;
 
 %extend pthread_rwlock_t {
