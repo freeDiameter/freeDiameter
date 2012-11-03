@@ -3,6 +3,7 @@ PROJECT("Interactive debug facility based on SWIG" C)
 
 
 # This module is using Python
+SET(Python_ADDITIONAL_VERSIONS 2.7 2.6 2.5 2.4 2.3 2.2 2.1 2.0)
 FIND_PACKAGE(PythonLibs)
 INCLUDE_DIRECTORIES(${PYTHON_INCLUDE_PATH})
 
