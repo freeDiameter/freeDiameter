@@ -121,3 +121,6 @@ Step by step instructions without using the debhelper tools:
 
 ===========================================
 
+Note: On Ubuntu Quantal Quetzal, you may have to force use of python 2.7 
+library for the dbg_interactive extension, as on some systems CMake selects the 3.2 library
+by default.
