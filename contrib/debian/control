@@ -3,7 +3,7 @@ Section: contrib/net
 Priority: extra
 Maintainer: Sebastien Decugis <sdecugis@freediameter.net>
 Build-Depends: debhelper ( >= 7.3.9),
- cmake, make, gcc, bison, flex,
+ cmake, make, gcc, g++, bison, flex,
  libsctp-dev, libgnutls-dev | gnutls-dev, libidn11-dev,
  libpq-dev, libmysqlclient-dev, libxml2-dev, swig, python-dev
 Standards-Version: 3.8.3
