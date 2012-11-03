@@ -37,6 +37,63 @@
 #include <unistd.h>
 #include <limits.h>
 
+/* Wrapper for pthread_barrier stuff on Mac OS X */
+#ifndef HAVE_PTHREAD_BAR
+
+#define PTHREAD_BARRIER_SERIAL_THREAD 1
+typedef struct {
+	int count;
+	int entered;
+	int serial;
+	pthread_mutex_t mutex;
+	pthread_cond_t cond;
+} pthread_barrier_t;
+
+int pthread_barrier_init(pthread_barrier_t * barrier, int * barrier_attr, int count)
+{
+	memset(barrier, 0, sizeof(pthread_barrier_t));
+	barrier->count = count;
+	pthread_mutex_init(&barrier->mutex, NULL);
+	pthread_cond_init(&barrier->cond, NULL);
+	return 0;
+}
+
+int pthread_barrier_destroy(pthread_barrier_t * barrier)
+{
+	pthread_mutex_destroy(&barrier->mutex);
+	pthread_cond_destroy(&barrier->cond);
+	return 0;
+}
+
+int pthread_barrier_wait(pthread_barrier_t * barrier)
+{
+	int ret = 0;
+	int serial;
+	pthread_mutex_lock(&barrier->mutex);
+	serial = barrier->serial;
+	
+	/* first thread gets the special value */
+	if (barrier->entered++ == 0) 
+		ret = PTHREAD_BARRIER_SERIAL_THREAD;
+	
+	/* Count was achieved? */
+	if (barrier->entered == barrier->count) {
+		/* Ok, increase serial, reset number of threads, and signal everyone */
+		barrier->entered = 0;
+		barrier->serial++;
+		pthread_cond_broadcast(&barrier->cond);
+	} else {
+		do {
+			pthread_cond_wait(&barrier->cond, &barrier->mutex);
+		} while (barrier->serial == serial);
+		/* this protects against spurious wakes */
+	}
+	pthread_mutex_unlock(&barrier->mutex);
+	return 0;
+}
+
+#endif /* HAVE_PTHREAD_BAR */
+
 /* Structure for testing threshold function */
 static struct thrh_test {
 	struct fifo *   queue; /* pointer to the queue */

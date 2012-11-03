@@ -43,6 +43,7 @@
 #cmakedefine HAVE_AI_ADDRCONFIG
 #cmakedefine HAVE_CLOCK_GETTIME
 #cmakedefine HAVE_STRNDUP
+#cmakedefine HAVE_PTHREAD_BAR
 
 #cmakedefine HOST_BIG_ENDIAN @HOST_BIG_ENDIAN@
 

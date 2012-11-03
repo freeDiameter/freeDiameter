@@ -21,6 +21,7 @@ ENDIF(OPT_TEST_ARGUMENT)
 SET(TEST_LIST
 	testsctp
 	testostr
+	testfifo
 	testpeers
 	testdict
 	testmesg
@@ -29,14 +30,6 @@ SET(TEST_LIST
 	testcnx
 	testloadext
 )
-
-IF(HAVE_PTHREAD_BAR)
-SET(TEST_LIST
-	${TEST_LIST}
-	testfifo
-)
-ENDIF(HAVE_PTHREAD_BAR)
-
 
 #############################
 # Some parameters for the tests
