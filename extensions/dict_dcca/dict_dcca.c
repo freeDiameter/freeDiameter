@@ -146,23 +146,6 @@ static int dict_dcca_entry(char * conffile)
 	    CHECK_dict_new( DICT_AVP, &data , NULL, NULL);
 	}
                 
-	/* CC-Money */
-	{
-	    /*
-	      Grouped
-	    */
-		    
-	    struct dict_avp_data data = {
-		413,                                    /* Code */
-		0,                                      /* Vendor */
-		"CC-Money",                             /* Name */
-		AVP_FLAG_VENDOR | AVP_FLAG_MANDATORY,   /* Fixed flags */
-		AVP_FLAG_MANDATORY,                     /* Fixed flag values */
-		AVP_TYPE_GROUPED                        /* base type of data */
-	    };
-	    CHECK_dict_new( DICT_AVP, &data , NULL, NULL);
-	}
-                
 	/* CC-Output-Octets */
 	{
 	    /* 
@@ -380,23 +363,6 @@ static int dict_dcca_entry(char * conffile)
 	    CHECK_dict_new( DICT_AVP, &data , type, NULL);
 	}
                 
-	/* Cost-Information */
-	{
-	    /*
-	      Grouped
-	    */
-
-	    struct dict_avp_data data = {
-		423,                                    /* Code */
-		0,                                      /* Vendor */
-		"Cost-Information",                     /* Name */
-		AVP_FLAG_VENDOR | AVP_FLAG_MANDATORY,   /* Fixed flags */
-		AVP_FLAG_MANDATORY,                     /* Fixed flag values */
-		AVP_TYPE_GROUPED                        /* base type of data */
-	    };
-	    CHECK_dict_new( DICT_AVP, &data , NULL, NULL);
-	}
-                
 	/* Cost-Unit */
 	{
 	    /* 
@@ -482,7 +448,7 @@ static int dict_dcca_entry(char * conffile)
 	    };
 	    CHECK_dict_new( DICT_AVP, &data , NULL, NULL);
 	}
-   
+
 	/* Direct-Debiting-Failure-Handling */
 	{
 	    /* 
@@ -552,41 +518,7 @@ static int dict_dcca_entry(char * conffile)
 	    CHECK_dict_new( DICT_ENUMVAL, &t_3 , type, NULL); 
 	    CHECK_dict_new( DICT_AVP, &data , type, NULL);
 	}
-                
-	/* Final-Unit-Indication */
-	{
-	    /*
-	      Grouped
-	    */
 
-	    struct dict_avp_data data = {
-		430,                                    /* Code */
-		0,                                      /* Vendor */
-		"Final-Unit-Indication",                /* Name */
-		AVP_FLAG_VENDOR | AVP_FLAG_MANDATORY,   /* Fixed flags */
-		AVP_FLAG_MANDATORY,                     /* Fixed flag values */
-		AVP_TYPE_GROUPED                        /* base type of data */
-	    };
-	    CHECK_dict_new( DICT_AVP, &data , NULL, NULL);
-	}
-                
-	/* Granted-Service-Unit */
-	{
-	    /*
-	      Grouped
-	    */
-
-	    struct dict_avp_data data = {
-		431,                                    /* Code */
-		0,                                      /* Vendor */
-		"Granted-Service-Unit",                 /* Name */
-		AVP_FLAG_VENDOR | AVP_FLAG_MANDATORY,   /* Fixed flags */
-		AVP_FLAG_MANDATORY,                     /* Fixed flag values */
-		AVP_TYPE_GROUPED                        /* base type of data */
-	    };
-	    CHECK_dict_new( DICT_AVP, &data , NULL, NULL);
-	}
-                
 	/* G-S-U-Pool-Identifier */
 	{
 	    /* 
@@ -599,40 +531,6 @@ static int dict_dcca_entry(char * conffile)
 		AVP_FLAG_VENDOR | AVP_FLAG_MANDATORY,   /* Fixed flags */
 		AVP_FLAG_MANDATORY,                     /* Fixed flag values */
 		AVP_TYPE_UNSIGNED32                     /* base type of data */
-	    };
-	    CHECK_dict_new( DICT_AVP, &data , NULL, NULL);
-	}
-                
-	/* G-S-U-Pool-Reference */
-	{
-	    /*
-	      Grouped
-	    */
-
-	    struct dict_avp_data data = {
-		457,                                    /* Code */
-		0,                                      /* Vendor */
-		"G-S-U-Pool-Reference",                 /* Name */
-		AVP_FLAG_VENDOR | AVP_FLAG_MANDATORY,   /* Fixed flags */
-		AVP_FLAG_MANDATORY,                     /* Fixed flag values */
-		AVP_TYPE_GROUPED                        /* base type of data */
-	    };
-	    CHECK_dict_new( DICT_AVP, &data , NULL, NULL);
-	}                     
-
-	/* Multiple-Services-Credit-Control */
-	{
-	    /*
-	      Grouped
-	    */
-
-	    struct dict_avp_data data = {
-		456,                                    /* Code */
-		0,                                      /* Vendor */
-		"Multiple-Services-Credit-Control",     /* Name */
-		AVP_FLAG_VENDOR | AVP_FLAG_MANDATORY,   /* Fixed flags */
-		AVP_FLAG_MANDATORY,                     /* Fixed flag values */
-		AVP_TYPE_GROUPED                        /* base type of data */
 	    };
 	    CHECK_dict_new( DICT_AVP, &data , NULL, NULL);
 	}
@@ -708,24 +606,7 @@ static int dict_dcca_entry(char * conffile)
 	    CHECK_dict_new( DICT_ENUMVAL, &t_4 , type, NULL); 
 	    CHECK_dict_new( DICT_AVP, &data , type, NULL);
 	}           
-                                     
-	/* Redirect-Server */
-	{
-	    /*
-	      Grouped
-	    */
 
-	    struct dict_avp_data data = {
-		434,                                    /* Code */
-		0,                                      /* Vendor */
-		"Redirect-Server",                      /* Name */
-		AVP_FLAG_VENDOR | AVP_FLAG_MANDATORY,   /* Fixed flags */
-		AVP_FLAG_MANDATORY,                     /* Fixed flag values */
-		AVP_TYPE_GROUPED                        /* base type of data */
-	    };
-	    CHECK_dict_new( DICT_AVP, &data , NULL, NULL);
-	}
-                                       
 	/* Redirect-Server-Address */
 	{
 	    /* 
@@ -772,23 +653,6 @@ static int dict_dcca_entry(char * conffile)
 	    CHECK_dict_new( DICT_AVP, &data , type, NULL);
 	}
                                     
-	/* Requested-Service-Unit */
-	{
-	    /*
-	      Grouped
-	    */
-
-	    struct dict_avp_data data = {
-		437,                                    /* Code */
-		0,                                      /* Vendor */
-		"Requested-Service-Unit",               /* Name */
-		AVP_FLAG_VENDOR | AVP_FLAG_MANDATORY,   /* Fixed flags */
-		AVP_FLAG_MANDATORY,                     /* Fixed flag values */
-		AVP_TYPE_GROUPED                        /* base type of data */
-	    };
-	    CHECK_dict_new( DICT_AVP, &data , NULL, NULL);
-	}
-                
 	/* Restriction-Filter-Rule */
 	{
 	    /* 
@@ -804,7 +668,6 @@ static int dict_dcca_entry(char * conffile)
 	    };
 	    CHECK_dict_new( DICT_AVP, &data , IPFilterRule_type, NULL);
 	}
-
 	/*Service-Context-Id  */
 	{
 	    /* 
@@ -837,23 +700,6 @@ static int dict_dcca_entry(char * conffile)
 	    CHECK_dict_new( DICT_AVP, &data , NULL, NULL);
 	}                       
                                
-	/* Service-Parameter-Info */
-	{
-	    /*
-	      Grouped
-	    */
-
-	    struct dict_avp_data data = {
-		440,                                    /* Code */
-		0,                                      /* Vendor */
-		"Service-Parameter-Info",               /* Name */
-		AVP_FLAG_VENDOR | AVP_FLAG_MANDATORY,   /* Fixed flags */
-		AVP_FLAG_MANDATORY,                     /* Fixed flag values */
-		AVP_TYPE_GROUPED                        /* base type of data */
-	    };
-	    CHECK_dict_new( DICT_AVP, &data , NULL, NULL);
-	}                        
-                                  
 	/* Service-Parameter-Type */
 	{
 	    /* 
@@ -886,23 +732,6 @@ static int dict_dcca_entry(char * conffile)
 	    CHECK_dict_new( DICT_AVP, &data , NULL, NULL);
 	}
 
-	/* Subscription-Id */
-	{
-	    /*
-	      Grouped
-	    */
-
-	    struct dict_avp_data data = {
-		443,                                    /* Code */
-		0,                                      /* Vendor */
-		"Subscription-Id",                      /* Name */
-		AVP_FLAG_VENDOR | AVP_FLAG_MANDATORY,   /* Fixed flags */
-		AVP_FLAG_MANDATORY,                     /* Fixed flag values */
-		AVP_TYPE_GROUPED                        /* base type of data */
-	    };
-	    CHECK_dict_new( DICT_AVP, &data , NULL, NULL);
-	}
-                               
 	/* Subscription-Id-Data */
 	{
 	    /* 
@@ -992,57 +821,6 @@ static int dict_dcca_entry(char * conffile)
 	    };
 	    CHECK_dict_new( DICT_AVP, &data , Time_type, NULL);
 	}
-                                          
-	/* Unit-Value */
-	{
-	    /*
-	      Grouped
-	    */
-
-	    struct dict_avp_data data = {
-		445,                                    /* Code */
-		0,                                      /* Vendor */
-		"Unit-Value",                           /* Name */
-		AVP_FLAG_VENDOR | AVP_FLAG_MANDATORY,   /* Fixed flags */
-		AVP_FLAG_MANDATORY,                     /* Fixed flag values */
-		AVP_TYPE_GROUPED                        /* base type of data */
-	    };
-	    CHECK_dict_new( DICT_AVP, &data , NULL, NULL);
-	}
-
-	/* Used-Service-Unit */
-	{
-	    /*
-	      Grouped
-	    */
-
-	    struct dict_avp_data data = {
-		446,                                    /* Code */
-		0,                                      /* Vendor */
-		"Used-Service-Unit",                    /* Name */
-		AVP_FLAG_VENDOR | AVP_FLAG_MANDATORY,   /* Fixed flags */
-		AVP_FLAG_MANDATORY,                     /* Fixed flag values */
-		AVP_TYPE_GROUPED                        /* base type of data */
-	    };
-	    CHECK_dict_new( DICT_AVP, &data , NULL, NULL);
-	}
-
-	/* User-Equipment-Info */
-	{
-	    /*
-	      Grouped
-	    */
-
-	    struct dict_avp_data data = {
-		458,                                    /* Code */
-		0,                                      /* Vendor */
-		"User-Equipment-Info",                  /* Name */
-		AVP_FLAG_VENDOR | AVP_FLAG_MANDATORY,   /* Fixed flags */
-		AVP_FLAG_MANDATORY,                     /* Fixed flag values */
-		AVP_TYPE_GROUPED                        /* base type of data */
-	    };
-	    CHECK_dict_new( DICT_AVP, &data , NULL, NULL);
-	}
 
 	/* User-Equipment-Info-Type */
 	{
@@ -1119,7 +897,330 @@ static int dict_dcca_entry(char * conffile)
 	    };
 	    CHECK_dict_new( DICT_AVP, &data , NULL, NULL);
 	}
-                                                                         
+
+
+	/* Grouped AVPs below since they have dependencies on types above */
+
+	/* Redirect-Server */
+	{
+	    /*
+	      Grouped
+	    */
+	    struct dict_object * avp;
+	    struct dict_avp_data data = {
+		434,                                    /* Code */
+		0,                                      /* Vendor */
+		"Redirect-Server",                      /* Name */
+		AVP_FLAG_VENDOR | AVP_FLAG_MANDATORY,   /* Fixed flags */
+		AVP_FLAG_MANDATORY,                     /* Fixed flag values */
+		AVP_TYPE_GROUPED                        /* base type of data */
+	    };
+	    struct local_rules_definition rules[] = {
+		{  "Redirect-Address-Type",	RULE_REQUIRED,	-1, 1 },
+		{  "Redirect-Server-Address",	RULE_REQUIRED,	-1, 1 }
+	    };
+	    CHECK_dict_new( DICT_AVP, &data , NULL, &avp);
+	    PARSE_loc_rules( rules, avp );
+	}
+
+	/* Service-Parameter-Info */
+	{
+	    /*
+	      Grouped
+	    */
+	    struct dict_object * avp;
+	    struct dict_avp_data data = {
+		440,                                    /* Code */
+		0,                                      /* Vendor */
+		"Service-Parameter-Info",               /* Name */
+		AVP_FLAG_VENDOR | AVP_FLAG_MANDATORY,   /* Fixed flags */
+		AVP_FLAG_MANDATORY,                     /* Fixed flag values */
+		AVP_TYPE_GROUPED                        /* base type of data */
+	    };
+	    struct local_rules_definition rules[] = {
+		{  "Service-Parameter-Type",	RULE_REQUIRED,	-1, 1 },
+		{  "Service-Parameter-Value",	RULE_REQUIRED,	-1, 1 }
+	    };
+	    CHECK_dict_new( DICT_AVP, &data , NULL, &avp);
+	    PARSE_loc_rules( rules, avp );
+	}                        
+
+	/* Subscription-Id */
+	{
+	    /*
+	      Grouped
+	    */
+	    struct dict_object * avp;
+	    struct dict_avp_data data = {
+		443,                                    /* Code */
+		0,                                      /* Vendor */
+		"Subscription-Id",                      /* Name */
+		AVP_FLAG_VENDOR | AVP_FLAG_MANDATORY,   /* Fixed flags */
+		AVP_FLAG_MANDATORY,                     /* Fixed flag values */
+		AVP_TYPE_GROUPED                        /* base type of data */
+	    };
+	    struct local_rules_definition rules[] = {
+		{  "Subscription-Id-Type",	RULE_REQUIRED,	-1, 1 },
+		{  "Subscription-Id-Data",	RULE_REQUIRED,	-1, 1 }
+	    };
+	    CHECK_dict_new( DICT_AVP, &data , NULL, &avp);
+	    PARSE_loc_rules( rules, avp );
+	}
+                                     
+	/* Unit-Value */
+	{
+	    /*
+	      Grouped
+	    */
+	    struct dict_object * avp;
+	    struct dict_avp_data data = {
+		445,                                    /* Code */
+		0,                                      /* Vendor */
+		"Unit-Value",                           /* Name */
+		AVP_FLAG_VENDOR | AVP_FLAG_MANDATORY,   /* Fixed flags */
+		AVP_FLAG_MANDATORY,                     /* Fixed flag values */
+		AVP_TYPE_GROUPED                        /* base type of data */
+	    };
+	    struct local_rules_definition rules[] = {
+		{  "Value-Digits",	RULE_REQUIRED,	-1, 1 },
+		{  "Exponent",		RULE_OPTIONAL,	-1, 1 }
+	    };
+	    CHECK_dict_new( DICT_AVP, &data , NULL, &avp);
+	    PARSE_loc_rules( rules, avp );
+	}
+
+	/* User-Equipment-Info */
+	{
+	    /*
+	      Grouped
+	    */
+	    struct dict_object * avp;
+	    struct dict_avp_data data = {
+		458,                                    /* Code */
+		0,                                      /* Vendor */
+		"User-Equipment-Info",                  /* Name */
+		AVP_FLAG_VENDOR | AVP_FLAG_MANDATORY,   /* Fixed flags */
+		AVP_FLAG_MANDATORY,                     /* Fixed flag values */
+		AVP_TYPE_GROUPED                        /* base type of data */
+	    };
+	    struct local_rules_definition rules[] = {
+		{  "User-Equipment-Info-Type",	RULE_REQUIRED,	-1, 1 },
+		{  "User-Equipment-Info-Value",	RULE_REQUIRED,	-1, 1 }
+	    };
+	    CHECK_dict_new( DICT_AVP, &data , NULL, &avp);
+	    PARSE_loc_rules( rules, avp );
+	}
+
+	/* grouped AVPs using grouped AVPs */ 
+
+	/* CC-Money */
+	{
+	    /*
+	      Grouped
+	    */
+	    struct dict_object * avp;
+	    struct dict_avp_data data = {
+		413,                                    /* Code */
+		0,                                      /* Vendor */
+		"CC-Money",                             /* Name */
+		AVP_FLAG_VENDOR | AVP_FLAG_MANDATORY,   /* Fixed flags */
+		AVP_FLAG_MANDATORY,                     /* Fixed flag values */
+		AVP_TYPE_GROUPED                        /* base type of data */
+	    };
+	    struct local_rules_definition rules[] = {
+		{  "Unit-Value",	RULE_REQUIRED,	-1, 1 },
+		{  "Currency-Code",	RULE_OPTIONAL,	-1, 1 }
+	    };
+	    CHECK_dict_new( DICT_AVP, &data , NULL, &avp);
+	    PARSE_loc_rules( rules, avp );
+	}
+
+	/* Cost-Information */
+	{
+	    /*
+	      Grouped
+	    */
+	    struct dict_object * avp;
+	    struct dict_avp_data data = {
+		423,                                    /* Code */
+		0,                                      /* Vendor */
+		"Cost-Information",                     /* Name */
+		AVP_FLAG_VENDOR | AVP_FLAG_MANDATORY,   /* Fixed flags */
+		AVP_FLAG_MANDATORY,                     /* Fixed flag values */
+		AVP_TYPE_GROUPED                        /* base type of data */
+	    };
+	    struct local_rules_definition rules[] = {
+		{  "Unit-Value",	RULE_REQUIRED,	-1, 1 },
+		{  "Currency-Code",	RULE_REQUIRED,	-1, 1 },
+		{  "Cost-Unit",		RULE_OPTIONAL,	-1, 1 }
+	    };
+	    CHECK_dict_new( DICT_AVP, &data , NULL, &avp);
+	    PARSE_loc_rules( rules, avp );
+	}
+
+	/* Final-Unit-Indication */
+	{
+	    /*
+	      Grouped
+	    */
+	    struct dict_object * avp;
+	    struct dict_avp_data data = {
+		430,                                    /* Code */
+		0,                                      /* Vendor */
+		"Final-Unit-Indication",                /* Name */
+		AVP_FLAG_VENDOR | AVP_FLAG_MANDATORY,   /* Fixed flags */
+		AVP_FLAG_MANDATORY,                     /* Fixed flag values */
+		AVP_TYPE_GROUPED                        /* base type of data */
+	    };
+	    struct local_rules_definition rules[] = {
+		{  "Final-Unit-Action",		RULE_REQUIRED,	-1, 1 },
+		{  "Restriction-Filter-Rule",	RULE_OPTIONAL,	-1, -1 },
+		{  "Filter-Id",			RULE_OPTIONAL,	-1, -1 },
+		{  "Redirect-Server",		RULE_OPTIONAL,	-1, 1 },
+	    };
+	    CHECK_dict_new( DICT_AVP, &data , NULL, &avp);
+	    PARSE_loc_rules( rules, avp );
+	}
+                
+	/* Granted-Service-Unit */
+	{
+	    /*
+	      Grouped
+	    */
+	    struct dict_object * avp;
+	    struct dict_avp_data data = {
+		431,                                    /* Code */
+		0,                                      /* Vendor */
+		"Granted-Service-Unit",                 /* Name */
+		AVP_FLAG_VENDOR | AVP_FLAG_MANDATORY,   /* Fixed flags */
+		AVP_FLAG_MANDATORY,                     /* Fixed flag values */
+		AVP_TYPE_GROUPED                        /* base type of data */
+	    };
+	    struct local_rules_definition rules[] = {
+		{  "Tariff-Time-Change",	RULE_OPTIONAL,	-1, 1 },
+		{  "CC-Time",	       		RULE_OPTIONAL,	-1, 1 },
+		{  "CC-Money",			RULE_OPTIONAL,	-1, 1 },
+		{  "CC-Total-Octets",		RULE_OPTIONAL,	-1, 1 },
+		{  "CC-Input-Octets",		RULE_OPTIONAL,	-1, 1 },
+		{  "CC-Output-Octets",		RULE_OPTIONAL,	-1, 1 },
+		{  "CC-Service-Specific-Units",	RULE_OPTIONAL,	-1, 1 }
+		/* plus any additional AVPs { "AVP", RULE_OPTIONAL, -1, -1 } */
+	    };
+	    CHECK_dict_new( DICT_AVP, &data , NULL, &avp);
+	    PARSE_loc_rules( rules, avp );
+	}
+
+	/* G-S-U-Pool-Reference */
+	{
+	    /*
+	      Grouped
+	    */
+	    struct dict_object * avp;
+	    struct dict_avp_data data = {
+		457,                                    /* Code */
+		0,                                      /* Vendor */
+		"G-S-U-Pool-Reference",                 /* Name */
+		AVP_FLAG_VENDOR | AVP_FLAG_MANDATORY,   /* Fixed flags */
+		AVP_FLAG_MANDATORY,                     /* Fixed flag values */
+		AVP_TYPE_GROUPED                        /* base type of data */
+	    };
+	    struct local_rules_definition rules[] = {
+		{  "G-S-U-Pool-Identifier",	RULE_REQUIRED,	-1, 1 },
+		{  "CC-Unit-Type",		RULE_REQUIRED,	-1, 1 },
+		{  "Unit-Value",		RULE_REQUIRED,	-1, 1 }
+	    };
+	    CHECK_dict_new( DICT_AVP, &data , NULL, &avp);
+	    PARSE_loc_rules( rules, avp );
+	}                     
+
+	/* Requested-Service-Unit */
+	{
+	    /*
+	      Grouped
+	    */
+	    struct dict_object * avp;
+	    struct dict_avp_data data = {
+		437,                                    /* Code */
+		0,                                      /* Vendor */
+		"Requested-Service-Unit",               /* Name */
+		AVP_FLAG_VENDOR | AVP_FLAG_MANDATORY,   /* Fixed flags */
+		AVP_FLAG_MANDATORY,                     /* Fixed flag values */
+		AVP_TYPE_GROUPED                        /* base type of data */
+	    };
+	    struct local_rules_definition rules[] = {
+		{  "CC-Time",	       		RULE_OPTIONAL,	-1, 1 },
+		{  "CC-Money",			RULE_OPTIONAL,	-1, 1 },
+		{  "CC-Total-Octets",		RULE_OPTIONAL,	-1, 1 },
+		{  "CC-Input-Octets",		RULE_OPTIONAL,	-1, 1 },
+		{  "CC-Output-Octets",		RULE_OPTIONAL,	-1, 1 },
+		{  "CC-Service-Specific-Units",	RULE_OPTIONAL,	-1, 1 }
+		/* plus any additional AVPs { "AVP", RULE_OPTIONAL, -1, -1 } */
+	    };
+	    CHECK_dict_new( DICT_AVP, &data , NULL, &avp);
+	    PARSE_loc_rules( rules, avp );
+	}
+
+	/* Used-Service-Unit */
+	{
+	    /*
+	      Grouped
+	    */
+	    struct dict_object * avp;
+	    struct dict_avp_data data = {
+		446,                                    /* Code */
+		0,                                      /* Vendor */
+		"Used-Service-Unit",                    /* Name */
+		AVP_FLAG_VENDOR | AVP_FLAG_MANDATORY,   /* Fixed flags */
+		AVP_FLAG_MANDATORY,                     /* Fixed flag values */
+		AVP_TYPE_GROUPED                        /* base type of data */
+	    };
+	    struct local_rules_definition rules[] = {
+		{  "Tariff-Change-Usage",	RULE_OPTIONAL,	-1, 1 },
+		{  "CC-Time",	       		RULE_OPTIONAL,	-1, 1 },
+		{  "CC-Money",			RULE_OPTIONAL,	-1, 1 },
+		{  "CC-Total-Octets",		RULE_OPTIONAL,	-1, 1 },
+		{  "CC-Input-Octets",		RULE_OPTIONAL,	-1, 1 },
+		{  "CC-Output-Octets",		RULE_OPTIONAL,	-1, 1 },
+		{  "CC-Service-Specific-Units",	RULE_OPTIONAL,	-1, 1 }
+		/* plus any additional AVPs { "AVP", RULE_OPTIONAL, -1, -1 } */
+	    };
+	    CHECK_dict_new( DICT_AVP, &data , NULL, &avp);
+	    PARSE_loc_rules( rules, avp );
+	}
+
+	/* at least three levels of grouping */
+	/* Multiple-Services-Credit-Control */
+	{
+	    /*
+	      Grouped
+	    */
+	    struct dict_object * avp;
+	    struct dict_avp_data data = {
+		456,                                    /* Code */
+		0,                                      /* Vendor */
+		"Multiple-Services-Credit-Control",     /* Name */
+		AVP_FLAG_VENDOR | AVP_FLAG_MANDATORY,   /* Fixed flags */
+		AVP_FLAG_MANDATORY,                     /* Fixed flag values */
+		AVP_TYPE_GROUPED                        /* base type of data */
+	    };
+	    struct local_rules_definition rules[] = {
+		{  "Granted-Service-Unit",	RULE_OPTIONAL,	-1, 1 },
+		{  "Requested-Service-Unit",	RULE_OPTIONAL,	-1, 1 },
+		{  "Used-Service-Unit",		RULE_OPTIONAL,	-1, -1 },
+		{  "Tariff-Change-Usage",	RULE_OPTIONAL,	-1, 1 },
+		{  "Service-Identifier",	RULE_OPTIONAL,	-1, -1 },
+		{  "Rating-Group",		RULE_OPTIONAL,	-1, 1 },
+		{  "G-S-U-Pool-Reference",	RULE_OPTIONAL,	-1, -1 },
+		{  "Validity-Time",		RULE_OPTIONAL,	-1, 1 },
+		{  "Result-Code",		RULE_OPTIONAL,	-1, 1 },
+		{  "Final-Unit-Indication",	RULE_OPTIONAL,	-1, 1 }
+		/* plus any additional AVPs { "AVP", RULE_OPTIONAL, -1, -1 } */
+	    };
+	    CHECK_dict_new( DICT_AVP, &data , NULL, &avp);
+	    PARSE_loc_rules( rules, avp );
+	}
+                
+
     }
 
 
