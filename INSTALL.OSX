@@ -10,20 +10,20 @@ Starting from version 1.1.5, freeDiameter is available through Homebrew:
    a) Install Command Line Tools for Xcode or Xcode:
       - Command Line Tools (your OS X Version) for Xcode:
          https://developer.apple.com/downloads (Free Apple Developer ID Registration Required)
-      - or Xcode: 
+      - or Xcode:
          https://itunes.apple.com/us/app/xcode/id497799835 (Free App Store Account Required)
 
    b) Install Homebrew
      $ ruby -e "$(curl -fsSkL raw.github.com/mxcl/homebrew/go)"
 
-2) Install freeDiameter 
-     $ brew install freediameter-server
+2) Install freeDiameter:
+     $ brew install freediameter
 
-   After installation is done "Cavets" section will provide information 
+   After installation is done "Caveats" section will provide information
    how to start freeDiameterd through launchd at system startup.
 
-   To view this information again: 
-     $ brew cavets freediameter-server
+   To view this information again:
+     $ brew info freediameter
 
    To learn more about freeDiameter configuration options, read:
       http://www.freediameter.net/trac/wiki/Configuration
@@ -39,9 +39,9 @@ FROM SOURCES
    See QUICK INSTRUCTIONS Step #1 above.
 
 2) Install dependencies:
-    $ brew install mercurial cmake gnutls postgres mysql libidn
+    $ brew install mercurial cmake gnutls libgcrypt postgres mysql libidn
 
-   Notes: 
+   Notes:
     * GNU IDN (libidn) is optional, see bellow
     * When libusrsctp package is available, you can use it as well.
 
@@ -59,15 +59,14 @@ FROM SOURCES
 
 7) Configure:
     $ cmake .. -DDISABLE_SCTP:BOOL=ON
-    
+
    or for ncurses-based configuration:
     $ ccmake .. -DDISABLE_SCTP:BOOL=ON
 
    Notes:
-    * If you have installed libusrsctp, you can turn off the DISABLE_SCTP switch.
     * GNU IDN (Support for International Domain Names) can be disabled with:
        -DDIAMID_IDNA_IGNORE=ON or -DDIAMID_IDNA_REJECT=ON
-    * For more information on available configuration options read: 
+    * For more information on available configuration options, read:
        http://www.freediameter.net/trac/wiki/Installation
 
 8) Compile:
