@@ -185,6 +185,11 @@ int main(int argc, char *argv[])
 			CHECK( 0, fd_dict_new ( fd_g_config->cnf_dict, DICT_AVP, &avp_data , NULL, NULL ) );
 		}
 		
+		{
+			struct dict_avp_data avp_data = { 139103, 0, "AVP Test - no vendor - f64", 0, 0, AVP_TYPE_FLOAT64 };
+			CHECK( 0, fd_dict_new ( fd_g_config->cnf_dict, DICT_AVP, &avp_data , NULL, NULL ) );
+		}
+		
 		{ 
 			struct dict_object  * type = NULL;
 			struct dict_type_data type_data = { AVP_TYPE_INTEGER64, "Int64 test" };
@@ -268,6 +273,15 @@ int main(int argc, char *argv[])
 			ADD_RULE(command, 73565, "AVP Test - os", 		RULE_OPTIONAL,   -1, -1,  0);
 			ADD_RULE(command, 73565, "AVP Test - enumos", 		RULE_OPTIONAL,   -1, -1,  0);
 			ADD_RULE(command, 73565, "AVP Test - grouped", 		RULE_OPTIONAL,   -1, -1,  0);
+		}
+		
+		{
+			struct dict_object  * application = NULL;
+			struct dict_object  * command = NULL;
+			struct dict_cmd_data  cmd_data = { 73573, "Test-Command-Answer", CMD_FLAG_REQUEST, 0 };
+			
+			CHECK( 0, fd_dict_search ( fd_g_config->cnf_dict, DICT_APPLICATION, APPLICATION_BY_NAME, "Application test", &application, ENOENT ) );
+			CHECK( 0, fd_dict_new ( fd_g_config->cnf_dict, DICT_COMMAND, &cmd_data , application, &command ) );
 		}
 		
 		{
@@ -724,6 +738,45 @@ int main(int argc, char *argv[])
 				/* reset */
 				CHECK( 0, fd_msg_free ( msg ) );
 			}
+			
+			/* Test with an invalid AVP (definition mismatch with the dictionary) */
+			{
+				CPYBUF();
+				
+				buf_cpy[21] = 0x02;	/* New AVP code = 0x00021F5F, f64 type in the dictionary */
+				
+				
+				/* Check that we cannot support this message now */
+				CHECK( 0, fd_msg_parse_buffer( &buf_cpy, 344, &msg) );
+				CHECK( EBADMSG, fd_msg_parse_dict( msg, fd_g_config->cnf_dict, NULL ) );
+				
+				/* reset */
+				CHECK( 0, fd_msg_free ( msg ) );
+			}
+			
+#if 1
+			{
+				/* Check the parse or error works as expected */
+				CPYBUF();
+				
+				buf_cpy[21] = 0x02;	/* New AVP code = 0x00021F5F, f64 type in the dictionary */
+				
+				/* Check that we cannot support this message now */
+				CHECK( 0, fd_msg_init() );
+				CHECK( 0, fd_msg_parse_buffer( &buf_cpy, 344, &msg) );
+				CHECK( EBADMSG, fd_msg_parse_or_error( &msg ) );
+				
+				/* Check the Failed-AVP is as expected */
+				
+				fd_msg_dump_walk(0, msg);
+				
+				/* reset */
+				CHECK( 0, fd_msg_free ( msg ) );
+				
+				ASSERT(0);
+			}
+#endif			
+			
 			
 			CHECK( 0, fd_msg_parse_buffer( &buf, 344, &msg) );
 			CHECK( 0, fd_msg_parse_dict( msg, fd_g_config->cnf_dict, NULL ) );
