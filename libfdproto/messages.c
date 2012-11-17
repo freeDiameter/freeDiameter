@@ -1778,6 +1778,7 @@ static int parsedict_do_avp(struct dictionary * dict, struct avp * avp, int mand
 			snprintf(error_message, sizeof(error_message), "I expected a size of %d for this AVP according to my dictionary", avp_value_sizes[dictdata.avp_basetype]);
 			error_info->pei_message = error_message;
 		}
+		avp->avp_model = NULL;
 		return EBADMSG;
 	}
 	

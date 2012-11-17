@@ -233,11 +233,21 @@ int fd_msg_rescode_set( struct msg * msg, char * rescode, char * errormsg, struc
 	
 	/* Now add the optavp in a FailedAVP if provided */
 	if (optavp) {
+		struct avp * optavp_cpy = NULL;
+		struct avp_hdr *opt_hdr, *optcpy_hdr;
+		
 		/* Create the Failed-AVP AVP */
 		CHECK_FCT( fd_msg_avp_new( dict_avp_FAVP, 0, &avp_FAVP ) );
-
+		
+		/* Create a new AVP with a copy of the data of the invalid or missing AVP */
+		CHECK_FCT( fd_msg_avp_new( NULL, AVPFL_SET_BLANK_VALUE, &optavp_cpy) );
+		
+		CHECK_FCT( fd_msg_avp_hdr(optavp, &opt_hdr) );
+		CHECK_FCT( fd_msg_avp_hdr(optavp_cpy, &optcpy_hdr) );
+		memcpy(optcpy_hdr, opt_hdr, sizeof(struct avp_hdr));
+		
 		/* Add the passed AVP inside it */
-		CHECK_FCT( fd_msg_avp_add( avp_FAVP, MSG_BRW_LAST_CHILD, optavp ) );
+		CHECK_FCT( fd_msg_avp_add( avp_FAVP, MSG_BRW_LAST_CHILD, optavp_cpy ) );
 		
 		/* And add to the message */
 		CHECK_FCT( fd_msg_avp_add( msg, MSG_BRW_LAST_CHILD, avp_FAVP ) );

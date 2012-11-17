@@ -2523,7 +2523,7 @@ int fd_msg_parse_buffer ( uint8_t ** buffer, size_t buflen, struct msg ** msg );
 /* Parsing Error Information structure */
 struct fd_pei {
 	char *		pei_errcode;	/* name of the error code to use */
-	struct avp *	pei_avp;	/* pointer to invalid or missing AVP (to be freed) */
+	struct avp *	pei_avp;	/* pointer to invalid (in original message) or missing AVP (to be freed) */
 	char *		pei_message;	/* Overwrite default message if needed */
 	int		pei_protoerr; 	/* do we set the 'E' bit in the error message ? */
 };

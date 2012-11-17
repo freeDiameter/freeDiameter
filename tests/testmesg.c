@@ -766,14 +766,12 @@ int main(int argc, char *argv[])
 				CHECK( 0, fd_msg_parse_buffer( &buf_cpy, 344, &msg) );
 				CHECK( EBADMSG, fd_msg_parse_or_error( &msg ) );
 				
-				/* Check the Failed-AVP is as expected */
+				TODO("Check the Failed-AVP is as expected");
 				
 				fd_msg_dump_walk(0, msg);
 				
 				/* reset */
 				CHECK( 0, fd_msg_free ( msg ) );
-				
-				ASSERT(0);
 			}
 #endif			
 			
