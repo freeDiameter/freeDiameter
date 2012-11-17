@@ -1685,6 +1685,8 @@ int fd_msg_parse_buffer ( unsigned char ** buffer, size_t buflen, struct msg ** 
 
 static int parsedict_do_chain(struct dictionary * dict, struct fd_list * head, int mandatory, struct fd_pei *error_info);
 
+static char error_message[256];
+
 /* Process an AVP. If we are not in recheck, the avp_source must be set. */
 static int parsedict_do_avp(struct dictionary * dict, struct avp * avp, int mandatory, struct fd_pei *error_info)
 {
@@ -1768,10 +1770,13 @@ static int parsedict_do_avp(struct dictionary * dict, struct avp * avp, int mand
 	/* Check the size is valid */
 	if ((avp_value_sizes[dictdata.avp_basetype] != 0) &&
 	    (avp->avp_public.avp_len - GETAVPHDRSZ( avp->avp_public.avp_flags ) != avp_value_sizes[dictdata.avp_basetype])) {
-		TRACE_DEBUG(INFO, "The AVP size is not suitable for the type.");
+		TRACE_DEBUG(INFO, "The AVP size is not suitable for the type:");
+		fd_msg_dump_one(INFO, avp);
 		if (error_info) {
 			error_info->pei_errcode = "DIAMETER_INVALID_AVP_LENGTH";
 			error_info->pei_avp = avp;
+			snprintf(error_message, sizeof(error_message), "I expected a size of %d for this AVP according to my dictionary", avp_value_sizes[dictdata.avp_basetype]);
+			error_info->pei_message = error_message;
 		}
 		return EBADMSG;
 	}
@@ -1787,6 +1792,8 @@ static int parsedict_do_avp(struct dictionary * dict, struct avp * avp, int mand
 					if ((ret == EBADMSG) && (error_info)) {
 						error_info->pei_errcode = "DIAMETER_INVALID_AVP_VALUE";
 						error_info->pei_avp = avp;
+						snprintf(error_message, sizeof(error_message), "I cannot parse this AVP as a Grouped AVP");
+						error_info->pei_message = error_message;
 					}
 					return ret;
 				}  );
