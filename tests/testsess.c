@@ -82,8 +82,11 @@ static __inline__ struct mystate * new_state(os0_t sid, int *freed)
 void * g_opaque = (void *)"test";
 
 /* Avoid a lot of casts */
+#undef strlen
 #define strlen(s) strlen((char *)s)
+#undef strncmp
 #define strncmp(s1,s2,l) strncmp((char *)s1, (char *)s2, l)
+#undef strcmp
 #define strcmp(s1,s2) strcmp((char *)s1, (char *)s2)
 	
 
