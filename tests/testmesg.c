@@ -756,6 +756,7 @@ int main(int argc, char *argv[])
 			
 #if 1
 			{
+				unsigned char * buftmp = NULL;
 				/* Check the parse or error works as expected */
 				CPYBUF();
 				
@@ -766,12 +767,16 @@ int main(int argc, char *argv[])
 				CHECK( 0, fd_msg_parse_buffer( &buf_cpy, 344, &msg) );
 				CHECK( EBADMSG, fd_msg_parse_or_error( &msg ) );
 				
-				TODO("Check the Failed-AVP is as expected");
+				CHECK( 0, fd_msg_bufferize( msg, &buftmp, NULL ) );				
 				
 				fd_msg_dump_walk(0, msg);
 				
+				TODO("Check the Failed-AVP is as expected");
+				
+				
 				/* reset */
 				CHECK( 0, fd_msg_free ( msg ) );
+				free(buftmp);
 			}
 #endif			
 			

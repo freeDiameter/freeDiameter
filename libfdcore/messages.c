@@ -240,7 +240,8 @@ int fd_msg_rescode_set( struct msg * msg, char * rescode, char * errormsg, struc
 		CHECK_FCT( fd_msg_avp_new( dict_avp_FAVP, 0, &avp_FAVP ) );
 		
 		/* Create a new AVP with a copy of the data of the invalid or missing AVP */
-		CHECK_FCT( fd_msg_avp_new( NULL, AVPFL_SET_BLANK_VALUE, &optavp_cpy) );
+		optavp_cpy = optavp;
+		CHECK_FCT( fd_msg_avp_new( NULL, AVPFL_SET_BLANK_VALUE | AVPFL_SET_RAWDATA_FROM_AVP, &optavp_cpy) );
 		
 		CHECK_FCT( fd_msg_avp_hdr(optavp, &opt_hdr) );
 		CHECK_FCT( fd_msg_avp_hdr(optavp_cpy, &optcpy_hdr) );
