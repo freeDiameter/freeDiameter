@@ -975,7 +975,10 @@ int fd_msg_anscb_associate( struct msg * msg, void ( *anscb)(void *, struct msg 
 	
 	/* Check the parameters */
 	CHECK_PARAMS( CHECK_MSG(msg) );
-	CHECK_PARAMS( msg->msg_public.msg_flags & CMD_FLAG_REQUEST ); /* we associate with requests only */
+	
+	if (! (msg->msg_public.msg_flags & CMD_FLAG_REQUEST ))
+		return 0; /* we associate with requests only */
+	
 	CHECK_PARAMS( (anscb == NULL) || (msg->msg_cb.fct == NULL) ); /* We are not overwritting a cb */
 	
 	/* Associate callback and data with the message, if any */
