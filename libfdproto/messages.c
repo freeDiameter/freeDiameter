@@ -127,6 +127,8 @@ struct msg {
 		}		 msg_cb;		/* Callback to be called when an answer is received, if not NULL */
 	DiamId_t		 msg_src_id;		/* Diameter Id of the peer this message was received from. This string is malloc'd and must be freed */
 	size_t			 msg_src_id_len;	/* cached length of this string */
+	struct timespec		 msg_ts;		/* Timestamp associated with the message */
+	
 };
 
 /* Macro to compute the message header size */

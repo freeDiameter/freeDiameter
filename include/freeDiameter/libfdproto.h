@@ -203,6 +203,8 @@ int fd_log_handler_unregister ( void );
 #define FCTS 6  /* Display entry parameters of most functions */
 #define CALL 9  /* Display calls to most functions (with CHECK macros) */
 
+#define TIMING INFO /* Display the message handing time information with this level */
+
 /* Increment the debug level for a file at compilation time by defining -DTRACE_LEVEL=FULL for example. */
 #ifndef TRACE_LEVEL 
 #define TRACE_LEVEL NONE

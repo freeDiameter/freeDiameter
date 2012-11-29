@@ -65,6 +65,7 @@ struct cnxctx {
 		DiamId_t 			 cn;		/* If not NULL, remote certif will be checked to match this Common Name */
 		int				 mode; 		/* GNUTLS_CLIENT / GNUTLS_SERVER */
 		gnutls_session_t 		 session;	/* Session object (stream #0 in case of SCTP) */
+		struct timespec  		 recvon;	/* Timestamp of the last chunk of data received on this session -- before uncipher */
 	}		cc_tls_para;
 
 	/* If cc_proto == SCTP */
@@ -129,6 +130,7 @@ struct sctps_ctx {
 		size_t   bufsz;
 		size_t   offset;
 	} 		 partial;	/* If the pull function did not read the full content of first message in raw, it stores it here for next read call. */
+	struct timespec  recvon;	/* Timestamp of the last chunk of data received on this stream -- before uncipher */
 	pthread_t	 thr;		/* Thread to decrypt raw data in this pair of streams */
 	gnutls_session_t session;	/* TLS context using this pair of streams -- except if strid == 0, in that case session is outside the array */
 };

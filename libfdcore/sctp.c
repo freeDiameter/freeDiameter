@@ -1067,6 +1067,7 @@ int fd_sctp_recvmeta(struct cnxctx * conn, uint16_t * strid, uint8_t ** buf, siz
 	size_t 			 bufsz = 0, datasize = 0;
 	size_t			 mempagesz = sysconf(_SC_PAGESIZE); /* We alloc buffer by memory pages for efficiency */
 	int 			 timedout = 0;
+	struct timespec 	 recv_on;
 	
 	TRACE_ENTRY("%p %p %p %p %p", conn, strid, buf, len, event);
 	CHECK_PARAMS( conn && buf && len && event );
@@ -1085,15 +1086,15 @@ int fd_sctp_recvmeta(struct cnxctx * conn, uint16_t * strid, uint8_t ** buf, siz
 	
 	/* We will loop while all data is not received. */
 incomplete:
-	if (datasize == bufsz) {
+	if (datasize == bufsz - sizeof(struct timespec)) {
 		/* The buffer is full, enlarge it */
 		bufsz += mempagesz;
-		CHECK_MALLOC( data = realloc(data, bufsz) );
+		CHECK_MALLOC( data = realloc(data, bufsz ) );
 	}
 	/* the new data will be received following the preceding */
 	memset(&iov,  0, sizeof(iov));
 	iov.iov_base = data + datasize ;
-	iov.iov_len  = bufsz - datasize;
+	iov.iov_len  = bufsz - sizeof(struct timespec) - datasize;
 
 	/* Receive data from the socket */
 again:
@@ -1187,6 +1188,10 @@ again:
 		return 0;
 	}
 	
+	/* Piggy-tail the timestamp of reception */
+	CHECK_SYS_DO( clock_gettime(CLOCK_REALTIME, &recv_on), /* continue */ );
+	memcpy(data + datasize, &recv_on, sizeof(struct timespec));
+		
 	/* From this point, we have received a message */
 	*event = FDEVP_CNX_MSG_RECV;
 	*buf = data;

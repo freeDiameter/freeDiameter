@@ -640,6 +640,8 @@ again:
 		fd_cnx_markerror(conn);
 	}
 	
+	CHECK_SYS_DO( clock_gettime(CLOCK_REALTIME, &conn->cc_tls_para.recvon), /* continue */ );
+	
 	return ret;
 }
 
@@ -695,6 +697,7 @@ static void * rcvthr_notls_tcp(void * arg)
 		size_t  length;
 		ssize_t ret = 0;
 		size_t	received = 0;
+		struct timespec recv_on;
 
 		do {
 			ret = fd_cnx_s_recv(conn, &header[received], sizeof(header) - received);
@@ -717,7 +720,7 @@ static void * rcvthr_notls_tcp(void * arg)
 		}
 
 		/* Ok, now we can really receive the data */
-		CHECK_MALLOC_DO(  newmsg = malloc( length ), goto fatal );
+		CHECK_MALLOC_DO(  newmsg = malloc( length + sizeof(struct timespec) ), goto fatal );
 		memcpy(newmsg, header, sizeof(header));
 
 		while (received < length) {
@@ -731,6 +734,10 @@ static void * rcvthr_notls_tcp(void * arg)
 			}
 			received += ret;
 		}
+		
+		/* Piggy-tail the timestamp of reception */
+		CHECK_SYS_DO( clock_gettime(CLOCK_REALTIME, &recv_on), /* continue */ );
+		memcpy(newmsg + length, &recv_on, sizeof(struct timespec));
 		
 		/* We have received a complete message, pass it to the daemon */
 		CHECK_FCT_DO( fd_event_send( fd_cnx_target_queue(conn), FDEVP_CNX_MSG_RECV, length, newmsg), /* continue or destroy everything? */);
@@ -781,7 +788,7 @@ static void * rcvthr_notls_sctp(void * arg)
 			/* Just ignore the notification for now, we will get another error later anyway */
 			continue;
 		}
-		
+		/* Note: the real size of buf is bufsz + struct timespec */
 		CHECK_FCT_DO( fd_event_send( fd_cnx_target_queue(conn), event, bufsz, buf), goto fatal );
 		
 	} while (conn->cc_loop || (event != FDEVP_CNX_MSG_RECV));
@@ -919,6 +926,17 @@ end:
 /* The function that receives TLS data and re-builds a Diameter message -- it exits only on error or cancelation */
 int fd_tls_rcvthr_core(struct cnxctx * conn, gnutls_session_t session)
 {
+	struct timespec * rcv_on;
+	
+	void * ptr = gnutls_transport_get_ptr(session);
+	if (ptr == conn) {
+		rcv_on = &conn->cc_tls_para.recvon;
+	} else {
+		struct sctps_ctx * ctx = (struct sctps_ctx *) ptr;
+		rcv_on = &ctx->recvon;
+	}
+	
+	
 	/* No guarantee that GnuTLS preserves the message boundaries, so we re-build it as in TCP */
 	do {
 		uint8_t header[4];
@@ -926,6 +944,7 @@ int fd_tls_rcvthr_core(struct cnxctx * conn, gnutls_session_t session)
 		size_t  length;
 		ssize_t ret = 0;
 		size_t	received = 0;
+		struct timespec recv_on;
 
 		do {
 			ret = fd_tls_recv_handle_error(conn, session, &header[received], sizeof(header) - received);
@@ -948,7 +967,7 @@ int fd_tls_rcvthr_core(struct cnxctx * conn, gnutls_session_t session)
 		}
 
 		/* Ok, now we can really receive the data */
-		CHECK_MALLOC(  newmsg = malloc( length ) );
+		CHECK_MALLOC(  newmsg = malloc( length + sizeof(struct timespec)) );
 		memcpy(newmsg, header, sizeof(header));
 
 		while (received < length) {
@@ -962,6 +981,9 @@ int fd_tls_rcvthr_core(struct cnxctx * conn, gnutls_session_t session)
 			}
 			received += ret;
 		}
+		
+		/* The timestamp of the last TLS chunk received for this rebuilt message lives close to the session pointer, we piggyback it */
+		memcpy(newmsg + length, rcv_on, sizeof(struct timespec));
 		
 		/* We have received a complete message, pass it to the daemon */
 		CHECK_FCT_DO( ret = fd_event_send( fd_cnx_target_queue(conn), FDEVP_CNX_MSG_RECV, length, newmsg), 

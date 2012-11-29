@@ -91,6 +91,7 @@ static void * demuxer(void * arg)
 			case FDEVP_CNX_MSG_RECV:
 				/* Demux this message to the appropriate fifo, another thread will pull, gnutls process, and send to target queue */
 				if (strid < conn->cc_sctp_para.pairs) {
+					/* Note, here the timespec is piggytailed to buf */
 					CHECK_FCT_DO(fd_event_send(conn->cc_sctps_data.array[strid].raw_recv, event, bufsz, buf), goto fatal );
 				} else {
 					TRACE_DEBUG(INFO, "Received packet (%d bytes) on out-of-range stream #%d from %s, discarded.", bufsz, strid, conn->cc_remid);
@@ -193,6 +194,9 @@ static ssize_t sctps_pull(gnutls_transport_ptr_t tr, void * buf, size_t len)
 		if (ev == FDEVP_CNX_ERROR) {
 			/* Documentations says to return 0 on connection closed, but it does hang within gnutls_handshake */
 			return -1;
+		}
+		if (ev == FDEVP_CNX_MSG_RECV) {
+			memcpy(&ctx->recvon, ctx->partial.buf + ctx->partial.bufsz, sizeof(struct timespec)); /* retrieve piggy-tailed ts */
 		}
 	}
 		

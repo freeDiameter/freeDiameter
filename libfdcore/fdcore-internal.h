@@ -214,7 +214,7 @@ enum {
 	/* request to terminate this peer : disconnect, requeue all messages */
 	,FDEVP_TERMINATE
 	
-	/* A connection object has received a message. (data contains the buffer) */
+	/* A connection object has received a message. (data contains the buffer + struct timespec piggytailed -- unaligned) */
 	,FDEVP_CNX_MSG_RECV
 			 
 	/* A connection object has encountered an error (disconnected). */
