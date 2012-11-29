@@ -203,8 +203,6 @@ int fd_log_handler_unregister ( void );
 #define FCTS 6  /* Display entry parameters of most functions */
 #define CALL 9  /* Display calls to most functions (with CHECK macros) */
 
-#define TIMING INFO /* Display the message handing time information with this level */
-
 /* Increment the debug level for a file at compilation time by defining -DTRACE_LEVEL=FULL for example. */
 #ifndef TRACE_LEVEL 
 #define TRACE_LEVEL NONE
@@ -594,6 +592,17 @@ int fd_breakhere(void);
 #define TS_IS_INFERIOR( ts1, ts2 ) 		\
 	(    ((ts1)->tv_sec  < (ts2)->tv_sec ) 	\
 	  || (((ts1)->tv_sec  == (ts2)->tv_sec ) && ((ts1)->tv_nsec < (ts2)->tv_nsec) ))
+
+/* Compute diff between two timespecs (pointers) */
+#define TS_DIFFERENCE( tsdiff, tsstart, tsend )	{					\
+	if ((tsend)->tv_nsec < (tsstart)->tv_nsec ) {					\
+		(tsdiff)->tv_sec = (tsend)->tv_sec - (tsstart)->tv_sec - 1;		\
+		(tsdiff)->tv_nsec = (tsend)->tv_nsec + 1000000000 - (tsstart)->tv_nsec;	\
+	} else {									\
+		(tsdiff)->tv_sec  = (tsend)->tv_sec  - (tsstart)->tv_sec;		\
+		(tsdiff)->tv_nsec = (tsend)->tv_nsec - (tsstart)->tv_nsec;		\
+	}}
+		
 
 /* This gives a good size for buffered reads */
 #ifndef BUFSIZ
@@ -2220,9 +2229,10 @@ enum fd_msg_log_cause {
 	FD_MSG_LOG_DROPPED = 0,  /* message has been dropped by the framework */ 
 	FD_MSG_LOG_RECEIVED,     /* message received from the network */ 
 	FD_MSG_LOG_SENT,         /* message sent to another peer */ 
-	FD_MSG_LOG_NODELIVER     /* message could not be delivered to any peer */ 
+	FD_MSG_LOG_NODELIVER,    /* message could not be delivered to any peer */
+	FD_MSG_LOG_TIMING	 /* profiling messages */
 };
-#define FD_MSG_LOG_MAX FD_MSG_LOG_NODELIVER
+#define FD_MSG_LOG_MAX FD_MSG_LOG_TIMING
 void fd_msg_log( enum fd_msg_log_cause cause, struct msg * msg, const char * prefix_format, ... );
 
 /* configure the msg_log facility */
@@ -2383,6 +2393,28 @@ int fd_msg_is_routable ( struct msg * msg );
  */
 int fd_msg_source_set( struct msg * msg, DiamId_t diamid, size_t diamidlen, int add_rr, struct dictionary * dict );
 int fd_msg_source_get( struct msg * msg, DiamId_t *diamid, size_t * diamidlen );
+
+/*
+ * FUNCTION:	fd_msg_ts_*
+ *
+ * PARAMETERS:
+ *  msg		: A msg object.
+ *  ts		: A struct timespec pointer, indexed on CLOCK_REALTIME
+ *
+ * DESCRIPTION: 
+ *   Associate or retrieve timestamps meaningful for the message.
+ *  A timestamp with a value of { 0, 0 } means: not set.
+ *
+ * RETURN VALUE:
+ *  0      	: Operation complete.
+ *  !0      	: an error occurred.
+ */
+/* when msg was received from network */
+int fd_msg_ts_set_recv( struct msg * msg, struct timespec * ts );
+int fd_msg_ts_get_recv( struct msg * msg, struct timespec * ts );
+int fd_msg_ts_set_sent( struct msg * msg, struct timespec * ts );
+int fd_msg_ts_get_sent( struct msg * msg, struct timespec * ts );
+
 
 /*
  * FUNCTION:	fd_msg_eteid_get

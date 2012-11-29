@@ -477,6 +477,10 @@ psm_loop:
 	if (event == FDEVP_CNX_MSG_RECV) {
 		struct msg * msg = NULL;
 		struct msg_hdr * hdr;
+		struct timespec rcvon;
+		
+		/* Retrieve the piggytailed timestamp */
+		memcpy(&rcvon, ev_data+ev_sz, sizeof(struct timespec));
 		
 		/* Parse the received buffer */
 		CHECK_FCT_DO( fd_msg_parse_buffer( (void *)&ev_data, ev_sz, &msg), 
@@ -486,6 +490,8 @@ psm_loop:
 				CHECK_FCT_DO( fd_event_send(peer->p_events, FDEVP_CNX_ERROR, 0, NULL), goto psm_reset );
 				goto psm_loop;
 			} );
+			
+		CHECK_FCT_DO( fd_msg_ts_set_recv(msg, &rcvon), /* ... */ );
 		
 		/* If the current state does not allow receiving messages, just drop it */
 		if (cur_state == STATE_CLOSED) {
@@ -514,6 +520,14 @@ psm_loop:
 			
 			/* Associate */
 			CHECK_FCT_DO( fd_msg_answ_associate( msg, req ), goto psm_end );
+			
+			/* Display the delay to receive the answer */
+			{
+				struct timespec reqsent, delay;
+				(void) fd_msg_ts_get_sent(req, &reqsent);
+				TS_DIFFERENCE( &delay, &reqsent, &rcvon );
+				fd_msg_log( FD_MSG_LOG_TIMING, msg, "Answer received in %d.%06.6d sec.", delay.tv_sec, delay.tv_nsec / 1000 );
+			}
 		}
 		
 		if (cur_state == STATE_OPEN_NEW) {

@@ -127,7 +127,8 @@ struct msg {
 		}		 msg_cb;		/* Callback to be called when an answer is received, if not NULL */
 	DiamId_t		 msg_src_id;		/* Diameter Id of the peer this message was received from. This string is malloc'd and must be freed */
 	size_t			 msg_src_id_len;	/* cached length of this string */
-	struct timespec		 msg_ts;		/* Timestamp associated with the message */
+	struct timespec		 msg_ts_rcv;		/* Timestamp when this message was received from the network */
+	struct timespec		 msg_ts_sent;		/* Timestamp when this message was sent to the network */
 	
 };
 
@@ -677,12 +678,26 @@ int fd_msg_free ( msg_or_avp * object )
 static int obj_dump_msg (struct msg * msg, int indent, char **outstr, size_t *offset, size_t *outlen )
 {
 	int ret = 0;
+	char buftime[256];
+	size_t tsoffset = 0;
+	struct tm tm;
 	
 	CHECK_FCT( dump_add_str(outstr, offset, outlen, "%*sMSG: %p\n", INOBJHDRVAL, msg) );
 	
 	if (!CHECK_MSG(msg)) {
 		CHECK_FCT( dump_add_str(outstr, offset, outlen, INOBJHDR "INVALID!\n", INOBJHDRVAL) );
 		return 0;
+	}
+	
+	if ((msg->msg_ts_rcv.tv_sec != 0) || (msg->msg_ts_rcv.tv_nsec != 0)) {
+		tsoffset += strftime(buftime + tsoffset, sizeof(buftime) - tsoffset, "%D,%T", localtime_r( &msg->msg_ts_rcv.tv_sec , &tm ));
+		tsoffset += snprintf(buftime + tsoffset, sizeof(buftime) - tsoffset, ".%6.6ld", msg->msg_ts_rcv.tv_nsec / 1000);
+		CHECK_FCT( dump_add_str(outstr, offset, outlen, INOBJHDR "Received: %s\n", INOBJHDRVAL, buftime) );
+	}
+	if ((msg->msg_ts_sent.tv_sec != 0) || (msg->msg_ts_sent.tv_nsec != 0)) {
+		tsoffset += strftime(buftime + tsoffset, sizeof(buftime) - tsoffset, "%D,%T", localtime_r( &msg->msg_ts_sent.tv_sec , &tm ));
+		tsoffset += snprintf(buftime + tsoffset, sizeof(buftime) - tsoffset, ".%6.6ld", msg->msg_ts_sent.tv_nsec / 1000);
+		CHECK_FCT( dump_add_str(outstr, offset, outlen, INOBJHDR "Sent    : %s\n", INOBJHDRVAL, buftime) );
 	}
 	
 	if (!msg->msg_model) {
@@ -733,7 +748,7 @@ static int obj_dump_avp ( struct avp * avp, int indent, char **outstr, size_t *o
 	
 	if (!avp->avp_model) {
 		
-		CHECK_FCT( dump_add_str(outstr, offset, outlen, INOBJHDR "(no model)\n", INOBJHDRVAL) );
+		CHECK_FCT( dump_add_str(outstr, offset, outlen, INOBJHDR "(no model resolved)\n", INOBJHDRVAL) );
 		
 	} else {
 		
@@ -825,7 +840,7 @@ void fd_msg_dump_fstr ( struct msg * msg, FILE * fstr )
 	} while (ref);
 	
 	/* now really output this in one shot, so it is not interrupted */
-	fd_log_debug_fstr(fstr, "%s", outstr);
+	fd_log_debug_fstr(fstr, "%s\n", outstr);
 	
 	free(outstr);
 }
@@ -837,7 +852,7 @@ void fd_msg_dump_fstr_one ( struct msg * msg, FILE * fstr ) /* just the header *
 	CHECK_FCT_DO(  msg_dump_intern ( NONE, msg, 2, &outstr, &offset, &outlen ),
 				fd_log_debug_fstr(fstr, "Error while dumping %p\n", msg) );
 	/* now really output this in one shot, so it is not interrupted */
-	fd_log_debug_fstr(fstr, "%s", outstr);
+	fd_log_debug_fstr(fstr, "%s\n", outstr);
 	
 	free(outstr);
 }
@@ -1151,6 +1166,55 @@ int fd_msg_source_get( struct msg * msg, DiamId_t* diamid, size_t * diamidlen )
 	/* done */
 	return 0;
 }
+
+int fd_msg_ts_set_recv( struct msg * msg, struct timespec * ts )
+{
+	TRACE_ENTRY("%p %p", msg, ts);
+	
+	/* Check we received valid parameters */
+	CHECK_PARAMS( CHECK_MSG(msg) );
+	CHECK_PARAMS( ts );
+	
+	memcpy(&msg->msg_ts_rcv, ts, sizeof(struct timespec));
+	return 0;
+}
+
+int fd_msg_ts_get_recv( struct msg * msg, struct timespec * ts )
+{
+	TRACE_ENTRY("%p %p", msg, ts);
+	
+	/* Check we received valid parameters */
+	CHECK_PARAMS( CHECK_MSG(msg) );
+	CHECK_PARAMS( ts );
+	
+	memcpy(ts, &msg->msg_ts_rcv, sizeof(struct timespec));
+	return 0;
+}
+
+int fd_msg_ts_set_sent( struct msg * msg, struct timespec * ts )
+{
+	TRACE_ENTRY("%p %p", msg, ts);
+	
+	/* Check we received valid parameters */
+	CHECK_PARAMS( CHECK_MSG(msg) );
+	CHECK_PARAMS( ts );
+	
+	memcpy(&msg->msg_ts_sent, ts, sizeof(struct timespec));
+	return 0;
+}
+
+int fd_msg_ts_get_sent( struct msg * msg, struct timespec * ts )
+{
+	TRACE_ENTRY("%p %p", msg, ts);
+	
+	/* Check we received valid parameters */
+	CHECK_PARAMS( CHECK_MSG(msg) );
+	CHECK_PARAMS( ts );
+	
+	memcpy(ts, &msg->msg_ts_sent, sizeof(struct timespec));
+	return 0;
+}
+
 
 /* Retrieve the session of the message */
 int fd_msg_sess_get(struct dictionary * dict, struct msg * msg, struct session ** session, int * new)

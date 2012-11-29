@@ -165,6 +165,7 @@ void fd_msg_log( enum fd_msg_log_cause cause, struct msg * msg, const char * pre
 	/* Then dump the prefix message to this stream, & to debug stream */
 	(void)pthread_mutex_lock(&fd_log_lock);
 	pthread_cleanup_push(fd_cleanup_mutex_silent, &fd_log_lock);
+	fprintf( fstr, "\n");
 	va_start(ap, prefix_format);
 	vfprintf( fstr, prefix_format, ap);
 	va_end(ap);
@@ -172,7 +173,7 @@ void fd_msg_log( enum fd_msg_log_cause cause, struct msg * msg, const char * pre
 	pthread_cleanup_pop(0);
 	(void)pthread_mutex_unlock(&fd_log_lock);
 	
-	fd_log_debug_fstr(fstr, "\nLogged: %s\n\n", buftime);
+	fd_log_debug_fstr(fstr, "\n Logged: %s\n", buftime);
 	
 	/* And now the message itself */
 	if ((meth == FD_MSG_LOGTO_DEBUGONLY) && (fd_g_debug_lvl <= INFO)) {

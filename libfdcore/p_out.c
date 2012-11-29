@@ -44,6 +44,8 @@ static int do_send(struct msg ** msg, uint32_t flags, struct cnxctx * cnx, uint3
 	size_t sz;
 	int ret;
 	uint32_t bkp_hbh = 0;
+	struct timespec senton;
+	struct msg * cpy_for_logs_only;
 	
 	TRACE_ENTRY("%p %x %p %p %p", msg, flags, cnx, hbh, srl);
 	
@@ -63,12 +65,37 @@ static int do_send(struct msg ** msg, uint32_t flags, struct cnxctx * cnx, uint3
 	CHECK_FCT(fd_msg_bufferize( *msg, &buf, &sz ));
 	pthread_cleanup_push( free, buf );
 	
-	/* Log the message */
-	fd_msg_log( FD_MSG_LOG_SENT, *msg, "Sent to '%s'", fd_cnx_getid(cnx));
+	cpy_for_logs_only = *msg;
 	
 	/* Save a request before sending so that there is no race condition with the answer */
 	if (msg_is_a_req) {
 		CHECK_FCT_DO( ret = fd_p_sr_store(srl, msg, &hdr->msg_hbhid, bkp_hbh), goto out );
+	}
+	
+	CHECK_SYS_DO( clock_gettime(CLOCK_REALTIME, &senton), /* ... */ );
+	CHECK_FCT_DO( fd_msg_ts_set_sent(cpy_for_logs_only, &senton), /* ... */ );
+	
+	/* Log the message */
+	fd_msg_log( FD_MSG_LOG_SENT, cpy_for_logs_only, "Sent to '%s'", fd_cnx_getid(cnx));
+	
+	{
+		struct timespec rcvon, delay;
+		
+		(void) fd_msg_ts_get_recv(cpy_for_logs_only, &rcvon);
+		if (rcvon.tv_sec != 0 || rcvon.tv_nsec != 0) {
+			TS_DIFFERENCE( &delay, &rcvon, &senton);
+			fd_msg_log( FD_MSG_LOG_TIMING, cpy_for_logs_only, "Forwarded in %d.%06.6d sec", delay.tv_sec, delay.tv_nsec/1000);
+		} else { /* We log the answer time only for answers generated locally */
+			if (!msg_is_a_req) {
+				/* get the matching request */
+				struct msg * req;
+				struct timespec reqrcvon;
+				(void) fd_msg_answ_getq(cpy_for_logs_only, &req);
+				(void) fd_msg_ts_get_recv(req, &reqrcvon);
+				TS_DIFFERENCE( &delay, &reqrcvon, &senton);
+				fd_msg_log( FD_MSG_LOG_TIMING, cpy_for_logs_only, "Answered in %d.%06.6d sec", delay.tv_sec, delay.tv_nsec/1000);
+			}
+		}
 	}
 	
 	/* Send the message */
