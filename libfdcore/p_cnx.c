@@ -137,10 +137,10 @@ static int prepare_connection_list(struct fd_peer * peer)
 	/* Prepare the parameters */
 	if ((peer->p_hdr.info.config.pic_flags.sec != PI_SEC_DEFAULT) || (fd_g_config->cnf_flags.tls_alg)) {
 		dotls_immediate = 0;
-		port_no = htons(peer->p_hdr.info.config.pic_port ?: fd_g_config->cnf_port);
+		port_no = htons(peer->p_hdr.info.config.pic_port ?: DIAMETER_PORT);
 	} else {
 		dotls_immediate = 1;
-		port_no = htons(peer->p_hdr.info.config.pic_port ?: fd_g_config->cnf_port_tls);
+		port_no = htons(peer->p_hdr.info.config.pic_port ?: DIAMETER_SECURE_PORT);
 	}
 	
 	last_prio = &peer->p_connparams;

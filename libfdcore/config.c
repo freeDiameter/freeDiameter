@@ -55,8 +55,8 @@ int fd_conf_init()
 	fd_g_config->cnf_timer_tc = 30;
 	fd_g_config->cnf_timer_tw = 30;
 	
-	fd_g_config->cnf_port     = 3868;
-	fd_g_config->cnf_port_tls = 3869;
+	fd_g_config->cnf_port     = DIAMETER_PORT;
+	fd_g_config->cnf_port_tls = DIAMETER_SECURE_PORT;
 	fd_g_config->cnf_sctp_str = 30;
 	fd_g_config->cnf_dispthr  = 4;
 	fd_list_init(&fd_g_config->cnf_endpoints, NULL);
