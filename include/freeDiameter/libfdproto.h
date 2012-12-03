@@ -2235,7 +2235,7 @@ void fd_msg_dump_one  ( int level, msg_or_avp *obj );
  *   -
  */
 enum fd_msg_log_cause {
-	FD_MSG_LOG_DROPPED = 0,  /* message has been dropped by the framework */ 
+	FD_MSG_LOG_DROPPED = 1,  /* message has been dropped by the framework */ 
 	FD_MSG_LOG_RECEIVED,     /* message received from the network */ 
 	FD_MSG_LOG_SENT,         /* message sent to another peer */ 
 	FD_MSG_LOG_NODELIVER,    /* message could not be delivered to any peer */
