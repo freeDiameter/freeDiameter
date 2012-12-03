@@ -63,8 +63,8 @@ int fd_msg_log_config(enum fd_msg_log_cause cause, enum fd_msg_log_method method
 	/* Check the parameters are valid */
 	TRACE_ENTRY("%d %d %p", cause, method, arg);
 	CHECK_PARAMS( (cause >= 0) && (cause <= FD_MSG_LOG_MAX) );
-	CHECK_PARAMS( (method >= FD_MSG_LOGTO_DEBUGONLY) && (method <= FD_MSG_LOGTO_DIR) );
-	CHECK_PARAMS( (method == FD_MSG_LOGTO_DEBUGONLY) || (arg != NULL) );
+	CHECK_PARAMS( (method >= FD_MSG_LOGTO_NONE) && (method <= FD_MSG_LOGTO_DIR) );
+	CHECK_PARAMS( (method == FD_MSG_LOGTO_NONE) || (method == FD_MSG_LOGTO_DEBUGONLY) || (arg != NULL) );
 	
 	/* Lock the configuration */
 	CHECK_POSIX( pthread_mutex_lock(&ml_conf.lock) );
@@ -81,8 +81,12 @@ int fd_msg_log_config(enum fd_msg_log_cause cause, enum fd_msg_log_method method
 			(cause == FD_MSG_LOG_DROPPED) ? "DROPPED" :
 				(cause == FD_MSG_LOG_RECEIVED) ? "RECEIVED" :
 					(cause == FD_MSG_LOG_SENT) ? "SENT" :
+					(cause == FD_MSG_LOG_NODELIVER) ? "NODELIVER" :
+					(cause == FD_MSG_LOG_TIMING) ? "TIMING" :
 						"???",
-			(method == FD_MSG_LOGTO_FILE) ? "file" :
+			(method == FD_MSG_LOGTO_NONE) ? "none" :
+				(method == FD_MSG_LOGTO_DEBUGONLY) ? "debug" :
+				(method == FD_MSG_LOGTO_FILE) ? "file" :
 				(method == FD_MSG_LOGTO_DIR) ? "directory" :
 					"???",
 			arg);
@@ -129,8 +133,9 @@ void fd_msg_log( enum fd_msg_log_cause cause, struct msg * msg, const char * pre
 	metharg = ml_conf.causes[cause].metharg;
 	CHECK_POSIX_DO( pthread_mutex_unlock(&ml_conf.lock), );
 	
-	/* Do not log if the level is not at least INFO */
-	if ((meth == FD_MSG_LOGTO_DEBUGONLY) && (fd_g_debug_lvl < INFO)) {
+	/* Return now when loging is not requested */
+	if ((meth == FD_MSG_LOGTO_NONE) 
+	 || ((meth == FD_MSG_LOGTO_DEBUGONLY) && (fd_g_debug_lvl < INFO))) {
 		return;
 	}
 	
@@ -186,9 +191,6 @@ void fd_msg_log( enum fd_msg_log_cause cause, struct msg * msg, const char * pre
 	
 	/* And finally close the stream if needed */
 	switch (meth) {
-		case FD_MSG_LOGTO_DEBUGONLY:
-			break;
-			
 		case FD_MSG_LOGTO_FILE:
 			TODO("close?");
 			break;

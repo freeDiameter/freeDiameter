@@ -2246,7 +2246,8 @@ void fd_msg_log( enum fd_msg_log_cause cause, struct msg * msg, const char * pre
 
 /* configure the msg_log facility */
 enum fd_msg_log_method {
-	FD_MSG_LOGTO_DEBUGONLY = 0, /* Simply log the message with other debug information, at the INFO level. This is default */
+	FD_MSG_LOGTO_NONE = 0, /* The message is not dumped. This is the default. */
+	FD_MSG_LOGTO_DEBUGONLY, /* Simply log the message with other debug information, at the INFO level. */
 	FD_MSG_LOGTO_FILE,    /* Messages are dumped in a single file, defined in arg */
 	FD_MSG_LOGTO_DIR    /* Messages are dumped in different files within one directory defined in arg. */
 };
