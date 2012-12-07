@@ -170,7 +170,7 @@ static void main_help( void )
   		"  -c, --config=filename  Read configuration from this file instead of the \n"
 		"                           default location (" DEFAULT_CONF_PATH "/" FD_DEFAULT_CONF_FILENAME ").\n"
 		"  -M, --enable_msg_log=( DROPPED | RECEIVED | SENT | NODELIVER | TIMING )\n"
-		"                         Disable logging of these messages in the output.\n");
+		"                         Enable logging of these messages in the output.\n");
  	printf( "\nDebug:\n"
   		"  These options are mostly useful for developers\n"
   		"  -l, --dbglocale        Set the locale for error messages\n"
