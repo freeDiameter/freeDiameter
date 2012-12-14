@@ -1330,17 +1330,36 @@ struct dict_avp_data {
 enum {
 	AVP_BY_CODE = 50,	/* "what" points to an avp_code_t, vendor is always 0 */
 	AVP_BY_NAME,		/* "what" points to a char *, vendor is always 0 */
+	AVP_BY_NAME_ALL_VENDORS,/* "what" points to a string. Might be quite slow... */
+	AVP_BY_STRUCT,		/* "what" points to a struct dict_avp_request_ex (see bellow) */
+			
+	/* kept for backward compatibility, better use AVP_BY_STRUCT above instead */
 	AVP_BY_CODE_AND_VENDOR,	/* "what" points to a struct dict_avp_request (see bellow), where avp_vendor and avp_code are set */
-	AVP_BY_NAME_AND_VENDOR,	/* "what" points to a struct dict_avp_request (see bellow), where avp_vendor and avp_name are set */
-	AVP_BY_NAME_ALL_VENDORS /* "what" points to a string. Might be quite slow... */
+	AVP_BY_NAME_AND_VENDOR	/* "what" points to a struct dict_avp_request (see bellow), where avp_vendor and avp_name are set */
 };
 
 /* Struct used for some researchs */
+struct dict_avp_request_ex {
+	struct {
+		/* Only one of the following fields must be set. */
+		struct dict_object * 	vendor;		/* most efficient if already known, set to NULL to ignore */
+		vendor_id_t	 	vendor_id; 	/* set to 0 to ignore -- prefer AVP_BY_CODE or AVP_BY_NAME for vendor 0 */
+		char *			vendor_name;	/* set to NULL to ignore */
+	} avp_vendor;
+	
+	struct {
+		/* Only one of the following fields must be set */
+		avp_code_t	 avp_code; /* set to 0 to ignore */
+		char *		 avp_name; /* set to NULL to ignore */
+	} avp_data;
+};
+
 struct dict_avp_request {
 	vendor_id_t	 avp_vendor;
 	avp_code_t	 avp_code;
 	char *		 avp_name;
 };
+
 
 
 /***

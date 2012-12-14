@@ -1790,10 +1790,11 @@ static int parsedict_do_avp(struct dictionary * dict, struct avp * avp, int mand
 	
 	/* Now try and resolve the model from the avp code and vendor */
 	if (avp->avp_public.avp_flags & AVP_FLAG_VENDOR) {
-		struct dict_avp_request avpreq;
-		avpreq.avp_vendor = avp->avp_public.avp_vendor;
-		avpreq.avp_code = avp->avp_public.avp_code;
-		CHECK_FCT( fd_dict_search ( dict, DICT_AVP, AVP_BY_CODE_AND_VENDOR, &avpreq, &avp->avp_model, 0));
+		struct dict_avp_request_ex avpreq;
+		memset(&avpreq, 0, sizeof(avpreq));
+		avpreq.avp_vendor.vendor_id = avp->avp_public.avp_vendor;
+		avpreq.avp_data.avp_code = avp->avp_public.avp_code;
+		CHECK_FCT( fd_dict_search ( dict, DICT_AVP, AVP_BY_STRUCT, &avpreq, &avp->avp_model, 0));
 	} else {
 		/* no vendor */
 		CHECK_FCT( fd_dict_search ( dict, DICT_AVP, AVP_BY_CODE, &avp->avp_public.avp_code, &avp->avp_model, 0));

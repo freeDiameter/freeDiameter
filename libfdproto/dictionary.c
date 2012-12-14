@@ -976,6 +976,43 @@ static int search_avp ( struct dictionary * dict, int criteria, void * what, str
 			}
 			break;
 		
+		case AVP_BY_STRUCT:
+			{
+				struct dict_avp_request_ex * _what = (struct dict_avp_request_ex *) what;
+				struct dict_object * vendor = NULL;
+				
+				CHECK_PARAMS( _what->avp_vendor.vendor || _what->avp_vendor.vendor_id || _what->avp_vendor.vendor_name );
+				CHECK_PARAMS( _what->avp_data.avp_code || _what->avp_data.avp_name );
+				
+				/* Now look for the vendor first */
+				if (_what->avp_vendor.vendor) {
+					CHECK_PARAMS( ! _what->avp_vendor.vendor_id && ! _what->avp_vendor.vendor_name );
+					vendor = _what->avp_vendor.vendor;
+				} else if (_what->avp_vendor.vendor_id) {
+					CHECK_PARAMS( ! _what->avp_vendor.vendor_name );
+					CHECK_FCT( search_vendor( dict, VENDOR_BY_ID, &_what->avp_vendor.vendor_id, &vendor ) );
+				} else {
+					CHECK_FCT( search_vendor( dict, VENDOR_BY_NAME, &_what->avp_vendor.vendor_name, &vendor ) );
+				}
+				
+				if (vendor == NULL) {
+					if (result)
+						*result = NULL;
+					else
+						ret = ENOENT;
+					goto end;
+				}
+				
+				/* We now have our vendor = head of the appropriate avp list */
+				if (_what->avp_data.avp_code) {
+					CHECK_PARAMS( ! _what->avp_data.avp_name );
+					SEARCH_scalar( _what->avp_data.avp_code, &vendor->list[1], avp.avp_code, 1, (struct dict_object *)NULL );
+				} else {
+					SEARCH_os0( _what->avp_data.avp_name, &vendor->list[2], avp.avp_name, 1);
+				}
+			}
+			break;
+		
 		case AVP_BY_NAME_ALL_VENDORS:
 			{
 				struct fd_list * li;
