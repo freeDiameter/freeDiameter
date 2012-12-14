@@ -58,17 +58,10 @@ struct local_rules_definition {
 
 static int dict_dcca_3gpp_entry(char * conffile)
 {
-	struct dict_object * dcca;
 	TRACE_ENTRY("%p", conffile);		
 	
 	/* Applications section */
 	{		
-                /* DCCA */
-		{
-			struct dict_application_data data = {        4, "Diameter Credit Control Application" 			};
-			CHECK_dict_new( DICT_APPLICATION, &data, NULL, &dcca);
-		}
-                
                 /* Create the vendors */
                 {
                         struct dict_vendor_data vendor_data = { 10415, "3GPP" };
@@ -845,4 +838,4 @@ static int dict_dcca_3gpp_entry(char * conffile)
 	return 0;
 }
 
-EXTENSION_ENTRY("dict_dcca_3gpp", dict_dcca_3gpp_entry);
+EXTENSION_ENTRY("dict_dcca_3gpp", dict_dcca_3gpp_entry, "dict_dcca");
