@@ -57,6 +57,10 @@
 #ifndef _LIBFDPROTO_H
 #define _LIBFDPROTO_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #ifndef FD_IS_CONFIG
 #error "You must include 'freeDiameter-host.h' before this file."
 #endif /* FD_IS_CONFIG */
@@ -145,7 +149,7 @@ extern char * fd_debug_one_file;
  * RETURN VALUE:
  *  None.
  */
-void fd_log_threadname ( char * name );
+void fd_log_threadname ( const char * name );
 extern pthread_key_t	fd_log_thname;
 
 /*
@@ -3055,5 +3059,9 @@ int fd_fifo_timedget_int ( struct fifo * queue, void ** item, const struct times
 
 /* Dump a fifo list and optionally its inner elements -- beware of deadlocks! */
 void fd_fifo_dump(int level, char * name, struct fifo * queue, void (*dump_item)(int level, void * item));
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* _LIBFDPROTO_H */

@@ -37,6 +37,10 @@
 #ifndef FD_IS_CONFIG
 #define FD_IS_CONFIG
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #cmakedefine HAVE_NTOHLL
 #cmakedefine HAVE_MALLOC_H
 #cmakedefine HAVE_SIGNALENT_H
@@ -87,5 +91,9 @@
 #ifndef FD_DEFAULT_CONF_FILENAME
 #define FD_DEFAULT_CONF_FILENAME "freeDiameter.conf"
 #endif /* FD_DEFAULT_CONF_FILENAME */
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* FD_IS_CONFIG */

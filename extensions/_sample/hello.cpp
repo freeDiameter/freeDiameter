@@ -36,10 +36,8 @@
 /* Sample file demonstrating how to write some C++ code */
 
 #include <iostream>
-extern "C" {
-   #include <freeDiameter/extension.h>
-   
-}
+
+#include <freeDiameter/extension.h>
 
 extern "C" void mycppfunc(); /* will be called from C code */
 

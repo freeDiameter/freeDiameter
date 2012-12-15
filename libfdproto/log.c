@@ -107,7 +107,7 @@ void fd_log_debug_fstr ( FILE * fstr, const char * format, ... )
 }
 
 /* Function to set the thread's friendly name */
-void fd_log_threadname ( char * name )
+void fd_log_threadname ( const char * name )
 {
 	void * val = NULL;
 	
@@ -117,7 +117,7 @@ void fd_log_threadname ( char * name )
 	val = pthread_getspecific(fd_log_thname);
 	if (TRACE_BOOL(ANNOYING)) {
 		if (val) {
-			fd_log_debug("(Thread '%s' renamed to '%s')\n", (char *)val, name);
+			fd_log_debug("(Thread '%s' renamed to '%s')\n", (char *)val, name?:"(nil)");
 		} else {
 			fd_log_debug("(Thread %p named '%s')\n", pthread_self(), name?:"(nil)");
 		}

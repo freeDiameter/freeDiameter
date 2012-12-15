@@ -36,6 +36,10 @@
 #ifndef _EXTENSION_H
 #define _EXTENSION_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /* Include definition of freeDiameter API */
 #include <freeDiameter/freeDiameter-host.h>
 #include <freeDiameter/libfdcore.h>
@@ -60,5 +64,9 @@ int fd_ext_init(int major, int minor, char * conffile) {				\
 	extension_loaded++;								\
 	return (_function)(conffile);							\
 }														
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* _EXTENSION_H */
