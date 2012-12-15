@@ -992,7 +992,7 @@ static int search_avp ( struct dictionary * dict, int criteria, void * what, str
 					CHECK_PARAMS( ! _what->avp_vendor.vendor_name );
 					CHECK_FCT( search_vendor( dict, VENDOR_BY_ID, &_what->avp_vendor.vendor_id, &vendor ) );
 				} else {
-					CHECK_FCT( search_vendor( dict, VENDOR_BY_NAME, &_what->avp_vendor.vendor_name, &vendor ) );
+					CHECK_FCT( search_vendor( dict, VENDOR_BY_NAME, _what->avp_vendor.vendor_name, &vendor ) );
 				}
 				
 				if (vendor == NULL) {
