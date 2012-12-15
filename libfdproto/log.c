@@ -59,7 +59,7 @@ int fd_log_handler_register( void (*logger)(const char * format, va_list *args))
 
         if ( fd_external_logger != NULL )
         {
-               return EALREADY; /* only one registeration allowed */
+               return EALREADY; /* only one registration allowed */
         }
         else
         {
