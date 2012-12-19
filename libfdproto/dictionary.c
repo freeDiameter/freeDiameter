@@ -155,13 +155,13 @@ static void dump_command_data 	  ( void * data );
 static void dump_rule_data 	  ( void * data );
 
 /* Forward declarations of search functions */
-static int search_vendor 	( struct dictionary * dict, int criteria, void * what, struct dict_object **result );
-static int search_application   ( struct dictionary * dict, int criteria, void * what, struct dict_object **result );
-static int search_type 		( struct dictionary * dict, int criteria, void * what, struct dict_object **result );
-static int search_enumval 	( struct dictionary * dict, int criteria, void * what, struct dict_object **result );
-static int search_avp		( struct dictionary * dict, int criteria, void * what, struct dict_object **result );
-static int search_cmd		( struct dictionary * dict, int criteria, void * what, struct dict_object **result );
-static int search_rule		( struct dictionary * dict, int criteria, void * what, struct dict_object **result );
+static int search_vendor 	( struct dictionary * dict, int criteria, const void * what, struct dict_object **result );
+static int search_application   ( struct dictionary * dict, int criteria, const void * what, struct dict_object **result );
+static int search_type 		( struct dictionary * dict, int criteria, const void * what, struct dict_object **result );
+static int search_enumval 	( struct dictionary * dict, int criteria, const void * what, struct dict_object **result );
+static int search_avp		( struct dictionary * dict, int criteria, const void * what, struct dict_object **result );
+static int search_cmd		( struct dictionary * dict, int criteria, const void * what, struct dict_object **result );
+static int search_rule		( struct dictionary * dict, int criteria, const void * what, struct dict_object **result );
 
 /* The following array contains lot of data about the different types of objects, for automated handling */
 static struct {
@@ -172,7 +172,7 @@ static struct {
 	enum dict_object_type	parenttype;	/* The type of the parent, when relevant */
 	int			eyecatcher;	/* A kind of signature for this object */
 	void 		      (*dump_data)(void * data );	/* The function to dump the data section */
-	int 		      (*search_fct)(struct dictionary * dict, int criteria, void * what, struct dict_object **result );;	/* The function to search an object of this type */
+	int 		      (*search_fct)(struct dictionary * dict, int criteria, const void * what, struct dict_object **result );;	/* The function to search an object of this type */
 	int			haslist[NB_LISTS_PER_OBJ];	/* Tell if this list is used */
 } dict_obj_info[] = { { 0, "(error)", 0, 0, 0, 0, NULL, NULL, {0, 0, 0} }
 
@@ -723,7 +723,7 @@ in the local context where they are called. They are meant to be called only fro
 		ret = ENOENT;							\
 }
 
-static int search_vendor ( struct dictionary * dict, int criteria, void * what, struct dict_object **result )
+static int search_vendor ( struct dictionary * dict, int criteria, const void * what, struct dict_object **result )
 {
 	int ret = 0;
 	vendor_id_t id;
@@ -754,7 +754,7 @@ end:
 	return ret;
 }
 
-static int search_application ( struct dictionary * dict, int criteria, void * what, struct dict_object **result )
+static int search_application ( struct dictionary * dict, int criteria, const void * what, struct dict_object **result )
 {
 	int ret = 0;
 	application_id_t id;
@@ -791,7 +791,7 @@ end:
 	return ret;
 }
 
-static int search_type ( struct dictionary * dict, int criteria, void * what, struct dict_object **result )
+static int search_type ( struct dictionary * dict, int criteria, const void * what, struct dict_object **result )
 {
 	int ret = 0;
 	
@@ -822,7 +822,7 @@ end:
 	return ret;
 }
 
-static int search_enumval ( struct dictionary * dict, int criteria, void * what, struct dict_object **result )
+static int search_enumval ( struct dictionary * dict, int criteria, const void * what, struct dict_object **result )
 {
 	int ret = 0;
 	
@@ -927,7 +927,7 @@ end:
 	return ret;
 }
 
-static int search_avp ( struct dictionary * dict, int criteria, void * what, struct dict_object **result )
+static int search_avp ( struct dictionary * dict, int criteria, const void * what, struct dict_object **result )
 {
 	int ret = 0;
 	
@@ -1036,7 +1036,7 @@ end:
 	return ret;
 }
 
-static int search_cmd ( struct dictionary * dict, int criteria, void * what, struct dict_object **result )
+static int search_cmd ( struct dictionary * dict, int criteria, const void * what, struct dict_object **result )
 {
 	int ret = 0;
 	
@@ -1109,7 +1109,7 @@ end:
 	return ret;
 }
 
-static int search_rule ( struct dictionary * dict, int criteria, void * what, struct dict_object **result )
+static int search_rule ( struct dictionary * dict, int criteria, const void * what, struct dict_object **result )
 {
 	int ret = 0;
 	
@@ -1922,7 +1922,7 @@ int fd_dict_delete(struct dict_object * obj)
 }
 
 
-int fd_dict_search ( struct dictionary * dict, enum dict_object_type type, int criteria, void * what, struct dict_object **result, int retval )
+int fd_dict_search ( struct dictionary * dict, enum dict_object_type type, int criteria, const void * what, struct dict_object **result, int retval )
 {
 	int ret = 0;
 	

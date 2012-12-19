@@ -888,7 +888,7 @@ int fd_dict_new ( struct dictionary * dict, enum dict_object_type type, void * d
  *  EINVAL 	: A parameter is invalid.
  *  ENOENT	: No matching object has been found, and result was NULL.
  */
-int fd_dict_search ( struct dictionary * dict, enum dict_object_type type, int criteria, void * what, struct dict_object ** result, int retval );
+int fd_dict_search ( struct dictionary * dict, enum dict_object_type type, int criteria, const void * what, struct dict_object ** result, int retval );
 
 /* Special case: get the generic error command object */
 int fd_dict_get_error_cmd(struct dictionary * dict, struct dict_object ** obj);
@@ -1348,13 +1348,13 @@ struct dict_avp_request_ex {
 		/* Only one of the following fields must be set. */
 		struct dict_object * 	vendor;		/* most efficient if already known, set to NULL to ignore */
 		vendor_id_t	 	vendor_id; 	/* set to 0 to ignore -- prefer AVP_BY_CODE or AVP_BY_NAME for vendor 0 */
-		char *			vendor_name;	/* set to NULL to ignore */
+		const char *			vendor_name;	/* set to NULL to ignore */
 	} avp_vendor;
 	
 	struct {
 		/* Only one of the following fields must be set */
 		avp_code_t	 avp_code; /* set to 0 to ignore */
-		char *		 avp_name; /* set to NULL to ignore */
+		const char *		 avp_name; /* set to NULL to ignore */
 	} avp_data;
 };
 
