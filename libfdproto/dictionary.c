@@ -642,7 +642,7 @@ in the local context where they are called. They are meant to be called only fro
 		ret = ENOENT;							\
 }
 
-/* For search of AVP name in rule lists. */
+/* For search of AVP name in rule lists -- the list is not ordered by AVP names! */
 #define SEARCH_ruleavpname( str, strlen, sentinel ) {				\
 	char * __str = (char *) (str);						\
 	size_t __strlen = (size_t) (strlen);					\
@@ -658,8 +658,6 @@ in the local context where they are called. They are meant to be called only fro
 				*result = _O(__li->o);				\
 			goto end;						\
 		}								\
-		if (__cmp < 0)							\
-			break;							\
 	}									\
 	if (result)								\
 		*result = NULL;							\
