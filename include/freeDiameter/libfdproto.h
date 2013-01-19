@@ -109,24 +109,25 @@ void fd_libproto_fini(void);
 
 
 /*
- * FUNCTION:	fd_log_debug_fstr
+ * FUNCTION:	fd_log
  * MACRO:	fd_log_debug
  *
  * PARAMETERS:
- *  fstr	: Stream where the text will be sent (default: stdout) 
+ *  loglevel	: Integer, how important the message is
  *  format 	: Same format string as in the printf function
  *  ...		: Same list as printf
  *
  * DESCRIPTION: 
- *  Log internal information for use of developpers only.
+ * Write information to log.
  * The format and arguments may contain UTF-8 encoded data. The
- * output medium (file or console) is expected to support this encoding.
+ * output medium is expected to support this encoding.
  *
  * RETURN VALUE:
  *  None.
  */
-void fd_log_debug_fstr ( FILE * fstr, const char * format, ... );
-#define fd_log_debug(format,args...) fd_log_debug_fstr(NULL, format, ## args)
+void fd_log ( int, const char *, ... );
+#define fd_log_debug(format,args...) fd_log(FD_LOG_DEBUG, format, ## args)
+void fd_log_debug_fstr( FILE *, const char *, ... );
 
 /* these are internal objects of the debug facility, 
 might be useful to control the behavior from outside */
@@ -173,7 +174,7 @@ char * fd_log_time ( struct timespec * ts, char * buf, size_t len );
  * MACRO:
  *
  * PARAMETERS:
- *  fstr        : Stream where the text will be sent to (default: stdout)
+ *  loglevel    : priority of the message
  *  format      : Same format string as in the printf function
  *  va_list     : Argument list
  *
@@ -183,7 +184,7 @@ char * fd_log_time ( struct timespec * ts, char * buf, size_t len );
  * RETURN VALUE:
  * int          : Success or failure
  */
-int fd_log_handler_register ( void (*logger)(const char * format, va_list *args) );
+int fd_log_handler_register ( void (*logger)(int loglevel, const char * format, va_list args) );
 
 /*
  * FUNCTION:    fd_log_handler_unregister
@@ -208,7 +209,11 @@ int fd_log_handler_unregister ( void );
 #define ASSERT(x) assert(x)
 #endif /* ASSERT */
 
-/* levels definitions */
+/* log levels definitions */
+#define FD_LOG_DEBUG 0
+#define FD_LOG_ERROR 5
+
+/* print level definitions */
 #define NONE 0	/* Display no debug message */
 #define INFO 1	/* Display errors only */
 #define FULL 2  /* Display additional information to follow code execution */
@@ -263,8 +268,8 @@ static char * file_bname = NULL;
 	if ( TRACE_BOOL(level) ) {												\
 		char __buf[25];													\
 		const char * __thn = ((char *)pthread_getspecific(fd_log_thname) ?: "unnamed");					\
-		fd_log_debug("\t | tid:%-20s\t%s\tin %s@%s:%d\n"								\
-			  "\t%s|%*s" format "\n",  										\
+		fd_log(level, "\t | tid:%-20s\t%s\tin %s@%s:%d\n"  \
+			  "\t%s|%*s" format,  										\
 					__thn, fd_log_time(NULL, __buf, sizeof(__buf)), __PRETTY_FUNCTION__, __FILE__, __LINE__,\
 					(level < FULL)?"@":" ",level, "", ## args); 						\
 	}															\
@@ -276,12 +281,12 @@ static char * file_bname = NULL;
 		if (fd_g_debug_lvl > FULL) {												\
 			char __buf[25];													\
 			const char * __thn = ((char *)pthread_getspecific(fd_log_thname) ?: "unnamed");					\
-			fd_log_debug("\t | tid:%-20s\t%s\tin %s@%s:%d\n"								\
-				  "\t%s|%*s" format "\n",  										\
+			fd_log(level, "\t | tid:%-20s\t%s\tin %s@%s:%d\n" \
+				  "\t%s|%*s" format,  										\
 						__thn, fd_log_time(NULL, __buf, sizeof(__buf)), __PRETTY_FUNCTION__, __FILE__, __LINE__,\
 						(level < FULL)?"@":" ",level, "", ## args); 						\
 		} else {														\
-			fd_log_debug(format "\n", ## args); 										\
+			fd_log(level, format, ## args);           \
 		}															\
 	}																\
 }
@@ -320,14 +325,14 @@ int fd_breakhere(void);
 		size_t __sz = (size_t)(bufsz);											\
 		uint8_t * __buf = (uint8_t *)(buf);										\
 		char * __thn = ((char *)pthread_getspecific(fd_log_thname) ?: "unnamed");					\
-		fd_log_debug("\t | tid:%-20s\t%s\tin %s@%s:%d\n"								\
+		fd_log(level, "\t | tid:%-20s\t%s\tin %s@%s:%d\n"  \
 			  "\t%s|%*s" prefix ,  											\
 					__thn, fd_log_time(NULL, __ts, sizeof(__ts)), __PRETTY_FUNCTION__, __FILE__, __LINE__,	\
 					(level < FULL)?"@":" ",level, ""); 							\
 		for (__i = 0; __i < __sz; __i++) {										\
-			fd_log_debug("%02.2hhx", __buf[__i]);									\
+			fd_log(level, "%02.2hhx", __buf[__i]);         \
 		}														\
-		fd_log_debug(suffix "\n");											\
+		fd_log(level, suffix);                        \
 	}															\
 }
 
@@ -356,11 +361,11 @@ int fd_breakhere(void);
 			0,					\
 			flag);					\
 	  if (__rc)						\
-	  	fd_log_debug("%s", (char *)gai_strerror(__rc));	\
+		fd_log_debug("%s", (char *)gai_strerror(__rc));	\
 	  else							\
-	  	fd_log_debug("%s", &__addrbuf[0]);		\
+		fd_log_debug("%s", &__addrbuf[0]);		\
 	} else {						\
-		fd_log_debug("(NULL / ANY)");			\
+		fd_log_debug("(NULL / ANY)");                   \
 	}							\
 }
 /* Same but with the port (service) also */
@@ -377,9 +382,9 @@ int fd_breakhere(void);
 			sizeof(__servbuf),				\
 			flag);						\
 	  if (__rc)							\
-	  	fd_log_debug("%s", (char *)gai_strerror(__rc));		\
+		fd_log_debug("%s", (char *)gai_strerror(__rc));		\
 	  else								\
-	  	fd_log_debug("[%s]:%s", &__addrbuf[0],&__servbuf[0]);	\
+		fd_log_debug("[%s]:%s", &__addrbuf[0],&__servbuf[0]);	\
 	} else {							\
 		fd_log_debug("(NULL / ANY)");				\
 	}								\
@@ -390,12 +395,12 @@ int fd_breakhere(void);
 	if ( TRACE_BOOL(level) ) {												\
 		char __buf[25];													\
 		char * __thn = ((char *)pthread_getspecific(fd_log_thname) ?: "unnamed");					\
-		fd_log_debug("\t | tid:%-20s\t%s\tin %s@%s:%d\n"								\
+		fd_log(level, "\t | tid:%-20s\t%s\tin %s@%s:%d\n"  \
 			  "\t%s|%*s" prefix ,  											\
 					__thn, fd_log_time(NULL, __buf, sizeof(__buf)), __PRETTY_FUNCTION__, __FILE__, __LINE__,\
 					(level < FULL)?"@":" ",level, ""); 							\
 		sSA_DUMP_NODE_SERV( sa, flags );										\
-		fd_log_debug(suffix "\n");											\
+		fd_log(level, suffix);                        \
 	}															\
 }
 
@@ -417,7 +422,7 @@ int fd_breakhere(void);
 #define TRACE_DEBUG_BUFFER(level, prefix, buf, bufsz, suffix )
 #define TRACE_DEBUG_sSA(level, prefix, sa, flags, suffix )
 #define TRACE_DEBUG_ERROR(format,args... ) {	\
-	fd_log_debug(format "\n", ## args); 	\
+	fd_log(FD_LOG_ERROR, format, ## args); 	\
 }
 #endif /* STRIP_DEBUG_CODE */
 
