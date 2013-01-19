@@ -94,11 +94,11 @@ int fd_ext_term(void);
 
 /* Messages */
 int fd_msg_init(void);
-struct dict_object * fd_dict_avp_OSI; /* Origin-State-Id */
-struct dict_object * fd_dict_cmd_CER; /* Capabilities-Exchange-Request */
-struct dict_object * fd_dict_cmd_DWR; /* Device-Watchdog-Request */
-struct dict_object * fd_dict_avp_DC;  /* Disconnect-Cause */
-struct dict_object * fd_dict_cmd_DPR; /* Disconnect-Peer-Request */
+extern struct dict_object * fd_dict_avp_OSI; /* Origin-State-Id */
+extern struct dict_object * fd_dict_cmd_CER; /* Capabilities-Exchange-Request */
+extern struct dict_object * fd_dict_cmd_DWR; /* Device-Watchdog-Request */
+extern struct dict_object * fd_dict_avp_DC;  /* Disconnect-Cause */
+extern struct dict_object * fd_dict_cmd_DPR; /* Disconnect-Peer-Request */
 
 /* Global message queues */
 extern struct fifo * fd_g_incoming; /* all messages received from other peers, except local messages (CER, ...) */

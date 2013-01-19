@@ -48,7 +48,7 @@ int fd_sess_init(void);
 void fd_sess_fini(void);
 
 /* Where debug messages are sent */
-FILE * fd_g_debug_fstr;
+extern FILE * fd_g_debug_fstr;
 
 /* Special message dump function */
 void fd_msg_dump_fstr_one ( struct msg * msg, FILE * fstr );
