@@ -160,6 +160,7 @@ void fd_msg_log( enum fd_msg_log_cause cause, struct msg * msg, const char * pre
 			TODO("Log to arg directory in a new file");
 			TODO("Log a note to debug stream");
 			break;
+		default:
 	}
 	
 	/* For file methods, let's parse the message so it looks better */
@@ -197,6 +198,7 @@ void fd_msg_log( enum fd_msg_log_cause cause, struct msg * msg, const char * pre
 		case FD_MSG_LOGTO_DIR:
 			TODO("close?");
 			break;
+		default:
 	}
 }
 

@@ -542,7 +542,7 @@ int fd_peer_handle_newCER( struct msg ** cer, struct cnxctx ** cnx )
 	
 	/* Send the new connection event to the PSM */
 	CHECK_MALLOC_DO( ev_data = malloc(sizeof(struct cnx_incoming)), { ret = ENOMEM; goto out; } );
-	memset(ev_data, 0, sizeof(ev_data));
+	memset(ev_data, 0, sizeof(*ev_data));
 	
 	ev_data->cer = msg;
 	ev_data->cnx = *cnx;
