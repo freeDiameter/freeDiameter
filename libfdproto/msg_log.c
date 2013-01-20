@@ -161,6 +161,7 @@ void fd_msg_log( enum fd_msg_log_cause cause, struct msg * msg, const char * pre
 			TODO("Log a note to debug stream");
 			break;
 		default:
+			break;
 	}
 	
 	/* For file methods, let's parse the message so it looks better */
@@ -199,6 +200,7 @@ void fd_msg_log( enum fd_msg_log_cause cause, struct msg * msg, const char * pre
 			TODO("close?");
 			break;
 		default:
+			break;
 	}
 }
 
