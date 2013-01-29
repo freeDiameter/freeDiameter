@@ -283,7 +283,7 @@ int fd_msg_rescode_set( struct msg * msg, char * rescode, char * errormsg, struc
 		if (set_e_bit)
 			hdr->msg_flags |= CMD_FLAG_ERROR;
 		else
-			hdr->msg_flags &= ! CMD_FLAG_ERROR;
+			hdr->msg_flags &= ~ CMD_FLAG_ERROR;
 	}
 	
 	if (std_err_msg || errormsg) {
