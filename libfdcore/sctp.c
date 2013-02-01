@@ -1086,7 +1086,7 @@ int fd_sctp_recvmeta(struct cnxctx * conn, uint16_t * strid, uint8_t ** buf, siz
 	
 	/* We will loop while all data is not received. */
 incomplete:
-	if (datasize + sizeof(struct timespec) >= bufsz ) {
+	while (datasize + sizeof(struct timespec) >= bufsz ) {
 		/* The buffer is full, enlarge it */
 		bufsz += mempagesz;
 		CHECK_MALLOC( data = realloc(data, bufsz ) );
