@@ -105,7 +105,7 @@ struct avp {
 /* Macro to cast a msg_avp_t */
 #define _A(_x) ((struct avp *)(_x))
 /* Check the type and eyecatcher */
-#define CHECK_AVP(_x) ((_C(_x)->type == MSG_AVP) && (_A(_x)->avp_eyec == MSG_AVP_EYEC))
+#define CHECK_AVP(_x) ((_x) && (_C(_x)->type == MSG_AVP) && (_A(_x)->avp_eyec == MSG_AVP_EYEC))
 
 /* The following structure represents an instance of a message (command and children AVPs). */
 struct msg {
