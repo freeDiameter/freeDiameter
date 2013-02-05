@@ -238,7 +238,7 @@ int fd_msg_avp_new ( struct dict_object * model, int flags, struct avp ** avp )
 		new->avp_rawlen = (*avp)->avp_public.avp_len - GETAVPHDRSZ( (*avp)->avp_public.avp_flags );
 		if (new->avp_rawlen) {
 			CHECK_MALLOC(  new->avp_rawdata = malloc(new->avp_rawlen)  );
-			memset(new->avp_rawdata, 0xFF, new->avp_rawlen);
+			memset(new->avp_rawdata, 0x00, new->avp_rawlen);
 		}
 	}
 	
