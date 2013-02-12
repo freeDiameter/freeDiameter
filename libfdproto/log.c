@@ -88,11 +88,17 @@ static void fd_cleanup_mutex_silent( void * mutex )
 
 static void fd_internal_logger( int loglevel, const char *format, va_list ap )
 {
+    char buf[25];
     FILE *fstr = fd_g_debug_fstr ?: stdout;
 
     /* logging has been decided by macros outside already */
-    vfprintf( fd_g_debug_fstr, format, ap);
-    fprintf(fd_g_debug_fstr, "\n");
+
+    /* add timestamp */
+    fprintf(fd_g_debug_fstr, "%s\t", fd_log_time(NULL, buf, sizeof(buf)));
+    vfprintf(fd_g_debug_fstr, format, ap);
+    if (format && (format[strlen(format)-1] != '\n')) {
+        fprintf(fd_g_debug_fstr, "\n");
+    }
     fflush(fd_g_debug_fstr);
 }
 
