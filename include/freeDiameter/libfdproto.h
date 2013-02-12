@@ -259,6 +259,7 @@ static char * file_bname = NULL;
 #endif /* DEBUG */
 
 
+#define STD_TRACE_FMT_STRING "thread %s in %s@%s:%d: "
 /*************
  The general debug macro, each call results in two lines of debug messages (change the macro for more compact output) 
  *************/
@@ -266,12 +267,9 @@ static char * file_bname = NULL;
 /* In DEBUG mode, we add (a lot of) meta-information along each trace. This makes multi-threading problems easier to debug. */
 #define TRACE_DEBUG(level,format,args... ) {											\
 	if ( TRACE_BOOL(level) ) {												\
-		char __buf[25];													\
 		const char * __thn = ((char *)pthread_getspecific(fd_log_thname) ?: "unnamed");					\
-		fd_log(level, "\t | tid:%-20s\t%s\tin %s@%s:%d\n"  \
-			  "\t%s|%*s" format,  										\
-					__thn, fd_log_time(NULL, __buf, sizeof(__buf)), __PRETTY_FUNCTION__, __FILE__, __LINE__,\
-					(level < FULL)?"@":" ",level, "", ## args); 						\
+		fd_log(level, STD_TRACE_FMT_STRING format, \
+					__thn, __PRETTY_FUNCTION__, __FILE__, __LINE__, ## args); 						\
 	}															\
 }
 #else /* DEBUG */
@@ -279,12 +277,9 @@ static char * file_bname = NULL;
 #define TRACE_DEBUG(level,format,args... ) {												\
 	if ( TRACE_BOOL(level) ) {													\
 		if (fd_g_debug_lvl > FULL) {												\
-			char __buf[25];													\
 			const char * __thn = ((char *)pthread_getspecific(fd_log_thname) ?: "unnamed");					\
-			fd_log(level, "\t | tid:%-20s\t%s\tin %s@%s:%d\n" \
-				  "\t%s|%*s" format,  										\
-						__thn, fd_log_time(NULL, __buf, sizeof(__buf)), __PRETTY_FUNCTION__, __FILE__, __LINE__,\
-						(level < FULL)?"@":" ",level, "", ## args); 						\
+                        fd_log(level, STD_TRACE_FMT_STRING format,      \
+                               __thn, __PRETTY_FUNCTION__, __FILE__, __LINE__, ## args);  \
 		} else {														\
 			fd_log(level, format, ## args);           \
 		}															\
@@ -320,15 +315,12 @@ int fd_breakhere(void);
 /* Trace a binary buffer content */
 #define TRACE_DEBUG_BUFFER(level, prefix, buf, bufsz, suffix ) {								\
 	if ( TRACE_BOOL(level) ) {												\
-		char __ts[25];													\
 		int __i;													\
 		size_t __sz = (size_t)(bufsz);											\
 		uint8_t * __buf = (uint8_t *)(buf);										\
 		char * __thn = ((char *)pthread_getspecific(fd_log_thname) ?: "unnamed");					\
-		fd_log(level, "\t | tid:%-20s\t%s\tin %s@%s:%d\n"  \
-			  "\t%s|%*s" prefix ,  											\
-					__thn, fd_log_time(NULL, __ts, sizeof(__ts)), __PRETTY_FUNCTION__, __FILE__, __LINE__,	\
-					(level < FULL)?"@":" ",level, ""); 							\
+                fd_log(level, STD_TRACE_FMT_STRING prefix,              \
+                       __thn, __PRETTY_FUNCTION__, __FILE__, __LINE__);	\
 		for (__i = 0; __i < __sz; __i++) {										\
 			fd_log(level, "%02.2hhx", __buf[__i]);         \
 		}														\
@@ -349,7 +341,7 @@ int fd_breakhere(void);
 					0 ) ) )
 
 /* Dump one sockaddr Node information */
-#define sSA_DUMP_NODE( sa, flag ) {				\
+#define sSA_DUMP_NODE( buf, bufsize, sa, flag ) {                \
 	sSA * __sa = (sSA *)(sa);				\
 	char __addrbuf[INET6_ADDRSTRLEN];			\
 	if (__sa) {						\
@@ -361,15 +353,15 @@ int fd_breakhere(void);
 			0,					\
 			flag);					\
 	  if (__rc)						\
-		fd_log_debug("%s", (char *)gai_strerror(__rc));	\
+		snprintf(buf, bufsize, "%s", gai_strerror(__rc));	\
 	  else							\
-		fd_log_debug("%s", &__addrbuf[0]);		\
+		snprintf(buf, bufsize, "%s", &__addrbuf[0]);       \
 	} else {						\
-		fd_log_debug("(NULL / ANY)");                   \
+		snprintf(buf, bufsize, "(NULL / ANY)");             \
 	}							\
 }
 /* Same but with the port (service) also */
-#define sSA_DUMP_NODE_SERV( sa, flag ) {				\
+#define sSA_DUMP_NODE_SERV( buf, bufsize, sa, flag ) {                  \
 	sSA * __sa = (sSA *)(sa);					\
 	char __addrbuf[INET6_ADDRSTRLEN];				\
 	char __servbuf[32];						\
@@ -382,25 +374,22 @@ int fd_breakhere(void);
 			sizeof(__servbuf),				\
 			flag);						\
 	  if (__rc)							\
-		fd_log_debug("%s", (char *)gai_strerror(__rc));		\
+		snprintf(buf, bufsize, "%s", gai_strerror(__rc));  \
 	  else								\
-		fd_log_debug("[%s]:%s", &__addrbuf[0],&__servbuf[0]);	\
+		snprintf(buf, bufsize, "[%s]:%s", &__addrbuf[0],&__servbuf[0]); \
 	} else {							\
-		fd_log_debug("(NULL / ANY)");				\
+		snprintf(buf, bufsize,"(NULL / ANY)");         \
 	}								\
 }
 
 /* Inside a debug trace */
 #define TRACE_DEBUG_sSA(level, prefix, sa, flags, suffix ) {										\
 	if ( TRACE_BOOL(level) ) {												\
-		char __buf[25];													\
+		char buf[1024]; \
 		char * __thn = ((char *)pthread_getspecific(fd_log_thname) ?: "unnamed");					\
-		fd_log(level, "\t | tid:%-20s\t%s\tin %s@%s:%d\n"  \
-			  "\t%s|%*s" prefix ,  											\
-					__thn, fd_log_time(NULL, __buf, sizeof(__buf)), __PRETTY_FUNCTION__, __FILE__, __LINE__,\
-					(level < FULL)?"@":" ",level, ""); 							\
-		sSA_DUMP_NODE_SERV( sa, flags );										\
-		fd_log(level, suffix);                        \
+		sSA_DUMP_NODE_SERV(buf, sizeof(buf), sa, flags );       \
+		fd_log(level, STD_TRACE_FMT_STRING "%s%s%s",              \
+                       __thn, __PRETTY_FUNCTION__, __FILE__, __LINE__, prefix, buf, suffix); \
 	}															\
 }
 

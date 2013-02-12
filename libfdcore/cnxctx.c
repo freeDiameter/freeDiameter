@@ -228,9 +228,9 @@ struct cnxctx * fd_cnx_serv_accept(struct cnxctx * serv)
 	CHECK_SYS_DO( cli_sock = accept(serv->cc_socket, (sSA *)&ss, &ss_len), return NULL );
 	
 	if (TRACE_BOOL(INFO)) {
-		fd_log_debug("%s : accepted new client [", fd_cnx_getid(serv));
-		sSA_DUMP_NODE( &ss, NI_NUMERICHOST );
-		fd_log_debug("].\n");
+		char buf[1024];
+		sSA_DUMP_NODE( buf, sizeof(buf), &ss, NI_NUMERICHOST );
+		fd_log_debug("%s : accepted new client [%s].\n", fd_cnx_getid(serv), buf);
 	}
 	
 	CHECK_MALLOC_DO( cli = fd_cnx_init(1), { shutdown(cli_sock, SHUT_RDWR); close(cli_sock); return NULL; } );
@@ -311,9 +311,9 @@ struct cnxctx * fd_cnx_cli_connect_tcp(sSA * sa /* contains the port already */,
 	}
 	
 	if (TRACE_BOOL(INFO)) {
-		fd_log_debug("Connection established to server '");
-		sSA_DUMP_NODE_SERV( sa, NI_NUMERICSERV);
-		fd_log_debug("' (TCP:%d).\n", sock);
+		char buf[1024];
+		sSA_DUMP_NODE_SERV( buf, sizeof(buf), sa, NI_NUMERICSERV);
+		fd_log_debug("Connection established to server '%s' (TCP:%d).\n", buf, sock);
 	}
 	
 	/* Once the socket is created successfuly, prepare the remaining of the cnx */
@@ -403,9 +403,9 @@ struct cnxctx * fd_cnx_cli_connect_sctp(int no_ip6, uint16_t port, struct fd_lis
 		cnx->cc_sctp_para.pairs = cnx->cc_sctp_para.str_in;
 	
 	if (TRACE_BOOL(INFO)) {
-		fd_log_debug("Connection established to server '");
-		sSA_DUMP_NODE_SERV( &primary, NI_NUMERICSERV);
-		fd_log_debug("' (SCTP:%d, %d/%d streams).\n", sock, cnx->cc_sctp_para.str_in, cnx->cc_sctp_para.str_out);
+		char buf[1024];
+		sSA_DUMP_NODE_SERV( buf, sizeof(buf), &primary, NI_NUMERICSERV);
+		fd_log_debug("Connection established to server '%s' (SCTP:%d, %d/%d streams).\n", buf, sock, cnx->cc_sctp_para.str_in, cnx->cc_sctp_para.str_out);
 	}
 	
 	/* Generate the names for the object */

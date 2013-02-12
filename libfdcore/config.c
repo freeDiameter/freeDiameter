@@ -351,9 +351,9 @@ int fd_conf_parse()
 				li = li->prev;
 				fd_list_unlink(&ep->chain);
 				if (TRACE_BOOL(INFO)) {
-					fd_log_debug("Info: Removing local address conflicting with the flags no_IP / no_IP6 : ");
-					sSA_DUMP_NODE( &ep->sa, NI_NUMERICHOST );
-					fd_log_debug("\n");
+					char buf[1024];
+					sSA_DUMP_NODE( buf, sizeof(buf), &ep->sa, NI_NUMERICHOST );
+					fd_log_debug("Info: Removing local address conflicting with the flags no_IP / no_IP6 : %s\n", buf);
 				}
 				free(ep);
 			}
