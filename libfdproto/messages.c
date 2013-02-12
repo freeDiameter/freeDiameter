@@ -1260,8 +1260,13 @@ int fd_msg_sess_get(struct dictionary * dict, struct msg * msg, struct session *
 	ASSERT( avp->avp_public.avp_value );
 	
 	/* Resolve the session and we are done */
-	CHECK_FCT( fd_sess_fromsid_msg ( avp->avp_public.avp_value->os.data, avp->avp_public.avp_value->os.len, &msg->msg_sess, new) );
-	*session = msg->msg_sess;
+	if (avp->avp_public.avp_value->os.len > 0) {
+		CHECK_FCT( fd_sess_fromsid_msg ( avp->avp_public.avp_value->os.data, avp->avp_public.avp_value->os.len, &msg->msg_sess, new) );
+		*session = msg->msg_sess;
+	} else {
+		TRACE_DEBUG(FULL, "Session-Id AVP with 0-byte length found in message %p", msg);
+		*session = NULL;
+	}
 	
 	return 0;
 }
