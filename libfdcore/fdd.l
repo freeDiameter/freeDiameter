@@ -51,7 +51,7 @@
 #define YY_USER_ACTION { 						\
 	yylloc->first_column = yylloc->last_column + 1; 		\
 	yylloc->last_column = yylloc->first_column + yyleng - 1;	\
-	TRACE_DEBUG(FULL, 						\
+	TRACE_DEBUG_ERROR( 						\
 		"(%d:%d-%d:%d) matched rule %d, length=%d, txt='%s'\n",	\
 		yylloc->first_line, yylloc->first_column, 		\
 		yylloc->last_line, yylloc->last_column, 		\
@@ -103,7 +103,7 @@ qstring		\"[^\"\n]*\"
 				int ret = sscanf(yytext, "%i", &yylval->integer);
 				if (ret != 1) {
 					/* No matching: an error occurred */
-					fprintf(stderr, "Unable to convert the value '%s' to a valid number: %s\n", yytext, strerror(errno));
+					TRACE_DEBUG_ERROR("Unable to convert the value '%s' to a valid number: %s\n", yytext, strerror(errno));
 					return LEX_ERROR; /* trig an error in yacc parser */
 					/* Maybe we could REJECT instead of failing here? */
 				}
@@ -145,8 +145,8 @@ qstring		\"[^\"\n]*\"
 	/* Unrecognized token */
 <*>[[:alnum:]]+		|	/* This rule is only useful to print a complete token in error messages */
 	/* Unrecognized character */
-<*>.			{ 
-				fprintf(stderr, "Unrecognized text on line %d col %d: '%s'.\n", yylloc->first_line, yylloc->first_column, yytext);
+<*>.			{
+				TRACE_DEBUG_ERROR("Unrecognized text on line %d col %d: '%s'.\n", yylloc->first_line, yylloc->first_column, yytext);
 			 	return LEX_ERROR; 
 			}
 
