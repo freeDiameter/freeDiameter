@@ -61,12 +61,13 @@ int fddlex(YYSTYPE *lvalp, YYLTYPE *llocp);
 /* Function to report error */
 void yyerror (YYLTYPE *ploc, struct fd_config * conf, char const *s)
 {
-	if (ploc->first_line != ploc->last_line)
-		fprintf(stderr, "%s:%d.%d-%d.%d : %s\n", conf->cnf_file, ploc->first_line, ploc->first_column, ploc->last_line, ploc->last_column, s);
-	else if (ploc->first_column != ploc->last_column)
-		fprintf(stderr, "%s:%d.%d-%d : %s\n", conf->cnf_file, ploc->first_line, ploc->first_column, ploc->last_column, s);
-	else
-		fprintf(stderr, "%s:%d.%d : %s\n", conf->cnf_file, ploc->first_line, ploc->first_column, s);
+	if (ploc->first_line != ploc->last_line) {
+		TRACE_DEBUG_ERROR("%s:%d.%d-%d.%d : %s\n", conf->cnf_file, ploc->first_line, ploc->first_column, ploc->last_line, ploc->last_column, s);
+	} else if (ploc->first_column != ploc->last_column) {
+		TRACE_DEBUG_ERROR("%s:%d.%d-%d : %s\n", conf->cnf_file, ploc->first_line, ploc->first_column, ploc->last_column, s);
+	} else {
+		TRACE_DEBUG_ERROR("%s:%d.%d : %s\n", conf->cnf_file, ploc->first_line, ploc->first_column, s);
+	}
 }
 
 int got_peer_noip = 0;
