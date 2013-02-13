@@ -229,7 +229,7 @@ static int fd_conf_print_details_func (gnutls_x509_crt_t cert,
 int fd_conf_parse()
 {
 	extern FILE * fddin;
-	char * orig = NULL;
+	const char * orig = NULL;
 	
 	/* Attempt to find the configuration file */
 	if (!fd_g_config->cnf_file)
@@ -237,23 +237,18 @@ int fd_conf_parse()
 	
 	fddin = fopen(fd_g_config->cnf_file, "r");
 	if ((fddin == NULL) && (*fd_g_config->cnf_file != '/')) {
+		char * new_cnf = NULL;
 		/* We got a relative path, attempt to add the default directory prefix */
 		orig = fd_g_config->cnf_file;
-		CHECK_MALLOC( fd_g_config->cnf_file = malloc(strlen(orig) + strlen(DEFAULT_CONF_PATH) + 2) ); /* we will not free it, but not important */
-		sprintf( fd_g_config->cnf_file, DEFAULT_CONF_PATH "/%s", orig );
+		CHECK_MALLOC( new_cnf = malloc(strlen(orig) + strlen(DEFAULT_CONF_PATH) + 2) ); /* we will not free it, but not important */
+		sprintf( new_cnf, DEFAULT_CONF_PATH "/%s", orig );
+		fd_g_config->cnf_file = new_cnf;
 		fddin = fopen(fd_g_config->cnf_file, "r");
 	}
 	if (fddin == NULL) {
 		int ret = errno;
-		if (orig) {
-			fprintf(stderr, "Unable to open configuration file for reading\n"
-					"Tried the following locations:\n"
-					" - %s\n"
-					" - %s\n"
-					"Error: %s\n", orig, fd_g_config->cnf_file, strerror(ret));
-		} else {
-			fprintf(stderr, "Unable to open '%s' for reading: %s\n", fd_g_config->cnf_file, strerror(ret));
-		}
+		TRACE_DEBUG_ERROR("Unable to open configuration file for reading; tried the following locations: %s%s%s; Error: %s\n",
+				  orig ?: "", orig? " and " : "", fd_g_config->cnf_file, strerror(ret));
 		return ret;
 	}
 	

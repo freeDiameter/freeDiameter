@@ -225,7 +225,7 @@ int fd_core_initialize(void)
 }
 
 /* Parse the freeDiameter.conf configuration file, load the extensions */
-int fd_core_parseconf(char * conffile)
+int fd_core_parseconf(const char * conffile)
 {
 	TRACE_ENTRY("%p", conffile);
 	
