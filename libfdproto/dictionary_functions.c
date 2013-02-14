@@ -227,7 +227,19 @@ char * fd_dictfct_UTF8String_dump(union avp_value * avp_value)
 
 		char * end = strchr(ret, '\0');
 		
-	
+		while (end > ret) {
+			end--;
+			char b = *end;
+			/* after the position pointed by end, we have only \0s */
+			if ((b & 0x80) == 0) {
+				break; /* this is a single byte char, no problem */
+			} else {
+				/* this byte is start or cont. of multibyte sequence, as we do not know the next byte we need to delete it. */
+				*end = '\0';
+				if (b & 0x40)
+					break; /* This was a start byte, we can stop the loop */
+			}
+		}
 	}	
 	return ret;
 }
