@@ -479,6 +479,7 @@ static int sip_rad_req( struct rgwp_config * cs, struct session ** session, stru
 	value.os.len = sidlen;
 	CHECK_FCT( fd_msg_avp_setvalue ( avp, &value ) );
 	CHECK_FCT( fd_msg_avp_add ( *diam_fw, MSG_BRW_FIRST_CHILD, avp) );
+	CHECK_FCT( fd_msg_sess_set( *diam_fw, *session) );
 	
 	/*
 	If the RADIUS Access-Request message does not

@@ -41,7 +41,6 @@ int test_sip_SAR_cb()
 	struct dict_object * sar_model=NULL;
 	struct msg * message=NULL;
 	struct avp *avp=NULL;
-	struct session *sess=NULL;
 	union avp_value value;
 	
 	//Fake values START
@@ -70,15 +69,7 @@ int test_sip_SAR_cb()
 	
 	// Create a new session 
 	{
-		CHECK_FCT( fd_sess_new( &sess, fd_g_config->cnf_diamid, fd_g_config->cnf_diamid_len, (os0_t)"appsip", 6 ));
-		os0_t sid;
-		size_t sidlen;
-		CHECK_FCT( fd_sess_getsid ( sess, &sid, &sidlen ));
-		CHECK_FCT( fd_msg_avp_new ( sip_dict.Session_Id, 0, &avp ));
-		value.os.data = sid;
-		value.os.len  = sidlen;
-		CHECK_FCT( fd_msg_avp_setvalue( avp, &value ));
-		CHECK_FCT( fd_msg_avp_add( message, MSG_BRW_FIRST_CHILD, avp ));
+		CHECK_FCT( fd_msg_new_session( message, (os0_t)"appsip", CONSTSTRLEN("appsip") ) );
 	}
 	
 	//Add the Auth-Application-Id 

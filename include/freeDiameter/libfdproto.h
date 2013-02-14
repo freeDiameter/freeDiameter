@@ -1815,9 +1815,9 @@ int fd_sess_handler_destroy ( struct session_handler ** handler, void **opaque )
  *  If diamId is NULL, the string is exactly the content of opt.
  *
  * RETURN VALUE:
- *  0      	: The session is created.
+ *  0      	: The session is created, the initial msg refcount is 1.
  *  EINVAL 	: A parameter is invalid.
- *  EALREADY	: A session with the same name already exists (returned in *session)
+ *  EALREADY	: A session with the same name already exists (returned in *session), the msg refcount is increased.
  *  ENOMEM	: Not enough memory to complete the operation
  */
 int fd_sess_new ( struct session ** session, DiamId_t diamid, size_t diamidlen, uint8_t * opt, size_t optlen );
@@ -2503,6 +2503,10 @@ uint32_t fd_msg_eteid_get ( void );
  * !0 : standard error code.
  */
 int fd_msg_sess_get(struct dictionary * dict, struct msg * msg, struct session ** session, int * isnew);
+
+/* This one is used by the libfdcore, you should use fd_msg_new_session rather than fd_sess_new, when possible */
+int fd_msg_sess_set(struct msg * msg, struct session * session);
+
 
 /***************************************/
 /*   Manage AVP values                 */

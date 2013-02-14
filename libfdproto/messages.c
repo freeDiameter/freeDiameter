@@ -1215,6 +1215,20 @@ int fd_msg_ts_get_sent( struct msg * msg, struct timespec * ts )
 	return 0;
 }
 
+/* Associate a session with a message, use only when the session was just created */
+int fd_msg_sess_set(struct msg * msg, struct session * session)
+{
+	TRACE_ENTRY("%p %p", msg, session);
+	
+	/* Check we received valid parameters */
+	CHECK_PARAMS( CHECK_MSG(msg) );
+	CHECK_PARAMS( session );
+	CHECK_PARAMS( msg->msg_sess == NULL );
+	
+	msg->msg_sess = session;
+	return 0;
+}
+
 
 /* Retrieve the session of the message */
 int fd_msg_sess_get(struct dictionary * dict, struct msg * msg, struct session ** session, int * new)

@@ -359,7 +359,7 @@ int fd_sess_handler_destroy ( struct session_handler ** handler, void ** opaque 
 
 
 
-/* Create a new session object with the default timeout value, and link it */
+/* Create a new session object with the default timeout value, and link it. The refcount is increased by 1, whether the session existed or not */
 int fd_sess_new ( struct session ** session, DiamId_t diamid, size_t diamidlen, uint8_t * opt, size_t optlen )
 {
 	os0_t  sid = NULL;
@@ -460,16 +460,22 @@ int fd_sess_new ( struct session ** session, DiamId_t diamid, size_t diamidlen, 
 			} );
 	
 		fd_list_insert_before(li, &sess->chain_h); /* hash table */
+		sess->msg_cnt++;
 	} else {
 		free(sid);
+		
+		CHECK_POSIX( pthread_mutex_lock(&(*session)->stlock) ); 
+		(*session)->msg_cnt++;
+		CHECK_POSIX( pthread_mutex_unlock(&(*session)->stlock) ); 
+		
 		/* it was found: was it previously destroyed? */
 		if ((*session)->is_destroyed == 0) {
 			ret = EALREADY;
 			goto out;
 		} else {
 			/* the session was marked destroyed, let's re-activate it. */
-			TODO("Re-creating a deleted session. Should investigate if this can lead to an issue... (need more feedback)");
 			sess = *session;
+			sess->is_destroyed = 0;
 			
 			/* update the expiry time */
 			CHECK_SYS_DO( clock_gettime(CLOCK_REALTIME, &sess->timeout), { ASSERT(0); } );
@@ -500,7 +506,7 @@ int fd_sess_new ( struct session ** session, DiamId_t diamid, size_t diamidlen, 
 	CHECK_POSIX_DO( pthread_mutex_unlock( &exp_lock ), { ASSERT(0); } ); /* if it fails, we might not pop the cleanup handler, but this should not happen -- and we'd have a serious problem otherwise */
 
 out:
-	;	
+	;
 	pthread_cleanup_pop(0);
 	CHECK_POSIX( pthread_mutex_unlock( H_LOCK(hash) ) );
 	
@@ -511,8 +517,8 @@ out:
 	return 0;
 }
 
-/* Find or create a session */
-int fd_sess_fromsid ( uint8_t * sid, size_t len, struct session ** session, int * new)
+/* Find or create a session -- the msg refcount is increased */
+int fd_sess_fromsid_msg ( uint8_t * sid, size_t len, struct session ** session, int * new)
 {
 	int ret;
 	
@@ -801,17 +807,19 @@ int fd_sess_state_retrieve_internal ( struct session_handler * handler, struct s
 }
 
 /* For the messages module */
-int fd_sess_fromsid_msg ( uint8_t * sid, size_t len, struct session ** session, int * new)
+int fd_sess_fromsid ( uint8_t * sid, size_t len, struct session ** session, int * new)
 {
 	TRACE_ENTRY("%p %zd %p %p", sid, len, session, new);
 	CHECK_PARAMS( sid && len && session );
 	
 	/* Get the session object */
-	CHECK_FCT( fd_sess_fromsid ( sid, len, session, new) );
+	CHECK_FCT( fd_sess_fromsid_msg ( sid, len, session, new) );
 	
-	/* Increase count */
-	CHECK_FCT( fd_sess_ref_msg ( *session ) );
-	
+	/* Decrease the refcount */
+	CHECK_POSIX( pthread_mutex_lock(&(*session)->stlock) );
+	(*session)->msg_cnt--; /* was increased in fd_sess_new */
+	CHECK_POSIX( pthread_mutex_unlock(&(*session)->stlock) );
+		
 	/* Done */
 	return 0;
 }
@@ -832,16 +840,27 @@ int fd_sess_ref_msg ( struct session * session )
 int fd_sess_reclaim_msg ( struct session ** session )
 {
 	int reclaim;
+	uint32_t hash;
 	
 	TRACE_ENTRY("%p", session);
 	CHECK_PARAMS( session && VALIDATE_SI(*session) );
 	
+	/* Lock the hash line to avoid possibility that session is freed while we are reclaiming */
+	hash = (*session)->hash;
+	CHECK_POSIX( pthread_mutex_lock( H_LOCK(hash)) );
+	pthread_cleanup_push( fd_cleanup_mutex, H_LOCK(hash) ); 
+
 	/* Update the msg refcount */
 	CHECK_POSIX( pthread_mutex_lock(&(*session)->stlock) );
 	reclaim = (*session)->msg_cnt;
 	(*session)->msg_cnt = reclaim - 1;
 	CHECK_POSIX( pthread_mutex_unlock(&(*session)->stlock) );
 	
+	/* Ok, now unlock the hash line */
+	pthread_cleanup_pop( 0 );
+	CHECK_POSIX( pthread_mutex_unlock( H_LOCK(hash) ) );
+	
+	/* and reclaim if no message references the session anymore */
 	if (reclaim == 1) {
 		CHECK_FCT(fd_sess_reclaim ( session ));
 	} else {
