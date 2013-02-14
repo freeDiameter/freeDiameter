@@ -1163,6 +1163,26 @@ enum {
 	TYPE_OF_AVP			/* "what" points to a struct dict_object containing an AVP object. */
 };
 
+/****
+ Callbacks defined in libfdproto/dictionary_functions.c file -- see that file for usage. 
+ */
+
+/* Convert an Address type AVP into a struct sockaddr_storage */
+int fd_dictfct_Address_encode(void * data, union avp_value * avp_value);
+int fd_dictfct_Address_interpret(union avp_value * avp_value, void * interpreted);
+char * fd_dictfct_Address_dump(union avp_value * avp_value);
+
+/* Display the content of an AVP of type UTF8String in the log file */
+char * fd_dictfct_UTF8String_dump(union avp_value * avp_value);
+
+/* For Time AVPs, map with time_t value directly */
+int fd_dictfct_Time_encode(void * data, union avp_value * avp_value);
+int fd_dictfct_Time_interpret(union avp_value * avp_value, void * interpreted);
+char * fd_dictfct_Time_dump(union avp_value * avp_value);
+
+
+
+/****/
 
 /***
  *  API usage :
@@ -1193,7 +1213,7 @@ enum {
  }
  
 */
-	 
+
 /*
  ***************************************************************************
  *
