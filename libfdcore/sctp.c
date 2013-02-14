@@ -653,7 +653,7 @@ static int add_addresses_from_list_mask(uint8_t ** array, size_t * size, int * a
 		#ifndef SCTP_USE_MAPPED_ADDRESSES
 		if (ep->sa.sa_family == AF_INET6)
 		#else /* SCTP_USE_MAPPED_ADDRESSES */
-		if (target_family == AF_INET6) {
+		if (target_family == AF_INET6)
 		#endif /* SCTP_USE_MAPPED_ADDRESSES */
 			sz = sizeof(sSA6);
 		else
