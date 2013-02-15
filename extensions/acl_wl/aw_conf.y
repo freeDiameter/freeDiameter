@@ -63,7 +63,7 @@ static int fqdn_added = 0;
 /* Parse the configuration file */
 int aw_conf_handle(char * conffile)
 {
-	extern FILE * aw_confin;
+	FILE * aw_confin;
 	int ret;
 	
 	TRACE_ENTRY("%p", conffile);
