@@ -158,6 +158,9 @@ int fd_msg_new_session( struct msg * msg, os0_t opt, size_t optlen )
 	/* Add it to the message */
 	CHECK_FCT( fd_msg_avp_add( msg, MSG_BRW_FIRST_CHILD, avp ) );
 	
+	/* Save the session associated with the message */
+	CHECK_FCT( fd_msg_sess_set( msg, sess) );
+	
 	/* Done! */
 	return 0;
 }
@@ -283,7 +286,7 @@ int fd_msg_rescode_set( struct msg * msg, char * rescode, char * errormsg, struc
 		if (set_e_bit)
 			hdr->msg_flags |= CMD_FLAG_ERROR;
 		else
-			hdr->msg_flags &= ! CMD_FLAG_ERROR;
+			hdr->msg_flags &= ~ CMD_FLAG_ERROR;
 	}
 	
 	if (std_err_msg || errormsg) {

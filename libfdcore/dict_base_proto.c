@@ -44,169 +44,6 @@
 /* The pointer for the global dictionary (initialized from main) */
 struct dictionary * fd_g_dict = NULL;
 
-/* The functions to encode and interpret the derived types defined in the base protocol */
-
-/* Address AVP <-> struct sockaddr_storage */
-static int Address_encode(void * data, union avp_value * avp_value)
-{
-	sSS * ss = (sSS *) data;
-	uint16_t AddressType = 0;
-	size_t	size = 0;
-	unsigned char * buf = NULL;
-	
-	TRACE_ENTRY("%p %p", data, avp_value);
-	CHECK_PARAMS( data && avp_value  );
-	
-	switch (ss->ss_family) {
-		case AF_INET:
-			{
-				/* We are encoding an IP address */
-				sSA4 * sin = (sSA4 *)ss;
-				
-				AddressType = 1;/* see http://www.iana.org/assignments/address-family-numbers/ */
-				size = 6;	/* 2 for AddressType + 4 for data */
-				
-				CHECK_MALLOC(  buf = malloc(size)  );
-				
-				/* may not work because of alignment: *(uint32_t *)(buf+2) = htonl(sin->sin_addr.s_addr); */
-				memcpy(buf + 2, &sin->sin_addr.s_addr, 4);
-			}
-			break;
-				
-		case AF_INET6:
-			{
-				/* We are encoding an IPv6 address */
-				sSA6 * sin6 = (sSA6 *)ss;
-				
-				AddressType = 2;/* see http://www.iana.org/assignments/address-family-numbers/ */
-				size = 18;	/* 2 for AddressType + 16 for data */
-				
-				CHECK_MALLOC(  buf = malloc(size)  );
-				
-				/* The order is already good here */
-				memcpy(buf + 2, &sin6->sin6_addr.s6_addr, 16);
-			}
-			break;
-				
-		default:
-			CHECK_PARAMS( AddressType = 0 );
-	}
-	
-	*(uint16_t *)buf = htons(AddressType);
-
-	avp_value->os.len = size;
-	avp_value->os.data = buf;
-	
-	return 0;
-}
-
-static int Address_interpret(union avp_value * avp_value, void * interpreted)
-{
-	uint16_t AddressType = 0;
-	unsigned char * buf;
-	
-	TRACE_ENTRY("%p %p", avp_value, interpreted);
-	
-	CHECK_PARAMS( avp_value && interpreted && (avp_value->os.len >= 2)  );
-	
-	AddressType = ntohs(*(uint16_t *)avp_value->os.data);
-	buf = &avp_value->os.data[2];
-	
-	switch (AddressType) {
-		case 1 /* IP */:
-			{
-				sSA4 * sin = (sSA4 *)interpreted;
-				
-				CHECK_PARAMS(  avp_value->os.len == 6  );
-				
-				sin->sin_family = AF_INET;
-				/* sin->sin_addr.s_addr = ntohl( * (uint32_t *) buf); -- may not work because of bad alignment */
-				memcpy(&sin->sin_addr.s_addr, buf, 4);
-			}
-			break;
-				
-		case 2 /* IP6 */:
-			{
-				sSA6 * sin6 = (sSA6 *)interpreted;
-				
-				CHECK_PARAMS(  avp_value->os.len == 18  );
-				
-				sin6->sin6_family = AF_INET6;
-				memcpy(&sin6->sin6_addr.s6_addr, buf, 16);
-			}
-			break;
-				
-		default:
-			CHECK_PARAMS( AddressType = 0 );
-	}
-	
-	return 0;
-}
-
-/* Dump the content of an Address AVP */
-static char * Address_dump(union avp_value * avp_value)
-{
-	char * ret;
-	#define STR_LEN	1024
-	union {
-		sSA	sa;
-		sSS	ss;
-		sSA4	sin;
-		sSA6	sin6;
-	} s;
-	uint16_t fam;
-	
-	memset(&s, 0, sizeof(s));
-	
-	CHECK_MALLOC_DO( ret = malloc(STR_LEN), return NULL );
-	
-	/* The first two octets represent the address family, http://www.iana.org/assignments/address-family-numbers/ */
-	if (avp_value->os.len < 2) {
-		snprintf(ret, STR_LEN, "[invalid length: %zd]", avp_value->os.len);
-		return ret;
-	}
-	
-	/* Following octets are the address in network byte order already */
-	fam = avp_value->os.data[0] << 8 | avp_value->os.data[1];
-	switch (fam) {
-		case 1:
-			/* IP */
-			s.sa.sa_family = AF_INET;
-			if (avp_value->os.len != 6) {
-				snprintf(ret, STR_LEN, "[invalid IP length: %zd]", avp_value->os.len);
-				return ret;
-			}
-			memcpy(&s.sin.sin_addr.s_addr, avp_value->os.data + 2, 4);
-			break;
-		case 2:
-			/* IP6 */
-			s.sa.sa_family = AF_INET6;
-			if (avp_value->os.len != 18) {
-				snprintf(ret, STR_LEN, "[invalid IP6 length: %zd]", avp_value->os.len);
-				return ret;
-			}
-			memcpy(&s.sin6.sin6_addr.s6_addr, avp_value->os.data + 2, 16);
-			break;
-		default:
-			snprintf(ret, STR_LEN, "[unsupported family: 0x%hx]", fam);
-			return ret;
-	}
-	
-	{
-		int rc = getnameinfo(&s.sa, sSAlen(&s.sa), ret, STR_LEN, NULL, 0, NI_NUMERICHOST);
-		if (rc)
-			snprintf(ret, STR_LEN, "%s", (char *)gai_strerror(rc));
-	}
-	
-	return ret;
-}
-
-static char * UTF8String_dump(union avp_value * avp_value)
-{
-	return strndup((char *)avp_value->os.data, 42); /* avoid very long strings */
-}
-
-
 
 
 #define CHECK_dict_new( _type, _data, _parent, _ref )				\
@@ -294,7 +131,7 @@ int fd_dict_base_protocol(struct dictionary * dict)
 				defined in [IANAADFAM].  The AddressType is used to discriminate
 				the content and format of the remaining octets.
 			*/
-			struct dict_type_data data = { AVP_TYPE_OCTETSTRING,	"Address"		, Address_interpret	, Address_encode,	Address_dump	};
+			struct dict_type_data data = { AVP_TYPE_OCTETSTRING,	"Address"		, fd_dictfct_Address_interpret	, fd_dictfct_Address_encode,	fd_dictfct_Address_dump	};
 			CHECK_dict_new( DICT_TYPE, &data , NULL, NULL);
 		}
 		
@@ -313,7 +150,7 @@ int fd_dict_base_protocol(struct dictionary * dict)
 				SNTP [RFC4330] describes a procedure to extend the time to 2104.
 				This procedure MUST be supported by all DIAMETER nodes.
 			*/
-			struct dict_type_data data = { AVP_TYPE_OCTETSTRING,	"Time"			, NULL			, NULL		, NULL		};
+			struct dict_type_data data = { AVP_TYPE_OCTETSTRING,	"Time"			, fd_dictfct_Time_interpret	, fd_dictfct_Time_encode, 	fd_dictfct_Time_dump		};
 			CHECK_dict_new( DICT_TYPE, &data , NULL, NULL);
 		}
 		
@@ -351,7 +188,7 @@ int fd_dict_base_protocol(struct dictionary * dict)
 				Note that the AVP Length field of an UTF8String is measured in
 				octets, not characters.
 			*/
-			struct dict_type_data data = { AVP_TYPE_OCTETSTRING,	"UTF8String"		, NULL			, NULL	, UTF8String_dump	};
+			struct dict_type_data data = { AVP_TYPE_OCTETSTRING,	"UTF8String"		, NULL			, NULL	, fd_dictfct_UTF8String_dump	};
 			CHECK_dict_new( DICT_TYPE, &data , NULL, NULL);
 		}
 		
@@ -380,7 +217,7 @@ int fd_dict_base_protocol(struct dictionary * dict)
 				interactions between the Diameter protocol and Internationalized
 				Domain Name (IDNs).
 			*/
-			struct dict_type_data data = { AVP_TYPE_OCTETSTRING,	"DiameterIdentity"	, NULL			, NULL		, UTF8String_dump	};
+			struct dict_type_data data = { AVP_TYPE_OCTETSTRING,	"DiameterIdentity"	, NULL			, NULL		, fd_dictfct_UTF8String_dump	};
 			CHECK_dict_new( DICT_TYPE, &data , NULL, NULL);
 		}
 		
@@ -435,7 +272,7 @@ int fd_dict_base_protocol(struct dictionary * dict)
 				aaa://host.example.com:6666;transport=tcp;protocol=diameter
 				aaa://host.example.com:1813;transport=udp;protocol=radius
 			*/
-			struct dict_type_data data = { AVP_TYPE_OCTETSTRING,	"DiameterURI"		, NULL			, NULL		, UTF8String_dump	};
+			struct dict_type_data data = { AVP_TYPE_OCTETSTRING,	"DiameterURI"		, NULL			, NULL		, fd_dictfct_UTF8String_dump	};
 			CHECK_dict_new( DICT_TYPE, &data , NULL, NULL);
 		}
 		
@@ -497,7 +334,7 @@ int fd_dict_base_protocol(struct dictionary * dict)
 				supplied rules, for example to protect the access device owner's
 				infrastructure.
 			*/
-			struct dict_type_data data = { AVP_TYPE_OCTETSTRING,	"IPFilterRule"		, NULL			, NULL		, UTF8String_dump	};
+			struct dict_type_data data = { AVP_TYPE_OCTETSTRING,	"IPFilterRule"		, NULL			, NULL		, fd_dictfct_UTF8String_dump	};
 			CHECK_dict_new( DICT_TYPE, &data , NULL, NULL);
 		}
 	}

@@ -8,7 +8,7 @@ On FreeBSD-8.0 at least the following ports packages were required (should be sa
  cmake flex bison gnutls
 
 Then the cmake command had to look like:
- cmake -DFLEX_EXECUTABLE:FILEPATH=/usr/local/bin/flex ...
+ cmake -DFLEX_EXECUTABLE:FILEPATH=/usr/local/bin/flex -DSCTP_USE_MAPPED_ADDRESSES:BOOL=ON ...
 
 
 ---------------------
@@ -45,7 +45,7 @@ COMPLETE INSTRUCTIONS
    # cd fD-build
    
 7) Run cmake for freeDiameter (add other flags as you see fit, see INSTALL for more details)
-   # /usr/local/bin/cmake -DFLEX_EXECUTABLE:FILEPATH=/usr/local/bin/flex ../freeDiameter
+   # /usr/local/bin/cmake -DFLEX_EXECUTABLE:FILEPATH=/usr/local/bin/flex -DSCTP_USE_MAPPED_ADDRESSES:BOOL=ON ../freeDiameter
 
 8) Compile, optionnaly test
    # make

@@ -105,7 +105,7 @@ struct avp {
 /* Macro to cast a msg_avp_t */
 #define _A(_x) ((struct avp *)(_x))
 /* Check the type and eyecatcher */
-#define CHECK_AVP(_x) ((_C(_x)->type == MSG_AVP) && (_A(_x)->avp_eyec == MSG_AVP_EYEC))
+#define CHECK_AVP(_x) ((_x) && (_C(_x)->type == MSG_AVP) && (_A(_x)->avp_eyec == MSG_AVP_EYEC))
 
 /* The following structure represents an instance of a message (command and children AVPs). */
 struct msg {
@@ -238,7 +238,7 @@ int fd_msg_avp_new ( struct dict_object * model, int flags, struct avp ** avp )
 		new->avp_rawlen = (*avp)->avp_public.avp_len - GETAVPHDRSZ( (*avp)->avp_public.avp_flags );
 		if (new->avp_rawlen) {
 			CHECK_MALLOC(  new->avp_rawdata = malloc(new->avp_rawlen)  );
-			memset(new->avp_rawdata, 0xFF, new->avp_rawlen);
+			memset(new->avp_rawdata, 0x00, new->avp_rawlen);
 		}
 	}
 	
@@ -1215,6 +1215,20 @@ int fd_msg_ts_get_sent( struct msg * msg, struct timespec * ts )
 	return 0;
 }
 
+/* Associate a session with a message, use only when the session was just created */
+int fd_msg_sess_set(struct msg * msg, struct session * session)
+{
+	TRACE_ENTRY("%p %p", msg, session);
+	
+	/* Check we received valid parameters */
+	CHECK_PARAMS( CHECK_MSG(msg) );
+	CHECK_PARAMS( session );
+	CHECK_PARAMS( msg->msg_sess == NULL );
+	
+	msg->msg_sess = session;
+	return 0;
+}
+
 
 /* Retrieve the session of the message */
 int fd_msg_sess_get(struct dictionary * dict, struct msg * msg, struct session ** session, int * new)
@@ -1260,8 +1274,13 @@ int fd_msg_sess_get(struct dictionary * dict, struct msg * msg, struct session *
 	ASSERT( avp->avp_public.avp_value );
 	
 	/* Resolve the session and we are done */
-	CHECK_FCT( fd_sess_fromsid_msg ( avp->avp_public.avp_value->os.data, avp->avp_public.avp_value->os.len, &msg->msg_sess, new) );
-	*session = msg->msg_sess;
+	if (avp->avp_public.avp_value->os.len > 0) {
+		CHECK_FCT( fd_sess_fromsid_msg ( avp->avp_public.avp_value->os.data, avp->avp_public.avp_value->os.len, &msg->msg_sess, new) );
+		*session = msg->msg_sess;
+	} else {
+		TRACE_DEBUG(FULL, "Session-Id AVP with 0-byte length found in message %p", msg);
+		*session = NULL;
+	}
 	
 	return 0;
 }
@@ -1647,7 +1666,7 @@ static int parsebuf_list(unsigned char * buf, size_t buflen, struct fd_list * he
 	while (offset < buflen) {
 		struct avp * avp;
 		
-		if (buflen - offset <= AVPHDRSZ_NOVEND) {
+		if (buflen - offset < AVPHDRSZ_NOVEND) {
 			TRACE_DEBUG(INFO, "truncated buffer: remaining only %d bytes", buflen - offset);
 			return EBADMSG;
 		}
@@ -1665,7 +1684,7 @@ static int parsebuf_list(unsigned char * buf, size_t buflen, struct fd_list * he
 		offset += 8;
 		
 		if (avp->avp_public.avp_flags & AVP_FLAG_VENDOR) {
-			if (buflen - offset <= 4) {
+			if (buflen - offset < 4) {
 				TRACE_DEBUG(INFO, "truncated buffer: remaining only %d bytes for vendor and data", buflen - offset);
 				free(avp);
 				return EBADMSG;
@@ -1675,7 +1694,8 @@ static int parsebuf_list(unsigned char * buf, size_t buflen, struct fd_list * he
 		}
 		
 		/* Check there is enough remaining data in the buffer */
-		if (buflen - offset < avp->avp_public.avp_len - GETAVPHDRSZ(avp->avp_public.avp_flags)) {
+		if ( (avp->avp_public.avp_len > GETAVPHDRSZ(avp->avp_public.avp_flags))
+		&& (buflen - offset < avp->avp_public.avp_len - GETAVPHDRSZ(avp->avp_public.avp_flags))) {
 			TRACE_DEBUG(INFO, "truncated buffer: remaining only %d bytes for data, and avp data size is %d", 
 					buflen - offset, 
 					avp->avp_public.avp_len - GETAVPHDRSZ(avp->avp_public.avp_flags));

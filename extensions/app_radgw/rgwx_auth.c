@@ -457,7 +457,7 @@ static int auth_rad_req( struct rgwp_config * cs, struct session ** session, str
 		
 		if (si_len) {
 			/* We already have the Session-Id, just use it */
-			CHECK_FCT( fd_sess_fromsid ( si, si_len, session, NULL) );
+			CHECK_FCT( fd_sess_fromsid_msg ( si, si_len, session, NULL) );
 		} else {
 			/* Create a new Session-Id string */
 			
@@ -495,6 +495,7 @@ static int auth_rad_req( struct rgwp_config * cs, struct session ** session, str
 		value.os.len = sess_strlen;
 		CHECK_FCT( fd_msg_avp_setvalue ( avp, &value ) );
 		CHECK_FCT( fd_msg_avp_add ( *diam_fw, MSG_BRW_FIRST_CHILD, avp) );
+		CHECK_FCT( fd_msg_sess_set( *diam_fw, *session) );
 	}
 	
 	

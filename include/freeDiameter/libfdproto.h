@@ -1157,6 +1157,26 @@ enum {
 	TYPE_OF_AVP			/* "what" points to a struct dict_object containing an AVP object. */
 };
 
+/****
+ Callbacks defined in libfdproto/dictionary_functions.c file -- see that file for usage. 
+ */
+
+/* Convert an Address type AVP into a struct sockaddr_storage */
+int fd_dictfct_Address_encode(void * data, union avp_value * avp_value);
+int fd_dictfct_Address_interpret(union avp_value * avp_value, void * interpreted);
+char * fd_dictfct_Address_dump(union avp_value * avp_value);
+
+/* Display the content of an AVP of type UTF8String in the log file */
+char * fd_dictfct_UTF8String_dump(union avp_value * avp_value);
+
+/* For Time AVPs, map with time_t value directly */
+int fd_dictfct_Time_encode(void * data, union avp_value * avp_value);
+int fd_dictfct_Time_interpret(union avp_value * avp_value, void * interpreted);
+char * fd_dictfct_Time_dump(union avp_value * avp_value);
+
+
+
+/****/
 
 /***
  *  API usage :
@@ -1187,7 +1207,7 @@ enum {
  }
  
 */
-	 
+
 /*
  ***************************************************************************
  *
@@ -1789,9 +1809,9 @@ int fd_sess_handler_destroy ( struct session_handler ** handler, void **opaque )
  *  If diamId is NULL, the string is exactly the content of opt.
  *
  * RETURN VALUE:
- *  0      	: The session is created.
+ *  0      	: The session is created, the initial msg refcount is 1.
  *  EINVAL 	: A parameter is invalid.
- *  EALREADY	: A session with the same name already exists (returned in *session)
+ *  EALREADY	: A session with the same name already exists (returned in *session), the msg refcount is increased.
  *  ENOMEM	: Not enough memory to complete the operation
  */
 int fd_sess_new ( struct session ** session, DiamId_t diamid, size_t diamidlen, uint8_t * opt, size_t optlen );
@@ -2477,6 +2497,10 @@ uint32_t fd_msg_eteid_get ( void );
  * !0 : standard error code.
  */
 int fd_msg_sess_get(struct dictionary * dict, struct msg * msg, struct session ** session, int * isnew);
+
+/* This one is used by the libfdcore, you should use fd_msg_new_session rather than fd_sess_new, when possible */
+int fd_msg_sess_set(struct msg * msg, struct session * session);
+
 
 /***************************************/
 /*   Manage AVP values                 */

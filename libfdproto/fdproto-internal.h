@@ -69,6 +69,7 @@ int fd_sess_fromsid_msg ( uint8_t * sid, size_t len, struct session ** session, 
 int fd_sess_ref_msg ( struct session * session );
 int fd_sess_reclaim_msg ( struct session ** session );
 
+
 /* For dump routines into string buffers */
 #include <stdarg.h>
 static __inline__ int dump_init_str(char **outstr, size_t *offset, size_t *outlen) 

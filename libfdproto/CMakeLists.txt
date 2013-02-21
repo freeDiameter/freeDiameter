@@ -5,6 +5,7 @@ Project("libfdproto" C)
 SET(LFDPROTO_SRC
 	fdproto-internal.h
 	dictionary.c
+	dictionary_functions.c
 	dispatch.c
 	fifo.c
 	init.c

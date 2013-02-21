@@ -121,7 +121,6 @@ static void ta_bench_test_message()
 	struct avp * avp;
 	union avp_value val;
 	struct ta_mess_info * mi = NULL;
-	struct session *sess = NULL;
 	
 	TRACE_DEBUG(FULL, "Creating a new message for sending.");
 	
@@ -130,7 +129,7 @@ static void ta_bench_test_message()
 	
 	/* Create a new session */
 	#define TEST_APP_SID_OPT  "app_testb"
-	CHECK_FCT_DO( fd_sess_new( &sess, fd_g_config->cnf_diamid, fd_g_config->cnf_diamid_len, (os0_t)TEST_APP_SID_OPT, CONSTSTRLEN(TEST_APP_SID_OPT) ), goto out );
+	CHECK_FCT_DO( fd_msg_new_session( req, (os0_t)TEST_APP_SID_OPT, CONSTSTRLEN(TEST_APP_SID_OPT) ), goto out );
 	
 	/* Create the random value to store with the session */
 	mi = malloc(sizeof(struct ta_mess_info));
@@ -142,19 +141,6 @@ static void ta_bench_test_message()
 	mi->randval = (int32_t)random();
 	
 	/* Now set all AVPs values */
-	
-	/* Session-Id */
-	{
-		os0_t sid;
-		size_t sidlen;
-		CHECK_FCT_DO( fd_sess_getsid ( sess, &sid, &sidlen ), goto out );
-		CHECK_FCT_DO( fd_msg_avp_new ( ta_sess_id, 0, &avp ), goto out );
-		val.os.data = sid;
-		val.os.len  = sidlen;
-		CHECK_FCT_DO( fd_msg_avp_setvalue( avp, &val ), goto out );
-		CHECK_FCT_DO( fd_msg_avp_add( req, MSG_BRW_FIRST_CHILD, avp ), goto out );
-		
-	}
 	
 	/* Set the Destination-Realm AVP */
 	{
