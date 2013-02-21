@@ -1277,8 +1277,6 @@ static void dump_object ( struct dict_object * obj, int parents, int depth, int 
 	else
 		_OBINFO(obj).dump_data(&obj->data);
 	
-	fd_log_debug("\n");
-	
 	if (depth) {
 		int i;
 		for (i=0; i<NB_LISTS_PER_OBJ; i++) {
@@ -1469,7 +1467,6 @@ static int dump_avp_val(union avp_value *avp_value,
 	}
 	
 	/* Done! */
-	CHECK_FCT( dump_add_str(outstr, offset, outlen, "\n") );
 	return 0;
 }
 
