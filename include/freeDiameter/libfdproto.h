@@ -1438,6 +1438,9 @@ To create the rules (ABNF) for children of Grouped AVP, see the DICT_RULE relate
 	 ret = fd_dict_search ( dict, DICT_AVP, AVP_BY_NAME, "User-Name", &avp_username, ENOENT);
 	 
 	 ret = fd_dict_search ( dict, DICT_AVP, AVP_BY_NAME_AND_VENDOR, &avpvendorboolean, &avp_sampleboolean, ENOENT);
+
+	 -- this would also work, but be slower, because it has to search all vendor dictionaries --
+	 ret = fd_dict_search ( dict, DICT_AVP, AVP_BY_NAME_ALL_VENDORS, "Sample-Boolean", &avp_sampleboolean, ENOENT);
 	 
  }
  
