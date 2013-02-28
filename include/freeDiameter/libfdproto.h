@@ -221,14 +221,6 @@ int fd_log_handler_unregister ( void );
 #define FCTS 6  /* Display entry parameters of most functions */
 #define CALL 9  /* Display calls to most functions (with CHECK macros) */
 
-/* Increment the debug level for a file at compilation time by defining -DTRACE_LEVEL=FULL for example. */
-#ifndef TRACE_LEVEL 
-#define TRACE_LEVEL NONE
-#endif /* TRACE_LEVEL */
-
-/* The level of the file being compiled. */
-static int local_debug_level = TRACE_LEVEL;
-
 /* A global level, changed by configuration or cmd line for example. Default is INFO (in libfdproto/log.c). */
 extern int fd_g_debug_lvl;
 
@@ -251,11 +243,11 @@ static char * file_bname = NULL;
 
 /* Boolean for tracing at a certain level */
 #ifdef DEBUG
-#define TRACE_BOOL(_level_) ( ((_level_) <= local_debug_level + fd_g_debug_lvl) 					\
+#define TRACE_BOOL(_level_) ( ((_level_) <= fd_g_debug_lvl) 					\
 				|| (fd_debug_one_function && !strcmp(fd_debug_one_function, __PRETTY_FUNCTION__)) 	\
 				|| (fd_debug_one_file && !strcmp(fd_debug_one_file, __STRIPPED_FILE__) ) )
 #else /* DEBUG */
-#define TRACE_BOOL(_level_) ((_level_) <= local_debug_level + fd_g_debug_lvl)
+#define TRACE_BOOL(_level_) ((_level_) <= fd_g_debug_lvl)
 #endif /* DEBUG */
 
 
