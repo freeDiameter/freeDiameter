@@ -39,7 +39,9 @@
 #ifndef LIBCRYPT_H_
 #define LIBCRYPT_H_
 
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
 #include <gcrypt.h>
+#pragma GCC diagnostic warning "-Wdeprecated-declarations"
 #include <stdio.h>
 
 /* EAP-TLS*/

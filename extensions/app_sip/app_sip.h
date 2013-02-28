@@ -38,7 +38,9 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <stdio.h>
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
 #include <gcrypt.h>
+#pragma GCC diagnostic warning "-Wdeprecated-declarations"
 #include <string.h>
 #include <mysql.h>
 #include "md5.h"
