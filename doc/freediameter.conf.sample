@@ -2,6 +2,10 @@
 
 # Only the "TLS_Cred" directive is really mandatory in this file.
 
+# It is possible to use "include" keyword to import additional files
+# e.g.: include "/etc/freeDiameter.d/*.conf"
+
+
 ##############################################################
 ##  Peer identity and realm 
 
