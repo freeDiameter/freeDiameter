@@ -560,6 +560,9 @@ int fd_cnx_get_local_eps(struct fd_list * list)
 		if (cur->ifa_flags & IFF_LOOPBACK)
 			continue;
 		
+		if (cur->ifa_addr == NULL) /* may happen with ppp interfaces */
+			continue;
+		
 		if (fd_g_config->cnf_flags.no_ip4 && (cur->ifa_addr->sa_family == AF_INET))
 			continue;
 		
