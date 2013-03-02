@@ -92,4 +92,11 @@ ALLOW_OLD_TLS		{
 				return FQDN;
 			}
 
+	/* No match */
+<*>[[:alnum:]]+		|	/* This rule is only useful to print a complete token in error messages */
+<*>.			{
+				TRACE_DEBUG_ERROR("Unrecognized text on line %d col %d: '%s'.\n", yylloc->first_line, yylloc->first_column, yytext);
+			 	return LEX_ERROR; 
+			}
+
 %%

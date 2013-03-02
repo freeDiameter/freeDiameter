@@ -126,5 +126,10 @@ conffile:		/* empty grammar is OK */
 			{
 				fqdn_added++;
 			}
+			| conffile LEX_ERROR
+			{
+				yyerror(&yylloc, conffile, "An error occurred while parsing the configuration file");
+				return EINVAL;
+			}
 			;
 
