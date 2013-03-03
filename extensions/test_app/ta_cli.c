@@ -58,6 +58,8 @@ static void ta_cb_ans(void * data, struct msg ** msg)
 	struct session * sess;
 	struct avp * avp;
 	struct avp_hdr * hdr;
+	unsigned long dur;
+	int error = 0;
 	
 	CHECK_SYS_DO( clock_gettime(CLOCK_REALTIME, &ts), return );
 
@@ -79,9 +81,15 @@ static void ta_cb_ans(void * data, struct msg ** msg)
 	CHECK_FCT_DO( fd_msg_search_avp ( *msg, ta_avp, &avp), return );
 	if (avp) {
 		CHECK_FCT_DO( fd_msg_avp_hdr( avp, &hdr ), return );
-		fprintf(stderr, "%x (%s) ", hdr->avp_value->i32, (hdr->avp_value->i32 == mi->randval) ? "Ok" : "PROBLEM");
+		if (hdr->avp_value->i32 == mi->randval) {
+			fprintf(stderr, "%x (%s) ", hdr->avp_value->i32, "Ok");
+		} else {
+			fprintf(stderr, "%x (%s) ", hdr->avp_value->i32, "PROBLEM");
+			error++;
+		}
 	} else {
 		fprintf(stderr, "no_Test-AVP ");
+		error++;
 	}
 	
 	/* Value of Result Code */
@@ -89,8 +97,11 @@ static void ta_cb_ans(void * data, struct msg ** msg)
 	if (avp) {
 		CHECK_FCT_DO( fd_msg_avp_hdr( avp, &hdr ), return );
 		fprintf(stderr, "Status: %d ", hdr->avp_value->i32);
+		if (hdr->avp_value->i32 != 2001)
+			error++;
 	} else {
 		fprintf(stderr, "no_Result-Code ");
+		error++;
 	}
 	
 	/* Value of Origin-Host */
@@ -100,6 +111,7 @@ static void ta_cb_ans(void * data, struct msg ** msg)
 		fprintf(stderr, "From '%.*s' ", (int)hdr->avp_value->os.len, hdr->avp_value->os.data);
 	} else {
 		fprintf(stderr, "no_Origin-Host ");
+		error++;
 	}
 	
 	/* Value of Origin-Realm */
@@ -109,9 +121,34 @@ static void ta_cb_ans(void * data, struct msg ** msg)
 		fprintf(stderr, "('%.*s') ", (int)hdr->avp_value->os.len, hdr->avp_value->os.data);
 	} else {
 		fprintf(stderr, "no_Origin-Realm ");
+		error++;
 	}
 	
-	/* Now compute how long it took */
+	CHECK_POSIX_DO( pthread_mutex_lock(&ta_conf->stats_lock), );
+	dur = ((ts.tv_sec - mi->ts.tv_sec) * 1000000) + ((ts.tv_nsec - mi->ts.tv_nsec) / 1000);
+	if (ta_conf->stats.nb_recv) {
+		/* Ponderate in the avg */
+		ta_conf->stats.avg = (ta_conf->stats.avg * ta_conf->stats.nb_recv + dur) / (ta_conf->stats.nb_recv + 1);
+		/* Min, max */
+		if (dur < ta_conf->stats.shortest)
+			ta_conf->stats.shortest = dur;
+		if (dur > ta_conf->stats.longest)
+			ta_conf->stats.longest = dur;
+	} else {
+		ta_conf->stats.shortest = dur;
+		ta_conf->stats.longest = dur;
+		ta_conf->stats.avg = dur;
+	}
+	
+	if (error)
+		ta_conf->stats.nb_errs++;
+	else 
+		ta_conf->stats.nb_recv++;
+	
+	
+	CHECK_POSIX_DO( pthread_mutex_unlock(&ta_conf->stats_lock), );
+	
+	/* Display how long it took */
 	if (ts.tv_nsec > mi->ts.tv_nsec) {
 		fprintf(stderr, "in %d.%06ld sec", 
 				(int)(ts.tv_sec - mi->ts.tv_sec),
@@ -121,7 +158,6 @@ static void ta_cb_ans(void * data, struct msg ** msg)
 				(int)(ts.tv_sec + 1 - mi->ts.tv_sec),
 				(long)(1000000000 + ts.tv_nsec - mi->ts.tv_nsec) / 1000);
 	}
-	
 	fprintf(stderr, "\n");
 	fflush(stderr);
 	
@@ -216,6 +252,11 @@ static void ta_cli_test_message()
 	
 	/* Send the request */
 	CHECK_FCT_DO( fd_msg_send( &req, ta_cb_ans, svg ), goto out );
+
+	/* Increment the counter */
+	CHECK_POSIX_DO( pthread_mutex_lock(&ta_conf->stats_lock), );
+	ta_conf->stats.nb_sent++;
+	CHECK_POSIX_DO( pthread_mutex_unlock(&ta_conf->stats_lock), );
 
 out:
 	return;
