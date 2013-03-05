@@ -2,7 +2,11 @@
 use strict;
 use Getopt::Std;
 
-our ($opt_v);
+our ($opt_V, $opt_v);
+
+# default to 3GPP
+my ($vendor) = 10415;
+my ($vendor_name) = "3GPP";
 
 sub convert_must_to_flags($) {
     my ($allmust) = @_;
@@ -36,7 +40,7 @@ sub print_insert($$) {
         $avp_type = "NULL";
     } elsif ($type =~ m/Enumerated/) {
         print "\t\tstruct dict_object		*type;\n";
-        print "\t\tstruct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, \"Enumerated($name)\", NULL, NULL, NULL };\n";
+        print "\t\tstruct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, \"" . ($vendor_name ? "$vendor_name/" : "") ."Enumerated($name)\", NULL, NULL, NULL };\n";
         # XXX: add enumerated values
         print "\t\tCHECK_dict_new(DICT_TYPE, &tdata, NULL, &type);\n";
         $avp_type = "type";
@@ -47,12 +51,19 @@ sub print_insert($$) {
     print "\t\tCHECK_dict_new(DICT_AVP, &data, $avp_type, NULL);\n";
 }
 
-getopts("v:") || die("usage: org_to_fd.pl [-v vendor] [file ...]\n");
+sub usage($) {
+    die("usage: org_to_fd.pl [-V vendor_name -v vendor] [file ...]\n");
+    exit(@_);
+}
 
-# default to 3GPP
-my ($vendor) = 10415;
+getopts("V:v:") || usage(1);
+
 if (defined($opt_v)) {
     $vendor = $opt_v;
+    if (!defined($opt_V)) {
+	usage(1);
+    }
+    $vendor_name = $opt_V;
 }
 
 print "\t/* The following is created automatically. Do not modify. */\n";

@@ -130,7 +130,7 @@ static int dict_dcca_3gpp_entry(char * conffile)
 			AVP_TYPE_INTEGER32	/* base type of data */
 		};
 		struct dict_object		*type;
-		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "Enumerated(3GPP-PDP-Type)", NULL, NULL, NULL };
+		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "3GPP/Enumerated(3GPP-PDP-Type)", NULL, NULL, NULL };
 		CHECK_dict_new(DICT_TYPE, &tdata, NULL, &type);
 		CHECK_dict_new(DICT_AVP, &data, type, NULL);
 	};
@@ -503,7 +503,7 @@ static int dict_dcca_3gpp_entry(char * conffile)
 			AVP_TYPE_INTEGER32	/* base type of data */
 		};
 		struct dict_object		*type;
-		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "Enumerated(MBMS-StartStop-Indication)", NULL, NULL, NULL };
+		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "3GPP/Enumerated(MBMS-StartStop-Indication)", NULL, NULL, NULL };
 		CHECK_dict_new(DICT_TYPE, &tdata, NULL, &type);
 		CHECK_dict_new(DICT_AVP, &data, type, NULL);
 	};
@@ -558,7 +558,7 @@ static int dict_dcca_3gpp_entry(char * conffile)
 			AVP_TYPE_INTEGER32	/* base type of data */
 		};
 		struct dict_object		*type;
-		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "Enumerated(MBMS-Service-Type)", NULL, NULL, NULL };
+		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "3GPP/Enumerated(MBMS-Service-Type)", NULL, NULL, NULL };
 		CHECK_dict_new(DICT_TYPE, &tdata, NULL, &type);
 		CHECK_dict_new(DICT_AVP, &data, type, NULL);
 	};
@@ -574,7 +574,7 @@ static int dict_dcca_3gpp_entry(char * conffile)
 			AVP_TYPE_INTEGER32	/* base type of data */
 		};
 		struct dict_object		*type;
-		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "Enumerated(MBMS-2G-3G-Indicator)", NULL, NULL, NULL };
+		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "3GPP/Enumerated(MBMS-2G-3G-Indicator)", NULL, NULL, NULL };
 		CHECK_dict_new(DICT_TYPE, &tdata, NULL, &type);
 		CHECK_dict_new(DICT_AVP, &data, type, NULL);
 	};
@@ -668,7 +668,7 @@ static int dict_dcca_3gpp_entry(char * conffile)
 			AVP_TYPE_INTEGER32	/* base type of data */
 		};
 		struct dict_object		*type;
-		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "Enumerated(MBMS-Counting-Information)", NULL, NULL, NULL };
+		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "3GPP/Enumerated(MBMS-Counting-Information)", NULL, NULL, NULL };
 		CHECK_dict_new(DICT_TYPE, &tdata, NULL, &type);
 		CHECK_dict_new(DICT_AVP, &data, type, NULL);
 	};
@@ -684,7 +684,7 @@ static int dict_dcca_3gpp_entry(char * conffile)
 			AVP_TYPE_INTEGER32	/* base type of data */
 		};
 		struct dict_object		*type;
-		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "Enumerated(MBMS-User-Data-Mode-Indication)", NULL, NULL, NULL };
+		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "3GPP/Enumerated(MBMS-User-Data-Mode-Indication)", NULL, NULL, NULL };
 		CHECK_dict_new(DICT_TYPE, &tdata, NULL, &type);
 		CHECK_dict_new(DICT_AVP, &data, type, NULL);
 	};
@@ -765,7 +765,7 @@ static int dict_dcca_3gpp_entry(char * conffile)
 			AVP_TYPE_INTEGER32	/* base type of data */
 		};
 		struct dict_object		*type;
-		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "Enumerated(CN-IP-Multicast-Distribution)", NULL, NULL, NULL };
+		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "3GPP/Enumerated(CN-IP-Multicast-Distribution)", NULL, NULL, NULL };
 		CHECK_dict_new(DICT_TYPE, &tdata, NULL, &type);
 		CHECK_dict_new(DICT_AVP, &data, type, NULL);
 	};
@@ -781,7 +781,7 @@ static int dict_dcca_3gpp_entry(char * conffile)
 			AVP_TYPE_INTEGER32	/* base type of data */
 		};
 		struct dict_object		*type;
-		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "Enumerated(MBMS-HC-Indicator)", NULL, NULL, NULL };
+		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "3GPP/Enumerated(MBMS-HC-Indicator)", NULL, NULL, NULL };
 		CHECK_dict_new(DICT_TYPE, &tdata, NULL, &type);
 		CHECK_dict_new(DICT_AVP, &data, type, NULL);
 	};
@@ -967,7 +967,7 @@ static int dict_dcca_3gpp_entry(char * conffile)
 			AVP_TYPE_INTEGER32	/* base type of data */
 		};
 		struct dict_object		*type;
-		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "Enumerated(Bearer-Control-Mode)", NULL, NULL, NULL };
+		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "3GPP/Enumerated(Bearer-Control-Mode)", NULL, NULL, NULL };
 		CHECK_dict_new(DICT_TYPE, &tdata, NULL, &type);
 		CHECK_dict_new(DICT_AVP, &data, type, NULL);
 	};
@@ -996,7 +996,7 @@ static int dict_dcca_3gpp_entry(char * conffile)
 			AVP_TYPE_INTEGER32	/* base type of data */
 		};
 		struct dict_object		*type;
-		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "Enumerated(Bearer-Operation)", NULL, NULL, NULL };
+		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "3GPP/Enumerated(Bearer-Operation)", NULL, NULL, NULL };
 		CHECK_dict_new(DICT_TYPE, &tdata, NULL, &type);
 		CHECK_dict_new(DICT_AVP, &data, type, NULL);
 	};
@@ -1012,7 +1012,7 @@ static int dict_dcca_3gpp_entry(char * conffile)
 			AVP_TYPE_INTEGER32	/* base type of data */
 		};
 		struct dict_object		*type;
-		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "Enumerated(Bearer-Usage)", NULL, NULL, NULL };
+		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "3GPP/Enumerated(Bearer-Usage)", NULL, NULL, NULL };
 		CHECK_dict_new(DICT_TYPE, &tdata, NULL, &type);
 		CHECK_dict_new(DICT_AVP, &data, type, NULL);
 	};
@@ -1106,7 +1106,7 @@ static int dict_dcca_3gpp_entry(char * conffile)
 			AVP_TYPE_INTEGER32	/* base type of data */
 		};
 		struct dict_object		*type;
-		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "Enumerated(Charging-Correlation-Indicator)", NULL, NULL, NULL };
+		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "3GPP/Enumerated(Charging-Correlation-Indicator)", NULL, NULL, NULL };
 		CHECK_dict_new(DICT_TYPE, &tdata, NULL, &type);
 		CHECK_dict_new(DICT_AVP, &data, type, NULL);
 	};
@@ -1148,7 +1148,7 @@ static int dict_dcca_3gpp_entry(char * conffile)
 			AVP_TYPE_INTEGER32	/* base type of data */
 		};
 		struct dict_object		*type;
-		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "Enumerated(CSG-Information-Reporting)", NULL, NULL, NULL };
+		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "3GPP/Enumerated(CSG-Information-Reporting)", NULL, NULL, NULL };
 		CHECK_dict_new(DICT_TYPE, &tdata, NULL, &type);
 		CHECK_dict_new(DICT_AVP, &data, type, NULL);
 	};
@@ -1190,7 +1190,7 @@ static int dict_dcca_3gpp_entry(char * conffile)
 			AVP_TYPE_INTEGER32	/* base type of data */
 		};
 		struct dict_object		*type;
-		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "Enumerated(Event-Trigger)", NULL, NULL, NULL };
+		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "3GPP/Enumerated(Event-Trigger)", NULL, NULL, NULL };
 		CHECK_dict_new(DICT_TYPE, &tdata, NULL, &type);
 		CHECK_dict_new(DICT_AVP, &data, type, NULL);
 	};
@@ -1206,7 +1206,7 @@ static int dict_dcca_3gpp_entry(char * conffile)
 			AVP_TYPE_INTEGER32	/* base type of data */
 		};
 		struct dict_object		*type;
-		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "Enumerated(Flow-Direction)", NULL, NULL, NULL };
+		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "3GPP/Enumerated(Flow-Direction)", NULL, NULL, NULL };
 		CHECK_dict_new(DICT_TYPE, &tdata, NULL, &type);
 		CHECK_dict_new(DICT_AVP, &data, type, NULL);
 	};
@@ -1248,7 +1248,7 @@ static int dict_dcca_3gpp_entry(char * conffile)
 			AVP_TYPE_INTEGER32	/* base type of data */
 		};
 		struct dict_object		*type;
-		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "Enumerated(IP-CAN-Type)", NULL, NULL, NULL };
+		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "3GPP/Enumerated(IP-CAN-Type)", NULL, NULL, NULL };
 		CHECK_dict_new(DICT_TYPE, &tdata, NULL, &type);
 		CHECK_dict_new(DICT_AVP, &data, type, NULL);
 	};
@@ -1316,7 +1316,7 @@ static int dict_dcca_3gpp_entry(char * conffile)
 			AVP_TYPE_INTEGER32	/* base type of data */
 		};
 		struct dict_object		*type;
-		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "Enumerated(Metering-Method)", NULL, NULL, NULL };
+		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "3GPP/Enumerated(Metering-Method)", NULL, NULL, NULL };
 		CHECK_dict_new(DICT_TYPE, &tdata, NULL, &type);
 		CHECK_dict_new(DICT_AVP, &data, type, NULL);
 	};
@@ -1345,7 +1345,7 @@ static int dict_dcca_3gpp_entry(char * conffile)
 			AVP_TYPE_INTEGER32	/* base type of data */
 		};
 		struct dict_object		*type;
-		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "Enumerated(Mute-Notification)", NULL, NULL, NULL };
+		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "3GPP/Enumerated(Mute-Notification)", NULL, NULL, NULL };
 		CHECK_dict_new(DICT_TYPE, &tdata, NULL, &type);
 		CHECK_dict_new(DICT_AVP, &data, type, NULL);
 	};
@@ -1374,7 +1374,7 @@ static int dict_dcca_3gpp_entry(char * conffile)
 			AVP_TYPE_INTEGER32	/* base type of data */
 		};
 		struct dict_object		*type;
-		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "Enumerated(Network-Request-Support)", NULL, NULL, NULL };
+		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "3GPP/Enumerated(Network-Request-Support)", NULL, NULL, NULL };
 		CHECK_dict_new(DICT_TYPE, &tdata, NULL, &type);
 		CHECK_dict_new(DICT_AVP, &data, type, NULL);
 	};
@@ -1390,7 +1390,7 @@ static int dict_dcca_3gpp_entry(char * conffile)
 			AVP_TYPE_INTEGER32	/* base type of data */
 		};
 		struct dict_object		*type;
-		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "Enumerated(Offline)", NULL, NULL, NULL };
+		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "3GPP/Enumerated(Offline)", NULL, NULL, NULL };
 		CHECK_dict_new(DICT_TYPE, &tdata, NULL, &type);
 		CHECK_dict_new(DICT_AVP, &data, type, NULL);
 	};
@@ -1406,7 +1406,7 @@ static int dict_dcca_3gpp_entry(char * conffile)
 			AVP_TYPE_INTEGER32	/* base type of data */
 		};
 		struct dict_object		*type;
-		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "Enumerated(Online)", NULL, NULL, NULL };
+		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "3GPP/Enumerated(Online)", NULL, NULL, NULL };
 		CHECK_dict_new(DICT_TYPE, &tdata, NULL, &type);
 		CHECK_dict_new(DICT_AVP, &data, type, NULL);
 	};
@@ -1461,7 +1461,7 @@ static int dict_dcca_3gpp_entry(char * conffile)
 			AVP_TYPE_INTEGER32	/* base type of data */
 		};
 		struct dict_object		*type;
-		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "Enumerated(Packet-Filter-Operation)", NULL, NULL, NULL };
+		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "3GPP/Enumerated(Packet-Filter-Operation)", NULL, NULL, NULL };
 		CHECK_dict_new(DICT_TYPE, &tdata, NULL, &type);
 		CHECK_dict_new(DICT_AVP, &data, type, NULL);
 	};
@@ -1477,7 +1477,7 @@ static int dict_dcca_3gpp_entry(char * conffile)
 			AVP_TYPE_INTEGER32	/* base type of data */
 		};
 		struct dict_object		*type;
-		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "Enumerated(Packet-Filter-Usage)", NULL, NULL, NULL };
+		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "3GPP/Enumerated(Packet-Filter-Usage)", NULL, NULL, NULL };
 		CHECK_dict_new(DICT_TYPE, &tdata, NULL, &type);
 		CHECK_dict_new(DICT_AVP, &data, type, NULL);
 	};
@@ -1519,7 +1519,7 @@ static int dict_dcca_3gpp_entry(char * conffile)
 			AVP_TYPE_INTEGER32	/* base type of data */
 		};
 		struct dict_object		*type;
-		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "Enumerated(Pre-emption-Capability)", NULL, NULL, NULL };
+		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "3GPP/Enumerated(Pre-emption-Capability)", NULL, NULL, NULL };
 		CHECK_dict_new(DICT_TYPE, &tdata, NULL, &type);
 		CHECK_dict_new(DICT_AVP, &data, type, NULL);
 	};
@@ -1535,7 +1535,7 @@ static int dict_dcca_3gpp_entry(char * conffile)
 			AVP_TYPE_INTEGER32	/* base type of data */
 		};
 		struct dict_object		*type;
-		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "Enumerated(Pre-emption-Vulnerability)", NULL, NULL, NULL };
+		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "3GPP/Enumerated(Pre-emption-Vulnerability)", NULL, NULL, NULL };
 		CHECK_dict_new(DICT_TYPE, &tdata, NULL, &type);
 		CHECK_dict_new(DICT_AVP, &data, type, NULL);
 	};
@@ -1577,7 +1577,7 @@ static int dict_dcca_3gpp_entry(char * conffile)
 			AVP_TYPE_INTEGER32	/* base type of data */
 		};
 		struct dict_object		*type;
-		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "Enumerated(Redirect-Support)", NULL, NULL, NULL };
+		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "3GPP/Enumerated(Redirect-Support)", NULL, NULL, NULL };
 		CHECK_dict_new(DICT_TYPE, &tdata, NULL, &type);
 		CHECK_dict_new(DICT_AVP, &data, type, NULL);
 	};
@@ -1593,7 +1593,7 @@ static int dict_dcca_3gpp_entry(char * conffile)
 			AVP_TYPE_INTEGER32	/* base type of data */
 		};
 		struct dict_object		*type;
-		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "Enumerated(Reporting-Level)", NULL, NULL, NULL };
+		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "3GPP/Enumerated(Reporting-Level)", NULL, NULL, NULL };
 		CHECK_dict_new(DICT_TYPE, &tdata, NULL, &type);
 		CHECK_dict_new(DICT_AVP, &data, type, NULL);
 	};
@@ -1687,7 +1687,7 @@ static int dict_dcca_3gpp_entry(char * conffile)
 			AVP_TYPE_INTEGER32	/* base type of data */
 		};
 		struct dict_object		*type;
-		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "Enumerated(PCC-Rule-Status)", NULL, NULL, NULL };
+		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "3GPP/Enumerated(PCC-Rule-Status)", NULL, NULL, NULL };
 		CHECK_dict_new(DICT_TYPE, &tdata, NULL, &type);
 		CHECK_dict_new(DICT_AVP, &data, type, NULL);
 	};
@@ -1703,7 +1703,7 @@ static int dict_dcca_3gpp_entry(char * conffile)
 			AVP_TYPE_INTEGER32	/* base type of data */
 		};
 		struct dict_object		*type;
-		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "Enumerated(Session-Release-Cause)", NULL, NULL, NULL };
+		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "3GPP/Enumerated(Session-Release-Cause)", NULL, NULL, NULL };
 		CHECK_dict_new(DICT_TYPE, &tdata, NULL, &type);
 		CHECK_dict_new(DICT_AVP, &data, type, NULL);
 	};
@@ -1797,7 +1797,7 @@ static int dict_dcca_3gpp_entry(char * conffile)
 			AVP_TYPE_INTEGER32	/* base type of data */
 		};
 		struct dict_object		*type;
-		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "Enumerated(QoS-Class-Identifier)", NULL, NULL, NULL };
+		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "3GPP/Enumerated(QoS-Class-Identifier)", NULL, NULL, NULL };
 		CHECK_dict_new(DICT_TYPE, &tdata, NULL, &type);
 		CHECK_dict_new(DICT_AVP, &data, type, NULL);
 	};
@@ -1826,7 +1826,7 @@ static int dict_dcca_3gpp_entry(char * conffile)
 			AVP_TYPE_INTEGER32	/* base type of data */
 		};
 		struct dict_object		*type;
-		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "Enumerated(QoS-Negotiation)", NULL, NULL, NULL };
+		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "3GPP/Enumerated(QoS-Negotiation)", NULL, NULL, NULL };
 		CHECK_dict_new(DICT_TYPE, &tdata, NULL, &type);
 		CHECK_dict_new(DICT_AVP, &data, type, NULL);
 	};
@@ -1842,7 +1842,7 @@ static int dict_dcca_3gpp_entry(char * conffile)
 			AVP_TYPE_INTEGER32	/* base type of data */
 		};
 		struct dict_object		*type;
-		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "Enumerated(Qos-Upgrade)", NULL, NULL, NULL };
+		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "3GPP/Enumerated(Qos-Upgrade)", NULL, NULL, NULL };
 		CHECK_dict_new(DICT_TYPE, &tdata, NULL, &type);
 		CHECK_dict_new(DICT_AVP, &data, type, NULL);
 	};
@@ -1858,7 +1858,7 @@ static int dict_dcca_3gpp_entry(char * conffile)
 			AVP_TYPE_INTEGER32	/* base type of data */
 		};
 		struct dict_object		*type;
-		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "Enumerated(PS-to-CS-Session-Continuity)", NULL, NULL, NULL };
+		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "3GPP/Enumerated(PS-to-CS-Session-Continuity)", NULL, NULL, NULL };
 		CHECK_dict_new(DICT_TYPE, &tdata, NULL, &type);
 		CHECK_dict_new(DICT_AVP, &data, type, NULL);
 	};
@@ -1874,7 +1874,7 @@ static int dict_dcca_3gpp_entry(char * conffile)
 			AVP_TYPE_INTEGER32	/* base type of data */
 		};
 		struct dict_object		*type;
-		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "Enumerated(Resource-Allocation-Notification)", NULL, NULL, NULL };
+		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "3GPP/Enumerated(Resource-Allocation-Notification)", NULL, NULL, NULL };
 		CHECK_dict_new(DICT_TYPE, &tdata, NULL, &type);
 		CHECK_dict_new(DICT_AVP, &data, type, NULL);
 	};
@@ -1890,7 +1890,7 @@ static int dict_dcca_3gpp_entry(char * conffile)
 			AVP_TYPE_INTEGER32	/* base type of data */
 		};
 		struct dict_object		*type;
-		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "Enumerated(Rule-Failure-Code)", NULL, NULL, NULL };
+		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "3GPP/Enumerated(Rule-Failure-Code)", NULL, NULL, NULL };
 		CHECK_dict_new(DICT_TYPE, &tdata, NULL, &type);
 		CHECK_dict_new(DICT_AVP, &data, type, NULL);
 	};
@@ -1997,7 +1997,7 @@ static int dict_dcca_3gpp_entry(char * conffile)
 			AVP_TYPE_INTEGER32	/* base type of data */
 		};
 		struct dict_object		*type;
-		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "Enumerated(RAT-Type)", NULL, NULL, NULL };
+		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "3GPP/Enumerated(RAT-Type)", NULL, NULL, NULL };
 		CHECK_dict_new(DICT_TYPE, &tdata, NULL, &type);
 		CHECK_dict_new(DICT_AVP, &data, type, NULL);
 	};
@@ -2091,7 +2091,7 @@ static int dict_dcca_3gpp_entry(char * conffile)
 			AVP_TYPE_INTEGER32	/* base type of data */
 		};
 		struct dict_object		*type;
-		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "Enumerated(Usage-Monitoring-Level)", NULL, NULL, NULL };
+		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "3GPP/Enumerated(Usage-Monitoring-Level)", NULL, NULL, NULL };
 		CHECK_dict_new(DICT_TYPE, &tdata, NULL, &type);
 		CHECK_dict_new(DICT_AVP, &data, type, NULL);
 	};
@@ -2107,7 +2107,7 @@ static int dict_dcca_3gpp_entry(char * conffile)
 			AVP_TYPE_INTEGER32	/* base type of data */
 		};
 		struct dict_object		*type;
-		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "Enumerated(Usage-Monitoring-Report)", NULL, NULL, NULL };
+		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "3GPP/Enumerated(Usage-Monitoring-Report)", NULL, NULL, NULL };
 		CHECK_dict_new(DICT_TYPE, &tdata, NULL, &type);
 		CHECK_dict_new(DICT_AVP, &data, type, NULL);
 	};
@@ -2123,7 +2123,7 @@ static int dict_dcca_3gpp_entry(char * conffile)
 			AVP_TYPE_INTEGER32	/* base type of data */
 		};
 		struct dict_object		*type;
-		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "Enumerated(Usage-Monitoring-Support)", NULL, NULL, NULL };
+		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "3GPP/Enumerated(Usage-Monitoring-Support)", NULL, NULL, NULL };
 		CHECK_dict_new(DICT_TYPE, &tdata, NULL, &type);
 		CHECK_dict_new(DICT_AVP, &data, type, NULL);
 	};
@@ -2217,7 +2217,7 @@ static int dict_dcca_3gpp_entry(char * conffile)
 			AVP_TYPE_INTEGER32	/* base type of data */
 		};
 		struct dict_object		*type;
-		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "Enumerated(Session-Linking-Indicator)", NULL, NULL, NULL };
+		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "3GPP/Enumerated(Session-Linking-Indicator)", NULL, NULL, NULL };
 		CHECK_dict_new(DICT_TYPE, &tdata, NULL, &type);
 		CHECK_dict_new(DICT_AVP, &data, type, NULL);
 	};
@@ -2246,7 +2246,7 @@ static int dict_dcca_3gpp_entry(char * conffile)
 			AVP_TYPE_INTEGER32	/* base type of data */
 		};
 		struct dict_object		*type;
-		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "Enumerated(CS-Service-QoS-Request-Operation)", NULL, NULL, NULL };
+		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "3GPP/Enumerated(CS-Service-QoS-Request-Operation)", NULL, NULL, NULL };
 		CHECK_dict_new(DICT_TYPE, &tdata, NULL, &type);
 		CHECK_dict_new(DICT_AVP, &data, type, NULL);
 	};
@@ -2484,7 +2484,7 @@ static int dict_dcca_3gpp_entry(char * conffile)
 			AVP_TYPE_INTEGER32	/* base type of data */
 		};
 		struct dict_object		*type;
-		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "Enumerated(Loose-Route-Indication)", NULL, NULL, NULL };
+		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "3GPP/Enumerated(Loose-Route-Indication)", NULL, NULL, NULL };
 		CHECK_dict_new(DICT_TYPE, &tdata, NULL, &type);
 		CHECK_dict_new(DICT_AVP, &data, type, NULL);
 	};
@@ -2513,7 +2513,7 @@ static int dict_dcca_3gpp_entry(char * conffile)
 			AVP_TYPE_INTEGER32	/* base type of data */
 		};
 		struct dict_object		*type;
-		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "Enumerated(Multiple-Registration-Indication)", NULL, NULL, NULL };
+		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "3GPP/Enumerated(Multiple-Registration-Indication)", NULL, NULL, NULL };
 		CHECK_dict_new(DICT_TYPE, &tdata, NULL, &type);
 		CHECK_dict_new(DICT_AVP, &data, type, NULL);
 	};
@@ -2542,7 +2542,7 @@ static int dict_dcca_3gpp_entry(char * conffile)
 			AVP_TYPE_INTEGER32	/* base type of data */
 		};
 		struct dict_object		*type;
-		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "Enumerated(Originating-Request)", NULL, NULL, NULL };
+		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "3GPP/Enumerated(Originating-Request)", NULL, NULL, NULL };
 		CHECK_dict_new(DICT_TYPE, &tdata, NULL, &type);
 		CHECK_dict_new(DICT_AVP, &data, type, NULL);
 	};
@@ -2597,7 +2597,7 @@ static int dict_dcca_3gpp_entry(char * conffile)
 			AVP_TYPE_INTEGER32	/* base type of data */
 		};
 		struct dict_object		*type;
-		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "Enumerated(Priviledged-Sender-Indication)", NULL, NULL, NULL };
+		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "3GPP/Enumerated(Priviledged-Sender-Indication)", NULL, NULL, NULL };
 		CHECK_dict_new(DICT_TYPE, &tdata, NULL, &type);
 		CHECK_dict_new(DICT_AVP, &data, type, NULL);
 	};
@@ -2626,7 +2626,7 @@ static int dict_dcca_3gpp_entry(char * conffile)
 			AVP_TYPE_INTEGER32	/* base type of data */
 		};
 		struct dict_object		*type;
-		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "Enumerated(Reason-Code)", NULL, NULL, NULL };
+		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "3GPP/Enumerated(Reason-Code)", NULL, NULL, NULL };
 		CHECK_dict_new(DICT_TYPE, &tdata, NULL, &type);
 		CHECK_dict_new(DICT_AVP, &data, type, NULL);
 	};
@@ -2824,7 +2824,7 @@ static int dict_dcca_3gpp_entry(char * conffile)
 			AVP_TYPE_INTEGER32	/* base type of data */
 		};
 		struct dict_object		*type;
-		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "Enumerated(Server-Assignment-Type)", NULL, NULL, NULL };
+		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "3GPP/Enumerated(Server-Assignment-Type)", NULL, NULL, NULL };
 		CHECK_dict_new(DICT_TYPE, &tdata, NULL, &type);
 		CHECK_dict_new(DICT_AVP, &data, type, NULL);
 	};
@@ -2866,7 +2866,7 @@ static int dict_dcca_3gpp_entry(char * conffile)
 			AVP_TYPE_INTEGER32	/* base type of data */
 		};
 		struct dict_object		*type;
-		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "Enumerated(Session-Priority)", NULL, NULL, NULL };
+		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "3GPP/Enumerated(Session-Priority)", NULL, NULL, NULL };
 		CHECK_dict_new(DICT_TYPE, &tdata, NULL, &type);
 		CHECK_dict_new(DICT_AVP, &data, type, NULL);
 	};
@@ -2947,7 +2947,7 @@ static int dict_dcca_3gpp_entry(char * conffile)
 			AVP_TYPE_INTEGER32	/* base type of data */
 		};
 		struct dict_object		*type;
-		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "Enumerated(User-Authorization-Type)", NULL, NULL, NULL };
+		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "3GPP/Enumerated(User-Authorization-Type)", NULL, NULL, NULL };
 		CHECK_dict_new(DICT_TYPE, &tdata, NULL, &type);
 		CHECK_dict_new(DICT_AVP, &data, type, NULL);
 	};
@@ -2976,7 +2976,7 @@ static int dict_dcca_3gpp_entry(char * conffile)
 			AVP_TYPE_INTEGER32	/* base type of data */
 		};
 		struct dict_object		*type;
-		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "Enumerated(User-Data-Already-Available)", NULL, NULL, NULL };
+		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "3GPP/Enumerated(User-Data-Already-Available)", NULL, NULL, NULL };
 		CHECK_dict_new(DICT_TYPE, &tdata, NULL, &type);
 		CHECK_dict_new(DICT_AVP, &data, type, NULL);
 	};
@@ -3058,7 +3058,7 @@ static int dict_dcca_3gpp_entry(char * conffile)
 			AVP_TYPE_INTEGER32	/* base type of data */
 		};
 		struct dict_object		*type;
-		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "Enumerated(Access-Transfer-Type)", NULL, NULL, NULL };
+		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "3GPP/Enumerated(Access-Transfer-Type)", NULL, NULL, NULL };
 		CHECK_dict_new(DICT_TYPE, &tdata, NULL, &type);
 		CHECK_dict_new(DICT_AVP, &data, type, NULL);
 	};
@@ -3100,7 +3100,7 @@ static int dict_dcca_3gpp_entry(char * conffile)
 			AVP_TYPE_INTEGER32	/* base type of data */
 		};
 		struct dict_object		*type;
-		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "Enumerated(Adaptations)", NULL, NULL, NULL };
+		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "3GPP/Enumerated(Adaptations)", NULL, NULL, NULL };
 		CHECK_dict_new(DICT_TYPE, &tdata, NULL, &type);
 		CHECK_dict_new(DICT_AVP, &data, type, NULL);
 	};
@@ -3168,7 +3168,7 @@ static int dict_dcca_3gpp_entry(char * conffile)
 			AVP_TYPE_INTEGER32	/* base type of data */
 		};
 		struct dict_object		*type;
-		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "Enumerated(Address-Type)", NULL, NULL, NULL };
+		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "3GPP/Enumerated(Address-Type)", NULL, NULL, NULL };
 		CHECK_dict_new(DICT_TYPE, &tdata, NULL, &type);
 		CHECK_dict_new(DICT_AVP, &data, type, NULL);
 	};
@@ -3184,7 +3184,7 @@ static int dict_dcca_3gpp_entry(char * conffile)
 			AVP_TYPE_INTEGER32	/* base type of data */
 		};
 		struct dict_object		*type;
-		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "Enumerated(Addressee-Type)", NULL, NULL, NULL };
+		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "3GPP/Enumerated(Addressee-Type)", NULL, NULL, NULL };
 		CHECK_dict_new(DICT_TYPE, &tdata, NULL, &type);
 		CHECK_dict_new(DICT_AVP, &data, type, NULL);
 	};
@@ -3226,7 +3226,7 @@ static int dict_dcca_3gpp_entry(char * conffile)
 			AVP_TYPE_INTEGER32	/* base type of data */
 		};
 		struct dict_object		*type;
-		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "Enumerated(AoC-Format)", NULL, NULL, NULL };
+		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "3GPP/Enumerated(AoC-Format)", NULL, NULL, NULL };
 		CHECK_dict_new(DICT_TYPE, &tdata, NULL, &type);
 		CHECK_dict_new(DICT_AVP, &data, type, NULL);
 	};
@@ -3255,7 +3255,7 @@ static int dict_dcca_3gpp_entry(char * conffile)
 			AVP_TYPE_INTEGER32	/* base type of data */
 		};
 		struct dict_object		*type;
-		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "Enumerated(AoC-Request-Type)", NULL, NULL, NULL };
+		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "3GPP/Enumerated(AoC-Request-Type)", NULL, NULL, NULL };
 		CHECK_dict_new(DICT_TYPE, &tdata, NULL, &type);
 		CHECK_dict_new(DICT_AVP, &data, type, NULL);
 	};
@@ -3284,7 +3284,7 @@ static int dict_dcca_3gpp_entry(char * conffile)
 			AVP_TYPE_INTEGER32	/* base type of data */
 		};
 		struct dict_object		*type;
-		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "Enumerated(AoC-Service-Obligatory-Type)", NULL, NULL, NULL };
+		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "3GPP/Enumerated(AoC-Service-Obligatory-Type)", NULL, NULL, NULL };
 		CHECK_dict_new(DICT_TYPE, &tdata, NULL, &type);
 		CHECK_dict_new(DICT_AVP, &data, type, NULL);
 	};
@@ -3300,7 +3300,7 @@ static int dict_dcca_3gpp_entry(char * conffile)
 			AVP_TYPE_INTEGER32	/* base type of data */
 		};
 		struct dict_object		*type;
-		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "Enumerated(AoC-Service-Type)", NULL, NULL, NULL };
+		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "3GPP/Enumerated(AoC-Service-Type)", NULL, NULL, NULL };
 		CHECK_dict_new(DICT_TYPE, &tdata, NULL, &type);
 		CHECK_dict_new(DICT_AVP, &data, type, NULL);
 	};
@@ -3459,7 +3459,7 @@ static int dict_dcca_3gpp_entry(char * conffile)
 			AVP_TYPE_INTEGER32	/* base type of data */
 		};
 		struct dict_object		*type;
-		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "Enumerated(CSG-Access-Mode)", NULL, NULL, NULL };
+		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "3GPP/Enumerated(CSG-Access-Mode)", NULL, NULL, NULL };
 		CHECK_dict_new(DICT_TYPE, &tdata, NULL, &type);
 		CHECK_dict_new(DICT_AVP, &data, type, NULL);
 	};
@@ -3475,7 +3475,7 @@ static int dict_dcca_3gpp_entry(char * conffile)
 			AVP_TYPE_INTEGER32	/* base type of data */
 		};
 		struct dict_object		*type;
-		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "Enumerated(CSG-Membership-Indication)", NULL, NULL, NULL };
+		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "3GPP/Enumerated(CSG-Membership-Indication)", NULL, NULL, NULL };
 		CHECK_dict_new(DICT_TYPE, &tdata, NULL, &type);
 		CHECK_dict_new(DICT_AVP, &data, type, NULL);
 	};
@@ -3595,7 +3595,7 @@ static int dict_dcca_3gpp_entry(char * conffile)
 			AVP_TYPE_INTEGER32	/* base type of data */
 		};
 		struct dict_object		*type;
-		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "Enumerated(Charge-Reason-Code)", NULL, NULL, NULL };
+		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "3GPP/Enumerated(Charge-Reason-Code)", NULL, NULL, NULL };
 		CHECK_dict_new(DICT_TYPE, &tdata, NULL, &type);
 		CHECK_dict_new(DICT_AVP, &data, type, NULL);
 	};
@@ -3624,7 +3624,7 @@ static int dict_dcca_3gpp_entry(char * conffile)
 			AVP_TYPE_INTEGER32	/* base type of data */
 		};
 		struct dict_object		*type;
-		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "Enumerated(Charging-Characteristics-Selection-Mode)", NULL, NULL, NULL };
+		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "3GPP/Enumerated(Charging-Characteristics-Selection-Mode)", NULL, NULL, NULL };
 		CHECK_dict_new(DICT_TYPE, &tdata, NULL, &type);
 		CHECK_dict_new(DICT_AVP, &data, type, NULL);
 	};
@@ -3640,7 +3640,7 @@ static int dict_dcca_3gpp_entry(char * conffile)
 			AVP_TYPE_INTEGER32	/* base type of data */
 		};
 		struct dict_object		*type;
-		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "Enumerated(Class-Identifier)", NULL, NULL, NULL };
+		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "3GPP/Enumerated(Class-Identifier)", NULL, NULL, NULL };
 		CHECK_dict_new(DICT_TYPE, &tdata, NULL, &type);
 		CHECK_dict_new(DICT_AVP, &data, type, NULL);
 	};
@@ -3669,7 +3669,7 @@ static int dict_dcca_3gpp_entry(char * conffile)
 			AVP_TYPE_INTEGER32	/* base type of data */
 		};
 		struct dict_object		*type;
-		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "Enumerated(Content-Class)", NULL, NULL, NULL };
+		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "3GPP/Enumerated(Content-Class)", NULL, NULL, NULL };
 		CHECK_dict_new(DICT_TYPE, &tdata, NULL, &type);
 		CHECK_dict_new(DICT_AVP, &data, type, NULL);
 	};
@@ -3750,7 +3750,7 @@ static int dict_dcca_3gpp_entry(char * conffile)
 			AVP_TYPE_INTEGER32	/* base type of data */
 		};
 		struct dict_object		*type;
-		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "Enumerated(DRM-Content)", NULL, NULL, NULL };
+		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "3GPP/Enumerated(DRM-Content)", NULL, NULL, NULL };
 		CHECK_dict_new(DICT_TYPE, &tdata, NULL, &type);
 		CHECK_dict_new(DICT_AVP, &data, type, NULL);
 	};
@@ -3792,7 +3792,7 @@ static int dict_dcca_3gpp_entry(char * conffile)
 			AVP_TYPE_INTEGER32	/* base type of data */
 		};
 		struct dict_object		*type;
-		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "Enumerated(Delivery-Report-Requested)", NULL, NULL, NULL };
+		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "3GPP/Enumerated(Delivery-Report-Requested)", NULL, NULL, NULL };
 		CHECK_dict_new(DICT_TYPE, &tdata, NULL, &type);
 		CHECK_dict_new(DICT_AVP, &data, type, NULL);
 	};
@@ -3847,7 +3847,7 @@ static int dict_dcca_3gpp_entry(char * conffile)
 			AVP_TYPE_INTEGER32	/* base type of data */
 		};
 		struct dict_object		*type;
-		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "Enumerated(Dynamic-Address-Flag)", NULL, NULL, NULL };
+		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "3GPP/Enumerated(Dynamic-Address-Flag)", NULL, NULL, NULL };
 		CHECK_dict_new(DICT_TYPE, &tdata, NULL, &type);
 		CHECK_dict_new(DICT_AVP, &data, type, NULL);
 	};
@@ -3863,7 +3863,7 @@ static int dict_dcca_3gpp_entry(char * conffile)
 			AVP_TYPE_INTEGER32	/* base type of data */
 		};
 		struct dict_object		*type;
-		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "Enumerated(Dynamic-Address-Flag-Extension)", NULL, NULL, NULL };
+		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "3GPP/Enumerated(Dynamic-Address-Flag-Extension)", NULL, NULL, NULL };
 		CHECK_dict_new(DICT_TYPE, &tdata, NULL, &type);
 		CHECK_dict_new(DICT_AVP, &data, type, NULL);
 	};
@@ -3918,7 +3918,7 @@ static int dict_dcca_3gpp_entry(char * conffile)
 			AVP_TYPE_INTEGER32	/* base type of data */
 		};
 		struct dict_object		*type;
-		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "Enumerated(Envelope-Reporting)", NULL, NULL, NULL };
+		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "3GPP/Enumerated(Envelope-Reporting)", NULL, NULL, NULL };
 		CHECK_dict_new(DICT_TYPE, &tdata, NULL, &type);
 		CHECK_dict_new(DICT_AVP, &data, type, NULL);
 	};
@@ -3999,7 +3999,7 @@ static int dict_dcca_3gpp_entry(char * conffile)
 			AVP_TYPE_INTEGER32	/* base type of data */
 		};
 		struct dict_object		*type;
-		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "Enumerated(File-Repair-Supported)", NULL, NULL, NULL };
+		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "3GPP/Enumerated(File-Repair-Supported)", NULL, NULL, NULL };
 		CHECK_dict_new(DICT_TYPE, &tdata, NULL, &type);
 		CHECK_dict_new(DICT_AVP, &data, type, NULL);
 	};
@@ -4080,7 +4080,7 @@ static int dict_dcca_3gpp_entry(char * conffile)
 			AVP_TYPE_INTEGER32	/* base type of data */
 		};
 		struct dict_object		*type;
-		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "Enumerated(IMS-Emergency-Indicator)", NULL, NULL, NULL };
+		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "3GPP/Enumerated(IMS-Emergency-Indicator)", NULL, NULL, NULL };
 		CHECK_dict_new(DICT_TYPE, &tdata, NULL, &type);
 		CHECK_dict_new(DICT_AVP, &data, type, NULL);
 	};
@@ -4109,7 +4109,7 @@ static int dict_dcca_3gpp_entry(char * conffile)
 			AVP_TYPE_INTEGER32	/* base type of data */
 		};
 		struct dict_object		*type;
-		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "Enumerated(IMSI-Unauthenticated-Flag)", NULL, NULL, NULL };
+		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "3GPP/Enumerated(IMSI-Unauthenticated-Flag)", NULL, NULL, NULL };
 		CHECK_dict_new(DICT_TYPE, &tdata, NULL, &type);
 		CHECK_dict_new(DICT_AVP, &data, type, NULL);
 	};
@@ -4125,7 +4125,7 @@ static int dict_dcca_3gpp_entry(char * conffile)
 			AVP_TYPE_INTEGER32	/* base type of data */
 		};
 		struct dict_object		*type;
-		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "Enumerated(IP-Realm-Default-Indication)", NULL, NULL, NULL };
+		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "3GPP/Enumerated(IP-Realm-Default-Indication)", NULL, NULL, NULL };
 		CHECK_dict_new(DICT_TYPE, &tdata, NULL, &type);
 		CHECK_dict_new(DICT_AVP, &data, type, NULL);
 	};
@@ -4232,7 +4232,7 @@ static int dict_dcca_3gpp_entry(char * conffile)
 			AVP_TYPE_INTEGER32	/* base type of data */
 		};
 		struct dict_object		*type;
-		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "Enumerated(Interface-Type)", NULL, NULL, NULL };
+		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "3GPP/Enumerated(Interface-Type)", NULL, NULL, NULL };
 		CHECK_dict_new(DICT_TYPE, &tdata, NULL, &type);
 		CHECK_dict_new(DICT_AVP, &data, type, NULL);
 	};
@@ -4313,7 +4313,7 @@ static int dict_dcca_3gpp_entry(char * conffile)
 			AVP_TYPE_INTEGER32	/* base type of data */
 		};
 		struct dict_object		*type;
-		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "Enumerated(LCS-Client-Type)", NULL, NULL, NULL };
+		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "3GPP/Enumerated(LCS-Client-Type)", NULL, NULL, NULL };
 		CHECK_dict_new(DICT_TYPE, &tdata, NULL, &type);
 		CHECK_dict_new(DICT_AVP, &data, type, NULL);
 	};
@@ -4342,7 +4342,7 @@ static int dict_dcca_3gpp_entry(char * conffile)
 			AVP_TYPE_INTEGER32	/* base type of data */
 		};
 		struct dict_object		*type;
-		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "Enumerated(LCS-Format-Indicator)", NULL, NULL, NULL };
+		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "3GPP/Enumerated(LCS-Format-Indicator)", NULL, NULL, NULL };
 		CHECK_dict_new(DICT_TYPE, &tdata, NULL, &type);
 		CHECK_dict_new(DICT_AVP, &data, type, NULL);
 	};
@@ -4410,7 +4410,7 @@ static int dict_dcca_3gpp_entry(char * conffile)
 			AVP_TYPE_INTEGER32	/* base type of data */
 		};
 		struct dict_object		*type;
-		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "Enumerated(Local-GW-Inserted-Indication)", NULL, NULL, NULL };
+		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "3GPP/Enumerated(Local-GW-Inserted-Indication)", NULL, NULL, NULL };
 		CHECK_dict_new(DICT_TYPE, &tdata, NULL, &type);
 		CHECK_dict_new(DICT_AVP, &data, type, NULL);
 	};
@@ -4452,7 +4452,7 @@ static int dict_dcca_3gpp_entry(char * conffile)
 			AVP_TYPE_INTEGER32	/* base type of data */
 		};
 		struct dict_object		*type;
-		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "Enumerated(Location-Estimate-Type)", NULL, NULL, NULL };
+		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "3GPP/Enumerated(Location-Estimate-Type)", NULL, NULL, NULL };
 		CHECK_dict_new(DICT_TYPE, &tdata, NULL, &type);
 		CHECK_dict_new(DICT_AVP, &data, type, NULL);
 	};
@@ -4481,7 +4481,7 @@ static int dict_dcca_3gpp_entry(char * conffile)
 			AVP_TYPE_INTEGER32	/* base type of data */
 		};
 		struct dict_object		*type;
-		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "Enumerated(Low-Balance-Indication)", NULL, NULL, NULL };
+		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "3GPP/Enumerated(Low-Balance-Indication)", NULL, NULL, NULL };
 		CHECK_dict_new(DICT_TYPE, &tdata, NULL, &type);
 		CHECK_dict_new(DICT_AVP, &data, type, NULL);
 	};
@@ -4497,7 +4497,7 @@ static int dict_dcca_3gpp_entry(char * conffile)
 			AVP_TYPE_INTEGER32	/* base type of data */
 		};
 		struct dict_object		*type;
-		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "Enumerated(Low-Priority-Indicator)", NULL, NULL, NULL };
+		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "3GPP/Enumerated(Low-Priority-Indicator)", NULL, NULL, NULL };
 		CHECK_dict_new(DICT_TYPE, &tdata, NULL, &type);
 		CHECK_dict_new(DICT_AVP, &data, type, NULL);
 	};
@@ -4539,7 +4539,7 @@ static int dict_dcca_3gpp_entry(char * conffile)
 			AVP_TYPE_INTEGER32	/* base type of data */
 		};
 		struct dict_object		*type;
-		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "Enumerated(MBMS-User-Service-Type)", NULL, NULL, NULL };
+		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "3GPP/Enumerated(MBMS-User-Service-Type)", NULL, NULL, NULL };
 		CHECK_dict_new(DICT_TYPE, &tdata, NULL, &type);
 		CHECK_dict_new(DICT_AVP, &data, type, NULL);
 	};
@@ -4568,7 +4568,7 @@ static int dict_dcca_3gpp_entry(char * conffile)
 			AVP_TYPE_INTEGER32	/* base type of data */
 		};
 		struct dict_object		*type;
-		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "Enumerated(MMBox-Storage-Requested)", NULL, NULL, NULL };
+		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "3GPP/Enumerated(MMBox-Storage-Requested)", NULL, NULL, NULL };
 		CHECK_dict_new(DICT_TYPE, &tdata, NULL, &type);
 		CHECK_dict_new(DICT_AVP, &data, type, NULL);
 	};
@@ -4623,7 +4623,7 @@ static int dict_dcca_3gpp_entry(char * conffile)
 			AVP_TYPE_INTEGER32	/* base type of data */
 		};
 		struct dict_object		*type;
-		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "Enumerated(Media-Initiator-Flag)", NULL, NULL, NULL };
+		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "3GPP/Enumerated(Media-Initiator-Flag)", NULL, NULL, NULL };
 		CHECK_dict_new(DICT_TYPE, &tdata, NULL, &type);
 		CHECK_dict_new(DICT_AVP, &data, type, NULL);
 	};
@@ -4704,7 +4704,7 @@ static int dict_dcca_3gpp_entry(char * conffile)
 			AVP_TYPE_INTEGER32	/* base type of data */
 		};
 		struct dict_object		*type;
-		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "Enumerated(Message-Type)", NULL, NULL, NULL };
+		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "3GPP/Enumerated(Message-Type)", NULL, NULL, NULL };
 		CHECK_dict_new(DICT_TYPE, &tdata, NULL, &type);
 		CHECK_dict_new(DICT_AVP, &data, type, NULL);
 	};
@@ -4733,7 +4733,7 @@ static int dict_dcca_3gpp_entry(char * conffile)
 			AVP_TYPE_INTEGER32	/* base type of data */
 		};
 		struct dict_object		*type;
-		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "Enumerated(NNI-Type)", NULL, NULL, NULL };
+		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "3GPP/Enumerated(NNI-Type)", NULL, NULL, NULL };
 		CHECK_dict_new(DICT_TYPE, &tdata, NULL, &type);
 		CHECK_dict_new(DICT_AVP, &data, type, NULL);
 	};
@@ -4775,7 +4775,7 @@ static int dict_dcca_3gpp_entry(char * conffile)
 			AVP_TYPE_INTEGER32	/* base type of data */
 		};
 		struct dict_object		*type;
-		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "Enumerated(Node-Functionality)", NULL, NULL, NULL };
+		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "3GPP/Enumerated(Node-Functionality)", NULL, NULL, NULL };
 		CHECK_dict_new(DICT_TYPE, &tdata, NULL, &type);
 		CHECK_dict_new(DICT_AVP, &data, type, NULL);
 	};
@@ -4895,7 +4895,7 @@ static int dict_dcca_3gpp_entry(char * conffile)
 			AVP_TYPE_INTEGER32	/* base type of data */
 		};
 		struct dict_object		*type;
-		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "Enumerated(Online-Charging-Flag)", NULL, NULL, NULL };
+		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "3GPP/Enumerated(Online-Charging-Flag)", NULL, NULL, NULL };
 		CHECK_dict_new(DICT_TYPE, &tdata, NULL, &type);
 		CHECK_dict_new(DICT_AVP, &data, type, NULL);
 	};
@@ -4924,7 +4924,7 @@ static int dict_dcca_3gpp_entry(char * conffile)
 			AVP_TYPE_INTEGER32	/* base type of data */
 		};
 		struct dict_object		*type;
-		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "Enumerated(Originator)", NULL, NULL, NULL };
+		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "3GPP/Enumerated(Originator)", NULL, NULL, NULL };
 		CHECK_dict_new(DICT_TYPE, &tdata, NULL, &type);
 		CHECK_dict_new(DICT_AVP, &data, type, NULL);
 	};
@@ -5083,7 +5083,7 @@ static int dict_dcca_3gpp_entry(char * conffile)
 			AVP_TYPE_INTEGER32	/* base type of data */
 		};
 		struct dict_object		*type;
-		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "Enumerated(PDP-Context-Type)", NULL, NULL, NULL };
+		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "3GPP/Enumerated(PDP-Context-Type)", NULL, NULL, NULL };
 		CHECK_dict_new(DICT_TYPE, &tdata, NULL, &type);
 		CHECK_dict_new(DICT_AVP, &data, type, NULL);
 	};
@@ -5099,7 +5099,7 @@ static int dict_dcca_3gpp_entry(char * conffile)
 			AVP_TYPE_INTEGER32	/* base type of data */
 		};
 		struct dict_object		*type;
-		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "Enumerated(PS-Append-Free-Format-Data)", NULL, NULL, NULL };
+		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "3GPP/Enumerated(PS-Append-Free-Format-Data)", NULL, NULL, NULL };
 		CHECK_dict_new(DICT_TYPE, &tdata, NULL, &type);
 		CHECK_dict_new(DICT_AVP, &data, type, NULL);
 	};
@@ -5154,7 +5154,7 @@ static int dict_dcca_3gpp_entry(char * conffile)
 			AVP_TYPE_INTEGER32	/* base type of data */
 		};
 		struct dict_object		*type;
-		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "Enumerated(Participant-Access-Priority)", NULL, NULL, NULL };
+		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "3GPP/Enumerated(Participant-Access-Priority)", NULL, NULL, NULL };
 		CHECK_dict_new(DICT_TYPE, &tdata, NULL, &type);
 		CHECK_dict_new(DICT_AVP, &data, type, NULL);
 	};
@@ -5170,7 +5170,7 @@ static int dict_dcca_3gpp_entry(char * conffile)
 			AVP_TYPE_INTEGER32	/* base type of data */
 		};
 		struct dict_object		*type;
-		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "Enumerated(Participant-Action-Type)", NULL, NULL, NULL };
+		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "3GPP/Enumerated(Participant-Action-Type)", NULL, NULL, NULL };
 		CHECK_dict_new(DICT_TYPE, &tdata, NULL, &type);
 		CHECK_dict_new(DICT_AVP, &data, type, NULL);
 	};
@@ -5212,7 +5212,7 @@ static int dict_dcca_3gpp_entry(char * conffile)
 			AVP_TYPE_INTEGER32	/* base type of data */
 		};
 		struct dict_object		*type;
-		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "Enumerated(PoC-Change-Condition)", NULL, NULL, NULL };
+		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "3GPP/Enumerated(PoC-Change-Condition)", NULL, NULL, NULL };
 		CHECK_dict_new(DICT_TYPE, &tdata, NULL, &type);
 		CHECK_dict_new(DICT_AVP, &data, type, NULL);
 	};
@@ -5254,7 +5254,7 @@ static int dict_dcca_3gpp_entry(char * conffile)
 			AVP_TYPE_INTEGER32	/* base type of data */
 		};
 		struct dict_object		*type;
-		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "Enumerated(PoC-Event-Type)", NULL, NULL, NULL };
+		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "3GPP/Enumerated(PoC-Event-Type)", NULL, NULL, NULL };
 		CHECK_dict_new(DICT_TYPE, &tdata, NULL, &type);
 		CHECK_dict_new(DICT_AVP, &data, type, NULL);
 	};
@@ -5296,7 +5296,7 @@ static int dict_dcca_3gpp_entry(char * conffile)
 			AVP_TYPE_INTEGER32	/* base type of data */
 		};
 		struct dict_object		*type;
-		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "Enumerated(PoC-Server-Role)", NULL, NULL, NULL };
+		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "3GPP/Enumerated(PoC-Server-Role)", NULL, NULL, NULL };
 		CHECK_dict_new(DICT_TYPE, &tdata, NULL, &type);
 		CHECK_dict_new(DICT_AVP, &data, type, NULL);
 	};
@@ -5325,7 +5325,7 @@ static int dict_dcca_3gpp_entry(char * conffile)
 			AVP_TYPE_INTEGER32	/* base type of data */
 		};
 		struct dict_object		*type;
-		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "Enumerated(PoC-Session-Initiation-type)", NULL, NULL, NULL };
+		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "3GPP/Enumerated(PoC-Session-Initiation-type)", NULL, NULL, NULL };
 		CHECK_dict_new(DICT_TYPE, &tdata, NULL, &type);
 		CHECK_dict_new(DICT_AVP, &data, type, NULL);
 	};
@@ -5341,7 +5341,7 @@ static int dict_dcca_3gpp_entry(char * conffile)
 			AVP_TYPE_INTEGER32	/* base type of data */
 		};
 		struct dict_object		*type;
-		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "Enumerated(PoC-Session-Type)", NULL, NULL, NULL };
+		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "3GPP/Enumerated(PoC-Session-Type)", NULL, NULL, NULL };
 		CHECK_dict_new(DICT_TYPE, &tdata, NULL, &type);
 		CHECK_dict_new(DICT_AVP, &data, type, NULL);
 	};
@@ -5383,7 +5383,7 @@ static int dict_dcca_3gpp_entry(char * conffile)
 			AVP_TYPE_INTEGER32	/* base type of data */
 		};
 		struct dict_object		*type;
-		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "Enumerated(PoC-User-Role-info-Units)", NULL, NULL, NULL };
+		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "3GPP/Enumerated(PoC-User-Role-info-Units)", NULL, NULL, NULL };
 		CHECK_dict_new(DICT_TYPE, &tdata, NULL, &type);
 		CHECK_dict_new(DICT_AVP, &data, type, NULL);
 	};
@@ -5425,7 +5425,7 @@ static int dict_dcca_3gpp_entry(char * conffile)
 			AVP_TYPE_INTEGER32	/* base type of data */
 		};
 		struct dict_object		*type;
-		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "Enumerated(Priority)", NULL, NULL, NULL };
+		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "3GPP/Enumerated(Priority)", NULL, NULL, NULL };
 		CHECK_dict_new(DICT_TYPE, &tdata, NULL, &type);
 		CHECK_dict_new(DICT_AVP, &data, type, NULL);
 	};
@@ -5480,7 +5480,7 @@ static int dict_dcca_3gpp_entry(char * conffile)
 			AVP_TYPE_INTEGER32	/* base type of data */
 		};
 		struct dict_object		*type;
-		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "Enumerated(Read-Reply-Report-Requested)", NULL, NULL, NULL };
+		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "3GPP/Enumerated(Read-Reply-Report-Requested)", NULL, NULL, NULL };
 		CHECK_dict_new(DICT_TYPE, &tdata, NULL, &type);
 		CHECK_dict_new(DICT_AVP, &data, type, NULL);
 	};
@@ -5600,7 +5600,7 @@ static int dict_dcca_3gpp_entry(char * conffile)
 			AVP_TYPE_INTEGER32	/* base type of data */
 		};
 		struct dict_object		*type;
-		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "Enumerated(Relationship-Mode)", NULL, NULL, NULL };
+		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "3GPP/Enumerated(Relationship-Mode)", NULL, NULL, NULL };
 		CHECK_dict_new(DICT_TYPE, &tdata, NULL, &type);
 		CHECK_dict_new(DICT_AVP, &data, type, NULL);
 	};
@@ -5642,7 +5642,7 @@ static int dict_dcca_3gpp_entry(char * conffile)
 			AVP_TYPE_INTEGER32	/* base type of data */
 		};
 		struct dict_object		*type;
-		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "Enumerated(Reply-Path-Requested)", NULL, NULL, NULL };
+		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "3GPP/Enumerated(Reply-Path-Requested)", NULL, NULL, NULL };
 		CHECK_dict_new(DICT_TYPE, &tdata, NULL, &type);
 		CHECK_dict_new(DICT_AVP, &data, type, NULL);
 	};
@@ -5658,7 +5658,7 @@ static int dict_dcca_3gpp_entry(char * conffile)
 			AVP_TYPE_INTEGER32	/* base type of data */
 		};
 		struct dict_object		*type;
-		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "Enumerated(Reporting-Reason)", NULL, NULL, NULL };
+		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "3GPP/Enumerated(Reporting-Reason)", NULL, NULL, NULL };
 		CHECK_dict_new(DICT_TYPE, &tdata, NULL, &type);
 		CHECK_dict_new(DICT_AVP, &data, type, NULL);
 	};
@@ -5687,7 +5687,7 @@ static int dict_dcca_3gpp_entry(char * conffile)
 			AVP_TYPE_INTEGER32	/* base type of data */
 		};
 		struct dict_object		*type;
-		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "Enumerated(Role-Of-Node)", NULL, NULL, NULL };
+		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "3GPP/Enumerated(Role-Of-Node)", NULL, NULL, NULL };
 		CHECK_dict_new(DICT_TYPE, &tdata, NULL, &type);
 		CHECK_dict_new(DICT_AVP, &data, type, NULL);
 	};
@@ -5794,7 +5794,7 @@ static int dict_dcca_3gpp_entry(char * conffile)
 			AVP_TYPE_INTEGER32	/* base type of data */
 		};
 		struct dict_object		*type;
-		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "Enumerated(SDP-Type)", NULL, NULL, NULL };
+		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "3GPP/Enumerated(SDP-Type)", NULL, NULL, NULL };
 		CHECK_dict_new(DICT_TYPE, &tdata, NULL, &type);
 		CHECK_dict_new(DICT_AVP, &data, type, NULL);
 	};
@@ -5836,7 +5836,7 @@ static int dict_dcca_3gpp_entry(char * conffile)
 			AVP_TYPE_INTEGER32	/* base type of data */
 		};
 		struct dict_object		*type;
-		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "Enumerated(SGW-Change)", NULL, NULL, NULL };
+		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "3GPP/Enumerated(SGW-Change)", NULL, NULL, NULL };
 		CHECK_dict_new(DICT_TYPE, &tdata, NULL, &type);
 		CHECK_dict_new(DICT_AVP, &data, type, NULL);
 	};
@@ -5930,7 +5930,7 @@ static int dict_dcca_3gpp_entry(char * conffile)
 			AVP_TYPE_INTEGER32	/* base type of data */
 		};
 		struct dict_object		*type;
-		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "Enumerated(SM-Message-Type)", NULL, NULL, NULL };
+		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "3GPP/Enumerated(SM-Message-Type)", NULL, NULL, NULL };
 		CHECK_dict_new(DICT_TYPE, &tdata, NULL, &type);
 		CHECK_dict_new(DICT_AVP, &data, type, NULL);
 	};
@@ -5959,7 +5959,7 @@ static int dict_dcca_3gpp_entry(char * conffile)
 			AVP_TYPE_INTEGER32	/* base type of data */
 		};
 		struct dict_object		*type;
-		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "Enumerated(SM-Service-Type)", NULL, NULL, NULL };
+		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "3GPP/Enumerated(SM-Service-Type)", NULL, NULL, NULL };
 		CHECK_dict_new(DICT_TYPE, &tdata, NULL, &type);
 		CHECK_dict_new(DICT_AVP, &data, type, NULL);
 	};
@@ -6014,7 +6014,7 @@ static int dict_dcca_3gpp_entry(char * conffile)
 			AVP_TYPE_INTEGER32	/* base type of data */
 		};
 		struct dict_object		*type;
-		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "Enumerated(SMS-Node)", NULL, NULL, NULL };
+		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "3GPP/Enumerated(SMS-Node)", NULL, NULL, NULL };
 		CHECK_dict_new(DICT_TYPE, &tdata, NULL, &type);
 		CHECK_dict_new(DICT_AVP, &data, type, NULL);
 	};
@@ -6160,7 +6160,7 @@ static int dict_dcca_3gpp_entry(char * conffile)
 			AVP_TYPE_INTEGER32	/* base type of data */
 		};
 		struct dict_object		*type;
-		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "Enumerated(Serving-Node-Type)", NULL, NULL, NULL };
+		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "3GPP/Enumerated(Serving-Node-Type)", NULL, NULL, NULL };
 		CHECK_dict_new(DICT_TYPE, &tdata, NULL, &type);
 		CHECK_dict_new(DICT_AVP, &data, type, NULL);
 	};
@@ -6176,7 +6176,7 @@ static int dict_dcca_3gpp_entry(char * conffile)
 			AVP_TYPE_INTEGER32	/* base type of data */
 		};
 		struct dict_object		*type;
-		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "Enumerated(Session-Direction)", NULL, NULL, NULL };
+		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "3GPP/Enumerated(Session-Direction)", NULL, NULL, NULL };
 		CHECK_dict_new(DICT_TYPE, &tdata, NULL, &type);
 		CHECK_dict_new(DICT_AVP, &data, type, NULL);
 	};
@@ -6205,7 +6205,7 @@ static int dict_dcca_3gpp_entry(char * conffile)
 			AVP_TYPE_INTEGER32	/* base type of data */
 		};
 		struct dict_object		*type;
-		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "Enumerated(Status)", NULL, NULL, NULL };
+		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "3GPP/Enumerated(Status)", NULL, NULL, NULL };
 		CHECK_dict_new(DICT_TYPE, &tdata, NULL, &type);
 		CHECK_dict_new(DICT_AVP, &data, type, NULL);
 	};
@@ -6247,7 +6247,7 @@ static int dict_dcca_3gpp_entry(char * conffile)
 			AVP_TYPE_INTEGER32	/* base type of data */
 		};
 		struct dict_object		*type;
-		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "Enumerated(Subscriber-Role)", NULL, NULL, NULL };
+		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "3GPP/Enumerated(Subscriber-Role)", NULL, NULL, NULL };
 		CHECK_dict_new(DICT_TYPE, &tdata, NULL, &type);
 		CHECK_dict_new(DICT_AVP, &data, type, NULL);
 	};
@@ -6406,7 +6406,7 @@ static int dict_dcca_3gpp_entry(char * conffile)
 			AVP_TYPE_INTEGER32	/* base type of data */
 		};
 		struct dict_object		*type;
-		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "Enumerated(Time-Quota-Type)", NULL, NULL, NULL };
+		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "3GPP/Enumerated(Time-Quota-Type)", NULL, NULL, NULL };
 		CHECK_dict_new(DICT_TYPE, &tdata, NULL, &type);
 		CHECK_dict_new(DICT_AVP, &data, type, NULL);
 	};
@@ -6474,7 +6474,7 @@ static int dict_dcca_3gpp_entry(char * conffile)
 			AVP_TYPE_INTEGER32	/* base type of data */
 		};
 		struct dict_object		*type;
-		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "Enumerated(Transcoder-Inserted-Indication)", NULL, NULL, NULL };
+		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "3GPP/Enumerated(Transcoder-Inserted-Indication)", NULL, NULL, NULL };
 		CHECK_dict_new(DICT_TYPE, &tdata, NULL, &type);
 		CHECK_dict_new(DICT_AVP, &data, type, NULL);
 	};
@@ -6516,7 +6516,7 @@ static int dict_dcca_3gpp_entry(char * conffile)
 			AVP_TYPE_INTEGER32	/* base type of data */
 		};
 		struct dict_object		*type;
-		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "Enumerated(Trigger-Type)", NULL, NULL, NULL };
+		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "3GPP/Enumerated(Trigger-Type)", NULL, NULL, NULL };
 		CHECK_dict_new(DICT_TYPE, &tdata, NULL, &type);
 		CHECK_dict_new(DICT_AVP, &data, type, NULL);
 	};
@@ -6545,7 +6545,7 @@ static int dict_dcca_3gpp_entry(char * conffile)
 			AVP_TYPE_INTEGER32	/* base type of data */
 		};
 		struct dict_object		*type;
-		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "Enumerated(Type-Number)", NULL, NULL, NULL };
+		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "3GPP/Enumerated(Type-Number)", NULL, NULL, NULL };
 		CHECK_dict_new(DICT_TYPE, &tdata, NULL, &type);
 		CHECK_dict_new(DICT_AVP, &data, type, NULL);
 	};
@@ -6600,7 +6600,7 @@ static int dict_dcca_3gpp_entry(char * conffile)
 			AVP_TYPE_INTEGER32	/* base type of data */
 		};
 		struct dict_object		*type;
-		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "Enumerated(User-Participating-Type)", NULL, NULL, NULL };
+		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "3GPP/Enumerated(User-Participating-Type)", NULL, NULL, NULL };
 		CHECK_dict_new(DICT_TYPE, &tdata, NULL, &type);
 		CHECK_dict_new(DICT_AVP, &data, type, NULL);
 	};
@@ -6774,7 +6774,7 @@ static int dict_dcca_3gpp_entry(char * conffile)
 			AVP_TYPE_INTEGER32	/* base type of data */
 		};
 		struct dict_object		*type;
-		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "Enumerated(Data-Reference)", NULL, NULL, NULL };
+		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "3GPP/Enumerated(Data-Reference)", NULL, NULL, NULL };
 		CHECK_dict_new(DICT_TYPE, &tdata, NULL, &type);
 		CHECK_dict_new(DICT_AVP, &data, type, NULL);
 	};
@@ -6803,7 +6803,7 @@ static int dict_dcca_3gpp_entry(char * conffile)
 			AVP_TYPE_INTEGER32	/* base type of data */
 		};
 		struct dict_object		*type;
-		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "Enumerated(Subs-Req-Type)", NULL, NULL, NULL };
+		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "3GPP/Enumerated(Subs-Req-Type)", NULL, NULL, NULL };
 		CHECK_dict_new(DICT_TYPE, &tdata, NULL, &type);
 		CHECK_dict_new(DICT_AVP, &data, type, NULL);
 	};
@@ -6819,7 +6819,7 @@ static int dict_dcca_3gpp_entry(char * conffile)
 			AVP_TYPE_INTEGER32	/* base type of data */
 		};
 		struct dict_object		*type;
-		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "Enumerated(Requested-Domain)", NULL, NULL, NULL };
+		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "3GPP/Enumerated(Requested-Domain)", NULL, NULL, NULL };
 		CHECK_dict_new(DICT_TYPE, &tdata, NULL, &type);
 		CHECK_dict_new(DICT_AVP, &data, type, NULL);
 	};
@@ -6835,7 +6835,7 @@ static int dict_dcca_3gpp_entry(char * conffile)
 			AVP_TYPE_INTEGER32	/* base type of data */
 		};
 		struct dict_object		*type;
-		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "Enumerated(Current-Location)", NULL, NULL, NULL };
+		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "3GPP/Enumerated(Current-Location)", NULL, NULL, NULL };
 		CHECK_dict_new(DICT_TYPE, &tdata, NULL, &type);
 		CHECK_dict_new(DICT_AVP, &data, type, NULL);
 	};
@@ -6851,7 +6851,7 @@ static int dict_dcca_3gpp_entry(char * conffile)
 			AVP_TYPE_INTEGER32	/* base type of data */
 		};
 		struct dict_object		*type;
-		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "Enumerated(Identity-Set)", NULL, NULL, NULL };
+		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "3GPP/Enumerated(Identity-Set)", NULL, NULL, NULL };
 		CHECK_dict_new(DICT_TYPE, &tdata, NULL, &type);
 		CHECK_dict_new(DICT_AVP, &data, type, NULL);
 	};
@@ -6880,7 +6880,7 @@ static int dict_dcca_3gpp_entry(char * conffile)
 			AVP_TYPE_INTEGER32	/* base type of data */
 		};
 		struct dict_object		*type;
-		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "Enumerated(Send-Data-Indication)", NULL, NULL, NULL };
+		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "3GPP/Enumerated(Send-Data-Indication)", NULL, NULL, NULL };
 		CHECK_dict_new(DICT_TYPE, &tdata, NULL, &type);
 		CHECK_dict_new(DICT_AVP, &data, type, NULL);
 	};
@@ -6933,7 +6933,7 @@ static int dict_dcca_3gpp_entry(char * conffile)
 			AVP_TYPE_INTEGER32	/* base type of data */
 		};
 		struct dict_object		*type;
-		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "Enumerated(One-Time-Notification)", NULL, NULL, NULL };
+		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "3GPP/Enumerated(One-Time-Notification)", NULL, NULL, NULL };
 		CHECK_dict_new(DICT_TYPE, &tdata, NULL, &type);
 		CHECK_dict_new(DICT_AVP, &data, type, NULL);
 	};
@@ -6962,7 +6962,7 @@ static int dict_dcca_3gpp_entry(char * conffile)
 			AVP_TYPE_INTEGER32	/* base type of data */
 		};
 		struct dict_object		*type;
-		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "Enumerated(Serving-Node-Indication)", NULL, NULL, NULL };
+		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "3GPP/Enumerated(Serving-Node-Indication)", NULL, NULL, NULL };
 		CHECK_dict_new(DICT_TYPE, &tdata, NULL, &type);
 		CHECK_dict_new(DICT_AVP, &data, type, NULL);
 	};
