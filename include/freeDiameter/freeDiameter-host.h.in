@@ -58,6 +58,7 @@ extern "C" {
 #cmakedefine SKIP_DLCLOSE
 #cmakedefine DIAMID_IDNA_IGNORE
 #cmakedefine DIAMID_IDNA_REJECT
+#cmakedefine DISABLE_PEER_EXPIRY
 #cmakedefine GNUTLS_VERSION_210
 #cmakedefine GNUTLS_VERSION_300
 #cmakedefine GNUTLS_VERSION_310

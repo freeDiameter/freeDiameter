@@ -24,7 +24,12 @@ IF (NOT DIAMID_IDNA_IGNORE)
 	OPTION (DIAMID_IDNA_REJECT "Reject internationalized Diameter Identities, do not attempt to convert it (stringprep) ?" OFF)
 ENDIF (NOT DIAMID_IDNA_IGNORE)
 
-MARK_AS_ADVANCED(DISABLE_SCTP DEBUG_SCTP SCTP_USE_MAPPED_ADDRESSES ERRORS_ON_TODO DIAMID_IDNA_IGNORE DIAMID_IDNA_REJECT)
+# Disable expiration of connections with dynamically connected peers as per RFC 3539 ? (default is enabled)
+# Note: if someone needs, we could also make the delay configurable here...
+OPTION(DISABLE_PEER_EXPIRY "Disable RFC3539 Peers Connections Expiration after inactivity?" OFF)
+
+
+MARK_AS_ADVANCED(DISABLE_SCTP DEBUG_SCTP SCTP_USE_MAPPED_ADDRESSES ERRORS_ON_TODO DIAMID_IDNA_IGNORE DIAMID_IDNA_REJECT DISABLE_PEER_EXPIRY)
 
 ########################
 ### System checks part
