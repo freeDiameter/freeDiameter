@@ -2,7 +2,7 @@
 * Software License Agreement (BSD License)                                                               *
 * Author: Sebastien Decugis <sdecugis@freediameter.net>							 *
 *													 *
-* Copyright (c) 2011, WIDE Project and NICT								 *
+* Copyright (c) 2013, WIDE Project and NICT								 *
 * All rights reserved.											 *
 * 													 *
 * Redistribution and use of this software in source and binary forms, with or without modification, are  *
@@ -90,6 +90,13 @@ ALLOW_OLD_TLS		{
 				/* We matched a valid label, let's directly save it into the tree. The function will issue the appropriate warnings. */
 				CHECK_FCT_DO( aw_tree_add(yytext, curflag), return LEX_ERROR);
 				return FQDN;
+			}
+
+	/* No match */
+<*>[[:alnum:]]+		|	/* This rule is only useful to print a complete token in error messages */
+<*>.			{
+				TRACE_DEBUG_ERROR("Unrecognized text on line %d col %d: '%s'.\n", yylloc->first_line, yylloc->first_column, yytext);
+			 	return LEX_ERROR; 
 			}
 
 %%

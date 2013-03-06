@@ -2,7 +2,7 @@
 * Software License Agreement (BSD License)                                                               *
 * Author: Sebastien Decugis <sdecugis@freediameter.net>							 *
 *													 *
-* Copyright (c) 2011, WIDE Project and NICT								 *
+* Copyright (c) 2013, WIDE Project and NICT								 *
 * All rights reserved.											 *
 * 													 *
 * Redistribution and use of this software in source and binary forms, with or without modification, are  *
@@ -66,17 +66,39 @@
 
 /* %option noinput ? */
 #define YY_NO_INPUT
+
+/* Additional for files inclusion */
+#include <glob.h>
+#include <string.h>
+
+#define MAX_NESTED_CONF_FILES	5
+
+struct nested_conffiles_t {
+	YY_BUFFER_STATE parent_level_state;
+	glob_t filelist;
+	int current_file;
+} nested_conffiles[MAX_NESTED_CONF_FILES];
+
+int current_nested_level = 0;
+
+int globerrfct(const char *epath, int eerrno)
+{
+	TRACE_DEBUG_ERROR("Failed to scan %s: %s\n", epath, strerror(eerrno));
+	return 1;
+}
+
 %}
 
 %option bison-bridge bison-locations
 %option noyywrap
 %option nounput
 
+%x in_include
+
 /* Quoted string. Multilines do not match. */
 qstring		\"[^\"\n]*\"
 
 %%
-
 <*>\n			{ 
 				/* Update the line count */
 				yylloc->first_line++; 
@@ -86,6 +108,114 @@ qstring		\"[^\"\n]*\"
 
 <*>([[:space:]]{-}[\n])+	; /* Eat all spaces, not new lines */
 <*>#.*$			; /* Eat all comments */
+
+
+include		BEGIN(in_include);
+	/* Following an "include" keyword */
+<in_include>{
+{qstring}	{ /* Name of the file to include. This is directly sent to glob. */
+			int globerror=0;
+			char * buf = strdup(yytext+1);
+			if (buf[yyleng-2] != '"')
+			{
+				TRACE_DEBUG_ERROR("Unterminated string: %s\n", yytext);
+				return LEX_ERROR;
+			}
+			buf[yyleng-2] = '\0';
+
+			if (current_nested_level >= MAX_NESTED_CONF_FILES)
+			{
+				TRACE_DEBUG_ERROR("Too many recursion levels in configuration files includes\n");
+				return LEX_ERROR;
+			}
+
+			/* glob the include */
+			globerror = glob(buf, GLOB_ERR, globerrfct, &nested_conffiles[current_nested_level].filelist);
+
+			if (globerror == GLOB_NOSPACE)
+			{
+				TRACE_DEBUG_ERROR("Not enough memory to parse include directive.\n");
+				return LEX_ERROR;
+			}
+			if (globerror == GLOB_ABORTED)
+			{
+				TRACE_DEBUG_ERROR("An error was encountered in include directive.\n");
+				return LEX_ERROR;
+			}
+			if (globerror == GLOB_NOMATCH)
+			{
+				globfree(&nested_conffiles[current_nested_level].filelist);
+				goto nomatch;
+			}
+			if (globerror)
+			{
+				TRACE_DEBUG_ERROR("Unexpected error in glob (%d).\n", globerror);
+				return LEX_ERROR;
+			}
+
+			/* We have a list of files to include. */
+
+			/* save the current buffer for returning when this include has been parsed */
+			nested_conffiles[current_nested_level].parent_level_state = YY_CURRENT_BUFFER;
+
+			/* Start with the first match */
+			nested_conffiles[current_nested_level].current_file = 0;
+
+			yyin = fopen( nested_conffiles[current_nested_level].filelist.gl_pathv[0], "r" );
+
+			if ( ! yyin )
+			{
+				TRACE_DEBUG_ERROR("Error in %s: %s", nested_conffiles[current_nested_level].filelist.gl_pathv[0], strerror(errno));
+				return LEX_ERROR;
+			}
+
+			yy_switch_to_buffer(yy_create_buffer( yyin, YY_BUF_SIZE ));
+
+			/* In case of recursive includes */
+			current_nested_level++;
+
+nomatch:
+			BEGIN(INITIAL);
+		}
+}
+
+<<EOF>>	{
+			if (current_nested_level == 0)
+			{
+			      /* We are at the end of parsing */
+			      yyterminate();
+			}
+
+			/* Otherwise we are doing an include statement */
+			--current_nested_level;
+			yy_delete_buffer(YY_CURRENT_BUFFER);
+
+			/* Go to next file, if any */
+			nested_conffiles[current_nested_level].current_file++;
+			if ( nested_conffiles[current_nested_level].filelist.gl_pathv[nested_conffiles[current_nested_level].current_file] == NULL )
+			{
+				/* We have finished with this list of includes */
+				globfree(&nested_conffiles[current_nested_level].filelist);
+				yy_switch_to_buffer(nested_conffiles[current_nested_level].parent_level_state);
+			}
+			else
+			{
+				/* Proceed to next included file */
+				yyin = fopen( nested_conffiles[current_nested_level].filelist.gl_pathv[nested_conffiles[current_nested_level].current_file], "r" );
+
+				if ( ! yyin )
+				{
+					TRACE_DEBUG_ERROR("Error in %s: %s", nested_conffiles[current_nested_level].filelist.gl_pathv[nested_conffiles[current_nested_level].current_file], strerror(errno));
+					return LEX_ERROR;
+				}
+
+				yy_switch_to_buffer(yy_create_buffer( yyin, YY_BUF_SIZE ));
+
+				/* In case of recursive includes */
+				current_nested_level++;
+			}
+
+}
 
 {qstring}		{
 				/* First copy the string without the quotes for use in the yacc parser */

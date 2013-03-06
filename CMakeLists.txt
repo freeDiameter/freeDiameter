@@ -11,10 +11,10 @@ SET(FD_PROJECT_COPYRIGHT "Copyright (c) 2008-2011, WIDE Project (www.wide.ad.jp)
 # Version of the source code
 SET(FD_PROJECT_VERSION_MAJOR 1)
 SET(FD_PROJECT_VERSION_MINOR 1)
-SET(FD_PROJECT_VERSION_REV 5)
+SET(FD_PROJECT_VERSION_REV 6)
 
 # Version of the API with the library
-SET(FD_PROJECT_VERSION_API 4)
+SET(FD_PROJECT_VERSION_API 5)
 
 # The test framework, using CTest and CDash.
 INCLUDE(CTest)

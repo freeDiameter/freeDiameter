@@ -1,3 +1,18 @@
+freediameter (1.1.6) UNRELEASED; urgency=low
+
+  * Fix major issue in 1.1.5 preventing to send answers to a received message.
+  * New command-line option: --enable_msg_log=( DROPPED | RECEIVED | SENT | NODELIVER | TIMING )
+  * Improved parsing error handling and Failed-AVP generation.
+  * Added support for some timings measurements in freeDiameter (in the logs)
+  * Fix port handling when using non-default port.
+  * Some cleanups in several dictionary files.
+  * New option to fd_dict_search: AVP_BY_STRUCT
+  * Improved compatibility with C++ compilers.
+  * Cleanups in sessions creation/destruction to avoid memory corruption under stress.
+  * Add support for "include" directive in freeDiameter.conf file.
+
+ -- Sebastien Decugis <sdecugis@freediameter.net>  Sun, 03 Mar 2013 07:40:43 +0100
+
 freediameter (1.1.5) UNRELEASED; urgency=low
 
   * Added compatibility with MAC OS X

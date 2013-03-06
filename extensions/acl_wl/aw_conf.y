@@ -2,7 +2,7 @@
 * Software License Agreement (BSD License)                                                               *
 * Author: Sebastien Decugis <sdecugis@freediameter.net>							 *
 *													 *
-* Copyright (c) 2011, WIDE Project and NICT								 *
+* Copyright (c) 2013, WIDE Project and NICT								 *
 * All rights reserved.											 *
 * 													 *
 * Redistribution and use of this software in source and binary forms, with or without modification, are  *
@@ -125,6 +125,11 @@ conffile:		/* empty grammar is OK */
 			| conffile FQDN
 			{
 				fqdn_added++;
+			}
+			| conffile LEX_ERROR
+			{
+				yyerror(&yylloc, conffile, "An error occurred while parsing the configuration file");
+				return EINVAL;
 			}
 			;
 

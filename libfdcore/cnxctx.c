@@ -2,7 +2,7 @@
 * Software License Agreement (BSD License)                                                               *
 * Author: Sebastien Decugis <sdecugis@freediameter.net>							 *
 *													 *
-* Copyright (c) 2012, WIDE Project and NICT								 *
+* Copyright (c) 2013, WIDE Project and NICT								 *
 * All rights reserved.											 *
 * 													 *
 * Redistribution and use of this software in source and binary forms, with or without modification, are  *
@@ -558,6 +558,9 @@ int fd_cnx_get_local_eps(struct fd_list * list)
 	
 	for (cur = iflist; cur != NULL; cur = cur->ifa_next) {
 		if (cur->ifa_flags & IFF_LOOPBACK)
+			continue;
+		
+		if (cur->ifa_addr == NULL) /* may happen with ppp interfaces */
 			continue;
 		
 		if (fd_g_config->cnf_flags.no_ip4 && (cur->ifa_addr->sa_family == AF_INET))

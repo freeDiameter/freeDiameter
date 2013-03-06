@@ -2,7 +2,7 @@
 * Software License Agreement (BSD License)                                                               *
 * Author: Sebastien Decugis <sdecugis@freediameter.net>							 *
 *													 *
-* Copyright (c) 2012, WIDE Project and NICT								 *
+* Copyright (c) 2013, WIDE Project and NICT								 *
 * All rights reserved.											 *
 * 													 *
 * Redistribution and use of this software in source and binary forms, with or without modification, are  *
@@ -514,12 +514,14 @@ int fd_peer_handle_newCER( struct msg ** cer, struct cnxctx ** cnx )
 		peer->p_flags.pf_responder = 1;
 		peer->p_flags.pf_delete = 1;
 		
+#ifndef DISABLE_PEER_EXPIRY
 		/* Set this peer to expire on inactivity */
 		peer->p_hdr.info.config.pic_flags.exp 	= PI_EXP_INACTIVE;
 		peer->p_hdr.info.config.pic_lft		= 3600;	/* 1 hour without any message 
 		-- RFC3539 states that this must not be inferior to BRINGDOWN_INTERVAL = 5 minutes */
+		
 		CHECK_FCT_DO( ret = fd_p_expi_update( peer ), goto out );
-
+#endif /* DISABLE_PEER_EXPIRY */
 		
 		/* Insert the new peer in the list (the PSM will take care of setting the expiry after validation) */
 		fd_list_insert_after( li_inf, &peer->p_hdr.chain );
