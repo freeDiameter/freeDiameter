@@ -423,7 +423,7 @@ static int return_error(struct msg ** pmsg, char * error_code, char * error_mess
 /****************************************************************************/
 
 /* The DISPATCH message processing */
-static int msg_dispatch(struct msg ** pmsg)
+static int msg_dispatch(struct msg * msg)
 {
 	struct msg_hdr * hdr;
 	int is_req = 0, ret;
@@ -431,26 +431,26 @@ static int msg_dispatch(struct msg ** pmsg)
 	enum disp_action action;
 	char * ec = NULL;
 	char * em = NULL;
+	struct msg *msgptr = msg;
 
 	/* Read the message header */
-	CHECK_FCT( fd_msg_hdr(*pmsg, &hdr) );
+	CHECK_FCT( fd_msg_hdr(msg, &hdr) );
 	is_req = hdr->msg_flags & CMD_FLAG_REQUEST;
 	
 	/* Note: if the message is for local delivery, we should test for duplicate
 	  (draft-asveren-dime-dupcons-00). This may conflict with path validation decisions, no clear answer yet */
 
 	/* At this point, we need to understand the message content, so parse it */
-	CHECK_FCT_DO( ret = fd_msg_parse_or_error( pmsg ),
+	CHECK_FCT_DO( ret = fd_msg_parse_or_error( &msgptr ),
 		{
 			/* in case of error */
-			if ((ret == EBADMSG) && (*pmsg != NULL)) {
-				/* msg now contains the answer message to send back */
-				CHECK_FCT( fd_fifo_post(fd_g_outgoing, pmsg) );
+			if ((ret == EBADMSG) && (msgptr != NULL)) {
+				/* msgptr now contains the answer message to send back */
+				CHECK_FCT( fd_fifo_post(fd_g_outgoing, &msgptr) );
 			}
-			if (*pmsg) {	/* another error happen'd */
-				fd_msg_log( FD_MSG_LOG_DROPPED, *pmsg,  "An unexpected error occurred while parsing the message (%s)", strerror(ret));
-				CHECK_FCT_DO( fd_msg_free(*pmsg), /* continue */);
-				*pmsg = NULL;
+			if (msgptr) {	/* another error happen'd */
+				fd_msg_log( FD_MSG_LOG_DROPPED, msgptr,  "An unexpected error occurred while parsing the message (%s)", strerror(ret));
+				CHECK_FCT_DO( fd_msg_free(msgptr), /* continue */);
 			}
 			/* We're done with this one */
 			return 0;
@@ -463,7 +463,7 @@ static int msg_dispatch(struct msg ** pmsg)
 		void * data = NULL;
 
 		/* Retrieve the corresponding query */
-		CHECK_FCT( fd_msg_answ_getq( *pmsg, &qry ) );
+		CHECK_FCT( fd_msg_answ_getq( msgptr, &qry ) );
 
 		/* Retrieve any registered handler */
 		CHECK_FCT( fd_msg_anscb_get( qry, &anscb, &data ) );
@@ -472,29 +472,31 @@ static int msg_dispatch(struct msg ** pmsg)
 		if (anscb != NULL) {
 
 			TRACE_DEBUG(FULL, "Calling callback registered when query was sent (%p, %p)", anscb, data);
-			(*anscb)(data, pmsg);
+			(*anscb)(data, &msgptr);
 			
 			/* If the message is processed, we're done */
-			if (*pmsg == NULL) {
+			if (msgptr == NULL) {
 				return 0;
 			}
+			
+			/* otherwise continue the dispatching --hoping that the anscb callback did not mess with our message :) */
 		}
 	}
 	
 	/* Retrieve the session of the message */
-	CHECK_FCT( fd_msg_sess_get(fd_g_config->cnf_dict, *pmsg, &sess, NULL) );
+	CHECK_FCT( fd_msg_sess_get(fd_g_config->cnf_dict, msgptr, &sess, NULL) );
 
 	/* Now, call any callback registered for the message */
-	CHECK_FCT( fd_msg_dispatch ( pmsg, sess, &action, &ec) );
+	CHECK_FCT( fd_msg_dispatch ( &msgptr, sess, &action, &ec) );
 
 	/* Now, act depending on msg and action and ec */
-	if (*pmsg)
+	if (msgptr) {
 		switch ( action ) {
 			case DISP_ACT_CONT:
 				/* No callback has handled the message, let's reply with a generic error or relay it */
 				if (!fd_g_config->cnf_flags.no_fwd) {
 					/* requeue to fd_g_outgoing */
-					CHECK_FCT( fd_fifo_post(fd_g_outgoing, pmsg) );
+					CHECK_FCT( fd_fifo_post(fd_g_outgoing, &msgptr) );
 					break;
 				}
 				/* We don't relay => reply error */
@@ -508,42 +510,43 @@ static int msg_dispatch(struct msg ** pmsg)
 				}
 				
 				if (!is_req) {
-					fd_msg_log( FD_MSG_LOG_DROPPED, *pmsg,  "Internal error: Answer received to locally issued request, but not handled by any handler.");
-					fd_msg_free(*pmsg);
-					*pmsg = NULL;
+					fd_msg_log( FD_MSG_LOG_DROPPED, msgptr,  "Internal error: Answer received to locally issued request, but not handled by any handler.");
+					fd_msg_free(msgptr);
 					break;
 				}
 				
 				/* Create an answer with the error code and message */
-				CHECK_FCT( fd_msg_new_answer_from_req ( fd_g_config->cnf_dict, pmsg, 0 ) );
-				CHECK_FCT( fd_msg_rescode_set(*pmsg, ec, em, NULL, 1 ) );
+				CHECK_FCT( fd_msg_new_answer_from_req ( fd_g_config->cnf_dict, &msgptr, 0 ) );
+				CHECK_FCT( fd_msg_rescode_set(msgptr, ec, em, NULL, 1 ) );
 				
 			case DISP_ACT_SEND:
 				/* Now, send the message */
-				CHECK_FCT( fd_fifo_post(fd_g_outgoing, pmsg) );
+				CHECK_FCT( fd_fifo_post(fd_g_outgoing, &msgptr) );
 		}
+	}
 	
 	/* We're done with dispatching this message */
 	return 0;
 }
 
 /* The ROUTING-IN message processing */
-static int msg_rt_in(struct msg ** pmsg)
+static int msg_rt_in(struct msg * msg)
 {
 	struct msg_hdr * hdr;
 	int is_req = 0;
 	int is_err = 0;
 	DiamId_t qry_src = NULL;
 	size_t   qry_src_len = 0;
+	struct msg *msgptr = msg;
 
 	/* Read the message header */
-	CHECK_FCT( fd_msg_hdr(*pmsg, &hdr) );
+	CHECK_FCT( fd_msg_hdr(msg, &hdr) );
 	is_req = hdr->msg_flags & CMD_FLAG_REQUEST;
 	is_err = hdr->msg_flags & CMD_FLAG_ERROR;
 
 	/* Handle incorrect bits */
 	if (is_req && is_err) {
-		CHECK_FCT( return_error( pmsg, "DIAMETER_INVALID_HDR_BITS", "R & E bits were set", NULL) );
+		CHECK_FCT( return_error( &msgptr, "DIAMETER_INVALID_HDR_BITS", "R & E bits were set", NULL) );
 		return 0;
 	}
 	
@@ -563,7 +566,7 @@ static int msg_rt_in(struct msg ** pmsg)
 		if ( (hdr->msg_appl == 0) || (hdr->msg_appl == AI_RELAY) ) {
 			TRACE_DEBUG(INFO, "Received a routable message with application id 0 or " _stringize(AI_RELAY) " (relay),\n"
 					  " returning DIAMETER_APPLICATION_UNSUPPORTED");
-			CHECK_FCT( return_error( pmsg, "DIAMETER_APPLICATION_UNSUPPORTED", "Routable message with application id 0 or relay", NULL) );
+			CHECK_FCT( return_error( &msgptr, "DIAMETER_APPLICATION_UNSUPPORTED", "Routable message with application id 0 or relay", NULL) );
 			return 0;
 		} else {
 			struct fd_app * app;
@@ -572,7 +575,7 @@ static int msg_rt_in(struct msg ** pmsg)
 		}
 
 		/* Parse the message for Dest-Host and Dest-Realm */
-		CHECK_FCT(  fd_msg_browse(*pmsg, MSG_BRW_FIRST_CHILD, &avp, NULL)  );
+		CHECK_FCT(  fd_msg_browse(msgptr, MSG_BRW_FIRST_CHILD, &avp, NULL)  );
 		while (avp) {
 			struct avp_hdr * ahdr;
 			struct fd_pei error_info;
@@ -589,7 +592,7 @@ static int msg_rt_in(struct msg ** pmsg)
 						CHECK_FCT_DO( ret = fd_msg_parse_dict ( avp, fd_g_config->cnf_dict, &error_info ),
 							{
 								if (error_info.pei_errcode) {
-									CHECK_FCT( return_error( pmsg, error_info.pei_errcode, error_info.pei_message, error_info.pei_avp) );
+									CHECK_FCT( return_error( &msgptr, error_info.pei_errcode, error_info.pei_message, error_info.pei_avp) );
 									return 0;
 								} else {
 									return ret;
@@ -609,7 +612,7 @@ static int msg_rt_in(struct msg ** pmsg)
 						CHECK_FCT_DO( ret = fd_msg_parse_dict ( avp, fd_g_config->cnf_dict, &error_info ),
 							{
 								if (error_info.pei_errcode) {
-									CHECK_FCT( return_error( pmsg, error_info.pei_errcode, error_info.pei_message, error_info.pei_avp) );
+									CHECK_FCT( return_error( &msgptr, error_info.pei_errcode, error_info.pei_message, error_info.pei_avp) );
 									return 0;
 								} else {
 									return ret;
@@ -631,7 +634,7 @@ static int msg_rt_in(struct msg ** pmsg)
 						CHECK_FCT_DO( ret = fd_msg_parse_dict ( avp, fd_g_config->cnf_dict, &error_info ),
 							{
 								if (error_info.pei_errcode) {
-									CHECK_FCT( return_error( pmsg, error_info.pei_errcode, error_info.pei_message, error_info.pei_avp) );
+									CHECK_FCT( return_error( &msgptr, error_info.pei_errcode, error_info.pei_message, error_info.pei_avp) );
 									return 0;
 								} else {
 									return ret;
@@ -656,7 +659,7 @@ static int msg_rt_in(struct msg ** pmsg)
 
 		/* Handle the missing routing AVPs first */
 		if ( is_dest_realm == UNKNOWN ) {
-			CHECK_FCT( return_error( pmsg, "DIAMETER_COMMAND_UNSUPPORTED", "Non-routable message not supported (invalid bit ? missing Destination-Realm ?)", NULL) );
+			CHECK_FCT( return_error( &msgptr, "DIAMETER_COMMAND_UNSUPPORTED", "Non-routable message not supported (invalid bit ? missing Destination-Realm ?)", NULL) );
 			return 0;
 		}
 
@@ -664,10 +667,10 @@ static int msg_rt_in(struct msg ** pmsg)
 		if (is_dest_host == YES) {
 			if (is_local_app == YES) {
 				/* Ok, give the message to the dispatch thread */
-				CHECK_FCT( fd_fifo_post(fd_g_local, pmsg) );
+				CHECK_FCT( fd_fifo_post(fd_g_local, &msgptr) );
 			} else {
 				/* We don't support the application, reply an error */
-				CHECK_FCT( return_error( pmsg, "DIAMETER_APPLICATION_UNSUPPORTED", NULL, NULL) );
+				CHECK_FCT( return_error( &msgptr, "DIAMETER_APPLICATION_UNSUPPORTED", NULL, NULL) );
 			}
 			return 0;
 		}
@@ -675,7 +678,7 @@ static int msg_rt_in(struct msg ** pmsg)
 		/* If the message is explicitely for someone else */
 		if ((is_dest_host == NO) || (is_dest_realm == NO)) {
 			if (fd_g_config->cnf_flags.no_fwd) {
-				CHECK_FCT( return_error( pmsg, "DIAMETER_UNABLE_TO_DELIVER", "I am not a Diameter agent", NULL) );
+				CHECK_FCT( return_error( &msgptr, "DIAMETER_UNABLE_TO_DELIVER", "I am not a Diameter agent", NULL) );
 				return 0;
 			}
 		} else {
@@ -688,26 +691,26 @@ static int msg_rt_in(struct msg ** pmsg)
 				CHECK_FCT_DO( process_decorated_NAI(&is_nai, un_val, dr_val),
 					{
 						/* If the process failed, we assume it is because of the AVP format */
-						CHECK_FCT( return_error( pmsg, "DIAMETER_INVALID_AVP_VALUE", "Failed to process decorated NAI", un) );
+						CHECK_FCT( return_error( &msgptr, "DIAMETER_INVALID_AVP_VALUE", "Failed to process decorated NAI", un) );
 						return 0;
 					} );
 			}
 				
 			if (is_nai) {
 				/* We have transformed the AVP, now submit it again in the queue */
-				CHECK_FCT(fd_fifo_post(fd_g_incoming, pmsg) );
+				CHECK_FCT(fd_fifo_post(fd_g_incoming, &msgptr) );
 				return 0;
 			}
 
 			if (is_local_app == YES) {
 				/* Handle localy since we are able to */
-				CHECK_FCT(fd_fifo_post(fd_g_local, pmsg) );
+				CHECK_FCT(fd_fifo_post(fd_g_local, &msgptr) );
 				return 0;
 			}
 
 			if (fd_g_config->cnf_flags.no_fwd) {
 				/* We return an error */
-				CHECK_FCT( return_error( pmsg, "DIAMETER_APPLICATION_UNSUPPORTED", NULL, NULL) );
+				CHECK_FCT( return_error( &msgptr, "DIAMETER_APPLICATION_UNSUPPORTED", NULL, NULL) );
 				return 0;
 			}
 		}
@@ -719,12 +722,12 @@ static int msg_rt_in(struct msg ** pmsg)
 		struct msg * qry;
 
 		/* Retrieve the corresponding query and its origin */
-		CHECK_FCT( fd_msg_answ_getq( *pmsg, &qry ) );
+		CHECK_FCT( fd_msg_answ_getq( msgptr, &qry ) );
 		CHECK_FCT( fd_msg_source_get( qry, &qry_src, &qry_src_len ) );
 
 		if ((!qry_src) && (!is_err)) {
 			/* The message is a normal answer to a request issued localy, we do not call the callbacks chain on it. */
-			CHECK_FCT(fd_fifo_post(fd_g_local, pmsg) );
+			CHECK_FCT(fd_fifo_post(fd_g_local, &msgptr) );
 			return 0;
 		}
 		
@@ -739,7 +742,7 @@ static int msg_rt_in(struct msg ** pmsg)
 		pthread_cleanup_push( fd_cleanup_rwlock, &rt_fwd_lock );
 
 		/* requests: dir = 1 & 2 => in order; answers = 3 & 2 => in reverse order */
-		for (	li = (is_req ? rt_fwd_list.next : rt_fwd_list.prev) ; *pmsg && (li != &rt_fwd_list) ; li = (is_req ? li->next : li->prev) ) {
+		for (	li = (is_req ? rt_fwd_list.next : rt_fwd_list.prev) ; msgptr && (li != &rt_fwd_list) ; li = (is_req ? li->next : li->prev) ) {
 			struct rt_hdl * rh = (struct rt_hdl *)li;
 			int ret;
 
@@ -749,12 +752,12 @@ static int msg_rt_in(struct msg ** pmsg)
 				break;
 
 			/* Ok, call this cb */
-			TRACE_DEBUG(ANNOYING, "Calling next FWD callback on %p : %p", *pmsg, rh->rt_fwd_cb);
-			CHECK_FCT_DO( ret = (*rh->rt_fwd_cb)(rh->cbdata, pmsg),
+			TRACE_DEBUG(ANNOYING, "Calling next FWD callback on %p : %p", msgptr, rh->rt_fwd_cb);
+			CHECK_FCT_DO( ret = (*rh->rt_fwd_cb)(rh->cbdata, &msgptr),
 				{
-					fd_msg_log( FD_MSG_LOG_DROPPED, *pmsg, "Internal error: a FWD routing callback returned an error (%s)", strerror(ret));
-					fd_msg_free(*pmsg);
-					*pmsg = NULL;
+					fd_msg_log( FD_MSG_LOG_DROPPED, msgptr, "Internal error: a FWD routing callback returned an error (%s)", strerror(ret));
+					fd_msg_free(msgptr);
+					msgptr = NULL;
 				} );
 		}
 
@@ -762,15 +765,15 @@ static int msg_rt_in(struct msg ** pmsg)
 		CHECK_FCT( pthread_rwlock_unlock( &rt_fwd_lock ) );
 
 		/* If a callback has handled the message, we stop now */
-		if (!*pmsg)
+		if (!msgptr)
 			return 0;
 	}
 
 	/* Now pass the message to the next step: either forward to another peer, or dispatch to local extensions */
 	if (is_req || qry_src) {
-		CHECK_FCT(fd_fifo_post(fd_g_outgoing, pmsg) );
+		CHECK_FCT(fd_fifo_post(fd_g_outgoing, &msgptr) );
 	} else {
-		CHECK_FCT(fd_fifo_post(fd_g_local, pmsg) );
+		CHECK_FCT(fd_fifo_post(fd_g_local, &msgptr) );
 	}
 
 	/* We're done with this message */
@@ -779,7 +782,7 @@ static int msg_rt_in(struct msg ** pmsg)
 		
 
 /* The ROUTING-OUT message processing */
-static int msg_rt_out(struct msg ** pmsg)
+static int msg_rt_out(struct msg * msg)
 {
 	struct rt_data * rtd = NULL;
 	struct msg_hdr * hdr;
@@ -788,9 +791,10 @@ static int msg_rt_out(struct msg ** pmsg)
 	struct fd_list * li, *candidates;
 	struct avp * avp;
 	struct rtd_candidate * c;
+	struct msg *msgptr = msg;
 	
 	/* Read the message header */
-	CHECK_FCT( fd_msg_hdr(*pmsg, &hdr) );
+	CHECK_FCT( fd_msg_hdr(msgptr, &hdr) );
 	is_req = hdr->msg_flags & CMD_FLAG_REQUEST;
 	
 	/* For answers, the routing is very easy */
@@ -802,7 +806,7 @@ static int msg_rt_out(struct msg ** pmsg)
 		struct fd_peer * peer = NULL;
 
 		/* Retrieve the corresponding query and its origin */
-		CHECK_FCT( fd_msg_answ_getq( *pmsg, &qry ) );
+		CHECK_FCT( fd_msg_answ_getq( msgptr, &qry ) );
 		CHECK_FCT( fd_msg_source_get( qry, &qry_src, &qry_src_len ) );
 
 		ASSERT( qry_src ); /* if it is NULL, the message should have been in the LOCAL queue! */
@@ -810,9 +814,8 @@ static int msg_rt_out(struct msg ** pmsg)
 		/* Find the peer corresponding to this name */
 		CHECK_FCT( fd_peer_getbyid( qry_src, qry_src_len, 0, (void *) &peer ) );
 		if (fd_peer_getstate(peer) != STATE_OPEN) {
-			fd_msg_log( FD_MSG_LOG_DROPPED, *pmsg, "Unable to forward answer to deleted / closed peer '%s'.", qry_src);
-			fd_msg_free(*pmsg);
-			*pmsg = NULL;
+			fd_msg_log( FD_MSG_LOG_DROPPED, msgptr, "Unable to forward answer to deleted / closed peer '%s'.", qry_src);
+			fd_msg_free(msgptr);
 			return 0;
 		}
 
@@ -821,7 +824,7 @@ static int msg_rt_out(struct msg ** pmsg)
 		hdr->msg_hbhid = qry_hdr->msg_hbhid;
 
 		/* Push the message into this peer */
-		CHECK_FCT( fd_out_send(pmsg, NULL, peer, 0) );
+		CHECK_FCT( fd_out_send(&msgptr, NULL, peer, 0) );
 
 		/* We're done with this answer */
 		return 0;
@@ -830,7 +833,7 @@ static int msg_rt_out(struct msg ** pmsg)
 	/* From that point, the message is a request */
 
 	/* Get the routing data out of the message if any (in case of re-transmit) */
-	CHECK_FCT( fd_msg_rt_get ( *pmsg, &rtd ) );
+	CHECK_FCT( fd_msg_rt_get ( msgptr, &rtd ) );
 
 	/* If there is no routing data already, let's create it */
 	if (rtd == NULL) {
@@ -850,7 +853,7 @@ static int msg_rt_out(struct msg ** pmsg)
 		CHECK_FCT( pthread_rwlock_unlock(&fd_g_activ_peers_rw) );
 
 		/* Now let's remove all peers from the Route-Records */
-		CHECK_FCT(  fd_msg_browse(*pmsg, MSG_BRW_FIRST_CHILD, &avp, NULL)  );
+		CHECK_FCT(  fd_msg_browse(msgptr, MSG_BRW_FIRST_CHILD, &avp, NULL)  );
 		while (avp) {
 			struct avp_hdr * ahdr;
 			struct fd_pei error_info;
@@ -861,7 +864,7 @@ static int msg_rt_out(struct msg ** pmsg)
 				CHECK_FCT_DO( ret = fd_msg_parse_dict ( avp, fd_g_config->cnf_dict, &error_info ),
 					{
 						if (error_info.pei_errcode) {
-							CHECK_FCT( return_error( pmsg, error_info.pei_errcode, error_info.pei_message, error_info.pei_avp) );
+							CHECK_FCT( return_error( &msgptr, error_info.pei_errcode, error_info.pei_message, error_info.pei_avp) );
 							return 0;
 						} else {
 							return ret;
@@ -882,7 +885,7 @@ static int msg_rt_out(struct msg ** pmsg)
 	/* Ok, we have our list in rtd now, let's (re)initialize the scores */
 	fd_rtd_candidate_extract(rtd, &candidates, FD_SCORE_INI);
 
-	/* Pass the list to registered callbacks (even if it is empty) */
+	/* Pass the list to registered callbacks (even if it is empty list) */
 	{
 		CHECK_FCT( pthread_rwlock_rdlock( &rt_out_lock ) );
 		pthread_cleanup_push( fd_cleanup_rwlock, &rt_out_lock );
@@ -891,12 +894,12 @@ static int msg_rt_out(struct msg ** pmsg)
 		for (	li = rt_out_list.prev ; li != &rt_out_list ; li = li->prev ) {
 			struct rt_hdl * rh = (struct rt_hdl *)li;
 
-			TRACE_DEBUG(ANNOYING, "Calling next OUT callback on %p : %p (prio %d)", *pmsg, rh->rt_out_cb, rh->prio);
-			CHECK_FCT_DO( ret = (*rh->rt_out_cb)(rh->cbdata, *pmsg, candidates),
+			TRACE_DEBUG(ANNOYING, "Calling next OUT callback on %p : %p (prio %d)", msgptr, rh->rt_out_cb, rh->prio);
+			CHECK_FCT_DO( ret = (*rh->rt_out_cb)(rh->cbdata, msgptr, candidates),
 				{
-					fd_msg_log( FD_MSG_LOG_DROPPED, *pmsg, "Internal error: an OUT routing callback returned an error (%s)", strerror(ret));
-					fd_msg_free(*pmsg);
-					*pmsg = NULL;
+					fd_msg_log( FD_MSG_LOG_DROPPED, msgptr, "Internal error: an OUT routing callback returned an error (%s)", strerror(ret));
+					fd_msg_free(msgptr);
+					msgptr = NULL;
 					break;
 				} );
 		}
@@ -905,7 +908,7 @@ static int msg_rt_out(struct msg ** pmsg)
 		CHECK_FCT( pthread_rwlock_unlock( &rt_out_lock ) );
 
 		/* If an error occurred, skip to the next message */
-		if (! *pmsg) {
+		if (! msgptr) {
 			if (rtd)
 				fd_rtd_free(&rtd);
 			return 0;
@@ -916,7 +919,7 @@ static int msg_rt_out(struct msg ** pmsg)
 	CHECK_FCT( fd_rtd_candidate_reorder(candidates) );
 
 	/* Save the routing information in the message */
-	CHECK_FCT( fd_msg_rt_associate ( *pmsg, &rtd ) );
+	CHECK_FCT( fd_msg_rt_associate ( msgptr, &rtd ) );
 
 	/* Now try sending the message */
 	for (li = candidates->prev; li != candidates; li = li->prev) {
@@ -933,7 +936,7 @@ static int msg_rt_out(struct msg ** pmsg)
 
 		if (fd_peer_getstate(peer) == STATE_OPEN) {
 			/* Send to this one */
-			CHECK_FCT_DO( fd_out_send(pmsg, NULL, peer, 0), continue );
+			CHECK_FCT_DO( fd_out_send(&msgptr, NULL, peer, 0), continue );
 			
 			/* If the sending was successful */
 			break;
@@ -941,9 +944,9 @@ static int msg_rt_out(struct msg ** pmsg)
 	}
 
 	/* If the message has not been sent, return an error */
-	if (*pmsg) {
-		fd_msg_log( FD_MSG_LOG_NODELIVER, *pmsg, "No suitable candidate to route the message to." );
-		return_error( pmsg, "DIAMETER_UNABLE_TO_DELIVER", "No suitable candidate to route the message to", NULL);
+	if (msgptr) {
+		fd_msg_log( FD_MSG_LOG_NODELIVER, msgptr, "No suitable candidate to route the message to." );
+		return_error( &msgptr, "DIAMETER_UNABLE_TO_DELIVER", "No suitable candidate to route the message to", NULL);
 	}
 
 	/* We're done with this message */
@@ -976,7 +979,7 @@ static void cleanup_state(void * state_loc)
 }
 
 /* This is the common thread code (same for routing and dispatching) */
-static void * process_thr(void * arg, int (*action_cb)(struct msg ** pmsg), struct fifo * queue, char * action_name)
+static void * process_thr(void * arg, int (*action_cb)(struct msg * msg), struct fifo * queue, char * action_name)
 {
 	TRACE_ENTRY("%p %p %p %p", arg, action_cb, queue, action_name);
 	
@@ -1039,7 +1042,7 @@ static void * process_thr(void * arg, int (*action_cb)(struct msg ** pmsg), stru
 		}
 		
 		/* Now process the message */
-		CHECK_FCT_DO( (*action_cb)(&msg), goto fatal_error);
+		CHECK_FCT_DO( (*action_cb)(msg), goto fatal_error);
 
 		/* We're done with this message */
 	
