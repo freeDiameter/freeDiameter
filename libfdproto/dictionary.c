@@ -1277,8 +1277,6 @@ static void dump_object ( struct dict_object * obj, int parents, int depth, int 
 	else
 		_OBINFO(obj).dump_data(&obj->data);
 	
-	fd_log_debug("\n");
-	
 	if (depth) {
 		int i;
 		for (i=0; i<NB_LISTS_PER_OBJ; i++) {
@@ -1469,7 +1467,6 @@ static int dump_avp_val(union avp_value *avp_value,
 	}
 	
 	/* Done! */
-	CHECK_FCT( dump_add_str(outstr, offset, outlen, "\n") );
 	return 0;
 }
 
@@ -1724,6 +1721,7 @@ error_unlock:
 		/* We have a duplicate key in locref. Check if the pointed object is the same or not */
 		switch (type) {
 			case DICT_VENDOR:
+				TRACE_DEBUG(FULL, "Vendor %s already in dictionary", new->data.vendor.vendor_name);
 				/* if we are here, it means the two vendors id are identical */
 				if (fd_os_cmp(locref->data.vendor.vendor_name, locref->datastr_len, 
 						new->data.vendor.vendor_name, new->datastr_len)) {
@@ -1735,6 +1733,7 @@ error_unlock:
 				break;
 
 			case DICT_APPLICATION:
+				TRACE_DEBUG(FULL, "Application %s already in dictionary", new->data.application.application_name);
 				/* got same id */
 				if (fd_os_cmp(locref->data.application.application_name, locref->datastr_len, 
 						new->data.application.application_name, new->datastr_len)) {
@@ -1745,6 +1744,7 @@ error_unlock:
 				break;
 
 			case DICT_TYPE:
+				TRACE_DEBUG(FULL, "Type %s already in dictionary", new->data.type.type_name);
 				/* got same name */
 				if (locref->data.type.type_base != new->data.type.type_base) {
 					TRACE_DEBUG(FULL, "Conflicting base type");
@@ -1767,6 +1767,7 @@ error_unlock:
 				break;
 
 			case DICT_ENUMVAL:
+				TRACE_DEBUG(FULL, "Enum %s already in dictionary", new->data.enumval.enum_name);
 				/* got either same name or same value. We check that both are true */
 				if (order_enum_by_name(locref, new)) {
 					TRACE_DEBUG(FULL, "Conflicting enum name");
@@ -1780,6 +1781,7 @@ error_unlock:
 				break;
 
 			case DICT_AVP:
+				TRACE_DEBUG(FULL, "AVP %s already in dictionary", new->data.avp.avp_name);
 				/* got either same name or code */
 				if (order_avp_by_code(locref, new)) {
 					TRACE_DEBUG(FULL, "Conflicting AVP code");
@@ -1809,6 +1811,7 @@ error_unlock:
 				break;
 
 			case DICT_COMMAND:
+				TRACE_DEBUG(FULL, "Command %s already in dictionary", new->data.cmd.cmd_name);
 				/* We got either same name, or same code + R flag */
 				if (order_cmd_by_name(locref, new)) {
 					TRACE_DEBUG(FULL, "Conflicting command name");

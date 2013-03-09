@@ -58,12 +58,12 @@ int fd_ep_add_merge( struct fd_list * list, sSA * sa, socklen_t sl, uint32_t fla
 	}
 	
 	if (TRACE_BOOL(ANNOYING + 1)) {
+		char buf[1024];
+		sSA_DUMP_NODE_SERV( buf, sizeof(buf), sa, NI_NUMERICHOST | NI_NUMERICSERV );
 		TRACE_DEBUG(ANNOYING, "  DEBUG:fd_ep_add_merge  Current list:");
 		fd_ep_dump( 4, list );
 		TRACE_DEBUG(ANNOYING, "  DEBUG:fd_ep_add_merge  Adding:");
-		fd_log_debug("    ");
-		sSA_DUMP_NODE_SERV( sa, NI_NUMERICHOST | NI_NUMERICSERV );
-		fd_log_debug(" {%s%s%s%s}\n", 
+		fd_log_debug("    %s {%s%s%s%s}\n", buf,
 				(flags & EP_FL_CONF) 	? "C" : "-",
 				(flags & EP_FL_DISC)	    ? "D" : "-",
 				(flags & EP_FL_ADV)	    ? "A" : "-",
@@ -335,18 +335,16 @@ int fd_ep_clearflags( struct fd_list * list, uint32_t flags )
 
 void fd_ep_dump_one( char * prefix, struct fd_endpoint * ep, char * suffix )
 {
-	if (prefix)
-		fd_log_debug("%s", prefix);
+	char buf[1024];
 	
-	sSA_DUMP_NODE_SERV( &ep->sa, NI_NUMERICHOST | NI_NUMERICSERV );
-	fd_log_debug(" {%s%s%s%s}", 
+	sSA_DUMP_NODE_SERV( buf, sizeof(buf), &ep->sa, NI_NUMERICHOST | NI_NUMERICSERV );
+	fd_log_debug("%s%s {%s%s%s%s}%s", prefix ?: "", buf,
 			(ep->flags & EP_FL_CONF) 	? "C" : "-",
 			(ep->flags & EP_FL_DISC) 	? "D" : "-",
 			(ep->flags & EP_FL_ADV) 	? "A" : "-",
 			(ep->flags & EP_FL_LL) 		? "L" : "-",
-			(ep->flags & EP_FL_PRIMARY) 	? "P" : "-");
-	if (suffix)
-		fd_log_debug("%s", suffix);
+			(ep->flags & EP_FL_PRIMARY) 	? "P" : "-",
+			suffix ?: "");
 }
 
 void fd_ep_dump( int indent, struct fd_list * eps )

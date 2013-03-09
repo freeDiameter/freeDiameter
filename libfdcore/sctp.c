@@ -908,6 +908,8 @@ int fd_sctp_get_str_info( int sock, uint16_t *in, uint16_t *out, sSS *primary )
 		return ENOTSUP;
 	}
 	if (TRACE_BOOL(SCTP_LEVEL)) {
+		char buf[1024];
+		sSA_DUMP_NODE_SERV(buf, sizeof(buf), &status.sstat_primary.spinfo_address, NI_NUMERICHOST | NI_NUMERICSERV );
 		fd_log_debug( "SCTP_STATUS : sstat_state                  : %i\n" , status.sstat_state);
 		fd_log_debug( "              sstat_rwnd  	          : %u\n" , status.sstat_rwnd);
 		fd_log_debug( "		     sstat_unackdata	          : %hu\n", status.sstat_unackdata);
@@ -915,9 +917,7 @@ int fd_sctp_get_str_info( int sock, uint16_t *in, uint16_t *out, sSS *primary )
 		fd_log_debug( "		     sstat_instrms  	          : %hu\n", status.sstat_instrms);
 		fd_log_debug( "		     sstat_outstrms 	          : %hu\n", status.sstat_outstrms);
 		fd_log_debug( "		     sstat_fragmentation_point    : %u\n" , status.sstat_fragmentation_point);
-		fd_log_debug( "		     sstat_primary.spinfo_address : ");
-		sSA_DUMP_NODE_SERV(&status.sstat_primary.spinfo_address, NI_NUMERICHOST | NI_NUMERICSERV );
-		fd_log_debug( "\n" );
+		fd_log_debug( "		     sstat_primary.spinfo_address : %s\n" , buf);
 		fd_log_debug( "		     sstat_primary.spinfo_state   : %d\n" , status.sstat_primary.spinfo_state);
 		fd_log_debug( "		     sstat_primary.spinfo_cwnd    : %u\n" , status.sstat_primary.spinfo_cwnd);
 		fd_log_debug( "		     sstat_primary.spinfo_srtt    : %u\n" , status.sstat_primary.spinfo_srtt);

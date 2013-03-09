@@ -34,7 +34,7 @@
 *********************************************************************************************************/
 
 /* Yacc extension's configuration parser.
- * See doc/app_test.conf.sample for configuration file format
+ * See doc/acl_wl.conf.sample for configuration file format
  */
 
 /* For development only : */

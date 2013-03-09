@@ -43,6 +43,8 @@ pthread_mutex_t fd_log_lock = PTHREAD_MUTEX_INITIALIZER;
 pthread_key_t	fd_log_thname;
 int fd_g_debug_lvl = INFO;
 
+static void fd_internal_logger( int, const char *, va_list );
+
 /* These may be used to pass specific debug requests via the command-line parameters */
 char * fd_debug_one_function = NULL;
 char * fd_debug_one_file = NULL;
@@ -52,28 +54,29 @@ int fd_breaks = 0;
 int fd_breakhere(void) { return ++fd_breaks; }
 
 /* Allow passing of the log and debug information from base stack to extensions */
-void (*fd_external_logger)( const char * format, va_list *args ) = NULL;
+void (*fd_logger)( int loglevel, const char * format, va_list args ) = fd_internal_logger;
 
-/* Register an dexternal call back for tracing and debug */
-int fd_log_handler_register( void (*logger)(const char * format, va_list *args))
+/* Register an external call back for tracing and debug */
+int fd_log_handler_register( void (*logger)(int loglevel, const char * format, va_list args) )
 {
         CHECK_PARAMS( logger );
 
-        if ( fd_external_logger != NULL )
+        if ( fd_logger != fd_internal_logger )
         {
                return EALREADY; /* only one registration allowed */
         }
         else
         {
-               fd_external_logger = logger;
+               fd_logger = logger;
         }
+
         return 0;
 }
 
 /* Implement a simple reset function here */
 int fd_log_handler_unregister ( void )
 {
-        fd_external_logger = NULL;
+        fd_logger = fd_internal_logger;
         return 0; /* Successfull in all cases. */
 }
 
@@ -82,8 +85,25 @@ static void fd_cleanup_mutex_silent( void * mutex )
 	(void)pthread_mutex_unlock((pthread_mutex_t *)mutex);
 }
 
+
+static void fd_internal_logger( int loglevel, const char *format, va_list ap )
+{
+    char buf[25];
+    FILE *fstr = fd_g_debug_fstr ?: stdout;
+
+    /* logging has been decided by macros outside already */
+
+    /* add timestamp */
+    fprintf(fd_g_debug_fstr, "%s\t", fd_log_time(NULL, buf, sizeof(buf)));
+    vfprintf(fd_g_debug_fstr, format, ap);
+    if (format && (format[strlen(format)-1] != '\n')) {
+        fprintf(fd_g_debug_fstr, "\n");
+    }
+    fflush(fd_g_debug_fstr);
+}
+
 /* Log a debug message */
-void fd_log_debug_fstr ( FILE * fstr, const char * format, ... )
+void fd_log ( int loglevel, const char * format, ... )
 {
 	va_list ap;
 	
@@ -92,20 +112,22 @@ void fd_log_debug_fstr ( FILE * fstr, const char * format, ... )
 	pthread_cleanup_push(fd_cleanup_mutex_silent, &fd_log_lock);
 	
 	va_start(ap, format);
-        if ( fd_external_logger != NULL )
-        {
-               fd_external_logger( format, &ap );
-        }
-        else
-        {
-               vfprintf( fstr ?: stdout, format, ap);
-               fflush(fstr ?: stdout);
-        }
+	fd_logger(loglevel, format, ap);
 	va_end(ap);
 
 	pthread_cleanup_pop(0);
 	
 	(void)pthread_mutex_unlock(&fd_log_lock);
+}
+
+/* Log debug message to file. */
+void fd_log_debug_fstr( FILE * fstr, const char * format, ... )
+{
+	va_list ap;
+	
+	va_start(ap, format);
+	vfprintf(fstr, format, ap);
+	va_end(ap);
 }
 
 /* Function to set the thread's friendly name */

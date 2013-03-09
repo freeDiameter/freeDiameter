@@ -86,7 +86,7 @@ int fd_core_initialize(void);
 const char *fd_core_version(void);
 
 /* Parse the freeDiameter.conf configuration file, load the extensions */
-int fd_core_parseconf(char * conffile);
+int fd_core_parseconf(const char * conffile);
 
 /* Start the server & client threads */
 int fd_core_start(void);
@@ -110,7 +110,7 @@ int fd_core_wait_shutdown_complete(void);
 struct fd_config {
 	int		 cnf_eyec;	/* Eye catcher: EYEC_CONFIG */
 	
-	char		*cnf_file;	/* Configuration file to parse, default is DEFAULT_CONF_FILE */
+	const char	*cnf_file;	/* Configuration file to parse, default is DEFAULT_CONF_FILE */
 	
 	DiamId_t  	 cnf_diamid;	/* Diameter Identity of the local peer (FQDN -- ASCII) */
 	size_t		 cnf_diamid_len;/* cached length of the previous string */
@@ -349,7 +349,7 @@ extern pthread_rwlock_t fd_g_peers_rw; /* protect the list */
  *  (other standard errors may be returned, too, with their standard meaning. Example:
  *    ENOMEM 	: Memory allocation for the new object element failed.)
  */
-int fd_peer_add ( struct peer_info * info, char * orig_dbg, void (*cb)(struct peer_info *, void *), void * cb_data );
+int fd_peer_add ( struct peer_info * info, const char * orig_dbg, void (*cb)(struct peer_info *, void *), void * cb_data );
 
 /*
  * FUNCTION:	fd_peer_getbyid

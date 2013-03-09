@@ -109,24 +109,25 @@ void fd_libproto_fini(void);
 
 
 /*
- * FUNCTION:	fd_log_debug_fstr
+ * FUNCTION:	fd_log
  * MACRO:	fd_log_debug
  *
  * PARAMETERS:
- *  fstr	: Stream where the text will be sent (default: stdout) 
+ *  loglevel	: Integer, how important the message is
  *  format 	: Same format string as in the printf function
  *  ...		: Same list as printf
  *
  * DESCRIPTION: 
- *  Log internal information for use of developpers only.
+ * Write information to log.
  * The format and arguments may contain UTF-8 encoded data. The
- * output medium (file or console) is expected to support this encoding.
+ * output medium is expected to support this encoding.
  *
  * RETURN VALUE:
  *  None.
  */
-void fd_log_debug_fstr ( FILE * fstr, const char * format, ... );
-#define fd_log_debug(format,args...) fd_log_debug_fstr(NULL, format, ## args)
+void fd_log ( int, const char *, ... );
+#define fd_log_debug(format,args...) fd_log(FD_LOG_DEBUG, format, ## args)
+void fd_log_debug_fstr( FILE *, const char *, ... );
 
 /* these are internal objects of the debug facility, 
 might be useful to control the behavior from outside */
@@ -173,7 +174,7 @@ char * fd_log_time ( struct timespec * ts, char * buf, size_t len );
  * MACRO:
  *
  * PARAMETERS:
- *  fstr        : Stream where the text will be sent to (default: stdout)
+ *  loglevel    : priority of the message
  *  format      : Same format string as in the printf function
  *  va_list     : Argument list
  *
@@ -183,7 +184,7 @@ char * fd_log_time ( struct timespec * ts, char * buf, size_t len );
  * RETURN VALUE:
  * int          : Success or failure
  */
-int fd_log_handler_register ( void (*logger)(const char * format, va_list *args) );
+int fd_log_handler_register ( void (*logger)(int loglevel, const char * format, va_list args) );
 
 /*
  * FUNCTION:    fd_log_handler_unregister
@@ -208,21 +209,17 @@ int fd_log_handler_unregister ( void );
 #define ASSERT(x) assert(x)
 #endif /* ASSERT */
 
-/* levels definitions */
+/* log levels definitions */
+#define FD_LOG_DEBUG 0
+#define FD_LOG_ERROR 5
+
+/* print level definitions */
 #define NONE 0	/* Display no debug message */
 #define INFO 1	/* Display errors only */
 #define FULL 2  /* Display additional information to follow code execution */
 #define ANNOYING 4 /* Very verbose, for example in loops */
 #define FCTS 6  /* Display entry parameters of most functions */
 #define CALL 9  /* Display calls to most functions (with CHECK macros) */
-
-/* Increment the debug level for a file at compilation time by defining -DTRACE_LEVEL=FULL for example. */
-#ifndef TRACE_LEVEL 
-#define TRACE_LEVEL NONE
-#endif /* TRACE_LEVEL */
-
-/* The level of the file being compiled. */
-static int local_debug_level = TRACE_LEVEL;
 
 /* A global level, changed by configuration or cmd line for example. Default is INFO (in libfdproto/log.c). */
 extern int fd_g_debug_lvl;
@@ -246,14 +243,15 @@ static char * file_bname = NULL;
 
 /* Boolean for tracing at a certain level */
 #ifdef DEBUG
-#define TRACE_BOOL(_level_) ( ((_level_) <= local_debug_level + fd_g_debug_lvl) 					\
+#define TRACE_BOOL(_level_) ( ((_level_) <= fd_g_debug_lvl) 					\
 				|| (fd_debug_one_function && !strcmp(fd_debug_one_function, __PRETTY_FUNCTION__)) 	\
 				|| (fd_debug_one_file && !strcmp(fd_debug_one_file, __STRIPPED_FILE__) ) )
 #else /* DEBUG */
-#define TRACE_BOOL(_level_) ((_level_) <= local_debug_level + fd_g_debug_lvl)
+#define TRACE_BOOL(_level_) ((_level_) <= fd_g_debug_lvl)
 #endif /* DEBUG */
 
 
+#define STD_TRACE_FMT_STRING "thread %s in %s@%s:%d: "
 /*************
  The general debug macro, each call results in two lines of debug messages (change the macro for more compact output) 
  *************/
@@ -261,12 +259,9 @@ static char * file_bname = NULL;
 /* In DEBUG mode, we add (a lot of) meta-information along each trace. This makes multi-threading problems easier to debug. */
 #define TRACE_DEBUG(level,format,args... ) {											\
 	if ( TRACE_BOOL(level) ) {												\
-		char __buf[25];													\
 		const char * __thn = ((char *)pthread_getspecific(fd_log_thname) ?: "unnamed");					\
-		fd_log_debug("\t | tid:%-20s\t%s\tin %s@%s:%d\n"								\
-			  "\t%s|%*s" format "\n",  										\
-					__thn, fd_log_time(NULL, __buf, sizeof(__buf)), __PRETTY_FUNCTION__, __FILE__, __LINE__,\
-					(level < FULL)?"@":" ",level, "", ## args); 						\
+		fd_log(level, STD_TRACE_FMT_STRING format, \
+					__thn, __PRETTY_FUNCTION__, __FILE__, __LINE__, ## args); 						\
 	}															\
 }
 #else /* DEBUG */
@@ -274,14 +269,11 @@ static char * file_bname = NULL;
 #define TRACE_DEBUG(level,format,args... ) {												\
 	if ( TRACE_BOOL(level) ) {													\
 		if (fd_g_debug_lvl > FULL) {												\
-			char __buf[25];													\
 			const char * __thn = ((char *)pthread_getspecific(fd_log_thname) ?: "unnamed");					\
-			fd_log_debug("\t | tid:%-20s\t%s\tin %s@%s:%d\n"								\
-				  "\t%s|%*s" format "\n",  										\
-						__thn, fd_log_time(NULL, __buf, sizeof(__buf)), __PRETTY_FUNCTION__, __FILE__, __LINE__,\
-						(level < FULL)?"@":" ",level, "", ## args); 						\
+                        fd_log(level, STD_TRACE_FMT_STRING format,      \
+                               __thn, __PRETTY_FUNCTION__, __FILE__, __LINE__, ## args);  \
 		} else {														\
-			fd_log_debug(format "\n", ## args); 										\
+			fd_log(level, format, ## args);           \
 		}															\
 	}																\
 }
@@ -315,19 +307,16 @@ int fd_breakhere(void);
 /* Trace a binary buffer content */
 #define TRACE_DEBUG_BUFFER(level, prefix, buf, bufsz, suffix ) {								\
 	if ( TRACE_BOOL(level) ) {												\
-		char __ts[25];													\
 		int __i;													\
 		size_t __sz = (size_t)(bufsz);											\
 		uint8_t * __buf = (uint8_t *)(buf);										\
 		char * __thn = ((char *)pthread_getspecific(fd_log_thname) ?: "unnamed");					\
-		fd_log_debug("\t | tid:%-20s\t%s\tin %s@%s:%d\n"								\
-			  "\t%s|%*s" prefix ,  											\
-					__thn, fd_log_time(NULL, __ts, sizeof(__ts)), __PRETTY_FUNCTION__, __FILE__, __LINE__,	\
-					(level < FULL)?"@":" ",level, ""); 							\
+                fd_log(level, STD_TRACE_FMT_STRING prefix,              \
+                       __thn, __PRETTY_FUNCTION__, __FILE__, __LINE__);	\
 		for (__i = 0; __i < __sz; __i++) {										\
-			fd_log_debug("%02.2hhx", __buf[__i]);									\
+			fd_log(level, "%02.2hhx", __buf[__i]);         \
 		}														\
-		fd_log_debug(suffix "\n");											\
+		fd_log(level, suffix);                        \
 	}															\
 }
 
@@ -344,7 +333,7 @@ int fd_breakhere(void);
 					0 ) ) )
 
 /* Dump one sockaddr Node information */
-#define sSA_DUMP_NODE( sa, flag ) {				\
+#define sSA_DUMP_NODE( buf, bufsize, sa, flag ) {                \
 	sSA * __sa = (sSA *)(sa);				\
 	char __addrbuf[INET6_ADDRSTRLEN];			\
 	if (__sa) {						\
@@ -356,15 +345,15 @@ int fd_breakhere(void);
 			0,					\
 			flag);					\
 	  if (__rc)						\
-	  	fd_log_debug("%s", (char *)gai_strerror(__rc));	\
+		snprintf(buf, bufsize, "%s", gai_strerror(__rc));	\
 	  else							\
-	  	fd_log_debug("%s", &__addrbuf[0]);		\
+		snprintf(buf, bufsize, "%s", &__addrbuf[0]);       \
 	} else {						\
-		fd_log_debug("(NULL / ANY)");			\
+		snprintf(buf, bufsize, "(NULL / ANY)");             \
 	}							\
 }
 /* Same but with the port (service) also */
-#define sSA_DUMP_NODE_SERV( sa, flag ) {				\
+#define sSA_DUMP_NODE_SERV( buf, bufsize, sa, flag ) {                  \
 	sSA * __sa = (sSA *)(sa);					\
 	char __addrbuf[INET6_ADDRSTRLEN];				\
 	char __servbuf[32];						\
@@ -377,25 +366,22 @@ int fd_breakhere(void);
 			sizeof(__servbuf),				\
 			flag);						\
 	  if (__rc)							\
-	  	fd_log_debug("%s", (char *)gai_strerror(__rc));		\
+		snprintf(buf, bufsize, "%s", gai_strerror(__rc));  \
 	  else								\
-	  	fd_log_debug("[%s]:%s", &__addrbuf[0],&__servbuf[0]);	\
+		snprintf(buf, bufsize, "[%s]:%s", &__addrbuf[0],&__servbuf[0]); \
 	} else {							\
-		fd_log_debug("(NULL / ANY)");				\
+		snprintf(buf, bufsize,"(NULL / ANY)");         \
 	}								\
 }
 
 /* Inside a debug trace */
 #define TRACE_DEBUG_sSA(level, prefix, sa, flags, suffix ) {										\
 	if ( TRACE_BOOL(level) ) {												\
-		char __buf[25];													\
+		char buf[1024]; \
 		char * __thn = ((char *)pthread_getspecific(fd_log_thname) ?: "unnamed");					\
-		fd_log_debug("\t | tid:%-20s\t%s\tin %s@%s:%d\n"								\
-			  "\t%s|%*s" prefix ,  											\
-					__thn, fd_log_time(NULL, __buf, sizeof(__buf)), __PRETTY_FUNCTION__, __FILE__, __LINE__,\
-					(level < FULL)?"@":" ",level, ""); 							\
-		sSA_DUMP_NODE_SERV( sa, flags );										\
-		fd_log_debug(suffix "\n");											\
+		sSA_DUMP_NODE_SERV(buf, sizeof(buf), sa, flags );       \
+		fd_log(level, STD_TRACE_FMT_STRING "%s%s%s",              \
+                       __thn, __PRETTY_FUNCTION__, __FILE__, __LINE__, prefix, buf, suffix); \
 	}															\
 }
 
@@ -417,7 +403,7 @@ int fd_breakhere(void);
 #define TRACE_DEBUG_BUFFER(level, prefix, buf, bufsz, suffix )
 #define TRACE_DEBUG_sSA(level, prefix, sa, flags, suffix )
 #define TRACE_DEBUG_ERROR(format,args... ) {	\
-	fd_log_debug(format "\n", ## args); 	\
+	fd_log(FD_LOG_ERROR, format, ## args); 	\
 }
 #endif /* STRIP_DEBUG_CODE */
 
@@ -1444,6 +1430,9 @@ To create the rules (ABNF) for children of Grouped AVP, see the DICT_RULE relate
 	 ret = fd_dict_search ( dict, DICT_AVP, AVP_BY_NAME, "User-Name", &avp_username, ENOENT);
 	 
 	 ret = fd_dict_search ( dict, DICT_AVP, AVP_BY_NAME_AND_VENDOR, &avpvendorboolean, &avp_sampleboolean, ENOENT);
+
+	 -- this would also work, but be slower, because it has to search all vendor dictionaries --
+	 ret = fd_dict_search ( dict, DICT_AVP, AVP_BY_NAME_ALL_VENDORS, "Sample-Boolean", &avp_sampleboolean, ENOENT);
 	 
  }
  

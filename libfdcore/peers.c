@@ -90,7 +90,7 @@ int fd_peer_alloc(struct fd_peer ** ptr)
 }
 
 /* Add a new peer entry */
-int fd_peer_add ( struct peer_info * info, char * orig_dbg, void (*cb)(struct peer_info *, void *), void * cb_data )
+int fd_peer_add ( struct peer_info * info, const char * orig_dbg, void (*cb)(struct peer_info *, void *), void * cb_data )
 {
 	struct fd_peer *p = NULL;
 	struct fd_list * li, *li_inf;

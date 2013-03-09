@@ -2,16 +2,6 @@
 PROJECT("RADIUS/Diameter extensible gateway application for freeDiameter" C)
 
 
-# Overwrite the debug level for the extension code if configured
-OPTION(DEBUG_LEVEL_APP_RADGW "Overwrite debug level for the extension app_radgw if defined (valid values: FULL, ANNOYING, CALL...)" OFF)
-IF (DEBUG_LEVEL_APP_RADGW)
-     ADD_DEFINITIONS(-DTRACE_LEVEL=${DEBUG_LEVEL_APP_RADGW})
-ENDIF (DEBUG_LEVEL_APP_RADGW)
-IF (NOT CMAKE_BUILD_TYPE MATCHES "Debug")
-  MARK_AS_ADVANCED(DEBUG_LEVEL_APP_RADGW)
-ENDIF (NOT CMAKE_BUILD_TYPE MATCHES "Debug")
-
-
 ########### Main app_radgw extension #############
 
 # Parser files

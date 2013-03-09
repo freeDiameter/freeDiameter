@@ -40,6 +40,8 @@ FD_EXTENSION_SUBDIR(dict_nasreq "NASREQ (RFC4005) Dictionary definitions"       
 FD_EXTENSION_SUBDIR(dict_eap    "Diameter EAP (RFC4072) Dictionary definitions" ON)
 
 FD_EXTENSION_SUBDIR(dict_dcca   "Diameter CC (RFC4006) Dictionary definitions [incomplete]" ON)
+FD_EXTENSION_SUBDIR(dict_dcca_3gpp   "Diameter CC 3GPP Dictionary definitions [incomplete]" ON)
+FD_EXTENSION_SUBDIR(dict_dcca_starent   "Diameter CC Starent Dictionary definitions" ON)
 
 FD_EXTENSION_SUBDIR(dict_sip    "Diameter SIP (RFC4740) Dictionary definitions" ON)
 
