@@ -327,11 +327,10 @@ loadext:		LOADEXT '=' QSTRING extconf ';'
 				}
 				if (fd == NULL) {
 					int ret = errno;
-					TRACE_DEBUG_ERROR("Unable to open extension file %s for reading: %s\n", fname, strerror(ret));
-					yyerror (&yylloc, conf, "Error adding extension"); 
-					YYERROR;
+					TRACE_DEBUG_ERROR("WARNING: Unable to open extension file %s for reading: %s\nLD_LIBRARY_PATH will be used.\n", fname, strerror(ret));
+				} else {
+					fclose(fd);
 				}
-				fclose(fd);
 				
 				/* Try and open the configuration file (optional) */
 				cfname = $4;
