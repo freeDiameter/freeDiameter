@@ -454,10 +454,10 @@ static int save_remote_CE_info(struct msg * msg, struct fd_peer * peer, struct f
 			case AC_VENDOR_SPECIFIC_APPLICATION_ID: /* Vendor-Specific-Application-Id (grouped)*/
 				{
 					struct avp * inavp = NULL;
-					application_id_t aid = 0;
 					vendor_id_t vid = 0;
-					int auth = 0;
-					int acct = 0;
+					application_id_t auth_aid = 0;
+					application_id_t acct_aid = 0;
+					int invalid=0;
 
 					/* get the first child AVP */
 					CHECK_FCT(  fd_msg_browse(avp, MSG_BRW_FIRST_CHILD, &inavp, NULL)  );
@@ -481,17 +481,37 @@ static int save_remote_CE_info(struct msg * msg, struct fd_peer * peer, struct f
 						}
 						switch (inhdr->avp_code) {
 							case AC_VENDOR_ID: /* Vendor-Id */
+								if (vid != 0)
+									invalid++; /* We already had one such AVP */
 								vid = inhdr->avp_value->u32;
 								break;
 							case AC_AUTH_APPLICATION_ID: /* Auth-Application-Id */
-								aid = inhdr->avp_value->u32;
-								auth += 1;
+								if (auth_aid != 0)
+									invalid++; /* We already had one such AVP */
+#ifndef WORKAROUND_ACCEPT_INVALID_VSAI
+								if (acct_aid != 0)
+									invalid++; /* Only 1 *-Application-Id AVP is allowed */
+#endif /* WORKAROUND_ACCEPT_INVALID_VSAI */
+								auth_aid = inhdr->avp_value->u32;
 								break;
 							case AC_ACCT_APPLICATION_ID: /* Acct-Application-Id */
-								aid = inhdr->avp_value->u32;
-								acct += 1;
+								if (acct_aid != 0)
+									invalid++; /* We already had one such AVP */
+#ifndef WORKAROUND_ACCEPT_INVALID_VSAI
+								if (auth_aid != 0)
+									invalid++; /* Only 1 *-Application-Id AVP is allowed */
+#endif /* WORKAROUND_ACCEPT_INVALID_VSAI */
+								acct_aid = inhdr->avp_value->u32;
 								break;
 							/* ignore other AVPs */
+						}
+						
+						if (invalid) {
+							TRACE_DEBUG(FULL, "Invalid Vendor-Specific-Application-Id AVP received, ignored");
+							fd_msg_dump_one(FULL, avp);
+							error->pei_errcode = "DIAMETER_INVALID_AVP_VALUE";
+							error->pei_avp = avp;
+							return EINVAL;
 						}
 
 					innext:			
@@ -499,15 +519,12 @@ static int save_remote_CE_info(struct msg * msg, struct fd_peer * peer, struct f
 						CHECK_FCT( fd_msg_browse(inavp, MSG_BRW_NEXT, &inavp, NULL) );
 					}
 					
-					if (auth + acct != 1) {
-						TRACE_DEBUG(FULL, "Invalid Vendor-Specific-Application-Id AVP received, ignored");
-						fd_msg_dump_one(FULL, avp);
-						error->pei_errcode = "DIAMETER_INVALID_AVP_VALUE";
-						error->pei_avp = avp;
-						return EINVAL;
-					} else {
-						/* Add an entry in the list */
-						CHECK_FCT( fd_app_merge(&peer->p_hdr.info.runtime.pir_apps, aid, vid, auth, acct) );
+					/* Add entry in the list */
+					if (auth_aid) {
+						CHECK_FCT( fd_app_merge(&peer->p_hdr.info.runtime.pir_apps, auth_aid, vid, 1, 0) );
+					}
+					if (acct_aid) {
+						CHECK_FCT( fd_app_merge(&peer->p_hdr.info.runtime.pir_apps, acct_aid, vid, 0, 1) );
 					}
 				}
 				break;
