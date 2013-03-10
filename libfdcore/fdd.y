@@ -322,15 +322,18 @@ loadext:		LOADEXT '=' QSTRING extconf ';'
 					CHECK_MALLOC_DO( fname = malloc( strlen(bkp) + strlen(DEFAULT_EXTENSIONS_PATH) + 2 ),
 						{ yyerror (&yylloc, conf, "Not enough memory"); YYERROR; } );
 					sprintf(fname, DEFAULT_EXTENSIONS_PATH "/%s", bkp);
-					free(bkp);
 					fd = fopen(fname, "r");
+					if (fd == NULL) {
+						free(fname);
+						fname = bkp;
+					} else {
+						free(bkp);
+					}
 				}
-				if (fd == NULL) {
-					int ret = errno;
-					TRACE_DEBUG_ERROR("WARNING: Unable to open extension file %s for reading: %s\nLD_LIBRARY_PATH will be used.\n", fname, strerror(ret));
-				} else {
+				if (fd != NULL) {
 					fclose(fd);
-				}
+				} /* otherwise, LD_LIBRARY_PATH will be tested by dl_open. 
+				This should not give any security issue, otherwise we can add an "else fail" here. */
 				
 				/* Try and open the configuration file (optional) */
 				cfname = $4;
