@@ -256,6 +256,21 @@ void fd_peer_failover_msg(struct fd_peer * peer)
 	return;
 }
 
+/* Return the value of srlist->cnt */
+int fd_peer_get_load_pending(struct peer_hdr *peer, int * load)
+{
+	struct fd_peer * p = (struct fd_peer *)peer;
+	TRACE_ENTRY("%p %p", peer, load);
+	CHECK_PARAMS(CHECK_PEER(peer) && load);
+	
+	CHECK_POSIX( pthread_mutex_lock(&p->p_sr.mtx) );
+	*load = p->p_sr.cnt;
+	CHECK_POSIX( pthread_mutex_unlock(&p->p_sr.mtx) );
+	
+	return 0;
+}
+
+
 /* Destroy a structure once cleanups have been performed (fd_psm_abord, ...) */
 int fd_peer_free(struct fd_peer ** ptr)
 {
@@ -394,7 +409,7 @@ void fd_peer_dump(struct fd_peer * peer, int details)
 		return;
 	}
 
-	fd_log_debug(">  %s\t%s", STATE_STR(fd_peer_getstate(peer)), peer->p_hdr.info.pi_diamid);
+	fd_log_debug(">  %s\t%s\t[%dsr]", STATE_STR(fd_peer_getstate(peer)), peer->p_hdr.info.pi_diamid, peer->p_sr.cnt);
 	if (details > INFO) {
 		fd_log_debug("\t(rlm:%s)", peer->p_hdr.info.runtime.pir_realm ?: "<unknown>");
 		if (peer->p_hdr.info.runtime.pir_prodname)
