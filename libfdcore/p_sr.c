@@ -225,6 +225,7 @@ int fd_p_sr_store(struct sr_list * srlist, struct msg **req, uint32_t *hbhloc, u
 	/* Save in the list */
 	*req = NULL;
 	fd_list_insert_before(next, &sr->chain);
+	srlist->cnt++;
 	srl_dump("Saved new request, ", &srlist->srs);
 	
 	/* In case of request with a timeout, also store in the timeout list */
@@ -280,6 +281,7 @@ int fd_p_sr_fetch(struct sr_list * srlist, uint32_t hbh, struct msg **req)
 		*((uint32_t *)sr->chain.o) = sr->prevhbh;
 		/* Unlink */
 		fd_list_unlink(&sr->chain);
+		srlist->cnt--;
 		fd_list_unlink(&sr->expire);
 		*req = sr->req;
 		free(sr);
@@ -299,6 +301,7 @@ void fd_p_sr_failover(struct sr_list * srlist)
 	while (!FD_IS_LIST_EMPTY(&srlist->srs)) {
 		struct sentreq * sr = (struct sentreq *)(srlist->srs.next);
 		fd_list_unlink(&sr->chain);
+		srlist->cnt--;
 		fd_list_unlink(&sr->expire);
 		if (fd_msg_is_routable(sr->req)) {
 			struct msg_hdr * hdr = NULL;
