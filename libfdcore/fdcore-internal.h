@@ -125,6 +125,7 @@ int fd_rtdisp_cleanup(void);
 struct sr_list {
 	struct fd_list 	srs; /* requests ordered by hop-by-hop id */
 	struct fd_list  exp; /* requests that have a timeout set, ordered by timeout */
+	int             cnt; /* number of requests in the srs list */
 	pthread_mutex_t	mtx; /* mutex to protect these lists */
 	pthread_cond_t  cnd; /* cond var used by the thread that handles timeouts */
 	pthread_t       thr; /* the thread that handles timeouts (and calls the anscb) */

@@ -384,6 +384,23 @@ int fd_peer_getbyid( DiamId_t diamid, size_t diamidlen, int igncase, struct peer
  */
 int fd_peer_get_state(struct peer_hdr *peer);
 
+/* 
+ * FUNCTION:	fd_peer_get_load_pending
+ *
+ * PARAMETERS:
+ *  peer	: The peer which load to read
+ *
+ * DESCRIPTION: 
+ *   Returns the current number of requests sent to this peer
+ *  that have not been answered yet. This is an empirical indication
+ *  of the workload of this peer.
+ *
+ * RETURN VALUE:
+ *  0  : The load parameter has been updated. (it should have a positive value always)
+ * !0  : An error occurred
+ */
+int fd_peer_get_load_pending(struct peer_hdr *peer, int * load);
+
 /*
  * FUNCTION:	fd_peer_validate_register
  *
