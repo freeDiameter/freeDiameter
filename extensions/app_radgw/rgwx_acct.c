@@ -434,8 +434,8 @@ static int acct_rad_req( struct rgwp_config * cs, struct session ** session, str
 		/* And now compare with the received value */
 		if (memcmp(&save[0], &rad_req->hdr->authenticator[0], MD5_MAC_LEN)) {
 			/* Invalid authenticator */
-			TRACE_DEBUG_BUFFER(FULL+1, "Received ReqAuth: ", &save[0], MD5_MAC_LEN, "" );
-			TRACE_DEBUG_BUFFER(FULL+1, "Expected ReqAuth: ", &rad_req->hdr->authenticator[0], MD5_MAC_LEN, "" );
+			TRACE_BUFFER(FD_LOG_DEBUG, FULL+1, "Received ReqAuth: ", &save[0], MD5_MAC_LEN, "" );
+			TRACE_BUFFER(FD_LOG_DEBUG, FULL+1, "Expected ReqAuth: ", &rad_req->hdr->authenticator[0], MD5_MAC_LEN, "" );
 			TRACE_DEBUG(INFO, "[acct.rgwx] Invalid Request Authenticator in Account-Request from %s, discarding the message.", rgw_clients_id(cli));
 			return EINVAL;
 		}

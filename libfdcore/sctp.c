@@ -747,7 +747,7 @@ redo:
 			ptr.sa = sar;
 			fd_log_debug("Calling sctp_bindx with the following address array:\n");
 			for (i = 0; i < count; i++) {
-				TRACE_DEBUG_sSA(FULL, "    - ", ptr.sa, NI_NUMERICHOST | NI_NUMERICSERV, "" );
+				TRACE_sSA(FD_LOG_DEBUG, FULL, "    - ", ptr.sa, NI_NUMERICHOST | NI_NUMERICSERV, "" );
 				ptr.buf += (ptr.sa->sa_family == AF_INET) ? sizeof(sSA4) : sizeof(sSA6) ;
 			}
 		}
@@ -775,7 +775,7 @@ redo:
 		
 		fd_log_debug("SCTP server bound on :\n");
 		for (ptr.sa = sar; sz-- > 0; ptr.buf += (ptr.sa->sa_family == AF_INET) ? sizeof(sSA4) : sizeof(sSA6)) {
-			TRACE_DEBUG_sSA(FULL, "    - ", ptr.sa, NI_NUMERICHOST | NI_NUMERICSERV, "" );
+			TRACE_sSA(FD_LOG_DEBUG, FULL, "    - ", ptr.sa, NI_NUMERICHOST | NI_NUMERICSERV, "" );
 		}
 		sctp_freeladdrs(sar);
 	}
@@ -841,7 +841,7 @@ int fd_sctp_client( int *sock, int no_ip6, uint16_t port, struct fd_list * list 
 		int i;
 		ptr.buf = sar.buf;
 		for (i=0; i< count; i++) {
-			TRACE_DEBUG_sSA(FULL, "  - ", ptr.sa, NI_NUMERICHOST | NI_NUMERICSERV, "" );
+			TRACE_sSA(FD_LOG_DEBUG, FULL, "  - ", ptr.sa, NI_NUMERICHOST | NI_NUMERICSERV, "" );
 			ptr.buf += (ptr.sa->sa_family == AF_INET) ? sizeof(sSA4) : sizeof(sSA6);
 		}
 	}
@@ -1150,7 +1150,7 @@ again:
 	
 			case SCTP_PEER_ADDR_CHANGE:
 				TRACE_DEBUG(FULL, "Received SCTP_PEER_ADDR_CHANGE notification");
-				TRACE_DEBUG_sSA(SCTP_LEVEL, "    intf_change : ", &(notif->sn_paddr_change.spc_aaddr), NI_NUMERICHOST | NI_NUMERICSERV, "" );
+				TRACE_sSA(FD_LOG_DEBUG, SCTP_LEVEL, "    intf_change : ", &(notif->sn_paddr_change.spc_aaddr), NI_NUMERICHOST | NI_NUMERICSERV, "" );
 				TRACE_DEBUG(SCTP_LEVEL, "          state : %d", notif->sn_paddr_change.spc_state);
 				TRACE_DEBUG(SCTP_LEVEL, "          error : %d", notif->sn_paddr_change.spc_error);
 				

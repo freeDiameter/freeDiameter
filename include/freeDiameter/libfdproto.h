@@ -111,6 +111,8 @@ void fd_libproto_fini(void);
 /*
  * FUNCTION:	fd_log
  * MACRO:	fd_log_debug
+ * MACRO:	fd_log_notice
+ * MACRO:	fd_log_error
  *
  * PARAMETERS:
  *  loglevel	: Integer, how important the message is
@@ -126,7 +128,10 @@ void fd_libproto_fini(void);
  *  None.
  */
 void fd_log ( int, const char *, ... );
-#define fd_log_debug(format,args...) fd_log(FD_LOG_DEBUG, format, ## args)
+#define fd_log_debug(format,args...)  fd_log(FD_LOG_DEBUG, format, ## args)
+#define fd_log_notice(format,args...) fd_log(FD_LOG_NOTICE, format, ## args)
+#define fd_log_error(format,args...)  fd_log(FD_LOG_ERROR, format, ## args)
+
 void fd_log_debug_fstr( FILE *, const char *, ... );
 
 /* these are internal objects of the debug facility, 
@@ -210,8 +215,9 @@ int fd_log_handler_unregister ( void );
 #endif /* ASSERT */
 
 /* log levels definitions */
-#define FD_LOG_DEBUG 0
-#define FD_LOG_ERROR 5
+#define FD_LOG_DEBUG  0  /* Verbose information for developers use */
+#define FD_LOG_NOTICE 3  /* Normal execution states worth noting */
+#define FD_LOG_ERROR  5  /* Error conditions, both recoverable or not */
 
 /* print level definitions */
 #define NONE 0	/* Display no debug message */
@@ -251,36 +257,50 @@ static char * file_bname = NULL;
 #endif /* DEBUG */
 
 
-#define STD_TRACE_FMT_STRING "thread %s in %s@%s:%d: "
+#define STD_TRACE_FMT_STRING "pid:%s in %s@%s:%d: "
 /*************
  The general debug macro, each call results in two lines of debug messages (change the macro for more compact output) 
  *************/
 #ifdef DEBUG
 /* In DEBUG mode, we add (a lot of) meta-information along each trace. This makes multi-threading problems easier to debug. */
-#define TRACE_DEBUG(level,format,args... ) {											\
+#define TRACE(printlevel,level,format,args... ) {										\
 	if ( TRACE_BOOL(level) ) {												\
 		const char * __thn = ((char *)pthread_getspecific(fd_log_thname) ?: "unnamed");					\
-		fd_log(level, STD_TRACE_FMT_STRING format, \
-					__thn, __PRETTY_FUNCTION__, __FILE__, __LINE__, ## args); 						\
+		fd_log((printlevel), STD_TRACE_FMT_STRING format, 								\
+					__thn, __PRETTY_FUNCTION__, __STRIPPED_FILE__, __LINE__, ## args); 			\
 	}															\
 }
 #else /* DEBUG */
-/* Do not print thread, function, ... only the message itself in this case, unless the debug level is set > FULL. */
-#define TRACE_DEBUG(level,format,args... ) {												\
-	if ( TRACE_BOOL(level) ) {													\
-		if (fd_g_debug_lvl > FULL) {												\
-			const char * __thn = ((char *)pthread_getspecific(fd_log_thname) ?: "unnamed");					\
-                        fd_log(level, STD_TRACE_FMT_STRING format,      \
-                               __thn, __PRETTY_FUNCTION__, __FILE__, __LINE__, ## args);  \
-		} else {														\
-			fd_log(level, format, ## args);           \
-		}															\
-	}																\
+/* Do not print thread, function, ... only the message itself in this case */
+#define TRACE(printlevel,level,format,args... ) {					\
+	if ( TRACE_BOOL(level) ) {							\
+		fd_log((printlevel), format, ## args);    				\
+	}										\
 }
 #endif /* DEBUG */
 
+/* Report debug information */
+#define TRACE_DEBUG(level,format,args... ) \
+	TRACE(FD_LOG_DEBUG,(level),format,##args)
+
+/* Report a normal message that is usefull for normal admin monitoring */
+#define TRACE_NOTICE(format,args... ) \
+	TRACE(FD_LOG_NOTICE,INFO,format,##args)
+
+/* Report an error */
+#define TRACE_ERROR(format,args... ) \
+	TRACE(FD_LOG_ERROR, NONE, format, ##args)
+
+/* 
+TRACE_NOTICE(...) and fd_log_notice(...) are equivalent when the code is not compiled in DEBUG mode,
+but there is more contextual information when compiled in DEBUG with the TRACE_NOTICE macro,
+hence it is recommended to use this one except for formatted output (e.g. fd_*_dump function)
+
+resp. TRACE_DEBUG and TRACE_ERROR.
+*/
+
 /*************
- Derivatives from this macro 
+ Derivatives for debug
  ************/
 /* Helper for function entry -- for very detailed trace of the execution */
 #define TRACE_ENTRY(_format,_args... ) \
@@ -305,20 +325,37 @@ int fd_breakhere(void);
 #endif /* ERRORS_ON_TODO */
 
 /* Trace a binary buffer content */
-#define TRACE_DEBUG_BUFFER(level, prefix, buf, bufsz, suffix ) {								\
+#ifdef DEBUG
+/* In DEBUG mode, we add (a lot of) meta-information along each trace. This makes multi-threading problems easier to debug. */
+#define TRACE_BUFFER(printlevel, level, prefix, buf, bufsz, suffix ) {								\
 	if ( TRACE_BOOL(level) ) {												\
 		int __i;													\
 		size_t __sz = (size_t)(bufsz);											\
 		uint8_t * __buf = (uint8_t *)(buf);										\
+		char __strbuf[1024+1];												\
 		char * __thn = ((char *)pthread_getspecific(fd_log_thname) ?: "unnamed");					\
-                fd_log(level, STD_TRACE_FMT_STRING prefix,              \
-                       __thn, __PRETTY_FUNCTION__, __FILE__, __LINE__);	\
-		for (__i = 0; __i < __sz; __i++) {										\
-			fd_log(level, "%02.2hhx", __buf[__i]);         \
+		for (__i = 0; (__i < __sz) && (__i<(sizeof(__strbuf)/2)); __i++) {						\
+			sprintf(__strbuf + (2 * __i), "%2.2hhx", __buf[__i]);     						\
 		}														\
-		fd_log(level, suffix);                        \
+                fd_log(printlevel, STD_TRACE_FMT_STRING "%s%s%s",      								\
+                       __thn, __PRETTY_FUNCTION__, __STRIPPED_FILE__, __LINE__, (prefix), __strbuf, (suffix));			\
 	}															\
 }
+#else /* DEBUG */
+/* Do not print thread, function, ... only the message itself in this case */
+#define TRACE_BUFFER(printlevel, level, prefix, buf, bufsz, suffix ) {								\
+	if ( TRACE_BOOL(level) ) {												\
+		int __i;													\
+		size_t __sz = (size_t)(bufsz);											\
+		uint8_t * __buf = (uint8_t *)(buf);										\
+		char __strbuf[1024+1];												\
+		for (__i = 0; (__i < __sz) && (__i<(sizeof(__strbuf)/2)); __i++) {						\
+			sprintf(__strbuf + (2 * __i), "%2.2hhx", __buf[__i]);     						\
+		}														\
+                fd_log(printlevel, "%s%s%s", (prefix), __strbuf, (suffix));							\
+	}															\
+}
+#endif /* DEBUG */
 
 /* Some aliases to socket addresses structures */
 #define sSS	struct sockaddr_storage
@@ -333,24 +370,24 @@ int fd_breakhere(void);
 					0 ) ) )
 
 /* Dump one sockaddr Node information */
-#define sSA_DUMP_NODE( buf, bufsize, sa, flag ) {                \
-	sSA * __sa = (sSA *)(sa);				\
-	char __addrbuf[INET6_ADDRSTRLEN];			\
-	if (__sa) {						\
-	  int __rc = getnameinfo(__sa, 				\
-	  		sSAlen(__sa),				\
-			__addrbuf,				\
-			sizeof(__addrbuf),			\
-			NULL,					\
-			0,					\
-			flag);					\
-	  if (__rc)						\
+#define sSA_DUMP_NODE( buf, bufsize, sa, flag ) {                	\
+	sSA * __sa = (sSA *)(sa);					\
+	char __addrbuf[INET6_ADDRSTRLEN];				\
+	if (__sa) {							\
+	  int __rc = getnameinfo(__sa, 					\
+	  		sSAlen(__sa),					\
+			__addrbuf,					\
+			sizeof(__addrbuf),				\
+			NULL,						\
+			0,						\
+			(flag));					\
+	  if (__rc)							\
 		snprintf(buf, bufsize, "%s", gai_strerror(__rc));	\
-	  else							\
-		snprintf(buf, bufsize, "%s", &__addrbuf[0]);       \
-	} else {						\
-		snprintf(buf, bufsize, "(NULL / ANY)");             \
-	}							\
+	  else								\
+		snprintf(buf, bufsize, "%s", &__addrbuf[0]);       	\
+	} else {							\
+		snprintf(buf, bufsize, "(NULL / ANY)");             	\
+	}								\
 }
 /* Same but with the port (service) also */
 #define sSA_DUMP_NODE_SERV( buf, bufsize, sa, flag ) {                  \
@@ -364,7 +401,7 @@ int fd_breakhere(void);
 			sizeof(__addrbuf),				\
 			__servbuf,					\
 			sizeof(__servbuf),				\
-			flag);						\
+			(flag));					\
 	  if (__rc)							\
 		snprintf(buf, bufsize, "%s", gai_strerror(__rc));  \
 	  else								\
@@ -374,37 +411,60 @@ int fd_breakhere(void);
 	}								\
 }
 
-/* Inside a debug trace */
-#define TRACE_DEBUG_sSA(level, prefix, sa, flags, suffix ) {										\
+#ifdef DEBUG
+/* In DEBUG mode, we add (a lot of) meta-information along each trace. This makes multi-threading problems easier to debug. */
+#define TRACE_sSA(printlevel, level, prefix, sa, flags, suffix ) {										\
 	if ( TRACE_BOOL(level) ) {												\
-		char buf[1024]; \
+		char __buf[1024]; 												\
 		char * __thn = ((char *)pthread_getspecific(fd_log_thname) ?: "unnamed");					\
-		sSA_DUMP_NODE_SERV(buf, sizeof(buf), sa, flags );       \
-		fd_log(level, STD_TRACE_FMT_STRING "%s%s%s",              \
-                       __thn, __PRETTY_FUNCTION__, __FILE__, __LINE__, prefix, buf, suffix); \
+		sSA_DUMP_NODE_SERV(__buf, sizeof(__buf), sa, flags );       							\
+		fd_log(printlevel, STD_TRACE_FMT_STRING "%s%s%s" ,     								\
+                       __thn, __PRETTY_FUNCTION__, __STRIPPED_FILE__, __LINE__, (prefix), __buf, (suffix)); 			\
 	}															\
 }
-
-/* Report an error */
-#define TRACE_DEBUG_ERROR(format,args... ) \
-	TRACE_DEBUG(INFO, format, ##args)
+#else /* DEBUG */
+/* Do not print thread, function, ... only the message itself in this case */
+#define TRACE_sSA(printlevel, level, prefix, sa, flags, suffix ) {										\
+	if ( TRACE_BOOL(level) ) {												\
+		char __buf[1024]; 												\
+		sSA_DUMP_NODE_SERV(__buf, sizeof(__buf), sa, flags );       							\
+		fd_log(printlevel, "%s%s%s" , (prefix), __buf, (suffix)); 							\
+	}															\
+}
+#endif /* DEBUG */
 
 /******************
  Optimized code: remove all debugging code
  **/
 #ifdef STRIP_DEBUG_CODE
 #undef TRACE_DEBUG
+#undef TRACE_NOTICE
+#undef TRACE_ERROR
 #undef TRACE_BOOL
-#undef TRACE_DEBUG_sSA
-#undef TRACE_DEBUG_BUFFER
-#undef TRACE_DEBUG_ERROR
-#define TRACE_DEBUG(level,format,args... )
-#define TRACE_BOOL(_level_) (0)
-#define TRACE_DEBUG_BUFFER(level, prefix, buf, bufsz, suffix )
-#define TRACE_DEBUG_sSA(level, prefix, sa, flags, suffix )
-#define TRACE_DEBUG_ERROR(format,args... ) {	\
-	fd_log(FD_LOG_ERROR, format, ## args); 	\
-}
+#undef TRACE_BUFFER
+#undef TRACE_sSA
+
+#define TRACE_DEBUG(level,format,args... ) /* noop */
+#define TRACE_BOOL(_level_) (0)	/* always false */
+#define TRACE_NOTICE fd_log_notice
+#define TRACE_ERROR fd_log_error
+#define TRACE_BUFFER(printlevel, level, prefix, buf, bufsz, suffix ) {								\
+	if (printlevel > FD_LOG_DEBUG) {											\
+		int __i;													\
+		size_t __sz = (size_t)(bufsz);											\
+		uint8_t * __buf = (uint8_t *)(buf);										\
+		char * __strbuf[1024+1];											\
+		for (__i = 0; (__i < __sz) && (__i<(sizeof(__strbuf)/2); __i++) {						\
+			sprintf(__strbuf + (2 * __i), "%02.2hhx", __buf[__i]);     						\
+		}														\
+                fd_log(printlevel, prefix"%s"suffix, __strbuf);									\
+	}
+#define TRACE_sSA(printlevel, level, prefix, sa, flags, suffix )  {								\
+	if (printlevel > FD_LOG_DEBUG) {											\
+		char __buf[1024]; 												\
+		sSA_DUMP_NODE_SERV(__buf, sizeof(__buf), sa, flags );       							\
+		fd_log(printlevel, prefix "%s" suffix, __buf);				 					\
+	}
 #endif /* STRIP_DEBUG_CODE */
 
 
@@ -423,7 +483,7 @@ int fd_breakhere(void);
 	__ret__ = (__call__);								\
 	if (__ret__ < 0) {								\
 		int __err__ = errno;	/* We may handle EINTR here */			\
-		TRACE_DEBUG_ERROR("ERROR: in '" #__call__ "' :\t%s", strerror(__err__));\
+		TRACE_ERROR("ERROR: in '" #__call__ "' :\t%s", strerror(__err__));\
 		__fallback__;								\
 	}										\
 }
@@ -434,7 +494,7 @@ int fd_breakhere(void);
 	__ret__ = (__call__);								\
 	if (__ret__ < 0) {								\
 		int __err__ = errno;	/* We may handle EINTR here */			\
-		TRACE_DEBUG_ERROR("ERROR: in '" #__call__ "' :\t%s", strerror(__err__));\
+		TRACE_ERROR("ERROR: in '" #__call__ "' :\t%s", strerror(__err__));\
 		return __err__;								\
 	}										\
 }
@@ -448,7 +508,7 @@ int fd_breakhere(void);
 		if (__ret__ == (__speval__)) {							\
 			__fallback1__;								\
 		} else {									\
-			TRACE_DEBUG_ERROR("ERROR: in '" #__call__ "':\t%s", strerror(__ret__));	\
+			TRACE_ERROR("ERROR: in '" #__call__ "':\t%s", strerror(__ret__));	\
 			__fallback2__;								\
 		}										\
 	}											\
@@ -471,7 +531,7 @@ int fd_breakhere(void);
 	__ret__ = (void *)( __call__ );							\
 	if (__ret__ == NULL) {								\
 		int __err__ = errno;							\
-		TRACE_DEBUG_ERROR("ERROR: in '" #__call__ "':\t%s", strerror(__err__));	\
+		TRACE_ERROR("ERROR: in '" #__call__ "':\t%s", strerror(__err__));	\
 		__fallback__;								\
 	}										\
 }
@@ -485,7 +545,7 @@ int fd_breakhere(void);
 #define CHECK_PARAMS_DO( __bool__, __fallback__ )						\
 	TRACE_DEBUG_ALL( "Check PARAMS: " #__bool__ );						\
 	if ( ! (__bool__) ) {									\
-		TRACE_DEBUG_ERROR("Warning: Invalid parameter received in '" #__bool__ "'");	\
+		TRACE_ERROR("Warning: Invalid parameter received in '" #__bool__ "'");	\
 		__fallback__;									\
 	}
 /* Check parameters at function entry, return EINVAL if the boolean is false (similar to assert) */
@@ -498,7 +558,7 @@ int fd_breakhere(void);
 	TRACE_DEBUG_ALL( "Check FCT: " #__call__ );					\
 	__ret__ = (__call__);								\
 	if (__ret__ != 0) {								\
-		TRACE_DEBUG_ERROR("ERROR: in '" #__call__ "':\t%s", strerror(__ret__));	\
+		TRACE_ERROR("ERROR: in '" #__call__ "':\t%s", strerror(__ret__));	\
 		__fallback__;								\
 	}										\
 }

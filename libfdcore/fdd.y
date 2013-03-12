@@ -62,11 +62,11 @@ int fddlex(YYSTYPE *lvalp, YYLTYPE *llocp);
 void yyerror (YYLTYPE *ploc, struct fd_config * conf, char const *s)
 {
 	if (ploc->first_line != ploc->last_line) {
-		TRACE_DEBUG_ERROR("%s:%d.%d-%d.%d : %s\n", conf->cnf_file, ploc->first_line, ploc->first_column, ploc->last_line, ploc->last_column, s);
+		TRACE_ERROR("%s:%d.%d-%d.%d : %s\n", conf->cnf_file, ploc->first_line, ploc->first_column, ploc->last_line, ploc->last_column, s);
 	} else if (ploc->first_column != ploc->last_column) {
-		TRACE_DEBUG_ERROR("%s:%d.%d-%d : %s\n", conf->cnf_file, ploc->first_line, ploc->first_column, ploc->last_column, s);
+		TRACE_ERROR("%s:%d.%d-%d : %s\n", conf->cnf_file, ploc->first_line, ploc->first_column, ploc->last_column, s);
 	} else {
-		TRACE_DEBUG_ERROR("%s:%d.%d : %s\n", conf->cnf_file, ploc->first_line, ploc->first_column, s);
+		TRACE_ERROR("%s:%d.%d : %s\n", conf->cnf_file, ploc->first_line, ploc->first_column, s);
 	}
 }
 
@@ -327,7 +327,7 @@ loadext:		LOADEXT '=' QSTRING extconf ';'
 				}
 				if (fd == NULL) {
 					int ret = errno;
-					TRACE_DEBUG_ERROR("WARNING: Unable to open extension file %s for reading: %s\nLD_LIBRARY_PATH will be used.\n", fname, strerror(ret));
+					TRACE_ERROR("WARNING: Unable to open extension file %s for reading: %s\nLD_LIBRARY_PATH will be used.\n", fname, strerror(ret));
 				} else {
 					fclose(fd);
 				}
@@ -500,7 +500,7 @@ tls_cred:		TLS_CRED '=' QSTRING ',' QSTRING ';'
 				fd = fopen($3, "r");
 				if (fd == NULL) {
 					int ret = errno;
-					TRACE_DEBUG_ERROR("Unable to open certificate file %s for reading: %s\n", $3, strerror(ret));
+					TRACE_ERROR("Unable to open certificate file %s for reading: %s\n", $3, strerror(ret));
 					yyerror (&yylloc, conf, "Error on file name"); 
 					YYERROR;
 				}
@@ -508,7 +508,7 @@ tls_cred:		TLS_CRED '=' QSTRING ',' QSTRING ';'
 				fd = fopen($5, "r");
 				if (fd == NULL) {
 					int ret = errno;
-					TRACE_DEBUG_ERROR("Unable to open private key file %s for reading: %s\n", $5, strerror(ret));
+					TRACE_ERROR("Unable to open private key file %s for reading: %s\n", $5, strerror(ret));
 					yyerror (&yylloc, conf, "Error on file name"); 
 					YYERROR;
 				}
@@ -531,7 +531,7 @@ tls_ca:			TLS_CA '=' QSTRING ';'
 				fd = fopen($3, "rb");
 				if (fd == NULL) {
 					int ret = errno;
-					TRACE_DEBUG_ERROR("Unable to open CA file %s for reading: %s\n", $3, strerror(ret));
+					TRACE_ERROR("Unable to open CA file %s for reading: %s\n", $3, strerror(ret));
 					yyerror (&yylloc, conf, "Error on file name"); 
 					YYERROR;
 				}
@@ -571,7 +571,7 @@ tls_crl:		TLS_CRL '=' QSTRING ';'
 				fd = fopen($3, "rb");
 				if (fd == NULL) {
 					int ret = errno;
-					TRACE_DEBUG_ERROR("Unable to open CRL file %s for reading: %s\n", $3, strerror(ret));
+					TRACE_ERROR("Unable to open CRL file %s for reading: %s\n", $3, strerror(ret));
 					yyerror (&yylloc, conf, "Error on file name"); 
 					YYERROR;
 				}
@@ -614,7 +614,7 @@ tls_prio:		TLS_PRIO '=' QSTRING ';'
 							conf->cnf_sec_data.prio_string,
 							&err_pos),
 						{ yyerror (&yylloc, conf, "Error setting Priority parameter.");
-						  TRACE_DEBUG_ERROR("Error at position : %s\n", err_pos);
+						  TRACE_ERROR("Error at position : %s\n", err_pos);
 						  YYERROR; } );
 			}
 			;
@@ -631,7 +631,7 @@ tls_dh:			TLS_DH_BITS '=' INTEGER ';'
 				fd = fopen($3, "r");
 				if (fd == NULL) {
 					int ret = errno;
-					TRACE_DEBUG_ERROR("Unable to open DH file %s for reading: %s\n", $3, strerror(ret));
+					TRACE_ERROR("Unable to open DH file %s for reading: %s\n", $3, strerror(ret));
 					yyerror (&yylloc, conf, "Error on file name"); 
 					YYERROR;
 				}

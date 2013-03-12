@@ -94,7 +94,13 @@ static void fd_internal_logger( int loglevel, const char *format, va_list ap )
     /* logging has been decided by macros outside already */
 
     /* add timestamp */
-    fprintf(fd_g_debug_fstr, "%s\t", fd_log_time(NULL, buf, sizeof(buf)));
+    fprintf(fd_g_debug_fstr, "%s  ", fd_log_time(NULL, buf, sizeof(buf)));
+    switch(loglevel) {
+	    case FD_LOG_DEBUG:  fprintf(fd_g_debug_fstr, " DBG   "); break;
+	    case FD_LOG_NOTICE: fprintf(fd_g_debug_fstr, "NOTI   "); break;
+	    case FD_LOG_ERROR:  fprintf(fd_g_debug_fstr, "ERROR  "); break;
+	    default:            fprintf(fd_g_debug_fstr, " ???   ");
+    }
     vfprintf(fd_g_debug_fstr, format, ap);
     if (format && (format[strlen(format)-1] != '\n')) {
         fprintf(fd_g_debug_fstr, "\n");

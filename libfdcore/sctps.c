@@ -342,7 +342,7 @@ static int sr_store (void *dbf, gnutls_datum_t key, gnutls_datum_t data)
 	CHECK_PARAMS_DO( sto && key.data && data.data, return -1 );
 	
 	CHECK_POSIX_DO( pthread_rwlock_wrlock(&sto->lock), return -1 );
-	TRACE_DEBUG_BUFFER(GNUTLS_DBG_LEVEL, "Session store [key ", key.data, key.size, "]");
+	TRACE_BUFFER(FD_LOG_DEBUG, GNUTLS_DBG_LEVEL, "Session store [key ", key.data, key.size, "]");
 	
 	li = find_or_next(sto, key, &match);
 	if (match) {
@@ -351,9 +351,9 @@ static int sr_store (void *dbf, gnutls_datum_t key, gnutls_datum_t data)
 		/* Check the data is the same */
 		if ((data.size != sr->data.size) || memcmp(data.data, sr->data.data, data.size)) {
 			TRACE_DEBUG(INFO, "GnuTLS tried to store a session with same key and different data!");
-			TRACE_DEBUG_BUFFER(INFO, "Session store [key ", key.data, key.size, "]");
-			TRACE_DEBUG_BUFFER(INFO, "  -- old data [", sr->data.data, sr->data.size, "]");
-			TRACE_DEBUG_BUFFER(INFO, "  -- new data [", data.data, data.size, "]");
+			TRACE_BUFFER(FD_LOG_DEBUG, INFO, "Session store [key ", key.data, key.size, "]");
+			TRACE_BUFFER(FD_LOG_DEBUG, INFO, "  -- old data [", sr->data.data, sr->data.size, "]");
+			TRACE_BUFFER(FD_LOG_DEBUG, INFO, "  -- new data [", data.data, data.size, "]");
 			
 			ret = -1;
 		} else {
@@ -396,7 +396,7 @@ static int sr_remove (void *dbf, gnutls_datum_t key)
 	CHECK_PARAMS_DO( sto && key.data, return -1 );
 	
 	CHECK_POSIX_DO( pthread_rwlock_wrlock(&sto->lock), return -1 );
-	TRACE_DEBUG_BUFFER(GNUTLS_DBG_LEVEL, "Session delete [key ", key.data, key.size, "]");
+	TRACE_BUFFER(FD_LOG_DEBUG, GNUTLS_DBG_LEVEL, "Session delete [key ", key.data, key.size, "]");
 	
 	li = find_or_next(sto, key, &match);
 	if (match) {
@@ -429,7 +429,7 @@ static gnutls_datum_t sr_fetch (void *dbf, gnutls_datum_t key)
 	CHECK_PARAMS_DO( sto && key.data, return error );
 
 	CHECK_POSIX_DO( pthread_rwlock_rdlock(&sto->lock), return error );
-	TRACE_DEBUG_BUFFER(GNUTLS_DBG_LEVEL, "Session fetch [key ", key.data, key.size, "]");
+	TRACE_BUFFER(FD_LOG_DEBUG, GNUTLS_DBG_LEVEL, "Session fetch [key ", key.data, key.size, "]");
 	
 	li = find_or_next(sto, key, &match);
 	if (match) {
@@ -556,7 +556,7 @@ int fd_sctps_handshake_others(struct cnxctx * conn, char * priority, void * alt_
 			uint8_t  id[256];
 			size_t	 ids = sizeof(id);
 			CHECK_GNUTLS_DO( gnutls_session_get_id(conn->cc_tls_para.session, id, &ids), /* continue */ );
-			TRACE_DEBUG_BUFFER(GNUTLS_DBG_LEVEL, "Master session id: [", id, ids, "]");
+			TRACE_BUFFER(FD_LOG_DEBUG, GNUTLS_DBG_LEVEL, "Master session id: [", id, ids, "]");
 		}
 	}
 	

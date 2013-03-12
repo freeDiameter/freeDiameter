@@ -247,7 +247,7 @@ int fd_conf_parse()
 	}
 	if (fddin == NULL) {
 		int ret = errno;
-		TRACE_DEBUG_ERROR("Unable to open configuration file for reading; tried the following locations: %s%s%s; Error: %s\n",
+		TRACE_ERROR("Unable to open configuration file for reading; tried the following locations: %s%s%s; Error: %s\n",
 				  orig ?: "", orig? " and " : "", fd_g_config->cnf_file, strerror(ret));
 		return ret;
 	}

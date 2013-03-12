@@ -136,7 +136,7 @@ int fd_tcp_client( int *sock, sSA * sa, socklen_t salen )
 	/* Cleanup if we are cancelled */
 	pthread_cleanup_push(fd_cleanup_socket, &s);
 	
-	TRACE_DEBUG_sSA(FULL, "Attempting TCP connection with peer: ", sa, NI_NUMERICHOST | NI_NUMERICSERV, "..." );
+	TRACE_sSA(FD_LOG_DEBUG, FULL, "Attempting TCP connection with peer: ", sa, NI_NUMERICHOST | NI_NUMERICSERV, "..." );
 	
 	/* Try connecting to the remote address */
 	ret = connect(s, sa, salen);

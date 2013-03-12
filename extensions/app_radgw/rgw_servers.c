@@ -133,13 +133,13 @@ static void * server_thread(void * param)
 		}
 		
 		TRACE_DEBUG(FULL, "Received %d bytes", len);
-		TRACE_DEBUG_sSA(FULL, " from ", &from, NI_NUMERICHOST | NI_NUMERICSERV, "" );
+		TRACE_sSA(FD_LOG_DEBUG, FULL, " from ", &from, NI_NUMERICHOST | NI_NUMERICSERV, "" );
 		
 		/* Search the associated client definition, if any */
 		CHECK_FCT_DO( rgw_clients_search((struct sockaddr *) &from, &nas_info),
 			{
-				TRACE_DEBUG(INFO, "Discarding %d bytes received from unknown IP:", len);
-				TRACE_DEBUG_sSA(INFO, " ", &from, NI_NUMERICHOST | NI_NUMERICSERV, "" );
+				TRACE_NOTICE("Discarding %d bytes received from unknown IP:", len);
+				TRACE_sSA(FD_LOG_NOTICE, INFO, " ", &from, NI_NUMERICHOST | NI_NUMERICSERV, "" );
 				continue;
 			} );
 				
@@ -273,7 +273,7 @@ int rgw_servers_send(int type, unsigned char *buf, size_t buflen, struct sockadd
 	}
 	
 	TRACE_DEBUG(FULL, "Sending %d bytes", buflen);
-	TRACE_DEBUG_sSA(FULL, " to ", &sto, NI_NUMERICHOST | NI_NUMERICSERV, "" );
+	TRACE_sSA(FD_LOG_DEBUG, FULL, " to ", &sto, NI_NUMERICHOST | NI_NUMERICSERV, "" );
 		
 	/* Send */
 	ret = sendto(SERVERS[idx].sock, buf, buflen, 0, (struct sockaddr *)&sto, sSAlen(&sto));

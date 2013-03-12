@@ -921,8 +921,8 @@ int rgw_clients_add( struct sockaddr * ip_port, unsigned char ** key, size_t key
 	/* Dump the entry in debug mode */
 	if (TRACE_BOOL(FULL + 1 )) {
 		TRACE_DEBUG(FULL, "Adding %s:", (type == RGW_CLI_NAS) ? "NAS" : "PROXY"  );
-		TRACE_DEBUG_sSA(FULL, 	 "\tIP : ", ip_port, NI_NUMERICHOST | NI_NUMERICSERV, "" );
-		TRACE_DEBUG_BUFFER(FULL, "\tKey: [", *key, keylen, "]" );
+		TRACE_sSA(FD_LOG_DEBUG, FULL, 	 "\tIP : ", ip_port, NI_NUMERICHOST | NI_NUMERICSERV, "" );
+		TRACE_BUFFER(FD_LOG_DEBUG, FULL, "\tKey: [", *key, keylen, "]" );
 	}
 	
 	/* Lock the lists */
@@ -947,13 +947,13 @@ int rgw_clients_add( struct sockaddr * ip_port, unsigned char ** key, size_t key
 			goto end;
 		}
 		
-		fd_log_debug("ERROR: Conflicting RADIUS clients descriptions!\n");
-		TRACE_DEBUG(NONE, "Previous entry: %s", (prev->type == RGW_CLI_NAS) ? "NAS" : "PROXY");
-		TRACE_DEBUG_sSA(NONE, 	 "\tIP : ", prev->sa, NI_NUMERICHOST | NI_NUMERICSERV, "" );
-		TRACE_DEBUG_BUFFER(NONE, "\tKey: [", prev->key.data, prev->key.len, "]" );
-		TRACE_DEBUG(NONE, "Conflicting entry: %s", (type == RGW_CLI_NAS) ? "NAS" : "PROXY");
-		TRACE_DEBUG_sSA(NONE, 	 "\tIP : ", ip_port, NI_NUMERICHOST | NI_NUMERICSERV, "" );
-		TRACE_DEBUG_BUFFER(NONE, "\tKey: [", *key, keylen, "]" );
+		fd_log_erre("ERROR: Conflicting RADIUS clients descriptions!\n");
+		TRACE_ERROR("Previous entry: %s", (prev->type == RGW_CLI_NAS) ? "NAS" : "PROXY");
+		TRACE_sSA(FD_LOG_ERROR, NONE, 	 "\tIP : ", prev->sa, NI_NUMERICHOST | NI_NUMERICSERV, "" );
+		TRACE_BUFFER(FD_LOG_ERROR, NONE, "\tKey: [", prev->key.data, prev->key.len, "]" );
+		TRACE_ERROR("Conflicting entry: %s", (type == RGW_CLI_NAS) ? "NAS" : "PROXY");
+		TRACE_sSA(FD_LOG_ERROR, NONE, 	 "\tIP : ", ip_port, NI_NUMERICHOST | NI_NUMERICSERV, "" );
+		TRACE_BUFFER(FD_LOG_ERROR, NONE, "\tKey: [", *key, keylen, "]" );
 	}
 end:
 	/* release the lists */
@@ -969,7 +969,8 @@ static void dump_cli_list(struct fd_list *senti)
 	
 	for (ref = senti->next; ref != senti; ref = ref->next) {
 		client = (struct rgw_client *)ref;
-		TRACE_DEBUG_sSA(NONE, 	 "  - ", client->sa, NI_NUMERICHOST | NI_NUMERICSERV, (client->type == RGW_CLI_NAS) ? "" : " [PROXY]" );
+		/* TODO: use a fct param instead of hardcoded FD_LOG_DEBUG */
+		TRACE_sSA(FD_LOG_DEBUG, NONE, 	 "  - ", client->sa, NI_NUMERICHOST | NI_NUMERICSERV, (client->type == RGW_CLI_NAS) ? "" : " [PROXY]" );
 	}
 }
 
