@@ -44,6 +44,7 @@ pthread_key_t	fd_log_thname;
 int fd_g_debug_lvl = INFO;
 
 static void fd_internal_logger( int, const char *, va_list );
+static int use_colors = 0; /* 0: not init, 1: yes, 2: no */
 
 /* These may be used to pass specific debug requests via the command-line parameters */
 char * fd_debug_one_function = NULL;
@@ -90,22 +91,39 @@ static void fd_internal_logger( int loglevel, const char *format, va_list ap )
 {
     char buf[25];
     FILE *fstr = fd_g_debug_fstr ?: stdout;
+    int local_use_color = 0;
 
     /* logging has been decided by macros outside already */
 
     /* add timestamp */
-    fprintf(fd_g_debug_fstr, "%s  ", fd_log_time(NULL, buf, sizeof(buf)));
+    fprintf(fstr, "%s  ", fd_log_time(NULL, buf, sizeof(buf)));
+    
+    /* Use colors on stdout ? */
+    if (!use_colors) {
+	if (isatty(STDOUT_FILENO))
+		use_colors = 1;
+	else
+		use_colors = 2;
+    }
+    
+    /* now, this time log, do we use colors? */
+    if ((fstr == stdout) && (use_colors == 1))
+	    local_use_color = 1;
+    
     switch(loglevel) {
-	    case FD_LOG_DEBUG:  fprintf(fd_g_debug_fstr, " DBG   "); break;
-	    case FD_LOG_NOTICE: fprintf(fd_g_debug_fstr, "NOTI   "); break;
-	    case FD_LOG_ERROR:  fprintf(fd_g_debug_fstr, "ERROR  "); break;
-	    default:            fprintf(fd_g_debug_fstr, " ???   ");
+	    case FD_LOG_DEBUG:  fprintf(fstr, local_use_color ? "\e[0;37m" : " DBG   "); break;
+	    case FD_LOG_NOTICE: fprintf(fstr, local_use_color ? "\e[1;37m" : "NOTI   "); break;
+	    case FD_LOG_ERROR:  fprintf(fstr, local_use_color ? "\e[0;31m" : "ERROR  "); break;
+	    default:            fprintf(fstr, local_use_color ? "\e[0;31m" : " ???   ");
     }
-    vfprintf(fd_g_debug_fstr, format, ap);
+    vfprintf(fstr, format, ap);
     if (format && (format[strlen(format)-1] != '\n')) {
-        fprintf(fd_g_debug_fstr, "\n");
+        fprintf(fstr, "\n");
     }
-    fflush(fd_g_debug_fstr);
+    if (local_use_color)
+	     fprintf(fstr, "\e[00m");
+    
+    fflush(fstr);
 }
 
 /* Log a debug message */
