@@ -333,7 +333,7 @@ int fd_ep_clearflags( struct fd_list * list, uint32_t flags )
 	return 0;
 }
 
-void fd_ep_dump_one( char * prefix, struct fd_endpoint * ep, char * suffix )
+void fd_ep_dump_one( char * prefix, struct fd_endpoint * ep )
 {
 	char buf[1024];
 	
@@ -343,8 +343,7 @@ void fd_ep_dump_one( char * prefix, struct fd_endpoint * ep, char * suffix )
 			(ep->flags & EP_FL_DISC) 	? "D" : "-",
 			(ep->flags & EP_FL_ADV) 	? "A" : "-",
 			(ep->flags & EP_FL_LL) 		? "L" : "-",
-			(ep->flags & EP_FL_PRIMARY) 	? "P" : "-",
-			suffix ?: "");
+			(ep->flags & EP_FL_PRIMARY) 	? "P" : "-");
 }
 
 void fd_ep_dump( int indent, struct fd_list * eps )
@@ -353,7 +352,7 @@ void fd_ep_dump( int indent, struct fd_list * eps )
 	for (li = eps->next; li != eps; li = li->next) {
 		struct fd_endpoint * ep = (struct fd_endpoint *)li;
 		fd_log_debug("%*s", indent, "");
-		fd_ep_dump_one( NULL, ep, "\n" );
+		fd_ep_dump_one( NULL, ep );
 	}
 }
 	
