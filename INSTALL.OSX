@@ -42,7 +42,7 @@ FROM SOURCES
     $ brew install mercurial cmake gnutls libgcrypt postgres mysql libidn
 
    Notes:
-    * GNU IDN (libidn) is optional, see bellow
+    * GNU IDN (libidn) is optional, see below
     * When libusrsctp package is available, you can use it as well.
 
 3) Retrieve source code:

@@ -301,7 +301,7 @@ int main(int argc, char *argv[])
 			nbr_threads = NBR_THREADS;
 		} else {
 			TRACE_DEBUG(INFO, "Local limit on number of threads: %d", nbr_threads);
-			/* The local limit is bellow NBR_THREADS */
+			/* The local limit is below NBR_THREADS */
 			nbr_threads = (nbr_threads / 2) - 1;
 			/* Ensure we create at least a few threads! */
 			CHECK( 1, nbr_threads >= 10 ? 1 : 0 );

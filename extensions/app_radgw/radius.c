@@ -36,7 +36,7 @@
 /* freeDiameter author note:
  *  The content from this file comes for the main part from the hostap project.
  * It is redistributed under the terms of the BSD license, as allowed
- * by the original copyright reproduced bellow.
+ * by the original copyright reproduced below.
  * The modifications to this file are placed under the copyright of the freeDiameter project.
  */
 

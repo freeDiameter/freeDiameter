@@ -217,7 +217,7 @@ struct ds_nonce
 	char *nonce;
 };
 
-//Storage for some usefull AVPs
+//Storage for some useful AVPs
 struct app_sip_dict{
 	struct dict_object * Auth_Session_State;
 	struct dict_object * Auth_Application_Id;

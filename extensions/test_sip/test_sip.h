@@ -54,7 +54,7 @@ struct ts_conf {
 };
 extern struct ts_conf * ts_conf;
 
-//Storage for some usefull AVPs
+//Storage for some useful AVPs
 struct sip_dict{
 	struct dict_object * Auth_Session_State;
 	struct dict_object * Auth_Application_Id;

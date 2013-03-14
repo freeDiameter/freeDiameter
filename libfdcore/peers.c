@@ -541,7 +541,7 @@ int fd_peer_handle_newCER( struct msg ** cer, struct cnxctx ** cnx )
 		/* Insert the new peer in the list (the PSM will take care of setting the expiry after validation) */
 		fd_list_insert_after( li_inf, &peer->p_hdr.chain );
 		
-		/* Start the PSM, which will receive the event bellow */
+		/* Start the PSM, which will receive the event below */
 		CHECK_FCT_DO( ret = fd_psm_begin(peer), goto out );
 	} else {
 		/* Check if the peer is in zombie state */

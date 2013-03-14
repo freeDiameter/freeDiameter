@@ -72,7 +72,7 @@ freeDiameterd
 
 ===========================================
 
-freeDiameter has been tested on the following distributions (compiled from source as described bellow):
+freeDiameter has been tested on the following distributions (compiled from source as described below):
 Ubuntu Intrepid, Jaunty, Karmic, Lucid, Maverick, Natty. 
 Debian Lenny (with small patch, see ticket #24).
 

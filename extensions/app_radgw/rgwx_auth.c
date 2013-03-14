@@ -1098,7 +1098,7 @@ static int auth_diam_ans( struct rgwp_config * cs, struct session * session, str
         	 the Translation Agent receiving the subsequent RADIUS Access-
         	 Request will have access to the Session Identifier and be able
         	 to set the Destination-Host to the correct value.
-		 	-> done here bellow
+		 	-> done here below
 		 
 	      -  If the Command-Code is set to AA-Answer, the Diameter Session-
         	 Id AVP is saved in a new RADIUS Class attribute whose format

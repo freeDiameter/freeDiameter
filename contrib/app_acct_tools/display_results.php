@@ -3,7 +3,7 @@
 # The copyright of this file is the same as the freeDiameter project. Licence is BSD.
 
 # This file should no be called directly; 
-# instead it should be included from another script that sets its parameters as described bellow.
+# instead it should be included from another script that sets its parameters as described below.
 
 ## $USERS  
 # An array of the user names to display; the empty array will display all users.

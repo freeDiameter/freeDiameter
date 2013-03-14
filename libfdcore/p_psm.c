@@ -53,7 +53,7 @@ Personnally I don't see the rationale for exchanging 3 messages (why 3?)
 but, if we require at least 1 DWR/DWA exchange to be always performed
 after the CER/CEA exchange (and initiated by the peer that sent the
 CEA), we have a simple way to deal with our ordering problem, as resumed
-bellow. Peers are: [i]nitiator, [r]esponder.
+below. Peers are: [i]nitiator, [r]esponder.
  (1) [i] SCTP connection attempt.
  (2) [r] accept the connection.
  (3) [i,r] (if secure port) DTLS handshake, close on failure.

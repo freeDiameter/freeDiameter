@@ -283,7 +283,7 @@ static char * file_bname = NULL;
 #define TRACE_DEBUG(level,format,args... ) \
 	TRACE(FD_LOG_DEBUG,(level),format,##args)
 
-/* Report a normal message that is usefull for normal admin monitoring */
+/* Report a normal message that is useful for normal admin monitoring */
 #define TRACE_NOTICE(format,args... ) \
 	TRACE(FD_LOG_NOTICE,INFO,format,##args)
 
@@ -311,7 +311,7 @@ resp. TRACE_DEBUG and TRACE_ERROR.
 	TRACE_DEBUG(NONE, " -- debug checkpoint %d -- ", fd_breakhere());
 int fd_breakhere(void);
 
-/* Helper for tracing the CHECK_* macros bellow -- very very verbose code execution! */
+/* Helper for tracing the CHECK_* macros below -- very very verbose code execution! */
 #define TRACE_DEBUG_ALL( str ) 	\
 	TRACE_DEBUG(CALL, str );
 
@@ -893,7 +893,7 @@ int fd_dict_fini(struct dictionary ** dict);
  *  dict	: Pointer to the dictionnary where the object is created
  *  type 	: What kind of object must be created
  *  data 	: pointer to the data for the object. 
- *          	 type parameter is used to determine the type of data (see bellow for detail).
+ *          	 type parameter is used to determine the type of data (see below for detail).
  *  parent 	: a reference to a parent object, if needed.
  *  ref 	: upon successful creation, reference to new object is stored here if !null.
  *
@@ -917,14 +917,14 @@ int fd_dict_new ( struct dictionary * dict, enum dict_object_type type, void * d
  * PARAMETERS:
  *  dict	: Pointer to the dictionnary where the object is searched
  *  type 	: type of object that is being searched
- *  criteria 	: how the object must be searched. See object-related sections bellow for more information.
+ *  criteria 	: how the object must be searched. See object-related sections below for more information.
  *  what 	: depending on criteria, the data that must be searched.
  *  result 	: On successful return, pointer to the object is stored here.
  *  retval	: this value is returned if the object is not found and result is not NULL.
  *
  * DESCRIPTION: 
  *   Perform a search in the dictionary. 
- *   See the object-specific sections bellow to find how to look for each objects.
+ *   See the object-specific sections below to find how to look for each objects.
  *   If the "result" parameter is NULL, the function is used to check if an object is in the dictionary.
  *   Otherwise, a reference to the object is stored in result if found.
  *   If result is not NULL and the object is not found, retval is returned (should be 0 or ENOENT usually)
@@ -994,7 +994,7 @@ struct dict_vendor_data {
 enum {
 	VENDOR_BY_ID = 10,	/* "what" points to a vendor_id_t */
 	VENDOR_BY_NAME,		/* "what" points to a char * */
-	VENDOR_OF_APPLICATION	/* "what" points to a struct dict_object containing an application (see bellow) */
+	VENDOR_OF_APPLICATION	/* "what" points to a struct dict_object containing an application (see below) */
 };
 
 /***
@@ -1064,8 +1064,8 @@ struct dict_application_data {
 enum {
 	APPLICATION_BY_ID = 20,		/* "what" points to a application_id_t */
 	APPLICATION_BY_NAME,		/* "what" points to a char * */
-	APPLICATION_OF_TYPE,		/* "what" points to a struct dict_object containing a type object (see bellow) */
-	APPLICATION_OF_COMMAND		/* "what" points to a struct dict_object containing a command (see bellow) */
+	APPLICATION_OF_TYPE,		/* "what" points to a struct dict_object containing a type object (see below) */
+	APPLICATION_OF_COMMAND		/* "what" points to a struct dict_object containing a command (see below) */
 };
 
 /***
@@ -1205,7 +1205,7 @@ struct dict_type_data {
 /* The criteria for searching a type object in the dictionary */
 enum {
 	TYPE_BY_NAME = 30,		/* "what" points to a char * */
-	TYPE_OF_ENUMVAL,		/* "what" points to a struct dict_object containing an enumerated constant (DICT_ENUMVAL, see bellow). */
+	TYPE_OF_ENUMVAL,		/* "what" points to a struct dict_object containing an enumerated constant (DICT_ENUMVAL, see below). */
 	TYPE_OF_AVP			/* "what" points to a struct dict_object containing an AVP object. */
 };
 
@@ -1279,7 +1279,7 @@ struct dict_enumval_data {
 
 /* The criteria for searching a constant in the dictionary */
 enum {
-	ENUMVAL_BY_STRUCT = 40,	/* "what" points to a struct dict_enumval_request as defined bellow */
+	ENUMVAL_BY_STRUCT = 40,	/* "what" points to a struct dict_enumval_request as defined below */
 	ENUMVAL_BY_NAME,	/* This cannot be used for researches */
 	ENUMVAL_BY_VALUE	/* This cannot be used for researches */
 };
@@ -1401,11 +1401,11 @@ enum {
 	AVP_BY_CODE = 50,	/* "what" points to an avp_code_t, vendor is always 0 */
 	AVP_BY_NAME,		/* "what" points to a char *, vendor is always 0 */
 	AVP_BY_NAME_ALL_VENDORS,/* "what" points to a string. Might be quite slow... */
-	AVP_BY_STRUCT,		/* "what" points to a struct dict_avp_request_ex (see bellow) */
+	AVP_BY_STRUCT,		/* "what" points to a struct dict_avp_request_ex (see below) */
 			
 	/* kept for backward compatibility, better use AVP_BY_STRUCT above instead */
-	AVP_BY_CODE_AND_VENDOR,	/* "what" points to a struct dict_avp_request (see bellow), where avp_vendor and avp_code are set */
-	AVP_BY_NAME_AND_VENDOR	/* "what" points to a struct dict_avp_request (see bellow), where avp_vendor and avp_name are set */
+	AVP_BY_CODE_AND_VENDOR,	/* "what" points to a struct dict_avp_request (see below), where avp_vendor and avp_code are set */
+	AVP_BY_NAME_AND_VENDOR	/* "what" points to a struct dict_avp_request (see below), where avp_vendor and avp_name are set */
 };
 
 /* Struct used for some researchs */
@@ -1639,7 +1639,7 @@ struct dict_rule_data {
 
 /* The criteria for searching a rule in the dictionary */
 enum {
-	RULE_BY_AVP_AND_PARENT = 70	/* "what" points to a struct dict_rule_request -- see bellow. This is used to query "what is the rule for this AVP in this group?" */
+	RULE_BY_AVP_AND_PARENT = 70	/* "what" points to a struct dict_rule_request -- see below. This is used to query "what is the rule for this AVP in this group?" */
 };
 
 /* Structure for querying the dictionary about a rule */
@@ -1852,7 +1852,7 @@ int fd_sess_handler_destroy ( struct session_handler ** handler, void **opaque )
  *  session	  : The location where the session object will be created upon success.
  *  diamid	  : a Diameter Identity, or NULL.
  *  diamidlen	  : if diamid is \0-terminated, this can be 0. Otherwise, the length of diamid.
- *  opt           : Additional string, or NULL. Usage is described bellow.
+ *  opt           : Additional string, or NULL. Usage is described below.
  *  optlen	  : if opt is \0-terminated, this can be 0. Otherwise, the length of opt.
  *
  * DESCRIPTION: 
@@ -2135,7 +2135,7 @@ enum msg_brw_dir {
 	MSG_BRW_WALK		/* This is equivalent to FIRST_CHILD or NEXT or PARENT->next, first that is not NULL. Use this to walk inside all AVPs. */
 };
 
-/* Some flags used in the functions bellow */
+/* Some flags used in the functions below */
 #define AVPFL_SET_BLANK_VALUE	   0x01	/* When creating an AVP, initialize its value to a blank area */
 #define AVPFL_SET_RAWDATA_FROM_AVP 0x02 /* When creating an AVP, initialize its rawdata area from an existing AVP -- it is only blank padding (for error reporting) */
 #define AVPFL_MAX		   AVPFL_SET_RAWDATA_FROM_AVP	/* The biggest valid flag value */

@@ -2,7 +2,7 @@
 /* freeDiameter author note:
  *  The content from this file comes directly from the hostap project.
  * It is redistributed under the terms of the BSD license, as allowed
- * by the original copyright reproduced bellow.
+ * by the original copyright reproduced below.
  *  In addition to this notice, only the #include directives have been modified.
  */
 #include "rgw_common.h"

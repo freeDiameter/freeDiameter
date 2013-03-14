@@ -123,7 +123,7 @@ define Package/freeDiameter/install
 	echo "# test_app.fdx provided in freeDiameter-test package:" \
 							>> $(1)/etc/freeDiameter/freeDiameter.conf
 	echo "# LoadExtension = \"test_app.fdx\";"	>> $(1)/etc/freeDiameter/freeDiameter.conf
-	echo "## Add overrides bellow this point" 	>> $(1)/etc/freeDiameter/freeDiameter.conf
+	echo "## Add overrides below this point" 	>> $(1)/etc/freeDiameter/freeDiameter.conf
 
 	
 	$(INSTALL_CONF) \

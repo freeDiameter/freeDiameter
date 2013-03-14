@@ -224,7 +224,7 @@ extern const char *peer_state_str[];
 #define STATE_STR(state) \
 	(((unsigned)(state)) <= STATE_MAX ? peer_state_str[((unsigned)(state)) ] : "<Invalid>")
 
-/* Constants for the peer_info structure bellow */
+/* Constants for the peer_info structure below */
 #define PI_P3_DEFAULT	0	/* Use any available protocol */
 #define PI_P3_IP	1	/* Use only IP to connect to this peer */
 #define PI_P3_IPv6	2	/* resp, IPv6 */
@@ -405,7 +405,7 @@ int fd_peer_get_load_pending(struct peer_hdr *peer, int * load);
  * FUNCTION:	fd_peer_validate_register
  *
  * PARAMETERS:
- *  peer_validate 	: Callback as defined bellow.
+ *  peer_validate 	: Callback as defined below.
  *
  * DESCRIPTION: 
  *  Add a callback to authorize / reject incoming peer connections.
@@ -588,10 +588,10 @@ int fd_disp_app_support ( struct dict_object * app, struct dict_object * vendor,
  * (*) FWD messages details:
  *   - The process is the same as for IN messages, until the routing-in threads makes its decision that the message is not handled locally.
  *   - If the local peer does not relay message, an error DIAMETER_APPLICATION_UNSUPPORTED is returned.
- *   - All callbacks registered with fd_rt_fwd_register are called for the message (see bellow).
+ *   - All callbacks registered with fd_rt_fwd_register are called for the message (see below).
  *     - these callbacks will typically do proxying work. Note that adding the route-record is handled by the daemon.
  *   - Once all callbacks have been called, the message is queued in the global fd_g_outgoing queue.
- *   - The remaining processing is the same as for OUT messages, as described bellow.
+ *   - The remaining processing is the same as for OUT messages, as described below.
  *
  * (*) OUT messages details:
  *   - The message are picked from fd_g_outgoing (they are queued there as result of forwarding process or call to fd_msg_send.)
@@ -601,7 +601,7 @@ int fd_disp_app_support ( struct dict_object * app, struct dict_object * vendor,
  *      - remove also all peers that have previously replied an error message for this message.
  *   - If the list is empty, create an error UNABLE_TO_DELIVER (note: should we trig dynamic discovery here???) and reply.
  *   - Otherwise, call all callbacks registered by function fd_rt_out_register, with the list of peers and the message.
- *   - Order the resulting list of peers by score (see bellow), and sent the message to the peer with highest (positive) score.
+ *   - Order the resulting list of peers by score (see below), and sent the message to the peer with highest (positive) score.
  *    - in case the peer is no longer in the "OPEN" state, send the message to the second peer in the list.
  *      - if no peer is in OPEN state anymore, restart the process of creating the list.
  *   - Once a peer has been selected, the message is queued into that peer's outgoing queue.
@@ -625,7 +625,7 @@ enum fd_rt_fwd_dir {
  * FUNCTION:	fd_rt_fwd_register
  *
  * PARAMETERS:
- *  rt_fwd_cb	  : The callback function to register (see prototype bellow).
+ *  rt_fwd_cb	  : The callback function to register (see prototype below).
  *  cbdata	  : Pointer to pass to the callback when it is called. The data is opaque to the daemon.
  *  dir           : One of the RT_FWD_* directions defined above.
  *  handler       : On success, a handler to the registered callback is stored here. 
@@ -702,7 +702,7 @@ enum fd_rt_out_score {
  * FUNCTION:	fd_rt_out_register
  *
  * PARAMETERS:
- *  rt_out_cb	  : The callback function to register (see prototype bellow).
+ *  rt_out_cb	  : The callback function to register (see prototype below).
  *  cbdata	  : Pointer to pass to the callback when it is called. The data is opaque to the daemon.
  *  priority      : Order for calling this callback. The callbacks are called in reverse priority order (higher priority = called sooner).
  *  handler       : On success, a handler to the registered callback is stored here. 

@@ -78,11 +78,11 @@ struct dict_object {
 	struct fd_list		list[NB_LISTS_PER_OBJ];/* used to chain objects.*/
 	/* More information about the lists :
 	
-	 - the use for each list depends on the type of object. See detail bellow.
+	 - the use for each list depends on the type of object. See detail below.
 	 
 	 - a sentinel for a list has its 'o' field cleared. (this is the criteria to detect end of a loop)
 	 
-	 - The lists are always ordered. The criteria are described bellow. the functions to order them are referenced in dict_obj_info
+	 - The lists are always ordered. The criteria are described below. the functions to order them are referenced in dict_obj_info
 	 
 	 - The dict_lock must be held for any list operation.
 	 

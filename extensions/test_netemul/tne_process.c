@@ -57,7 +57,7 @@ static pthread_mutex_t mtx = PTHREAD_MUTEX_INITIALIZER;
 static pthread_cond_t  cnd = PTHREAD_COND_INITIALIZER;
 static pthread_t       thr = (pthread_t)NULL;
 
-/* The lists bellow are all protected by the same mutex mtx */
+/* The lists below are all protected by the same mutex mtx */
 static struct fd_list input = FD_LIST_INITIALIZER(input); /* messages received from network */
 static struct fd_list forlat = FD_LIST_INITIALIZER(forlat); /* messages after duplicate filter */
 static struct fd_list waitlist = FD_LIST_INITIALIZER(waitlist); /* messages waiting for sending */

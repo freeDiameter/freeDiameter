@@ -196,7 +196,7 @@ struct dict_object {
 
 /* The following wrapper leaks memory each time an union avp_value is assigned an octet string.
  TODO: fix this leak by better understanding SWIG... 
-   -- the alternative is to uncomment the "free" statements bellow, but then it is easy to
+   -- the alternative is to uncomment the "free" statements below, but then it is easy to
    create a segmentation fault by assigning first an integer, then an octetstring.
  */
 %extend avp_value {

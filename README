@@ -18,7 +18,7 @@ The implementation consists in several components:
  - libfdcore : this shared library contains the core of the framework. It establishes 
       the network connections with other Diameter peers and performs the tasks described 
       in Diameter Base Protocol, such as watchdogs, basic routing, ... It also handles 
-      the loading of extensions (see bellow).
+      the loading of extensions (see below).
       
  - freeDiameterd : this simple daemon parses the command line and initializes the
       freeDiameter framework. Use it for your Diameter server & agent components.

@@ -193,7 +193,7 @@ TLS_Cred = "/etc/ssl/certs/freeDiameter.pem", "/etc/ssl/private/freeDiameter.key
 #  In addition to incoming connections, the local peer can
 # be configured to establish and maintain connections to some 
 # Diameter nodes and allow connections from these nodes.
-#  This is achieved with the ConnectPeer directive described bellow.
+#  This is achieved with the ConnectPeer directive described below.
 #
 # Note that the configured Diameter Id MUST match
 # the information received inside CEA, or the connection will be aborted.
