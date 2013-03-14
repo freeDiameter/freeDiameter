@@ -59,7 +59,7 @@ static int ed_conf_parse(char * conffile, struct rgwp_config ** state)
 	
 	TRACE_ENTRY("%p %p", conffile, state);
 	CHECK_PARAMS( state );
-	CHECK_PARAMS_DO( conffile, { fd_log_debug("[echodrop.rgwx] The configuration file is not optional for this plugin.\n"); return EINVAL; } );
+	CHECK_PARAMS_DO( conffile, { fd_log_debug("[echodrop.rgwx] The configuration file is not optional for this plugin."); return EINVAL; } );
 	
 	CHECK_MALLOC( new = malloc(sizeof(struct rgwp_config)) );
 	memset(new, 0, sizeof(struct rgwp_config));
@@ -81,18 +81,18 @@ static int ed_conf_parse(char * conffile, struct rgwp_config ** state)
 			struct ed_conf_attribute * eca = (struct ed_conf_attribute *)li;
 			char * act = (eca->action == ACT_ECHO) ? "ECHO" : "DROP";
 			if (eca->ext) {
-				fd_log_debug("  %s Code: %hhu, Vendor: %u, Ext-Type: %hu\n", act, eca->code, eca->vendor_id, eca->extype);
+				fd_log_debug("  %s Code: %hhu, Vendor: %u, Ext-Type: %hu", act, eca->code, eca->vendor_id, eca->extype);
 				continue;
 			}
 			if (eca->tlv) {
-				fd_log_debug("  %s Code: %hhu, Vendor: %u, Type: %hhu\n", act, eca->code, eca->vendor_id, eca->type);
+				fd_log_debug("  %s Code: %hhu, Vendor: %u, Type: %hhu", act, eca->code, eca->vendor_id, eca->type);
 				continue;
 			}
 			if (eca->vsa) {
-				fd_log_debug("  %s Code: %hhu, Vendor: %u\n", act, eca->code, eca->vendor_id);
+				fd_log_debug("  %s Code: %hhu, Vendor: %u", act, eca->code, eca->vendor_id);
 				continue;
 			}
-			fd_log_debug("  %s Code: %hhu\n", act, eca->code);
+			fd_log_debug("  %s Code: %hhu", act, eca->code);
 		}
 	}
 	
@@ -185,7 +185,7 @@ static int ed_rad_req( struct rgwp_config * cs, struct session ** session, struc
 			
 			if (eca->ext) {
 				/* To be done */
-				fd_log_debug("Extended attributes are not implemented yet!\n");
+				fd_log_debug("Extended attributes are not implemented yet!");
 				ASSERT(0);
 				continue;
 			}
@@ -218,7 +218,7 @@ static int ed_rad_req( struct rgwp_config * cs, struct session ** session, struc
 	if (!FD_IS_LIST_EMPTY(&echo_list)) {
 		CHECK_PARAMS_DO(*session,
 			{
-				fd_log_debug(	"[echodrop.rgwx] The extension is configured to echo some attributes from this message, but no session object has been created for it (yet).\n"
+				fd_log_debug(	"[echodrop.rgwx] The extension is configured to echo some attributes from this message, but no session object has been created for it (yet)."
 						"  Please check your configuration file and include a session-generating extension BEFORE calling echodrop.rgwx to echo attributes.\n"
 						"  Please use debug.rgwx to retrieve more information.\n" );
 				return EINVAL;

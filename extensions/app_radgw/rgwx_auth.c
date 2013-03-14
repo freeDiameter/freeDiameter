@@ -1236,25 +1236,25 @@ static int auth_diam_ans( struct rgwp_config * cs, struct session * session, str
 			}
 			/* In any case, the following is processed: */
 			(*rad_fw)->hdr->code = RADIUS_CODE_ACCESS_REJECT;
-			fd_log_debug("[auth.rgwx] Received Diameter answer with error code '%d' from server '%.*s', session %.*s, translating into Access-Reject\n",
+			fd_log_debug("[auth.rgwx] Received Diameter answer with error code '%d' from server '%.*s', session %.*s, translating into Access-Reject",
 					ahdr->avp_value->u32, 
 					oh->avp_value->os.len, oh->avp_value->os.data,
 					sid->avp_value->os.len, sid->avp_value->os.data);
 			CHECK_FCT( fd_msg_search_avp (*diam_ans, cs->dict.Error_Message, &avp_x) );
 			if (avp_x) {
 				CHECK_FCT( fd_msg_avp_hdr ( avp_x, &ahdr ) );
-				fd_log_debug("[auth.rgwx]   Error-Message content: '%.*s'\n",
+				fd_log_debug("[auth.rgwx]   Error-Message content: '%.*s'",
 						ahdr->avp_value->os.len, ahdr->avp_value->os.data);
 			}
 			CHECK_FCT( fd_msg_search_avp (*diam_ans, cs->dict.Error_Reporting_Host, &avp_x) );
 			if (avp_x) {
 				CHECK_FCT( fd_msg_avp_hdr ( avp_x, &ahdr ) );
-				fd_log_debug("[auth.rgwx]   Error-Reporting-Host: '%.*s'\n",
+				fd_log_debug("[auth.rgwx]   Error-Reporting-Host: '%.*s'",
 						ahdr->avp_value->os.len, ahdr->avp_value->os.data);
 			}
 			CHECK_FCT( fd_msg_search_avp (*diam_ans, cs->dict.Failed_AVP, &avp_x) );
 			if (avp_x) {
-				fd_log_debug("[auth.rgwx]   Failed-AVP was included in the message.\n");
+				fd_log_debug("[auth.rgwx]   Failed-AVP was included in the message.");
 				/* Dump its content ? */
 			}
 	}
@@ -1448,7 +1448,7 @@ static int auth_diam_ans( struct rgwp_config * cs, struct session * session, str
 				case DIAM_ATTR_AUTH_REQUEST_TYPE:
 					/* We only check the value */
 					if (ahdr->avp_value->u32 != 3) {
-						fd_log_debug("[auth.rgwx] Received Diameter answer with Auth-Request-Type set to %d (%s) from server %.*s, session %.*s.\n"
+						fd_log_debug("[auth.rgwx] Received Diameter answer with Auth-Request-Type set to %d (%s) from server %.*s, session %.*s."
 								"  This may cause interoperability problems with RADIUS.\n",
 								ahdr->avp_value->u32,
 								(ahdr->avp_value->u32 == 1) ? "AUTHENTICATE_ONLY" :
@@ -1613,7 +1613,7 @@ static int auth_diam_ans( struct rgwp_config * cs, struct session * session, str
 					
 				case DIAM_ATTR_NAS_FILTER_RULE:
 					/* This is not translatable to RADIUS */
-					fd_log_debug("[auth.rgwx] Received Diameter answer with non-translatable NAS-Filter-Rule AVP from '%.*s' (session: '%.*s'), ignoring.\n",
+					fd_log_debug("[auth.rgwx] Received Diameter answer with non-translatable NAS-Filter-Rule AVP from '%.*s' (session: '%.*s'), ignoring.",
 							oh->avp_value->os.len, oh->avp_value->os.data,
 							sid->avp_value->os.len, sid->avp_value->os.data);
 					handled = 0;
@@ -1646,7 +1646,7 @@ static int auth_diam_ans( struct rgwp_config * cs, struct session * session, str
 					
 				case DIAM_ATTR_QOS_FILTER_RULE:
 					/* This is not translatable to RADIUS */
-					fd_log_debug("[auth.rgwx] Received Diameter answer with non-translatable QoS-Filter-Rule AVP from '%.*s' (session: '%.*s'), ignoring.\n",
+					fd_log_debug("[auth.rgwx] Received Diameter answer with non-translatable QoS-Filter-Rule AVP from '%.*s' (session: '%.*s'), ignoring.",
 							oh->avp_value->os.len, oh->avp_value->os.data,
 							sid->avp_value->os.len, sid->avp_value->os.data);
 					handled = 0;
@@ -1855,7 +1855,7 @@ static int auth_diam_ans( struct rgwp_config * cs, struct session * session, str
 						CHECK_FCT(rgw_clients_getkey(cli, &secret, &secret_len));
 						
 						if (ahdr->avp_value->os.len != 64) {
-							TRACE_DEBUG(INFO, "Received EAP-Master-Session-Key attribute with length %d != 64.\n", ahdr->avp_value->os.len)
+							TRACE_DEBUG(INFO, "Received EAP-Master-Session-Key attribute with length %d != 64.", ahdr->avp_value->os.len)
 						}
 						
 						CHECK_PARAMS(ahdr->avp_value->os.len <= 64);

@@ -77,7 +77,7 @@ int ed_conffile_parse(char * conffile, struct rgwp_config *cs)
 	}
 	if (rgwx_echodropin == NULL) {
 		ret = errno;
-		fd_log_debug("[echodrop.rgwx] Unable to open plugin configuration file %s for reading: %s\n", conffile, strerror(ret));
+		fd_log_debug("[echodrop.rgwx] Unable to open plugin configuration file %s for reading: %s", conffile, strerror(ret));
 		return ret;
 	}
 
@@ -96,11 +96,11 @@ int ed_conffile_parse(char * conffile, struct rgwp_config *cs)
 void yyerror (YYLTYPE *ploc, char * conffile, struct rgwp_config *cs, char const *s)
 {
 	if (ploc->first_line != ploc->last_line)
-		fd_log_debug("%s:%d.%d-%d.%d : %s\n", conffile, ploc->first_line, ploc->first_column, ploc->last_line, ploc->last_column, s);
+		fd_log_debug("%s:%d.%d-%d.%d : %s", conffile, ploc->first_line, ploc->first_column, ploc->last_line, ploc->last_column, s);
 	else if (ploc->first_column != ploc->last_column)
-		fd_log_debug("%s:%d.%d-%d : %s\n", conffile, ploc->first_line, ploc->first_column, ploc->last_column, s);
+		fd_log_debug("%s:%d.%d-%d : %s", conffile, ploc->first_line, ploc->first_column, ploc->last_column, s);
 	else
-		fd_log_debug("%s:%d.%d : %s\n", conffile, ploc->first_line, ploc->first_column, s);
+		fd_log_debug("%s:%d.%d : %s", conffile, ploc->first_line, ploc->first_column, s);
 }
 
 static struct {

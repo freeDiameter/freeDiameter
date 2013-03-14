@@ -828,10 +828,10 @@ void fd_msg_dump_fstr ( struct msg * msg, FILE * fstr )
 	int indent = 2;
 	char *outstr;
 	size_t offset, outlen;
-	CHECK_FCT_DO( dump_init_str(&outstr, &offset, &outlen), { fd_log_debug_fstr(fstr, "Error initializing string for dumping %p\n", msg); return; } );
+	CHECK_FCT_DO( dump_init_str(&outstr, &offset, &outlen), { fd_log_debug_fstr(fstr, "Error initializing string for dumping %p", msg); return; } );
 	do {
 		CHECK_FCT_DO(  msg_dump_intern ( NONE, ref, indent, &outstr, &offset, &outlen ),
-				fd_log_debug_fstr(fstr, "Error while dumping %p\n", ref) );
+				fd_log_debug_fstr(fstr, "Error while dumping %p", ref) );
 		
 		/* Now find the next object */
 		CHECK_FCT_DO(  fd_msg_browse ( ref, MSG_BRW_WALK, &ref, &indent ), break  );
@@ -840,7 +840,7 @@ void fd_msg_dump_fstr ( struct msg * msg, FILE * fstr )
 	} while (ref);
 	
 	/* now really output this in one shot, so it is not interrupted */
-	fd_log_debug_fstr(fstr, "%s\n", outstr);
+	fd_log_debug_fstr(fstr, "%s", outstr);
 	
 	free(outstr);
 }
@@ -848,11 +848,11 @@ void fd_msg_dump_fstr_one ( struct msg * msg, FILE * fstr ) /* just the header *
 {
 	char *outstr;
 	size_t offset, outlen;
-	CHECK_FCT_DO( dump_init_str(&outstr, &offset, &outlen), { fd_log_debug_fstr(fstr, "Error initializing string for dumping %p\n", msg); return; } );
+	CHECK_FCT_DO( dump_init_str(&outstr, &offset, &outlen), { fd_log_debug_fstr(fstr, "Error initializing string for dumping %p", msg); return; } );
 	CHECK_FCT_DO(  msg_dump_intern ( NONE, msg, 2, &outstr, &offset, &outlen ),
-				fd_log_debug_fstr(fstr, "Error while dumping %p\n", msg) );
+				fd_log_debug_fstr(fstr, "Error while dumping %p", msg) );
 	/* now really output this in one shot, so it is not interrupted */
-	fd_log_debug_fstr(fstr, "%s\n", outstr);
+	fd_log_debug_fstr(fstr, "%s", outstr);
 	
 	free(outstr);
 }
@@ -865,11 +865,11 @@ void fd_msg_dump_walk ( int level, msg_or_avp *obj )
 	char *outstr;
 	size_t offset, outlen;
 	CHECK_FCT_DO( dump_init_str(&outstr, &offset, &outlen), 
-			{ fd_log_debug_fstr(fd_g_debug_fstr, "Error initializing string for dumping %p\n", obj); return; } );
+			{ fd_log_debug_fstr(fd_g_debug_fstr, "Error initializing string for dumping %p", obj); return; } );
 
 	do {
 		CHECK_FCT_DO(  msg_dump_intern ( level, ref, indent, &outstr, &offset, &outlen ),
-				fd_log_debug_fstr(fd_g_debug_fstr, "Error while dumping %p\n", ref) );
+				fd_log_debug_fstr(fd_g_debug_fstr, "Error while dumping %p", ref) );
 		
 		/* Now find the next object */
 		CHECK_FCT_DO(  fd_msg_browse ( ref, MSG_BRW_WALK, &ref, &indent ), break  );
@@ -891,9 +891,9 @@ void fd_msg_dump_one ( int level, msg_or_avp * obj )
 	char *outstr;
 	size_t offset, outlen;
 	CHECK_FCT_DO( dump_init_str(&outstr, &offset, &outlen), 
-			{ fd_log_debug_fstr(fd_g_debug_fstr, "Error initializing string for dumping %p\n", obj); return; } );
+			{ fd_log_debug_fstr(fd_g_debug_fstr, "Error initializing string for dumping %p", obj); return; } );
 	CHECK_FCT_DO(  msg_dump_intern ( level, obj, 1, &outstr, &offset, &outlen ),
-			fd_log_debug_fstr(fd_g_debug_fstr, "Error while dumping %p\n", obj) );
+			fd_log_debug_fstr(fd_g_debug_fstr, "Error while dumping %p", obj) );
 	TRACE_DEBUG(level, "------ Dumping object %p (s)-------", obj);
 	TRACE_DEBUG(level, "%s", outstr);
 	TRACE_DEBUG(level, "------ /end of object %p -------", obj);

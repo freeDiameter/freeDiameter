@@ -485,7 +485,7 @@ psm_loop:
 		/* Parse the received buffer */
 		CHECK_FCT_DO( fd_msg_parse_buffer( (void *)&ev_data, ev_sz, &msg), 
 			{
-				fd_log_debug("Received invalid data from peer '%s', closing the connection\n", peer->p_hdr.info.pi_diamid);
+				fd_log_debug("Received invalid data from peer '%s', closing the connection", peer->p_hdr.info.pi_diamid);
 				free(ev_data);
 				CHECK_FCT_DO( fd_event_send(peer->p_events, FDEVP_CNX_ERROR, 0, NULL), goto psm_reset );
 				goto psm_loop;

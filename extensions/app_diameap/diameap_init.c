@@ -367,29 +367,27 @@ static void diameap_conf_dump(void)
 	if (!TRACE_BOOL(INFO))
 		return;
 
-	fd_log_debug(
-			"-------- DiamEAP extension : Configuration parameters (Dump) -------------\n");
-	fd_log_debug("\t-Configuration file.....: %s\n", diameap_config->conffile);
-	fd_log_debug("\t-EAP Application Id.....: %u\n",
+	fd_log_debug("-------- DiamEAP extension : Configuration parameters (Dump) -------------");
+	fd_log_debug("\t-Configuration file.....: %s", diameap_config->conffile);
+	fd_log_debug("\t-EAP Application Id.....: %u",
 			diameap_config->application_id);
-	fd_log_debug("\t-EAP Application Command: %u\n",
+	fd_log_debug("\t-EAP Application Command: %u",
 			diameap_config->command_code);
-	fd_log_debug("\t-EAP Application Vendor.: %u\n", diameap_config->vendor_id);
-	fd_log_debug("\t-Max invalid EAP packets: %u\n", diameap_config->max_invalid_eap_packet);
-	fd_log_debug("\t-Multi-Round Timeout....: %u\n", diameap_config->multi_round_time_out);
+	fd_log_debug("\t-EAP Application Vendor.: %u", diameap_config->vendor_id);
+	fd_log_debug("\t-Max invalid EAP packets: %u", diameap_config->max_invalid_eap_packet);
+	fd_log_debug("\t-Multi-Round Timeout....: %u", diameap_config->multi_round_time_out);
 	if (diameap_config->db.user)
 	{
-		fd_log_debug("\t-MySQL Database Params..: \n\t\tUser .......:%s\n",
-				diameap_config->db.user);
-		fd_log_debug("\t\tServer .....:%s\n", diameap_config->db.server);
-		fd_log_debug("\t\tDatabase....:%s\n", diameap_config->db.database);
+		fd_log_debug("\t-MySQL Database Params..:");
+		fd_log_debug("\t\tUser .......:%s", diameap_config->db.user);
+		fd_log_debug("\t\tServer .....:%s", diameap_config->db.server);
+		fd_log_debug("\t\tDatabase....:%s", diameap_config->db.database);
 	}
 
-	fd_log_debug("\t-EAP Method Plugins.....: \n");
+	fd_log_debug("\t-EAP Method Plugins.....: ");
 	diameap_plugin_dump();
 
-	fd_log_debug(
-			"-------- DiamEAP extension : Configuration parameters (End) ---------------\n");
+	fd_log_debug("-------- DiamEAP extension : Configuration parameters (End) ---------------");
 }
 
 int diameap_init(char * conffile)

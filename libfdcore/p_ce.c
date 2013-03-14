@@ -305,7 +305,7 @@ static int save_remote_CE_info(struct msg * msg, struct fd_peer * peer, struct f
 				/* We check that the value matches what we know, otherwise disconnect the peer */
 				if (fd_os_almostcasesrch(hdr->avp_value->os.data, hdr->avp_value->os.len, 
 							peer->p_hdr.info.pi_diamid, peer->p_hdr.info.pi_diamidlen, NULL)) {
-					TRACE_DEBUG(INFO, "Received a message with Origin-Host set to '%.*s' while expecting '%s'\n", 
+					TRACE_DEBUG(INFO, "Received a message with Origin-Host set to '%.*s' while expecting '%s'", 
 							hdr->avp_value->os.len, hdr->avp_value->os.data, peer->p_hdr.info.pi_diamid);
 					error->pei_errcode = "DIAMETER_AVP_NOT_ALLOWED";
 					error->pei_message = "Your Origin-Host value does not match my configuration.";
@@ -777,7 +777,7 @@ int fd_p_ce_msgrcv(struct msg ** msg, int req, struct fd_peer * peer)
 			CHECK_FCT_DO( fd_cnx_handshake(peer->p_cnxctx, GNUTLS_CLIENT, peer->p_hdr.info.config.pic_priority, NULL),
 				{
 					/* Handshake failed ...  */
-					fd_log_debug("TLS Handshake failed with peer '%s', resetting the connection\n", peer->p_hdr.info.pi_diamid);
+					fd_log_debug("TLS Handshake failed with peer '%s', resetting the connection", peer->p_hdr.info.pi_diamid);
 					goto cleanup;
 				} );
 
@@ -830,7 +830,7 @@ int fd_p_ce_process_receiver(struct fd_peer * peer)
 	if (peer->p_hdr.info.config.pic_realm) {
 		size_t len = strlen(peer->p_hdr.info.config.pic_realm);
 		if (fd_os_almostcasesrch(peer->p_hdr.info.config.pic_realm, len, peer->p_hdr.info.runtime.pir_realm, peer->p_hdr.info.runtime.pir_realmlen, NULL)) {
-			TRACE_DEBUG(INFO, "Rejected CER from peer '%s', realm mismatch with configured value (returning DIAMETER_UNKNOWN_PEER).\n", peer->p_hdr.info.pi_diamid);
+			TRACE_DEBUG(INFO, "Rejected CER from peer '%s', realm mismatch with configured value (returning DIAMETER_UNKNOWN_PEER).", peer->p_hdr.info.pi_diamid);
 			pei.pei_errcode = "DIAMETER_UNKNOWN_PEER"; /* maybe AVP_NOT_ALLOWED would be better fit? */
 			goto error_abort;
 		}
@@ -845,7 +845,7 @@ int fd_p_ce_process_receiver(struct fd_peer * peer)
 	if (peer->p_flags.pf_responder) {
 		int res = fd_peer_validate( peer );
 		if (res < 0) {
-			TRACE_DEBUG(INFO, "Rejected CER from peer '%s', validation failed (returning DIAMETER_UNKNOWN_PEER).\n", peer->p_hdr.info.pi_diamid);
+			TRACE_DEBUG(INFO, "Rejected CER from peer '%s', validation failed (returning DIAMETER_UNKNOWN_PEER).", peer->p_hdr.info.pi_diamid);
 			pei.pei_errcode = "DIAMETER_UNKNOWN_PEER";
 			goto error_abort;
 		}
@@ -930,7 +930,7 @@ int fd_p_ce_process_receiver(struct fd_peer * peer)
 		CHECK_FCT_DO( fd_cnx_handshake(peer->p_cnxctx, GNUTLS_SERVER, peer->p_hdr.info.config.pic_priority, NULL),
 			{
 				/* Handshake failed ...  */
-				fd_log_debug("TLS Handshake failed with peer '%s', resetting the connection\n", peer->p_hdr.info.pi_diamid);
+				fd_log_debug("TLS Handshake failed with peer '%s', resetting the connection", peer->p_hdr.info.pi_diamid);
 				goto cleanup;
 			} );
 		

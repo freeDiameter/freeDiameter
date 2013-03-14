@@ -82,12 +82,12 @@ int acct_conf_check(char * conffile)
 	CHECK_PARAMS(acct_config);
 	
 	if ( ! acct_config->conninfo) {
-		fd_log_debug("[app_acct] ERROR: 'ConnInfo' is missing in file '%s'.\n"
+		fd_log_debug("[app_acct] ERROR: 'ConnInfo' is missing in file '%s'."
 			" You can specify 'ConnInfo=\"\";' to use default parameters.\n", conffile);
 		return EINVAL;
 	}
 	if ( ! acct_config->tablename) {
-		fd_log_debug("[app_acct] ERROR: 'Table' value is missing in file '%s'.\n", conffile);
+		fd_log_debug("[app_acct] ERROR: 'Table' value is missing in file '%s'.", conffile);
 		return EINVAL;
 	}
 
@@ -96,13 +96,13 @@ int acct_conf_check(char * conffile)
 	
 	struct fd_list * li;
 		
-	fd_log_debug("[app_acct] Configuration dump:\n");
-	fd_log_debug(" Database:\n");
-	fd_log_debug("   ConnInfo ...... : '%s'\n", acct_config->conninfo ?: "<null>");
-	fd_log_debug("   Table name .... : '%s'\n", acct_config->tablename ?: "<null>");
-	fd_log_debug("   Timestamp field : '%s'\n", acct_config->tsfield ?: "<null>");
-	fd_log_debug("   Server name fld : '%s'\n", acct_config->srvnfield ?: "<null>");
-	fd_log_debug(" AVPs that will be saved to the database:\n");
+	fd_log_debug("[app_acct] Configuration dump:");
+	fd_log_debug(" Database:");
+	fd_log_debug("   ConnInfo ...... : '%s'", acct_config->conninfo ?: "<null>");
+	fd_log_debug("   Table name .... : '%s'", acct_config->tablename ?: "<null>");
+	fd_log_debug("   Timestamp field : '%s'", acct_config->tsfield ?: "<null>");
+	fd_log_debug("   Server name fld : '%s'", acct_config->srvnfield ?: "<null>");
+	fd_log_debug(" AVPs that will be saved to the database:");
 	for (li = acct_config->avps.next; li != &acct_config->avps; li = li->next) {
 		struct acct_conf_avp * a = (struct acct_conf_avp *)li;
 		fd_log_debug("   %-*s AVP%s saved in ", 30, a->avpname, a->required ? " [required]":"" );
@@ -111,9 +111,9 @@ int acct_conf_check(char * conffile)
 		} else {
 			fd_log_debug("field '%s' ", a->field?:a->avpname);
 		}
-		fd_log_debug("as ::%s\n", diam2db_types_mapping[a->avptype]);
+		fd_log_debug("as ::%s", diam2db_types_mapping[a->avptype]);
 	}
-	fd_log_debug("[app_acct] Complete.\n");
+	fd_log_debug("[app_acct] Complete.");
 	return 0;
 }
 
@@ -157,7 +157,7 @@ int acct_conf_parse(char * conffile)
 	acct_confin = fopen(conffile, "r");
 	if (acct_confin == NULL) {
 		ret = errno;
-		fd_log_debug("Unable to open extension configuration file %s for reading: %s\n", conffile, strerror(ret));
+		fd_log_debug("Unable to open extension configuration file %s for reading: %s", conffile, strerror(ret));
 		return ret;
 	}
 
@@ -179,11 +179,11 @@ void yyerror (YYLTYPE *ploc, char * conffile, char const *s)
 	TRACE_DEBUG(INFO, "Error in configuration parsing");
 	
 	if (ploc->first_line != ploc->last_line)
-		fd_log_debug("%s:%d.%d-%d.%d : %s\n", conffile, ploc->first_line, ploc->first_column, ploc->last_line, ploc->last_column, s);
+		fd_log_debug("%s:%d.%d-%d.%d : %s", conffile, ploc->first_line, ploc->first_column, ploc->last_line, ploc->last_column, s);
 	else if (ploc->first_column != ploc->last_column)
-		fd_log_debug("%s:%d.%d-%d : %s\n", conffile, ploc->first_line, ploc->first_column, ploc->last_column, s);
+		fd_log_debug("%s:%d.%d-%d : %s", conffile, ploc->first_line, ploc->first_column, ploc->last_column, s);
 	else
-		fd_log_debug("%s:%d.%d : %s\n", conffile, ploc->first_line, ploc->first_column, s);
+		fd_log_debug("%s:%d.%d : %s", conffile, ploc->first_line, ploc->first_column, s);
 }
 
 static struct acct_conf_avp avpdata;

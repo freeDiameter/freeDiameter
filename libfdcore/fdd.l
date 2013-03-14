@@ -83,7 +83,7 @@ int current_nested_level = 0;
 
 int globerrfct(const char *epath, int eerrno)
 {
-	TRACE_ERROR("Failed to scan %s: %s\n", epath, strerror(eerrno));
+	TRACE_ERROR("Failed to scan %s: %s", epath, strerror(eerrno));
 	return 1;
 }
 
@@ -118,14 +118,14 @@ include		BEGIN(in_include);
 			char * buf = strdup(yytext+1);
 			if (buf[yyleng-2] != '"')
 			{
-				TRACE_ERROR("Unterminated string: %s\n", yytext);
+				TRACE_ERROR("Unterminated string: %s", yytext);
 				return LEX_ERROR;
 			}
 			buf[yyleng-2] = '\0';
 
 			if (current_nested_level >= MAX_NESTED_CONF_FILES)
 			{
-				TRACE_ERROR("Too many recursion levels in configuration files includes\n");
+				TRACE_ERROR("Too many recursion levels in configuration files includes");
 				return LEX_ERROR;
 			}
 
@@ -134,12 +134,12 @@ include		BEGIN(in_include);
 
 			if (globerror == GLOB_NOSPACE)
 			{
-				TRACE_ERROR("Not enough memory to parse include directive.\n");
+				TRACE_ERROR("Not enough memory to parse include directive.");
 				return LEX_ERROR;
 			}
 			if (globerror == GLOB_ABORTED)
 			{
-				TRACE_ERROR("An error was encountered in include directive.\n");
+				TRACE_ERROR("An error was encountered in include directive.");
 				return LEX_ERROR;
 			}
 			if (globerror == GLOB_NOMATCH)
@@ -149,7 +149,7 @@ include		BEGIN(in_include);
 			}
 			if (globerror)
 			{
-				TRACE_ERROR("Unexpected error in glob (%d).\n", globerror);
+				TRACE_ERROR("Unexpected error in glob (%d).", globerror);
 				return LEX_ERROR;
 			}
 
@@ -233,7 +233,7 @@ nomatch:
 				int ret = sscanf(yytext, "%i", &yylval->integer);
 				if (ret != 1) {
 					/* No matching: an error occurred */
-					TRACE_ERROR("Unable to convert the value '%s' to a valid number: %s\n", yytext, strerror(errno));
+					TRACE_ERROR("Unable to convert the value '%s' to a valid number: %s", yytext, strerror(errno));
 					return LEX_ERROR; /* trig an error in yacc parser */
 					/* Maybe we could REJECT instead of failing here? */
 				}
@@ -276,7 +276,7 @@ nomatch:
 <*>[[:alnum:]]+		|	/* This rule is only useful to print a complete token in error messages */
 	/* Unrecognized character */
 <*>.			{
-				TRACE_ERROR("Unrecognized text on line %d col %d: '%s'.\n", yylloc->first_line, yylloc->first_column, yytext);
+				TRACE_ERROR("Unrecognized text on line %d col %d: '%s'.", yylloc->first_line, yylloc->first_column, yytext);
 			 	return LEX_ERROR; 
 			}
 

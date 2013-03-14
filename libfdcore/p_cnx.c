@@ -89,7 +89,7 @@ static int prepare_connection_list(struct fd_peer * peer)
 		hints.ai_flags = AI_ADDRCONFIG;
 		ret = getaddrinfo(peer->p_hdr.info.pi_diamid, NULL, &hints, &ai);
 		if (ret) {
-			TRACE_DEBUG(INFO, "Unable to resolve address for peer '%s' (%s), aborting\n", peer->p_hdr.info.pi_diamid, gai_strerror(ret));
+			TRACE_DEBUG(INFO, "Unable to resolve address for peer '%s' (%s), aborting", peer->p_hdr.info.pi_diamid, gai_strerror(ret));
 			if (ret != EAI_AGAIN)
 				fd_psm_terminate( peer, NULL );
 			return 0;
@@ -125,7 +125,7 @@ static int prepare_connection_list(struct fd_peer * peer)
 	
 	/* Now check we have at least one address to attempt */
 	if (FD_IS_LIST_EMPTY(&peer->p_hdr.info.pi_endpoints)) {
-		TRACE_DEBUG(INFO, "No address %savailable to connect to peer '%s', aborting\n", 
+		TRACE_DEBUG(INFO, "No address %savailable to connect to peer '%s', aborting", 
 					peer->p_hdr.info.config.pic_flags.pro3 ? "in the configured family " : "", peer->p_hdr.info.pi_diamid);
 		fd_psm_terminate( peer, NULL );
 		return 0;
@@ -278,7 +278,7 @@ static void * connect_thr(void * arg)
 		CHECK_FCT_DO( fd_cnx_handshake(cnx, GNUTLS_CLIENT, peer->p_hdr.info.config.pic_priority, NULL),
 			{
 				/* Handshake failed ...  */
-				TRACE_DEBUG(INFO, "TLS Handshake failed with peer '%s', resetting the connection\n", peer->p_hdr.info.pi_diamid);
+				TRACE_DEBUG(INFO, "TLS Handshake failed with peer '%s', resetting the connection", peer->p_hdr.info.pi_diamid);
 				fd_cnx_destroy(cnx);
 				empty_connection_list(peer);
 				fd_ep_filter(&peer->p_hdr.info.pi_endpoints, EP_FL_CONF);

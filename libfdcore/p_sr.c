@@ -68,7 +68,7 @@ static void srl_dump(const char * text, struct fd_list * srlist)
 	if (!TRACE_BOOL(ANNOYING))
 		return;
 	
-	fd_log_debug("%sSentReq list @%p:\n", text, srlist);
+	fd_log_debug("%sSentReq list @%p:", text, srlist);
 	
 	CHECK_SYS_DO( clock_gettime(CLOCK_REALTIME, &now), );
 	
@@ -76,7 +76,7 @@ static void srl_dump(const char * text, struct fd_list * srlist)
 		struct sentreq * sr = (struct sentreq *)li;
 		uint32_t * nexthbh = li->o;
 		
-		fd_log_debug(" - Next req (hbh:%x): [since %ld.%06ld sec]\n", *nexthbh, 
+		fd_log_debug(" - Next req (hbh:%x): [since %ld.%06ld sec]", *nexthbh, 
 			(now.tv_nsec >= sr->added_on.tv_nsec) ? (now.tv_sec - sr->added_on.tv_sec) : (now.tv_sec - sr->added_on.tv_sec - 1),
 			(now.tv_nsec >= sr->added_on.tv_nsec) ? (now.tv_nsec - sr->added_on.tv_nsec) / 1000 : (now.tv_nsec - sr->added_on.tv_nsec + 1000000000) / 1000);
 		

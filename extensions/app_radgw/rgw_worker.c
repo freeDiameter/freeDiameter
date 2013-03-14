@@ -162,7 +162,7 @@ static void * work_th(void * arg)
 		
 		/* Check the created Diameter message -- it will be invalid if no callback has handled the RADIUS message */
 		if ((diam_msg == NULL) || ( fd_msg_parse_rules(diam_msg, fd_g_config->cnf_dict, NULL) ) ) {
-			fd_log_debug("[radgw] No or invalid Diameter message was generated after processing the RADIUS command %hhd (%s).\n"
+			fd_log_debug("[radgw] No or invalid Diameter message was generated after processing the RADIUS command %hhd (%s)."
 					" It may indicate a gateway configuration problem, or implementation issue in a plugin.\n",
 					msg->radius.hdr->code, rgw_msg_code_str(msg->radius.hdr->code));
 			/* We should also dump the conflicting rule here to help debug? */
@@ -173,7 +173,7 @@ static void * work_th(void * arg)
 		for (a = 0; a < msg->radius.attr_used; a++) {
 			struct radius_attr_hdr *attr = (struct radius_attr_hdr *)(msg->radius.buf + msg->radius.attr_pos[a]);
 			pb++;
-			fd_log_debug("[radgw] No plugin available to handle attribute %hhd (%s) in command %hhd (%s)! Translation aborted.\n",
+			fd_log_debug("[radgw] No plugin available to handle attribute %hhd (%s) in command %hhd (%s)! Translation aborted.",
 					attr->type, rgw_msg_attrtype_str(attr->type),
 					msg->radius.hdr->code, rgw_msg_code_str(msg->radius.hdr->code));
 		}
@@ -192,7 +192,7 @@ static void * work_th(void * arg)
 			rgw_msg_free(&msg);
 			rgw_clients_dispose(&cli);
 			
-			TRACE_DEBUG(INFO, "%d problem(s) occurred while translating a RADIUS message, data discarded.\n", pb);
+			TRACE_DEBUG(INFO, "%d problem(s) occurred while translating a RADIUS message, data discarded.", pb);
 			continue;
 		}
 		
@@ -206,7 +206,7 @@ static void * work_th(void * arg)
 		CHECK_FCT_DO( fd_msg_send( &diam_msg, receive_diam_answer, pa), 
 			{
 				/* If an error occurs, log and destroy the data */
-				fd_log_debug("An error occurred while sending Diameter message, please turn Debug on for detail.\n");
+				fd_log_debug("An error occurred while sending Diameter message, please turn Debug on for detail.");
 				if (session) {
 					CHECK_FCT_DO( fd_sess_destroy(&session), );
 				}

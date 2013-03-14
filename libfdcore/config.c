@@ -85,32 +85,32 @@ void fd_conf_dump()
 	if (!TRACE_BOOL(INFO))
 		return;
 	
-	fd_log_debug("-- Configuration :\n");
-	fd_log_debug("  Debug trace level ...... : %+d\n", fd_g_debug_lvl);
-	fd_log_debug("  Configuration file ..... : %s\n", fd_g_config->cnf_file);
-	fd_log_debug("  Diameter Identity ...... : %s (l:%Zi)\n", fd_g_config->cnf_diamid, fd_g_config->cnf_diamid_len);
-	fd_log_debug("  Diameter Realm ......... : %s (l:%Zi)\n", fd_g_config->cnf_diamrlm, fd_g_config->cnf_diamrlm_len);
-	fd_log_debug("  Tc Timer ............... : %u\n", fd_g_config->cnf_timer_tc);
-	fd_log_debug("  Tw Timer ............... : %u\n", fd_g_config->cnf_timer_tw);
-	fd_log_debug("  Local port ............. : %hu\n", fd_g_config->cnf_port);
-	fd_log_debug("  Local secure port ...... : %hu\n", fd_g_config->cnf_port_tls);
-	fd_log_debug("  Number of SCTP streams . : %hu\n", fd_g_config->cnf_sctp_str);
-	fd_log_debug("  Number of server threads : %hu\n", fd_g_config->cnf_dispthr);
+	fd_log_debug("-- Configuration :");
+	fd_log_debug("  Debug trace level ...... : %+d", fd_g_debug_lvl);
+	fd_log_debug("  Configuration file ..... : %s", fd_g_config->cnf_file);
+	fd_log_debug("  Diameter Identity ...... : %s (l:%Zi)", fd_g_config->cnf_diamid, fd_g_config->cnf_diamid_len);
+	fd_log_debug("  Diameter Realm ......... : %s (l:%Zi)", fd_g_config->cnf_diamrlm, fd_g_config->cnf_diamrlm_len);
+	fd_log_debug("  Tc Timer ............... : %u", fd_g_config->cnf_timer_tc);
+	fd_log_debug("  Tw Timer ............... : %u", fd_g_config->cnf_timer_tw);
+	fd_log_debug("  Local port ............. : %hu", fd_g_config->cnf_port);
+	fd_log_debug("  Local secure port ...... : %hu", fd_g_config->cnf_port_tls);
+	fd_log_debug("  Number of SCTP streams . : %hu", fd_g_config->cnf_sctp_str);
+	fd_log_debug("  Number of server threads : %hu", fd_g_config->cnf_dispthr);
 	if (FD_IS_LIST_EMPTY(&fd_g_config->cnf_endpoints)) {
-		fd_log_debug("  Local endpoints ........ : Default (use all available)\n");
+		fd_log_debug("  Local endpoints ........ : Default (use all available)");
 	} else {
-		fd_log_debug("  Local endpoints ........ : \n");
+		fd_log_debug("  Local endpoints ........ : ");
 		fd_ep_dump( 29, &fd_g_config->cnf_endpoints );
 	}
 	if (FD_IS_LIST_EMPTY(&fd_g_config->cnf_apps)) {
-		fd_log_debug("  Local applications ..... : (none)\n");
+		fd_log_debug("  Local applications ..... : (none)");
 	} else {
 		struct fd_list * li = fd_g_config->cnf_apps.next;
 		fd_log_debug("  Local applications ..... : ");
 		while (li != &fd_g_config->cnf_apps) {
 			struct fd_app * app = (struct fd_app *)li;
 			if (li != fd_g_config->cnf_apps.next) fd_log_debug("                             ");
-			fd_log_debug("App: %u\t%s%s\tVnd: %u\n", 
+			fd_log_debug("App: %u\t%s%s\tVnd: %u", 
 					app->appid,
 					app->flags.auth ? "Au" : "--",
 					app->flags.acct ? "Ac" : "--",
@@ -119,29 +119,29 @@ void fd_conf_dump()
 		}
 	}
 	
-	fd_log_debug("  Flags : - IP ........... : %s\n", fd_g_config->cnf_flags.no_ip4 ? "DISABLED" : "Enabled");
-	fd_log_debug("          - IPv6 ......... : %s\n", fd_g_config->cnf_flags.no_ip6 ? "DISABLED" : "Enabled");
-	fd_log_debug("          - Relay app .... : %s\n", fd_g_config->cnf_flags.no_fwd ? "DISABLED" : "Enabled");
-	fd_log_debug("          - TCP .......... : %s\n", fd_g_config->cnf_flags.no_tcp ? "DISABLED" : "Enabled");
+	fd_log_debug("  Flags : - IP ........... : %s", fd_g_config->cnf_flags.no_ip4 ? "DISABLED" : "Enabled");
+	fd_log_debug("          - IPv6 ......... : %s", fd_g_config->cnf_flags.no_ip6 ? "DISABLED" : "Enabled");
+	fd_log_debug("          - Relay app .... : %s", fd_g_config->cnf_flags.no_fwd ? "DISABLED" : "Enabled");
+	fd_log_debug("          - TCP .......... : %s", fd_g_config->cnf_flags.no_tcp ? "DISABLED" : "Enabled");
 	#ifdef DISABLE_SCTP
-	fd_log_debug("          - SCTP ......... : DISABLED (at compilation)\n");
+	fd_log_debug("          - SCTP ......... : DISABLED (at compilation)");
 	#else /* DISABLE_SCTP */
-	fd_log_debug("          - SCTP ......... : %s\n", fd_g_config->cnf_flags.no_sctp ? "DISABLED" : "Enabled");
+	fd_log_debug("          - SCTP ......... : %s", fd_g_config->cnf_flags.no_sctp ? "DISABLED" : "Enabled");
 	#endif /* DISABLE_SCTP */
-	fd_log_debug("          - Pref. proto .. : %s\n", fd_g_config->cnf_flags.pr_tcp ? "TCP" : "SCTP");
-	fd_log_debug("          - TLS method ... : %s\n", fd_g_config->cnf_flags.tls_alg ? "INBAND" : "Separate port");
+	fd_log_debug("          - Pref. proto .. : %s", fd_g_config->cnf_flags.pr_tcp ? "TCP" : "SCTP");
+	fd_log_debug("          - TLS method ... : %s", fd_g_config->cnf_flags.tls_alg ? "INBAND" : "Separate port");
 	
-	fd_log_debug("  TLS :   - Certificate .. : %s\n", fd_g_config->cnf_sec_data.cert_file ?: "(NONE)");
-	fd_log_debug("          - Private key .. : %s\n", fd_g_config->cnf_sec_data.key_file ?: "(NONE)");
-	fd_log_debug("          - CA (trust) ... : %s (%d certs)\n", fd_g_config->cnf_sec_data.ca_file ?: "(none)", fd_g_config->cnf_sec_data.ca_file_nr);
-	fd_log_debug("          - CRL .......... : %s\n", fd_g_config->cnf_sec_data.crl_file ?: "(none)");
-	fd_log_debug("          - Priority ..... : %s\n", fd_g_config->cnf_sec_data.prio_string ?: "(default: '" GNUTLS_DEFAULT_PRIORITY "')");
+	fd_log_debug("  TLS :   - Certificate .. : %s", fd_g_config->cnf_sec_data.cert_file ?: "(NONE)");
+	fd_log_debug("          - Private key .. : %s", fd_g_config->cnf_sec_data.key_file ?: "(NONE)");
+	fd_log_debug("          - CA (trust) ... : %s (%d certs)", fd_g_config->cnf_sec_data.ca_file ?: "(none)", fd_g_config->cnf_sec_data.ca_file_nr);
+	fd_log_debug("          - CRL .......... : %s", fd_g_config->cnf_sec_data.crl_file ?: "(none)");
+	fd_log_debug("          - Priority ..... : %s", fd_g_config->cnf_sec_data.prio_string ?: "(default: '" GNUTLS_DEFAULT_PRIORITY "')");
 	if (fd_g_config->cnf_sec_data.dh_file)
-		fd_log_debug("          - DH file ...... : %s\n", fd_g_config->cnf_sec_data.dh_file);
+		fd_log_debug("          - DH file ...... : %s", fd_g_config->cnf_sec_data.dh_file);
 	else
-		fd_log_debug("          - DH bits ...... : %d\n", fd_g_config->cnf_sec_data.dh_bits ?: GNUTLS_DEFAULT_DHBITS);
+		fd_log_debug("          - DH bits ...... : %d", fd_g_config->cnf_sec_data.dh_bits ?: GNUTLS_DEFAULT_DHBITS);
 	
-	fd_log_debug("  Origin-State-Id ........ : %u\n", fd_g_config->cnf_orstateid);
+	fd_log_debug("  Origin-State-Id ........ : %u", fd_g_config->cnf_orstateid);
 }
 
 /* read contents of a file opened in "rb" mode and alloc this data into a gnutls_datum_t (must be freed afterwards) */
@@ -171,7 +171,7 @@ int fd_conf_stream_to_gnutls_datum(FILE * pemfile, gnutls_datum_t *out)
 
 		if (ferror(pemfile)) {
 			int err = errno;
-			TRACE_DEBUG(INFO, "An error occurred while reading file: %s\n", strerror(err));
+			TRACE_DEBUG(INFO, "An error occurred while reading file: %s", strerror(err));
 			return err; 
 		}
 	} while (!feof(pemfile));
@@ -200,15 +200,15 @@ static int fd_conf_print_details_func (gnutls_x509_crt_t cert,
   name_size = sizeof (name);
   gnutls_x509_crt_get_dn (cert, name, &name_size);
 
-  fd_log_debug("\tSubject: %s\n", name);
-  fd_log_debug("\tIssuer: %s\n", issuer_name);
+  fd_log_debug("\tSubject: %s", name);
+  fd_log_debug("\tIssuer: %s", issuer_name);
 
   if (issuer != NULL)
     {
       issuer_name_size = sizeof (issuer_name);
       gnutls_x509_crt_get_dn (issuer, issuer_name, &issuer_name_size);
 
-      fd_log_debug("\tVerified against: %s\n", issuer_name);
+      fd_log_debug("\tVerified against: %s", issuer_name);
     }
 
   if (crl != NULL)
@@ -216,10 +216,10 @@ static int fd_conf_print_details_func (gnutls_x509_crt_t cert,
       issuer_name_size = sizeof (issuer_name);
       gnutls_x509_crl_get_issuer_dn (crl, issuer_name, &issuer_name_size);
 
-      fd_log_debug("\tVerified against CRL of: %s\n", issuer_name);
+      fd_log_debug("\tVerified against CRL of: %s", issuer_name);
     }
 
-  fd_log_debug("\tVerification output: %x\n\n", verification_output);
+  fd_log_debug("\tVerification output: %x", verification_output);
 
   return 0;
 }
@@ -247,7 +247,7 @@ int fd_conf_parse()
 	}
 	if (fddin == NULL) {
 		int ret = errno;
-		TRACE_ERROR("Unable to open configuration file for reading; tried the following locations: %s%s%s; Error: %s\n",
+		TRACE_ERROR("Unable to open configuration file for reading; tried the following locations: %s%s%s; Error: %s",
 				  orig ?: "", orig? " and " : "", fd_g_config->cnf_file, strerror(ret));
 		return ret;
 	}
@@ -348,7 +348,7 @@ int fd_conf_parse()
 				if (TRACE_BOOL(INFO)) {
 					char buf[1024];
 					sSA_DUMP_NODE( buf, sizeof(buf), &ep->sa, NI_NUMERICHOST );
-					fd_log_debug("Info: Removing local address conflicting with the flags no_IP / no_IP6 : %s\n", buf);
+					fd_log_debug("Info: Removing local address conflicting with the flags no_IP / no_IP6 : %s", buf);
 				}
 				free(ep);
 			}
@@ -379,7 +379,7 @@ int fd_conf_parse()
 		FILE *stream = fopen (fd_g_config->cnf_sec_data.cert_file, "rb");
 		if (!stream) {
 			int err = errno;
-			TRACE_DEBUG(INFO, "An error occurred while opening '%s': %s\n", fd_g_config->cnf_sec_data.cert_file, strerror(err));
+			TRACE_DEBUG(INFO, "An error occurred while opening '%s': %s", fd_g_config->cnf_sec_data.cert_file, strerror(err));
 			return err; 
 		}
 		CHECK_FCT( fd_conf_stream_to_gnutls_datum(stream, &certfile) );
@@ -440,22 +440,22 @@ int fd_conf_parse()
 			
 			if (output & GNUTLS_CERT_INVALID)
 			{
-				fd_log_debug("TLS: Local certificate chain '%s' is invalid :\n", fd_g_config->cnf_sec_data.cert_file);
+				fd_log_debug("TLS: Local certificate chain '%s' is invalid :", fd_g_config->cnf_sec_data.cert_file);
 				if (output & GNUTLS_CERT_SIGNER_NOT_FOUND)
-					fd_log_debug(" - The certificate hasn't got a known issuer.\n");
+					fd_log_debug(" - The certificate hasn't got a known issuer.");
 				if (output & GNUTLS_CERT_SIGNER_NOT_CA)
-					fd_log_debug(" - The certificate signer is not a CA, or uses version 1, or 3 without basic constraints.\n");
+					fd_log_debug(" - The certificate signer is not a CA, or uses version 1, or 3 without basic constraints.");
 				if (output & GNUTLS_CERT_NOT_ACTIVATED)
-					fd_log_debug(" - The certificate is not yet activated.\n");
+					fd_log_debug(" - The certificate is not yet activated.");
 				if (output & GNUTLS_CERT_EXPIRED)
-					fd_log_debug(" - The certificate is expired.\n");
+					fd_log_debug(" - The certificate is expired.");
 				return EINVAL;
 			}
 			
 			/* Now check the subject matches our hostname */
 			if (!gnutls_x509_crt_check_hostname (certs[0], fd_g_config->cnf_diamid))
 			{
-				fd_log_debug("TLS: The certificate owner does not match the hostname '%s'\n", fd_g_config->cnf_diamid);
+				fd_log_debug("TLS: The certificate owner does not match the hostname '%s'", fd_g_config->cnf_diamid);
 				return EINVAL;
 			}
 			
@@ -483,24 +483,24 @@ int fd_conf_parse()
 				} );
 				
 			if (verify) {
-				fd_log_debug("TLS: Local certificate chain '%s' is invalid :\n", fd_g_config->cnf_sec_data.cert_file);
+				fd_log_debug("TLS: Local certificate chain '%s' is invalid :", fd_g_config->cnf_sec_data.cert_file);
 				if (verify & GNUTLS_CERT_INVALID)
-					fd_log_debug(" - The certificate is not trusted (unknown CA? expired?)\n");
+					fd_log_debug(" - The certificate is not trusted (unknown CA? expired?)");
 				if (verify & GNUTLS_CERT_REVOKED)
-					fd_log_debug(" - The certificate has been revoked.\n");
+					fd_log_debug(" - The certificate has been revoked.");
 				if (verify & GNUTLS_CERT_SIGNER_NOT_FOUND)
-					fd_log_debug(" - The certificate hasn't got a known issuer.\n");
+					fd_log_debug(" - The certificate hasn't got a known issuer.");
 				if (verify & GNUTLS_CERT_SIGNER_NOT_CA)
-					fd_log_debug(" - The certificate signer is not a CA, or uses version 1, or 3 without basic constraints.\n");
+					fd_log_debug(" - The certificate signer is not a CA, or uses version 1, or 3 without basic constraints.");
 				if (verify & GNUTLS_CERT_INSECURE_ALGORITHM)
-					fd_log_debug(" - The certificate signature uses a weak algorithm.\n");
+					fd_log_debug(" - The certificate signature uses a weak algorithm.");
 				return EINVAL;
 			}
 
 			/* Check the local Identity is valid with the certificate */
 			if (!gnutls_x509_crt_check_hostname (certs[0], fd_g_config->cnf_diamid)) {
-				fd_log_debug("TLS: Local certificate '%s' is invalid :\n", fd_g_config->cnf_sec_data.cert_file);
-				fd_log_debug(" - The certificate hostname does not match '%s'\n", fd_g_config->cnf_diamid);
+				fd_log_debug("TLS: Local certificate '%s' is invalid :", fd_g_config->cnf_sec_data.cert_file);
+				fd_log_debug(" - The certificate hostname does not match '%s'", fd_g_config->cnf_diamid);
 				return EINVAL;
 			}
 
@@ -512,15 +512,15 @@ int fd_conf_parse()
 
 				GNUTLS_TRACE( deadline = gnutls_x509_crt_get_expiration_time(certs[i]) );
 				if ((deadline != (time_t)-1) && (deadline < now)) {
-					fd_log_debug("TLS: Local certificate chain '%s' is invalid :\n", fd_g_config->cnf_sec_data.cert_file);
-					fd_log_debug(" - The certificate %d in the chain is expired\n", i);
+					fd_log_debug("TLS: Local certificate chain '%s' is invalid :", fd_g_config->cnf_sec_data.cert_file);
+					fd_log_debug(" - The certificate %d in the chain is expired", i);
 					return EINVAL;
 				}
 
 				GNUTLS_TRACE( deadline = gnutls_x509_crt_get_activation_time(certs[i]) );
 				if ((deadline != (time_t)-1) && (deadline > now)) {
-					fd_log_debug("TLS: Local certificate chain '%s' is invalid :\n", fd_g_config->cnf_sec_data.cert_file);
-					fd_log_debug(" - The certificate %d in the chain is not yet activated\n", i);
+					fd_log_debug("TLS: Local certificate chain '%s' is invalid :", fd_g_config->cnf_sec_data.cert_file);
+					fd_log_debug(" - The certificate %d in the chain is not yet activated", i);
 					return EINVAL;
 				}
 			}
@@ -550,7 +550,7 @@ int fd_conf_parse()
 		FILE *stream = fopen (fd_g_config->cnf_sec_data.dh_file, "rb");
 		if (!stream) {
 			int err = errno;
-			TRACE_DEBUG(INFO, "An error occurred while opening '%s': %s\n", fd_g_config->cnf_sec_data.dh_file, strerror(err));
+			TRACE_DEBUG(INFO, "An error occurred while opening '%s': %s", fd_g_config->cnf_sec_data.dh_file, strerror(err));
 			return err; 
 		}
 		do {
@@ -572,7 +572,7 @@ int fd_conf_parse()
 			
 			if (ferror(stream)) {
 				int err = errno;
-				TRACE_DEBUG(INFO, "An error occurred while reading '%s': %s\n", fd_g_config->cnf_sec_data.dh_file, strerror(err));
+				TRACE_DEBUG(INFO, "An error occurred while reading '%s': %s", fd_g_config->cnf_sec_data.dh_file, strerror(err));
 				return err; 
 			}
 		} while (!feof(stream));

@@ -61,7 +61,7 @@ static int check_state_id(struct msg * msg, struct fd_peer * peer)
 		}
 
 		if (peer->p_hdr.info.runtime.pir_orstate != hdr->avp_value->u32) {
-			TRACE_DEBUG(INFO, "Received a new Origin-State-Id from peer '%s'! (%x -> %x); resetting the connection.\n", 
+			TRACE_DEBUG(INFO, "Received a new Origin-State-Id from peer '%s'! (%x -> %x); resetting the connection.", 
 				peer->p_hdr.info.pi_diamid, 
 				peer->p_hdr.info.runtime.pir_orstate,
 				hdr->avp_value->u32 );

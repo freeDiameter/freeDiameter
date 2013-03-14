@@ -115,9 +115,9 @@ static int parse_name(char * name, struct split_name * result)
 	result->last_lbl = l;
 	
 #if 0
-	fd_log_debug("Parsed name %s as:\n", name);
+	fd_log_debug("Parsed name %s as:", name);
 	for (i=0; i<=l; i++)
-		fd_log_debug("  str[%d] len: %d, v:%.*s\n", i, result->label[i].len, result->label[i].len, result->label[i].str);
+		fd_log_debug("  str[%d] len: %d, v:%.*s", i, result->label[i].len, result->label[i].len, result->label[i].str);
 #endif /* 0 */
 	return 0;
 }
@@ -178,10 +178,11 @@ static void tree_dump(struct fd_list * sub, int indent)
 	struct fd_list * li;
 	for (li = sub->next; li != sub; li = li->next) {
 		struct tree_item * ti = (struct tree_item *)li;
-		fd_log_debug("%*s%s", indent * 2, "", ti->str?:"*");
+		char buf[1024];
+		snprintf(buf, sizeof(buf), "%*s%s", indent * 2, "", ti->str?:"*");
 		if (ti->leaf)
-			fd_log_debug(" (flag:%x)", ti->flags);
-		fd_log_debug("\n");
+			snprintf(buf+strlen(buf), sizeof(buf)-strlen(buf), " (flag:%x)", ti->flags);
+		fd_log_debug("%s", buf);
 		tree_dump(&ti->children, indent + 1);
 	}
 }
@@ -189,9 +190,10 @@ static void tree_dump(struct fd_list * sub, int indent)
 /* Top-level function */
 void aw_tree_dump(void)
 {
-	fd_log_debug("[acl_wl] tree dump:\n(root)\n");
+	fd_log_debug("[acl_wl] tree dump:");
+	fd_log_debug("(root)");
 	tree_dump(&tree_root, 1);
-	fd_log_debug("[acl_wl] end of dump\n");
+	fd_log_debug("[acl_wl] end of dump");
 }
 
 /* Function to add a new entry in the tree */
@@ -207,7 +209,7 @@ int aw_tree_add(char * name, int flags)
 	
 	CHECK_FCT_DO( parse_name(name, &sn), 
 		{ 
-			fd_log_debug("The name '%s' contains too many labels, try a generic (*) or recompile with bigger AW_TREE_MAXDEPTH value (cur: %d)\n", name, AW_TREE_MAXDEPTH); 
+			fd_log_debug("The name '%s' contains too many labels, try a generic (*) or recompile with bigger AW_TREE_MAXDEPTH value (cur: %d)", name, AW_TREE_MAXDEPTH); 
 			return EINVAL; 
 		} );
 		
@@ -228,7 +230,7 @@ int aw_tree_add(char * name, int flags)
 		/* Check if we have a '*' element already that overlapses */
 		ti = (struct tree_item *)(senti->next);
 		if (ti->str == NULL) {
-			fd_log_debug("[acl_wl] Warning: entry '%s' is superseeded by a generic entry at label %d, ignoring.\n", name, lbl + 1);
+			fd_log_debug("[acl_wl] Warning: entry '%s' is superseeded by a generic entry at label %d, ignoring.", name, lbl + 1);
 			return 0;
 		}
 		
@@ -274,7 +276,7 @@ int aw_tree_add(char * name, int flags)
 	/* At this point, senti points to the list where we are supposed to insert our last label. */
 	if (sn.label[0].str[0] == '*') {
 		if (!FD_IS_LIST_EMPTY(senti)) {
-			fd_log_debug("[acl_wl] Warning: entry '%s' overwrites previous more detailed entries, these are deleted.\n", name);
+			fd_log_debug("[acl_wl] Warning: entry '%s' overwrites previous more detailed entries, these are deleted.", name);
 			delete_tree(senti);
 		}
 		
@@ -285,7 +287,7 @@ int aw_tree_add(char * name, int flags)
 			/* Check we don't have a '*' entry already */
 			ti = (struct tree_item *)(senti->next);
 			if (ti->str == NULL) {
-				fd_log_debug("[acl_wl] Warning: entry '%s' is superseeded by a generic entry at label 1, ignoring.\n", name);
+				fd_log_debug("[acl_wl] Warning: entry '%s' is superseeded by a generic entry at label 1, ignoring.", name);
 				return 0;
 			}
 			
@@ -309,7 +311,7 @@ int aw_tree_add(char * name, int flags)
 
 				/* We already had this label */
 				if (ti->leaf) {
-					fd_log_debug("[acl_wl] Warning: entry '%s' is duplicated, merging the flags.\n", name);
+					fd_log_debug("[acl_wl] Warning: entry '%s' is duplicated, merging the flags.", name);
 					ti->flags |= flags;
 					return 0;
 				} else {

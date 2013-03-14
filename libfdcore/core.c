@@ -130,7 +130,7 @@ static void * core_runner_thread(void * arg)
 				goto end;
 			
 			default:
-				TRACE_DEBUG(INFO, "Unexpected event in the main event queue (%d), ignored.\n", code);
+				TRACE_DEBUG(INFO, "Unexpected event in the main event queue (%d), ignored.", code);
 		}
 	}
 	
@@ -153,7 +153,7 @@ end:
 	
 	CHECK_FCT_DO( fd_event_trig_fini(), );
 	
-	fd_log_debug(FD_PROJECT_BINARY " framework is terminated.\n");
+	fd_log_debug(FD_PROJECT_BINARY " framework is terminated.");
 	
 	fd_libproto_fini();
 	

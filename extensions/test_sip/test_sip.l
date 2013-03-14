@@ -78,7 +78,7 @@
 				ret = sscanf(yytext, "%i", &yylval->integer);
 				if (ret != 1) {
 					/* No matching: an error occurred */
-					fd_log_debug("Unable to convert the value '%s' to a valid number: %s\n", yytext, strerror(errno));
+					fd_log_debug("Unable to convert the value '%s' to a valid number: %s", yytext, strerror(errno));
 					return LEX_ERROR; /* trig an error in yacc parser */
 					/* Maybe we could REJECT instead of failing here? */
 				}
@@ -90,7 +90,7 @@
 				/* Match a quoted string. Let's be very permissive. */
 				yylval->string = strdup(yytext+1);
 				if (!yylval->string) {
-					fd_log_debug("Unable to copy the string '%s': %s\n", yytext, strerror(errno));
+					fd_log_debug("Unable to copy the string '%s': %s", yytext, strerror(errno));
 					TRACE_DEBUG(INFO, "strdup failed");
 					return LEX_ERROR; /* trig an error in yacc parser */
 				}
@@ -130,7 +130,7 @@
 
 	/* Unrecognized sequence, if it did not match any previous pattern */
 [^[:space:]"*=>;\n]+	{ 
-				fd_log_debug("Unrecognized text on line %d col %d: '%s'.\n", yylloc->first_line, yylloc->first_column, yytext);
+				fd_log_debug("Unrecognized text on line %d col %d: '%s'.", yylloc->first_line, yylloc->first_column, yytext);
 			 	return LEX_ERROR; 
 			}
 

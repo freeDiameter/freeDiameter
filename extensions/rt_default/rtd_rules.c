@@ -157,7 +157,7 @@ static struct rule * new_rule(char * str, int regex, int score)
 /* Debug functions */
 static void dump_rule(int indent, struct rule * rule)
 {
-	fd_log_debug("%*s%s%s%s += %d\n",
+	fd_log_debug("%*s%s%s%s += %d",
 		indent, "",
 		rule->md.is_regex ? "[" : "'",
 		rule->md.plain,
@@ -167,7 +167,7 @@ static void dump_rule(int indent, struct rule * rule)
 static void dump_target(int indent, struct target * target)
 {
 	int i;
-	fd_log_debug("%*s%s%s%s :\n",
+	fd_log_debug("%*s%s%s%s :",
 		indent, "",
 		target->md.is_regex ? "[" : "'",
 		target->md.plain ?: "(empty)",
@@ -175,7 +175,7 @@ static void dump_target(int indent, struct target * target)
 	for (i = 0; i < RTD_CRI_MAX; i++) {
 		if (! FD_IS_LIST_EMPTY(&target->rules[i])) {
 			struct fd_list * li;
-			fd_log_debug("%*s  rules[%d]:\n",
+			fd_log_debug("%*s  rules[%d]:",
 				indent, "", i);
 			for (li = target->rules[i].next; li != &target->rules[i]; li = li->next) {
 				dump_rule(indent + 3, (struct rule *)li);
@@ -593,16 +593,16 @@ int rtd_process( struct msg * msg, struct fd_list * candidates )
 void rtd_dump(void)
 {
 	int i;
-	fd_log_debug("[rt_default] Dumping rules repository...\n");
+	fd_log_debug("[rt_default] Dumping rules repository...");
 	for (i = 0; i < RTD_TAR_MAX; i++) {
 		if (!FD_IS_LIST_EMPTY( &TARGETS[i] )) {
 			struct fd_list * li;
-			fd_log_debug("  Targets list %d:\n", i);
+			fd_log_debug("  Targets list %d:", i);
 			for (li = TARGETS[i].next; li != &TARGETS[i]; li = li->next) {
 				dump_target(4, (struct target *)li);
 			}
 		}
 	}
 	
-	fd_log_debug("[rt_default] End of dump\n");
+	fd_log_debug("[rt_default] End of dump");
 }

@@ -72,16 +72,16 @@ static int tac_cb( struct msg ** msg, struct avp * avp, struct session * sess, v
 		/* Set the Origin-Host, Origin-Realm, Result-Code AVPs */
 		CHECK_FCT( fd_msg_rescode_set( ans, "DIAMETER_SUCCESS", NULL, NULL, 1 ) );
 		
-		fd_log_debug("--------------Received the following Accounting message:--------------\n");
+		fd_log_debug("--------------Received the following Accounting message:--------------");
 		
 		CHECK_FCT( fd_sess_getsid ( sess, &s, &sl ) );
-		fd_log_debug("Session: %.*s\n", (int)sl, s);
+		fd_log_debug("Session: %.*s", (int)sl, s);
 		
 		/* The AVPs that we copy in the answer */
 		CHECK_FCT( fd_msg_search_avp ( qry, tac_dict.Accounting_Record_Type, &a) );
 		if (a) {
 			CHECK_FCT( fd_msg_avp_hdr( a, &h )  );
-			fd_log_debug("Accounting-Record-Type: %d (%s)\n", h->avp_value->u32, 
+			fd_log_debug("Accounting-Record-Type: %d (%s)", h->avp_value->u32, 
 						/* it would be better to search this in the dictionary, but it is only for debug, so ok */
 						(h->avp_value->u32 == 1) ? "EVENT_RECORD" : 
 						(h->avp_value->u32 == 2) ? "START_RECORD" : 
@@ -96,7 +96,7 @@ static int tac_cb( struct msg ** msg, struct avp * avp, struct session * sess, v
 		CHECK_FCT( fd_msg_search_avp ( qry, tac_dict.Accounting_Record_Number, &a) );
 		if (a) {
 			CHECK_FCT( fd_msg_avp_hdr( a, &h )  );
-			fd_log_debug("Accounting-Record-Number: %d\n", h->avp_value->u32);
+			fd_log_debug("Accounting-Record-Number: %d", h->avp_value->u32);
 			CHECK_FCT( fd_msg_avp_new ( tac_dict.Accounting_Record_Number, 0, &a ) );
 			CHECK_FCT( fd_msg_avp_setvalue( a, h->avp_value ) );
 			CHECK_FCT( fd_msg_avp_add( ans, MSG_BRW_LAST_CHILD, a ) );
@@ -104,7 +104,7 @@ static int tac_cb( struct msg ** msg, struct avp * avp, struct session * sess, v
 		
 		/* We may also dump other data from the message, such as Accounting session Id, number of packets, ...  */
 
-		fd_log_debug("----------------------------------------------------------------------\n");
+		fd_log_debug("----------------------------------------------------------------------");
 		
 		/* Send the answer */
 		CHECK_FCT( fd_msg_send( msg, NULL, NULL ) );

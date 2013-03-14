@@ -53,35 +53,33 @@ struct dict_object * avp_Redirect_Max_Cache_Time = NULL;
 void ard_rule_dump(struct ard_rule * r)
 {
 	struct fd_list * li;
-	fd_log_debug("   rule @%p: %s, %us\n", r, redir_type_str[r->type], r->rct);
+	fd_log_debug("   rule @%p: %s, %us", r, redir_type_str[r->type], r->rct);
 	for (li = r->criteria.next; li != &r->criteria; li = li->next) {
 		struct ard_criteria * c = li->o;
-		fd_log_debug("      Criteria: ");
 		switch (c->type) {
 			case FROM_ID:
-				fd_log_debug("received from peer %s'%s'", c->is_regex?"REGEX":"", c->s);
+				fd_log_debug("      Criteria: received from peer %s'%s'", c->is_regex?"REGEX":"", c->s);
 				break;
 			case FROM_REALM:
-				fd_log_debug("received from realm %s'%s'", c->is_regex?"REGEX":"", c->s);
+				fd_log_debug("      Criteria: received from realm %s'%s'", c->is_regex?"REGEX":"", c->s);
 				break;
 			case APP_ID:
-				fd_log_debug("application id is %u", c->i);
+				fd_log_debug("      Criteria: application id is %u", c->i);
 				break;
 			case AVP_INT:
-				fd_log_debug("contains '%s' AVP with value '%d'", c->avp_info.avp_name, c->i);
+				fd_log_debug("      Criteria: contains '%s' AVP with value '%d'", c->avp_info.avp_name, c->i);
 				break;
 			case AVP_STR:
-				fd_log_debug("contains '%s' AVP with value %s'%s'", c->avp_info.avp_name, c->is_regex?"REGEX":"", c->s);
+				fd_log_debug("      Criteria: contains '%s' AVP with value %s'%s'", c->avp_info.avp_name, c->is_regex?"REGEX":"", c->s);
 				break;
 		
 			default:
-				fd_log_debug("invalid (%d)!", c->type);
+				fd_log_debug("      Criteria: invalid (%d)!", c->type);
 		}
-		fd_log_debug("\n");
 	}
 	for (li = r->targets.next; li != &r->targets; li = li->next) {
 		struct ard_target * t = li->o;
-		fd_log_debug("      Redirect to: '%s'\n", t->s);
+		fd_log_debug("      Redirect to: '%s'", t->s);
 	}
 }
 

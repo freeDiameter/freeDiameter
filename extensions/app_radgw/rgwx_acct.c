@@ -1265,25 +1265,25 @@ static int acct_diam_ans( struct rgwp_config * cs, struct session * session, str
 			break;
 		
 		default:
-			fd_log_debug("[acct.rgwx] Received Diameter answer with error code '%d' from server '%.*s', session %.*s, not translating into Accounting-Response\n",
+			fd_log_debug("[acct.rgwx] Received Diameter answer with error code '%d' from server '%.*s', session %.*s, not translating into Accounting-Response",
 					ahdr->avp_value->u32, 
 					oh->avp_value->os.len, oh->avp_value->os.data,
 					sid->avp_value->os.len, sid->avp_value->os.data);
 			CHECK_FCT( fd_msg_search_avp (*diam_ans, cs->dict.Error_Message, &avp) );
 			if (avp) {
 				CHECK_FCT( fd_msg_avp_hdr ( avp, &ahdr ) );
-				fd_log_debug("[acct.rgwx]   Error-Message content: '%.*s'\n",
+				fd_log_debug("[acct.rgwx]   Error-Message content: '%.*s'",
 						ahdr->avp_value->os.len, ahdr->avp_value->os.data);
 			}
 			CHECK_FCT( fd_msg_search_avp (*diam_ans, cs->dict.Error_Reporting_Host, &avp) );
 			if (avp) {
 				CHECK_FCT( fd_msg_avp_hdr ( avp, &ahdr ) );
-				fd_log_debug("[acct.rgwx]   Error-Reporting-Host: '%.*s'\n",
+				fd_log_debug("[acct.rgwx]   Error-Reporting-Host: '%.*s'",
 						ahdr->avp_value->os.len, ahdr->avp_value->os.data);
 			}
 			CHECK_FCT( fd_msg_search_avp (*diam_ans, cs->dict.Failed_AVP, &avp) );
 			if (avp) {
-				fd_log_debug("[acct.rgwx]   Failed-AVP was included in the message.\n");
+				fd_log_debug("[acct.rgwx]   Failed-AVP was included in the message.");
 				/* Dump its content ? */
 			}
 			

@@ -97,11 +97,11 @@ void fd_servers_dump()
 {
 	struct fd_list * li, *cli;
 	
-	fd_log_debug("Dumping servers list :\n");
+	fd_log_debug("Dumping servers list :");
 	for (li = FD_SERVERS.next; li != &FD_SERVERS; li = li->next) {
 		struct server * s = (struct server *)li;
 		enum s_state st = get_status(s);
-		fd_log_debug("  Serv %p '%s': %s, %s, %s\n", 
+		fd_log_debug("  Serv %p '%s': %s, %s, %s", 
 				s, fd_cnx_getid(s->conn), 
 				IPPROTO_NAME( s->proto ),
 				s->secur ? "Secur" : "NotSecur",
@@ -114,7 +114,7 @@ void fd_servers_dump()
 		for (cli = s->clients.next; cli != &s->clients; cli = cli->next) {
 			struct client * c = (struct client *)cli;
 			char bufts[128];
-			fd_log_debug("     Connected: '%s' (timeout: %s)\n",
+			fd_log_debug("     Connected: '%s' (timeout: %s)",
 					fd_cnx_getid(c->conn),
 					fd_log_time(&c->ts, bufts, sizeof(bufts)));
 		}
@@ -147,7 +147,7 @@ static void * client_sm(void * arg)
 		int ret = fd_cnx_handshake(c->conn, GNUTLS_SERVER, NULL, NULL);
 		if (ret != 0) {
 			if (TRACE_BOOL(INFO)) {
-				fd_log_debug("TLS handshake failed for client '%s', connection aborted.\n", fd_cnx_getid(c->conn));
+				fd_log_debug("TLS handshake failed for client '%s', connection aborted.", fd_cnx_getid(c->conn));
 			}
 			goto cleanup;
 		}
@@ -176,7 +176,7 @@ static void * client_sm(void * arg)
 	/* Now check we received a CER */
 	CHECK_FCT_DO( fd_msg_hdr ( msg, &hdr ), goto fatal_error );
 	CHECK_PARAMS_DO( (hdr->msg_appl == 0) && (hdr->msg_flags & CMD_FLAG_REQUEST) && (hdr->msg_code == CC_CAPABILITIES_EXCHANGE),
-		{ fd_log_debug("Connection '%s', expecting CER, received something else, closing...\n", fd_cnx_getid(c->conn)); goto cleanup; } );
+		{ fd_log_debug("Connection '%s', expecting CER, received something else, closing...", fd_cnx_getid(c->conn)); goto cleanup; } );
 	
 	/* Finally, pass the information to the peers module which will handle it next */
 	pthread_cleanup_push((void *)fd_cnx_destroy, c->conn);
@@ -386,14 +386,14 @@ int fd_servers_start()
 	if (empty_conf_ep) {
 		CHECK_FCT(fd_cnx_get_local_eps(&fd_g_config->cnf_endpoints));
 		if (FD_IS_LIST_EMPTY(&fd_g_config->cnf_endpoints)) {
-			TRACE_DEBUG(INFO, "Unable to find the address(es) of the local system.\n" 
+			TRACE_DEBUG(INFO, "Unable to find the address(es) of the local system." 
 					"Please use \"ListenOn\" parameter in the configuration.\n"
 					"This information is required to generate the CER/CEA messages.\n");
 			return EINVAL;
 		}
 	}
 	if (TRACE_BOOL(FULL)){
-		fd_log_debug("  Local server address(es) :\n");
+		fd_log_debug("  Local server address(es) :");
 		fd_ep_dump( 5, &fd_g_config->cnf_endpoints );
 	}
 	return 0;

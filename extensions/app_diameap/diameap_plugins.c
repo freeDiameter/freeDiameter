@@ -75,7 +75,7 @@ void diameap_plugin_dump(void)
 	for (pl = plugins_list.next; pl != &plugins_list; pl = pl->next)
 	{
 		struct plugin * plugin = (struct plugin *) pl;
-		fd_log_debug("\t\t - %s plugin \t [Type: %i, Vendor: %i]  %sloaded\n", plugin->methodname,
+		fd_log_debug("\t\t - %s plugin \t [Type: %i, Vendor: %i]  %sloaded", plugin->methodname,
 				plugin->methodtype,plugin->vendor, plugin->handler ? "" : "not ");
 	}
 }

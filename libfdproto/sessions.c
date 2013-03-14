@@ -881,26 +881,26 @@ void fd_sess_dump(int level, struct session * session)
 	if (!TRACE_BOOL(level))
 		return;
 	
-	fd_log_debug("\t  %*s -- Session @%p --\n", level, "", session);
+	fd_log_debug("\t  %*s -- Session @%p --", level, "", session);
 	if (!VALIDATE_SI(session)) {
-		fd_log_debug("\t  %*s  Invalid session object\n", level, "");
+		fd_log_debug("\t  %*s  Invalid session object", level, "");
 	} else {
 		
-		fd_log_debug("\t  %*s  sid '%s'(%zd), hash %x, msg %d, destroyed %d\n", level, "", session->sid, session->sidlen, session->hash, session->msg_cnt, session->is_destroyed);
+		fd_log_debug("\t  %*s  sid '%s'(%zd), hash %x, msg %d, destroyed %d", level, "", session->sid, session->sidlen, session->hash, session->msg_cnt, session->is_destroyed);
 
 		strftime(buf, sizeof(buf), "%D,%T", localtime_r( &session->timeout.tv_sec , &tm ));
-		fd_log_debug("\t  %*s  timeout %s.%09ld\n", level, "", buf, session->timeout.tv_nsec);
+		fd_log_debug("\t  %*s  timeout %s.%09ld", level, "", buf, session->timeout.tv_nsec);
 
 		CHECK_POSIX_DO( pthread_mutex_lock(&session->stlock), /* ignore */ );
 		pthread_cleanup_push( fd_cleanup_mutex, &session->stlock );
 		for (li = session->states.next; li != &session->states; li = li->next) {
 			struct state * st = (struct state *)(li->o);
-			fd_log_debug("\t  %*s    handler %d registered data %p\n", level, "", st->hdl->id, st->state);
+			fd_log_debug("\t  %*s    handler %d registered data %p", level, "", st->hdl->id, st->state);
 		}
 		pthread_cleanup_pop(0);
 		CHECK_POSIX_DO( pthread_mutex_unlock(&session->stlock), /* ignore */ );
 	}
-	fd_log_debug("\t  %*s -- end of session @%p --\n", level, "", session);
+	fd_log_debug("\t  %*s -- end of session @%p --", level, "", session);
 }
 
 void fd_sess_dump_hdl(int level, struct session_handler * handler)
@@ -908,13 +908,13 @@ void fd_sess_dump_hdl(int level, struct session_handler * handler)
 	if (!TRACE_BOOL(level))
 		return;
 	
-	fd_log_debug("\t  %*s -- Handler @%p --\n", level, "", handler);
+	fd_log_debug("\t  %*s -- Handler @%p --", level, "", handler);
 	if (!VALIDATE_SH(handler)) {
-		fd_log_debug("\t  %*s  Invalid session handler object\n", level, "");
+		fd_log_debug("\t  %*s  Invalid session handler object", level, "");
 	} else {
-		fd_log_debug("\t  %*s  id %d, cleanup %p, opaque %p\n", level, "", handler->id, handler->cleanup, handler->opaque);
+		fd_log_debug("\t  %*s  id %d, cleanup %p, opaque %p", level, "", handler->id, handler->cleanup, handler->opaque);
 	}
-	fd_log_debug("\t  %*s -- end of handler @%p --\n", level, "", handler);
+	fd_log_debug("\t  %*s -- end of handler @%p --", level, "", handler);
 }	
 
 int fd_sess_getcount(uint32_t *cnt)

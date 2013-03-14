@@ -802,7 +802,7 @@ static int sip_diam_ans( struct rgwp_config * cs, struct session * session, stru
 		
 		default:
 			(*rad_fw)->hdr->code = RADIUS_CODE_ACCESS_REJECT;
-			fd_log_debug("[sip.rgwx] Received Diameter answer with error code '%d', session %.*s, translating into Access-Reject\n",
+			fd_log_debug("[sip.rgwx] Received Diameter answer with error code '%d', session %.*s, translating into Access-Reject",
 					ahdr->avp_value->u32, 
 					sid->avp_value->os.len, sid->avp_value->os.data);
 			return 0;

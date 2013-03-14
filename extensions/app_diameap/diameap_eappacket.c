@@ -185,7 +185,7 @@ void diameap_eap_dump(int level, struct eap_packet eappacket)
 	if (eappacket.ulength < 5)
 		return;
 
-	fd_log_debug("------------- Dump EAP Packet-------------\n");
+	fd_log_debug("------------- Dump EAP Packet-------------");
 	int i;
 	fd_log_debug("\t -Code       : ");
 	eap_code code;
@@ -193,45 +193,46 @@ void diameap_eap_dump(int level, struct eap_packet eappacket)
 	switch (code)
 	{
 	case 1:
-		fd_log_debug("Request\n");
+		fd_log_debug("Request");
 		break;
 	case 2:
-		fd_log_debug("Response\n");
+		fd_log_debug("Response");
 		break;
 	case 3:
-		fd_log_debug("Success\n");
+		fd_log_debug("Success");
 		break;
 	case 4:
-		fd_log_debug("Failure\n");
+		fd_log_debug("Failure");
 		break;
 	default:
-		fd_log_debug("Error (EAP Code value [%d] not allowed)\n",code);
+		fd_log_debug("Error (EAP Code value [%d] not allowed)",code);
 		break;
 	}
 	u8 id;
 	CHECK_FCT_DO(diameap_eap_get_identifier(eappacket,&id),return);
-	fd_log_debug("\t -Identifier : %x \n", id);
+	fd_log_debug("\t -Identifier : %x ", id);
 	u16 length;
 	CHECK_FCT_DO(diameap_eap_get_length(eappacket,&length),return);
-	fd_log_debug("\t -Length     : %d \n", (unsigned int)length);
+	fd_log_debug("\t -Length     : %d ", (unsigned int)length);
 	if (eappacket.length > 4)
 	{
 		eap_type type;
 		CHECK_FCT_DO(diameap_eap_get_type(eappacket,&type),return);
-		fd_log_debug("\t -Type       : %d \n", type);
+		fd_log_debug("\t -Type       : %d ", type);
 	}
 	if (eappacket.length > 5)
 	{
-		fd_log_debug("\t -Data       : ");
+		char buf[1024];
+		snprintf(buf, sizeof(buf), "\t -Data       : ");
 		for (i = 5; i < eappacket.length && i < 30; i++)
 		{
-			fd_log_debug("%02x ", G8(eappacket.data + i));
+			snprintf(buf+strlen(buf), sizeof(buf)-strlen(buf), "%02x ", G8(eappacket.data + i));
 		}
 		if(i+1<eappacket.length)
-			fd_log_debug("[...] (len=%d)",(unsigned int) length);
-		fd_log_debug("\n");
+			snprintf(buf+strlen(buf), sizeof(buf)-strlen(buf), "[...] (len=%d)",(unsigned int) length);
+		fd_log_debug("%s", buf);
 	}
-	fd_log_debug("-------------End Dump EAP Packet-------------\n");
+	fd_log_debug("-------------End Dump EAP Packet-------------");
 }
 
 int diameap_eap_new(eap_code code, u8 id, eap_type type, u8 * data,

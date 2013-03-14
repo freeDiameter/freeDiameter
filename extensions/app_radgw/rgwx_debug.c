@@ -56,16 +56,16 @@ static void debug_dump_radius(struct radius_msg *msg)
 	size_t i;
 	
 	auth =  &(msg->hdr->authenticator[0]);
-	fd_log_debug(" id  : 0x%02hhx, code: %hhd (%s)\n", msg->hdr->identifier, msg->hdr->code, rgw_msg_code_str(msg->hdr->code));
-	fd_log_debug(" auth: %02hhx %02hhx %02hhx %02hhx  %02hhx %02hhx %02hhx %02hhx\n",
+	fd_log_debug(" id  : 0x%02hhx, code: %hhd (%s)", msg->hdr->identifier, msg->hdr->code, rgw_msg_code_str(msg->hdr->code));
+	fd_log_debug(" auth: %02hhx %02hhx %02hhx %02hhx  %02hhx %02hhx %02hhx %02hhx",
 			auth[0], auth[1], auth[2], auth[3], 
 			auth[4], auth[5], auth[6], auth[7]);
-	fd_log_debug("       %02hhx %02hhx %02hhx %02hhx  %02hhx %02hhx %02hhx %02hhx\n",
+	fd_log_debug("       %02hhx %02hhx %02hhx %02hhx  %02hhx %02hhx %02hhx %02hhx",
 			auth[8],  auth[9],  auth[10], auth[11], 
 			auth[12], auth[13], auth[14], auth[15]);
 	for (i = 0; i < msg->attr_used; i++) {
 		struct radius_attr_hdr *attr = (struct radius_attr_hdr *)(msg->buf + msg->attr_pos[i]);
-		fd_log_debug("  - len:%3hhu, type:0x%02hhx (%s)\n", attr->length, attr->type, rgw_msg_attrtype_str(attr->type));
+		fd_log_debug("  - len:%3hhu, type:0x%02hhx (%s)", attr->length, attr->type, rgw_msg_attrtype_str(attr->type));
 		/* If we need to dump the value, it's better to call directly radius_msg_dump instead... */
 	}
 }
@@ -75,40 +75,40 @@ static int debug_rad_req( struct rgwp_config * cs, struct session ** session, st
 {
 	TRACE_ENTRY("%p %p %p %p %p %p", cs, session, rad_req, rad_ans, diam_fw, cli);
 	
-	fd_log_debug("------------- RADIUS/Diameter Request Debug%s%s%s -------------\n", cs ? " [" : "", cs ? (char *)cs : "", cs ? "]" : "");
+	fd_log_debug("------------- RADIUS/Diameter Request Debug%s%s%s -------------", cs ? " [" : "", cs ? (char *)cs : "", cs ? "]" : "");
 	
 	if (!rad_req) {
-		fd_log_debug(" RADIUS request: NULL pointer\n");
+		fd_log_debug(" RADIUS request: NULL pointer");
 	} else {
-		fd_log_debug(" RADIUS request (%p) DUMP:\n", rad_req);
+		fd_log_debug(" RADIUS request (%p) DUMP:", rad_req);
 		debug_dump_radius(rad_req);
 	}
 	
 	if (!rad_ans || ! *rad_ans) {
-		fd_log_debug(" RADIUS answer: NULL pointer\n");
+		fd_log_debug(" RADIUS answer: NULL pointer");
 	} else {
-		fd_log_debug(" RADIUS answer (%p) DUMP:\n", *rad_ans);
+		fd_log_debug(" RADIUS answer (%p) DUMP:", *rad_ans);
 		debug_dump_radius(*rad_ans);
 	}
 	
 	if (!diam_fw || ! *diam_fw) {
-		fd_log_debug(" Diameter message: NULL pointer\n");
+		fd_log_debug(" Diameter message: NULL pointer");
 	} else {
-		fd_log_debug(" Diameter message (%p) DUMP:\n", *diam_fw);
+		fd_log_debug(" Diameter message (%p) DUMP:", *diam_fw);
 		fd_msg_dump_walk(0, *diam_fw);
 	}
 	
 	if (!session || ! *session) {
-		fd_log_debug(" Diameter session: NULL pointer\n");
+		fd_log_debug(" Diameter session: NULL pointer");
 	} else {
 		os0_t str;
 		size_t str_len;
 		CHECK_FCT( fd_sess_getsid(*session, &str, &str_len) );
 
-		fd_log_debug(" Diameter session: %s\n", str);
+		fd_log_debug(" Diameter session: %s", str);
 	}
 	
-	fd_log_debug("===========  Debug%s%s%s complete =============\n", cs ? " [" : "", cs ? (char *)cs : "", cs ? "]" : "");
+	fd_log_debug("===========  Debug%s%s%s complete =============", cs ? " [" : "", cs ? (char *)cs : "", cs ? "]" : "");
 	
 	return 0;
 }
@@ -118,23 +118,23 @@ static int debug_diam_ans( struct rgwp_config * cs, struct session * session, st
 {
 	TRACE_ENTRY("%p %p %p %p %p %p", cs, session, diam_ans, rad_fw, cli, stateful);
 
-	fd_log_debug("------------- RADIUS/Diameter Answer Debug%s%s%s -------------\n", cs ? " [" : "", cs ? (char *)cs : "", cs ? "]" : "");
+	fd_log_debug("------------- RADIUS/Diameter Answer Debug%s%s%s -------------", cs ? " [" : "", cs ? (char *)cs : "", cs ? "]" : "");
 	
 	if (!diam_ans || ! *diam_ans) {
-		fd_log_debug(" Diameter message: NULL pointer\n");
+		fd_log_debug(" Diameter message: NULL pointer");
 	} else {
-		fd_log_debug(" Diameter message (%p) DUMP:\n", *diam_ans);
+		fd_log_debug(" Diameter message (%p) DUMP:", *diam_ans);
 		fd_msg_dump_walk(0, *diam_ans);
 	}
 	
 	if (!rad_fw || ! *rad_fw) {
-		fd_log_debug(" RADIUS answer: NULL pointer\n");
+		fd_log_debug(" RADIUS answer: NULL pointer");
 	} else {
-		fd_log_debug(" RADIUS answer (%p) DUMP:\n", *rad_fw);
+		fd_log_debug(" RADIUS answer (%p) DUMP:", *rad_fw);
 		debug_dump_radius(*rad_fw);
 	}
 	
-	fd_log_debug("===========  Debug%s%s%s complete =============\n", cs ? " [" : "", cs ? (char *)cs : "", cs ? "]" : "");
+	fd_log_debug("===========  Debug%s%s%s complete =============", cs ? " [" : "", cs ? (char *)cs : "", cs ? "]" : "");
 	return 0;
 }
 

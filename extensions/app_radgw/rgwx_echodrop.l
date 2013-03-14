@@ -70,7 +70,7 @@
 				int ret = sscanf(yytext, "%d", &yylval->integer);
 				if (ret != 1) {
 					/* No matching: an error occurred */
-					fd_log_debug("[echodrop.rgwx] Unable to convert the value '%s' to a valid number: %s\n", yytext, strerror(errno));
+					fd_log_debug("[echodrop.rgwx] Unable to convert the value '%s' to a valid number: %s", yytext, strerror(errno));
 					return LEX_ERROR; /* trig an error in yacc parser */
 					/* Maybe we could REJECT instead of failing here? */
 				}
@@ -92,7 +92,7 @@
 <*>[[:alnum:]]+		|	/* This rule is only useful to print a complete token in error messages */
 	/* Unrecognized character */
 <*>.			{ 
-				fd_log_debug("[echodrop.rgwx] Unrecognized text on line %d col %d: '%s'.\n", yylloc->first_line, yylloc->first_column, yytext);
+				fd_log_debug("[echodrop.rgwx] Unrecognized text on line %d col %d: '%s'.", yylloc->first_line, yylloc->first_column, yytext);
 			 	return LEX_ERROR; 
 			}
 

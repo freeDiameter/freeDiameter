@@ -177,7 +177,7 @@ void fd_event_trig_dump()
 	
 	for (li = trig_list.next; li != &trig_list; li = li->next) {
 		struct trig_item *t = li->o;
-		fd_log_debug("  Trigger %d, module '%s': %p\n", t->trig_value, t->trig_module, t->cb);
+		fd_log_debug("  Trigger %d, module '%s': %p", t->trig_value, t->trig_module, t->cb);
 	}
 	
 	CHECK_POSIX_DO( pthread_rwlock_unlock(&trig_rwl),  );

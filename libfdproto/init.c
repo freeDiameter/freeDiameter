@@ -39,7 +39,7 @@
 static void freelogstr(void * str) {
 	if (TRACE_BOOL(ANNOYING)) {
 		if (str) {
-			fd_log_debug("(Thread '%s' terminating)\n", (char *)str);
+			fd_log_debug("(Thread '%s' terminating)", (char *)str);
 		}
 	}
 	free(str);

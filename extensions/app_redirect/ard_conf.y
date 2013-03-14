@@ -75,12 +75,12 @@ static void ard_conf_dump()
 	if (!TRACE_BOOL(FULL))
 		return;
 		
-	fd_log_debug("app_redirect: configuration dump:\n");
-	fd_log_debug("   default_redirect_cache_time : %u sec\n", ard_conf->default_rct);
+	fd_log_debug("app_redirect: configuration dump:");
+	fd_log_debug("   default_redirect_cache_time : %u sec", ard_conf->default_rct);
 	for (li = ard_conf->rules.next; li != &ard_conf->rules; li = li->next) {
 		ard_rule_dump(li->o);
 	}
-	fd_log_debug("app_redirect: end of configuration dump\n");
+	fd_log_debug("app_redirect: end of configuration dump");
 }
 
 /* Parse the configuration file */

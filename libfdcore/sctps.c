@@ -485,9 +485,9 @@ static void * handshake_resume_th(void * arg)
 	#endif /* GNUTLS_VERSION_300 */
 	if (TRACE_BOOL(FULL)) {
 		if (resumed) {
-			fd_log_debug("Session was resumed successfully on stream %hu (conn: '%s')\n", ctx->strid, fd_cnx_getid(ctx->parent));
+			fd_log_debug("Session was resumed successfully on stream %hu (conn: '%s')", ctx->strid, fd_cnx_getid(ctx->parent));
 		} else {
-			fd_log_debug("Session was NOT resumed on stream %hu  (full handshake) (conn: '%s')\n", ctx->strid, fd_cnx_getid(ctx->parent));
+			fd_log_debug("Session was NOT resumed on stream %hu  (full handshake) (conn: '%s')", ctx->strid, fd_cnx_getid(ctx->parent));
 		}
 	}
 			

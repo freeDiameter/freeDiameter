@@ -122,7 +122,7 @@ static int new_vendor(struct fd_list * parent, xmlChar * xmlid, xmlChar * xmlnam
 }
 
 static void dump_vendor(struct t_vend * v) {
-	fd_log_debug(" Vendor %d:'%s'\n", v->id, (char *)v->name);
+	fd_log_debug(" Vendor %d:'%s'", v->id, (char *)v->name);
 }
 
 static void del_vendor_contents(struct t_vend * v) {
@@ -174,7 +174,7 @@ static void dump_rule(struct t_rule * r, char * prefix) {
 		fd_log_debug("m:%d ", r->min);
 	if (r->max != -1)
 		fd_log_debug("M:%d ", r->max);
-	fd_log_debug("%s\n", (char *)r->avpname);
+	fd_log_debug("%s", (char *)r->avpname);
 }
 
 static void del_rule_contents(struct t_rule * r) {
@@ -240,7 +240,7 @@ static int new_cmd(struct fd_list * parent, xmlChar * xmlcode, xmlChar * xmlname
 
 static void dump_cmd(struct t_cmd * c) {
 	struct fd_list * li;
-	fd_log_debug("  Command %d %s: %s\n", c->code, 
+	fd_log_debug("  Command %d %s: %s", c->code, 
 		c->fmask ? ( c->flags ? "[P=1]" : "[P=0]") : "", c->name);
 	for (li = c->reqrules_fixed.next; li != &c->reqrules_fixed; li = li->next)
 		dump_rule((struct t_rule *)li, "    Request fixed    AVP:");
@@ -324,10 +324,10 @@ static int new_type(struct fd_list * parent, xmlChar * xmlname, xmlChar * xmlpar
 }
 
 static void dump_type(struct t_typedefn * t) {
-	fd_log_debug("  Type %s", (char *)t->name);
-	if (t->parent_name)
-		fd_log_debug("(parent: %s)", (char *)t->parent_name);
-	fd_log_debug("\n");
+	fd_log_debug("  Type %s%s%s%s", (char *)t->name,
+		     t->parent_name ? "(parent: " : "", 
+		     t->parent_name ? (char *)t->parent_name : "", 
+		     t->parent_name ? ")" : "");
 }
 
 static void del_type_contents(struct t_typedefn * t) {
@@ -360,7 +360,7 @@ static int new_avptype(struct fd_list * parent, xmlChar * xmlname) {
 }
 
 static void dump_avptype(struct t_avptype * t) {
-	fd_log_debug("    data type: %s\n", t->type_name);
+	fd_log_debug("    data type: %s", t->type_name);
 }
 
 static void del_avptype_contents(struct t_avptype * t) {
@@ -397,7 +397,7 @@ static int new_enum(struct fd_list * parent, xmlChar * xmlcode, xmlChar * xmlnam
 }
 
 static void dump_enum(struct t_enum * e) {
-	fd_log_debug("    Value: %d == %s\n", e->code, e->name);
+	fd_log_debug("    Value: %d == %s", e->code, e->name);
 }	
 
 static void del_enum_contents(struct t_enum * e) {
@@ -468,12 +468,12 @@ static int new_avp(struct fd_list * parent, xmlChar * xmlcode, xmlChar * xmlname
 
 static void dump_avp(struct t_avp * a) {
 	struct fd_list * li;
-	fd_log_debug("  AVP %d %s%s: %s\n", a->code, 
+	fd_log_debug("  AVP %d %s%s: %s", a->code, 
 		a->fmask & AVP_FLAG_MANDATORY ? ( a->flags & AVP_FLAG_MANDATORY ? "[M=1]" : "[M=0]") : "", 
 		a->fmask & AVP_FLAG_VENDOR ? ( a->flags & AVP_FLAG_VENDOR ? "[V=1]" : "[V=0]") : "", 
 		a->name);
 	if (a->fmask & AVP_FLAG_VENDOR)
-		fd_log_debug("    vendor: %d\n", a->vendor);
+		fd_log_debug("    vendor: %d", a->vendor);
 	for (li = a->type.next; li != &a->type; li = li->next)
 		dump_avptype((struct t_avptype *)li);
 	for (li = a->enums.next; li != &a->enums; li = li->next)
@@ -560,7 +560,7 @@ static int new_appl(struct fd_list * parent, xmlChar * xmlid, xmlChar * xmlname 
 
 static void dump_appl(struct t_appl * a) {
 	struct fd_list * li;
-	fd_log_debug(" Application %d: %s\n", a->id, a->name);
+	fd_log_debug(" Application %d: %s", a->id, a->name);
 	for (li = a->commands.next; li != &a->commands; li = li->next)
 		dump_cmd((struct t_cmd *)li);
 	for (li = a->types.next; li != &a->types; li = li->next)
@@ -1020,11 +1020,11 @@ xml_tree_error:
 	if (data->cur_app || data->cur_cmd || data->cur_avp) {
 		TRACE_DEBUG(INFO, "Error encountered while parsing tag of:");
 		if (data->cur_app)
-			fd_log_debug("  Application: '%s'\n", data->cur_app->name);
+			fd_log_debug("  Application: '%s'", data->cur_app->name);
 		if (data->cur_cmd)
-			fd_log_debug("  Command    : '%s'\n", data->cur_cmd->name);
+			fd_log_debug("  Command    : '%s'", data->cur_cmd->name);
 		if (data->cur_avp)
-			fd_log_debug("  AVP        : '%s'\n", data->cur_avp->name);
+			fd_log_debug("  AVP        : '%s'", data->cur_avp->name);
 	}
 	return;
 }

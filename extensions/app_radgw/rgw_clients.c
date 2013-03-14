@@ -982,11 +982,11 @@ void rgw_clients_dump(void)
 	CHECK_POSIX_DO( pthread_rwlock_rdlock(&cli_rwl), /* ignore error */ );
 	
 	if (!FD_IS_LIST_EMPTY(&cli_ip))
-		fd_log_debug(" RADIUS IP clients list:\n");
+		fd_log_debug(" RADIUS IP clients list:");
 	dump_cli_list(&cli_ip);
 		
 	if (!FD_IS_LIST_EMPTY(&cli_ip6))
-		fd_log_debug(" RADIUS IPv6 clients list:\n");
+		fd_log_debug(" RADIUS IPv6 clients list:");
 	dump_cli_list(&cli_ip6);
 		
 	CHECK_POSIX_DO( pthread_rwlock_unlock(&cli_rwl), /* ignore error */ );

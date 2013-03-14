@@ -46,7 +46,7 @@ static int ta_fb_cb( struct msg ** msg, struct avp * avp, struct session * sess,
 	/* This CB should never be called */
 	TRACE_ENTRY("%p %p %p %p", msg, avp, sess, act);
 	
-	fd_log_debug("Unexpected message received!\n");
+	fd_log_debug("Unexpected message received!");
 	
 	return ENOTSUP;
 }

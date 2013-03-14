@@ -71,16 +71,16 @@ static void ta_conf_dump(void)
 {
 	if (!TRACE_BOOL(INFO))
 		return;
-	fd_log_debug( "------- app_test configuration dump: ---------\n");
-	fd_log_debug( " Vendor Id .......... : %u\n", ta_conf->vendor_id);
-	fd_log_debug( " Application Id ..... : %u\n", ta_conf->appli_id);
-	fd_log_debug( " Command Id ......... : %u\n", ta_conf->cmd_id);
-	fd_log_debug( " AVP Id ............. : %u\n", ta_conf->avp_id);
-	fd_log_debug( " Mode ............... : %s%s%s\n", ta_conf->mode & MODE_SERV ? "Serv" : "", ta_conf->mode & MODE_CLI ? "Cli" : "",  ta_conf->mode & MODE_BENCH ? " (Benchmark)" : "");
-	fd_log_debug( " Destination Realm .. : %s\n", ta_conf->dest_realm ?: "- none -");
-	fd_log_debug( " Destination Host ... : %s\n", ta_conf->dest_host ?: "- none -");
-	fd_log_debug( " Signal ............. : %i\n", ta_conf->signal);
-	fd_log_debug( "------- /app_test configuration dump ---------\n");
+	fd_log_debug( "------- app_test configuration dump: ---------");
+	fd_log_debug( " Vendor Id .......... : %u", ta_conf->vendor_id);
+	fd_log_debug( " Application Id ..... : %u", ta_conf->appli_id);
+	fd_log_debug( " Command Id ......... : %u", ta_conf->cmd_id);
+	fd_log_debug( " AVP Id ............. : %u", ta_conf->avp_id);
+	fd_log_debug( " Mode ............... : %s%s%s", ta_conf->mode & MODE_SERV ? "Serv" : "", ta_conf->mode & MODE_CLI ? "Cli" : "",  ta_conf->mode & MODE_BENCH ? " (Benchmark)" : "");
+	fd_log_debug( " Destination Realm .. : %s", ta_conf->dest_realm ?: "- none -");
+	fd_log_debug( " Destination Host ... : %s", ta_conf->dest_host ?: "- none -");
+	fd_log_debug( " Signal ............. : %i", ta_conf->signal);
+	fd_log_debug( "------- /app_test configuration dump ---------");
 }
 
 /* Function to display statistics periodically */
@@ -106,30 +106,30 @@ static void * ta_stats(void * arg) {
 		CHECK_SYS_DO( clock_gettime(CLOCK_REALTIME, &now), );
 		
 		/* Now, display everything */
-		fd_log_debug( "------- app_test statistics ---------\n");
+		fd_log_debug( "------- app_test statistics ---------");
 		if (now.tv_nsec >= start.tv_nsec) {
-			fd_log_debug( " Executing for: %d.%06ld sec\n",
+			fd_log_debug( " Executing for: %d.%06ld sec",
 					(int)(now.tv_sec - start.tv_sec),
 					(long)(now.tv_nsec - start.tv_nsec) / 1000);
 		} else {
-			fd_log_debug( " Executing for: %d.%06ld sec\n",
+			fd_log_debug( " Executing for: %d.%06ld sec",
 					(int)(now.tv_sec - 1 - start.tv_sec),
 					(long)(now.tv_nsec + 1000000000 - start.tv_nsec) / 1000);
 		}
 		
 		if (ta_conf->mode & MODE_SERV) {
-			fd_log_debug( " Server: %llu message(s) echoed\n", copy.nb_echoed);
+			fd_log_debug( " Server: %llu message(s) echoed", copy.nb_echoed);
 		}
 		if (ta_conf->mode & MODE_CLI) {
-			fd_log_debug( " Client:\n");
-			fd_log_debug( "   %llu message(s) sent\n", copy.nb_sent);
-			fd_log_debug( "   %llu error(s) received\n", copy.nb_errs);
-			fd_log_debug( "   %llu answer(s) received\n", copy.nb_recv);
-			fd_log_debug( "     fastest: %ld.%06ld sec.\n", copy.shortest / 1000000, copy.shortest % 1000000);
-			fd_log_debug( "     slowest: %ld.%06ld sec.\n", copy.longest / 1000000, copy.longest % 1000000);
-			fd_log_debug( "     Average: %ld.%06ld sec.\n", copy.avg / 1000000, copy.avg % 1000000);
+			fd_log_debug( " Client:");
+			fd_log_debug( "   %llu message(s) sent", copy.nb_sent);
+			fd_log_debug( "   %llu error(s) received", copy.nb_errs);
+			fd_log_debug( "   %llu answer(s) received", copy.nb_recv);
+			fd_log_debug( "     fastest: %ld.%06ld sec.", copy.shortest / 1000000, copy.shortest % 1000000);
+			fd_log_debug( "     slowest: %ld.%06ld sec.", copy.longest / 1000000, copy.longest % 1000000);
+			fd_log_debug( "     Average: %ld.%06ld sec.", copy.avg / 1000000, copy.avg % 1000000);
 		}
-		fd_log_debug( "-------------------------------------\n");
+		fd_log_debug( "-------------------------------------");
 	}
 	
 	return NULL; /* never called */

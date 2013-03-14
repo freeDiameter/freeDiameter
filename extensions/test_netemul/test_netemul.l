@@ -77,7 +77,7 @@
 				ret = sscanf(yytext, "%f", &yylval->decimal);
 				if (ret != 1) {
 					/* No matching: an error occurred */
-					fd_log_debug("Unable to convert the value '%s' to a valid float: %s\n", yytext, strerror(errno));
+					fd_log_debug("Unable to convert the value '%s' to a valid float: %s", yytext, strerror(errno));
 					return LEX_ERROR; /* trig an error in yacc parser */
 					/* Maybe we could REJECT instead of failing here? */
 				}
@@ -91,7 +91,7 @@
 				ret = sscanf(yytext, "%lu", &yylval->ulong);
 				if (ret != 1) {
 					/* No matching: an error occurred */
-					fd_log_debug("Unable to convert the value '%s' to a valid long: %s\n", yytext, strerror(errno));
+					fd_log_debug("Unable to convert the value '%s' to a valid long: %s", yytext, strerror(errno));
 					return LEX_ERROR; /* trig an error in yacc parser */
 					/* Maybe we could REJECT instead of failing here? */
 				}
@@ -112,7 +112,7 @@
 
 	/* Unrecognized sequence, if it did not match any previous pattern */
 [^[:space:][:digit:]=;%/\n]+	{ 
-				fd_log_debug("Unrecognized text on line %d col %d: '%s'.\n", yylloc->first_line, yylloc->first_column, yytext);
+				fd_log_debug("Unrecognized text on line %d col %d: '%s'.", yylloc->first_line, yylloc->first_column, yytext);
 			 	return LEX_ERROR; 
 			}
 

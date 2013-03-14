@@ -60,9 +60,12 @@ static void * myinterp (void * arg)
 	
 	CHECK_FCT_DO(fd_core_waitstartcomplete(), goto end);
 	
-	fd_log_debug("\nStarting interactive python interpreter [experimental].\n");
-	if (!arg) 
-		fd_log_debug("Example syntax:\n   >>> print cvar.fd_g_config.cnf_diamid\n   '%s'\n", fd_g_config->cnf_diamid);
+	fd_log_debug("Starting interactive python interpreter [experimental].");
+	if (!arg) {
+		fd_log_debug("Example syntax:");
+		fd_log_debug("   >>> print cvar.fd_g_config.cnf_diamid");
+		fd_log_debug("   '%s'", fd_g_config->cnf_diamid);
+	}
 	Py_Main(arg ? 2 : 1, dum);
 	
 end:	

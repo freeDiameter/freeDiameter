@@ -187,7 +187,7 @@ int rgw_plg_add( char * plgfile, char * conffile, int type, unsigned char ** cod
 	new->dlo = dlopen(plgfile, RTLD_NOW | RTLD_GLOBAL);
 	if (new->dlo == NULL) {
 		/* An error occured */
-		fd_log_debug("Loading of plugin '%s' failed:\n %s\n", plgfile, dlerror());
+		fd_log_debug("Loading of plugin '%s' failed: %s", plgfile, dlerror());
 		goto error;
 	}
 	
@@ -195,7 +195,7 @@ int rgw_plg_add( char * plgfile, char * conffile, int type, unsigned char ** cod
 	new->descriptor = dlsym( new->dlo, "rgwp_descriptor" );
 	if (new->descriptor == NULL) {
 		/* An error occured */
-		fd_log_debug("Unable to resolve 'rgwp_descriptor' in plugin '%s':\n %s\n", plgfile, dlerror());
+		fd_log_debug("Unable to resolve 'rgwp_descriptor' in plugin '%s': %s", plgfile, dlerror());
 		goto error;
 	}
 	
@@ -205,7 +205,7 @@ int rgw_plg_add( char * plgfile, char * conffile, int type, unsigned char ** cod
 	if (new->descriptor->rgwp_conf_parse) {
 		CHECK_FCT_DO( (*(new->descriptor->rgwp_conf_parse))(conffile, &new->cs), 
 			{
-				fd_log_debug("An error occurred while parsing configuration file '%s' in plugin '%s', aborting...\n", conffile, plgfile);
+				fd_log_debug("An error occurred while parsing configuration file '%s' in plugin '%s', aborting...", conffile, plgfile);
 				goto error;
 			} );
 	}
@@ -265,26 +265,26 @@ void rgw_plg_dump(void)
 	CHECK_POSIX_DO( pthread_rwlock_rdlock(&plg_lock), );
 	
 	if ( ! FD_IS_LIST_EMPTY( &plg_list ) )
-		fd_log_debug("[app_radgw]  --- List of registered plugins:\n");
+		fd_log_debug("[app_radgw]  --- List of registered plugins:");
 	for (ptr = plg_list.next; ptr != &plg_list; ptr = ptr->next) {
-		
+		char buf[1024];
 		plg = (struct plg_descr *)ptr;
 		
-		fd_log_debug("  %-25s ( %p ) - types: %s%s, codes: ", 
-				plg->descriptor->rgwp_name, 
-				plg->cs,
-				plg->type & RGW_PLG_TYPE_AUTH ? "Au" : "  ",
-				plg->type & RGW_PLG_TYPE_ACCT ? "Ac" : "  ");
+		snprintf(buf, sizeof(buf), "  %-25s ( %p ) - types: %s%s, codes: ", 
+			 plg->descriptor->rgwp_name, 
+			 plg->cs,
+			 plg->type & RGW_PLG_TYPE_AUTH ? "Au" : "  ",
+			 plg->type & RGW_PLG_TYPE_ACCT ? "Ac" : "  ");
 		
 		if (plg->cc) {
 			int i;
 			
 			for (i = 0; i < plg->cc_len; i++) {
-				fd_log_debug("%02hhx ", plg->cc[i]);
+				snprintf(buf+strlen(buf), sizeof(buf)-strlen(buf), "%02hhx ", plg->cc[i]);
 			}
-			fd_log_debug("\n");
+			fd_log_debug("%s", buf);
 		} else {
-			fd_log_debug("*\n");
+			fd_log_debug("%s*", buf);
 		}
 	}
 	
@@ -296,24 +296,24 @@ void rgw_plg_dump(void)
 	
 	CHECK_POSIX_DO( pthread_rwlock_rdlock(&plg_lock), );
 	if ( !FD_IS_LIST_EMPTY( &plg_accel_auth ) || !FD_IS_LIST_EMPTY( &plg_accel_acct ))
-		fd_log_debug("  --- Accelerators:\n");
+		fd_log_debug("  --- Accelerators:");
 	
 	for (ptraccel = plg_accel_auth.next; ptraccel != &plg_accel_auth; ptraccel = ptraccel->next) {
 		struct plg_accel * accel = (struct plg_accel *)ptraccel;
-		fd_log_debug("  auth, code %02hhu:\n", accel->ccode);
+		fd_log_debug("  auth, code %02hhu:", accel->ccode);
 
 		for (ptr = accel->plugins.next; ptr != &accel->plugins; ptr = ptr->next) {
 			struct plg_accel_item * item = (struct plg_accel_item *)ptr;
-			fd_log_debug("     %-15s (%p)\n", item->plg->descriptor->rgwp_name, item->plg->cs);
+			fd_log_debug("     %-15s (%p)", item->plg->descriptor->rgwp_name, item->plg->cs);
 		}
 	}
 	for (ptraccel = plg_accel_acct.next; ptraccel != &plg_accel_acct; ptraccel = ptraccel->next) {
 		struct plg_accel * accel = (struct plg_accel *)ptraccel;
-		fd_log_debug("  acct, code %02hhu:\n", accel->ccode);
+		fd_log_debug("  acct, code %02hhu:", accel->ccode);
 
 		for (ptr = accel->plugins.next; ptr != &accel->plugins; ptr = ptr->next) {
 			struct plg_accel_item * item = (struct plg_accel_item *)ptr;
-			fd_log_debug("     %-15s (%p)\n", item->plg->descriptor->rgwp_name, item->plg->cs);
+			fd_log_debug("     %-15s (%p)", item->plg->descriptor->rgwp_name, item->plg->cs);
 		}
 	}
 	
@@ -379,7 +379,7 @@ int rgw_plg_loop_req(struct rgw_radius_msg_meta **rad, struct session **session,
 	
 	if (ret > 0) {
 		/* Critical error, log and exit */
-		TRACE_DEBUG(NONE, "An error occurred while handling a RADIUS message from '%s': %s\n", rgw_clients_id(cli), strerror(ret));
+		TRACE_DEBUG(NONE, "An error occurred while handling a RADIUS message from '%s': %s", rgw_clients_id(cli), strerror(ret));
 		return ret;
 	}
 	
@@ -435,7 +435,7 @@ int rgw_plg_loop_ans(struct rgw_radius_msg_meta *req, struct session *session, s
 	
 	if (ret > 0) {
 		/* Critical error, log and exit */
-		fd_log_debug("[app_radgw] An error occurred while handling a DIAMETER answer to a converted RADIUS request, turn on DEBUG for details: %s\n", strerror(ret));
+		fd_log_debug("[app_radgw] An error occurred while handling a DIAMETER answer to a converted RADIUS request, turn on DEBUG for details: %s", strerror(ret));
 		return ret;
 	}
 	

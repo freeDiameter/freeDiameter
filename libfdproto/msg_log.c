@@ -180,7 +180,7 @@ void fd_msg_log( enum fd_msg_log_cause cause, struct msg * msg, const char * pre
 	pthread_cleanup_pop(0);
 	(void)pthread_mutex_unlock(&fd_log_lock);
 	
-	fd_log_debug_fstr(fstr, "\n Logged: %s\n", buftime);
+	fd_log_debug_fstr(fstr, " Logged: %s", buftime);
 	
 	/* And now the message itself */
 	if ((meth == FD_MSG_LOGTO_DEBUGONLY) && (fd_g_debug_lvl <= INFO)) {

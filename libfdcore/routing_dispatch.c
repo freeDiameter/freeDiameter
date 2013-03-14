@@ -564,7 +564,7 @@ static int msg_rt_in(struct msg * msg)
 
 		/* Check if we have local support for the message application */
 		if ( (hdr->msg_appl == 0) || (hdr->msg_appl == AI_RELAY) ) {
-			TRACE_DEBUG(INFO, "Received a routable message with application id 0 or " _stringize(AI_RELAY) " (relay),\n"
+			TRACE_DEBUG(INFO, "Received a routable message with application id 0 or " _stringize(AI_RELAY) " (relay),"
 					  " returning DIAMETER_APPLICATION_UNSUPPORTED");
 			CHECK_FCT( return_error( &msgptr, "DIAMETER_APPLICATION_UNSUPPORTED", "Routable message with application id 0 or relay", NULL) );
 			return 0;

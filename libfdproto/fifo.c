@@ -114,18 +114,18 @@ void fd_fifo_dump(int level, char * name, struct fifo * queue, void (*dump_item)
 	if (!TRACE_BOOL(level))
 		return;
 	
-	fd_log_debug("Dumping queue '%s' (%p):\n", name ?: "?", queue);
+	fd_log_debug("Dumping queue '%s' (%p):", name ?: "?", queue);
 	if (!CHECK_FIFO( queue )) {
-		fd_log_debug("  Queue invalid!\n");
+		fd_log_debug("  Queue invalid!");
 		if (queue)
-			fd_log_debug("  (%x != %x)\n", queue->eyec, FIFO_EYEC);
+			fd_log_debug("  (%x != %x)", queue->eyec, FIFO_EYEC);
 		return;
 	}
 	
 	CHECK_POSIX_DO(  pthread_mutex_lock( &queue->mtx ), /* continue */  );
-	fd_log_debug("   %d elements in queue / %d threads waiting\n", queue->count, queue->thrs);
-	fd_log_debug("   %d elements max / %d threads waiting to push\n", queue->max, queue->thrs_push);
-	fd_log_debug("   thresholds: %d / %d (h:%d), cb: %p,%p (%p), highest: %d\n",
+	fd_log_debug("   %d elements in queue / %d threads waiting", queue->count, queue->thrs);
+	fd_log_debug("   %d elements max / %d threads waiting to push", queue->max, queue->thrs_push);
+	fd_log_debug("   thresholds: %d / %d (h:%d), cb: %p,%p (%p), highest: %d",
 			queue->high, queue->low, queue->highest, 
 			queue->h_cb, queue->l_cb, queue->data,
 			queue->highest_ever);
@@ -134,7 +134,7 @@ void fd_fifo_dump(int level, char * name, struct fifo * queue, void (*dump_item)
 		struct fd_list * li;
 		int i = 0;
 		for (li = queue->list.next; li != &queue->list; li = li->next) {
-			fd_log_debug("  [%i] item %p in fifo %p:\n", i++, li->o, queue);
+			fd_log_debug("  [%i] item %p in fifo %p:", i++, li->o, queue);
 			(*dump_item)(level, li->o);
 		}
 	}

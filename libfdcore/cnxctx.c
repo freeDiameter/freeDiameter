@@ -230,7 +230,7 @@ struct cnxctx * fd_cnx_serv_accept(struct cnxctx * serv)
 	if (TRACE_BOOL(INFO)) {
 		char buf[1024];
 		sSA_DUMP_NODE( buf, sizeof(buf), &ss, NI_NUMERICHOST );
-		fd_log_debug("%s : accepted new client [%s].\n", fd_cnx_getid(serv), buf);
+		fd_log_debug("%s : accepted new client [%s].", fd_cnx_getid(serv), buf);
 	}
 	
 	CHECK_MALLOC_DO( cli = fd_cnx_init(1), { shutdown(cli_sock, SHUT_RDWR); close(cli_sock); return NULL; } );
@@ -313,7 +313,7 @@ struct cnxctx * fd_cnx_cli_connect_tcp(sSA * sa /* contains the port already */,
 	if (TRACE_BOOL(INFO)) {
 		char buf[1024];
 		sSA_DUMP_NODE_SERV( buf, sizeof(buf), sa, NI_NUMERICSERV);
-		fd_log_debug("Connection established to server '%s' (TCP:%d).\n", buf, sock);
+		fd_log_debug("Connection established to server '%s' (TCP:%d).", buf, sock);
 	}
 	
 	/* Once the socket is created successfuly, prepare the remaining of the cnx */
@@ -405,7 +405,7 @@ struct cnxctx * fd_cnx_cli_connect_sctp(int no_ip6, uint16_t port, struct fd_lis
 	if (TRACE_BOOL(INFO)) {
 		char buf[1024];
 		sSA_DUMP_NODE_SERV( buf, sizeof(buf), &primary, NI_NUMERICSERV);
-		fd_log_debug("Connection established to server '%s' (SCTP:%d, %d/%d streams).\n", buf, sock, cnx->cc_sctp_para.str_in, cnx->cc_sctp_para.str_out);
+		fd_log_debug("Connection established to server '%s' (SCTP:%d, %d/%d streams).", buf, sock, cnx->cc_sctp_para.str_in, cnx->cc_sctp_para.str_out);
 	}
 	
 	/* Generate the names for the object */
@@ -856,7 +856,7 @@ again:
 						CHECK_GNUTLS_DO( ret = gnutls_handshake(session),
 							{
 								if (TRACE_BOOL(INFO)) {
-									fd_log_debug("TLS re-handshake failed on socket %d (%s) : %s\n", conn->cc_socket, conn->cc_id, gnutls_strerror(ret));
+									fd_log_debug("TLS re-handshake failed on socket %d (%s) : %s", conn->cc_socket, conn->cc_id, gnutls_strerror(ret));
 								}
 								goto end;
 							} );
@@ -901,7 +901,7 @@ again:
 						CHECK_GNUTLS_DO( ret = gnutls_handshake(session),
 							{
 								if (TRACE_BOOL(INFO)) {
-									fd_log_debug("TLS re-handshake failed on socket %d (%s) : %s\n", conn->cc_socket, conn->cc_id, gnutls_strerror(ret));
+									fd_log_debug("TLS re-handshake failed on socket %d (%s) : %s", conn->cc_socket, conn->cc_id, gnutls_strerror(ret));
 								}
 								goto end;
 							} );
@@ -1037,7 +1037,7 @@ int fd_tls_prepare(gnutls_session_t * session, int mode, char * priority, void *
 	if (priority) {
 		const char * errorpos;
 		CHECK_GNUTLS_DO( gnutls_priority_set_direct( *session, priority, &errorpos ), 
-			{ TRACE_DEBUG(INFO, "Error in priority string '%s' at position: '%s'\n", priority, errorpos); return EINVAL; } );
+			{ TRACE_DEBUG(INFO, "Error in priority string '%s' at position: '%s'", priority, errorpos); return EINVAL; } );
 	} else {
 		CHECK_GNUTLS_DO( gnutls_priority_set( *session, fd_g_config->cnf_sec_data.prio_cache ), return EINVAL );
 	}
@@ -1074,12 +1074,12 @@ int fd_tls_verify_credentials(gnutls_session_t session, struct cnxctx * conn, in
 		gnutls_kx_algorithm_t kx;
   		gnutls_credentials_type_t cred;
 		
-		fd_log_debug("TLS Session information for connection '%s':\n", conn->cc_id);
+		fd_log_debug("TLS Session information for connection '%s':", conn->cc_id);
 
 		/* print the key exchange's algorithm name */
 		GNUTLS_TRACE( kx = gnutls_kx_get (session) );
 		GNUTLS_TRACE( tmp = gnutls_kx_get_name (kx) );
-		fd_log_debug("\t - Key Exchange: %s\n", tmp);
+		fd_log_debug("\t - Key Exchange: %s", tmp);
 
 		/* Check the authentication type used and switch
 		* to the appropriate. */
@@ -1087,81 +1087,81 @@ int fd_tls_verify_credentials(gnutls_session_t session, struct cnxctx * conn, in
 		switch (cred)
 		{
 			case GNUTLS_CRD_IA:
-				fd_log_debug("\t - TLS/IA session\n");
+				fd_log_debug("\t - TLS/IA session");
 				break;
 
 			case GNUTLS_CRD_PSK:
 				/* This returns NULL in server side. */
 				if (gnutls_psk_client_get_hint (session) != NULL)
-					fd_log_debug("\t - PSK authentication. PSK hint '%s'\n",
+					fd_log_debug("\t - PSK authentication. PSK hint '%s'",
 						gnutls_psk_client_get_hint (session));
 				/* This returns NULL in client side. */
 				if (gnutls_psk_server_get_username (session) != NULL)
-					fd_log_debug("\t - PSK authentication. Connected as '%s'\n",
+					fd_log_debug("\t - PSK authentication. Connected as '%s'",
 						gnutls_psk_server_get_username (session));
 				break;
 
 			case GNUTLS_CRD_ANON:	/* anonymous authentication */
-				fd_log_debug("\t - Anonymous DH using prime of %d bits\n",
+				fd_log_debug("\t - Anonymous DH using prime of %d bits",
 					gnutls_dh_get_prime_bits (session));
 				break;
 
 			case GNUTLS_CRD_CERTIFICATE:	/* certificate authentication */
 				/* Check if we have been using ephemeral Diffie-Hellman. */
 				if (kx == GNUTLS_KX_DHE_RSA || kx == GNUTLS_KX_DHE_DSS) {
-					fd_log_debug("\t - Ephemeral DH using prime of %d bits\n",
+					fd_log_debug("\t - Ephemeral DH using prime of %d bits",
 						gnutls_dh_get_prime_bits (session));
 				}
 				break;
 #ifdef ENABLE_SRP				
 			case GNUTLS_CRD_SRP:
-				fd_log_debug("\t - SRP session with username %s\n",
+				fd_log_debug("\t - SRP session with username %s",
 					gnutls_srp_server_get_username (session));
 				break;
 #endif /* ENABLE_SRP */
 
 			default:
-				fd_log_debug("\t - Different type of credentials for the session (%d).\n", cred);
+				fd_log_debug("\t - Different type of credentials for the session (%d).", cred);
 				break;
 
 		}
 
 		/* print the protocol's name (ie TLS 1.0) */
 		tmp = gnutls_protocol_get_name (gnutls_protocol_get_version (session));
-		fd_log_debug("\t - Protocol: %s\n", tmp);
+		fd_log_debug("\t - Protocol: %s", tmp);
 
 		/* print the certificate type of the peer. ie X.509 */
 		tmp = gnutls_certificate_type_get_name (gnutls_certificate_type_get (session));
-		fd_log_debug("\t - Certificate Type: %s\n", tmp);
+		fd_log_debug("\t - Certificate Type: %s", tmp);
 
 		/* print the compression algorithm (if any) */
 		tmp = gnutls_compression_get_name (gnutls_compression_get (session));
-		fd_log_debug("\t - Compression: %s\n", tmp);
+		fd_log_debug("\t - Compression: %s", tmp);
 
 		/* print the name of the cipher used. ie 3DES. */
 		tmp = gnutls_cipher_get_name (gnutls_cipher_get (session));
-		fd_log_debug("\t - Cipher: %s\n", tmp);
+		fd_log_debug("\t - Cipher: %s", tmp);
 
 		/* Print the MAC algorithms name. ie SHA1 */
 		tmp = gnutls_mac_get_name (gnutls_mac_get (session));
-		fd_log_debug("\t - MAC: %s\n", tmp);
+		fd_log_debug("\t - MAC: %s", tmp);
 	}
 	
 	/* First, use built-in verification */
 	CHECK_GNUTLS_DO( gnutls_certificate_verify_peers2 (session, &gtret), return EINVAL );
 	if (gtret) {
 		if (TRACE_BOOL(INFO)) {
-			fd_log_debug("TLS: Remote certificate invalid on socket %d (Remote: '%s')(Connection: '%s') :\n", conn->cc_socket, conn->cc_remid, conn->cc_id);
+			fd_log_debug("TLS: Remote certificate invalid on socket %d (Remote: '%s')(Connection: '%s') :", conn->cc_socket, conn->cc_remid, conn->cc_id);
 			if (gtret & GNUTLS_CERT_INVALID)
-				fd_log_debug(" - The certificate is not trusted (unknown CA? expired?)\n");
+				fd_log_debug(" - The certificate is not trusted (unknown CA? expired?)");
 			if (gtret & GNUTLS_CERT_REVOKED)
-				fd_log_debug(" - The certificate has been revoked.\n");
+				fd_log_debug(" - The certificate has been revoked.");
 			if (gtret & GNUTLS_CERT_SIGNER_NOT_FOUND)
-				fd_log_debug(" - The certificate hasn't got a known issuer.\n");
+				fd_log_debug(" - The certificate hasn't got a known issuer.");
 			if (gtret & GNUTLS_CERT_SIGNER_NOT_CA)
-				fd_log_debug(" - The certificate signer is not a CA, or uses version 1, or 3 without basic constraints.\n");
+				fd_log_debug(" - The certificate signer is not a CA, or uses version 1, or 3 without basic constraints.");
 			if (gtret & GNUTLS_CERT_INSECURE_ALGORITHM)
-				fd_log_debug(" - The certificate signature uses a weak algorithm.\n");
+				fd_log_debug(" - The certificate signature uses a weak algorithm.");
 		}
 		return EINVAL;
 	}
@@ -1183,14 +1183,14 @@ int fd_tls_verify_credentials(gnutls_session_t session, struct cnxctx * conn, in
 		unsigned int algo, bits;
 		time_t expiration_time, activation_time;
 		
-		fd_log_debug("TLS Certificate information for connection '%s' (%d certs provided):\n", conn->cc_id, cert_list_size);
+		fd_log_debug("TLS Certificate information for connection '%s' (%d certs provided):", conn->cc_id, cert_list_size);
 		for (i = 0; i < cert_list_size; i++)
 		{
 
 			CHECK_GNUTLS_DO( gnutls_x509_crt_init (&cert), return EINVAL);
 			CHECK_GNUTLS_DO( gnutls_x509_crt_import (cert, &cert_list[i], GNUTLS_X509_FMT_DER), return EINVAL);
 		
-			fd_log_debug(" Certificate %d info:\n", i);
+			fd_log_debug(" Certificate %d info:", i);
 
 			GNUTLS_TRACE( expiration_time = gnutls_x509_crt_get_expiration_time (cert) );
 			GNUTLS_TRACE( activation_time = gnutls_x509_crt_get_activation_time (cert) );
@@ -1202,31 +1202,32 @@ int fd_tls_verify_credentials(gnutls_session_t session, struct cnxctx * conn, in
 			size = sizeof (serial);
 			gnutls_x509_crt_get_serial (cert, serial, &size);
 			
-			fd_log_debug("\t - Certificate serial number: ");
 			{
 				int j;
+				char buf[1024];
+				snprintf(buf, sizeof(buf), "\t - Certificate serial number: ");
 				for (j = 0; j < size; j++) {
-					fd_log_debug("%02.2hhx", serial[j]);
+					snprintf(buf+strlen(buf), sizeof(buf)-strlen(buf), "%02.2hhx", serial[j]);
 				}
+				fd_log_debug(buf);
 			}
-			fd_log_debug("\n");
 
 			/* Extract some of the public key algorithm's parameters */
 			GNUTLS_TRACE( algo = gnutls_x509_crt_get_pk_algorithm (cert, &bits) );
-			fd_log_debug("\t - Certificate public key: %s\n",
+			fd_log_debug("\t - Certificate public key: %s",
 			      gnutls_pk_algorithm_get_name (algo));
 
 			/* Print the version of the X.509 certificate. */
-			fd_log_debug("\t - Certificate version: #%d\n",
+			fd_log_debug("\t - Certificate version: #%d",
 			      gnutls_x509_crt_get_version (cert));
 
 			size = sizeof (dn);
 			GNUTLS_TRACE( gnutls_x509_crt_get_dn (cert, dn, &size) );
-			fd_log_debug("\t - DN: %s\n", dn);
+			fd_log_debug("\t - DN: %s", dn);
 
 			size = sizeof (dn);
 			GNUTLS_TRACE( gnutls_x509_crt_get_issuer_dn (cert, dn, &size) );
-			fd_log_debug("\t - Issuer's DN: %s\n", dn);
+			fd_log_debug("\t - Issuer's DN: %s", dn);
 
 			GNUTLS_TRACE( gnutls_x509_crt_deinit (cert) );
 		}
@@ -1243,8 +1244,8 @@ int fd_tls_verify_credentials(gnutls_session_t session, struct cnxctx * conn, in
 		GNUTLS_TRACE( deadline = gnutls_x509_crt_get_expiration_time(cert) );
 		if ((deadline != (time_t)-1) && (deadline < now)) {
 			if (TRACE_BOOL(INFO)) {
-				fd_log_debug("TLS: Remote certificate invalid on socket %d (Remote: '%s')(Connection: '%s') :\n", conn->cc_socket, conn->cc_remid, conn->cc_id);
-				fd_log_debug(" - The certificate %d in the chain is expired\n", i);
+				fd_log_debug("TLS: Remote certificate invalid on socket %d (Remote: '%s')(Connection: '%s') :", conn->cc_socket, conn->cc_remid, conn->cc_id);
+				fd_log_debug(" - The certificate %d in the chain is expired", i);
 			}
 			ret = EINVAL;
 		}
@@ -1252,8 +1253,8 @@ int fd_tls_verify_credentials(gnutls_session_t session, struct cnxctx * conn, in
 		GNUTLS_TRACE( deadline = gnutls_x509_crt_get_activation_time(cert) );
 		if ((deadline != (time_t)-1) && (deadline > now)) {
 			if (TRACE_BOOL(INFO)) {
-				fd_log_debug("TLS: Remote certificate invalid on socket %d (Remote: '%s')(Connection: '%s') :\n", conn->cc_socket, conn->cc_remid, conn->cc_id);
-				fd_log_debug(" - The certificate %d in the chain is not yet activated\n", i);
+				fd_log_debug("TLS: Remote certificate invalid on socket %d (Remote: '%s')(Connection: '%s') :", conn->cc_socket, conn->cc_remid, conn->cc_id);
+				fd_log_debug(" - The certificate %d in the chain is not yet activated", i);
 			}
 			ret = EINVAL;
 		}
@@ -1261,8 +1262,8 @@ int fd_tls_verify_credentials(gnutls_session_t session, struct cnxctx * conn, in
 		if ((i == 0) && (conn->cc_tls_para.cn)) {
 			if (!gnutls_x509_crt_check_hostname (cert, conn->cc_tls_para.cn)) {
 				if (TRACE_BOOL(INFO)) {
-					fd_log_debug("TLS: Remote certificate invalid on socket %d (Remote: '%s')(Connection: '%s') :\n", conn->cc_socket, conn->cc_remid, conn->cc_id);
-					fd_log_debug(" - The certificate hostname does not match '%s'\n", conn->cc_tls_para.cn);
+					fd_log_debug("TLS: Remote certificate invalid on socket %d (Remote: '%s')(Connection: '%s') :", conn->cc_socket, conn->cc_remid, conn->cc_id);
+					fd_log_debug(" - The certificate hostname does not match '%s'", conn->cc_tls_para.cn);
 				}
 				ret = EINVAL;
 			}
@@ -1301,13 +1302,13 @@ int fd_tls_verify_credentials_2(gnutls_session_t session)
 
 		dhe = ecdh = 0;
 
-		fd_log_debug("TLS Session information for connection '%s':\n", conn->cc_id);
+		fd_log_debug("TLS Session information for connection '%s':", conn->cc_id);
 		
 		/* print the key exchange's algorithm name
 		*/
 		GNUTLS_TRACE( kx = gnutls_kx_get (session) );
 		GNUTLS_TRACE( tmp = gnutls_kx_get_name (kx) );
-		fd_log_debug("\t- Key Exchange: %s\n", tmp);
+		fd_log_debug("\t- Key Exchange: %s", tmp);
 
 		/* Check the authentication type used and switch
 		* to the appropriate.
@@ -1316,13 +1317,13 @@ int fd_tls_verify_credentials_2(gnutls_session_t session)
 		switch (cred)
 		{
 			case GNUTLS_CRD_IA:
-				fd_log_debug("\t - TLS/IA session\n");
+				fd_log_debug("\t - TLS/IA session");
 				break;
 
 
 			#if (defined(ENABLE_SRP) || defined(GNUTLS_VERSION_300))
 			case GNUTLS_CRD_SRP:
-				fd_log_debug("\t - SRP session with username %s\n",
+				fd_log_debug("\t - SRP session with username %s",
 					gnutls_srp_server_get_username (session));
 				break;
 			#endif
@@ -1331,12 +1332,12 @@ int fd_tls_verify_credentials_2(gnutls_session_t session)
 				/* This returns NULL in server side.
 				*/
 				if (gnutls_psk_client_get_hint (session) != NULL)
-					fd_log_debug("\t - PSK authentication. PSK hint '%s'\n",
+					fd_log_debug("\t - PSK authentication. PSK hint '%s'",
 						gnutls_psk_client_get_hint (session));
 				/* This returns NULL in client side.
 				*/
 				if (gnutls_psk_server_get_username (session) != NULL)
-					fd_log_debug("\t - PSK authentication. Connected as '%s'\n",
+					fd_log_debug("\t - PSK authentication. Connected as '%s'",
 						gnutls_psk_server_get_username (session));
 
 				if (kx == GNUTLS_KX_ECDHE_PSK)
@@ -1346,7 +1347,7 @@ int fd_tls_verify_credentials_2(gnutls_session_t session)
 				break;
 
 			case GNUTLS_CRD_ANON:      /* anonymous authentication */
-				fd_log_debug("\t - Anonymous DH using prime of %d bits\n",
+				fd_log_debug("\t - Anonymous DH using prime of %d bits",
 					gnutls_dh_get_prime_bits (session));
 				if (kx == GNUTLS_KX_ANON_ECDH)
 					ecdh = 1;
@@ -1369,7 +1370,7 @@ int fd_tls_verify_credentials_2(gnutls_session_t session)
 
 					cert_list = gnutls_certificate_get_peers (session, &cert_list_size);
 
-					fd_log_debug("\t Peer provided %d certificates.\n", cert_list_size);
+					fd_log_debug("\t Peer provided %d certificates.", cert_list_size);
 
 					if (cert_list_size > 0)
 					{
@@ -1381,7 +1382,7 @@ int fd_tls_verify_credentials_2(gnutls_session_t session)
 
 						gnutls_x509_crt_import (cert, &cert_list[0], GNUTLS_X509_FMT_DER);
 
-						fd_log_debug("\t Certificate info:\n");
+						fd_log_debug("\t Certificate info:");
 
 						/* This is the preferred way of printing short information about
 						 a certificate. */
@@ -1389,14 +1390,14 @@ int fd_tls_verify_credentials_2(gnutls_session_t session)
 						ret = gnutls_x509_crt_print (cert, GNUTLS_CRT_PRINT_ONELINE, &cinfo);
 						if (ret == 0)
 						{
-						  fd_log_debug("\t\t%s\n", cinfo.data);
+						  fd_log_debug("\t\t%s", cinfo.data);
 						  gnutls_free (cinfo.data);
 						}
 						
 						if (conn->cc_tls_para.cn) {
 							if (!gnutls_x509_crt_check_hostname (cert, conn->cc_tls_para.cn)) {
-								fd_log_debug("\tTLS: Remote certificate invalid on socket %d (Remote: '%s')(Connection: '%s') :\n", conn->cc_socket, conn->cc_remid, conn->cc_id);
-								fd_log_debug("\t - The certificate hostname does not match '%s'\n", conn->cc_tls_para.cn);
+								fd_log_debug("\tTLS: Remote certificate invalid on socket %d (Remote: '%s')(Connection: '%s') :", conn->cc_socket, conn->cc_remid, conn->cc_id);
+								fd_log_debug("\t - The certificate hostname does not match '%s'", conn->cc_tls_para.cn);
 								gnutls_x509_crt_deinit (cert);
 								return GNUTLS_E_CERTIFICATE_ERROR;
 							}
@@ -1414,39 +1415,39 @@ int fd_tls_verify_credentials_2(gnutls_session_t session)
 		}                           /* switch */
 
 		if (ecdh != 0)
-			fd_log_debug("\t - Ephemeral ECDH using curve %s\n",
+			fd_log_debug("\t - Ephemeral ECDH using curve %s",
 				gnutls_ecc_curve_get_name (gnutls_ecc_curve_get (session)));
 		else if (dhe != 0)
-			fd_log_debug("\t - Ephemeral DH using prime of %d bits\n",
+			fd_log_debug("\t - Ephemeral DH using prime of %d bits",
 				gnutls_dh_get_prime_bits (session));
 
 		/* print the protocol's name (ie TLS 1.0) 
 		*/
 		tmp = gnutls_protocol_get_name (gnutls_protocol_get_version (session));
-		fd_log_debug("\t - Protocol: %s\n", tmp);
+		fd_log_debug("\t - Protocol: %s", tmp);
 
 		/* print the certificate type of the peer.
 		* ie X.509
 		*/
 		tmp = gnutls_certificate_type_get_name (gnutls_certificate_type_get (session));
-		fd_log_debug("\t - Certificate Type: %s\n", tmp);
+		fd_log_debug("\t - Certificate Type: %s", tmp);
 
 		/* print the compression algorithm (if any)
 		*/
 		tmp = gnutls_compression_get_name (gnutls_compression_get (session));
-		fd_log_debug("\t - Compression: %s\n", tmp);
+		fd_log_debug("\t - Compression: %s", tmp);
 
 		/* print the name of the cipher used.
 		* ie 3DES.
 		*/
 		tmp = gnutls_cipher_get_name (gnutls_cipher_get (session));
-		fd_log_debug("\t - Cipher: %s\n", tmp);
+		fd_log_debug("\t - Cipher: %s", tmp);
 
 		/* Print the MAC algorithms name.
 		* ie SHA1
 		*/
 		tmp = gnutls_mac_get_name (gnutls_mac_get (session));
-		fd_log_debug("\t - MAC: %s\n", tmp);
+		fd_log_debug("\t - MAC: %s", tmp);
 	
 	}
 
@@ -1455,18 +1456,18 @@ int fd_tls_verify_credentials_2(gnutls_session_t session)
 	*/
 	CHECK_GNUTLS_DO( gnutls_certificate_verify_peers2 (session, &status), return GNUTLS_E_CERTIFICATE_ERROR );
 	if (TRACE_BOOL(INFO) && (status & GNUTLS_CERT_INVALID)) {
-		fd_log_debug("TLS: Remote certificate invalid on socket %d (Remote: '%s')(Connection: '%s') :\n", conn->cc_socket, conn->cc_remid, conn->cc_id);
+		fd_log_debug("TLS: Remote certificate invalid on socket %d (Remote: '%s')(Connection: '%s') :", conn->cc_socket, conn->cc_remid, conn->cc_id);
 		if (status & GNUTLS_CERT_SIGNER_NOT_FOUND)
-			fd_log_debug(" - The certificate hasn't got a known issuer.\n");
+			fd_log_debug(" - The certificate hasn't got a known issuer.");
 
 		if (status & GNUTLS_CERT_REVOKED)
-			fd_log_debug(" - The certificate has been revoked.\n");
+			fd_log_debug(" - The certificate has been revoked.");
 
 		if (status & GNUTLS_CERT_EXPIRED)
-			fd_log_debug(" - The certificate has expired.\n");
+			fd_log_debug(" - The certificate has expired.");
 
 		if (status & GNUTLS_CERT_NOT_ACTIVATED)
-			fd_log_debug(" - The certificate is not yet activated.\n");
+			fd_log_debug(" - The certificate is not yet activated.");
 	}	
 	if (status & GNUTLS_CERT_INVALID)
 	{
@@ -1479,7 +1480,7 @@ int fd_tls_verify_credentials_2(gnutls_session_t session)
 	*/
 	if ((!hostname_verified) && (conn->cc_tls_para.cn)) {
 		if (gnutls_certificate_type_get (session) != GNUTLS_CRT_X509) {
-			TRACE_DEBUG(INFO, "TLS: Remote credentials are not x509, rejected on socket %d (Remote: '%s')(Connection: '%s') :\n", conn->cc_socket, conn->cc_remid, conn->cc_id);
+			TRACE_DEBUG(INFO, "TLS: Remote credentials are not x509, rejected on socket %d (Remote: '%s')(Connection: '%s') :", conn->cc_socket, conn->cc_remid, conn->cc_id);
 			return GNUTLS_E_CERTIFICATE_ERROR;
 		}
 
@@ -1492,8 +1493,8 @@ int fd_tls_verify_credentials_2(gnutls_session_t session)
 
 		if (!gnutls_x509_crt_check_hostname (cert, conn->cc_tls_para.cn)) {
 			if (TRACE_BOOL(INFO)) {
-				fd_log_debug("TLS: Remote certificate invalid on socket %d (Remote: '%s')(Connection: '%s') :\n", conn->cc_socket, conn->cc_remid, conn->cc_id);
-				fd_log_debug(" - The certificate hostname does not match '%s'\n", conn->cc_tls_para.cn);
+				fd_log_debug("TLS: Remote certificate invalid on socket %d (Remote: '%s')(Connection: '%s') :", conn->cc_socket, conn->cc_remid, conn->cc_id);
+				fd_log_debug(" - The certificate hostname does not match '%s'", conn->cc_tls_para.cn);
 			}
 			gnutls_x509_crt_deinit (cert);
 			return GNUTLS_E_CERTIFICATE_ERROR;
@@ -1572,7 +1573,7 @@ int fd_cnx_handshake(struct cnxctx * conn, int mode, char * priority, void * alt
 		CHECK_GNUTLS_DO( ret = gnutls_handshake(conn->cc_tls_para.session),
 			{
 				if (TRACE_BOOL(INFO)) {
-					fd_log_debug("TLS Handshake failed on socket %d (%s) : %s\n", conn->cc_socket, conn->cc_id, gnutls_strerror(ret));
+					fd_log_debug("TLS Handshake failed on socket %d (%s) : %s", conn->cc_socket, conn->cc_id, gnutls_strerror(ret));
 				}
 				fd_cnx_markerror(conn);
 				return EINVAL;

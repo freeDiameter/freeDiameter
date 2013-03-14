@@ -713,7 +713,7 @@ int main(int argc, char *argv[])
 
 		#if 0
 		/* For debug: dump the object */
-		fd_log_debug("Dumping CER\n");
+		fd_log_debug("Dumping CER");
 		fd_msg_dump_walk(0, cer);
 		#endif
 		

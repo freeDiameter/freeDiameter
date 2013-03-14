@@ -314,7 +314,7 @@ static int verify_object( struct dict_object * obj )
 			&& (obj->typeyec == dict_obj_info[obj->type].eyecatcher),
 		{
 			if (obj) {
-				TRACE_DEBUG(FULL, "Invalid object : %p\n"
+				TRACE_DEBUG(FULL, "Invalid object : %p"
 						  "     obj->objeyec : %x / %x\n"
 						  "     obj->type    : %d\n"
 						  "     obj->objeyec : %x / %x\n"
@@ -1281,7 +1281,7 @@ static void dump_object ( struct dict_object * obj, int parents, int depth, int 
 		int i;
 		for (i=0; i<NB_LISTS_PER_OBJ; i++) {
 			if ((obj->list[i].o == NULL) && (obj->list[i].next != &obj->list[i])) {
-				fd_log_debug("%*s>%p: list[%d]:\n", indent, "", obj, i);
+				fd_log_debug("%*s>%p: list[%d]:", indent, "", obj, i);
 				dump_list(&obj->list[i], parents, depth - 1, indent + 2);
 			}
 		}
@@ -1290,7 +1290,7 @@ static void dump_object ( struct dict_object * obj, int parents, int depth, int 
 
 void fd_dict_dump_object(struct dict_object * obj)
 {
-	fd_log_debug("Dictionary object %p dump:\n", obj);
+	fd_log_debug("Dictionary object %p dump:", obj);
 	dump_object( obj, 1, 2, 2 );
 }
 
@@ -1303,37 +1303,37 @@ void fd_dict_dump(struct dictionary * dict)
 	
 	CHECK_POSIX_DO(  pthread_rwlock_rdlock( &dict->dict_lock ), /* ignore */  );
 	
-	fd_log_debug("######################################################\n");
-	fd_log_debug("###### Dumping vendors, AVPs and related rules #######\n");
+	fd_log_debug("######################################################");
+	fd_log_debug("###### Dumping vendors, AVPs and related rules #######");
 	
 	dump_object( &dict->dict_vendors, 0, 3, 0 );
 	for (li = dict->dict_vendors.list[0].next; li != &dict->dict_vendors.list[0]; li = li->next)
 		dump_object( li->o, 0, 3, 0 );
 	
-	fd_log_debug("######          Dumping applications           #######\n");
+	fd_log_debug("######          Dumping applications           #######");
 
 	dump_object( &dict->dict_applications, 0, 1, 0 );
 	for (li = dict->dict_applications.list[0].next; li != &dict->dict_applications.list[0]; li = li->next)
 		dump_object( li->o, 0, 1, 0 );
 	
-	fd_log_debug("######             Dumping types               #######\n");
+	fd_log_debug("######             Dumping types               #######");
 
 	dump_list( &dict->dict_types, 0, 2, 0 );
 	
-	fd_log_debug("######      Dumping commands per name          #######\n");
+	fd_log_debug("######      Dumping commands per name          #######");
 
 	dump_list( &dict->dict_cmd_name, 0, 2, 0 );
 	
-	fd_log_debug("######   Dumping commands per code and flags   #######\n");
+	fd_log_debug("######   Dumping commands per code and flags   #######");
 
 	dump_list( &dict->dict_cmd_code, 0, 0, 0 );
 	
-	fd_log_debug("######             Statistics                  #######\n");
+	fd_log_debug("######             Statistics                  #######");
 
 	for (i=1; i<=DICT_TYPE_MAX; i++)
-		fd_log_debug(" %5d objects of type %s\n", dict->dict_count[i], dict_obj_info[i].name);
+		fd_log_debug(" %5d objects of type %s", dict->dict_count[i], dict_obj_info[i].name);
 	
-	fd_log_debug("######################################################\n");
+	fd_log_debug("######################################################");
 	
 	/* Free the rwlock */
 	CHECK_POSIX_DO(  pthread_rwlock_unlock( &dict->dict_lock ), /* ignore */  );
@@ -1866,9 +1866,9 @@ error_unlock:
 		if (ret) {
 			TRACE_DEBUG(INFO, "An existing object with different non-key data was found: EEXIST");
 			if (TRACE_BOOL(INFO)) {
-				fd_log_debug("New object to insert:\n");
+				fd_log_debug("New object to insert:");
 				dump_object(new, 0, 0, 3);
-				fd_log_debug("Object already in dictionary:\n");			
+				fd_log_debug("Object already in dictionary:");			
 				dump_object(locref, 0, 0 , 3);
 			}
 		} else {

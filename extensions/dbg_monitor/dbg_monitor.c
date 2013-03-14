@@ -60,13 +60,13 @@ static void * mn_thr(void * arg)
 	while (1) {
 		#ifdef DEBUG
 		for (i++; i % 30; i++) {
-			fd_log_debug("[dbg_monitor] %ih%*im%*is\n", i/3600, 2, (i/60) % 60 , 2, i%60); /* This makes it easier to detect inactivity periods in the log file */
+			fd_log_debug("[dbg_monitor] %ih%*im%*is", i/3600, 2, (i/60) % 60 , 2, i%60); /* This makes it easier to detect inactivity periods in the log file */
 			sleep(1);
 		}
 		#else /* DEBUG */
 		sleep(3600); /* 1 hour */
 		#endif /* DEBUG */
-		fd_log_debug("[dbg_monitor] Dumping current information\n");
+		fd_log_debug("[dbg_monitor] Dumping current information");
 		CHECK_FCT_DO(fd_event_send(fd_g_config->cnf_main_ev, FDEV_DUMP_QUEUES, 0, NULL), /* continue */);
 		CHECK_FCT_DO(fd_event_send(fd_g_config->cnf_main_ev, FDEV_DUMP_SERV, 0, NULL), /* continue */);
 		CHECK_FCT_DO(fd_event_send(fd_g_config->cnf_main_ev, FDEV_DUMP_PEERS, 0, NULL), /* continue */);
@@ -79,7 +79,7 @@ static void * mn_thr(void * arg)
 /* Function called on receipt of MONITOR_SIGNAL */
 static void got_sig()
 {
-	fd_log_debug("[dbg_monitor] Dumping extra information\n");
+	fd_log_debug("[dbg_monitor] Dumping extra information");
 	CHECK_FCT_DO(fd_event_send(fd_g_config->cnf_main_ev, FDEV_DUMP_DICT, 0, NULL), /* continue */);
 	CHECK_FCT_DO(fd_event_send(fd_g_config->cnf_main_ev, FDEV_DUMP_CONFIG, 0, NULL), /* continue */);
 	CHECK_FCT_DO(fd_event_send(fd_g_config->cnf_main_ev, FDEV_DUMP_EXT, 0, NULL), /* continue */);

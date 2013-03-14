@@ -86,7 +86,7 @@ static int sample_main(char * conffile)
 		
 		fd_dict_dump_object(example_avp_avp);
 	}
-	TRACE_DEBUG(INFO, "'Example-AVP' created without error\n");
+	TRACE_DEBUG(INFO, "'Example-AVP' created without error");
 	
 	/* Call the c++ function */
 	mycppfunc();

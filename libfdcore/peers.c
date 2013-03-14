@@ -404,22 +404,23 @@ int fd_peer_fini()
 /* Dump info of one peer */
 void fd_peer_dump(struct fd_peer * peer, int details)
 {
+	char buf[1024];
 	if (peer->p_eyec != EYEC_PEER) {
-		fd_log_debug("  Invalid peer @ %p !\n", peer);
+		fd_log_debug("  Invalid peer @ %p !", peer);
 		return;
 	}
 
-	fd_log_debug(">  %s\t%s\t[%dsr]", STATE_STR(fd_peer_getstate(peer)), peer->p_hdr.info.pi_diamid, peer->p_sr.cnt);
+	snprintf(buf, sizeof(buf), ">  %s\t%s\t[%dsr]", STATE_STR(fd_peer_getstate(peer)), peer->p_hdr.info.pi_diamid, peer->p_sr.cnt);
 	if (details > INFO) {
-		fd_log_debug("\t(rlm:%s)", peer->p_hdr.info.runtime.pir_realm ?: "<unknown>");
+		snprintf(buf+strlen(buf), sizeof(buf)-strlen(buf), "\t(rlm:%s)", peer->p_hdr.info.runtime.pir_realm ?: "<unknown>");
 		if (peer->p_hdr.info.runtime.pir_prodname)
-			fd_log_debug("\t['%s' %u]", peer->p_hdr.info.runtime.pir_prodname, peer->p_hdr.info.runtime.pir_firmrev);
+			snprintf(buf+strlen(buf), sizeof(buf)-strlen(buf), "\t['%s' %u]", peer->p_hdr.info.runtime.pir_prodname, peer->p_hdr.info.runtime.pir_firmrev);
 	}
-	fd_log_debug("\n");
+	fd_log_debug(buf);
 	if (details > FULL) {
 		/* Dump all info */
-		fd_log_debug("\tEntry origin : %s\n", peer->p_dbgorig?: "not set");
-		fd_log_debug("\tConfig flags : %s%s%s%s%s - %s%s%s\n", 
+		fd_log_debug("\tEntry origin : %s", peer->p_dbgorig?: "not set");
+		fd_log_debug("\tConfig flags : %s%s%s%s%s - %s%s%s", 
 				peer->p_hdr.info.config.pic_flags.pro3 == PI_P3_DEFAULT ? "" :
 					(peer->p_hdr.info.config.pic_flags.pro3 == PI_P3_IP ? "IP." : "IPv6."),
 				peer->p_hdr.info.config.pic_flags.pro4 == PI_P4_DEFAULT ? "" :
@@ -430,7 +431,7 @@ void fd_peer_dump(struct fd_peer * peer, int details)
 				peer->p_hdr.info.config.pic_flags.exp ? "Expire." : "",
 				peer->p_hdr.info.config.pic_flags.persist ? "Persist." : ""
 				);
-		fd_log_debug("\tLifetime : %d sec\n", peer->p_hdr.info.config.pic_lft);
+		fd_log_debug("\tLifetime : %d sec", peer->p_hdr.info.config.pic_lft);
 	}
 }
 
@@ -439,7 +440,7 @@ void fd_peer_dump_list(int details)
 {
 	struct fd_list * li;
 	
-	fd_log_debug("Dumping list of peers :\n");
+	fd_log_debug("Dumping list of peers :");
 	CHECK_FCT_DO( pthread_rwlock_rdlock(&fd_g_peers_rw), /* continue */ );
 	
 	for (li = fd_g_peers.next; li != &fd_g_peers; li = li->next) {

@@ -319,11 +319,11 @@ void rgw_msg_dump(struct rgw_radius_msg_meta * msg, int has_meta)
 	
 	auth =  &(msg->radius.hdr->authenticator[0]);
 	
-	fd_log_debug("------ RADIUS msg dump -------\n");
-	fd_log_debug(" id  : 0x%02hhx, code : %hhd (%s), length : %d\n", msg->radius.hdr->identifier, msg->radius.hdr->code, rgw_msg_code_str(msg->radius.hdr->code), ntohs(msg->radius.hdr->length));
-	fd_log_debug(" auth: %02hhx %02hhx %02hhx %02hhx  %02hhx %02hhx %02hhx %02hhx\n",
+	fd_log_debug("------ RADIUS msg dump -------");
+	fd_log_debug(" id  : 0x%02hhx, code : %hhd (%s), length : %d", msg->radius.hdr->identifier, msg->radius.hdr->code, rgw_msg_code_str(msg->radius.hdr->code), ntohs(msg->radius.hdr->length));
+	fd_log_debug(" auth: %02hhx %02hhx %02hhx %02hhx  %02hhx %02hhx %02hhx %02hhx",
 			auth[0], auth[1], auth[2], auth[3], auth[4], auth[5], auth[6], auth[7]);
-	fd_log_debug("       %02hhx %02hhx %02hhx %02hhx  %02hhx %02hhx %02hhx %02hhx\n",
+	fd_log_debug("       %02hhx %02hhx %02hhx %02hhx  %02hhx %02hhx %02hhx %02hhx",
 			auth[8],  auth[9],  auth[10], auth[11], auth[12], auth[13], auth[14], auth[15]);
 	for (i = 0; i < msg->radius.attr_used; i++) {
 		struct radius_attr_hdr *attr = (struct radius_attr_hdr *)(msg->radius.buf + msg->radius.attr_pos[i]);
@@ -331,14 +331,14 @@ void rgw_msg_dump(struct rgw_radius_msg_meta * msg, int has_meta)
 		radius_msg_dump_attr_val(attr);
 	}
 	if (has_meta && msg->ps_nb) {
-		fd_log_debug("---- hidden attributes:\n");
+		fd_log_debug("---- hidden attributes:");
 		for (i = msg->ps_first; i < msg->ps_first + msg->ps_nb; i++) {
 			struct radius_attr_hdr *attr = (struct radius_attr_hdr *)(msg->radius.buf + msg->radius.attr_pos[i]);
 			fd_log_debug("    - Type: 0x%02hhx (%s)\n       Len: %-3hhu", attr->type, rgw_msg_attrtype_str(attr->type), attr->length);
 			radius_msg_dump_attr_val(attr);
 		}
 	}
-	fd_log_debug("-----------------------------\n");
+	fd_log_debug("-----------------------------");
 }
 
 
@@ -526,12 +526,12 @@ int rgw_msg_parse(unsigned char * buf, size_t len, struct rgw_radius_msg_meta **
 	hdr = (struct radius_hdr *) buf;
 	msg_len = ntohs(hdr->length);
 	if (msg_len < sizeof(*hdr) || msg_len > len) {
-		TRACE_DEBUG(INFO, "Invalid RADIUS message length\n");
+		TRACE_DEBUG(INFO, "Invalid RADIUS message length");
 		return EINVAL;
 	}
 
 	if (msg_len < len) {
-		TRACE_DEBUG(INFO, "Ignored %lu extra bytes after RADIUS message\n",
+		TRACE_DEBUG(INFO, "Ignored %lu extra bytes after RADIUS message",
 		       (unsigned long) len - msg_len);
 	}
 

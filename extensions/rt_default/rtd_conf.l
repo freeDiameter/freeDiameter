@@ -81,7 +81,7 @@ qstring		\"[^\"\n]*\"
 				ret = sscanf(yytext, "%i", &yylval->integer);
 				if (ret != 1) {
 					/* No matching: an error occurred */
-					fd_log_debug("Unable to convert the value '%s' to a valid number: %s\n", yytext, strerror(errno));
+					fd_log_debug("Unable to convert the value '%s' to a valid number: %s", yytext, strerror(errno));
 					return LEX_ERROR; /* trig an error in yacc parser */
 					/* Maybe we could REJECT instead of failing here? */
 				}
@@ -106,7 +106,7 @@ qstring		\"[^\"\n]*\"
 				/* Match a quoted string containing a regex */
 				CHECK_MALLOC_DO( yylval->string = strdup(yytext+2), 
 				{
-					TRACE_DEBUG(INFO, "Unable to copy the string '%s': %s\n", yytext, strerror(errno));
+					TRACE_DEBUG(INFO, "Unable to copy the string '%s': %s", yytext, strerror(errno));
 					return LEX_ERROR; /* trig an error in yacc parser */
 				} );
 				yylval->string[strlen(yytext) - 4] = '\0';
@@ -118,7 +118,7 @@ qstring		\"[^\"\n]*\"
 				/* Match a quoted string. */
 				CHECK_MALLOC_DO( yylval->string = strdup(yytext+1), 
 				{
-					TRACE_DEBUG(INFO, "Unable to copy the string '%s': %s\n", yytext, strerror(errno));
+					TRACE_DEBUG(INFO, "Unable to copy the string '%s': %s", yytext, strerror(errno));
 					return LEX_ERROR; /* trig an error in yacc parser */
 				} );
 				yylval->string[strlen(yytext) - 2] = '\0';
@@ -139,7 +139,7 @@ qstring		\"[^\"\n]*\"
 
 	/* Unrecognized sequence, if it did not match any previous pattern */
 [^[:space:]\"*:=+;\n]+	{ 
-				fd_log_debug("Unrecognized text on line %d col %d: '%s'.\n", yylloc->first_line, yylloc->first_column, yytext);
+				fd_log_debug("Unrecognized text on line %d col %d: '%s'.", yylloc->first_line, yylloc->first_column, yytext);
 			 	return LEX_ERROR; 
 			}
 

@@ -60,7 +60,7 @@ int main(int argc, char *argv[])
 		
 		#if 0
 		/* For debug: dump the object */
-		fd_log_debug("Dumping Accounting-Request empty message\n");
+		fd_log_debug("Dumping Accounting-Request empty message");
 		fd_msg_dump_walk( 0, acr );
 		#endif
 	}
@@ -77,9 +77,9 @@ int main(int argc, char *argv[])
 
 		#if 0
 		/* For debug: dump the object */
-		fd_log_debug("Dumping Proxy-Info AVP\n");
+		fd_log_debug("Dumping Proxy-Info AVP");
 		fd_msg_dump_walk(0, pi);
-		fd_log_debug("Dumping dictionary model\n");
+		fd_log_debug("Dumping dictionary model");
 		fd_dict_dump_object(pi_model);
 		#endif
 		
@@ -105,7 +105,7 @@ int main(int argc, char *argv[])
 		CHECK( 0, fd_msg_avp_add( acr, MSG_BRW_LAST_CHILD, pi) );
 		#if 0
 		/* For debug: dump the object */
-		fd_log_debug("Dumping Accounting-Request with Proxy-Info AVP at the end\n");
+		fd_log_debug("Dumping Accounting-Request with Proxy-Info AVP at the end");
 		fd_msg_dump_walk(0, acr);
 		#endif
 	}
@@ -363,7 +363,7 @@ int main(int argc, char *argv[])
 			CHECK( 0, fd_msg_avp_setvalue ( avpi, &value ) );
 			CHECK( 0, fd_msg_update_length ( avpi ) );
 			#if 0
-			fd_log_debug("AVP no vendor, value 3.1415:\n");
+			fd_log_debug("AVP no vendor, value 3.1415:");
 			fd_msg_dump_one(0, avpi);
 			#endif
 			CHECK( 0, fd_msg_avp_hdr ( avpi, &avpdata ) );
@@ -380,7 +380,7 @@ int main(int argc, char *argv[])
 			CHECK( 0, fd_msg_avp_setvalue ( avpi, &value ) );
 			CHECK( 0, fd_msg_update_length ( avpi ) );
 			#if 0
-			fd_log_debug("AVP vendor, value 0x123456789abcdeL:\n");
+			fd_log_debug("AVP vendor, value 0x123456789abcdeL:");
 			fd_msg_dump_one(0, avpi);
 			#endif
 			CHECK( 0, fd_msg_avp_hdr ( avpi, &avpdata ) );
@@ -406,7 +406,7 @@ int main(int argc, char *argv[])
 				CHECK( 0, fd_dict_getval ( value_model, &request.search ) );
 				CHECK( 0, fd_msg_avp_setvalue ( avpi, &request.search.enum_value ) );
 				#if 0
-				fd_log_debug("AVP enum i32, value 2 (from const):\n");
+				fd_log_debug("AVP enum i32, value 2 (from const):");
 				fd_msg_dump_one(0, avpi);
 				#endif
 			}
@@ -427,7 +427,7 @@ int main(int argc, char *argv[])
 				CHECK( 0, fd_dict_getval ( value_model, &request.search ) );
 				CHECK( 0, fd_msg_avp_setvalue ( avpi, &request.search.enum_value ) );
 				#if 0
-				fd_log_debug("AVP enum i32, value -5 (from const):\n");
+				fd_log_debug("AVP enum i32, value -5 (from const):");
 				fd_msg_dump_one(0, avpi);
 				#endif
 				/* Check the size is correct ( 12 for header + 4 for value ) */
@@ -442,7 +442,7 @@ int main(int argc, char *argv[])
 			CHECK( 0, fd_msg_avp_setvalue ( avpi, &value ) );
 			CHECK( 0, fd_msg_update_length ( avpi ) );
 			#if 0
-			fd_log_debug("AVP vendor enum i32, value -10 (not const):\n");
+			fd_log_debug("AVP vendor enum i32, value -10 (not const):");
 			fd_msg_dump_one(0, avpi);
 			#endif
 			
@@ -457,7 +457,7 @@ int main(int argc, char *argv[])
 				memset(&buf, 0, sizeof(buf)); /* Test that the OS value is really copied */
 				CHECK( 0, fd_msg_update_length ( avpi ) );
 				#if 0
-				fd_log_debug("AVP octet string, 'This\\0 is a b...'\n");
+				fd_log_debug("AVP octet string, 'This\\0 is a b...'");
 				fd_msg_dump_one(0, avpi);
 				#endif
 				CHECK( 0, fd_msg_avp_hdr ( avpi, &avpdata ) );
@@ -486,7 +486,7 @@ int main(int argc, char *argv[])
 				CHECK( 0, fd_dict_getval ( value_model, &request.search ) );
 				CHECK( 0, fd_msg_avp_setvalue ( avpi, &request.search.enum_value ) );
 				#if 0
-				fd_log_debug("AVP Enumuerated OctetString (from const):\n");
+				fd_log_debug("AVP Enumuerated OctetString (from const):");
 				fd_msg_dump_one(0, avpi);
 				#endif
 				/* Check the size is correct ( 12 for header + 5 for value ) */
@@ -511,7 +511,7 @@ int main(int argc, char *argv[])
 				CHECK( 0, fd_dict_getval ( value_model, &request.search ) );
 				CHECK( 0, fd_msg_avp_setvalue ( avpi, &request.search.enum_value ) );
 				#if 0
-				fd_log_debug("AVP Enumuerated OctetString (from const):\n");
+				fd_log_debug("AVP Enumuerated OctetString (from const):");
 				fd_msg_dump_one(0, avpi);
 				#endif
 				/* Check the size is correct ( 12 for header + 3 for value ) */
@@ -533,7 +533,7 @@ int main(int argc, char *argv[])
 				value.os.len = 8;
 				CHECK( 0, fd_msg_avp_setvalue ( avpch, &value ) );
 				#if 0
-				fd_log_debug("AVP octet string, '1234678'\n");
+				fd_log_debug("AVP octet string, '1234678'");
 				fd_msg_dump_one(0, avpch);
 				#endif
 				CHECK( 0, fd_msg_update_length ( avpch ) );
@@ -546,7 +546,7 @@ int main(int argc, char *argv[])
 				value.os.len = 9;
 				CHECK( 0, fd_msg_avp_setvalue ( avpch, &value ) );
 				#if 0
-				fd_log_debug("AVP octet string, '12346789'\n");
+				fd_log_debug("AVP octet string, '12346789'");
 				fd_msg_dump_one(0, avpch);
 				#endif
 			  }

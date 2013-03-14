@@ -87,9 +87,9 @@ static int fd_setsockopt_prebind(int sk)
 				TRACE_DEBUG(INFO, "Invalid size of socket option: %d / %d", sz, (socklen_t)sizeof(rtoinfo));
 				return ENOTSUP;
 			}
-			fd_log_debug( "Def SCTP_RTOINFO : srto_initial : %u\n", rtoinfo.srto_initial);
-			fd_log_debug( "                   srto_min     : %u\n", rtoinfo.srto_min);
-			fd_log_debug( "                   srto_max     : %u\n", rtoinfo.srto_max);
+			fd_log_debug( "Def SCTP_RTOINFO : srto_initial : %u", rtoinfo.srto_initial);
+			fd_log_debug( "                   srto_min     : %u", rtoinfo.srto_min);
+			fd_log_debug( "                   srto_max     : %u", rtoinfo.srto_max);
 		}
 
 		/* rtoinfo.srto_initial: Estimate of the RTT before it can be measured; keep the default value */
@@ -102,9 +102,9 @@ static int fd_setsockopt_prebind(int sk)
 		if (TRACE_BOOL(SCTP_LEVEL)) {
 			/* Check new values */
 			CHECK_SYS(  getsockopt(sk, IPPROTO_SCTP, SCTP_RTOINFO, &rtoinfo, &sz)  );
-			fd_log_debug( "New SCTP_RTOINFO : srto_initial : %u\n", rtoinfo.srto_initial);
-			fd_log_debug( "                   srto_max     : %u\n", rtoinfo.srto_max);
-			fd_log_debug( "                   srto_min     : %u\n", rtoinfo.srto_min);
+			fd_log_debug( "New SCTP_RTOINFO : srto_initial : %u", rtoinfo.srto_initial);
+			fd_log_debug( "                   srto_max     : %u", rtoinfo.srto_max);
+			fd_log_debug( "                   srto_min     : %u", rtoinfo.srto_min);
 		}
 	}
 	#else /* SCTP_RTOINFO */
@@ -126,11 +126,11 @@ static int fd_setsockopt_prebind(int sk)
 				TRACE_DEBUG(INFO, "Invalid size of socket option: %d / %d", sz, (socklen_t)sizeof(assoc));
 				return ENOTSUP;
 			}
-			fd_log_debug( "Def SCTP_ASSOCINFO : sasoc_asocmaxrxt               : %hu\n", assoc.sasoc_asocmaxrxt);
-			fd_log_debug( "                     sasoc_number_peer_destinations : %hu\n", assoc.sasoc_number_peer_destinations);
-			fd_log_debug( "                     sasoc_peer_rwnd                : %u\n" , assoc.sasoc_peer_rwnd);
-			fd_log_debug( "                     sasoc_local_rwnd               : %u\n" , assoc.sasoc_local_rwnd);
-			fd_log_debug( "                     sasoc_cookie_life              : %u\n" , assoc.sasoc_cookie_life);
+			fd_log_debug( "Def SCTP_ASSOCINFO : sasoc_asocmaxrxt               : %hu", assoc.sasoc_asocmaxrxt);
+			fd_log_debug( "                     sasoc_number_peer_destinations : %hu", assoc.sasoc_number_peer_destinations);
+			fd_log_debug( "                     sasoc_peer_rwnd                : %u" , assoc.sasoc_peer_rwnd);
+			fd_log_debug( "                     sasoc_local_rwnd               : %u" , assoc.sasoc_local_rwnd);
+			fd_log_debug( "                     sasoc_cookie_life              : %u" , assoc.sasoc_cookie_life);
 		}
 
 		assoc.sasoc_asocmaxrxt = 4;	/* Maximum number of retransmission attempts: we want fast detection of errors */
@@ -142,11 +142,11 @@ static int fd_setsockopt_prebind(int sk)
 		if (TRACE_BOOL(SCTP_LEVEL)) {
 			/* Check new values */
 			CHECK_SYS(  getsockopt(sk, IPPROTO_SCTP, SCTP_ASSOCINFO, &assoc, &sz)  );
-			fd_log_debug( "New SCTP_ASSOCINFO : sasoc_asocmaxrxt               : %hu\n", assoc.sasoc_asocmaxrxt);
-			fd_log_debug( "                     sasoc_number_peer_destinations : %hu\n", assoc.sasoc_number_peer_destinations);
-			fd_log_debug( "                     sasoc_peer_rwnd                : %u\n" , assoc.sasoc_peer_rwnd);
-			fd_log_debug( "                     sasoc_local_rwnd               : %u\n" , assoc.sasoc_local_rwnd);
-			fd_log_debug( "                     sasoc_cookie_life              : %u\n" , assoc.sasoc_cookie_life);
+			fd_log_debug( "New SCTP_ASSOCINFO : sasoc_asocmaxrxt               : %hu", assoc.sasoc_asocmaxrxt);
+			fd_log_debug( "                     sasoc_number_peer_destinations : %hu", assoc.sasoc_number_peer_destinations);
+			fd_log_debug( "                     sasoc_peer_rwnd                : %u" , assoc.sasoc_peer_rwnd);
+			fd_log_debug( "                     sasoc_local_rwnd               : %u" , assoc.sasoc_local_rwnd);
+			fd_log_debug( "                     sasoc_cookie_life              : %u" , assoc.sasoc_cookie_life);
 		}
 	}
 	#else /* SCTP_ASSOCINFO */
@@ -170,10 +170,10 @@ static int fd_setsockopt_prebind(int sk)
 				TRACE_DEBUG(INFO, "Invalid size of socket option: %d / %d", sz, (socklen_t)sizeof(init));
 				return ENOTSUP;
 			}
-			fd_log_debug( "Def SCTP_INITMSG : sinit_num_ostreams   : %hu\n", init.sinit_num_ostreams);
-			fd_log_debug( "                   sinit_max_instreams  : %hu\n", init.sinit_max_instreams);
-			fd_log_debug( "                   sinit_max_attempts   : %hu\n", init.sinit_max_attempts);
-			fd_log_debug( "                   sinit_max_init_timeo : %hu\n", init.sinit_max_init_timeo);
+			fd_log_debug( "Def SCTP_INITMSG : sinit_num_ostreams   : %hu", init.sinit_num_ostreams);
+			fd_log_debug( "                   sinit_max_instreams  : %hu", init.sinit_max_instreams);
+			fd_log_debug( "                   sinit_max_attempts   : %hu", init.sinit_max_attempts);
+			fd_log_debug( "                   sinit_max_init_timeo : %hu", init.sinit_max_init_timeo);
 		}
 
 		/* Set the init options -- need to receive SCTP_COMM_UP to confirm the requested parameters, but we don't care (best effort) */
@@ -186,10 +186,10 @@ static int fd_setsockopt_prebind(int sk)
 		if (TRACE_BOOL(SCTP_LEVEL)) {
 			/* Check new values */
 			CHECK_SYS(  getsockopt(sk, IPPROTO_SCTP, SCTP_INITMSG, &init, &sz)  );
-			fd_log_debug( "New SCTP_INITMSG : sinit_num_ostreams   : %hu\n", init.sinit_num_ostreams);
-			fd_log_debug( "                   sinit_max_instreams  : %hu\n", init.sinit_max_instreams);
-			fd_log_debug( "                   sinit_max_attempts   : %hu\n", init.sinit_max_attempts);
-			fd_log_debug( "                   sinit_max_init_timeo : %hu\n", init.sinit_max_init_timeo);
+			fd_log_debug( "New SCTP_INITMSG : sinit_num_ostreams   : %hu", init.sinit_num_ostreams);
+			fd_log_debug( "                   sinit_max_instreams  : %hu", init.sinit_max_instreams);
+			fd_log_debug( "                   sinit_max_attempts   : %hu", init.sinit_max_attempts);
+			fd_log_debug( "                   sinit_max_init_timeo : %hu", init.sinit_max_init_timeo);
 		}
 	}
 	#else /* SCTP_INITMSG */
@@ -211,8 +211,8 @@ static int fd_setsockopt_prebind(int sk)
 				TRACE_DEBUG(INFO, "Invalid size of socket option: %d / %d", sz, (socklen_t)sizeof(linger));
 				return ENOTSUP;
 			}
-			fd_log_debug( "Def SO_LINGER : l_onoff  : %d\n", linger.l_onoff);
-			fd_log_debug( " 	       l_linger : %d\n", linger.l_linger);
+			fd_log_debug( "Def SO_LINGER : l_onoff  : %d", linger.l_onoff);
+			fd_log_debug( " 	       l_linger : %d", linger.l_linger);
 		}
 		
 		linger.l_onoff	= 0;	/* Do not activate the linger */
@@ -224,8 +224,8 @@ static int fd_setsockopt_prebind(int sk)
 		if (TRACE_BOOL(SCTP_LEVEL)) {
 			/* Check new values */
 			CHECK_SYS(  getsockopt(sk, SOL_SOCKET, SO_LINGER, &linger, &sz)  );
-			fd_log_debug( "New SO_LINGER : l_onoff  : %d\n", linger.l_onoff);
-			fd_log_debug( "		  l_linger : %d\n", linger.l_linger);
+			fd_log_debug( "New SO_LINGER : l_onoff  : %d", linger.l_onoff);
+			fd_log_debug( "		  l_linger : %d", linger.l_linger);
 		}
 	}
 	#else /* SO_LINGER */
@@ -246,7 +246,7 @@ static int fd_setsockopt_prebind(int sk)
 				TRACE_DEBUG(INFO, "Invalid size of socket option: %d / %d", sz, (socklen_t)sizeof(nodelay));
 				return ENOTSUP;
 			}
-			fd_log_debug( "Def SCTP_NODELAY value : %s\n", nodelay ? "true" : "false");
+			fd_log_debug( "Def SCTP_NODELAY value : %s", nodelay ? "true" : "false");
 		}
 
 		nodelay = 1;	/* We turn ON the Nagle algorithm (probably the default already), since we might have several messages to send through the same proxy (not the same session). */
@@ -257,7 +257,7 @@ static int fd_setsockopt_prebind(int sk)
 		if (TRACE_BOOL(SCTP_LEVEL)) {
 			/* Check new values */
 			CHECK_SYS(  getsockopt(sk, IPPROTO_SCTP, SCTP_NODELAY, &nodelay, &sz)  );
-			fd_log_debug( "New SCTP_NODELAY value : %s\n", nodelay ? "true" : "false");
+			fd_log_debug( "New SCTP_NODELAY value : %s", nodelay ? "true" : "false");
 		}
 	}
 	#else /* SCTP_NODELAY */
@@ -286,7 +286,7 @@ static int fd_setsockopt_prebind(int sk)
 				TRACE_DEBUG(INFO, "Invalid size of socket option: %d / %d", sz, (socklen_t)sizeof(nofrag));
 				return ENOTSUP;
 			}
-			fd_log_debug( "Def SCTP_DISABLE_FRAGMENTS value : %s\n", nofrag ? "true" : "false");
+			fd_log_debug( "Def SCTP_DISABLE_FRAGMENTS value : %s", nofrag ? "true" : "false");
 		}
 
 		nofrag = 0;	/* We turn ON the fragmentation, since Diameter messages & TLS messages can be quite large. */
@@ -297,7 +297,7 @@ static int fd_setsockopt_prebind(int sk)
 		if (TRACE_BOOL(SCTP_LEVEL)) {
 			/* Check new values */
 			CHECK_SYS(  getsockopt(sk, IPPROTO_SCTP, SCTP_DISABLE_FRAGMENTS, &nofrag, &sz)  );
-			fd_log_debug( "New SCTP_DISABLE_FRAGMENTS value : %s\n", nofrag ? "true" : "false");
+			fd_log_debug( "New SCTP_DISABLE_FRAGMENTS value : %s", nofrag ? "true" : "false");
 		}
 	}
 	#else /* SCTP_DISABLE_FRAGMENTS */
@@ -323,12 +323,12 @@ static int fd_setsockopt_prebind(int sk)
 				TRACE_DEBUG(INFO, "Invalid size of socket option: %d / %d", sz, (socklen_t)sizeof(parms));
 				return ENOTSUP;
 			}
-			fd_log_debug( "Def SCTP_PEER_ADDR_PARAMS : spp_hbinterval    : %u\n",  parms.spp_hbinterval);
-			fd_log_debug( "                            spp_pathmaxrxt    : %hu\n", parms.spp_pathmaxrxt);
-			fd_log_debug( "                            spp_pathmtu       : %u\n",  parms.spp_pathmtu);
-			fd_log_debug( "                            spp_flags         : %x\n",  parms.spp_flags);
-			// fd_log_debug( "                            spp_ipv6_flowlabel: %u\n",  parms.spp_ipv6_flowlabel);
-			// fd_log_debug( "                            spp_ipv4_tos      : %hhu\n",parms.spp_ipv4_tos);
+			fd_log_debug( "Def SCTP_PEER_ADDR_PARAMS : spp_hbinterval    : %u",  parms.spp_hbinterval);
+			fd_log_debug( "                            spp_pathmaxrxt    : %hu", parms.spp_pathmaxrxt);
+			fd_log_debug( "                            spp_pathmtu       : %u",  parms.spp_pathmtu);
+			fd_log_debug( "                            spp_flags         : %x",  parms.spp_flags);
+			// fd_log_debug( "                            spp_ipv6_flowlabel: %u",  parms.spp_ipv6_flowlabel);
+			// fd_log_debug( "                            spp_ipv4_tos      : %hhu",parms.spp_ipv4_tos);
 		}
 
 		parms.spp_flags = SPP_HB_ENABLE;	/* Enable heartbeat for the association */
@@ -347,12 +347,12 @@ static int fd_setsockopt_prebind(int sk)
 		if (TRACE_BOOL(SCTP_LEVEL)) {
 			/* Check new values */
 			CHECK_SYS(  getsockopt(sk, IPPROTO_SCTP, SCTP_PEER_ADDR_PARAMS, &parms, &sz)  );
-			fd_log_debug( "New SCTP_PEER_ADDR_PARAMS : spp_hbinterval    : %u\n",  parms.spp_hbinterval);
-			fd_log_debug( "                            spp_pathmaxrxt    : %hu\n", parms.spp_pathmaxrxt);
-			fd_log_debug( "                            spp_pathmtu       : %u\n",  parms.spp_pathmtu);
-			fd_log_debug( "                            spp_flags         : %x\n",  parms.spp_flags);
-			// fd_log_debug( "                            spp_ipv6_flowlabel: %u\n",  parms.spp_ipv6_flowlabel);
-			// fd_log_debug( "                            spp_ipv4_tos      : %hhu\n",parms.spp_ipv4_tos);
+			fd_log_debug( "New SCTP_PEER_ADDR_PARAMS : spp_hbinterval    : %u",  parms.spp_hbinterval);
+			fd_log_debug( "                            spp_pathmaxrxt    : %hu", parms.spp_pathmaxrxt);
+			fd_log_debug( "                            spp_pathmtu       : %u",  parms.spp_pathmtu);
+			fd_log_debug( "                            spp_flags         : %x",  parms.spp_flags);
+			// fd_log_debug( "                            spp_ipv6_flowlabel: %u",  parms.spp_ipv6_flowlabel);
+			// fd_log_debug( "                            spp_ipv4_tos      : %hhu",parms.spp_ipv4_tos);
 		}
 	}
 	#else /* SCTP_PEER_ADDR_PARAMS */
@@ -391,15 +391,15 @@ static int fd_setsockopt_prebind(int sk)
 				return ENOTSUP;
 			}
 
-			fd_log_debug( "SCTP_EVENTS : sctp_data_io_event          : %hhu\n", event.sctp_data_io_event);
-			fd_log_debug( "       	     sctp_association_event      : %hhu\n", event.sctp_association_event);
-			fd_log_debug( "       	     sctp_address_event	         : %hhu\n", event.sctp_address_event);
-			fd_log_debug( "       	     sctp_send_failure_event     : %hhu\n", event.sctp_send_failure_event);
-			fd_log_debug( "       	     sctp_peer_error_event       : %hhu\n", event.sctp_peer_error_event);
-			fd_log_debug( "       	     sctp_shutdown_event	 : %hhu\n", event.sctp_shutdown_event);
-			fd_log_debug( "       	     sctp_partial_delivery_event : %hhu\n", event.sctp_partial_delivery_event);
-			fd_log_debug( "       	     sctp_adaptation_layer_event : %hhu\n", event.sctp_adaptation_layer_event);
-			// fd_log_debug( "             sctp_authentication_event    : %hhu\n", event.sctp_authentication_event);
+			fd_log_debug( "SCTP_EVENTS : sctp_data_io_event          : %hhu", event.sctp_data_io_event);
+			fd_log_debug( "       	     sctp_association_event      : %hhu", event.sctp_association_event);
+			fd_log_debug( "       	     sctp_address_event	         : %hhu", event.sctp_address_event);
+			fd_log_debug( "       	     sctp_send_failure_event     : %hhu", event.sctp_send_failure_event);
+			fd_log_debug( "       	     sctp_peer_error_event       : %hhu", event.sctp_peer_error_event);
+			fd_log_debug( "       	     sctp_shutdown_event	 : %hhu", event.sctp_shutdown_event);
+			fd_log_debug( "       	     sctp_partial_delivery_event : %hhu", event.sctp_partial_delivery_event);
+			fd_log_debug( "       	     sctp_adaptation_layer_event : %hhu", event.sctp_adaptation_layer_event);
+			// fd_log_debug( "             sctp_authentication_event    : %hhu", event.sctp_authentication_event);
 		}
 	}
 	#else /* SCTP_EVENTS */
@@ -420,7 +420,7 @@ static int fd_setsockopt_prebind(int sk)
 				TRACE_DEBUG(INFO, "Invalid size of socket option: %d / %d", sz, (socklen_t)sizeof(v4mapped));
 				return ENOTSUP;
 			}
-			fd_log_debug( "Def SCTP_I_WANT_MAPPED_V4_ADDR value : %s\n", v4mapped ? "true" : "false");
+			fd_log_debug( "Def SCTP_I_WANT_MAPPED_V4_ADDR value : %s", v4mapped ? "true" : "false");
 		}
 
 		#ifndef SCTP_USE_MAPPED_ADDRESSES
@@ -435,7 +435,7 @@ static int fd_setsockopt_prebind(int sk)
 		if (TRACE_BOOL(SCTP_LEVEL)) {
 			/* Check new values */
 			CHECK_SYS(  getsockopt(sk, IPPROTO_SCTP, SCTP_I_WANT_MAPPED_V4_ADDR, &v4mapped, &sz)  );
-			fd_log_debug( "New SCTP_I_WANT_MAPPED_V4_ADDR value : %s\n", v4mapped ? "true" : "false");
+			fd_log_debug( "New SCTP_I_WANT_MAPPED_V4_ADDR value : %s", v4mapped ? "true" : "false");
 		}
 	} else {
 		TRACE_DEBUG(SCTP_LEVEL, "Skipping SCTP_I_WANT_MAPPED_V4_ADDR, since IPv6 disabled.");
@@ -466,7 +466,7 @@ static int fd_setsockopt_prebind(int sk)
 				TRACE_DEBUG(INFO, "Invalid size of socket option: %d / %d", sz, (socklen_t)sizeof(interleave));
 				return ENOTSUP;
 			}
-			fd_log_debug( "Def SCTP_FRAGMENT_INTERLEAVE value : %d\n", interleave);
+			fd_log_debug( "Def SCTP_FRAGMENT_INTERLEAVE value : %d", interleave);
 		}
 
 		#if 0
@@ -481,7 +481,7 @@ static int fd_setsockopt_prebind(int sk)
 		if (TRACE_BOOL(SCTP_LEVEL)) {
 			/* Check new values */
 			CHECK_SYS(  getsockopt(sk, IPPROTO_SCTP, SCTP_FRAGMENT_INTERLEAVE, &interleave, &sz)  );
-			fd_log_debug( "New SCTP_FRAGMENT_INTERLEAVE value : %d\n", interleave);
+			fd_log_debug( "New SCTP_FRAGMENT_INTERLEAVE value : %d", interleave);
 		}
 	}
 	#else /* SCTP_FRAGMENT_INTERLEAVE */
@@ -512,7 +512,7 @@ static int fd_setsockopt_prebind(int sk)
 				TRACE_DEBUG(INFO, "Invalid size of socket option: %d / %d", sz, (socklen_t)sizeof(bool));
 				return ENOTSUP;
 			}
-			fd_log_debug( "Def SCTP_EXPLICIT_EOR value : %s\n", bool ? "true" : "false");
+			fd_log_debug( "Def SCTP_EXPLICIT_EOR value : %s", bool ? "true" : "false");
 		}
 
 		bool = 0;
@@ -523,7 +523,7 @@ static int fd_setsockopt_prebind(int sk)
 		if (TRACE_BOOL(SCTP_LEVEL)) {
 			/* Check new values */
 			CHECK_SYS(  getsockopt(sk, IPPROTO_SCTP, SCTP_EXPLICIT_EOR, &bool, &sz)  );
-			fd_log_debug( "New SCTP_EXPLICIT_EOR value : %s\n", bool ? "true" : "false");
+			fd_log_debug( "New SCTP_EXPLICIT_EOR value : %s", bool ? "true" : "false");
 		}
 	}
 	#else /* SCTP_EXPLICIT_EOR */
@@ -570,7 +570,7 @@ static int fd_setsockopt_postbind(int sk, int bound_to_default)
 				TRACE_DEBUG(INFO, "Invalid size of socket option: %d / %d", sz, (socklen_t)sizeof(asconf));
 				return ENOTSUP;
 			}
-			fd_log_debug( "Def SCTP_AUTO_ASCONF value : %s\n", asconf ? "true" : "false");
+			fd_log_debug( "Def SCTP_AUTO_ASCONF value : %s", asconf ? "true" : "false");
 		}
 
 		asconf = 1;	/* allow automatic use of added or removed addresses in the association (for bound-all sockets) */
@@ -582,7 +582,7 @@ static int fd_setsockopt_postbind(int sk, int bound_to_default)
 			socklen_t sz = sizeof(asconf);
 			/* Check new values */
 			CHECK_SYS(  getsockopt(sk, IPPROTO_SCTP, SCTP_AUTO_ASCONF, &asconf, &sz)  );
-			fd_log_debug( "New SCTP_AUTO_ASCONF value : %s\n", asconf ? "true" : "false");
+			fd_log_debug( "New SCTP_AUTO_ASCONF value : %s", asconf ? "true" : "false");
 		}
 	}
 	#else /* SCTP_AUTO_ASCONF */
@@ -745,7 +745,7 @@ redo:
 			} ptr;
 			int i;
 			ptr.sa = sar;
-			fd_log_debug("Calling sctp_bindx with the following address array:\n");
+			fd_log_debug("Calling sctp_bindx with the following address array:");
 			for (i = 0; i < count; i++) {
 				TRACE_sSA(FD_LOG_DEBUG, FULL, "    - ", ptr.sa, NI_NUMERICHOST | NI_NUMERICSERV, "" );
 				ptr.buf += (ptr.sa->sa_family == AF_INET) ? sizeof(sSA4) : sizeof(sSA6) ;
@@ -773,7 +773,7 @@ redo:
 		
 		CHECK_SYS(  sz = sctp_getladdrs(*sock, 0, &sar)  );
 		
-		fd_log_debug("SCTP server bound on :\n");
+		fd_log_debug("SCTP server bound on :");
 		for (ptr.sa = sar; sz-- > 0; ptr.buf += (ptr.sa->sa_family == AF_INET) ? sizeof(sSA4) : sizeof(sSA6)) {
 			TRACE_sSA(FD_LOG_DEBUG, FULL, "    - ", ptr.sa, NI_NUMERICHOST | NI_NUMERICSERV, "" );
 		}
@@ -910,19 +910,19 @@ int fd_sctp_get_str_info( int sock, uint16_t *in, uint16_t *out, sSS *primary )
 	if (TRACE_BOOL(SCTP_LEVEL)) {
 		char buf[1024];
 		sSA_DUMP_NODE_SERV(buf, sizeof(buf), &status.sstat_primary.spinfo_address, NI_NUMERICHOST | NI_NUMERICSERV );
-		fd_log_debug( "SCTP_STATUS : sstat_state                  : %i\n" , status.sstat_state);
-		fd_log_debug( "              sstat_rwnd  	          : %u\n" , status.sstat_rwnd);
-		fd_log_debug( "		     sstat_unackdata	          : %hu\n", status.sstat_unackdata);
-		fd_log_debug( "		     sstat_penddata 	          : %hu\n", status.sstat_penddata);
-		fd_log_debug( "		     sstat_instrms  	          : %hu\n", status.sstat_instrms);
-		fd_log_debug( "		     sstat_outstrms 	          : %hu\n", status.sstat_outstrms);
-		fd_log_debug( "		     sstat_fragmentation_point    : %u\n" , status.sstat_fragmentation_point);
-		fd_log_debug( "		     sstat_primary.spinfo_address : %s\n" , buf);
-		fd_log_debug( "		     sstat_primary.spinfo_state   : %d\n" , status.sstat_primary.spinfo_state);
-		fd_log_debug( "		     sstat_primary.spinfo_cwnd    : %u\n" , status.sstat_primary.spinfo_cwnd);
-		fd_log_debug( "		     sstat_primary.spinfo_srtt    : %u\n" , status.sstat_primary.spinfo_srtt);
-		fd_log_debug( "		     sstat_primary.spinfo_rto     : %u\n" , status.sstat_primary.spinfo_rto);
-		fd_log_debug( "		     sstat_primary.spinfo_mtu     : %u\n" , status.sstat_primary.spinfo_mtu);
+		fd_log_debug( "SCTP_STATUS : sstat_state                  : %i" , status.sstat_state);
+		fd_log_debug( "              sstat_rwnd  	          : %u" , status.sstat_rwnd);
+		fd_log_debug( "		     sstat_unackdata	          : %hu", status.sstat_unackdata);
+		fd_log_debug( "		     sstat_penddata 	          : %hu", status.sstat_penddata);
+		fd_log_debug( "		     sstat_instrms  	          : %hu", status.sstat_instrms);
+		fd_log_debug( "		     sstat_outstrms 	          : %hu", status.sstat_outstrms);
+		fd_log_debug( "		     sstat_fragmentation_point    : %u" , status.sstat_fragmentation_point);
+		fd_log_debug( "		     sstat_primary.spinfo_address : %s" , buf);
+		fd_log_debug( "		     sstat_primary.spinfo_state   : %d" , status.sstat_primary.spinfo_state);
+		fd_log_debug( "		     sstat_primary.spinfo_cwnd    : %u" , status.sstat_primary.spinfo_cwnd);
+		fd_log_debug( "		     sstat_primary.spinfo_srtt    : %u" , status.sstat_primary.spinfo_srtt);
+		fd_log_debug( "		     sstat_primary.spinfo_rto     : %u" , status.sstat_primary.spinfo_rto);
+		fd_log_debug( "		     sstat_primary.spinfo_mtu     : %u" , status.sstat_primary.spinfo_mtu);
 	}
 	
 	*in = status.sstat_instrms;
@@ -1218,16 +1218,16 @@ again:
 			
 			sndrcv = (struct sctp_sndrcvinfo *) CMSG_DATA(hdr);
 			if (TRACE_BOOL(SCTP_LEVEL)) {
-				fd_log_debug( "Anciliary block IPPROTO_SCTP / SCTP_SNDRCV\n");
-				fd_log_debug( "    sinfo_stream    : %hu\n", sndrcv->sinfo_stream);
-				fd_log_debug( "    sinfo_ssn       : %hu\n", sndrcv->sinfo_ssn);
-				fd_log_debug( "    sinfo_flags     : %hu\n", sndrcv->sinfo_flags);
-				/* fd_log_debug( "    sinfo_pr_policy : %hu\n", sndrcv->sinfo_pr_policy); */
-				fd_log_debug( "    sinfo_ppid      : %u\n" , sndrcv->sinfo_ppid);
-				fd_log_debug( "    sinfo_context   : %u\n" , sndrcv->sinfo_context);
-				/* fd_log_debug( "    sinfo_pr_value  : %u\n" , sndrcv->sinfo_pr_value); */
-				fd_log_debug( "    sinfo_tsn       : %u\n" , sndrcv->sinfo_tsn);
-				fd_log_debug( "    sinfo_cumtsn    : %u\n" , sndrcv->sinfo_cumtsn);
+				fd_log_debug( "Anciliary block IPPROTO_SCTP / SCTP_SNDRCV");
+				fd_log_debug( "    sinfo_stream    : %hu", sndrcv->sinfo_stream);
+				fd_log_debug( "    sinfo_ssn       : %hu", sndrcv->sinfo_ssn);
+				fd_log_debug( "    sinfo_flags     : %hu", sndrcv->sinfo_flags);
+				/* fd_log_debug( "    sinfo_pr_policy : %hu", sndrcv->sinfo_pr_policy); */
+				fd_log_debug( "    sinfo_ppid      : %u" , sndrcv->sinfo_ppid);
+				fd_log_debug( "    sinfo_context   : %u" , sndrcv->sinfo_context);
+				/* fd_log_debug( "    sinfo_pr_value  : %u" , sndrcv->sinfo_pr_value); */
+				fd_log_debug( "    sinfo_tsn       : %u" , sndrcv->sinfo_tsn);
+				fd_log_debug( "    sinfo_cumtsn    : %u" , sndrcv->sinfo_cumtsn);
 			}
 
 			*strid = sndrcv->sinfo_stream;

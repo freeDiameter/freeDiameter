@@ -47,7 +47,7 @@ static int dbgrt_fwd_cb(void * cbdata, struct msg ** msg)
 {
 	TRACE_ENTRY("%p %p", cbdata, msg);
 	
-	fd_log_debug("[dbg_rt] FWD routing message: %p\n", msg ? *msg : NULL);
+	fd_log_debug("[dbg_rt] FWD routing message: %p", msg ? *msg : NULL);
 	if (msg)
 		fd_msg_dump_walk(INFO, *msg);
 	
@@ -61,13 +61,13 @@ static int dbgrt_out_cb(void * cbdata, struct msg * msg, struct fd_list * candid
 	
 	TRACE_ENTRY("%p %p %p", cbdata, msg, candidates);
 	
-	fd_log_debug("[dbg_rt] OUT routing message: %p\n", msg);
+	fd_log_debug("[dbg_rt] OUT routing message: %p", msg);
 	fd_msg_dump_walk(INFO, msg);
-	fd_log_debug("[dbg_rt] Current list of candidates (%p): (score - id)\n", msg);
+	fd_log_debug("[dbg_rt] Current list of candidates (%p): (score - id)", msg);
 	
 	for (li = candidates->next; li != candidates; li = li->next) {
 		struct rtd_candidate *c = (struct rtd_candidate *) li;
-		fd_log_debug("[dbg_rt]   %d -\t%s\n", c->score, c->diamid);
+		fd_log_debug("[dbg_rt]   %d -\t%s", c->score, c->diamid);
 	}
 	
 	return 0;

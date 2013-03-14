@@ -51,25 +51,25 @@ void rgw_servers_dump(void)
 	if ( ! TRACE_BOOL(FULL) )
 		return;
 	
-	fd_log_debug(" auth server:\n");
-	fd_log_debug("    disabled..... : %s\n", rgw_servers.auth_serv.disabled ? "TRUE":"false");
-	fd_log_debug("    IP disabled.. : %s\n", rgw_servers.auth_serv.ip_disabled ? "TRUE":"false");
-	fd_log_debug("    IPv6 disabled : %s\n", rgw_servers.auth_serv.ip6_disabled ? "TRUE":"false");
-	fd_log_debug("    port......... : %hu\n", ntohs(rgw_servers.auth_serv.port));
+	fd_log_debug(" auth server:");
+	fd_log_debug("    disabled..... : %s", rgw_servers.auth_serv.disabled ? "TRUE":"false");
+	fd_log_debug("    IP disabled.. : %s", rgw_servers.auth_serv.ip_disabled ? "TRUE":"false");
+	fd_log_debug("    IPv6 disabled : %s", rgw_servers.auth_serv.ip6_disabled ? "TRUE":"false");
+	fd_log_debug("    port......... : %hu", ntohs(rgw_servers.auth_serv.port));
 	inet_ntop(AF_INET, &rgw_servers.auth_serv.ip_endpoint,ipstr,sizeof(ipstr));
-	fd_log_debug("    IP bind...... : %s\n", ipstr);
+	fd_log_debug("    IP bind...... : %s", ipstr);
 	inet_ntop(AF_INET6, &rgw_servers.auth_serv.ip6_endpoint,ipstr,sizeof(ipstr));
-	fd_log_debug("    IPv6 bind.... : %s\n", ipstr);
+	fd_log_debug("    IPv6 bind.... : %s", ipstr);
 
-	fd_log_debug(" acct server:\n");
-	fd_log_debug("    disabled..... : %s\n", rgw_servers.acct_serv.disabled ? "TRUE":"false");
-	fd_log_debug("    IP disabled.. : %s\n", rgw_servers.acct_serv.ip_disabled ? "TRUE":"false");
-	fd_log_debug("    IPv6 disabled : %s\n", rgw_servers.acct_serv.ip6_disabled ? "TRUE":"false");
-	fd_log_debug("    port......... : %hu\n", ntohs(rgw_servers.acct_serv.port));
+	fd_log_debug(" acct server:");
+	fd_log_debug("    disabled..... : %s", rgw_servers.acct_serv.disabled ? "TRUE":"false");
+	fd_log_debug("    IP disabled.. : %s", rgw_servers.acct_serv.ip_disabled ? "TRUE":"false");
+	fd_log_debug("    IPv6 disabled : %s", rgw_servers.acct_serv.ip6_disabled ? "TRUE":"false");
+	fd_log_debug("    port......... : %hu", ntohs(rgw_servers.acct_serv.port));
 	inet_ntop(AF_INET, &rgw_servers.acct_serv.ip_endpoint,ipstr,sizeof(ipstr));
-	fd_log_debug("    IP bind...... : %s\n", ipstr);
+	fd_log_debug("    IP bind...... : %s", ipstr);
 	inet_ntop(AF_INET6, &rgw_servers.acct_serv.ip6_endpoint,ipstr,sizeof(ipstr));
-	fd_log_debug("    IPv6 bind.... : %s\n", ipstr);
+	fd_log_debug("    IPv6 bind.... : %s", ipstr);
 
 }
 

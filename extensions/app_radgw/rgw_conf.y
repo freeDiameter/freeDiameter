@@ -68,7 +68,7 @@ int rgw_conf_handle(char * conffile)
 	rgw_confin = fopen(conffile, "r");
 	if (rgw_confin == NULL) {
 		ret = errno;
-		fd_log_debug("Unable to open extension configuration file %s for reading: %s\n", conffile, strerror(ret));
+		fd_log_debug("Unable to open extension configuration file %s for reading: %s", conffile, strerror(ret));
 		return ret;
 	}
 
@@ -90,11 +90,11 @@ int rgw_conflex(YYSTYPE *lvalp, YYLTYPE *llocp);
 void yyerror (YYLTYPE *ploc, char * conffile, char const *s)
 {
 	if (ploc->first_line != ploc->last_line)
-		fd_log_debug("%s:%d.%d-%d.%d : %s\n", conffile, ploc->first_line, ploc->first_column, ploc->last_line, ploc->last_column, s);
+		fd_log_debug("%s:%d.%d-%d.%d : %s", conffile, ploc->first_line, ploc->first_column, ploc->last_line, ploc->last_column, s);
 	else if (ploc->first_column != ploc->last_column)
-		fd_log_debug("%s:%d.%d-%d : %s\n", conffile, ploc->first_line, ploc->first_column, ploc->last_column, s);
+		fd_log_debug("%s:%d.%d-%d : %s", conffile, ploc->first_line, ploc->first_column, ploc->last_column, s);
 	else
-		fd_log_debug("%s:%d.%d : %s\n", conffile, ploc->first_line, ploc->first_column, s);
+		fd_log_debug("%s:%d.%d : %s", conffile, ploc->first_line, ploc->first_column, s);
 }
 
 /* Very simple byte stack management */
@@ -110,7 +110,7 @@ static inline int buf_add(unsigned char val) /* add a value in the array */
 		buf_rsz += 256;
 		rez = realloc(buf, buf_rsz);
 		if (rez == NULL) {
-			fd_log_debug("Error on memory allocation: %s\n", strerror(errno));
+			fd_log_debug("Error on memory allocation: %s", strerror(errno));
 			return 0;
 		}
 		buf = (unsigned char *)rez;
@@ -197,7 +197,7 @@ FINDFILEEXT:		QSTRING
 				}
 				if (fd == NULL) {
 					int ret = errno;
-					TRACE_DEBUG(INFO, "Unable to open file %s for reading: %s\n", fname, strerror(ret));
+					TRACE_DEBUG(INFO, "Unable to open file %s for reading: %s", fname, strerror(ret));
 					yyerror (&yylloc, conffile, "Error adding plugin"); 
 					YYERROR;
 				}

@@ -88,7 +88,7 @@ BR_PORT		[[][0-9]+[]]
 				/* First copy the string without the quotes for use in the yacc parser */
 				yylval->string = strdup(yytext+1);
 				if (yylval->string == NULL) {
-					fd_log_debug("Unable to allocate memory: %s\n", strerror(errno));
+					fd_log_debug("Unable to allocate memory: %s", strerror(errno));
 					return LEX_ERROR; /* trig an error in yacc parser */
 				}
 
@@ -110,7 +110,7 @@ BR_PORT		[[][0-9]+[]]
 				int ret = sscanf(yytext, "%x", &yylval->integer);
 				if (ret != 1) {
 					/* No matching: an error occurred */
-					fd_log_debug("Unable to convert the value '%s' to a valid number: %s\n", yytext, strerror(errno));
+					fd_log_debug("Unable to convert the value '%s' to a valid number: %s", yytext, strerror(errno));
 					return LEX_ERROR; /* trig an error in yacc parser */
 					/* Maybe we could REJECT instead of failing here? */
 				}
@@ -132,7 +132,7 @@ BR_PORT		[[][0-9]+[]]
 				
 				work = strdup(yytext);
 				if ( work == NULL ) {
-					fd_log_debug("Unable to allocate memory: %s\n", strerror(errno));
+					fd_log_debug("Unable to allocate memory: %s", strerror(errno));
 					return LEX_ERROR; /* trig an error in yacc parser */
 				}
 				
@@ -140,7 +140,7 @@ BR_PORT		[[][0-9]+[]]
 					*port = '\0';
 					port++;
 					if (sscanf(port, "%hu]", &p) != 1) {
-						fd_log_debug("'%s' is not a valid port: %s\n", port, strerror(errno));
+						fd_log_debug("'%s' is not a valid port: %s", port, strerror(errno));
 						free(work);
 						return LEX_ERROR; /* trig an error in yacc parser */
 					}
@@ -152,7 +152,7 @@ BR_PORT		[[][0-9]+[]]
 				
 					sin6 = malloc(sizeof(struct sockaddr_in6));
 					if (sin6 == NULL) {
-						fd_log_debug("Unable to allocate memory: %s\n", strerror(errno));
+						fd_log_debug("Unable to allocate memory: %s", strerror(errno));
 						free(work);
 						return LEX_ERROR; /* trig an error in yacc parser */
 					}
@@ -160,7 +160,7 @@ BR_PORT		[[][0-9]+[]]
 					memset(sin6, 0, sizeof(struct sockaddr_in6));
 					sin6->sin6_family = AF_INET6;
 					if (inet_pton(AF_INET6, work, &sin6->sin6_addr) != 1) {
-						fd_log_debug("'%s' is not a valid IPv6 address: %s\n", work, strerror(errno));
+						fd_log_debug("'%s' is not a valid IPv6 address: %s", work, strerror(errno));
 						free(work);
 						free(sin6);
 						return LEX_ERROR; /* trig an error in yacc parser */
@@ -172,7 +172,7 @@ BR_PORT		[[][0-9]+[]]
 				
 					sin = malloc(sizeof(struct sockaddr_in));
 					if (sin == NULL) {
-						fd_log_debug("Unable to allocate memory: %s\n", strerror(errno));
+						fd_log_debug("Unable to allocate memory: %s", strerror(errno));
 						free(work);
 						return LEX_ERROR; /* trig an error in yacc parser */
 					}
@@ -180,7 +180,7 @@ BR_PORT		[[][0-9]+[]]
 					memset(sin, 0, sizeof(struct sockaddr_in));
 					sin->sin_family = AF_INET;
 					if (inet_pton(AF_INET, work, &sin->sin_addr) != 1) {
-						fd_log_debug("'%s' is not a valid IP address: %s\n", work, strerror(errno));
+						fd_log_debug("'%s' is not a valid IP address: %s", work, strerror(errno));
 						free(work);
 						free(sin);
 						return LEX_ERROR; /* trig an error in yacc parser */
@@ -212,7 +212,7 @@ BR_PORT		[[][0-9]+[]]
 					int ret = sscanf(yytext, "%d", &yylval->integer);
 					if (ret != 1) {
 						/* No matching: an error occurred */
-						fd_log_debug("Unable to convert the value '%s' to a valid number: %s\n", yytext, strerror(errno));
+						fd_log_debug("Unable to convert the value '%s' to a valid number: %s", yytext, strerror(errno));
 						return LEX_ERROR; /* trig an error in yacc parser */
 						/* Maybe we could REJECT instead of failing here? */
 					}
@@ -226,14 +226,14 @@ BR_PORT		[[][0-9]+[]]
 				
 					sin = malloc(sizeof(struct sockaddr_in));
 					if (sin == NULL) {
-						fd_log_debug("Unable to allocate memory: %s\n", strerror(errno));
+						fd_log_debug("Unable to allocate memory: %s", strerror(errno));
 						return LEX_ERROR; /* trig an error in yacc parser */
 					}
 					
 					memset(sin, 0, sizeof(struct sockaddr_in));
 					sin->sin_family = AF_INET;
 					if (inet_pton(AF_INET, yytext, &sin->sin_addr) != 1) {
-						fd_log_debug("'%s' is not a valid IP address: %s\n", yytext, strerror(errno));
+						fd_log_debug("'%s' is not a valid IP address: %s", yytext, strerror(errno));
 						free(sin);
 						return LEX_ERROR; /* trig an error in yacc parser */
 					}
@@ -246,14 +246,14 @@ BR_PORT		[[][0-9]+[]]
 				
 					sin6 = malloc(sizeof(struct sockaddr_in6));
 					if (sin6 == NULL) {
-						fd_log_debug("Unable to allocate memory: %s\n", strerror(errno));
+						fd_log_debug("Unable to allocate memory: %s", strerror(errno));
 						return LEX_ERROR; /* trig an error in yacc parser */
 					}
 					
 					memset(sin6, 0, sizeof(struct sockaddr_in6));
 					sin6->sin6_family = AF_INET6;
 					if (inet_pton(AF_INET6, yytext, &sin6->sin6_addr) != 1) {
-						fd_log_debug("'%s' is not a valid IPv6 address: %s\n", yytext, strerror(errno));
+						fd_log_debug("'%s' is not a valid IPv6 address: %s", yytext, strerror(errno));
 						free(sin6);
 						return LEX_ERROR; /* trig an error in yacc parser */
 					}
@@ -270,7 +270,7 @@ BR_PORT		[[][0-9]+[]]
 <*>[[:alnum:]]+		|	/* This rule is only useful to print a complete token in error messages */
 	/* Unrecognized character */
 <*>.			{ 
-				fd_log_debug("Unrecognized text on line %d col %d: '%s'.\n", yylloc->first_line, yylloc->first_column, yytext);
+				fd_log_debug("Unrecognized text on line %d col %d: '%s'.", yylloc->first_line, yylloc->first_column, yytext);
 			 	return LEX_ERROR; 
 			}
 

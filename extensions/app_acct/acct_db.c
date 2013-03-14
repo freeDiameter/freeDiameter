@@ -78,7 +78,7 @@ int acct_db_init(void)
 	CHECK_PARAMS( acct_config && acct_config->conninfo && acct_config->tablename ); 
 	
 	CHECK_PARAMS_DO( PQisthreadsafe() == 1, {
-		fd_log_debug("You PostGreSQL installation is not thread-safe!\n");
+		fd_log_debug("You PostGreSQL installation is not thread-safe!");
 		return EINVAL;
 	} );			
 	
@@ -87,12 +87,12 @@ int acct_db_init(void)
 	
 	/* Check to see that the backend connection was successfully made */
 	if (PQstatus(conn) != CONNECTION_OK) {
-		fd_log_debug("Connection to database failed: %s\n", PQerrorMessage(conn));
+		fd_log_debug("Connection to database failed: %s", PQerrorMessage(conn));
 		acct_db_free();
 		return EINVAL;
 	}
 	if (PQprotocolVersion(conn) < 3) {
-		fd_log_debug("Database protocol version is too old, version 3 is required for prepared statements.\n");
+		fd_log_debug("Database protocol version is too old, version 3 is required for prepared statements.");
 		acct_db_free();
 		return EINVAL;
 	}
@@ -193,7 +193,7 @@ int acct_db_init(void)
 	
 	ADD_EXTEND(");");
 	
-	TRACE_DEBUG(FULL, "Preparing the following SQL statement:\n%s\n", sql);
+	TRACE_DEBUG(FULL, "Preparing the following SQL statement: '%s'", sql);
 	res = PQprepare(conn, stmt, sql, emptyrecords.nball, NULL);
 	if (PQresultStatus(res) != PGRES_COMMAND_OK) {
 		TRACE_DEBUG(INFO, "Preparing statement '%s' failed: %s",

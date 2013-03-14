@@ -96,12 +96,12 @@ int fd_p_dp_handle(struct msg ** msg, int req, struct fd_peer * peer)
 				CHECK_FCT( fd_dict_search( fd_g_config->cnf_dict, DICT_ENUMVAL, ENUMVAL_BY_STRUCT, &er, &dictobj, 0 )  );
 				if (dictobj) {
 					CHECK_FCT( fd_dict_getval( dictobj, &er.search ) );
-					TRACE_DEBUG(INFO, "Peer '%s' sent a DPR with cause: %s\n", peer->p_hdr.info.pi_diamid, er.search.enum_name);
+					TRACE_DEBUG(INFO, "Peer '%s' sent a DPR with cause: %s", peer->p_hdr.info.pi_diamid, er.search.enum_name);
 				} else {
-					TRACE_DEBUG(INFO, "Peer '%s' sent a DPR with unknown cause: %u\n", peer->p_hdr.info.pi_diamid, peer->p_hdr.info.runtime.pir_lastDC);
+					TRACE_DEBUG(INFO, "Peer '%s' sent a DPR with unknown cause: %u", peer->p_hdr.info.pi_diamid, peer->p_hdr.info.runtime.pir_lastDC);
 				}
 			} else {
-				TRACE_DEBUG(INFO, "Peer '%s' sent a DPR without Disconnect-Cause AVP\n", peer->p_hdr.info.pi_diamid);
+				TRACE_DEBUG(INFO, "Peer '%s' sent a DPR without Disconnect-Cause AVP", peer->p_hdr.info.pi_diamid);
 			}
 		}
 		

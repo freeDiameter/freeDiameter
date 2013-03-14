@@ -71,7 +71,7 @@ int ta_conf_handle(char * conffile)
 	ta_confin = fopen(conffile, "r");
 	if (ta_confin == NULL) {
 		ret = errno;
-		fd_log_debug("Unable to open extension configuration file %s for reading: %s\n", conffile, strerror(ret));
+		fd_log_debug("Unable to open extension configuration file %s for reading: %s", conffile, strerror(ret));
 		TRACE_DEBUG (INFO, "Error occurred, message logged -- configuration file.");
 		return ret;
 	}
@@ -97,11 +97,11 @@ void yyerror (YYLTYPE *ploc, char * conffile, char const *s)
 	TRACE_DEBUG(INFO, "Error in configuration parsing");
 	
 	if (ploc->first_line != ploc->last_line)
-		fd_log_debug("%s:%d.%d-%d.%d : %s\n", conffile, ploc->first_line, ploc->first_column, ploc->last_line, ploc->last_column, s);
+		fd_log_debug("%s:%d.%d-%d.%d : %s", conffile, ploc->first_line, ploc->first_column, ploc->last_line, ploc->last_column, s);
 	else if (ploc->first_column != ploc->last_column)
-		fd_log_debug("%s:%d.%d-%d : %s\n", conffile, ploc->first_line, ploc->first_column, ploc->last_column, s);
+		fd_log_debug("%s:%d.%d-%d : %s", conffile, ploc->first_line, ploc->first_column, ploc->last_column, s);
 	else
-		fd_log_debug("%s:%d.%d : %s\n", conffile, ploc->first_line, ploc->first_column, s);
+		fd_log_debug("%s:%d.%d : %s", conffile, ploc->first_line, ploc->first_column, s);
 }
 
 %}
