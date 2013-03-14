@@ -634,7 +634,7 @@ int rgw_clients_create_origin(struct rgw_radius_msg_meta *msg, struct rgw_client
 	if (nas_ip || nas_ip6) {
 		if (!valid_nas_info) {
 			if ((!cli->is_local) && (cli->type == RGW_CLI_NAS)) {
-				TRACE_DEBUG(INFO, "Message received with a NAS-IP-Address or NAS-IPv6-Address different \nfrom the sender's. Please configure as Proxy if this is expected.\n Message discarded.");
+				TRACE_DEBUG(INFO, "Message received with a NAS-IP-Address or NAS-IPv6-Address different from the sender's. Please configure as Proxy if this is expected. Message discarded.");
 				return EINVAL;
 			} else {
 				int ret;
@@ -778,7 +778,7 @@ int rgw_clients_create_origin(struct rgw_radius_msg_meta *msg, struct rgw_client
 			
 			if (!found) {
 				if (cli->type == RGW_CLI_NAS) {
-					TRACE_DEBUG(INFO, "The NAS-Identifier value '%.*s' resolves to a different IP than the client's, discarding the message. \nConfigure this client as a Proxy if this message should be valid.", 
+					TRACE_DEBUG(INFO, "The NAS-Identifier value '%.*s' resolves to a different IP than the client's, discarding the message. Configure this client as a Proxy if this message should be valid.", 
 						nas_id_len, nas_id + 1);
 					return EINVAL;
 				} else {
@@ -947,7 +947,7 @@ int rgw_clients_add( struct sockaddr * ip_port, unsigned char ** key, size_t key
 			goto end;
 		}
 		
-		fd_log_erre("ERROR: Conflicting RADIUS clients descriptions!\n");
+		fd_log_error("ERROR: Conflicting RADIUS clients descriptions!");
 		TRACE_ERROR("Previous entry: %s", (prev->type == RGW_CLI_NAS) ? "NAS" : "PROXY");
 		TRACE_sSA(FD_LOG_ERROR, NONE, 	 "\tIP : ", prev->sa, NI_NUMERICHOST | NI_NUMERICSERV, "" );
 		TRACE_BUFFER(FD_LOG_ERROR, NONE, "\tKey: [", prev->key.data, prev->key.len, "]" );
