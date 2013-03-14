@@ -125,6 +125,6 @@
 	}
 	
 	void dump() {
-		fd_ep_dump_one( "", $self, "\n" );
+		fd_ep_dump_one( "", $self );
 	}
 }
