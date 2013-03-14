@@ -327,14 +327,14 @@ void rgw_msg_dump(struct rgw_radius_msg_meta * msg, int has_meta)
 			auth[8],  auth[9],  auth[10], auth[11], auth[12], auth[13], auth[14], auth[15]);
 	for (i = 0; i < msg->radius.attr_used; i++) {
 		struct radius_attr_hdr *attr = (struct radius_attr_hdr *)(msg->radius.buf + msg->radius.attr_pos[i]);
-		fd_log_debug("    - Type: 0x%02hhx (%s)\n       Len: %-3hhu", attr->type, rgw_msg_attrtype_str(attr->type), attr->length);
+		fd_log_debug("    - Type: 0x%02hhx (%s)       Len: %-3hhu", attr->type, rgw_msg_attrtype_str(attr->type), attr->length);
 		radius_msg_dump_attr_val(attr);
 	}
 	if (has_meta && msg->ps_nb) {
 		fd_log_debug("---- hidden attributes:");
 		for (i = msg->ps_first; i < msg->ps_first + msg->ps_nb; i++) {
 			struct radius_attr_hdr *attr = (struct radius_attr_hdr *)(msg->radius.buf + msg->radius.attr_pos[i]);
-			fd_log_debug("    - Type: 0x%02hhx (%s)\n       Len: %-3hhu", attr->type, rgw_msg_attrtype_str(attr->type), attr->length);
+			fd_log_debug("    - Type: 0x%02hhx (%s)       Len: %-3hhu", attr->type, rgw_msg_attrtype_str(attr->type), attr->length);
 			radius_msg_dump_attr_val(attr);
 		}
 	}
@@ -354,8 +354,7 @@ int radius_msg_finish(struct radius_msg *msg, const u8 *secret,
 					   RADIUS_ATTR_MESSAGE_AUTHENTICATOR,
 					   auth, MD5_MAC_LEN);
 		if (attr == NULL) {
-			printf("WARNING: Could not add "
-			       "Message-Authenticator\n");
+			printf("WARNING: Could not add Message-Authenticator\n");
 			return -1;
 		}
 		msg->hdr->length = htons(msg->buf_used);
@@ -692,8 +691,7 @@ int radius_msg_verify_msg_auth(struct radius_msg *msg, const u8 *secret,
 		tmp = radius_get_attr_hdr(msg, i);
 		if (tmp->type == RADIUS_ATTR_MESSAGE_AUTHENTICATOR) {
 			if (attr != NULL) {
-				printf("Multiple Message-Authenticator "
-				       "attributes in RADIUS message\n");
+				printf("Multiple Message-Authenticator attributes in RADIUS message\n");
 				return 1;
 			}
 			attr = tmp;

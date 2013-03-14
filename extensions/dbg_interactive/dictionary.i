@@ -239,7 +239,7 @@ struct dict_object {
 		fd_log_debug("l:%u, v:[", $self->len);
 		for (i=0; i < n; i++)
 			fd_log_debug("%02.2X", $self->data[i]);
-		fd_log_debug("] '%.*s%s'\n", n, $self->data, n == LEN_MAX ? "..." : "");
+		fd_log_debug("] '%.*s%s'", n, $self->data, n == LEN_MAX ? "..." : "");
 	}
 	%cstring_output_allocate_size(char ** outbuffer, size_t * outlen, free(*$1));
 	void as_str ( char ** outbuffer, size_t * outlen ) {

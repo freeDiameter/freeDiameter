@@ -1449,7 +1449,7 @@ static int auth_diam_ans( struct rgwp_config * cs, struct session * session, str
 					/* We only check the value */
 					if (ahdr->avp_value->u32 != 3) {
 						fd_log_debug("[auth.rgwx] Received Diameter answer with Auth-Request-Type set to %d (%s) from server %.*s, session %.*s."
-								"  This may cause interoperability problems with RADIUS.\n",
+								"  This may cause interoperability problems with RADIUS.",
 								ahdr->avp_value->u32,
 								(ahdr->avp_value->u32 == 1) ? "AUTHENTICATE_ONLY" :
 									((ahdr->avp_value->u32 == 2) ? "AUTHORIZE_ONLY" : "???"),

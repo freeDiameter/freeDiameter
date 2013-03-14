@@ -56,11 +56,11 @@
 	}
 	/* For debug, show the values of the list */
 	void dump() {
-		fd_log_debug("list: %p\n", $self);
-		fd_log_debug("  - next: %p\n", $self->next);
-		fd_log_debug("  - prev: %p\n", $self->prev);
-		fd_log_debug("  - head: %p\n", $self->head);
-		fd_log_debug("  - o   : %p\n", $self->o);
+		fd_log_debug("list: %p", $self);
+		fd_log_debug("  - next: %p", $self->next);
+		fd_log_debug("  - prev: %p", $self->prev);
+		fd_log_debug("  - head: %p", $self->head);
+		fd_log_debug("  - o   : %p", $self->o);
 	}
 	/* Insert before/after wrapper */
 	void insert_prev(struct fd_list * li) {

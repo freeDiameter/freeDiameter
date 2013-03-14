@@ -163,7 +163,7 @@ static void * work_th(void * arg)
 		/* Check the created Diameter message -- it will be invalid if no callback has handled the RADIUS message */
 		if ((diam_msg == NULL) || ( fd_msg_parse_rules(diam_msg, fd_g_config->cnf_dict, NULL) ) ) {
 			fd_log_debug("[radgw] No or invalid Diameter message was generated after processing the RADIUS command %hhd (%s)."
-					" It may indicate a gateway configuration problem, or implementation issue in a plugin.\n",
+					" It may indicate a gateway configuration problem, or implementation issue in a plugin.",
 					msg->radius.hdr->code, rgw_msg_code_str(msg->radius.hdr->code));
 			/* We should also dump the conflicting rule here to help debug? */
 			pb++;
@@ -279,7 +279,7 @@ static void receive_diam_answer(void * paback, struct msg **ans)
 		}
 
 		if (pb) {
-			TRACE_DEBUG(INFO, "[radgw] WARNING: %d mandatory AVP in the Diameter answer have not been translated to RADIUS!\n Please use debug.rgwx for more information.", pb);
+			TRACE_DEBUG(INFO, "[radgw] WARNING: %d mandatory AVP in the Diameter answer have not been translated to RADIUS! Please use debug.rgwx for more information.", pb);
 		}
 	}
 	

@@ -80,7 +80,7 @@ int tne_conf_handle(char * conffile)
 		TRACE_DEBUG (INFO, "Unable to parse the configuration file.");
 		return EINVAL;
 	} else {
-		TRACE_DEBUG(FULL, "[test_netemul]\n  latency: %lu ms (var:%u%%)\n  duplicates: %G probability.", tne_conf.lat_avg, tne_conf.lat_dev, tne_conf.dupl_proba);
+		TRACE_DEBUG(FULL, "[test_netemul]  latency: %lu ms (var:%u%%)  duplicates: %G probability.", tne_conf.lat_avg, tne_conf.lat_dev, tne_conf.dupl_proba);
 	}
 	
 	return 0;

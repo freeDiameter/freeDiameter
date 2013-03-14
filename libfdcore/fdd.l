@@ -52,7 +52,7 @@
 	yylloc->first_column = yylloc->last_column + 1; 		\
 	yylloc->last_column = yylloc->first_column + yyleng - 1;	\
 	fd_log_debug(	 						\
-		"(%d:%d-%d:%d) matched rule %d, length=%d, txt='%s'\n",	\
+		"(%d:%d-%d:%d) matched rule %d, length=%d, txt='%s'",	\
 		yylloc->first_line, yylloc->first_column, 		\
 		yylloc->last_line, yylloc->last_column, 		\
 		yy_act, yyleng, yytext); 				\

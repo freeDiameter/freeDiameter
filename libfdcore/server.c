@@ -386,9 +386,9 @@ int fd_servers_start()
 	if (empty_conf_ep) {
 		CHECK_FCT(fd_cnx_get_local_eps(&fd_g_config->cnf_endpoints));
 		if (FD_IS_LIST_EMPTY(&fd_g_config->cnf_endpoints)) {
-			TRACE_DEBUG(INFO, "Unable to find the address(es) of the local system." 
-					"Please use \"ListenOn\" parameter in the configuration.\n"
-					"This information is required to generate the CER/CEA messages.\n");
+			TRACE_DEBUG(INFO, "Unable to find the address(es) of the local system. " 
+					"Please use \"ListenOn\" parameter in the configuration. "
+					"This information is required to generate the CER/CEA messages.");
 			return EINVAL;
 		}
 	}

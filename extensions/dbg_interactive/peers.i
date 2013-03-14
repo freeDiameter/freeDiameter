@@ -44,7 +44,7 @@ static void fd_add_cb(struct peer_info *peer, void *data) {
 	PyObject *result = NULL;
 	
 	if (!data) {
-		TRACE_DEBUG(INFO, "Internal error: missing callback\n");
+		TRACE_DEBUG(INFO, "Internal error: missing callback");
 		return;
 	}
 	PyFunc = data;
@@ -118,7 +118,7 @@ int call_the_python_validate_callback2(struct peer_info * info) {
 	int ret = 0;
 	
 	if (!validate_cb2_py) {
-		fd_log_debug("Internal error: missing the callback2!\n");
+		fd_log_debug("Internal error: missing the callback2!");
 		return ENOTSUP;
 	}
 	
@@ -131,7 +131,7 @@ int call_the_python_validate_callback2(struct peer_info * info) {
 	
 	/* The result is an integer */
 	if ((result == NULL) || !SWIG_IsOK(SWIG_AsVal_int(result, &ret))) {
-		fd_log_debug("Error: The Python callback did not return an integer.\n");
+		fd_log_debug("Error: The Python callback did not return an integer.");
 		ret = EINVAL;
 		goto out;
 	}
@@ -149,7 +149,7 @@ int call_the_python_validate_callback(struct peer_info * info, int * auth, int (
 	int ret = 0;
 	
 	if (!validate_cb_py) {
-		fd_log_debug("Internal error: missing the callback!\n");
+		fd_log_debug("Internal error: missing the callback!");
 		return ENOTSUP;
 	}
 	
@@ -162,7 +162,7 @@ int call_the_python_validate_callback(struct peer_info * info, int * auth, int (
 	
 	/* The result is supposedly -1, 1, or a cb2 */
 	if (result == NULL) {
-		fd_log_debug("Error: The Python callback did not return a value.\n");
+		fd_log_debug("Error: The Python callback did not return a value.");
 		ret = EINVAL;
 		goto out;
 	}
@@ -170,7 +170,7 @@ int call_the_python_validate_callback(struct peer_info * info, int * auth, int (
 	if (PyCallable_Check(result)) {
 		if (cb2) {
 			if (validate_cb2_py && (validate_cb2_py != result)) {
-				fd_log_debug("Only 1 register callback2 is supported currently\n");
+				fd_log_debug("Only 1 register callback2 is supported currently");
 				ret = ENOTSUP;
 				goto out;
 			}
@@ -184,7 +184,7 @@ int call_the_python_validate_callback(struct peer_info * info, int * auth, int (
 		}
 	} else { /* In this case, the return value must be -1, 0, or 1 */
 		if (!SWIG_IsOK(SWIG_AsVal_int(result, auth))) {
-			fd_log_debug("Error: Cannot convert the return value to integer.\n");
+			fd_log_debug("Error: Cannot convert the return value to integer.");
 			ret = EINVAL;
 			goto out;
 		}

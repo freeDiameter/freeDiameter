@@ -83,7 +83,7 @@ int acct_conf_check(char * conffile)
 	
 	if ( ! acct_config->conninfo) {
 		fd_log_debug("[app_acct] ERROR: 'ConnInfo' is missing in file '%s'."
-			" You can specify 'ConnInfo=\"\";' to use default parameters.\n", conffile);
+			" You can specify 'ConnInfo=\"\";' to use default parameters.", conffile);
 		return EINVAL;
 	}
 	if ( ! acct_config->tablename) {

@@ -526,7 +526,7 @@ int fd_sess_fromsid_msg ( uint8_t * sid, size_t len, struct session ** session, 
 	CHECK_PARAMS( sid && session );
 	
 	if (!fd_os_is_valid_os0(sid,len)) {
-		TRACE_DEBUG(INFO, "Warning: a Session-Id value contains \\0 chars... (len:%zd, begin:'%.*s')\n => Debug messages may be truncated.", len, len, sid);
+		TRACE_DEBUG(INFO, "Warning: a Session-Id value contains \\0 chars... (len:%zd, begin:'%.*s') => Debug messages may be truncated.", len, len, sid);
 	}
 	
 	/* All the work is done in sess_new */

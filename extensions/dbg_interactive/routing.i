@@ -82,10 +82,10 @@ struct rt_data {
 
 %extend rtd_candidate {
 	void dump() {
-		fd_log_debug("candidate %p\n", $self);
-		fd_log_debug("  id : %s\n",  $self->diamid);
-		fd_log_debug("  rlm: %s\n", $self->realm);
-		fd_log_debug("  sc : %d\n", $self->score);
+		fd_log_debug("candidate %p", $self);
+		fd_log_debug("  id : %s",  $self->diamid);
+		fd_log_debug("  rlm: %s", $self->realm);
+		fd_log_debug("  sc : %d", $self->score);
 	}
 }
 
@@ -98,7 +98,7 @@ static int call_the_python_rt_fwd_callback(void * pycb, struct msg **msg) {
 	int ret = 0;
 	
 	if (!pycb) {
-		fd_log_debug("Internal error: missing the callback!\n");
+		fd_log_debug("Internal error: missing the callback!");
 		return ENOTSUP;
 	}
 	cb = pycb;
@@ -112,24 +112,24 @@ static int call_the_python_rt_fwd_callback(void * pycb, struct msg **msg) {
 	
 	/* The result is supposedly composed of: [ ret, *msg ] */
 	if ((result == NULL) || (!PyList_Check(result)) || (PyList_Size(result) != 2)) {
-		fd_log_debug("Error: The Python callback did not return [ ret, msg ].\n");
+		fd_log_debug("Error: The Python callback did not return [ ret, msg ].");
 		ret = EINVAL;
 		goto out;
 	}
 	
 	/* Convert the return values */
 	if (!SWIG_IsOK(SWIG_AsVal_int(PyList_GetItem(result, 0), &ret))) {
-		fd_log_debug("Error: Cannot convert the first return value to integer.\n");
+		fd_log_debug("Error: Cannot convert the first return value to integer.");
 		ret = EINVAL;
 		goto out;
 	}
 	if (ret) {
-		TRACE_DEBUG(INFO, "The Python callback returned the error code %d (%s)\n", ret, strerror(ret));
+		TRACE_DEBUG(INFO, "The Python callback returned the error code %d (%s)", ret, strerror(ret));
 		goto out;
 	}
 	
 	if (!SWIG_IsOK(SWIG_ConvertPtr(PyList_GetItem(result, 1), (void *)msg, SWIGTYPE_p_msg, SWIG_POINTER_DISOWN))) {
-		fd_log_debug("Error: Cannot convert the second return value to message.\n");
+		fd_log_debug("Error: Cannot convert the second return value to message.");
 		ret = EINVAL;
 		goto out;
 	}
@@ -182,7 +182,7 @@ static int call_the_python_rt_out_callback(void * pycb, struct msg *msg, struct 
 	int ret = 0;
 	
 	if (!pycb) {
-		fd_log_debug("Internal error: missing the callback!\n");
+		fd_log_debug("Internal error: missing the callback!");
 		return ENOTSUP;
 	}
 	cb = pycb;
@@ -197,14 +197,14 @@ static int call_the_python_rt_out_callback(void * pycb, struct msg *msg, struct 
 	
 	/* The result is supposedly composed of: [ ret, *msg ] */
 	if (result == NULL){
-		fd_log_debug("Error: The Python callback raised an exception.\n");
+		fd_log_debug("Error: The Python callback raised an exception.");
 		ret = EINVAL;
 		goto out;
 	}
 	
 	/* Convert the return values */
 	if (!SWIG_IsOK(SWIG_AsVal_int(result, &ret))) {
-		fd_log_debug("Error: Cannot convert the return value to integer.\n");
+		fd_log_debug("Error: Cannot convert the return value to integer.");
 		ret = EINVAL;
 		goto out;
 	}

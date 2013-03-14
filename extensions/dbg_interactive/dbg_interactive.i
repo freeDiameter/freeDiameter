@@ -69,7 +69,7 @@ static int wrapper_errno;
 static PyObject* wrapper_errno_py;
 static const char * wrapper_error_txt; /* if NULL, use strerror(errno) */
 #define DI_ERROR(code, pycode, str) {	\
-	fd_log_debug("[dbg_interactive] ERROR: %s: %s\n", __PRETTY_FUNCTION__, str ? str : strerror(code)); \
+	fd_log_debug("[dbg_interactive] ERROR: %s: %s", __PRETTY_FUNCTION__, str ? str : strerror(code)); \
 	wrapper_errno = code;		\
 	wrapper_errno_py = pycode;	\
 	wrapper_error_txt = str;	\

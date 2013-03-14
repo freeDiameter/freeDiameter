@@ -126,8 +126,8 @@ int acct_rec_validate(struct acct_record_list * records)
 	/* Check at least one AVP was mapped */
 	if (records->nball == records->nbunmap) {
 		fd_log_debug("The received ACR does not contain any AVP from the configuration file."
-				"This is an invalid situation. Please fix your configuration file.\n"
-				"One way to ensure this does not happen is to include Session-Id in the database.\n");
+				" This is an invalid situation. Please fix your configuration file."
+				" One way to ensure this does not happen is to include Session-Id in the database.");
 		acct_rec_empty(records);
 		return EINVAL;
 	}

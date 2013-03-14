@@ -42,7 +42,7 @@
 static void call_the_python_cleanup_callback(session_state * state, os0_t sid, void * cb) {
 	PyObject *result;
 	if (!cb) {
-		fd_log_debug("Internal error: missing callback object!\n");
+		fd_log_debug("Internal error: missing callback object!");
 		return;
 	}
 	
@@ -127,9 +127,9 @@ struct session {
 		/* When defining n as OUTPUT parameter, we get something strange... Use fd_sess_fromsid if you need it */
 		#if 0
 		if (n) {
-			fd_log_debug("A new session has been created\n");
+			fd_log_debug("A new session has been created");
 		} else {
-			fd_log_debug("A session with same id already existed\n");
+			fd_log_debug("A session with same id already existed");
 		}
 		#endif /* 0 */
 		

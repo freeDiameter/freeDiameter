@@ -219,8 +219,8 @@ static int ed_rad_req( struct rgwp_config * cs, struct session ** session, struc
 		CHECK_PARAMS_DO(*session,
 			{
 				fd_log_debug(	"[echodrop.rgwx] The extension is configured to echo some attributes from this message, but no session object has been created for it (yet)."
-						"  Please check your configuration file and include a session-generating extension BEFORE calling echodrop.rgwx to echo attributes.\n"
-						"  Please use debug.rgwx to retrieve more information.\n" );
+						" Please check your configuration file and include a session-generating extension BEFORE calling echodrop.rgwx to echo attributes."
+						" Please use debug.rgwx to retrieve more information." );
 				return EINVAL;
 			} );
 		

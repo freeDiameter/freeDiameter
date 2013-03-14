@@ -314,11 +314,7 @@ static int verify_object( struct dict_object * obj )
 			&& (obj->typeyec == dict_obj_info[obj->type].eyecatcher),
 		{
 			if (obj) {
-				TRACE_DEBUG(FULL, "Invalid object : %p"
-						  "     obj->objeyec : %x / %x\n"
-						  "     obj->type    : %d\n"
-						  "     obj->objeyec : %x / %x\n"
-						  "     obj->typeyec : %x / %x", 
+				TRACE_DEBUG(FULL, "Invalid object: %p, obj->objeyec: %x/%x, obj->type: %d, obj->objeyec: %x/%x, obj->typeyec: %x/%x",
 						obj,
 						obj->objeyec, OBJECT_EYECATCHER,
 						obj->type,

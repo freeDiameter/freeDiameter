@@ -50,7 +50,7 @@ static void anscb_python(void *cbdata, struct msg ** msg) {
 	struct anscb_py_layer * l = cbdata;
 	
 	if (!l) {
-		fd_log_debug("Internal error! Python callback disappeared...\n");
+		fd_log_debug("Internal error! Python callback disappeared...");
 		return;
 	}
 	
@@ -71,7 +71,7 @@ static void anscb_python(void *cbdata, struct msg ** msg) {
 
 		/* The callback is supposed to return a message or NULL */
 		if (!SWIG_IsOK(SWIG_ConvertPtr(result, (void *)msg, SWIGTYPE_p_msg, SWIG_POINTER_DISOWN))) {
-			fd_log_debug("Error: Cannot convert the return value to message.\n");
+			fd_log_debug("Error: Cannot convert the return value to message.");
 			*msg = NULL;
 		}
 

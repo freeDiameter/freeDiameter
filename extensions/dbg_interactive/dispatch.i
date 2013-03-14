@@ -46,7 +46,7 @@ static int call_the_python_dispatch_callback(struct msg **msg, struct avp *avp, 
 	int ret = 0;
 	
 	if (!pycb) {
-		fd_log_debug("Internal error: missing the callback!\n");
+		fd_log_debug("Internal error: missing the callback!");
 		return ENOTSUP;
 	}
 	cb = pycb;
@@ -62,35 +62,35 @@ static int call_the_python_dispatch_callback(struct msg **msg, struct avp *avp, 
 	
 	/* The result is supposedly composed of: [ ret, *msg, *action ] */
 	if ((result == NULL) || (!PyList_Check(result)) || (PyList_Size(result) != 3)) {
-		fd_log_debug("Error: The Python callback did not return [ ret, msg, action ].\n");
+		fd_log_debug("Error: The Python callback did not return [ ret, msg, action ].");
 		ret = EINVAL;
 		goto out;
 	}
 	
 	/* Convert the return values */
 	if (!SWIG_IsOK(SWIG_AsVal_int(PyList_GetItem(result, 0), &ret))) {
-		fd_log_debug("Error: Cannot convert the first return value to integer.\n");
+		fd_log_debug("Error: Cannot convert the first return value to integer.");
 		ret = EINVAL;
 		goto out;
 	}
 	if (ret) {
-		TRACE_DEBUG(INFO, "The Python callback returned the error code %d (%s)\n", ret, strerror(ret));
+		TRACE_DEBUG(INFO, "The Python callback returned the error code %d (%s)", ret, strerror(ret));
 		goto out;
 	}
 	
 	if (!SWIG_IsOK(SWIG_ConvertPtr(PyList_GetItem(result, 1), (void *)msg, SWIGTYPE_p_msg, SWIG_POINTER_DISOWN))) {
-		fd_log_debug("Error: Cannot convert the second return value to message.\n");
+		fd_log_debug("Error: Cannot convert the second return value to message.");
 		ret = EINVAL;
 		goto out;
 	}
 	
 	if (!SWIG_IsOK(SWIG_AsVal_int(PyList_GetItem(result, 2), (int *)action))) {
-		fd_log_debug("Error: Cannot convert the third return value to integer.\n");
+		fd_log_debug("Error: Cannot convert the third return value to integer.");
 		ret = EINVAL;
 		goto out;
 	}
 	
-	TRACE_DEBUG(FULL, "Python callback return: *action = %d\n", *action);
+	TRACE_DEBUG(FULL, "Python callback return: *action = %d", *action);
 out:	
 	Py_XDECREF(result);
 	

@@ -801,7 +801,7 @@ static int msg_dump_intern ( int level, msg_or_avp * obj, int indent, char **out
 	
 	/* Check the object */
 	if (!VALIDATE_OBJ(obj)) {
-		CHECK_FCT( dump_add_str(outstr, offset, outlen, ">>> invalid object (%p)!.\n", obj) );
+		CHECK_FCT( dump_add_str(outstr, offset, outlen, ">>> invalid object (%p)!.", obj) );
 		return 0;
 	}
 	
