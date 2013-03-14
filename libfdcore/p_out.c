@@ -154,7 +154,7 @@ static void * out_thr(void * arg)
 		CHECK_FCT_DO( ret = do_send(&msg, 0, peer->p_cnxctx, &peer->p_hbh, &peer->p_sr),
 			{
 				if (msg) {
-					fd_msg_log( FD_MSG_LOG_DROPPED, msg, "Internal error: Problem while sending (%s)\n", strerror(ret) );
+					fd_msg_log( FD_MSG_LOG_DROPPED, msg, "Internal error: Problem while sending (%s)", strerror(ret) );
 					fd_msg_free(msg);
 				}
 			} );
@@ -194,7 +194,7 @@ int fd_out_send(struct msg ** msg, struct cnxctx * cnx, struct fd_peer * peer, u
 		CHECK_FCT_DO( ret = do_send(msg, flags, cnx, hbh, peer ? &peer->p_sr : NULL),
 			{
 				if (msg) {
-					fd_msg_log( FD_MSG_LOG_DROPPED, *msg, "Internal error: Problem while sending (%s)\n", strerror(ret) );
+					fd_msg_log( FD_MSG_LOG_DROPPED, *msg, "Internal error: Problem while sending (%s)", strerror(ret) );
 					fd_msg_free(*msg);
 					*msg = NULL;
 				}

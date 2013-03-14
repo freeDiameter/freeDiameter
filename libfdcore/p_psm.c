@@ -586,7 +586,7 @@ psm_loop:
 					CHECK_FCT_DO( ret = fd_out_send(&msg, NULL, peer, FD_CNX_ORDERED),  );
 					if (msg) {
 						/* Only if an error occurred & the message was not saved / dumped */
-						fd_msg_log( FD_MSG_LOG_DROPPED, msg, "Internal error: Problem while sending (%s)\n", strerror(ret) );
+						fd_msg_log( FD_MSG_LOG_DROPPED, msg, "Internal error: Problem while sending (%s)", strerror(ret) );
 						CHECK_FCT_DO( fd_msg_free(msg), goto psm_end);
 					}
 				} else {

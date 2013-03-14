@@ -719,7 +719,7 @@ int fd_p_ce_msgrcv(struct msg ** msg, int req, struct fd_peer * peer)
 	/* If the state is not WAITCEA, just discard the message */
 	if (req || ((st = fd_peer_getstate(peer)) != STATE_WAITCEA)) {
 		if (*msg) {
-			fd_msg_log( FD_MSG_LOG_DROPPED, *msg, "Received CER/CEA while in '%s' state.\n", STATE_STR(st));
+			fd_msg_log( FD_MSG_LOG_DROPPED, *msg, "Received CER/CEA while in '%s' state.", STATE_STR(st));
 			CHECK_FCT_DO( fd_msg_free(*msg), /* continue */);
 			*msg = NULL;
 		}
