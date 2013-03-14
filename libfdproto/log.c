@@ -117,9 +117,7 @@ static void fd_internal_logger( int loglevel, const char *format, va_list ap )
 	    default:            fprintf(fstr, local_use_color ? "\e[0;31m" : " ???   ");
     }
     vfprintf(fstr, format, ap);
-    if (format && (format[strlen(format)-1] != '\n')) {
-        fprintf(fstr, "\n");
-    }
+    fprintf(fstr, "\n");
     if (local_use_color)
 	     fprintf(fstr, "\e[00m");
     
