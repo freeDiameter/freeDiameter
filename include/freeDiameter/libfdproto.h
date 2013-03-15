@@ -242,13 +242,12 @@ extern int fd_g_debug_lvl;
 #define __PRETTY_FUNCTION__ __func__
 #endif /* __PRETTY_FUNCTION__ */
 
+#ifdef DEBUG
 /* A version of __FILE__ without the full path */
 static char * file_bname = NULL;
 #define __STRIPPED_FILE__	(file_bname ?: (file_bname = basename((char *)__FILE__)))
 
-
 /* Boolean for tracing at a certain level */
-#ifdef DEBUG
 #define TRACE_BOOL(_level_) ( ((_level_) <= fd_g_debug_lvl) 					\
 				|| (fd_debug_one_function && !strcmp(fd_debug_one_function, __PRETTY_FUNCTION__)) 	\
 				|| (fd_debug_one_file && !strcmp(fd_debug_one_file, __STRIPPED_FILE__) ) )
