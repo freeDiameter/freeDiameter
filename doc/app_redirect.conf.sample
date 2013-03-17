@@ -11,7 +11,7 @@
 
 ## default_redirect_cache_time
 # Specify the default value for Redirect-Max-Cache-Time.
-# This value can be overwriten for each rule as specified below.
+# This value can be overwritten for each rule as specified below.
 # If this value is not specified, the default is:
 #default_redirect_cache_time = 86400;  ## => 1 day
 

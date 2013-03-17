@@ -134,7 +134,7 @@ int fd_disp_register ( int (*cb)( struct msg **, struct avp *, struct session *,
 			break;
 		
 		case DISP_HOW_AVP_ENUMVAL:
-			CHECK_FCT( fd_dict_disp_cb(DICT_ENUMVAL, when->value, &cb_list) ); /* cb_list is then overwriten */
+			CHECK_FCT( fd_dict_disp_cb(DICT_ENUMVAL, when->value, &cb_list) ); /* cb_list is then overwritten */
 			CHECK_FCT( fd_dict_getdict(when->value, &dict) );
 			CHECK_FCT( fd_dict_search(dict, DICT_TYPE, TYPE_OF_ENUMVAL, when->value, &type_enum, EINVAL) );
 		case DISP_HOW_AVP:
