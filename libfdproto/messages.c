@@ -300,6 +300,9 @@ int fd_msg_new ( struct dict_object * model, int flags, struct msg ** msg )
 	return 0;
 }	
 
+static int bufferize_avp(unsigned char * buffer, size_t buflen, size_t * offset,  struct avp * avp);
+static int parsebuf_list(unsigned char * buf, size_t buflen, struct fd_list * head);
+
 /* Create answer from a request */
 int fd_msg_new_answer_from_req ( struct dictionary * dict, struct msg ** msg, int flags )
 {
@@ -359,6 +362,34 @@ int fd_msg_new_answer_from_req ( struct dictionary * dict, struct msg ** msg, in
 		CHECK_FCT( fd_sess_ref_msg(sess) );
 	}
 	
+	/* Add all Proxy-Info AVPs from the query if any */
+	if (! (flags & MSGFL_ANSW_NOPROXYINFO)) {
+		struct avp * avp;
+		CHECK_FCT(  fd_msg_browse(qry, MSG_BRW_FIRST_CHILD, &avp, NULL)  );
+		while (avp) {
+			if ( (avp->avp_public.avp_code   == AC_PROXY_INFO)
+			  && (avp->avp_public.avp_vendor == 0) ) {
+				/* We found a Proxy-Info, need to duplicate it in the answer */
+
+				/* In order to avoid dealing with all different possibilities of states, we just create a buffer then parse it */
+				unsigned char * buf = NULL;
+				size_t offset = 0;
+
+				CHECK_FCT(  fd_msg_update_length(avp)  );
+				CHECK_MALLOC(  buf = malloc(avp->avp_public.avp_len)  );
+				CHECK_FCT( bufferize_avp(buf, avp->avp_public.avp_len, &offset, avp)  );
+
+				/* Now we directly parse this buffer into the new message list */
+				CHECK_FCT( parsebuf_list(buf, avp->avp_public.avp_len, &ans->msg_chain.children) );
+
+				/* Done for this AVP */
+				free(buf);
+			}
+			/* move to next AVP in the message, we can have several Proxy-Info instances */
+			CHECK_FCT( fd_msg_browse(avp, MSG_BRW_NEXT, &avp, NULL) );
+		}
+	}
+
 	/* associate with query */
 	ans->msg_query = qry;
 	qry->msg_associated = 1;

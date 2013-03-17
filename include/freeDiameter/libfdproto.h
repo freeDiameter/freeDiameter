@@ -2142,7 +2142,8 @@ enum msg_brw_dir {
 #define MSGFL_ALLOC_ETEID	0x01	/* When creating a message, a new end-to-end ID is allocated and set in the message */
 #define MSGFL_ANSW_ERROR	0x02	/* When creating an answer message, set the 'E' bit and use the generic error ABNF instead of command-specific ABNF */
 #define MSGFL_ANSW_NOSID	0x04	/* When creating an answer message, do not add the Session-Id even if present in request */
-#define MSGFL_MAX		MSGFL_ANSW_NOSID	/* The biggest valid flag value */
+#define MSGFL_ANSW_NOPROXYINFO	0x08	/* When creating an answer message, do not add the Proxy-Info AVPs presents in request */
+#define MSGFL_MAX		MSGFL_ANSW_NOPROXYINFO	/* The biggest valid flag value */
 
 /**************************************************/
 /*   Message creation, manipulation, disposal     */
@@ -2151,9 +2152,9 @@ enum msg_brw_dir {
  * FUNCTION:	fd_msg_avp_new
  *
  * PARAMETERS:
- *  model 	: Pointer to a DICT_AVP dictionary object describing the avp to create, or NULL.
- *  flags	: Flags to use in creation (AVPFL_*).
- *  avp 	: Upon success, pointer to the new avp is stored here.
+ *  model 	: Pointer to a DICT_AVP dictionary object describing the avp to create, or NULL if flags are used.
+ *  flags	: Flags to use in creation (AVPFL_*, see above).
+ *  avp 	: Upon success, pointer to the new avp is stored here. It points to reference AVP upon function call when flags are used.
  *
  * DESCRIPTION: 
  *   Create a new AVP instance.
@@ -2192,6 +2193,7 @@ int fd_msg_new ( struct dict_object * model, int flags, struct msg ** msg );
  *  dict	: Pointer to the dictionary containing the model of the query.
  *  msg		: The location of the query on function call. Updated by the location of answer message on return.
  *  flag        : Pass MSGFL_ANSW_ERROR to indicate if the answer is an error message (will set the 'E' bit)
+ *              : See other MSGFL_ANSW_* definition above for other flags.
  *
  * DESCRIPTION: 
  *   This function creates the empty answer message corresponding to a request.
