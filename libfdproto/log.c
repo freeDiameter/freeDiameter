@@ -111,10 +111,10 @@ static void fd_internal_logger( int loglevel, const char *format, va_list ap )
 	    local_use_color = 1;
     
     switch(loglevel) {
-	    case FD_LOG_DEBUG:  fprintf(fstr, local_use_color ? "\e[0;37m" : " DBG   "); break;
-	    case FD_LOG_NOTICE: fprintf(fstr, local_use_color ? "\e[1;37m" : "NOTI   "); break;
-	    case FD_LOG_ERROR:  fprintf(fstr, local_use_color ? "\e[0;31m" : "ERROR  "); break;
-	    default:            fprintf(fstr, local_use_color ? "\e[0;31m" : " ???   ");
+	    case FD_LOG_DEBUG:  fprintf(fstr, "%s DBG   ", local_use_color ? "\e[0;37m" : ""); break;
+	    case FD_LOG_NOTICE: fprintf(fstr, "%sNOTI   ", local_use_color ? "\e[1;37m" : ""); break;
+	    case FD_LOG_ERROR:  fprintf(fstr, "%sERROR  ", local_use_color ? "\e[0;31m" : ""); break;
+	    default:            fprintf(fstr, "%s ???   ", local_use_color ? "\e[0;31m" : "");
     }
     vfprintf(fstr, format, ap);
     if (local_use_color)
