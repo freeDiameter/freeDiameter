@@ -68,14 +68,13 @@
 /* Define the macro to fail a test with a message */
 #define FAILTEST( message... ){				\
 	TRACE_ERROR(message);				\
-	TRACE_DEBUG(INFO, "Test failed");		\
+	TRACE_NOTICE("Test %s failed", __FILE__);	\
 	exit(FAIL);					\
 }
 
 /* Define the macro to pass a test */
 #define PASSTEST( ){					\
 	TRACE_NOTICE("Test %s passed", __FILE__);	\
-	TRACE_DEBUG(INFO, "Test passed");		\
 	(void)fd_core_shutdown();			\
 	(void)fd_core_wait_shutdown_complete();		\
 	(void)fd_thr_term(&signal_thr);			\
@@ -89,7 +88,7 @@ extern struct fd_config * fd_g_config;
 /* Define the standard check routines */
 #define CHECK( _val, _assert ){				\
 	if (test_verbo > 0) {				\
-		TRACE_ERROR(				\
+		TRACE_DEBUG(INFO,			\
 			"%s:%-4d: CHECK( " #_assert " == "\
 				#_val " )",		\
 			__FILE__, 			\

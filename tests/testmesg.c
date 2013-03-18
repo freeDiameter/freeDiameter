@@ -754,7 +754,6 @@ int main(int argc, char *argv[])
 				CHECK( 0, fd_msg_free ( msg ) );
 			}
 			
-#if 1
 			{
 				unsigned char * buftmp = NULL;
 				/* Check the parse or error works as expected */
@@ -778,7 +777,6 @@ int main(int argc, char *argv[])
 				CHECK( 0, fd_msg_free ( msg ) );
 				free(buftmp);
 			}
-#endif			
 			
 			
 			CHECK( 0, fd_msg_parse_buffer( &buf, 344, &msg) );
@@ -919,6 +917,102 @@ int main(int argc, char *argv[])
 					CHECK( 0, fd_msg_free ( childavp ) );
 				}
 			}
+		}
+		
+		/* Test the fd_msg_new_answer_from_req function */
+		{
+			struct dict_object * cmd_model = NULL;
+			struct msg         * msg = NULL;
+			struct avp * pi1, *pi2, *avp;
+			char * host1="host1", * host2="host2";
+			union avp_value      value;
+			struct msg_hdr * msgdata = NULL;
+			
+			CHECK( 0, fd_dict_search ( fd_g_config->cnf_dict, DICT_COMMAND, CMD_BY_NAME, "Test-Command-Request", &cmd_model, ENOENT ) );
+			
+			/* Test default behavior without flags */
+			{ 
+				/* Create a message with some AVPs inside */
+				CHECK( 0, fd_msg_new ( cmd_model, 0, &msg ) );
+				CHECK( 0, fd_msg_hdr ( msg, &msgdata ) );
+				
+				/* Add a session id */
+				CHECK( 0, fd_msg_new_session( msg, "testmsg", strlen("testmsg") ) );
+				
+				/* Create two instances of Proxy-Info */
+				ADD_AVP( msg, MSG_BRW_LAST_CHILD, pi1, 0, "Proxy-Info");
+				ADD_AVP( msg, MSG_BRW_LAST_CHILD, pi2, 0, "Proxy-Info");
+
+				ADD_AVP( pi1, MSG_BRW_LAST_CHILD, avp, 0, "Proxy-State");
+				value.os.data = "ps_pi1";
+				value.os.len = strlen(value.os.data);
+				CHECK( 0, fd_msg_avp_setvalue ( avp, &value ) );
+				
+				ADD_AVP( pi2, MSG_BRW_LAST_CHILD, avp, 0, "Proxy-State");
+				value.os.data = "pi2_state";
+				value.os.len = strlen(value.os.data);
+				CHECK( 0, fd_msg_avp_setvalue ( avp, &value ) );
+				
+				ADD_AVP( pi1, MSG_BRW_FIRST_CHILD, avp, 0, "Proxy-Host");
+				value.os.data = host1;
+				value.os.len = strlen(host1);
+				CHECK( 0, fd_msg_avp_setvalue ( avp, &value ) );
+				
+				ADD_AVP( pi2, MSG_BRW_LAST_CHILD, avp, 0, "Proxy-Host");
+				value.os.data = host2;
+				value.os.len = strlen(host2);
+				CHECK( 0, fd_msg_avp_setvalue ( avp, &value ) );
+				
+				ADD_AVP( pi2, MSG_BRW_LAST_CHILD, avp, 73565, "AVP Test - i64");
+				value.i64 = 0x123456789abcdeLL;
+				CHECK( 0, fd_msg_avp_setvalue ( avp, &value ) );
+				
+				
+				/* Now call the fd_msg_new_answer_from_req function */
+				CHECK( 0, fd_msg_new_answer_from_req ( fd_g_config->cnf_dict, &msg, 0 ) );
+				
+				/* Check there is a Session-Id AVP */
+				{
+					struct session * sess;
+					int new;
+					CHECK( 0, fd_msg_sess_get(fd_g_config->cnf_dict, msg, &sess, &new) );
+					CHECK( 1, sess == NULL ? 0 : 1 );
+					CHECK( 0, new ? 1 : 0 );
+				}
+				
+				/* Check there are two Proxy-Info with the two hosts */
+				{
+					int got_h1 = 0, got_h2=0;
+					struct dict_object * ph_model;
+					CHECK( 0, fd_msg_browse ( msg, MSG_BRW_FIRST_CHILD, &avp, NULL) );
+					while(avp) {
+						struct avp_hdr * avpdata = NULL;
+						CHECK( 0, fd_msg_avp_hdr ( avp, &avpdata ) );
+						if (avpdata->avp_code == AC_PROXY_INFO) {
+							struct avp * iavp;
+							CHECK( 0, fd_msg_browse ( avp, MSG_BRW_FIRST_CHILD, &iavp, NULL) );
+							while(iavp) {
+								struct avp_hdr * iavpdata = NULL;
+								CHECK( 0, fd_msg_avp_hdr ( iavp, &iavpdata ) );
+								if (iavpdata->avp_code == AC_PROXY_HOST) {
+									if (!memcmp(host1, iavpdata->avp_value->os.data, strlen(host1)))
+										got_h1++;
+									if (!memcmp(host2, iavpdata->avp_value->os.data, strlen(host2)))
+										got_h2++;
+								}
+								CHECK( 0, fd_msg_browse ( iavp, MSG_BRW_NEXT, &iavp, NULL) );
+							}
+						}
+						
+						CHECK( 0, fd_msg_browse ( avp, MSG_BRW_NEXT, &avp, NULL) );
+					}
+					
+					CHECK(1, got_h1);
+					CHECK(1, got_h2);
+				}
+				
+			}
+			
 		}
 	}
 	
