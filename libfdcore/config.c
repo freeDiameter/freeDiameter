@@ -261,7 +261,7 @@ int fd_conf_parse()
 	
 	/* Check that TLS private key was given */
 	if (! fd_g_config->cnf_sec_data.key_file) {
-		TRACE_ERROR( "Missing private key configuration for TLS. Please provide the TLS_cred configuration directive.\n");
+		TRACE_ERROR( "Missing private key configuration for TLS. Please provide the TLS_cred configuration directive.");
 		return EINVAL;
 	}
 	
@@ -294,9 +294,8 @@ int fd_conf_parse()
 
 		ret = getaddrinfo(buf, NULL, &hints, &info);
 		if (ret != 0) {
-			TRACE_ERROR( "Error resolving local FQDN :\n"
-					" '%s' : %s\n"
-					"Please provide Identity in configuration file.\n",
+			TRACE_ERROR( "Error resolving local FQDN : '%s' : %s"
+					". Please provide Identity in configuration file.",
 					buf, gai_strerror(ret));
 			return EINVAL;
 		}
@@ -314,8 +313,8 @@ int fd_conf_parse()
 		/* Check the diameter identity is a fqdn */
 		start = strchr(fd_g_config->cnf_diamid, '.');
 		if ((start == NULL) || (start[1] == '\0')) {
-			TRACE_ERROR( "Unable to extract realm from the Identity '%s'.\n"
-					"Please fix your Identity setting or provide Realm.\n",
+			TRACE_ERROR( "Unable to extract realm from the Identity '%s'."
+					" Please fix your Identity setting or provide Realm.",
 					fd_g_config->cnf_diamid);
 			return EINVAL;
 		}
@@ -328,11 +327,11 @@ int fd_conf_parse()
 	
 	/* Validate some flags */
 	if (fd_g_config->cnf_flags.no_ip4 && fd_g_config->cnf_flags.no_ip6) {
-		TRACE_ERROR( "IP and IPv6 cannot be disabled at the same time.\n");
+		TRACE_ERROR( "IP and IPv6 cannot be disabled at the same time.");
 		return EINVAL;
 	}
 	if (fd_g_config->cnf_flags.no_tcp && fd_g_config->cnf_flags.no_sctp) {
-		TRACE_ERROR( "TCP and SCTP cannot be disabled at the same time.\n");
+		TRACE_ERROR( "TCP and SCTP cannot be disabled at the same time.");
 		return EINVAL;
 	}
 	

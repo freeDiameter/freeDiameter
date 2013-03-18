@@ -74,7 +74,7 @@
 
 /* Define the macro to pass a test */
 #define PASSTEST( ){					\
-	TRACE_NOTICE("Test %s passed\n", __FILE__);	\
+	TRACE_NOTICE("Test %s passed", __FILE__);	\
 	TRACE_DEBUG(INFO, "Test passed");		\
 	(void)fd_core_shutdown();			\
 	(void)fd_core_wait_shutdown_complete();		\
@@ -91,13 +91,13 @@ extern struct fd_config * fd_g_config;
 	if (test_verbo > 0) {				\
 		TRACE_ERROR(				\
 			"%s:%-4d: CHECK( " #_assert " == "\
-				#_val " )\n",		\
+				#_val " )",		\
 			__FILE__, 			\
 			__LINE__);			\
 	}{						\
 	__typeof__ (_val) __ret = (_assert);		\
 	if (__ret != (_val)) {				\
-		FAILTEST( "%s:%d: CHECK FAILED : %s == %lx != %lx\n",	\
+		FAILTEST( "%s:%d: CHECK FAILED : %s == %lx != %lx",	\
 			__FILE__,			\
 			__LINE__,			\
 			#_assert,			\

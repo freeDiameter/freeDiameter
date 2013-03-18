@@ -193,7 +193,7 @@ int fd_core_initialize(void)
 	#endif /* GNUTLS_VERSION_210 */
 	CHECK_GNUTLS_DO( gnutls_global_init(), return EINVAL );
 	if ( ! gnutls_check_version(GNUTLS_VERSION) ) {
-		TRACE_ERROR( "The GNUTLS library is too old; found '%s', need '" GNUTLS_VERSION "'\n", gnutls_check_version(NULL));
+		TRACE_ERROR( "The GNUTLS library is too old; found '%s', need '" GNUTLS_VERSION "'", gnutls_check_version(NULL));
 		return EINVAL;
 	} else {
 	#ifdef GNUTLS_VERSION_210
@@ -316,7 +316,7 @@ int fd_core_wait_shutdown_complete(void)
 		/* Just wait for core_runner_thread to complete and return gracefully */
 		ret = pthread_join(core_runner, &th_ret);
 		if (ret != 0) {
-			TRACE_ERROR( "Unable to wait for main framework thread termination: %s\n", strerror(ret));
+			TRACE_ERROR( "Unable to wait for main framework thread termination: %s", strerror(ret));
 			return ret;
 		}
 	}

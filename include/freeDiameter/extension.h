@@ -51,14 +51,14 @@ static int extension_loaded = 0;							\
 int fd_ext_init(int major, int minor, char * conffile) {				\
 	if ((major != FD_PROJECT_VERSION_MAJOR)						\
 		|| (minor != FD_PROJECT_VERSION_MINOR)) {				\
-		TRACE_ERROR("This extension (" _name ") was compiled for a different version of freeDiameter.\n");	\
+		TRACE_ERROR("This extension (" _name ") was compiled for a different version of freeDiameter.");	\
 		TRACE_DEBUG(INFO, "daemon %d.%d != ext %d.%d",				\
 			major, minor,							\
 			FD_PROJECT_VERSION_MAJOR, FD_PROJECT_VERSION_MINOR);		\
 		return EINVAL;								\
 	}										\
 	if (extension_loaded) {								\
-		TRACE_ERROR("Extension (" _name ") cannot be loaded twice!\n");		\
+		TRACE_ERROR("Extension (" _name ") cannot be loaded twice!");		\
 		return ENOTSUP;								\
 	}										\
 	extension_loaded++;								\
