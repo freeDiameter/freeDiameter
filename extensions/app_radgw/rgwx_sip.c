@@ -1,7 +1,8 @@
 /*********************************************************************************************************
 * Software License Agreement (BSD License)                                                               *
 * Author: Alexandre Westfahl <awestfahl@freediameter.net>						 *
-*													 *
+*													 *												 *
+* Copyright (c) 2013, WIDE Project and NICT								 *
 * Copyright (c) 2010, Alexandre Westfahl, Teraoka Laboratory (Keio University), and the WIDE Project. 	 *		
 *													 *
 * All rights reserved.											 *
@@ -321,7 +322,7 @@ static void sip_conf_free(struct rgwp_config * state)
 
 
 /* Handle an incoming RADIUS request */
-static int sip_rad_req( struct rgwp_config * cs, struct session ** session, struct radius_msg * rad_req, struct radius_msg ** rad_ans, struct msg ** diam_fw, struct rgw_client * cli )
+static int sip_rad_req( struct rgwp_config * cs, struct radius_msg * rad_req, struct radius_msg ** rad_ans, struct msg ** diam_fw, struct rgw_client * cli )
 {
 	int idx;
 	int got_AOR = 0;
@@ -339,21 +340,20 @@ static int sip_rad_req( struct rgwp_config * cs, struct session ** session, stru
 	size_t nattr_used = 0;
 	struct avp *auth_data=NULL, *auth=NULL, *avp = NULL;
 	union avp_value value;
+	struct session * sess;
 	
-	TRACE_ENTRY("%p %p %p %p %p %p", cs, session, rad_req, rad_ans, diam_fw, cli);
+	TRACE_ENTRY("%p %p %p %p %p", cs, rad_req, rad_ans, diam_fw, cli);
 	
-	CHECK_PARAMS(rad_req && (rad_req->hdr->code == RADIUS_CODE_ACCESS_REQUEST) && rad_ans && diam_fw && *diam_fw && session);
-	
-	//We check that session is not already filled
-	if(*session)
-	{
-		TRACE_DEBUG(INFO,"INTERNAL ERROR: We are not supposed to receive a session in radSIP plugin.");
-		return EINVAL;
-	}
+	CHECK_PARAMS(rad_req && (rad_req->hdr->code == RADIUS_CODE_ACCESS_REQUEST) && rad_ans && diam_fw && *diam_fw);
 	
 	/*
 	   RFC5090 RADIUS Extension Digest Application
 	*/
+	CHECK_FCT( fd_msg_sess_get(fd_g_config->cnf_dict, *diam_fw, &sess, NULL) );
+	if (sess != NULL) {
+		TRACE_DEBUG(INFO,"INTERNAL ERROR: We are not supposed to receive a session in radSIP plugin.");
+		return EINVAL;		
+	}
 	
 	/* Check basic information is there */
 	for (idx = 0; idx < rad_req->attr_used; idx++) {
@@ -397,7 +397,7 @@ static int sip_rad_req( struct rgwp_config * cs, struct session ** session, stru
 					TRACE_DEBUG(INFO,"We haven't found the session.'");
 					return EINVAL;
 				}
-				CHECK_FCT(fd_sess_fromsid (sid, sidlen, session, NULL));
+				CHECK_FCT(fd_sess_fromsid_msg (sid, sidlen, &sess, NULL));
 				free(sid);
 							
 				
@@ -423,15 +423,12 @@ static int sip_rad_req( struct rgwp_config * cs, struct session ** session, stru
 	}
 
 	/* Create the session if it is not already done */
-	if (!*session) {
+	if (!sess) {
 		
 		DiamId_t fqdn;
 		size_t fqdn_len;
 		DiamId_t realm;
 		size_t realm_len;
-		
-		
-		
 		
 		/* Get information on the RADIUS client */
 		CHECK_FCT( rgw_clients_get_origin(cli, &fqdn, &fqdn_len, &realm, &realm_len) );
@@ -439,9 +436,21 @@ static int sip_rad_req( struct rgwp_config * cs, struct session ** session, stru
 		/* Create a new Session-Id. The format is: {fqdn;hi32;lo32;username;diamid} */
 		CHECK_MALLOC( sid = malloc(un_len + 1 /* ';' */ + fd_g_config->cnf_diamid_len + 1 /* '\0' */) );
 		sidlen = sprintf((char *)sid, "%.*s;%s", (int)un_len, un, fd_g_config->cnf_diamid);
-		CHECK_FCT( fd_sess_new(session, fqdn, fqdn_len, sid, sidlen) );
+		CHECK_FCT( fd_sess_new(&sess, fqdn, fqdn_len, sid, sidlen) );
 		free(sid);
 	}
+	
+	/* Now, add the Session-Id AVP at beginning of Diameter message */
+	CHECK_FCT( fd_msg_avp_new ( cs->dict.Session_Id, 0, &avp ) );
+	value.os.data = sid;
+	value.os.len = sidlen;
+	CHECK_FCT( fd_msg_avp_setvalue ( avp, &value ) );
+	CHECK_FCT( fd_msg_avp_add ( *diam_fw, MSG_BRW_FIRST_CHILD, avp) );
+	
+	TRACE_DEBUG(FULL, "[sip.rgwx] Translating new message for session '%s'...", sid);
+	
+	/* Now add this session in the message */
+	CHECK_FCT( fd_msg_sess_set(*diam_fw, sess) );
 		
 	/* Add the Destination-Realm AVP */
 	CHECK_FCT( fd_msg_avp_new ( cs->dict.Destination_Realm, 0, &avp ) );
@@ -466,20 +475,7 @@ static int sip_rad_req( struct rgwp_config * cs, struct session ** session, stru
 	}
 	
 	CHECK_FCT( fd_msg_avp_setvalue ( avp, &value ) );
-	CHECK_FCT( fd_msg_avp_add ( *diam_fw, MSG_BRW_FIRST_CHILD, avp) );
-	
-	/* Now, add the Session-Id AVP at beginning of Diameter message */
-	CHECK_FCT( fd_sess_getsid(*session, &sid, &sidlen) );
-	
-	TRACE_DEBUG(FULL, "[sip.rgwx] Translating new message for session '%s'...", sid);
-	
-	/* Add the Session-Id AVP as first AVP */
-	CHECK_FCT( fd_msg_avp_new ( cs->dict.Session_Id, 0, &avp ) );
-	value.os.data = sid;
-	value.os.len = sidlen;
-	CHECK_FCT( fd_msg_avp_setvalue ( avp, &value ) );
-	CHECK_FCT( fd_msg_avp_add ( *diam_fw, MSG_BRW_FIRST_CHILD, avp) );
-	CHECK_FCT( fd_msg_sess_set( *diam_fw, *session) );
+	CHECK_FCT( fd_msg_avp_add ( *diam_fw, MSG_BRW_LAST_CHILD, avp) );
 	
 	/*
 	If the RADIUS Access-Request message does not
@@ -720,33 +716,33 @@ static int sip_rad_req( struct rgwp_config * cs, struct session ** session, stru
 
 	//fd_msg_dump_walk(1,*diam_fw);
 	
-	/* Store the request identifier in the session (if provided) */
-	if (*session) {
+	/* Store the request identifier in the session */
+	{
 		unsigned char * req_sip;
 		CHECK_MALLOC(req_sip = malloc(16));
 		memcpy(req_sip, &rad_req->hdr->authenticator[0], 16);
 		
-		CHECK_FCT( fd_sess_state_store( cs->sess_hdl, *session, &req_sip ) );
+		CHECK_FCT( fd_sess_state_store( cs->sess_hdl, sess, &req_sip ) );
 	}
 	
 	
 	return 0;
 }
 
-static int sip_diam_ans( struct rgwp_config * cs, struct session * session, struct msg ** diam_ans, struct radius_msg ** rad_fw, struct rgw_client * cli, int * statefull )
+static int sip_diam_ans( struct rgwp_config * cs, struct msg ** diam_ans, struct radius_msg ** rad_fw, struct rgw_client * cli )
 {
 	
 	
-	struct avp *avp, *next, *asid;
-	struct avp_hdr *ahdr, *sid;
+	struct avp *avp, *next;
+	struct avp_hdr *ahdr;
 	//char buf[254]; /* to store some attributes values (with final '\0') */
 	unsigned char * req_sip = NULL;
+	struct session * sess;
+	os0_t sid = NULL;
+	size_t sidlen;
 	
-	TRACE_ENTRY("%p %p %p %p %p", cs, session, diam_ans, rad_fw, cli);
-	CHECK_PARAMS(cs && session && diam_ans && *diam_ans && rad_fw && *rad_fw);
-	
-	
-	
+	TRACE_ENTRY("%p %p %p %p", cs, diam_ans, rad_fw, cli);
+	CHECK_PARAMS(cs && diam_ans && *diam_ans && rad_fw && *rad_fw);
 	
 	
 	/* MACROS to help in the process: convert AVP data to RADIUS attributes. */
@@ -776,10 +772,12 @@ static int sip_diam_ans( struct rgwp_config * cs, struct session * session, stru
 		CHECK_MALLOC(radius_msg_add_attr(*rad_fw, (_attr_), (uint8_t *)&__v, sizeof(__v)));	\
 	}
 
-
 	/* Search the different AVPs we handle here */
-	CHECK_FCT( fd_msg_search_avp (*diam_ans, cs->dict.Session_Id, &asid) );
-	CHECK_FCT( fd_msg_avp_hdr ( asid, &sid ) );
+	CHECK_FCT( fd_msg_sess_get(fd_g_config->cnf_dict, *diam_ans, &sess, NULL) );
+	if (sess) {
+		CHECK_FCT( fd_sess_getsid(sess, &sid, &sidlen) );
+	}
+
 
 	/* Check the Diameter error code */
 	CHECK_FCT( fd_msg_search_avp (*diam_ans, cs->dict.Result_Code, &avp) );
@@ -803,8 +801,7 @@ static int sip_diam_ans( struct rgwp_config * cs, struct session * session, stru
 		default:
 			(*rad_fw)->hdr->code = RADIUS_CODE_ACCESS_REJECT;
 			fd_log_debug("[sip.rgwx] Received Diameter answer with error code '%d', session %.*s, translating into Access-Reject",
-					ahdr->avp_value->u32, 
-					sid->avp_value->os.len, sid->avp_value->os.data);
+					ahdr->avp_value->u32, sidlen, sid);
 			return 0;
 	}
 	/* Remove this Result-Code avp */
@@ -826,14 +823,7 @@ static int sip_diam_ans( struct rgwp_config * cs, struct session * session, stru
 				
 				case DIAM_ATTR_DIGEST_NONCE:
 					CONV2RAD_STR(DIAM_ATTR_DIGEST_NONCE, ahdr->avp_value->os.data, ahdr->avp_value->os.len, 0);
-					/* Retrieve the request identified which was stored in the session */
-					if (session) {
-						os0_t sid=NULL;
-						size_t sidlen;
-						fd_sess_getsid (session, &sid, &sidlen );
-						
-						nonce_add_element(ahdr->avp_value->os.data, ahdr->avp_value->os.len, sid, sidlen, cs);
-					}
+					nonce_add_element(ahdr->avp_value->os.data, ahdr->avp_value->os.len, sid, sidlen, cs);
 					break;
 				case DIAM_ATTR_DIGEST_REALM:
 					CONV2RAD_STR(DIAM_ATTR_DIGEST_REALM, ahdr->avp_value->os.data, ahdr->avp_value->os.len, 1);
@@ -866,12 +856,8 @@ static int sip_diam_ans( struct rgwp_config * cs, struct session * session, stru
 		}
 	}
 	
-	if (session) 
-	{
-		CHECK_FCT( fd_sess_state_retrieve( cs->sess_hdl, session, &req_sip ) );
-	}
+	CHECK_FCT( fd_sess_state_retrieve( cs->sess_hdl, sess, &req_sip ) );
 	free(req_sip);
-	
 	
 	return 0;
 }

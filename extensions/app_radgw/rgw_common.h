@@ -73,7 +73,7 @@ extern struct rgw_api {
 	void (*rgwp_conf_free) (struct rgwp_config * state);
 
 	/* handle an incoming RADIUS message */
-	int	(*rgwp_rad_req) ( struct rgwp_config * conf, struct session ** session, struct radius_msg * rad_req, struct radius_msg ** rad_ans, struct msg ** diam_fw, struct rgw_client * cli );
+	int	(*rgwp_rad_req) ( struct rgwp_config * conf, struct radius_msg * rad_req, struct radius_msg ** rad_ans, struct msg ** diam_fw, struct rgw_client * cli );
 	/* ret >0: critical error (errno), log and exit.
 	   ret 0: continue; 
 	   ret -1: stop processing this message
@@ -81,9 +81,8 @@ extern struct rgw_api {
 	 */
 	
 	/* handle the corresponding Diameter answer */
-	int	(*rgwp_diam_ans) ( struct rgwp_config * conf, struct session * session, struct msg ** diam_ans, struct radius_msg ** rad_fw, struct rgw_client * cli, int * stateful );
+	int	(*rgwp_diam_ans) ( struct rgwp_config * conf, struct msg ** diam_ans, struct radius_msg ** rad_fw, struct rgw_client * cli );
 	/* ret 0: continue; ret >0: error; ret: -1 ... (tbd) */
-	/* if *stateful = 1 on return, the session will not be destroyed after RADIUS answer is sent. The extension must ensure to register a timeout on the session in this case. */
 	
 } rgwp_descriptor;
 

@@ -115,8 +115,8 @@ int rgw_client_session_stop(struct rgw_client * cli, struct session * sess, int3
 int rgw_plg_add( char * plgfile, char * conffile, int port, unsigned char ** codes_array, size_t codes_sz );
 void rgw_plg_dump(void);
 void rgw_plg_start_cache(void);
-int rgw_plg_loop_req(struct rgw_radius_msg_meta **rad, struct session **session, struct msg **diam_msg, struct rgw_client * cli);
-int rgw_plg_loop_ans(struct rgw_radius_msg_meta *req, struct session *session, struct msg **diam_ans, struct radius_msg ** rad_ans, struct rgw_client * cli, int * stateful);
+int rgw_plg_loop_req(struct rgw_radius_msg_meta **rad, struct msg **diam_msg, struct rgw_client * cli);
+int rgw_plg_loop_ans(struct rgw_radius_msg_meta *req, struct msg **diam_ans, struct radius_msg ** rad_ans, struct rgw_client * cli);
 void rgw_plg_fini(void);
 
 

@@ -327,14 +327,14 @@ void rgw_plg_start_cache(void)
 	cache_started++;
 }
 
-int rgw_plg_loop_req(struct rgw_radius_msg_meta **rad, struct session **session, struct msg **diam_msg, struct rgw_client * cli)
+int rgw_plg_loop_req(struct rgw_radius_msg_meta **rad, struct msg **diam_msg, struct rgw_client * cli)
 {
 	int ret = 0;
 	struct fd_list * head = NULL, *li;
 	struct radius_msg * rad_ans = NULL;
 	
-	TRACE_ENTRY("%p %p %p %p", rad, session, diam_msg, cli);
-	CHECK_PARAMS( rad && *rad && session && diam_msg && *diam_msg && cli);
+	TRACE_ENTRY("%p %p %p", rad, diam_msg, cli);
+	CHECK_PARAMS( rad && *rad && diam_msg && *diam_msg && cli);
 	
 	/* First, get the list of extensions for this message */
 	CHECK_POSIX( pthread_rwlock_rdlock( &plg_lock) );
@@ -347,7 +347,7 @@ int rgw_plg_loop_req(struct rgw_radius_msg_meta **rad, struct session **session,
 		
 		if (plg->descriptor->rgwp_rad_req) {
 			TRACE_DEBUG(ANNOYING, "Calling next plugin: %s", plg->descriptor->rgwp_name);
-			ret = (*plg->descriptor->rgwp_rad_req)(plg->cs, session, &(*rad)->radius, &rad_ans, diam_msg, cli);
+			ret = (*plg->descriptor->rgwp_rad_req)(plg->cs, &(*rad)->radius, &rad_ans, diam_msg, cli);
 			if (ret)
 				break;
 		} else {
@@ -367,11 +367,6 @@ int rgw_plg_loop_req(struct rgw_radius_msg_meta **rad, struct session **session,
 		*diam_msg = NULL;
 	}
 	
-	/* Destroy the session, there won't be a reply message to retrieve the data */
-	if (*session) {
-		CHECK_FCT_DO( fd_sess_destroy(session), );
-	}
-	
 	/* Send the radius message back if required */
 	if ((ret == -2) && rad_ans && rad) {
 		CHECK_FCT_DO( rgw_client_finish_send(&rad_ans, *rad, cli), /* It failed, it can't be helped... */);
@@ -389,15 +384,13 @@ int rgw_plg_loop_req(struct rgw_radius_msg_meta **rad, struct session **session,
 }
 
 /* Loop in the extension list (same as req) to convert data from diam_ans to rad_ans */
-int rgw_plg_loop_ans(struct rgw_radius_msg_meta *req, struct session *session, struct msg **diam_ans, struct radius_msg ** rad_ans, struct rgw_client * cli, int * stateful)
+int rgw_plg_loop_ans(struct rgw_radius_msg_meta *req, struct msg **diam_ans, struct radius_msg ** rad_ans, struct rgw_client * cli)
 {
 	int ret = 0;
 	struct fd_list * head = NULL, *li;
 	
-	TRACE_ENTRY("%p %p %p %p %p %p", req, session, diam_ans, rad_ans, cli, stateful);
-	CHECK_PARAMS( req && session && diam_ans && *diam_ans && rad_ans && *rad_ans && cli && stateful);
-	
-	*stateful = 0; /* default: stateless gateway */
+	TRACE_ENTRY("%p %p %p %p", req, diam_ans, rad_ans, cli);
+	CHECK_PARAMS( req && diam_ans && *diam_ans && rad_ans && *rad_ans && cli);
 	
 	/* Get the list of extensions of the RADIUS request */
 	CHECK_POSIX( pthread_rwlock_rdlock( &plg_lock) );
@@ -411,10 +404,9 @@ int rgw_plg_loop_ans(struct rgw_radius_msg_meta *req, struct session *session, s
 		
 		if (plg->descriptor->rgwp_diam_ans) {
 			TRACE_DEBUG(ANNOYING, "Calling next plugin: %s", plg->descriptor->rgwp_name);
-			ret = (*plg->descriptor->rgwp_diam_ans)(plg->cs, session, diam_ans, rad_ans, (void *)cli, &locstateful);
+			ret = (*plg->descriptor->rgwp_diam_ans)(plg->cs, diam_ans, rad_ans, (void *)cli);
 			if (ret)
 				break;
-			*stateful |= locstateful;
 		} else {
 			TRACE_DEBUG(ANNOYING, "Skipping extension '%s' (NULL callback)", plg->descriptor->rgwp_name);
 		}					

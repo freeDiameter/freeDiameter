@@ -118,16 +118,15 @@ static void ed_conf_free(struct rgwp_config * state)
 
 
 /* Handle attributes from a RADIUS request as specified in the configuration */
-static int ed_rad_req( struct rgwp_config * cs, struct session ** session, struct radius_msg * rad_req, struct radius_msg ** rad_ans, struct msg ** diam_fw, struct rgw_client * cli )
+static int ed_rad_req( struct rgwp_config * cs, struct radius_msg * rad_req, struct radius_msg ** rad_ans, struct msg ** diam_fw, struct rgw_client * cli )
 {
 	size_t nattr_used = 0;
 	int idx;
-	
 	struct fd_list echo_list = FD_LIST_INITIALIZER(echo_list);
 	struct fd_list *li;
 	
-	TRACE_ENTRY("%p %p %p %p %p %p", cs, session, rad_req, rad_ans, diam_fw, cli);
-	CHECK_PARAMS(cs && rad_req && session);
+	TRACE_ENTRY("%p %p %p %p %p", cs, rad_req, rad_ans, diam_fw, cli);
+	CHECK_PARAMS(cs && rad_req);
 	
 	/* For each attribute in the original message */
 	for (idx = 0; idx < rad_req->attr_used; idx++) {
@@ -216,7 +215,11 @@ static int ed_rad_req( struct rgwp_config * cs, struct session ** session, struc
 	
 	/* Save the echoed values in the session, if any */
 	if (!FD_IS_LIST_EMPTY(&echo_list)) {
-		CHECK_PARAMS_DO(*session,
+		struct session * sess;
+		
+		CHECK_FCT( fd_msg_sess_get(fd_g_config->cnf_dict, *diam_fw, &sess, NULL) );
+
+		CHECK_PARAMS_DO(sess,
 			{
 				fd_log_debug(	"[echodrop.rgwx] The extension is configured to echo some attributes from this message, but no session object has been created for it (yet)."
 						" Please check your configuration file and include a session-generating extension BEFORE calling echodrop.rgwx to echo attributes."
@@ -230,28 +233,31 @@ static int ed_rad_req( struct rgwp_config * cs, struct session ** session, struc
 		fd_list_move_end(li, &echo_list);
 		
 		/* Save the list in the session */
-		CHECK_FCT( fd_sess_state_store( cs->sess_hdl, *session, &li ) );
+		CHECK_FCT( fd_sess_state_store( cs->sess_hdl, sess, &li ) );
 	}
 	
 	return 0;
 }
 
 /* Process an answer: add the ECHO attributes back, if any */
-static int ed_diam_ans( struct rgwp_config * cs, struct session * session, struct msg ** diam_ans, struct radius_msg ** rad_fw, struct rgw_client * cli, int * stateful )
+static int ed_diam_ans( struct rgwp_config * cs, struct msg ** diam_ans, struct radius_msg ** rad_fw, struct rgw_client * cli )
 {
 	struct fd_list * list = NULL;
+	struct session * sess;
 	
-	TRACE_ENTRY("%p %p %p %p %p %p", cs, session, diam_ans, rad_fw, cli, stateful);
+	TRACE_ENTRY("%p %p %p %p", cs, diam_ans, rad_fw, cli);
 	CHECK_PARAMS(cs);
 	
+	CHECK_FCT( fd_msg_sess_get(fd_g_config->cnf_dict, *diam_ans, &sess, NULL) );
+	
 	/* If there is no session associated, just give up */
-	if (! session ) {
+	if (! sess ) {
 		TRACE_DEBUG(FULL, "No session associated with the message, nothing to do here...");
 		return 0;
 	}
 	
 	/* Now try and retrieve any data from the session */
-	CHECK_FCT( fd_sess_state_retrieve( cs->sess_hdl, session, &list ) );
+	CHECK_FCT( fd_sess_state_retrieve( cs->sess_hdl, sess, &list ) );
 	if (list == NULL) {
 		/* No attribute saved in the session, just return */
 		return 0;

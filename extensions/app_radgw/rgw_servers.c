@@ -132,8 +132,11 @@ static void * server_thread(void * param)
 			continue;
 		}
 		
-		TRACE_DEBUG(FULL, "Received %d bytes", len);
-		TRACE_sSA(FD_LOG_DEBUG, FULL, " from ", &from, NI_NUMERICHOST | NI_NUMERICSERV, "" );
+		{
+			char __buf[1024];
+			sSA_DUMP_NODE_SERV(__buf, sizeof(__buf), &from, NI_NUMERICHOST | NI_NUMERICSERV );
+			TRACE_DEBUG(FULL, "Received %d bytes from %s", len, __buf);
+		}
 		
 		/* Search the associated client definition, if any */
 		CHECK_FCT_DO( rgw_clients_search((struct sockaddr *) &from, &nas_info),
@@ -272,8 +275,11 @@ int rgw_servers_send(int type, unsigned char *buf, size_t buflen, struct sockadd
 		((struct sockaddr_in6 *)&sto)->sin6_port = to_port;
 	}
 	
-	TRACE_DEBUG(FULL, "Sending %d bytes", buflen);
-	TRACE_sSA(FD_LOG_DEBUG, FULL, " to ", &sto, NI_NUMERICHOST | NI_NUMERICSERV, "" );
+	{
+		char __buf[1024];
+		sSA_DUMP_NODE_SERV(__buf, sizeof(__buf), &sto, NI_NUMERICHOST | NI_NUMERICSERV );
+		TRACE_DEBUG(FULL, "Sending %d bytes to %s", buflen, __buf);
+	}
 		
 	/* Send */
 	ret = sendto(SERVERS[idx].sock, buf, buflen, 0, (struct sockaddr *)&sto, sSAlen(&sto));

@@ -57,10 +57,6 @@
 /*********************************************************************************/
 #include "rgw.h"
 
-/* Overwrite printf */
-#define printf(args...) fd_log_debug(args)
-
-
 static struct radius_attr_hdr *
 radius_get_attr_hdr(struct radius_msg *msg, int idx)
 {
@@ -236,22 +232,27 @@ static struct radius_attr_type *radius_get_attr_type(u8 type)
 	return NULL;
 }
 
+static char print_char_buf[5];
 
-static void print_char(char c)
+static char * print_char(char c)
 {
 	if (c >= 32 && c < 127)
-		printf("%c", c);
+		sprintf(print_char_buf, "%c", c);
 	else
-		printf("<%02x>", c);
+		sprintf(print_char_buf, "<%02x>", c);
+	return print_char_buf;
 }
 
 
-static void radius_msg_dump_attr_val(struct radius_attr_hdr *hdr)
+static char * radius_msg_dump_attr_val(struct radius_attr_hdr *hdr, char * outbuf, size_t buflen)
 {
 	struct radius_attr_type *attr;
 	int i, len;
 	unsigned char *pos;
 	u8 attrtype;
+	size_t offset = 0;
+	
+	memset(outbuf, 0, buflen);
 
 	attr = radius_get_attr_type(hdr->type);
 
@@ -265,19 +266,19 @@ static void radius_msg_dump_attr_val(struct radius_attr_hdr *hdr)
 
 	switch (attrtype) {
 	case RADIUS_ATTR_TEXT:
-		printf("      Value: '");
+		snprintf(outbuf + strlen(outbuf), buflen - strlen(outbuf), "      Value: '");
 		for (i = 0; i < len; i++)
-			print_char(pos[i]);
-		printf("'\n");
+			snprintf(outbuf + strlen(outbuf), buflen - strlen(outbuf), "%s", print_char(pos[i]));
+		snprintf(outbuf + strlen(outbuf), buflen - strlen(outbuf), "'");
 		break;
 
 	case RADIUS_ATTR_IP:
 		if (len == 4) {
 			struct in_addr addr;
 			os_memcpy(&addr, pos, 4);
-			printf("      Value: %s\n", inet_ntoa(addr));
+			snprintf(outbuf + strlen(outbuf), buflen - strlen(outbuf), "      Value: %s", inet_ntoa(addr));
 		} else
-			printf("      Invalid IP address length %d\n", len);
+			snprintf(outbuf + strlen(outbuf), buflen - strlen(outbuf), "      Invalid IP address length %d", len);
 		break;
 
 	case RADIUS_ATTR_IPV6:
@@ -286,33 +287,35 @@ static void radius_msg_dump_attr_val(struct radius_attr_hdr *hdr)
 			const char *atxt;
 			struct in6_addr *addr = (struct in6_addr *) pos;
 			atxt = inet_ntop(AF_INET6, addr, buf, sizeof(buf));
-			printf("      Value: %s\n", atxt ? atxt : "?");
+			snprintf(outbuf + strlen(outbuf), buflen - strlen(outbuf), "      Value: %s", atxt ? atxt : "?");
 		} else
-			printf("      Invalid IPv6 address length %d\n", len);
+			snprintf(outbuf + strlen(outbuf), buflen - strlen(outbuf), "      Invalid IPv6 address length %d", len);
 		break;
 
 	case RADIUS_ATTR_INT32:
 		if (len == 4)
-			printf("      Value: %u\n", WPA_GET_BE32(pos));
+			snprintf(outbuf + strlen(outbuf), buflen - strlen(outbuf), "      Value: %u", WPA_GET_BE32(pos));
 		else
-			printf("      Invalid INT32 length %d\n", len);
+			snprintf(outbuf + strlen(outbuf), buflen - strlen(outbuf), "      Invalid INT32 length %d", len);
 		break;
 
 	case RADIUS_ATTR_HEXDUMP:
 	case RADIUS_ATTR_UNDIST:
 	default:
-		printf("      Value:");
+		snprintf(outbuf + strlen(outbuf), buflen - strlen(outbuf), "      Value:");
 		for (i = 0; i < len; i++)
-			printf(" %02x", pos[i]);
-		printf("\n");
+			snprintf(outbuf + strlen(outbuf), buflen - strlen(outbuf), " %02x", pos[i]);
 		break;
 	}
+	
+	return outbuf;
 }
 
 /* Dump a message  */
 void rgw_msg_dump(struct rgw_radius_msg_meta * msg, int has_meta)
 {
 	unsigned char *auth;
+	char buf[256];
 	size_t i;
 	if (! TRACE_BOOL(FULL) )
 		return;
@@ -328,14 +331,14 @@ void rgw_msg_dump(struct rgw_radius_msg_meta * msg, int has_meta)
 	for (i = 0; i < msg->radius.attr_used; i++) {
 		struct radius_attr_hdr *attr = (struct radius_attr_hdr *)(msg->radius.buf + msg->radius.attr_pos[i]);
 		fd_log_debug("    - Type: 0x%02hhx (%s)       Len: %-3hhu", attr->type, rgw_msg_attrtype_str(attr->type), attr->length);
-		radius_msg_dump_attr_val(attr);
+		fd_log_debug("%s", radius_msg_dump_attr_val(attr, buf, sizeof(buf)));
 	}
 	if (has_meta && msg->ps_nb) {
 		fd_log_debug("---- hidden attributes:");
 		for (i = msg->ps_first; i < msg->ps_first + msg->ps_nb; i++) {
 			struct radius_attr_hdr *attr = (struct radius_attr_hdr *)(msg->radius.buf + msg->radius.attr_pos[i]);
 			fd_log_debug("    - Type: 0x%02hhx (%s)       Len: %-3hhu", attr->type, rgw_msg_attrtype_str(attr->type), attr->length);
-			radius_msg_dump_attr_val(attr);
+			fd_log_debug("%s", radius_msg_dump_attr_val(attr, buf, sizeof(buf)));
 		}
 	}
 	fd_log_debug("-----------------------------");
@@ -354,7 +357,7 @@ int radius_msg_finish(struct radius_msg *msg, const u8 *secret,
 					   RADIUS_ATTR_MESSAGE_AUTHENTICATOR,
 					   auth, MD5_MAC_LEN);
 		if (attr == NULL) {
-			printf("WARNING: Could not add Message-Authenticator\n");
+			fd_log_debug("WARNING: Could not add Message-Authenticator");
 			return -1;
 		}
 		msg->hdr->length = htons(msg->buf_used);
@@ -364,7 +367,7 @@ int radius_msg_finish(struct radius_msg *msg, const u8 *secret,
 		msg->hdr->length = htons(msg->buf_used);
 
 	if (msg->buf_used > 0xffff) {
-		printf("WARNING: too long RADIUS message (%lu)\n",
+		fd_log_debug("WARNING: too long RADIUS message (%lu)",
 		       (unsigned long) msg->buf_used);
 		return -1;
 	}
@@ -385,7 +388,7 @@ int radius_msg_finish_srv(struct radius_msg *msg, const u8 *secret,
 	    attr = radius_msg_add_attr(msg, RADIUS_ATTR_MESSAGE_AUTHENTICATOR,
 				       auth, MD5_MAC_LEN);
 	    if (attr == NULL) {
-		    printf("WARNING: Could not add Message-Authenticator\n");
+		    fd_log_debug("WARNING: Could not add Message-Authenticator");
 		    return -1;
 	    }
 	    msg->hdr->length = htons(msg->buf_used);
@@ -409,7 +412,7 @@ int radius_msg_finish_srv(struct radius_msg *msg, const u8 *secret,
 	md5_vector(4, addr, len, msg->hdr->authenticator);
 
 	if (msg->buf_used > 0xffff) {
-		printf("WARNING: too long RADIUS message (%lu)\n",
+		fd_log_debug("WARNING: too long RADIUS message (%lu)",
 		       (unsigned long) msg->buf_used);
 		return -1;
 	}
@@ -432,7 +435,7 @@ void radius_msg_finish_acct(struct radius_msg *msg, const u8 *secret,
 	md5_vector(2, addr, len, msg->hdr->authenticator);
 
 	if (msg->buf_used > 0xffff) {
-		printf("WARNING: too long RADIUS messages (%lu)\n",
+		fd_log_debug("WARNING: too long RADIUS messages (%lu)",
 		       (unsigned long) msg->buf_used);
 	}
 }
@@ -467,7 +470,7 @@ struct radius_attr_hdr *radius_msg_add_attr(struct radius_msg *msg, u8 type,
 	struct radius_attr_hdr *attr;
 
 	if (data_len > RADIUS_MAX_ATTR_LEN) {
-		printf("radius_msg_add_attr: too long attribute (%lu bytes)\n",
+		fd_log_debug("radius_msg_add_attr: too long attribute (%lu bytes)",
 		       (unsigned long) data_len);
 		return NULL;
 	}
@@ -691,7 +694,7 @@ int radius_msg_verify_msg_auth(struct radius_msg *msg, const u8 *secret,
 		tmp = radius_get_attr_hdr(msg, i);
 		if (tmp->type == RADIUS_ATTR_MESSAGE_AUTHENTICATOR) {
 			if (attr != NULL) {
-				printf("Multiple Message-Authenticator attributes in RADIUS message\n");
+				fd_log_debug("Multiple Message-Authenticator attributes in RADIUS message");
 				return 1;
 			}
 			attr = tmp;
@@ -699,7 +702,7 @@ int radius_msg_verify_msg_auth(struct radius_msg *msg, const u8 *secret,
 	}
 
 	if (attr == NULL) {
-		printf("No Message-Authenticator attribute found\n");
+		fd_log_debug("No Message-Authenticator attribute found");
 		return 1;
 	}
 
@@ -719,7 +722,7 @@ int radius_msg_verify_msg_auth(struct radius_msg *msg, const u8 *secret,
 	}
 
 	if (os_memcmp(orig, auth, MD5_MAC_LEN) != 0) {
-		printf("Invalid Message-Authenticator!\n");
+		fd_log_debug("Invalid Message-Authenticator!");
 		return 1;
 	}
 
@@ -735,7 +738,7 @@ int radius_msg_verify(struct radius_msg *msg, const u8 *secret,
 	u8 hash[MD5_MAC_LEN];
 
 	if (sent_msg == NULL) {
-		printf("No matching Access-Request message found\n");
+		fd_log_debug("No matching Access-Request message found");
 		return 1;
 	}
 
@@ -756,7 +759,7 @@ int radius_msg_verify(struct radius_msg *msg, const u8 *secret,
 	len[3] = secret_len;
 	md5_vector(4, addr, len, hash);
 	if (os_memcmp(hash, msg->hdr->authenticator, MD5_MAC_LEN) != 0) {
-		printf("Response Authenticator invalid!\n");
+		fd_log_debug("Response Authenticator invalid!");
 		return 1;
 	}
 
@@ -894,7 +897,7 @@ static u8 * decrypt_ms_key(const u8 *key, size_t len,
 	pos = key + 2;
 	left = len - 2;
 	if (left % 16) {
-		printf("Invalid ms key len %lu\n", (unsigned long) left);
+		fd_log_debug("Invalid ms key len %lu", (unsigned long) left);
 		return NULL;
 	}
 
@@ -928,7 +931,7 @@ static u8 * decrypt_ms_key(const u8 *key, size_t len,
 	}
 
 	if (plain[0] == 0 || plain[0] > plen - 1) {
-		printf("Failed to decrypt MPPE key\n");
+		fd_log_debug("Failed to decrypt MPPE key");
 		os_free(plain);
 		return NULL;
 	}

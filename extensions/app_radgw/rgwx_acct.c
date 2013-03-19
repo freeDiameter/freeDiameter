@@ -288,7 +288,7 @@ static void acct_conf_free(struct rgwp_config * state)
 }
 
 /* Incoming RADIUS request */
-static int acct_rad_req( struct rgwp_config * cs, struct session ** session, struct radius_msg * rad_req, struct radius_msg ** rad_ans, struct msg ** diam_fw, struct rgw_client * cli )
+static int acct_rad_req( struct rgwp_config * cs, struct radius_msg * rad_req, struct radius_msg ** rad_ans, struct msg ** diam_fw, struct rgw_client * cli )
 {
 	int idx;
 	int send_str=0;
@@ -302,6 +302,7 @@ static int acct_rad_req( struct rgwp_config * cs, struct session ** session, str
 	size_t nattr_used = 0;
 	union avp_value value;
 	struct avp ** avp_tun = NULL, *avp = NULL;
+	struct session * sess;
 	
 	const char * prefix = "Diameter/";
 	size_t pref_len;
@@ -310,7 +311,7 @@ static int acct_rad_req( struct rgwp_config * cs, struct session ** session, str
 	os0_t un = NULL;
 	size_t un_len = 0;
 	
-	TRACE_ENTRY("%p %p %p %p %p %p", cs, session, rad_req, rad_ans, diam_fw, cli);
+	TRACE_ENTRY("%p %p %p %p %p", cs, rad_req, rad_ans, diam_fw, cli);
 	CHECK_PARAMS(rad_req && (rad_req->hdr->code == RADIUS_CODE_ACCOUNTING_REQUEST) && rad_ans && diam_fw && *diam_fw);
 	
 	pref_len = strlen(prefix);
@@ -451,12 +452,12 @@ static int acct_rad_req( struct rgwp_config * cs, struct session ** session, str
 	
 	if (status_type == RADIUS_ACCT_STATUS_TYPE_ACCOUNTING_OFF) {
 		TRACE_DEBUG(FULL, "[acct.rgwx] Received Accounting-Off Acct-Status-Type attribute, we must terminate all active sessions.");
-		TODO("RADIUS side is rebooting, send STR on all sessions?");
+		TODO("RADIUS side is rebooting, send STR on all sessions???");
 		return ENOTSUP;
 	}
 	
 	/* Check if we got a valid session information, otherwise the server will not be able to handle the data... */
-	if (!*session && !si) {
+	if (!si) {
 		TRACE_DEBUG(INFO, "[acct.rgwx] RADIUS Account-Request from %s did not contain a CLASS attribute with Diameter session information, reject.", rgw_clients_id(cli));
 		return EINVAL;
 	}
@@ -482,11 +483,11 @@ static int acct_rad_req( struct rgwp_config * cs, struct session ** session, str
 		value.os.len  = un_len - idx;
 	}
 	CHECK_FCT( fd_msg_avp_setvalue ( avp, &value ) );
-	CHECK_FCT( fd_msg_avp_add ( *diam_fw, *session ? MSG_BRW_LAST_CHILD : MSG_BRW_FIRST_CHILD, avp) );
+	CHECK_FCT( fd_msg_avp_add ( *diam_fw, MSG_BRW_FIRST_CHILD, avp) );
 	
-	/* Create the Session-Id AVP if needed */
-	if (!*session) {
-		CHECK_FCT( fd_sess_fromsid ( si, si_len, session, NULL) );
+	/* Create the Session-Id AVP */
+	{
+		CHECK_FCT( fd_sess_fromsid_msg ( si, si_len, &sess, NULL) );
 		
 		TRACE_DEBUG(FULL, "[acct.rgwx] Translating new accounting message for session '%.*s'...", si_len, si);
 		
@@ -496,6 +497,7 @@ static int acct_rad_req( struct rgwp_config * cs, struct session ** session, str
 		value.os.len = si_len;
 		CHECK_FCT( fd_msg_avp_setvalue ( avp, &value ) );
 		CHECK_FCT( fd_msg_avp_add ( *diam_fw, MSG_BRW_FIRST_CHILD, avp) );
+		CHECK_FCT( fd_msg_sess_set(*diam_fw, sess) );
 	}
 	
 		
@@ -1176,7 +1178,6 @@ static int acct_rad_req( struct rgwp_config * cs, struct session ** session, str
 	/* Store useful information in the session */
 	{
 		struct sess_state * st;
-		CHECK_PARAMS(session);
 		
 		CHECK_MALLOC( st = malloc(sizeof(struct sess_state)) );
 		memset(st, 0, sizeof(struct sess_state));
@@ -1185,7 +1186,7 @@ static int acct_rad_req( struct rgwp_config * cs, struct session ** session, str
 			st->send_str = send_str;
 		}
 		st->term_cause = str_cause;
-		CHECK_FCT( fd_sess_state_store( cs->sess_hdl, *session, &st ) );
+		CHECK_FCT( fd_sess_state_store( cs->sess_hdl, sess, &st ) );
 	}
 	
 	return 0;
@@ -1221,17 +1222,22 @@ out:
 	return;
 }
 
-static int acct_diam_ans( struct rgwp_config * cs, struct session * session, struct msg ** diam_ans, struct radius_msg ** rad_fw, struct rgw_client * cli, int * stateful )
+static int acct_diam_ans( struct rgwp_config * cs, struct msg ** diam_ans, struct radius_msg ** rad_fw, struct rgw_client * cli )
 {
+	struct session * sess;
 	struct sess_state * st = NULL, stloc;
 	struct avp *avp, *next;
-	struct avp_hdr *ahdr, *sid, *oh, *or;
+	struct avp_hdr *ahdr, *oh, *or;
+	os0_t sid = NULL;
+	size_t sidlen;
 	
-	TRACE_ENTRY("%p %p %p %p %p", cs, session, diam_ans, rad_fw, cli);
+	TRACE_ENTRY("%p %p %p %p", cs, diam_ans, rad_fw, cli);
 	CHECK_PARAMS(cs);
 	
-	if (session) {
-		CHECK_FCT( fd_sess_state_retrieve( cs->sess_hdl, session, &st ) );
+	CHECK_FCT( fd_msg_sess_get(fd_g_config->cnf_dict, *diam_ans, &sess, NULL) );
+	if (sess) {
+		CHECK_FCT( fd_sess_state_retrieve( cs->sess_hdl, sess, &st ) );
+		CHECK_FCT( fd_sess_getsid(sess, &sid, &sidlen) );
 	}
 	
 	if (!st) {
@@ -1245,9 +1251,6 @@ static int acct_diam_ans( struct rgwp_config * cs, struct session * session, str
 	st = &stloc;
 	
 	/* Search these AVPs first */
-	CHECK_FCT( fd_msg_search_avp (*diam_ans, cs->dict.Session_Id, &avp) );
-	CHECK_FCT( fd_msg_avp_hdr ( avp, &sid ) );
-	
 	CHECK_FCT( fd_msg_search_avp (*diam_ans, cs->dict.Origin_Host, &avp) );
 	CHECK_FCT( fd_msg_avp_hdr ( avp, &oh ) );
 
@@ -1268,7 +1271,7 @@ static int acct_diam_ans( struct rgwp_config * cs, struct session * session, str
 			fd_log_debug("[acct.rgwx] Received Diameter answer with error code '%d' from server '%.*s', session %.*s, not translating into Accounting-Response",
 					ahdr->avp_value->u32, 
 					oh->avp_value->os.len, oh->avp_value->os.data,
-					sid->avp_value->os.len, sid->avp_value->os.data);
+					sidlen, sid);
 			CHECK_FCT( fd_msg_search_avp (*diam_ans, cs->dict.Error_Message, &avp) );
 			if (avp) {
 				CHECK_FCT( fd_msg_avp_hdr ( avp, &ahdr ) );
@@ -1309,14 +1312,17 @@ static int acct_diam_ans( struct rgwp_config * cs, struct session * session, str
 		/* Create a new STR message */
 		CHECK_FCT(  fd_msg_new ( cs->dict.Session_Termination_Request, MSGFL_ALLOC_ETEID, &str )  );
 		
-		/* Set the application-id to the auth application if available, accouting otherwise (not sure what is actually expected...) */
+		/* Set the application-id to the auth application if available, accounting otherwise (not sure what is actually expected...) */
 		CHECK_FCT( fd_msg_hdr ( str, &hdr ) );
 		hdr->msg_appl = st->auth_appl ?: AI_ACCT;
 		
 		/* Add the Session-Id AVP as first AVP */
 		CHECK_FCT( fd_msg_avp_new (  cs->dict.Session_Id, 0, &avp ) );
-		CHECK_FCT( fd_msg_avp_setvalue ( avp, sid->avp_value ) );
+		avp_val.os.data = sid;
+		avp_val.os.len = sidlen;
+		CHECK_FCT( fd_msg_avp_setvalue ( avp, &avp_val ) );
 		CHECK_FCT( fd_msg_avp_add ( str, MSG_BRW_FIRST_CHILD, avp) );
+		CHECK_FCT( fd_sess_ref_msg(sess) );
 
 		/* Add the Destination-Realm as next AVP */
 		CHECK_FCT( fd_msg_avp_new ( cs->dict.Destination_Realm, 0, &avp ) );

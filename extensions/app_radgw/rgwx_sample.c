@@ -69,18 +69,18 @@ static void sample_conf_free(struct rgwp_config * state)
 }
 
 /* This function is called on incoming RADIUS messages. It should handle (some) RADIUS data and store into the Diameter message. */
-static int sample_rad_req( struct rgwp_config * cs, struct session ** session, struct radius_msg * rad_req, struct radius_msg ** rad_ans, struct msg ** diam_fw, struct rgw_client * cli )
+static int sample_rad_req( struct rgwp_config * cs, struct radius_msg * rad_req, struct radius_msg ** rad_ans, struct msg ** diam_fw, struct rgw_client * cli )
 {
-	TRACE_ENTRY("%p %p %p %p %p %p", cs, session, rad_req, rad_ans, diam_fw, cli);
+	TRACE_ENTRY("%p %p %p %p %p", cs, rad_req, rad_ans, diam_fw, cli);
 	CHECK_PARAMS(cs);
 	TRACE_DEBUG(INFO, "RADIUS/Diameter Sample plugin received a new RADIUS message.");
 	return 0;
 }
 
 /* This function is called when a Diameter answer is coming back. It should remove the AVPs and add the attributes in the RADIUS message. */
-static int sample_diam_ans( struct rgwp_config * cs, struct session * session, struct msg ** diam_ans, struct radius_msg ** rad_fw, struct rgw_client * cli, int * stateful )
+static int sample_diam_ans( struct rgwp_config * cs, struct msg ** diam_ans, struct radius_msg ** rad_fw, struct rgw_client * cli )
 {
-	TRACE_ENTRY("%p %p %p %p %p %p", cs, session, diam_ans, rad_fw, cli, stateful);
+	TRACE_ENTRY("%p %p %p %p", cs, diam_ans, rad_fw, cli);
 	CHECK_PARAMS(cs);
 	TRACE_DEBUG(INFO, "RADIUS/Diameter Sample plugin received a new Diameter answer.");
 	return 0;

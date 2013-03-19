@@ -53,7 +53,6 @@ struct work_item {
 struct pending_answer {
 	struct rgw_radius_msg_meta * rad;  /* the RADIUS message that was received and translated */
 	struct rgw_client          * cli;  /* the client it was received from */
-	struct session 		   * sess; /* the Diameter session created for this message (useful?) */
 };
 
 /* Callback when a Diameter answer is received */
@@ -75,7 +74,6 @@ static void * work_th(void * arg)
 		
 		struct rgw_radius_msg_meta * msg;
 		struct rgw_client * cli;
-		struct session * session;
 		struct msg * diam_msg;
 		int pb, a;
 		struct pending_answer * pa;
@@ -132,18 +130,13 @@ static void * work_th(void * arg)
 				continue;
 			}  );
 		
-		session = NULL;
-		
 		/* Pass the message to the list of registered plugins */
-		CHECK_FCT_DO( rgw_plg_loop_req(&msg, &session, &diam_msg, cli), 
+		CHECK_FCT_DO( rgw_plg_loop_req(&msg, &diam_msg, cli), 
 			{
 				/* An error occurred, discard message */
 				if (diam_msg) {
 					CHECK_FCT_DO( fd_msg_free(diam_msg), );
 					diam_msg = NULL;
-				}
-				if (session) {
-					CHECK_FCT_DO( fd_sess_destroy(&session), );
 				}
 				rgw_msg_free(&msg);
 				rgw_clients_dispose(&cli);
@@ -180,10 +173,6 @@ static void * work_th(void * arg)
 		
 		if (pb) {
 			/* Something went wrong during the conversion */
-			if (session) {
-				CHECK_FCT_DO( fd_sess_destroy(&session), );
-			}
-			
 			if (diam_msg) {
 				CHECK_FCT_DO( fd_msg_free(diam_msg), );
 				diam_msg = NULL;
@@ -201,15 +190,11 @@ static void * work_th(void * arg)
 		memset(pa, 0, sizeof(*pa));
 		pa->rad = msg;
 		pa->cli = cli;
-		pa->sess= session;
 		
 		CHECK_FCT_DO( fd_msg_send( &diam_msg, receive_diam_answer, pa), 
 			{
 				/* If an error occurs, log and destroy the data */
 				fd_log_debug("An error occurred while sending Diameter message, please turn Debug on for detail.");
-				if (session) {
-					CHECK_FCT_DO( fd_sess_destroy(&session), );
-				}
 
 				if (diam_msg) {
 					CHECK_FCT_DO( fd_msg_free(diam_msg), );
@@ -238,7 +223,6 @@ static void receive_diam_answer(void * paback, struct msg **ans)
 	struct avp *avp;
 	struct avp_hdr  *ahdr;
 	int pb = 0;
-	int keepsession=0;
 	
 	TRACE_ENTRY("%p %p", pa, ans);
 	CHECK_PARAMS_DO( pa && ans, return );
@@ -247,7 +231,7 @@ static void receive_diam_answer(void * paback, struct msg **ans)
 	CHECK_MALLOC_DO( rad_ans = radius_msg_new(0, pa->rad->radius.hdr->identifier), goto out );
 	
 	/* Pass the Diameter answer to the same extensions as the request */
-	CHECK_FCT_DO( rgw_plg_loop_ans(pa->rad, pa->sess, ans, &rad_ans, pa->cli, &keepsession), goto out );
+	CHECK_FCT_DO( rgw_plg_loop_ans(pa->rad, ans, &rad_ans, pa->cli), goto out );
 
 	if (*ans != NULL) {
 
@@ -297,11 +281,6 @@ out:
 	if (*ans) {
 		CHECK_FCT_DO( fd_msg_free(*ans),  );
 		*ans = NULL;
-	}
-	
-	if (!keepsession) {
-		/* Destroy remaining session data (stateless gateway) */
-		CHECK_FCT_DO( fd_sess_destroy(&pa->sess),  );
 	}
 	
 	/* Clear the RADIUS request */

@@ -228,7 +228,7 @@ static void auth_conf_free(struct rgwp_config * state)
 }
 
 /* Handle an incoming RADIUS request */
-static int auth_rad_req( struct rgwp_config * cs, struct session ** session, struct radius_msg * rad_req, struct radius_msg ** rad_ans, struct msg ** diam_fw, struct rgw_client * cli )
+static int auth_rad_req( struct rgwp_config * cs, struct radius_msg * rad_req, struct radius_msg ** rad_ans, struct msg ** diam_fw, struct rgw_client * cli )
 {
 	int idx;
 	int got_id = 0;
@@ -249,9 +249,10 @@ static int auth_rad_req( struct rgwp_config * cs, struct session ** session, str
 	size_t nattr_used = 0;
 	struct avp ** avp_tun = NULL, *avp = NULL;
 	union avp_value value;
+	struct session * sess;
 	
-	TRACE_ENTRY("%p %p %p %p %p %p", cs, session, rad_req, rad_ans, diam_fw, cli);
-	CHECK_PARAMS(cs && session && rad_req && (rad_req->hdr->code == RADIUS_CODE_ACCESS_REQUEST) && rad_ans && diam_fw && *diam_fw);
+	TRACE_ENTRY("%p %p %p %p %p", cs, rad_req, rad_ans, diam_fw, cli);
+	CHECK_PARAMS(cs && rad_req && (rad_req->hdr->code == RADIUS_CODE_ACCESS_REQUEST) && rad_ans && diam_fw && *diam_fw);
 	
 	pref_len = strlen(prefix);
 	
@@ -439,7 +440,7 @@ static int auth_rad_req( struct rgwp_config * cs, struct session ** session, str
 		}
 	}
 	CHECK_FCT( fd_msg_avp_setvalue ( avp, &value ) );
-	CHECK_FCT( fd_msg_avp_add ( *diam_fw, *session ? MSG_BRW_LAST_CHILD : MSG_BRW_FIRST_CHILD, avp) );
+	CHECK_FCT( fd_msg_avp_add ( *diam_fw, MSG_BRW_FIRST_CHILD, avp) );
 	
 	/* Add the Destination-Host if found */
 	if (dh) {
@@ -447,17 +448,17 @@ static int auth_rad_req( struct rgwp_config * cs, struct session ** session, str
 		value.os.data = (unsigned char *)dh;
 		value.os.len = dh_len;
 		CHECK_FCT( fd_msg_avp_setvalue ( avp, &value ) );
-		CHECK_FCT( fd_msg_avp_add ( *diam_fw, *session ? MSG_BRW_LAST_CHILD : MSG_BRW_FIRST_CHILD, avp) );
+		CHECK_FCT( fd_msg_avp_add ( *diam_fw, MSG_BRW_FIRST_CHILD, avp) );
 	}
 	
 	/* Create the session if it is not already done */
-	if (*session == NULL) {
+	{
 		os0_t sess_str = NULL;
 		size_t sess_strlen;
 		
 		if (si_len) {
 			/* We already have the Session-Id, just use it */
-			CHECK_FCT( fd_sess_fromsid_msg ( si, si_len, session, NULL) );
+			CHECK_FCT( fd_sess_fromsid_msg ( si, si_len, &sess, NULL) );
 		} else {
 			/* Create a new Session-Id string */
 			
@@ -475,7 +476,7 @@ static int auth_rad_req( struct rgwp_config * cs, struct session ** session, str
 				/* If not found, create a new Session-Id. Our format is: {fqdn;hi32;lo32;username;diamid} */
 				CHECK_MALLOC( sess_str = malloc(un_len + 1 /* ';' */ + fd_g_config->cnf_diamid_len + 1 /* '\0' */) );
 				len = sprintf((char *)sess_str, "%.*s;%s", (int)un_len, un, fd_g_config->cnf_diamid);
-				CHECK_FCT( fd_sess_new(session, fqdn, fqdnlen, sess_str, len) );
+				CHECK_FCT( fd_sess_new(&sess, fqdn, fqdnlen, sess_str, len) );
 				free(sess_str);
 			} else {
 				/* We don't have enough information to create the Session-Id, the RADIUS message is probably invalid */
@@ -485,17 +486,16 @@ static int auth_rad_req( struct rgwp_config * cs, struct session ** session, str
 		}
 		
 		/* Now, add the Session-Id AVP at beginning of Diameter message */
-		CHECK_FCT( fd_sess_getsid(*session, &sess_str, &sess_strlen) );
-		
+		CHECK_FCT( fd_sess_getsid(sess, &sess_str, &sess_strlen) );
 		TRACE_DEBUG(FULL, "[auth.rgwx] Translating new message for session '%s'...", sess_str);
 		
-		/* Add the Session-Id AVP as first AVP */
+		/* Now add this session in the message */
 		CHECK_FCT( fd_msg_avp_new ( cs->dict.Session_Id, 0, &avp ) );
 		value.os.data = sess_str;
 		value.os.len = sess_strlen;
 		CHECK_FCT( fd_msg_avp_setvalue ( avp, &value ) );
 		CHECK_FCT( fd_msg_avp_add ( *diam_fw, MSG_BRW_FIRST_CHILD, avp) );
-		CHECK_FCT( fd_msg_sess_set( *diam_fw, *session) );
+		CHECK_FCT( fd_msg_sess_set(*diam_fw, sess) );
 	}
 	
 	
@@ -1055,22 +1055,22 @@ static int auth_rad_req( struct rgwp_config * cs, struct session ** session, str
 	rad_req->attr_used = nattr_used;
 
 	/* Store the request identifier in the session (if provided) */
-	if (*session) {
+	{
 		unsigned char * req_auth;
 		CHECK_MALLOC(req_auth = malloc(16));
 		memcpy(req_auth, &rad_req->hdr->authenticator[0], 16);
 		
-		CHECK_FCT( fd_sess_state_store( cs->sess_hdl, *session, &req_auth ) );
+		CHECK_FCT( fd_sess_state_store( cs->sess_hdl, sess, &req_auth ) );
 	}
 	
 	return 0;
 }
 
-static int auth_diam_ans( struct rgwp_config * cs, struct session * session, struct msg ** diam_ans, struct radius_msg ** rad_fw, struct rgw_client * cli, int * stateful )
+static int auth_diam_ans( struct rgwp_config * cs, struct msg ** diam_ans, struct radius_msg ** rad_fw, struct rgw_client * cli )
 {
 	struct msg_hdr * hdr;
-	struct avp *avp, *next, *avp_x, *avp_y, *asid, *aoh;
-	struct avp_hdr *ahdr, *sid, *oh;
+	struct avp *avp, *next, *avp_x, *avp_y, *aoh;
+	struct avp_hdr *ahdr, *oh;
 	uint8_t buf[254]; /* to store some attributes values (with final '\0') */
 	size_t sz;
 	int ta_set = 0;
@@ -1078,14 +1078,19 @@ static int auth_diam_ans( struct rgwp_config * cs, struct session * session, str
 	uint8_t	tuntag = 0;
 	unsigned char * req_auth = NULL;
 	int error_cause = 0;
+	struct session * sess;
+	os0_t sid = NULL;
+	size_t sidlen;
 	
-	TRACE_ENTRY("%p %p %p %p %p", cs, session, diam_ans, rad_fw, cli);
-	CHECK_PARAMS(cs && session && diam_ans && *diam_ans && rad_fw && *rad_fw);
+	TRACE_ENTRY("%p %p %p %p", cs, diam_ans, rad_fw, cli);
+	CHECK_PARAMS(cs && diam_ans && *diam_ans && rad_fw && *rad_fw);
 	
 	/* Retrieve the request identified which was stored in the session */
-	if (session) {
-		CHECK_FCT( fd_sess_state_retrieve( cs->sess_hdl, session, &req_auth ) );
-	}
+	CHECK_FCT( fd_msg_sess_get(fd_g_config->cnf_dict, *diam_ans, &sess, NULL) );
+	if (sess) {
+		CHECK_FCT( fd_sess_state_retrieve( cs->sess_hdl, sess, &req_auth ) );
+		CHECK_FCT( fd_sess_getsid(sess, &sid, &sidlen) );
+	} /* else ? */
 	
 	/*	
 	      -  If the Diameter Command-Code is set to AA-Answer and the
@@ -1144,8 +1149,6 @@ static int auth_diam_ans( struct rgwp_config * cs, struct session * session, str
 	}
 
 	/* Search the different AVPs we handle here */
-	CHECK_FCT( fd_msg_search_avp (*diam_ans, cs->dict.Session_Id, &asid) );
-	CHECK_FCT( fd_msg_avp_hdr ( asid, &sid ) );
 	CHECK_FCT( fd_msg_search_avp (*diam_ans, cs->dict.Origin_Host, &aoh) );
 	CHECK_FCT( fd_msg_avp_hdr ( aoh, &oh ) );
 
@@ -1239,7 +1242,7 @@ static int auth_diam_ans( struct rgwp_config * cs, struct session * session, str
 			fd_log_debug("[auth.rgwx] Received Diameter answer with error code '%d' from server '%.*s', session %.*s, translating into Access-Reject",
 					ahdr->avp_value->u32, 
 					oh->avp_value->os.len, oh->avp_value->os.data,
-					sid->avp_value->os.len, sid->avp_value->os.data);
+					sidlen, sid);
 			CHECK_FCT( fd_msg_search_avp (*diam_ans, cs->dict.Error_Message, &avp_x) );
 			if (avp_x) {
 				CHECK_FCT( fd_msg_avp_hdr ( avp_x, &ahdr ) );
@@ -1270,7 +1273,7 @@ static int auth_diam_ans( struct rgwp_config * cs, struct session * session, str
 		if (sizeof(buf) < (sz = snprintf((char *)buf, sizeof(buf), "Diameter/%.*s/%.*s/%.*s", 
 				(int)oh->avp_value->os.len,  (char *)oh->avp_value->os.data,
 				(int)ahdr->avp_value->os.len,  (char *)ahdr->avp_value->os.data,
-				(int)sid->avp_value->os.len, (char *)sid->avp_value->os.data))) {
+				(int)sidlen, (char *)sid))) {
 			TRACE_DEBUG(INFO, "Data truncated in State attribute: %s", buf);
 		}
 		CONV2RAD_STR(RADIUS_ATTR_STATE, buf, sz, 0);
@@ -1279,7 +1282,7 @@ static int auth_diam_ans( struct rgwp_config * cs, struct session * session, str
 	if ((*rad_fw)->hdr->code == RADIUS_CODE_ACCESS_ACCEPT) {
 		/* Add the Session-Id */
 		if (sizeof(buf) < (sz = snprintf((char *)buf, sizeof(buf), "Diameter/%.*s", 
-				(int)sid->avp_value->os.len, sid->avp_value->os.data))) {
+				(int)sidlen, sid))) {
 			TRACE_DEBUG(INFO, "Data truncated in Class attribute: %s", buf);
 		}
 		CONV2RAD_STR(RADIUS_ATTR_CLASS, buf, sz, 0);
@@ -1454,7 +1457,7 @@ static int auth_diam_ans( struct rgwp_config * cs, struct session * session, str
 								(ahdr->avp_value->u32 == 1) ? "AUTHENTICATE_ONLY" :
 									((ahdr->avp_value->u32 == 2) ? "AUTHORIZE_ONLY" : "???"),
 								oh->avp_value->os.len, oh->avp_value->os.data, 
-								sid->avp_value->os.len, sid->avp_value->os.len);
+								sidlen, sid);
 					}
 					break;
 				
@@ -1615,7 +1618,7 @@ static int auth_diam_ans( struct rgwp_config * cs, struct session * session, str
 					/* This is not translatable to RADIUS */
 					fd_log_debug("[auth.rgwx] Received Diameter answer with non-translatable NAS-Filter-Rule AVP from '%.*s' (session: '%.*s'), ignoring.",
 							oh->avp_value->os.len, oh->avp_value->os.data,
-							sid->avp_value->os.len, sid->avp_value->os.data);
+							sidlen, sid);
 					handled = 0;
 					break;
 					
@@ -1648,7 +1651,7 @@ static int auth_diam_ans( struct rgwp_config * cs, struct session * session, str
 					/* This is not translatable to RADIUS */
 					fd_log_debug("[auth.rgwx] Received Diameter answer with non-translatable QoS-Filter-Rule AVP from '%.*s' (session: '%.*s'), ignoring.",
 							oh->avp_value->os.len, oh->avp_value->os.data,
-							sid->avp_value->os.len, sid->avp_value->os.data);
+							sidlen, sid);
 					handled = 0;
 					break;
 					
@@ -1920,7 +1923,6 @@ static int auth_diam_ans( struct rgwp_config * cs, struct session * session, str
 		}
 	}
 	
-	CHECK_FCT( fd_msg_free( asid ) );
 	CHECK_FCT( fd_msg_free( aoh ) );
 	free(req_auth);
 	
@@ -1929,7 +1931,7 @@ static int auth_diam_ans( struct rgwp_config * cs, struct session * session, str
 			TRACE_DEBUG(INFO, "Error while adding Error-Cause attribute in RADIUS message");
 			return ENOMEM;
 		}
-	}		
+	}
 
 	if ((*rad_fw)->hdr->code == RADIUS_CODE_ACCESS_ACCEPT) {
 		/* Add the auth-application-id required for STR, or 0 if no STR is required */
