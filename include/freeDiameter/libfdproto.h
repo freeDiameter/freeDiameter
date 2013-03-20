@@ -311,7 +311,7 @@ resp. TRACE_DEBUG and TRACE_ERROR.
 int fd_breakhere(void);
 
 /* Helper for tracing the CHECK_* macros below -- very very verbose code execution! */
-#define TRACE_DEBUG_ALL( str ) 	\
+#define TRACE_DEBUG_ALL( str... ) 	\
 	TRACE_DEBUG(CALL, str );
 
 /* For development only, to keep track of TODO locations in the code */
@@ -478,22 +478,22 @@ int fd_breakhere(void);
 /* Check the return value of a system function and execute fallback in case of error */
 #define CHECK_SYS_DO( __call__, __fallback__  ) { 					\
 	int __ret__;									\
-	TRACE_DEBUG_ALL( "Check SYS: " #__call__ );					\
+	TRACE_DEBUG_ALL( "Check SYS: %s", #__call__ );					\
 	__ret__ = (__call__);								\
 	if (__ret__ < 0) {								\
 		int __err__ = errno;	/* We may handle EINTR here */			\
-		TRACE_ERROR("ERROR: in '" #__call__ "' :\t%s", strerror(__err__));\
+		TRACE_ERROR("ERROR: in '%s' :\t%s",  #__call__ , strerror(__err__));    \
 		__fallback__;								\
 	}										\
 }
 /* Check the return value of a system function, return error code on error */
 #define CHECK_SYS( __call__  ) { 							\
 	int __ret__;									\
-	TRACE_DEBUG_ALL( "Check SYS: " #__call__ );					\
+	TRACE_DEBUG_ALL( "Check SYS: %s", #__call__ );					\
 	__ret__ = (__call__);								\
 	if (__ret__ < 0) {								\
 		int __err__ = errno;	/* We may handle EINTR here */			\
-		TRACE_ERROR("ERROR: in '" #__call__ "' :\t%s", strerror(__err__));\
+		TRACE_ERROR("ERROR: in '%s' :\t%s", #__call__ , strerror(__err__));     \
 		return __err__;								\
 	}										\
 }
@@ -501,13 +501,13 @@ int fd_breakhere(void);
 /* Check the return value of a POSIX function and execute fallback in case of error or special value */
 #define CHECK_POSIX_DO2( __call__, __speval__, __fallback1__, __fallback2__ ) {			\
 	int __ret__;										\
-	TRACE_DEBUG_ALL( "Check POSIX: " #__call__ );						\
+	TRACE_DEBUG_ALL( "Check POSIX: %s", #__call__ );					\
 	__ret__ = (__call__);									\
 	if (__ret__ != 0) {									\
 		if (__ret__ == (__speval__)) {							\
 			__fallback1__;								\
 		} else {									\
-			TRACE_ERROR("ERROR: in '" #__call__ "':\t%s", strerror(__ret__));	\
+			TRACE_ERROR("ERROR: in '%s':\t%s", #__call__, strerror(__ret__));	\
 			__fallback2__;								\
 		}										\
 	}											\
@@ -526,11 +526,11 @@ int fd_breakhere(void);
 /* Check that a memory allocator did not return NULL, otherwise log an error and execute fallback */
 #define CHECK_MALLOC_DO( __call__, __fallback__ ) { 					\
 	void *  __ret__;								\
-	TRACE_DEBUG_ALL( "Check MALLOC: " #__call__ );					\
+	TRACE_DEBUG_ALL( "Check MALLOC: %s", #__call__ );				\
 	__ret__ = (void *)( __call__ );							\
 	if (__ret__ == NULL) {								\
 		int __err__ = errno;							\
-		TRACE_ERROR("ERROR: in '" #__call__ "':\t%s", strerror(__err__));	\
+		TRACE_ERROR("ERROR: in '%s':\t%s", #__call__, strerror(__err__));	\
 		__fallback__;								\
 	}										\
 }
@@ -542,9 +542,9 @@ int fd_breakhere(void);
 
 /* Check parameters at function entry, execute fallback on error */
 #define CHECK_PARAMS_DO( __bool__, __fallback__ )						\
-	TRACE_DEBUG_ALL( "Check PARAMS: " #__bool__ );						\
+	TRACE_DEBUG_ALL( "Check PARAMS: %s", #__bool__ );					\
 	if ( ! (__bool__) ) {									\
-		TRACE_ERROR("Warning: Invalid parameter received in '" #__bool__ "'");	\
+		TRACE_ERROR("Warning: Invalid parameter received in '%s'", #__bool__);		\
 		__fallback__;									\
 	}
 /* Check parameters at function entry, return EINVAL if the boolean is false (similar to assert) */
@@ -554,10 +554,10 @@ int fd_breakhere(void);
 /* Check the return value of an internal function, log and propagate */
 #define CHECK_FCT_DO( __call__, __fallback__ ) {					\
 	int __ret__;									\
-	TRACE_DEBUG_ALL( "Check FCT: " #__call__ );					\
+	TRACE_DEBUG_ALL( "Check FCT: %s", #__call__ );					\
 	__ret__ = (__call__);								\
 	if (__ret__ != 0) {								\
-		TRACE_ERROR("ERROR: in '" #__call__ "':\t%s", strerror(__ret__));	\
+		TRACE_ERROR("ERROR: in '%s':\t%s", #__call__, strerror(__ret__));	\
 		__fallback__;								\
 	}										\
 }
