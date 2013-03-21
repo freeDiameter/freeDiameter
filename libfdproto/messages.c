@@ -774,7 +774,7 @@ public:
 		msg->msg_public.msg_hbhid,
 		msg->msg_public.msg_eteid
 		) );
-	CHECK_FCT( dump_add_str(outstr, offset, outlen, INOBJHDR "intern: rwb:%p rt:%d cb:%p(%p) qry:%p asso:%d sess:%p src:%s(%zd)|\n", 
+	CHECK_FCT( dump_add_str(outstr, offset, outlen, INOBJHDR "intern: rwb:%p rt:%d cb:%p(%p) qry:%p asso:%d sess:%p src:%s(%zd)|", 
 			INOBJHDRVAL, msg->msg_rawbuffer, msg->msg_routable, msg->msg_cb.fct, msg->msg_cb.data, msg->msg_query, msg->msg_associated, msg->msg_sess, msg->msg_src_id?:"(nil)", msg->msg_src_id_len) );
 	return 0;
 }
@@ -831,7 +831,7 @@ public:
 		}
 	}
 
-	CHECK_FCT( dump_add_str(outstr, offset, outlen, INOBJHDR "intern: src:%p mf:%d raw:%p(%d)|\n", INOBJHDRVAL, avp->avp_source, avp->avp_mustfreeos, avp->avp_rawdata, avp->avp_rawlen) );
+	CHECK_FCT( dump_add_str(outstr, offset, outlen, INOBJHDR "intern: src:%p mf:%d raw:%p(%d)|", INOBJHDRVAL, avp->avp_source, avp->avp_mustfreeos, avp->avp_rawdata, avp->avp_rawlen) );
 	return 0;
 }
 
