@@ -253,6 +253,7 @@ static char * file_bname = NULL;
 				|| (fd_debug_one_file && !strcmp(fd_debug_one_file, __STRIPPED_FILE__) ) )
 #else /* DEBUG */
 #define TRACE_BOOL(_level_) ((_level_) <= fd_g_debug_lvl)
+#define __STRIPPED_FILE__ __FILE__
 #endif /* DEBUG */
 
 
