@@ -74,11 +74,15 @@ void fd_list_insert_after  ( struct fd_list * ref, struct fd_list * item )
 /* Move all elements of list senti at the end of list ref */
 void fd_list_move_end(struct fd_list * ref, struct fd_list * senti)
 {
+	struct fd_list * li;
 	ASSERT(ref->head == ref);
 	ASSERT(senti->head == senti);
 	
 	if (senti->next == senti)
 		return;
+	
+	for (li = senti->next; li != senti; li = li->next)
+		li->head = ref;
 	
 	senti->next->prev = ref->prev;
 	ref->prev->next   = senti->next;

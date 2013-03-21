@@ -302,6 +302,8 @@ int fd_msg_new ( struct dict_object * model, int flags, struct msg ** msg )
 
 static int bufferize_avp(unsigned char * buffer, size_t buflen, size_t * offset,  struct avp * avp);
 static int parsebuf_list(unsigned char * buf, size_t buflen, struct fd_list * head);
+static int parsedict_do_chain(struct dictionary * dict, struct fd_list * head, int mandatory, struct fd_pei *error_info);
+
 
 /* Create answer from a request */
 int fd_msg_new_answer_from_req ( struct dictionary * dict, struct msg ** msg, int flags )
@@ -365,6 +367,9 @@ int fd_msg_new_answer_from_req ( struct dictionary * dict, struct msg ** msg, in
 	/* Add all Proxy-Info AVPs from the query if any */
 	if (! (flags & MSGFL_ANSW_NOPROXYINFO)) {
 		struct avp * avp;
+		struct fd_pei pei;
+		struct fd_list avpcpylist = FD_LIST_INITIALIZER(avpcpylist);
+		
 		CHECK_FCT(  fd_msg_browse(qry, MSG_BRW_FIRST_CHILD, &avp, NULL)  );
 		while (avp) {
 			if ( (avp->avp_public.avp_code   == AC_PROXY_INFO)
@@ -375,20 +380,26 @@ int fd_msg_new_answer_from_req ( struct dictionary * dict, struct msg ** msg, in
 				unsigned char * buf = NULL;
 				size_t offset = 0;
 
+				/* Create a buffer with the content of the AVP. This is easier than going through the list */
 				CHECK_FCT(  fd_msg_update_length(avp)  );
 				CHECK_MALLOC(  buf = malloc(avp->avp_public.avp_len)  );
 				CHECK_FCT( bufferize_avp(buf, avp->avp_public.avp_len, &offset, avp)  );
 
-				/* Now we directly parse this buffer into the new message list */
-				CHECK_FCT( parsebuf_list(buf, avp->avp_public.avp_len, &ans->msg_chain.children) );
+				/* Now we parse this buffer to create a copy AVP */
+				CHECK_FCT( parsebuf_list(buf, avp->avp_public.avp_len, &avpcpylist) );
+				
+				/* Parse dictionary objects now to remove the dependency on the buffer */
+				CHECK_FCT( parsedict_do_chain(dict, &avpcpylist, 0, &pei) );
 
 				/* Done for this AVP */
 				free(buf);
+
+				/* We move this AVP now so that we do not parse again in next loop */
+				fd_list_move_end(&ans->msg_chain.children, &avpcpylist);
 			}
 			/* move to next AVP in the message, we can have several Proxy-Info instances */
 			CHECK_FCT( fd_msg_browse(avp, MSG_BRW_NEXT, &avp, NULL) );
 		}
-		CHECK_FCT( fd_msg_parse_dict( ans, dict, NULL ) );
 	}
 
 	/* associate with query */
@@ -1557,15 +1568,15 @@ static int bufferize_avp(unsigned char * buffer, size_t buflen, size_t * offset,
 		/* In the case where we don't know the type of AVP, just copy the raw data or source */
 		CHECK_PARAMS( avp->avp_source || avp->avp_rawdata );
 		
-		if ( avp->avp_source != NULL ) {
+		if ( avp->avp_rawdata != NULL ) {
+			/* the content was stored in rawdata */
+			memcpy(&buffer[*offset], avp->avp_rawdata, avp->avp_rawlen);
+			*offset += PAD4(avp->avp_rawlen);
+		} else {
 			/* the message was not parsed completely */
 			size_t datalen = avp->avp_public.avp_len - GETAVPHDRSZ(avp->avp_public.avp_flags);
 			memcpy(&buffer[*offset], avp->avp_source, datalen);
 			*offset += PAD4(datalen);
-		} else {
-			/* the content was stored in rawdata */
-			memcpy(&buffer[*offset], avp->avp_rawdata, avp->avp_rawlen);
-			*offset += PAD4(avp->avp_rawlen);
 		}
 		
 	} else {
@@ -1812,14 +1823,13 @@ int fd_msg_parse_buffer ( unsigned char ** buffer, size_t buflen, struct msg ** 
  * For command, if the dictionary model is not found, an error is returned.
  */
 
-static int parsedict_do_chain(struct dictionary * dict, struct fd_list * head, int mandatory, struct fd_pei *error_info);
-
 static char error_message[256];
 
 /* Process an AVP. If we are not in recheck, the avp_source must be set. */
 static int parsedict_do_avp(struct dictionary * dict, struct avp * avp, int mandatory, struct fd_pei *error_info)
 {
 	struct dict_avp_data dictdata;
+	uint8_t * source;
 	
 	TRACE_ENTRY("%p %p %d %p", dict, avp, mandatory, error_info);
 	
@@ -1912,13 +1922,16 @@ static int parsedict_do_avp(struct dictionary * dict, struct avp * avp, int mand
 		return EBADMSG;
 	}
 	
+	source = avp->avp_source;
+	avp->avp_source = NULL;
+
 	/* Now get the value inside */
 	switch (dictdata.avp_basetype) {
 		case AVP_TYPE_GROUPED: {
 			int ret;
 			
 			/* This is a grouped AVP, so let's parse the list of AVPs inside */
-			CHECK_FCT_DO(  ret = parsebuf_list(avp->avp_source, avp->avp_public.avp_len - GETAVPHDRSZ( avp->avp_public.avp_flags ), &avp->avp_chain.children),
+			CHECK_FCT_DO(  ret = parsebuf_list(source, avp->avp_public.avp_len - GETAVPHDRSZ( avp->avp_public.avp_flags ), &avp->avp_chain.children),
 				{
 					if ((ret == EBADMSG) && (error_info)) {
 						error_info->pei_errcode = "DIAMETER_INVALID_AVP_VALUE";
@@ -1926,6 +1939,7 @@ static int parsedict_do_avp(struct dictionary * dict, struct avp * avp, int mand
 						snprintf(error_message, sizeof(error_message), "I cannot parse this AVP as a Grouped AVP");
 						error_info->pei_message = error_message;
 					}
+					avp->avp_source = source;
 					return ret;
 				}  );
 			
@@ -1940,36 +1954,37 @@ static int parsedict_do_avp(struct dictionary * dict, struct avp * avp, int mand
 						error_info->pei_errcode = "DIAMETER_INVALID_AVP_LENGTH";
 						error_info->pei_avp = avp;
 					}
+					avp->avp_source = source;
 					return EBADMSG;
 				} );
 			avp->avp_storage.os.len = avp->avp_public.avp_len - GETAVPHDRSZ( avp->avp_public.avp_flags );
-			CHECK_MALLOC(  avp->avp_storage.os.data = os0dup(avp->avp_source, avp->avp_storage.os.len)  );
+			CHECK_MALLOC(  avp->avp_storage.os.data = os0dup(source, avp->avp_storage.os.len)  );
 			avp->avp_mustfreeos = 1;
 			break;
 		
 		case AVP_TYPE_INTEGER32:
-			avp->avp_storage.i32 = (int32_t)ntohl(*(uint32_t *)avp->avp_source);
+			avp->avp_storage.i32 = (int32_t)ntohl(*(uint32_t *)source);
 			break;
 	
 		case AVP_TYPE_INTEGER64:
 			/* the storage might not be aligned on 64b boundary, so no direct indirection here is possible */
 			{
 				uint64_t __stor;
-				memcpy(&__stor, avp->avp_source, sizeof(__stor));
+				memcpy(&__stor, source, sizeof(__stor));
 				avp->avp_storage.i64 = (int64_t)ntohll(__stor);
 			}
 			break;
 	
 		case AVP_TYPE_UNSIGNED32:
 		case AVP_TYPE_FLOAT32: /* For float, we must not cast, or the value is changed. Instead we use implicit cast by changing the member of the union */
-			avp->avp_storage.u32 = (uint32_t)ntohl(*(uint32_t *)avp->avp_source);
+			avp->avp_storage.u32 = (uint32_t)ntohl(*(uint32_t *)source);
 			break;
 	
 		case AVP_TYPE_UNSIGNED64:
 		case AVP_TYPE_FLOAT64: /* same as 32 bits */
 			{
 				uint64_t __stor;
-				memcpy(&__stor, avp->avp_source, sizeof(__stor));
+				memcpy(&__stor, source, sizeof(__stor));
 				avp->avp_storage.u64 = (uint64_t)ntohll(__stor);
 			}
 			break;
