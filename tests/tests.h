@@ -68,13 +68,13 @@
 /* Define the macro to fail a test with a message */
 #define FAILTEST( message... ){				\
 	TRACE_ERROR(message);				\
-	TRACE_NOTICE("Test %s failed", __FILE__);	\
+	TRACE_ERROR("FAILED: %s ", __STRIPPED_FILE__);	\
 	exit(FAIL);					\
 }
 
 /* Define the macro to pass a test */
 #define PASSTEST( ){					\
-	TRACE_NOTICE("Test %s passed", __FILE__);	\
+	TRACE_NOTICE("PASS: %s", __STRIPPED_FILE__);	\
 	(void)fd_core_shutdown();			\
 	(void)fd_core_wait_shutdown_complete();		\
 	(void)fd_thr_term(&signal_thr);			\
@@ -88,16 +88,14 @@ extern struct fd_config * fd_g_config;
 /* Define the standard check routines */
 #define CHECK( _val, _assert ){				\
 	if (test_verbo > 0) {				\
-		TRACE_DEBUG(INFO,			\
-			"%s:%-4d: CHECK( " #_assert " == "\
-				#_val " )",		\
-			__FILE__, 			\
-			__LINE__);			\
+		TRACE_NOTICE("CHECK( %s == %s )",	\
+				#_assert,		\
+				#_val);			\
 	}{						\
 	__typeof__ (_val) __ret = (_assert);		\
 	if (__ret != (_val)) {				\
 		FAILTEST( "%s:%d: CHECK FAILED : %s == %lx != %lx",	\
-			__FILE__,			\
+			__STRIPPED_FILE__,		\
 			__LINE__,			\
 			#_assert,			\
 			(unsigned long)__ret,		\
@@ -198,7 +196,7 @@ static inline void test_init(int argc, char * argv[], char *fname)
 	
 	CHECK( 0, fd_libproto_init() );
 	
-	fd_log_threadname(basename(fname));
+	fd_log_threadname(fname);
 	
 	/* Parse the command line */
 	parse_cmdline(argc, argv);
@@ -228,6 +226,6 @@ static inline void test_init(int argc, char * argv[], char *fname)
 	
 	return;
 }
-#define INIT_FD()  test_init(argc, argv, __FILE__);
+#define INIT_FD()  test_init(argc, argv, __STRIPPED_FILE__)
 
 #endif /* _TESTS_H */
