@@ -1207,7 +1207,7 @@ int fd_tls_verify_credentials(gnutls_session_t session, struct cnxctx * conn, in
 				char buf[1024];
 				snprintf(buf, sizeof(buf), "\t - Certificate serial number: ");
 				for (j = 0; j < size; j++) {
-					snprintf(buf+strlen(buf), sizeof(buf)-strlen(buf), "%02.2hhx", serial[j]);
+					snprintf(buf+strlen(buf), sizeof(buf)-strlen(buf), "%02hhx", serial[j]);
 				}
 				fd_log_debug(buf);
 			}
