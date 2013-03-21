@@ -273,7 +273,7 @@ int fd_conf_parse()
 					fd_g_config->cnf_sec_data.ca_file,
 					GNUTLS_X509_FMT_PEM),
 				{ 
-					TRACE_DEBUG(INFO, "Unable to use the local certificate as trusted security anchor (CA), please provide a valid TLS_CA='...' directive.");
+					TRACE_ERROR("Unable to use the local certificate as trusted security anchor (CA), please provide a valid TLS_CA='...' directive.");
 					return EINVAL;
 				} );
 	}
@@ -361,7 +361,7 @@ int fd_conf_parse()
 					&fd_g_config->cnf_sec_data.prio_cache,
 					GNUTLS_DEFAULT_PRIORITY,
 					&err_pos),
-				 { TRACE_DEBUG(INFO, "Error in priority string at position : %s", err_pos); return EINVAL; } );
+				 { TRACE_ERROR("Error in priority string at position : %s", err_pos); return EINVAL; } );
 	}
 	
 	/* Verify that our certificate is valid -- otherwise remote peers will reject it */
@@ -399,7 +399,7 @@ int fd_conf_parse()
 				#endif /* GNUTLS_VERSION_300 */
 				),
 			{
-				TRACE_DEBUG(INFO, "Failed to import the data from file '%s'", fd_g_config->cnf_sec_data.cert_file);
+				TRACE_ERROR("Failed to import the data from file '%s'", fd_g_config->cnf_sec_data.cert_file);
 				free(certfile.data);
 				return EINVAL;
 			} );
@@ -441,20 +441,20 @@ int fd_conf_parse()
 			{
 				fd_log_debug("TLS: Local certificate chain '%s' is invalid :", fd_g_config->cnf_sec_data.cert_file);
 				if (output & GNUTLS_CERT_SIGNER_NOT_FOUND)
-					fd_log_debug(" - The certificate hasn't got a known issuer.");
+					TRACE_ERROR(" - The certificate hasn't got a known issuer.");
 				if (output & GNUTLS_CERT_SIGNER_NOT_CA)
-					fd_log_debug(" - The certificate signer is not a CA, or uses version 1, or 3 without basic constraints.");
+					TRACE_ERROR(" - The certificate signer is not a CA, or uses version 1, or 3 without basic constraints.");
 				if (output & GNUTLS_CERT_NOT_ACTIVATED)
-					fd_log_debug(" - The certificate is not yet activated.");
+					TRACE_ERROR(" - The certificate is not yet activated.");
 				if (output & GNUTLS_CERT_EXPIRED)
-					fd_log_debug(" - The certificate is expired.");
+					TRACE_ERROR(" - The certificate is expired.");
 				return EINVAL;
 			}
 			
 			/* Now check the subject matches our hostname */
 			if (!gnutls_x509_crt_check_hostname (certs[0], fd_g_config->cnf_diamid))
 			{
-				fd_log_debug("TLS: The certificate owner does not match the hostname '%s'", fd_g_config->cnf_diamid);
+				TRACE_ERROR("TLS: The certificate owner does not match the hostname '%s'", fd_g_config->cnf_diamid);
 				return EINVAL;
 			}
 			
@@ -477,29 +477,29 @@ int fd_conf_parse()
 			GNUTLS_TRACE( gnutls_certificate_get_x509_crls (fd_g_config->cnf_sec_data.credentials, &CRL_list, (unsigned int *) &CRL_list_length) );
 			CHECK_GNUTLS_DO( gnutls_x509_crt_list_verify(certs, cert_max, CA_list, CA_list_length, CRL_list, CRL_list_length, 0, &verify),
 				{
-					TRACE_DEBUG(INFO, "Failed to verify the local certificate '%s' against local credentials. Please check your certificate is valid.", fd_g_config->cnf_sec_data.cert_file);
+					TRACE_ERROR(INFO, "Failed to verify the local certificate '%s' against local credentials. Please check your certificate is valid.", fd_g_config->cnf_sec_data.cert_file);
 					return EINVAL;
 				} );
 				
 			if (verify) {
 				fd_log_debug("TLS: Local certificate chain '%s' is invalid :", fd_g_config->cnf_sec_data.cert_file);
 				if (verify & GNUTLS_CERT_INVALID)
-					fd_log_debug(" - The certificate is not trusted (unknown CA? expired?)");
+					TRACE_ERROR(" - The certificate is not trusted (unknown CA? expired?)");
 				if (verify & GNUTLS_CERT_REVOKED)
-					fd_log_debug(" - The certificate has been revoked.");
+					TRACE_ERROR(" - The certificate has been revoked.");
 				if (verify & GNUTLS_CERT_SIGNER_NOT_FOUND)
-					fd_log_debug(" - The certificate hasn't got a known issuer.");
+					TRACE_ERROR(" - The certificate hasn't got a known issuer.");
 				if (verify & GNUTLS_CERT_SIGNER_NOT_CA)
-					fd_log_debug(" - The certificate signer is not a CA, or uses version 1, or 3 without basic constraints.");
+					TRACE_ERROR(" - The certificate signer is not a CA, or uses version 1, or 3 without basic constraints.");
 				if (verify & GNUTLS_CERT_INSECURE_ALGORITHM)
-					fd_log_debug(" - The certificate signature uses a weak algorithm.");
+					TRACE_ERROR(" - The certificate signature uses a weak algorithm.");
 				return EINVAL;
 			}
 
 			/* Check the local Identity is valid with the certificate */
 			if (!gnutls_x509_crt_check_hostname (certs[0], fd_g_config->cnf_diamid)) {
-				fd_log_debug("TLS: Local certificate '%s' is invalid :", fd_g_config->cnf_sec_data.cert_file);
-				fd_log_debug(" - The certificate hostname does not match '%s'", fd_g_config->cnf_diamid);
+				TRACE_ERROR("TLS: Local certificate '%s' is invalid :", fd_g_config->cnf_sec_data.cert_file);
+				TRACE_ERROR(" - The certificate hostname does not match '%s'", fd_g_config->cnf_diamid);
 				return EINVAL;
 			}
 
@@ -511,15 +511,15 @@ int fd_conf_parse()
 
 				GNUTLS_TRACE( deadline = gnutls_x509_crt_get_expiration_time(certs[i]) );
 				if ((deadline != (time_t)-1) && (deadline < now)) {
-					fd_log_debug("TLS: Local certificate chain '%s' is invalid :", fd_g_config->cnf_sec_data.cert_file);
-					fd_log_debug(" - The certificate %d in the chain is expired", i);
+					TRACE_ERROR("TLS: Local certificate chain '%s' is invalid :", fd_g_config->cnf_sec_data.cert_file);
+					TRACE_ERROR(" - The certificate %d in the chain is expired", i);
 					return EINVAL;
 				}
 
 				GNUTLS_TRACE( deadline = gnutls_x509_crt_get_activation_time(certs[i]) );
 				if ((deadline != (time_t)-1) && (deadline > now)) {
-					fd_log_debug("TLS: Local certificate chain '%s' is invalid :", fd_g_config->cnf_sec_data.cert_file);
-					fd_log_debug(" - The certificate %d in the chain is not yet activated", i);
+					TRACE_ERROR("TLS: Local certificate chain '%s' is invalid :", fd_g_config->cnf_sec_data.cert_file);
+					TRACE_ERROR(" - The certificate %d in the chain is not yet activated", i);
 					return EINVAL;
 				}
 			}
@@ -581,7 +581,7 @@ int fd_conf_parse()
 					fd_g_config->cnf_sec_data.dh_cache,
 					&dhparams,
 					GNUTLS_X509_FMT_PEM),
-					 { TRACE_DEBUG(INFO, "Error in DH bits value : %d", fd_g_config->cnf_sec_data.dh_bits ?: GNUTLS_DEFAULT_DHBITS); return EINVAL; } );
+					 { TRACE_ERROR("Error in DH bits value : %d", fd_g_config->cnf_sec_data.dh_bits ?: GNUTLS_DEFAULT_DHBITS); return EINVAL; } );
 		free(dhparams.data);
 		
 	} else {
@@ -589,7 +589,7 @@ int fd_conf_parse()
 		CHECK_GNUTLS_DO( gnutls_dh_params_generate2( 
 					fd_g_config->cnf_sec_data.dh_cache,
 					fd_g_config->cnf_sec_data.dh_bits ?: GNUTLS_DEFAULT_DHBITS),
-					 { TRACE_DEBUG(INFO, "Error in DH bits value : %d", fd_g_config->cnf_sec_data.dh_bits ?: GNUTLS_DEFAULT_DHBITS); return EINVAL; } );
+					 { TRACE_ERROR("Error in DH bits value : %d", fd_g_config->cnf_sec_data.dh_bits ?: GNUTLS_DEFAULT_DHBITS); return EINVAL; } );
 	}			
 	
 	return 0;
