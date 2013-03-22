@@ -125,7 +125,7 @@ static int check_dependencies(struct fd_ext_info * ext)
 		
 		if (li == &ext->chain) {
 			/* the dependency was not found */
-			TRACE_DEBUG(NONE, "Error: extension [%s] depends on [%s] which was not loaded first. Please fix your configuration file.",
+			TRACE_ERROR("Error: extension [%s] depends on [%s] which was not loaded first. Please fix your configuration file.",
 				ext->ext_name, ext->depends[i]);
 			return ESRCH;
 		}
@@ -161,12 +161,12 @@ int fd_ext_load()
 #endif /* DEBUG */
 		if (ext->handler == NULL) {
 			/* An error occured */
-			TRACE_DEBUG( NONE, "Loading of extension %s failed: %s", ext->filename, dlerror());
+			TRACE_ERROR("Loading of extension %s failed: %s", ext->filename, dlerror());
 			#ifdef DEBUG
 			ext->handler = dlopen(ext->filename, RTLD_LAZY | RTLD_GLOBAL);
 			if (ext->handler) {
 				if (!check_dependencies(ext)) {
-					TRACE_DEBUG( NONE, "In addition, all declared dependencies are satisfied (Internal Error!)");
+					TRACE_ERROR("In addition, not all declared dependencies are satisfied (Internal Error!)");
 				}
 			}
 			#endif /* DEBUG */
@@ -181,7 +181,7 @@ int fd_ext_load()
 		
 		if (fd_ext_init == NULL) {
 			/* An error occured */
-			TRACE_DEBUG( NONE, "Unable to resolve symbol 'fd_ext_init' for extension %s: %s", ext->filename, dlerror());
+			TRACE_ERROR("Unable to resolve symbol 'fd_ext_init' for extension %s: %s", ext->filename, dlerror());
 			return EINVAL;
 		}
 		
@@ -200,7 +200,7 @@ int fd_ext_load()
 		ret = (*fd_ext_init)( FD_PROJECT_VERSION_MAJOR, FD_PROJECT_VERSION_MINOR, ext->conffile );
 		if (ret != 0) {
 			/* The extension was unable to load cleanly */
-			TRACE_DEBUG( NONE, "Extension %s returned an error during initialization: %s", ext->filename, strerror(ret));
+			TRACE_ERROR("Extension %s returned an error during initialization: %s", ext->filename, strerror(ret));
 			return ret;
 		}
 		
