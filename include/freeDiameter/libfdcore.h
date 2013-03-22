@@ -59,10 +59,10 @@ extern "C" {
 /* Check the return value of a GNUTLS function, log and propagate */
 #define CHECK_GNUTLS_DO( __call__, __fallback__ ) {						\
 	int __ret__;										\
-	TRACE_DEBUG(GNUTLS_DBG_LEVEL, "GNUTLS call: " #__call__ );				\
+	TRACE_DEBUG(GNUTLS_DBG_LEVEL, "GNUTLS call: %s", #__call__ );				\
 	__ret__ = (__call__);									\
 	if (__ret__ < 0) {									\
-		TRACE_DEBUG(INFO, "Error in '" #__call__ "':\t%s", gnutls_strerror(__ret__));	\
+		TRACE_DEBUG(INFO, "Error in '%s':\t%s", #__call__ , gnutls_strerror(__ret__));	\
 		__fallback__;									\
 	}											\
 }
