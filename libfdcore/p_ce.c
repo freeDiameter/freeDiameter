@@ -918,6 +918,11 @@ int fd_p_ce_process_receiver(struct fd_peer * peer)
 			isi = 0;
 	}
 	
+	/* Update the counter to match with the answer being sent */
+	CHECK_POSIX( pthread_mutex_lock(&peer->p_state_mtx) );
+	peer->p_reqin_count++;
+	CHECK_POSIX( pthread_mutex_unlock(&peer->p_state_mtx) );
+
 	/* Reply a CEA */
 	CHECK_FCT( fd_msg_new_answer_from_req ( fd_g_config->cnf_dict, &msg, 0 ) );
 	CHECK_FCT( fd_msg_rescode_set(msg, "DIAMETER_SUCCESS", NULL, NULL, 0 ) );

@@ -389,6 +389,8 @@ int fd_peer_get_state(struct peer_hdr *peer);
  *
  * PARAMETERS:
  *  peer	: The peer which load to read
+ *  to_receive  : (out) number of requests sent to this peer without matching answer yet.
+ *  to_send     : (out) number of requests received from this peer and not yet answered.
  *
  * DESCRIPTION: 
  *   Returns the current number of requests sent to this peer
@@ -399,7 +401,7 @@ int fd_peer_get_state(struct peer_hdr *peer);
  *  0  : The load parameter has been updated. (it should have a positive value always)
  * !0  : An error occurred
  */
-int fd_peer_get_load_pending(struct peer_hdr *peer, int * load);
+int fd_peer_get_load_pending(struct peer_hdr *peer, long * to_receive, long * to_send);
 
 /*
  * FUNCTION:	fd_peer_validate_register

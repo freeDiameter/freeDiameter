@@ -257,15 +257,22 @@ void fd_peer_failover_msg(struct fd_peer * peer)
 }
 
 /* Return the value of srlist->cnt */
-int fd_peer_get_load_pending(struct peer_hdr *peer, int * load)
+int fd_peer_get_load_pending(struct peer_hdr *peer, long * to_receive, long * to_send)
 {
 	struct fd_peer * p = (struct fd_peer *)peer;
-	TRACE_ENTRY("%p %p", peer, load);
-	CHECK_PARAMS(CHECK_PEER(peer) && load);
+	TRACE_ENTRY("%p %p %p", peer, to_receive, to_send);
+	CHECK_PARAMS(CHECK_PEER(peer));
 	
-	CHECK_POSIX( pthread_mutex_lock(&p->p_sr.mtx) );
-	*load = p->p_sr.cnt;
-	CHECK_POSIX( pthread_mutex_unlock(&p->p_sr.mtx) );
+	if (to_receive) {
+		CHECK_POSIX( pthread_mutex_lock(&p->p_sr.mtx) );
+		*to_receive = p->p_sr.cnt;
+		CHECK_POSIX( pthread_mutex_unlock(&p->p_sr.mtx) );
+	}
+	if (to_send) {
+		CHECK_POSIX( pthread_mutex_lock(&p->p_state_mtx) );
+		*to_send = p->p_reqin_count;
+		CHECK_POSIX( pthread_mutex_unlock(&p->p_state_mtx) );
+	}
 	
 	return 0;
 }
@@ -410,7 +417,7 @@ void fd_peer_dump(struct fd_peer * peer, int details)
 		return;
 	}
 
-	snprintf(buf, sizeof(buf), ">  %s\t%s\t[%dsr]", STATE_STR(fd_peer_getstate(peer)), peer->p_hdr.info.pi_diamid, peer->p_sr.cnt);
+	snprintf(buf, sizeof(buf), ">  %s\t%s\t[%ldsr,%ldpa]", STATE_STR(fd_peer_getstate(peer)), peer->p_hdr.info.pi_diamid, peer->p_sr.cnt, peer->p_reqin_count);
 	if (details > INFO) {
 		snprintf(buf+strlen(buf), sizeof(buf)-strlen(buf), "\t(rlm:%s)", peer->p_hdr.info.runtime.pir_realm ?: "<unknown>");
 		if (peer->p_hdr.info.runtime.pir_prodname)

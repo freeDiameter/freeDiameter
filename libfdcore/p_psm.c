@@ -44,9 +44,9 @@ This file implement a Peer State Machine which is a mix of:
 The delivery of Diameter messages must not always be unordered: order is important at
 begining and end of a connection lifetime. It means we need agility to
 switch between "ordering enforced" and "ordering not enforced to counter
-HotLB" modes of operation.
+Head of the Line Blocking" modes of operation.
 
-The connection state machine represented in RFC3588 (and rfc3588bis) is
+The connection state machine represented in RFC3588 (and RFC6733) is
 incomplete, because it lacks the SUSPECT state and the 3 DWR/DWA
 exchanges (section 5.1) when the peer recovers from this state.
 Personnally I don't see the rationale for exchanging 3 messages (why 3?)
@@ -90,12 +90,15 @@ the DPR first and tears down the connection. Application message is lost.
 DPA. Peer A receives the DPA before the application message. The
 application message is lost.
 
-This situation is actually quite possible because DPR/DPA messages are
+This situation is actually happening easily because DPR/DPA messages are
 very short, while application messages can be quite large. Therefore,
 they require much more time to deliver.
 
 I really cannot see a way to counter this effect by using the ordering
 of the messages, except by applying a timer (state STATE_CLOSING_GRACE).
+This timer can be also useful when we detect that some messages has not 
+yet received an answer on this link, to give time to the application to 
+complete the exchange ongoing.
 
 However, this problem must be balanced with the fact that the message
 that is lost will be in many cases sent again as the failover mechanism
@@ -196,7 +199,7 @@ static int enter_open_state(struct fd_peer * peer)
 	
 	return 0;
 }
-static int leave_open_state(struct fd_peer * peer)
+static int leave_open_state(struct fd_peer * peer, int skip_failover)
 {
 	/* Remove from active peers list */
 	CHECK_POSIX( pthread_rwlock_wrlock(&fd_g_activ_peers_rw) );
@@ -207,7 +210,9 @@ static int leave_open_state(struct fd_peer * peer)
 	CHECK_FCT( fd_out_stop(peer) );
 	
 	/* Failover the messages */
-	fd_peer_failover_msg(peer);
+	if (!skip_failover) {
+		fd_peer_failover_msg(peer);
+	}
 	
 	return 0;
 }
@@ -287,9 +292,12 @@ int fd_psm_change_state(struct fd_peer * peer, int new_state)
 	CHECK_POSIX( pthread_mutex_unlock(&peer->p_state_mtx) );
 	
 	if (old == STATE_OPEN) {
-		CHECK_FCT( leave_open_state(peer) );
+		CHECK_FCT( leave_open_state(peer, new_state == STATE_CLOSING_GRACE) );
 	}
-	
+	if (old == STATE_CLOSING_GRACE) {
+		fd_peer_failover_msg(peer);
+	}
+
 	if (new_state == STATE_OPEN) {
 		CHECK_FCT( enter_open_state(peer) );
 	}
@@ -297,6 +305,9 @@ int fd_psm_change_state(struct fd_peer * peer, int new_state)
 	if (new_state == STATE_CLOSED) {
 		/* Purge event list */
 		fd_psm_events_free(peer);
+		
+		/* Reset the counter of pending anwers to send */
+		peer->p_reqin_count = 0;
 		
 		/* If the peer is not persistant, we destroy it */
 		if (peer->p_hdr.info.config.pic_flags.persist == PI_PRST_NONE) {
@@ -528,6 +539,11 @@ psm_loop:
 				TS_DIFFERENCE( &delay, &reqsent, &rcvon );
 				fd_msg_log( FD_MSG_LOG_TIMING, msg, "Answer received in %d.%06.6d sec.", delay.tv_sec, delay.tv_nsec / 1000 );
 			}
+		} else {
+			/* Mark the incoming request so that we know we have pending answers for this peer */
+			CHECK_POSIX_DO( pthread_mutex_lock(&peer->p_state_mtx), goto psm_end  );
+			peer->p_reqin_count++;
+			CHECK_POSIX_DO( pthread_mutex_unlock(&peer->p_state_mtx), goto psm_end  );
 		}
 		
 		if (cur_state == STATE_OPEN_NEW) {

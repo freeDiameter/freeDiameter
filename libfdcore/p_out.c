@@ -172,8 +172,20 @@ error:
 /* Wrapper to sending a message either by out thread (peer in OPEN state) or directly; cnx or peer must be provided. Flags are valid only for direct sending, not through thread (unused) */
 int fd_out_send(struct msg ** msg, struct cnxctx * cnx, struct fd_peer * peer, uint32_t flags)
 {
+	struct msg_hdr * hdr;
+	
 	TRACE_ENTRY("%p %p %p %x", msg, cnx, peer, flags);
 	CHECK_PARAMS( msg && *msg && (cnx || (peer && peer->p_cnxctx)));
+	
+	if (peer) {
+		CHECK_FCT( fd_msg_hdr(*msg, &hdr) );
+		if (!(hdr->msg_flags & CMD_FLAG_REQUEST)) {
+			/* Update the count of pending answers to send */
+			CHECK_POSIX( pthread_mutex_lock(&peer->p_state_mtx) );
+			peer->p_reqin_count--;
+			CHECK_POSIX( pthread_mutex_unlock(&peer->p_state_mtx) );			
+		}
+	}
 	
 	if (fd_peer_getstate(peer) == STATE_OPEN) {
 		/* Normal case: just queue for the out thread to pick it up */

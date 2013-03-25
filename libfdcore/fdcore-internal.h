@@ -70,6 +70,11 @@
 #define DPR_TIMEOUT 	15	/* in seconds */
 #endif /* DPR_TIMEOUT */
 
+/* Delai where the connection is maintained opened to allow exchanging remaining pending answers after DPR/DPA */
+#ifndef GRACE_TIMEOUT
+#define GRACE_TIMEOUT   1	/* in seconds */
+#endif /* GRACE_TIMEOUT */
+
 /* The Vendor-Id to advertise in CER/CEA */
 #ifndef MY_VENDOR_ID
 #define MY_VENDOR_ID	0 	/* Reserved value to tell it must be ignored */
@@ -125,7 +130,7 @@ int fd_rtdisp_cleanup(void);
 struct sr_list {
 	struct fd_list 	srs; /* requests ordered by hop-by-hop id */
 	struct fd_list  exp; /* requests that have a timeout set, ordered by timeout */
-	int             cnt; /* number of requests in the srs list */
+	long            cnt; /* number of requests in the srs list */
 	pthread_mutex_t	mtx; /* mutex to protect these lists */
 	pthread_cond_t  cnd; /* cond var used by the thread that handles timeouts */
 	pthread_t       thr; /* the thread that handles timeouts (and calls the anscb) */
@@ -180,6 +185,9 @@ struct fd_peer { /* The "real" definition of the peer structure */
 	
 	/* Sent requests (for fallback), list of struct sentreq ordered by hbh */
 	struct sr_list	 p_sr;
+	
+	/* Pending received requests not yet answered (count only) */
+	long		 p_reqin_count; /* We use p_state_mtx to protect this value */
 	
 	/* Data for transitional states before the peer is in OPEN state */
 	struct {
