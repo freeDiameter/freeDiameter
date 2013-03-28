@@ -70,7 +70,7 @@
 #define DPR_TIMEOUT 	15	/* in seconds */
 #endif /* DPR_TIMEOUT */
 
-/* Delai where the connection is maintained opened to allow exchanging remaining pending answers after DPR/DPA */
+/* Delay where the connection is maintained opened to allow exchanging remaining pending answers after DPR/DPA */
 #ifndef GRACE_TIMEOUT
 #define GRACE_TIMEOUT   1	/* in seconds */
 #endif /* GRACE_TIMEOUT */
