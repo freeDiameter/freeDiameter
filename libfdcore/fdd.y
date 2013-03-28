@@ -191,7 +191,7 @@ twtimer:		TWTIMER '=' INTEGER ';'
 
 port:			PORT '=' INTEGER ';'
 			{
-				CHECK_PARAMS_DO( ($3 > 0) && ($3 < 1<<16),
+				CHECK_PARAMS_DO( ($3 >= 0) && ($3 < 1<<16),
 					{ yyerror (&yylloc, conf, "Invalid value"); YYERROR; } );
 				conf->cnf_port = (uint16_t)$3;
 			}
@@ -199,7 +199,7 @@ port:			PORT '=' INTEGER ';'
 
 secport:		SECPORT '=' INTEGER ';'
 			{
-				CHECK_PARAMS_DO( ($3 > 0) && ($3 < 1<<16),
+				CHECK_PARAMS_DO( ($3 >= 0) && ($3 < 1<<16),
 					{ yyerror (&yylloc, conf, "Invalid value"); YYERROR; } );
 				conf->cnf_port_tls = (uint16_t)$3;
 			}
