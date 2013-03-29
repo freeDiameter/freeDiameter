@@ -2426,21 +2426,22 @@ int fd_msg_answ_detach   ( struct msg * answer );
  * FUNCTION:	fd_msg_anscb_associate, fd_msg_anscb_get
  *
  * PARAMETERS:
- *  msg		: the answer message
+ *  msg		: the request message
  *  anscb	: the callback to associate with the message
  *  data	: the data to pass to the callback
+ *  expirecb    : the expiration callback to associate with the message
  *  timeout     : (optional, use NULL if no timeout) a timeout associated with calling the cb.
  *
  * DESCRIPTION:
- *  Associate or retrieve a callback with an answer message.
+ *  Associate or retrieve callbacks with an message.
  * This is meant to be called from the daemon only.
  *
  * RETURN VALUE:
  *  0 	  : ok
  *  EINVAL: a parameter is invalid
  */
-int fd_msg_anscb_associate( struct msg * msg, void ( *anscb)(void *, struct msg **), void  * data, const struct timespec *timeout );
-int fd_msg_anscb_get      ( struct msg * msg, void (**anscb)(void *, struct msg **), void ** data );
+int fd_msg_anscb_associate( struct msg * msg, void ( *anscb)(void *, struct msg **), void  * data, void (*expirecb)(void *, DiamId_t, size_t, struct msg **), const struct timespec *timeout );
+int fd_msg_anscb_get( struct msg * msg, void (**anscb)(void *, struct msg **), void (**expirecb)(void *, DiamId_t, size_t, struct msg **), void ** data );
 struct timespec *fd_msg_anscb_gettimeout( struct msg * msg ); /* returns NULL or a valid non-0 timespec */
 
 /*

@@ -84,12 +84,17 @@ static void srl_dump(const char * text, struct fd_list * srlist)
 	}
 }
 
+struct expire_data {
+	struct msg * request;
+	struct fd_peer * sentto;
+};
+
 /* (detached) thread that calls the anscb on expired messages. 
   We do it in a separate thread to avoid blocking the reception of new messages during this time */
-static void * call_anscb_expire(void * arg) {
-	struct msg * expired_req = arg;
+static void * call_expirecb(void * arg) {
+	struct expire_data * ed = arg;
 	
-	void (*anscb)(void *, struct msg **);
+	void (*expirecb)(void *, DiamId_t, size_t, struct msg **);
 	void * data;
 	
 	TRACE_ENTRY("%p", arg);
@@ -102,20 +107,22 @@ static void * call_anscb_expire(void * arg) {
 	TRACE_DEBUG(INFO, "The expiration timer for a request has been reached, abording this attempt now & calling cb...");
 	
 	/* Retrieve callback in the message */
-	CHECK_FCT_DO( fd_msg_anscb_get( expired_req, &anscb, &data ), return NULL);
-	ASSERT(anscb);
+	CHECK_FCT_DO( fd_msg_anscb_get( ed->request, NULL, &expirecb, &data ), return NULL);
+	ASSERT(expirecb);
 	
 	/* Clean up this data from the message */
-	CHECK_FCT_DO( fd_msg_anscb_associate( expired_req, NULL, NULL, NULL ), return NULL);
+	CHECK_FCT_DO( fd_msg_anscb_associate( ed->request, NULL, NULL, NULL, NULL ), return NULL);
 
 	/* Call it */
-	(*anscb)(data, &expired_req);
+	(*expirecb)(data, ed->sentto->p_hdr.info.pi_diamid, ed->sentto->p_hdr.info.pi_diamidlen, &ed->request);
 	
 	/* If the callback did not dispose of the message, do it now */
-	if (expired_req) {
-		fd_msg_log(FD_MSG_LOG_DROPPED, expired_req, "Expiration period completed without an answer, and the expiry callback did not dispose of the message.");
-		CHECK_FCT_DO( fd_msg_free(expired_req), /* ignore */ );
+	if (ed->request) {
+		fd_msg_log(FD_MSG_LOG_DROPPED, ed->request, "Expiration period completed without an answer, and the expiry callback did not dispose of the message.");
+		CHECK_FCT_DO( fd_msg_free(ed->request), /* ignore */ );
 	}
+	
+	free(ed);
 	
 	/* Finish */
 	return NULL;
@@ -124,8 +131,8 @@ static void * call_anscb_expire(void * arg) {
 /* thread that handles messages expiring. The thread is started only when needed */
 static void * sr_expiry_th(void * arg) {
 	struct sr_list * srlist = arg;
-	struct msg * expired_req;
 	pthread_attr_t detached;
+	struct expire_data * ed;
 	
 	TRACE_ENTRY("%p", arg);
 	CHECK_PARAMS_DO( arg, return NULL );
@@ -176,12 +183,14 @@ static void * sr_expiry_th(void * arg) {
 		}
 		
 		/* Now, the first request in the list is expired; remove it and call the anscb for it in a new thread */
+		CHECK_MALLOC_DO( ed = malloc(sizeof(struct expire_data)), goto error );
+		ed->sentto = first->chain.head->o;
+		ed->request = first->req;
 		fd_list_unlink(&first->chain);
 		fd_list_unlink(&first->expire);
-		expired_req = first->req;
 		free(first);
 		
-		CHECK_POSIX_DO( pthread_create( &th, &detached, call_anscb_expire, expired_req ), goto error );
+		CHECK_POSIX_DO( pthread_create( &th, &detached, call_expirecb, ed ), goto error );
 
 		/* loop */
 	} while (1);

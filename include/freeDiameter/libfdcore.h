@@ -462,22 +462,23 @@ int fd_peer_validate_register ( int (*peer_validate)(struct peer_info * /* info 
  *
  * PARAMETERS:
  *  pmsg 	: Location of the message to be sent on the network (set to NULL on function return to avoid double deletion).
- *  anscb	: A callback to be called when answer is received, if msg is a request (optional for fd_msg_send)
- *  anscb_data	: opaque data to be passed back to the anscb when it is called.
+ *  anscb	: A callback to be called when corresponding answer is received, when sending a request (not used with answers)
+ *  anscb_data	: opaque data to be passed back to the anscb (or expirecb) when it is called.
+ *  expirecb    : (only for fd_msg_send_timeout) If the request did not get an answer before timeout, this callback is called.
  *  timeout     : (only for fd_msg_send_timeout) sets the absolute time until when to wait for an answer. Past this time,
- *                the anscb is called with the request as parameter and the answer will be discarded when received.
+ *                the expirecb is called with the request and the answer will be discarded if received later.
  *
  * DESCRIPTION: 
  *   Sends a message on the network. (actually simply queues it in a global queue, to be picked by a daemon's thread)
  * For requests, the end-to-end id must be set (see fd_msg_get_eteid / MSGFL_ALLOC_ETEID).
- * For answers, the message must be created with function fd_msg_new_answ.
+ * For answers, the message must be created with function fd_msg_new_answer_from_req.
  *
  * The routing module will handle sending to the correct peer, usually based on the Destination-Realm / Destination-Host AVP.
  *
  * If the msg is a request, there are two ways of receiving the answer:
  *  - either having registered a callback in the dispatch module (see fd_disp_register)
- *  - or provide a callback as parameter here. If such callback is provided, it is called before the dispatch callbacks.
- *    The prototype for this callback function is:
+ *  - or provide a anscb callback here. If such callback is provided, it is called before the dispatch callbacks.
+ *    The prototype for this anscb callback function is:
  *     void anscb(void * data, struct msg ** answer)
  *	where:
  *		data   : opaque data that was registered along with the callback.
@@ -488,12 +489,19 @@ int fd_peer_validate_register ( int (*peer_validate)(struct peer_info * /* info 
  * 
  * If no callback is registered to handle an answer, the message is discarded and an error is logged.
  *
- *  fd_msg_send_timeout is similar to fd_msg_send, except that it takes an additional argument "timeout" and can be called
- * only with requests as parameters, and an anscb callback.
- * If the matching answer or error is received before the timeout date passes, everything occurs as with fd_msg_send. Otherwise,
- * the request is removed from the queue (meaning the matching answer will be discarded upon reception) and passed to the answcb 
- * function. This function can easily distinguish between timeout case and answer case by checking if the message received is 
- * a request. Upon return, if the *msg parameter is not NULL, it is freed (not passed to other callbacks).
+ *  fd_msg_send_timeout is similar to fd_msg_send, except that it takes two additional arguments "expirecb" and "timeout". 
+ * If the message parameter is an answer, there is no difference with fd_msg_send.
+ * Otherwise, if the corresponding answer (or error) is received before the timeout date elapses, everything occurs as with fd_msg_send. 
+ * Otherwise, the request is removed from the queue (meaning the matching answer will be discarded upon reception) and passed to the expirecb 
+ * function. Upon return, if the *msg parameter is not NULL, it is freed (not passed to other callbacks). 
+ * expirecb is called in a dedicated thread.
+ * 
+ *    The prototype for the expirecb callback function is:
+ *     void expirecb(void * data, struct peer_hdr * sentto, struct msg ** request)
+ *	where:
+ *		data   : opaque data that was registered along with the callback.
+ *              sentto : pointer to the peer to which the message was sent and no answer received within timeout.
+ *		request: location of the pointer to the request that was not answered.
  *
  * RETURN VALUE:
  *  0      	: The message has been queued for sending (sending may fail asynchronously).
@@ -501,7 +509,7 @@ int fd_peer_validate_register ( int (*peer_validate)(struct peer_info * /* info 
  *  ...
  */
 int fd_msg_send ( struct msg ** pmsg, void (*anscb)(void *, struct msg **), void * data );
-int fd_msg_send_timeout ( struct msg ** pmsg, void (*anscb)(void *, struct msg **), void * data, const struct timespec *timeout );
+int fd_msg_send_timeout ( struct msg ** pmsg, void (*anscb)(void *, struct msg **), void * data, void (*expirecb)(void *, DiamId_t, size_t, struct msg **), const struct timespec *timeout );
 
 /*
  * FUNCTION:	fd_msg_rescode_set

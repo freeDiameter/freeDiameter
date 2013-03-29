@@ -133,7 +133,7 @@ struct sr_list {
 	long            cnt; /* number of requests in the srs list */
 	pthread_mutex_t	mtx; /* mutex to protect these lists */
 	pthread_cond_t  cnd; /* cond var used by the thread that handles timeouts */
-	pthread_t       thr; /* the thread that handles timeouts (and calls the anscb) */
+	pthread_t       thr; /* the thread that handles timeouts (expirecb called in separate forked threads) */
 };
 
 /* Peers */

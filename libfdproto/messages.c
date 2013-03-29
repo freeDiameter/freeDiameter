@@ -121,10 +121,11 @@ struct msg {
 	struct rt_data		*msg_rtdata;		/* Routing list for the query */
 	struct session		*msg_sess;		/* Cached message session if any */
 	struct {
-			void (*fct)(void *, struct msg **);
+			void (*anscb)(void *, struct msg **);
+			void (*expirecb)(void *, DiamId_t, size_t, struct msg **);
 			void * data;
 			struct timespec timeout;
-		}		 msg_cb;		/* Callback to be called when an answer is received, if not NULL */
+		}		 msg_cb;		/* Callback to be called when an answer is received, or timeout expires, if not NULL */
 	DiamId_t		 msg_src_id;		/* Diameter Id of the peer this message was received from. This string is malloc'd and must be freed */
 	size_t			 msg_src_id_len;	/* cached length of this string */
 	struct timespec		 msg_ts_rcv;		/* Timestamp when this message was received from the network */
@@ -774,8 +775,8 @@ public:
 		msg->msg_public.msg_hbhid,
 		msg->msg_public.msg_eteid
 		) );
-	CHECK_FCT( dump_add_str(outstr, offset, outlen, INOBJHDR "intern: rwb:%p rt:%d cb:%p(%p) qry:%p asso:%d sess:%p src:%s(%zd)|", 
-			INOBJHDRVAL, msg->msg_rawbuffer, msg->msg_routable, msg->msg_cb.fct, msg->msg_cb.data, msg->msg_query, msg->msg_associated, msg->msg_sess, msg->msg_src_id?:"(nil)", msg->msg_src_id_len) );
+	CHECK_FCT( dump_add_str(outstr, offset, outlen, INOBJHDR "intern: rwb:%p rt:%d cb:%p,%p(%p) qry:%p asso:%d sess:%p src:%s(%zd)|", 
+			INOBJHDRVAL, msg->msg_rawbuffer, msg->msg_routable, msg->msg_cb.anscb, msg->msg_cb.expirecb, msg->msg_cb.data, msg->msg_query, msg->msg_associated, msg->msg_sess, msg->msg_src_id?:"(nil)", msg->msg_src_id_len) );
 	return 0;
 }
 
@@ -1029,9 +1030,9 @@ int fd_msg_answ_detach( struct msg * answer )
 }
 
 /* Associate / get answer callbacks */
-int fd_msg_anscb_associate( struct msg * msg, void ( *anscb)(void *, struct msg **), void  * data, const struct timespec *timeout )
+int fd_msg_anscb_associate( struct msg * msg, void ( *anscb)(void *, struct msg **), void  * data, void (*expirecb)(void *, DiamId_t, size_t, struct msg **), const struct timespec *timeout )
 {
-	TRACE_ENTRY("%p %p %p", msg, anscb, data);
+	TRACE_ENTRY("%p %p %p %p", msg, anscb, expirecb, data);
 	
 	/* Check the parameters */
 	CHECK_PARAMS( CHECK_MSG(msg) );
@@ -1039,10 +1040,12 @@ int fd_msg_anscb_associate( struct msg * msg, void ( *anscb)(void *, struct msg 
 	if (! (msg->msg_public.msg_flags & CMD_FLAG_REQUEST ))
 		return anscb ? EINVAL : 0; /* we associate with requests only */
 	
-	CHECK_PARAMS( (anscb == NULL) || (msg->msg_cb.fct == NULL) ); /* We are not overwritting a cb */
+	CHECK_PARAMS( (anscb == NULL)    || (msg->msg_cb.anscb == NULL) ); /* We are not overwritting a cb */
+	CHECK_PARAMS( (expirecb == NULL) || (msg->msg_cb.expirecb == NULL) ); /* We are not overwritting a cb */
 	
 	/* Associate callback and data with the message, if any */
-	msg->msg_cb.fct = anscb;
+	msg->msg_cb.anscb = anscb;
+	msg->msg_cb.expirecb = expirecb;
 	msg->msg_cb.data = data;
 	if (timeout) {
 		memcpy(&msg->msg_cb.timeout, timeout, sizeof(struct timespec));
@@ -1051,16 +1054,20 @@ int fd_msg_anscb_associate( struct msg * msg, void ( *anscb)(void *, struct msg 
 	return 0;
 }	
 
-int fd_msg_anscb_get( struct msg * msg, void (**anscb)(void *, struct msg **), void ** data )
+int fd_msg_anscb_get( struct msg * msg, void (**anscb)(void *, struct msg **), void (**expirecb)(void *, DiamId_t, size_t, struct msg **), void ** data )
 {
-	TRACE_ENTRY("%p %p %p", msg, anscb, data);
+	TRACE_ENTRY("%p %p %p %p", msg, anscb, expirecb, data);
 	
 	/* Check the parameters */
-	CHECK_PARAMS( CHECK_MSG(msg) && anscb && data );
+	CHECK_PARAMS( CHECK_MSG(msg) );
 	
 	/* Copy the result */
-	*anscb = msg->msg_cb.fct;
-	*data  = msg->msg_cb.data;
+	if (anscb)
+		*anscb = msg->msg_cb.anscb;
+	if (data)
+		*data  = msg->msg_cb.data;
+	if (expirecb)
+		*expirecb = msg->msg_cb.expirecb;
 	
 	return 0;
 }

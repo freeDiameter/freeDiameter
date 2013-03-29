@@ -40,6 +40,7 @@
 %{
 struct anscb_py_layer {
 	PyObject * cb;
+	PyObject * expcb;
 	PyObject * data;
 };
 
@@ -66,6 +67,7 @@ static void anscb_python(void *cbdata, struct msg ** msg) {
 
 		result = PyObject_CallFunction(l->cb, "(OO)", PyMsg, l->data);
 		Py_XDECREF(l->cb);
+		Py_XDECREF(l->expcb);
 		Py_XDECREF(l->data);
 		free(l);
 
@@ -85,6 +87,45 @@ static void anscb_python(void *cbdata, struct msg ** msg) {
 		/* in this case, just delete the message */
 		/* it actually happens automatically when we do nothing. */
 }
+
+static void expcb_python(void *cbdata, DiamId_t sentto, size_t senttolen, struct msg ** msg) {
+	/* The python callback is received in cbdata */
+	PyObject * result, *PyMsg;
+	struct anscb_py_layer * l = cbdata;
+	
+	if (!l) {
+		fd_log_debug("Internal error! Python callback disappeared...");
+		return;
+	}
+	
+	SWIG_PYTHON_THREAD_BEGIN_BLOCK;
+
+	if (!msg || !*msg) {
+		PyMsg = Py_None;
+	} else {
+		PyMsg = SWIG_NewPointerObj((void *)*msg,     SWIGTYPE_p_msg,     0 );
+	}
+
+	result = PyObject_CallFunction(l->expcb, "(Os#O)", PyMsg, sentto, senttolen, l->data);
+	Py_XDECREF(l->cb);
+	Py_XDECREF(l->expcb);
+	Py_XDECREF(l->data);
+	free(l);
+
+	/* The callback is supposed to return a message or NULL */
+	if (!SWIG_IsOK(SWIG_ConvertPtr(result, (void *)msg, SWIGTYPE_p_msg, SWIG_POINTER_DISOWN))) {
+		fd_log_debug("Error: Cannot convert the return value to message.");
+		*msg = NULL;
+	}
+
+	Py_XDECREF(result);
+
+	SWIG_PYTHON_THREAD_END_BLOCK;
+		
+}
+
+
+
 %}
 
 struct msg {
@@ -127,7 +168,7 @@ struct msg {
 	
 	/* SEND THE MESSAGE */
 	%delobject send; /* when this has been called, the msg must not be freed anymore */
-	void send(PyObject * PyCb = NULL, PyObject * data = NULL, unsigned int timeout = 0) {
+	void send(PyObject * PyCb = NULL, PyObject * data = NULL, PyObject * PyExpCb = NULL, unsigned int timeout = 0) {
 		int ret;
 		struct msg * m = $self;
 		struct anscb_py_layer * l = NULL;
@@ -141,6 +182,8 @@ struct msg {
 
 			Py_XINCREF(PyCb);
 			Py_XINCREF(data);
+			Py_XINCREF(PyExpCb);
+			l->expcb = PyExpCb;
 			l->cb = PyCb;
 			l->data = data;
 		}
@@ -149,7 +192,7 @@ struct msg {
 			struct timespec ts;
 			(void) clock_gettime(CLOCK_REALTIME, &ts);
 			ts.tv_sec += timeout;
-			ret = fd_msg_send_timeout(&m, anscb_python, l, &ts);
+			ret = fd_msg_send_timeout(&m, anscb_python, l, expcb_python, &ts);
 		} else {
 			ret = fd_msg_send(&m, PyCb ? anscb_python : NULL, l);
 		}

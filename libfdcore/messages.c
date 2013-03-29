@@ -320,7 +320,7 @@ int fd_msg_send ( struct msg ** pmsg, void (*anscb)(void *, struct msg **), void
 	CHECK_PARAMS( pmsg );
 	
 	/* Save the callback in the message */
-	CHECK_FCT(  fd_msg_anscb_associate( *pmsg, anscb, data, NULL /* we should maybe use a safeguard here like 1 hour or so? */ )  );
+	CHECK_FCT(  fd_msg_anscb_associate( *pmsg, anscb, data, NULL, NULL /* we should maybe use a safeguard here like 1 hour or so? */ )  );
 	
 	/* Post the message in the outgoing queue */
 	CHECK_FCT( fd_fifo_post(fd_g_outgoing, pmsg) );
@@ -329,13 +329,13 @@ int fd_msg_send ( struct msg ** pmsg, void (*anscb)(void *, struct msg **), void
 }
 
 /* The variation of the same function with a timeout callback */
-int fd_msg_send_timeout ( struct msg ** pmsg, void (*anscb)(void *, struct msg **), void * data, const struct timespec *timeout )
+int fd_msg_send_timeout ( struct msg ** pmsg, void (*anscb)(void *, struct msg **), void * data, void (*expirecb)(void *, DiamId_t, size_t, struct msg **), const struct timespec *timeout )
 {
-	TRACE_ENTRY("%p %p %p", pmsg, anscb, data, timeout);
-	CHECK_PARAMS( pmsg && anscb && timeout );
+	TRACE_ENTRY("%p %p %p %p %p", pmsg, anscb, data, expirecb, timeout);
+	CHECK_PARAMS( pmsg && expirecb && timeout );
 	
 	/* Save the callback in the message, with the timeout */
-	CHECK_FCT(  fd_msg_anscb_associate( *pmsg, anscb, data, timeout )  );
+	CHECK_FCT(  fd_msg_anscb_associate( *pmsg, anscb, data, expirecb, timeout )  );
 	
 	/* Post the message in the outgoing queue */
 	CHECK_FCT( fd_fifo_post(fd_g_outgoing, pmsg) );

@@ -466,7 +466,7 @@ static int msg_dispatch(struct msg * msg)
 		CHECK_FCT( fd_msg_answ_getq( msgptr, &qry ) );
 
 		/* Retrieve any registered handler */
-		CHECK_FCT( fd_msg_anscb_get( qry, &anscb, &data ) );
+		CHECK_FCT( fd_msg_anscb_get( qry, &anscb, NULL, &data ) );
 
 		/* If a callback was registered, pass the message to it */
 		if (anscb != NULL) {
@@ -792,6 +792,8 @@ static int msg_rt_out(struct msg * msg)
 	struct avp * avp;
 	struct rtd_candidate * c;
 	struct msg *msgptr = msg;
+	DiamId_t qry_src = NULL;
+	size_t qry_src_len = 0;
 	
 	/* Read the message header */
 	CHECK_FCT( fd_msg_hdr(msgptr, &hdr) );
@@ -800,8 +802,6 @@ static int msg_rt_out(struct msg * msg)
 	/* For answers, the routing is very easy */
 	if ( ! is_req ) {
 		struct msg * qry;
-		DiamId_t qry_src = NULL;
-		size_t qry_src_len = 0;
 		struct msg_hdr * qry_hdr;
 		struct fd_peer * peer = NULL;
 
@@ -831,6 +831,8 @@ static int msg_rt_out(struct msg * msg)
 	}
 	
 	/* From that point, the message is a request */
+	CHECK_FCT( fd_msg_source_get( msgptr, &qry_src, &qry_src_len ) );
+	/* if qry_src != NULL, this message is relayed, otherwise it is locally issued */
 
 	/* Get the routing data out of the message if any (in case of re-transmit) */
 	CHECK_FCT( fd_msg_rt_get ( msgptr, &rtd ) );
