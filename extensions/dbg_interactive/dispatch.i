@@ -58,7 +58,7 @@ static int call_the_python_dispatch_callback(struct msg **msg, struct avp *avp, 
 	PySess = SWIG_NewPointerObj((void *) session, SWIGTYPE_p_session, 0 );
 	
 	/* Call the function */
-	result = PyEval_CallFunction(cb, "(OOO)", PyMsg, PyAvp, PySess);
+	result = PyObject_CallFunction(cb, "(OOO)", PyMsg, PyAvp, PySess);
 	
 	/* The result is supposedly composed of: [ ret, *msg, *action ] */
 	if ((result == NULL) || (!PyList_Check(result)) || (PyList_Size(result) != 3)) {

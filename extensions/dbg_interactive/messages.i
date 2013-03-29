@@ -64,7 +64,7 @@ static void anscb_python(void *cbdata, struct msg ** msg) {
 			PyMsg = SWIG_NewPointerObj((void *)*msg,     SWIGTYPE_p_msg,     0 );
 		}
 
-		result = PyEval_CallFunction(l->cb, "(OO)", PyMsg, l->data);
+		result = PyObject_CallFunction(l->cb, "(OO)", PyMsg, l->data);
 		Py_XDECREF(l->cb);
 		Py_XDECREF(l->data);
 		free(l);

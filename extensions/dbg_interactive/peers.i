@@ -55,7 +55,7 @@ static void fd_add_cb(struct peer_info *peer, void *data) {
 	PyPeer  = SWIG_NewPointerObj((void *)peer,     SWIGTYPE_p_peer_info,     0 );
 	
 	/* Call the function */
-	result = PyEval_CallFunction(PyFunc, "(O)", PyPeer);
+	result = PyObject_CallFunction(PyFunc, "(O)", PyPeer);
 	
 	Py_XDECREF(result);
 	Py_XDECREF(PyFunc);
@@ -127,7 +127,7 @@ int call_the_python_validate_callback2(struct peer_info * info) {
 	PyInfo  = SWIG_NewPointerObj((void *)info,     SWIGTYPE_p_peer_info,     0 );
 	
 	/* Call the function */
-	result = PyEval_CallFunction(validate_cb2_py, "(O)", PyInfo);
+	result = PyObject_CallFunction(validate_cb2_py, "(O)", PyInfo);
 	
 	/* The result is an integer */
 	if ((result == NULL) || !SWIG_IsOK(SWIG_AsVal_int(result, &ret))) {
@@ -158,7 +158,7 @@ int call_the_python_validate_callback(struct peer_info * info, int * auth, int (
 	PyInfo  = SWIG_NewPointerObj((void *)info,     SWIGTYPE_p_peer_info,     0 );
 	
 	/* Call the function */
-	result = PyEval_CallFunction(validate_cb_py, "(O)", PyInfo);
+	result = PyObject_CallFunction(validate_cb_py, "(O)", PyInfo);
 	
 	/* The result is supposedly -1, 1, or a cb2 */
 	if (result == NULL) {

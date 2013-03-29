@@ -108,7 +108,7 @@ static int call_the_python_rt_fwd_callback(void * pycb, struct msg **msg) {
 	PyMsg  = SWIG_NewPointerObj((void *)*msg,     SWIGTYPE_p_msg,     0 );
 	
 	/* Call the function */
-	result = PyEval_CallFunction(cb, "(O)", PyMsg);
+	result = PyObject_CallFunction(cb, "(O)", PyMsg);
 	
 	/* The result is supposedly composed of: [ ret, *msg ] */
 	if ((result == NULL) || (!PyList_Check(result)) || (PyList_Size(result) != 2)) {
@@ -193,7 +193,7 @@ static int call_the_python_rt_out_callback(void * pycb, struct msg *msg, struct 
 	PyCands = SWIG_NewPointerObj((void *)candidates, SWIGTYPE_p_fd_list, 0 );
 	
 	/* Call the function */
-	result = PyEval_CallFunction(cb, "(OO)", PyMsg, PyCands);
+	result = PyObject_CallFunction(cb, "(OO)", PyMsg, PyCands);
 	
 	/* The result is supposedly composed of: [ ret, *msg ] */
 	if (result == NULL){

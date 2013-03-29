@@ -48,7 +48,7 @@ static void call_the_python_cleanup_callback(session_state * state, os0_t sid, v
 	
 	/* Call the function */
 	SWIG_PYTHON_THREAD_BEGIN_BLOCK;
-	result = PyEval_CallFunction((PyObject *)cb, "(Os)", state, sid);
+	result = PyObject_CallFunction((PyObject *)cb, "(Os)", state, sid);
 	Py_XDECREF(result);
 	SWIG_PYTHON_THREAD_END_BLOCK;
 	return;
