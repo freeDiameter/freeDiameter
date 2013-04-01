@@ -2047,12 +2047,12 @@ void fd_rtd_candidate_del(struct rt_data * rtd, uint8_t * id, size_t idsz);
 /* Extract the list of valid candidates, and initialize their scores to 0 */
 void fd_rtd_candidate_extract(struct rt_data * rtd, struct fd_list ** candidates, int ini_score);
 
-/* If a peer returned a protocol error for this message, save it so that we don't try to send it there again */
-int  fd_rtd_error_add(struct rt_data * rtd, DiamId_t sentto, size_t senttolen, uint8_t * origin, size_t originsz, uint32_t rcode);
+/* If a peer returned a protocol error for this message, save it so that we don't try to send it there again. Optionally retrieve the current list of candidates. */
+int  fd_rtd_error_add(struct rt_data * rtd, DiamId_t sentto, size_t senttolen, uint8_t * origin, size_t originsz, uint32_t rcode, struct fd_list ** candidates, int * sendingattemtps);
 
 /* The extracted list items have the following structure: */
 struct rtd_candidate {
-	struct fd_list	chain;	/* link in the list returned by the previous fct */
+	struct fd_list	chain;	/* link in the list returned by the previous fcts */
 	DiamId_t	diamid;	/* the diameter Id of the peer */
 	size_t		diamidlen; /* cached size of the diamid string */
 	DiamId_t	realm;	/* the diameter realm of the peer */

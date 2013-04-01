@@ -237,7 +237,7 @@ int redir_fwd_cb(void * cbdata, struct msg ** msg)
 	CHECK_FCT( fd_msg_answ_getq(m, &q) );
 	CHECK_FCT( fd_msg_rt_get(q, &rtd) );
 	CHECK_FCT( fd_msg_source_get( m, &nh, &nhlen ) );
-	CHECK_FCT( fd_rtd_error_add(rtd, nh, nhlen, a_oh->os.data, a_oh->os.len, a_rc->u32) );
+	CHECK_FCT( fd_rtd_error_add(rtd, nh, nhlen, a_oh->os.data, a_oh->os.len, a_rc->u32, NULL, NULL) );
 	
 	/* Create a redir_rule  */
 	CHECK_FCT( redir_entry_new(&entry, &task.rh, task.rhu, q, nh, nhlen, a_oh->os.data, a_oh->os.len) );

@@ -42,7 +42,7 @@
 
 /* Structure that contains the routing data for a message */
 struct rt_data {
-	int		extracted;	/* if 0, candidates is ordered by diamid, otherwise the order is unspecified */
+	int		extracted;	/* if 0, candidates is ordered by diamid, otherwise the order is unspecified. This also counts the number of times the message was (re-)sent, as a side effect */
 	struct fd_list	candidates;	/* All the candidates. Items are struct rtd_candidate. */
 	struct fd_list	errors;		/* All errors received from other peers for this message */
 };
@@ -184,12 +184,12 @@ void fd_rtd_candidate_del(struct rt_data * rtd, uint8_t * id, size_t idsz)
 
 /* If a peer returned a protocol error for this message, save it so that we don't try to send it there again.
  Case insensitive search since the names are received from other peers*/
-int  fd_rtd_error_add(struct rt_data * rtd, DiamId_t sentto, size_t senttolen, uint8_t * origin, size_t originsz, uint32_t rcode)
+int  fd_rtd_error_add(struct rt_data * rtd, DiamId_t sentto, size_t senttolen, uint8_t * origin, size_t originsz, uint32_t rcode, struct fd_list ** candidates, int * sendingattemtps)
 {
 	struct fd_list * li;
 	int match = 0;
 	
-	TRACE_ENTRY("%p %p %zd %p %zd %u", rtd, sentto, senttolen, origin, originsz, rcode);
+	TRACE_ENTRY("%p %p %zd %p %zd %u %p %p", rtd, sentto, senttolen, origin, originsz, rcode, candidates, sendingattemtps);
 	CHECK_PARAMS( rtd && sentto && senttolen ); /* origin may be NULL */
 	
 	/* First add the new error entry */
@@ -238,6 +238,12 @@ after_origin:
 	if (origin)
 		fd_rtd_candidate_del(rtd, origin, originsz);
 	
+	if (candidates)
+		*candidates = &rtd->candidates;
+	
+	if (sendingattemtps)
+		*sendingattemtps = rtd->extracted;
+	
 	/* Done! */
 	return 0;
 }
@@ -259,7 +265,7 @@ void fd_rtd_candidate_extract(struct rt_data * rtd, struct fd_list ** candidates
 		c->score = ini_score;
 	}
 	
-	rtd->extracted = 1;
+	rtd->extracted += 1;
 	return;
 }
 

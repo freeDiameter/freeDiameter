@@ -65,11 +65,13 @@ struct rt_data {
 	void remove(char * STRING, size_t LENGTH) {
 		fd_rtd_candidate_del($self, (os0_t)STRING, LENGTH);
 	}
-	void error(char * peerid, size_t peeridlen, char * STRING, size_t LENGTH, uint32_t rcode) {
-		int ret =  fd_rtd_error_add($self, peerid, peeridlen, (os0_t)STRING, LENGTH, rcode);
+	int error(char * peerid, size_t peeridlen, char * STRING, size_t LENGTH, uint32_t rcode) {
+		int n;
+		int ret =  fd_rtd_error_add($self, peerid, peeridlen, (os0_t)STRING, LENGTH, rcode, NULL, &n);
 		if (ret != 0) {
 			DI_ERROR(ret, NULL, NULL);
 		}
+		return n;
 	}
 	struct fd_list * extract(int score = 0) {
 		struct fd_list * li = NULL;
