@@ -518,13 +518,13 @@ int main(int argc, char *argv[])
 		
 		memset(cbcalled, 0, sizeof(cbcalled));
 		msg = new_msg( 1, cmd1, avp1, avp2, 1 );
-		CHECK( 12345, fd_msg_dispatch ( &msg, sess, &action, &ec ) );
+		CHECK( 0, fd_msg_dispatch ( &msg, sess, &action, &ec ) );
 		CHECK( 1, cbcalled[0] );
 		CHECK( 1, cbcalled[1] );
 		CHECK( 1, cbcalled[6] );
 		CHECK( 0, cbcalled[2] );
 		CHECK( 0, cbcalled[3] );
-		CHECK( 0, fd_msg_free( msg ) );
+		CHECK( 0, msg ? 1 : 0);
 		
 		CHECK( 0, fd_disp_unregister( &hdl[0], NULL ) );
 		CHECK( 0, fd_disp_unregister( &hdl[1], NULL ) );
