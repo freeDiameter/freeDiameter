@@ -69,6 +69,7 @@ FD_EXTENSION_SUBDIR(app_redirect "Diameter Redirect server: send configurable Re
 
 FD_EXTENSION_SUBDIR(rt_default   "Configurable routing rules for freeDiameter" 		     	ON)
 FD_EXTENSION_SUBDIR(rt_redirect  "Handling of Diameter Redirect messages" 			ON)
+FD_EXTENSION_SUBDIR(rt_busypeers "Handling of Diameter TOO_BUSY messages and relay timeouts"	ON)
 FD_EXTENSION_SUBDIR(rt_ereg      "Configurable routing based on regexp matching of AVP values" OFF)
 
 
