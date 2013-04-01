@@ -70,6 +70,7 @@ int fd_disp_call_cb_int( struct fd_list * cb_list, struct msg ** msg, struct avp
 			struct dict_object * obj_app, struct dict_object * obj_cmd, struct dict_object * obj_avp, struct dict_object * obj_enu)
 {
 	struct fd_list * senti, *li;
+	int r;
 	TRACE_ENTRY("%p %p %p %p %p %p %p %p %p", cb_list, msg, avp, sess, action, obj_app, obj_cmd, obj_avp, obj_enu);
 	CHECK_PARAMS(msg && action);
 	
@@ -93,7 +94,13 @@ int fd_disp_call_cb_int( struct fd_list * cb_list, struct msg ** msg, struct avp
 			continue;
 		
 		/* We have a match, the cb must be called. */
-		CHECK_FCT( (*hdl->cb)(msg, avp, sess, hdl->opaque, action) );
+		CHECK_FCT_DO( (r = (*hdl->cb)(msg, avp, sess, hdl->opaque, action)),
+			{
+				fd_msg_log( FD_MSG_LOG_DROPPED, *msg, "Internal error: a DISPATCH callback returned an error (%s)", strerror(r));
+				fd_msg_free(*msg);
+				*msg = NULL;
+			}
+		 );
 		
 		if (*action != DISP_ACT_CONT)
 			break;
