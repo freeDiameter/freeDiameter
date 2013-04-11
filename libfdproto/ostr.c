@@ -169,7 +169,7 @@ int fd_os_is_valid_DiameterIdentity(uint8_t * os, size_t ossz)
 			goto disp;
 		}
 		/* otherwise, we just display the hex code */
-		TRACE_DEBUG(INFO, "Invalid character (0xhhX) at offset %d in DiameterIdentity '%.*s'", os[i], i+1, ossz, os);
+		TRACE_DEBUG(INFO, "Invalid character (0x%hhX) at offset %d in DiameterIdentity '%.*s'", os[i], i+1, ossz, os);
 		return 0;
 disp:
 		TRACE_DEBUG(INFO, "Invalid character '%.*s' at offset %d in DiameterIdentity '%.*s'", nb, os + i, i+1, ossz, os);
