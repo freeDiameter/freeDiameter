@@ -60,6 +60,8 @@
 %immutable fd_g_config;
 %immutable peer_state_str;
 
+#pragma SWIG nowarn=451
+
 /*****************
  *  Exceptions  *
 *****************/

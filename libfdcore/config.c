@@ -473,8 +473,10 @@ int fd_conf_parse()
 			
 			unsigned int verify;
 			time_t now;
+			#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
 			GNUTLS_TRACE( gnutls_certificate_get_x509_cas (fd_g_config->cnf_sec_data.credentials, &CA_list, (unsigned int *) &CA_list_length) );
 			GNUTLS_TRACE( gnutls_certificate_get_x509_crls (fd_g_config->cnf_sec_data.credentials, &CRL_list, (unsigned int *) &CRL_list_length) );
+			#pragma GCC diagnostic warning "-Wdeprecated-declarations"
 			CHECK_GNUTLS_DO( gnutls_x509_crt_list_verify(certs, cert_max, CA_list, CA_list_length, CRL_list, CRL_list_length, 0, &verify),
 				{
 					TRACE_ERROR("Failed to verify the local certificate '%s' against local credentials. Please check your certificate is valid.", fd_g_config->cnf_sec_data.cert_file);

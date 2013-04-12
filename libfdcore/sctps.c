@@ -237,7 +237,9 @@ static void set_sess_transport(gnutls_session_t session, struct sctps_ctx *ctx)
 	/* Reset the low water value, since we don't use sockets */
 #ifndef GNUTLS_VERSION_300
 	/* starting version 2.12, this call is not needed */
+	#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
 	GNUTLS_TRACE( gnutls_transport_set_lowat( session, 0 ) );
+	#pragma GCC diagnostic warning "-Wdeprecated-declarations"
 #endif /* GNUTLS_VERSION_300 */
 	
 	/* Set the push and pull callbacks */
