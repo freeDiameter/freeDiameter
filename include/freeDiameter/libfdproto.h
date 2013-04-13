@@ -127,7 +127,7 @@ void fd_libproto_fini(void);
  * RETURN VALUE:
  *  None.
  */
-void fd_log ( int, const char *, ... ) __printflike(2, 3);
+void fd_log ( int, const char *, ... ) __attribute__ ((format (printf, 2, 3)));
 #define fd_log_debug(format,args...)  fd_log(FD_LOG_DEBUG, format, ## args)
 #define fd_log_notice(format,args...) fd_log(FD_LOG_NOTICE, format, ## args)
 #define fd_log_error(format,args...)  fd_log(FD_LOG_ERROR, format, ## args)
@@ -2336,7 +2336,7 @@ enum fd_msg_log_cause {
 	FD_MSG_LOG_TIMING	 /* profiling messages */
 };
 #define FD_MSG_LOG_MAX FD_MSG_LOG_TIMING
-void fd_msg_log( enum fd_msg_log_cause cause, struct msg * msg, const char * prefix_format, ... ) __printflike(3, 4);
+void fd_msg_log( enum fd_msg_log_cause cause, struct msg * msg, const char * prefix_format, ... ) __attribute__ ((format (printf, 3, 4)));
 
 /* configure the msg_log facility */
 enum fd_msg_log_method {
