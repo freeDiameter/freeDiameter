@@ -127,7 +127,7 @@ void fd_libproto_fini(void);
  * RETURN VALUE:
  *  None.
  */
-void fd_log ( int, const char *, ... );
+void fd_log ( int, const char *, ... ) __printflike(2, 3);
 #define fd_log_debug(format,args...)  fd_log(FD_LOG_DEBUG, format, ## args)
 #define fd_log_notice(format,args...) fd_log(FD_LOG_NOTICE, format, ## args)
 #define fd_log_error(format,args...)  fd_log(FD_LOG_ERROR, format, ## args)
@@ -785,7 +785,7 @@ static __inline__ int fd_thr_term(pthread_t * th)
 	if (th_ret == PTHREAD_CANCELED) {
 		TRACE_DEBUG(ANNOYING, "The thread %p was canceled", *th);
 	} else {
-		TRACE_DEBUG(CALL, "The thread %p returned %x", *th, th_ret);
+		TRACE_DEBUG(CALL, "The thread %p returned %p", *th, th_ret);
 	}
 	
 	/* Clean the location */
@@ -2336,7 +2336,7 @@ enum fd_msg_log_cause {
 	FD_MSG_LOG_TIMING	 /* profiling messages */
 };
 #define FD_MSG_LOG_MAX FD_MSG_LOG_TIMING
-void fd_msg_log( enum fd_msg_log_cause cause, struct msg * msg, const char * prefix_format, ... );
+void fd_msg_log( enum fd_msg_log_cause cause, struct msg * msg, const char * prefix_format, ... ) __printflike(3, 4);
 
 /* configure the msg_log facility */
 enum fd_msg_log_method {
