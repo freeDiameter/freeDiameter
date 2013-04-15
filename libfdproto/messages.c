@@ -1516,7 +1516,7 @@ int fd_msg_avp_value_interpret ( struct avp *avp, void *data )
 /* Write a message header in the buffer */
 static int bufferize_msg(unsigned char * buffer, size_t buflen, size_t * offset, struct msg * msg)
 {
-	TRACE_ENTRY("%p %d %p %p", buffer, buflen, offset, msg);
+	TRACE_ENTRY("%p %zd %p %p", buffer, buflen, offset, msg);
 	
 	if ((buflen - *offset) < GETMSGHDRSZ())
 		return ENOSPC;
@@ -1551,7 +1551,7 @@ static int bufferize_avp(unsigned char * buffer, size_t buflen, size_t * offset,
 {
 	struct dict_avp_data dictdata;
 	
-	TRACE_ENTRY("%p %d %p %p", buffer, buflen, offset, avp);
+	TRACE_ENTRY("%p %zd %p %p", buffer, buflen, offset, avp);
 	
 	if ((buflen - *offset) < avp->avp_public.avp_len)
 		return ENOSPC;
@@ -1648,7 +1648,7 @@ static int bufferize_chain(unsigned char * buffer, size_t buflen, size_t * offse
 {
 	struct fd_list * avpch;
 	
-	TRACE_ENTRY("%p %d %p %p", buffer, buflen, offset, list);
+	TRACE_ENTRY("%p %zd %p %p", buffer, buflen, offset, list);
 	
 	for (avpch = list->next; avpch != list; avpch = avpch->next) {
 		/* Bufferize the AVP */
@@ -1711,13 +1711,13 @@ static int parsebuf_list(unsigned char * buf, size_t buflen, struct fd_list * he
 {
 	size_t offset = 0;
 	
-	TRACE_ENTRY("%p %d %p", buf, buflen, head);
+	TRACE_ENTRY("%p %zd %p", buf, buflen, head);
 	
 	while (offset < buflen) {
 		struct avp * avp;
 		
 		if (buflen - offset < AVPHDRSZ_NOVEND) {
-			TRACE_DEBUG(INFO, "truncated buffer: remaining only %d bytes", buflen - offset);
+			TRACE_DEBUG(INFO, "truncated buffer: remaining only %zd bytes", buflen - offset);
 			return EBADMSG;
 		}
 		
@@ -1735,7 +1735,7 @@ static int parsebuf_list(unsigned char * buf, size_t buflen, struct fd_list * he
 		
 		if (avp->avp_public.avp_flags & AVP_FLAG_VENDOR) {
 			if (buflen - offset < 4) {
-				TRACE_DEBUG(INFO, "truncated buffer: remaining only %d bytes for vendor and data", buflen - offset);
+				TRACE_DEBUG(INFO, "truncated buffer: remaining only %zd bytes for vendor and data", buflen - offset);
 				free(avp);
 				return EBADMSG;
 			}
@@ -1746,7 +1746,7 @@ static int parsebuf_list(unsigned char * buf, size_t buflen, struct fd_list * he
 		/* Check there is enough remaining data in the buffer */
 		if ( (avp->avp_public.avp_len > GETAVPHDRSZ(avp->avp_public.avp_flags))
 		&& (buflen - offset < avp->avp_public.avp_len - GETAVPHDRSZ(avp->avp_public.avp_flags))) {
-			TRACE_DEBUG(INFO, "truncated buffer: remaining only %d bytes for data, and avp data size is %d", 
+			TRACE_DEBUG(INFO, "truncated buffer: remaining only %zd bytes for data, and avp data size is %d", 
 					buflen - offset, 
 					avp->avp_public.avp_len - GETAVPHDRSZ(avp->avp_public.avp_flags));
 			free(avp);
@@ -1774,7 +1774,7 @@ int fd_msg_parse_buffer ( unsigned char ** buffer, size_t buflen, struct msg ** 
 	uint32_t msglen = 0;
 	unsigned char * buf;
 	
-	TRACE_ENTRY("%p %d %p", buffer, buflen, msg);
+	TRACE_ENTRY("%p %zd %p", buffer, buflen, msg);
 	
 	CHECK_PARAMS(  buffer &&  *buffer  &&  msg  &&  (buflen >= GETMSGHDRSZ())  );
 	buf = *buffer;
@@ -1788,7 +1788,7 @@ int fd_msg_parse_buffer ( unsigned char ** buffer, size_t buflen, struct msg ** 
 	
 	msglen = ntohl(*(uint32_t *)buf) & 0x00ffffff;
 	if ( buflen < msglen ) {  
-		TRACE_DEBUG(INFO, "Truncated message (%d / %d)", buflen, msglen );
+		TRACE_DEBUG(INFO, "Truncated message (%zd / %d)", buflen, msglen );
 		free(buf);
 		return EBADMSG; 
 	}

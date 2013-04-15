@@ -341,7 +341,7 @@ static int diameap_failed_avp(struct diameap_state_machine * diameap_sm,
 }
 
 static int diameap_parse_eap_resp(struct eap_state_machine * eap_sm,
-		struct eap_packet eappacket)
+		struct eap_packet *eappacket)
 {
 	TRACE_ENTRY("%p %p",eap_sm, eappacket)
 
@@ -351,7 +351,7 @@ static int diameap_parse_eap_resp(struct eap_state_machine * eap_sm,
 	eap_sm->respVendor = VENDOR_IETF;
 	eap_sm->respVendorMethod = TYPE_NONE;
 
-	if (eappacket.data == NULL)
+	if (eappacket->data == NULL)
 	{
 		TRACE_DEBUG(INFO,"%s Empty EAP packet",DIAMEAP_EXTENSION);
 		return 0;
@@ -413,7 +413,7 @@ static int diameap_parse_eap_resp(struct eap_state_machine * eap_sm,
 
 	if (eap_sm->respMethod == TYPE_EXPANDED_TYPES)
 	{
-		u8 *data = (u8 *) eappacket.data;
+		u8 *data = (u8 *) eappacket->data;
 		//int len = 0;
 		//u32 respVendor, respVendorMethod;
 		data += 5;
@@ -454,7 +454,7 @@ static int diameap_eappacket_new(struct eap_packet * eappacket,
 	TRACE_ENTRY("%p %p",eappacket,avpdata);
 	eappacket->ulength = (u16) avpdata->avp_value->os.len;
 	eappacket->data = (u8 *) avpdata->avp_value->os.data;
-	diameap_eap_get_packetlength(*eappacket, &eappacket->length);
+	diameap_eap_get_packetlength(eappacket, &eappacket->length);
 	return 0;
 }
 
@@ -476,11 +476,11 @@ static int diameap_parse_avps(struct diameap_state_machine * diameap_sm,
 		CHECK_FCT(diameap_eappacket_new(&eap_i->aaaEapRespData, avpdata));
 		eap_i->aaaEapResp = TRUE;
 		u16 length;
-		diameap_eap_get_length(eap_i->aaaEapRespData, &length);
+		diameap_eap_get_length(&eap_i->aaaEapRespData, &length);
 		if (length >= 4)
 		{
 			eap_code code;
-			CHECK_FCT(diameap_eap_get_code(eap_i->aaaEapRespData,&code));
+			CHECK_FCT(diameap_eap_get_code(&eap_i->aaaEapRespData,&code));
 
 			if (code != EAP_RESPONSE)
 			{
@@ -497,7 +497,7 @@ static int diameap_parse_avps(struct diameap_state_machine * diameap_sm,
 			}
 			else
 			{
-				CHECK_FCT(diameap_parse_eap_resp(&diameap_sm->eap_sm,eap_i->aaaEapRespData));
+				CHECK_FCT(diameap_parse_eap_resp(&diameap_sm->eap_sm, &eap_i->aaaEapRespData));
 				if (diameap_sm->eap_sm.rxResp == FALSE)
 				{
 					diameap_sm->result_code = 1001; /*DIAMETER_MULTI_ROUND_AUTH*/
@@ -1254,7 +1254,7 @@ static int diameap_get_avp_attribute(struct fd_list * avp_attributes,
 		char * attribute, struct avp_attribute ** avp_attrib, int unlink,
 		int *ret)
 {
-	TRACE_ENTRY("%p %p %p %p %p", avp_attributes, attribute, avp_attrib, ret);
+	TRACE_ENTRY("%p %p %p %d %p", avp_attributes, attribute, avp_attrib, unlink, ret);
 	if (avp_attributes == NULL)
 	{
 		return EINVAL;
@@ -1288,7 +1288,7 @@ static int diameap_get_auth_attribute(struct fd_list * auth_attributes,
 		int *ret)
 {
 
-	TRACE_ENTRY("%p %p %p %p %p", auth_attributes, attribute, auth_attrib, ret);
+	TRACE_ENTRY("%p %p %p %d %p", auth_attributes, attribute, auth_attrib, unlink, ret);
 
 	if (auth_attributes == NULL)
 	{
@@ -1324,7 +1324,7 @@ static int diameap_get_ans_attribute(struct fd_list * ans_attributes,
 		char * attribute, struct avp_attribute ** ans_attrib, int unlink,
 		int *ret)
 {
-	TRACE_ENTRY("%p %p %p %p %p", ans_attributes, attribute, ans_attrib, ret);
+	TRACE_ENTRY("%p %p %p %d %p", ans_attributes, attribute, ans_attrib, unlink, ret);
 	if (ans_attributes == NULL)
 	{
 		return EINVAL;
@@ -1637,7 +1637,7 @@ int diameap_get_operator(char *operator)
 
 boolean is_operator(int format_type, char * operator)
 {
-	TRACE_ENTRY("%p %p",format_type,operator);
+	TRACE_ENTRY("%d %p",format_type,operator);
 	if ((format_type == DIAMEAP_STR) && (strcmp(operator, "==") == 0 || strcmp(
 			operator, "~=") == 0 || strcmp(operator, "!=") == 0))
 	{
@@ -1652,7 +1652,7 @@ boolean is_operator(int format_type, char * operator)
 
 union avp_value diameap_get_num(char * num, enum dict_avp_basetype datatype)
 {
-	TRACE_ENTRY("%p %p",num,datatype);
+	TRACE_ENTRY("%p %d",num,datatype);
 	union avp_value val;
 	switch (datatype)
 	{
@@ -1681,10 +1681,10 @@ union avp_value diameap_get_num(char * num, enum dict_avp_basetype datatype)
 	return val;
 }
 
-boolean diameap_check(union avp_value A, char * B, char * operator,
+boolean diameap_check(union avp_value *A, char * B, char * operator,
 		enum dict_avp_basetype datatype)
 {
-	TRACE_ENTRY("%p %p %p %p",A,B,operator,datatype);
+	TRACE_ENTRY("%p %p %p %d",A,B,operator,datatype);
 	if (((datatype == AVP_TYPE_OCTETSTRING) && (is_operator(DIAMEAP_STR,
 			operator) == TRUE)) || ((datatype != AVP_TYPE_OCTETSTRING)
 			&& (datatype != AVP_TYPE_GROUPED) && (is_operator(DIAMEAP_NUM,
@@ -1696,7 +1696,7 @@ boolean diameap_check(union avp_value A, char * B, char * operator,
 			if ((datatype == AVP_TYPE_OCTETSTRING) && (is_operator(DIAMEAP_STR,
 					operator) == TRUE))
 			{
-				if (strcmp((char *)A.os.data, B) == 0)
+				if (strcmp((char *)A->os.data, B) == 0)
 					return TRUE;
 				else
 					return FALSE;
@@ -1709,22 +1709,22 @@ boolean diameap_check(union avp_value A, char * B, char * operator,
 				switch (datatype)
 				{
 				case AVP_TYPE_INTEGER32://i32
-					return EQ(A.i32,diameap_get_num(B, datatype).i32);
+					return EQ(A->i32,diameap_get_num(B, datatype).i32);
 					break;
 				case AVP_TYPE_INTEGER64://i64
-					return EQ(A.i64,diameap_get_num(B, datatype).i64);
+					return EQ(A->i64,diameap_get_num(B, datatype).i64);
 					break;
 				case AVP_TYPE_UNSIGNED32://u32
-					return EQ(A.u32,diameap_get_num(B, datatype).u32);
+					return EQ(A->u32,diameap_get_num(B, datatype).u32);
 					break;
 				case AVP_TYPE_UNSIGNED64://u64
-					return EQ(A.u64,diameap_get_num(B, datatype).u64);
+					return EQ(A->u64,diameap_get_num(B, datatype).u64);
 					break;
 				case AVP_TYPE_FLOAT32://f32
-					return EQ(A.f32,diameap_get_num(B, datatype).f32);
+					return EQ(A->f32,diameap_get_num(B, datatype).f32);
 					break;
 				case AVP_TYPE_FLOAT64://f64
-					return EQ(A.f64,diameap_get_num(B, datatype).f64);
+					return EQ(A->f64,diameap_get_num(B, datatype).f64);
 					break;
 				default:
 					return FALSE;
@@ -1744,7 +1744,7 @@ boolean diameap_check(union avp_value A, char * B, char * operator,
 			{
 				regex_t rule_regexp;
 				regcomp(&rule_regexp, B, REG_EXTENDED | REG_NOSUB | REG_ICASE);
-				if (regexec(&rule_regexp, (char *)A.os.data, 0, NULL, 0) != 0)
+				if (regexec(&rule_regexp, (char *)A->os.data, 0, NULL, 0) != 0)
 				{
 					authorized = FALSE;
 				}
@@ -1765,22 +1765,22 @@ boolean diameap_check(union avp_value A, char * B, char * operator,
 				switch (datatype)
 				{
 				case AVP_TYPE_INTEGER32://i32
-					return GT(A.i32, diameap_get_num(B, datatype).i32);
+					return GT(A->i32, diameap_get_num(B, datatype).i32);
 					break;
 				case AVP_TYPE_INTEGER64://i64
-					return GT(A.i64, diameap_get_num(B, datatype).i64);
+					return GT(A->i64, diameap_get_num(B, datatype).i64);
 					break;
 				case AVP_TYPE_UNSIGNED32://u32
-					return GT(A.u32, diameap_get_num(B, datatype).u32);
+					return GT(A->u32, diameap_get_num(B, datatype).u32);
 					break;
 				case AVP_TYPE_UNSIGNED64://u64
-					return GT(A.u64, diameap_get_num(B, datatype).u64);
+					return GT(A->u64, diameap_get_num(B, datatype).u64);
 					break;
 				case AVP_TYPE_FLOAT32://f32
-					return GT(A.f32, diameap_get_num(B, datatype).f32);
+					return GT(A->f32, diameap_get_num(B, datatype).f32);
 					break;
 				case AVP_TYPE_FLOAT64://f64
-					return GT(A.f64, diameap_get_num(B, datatype).f64);
+					return GT(A->f64, diameap_get_num(B, datatype).f64);
 					break;
 				default:
 					return FALSE;
@@ -1799,22 +1799,22 @@ boolean diameap_check(union avp_value A, char * B, char * operator,
 				switch (datatype)
 				{
 				case AVP_TYPE_INTEGER32://i32
-					return GE(A.i32,diameap_get_num(B, datatype).i32);
+					return GE(A->i32,diameap_get_num(B, datatype).i32);
 					break;
 				case AVP_TYPE_INTEGER64://i64
-					return GE(A.i64,diameap_get_num(B, datatype).i64);
+					return GE(A->i64,diameap_get_num(B, datatype).i64);
 					break;
 				case AVP_TYPE_UNSIGNED32://u32
-					return GE(A.u32,diameap_get_num(B, datatype).u32);
+					return GE(A->u32,diameap_get_num(B, datatype).u32);
 					break;
 				case AVP_TYPE_UNSIGNED64://u64
-					return GE(A.u64,diameap_get_num(B, datatype).u64);
+					return GE(A->u64,diameap_get_num(B, datatype).u64);
 					break;
 				case AVP_TYPE_FLOAT32://f32
-					return GE(A.f32,diameap_get_num(B, datatype).f32);
+					return GE(A->f32,diameap_get_num(B, datatype).f32);
 					break;
 				case AVP_TYPE_FLOAT64://f64
-					return GE(A.f64,diameap_get_num(B, datatype).f64);
+					return GE(A->f64,diameap_get_num(B, datatype).f64);
 					break;
 				default:
 					return FALSE;
@@ -1833,22 +1833,22 @@ boolean diameap_check(union avp_value A, char * B, char * operator,
 				switch (datatype)
 				{
 				case AVP_TYPE_INTEGER32://i32
-					return LT(A.i32, diameap_get_num(B, datatype).i32);
+					return LT(A->i32, diameap_get_num(B, datatype).i32);
 					break;
 				case AVP_TYPE_INTEGER64://i64
-					return LT(A.i64, diameap_get_num(B, datatype).i64);
+					return LT(A->i64, diameap_get_num(B, datatype).i64);
 					break;
 				case AVP_TYPE_UNSIGNED32://u32
-					return LT(A.u32, diameap_get_num(B, datatype).u32);
+					return LT(A->u32, diameap_get_num(B, datatype).u32);
 					break;
 				case AVP_TYPE_UNSIGNED64://u64
-					return LT(A.u64, diameap_get_num(B, datatype).u64);
+					return LT(A->u64, diameap_get_num(B, datatype).u64);
 					break;
 				case AVP_TYPE_FLOAT32://f32
-					return LT(A.f32, diameap_get_num(B, datatype).f32);
+					return LT(A->f32, diameap_get_num(B, datatype).f32);
 					break;
 				case AVP_TYPE_FLOAT64://f64
-					return LT(A.f64, diameap_get_num(B, datatype).f64);
+					return LT(A->f64, diameap_get_num(B, datatype).f64);
 					break;
 				default:
 					return FALSE;
@@ -1867,22 +1867,22 @@ boolean diameap_check(union avp_value A, char * B, char * operator,
 				switch (datatype)
 				{
 				case AVP_TYPE_INTEGER32://i32
-					return LE(A.i32, diameap_get_num(B, datatype).i32);
+					return LE(A->i32, diameap_get_num(B, datatype).i32);
 					break;
 				case AVP_TYPE_INTEGER64://i64
-					return LE(A.i64, diameap_get_num(B, datatype).i64);
+					return LE(A->i64, diameap_get_num(B, datatype).i64);
 					break;
 				case AVP_TYPE_UNSIGNED32://u32
-					return LE(A.u32, diameap_get_num(B, datatype).u32);
+					return LE(A->u32, diameap_get_num(B, datatype).u32);
 					break;
 				case AVP_TYPE_UNSIGNED64://u64
-					return LE(A.u64, diameap_get_num(B, datatype).u64);
+					return LE(A->u64, diameap_get_num(B, datatype).u64);
 					break;
 				case AVP_TYPE_FLOAT32://f32
-					return LE(A.f32, diameap_get_num(B, datatype).f32);
+					return LE(A->f32, diameap_get_num(B, datatype).f32);
 					break;
 				case AVP_TYPE_FLOAT64://f64
-					return LE(A.f64, diameap_get_num(B, datatype).f64);
+					return LE(A->f64, diameap_get_num(B, datatype).f64);
 					break;
 				default:
 					return FALSE;
@@ -1897,7 +1897,7 @@ boolean diameap_check(union avp_value A, char * B, char * operator,
 			if ((datatype == AVP_TYPE_OCTETSTRING) && (is_operator(DIAMEAP_STR,
 					operator) == TRUE))
 			{
-				if (strcmp((char *)A.os.data, B) != 0)
+				if (strcmp((char *)A->os.data, B) != 0)
 					return TRUE;
 				else
 					return FALSE;
@@ -1909,22 +1909,22 @@ boolean diameap_check(union avp_value A, char * B, char * operator,
 				switch (datatype)
 				{
 				case AVP_TYPE_INTEGER32://i32
-					return NE(A.i32, diameap_get_num(B, datatype).i32);
+					return NE(A->i32, diameap_get_num(B, datatype).i32);
 					break;
 				case AVP_TYPE_INTEGER64://i64
-					return NE(A.i64, diameap_get_num(B, datatype).i64);
+					return NE(A->i64, diameap_get_num(B, datatype).i64);
 					break;
 				case AVP_TYPE_UNSIGNED32://u32
-					return NE(A.u32, diameap_get_num(B, datatype).u32);
+					return NE(A->u32, diameap_get_num(B, datatype).u32);
 					break;
 				case AVP_TYPE_UNSIGNED64://u64
-					return NE(A.u64, diameap_get_num(B, datatype).u64);
+					return NE(A->u64, diameap_get_num(B, datatype).u64);
 					break;
 				case AVP_TYPE_FLOAT32://f32
-					return NE(A.f32, diameap_get_num(B, datatype).f32);
+					return NE(A->f32, diameap_get_num(B, datatype).f32);
 					break;
 				case AVP_TYPE_FLOAT64://f64
-					return NE(A.f64, diameap_get_num(B, datatype).f64);
+					return NE(A->f64, diameap_get_num(B, datatype).f64);
 					break;
 				default:
 					return FALSE;
@@ -1991,27 +1991,27 @@ char * diameap_attribute_operator(char * op, int * toadd, boolean *isrule)
 	return attribute_op;
 }
 
-int diameap_answer_set_attribute_valueA(union avp_value A, int *tofree,
+int diameap_answer_set_attribute_valueA(union avp_value *A, int *tofree,
 		enum dict_avp_basetype datatype, union avp_value * rval)
 {
-	TRACE_ENTRY("%p %p %p %p",A,tofree,datatype,rval);
+	TRACE_ENTRY("%p %p %d %p",A,tofree,datatype,rval);
 	if (datatype == AVP_TYPE_OCTETSTRING)
 	{
-		CHECK_MALLOC(rval->os.data=malloc(A.os.len));
-		memcpy(rval->os.data,A.os.data,A.os.len);
-		rval->os.len = A.os.len;
+		CHECK_MALLOC(rval->os.data=malloc(A->os.len));
+		memcpy(rval->os.data,A->os.data,A->os.len);
+		rval->os.len = A->os.len;
 		*tofree = 1;
 	}
 	else
 	{
-		*rval = A;
+		*rval = *A;
 	}
 	return 0;
 }
 int diameap_answer_set_attribute_valueB(char * B, int *tofree,
 		enum dict_avp_basetype datatype, union avp_value * rval)
 {
-	TRACE_ENTRY("%p %p %p %p",B,tofree,datatype,rval);
+	TRACE_ENTRY("%p %p %d %p",B,tofree,datatype,rval);
 	if (datatype == AVP_TYPE_OCTETSTRING)
 	{
 		CHECK_MALLOC(rval->os.data=malloc(strlen(B)));
@@ -2091,7 +2091,7 @@ static int diameap_answer_authorization_attributes(
 			CHECK_FCT(diameap_get_avp_attribute(&diameap_sm->req_attributes,auth_attrib->attrib,&avp_attrib,0,&ret));
 			if (ret == 0)
 			{
-				checked = diameap_check(avp_attrib->value, auth_attrib->value,
+				checked = diameap_check(&avp_attrib->value, auth_attrib->value,
 						op, avpdata.avp_basetype);
 			}
 		}
@@ -2118,7 +2118,7 @@ static int diameap_answer_authorization_attributes(
 						if (toadd == 1)
 						{
 							diameap_answer_set_attribute_valueA(
-									avp_attrib->value, &ans_attrib->tofree,
+									&avp_attrib->value, &ans_attrib->tofree,
 									avpdata.avp_basetype, &ans_attrib->value);
 						}
 						else
@@ -2145,7 +2145,7 @@ static int diameap_answer_authorization_attributes(
 					ans_attrib->attrib = auth_attrib->attrib;
 					if (toadd == 1)
 					{
-						diameap_answer_set_attribute_valueA(avp_attrib->value,
+						diameap_answer_set_attribute_valueA(&avp_attrib->value,
 								&ans_attrib->tofree, avpdata.avp_basetype,
 								&ans_attrib->value);
 					}
@@ -2176,17 +2176,17 @@ static int diameap_answer_authorization_attributes(
 
 
 static int diameap_policy_decision(struct diameap_state_machine * diameap_sm,
-		struct diameap_eap_interface eap_i)
+		struct diameap_eap_interface *eap_i)
 {
 	TRACE_ENTRY("%p %p",diameap_sm,eap_i);
 
-	if ((eap_i.aaaFail == TRUE) && (eap_i.aaaSuccess == TRUE))
+	if ((eap_i->aaaFail == TRUE) && (eap_i->aaaSuccess == TRUE))
 	{
 		TRACE_DEBUG(INFO,"%s Incorrect EAP decision. EAP process should not return both success and failure for the same session.(please report this problem.)",DIAMEAP_EXTENSION);
 		return -1;
 	}
 
-	if (eap_i.aaaFail == TRUE)
+	if (eap_i->aaaFail == TRUE)
 	{
 		diameap_sm->result_code = 4001; /* DIAMETER_AUTHENTICATION_REJECTED 4001 */
 		diameap_sm->authFailure = TRUE;
@@ -2194,13 +2194,13 @@ static int diameap_policy_decision(struct diameap_state_machine * diameap_sm,
 		return 0;
 	}
 
-	if (eap_i.aaaSuccess == FALSE)
+	if (eap_i->aaaSuccess == FALSE)
 	{
 		diameap_sm->result_code = 1001; /* DIAMETER_MULTI_ROUND_AUTH 1001 */
 		return 0;
 	}
 
-	if (eap_i.aaaSuccess == TRUE)
+	if (eap_i->aaaSuccess == TRUE)
 	{
 		if (diameap_sm->auth_request_val == AUTHORIZE_AUTHENTICATE)
 		{
@@ -2873,7 +2873,7 @@ static int diameap_add_result_code(struct diameap_state_machine * diameap_sm,
 }
 
 static int diameap_add_eap_payload(struct diameap_state_machine * diameap_sm,
-		struct msg * ans, struct diameap_eap_interface eap_i)
+		struct msg * ans, struct diameap_eap_interface *eap_i)
 {
 	TRACE_ENTRY("%p %p",diameap_sm,ans);
 	struct avp * avp;
@@ -2906,14 +2906,14 @@ static int diameap_add_eap_payload(struct diameap_state_machine * diameap_sm,
 	//TD take the link type into consideration when calculating EAP_MAX_Length
 	EAP_Max_Length = Framed_MTU - NAS_Port_Type_HeaderLength;
 
-	if (eap_i.aaaEapReqData.length <= EAP_Max_Length)
+	if (eap_i->aaaEapReqData.length <= EAP_Max_Length)
 	{
 
 		/* EAP-Payload AVP */
 		{
 			CHECK_FCT(fd_msg_avp_new(dataobj_eap_payload, 0, &avp));
-			avp_val.os.data = eap_i.aaaEapReqData.data;
-			avp_val.os.len = eap_i.aaaEapReqData.length;
+			avp_val.os.data = eap_i->aaaEapReqData.data;
+			avp_val.os.len = eap_i->aaaEapReqData.length;
 			CHECK_FCT(fd_msg_avp_setvalue(avp, &avp_val));
 			CHECK_FCT( fd_msg_avp_add( ans, MSG_BRW_LAST_CHILD, avp ) );
 
@@ -2924,8 +2924,8 @@ static int diameap_add_eap_payload(struct diameap_state_machine * diameap_sm,
 			}
 
 			CHECK_FCT(fd_msg_avp_new(dataobj_eap_payload, 0, &diameap_sm->lastReqEAPavp));
-			avp_val.os.data = eap_i.aaaEapReqData.data;
-			avp_val.os.len = eap_i.aaaEapReqData.length;
+			avp_val.os.data = eap_i->aaaEapReqData.data;
+			avp_val.os.len = eap_i->aaaEapReqData.length;
 			CHECK_FCT(fd_msg_avp_setvalue(diameap_sm->lastReqEAPavp, &avp_val));
 
 		}
@@ -2946,7 +2946,7 @@ static int diameap_send(struct msg ** rmsg)
 
 static int diameap_add_eap_success_avps(
 		struct diameap_state_machine * diameap_sm, struct msg * ans,
-		struct diameap_eap_interface eap_i)
+		struct diameap_eap_interface *eap_i)
 {
 	TRACE_ENTRY("%p %p %p",diameap_sm,ans,eap_i);
 	struct avp * avp;
@@ -2954,11 +2954,11 @@ static int diameap_add_eap_success_avps(
 	int ret;
 
 	/* EAP-Master-Session-Key AVP */
-	if (eap_i.aaaEapKeyAvailable == TRUE)
+	if (eap_i->aaaEapKeyAvailable == TRUE)
 	{
 		CHECK_FCT(fd_msg_avp_new(dataobj_eap_master_session_key, 0, &avp));
-		avp_val.os.data = eap_i.aaaEapMSKData;
-		avp_val.os.len = eap_i.aaaEapMSKLength;
+		avp_val.os.data = eap_i->aaaEapMSKData;
+		avp_val.os.len = eap_i->aaaEapMSKLength;
 		CHECK_FCT(fd_msg_avp_setvalue(avp, &avp_val));
 		CHECK_FCT( fd_msg_avp_add( ans, MSG_BRW_LAST_CHILD, avp ) );
 
@@ -2988,7 +2988,7 @@ int diameap_authorize(struct diameap_state_machine * diameap_sm)
 {
 	TRACE_ENTRY("%p",diameap_sm);
 
-	CHECK_FCT(diameap_authorization_get_attribs(diameap_sm->eap_sm.user, &diameap_sm->attributes));
+	CHECK_FCT(diameap_authorization_get_attribs(&diameap_sm->eap_sm.user, &diameap_sm->attributes));
 
 	diameap_sm->authorized = TRUE;
 
@@ -3177,7 +3177,7 @@ static int diameap_server_callback(struct msg ** rmsg, struct avp * ravp,
 
 		case DIAMEAP_SELECT_DECISION:
 
-			CHECK_FCT_DO( diameap_policy_decision(diameap_sm,eap_i),
+			CHECK_FCT_DO( diameap_policy_decision(diameap_sm,&eap_i),
 					goto s_end)
 			;
 
@@ -3221,11 +3221,11 @@ static int diameap_server_callback(struct msg ** rmsg, struct avp * ravp,
 				if (diameap_sm->eap_sm.user.id != 0)
 				{
 					TRACE_DEBUG(FULL+1,"%sSelect authentication attributes.",DIAMEAP_EXTENSION);
-					CHECK_FCT_DO(diameap_authentication_get_attribs(diameap_sm->eap_sm.user, &diameap_sm->attributes),
+					CHECK_FCT_DO(diameap_authentication_get_attribs(&diameap_sm->eap_sm.user, &diameap_sm->attributes),
 							{	TRACE_DEBUG(INFO,"%s Unable to get user's session attributes.",DIAMEAP_EXTENSION); goto s_end;});
 					TRACE_DEBUG(FULL+1,"%sCreate answer authentication attributes.",DIAMEAP_EXTENSION);
 					CHECK_FCT_DO(diameap_answer_avp_attributes(diameap_sm),
-							{	TRACE_DEBUG(INFO,"% Unable to generate answer attributes.",DIAMEAP_EXTENSION); goto s_end;});
+							{	TRACE_DEBUG(INFO,"%s Unable to generate answer attributes.",DIAMEAP_EXTENSION); goto s_end;});
 				}
 
 				if (diameap_sm->authSuccess == FALSE)
@@ -3252,7 +3252,7 @@ static int diameap_server_callback(struct msg ** rmsg, struct avp * ravp,
 			;
 			TRACE_DEBUG(FULL+1,"%sAdding EAP-Payload to Diameter-EAP-Answer.",DIAMEAP_EXTENSION)
 			;
-			CHECK_FCT_DO( diameap_add_eap_payload(diameap_sm, ans,eap_i),
+			CHECK_FCT_DO( diameap_add_eap_payload(diameap_sm, ans,&eap_i),
 					{	TRACE_DEBUG(INFO,"%s Adding EAP-Payload AVP failed.",DIAMEAP_EXTENSION); goto s_end;})
 			;
 			TRACE_DEBUG(FULL+1,"%sStoring DiamEAP session data.",DIAMEAP_EXTENSION)
@@ -3281,7 +3281,7 @@ static int diameap_server_callback(struct msg ** rmsg, struct avp * ravp,
 			;
 			TRACE_DEBUG(FULL+1,"%sAdding EAP-Payload to Diameter-EAP-Answer.",DIAMEAP_EXTENSION)
 			;
-			CHECK_FCT_DO( diameap_add_eap_payload(diameap_sm, ans,eap_i),
+			CHECK_FCT_DO( diameap_add_eap_payload(diameap_sm, ans,&eap_i),
 					{	TRACE_DEBUG(INFO,"%s Adding EAP-Payload AVP failed.",DIAMEAP_EXTENSION); goto s_end;})
 			;
 
@@ -3311,12 +3311,12 @@ static int diameap_server_callback(struct msg ** rmsg, struct avp * ravp,
 			;
 			TRACE_DEBUG(FULL+1,"%sAdding EAP-Payload to Diameter-EAP-Answer.",DIAMEAP_EXTENSION)
 			;
-			CHECK_FCT_DO( diameap_add_eap_payload(diameap_sm, ans,eap_i),
+			CHECK_FCT_DO( diameap_add_eap_payload(diameap_sm, ans,&eap_i),
 					{	TRACE_DEBUG(INFO,"%s Adding EAP-Payload AVP failed.",DIAMEAP_EXTENSION); goto s_end;})
 			;
 			TRACE_DEBUG(FULL+1,"%sAdding EAP success AVPs AVPs to Diameter-EAP-Answer.",DIAMEAP_EXTENSION)
 			;
-			CHECK_FCT_DO( diameap_add_eap_success_avps(diameap_sm, ans, eap_i),
+			CHECK_FCT_DO( diameap_add_eap_success_avps(diameap_sm, ans, &eap_i),
 					goto s_end)
 			;
 			TRACE_DEBUG(FULL+1,"%sAdding Accounting-EAP-Auth-Method AVPs to Diameter-EAP-Answer.",DIAMEAP_EXTENSION)

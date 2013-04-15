@@ -34,6 +34,7 @@
 *********************************************************************************************************/
 
 #include "fdproto-internal.h"
+#include <inttypes.h>
 
 /* Names of the base types */
 const char * type_base_name[] = { /* must keep in sync with dict_avp_basetype */
@@ -1178,7 +1179,7 @@ static void dump_enumval_data ( struct dict_enumval_data * enumval, enum dict_av
 				if (enumval->enum_value.os.len < LEN_MAX)
 					n = enumval->enum_value.os.len;
 				for (i=0; i < n; i++)
-					fd_log_debug("0x%02.2X/'%c' ", enumval->enum_value.os.data[i], ASCII(enumval->enum_value.os.data[i]));
+					fd_log_debug("0x%02hhX/'%c' ", enumval->enum_value.os.data[i], ASCII(enumval->enum_value.os.data[i]));
 				if (n == LEN_MAX)
 					fd_log_debug("...");
 			}
@@ -1189,7 +1190,7 @@ static void dump_enumval_data ( struct dict_enumval_data * enumval, enum dict_av
 			break;
 
 		case AVP_TYPE_INTEGER64:
-			fd_log_debug("%lli", enumval->enum_value.i64);
+			fd_log_debug(PRId64, enumval->enum_value.i64);
 			break;
 
 		case AVP_TYPE_UNSIGNED32:
@@ -1197,7 +1198,7 @@ static void dump_enumval_data ( struct dict_enumval_data * enumval, enum dict_av
 			break;
 
 		case AVP_TYPE_UNSIGNED64:
-			fd_log_debug("%llu", enumval->enum_value.u64);
+			fd_log_debug(PRIu64, enumval->enum_value.u64);
 			break;
 
 		case AVP_TYPE_FLOAT32:

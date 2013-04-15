@@ -423,20 +423,20 @@ void fd_peer_dump(struct fd_peer * peer, int details)
 		if (peer->p_hdr.info.runtime.pir_prodname)
 			snprintf(buf+strlen(buf), sizeof(buf)-strlen(buf), "\t['%s' %u]", peer->p_hdr.info.runtime.pir_prodname, peer->p_hdr.info.runtime.pir_firmrev);
 	}
-	fd_log_debug(buf);
+	fd_log_debug("%s", buf);
 	if (details > FULL) {
 		/* Dump all info */
 		fd_log_debug("\tEntry origin : %s", peer->p_dbgorig?: "not set");
-		fd_log_debug("\tConfig flags : %s%s%s%s%s - %s%s%s", 
-				peer->p_hdr.info.config.pic_flags.pro3 == PI_P3_DEFAULT ? "" :
-					(peer->p_hdr.info.config.pic_flags.pro3 == PI_P3_IP ? "IP." : "IPv6."),
-				peer->p_hdr.info.config.pic_flags.pro4 == PI_P4_DEFAULT ? "" :
-					(peer->p_hdr.info.config.pic_flags.pro4 == PI_P4_TCP ? "TCP." : "SCTP."),
-				peer->p_hdr.info.config.pic_flags.alg ? "PrefTCP." : "",
-				peer->p_hdr.info.config.pic_flags.sec & PI_SEC_NONE ? "NoTLSok" :"",
-				peer->p_hdr.info.config.pic_flags.sec & PI_SEC_TLS_OLD ? "OldTLS" :"",
-				peer->p_hdr.info.config.pic_flags.exp ? "Expire." : "",
-				peer->p_hdr.info.config.pic_flags.persist ? "Persist." : ""
+		fd_log_debug("\tConfig flags : %s%s%s - %s%s - %s%s", 
+				peer->p_hdr.info.config.pic_flags.pro3 == PI_P3_DEFAULT ? "." :
+					(peer->p_hdr.info.config.pic_flags.pro3 == PI_P3_IP ? "IP" : "IPv6"),
+				peer->p_hdr.info.config.pic_flags.pro4 == PI_P4_DEFAULT ? "." :
+					(peer->p_hdr.info.config.pic_flags.pro4 == PI_P4_TCP ? "TCP" : "SCTP"),
+				peer->p_hdr.info.config.pic_flags.alg ? "PrefTCP" : ".",
+				peer->p_hdr.info.config.pic_flags.sec & PI_SEC_NONE ? "NoTLSok" :".",
+				peer->p_hdr.info.config.pic_flags.sec & PI_SEC_TLS_OLD ? "OldTLS" :".",
+				peer->p_hdr.info.config.pic_flags.exp ? "Expire" : ".",
+				peer->p_hdr.info.config.pic_flags.persist ? "Persist" : "."
 				);
 		fd_log_debug("\tLifetime : %d sec", peer->p_hdr.info.config.pic_lft);
 	}

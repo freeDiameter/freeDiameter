@@ -83,6 +83,11 @@ extern "C" {
 #include <libgen.h>	/* for basename if --dbg_file is specified */
 #endif /* DEBUG */
 
+#ifdef SWIG
+#define _ATTRIBUTE_PRINTFLIKE_(_f,_v)
+#else
+#define _ATTRIBUTE_PRINTFLIKE_(_f,_v) __attribute__ ((format (printf, _f, _v)))
+#endif /* SWIG */
 
 /*============================================================*/
 /*                       CONSTANTS                            */
@@ -127,7 +132,7 @@ void fd_libproto_fini(void);
  * RETURN VALUE:
  *  None.
  */
-void fd_log ( int, const char *, ... ) __attribute__ ((format (printf, 2, 3)));
+void fd_log ( int, const char *, ... ) _ATTRIBUTE_PRINTFLIKE_(2,3);
 #define fd_log_debug(format,args...)  fd_log(FD_LOG_DEBUG, format, ## args)
 #define fd_log_notice(format,args...) fd_log(FD_LOG_NOTICE, format, ## args)
 #define fd_log_error(format,args...)  fd_log(FD_LOG_ERROR, format, ## args)
@@ -783,9 +788,9 @@ static __inline__ int fd_thr_term(pthread_t * th)
 	CHECK_POSIX( pthread_join(*th, &th_ret) );
 	
 	if (th_ret == PTHREAD_CANCELED) {
-		TRACE_DEBUG(ANNOYING, "The thread %p was canceled", *th);
+		TRACE_DEBUG(ANNOYING, "The thread %p was canceled", (void *)*th);
 	} else {
-		TRACE_DEBUG(CALL, "The thread %p returned %p", *th, th_ret);
+		TRACE_DEBUG(CALL, "The thread %p returned %p", (void *)*th, th_ret);
 	}
 	
 	/* Clean the location */
@@ -2336,7 +2341,7 @@ enum fd_msg_log_cause {
 	FD_MSG_LOG_TIMING	 /* profiling messages */
 };
 #define FD_MSG_LOG_MAX FD_MSG_LOG_TIMING
-void fd_msg_log( enum fd_msg_log_cause cause, struct msg * msg, const char * prefix_format, ... ) __attribute__ ((format (printf, 3, 4)));
+void fd_msg_log( enum fd_msg_log_cause cause, struct msg * msg, const char * prefix_format, ... ) _ATTRIBUTE_PRINTFLIKE_(3,4);
 
 /* configure the msg_log facility */
 enum fd_msg_log_method {

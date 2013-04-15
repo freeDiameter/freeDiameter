@@ -107,7 +107,7 @@ int diameap_get_eap_user(struct eap_user * user, char * username)
 
 }
 
-int diameap_authentication_get_attribs(struct eap_user user,
+int diameap_authentication_get_attribs(struct eap_user *user,
 		struct fd_list * attribute_list)
 {
 
@@ -130,7 +130,7 @@ int diameap_authentication_get_attribs(struct eap_user user,
 	sprintf(
 			query,
 			"SELECT `authe`.`attribute` ,`authe`.`value` FROM `authe` WHERE `authe`.`grp` IN ( SELECT `user_grp`.`grp` FROM `user_grp` WHERE `user_grp`.`user` = %d ) ",
-			user.id);
+			user->id);
 
 	CHECK_POSIX(pthread_mutex_lock( &db_cs_mutex ));
 
@@ -168,7 +168,7 @@ int diameap_authentication_get_attribs(struct eap_user user,
 	return 0;
 }
 
-int diameap_authorization_get_attribs(struct eap_user user,
+int diameap_authorization_get_attribs(struct eap_user *user,
 		struct fd_list * attribute_list)
 {
 	TRACE_ENTRY("%p %p",user,attribute_list);
@@ -191,7 +191,7 @@ int diameap_authorization_get_attribs(struct eap_user user,
 	sprintf(
 			query,
 			"SELECT `authz`.`attribute` , `authz`.`op` , `authz`.`value` FROM `authz` WHERE `authz`.`grp` IN ( SELECT `user_grp`.`grp` FROM `user_grp` WHERE `user_grp`.`user` = %d ) ",
-			user.id);
+			user->id);
 
 	CHECK_POSIX(pthread_mutex_lock( &db_cs_mutex ));
 

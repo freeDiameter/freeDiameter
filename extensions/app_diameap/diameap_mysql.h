@@ -56,11 +56,11 @@ int diameap_set_mysql_param(char * user, char * passwd, char * server, char * da
 void diameap_mysql_disconnect();
 
 /* */
-int diameap_authentication_get_attribs(struct eap_user user,
+int diameap_authentication_get_attribs(struct eap_user *user,
 			struct fd_list * attribute_list);
 
 /* */
-int diameap_authorization_get_attribs(struct eap_user user,
+int diameap_authorization_get_attribs(struct eap_user *user,
 			struct fd_list * attribute_list);
 
 

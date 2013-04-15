@@ -172,7 +172,7 @@ static int apply_rule(struct redir_entry * e, struct msg * msg, struct fd_list *
 		if (e->type == ALL_HOST) {
 			cmp = fd_os_almostcasesrch(cand->diamid, cand->diamidlen, e->data.host.s, e->data.host.l, NULL);
 			if (!cmp) {
-				TRACE_DEBUG(FULL, "Redirect msg %p: peer '%.*s' += %d (previous ALL_HOST Redirect originated from this peer)", msg, cand->diamidlen, cand->diamid, FD_SCORE_SENT_REDIRECT);
+				TRACE_DEBUG(FULL, "Redirect msg %p: peer '%.*s' += %d (previous ALL_HOST Redirect originated from this peer)", msg, (int)cand->diamidlen, cand->diamid, FD_SCORE_SENT_REDIRECT);
 				cand->score += FD_SCORE_SENT_REDIRECT;
 				c_oh = cand;
 				continue;
@@ -181,7 +181,7 @@ static int apply_rule(struct redir_entry * e, struct msg * msg, struct fd_list *
 		
 		cmp = fd_os_cmp(cand->diamid, cand->diamidlen, e->from.s, e->from.l);
 		if (!cmp) {
-			TRACE_DEBUG(FULL, "Redirect msg %p: peer '%.*s' += %d (previous Redirect received from this peer)", msg, cand->diamidlen, cand->diamid, FD_SCORE_SENT_REDIRECT);
+			TRACE_DEBUG(FULL, "Redirect msg %p: peer '%.*s' += %d (previous Redirect received from this peer)", msg, (int)cand->diamidlen, cand->diamid, FD_SCORE_SENT_REDIRECT);
 			cand->score += FD_SCORE_SENT_REDIRECT;
 		}
 		
@@ -205,7 +205,7 @@ static int apply_rule(struct redir_entry * e, struct msg * msg, struct fd_list *
 			cmp = fd_os_almostcasesrch( cand->diamid, cand->diamidlen, host->id, host->len, &cont );
 			
 			if (cmp == 0) {
-				TRACE_DEBUG(FULL, "Redirect msg %p: peer '%.*s' += %d (rule t:%d @%p)", msg, cand->diamidlen, cand->diamid, redirects_usages[e->type].score, e->type, e);
+				TRACE_DEBUG(FULL, "Redirect msg %p: peer '%.*s' += %d (rule t:%d @%p)", msg, (int)cand->diamidlen, cand->diamid, redirects_usages[e->type].score, e->type, e);
 				cand->score += redirects_usages[e->type].score;
 				break;
 			}

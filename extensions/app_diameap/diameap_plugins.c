@@ -45,7 +45,7 @@
 int diameap_plugin_add(char * name, eap_type methodtype, u32 vendor,
 		char * filename, char * conffile)
 {
-	TRACE_ENTRY("%p %p %p %p %p", name, methodtype, vendor, filename, conffile);
+	TRACE_ENTRY("%p %d %d %p %p", name, methodtype, vendor, filename, conffile);
 
 	/* Check the filename is valid */
 	CHECK_PARAMS(filename);
@@ -82,7 +82,7 @@ void diameap_plugin_dump(void)
 
 int diameap_plugin_get(u32 vendor, eap_type type, struct plugin ** getplugin)
 {
-	TRACE_ENTRY("%p %p %p",vendor,type,getplugin);
+	TRACE_ENTRY("%d %d %p",vendor,type,getplugin);
 	struct fd_list * pl;
 
 	for (pl = plugins_list.next; pl != &plugins_list; pl = pl->next)
@@ -410,7 +410,7 @@ int diameap_plugin_load(void)
 boolean diameap_plugin_exist(u32 vendor, eap_type type)
 {
 
-	TRACE_ENTRY("%p %p",vendor,type);
+	TRACE_ENTRY("%d %d",vendor,type);
 	struct fd_list * pl;
 
 	for (pl = plugins_list.next; pl != &plugins_list; pl = pl->next)

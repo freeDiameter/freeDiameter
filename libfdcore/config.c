@@ -225,6 +225,9 @@ static int fd_conf_print_details_func (gnutls_x509_crt_t cert,
 }
 #endif /* GNUTLS_VERSION_300 */
 
+#ifndef GNUTLS_VERSION_300
+# pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#endif /* !GNUTLS_VERSION_300 */
 /* Parse the configuration file (using the yacc parser) */
 int fd_conf_parse()
 {
@@ -473,10 +476,8 @@ int fd_conf_parse()
 			
 			unsigned int verify;
 			time_t now;
-			#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
 			GNUTLS_TRACE( gnutls_certificate_get_x509_cas (fd_g_config->cnf_sec_data.credentials, &CA_list, (unsigned int *) &CA_list_length) );
 			GNUTLS_TRACE( gnutls_certificate_get_x509_crls (fd_g_config->cnf_sec_data.credentials, &CRL_list, (unsigned int *) &CRL_list_length) );
-			#pragma GCC diagnostic warning "-Wdeprecated-declarations"
 			CHECK_GNUTLS_DO( gnutls_x509_crt_list_verify(certs, cert_max, CA_list, CA_list_length, CRL_list, CRL_list_length, 0, &verify),
 				{
 					TRACE_ERROR("Failed to verify the local certificate '%s' against local credentials. Please check your certificate is valid.", fd_g_config->cnf_sec_data.cert_file);
@@ -596,6 +597,9 @@ int fd_conf_parse()
 	
 	return 0;
 }
+#ifndef GNUTLS_VERSION_300
+# pragma GCC diagnostic pop "-Wdeprecated-declarations"
+#endif /* !GNUTLS_VERSION_300 */
 
 
 /* Destroy contents of fd_g_config structure */

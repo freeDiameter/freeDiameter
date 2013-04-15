@@ -56,7 +56,7 @@ static void diameap_ba_nextid(struct eap_state_machine * sm, int * id)
 }
 
 static void diameap_ba_policyupdate(struct eap_state_machine * eap_sm,
-		struct eap_packet eapPacket)
+		struct eap_packet *eapPacket)
 {
 	TRACE_ENTRY("%p %p",eap_sm, eapPacket);
 	if ((eap_sm->respMethod == TYPE_NAK))
@@ -65,10 +65,10 @@ static void diameap_ba_policyupdate(struct eap_state_machine * eap_sm,
 		eap_sm->user.pmethods = 0;
 		u32 vendor;
 		eap_type type;
-		u8 *data = (u8 *) eapPacket.data;
+		u8 *data = (u8 *) eapPacket->data;
 		data += 5;
 		id = 5;
-		while (id < eapPacket.length)
+		while (id < eapPacket->length)
 		{
 			vendor = VENDOR_IETF;
 			type = G8(data);
@@ -242,7 +242,7 @@ static int diameap_ba_policygetdecision(struct eap_state_machine * eap_sm,
 
 static boolean diameap_ba_policydopickup(eap_type type)
 {
-	TRACE_ENTRY("%p",type);
+	TRACE_ENTRY("%d",type);
 	if (type == TYPE_IDENTITY)
 	{
 		return TRUE;
@@ -330,7 +330,7 @@ int diameap_eap_statemachine(struct eap_state_machine * eap_sm,
 		case EAP_RECEIVED:
 			TRACE_DEBUG(FULL+1,"%s[EAP Protocol] New EAP Response received",DIAMEAP_EXTENSION)
 			;
-			diameap_eap_dump(FULL + 1, eap_i->aaaEapRespData);
+			diameap_eap_dump(FULL + 1, &eap_i->aaaEapRespData);
 			if ((eap_sm->rxResp == TRUE) && (eap_sm->respId
 					== eap_sm->currentId) && ((eap_sm->respMethod
 					== eap_sm->currentMethod) || ((eap_sm->respMethod
@@ -364,7 +364,7 @@ int diameap_eap_statemachine(struct eap_state_machine * eap_sm,
 		case EAP_SEND_REQUEST:
 			TRACE_DEBUG(FULL+1,"%s[EAP Protocol] New EAP packet request created.",DIAMEAP_EXTENSION)
 			;
-			diameap_eap_dump(FULL, eap_i->aaaEapReqData);
+			diameap_eap_dump(FULL, &eap_i->aaaEapReqData);
 			eap_i->aaaEapResp = FALSE;
 			eap_i->aaaEapReq = TRUE;
 			eap_sm->eap_state = EAP_IDLE;
@@ -515,7 +515,7 @@ int diameap_eap_statemachine(struct eap_state_machine * eap_sm,
 					eap_sm->methodData = NULL;
 				}
 			}
-			diameap_ba_policyupdate(eap_sm, eap_i->aaaEapRespData);
+			diameap_ba_policyupdate(eap_sm, &eap_i->aaaEapRespData);
 			eap_sm->eap_state = EAP_SELECT_ACTION;
 			break;
 		case EAP_SELECT_ACTION:

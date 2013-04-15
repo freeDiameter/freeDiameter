@@ -361,9 +361,9 @@ static int process_decorated_NAI(int * was_nai, union avp_value * un, union avp_
 	dr->os.len = sep_idx;
 	
 	TRACE_DEBUG(FULL, "Processed Decorated NAI : '%.*s' became '%.*s' (%.*s)",
-				un->os.len, old_un,
-				at_idx, un->os.data,
-				dr->os.len, dr->os.data);
+				(int)un->os.len, old_un,
+				(int)at_idx, un->os.data,
+				(int)dr->os.len, dr->os.data);
 	
 	un->os.len = at_idx;
 	free(old_un);

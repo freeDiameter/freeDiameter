@@ -38,38 +38,38 @@
 
 #include "libdiameap.h"
 
-int diameap_user_get_userid(struct eap_user user, u8* userid)
+int diameap_user_get_userid(struct eap_user *user, u8* userid)
 {
 	TRACE_ENTRY("%p %p",user,userid);
-	if (user.userid == NULL)
+	if (user->userid == NULL)
 		return EINVAL;
-	userid = user.userid;
+	userid = user->userid;
 	return 0;
 }
 
-int diameap_user_get_password(struct eap_user user, u8* password,u16 * passwordlength)
+int diameap_user_get_password(struct eap_user *user, u8* password,u16 * passwordlength)
 {
 	TRACE_ENTRY("%p %p",user,password);
-	if (user.password == NULL)
+	if (user->password == NULL)
 		return EINVAL;
-	password = user.password;
-	*passwordlength = user.passwordLength;
+	password = user->password;
+	*passwordlength = user->passwordLength;
 	return 0;
 }
 
-int diameap_user_get_passwordlength(struct eap_user user, u16 * passwordlength)
+int diameap_user_get_passwordlength(struct eap_user *user, u16 * passwordlength)
 {
 	TRACE_ENTRY("%p %p",user,passwordlength);
-	if (user.password == NULL)
+	if (user->password == NULL)
 		return EINVAL;
-	*passwordlength = user.passwordLength;
+	*passwordlength = user->passwordLength;
 	return 0;
 }
 
 int diameap_user_set_password(struct eap_user * user, u8 * password,
 		u16 passwordLength)
 {
-	TRACE_ENTRY("%p %p %p",user,password,passwordLength);
+	TRACE_ENTRY("%p %p %hu",user,password,passwordLength);
 	if (password == NULL)
 		return EINVAL;
 	if (passwordLength < 1)
@@ -82,7 +82,7 @@ int diameap_user_set_password(struct eap_user * user, u8 * password,
 int diameap_user_set_userid(struct eap_user * user, u8 * userid,
 		u16 useridLength)
 {
-	TRACE_ENTRY("%p %p %p",user,userid,useridLength);
+	TRACE_ENTRY("%p %p %hu",user,userid,useridLength);
 	if (userid == NULL)
 		return EINVAL;
 	if (useridLength < 1)
@@ -92,18 +92,18 @@ int diameap_user_set_userid(struct eap_user * user, u8 * userid,
 	return 0;
 }
 
-int diameap_user_get_methodid(struct eap_user user, int * methodid)
+int diameap_user_get_methodid(struct eap_user *user, int * methodid)
 {
 	TRACE_ENTRY("%p %p",user,methodid);
-	if (user.password == NULL)
+	if (user->password == NULL)
 		return EINVAL;
-	*methodid = user.methodId;
+	*methodid = user->methodId;
 	return 0;
 }
 
 int diameap_user_set_methodid(struct eap_user * user, int methodId)
 {
-	TRACE_ENTRY("%p %p",user,methodId);
+	TRACE_ENTRY("%p %d",user,methodId);
 	if (user->password == NULL)
 		return EINVAL;
 	if (methodId < 0)
@@ -112,12 +112,12 @@ int diameap_user_set_methodid(struct eap_user * user, int methodId)
 	return 0;
 }
 
-boolean diameap_user_issuccess(struct eap_user user)
+boolean diameap_user_issuccess(struct eap_user *user)
 {
 	TRACE_ENTRY("%p",user);
-	if (user.password == NULL)
+	if (user->password == NULL)
 		return FALSE;
-	return user.success;
+	return user->success;
 }
 
 int diameap_user_set_success(struct eap_user * user)
@@ -129,24 +129,24 @@ int diameap_user_set_success(struct eap_user * user)
 	return 0;
 }
 
-int diameap_user_get_eap_method(struct eap_user user, int id,
+int diameap_user_get_eap_method(struct eap_user *user, int id,
 		struct eap_method *method)
 {
-	TRACE_ENTRY("%p %p %p",user,id,method);
-	if (sizeof(user.methods) >= (id - 1))
-		*method = user.methods[id];
+	TRACE_ENTRY("%p %d %p",user,id,method);
+	if (sizeof(user->methods) >= (id - 1))
+		*method = user->methods[id];
 	return 0;
 }
 
 int diameap_user_set_eap_method(struct eap_user * user, int id,
-		struct eap_method method)
+		struct eap_method * method)
 {
-	TRACE_ENTRY("%p %p %p",user,id,method);
+	TRACE_ENTRY("%p %d %p",user,id,method);
 	if (user->password == NULL)
 		return EINVAL;
 	if (sizeof(user->methods) < (id - 1))
 		return EINVAL;
-	user->methods[id].vendor = method.vendor;
-	user->methods[id].method = method.method;
+	user->methods[id].vendor = method->vendor;
+	user->methods[id].method = method->method;
 	return 0;
 }

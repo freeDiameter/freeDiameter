@@ -94,7 +94,7 @@ static void * demuxer(void * arg)
 					/* Note, here the timespec is piggytailed to buf */
 					CHECK_FCT_DO(fd_event_send(conn->cc_sctps_data.array[strid].raw_recv, event, bufsz, buf), goto fatal );
 				} else {
-					TRACE_DEBUG(INFO, "Received packet (%d bytes) on out-of-range stream #%d from %s, discarded.", bufsz, strid, conn->cc_remid);
+					TRACE_DEBUG(INFO, "Received packet (%zd bytes) on out-of-range stream #%d from %s, discarded.", bufsz, strid, conn->cc_remid);
 					free(buf);
 				}
 				break;
@@ -229,6 +229,9 @@ error:
 }
 
 /* Set the parameters of a session to use the appropriate fifo and stream information */
+#ifndef GNUTLS_VERSION_300
+# pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#endif /* !GNUTLS_VERSION_300 */
 static void set_sess_transport(gnutls_session_t session, struct sctps_ctx *ctx)
 {
 	/* Set the transport pointer passed to push & pull callbacks */
@@ -237,9 +240,7 @@ static void set_sess_transport(gnutls_session_t session, struct sctps_ctx *ctx)
 	/* Reset the low water value, since we don't use sockets */
 #ifndef GNUTLS_VERSION_300
 	/* starting version 2.12, this call is not needed */
-	#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
 	GNUTLS_TRACE( gnutls_transport_set_lowat( session, 0 ) );
-	#pragma GCC diagnostic warning "-Wdeprecated-declarations"
 #endif /* GNUTLS_VERSION_300 */
 	
 	/* Set the push and pull callbacks */
@@ -248,6 +249,9 @@ static void set_sess_transport(gnutls_session_t session, struct sctps_ctx *ctx)
 
 	return;
 }
+#ifndef GNUTLS_VERSION_300
+# pragma GCC diagnostic pop "-Wdeprecated-declarations"
+#endif /* !GNUTLS_VERSION_300 */
 
 /*************************************************************/
 /*               Session resuming support                    */

@@ -306,7 +306,7 @@ static int save_remote_CE_info(struct msg * msg, struct fd_peer * peer, struct f
 				if (fd_os_almostcasesrch(hdr->avp_value->os.data, hdr->avp_value->os.len, 
 							peer->p_hdr.info.pi_diamid, peer->p_hdr.info.pi_diamidlen, NULL)) {
 					TRACE_DEBUG(INFO, "Received a message with Origin-Host set to '%.*s' while expecting '%s'", 
-							hdr->avp_value->os.len, hdr->avp_value->os.data, peer->p_hdr.info.pi_diamid);
+							(int)hdr->avp_value->os.len, hdr->avp_value->os.data, peer->p_hdr.info.pi_diamid);
 					error->pei_errcode = "DIAMETER_AVP_NOT_ALLOWED";
 					error->pei_message = "Your Origin-Host value does not match my configuration.";
 					error->pei_avp = avp;

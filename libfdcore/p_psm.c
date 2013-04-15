@@ -537,7 +537,7 @@ psm_loop:
 				struct timespec reqsent, delay;
 				(void) fd_msg_ts_get_sent(req, &reqsent);
 				TS_DIFFERENCE( &delay, &reqsent, &rcvon );
-				fd_msg_log( FD_MSG_LOG_TIMING, msg, "Answer received in %d.%06.6d sec.", delay.tv_sec, delay.tv_nsec / 1000 );
+				fd_msg_log( FD_MSG_LOG_TIMING, msg, "Answer received in %ld.%6.6ld sec.", (long)delay.tv_sec, delay.tv_nsec / 1000 );
 			}
 		} else {
 			/* Mark the incoming request so that we know we have pending answers for this peer */

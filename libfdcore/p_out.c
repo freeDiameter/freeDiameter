@@ -84,7 +84,7 @@ static int do_send(struct msg ** msg, uint32_t flags, struct cnxctx * cnx, uint3
 		(void) fd_msg_ts_get_recv(cpy_for_logs_only, &rcvon);
 		if (rcvon.tv_sec != 0 || rcvon.tv_nsec != 0) {
 			TS_DIFFERENCE( &delay, &rcvon, &senton);
-			fd_msg_log( FD_MSG_LOG_TIMING, cpy_for_logs_only, "Forwarded in %d.%06.6d sec", delay.tv_sec, delay.tv_nsec/1000);
+			fd_msg_log( FD_MSG_LOG_TIMING, cpy_for_logs_only, "Forwarded in %ld.%6.6ld sec", (long)delay.tv_sec, delay.tv_nsec/1000);
 		} else { /* We log the answer time only for answers generated locally */
 			if (!msg_is_a_req) {
 				/* get the matching request */
@@ -93,7 +93,7 @@ static int do_send(struct msg ** msg, uint32_t flags, struct cnxctx * cnx, uint3
 				(void) fd_msg_answ_getq(cpy_for_logs_only, &req);
 				(void) fd_msg_ts_get_recv(req, &reqrcvon);
 				TS_DIFFERENCE( &delay, &reqrcvon, &senton);
-				fd_msg_log( FD_MSG_LOG_TIMING, cpy_for_logs_only, "Answered in %d.%06.6d sec", delay.tv_sec, delay.tv_nsec/1000);
+				fd_msg_log( FD_MSG_LOG_TIMING, cpy_for_logs_only, "Answered in %ld.%6.6ld sec", (long)delay.tv_sec, delay.tv_nsec/1000);
 			}
 		}
 	}

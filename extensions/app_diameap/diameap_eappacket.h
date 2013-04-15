@@ -96,7 +96,7 @@ typedef enum
 * 	EINVAL		:	if EAP Packet is NULL or empty
  */
 
-int diameap_eap_get_code(struct eap_packet eapPacket, eap_code * eapcode);
+int diameap_eap_get_code(struct eap_packet *eapPacket, eap_code * eapcode);
 
 
 /* Function		:	diameap_eap_get_identifier
@@ -114,7 +114,7 @@ int diameap_eap_get_code(struct eap_packet eapPacket, eap_code * eapcode);
  *
  */
 
-int diameap_eap_get_identifier(struct eap_packet eapPacket, u8 * identifier);
+int diameap_eap_get_identifier(struct eap_packet *eapPacket, u8 * identifier);
 
 
 /* Function		:	diameap_eap_get_length
@@ -131,7 +131,7 @@ int diameap_eap_get_identifier(struct eap_packet eapPacket, u8 * identifier);
  *	EINVAL		: 	if the data length < 4, or the EAP Packet is NULL.
  */
 
-int diameap_eap_get_length(struct eap_packet eapPacket, u16 *length);
+int diameap_eap_get_length(struct eap_packet *eapPacket, u16 *length);
 
 
 /* Function		:	diameap_eap_get_packetlength
@@ -148,7 +148,7 @@ int diameap_eap_get_length(struct eap_packet eapPacket, u16 *length);
  *	EINVAL		: 	if the EAP Packet is NULL
  */
 
-int diameap_eap_get_packetlength(struct eap_packet eapPacket, u16 *length);
+int diameap_eap_get_packetlength(struct eap_packet *eapPacket, u16 *length);
 
 
 /* Function		:	diameap_eap_get_type
@@ -165,7 +165,7 @@ int diameap_eap_get_packetlength(struct eap_packet eapPacket, u16 *length);
  *	EINVAL		:	if the EAP Packet is NULL or data length < 5
  */
 
-int diameap_eap_get_type(struct eap_packet eapPacket,eap_type * eaptype);
+int diameap_eap_get_type(struct eap_packet *eapPacket,eap_type * eaptype);
 
 
 /* Function		:	diameap_eap_get_packetdata
@@ -183,7 +183,7 @@ int diameap_eap_get_type(struct eap_packet eapPacket,eap_type * eaptype);
  *	EINVAL		: 	if there is no data in the current EAP Packet (ulength<1)
  */
 
-int diameap_eap_get_packetdata(struct eap_packet eapPacket, u8 ** data, int *len);
+int diameap_eap_get_packetdata(struct eap_packet *eapPacket, u8 ** data, int *len);
 
 
 /* Function		:	diameap_eap_get_data
@@ -201,7 +201,7 @@ int diameap_eap_get_packetdata(struct eap_packet eapPacket, u8 ** data, int *len
  *	EINVAL		: 	if there is no data in the current EAP Packet (ulength<6)
  */
 
-int diameap_eap_get_data(struct eap_packet eapPacket, u8 ** data, int * len);
+int diameap_eap_get_data(struct eap_packet *eapPacket, u8 ** data, int * len);
 
 
 /* Function		:	diameap_eap_chech_code
@@ -232,7 +232,7 @@ boolean diameap_eap_check_code(eap_code code);
  *
  */
 
-void diameap_eap_dump(int level, struct eap_packet eapPacket);
+void diameap_eap_dump(int level, struct eap_packet *eapPacket);
 
 
 /* Function		:	diameap_eap_new

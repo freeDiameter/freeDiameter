@@ -76,7 +76,7 @@ void *ppr_socket(void *arg)
 				if(rcvbytes>-1)
 				{
 					//We received something, we can send an PPR
-					app_sip_PPR_cb(pprsip);
+					app_sip_PPR_cb(&pprsip);
 				}
 			}
 		}
@@ -91,7 +91,7 @@ void *ppr_socket(void *arg)
 	
 }
 //Called to send a PPR
-int app_sip_PPR_cb(struct pprsipaor structure)
+int app_sip_PPR_cb(struct pprsipaor *structure)
 {
 	/*
 	TRACE_ENTRY("%p", structure);

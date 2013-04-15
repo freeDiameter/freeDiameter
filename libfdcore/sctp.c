@@ -1036,7 +1036,7 @@ int fd_sctp_sendstr(struct cnxctx * conn, uint16_t strid, uint8_t * buf, size_t 
 	mhdr.msg_control    = anci;
 	mhdr.msg_controllen = sizeof(anci);
 	
-	TRACE_DEBUG(FULL, "Sending %db data on stream %hu of socket %d", len, strid, conn->cc_socket);
+	TRACE_DEBUG(FULL, "Sending %zdb data on stream %hu of socket %d", len, strid, conn->cc_socket);
 again:	
 	ret = sendmsg(conn->cc_socket, &mhdr, 0);
 	/* Handle special case of timeout */
@@ -1134,7 +1134,7 @@ again:
 	if (mhdr.msg_flags & MSG_NOTIFICATION) {
 		union sctp_notification * notif = (union sctp_notification *) data;
 		
-		TRACE_DEBUG(FULL, "Received %db data of notification on socket %d", datasize, conn->cc_socket);
+		TRACE_DEBUG(FULL, "Received %zdb data of notification on socket %d", datasize, conn->cc_socket);
 	
 		switch (notif->sn_header.sn_type) {
 			
@@ -1232,9 +1232,9 @@ again:
 
 			*strid = sndrcv->sinfo_stream;
 		}
-		TRACE_DEBUG(FULL, "Received %db data on socket %d, stream %hu", datasize, conn->cc_socket, *strid);
+		TRACE_DEBUG(FULL, "Received %zdb data on socket %d, stream %hu", datasize, conn->cc_socket, *strid);
 	} else {
-		TRACE_DEBUG(FULL, "Received %db data on socket %d (stream ignored)", datasize, conn->cc_socket);
+		TRACE_DEBUG(FULL, "Received %zdb data on socket %d (stream ignored)", datasize, conn->cc_socket);
 	}
 	
 	return 0;

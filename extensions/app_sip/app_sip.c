@@ -75,7 +75,7 @@ void dump_config()
 	TRACE_DEBUG(FULL,"# mysql_database: *%s*",as_conf->mysql_database);
 	TRACE_DEBUG(FULL,"# mysql_server: *%s*",as_conf->mysql_server);
 	TRACE_DEBUG(FULL,"# mysql_port: *%d*",as_conf->mysql_port);
-	TRACE_DEBUG(FULL,"# mysql_port: *%d*",as_conf->mysql_prefix);
+	TRACE_DEBUG(FULL,"# mysql_port: *%s*",as_conf->mysql_prefix);
 	TRACE_DEBUG(FULL,"***End of Diameter-SIP configuration extension***");
 }
 

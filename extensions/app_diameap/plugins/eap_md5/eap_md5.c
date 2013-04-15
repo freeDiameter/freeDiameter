@@ -57,8 +57,8 @@ int eap_md5_init(struct eap_state_machine *smd);
 int eap_md5_initPickUp(struct eap_state_machine *smd);
 int eap_md5_buildReq(struct eap_state_machine *smd, u8 eap_md5,
 		struct eap_packet * eapPacket);
-boolean eap_md5_check(struct eap_state_machine *smd, struct eap_packet eapRespData);
-int eap_md5_process(struct eap_state_machine *smd, struct eap_packet eapRespData);
+boolean eap_md5_check(struct eap_state_machine *smd, struct eap_packet *eapRespData);
+int eap_md5_process(struct eap_state_machine *smd, struct eap_packet *eapRespData);
 boolean eap_md5_isDone(struct eap_state_machine *smd);
 void eap_md5_free(void * data);
 
@@ -114,7 +114,7 @@ int eap_md5_buildReq(struct eap_state_machine *smd, u8 id,
 }
 
 
-boolean eap_md5_check(struct eap_state_machine *smd, struct eap_packet eapRespData)
+boolean eap_md5_check(struct eap_state_machine *smd, struct eap_packet *eapRespData)
 {
 	eap_type type;
 	if(diameap_eap_get_type(eapRespData,&type)!=0){
@@ -136,7 +136,7 @@ boolean eap_md5_check(struct eap_state_machine *smd, struct eap_packet eapRespDa
 
 
 
-int eap_md5_process(struct eap_state_machine *smd, struct eap_packet eapRespData)
+int eap_md5_process(struct eap_state_machine *smd, struct eap_packet *eapRespData)
 {
 
 	struct eap_md5_data * data;
@@ -157,7 +157,7 @@ int eap_md5_process(struct eap_state_machine *smd, struct eap_packet eapRespData
 
 	for (i = 0; i < CHALLENGE_LEN; i++)
 	{
-		if (G8(hash + i) != G8(eapRespData.data + 6 + i))
+		if (G8(hash + i) != G8(eapRespData->data + 6 + i))
 		{
 			data->state = EAP_MD5_FAILURE;
 		}

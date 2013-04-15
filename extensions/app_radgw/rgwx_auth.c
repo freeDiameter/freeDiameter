@@ -368,7 +368,7 @@ static int auth_rad_req( struct rgwp_config * cs, struct radius_msg * rad_req, s
 					si = attr_val + i;
 					si_len = attr_len - i;
 
-					TRACE_DEBUG(ANNOYING, "Attribute parsed successfully: DH:'%.*s' DR:'%.*s' SI:'%.*s'.", dh_len, dh, dr_len, dr, si_len, si);
+					TRACE_DEBUG(ANNOYING, "Attribute parsed successfully: DH:'%.*s' DR:'%.*s' SI:'%.*s'.", (int)dh_len, dh, (int)dr_len, dr, (int)si_len, si);
 					/* Remove from the message */
 					for (i = idx + 1; i < rad_req->attr_used; i++)
 						rad_req->attr_pos[i - 1] = rad_req->attr_pos[i];
@@ -378,7 +378,7 @@ static int auth_rad_req( struct rgwp_config * cs, struct radius_msg * rad_req, s
 				break;
 		
 			case RADIUS_ATTR_USER_NAME:
-				TRACE_DEBUG(ANNOYING, "Found a User-Name attribute: '%.*s'", attr_len, attr_len ? (char *)attr_val : "");
+				TRACE_DEBUG(ANNOYING, "Found a User-Name attribute: '%.*s'", (int)attr_len, attr_len ? (char *)attr_val : "");
 				un = attr_val;
 				un_len = attr_len;
 				break;
@@ -1241,19 +1241,19 @@ static int auth_diam_ans( struct rgwp_config * cs, struct msg ** diam_ans, struc
 			(*rad_fw)->hdr->code = RADIUS_CODE_ACCESS_REJECT;
 			fd_log_debug("[auth.rgwx] Received Diameter answer with error code '%d' from server '%.*s', session %.*s, translating into Access-Reject",
 					ahdr->avp_value->u32, 
-					oh->avp_value->os.len, oh->avp_value->os.data,
-					sidlen, sid);
+					(int)oh->avp_value->os.len, oh->avp_value->os.data,
+					(int)sidlen, sid);
 			CHECK_FCT( fd_msg_search_avp (*diam_ans, cs->dict.Error_Message, &avp_x) );
 			if (avp_x) {
 				CHECK_FCT( fd_msg_avp_hdr ( avp_x, &ahdr ) );
 				fd_log_debug("[auth.rgwx]   Error-Message content: '%.*s'",
-						ahdr->avp_value->os.len, ahdr->avp_value->os.data);
+						(int)ahdr->avp_value->os.len, ahdr->avp_value->os.data);
 			}
 			CHECK_FCT( fd_msg_search_avp (*diam_ans, cs->dict.Error_Reporting_Host, &avp_x) );
 			if (avp_x) {
 				CHECK_FCT( fd_msg_avp_hdr ( avp_x, &ahdr ) );
 				fd_log_debug("[auth.rgwx]   Error-Reporting-Host: '%.*s'",
-						ahdr->avp_value->os.len, ahdr->avp_value->os.data);
+						(int)ahdr->avp_value->os.len, ahdr->avp_value->os.data);
 			}
 			CHECK_FCT( fd_msg_search_avp (*diam_ans, cs->dict.Failed_AVP, &avp_x) );
 			if (avp_x) {
@@ -1456,8 +1456,8 @@ static int auth_diam_ans( struct rgwp_config * cs, struct msg ** diam_ans, struc
 								ahdr->avp_value->u32,
 								(ahdr->avp_value->u32 == 1) ? "AUTHENTICATE_ONLY" :
 									((ahdr->avp_value->u32 == 2) ? "AUTHORIZE_ONLY" : "???"),
-								oh->avp_value->os.len, oh->avp_value->os.data, 
-								sidlen, sid);
+								(int)oh->avp_value->os.len, oh->avp_value->os.data, 
+								(int)sidlen, sid);
 					}
 					break;
 				
@@ -1617,8 +1617,8 @@ static int auth_diam_ans( struct rgwp_config * cs, struct msg ** diam_ans, struc
 				case DIAM_ATTR_NAS_FILTER_RULE:
 					/* This is not translatable to RADIUS */
 					fd_log_debug("[auth.rgwx] Received Diameter answer with non-translatable NAS-Filter-Rule AVP from '%.*s' (session: '%.*s'), ignoring.",
-							oh->avp_value->os.len, oh->avp_value->os.data,
-							sidlen, sid);
+							(int)oh->avp_value->os.len, oh->avp_value->os.data,
+							(int)sidlen, sid);
 					handled = 0;
 					break;
 					
@@ -1650,8 +1650,8 @@ static int auth_diam_ans( struct rgwp_config * cs, struct msg ** diam_ans, struc
 				case DIAM_ATTR_QOS_FILTER_RULE:
 					/* This is not translatable to RADIUS */
 					fd_log_debug("[auth.rgwx] Received Diameter answer with non-translatable QoS-Filter-Rule AVP from '%.*s' (session: '%.*s'), ignoring.",
-							oh->avp_value->os.len, oh->avp_value->os.data,
-							sidlen, sid);
+							(int)oh->avp_value->os.len, oh->avp_value->os.data,
+							(int)sidlen, sid);
 					handled = 0;
 					break;
 					
@@ -1858,7 +1858,7 @@ static int auth_diam_ans( struct rgwp_config * cs, struct msg ** diam_ans, struc
 						CHECK_FCT(rgw_clients_getkey(cli, &secret, &secret_len));
 						
 						if (ahdr->avp_value->os.len != 64) {
-							TRACE_DEBUG(INFO, "Received EAP-Master-Session-Key attribute with length %d != 64.", ahdr->avp_value->os.len)
+							TRACE_DEBUG(INFO, "Received EAP-Master-Session-Key attribute with length %zd != 64.", ahdr->avp_value->os.len)
 						}
 						
 						CHECK_PARAMS(ahdr->avp_value->os.len <= 64);

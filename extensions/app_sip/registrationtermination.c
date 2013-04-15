@@ -74,7 +74,7 @@ void *rtr_socket(void *arg)
 				if(rcvbytes>-1)
 				{
 					//We received something, we can send an RTR
-					app_sip_RTR_cb(rtrsip);
+					app_sip_RTR_cb(&rtrsip);
 				}
 			}
 		}
@@ -87,7 +87,7 @@ void *rtr_socket(void *arg)
 	
 }
 //Called to send a RTR
-int app_sip_RTR_cb(struct rtrsipaor structure)
+int app_sip_RTR_cb(struct rtrsipaor *structure)
 {
 	TRACE_ENTRY("%p", structure);
 	
@@ -101,21 +101,21 @@ int app_sip_RTR_cb(struct rtrsipaor structure)
 	union avp_value value;
 	
 	//We must check that we have all needed value in structure
-	if(structure.username[0]!='\0')
+	if(structure->username[0]!='\0')
 		got_username=1;
 	
-	if(structure.sip_aor1[0]!='\0')
+	if(structure->sip_aor1[0]!='\0')
 	{	
 		num_aor++;
-		if(structure.sip_aor2[0]!='\0')
+		if(structure->sip_aor2[0]!='\0')
 		{
 			num_aor++;
-			if(structure.sip_aor3[0]!='\0')
+			if(structure->sip_aor3[0]!='\0')
 				num_aor++;
 		}
 	}
 	
-	if(structure.strreason!='\0')
+	if(structure->strreason!='\0')
 		got_streason=1;
 	
 	
@@ -127,14 +127,14 @@ int app_sip_RTR_cb(struct rtrsipaor structure)
 		TRACE_DEBUG(INFO,"Can not proceed because there is no SIP_AOR or Username");
 		return EINVAL;
 	}
-	if(structure.reason<0)
+	if(structure->reason<0)
 	{
 		//We must have a least a SIP_AOR or a Username
 		TRACE_DEBUG(INFO,"Incorrect Reason-Code");
 		return EINVAL;
 	}
 	
-	if(structure.desthost[0]=='\0')
+	if(structure->desthost[0]=='\0')
 	{
 		//We must have a least a SIP_AOR or a Username
 		TRACE_DEBUG(INFO,"No Destination_Host was provided!");
@@ -172,8 +172,8 @@ int app_sip_RTR_cb(struct rtrsipaor structure)
 	//Destination_Host
 	{
 		CHECK_FCT( fd_msg_avp_new ( sip_dict.Destination_Host, 0, &avp ) );
-		value.os.data=(unsigned char *)structure.desthost;
-		value.os.len=(size_t)strlen(structure.desthost);
+		value.os.data=(unsigned char *)structure->desthost;
+		value.os.len=(size_t)strlen(structure->desthost);
 		CHECK_FCT( fd_msg_avp_setvalue( avp, &value ) );
 		CHECK_FCT( fd_msg_avp_add( message, MSG_BRW_LAST_CHILD, avp ) );
 	}
@@ -185,7 +185,7 @@ int app_sip_RTR_cb(struct rtrsipaor structure)
 		
 		//Reason Code
 		CHECK_FCT( fd_msg_avp_new ( sip_dict.SIP_Reason_Code, 0, &avp ) );
-		value.i32=structure.reason;
+		value.i32=structure->reason;
 		CHECK_FCT( fd_msg_avp_setvalue( avp, &value ) );
 		CHECK_FCT( fd_msg_avp_add( groupedavp, MSG_BRW_LAST_CHILD, avp ) );
 		
@@ -193,8 +193,8 @@ int app_sip_RTR_cb(struct rtrsipaor structure)
 		{
 			//Reason Info
 			CHECK_FCT( fd_msg_avp_new ( sip_dict.SIP_Reason_Info, 0, &avp ) );
-			value.os.data=(unsigned char *)structure.strreason;
-			value.os.len=(size_t)strlen(structure.strreason);
+			value.os.data=(unsigned char *)structure->strreason;
+			value.os.len=(size_t)strlen(structure->strreason);
 			CHECK_FCT( fd_msg_avp_setvalue( avp, &value ) );
 			CHECK_FCT( fd_msg_avp_add( groupedavp, MSG_BRW_LAST_CHILD, avp ) );
 		}
@@ -208,8 +208,8 @@ int app_sip_RTR_cb(struct rtrsipaor structure)
 		if(got_username)
 		{
 			CHECK_FCT( fd_msg_avp_new ( sip_dict.User_Name, 0, &avp ) );
-			value.os.data=(unsigned char *)structure.username;
-			value.os.len=(size_t)strlen(structure.username);
+			value.os.data=(unsigned char *)structure->username;
+			value.os.len=(size_t)strlen(structure->username);
 			CHECK_FCT( fd_msg_avp_setvalue( avp, &value ) );
 			CHECK_FCT( fd_msg_avp_add( message, MSG_BRW_LAST_CHILD, avp ) );
 		}
@@ -220,22 +220,22 @@ int app_sip_RTR_cb(struct rtrsipaor structure)
 		if(num_aor>0)
 		{
 			CHECK_FCT( fd_msg_avp_new ( sip_dict.SIP_AOR, 0, &avp ) );
-			value.os.data=(unsigned char *)structure.sip_aor1;
-			value.os.len=(size_t)strlen(structure.sip_aor1);
+			value.os.data=(unsigned char *)structure->sip_aor1;
+			value.os.len=(size_t)strlen(structure->sip_aor1);
 			CHECK_FCT( fd_msg_avp_setvalue( avp, &value ) );
 			CHECK_FCT( fd_msg_avp_add( message, MSG_BRW_LAST_CHILD, avp ) );
 			if(num_aor>1)
 			{
 				CHECK_FCT( fd_msg_avp_new ( sip_dict.SIP_AOR, 0, &avp ) );
-				value.os.data=(unsigned char *)structure.sip_aor2;
-				value.os.len=(size_t)strlen(structure.sip_aor2);
+				value.os.data=(unsigned char *)structure->sip_aor2;
+				value.os.len=(size_t)strlen(structure->sip_aor2);
 				CHECK_FCT( fd_msg_avp_setvalue( avp, &value ) );
 				CHECK_FCT( fd_msg_avp_add( message, MSG_BRW_LAST_CHILD, avp ) );
 				if(num_aor>2)
 				{
 					CHECK_FCT( fd_msg_avp_new ( sip_dict.SIP_AOR, 0, &avp ) );
-					value.os.data=(unsigned char *)structure.sip_aor3;
-					value.os.len=(size_t)strlen(structure.sip_aor3);
+					value.os.data=(unsigned char *)structure->sip_aor3;
+					value.os.len=(size_t)strlen(structure->sip_aor3);
 					CHECK_FCT( fd_msg_avp_setvalue( avp, &value ) );
 					CHECK_FCT( fd_msg_avp_add( message, MSG_BRW_LAST_CHILD, avp ) );
 				}

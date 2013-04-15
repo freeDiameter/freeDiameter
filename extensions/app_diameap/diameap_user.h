@@ -75,24 +75,24 @@ struct eap_user
 
 boolean check_user_identity;
 
-int diameap_user_get_password(struct eap_user user, u8 * password,u16 *length);
+int diameap_user_get_password(struct eap_user *user, u8 * password,u16 *length);
 
-int diameap_user_get_userid(struct eap_user user, u8 * userid);
+int diameap_user_get_userid(struct eap_user *user, u8 * userid);
 
 int diameap_user_set_password(struct eap_user * user, u8 * password, u16 Length);
 
 int diameap_user_set_userid(struct eap_user * user, u8 * userid, u16 Length);
 
-int diameap_user_get_methodid(struct eap_user user,int *methodId);
+int diameap_user_get_methodid(struct eap_user *user,int *methodId);
 
 int diameap_user_set_methodid(struct eap_user * user, int methodId);
 
-boolean diameap_user_issuccess(struct eap_user user);
+boolean diameap_user_issuccess(struct eap_user *user);
 
 int diameap_user_set_success(struct eap_user * user);
 
-int diameap_user_get_eap_method(struct eap_user user, int id, struct eap_method * eapmethod);
+int diameap_user_get_eap_method(struct eap_user *user, int id, struct eap_method * eapmethod);
 
-int diameap_user_set_eap_method(struct eap_user * user, int id, struct eap_method method);
+int diameap_user_set_eap_method(struct eap_user * user, int id, struct eap_method * method);
 
 #endif /* DIAMEAP_USER_H_ */

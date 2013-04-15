@@ -48,8 +48,8 @@ struct identity_data
 int identity_init(struct eap_state_machine *smd);
 int identity_initPickUp(struct eap_state_machine *smd);
 int identity_buildReq(struct eap_state_machine *smd, u8 identity, struct eap_packet * eapPacket);
-boolean identity_check(struct eap_state_machine *smd, struct eap_packet eapRespData);
-int identity_process(struct eap_state_machine *smd, struct eap_packet eapRespData);
+boolean identity_check(struct eap_state_machine *smd, struct eap_packet *eapRespData);
+int identity_process(struct eap_state_machine *smd, struct eap_packet *eapRespData);
 boolean identity_isDone(struct eap_state_machine *smd);
 void identity_free(void * data);
 
@@ -86,10 +86,10 @@ int identity_buildReq(struct eap_state_machine *smd, u8 identity, struct eap_pac
 }
 
 
-boolean identity_check(struct eap_state_machine *smd, struct eap_packet eapPacket)
+boolean identity_check(struct eap_state_machine *smd, struct eap_packet *eapPacket)
 {
 
-	if (eapPacket.data == NULL)
+	if (eapPacket->data == NULL)
 	{
 		TRACE_DEBUG(INFO,"%s[EAP Identity plugin] Empty EAP packet received.",DIAMEAP_EXTENSION);
 		return FALSE;
@@ -117,7 +117,7 @@ boolean identity_check(struct eap_state_machine *smd, struct eap_packet eapPacke
 	return FALSE;
 }
 
-int identity_process(struct eap_state_machine *smd, struct eap_packet eapRespData)
+int identity_process(struct eap_state_machine *smd, struct eap_packet *eapRespData)
 {
 	struct identity_data * data;
 	u16 length;

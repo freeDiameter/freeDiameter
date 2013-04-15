@@ -60,7 +60,7 @@ static int proceed(char * value, size_t len, struct fd_list * candidates)
 		int err = 0;
 		struct fd_list * c;
 		
-		TRACE_DEBUG(ANNOYING, "Attempt pattern matching of '%.*s' with rule '%s'", len, value, r->pattern);
+		TRACE_DEBUG(ANNOYING, "Attempt pattern matching of '%.*s' with rule '%s'", (int)len, value, r->pattern);
 		
 		#ifdef HAVE_REG_STARTEND
 		{
@@ -106,7 +106,7 @@ static int proceed(char * value, size_t len, struct fd_list * candidates)
 		/* From this point, the expression matched the AVP value */
 		TRACE_DEBUG(FULL, "[rt_ereg] Match: '%s' to value '%.*s' => '%s' += %d",
 					r->pattern,
-					len,
+					(int)len,
 					value,
 					r->server,
 					r->score);

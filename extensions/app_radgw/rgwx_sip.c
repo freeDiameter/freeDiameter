@@ -365,7 +365,7 @@ static int sip_rad_req( struct rgwp_config * cs, struct radius_msg * rad_req, st
 			case RADIUS_ATTR_USER_NAME:
 				if (attr->length>sizeof(struct radius_attr_hdr)) 
 				{
-					TRACE_DEBUG(ANNOYING, "Found a User-Name attribute: '%.*s'", attr->length- sizeof(struct radius_attr_hdr), (char *)(attr+1));
+					TRACE_DEBUG(ANNOYING, "Found a User-Name attribute: '%.*s'", (int)(attr->length- sizeof(struct radius_attr_hdr)), (char *)(attr+1));
 					un = (os0_t)(attr + 1);
 					un_len =attr->length - sizeof(struct radius_attr_hdr);
 				}
@@ -801,7 +801,7 @@ static int sip_diam_ans( struct rgwp_config * cs, struct msg ** diam_ans, struct
 		default:
 			(*rad_fw)->hdr->code = RADIUS_CODE_ACCESS_REJECT;
 			fd_log_debug("[sip.rgwx] Received Diameter answer with error code '%d', session %.*s, translating into Access-Reject",
-					ahdr->avp_value->u32, sidlen, sid);
+					ahdr->avp_value->u32, (int)sidlen, sid);
 			return 0;
 	}
 	/* Remove this Result-Code avp */

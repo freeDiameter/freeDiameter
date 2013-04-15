@@ -518,7 +518,7 @@ int rgw_msg_parse(unsigned char * buf, size_t len, struct rgw_radius_msg_meta **
 	unsigned char *pos, *end;
 	int ret = 0;
 	
-	TRACE_ENTRY("%p %g %p", buf, len, msg);
+	TRACE_ENTRY("%p %zd %p", buf, len, msg);
 	
 	CHECK_PARAMS( buf && len >= sizeof(*hdr) && msg );
 	

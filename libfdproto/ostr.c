@@ -169,10 +169,10 @@ int fd_os_is_valid_DiameterIdentity(uint8_t * os, size_t ossz)
 			goto disp;
 		}
 		/* otherwise, we just display the hex code */
-		TRACE_DEBUG(INFO, "Invalid character (0x%hhX) at offset %d in DiameterIdentity '%.*s'", os[i], i+1, ossz, os);
+		TRACE_DEBUG(INFO, "Invalid character (0x%hhX) at offset %d in DiameterIdentity '%.*s'", os[i], i+1, (int)ossz, os);
 		return 0;
 disp:
-		TRACE_DEBUG(INFO, "Invalid character '%.*s' at offset %d in DiameterIdentity '%.*s'", nb, os + i, i+1, ossz, os);
+		TRACE_DEBUG(INFO, "Invalid character '%.*s' at offset %d in DiameterIdentity '%.*s'", nb, os + i, i+1, (int)ossz, os);
 		return 0;
 	}
 	
@@ -290,7 +290,7 @@ int fd_os_parse_DiameterURI(uint8_t * uri, size_t urisz, DiamId_t * diamid, size
 	
 	/* Remaining of URI marker */
 	if (memcmp( uri + offset, "://", 3)) {
-		TRACE_DEBUG(INFO, "Invalid DiameterURI prefix: got '%.*s', expected 'aaa://' or 'aaas://'", offset + 3, uri);
+		TRACE_DEBUG(INFO, "Invalid DiameterURI prefix: got '%.*s', expected 'aaa://' or 'aaas://'", (int)offset + 3, uri);
 		return EINVAL;
 	}
 	offset += 3;
@@ -379,7 +379,7 @@ int fd_os_parse_DiameterURI(uint8_t * uri, size_t urisz, DiamId_t * diamid, size
 			goto after_transport;
 		}
 		
-		TRACE_DEBUG(INFO, "Invalid DiameterURI: transport string is not recognized ('%.*s').", urisz - offset, uri + offset);
+		TRACE_DEBUG(INFO, "Invalid DiameterURI: transport string is not recognized ('%.*s').", (int)(urisz - offset), uri + offset);
 		return EINVAL;
 	}
 after_transport:
@@ -416,7 +416,7 @@ after_transport:
 			goto after_proto;
 		}
 		
-		TRACE_DEBUG(INFO, "Invalid DiameterURI: protocol string is not recognized ('%.*s').", urisz - offset, uri + offset);
+		TRACE_DEBUG(INFO, "Invalid DiameterURI: protocol string is not recognized ('%.*s').", (int)(urisz - offset), uri + offset);
 		return EINVAL;
 		
 	}
@@ -424,7 +424,7 @@ after_proto:
 	if (offset == urisz)
 		return 0; /* Finished */
 	
-	TRACE_DEBUG(INFO, "Invalid DiameterURI: final part of string is not recognized ('%.*s').", urisz - offset, uri + offset);
+	TRACE_DEBUG(INFO, "Invalid DiameterURI: final part of string is not recognized ('%.*s').", (int)(urisz - offset), uri + offset);
 	return EINVAL;
 }
 

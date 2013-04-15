@@ -278,7 +278,7 @@ int rgw_servers_send(int type, unsigned char *buf, size_t buflen, struct sockadd
 	{
 		char __buf[1024];
 		sSA_DUMP_NODE_SERV(__buf, sizeof(__buf), &sto, NI_NUMERICHOST | NI_NUMERICSERV );
-		TRACE_DEBUG(FULL, "Sending %d bytes to %s", buflen, __buf);
+		TRACE_DEBUG(FULL, "Sending %zd bytes to %s", buflen, __buf);
 	}
 		
 	/* Send */

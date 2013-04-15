@@ -38,97 +38,97 @@
 
 #include "libdiameap.h"
 
-int diameap_eap_get_code(struct eap_packet eappacket, eap_code * eapcode)
+int diameap_eap_get_code(struct eap_packet *eappacket, eap_code * eapcode)
 {
 	TRACE_ENTRY("%p %p",eappacket,eapcode);
 
-	if (eappacket.data == NULL)
+	if (eappacket->data == NULL)
 	{
 		*eapcode = ERROR;
 		TRACE_DEBUG(INFO,"%sEmpty data in EAP packet: no EAP Code to return.",DIAMEAP_EXTENSION);
 		return EINVAL;
 	}
-	if (eappacket.length < 1)
+	if (eappacket->length < 1)
 	{
 		*eapcode = ERROR;
-		TRACE_DEBUG(INFO,"%sEAP packet length %d : no EAP Code to return.",DIAMEAP_EXTENSION, eappacket.length);
+		TRACE_DEBUG(INFO,"%sEAP packet length %d : no EAP Code to return.",DIAMEAP_EXTENSION, eappacket->length);
 		return EINVAL;
 	}
-	*eapcode = G8(eappacket.data);
+	*eapcode = G8(eappacket->data);
 	return 0;
 }
 
-int diameap_eap_get_identifier(struct eap_packet eappacket, u8 * identifier)
+int diameap_eap_get_identifier(struct eap_packet *eappacket, u8 * identifier)
 {
 	TRACE_ENTRY("%p %p",eappacket,identifier);
 	*identifier = 0;
-	if (eappacket.data == NULL)
+	if (eappacket->data == NULL)
 	{
 		TRACE_DEBUG(INFO,"%sEmpty data in EAP packet: no Identifier field to return.",DIAMEAP_EXTENSION);
 		return EINVAL;
 	}
-	if (eappacket.length < 2)
+	if (eappacket->length < 2)
 	{
-		TRACE_DEBUG(INFO,"%sEAP packet length %d : no Identifier field to return.",DIAMEAP_EXTENSION, eappacket.length);
+		TRACE_DEBUG(INFO,"%sEAP packet length %d : no Identifier field to return.",DIAMEAP_EXTENSION, eappacket->length);
 		return EINVAL;
 	}
-	*identifier = G8(eappacket.data + 1);
+	*identifier = G8(eappacket->data + 1);
 	return 0;
 }
 
-int diameap_eap_get_length(struct eap_packet eappacket, u16 *length)
+int diameap_eap_get_length(struct eap_packet *eappacket, u16 *length)
 {
 	TRACE_ENTRY("%p %p",eappacket,length);
 	*length = 0;
 
-	if (eappacket.data == NULL)
+	if (eappacket->data == NULL)
 	{
 		TRACE_DEBUG(INFO,"%sEmpty data in EAP packet: no Length field to return.",DIAMEAP_EXTENSION);
 		return EINVAL;
 	}
-	if (eappacket.ulength < 4)
+	if (eappacket->ulength < 4)
 	{
-		TRACE_DEBUG(INFO,"%sEAP packet length %d : no Length field to return.",DIAMEAP_EXTENSION, eappacket.length);
+		TRACE_DEBUG(INFO,"%sEAP packet length %d : no Length field to return.",DIAMEAP_EXTENSION, eappacket->length);
 		return EINVAL;
 	}
-	*length = (u16) G16BIGE((eappacket.data + 2));
+	*length = (u16) G16BIGE((eappacket->data + 2));
 	return 0;
 }
 
-int diameap_eap_get_packetlength(struct eap_packet eappacket, u16 *length)
+int diameap_eap_get_packetlength(struct eap_packet *eappacket, u16 *length)
 {
 	TRACE_ENTRY("%p %p",eappacket,length);
-	if (eappacket.data == NULL)
+	if (eappacket->data == NULL)
 	{
 		TRACE_DEBUG(INFO,"%sEmpty data in EAP packet: no Length field to return.",DIAMEAP_EXTENSION);
 		return EINVAL;
 	}
-	*length = eappacket.ulength;
+	*length = eappacket->ulength;
 	return 0;
 }
 
-int diameap_eap_get_type(struct eap_packet eappacket, eap_type * eaptype)
+int diameap_eap_get_type(struct eap_packet *eappacket, eap_type * eaptype)
 {
 	TRACE_ENTRY("%p %p",eappacket,eaptype);
 	*eaptype = 0;
 
-	if (eappacket.data == NULL)
+	if (eappacket->data == NULL)
 	{
 		TRACE_DEBUG(INFO,"%sEmpty data in EAP packet: no EAP Type field to return.",DIAMEAP_EXTENSION);
 		return EINVAL;
 	}
-	if (eappacket.length < 5)
+	if (eappacket->length < 5)
 	{
-		TRACE_DEBUG(INFO,"%sEAP packet length %d : no EAP Type field to return.",DIAMEAP_EXTENSION, eappacket.length);
+		TRACE_DEBUG(INFO,"%sEAP packet length %d : no EAP Type field to return.",DIAMEAP_EXTENSION, eappacket->length);
 		return EINVAL;
 	}
-	*eaptype = (u32) G8(eappacket.data + 4);
+	*eaptype = (u32) G8(eappacket->data + 4);
 	return 0;
 }
 
 boolean diameap_eap_check_code(eap_code code)
 {
-	TRACE_ENTRY("%p",code);
+	TRACE_ENTRY("%d",code);
 	if (code != EAP_REQUEST && code != EAP_RESPONSE && code != EAP_SUCCESS
 			&& code != EAP_FAILURE)
 	{
@@ -138,51 +138,51 @@ boolean diameap_eap_check_code(eap_code code)
 	return TRUE;
 }
 
-int diameap_eap_get_packetdata(struct eap_packet eappacket, u8 ** data,
+int diameap_eap_get_packetdata(struct eap_packet *eappacket, u8 ** data,
 		int *len)
 {
 	TRACE_ENTRY("%p %p",eappacket,data);
-	if (eappacket.length > 0)
+	if (eappacket->length > 0)
 	{
-		*data = malloc(sizeof(u8) * eappacket.length);
-		U8COPY(*data,0,eappacket.length,eappacket.data);
-		*len = eappacket.length;
+		*data = malloc(sizeof(u8) * eappacket->length);
+		U8COPY(*data,0,eappacket->length,eappacket->data);
+		*len = eappacket->length;
 		return 0;
 	}
-	TRACE_DEBUG(INFO,"%sEAP packet length=%d: empty or wrong EAP Packet.",DIAMEAP_EXTENSION, eappacket.length);
+	TRACE_DEBUG(INFO,"%sEAP packet length=%d: empty or wrong EAP Packet.",DIAMEAP_EXTENSION, eappacket->length);
 	*data = NULL;
 	*len = 0;
 	return EINVAL;
 }
 
-int diameap_eap_get_data(struct eap_packet eappacket, u8 ** data, int * len)
+int diameap_eap_get_data(struct eap_packet *eappacket, u8 ** data, int * len)
 {
 	TRACE_ENTRY("%p %p",eappacket,data);
-	if (eappacket.length > 5)
+	if (eappacket->length > 5)
 	{
-		*data = malloc(sizeof(u8) * (eappacket.length - 5));
-		U8COPY(*data,0,(eappacket.length-5),(eappacket.data+5));
-		*len = eappacket.length - 5;
+		CHECK_MALLOC( *data = malloc(sizeof(u8) * (eappacket->length - 5)) );
+		U8COPY(*data,0,(eappacket->length-5),(eappacket->data+5));
+		*len = eappacket->length - 5;
 		return 0;
 	}
-	TRACE_DEBUG(INFO,"%sEAP packet length=%d: empty or wrong EAP Packet.",DIAMEAP_EXTENSION, eappacket.length);
+	TRACE_DEBUG(INFO,"%sEAP packet length=%d: empty or wrong EAP Packet.",DIAMEAP_EXTENSION, eappacket->length);
 	*data = NULL;
 	*len = 0;
 
 	return EINVAL;
 }
 
-void diameap_eap_dump(int level, struct eap_packet eappacket)
+void diameap_eap_dump(int level, struct eap_packet *eappacket)
 {
-	TRACE_ENTRY("%p %p",level,eappacket);
+	TRACE_ENTRY("%d %p",level,eappacket);
 	if (!TRACE_BOOL(level))
 		return;
 
-	if (eappacket.data == NULL)
+	if (eappacket->data == NULL)
 		return;
-	if (eappacket.length < 5)
+	if (eappacket->length < 5)
 		return;
-	if (eappacket.ulength < 5)
+	if (eappacket->ulength < 5)
 		return;
 
 	fd_log_debug("------------- Dump EAP Packet-------------");
@@ -214,21 +214,21 @@ void diameap_eap_dump(int level, struct eap_packet eappacket)
 	u16 length;
 	CHECK_FCT_DO(diameap_eap_get_length(eappacket,&length),return);
 	fd_log_debug("\t -Length     : %d ", (unsigned int)length);
-	if (eappacket.length > 4)
+	if (eappacket->length > 4)
 	{
 		eap_type type;
 		CHECK_FCT_DO(diameap_eap_get_type(eappacket,&type),return);
 		fd_log_debug("\t -Type       : %d ", type);
 	}
-	if (eappacket.length > 5)
+	if (eappacket->length > 5)
 	{
 		char buf[1024];
 		snprintf(buf, sizeof(buf), "\t -Data       : ");
-		for (i = 5; i < eappacket.length && i < 30; i++)
+		for (i = 5; i < eappacket->length && i < 30; i++)
 		{
-			snprintf(buf+strlen(buf), sizeof(buf)-strlen(buf), "%02x ", G8(eappacket.data + i));
+			snprintf(buf+strlen(buf), sizeof(buf)-strlen(buf), "%02x ", G8(eappacket->data + i));
 		}
-		if(i+1<eappacket.length)
+		if(i+1<eappacket->length)
 			snprintf(buf+strlen(buf), sizeof(buf)-strlen(buf), "[...] (len=%d)",(unsigned int) length);
 		fd_log_debug("%s", buf);
 	}
@@ -239,7 +239,7 @@ int diameap_eap_new(eap_code code, u8 id, eap_type type, u8 * data,
 		u16 dataLength, struct eap_packet *eappacket)
 {
 
-	TRACE_ENTRY("%p %p %p %p %p %p", code, id, type, data, dataLength,eappacket);
+	TRACE_ENTRY("%d %hhu %d %p %hu %p", code, id, type, data, dataLength,eappacket);
 
 	int length = 0;
 

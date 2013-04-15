@@ -121,18 +121,18 @@ int redir_fwd_cb(void * cbdata, struct msg ** msg)
 						CHECK_FCT_DO( fd_os_parse_DiameterURI(ahdr->avp_value->os.data, ahdr->avp_value->os.len, 
 									&id, &len, &secure, &port, &l4, &proto),
 							{
-								TRACE_DEBUG(INFO, "Received an invalid Redirect-Host AVP value ('%.*s'), ignored", ahdr->avp_value->os.len, ahdr->avp_value->os.data);
+								TRACE_DEBUG(INFO, "Received an invalid Redirect-Host AVP value ('%.*s'), ignored", (int)ahdr->avp_value->os.len, ahdr->avp_value->os.data);
 								break;
 							} );
 						
 						/* Now check if the transport & protocol are supported */
 						if (proto && (proto != 'd')) {
-							TRACE_DEBUG(FULL, "Ignored unsupported non-Diameter Redirect-Host AVP (%.*s)", ahdr->avp_value->os.len, ahdr->avp_value->os.data);
+							TRACE_DEBUG(FULL, "Ignored unsupported non-Diameter Redirect-Host AVP (%.*s)", (int)ahdr->avp_value->os.len, ahdr->avp_value->os.data);
 							free(id);
 							break;
 						}
 						if (l4 && (l4 == IPPROTO_UDP)) {
-							TRACE_DEBUG(FULL, "Ignored unsupported UDP Redirect-Host AVP (%.*s)", ahdr->avp_value->os.len, ahdr->avp_value->os.data);
+							TRACE_DEBUG(FULL, "Ignored unsupported UDP Redirect-Host AVP (%.*s)", (int)ahdr->avp_value->os.len, ahdr->avp_value->os.data);
 							free(id);
 							break;
 						}

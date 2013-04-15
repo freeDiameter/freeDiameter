@@ -512,7 +512,7 @@ int fd_cnx_isMultichan(struct cnxctx * conn)
 /* Get the list of endpoints (IP addresses) of the local and remote peers on this connection */
 int fd_cnx_getremoteeps(struct cnxctx * conn, struct fd_list * eps)
 {
-	TRACE_ENTRY("%p %p %p", conn, eps);
+	TRACE_ENTRY("%p %p", conn, eps);
 	CHECK_PARAMS(conn && eps);
 	
 	/* Check we have a full connection object, not a listening socket (with no remote) */
@@ -1209,7 +1209,7 @@ int fd_tls_verify_credentials(gnutls_session_t session, struct cnxctx * conn, in
 				for (j = 0; j < size; j++) {
 					snprintf(buf+strlen(buf), sizeof(buf)-strlen(buf), "%02hhx", serial[j]);
 				}
-				fd_log_debug(buf);
+				fd_log_debug("%s", buf);
 			}
 
 			/* Extract some of the public key algorithm's parameters */

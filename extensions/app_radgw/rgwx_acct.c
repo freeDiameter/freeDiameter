@@ -364,7 +364,7 @@ static int acct_rad_req( struct rgwp_config * cs, struct radius_msg * rad_req, s
 					int i;
 					si = v + pref_len;
 					si_len = attr_len - pref_len;
-					TRACE_DEBUG(ANNOYING, "Found Class attribute with '%s' prefix (attr #%d), SI:'%.*s'.", prefix, idx, si_len, si);
+					TRACE_DEBUG(ANNOYING, "Found Class attribute with '%s' prefix (attr #%d), SI:'%.*s'.", prefix, idx, (int)si_len, si);
 					/* Remove from the message */
 					for (i = idx + 1; i < rad_req->attr_used; i++)
 						rad_req->attr_pos[i - 1] = rad_req->attr_pos[i];
@@ -376,7 +376,7 @@ static int acct_rad_req( struct rgwp_config * cs, struct radius_msg * rad_req, s
 				if (attr_len) {
 					un = v;
 					un_len = attr_len;
-					TRACE_DEBUG(ANNOYING, "Found a User-Name attribute: '%.*s'", un_len, un);
+					TRACE_DEBUG(ANNOYING, "Found a User-Name attribute: '%.*s'", (int)un_len, un);
 				}
 				break;
 			
@@ -489,7 +489,7 @@ static int acct_rad_req( struct rgwp_config * cs, struct radius_msg * rad_req, s
 	{
 		CHECK_FCT( fd_sess_fromsid_msg ( si, si_len, &sess, NULL) );
 		
-		TRACE_DEBUG(FULL, "[acct.rgwx] Translating new accounting message for session '%.*s'...", si_len, si);
+		TRACE_DEBUG(FULL, "[acct.rgwx] Translating new accounting message for session '%.*s'...", (int)si_len, si);
 		
 		/* Add the Session-Id AVP as first AVP */
 		CHECK_FCT( fd_msg_avp_new ( cs->dict.Session_Id, 0, &avp ) );
@@ -1270,19 +1270,19 @@ static int acct_diam_ans( struct rgwp_config * cs, struct msg ** diam_ans, struc
 		default:
 			fd_log_debug("[acct.rgwx] Received Diameter answer with error code '%d' from server '%.*s', session %.*s, not translating into Accounting-Response",
 					ahdr->avp_value->u32, 
-					oh->avp_value->os.len, oh->avp_value->os.data,
-					sidlen, sid);
+					(int)oh->avp_value->os.len, oh->avp_value->os.data,
+					(int)sidlen, sid);
 			CHECK_FCT( fd_msg_search_avp (*diam_ans, cs->dict.Error_Message, &avp) );
 			if (avp) {
 				CHECK_FCT( fd_msg_avp_hdr ( avp, &ahdr ) );
 				fd_log_debug("[acct.rgwx]   Error-Message content: '%.*s'",
-						ahdr->avp_value->os.len, ahdr->avp_value->os.data);
+						(int)ahdr->avp_value->os.len, ahdr->avp_value->os.data);
 			}
 			CHECK_FCT( fd_msg_search_avp (*diam_ans, cs->dict.Error_Reporting_Host, &avp) );
 			if (avp) {
 				CHECK_FCT( fd_msg_avp_hdr ( avp, &ahdr ) );
 				fd_log_debug("[acct.rgwx]   Error-Reporting-Host: '%.*s'",
-						ahdr->avp_value->os.len, ahdr->avp_value->os.data);
+						(int)ahdr->avp_value->os.len, ahdr->avp_value->os.data);
 			}
 			CHECK_FCT( fd_msg_search_avp (*diam_ans, cs->dict.Failed_AVP, &avp) );
 			if (avp) {

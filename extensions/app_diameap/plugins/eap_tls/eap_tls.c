@@ -45,9 +45,9 @@ int eap_tls_buildReq(struct eap_state_machine *smd, u8 eap_md5,
 		struct eap_packet * eapPacket);
 int eap_tls_getTimeout(struct eap_state_machine *smd, int * timeout);
 boolean eap_tls_check(struct eap_state_machine *smd,
-		struct eap_packet eapRespData);
+		struct eap_packet *eapRespData);
 int eap_tls_process(struct eap_state_machine *smd,
-		struct eap_packet eapRespData);
+		struct eap_packet *eapRespData);
 boolean eap_tls_isDone(struct eap_state_machine *smd);
 int eap_tls_getKey(struct eap_state_machine *smd, u8** msk, int * msklen, u8** emsk, int * emsklen);
 void eap_tls_unregister(void);
@@ -148,7 +148,7 @@ int eap_tls_getTimeout(struct eap_state_machine *smd, int * timeout)
 }
 
 boolean eap_tls_check(struct eap_state_machine *smd,
-		struct eap_packet eapRespData)
+		struct eap_packet *eapRespData)
 {
 	eap_type type;
 	if(diameap_eap_get_type(eapRespData,&type)!=0){
@@ -164,7 +164,7 @@ cf:
 }
 
 int eap_tls_process(struct eap_state_machine *smd,
-		struct eap_packet eapRespData)
+		struct eap_packet *eapRespData)
 {
 	struct tls_data * data;
 	data = (struct tls_data *) smd->methodData;
@@ -352,7 +352,7 @@ int diameap_eap_tls_buildReq_ack(u8 id, struct eap_packet * eapPacket)
 }
 
 // parse EAP TLS msg
-int diameap_eap_tls_parse(struct tls_msg * tlsmsg, struct eap_packet eapPacket)
+int diameap_eap_tls_parse(struct tls_msg * tlsmsg, struct eap_packet *eapPacket)
 {
 	u8 *datatls;
 	int len;

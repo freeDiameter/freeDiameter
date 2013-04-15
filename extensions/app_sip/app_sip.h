@@ -135,8 +135,8 @@ struct pprsipaor
 	int accounting;
 };
 
-int app_sip_RTR_cb(struct rtrsipaor structure);
-int app_sip_PPR_cb(struct pprsipaor structure);
+int app_sip_RTR_cb(struct rtrsipaor *structure);
+int app_sip_PPR_cb(struct pprsipaor *structure);
 
 
 int ds_entry();

@@ -162,7 +162,7 @@ static int dupl_purge_list(struct fd_list * clients) {
 				
 				if (now - r->received > DUPLICATE_CHECK_LIFETIME) {
 				
-					TRACE_DEBUG(ANNOYING + 1, "Purging RADIUS request (id: %02hhx, port: %hu, dup #%d, age %d secs)", r->id, ntohs(r->port), r->nbdup, now - r->received);
+					TRACE_DEBUG(ANNOYING + 1, "Purging RADIUS request (id: %02hhx, port: %hu, dup #%d, age %ld secs)", r->id, ntohs(r->port), r->nbdup, (long)(now - r->received));
 					
 					/* Remove this record */
 					fd_list_unlink(&r->by_time);
@@ -458,8 +458,8 @@ int rgw_clients_check_dup(struct rgw_radius_msg_meta **msg, struct rgw_client *c
 	if (dup) {
 		time_t now = time(NULL);
 		r->nbdup += 1;
-		TRACE_DEBUG(INFO, "Received duplicated RADIUS message (id: %02hhx, port: %hu, dup #%d, previously seen %d secs ago).", 
-				r->id, ntohs(r->port), r->nbdup, now - r->received);
+		TRACE_DEBUG(INFO, "Received duplicated RADIUS message (id: %02hhx, port: %hu, dup #%d, previously seen %ld secs ago).", 
+				r->id, ntohs(r->port), r->nbdup, (long)(now - r->received));
 		
 		if (r->ans) {
 			/* Resend the answer */
@@ -779,7 +779,7 @@ int rgw_clients_create_origin(struct rgw_radius_msg_meta *msg, struct rgw_client
 			if (!found) {
 				if (cli->type == RGW_CLI_NAS) {
 					TRACE_DEBUG(INFO, "The NAS-Identifier value '%.*s' resolves to a different IP than the client's, discarding the message. Configure this client as a Proxy if this message should be valid.", 
-						nas_id_len, nas_id + 1);
+						(int)nas_id_len, (char *)(nas_id + 1));
 					return EINVAL;
 				} else {
 					/* This identifier matches a different IP, assume it is a proxied message */
@@ -812,7 +812,7 @@ int rgw_clients_create_origin(struct rgw_radius_msg_meta *msg, struct rgw_client
 				cli->aliases[cli->aliases_nb + 1].len = nas_id_len;
 
 				cli->aliases_nb ++;
-				TRACE_DEBUG(FULL, "Saved valid alias for client: '%.*s' -> '%s'", nas_id_len, nas_id + 1, cli->fqdn);
+				TRACE_DEBUG(FULL, "Saved valid alias for client: '%.*s' -> '%s'", (int)nas_id_len, (char *)(nas_id + 1), cli->fqdn);
 				CHECK_FCT( rgw_clients_get_origin(cli, &oh_str, &oh_strlen, &or_str, &or_strlen) );
 			}
 		} else {

@@ -128,7 +128,7 @@ static struct tree_item * new_ti(char * str, size_t len, int flags, int leaf)
 	struct tree_item * ti;
 	char * s = NULL;
 	
-	TRACE_ENTRY("%p %d %x", str, len, flags);
+	TRACE_ENTRY("%p %zd %x", str, len, flags);
 	
 	if (str) {
 		CHECK_MALLOC_DO(s = malloc(len + 1), return NULL);
