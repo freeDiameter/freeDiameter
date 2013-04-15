@@ -303,7 +303,7 @@ int fd_dictfct_Time_encode(void * data, union avp_value * avp_value)
 	/* FIXME: return len from the function above? */ len = 4;
 	
 	avp_value->os.len = len;
-	avp_value->os.data = buf;
+	avp_value->os.data = (uint8_t *)buf;
 	return 0;
 }
 

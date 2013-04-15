@@ -947,7 +947,6 @@ int fd_tls_rcvthr_core(struct cnxctx * conn, gnutls_session_t session)
 		size_t  length;
 		ssize_t ret = 0;
 		size_t	received = 0;
-		struct timespec recv_on;
 
 		do {
 			ret = fd_tls_recv_handle_error(conn, session, &header[received], sizeof(header) - received);
