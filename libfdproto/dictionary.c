@@ -1179,7 +1179,7 @@ static void dump_enumval_data ( struct dict_enumval_data * enumval, enum dict_av
 				if (enumval->enum_value.os.len < LEN_MAX)
 					n = enumval->enum_value.os.len;
 				for (i=0; i < n; i++)
-					fd_log_debug("0x%02hhX/'%c' ", enumval->enum_value.os.data[i], ASCII(enumval->enum_value.os.data[i]));
+					fd_log_debug("0x%02.2X/'%c' ", enumval->enum_value.os.data[i], ASCII(enumval->enum_value.os.data[i]));
 				if (n == LEN_MAX)
 					fd_log_debug("...");
 			}
@@ -1342,13 +1342,15 @@ void fd_dict_dump(struct dictionary * dict)
 static int dump_val_os(union avp_value * value, char **outstr, size_t *offset, size_t *outlen)
 {
 	int i;
+	CHECK_FCT( dump_add_str(outstr, offset, outlen, "<") );
 	for (i = 0; i < value->os.len; i++) {
-		if (i == 24) { /* Dump only up to 24 bytes of the buffer */
+		if (i == 1024) { /* Dump only up to 1024 bytes of the buffer */
 			CHECK_FCT( dump_add_str(outstr, offset, outlen, "[...] (len=%zd)", value->os.len) );
 			break;
 		}
-		CHECK_FCT( dump_add_str(outstr, offset, outlen, "%02.2X ", value->os.data[i]) );
+		CHECK_FCT( dump_add_str(outstr, offset, outlen, "%s%02.2X", (i==0 ? "" : " "), value->os.data[i]) );
 	}
+	CHECK_FCT( dump_add_str(outstr, offset, outlen, ">") );
 	return 0;
 }
 
@@ -1423,7 +1425,7 @@ static int (*get_default_dump_val_cb(enum dict_avp_basetype datatype))(union avp
 #define INOBJHDR 	"%*s   "
 #define INOBJHDRVAL 	indent<0 ? 1 : indent, indent<0 ? "-" : "|"
 
-/* Formater for the AVP value dump line */
+/* Formatter for the AVP value dump line */
 static int dump_avp_val(union avp_value *avp_value, 
 			int (*def_dump_val_cb)(union avp_value *, char **, size_t *, size_t *), 
 			char * (*dump_val_cb)(union avp_value *), 
@@ -1433,21 +1435,24 @@ static int dump_avp_val(union avp_value *avp_value,
 			int indent, 
 			char **outstr, 
 			size_t *offset, 
-			size_t *outlen)
+			size_t *outlen,
+		        int header)
 {
-	/* Header for all AVP values dumps: */
-	CHECK_FCT( dump_add_str(outstr, offset, outlen, INOBJHDR "value ", INOBJHDRVAL) );
+	if (header) {
+		/* Header for all AVP values dumps: */
+		CHECK_FCT( dump_add_str(outstr, offset, outlen, INOBJHDR "value ", INOBJHDRVAL) );
 	
-	/* If the type is provided, write it */
-	if (type_name) {
-		CHECK_FCT( dump_add_str(outstr, offset, outlen, "t: '%s' ", type_name) );
+		/* If the type is provided, write it */
+		if (type_name) {
+			CHECK_FCT( dump_add_str(outstr, offset, outlen, "t: '%s' ", type_name) );
+		}
+	
+		/* Always give the base datatype anyway */
+		CHECK_FCT( dump_add_str(outstr, offset, outlen, "(%s) ", type_base_name[datatype]) );
+
+		/* Now, the value */
+		CHECK_FCT( dump_add_str(outstr, offset, outlen, "v: ") );
 	}
-	
-	/* Always give the base datatype anyway */
-	CHECK_FCT( dump_add_str(outstr, offset, outlen, "(%s) ", type_base_name[datatype]) );
-	
-	/* Now, the value */
-	CHECK_FCT( dump_add_str(outstr, offset, outlen, "v: ") );
 	if (const_name) {
 		CHECK_FCT( dump_add_str(outstr, offset, outlen, "'%s' (", const_name) );
 	}
@@ -1468,7 +1473,7 @@ static int dump_avp_val(union avp_value *avp_value,
 }
 
 /* Dump the value of an AVP of known type into the returned str */
-int fd_dict_dump_avp_value(union avp_value *avp_value, struct dict_object * model, int indent, char **outstr, size_t *offset, size_t *outlen)
+int fd_dict_dump_avp_value(union avp_value *avp_value, struct dict_object * model, int indent, char **outstr, size_t *offset, size_t *outlen, int header)
 {
 	char * (*dump_val_cb)(union avp_value *avp_value) = NULL;
 	struct dict_object * type = NULL;
@@ -1502,7 +1507,7 @@ int fd_dict_dump_avp_value(union avp_value *avp_value, struct dict_object * mode
 	}
 	
 	/* And finally, dump the value */
-	CHECK_FCT( dump_avp_val(avp_value, get_default_dump_val_cb(model->data.avp.avp_basetype), dump_val_cb, model->data.avp.avp_basetype, type_name, const_name, indent, outstr, offset, outlen) );
+	CHECK_FCT( dump_avp_val(avp_value, get_default_dump_val_cb(model->data.avp.avp_basetype), dump_val_cb, model->data.avp.avp_basetype, type_name, const_name, indent, outstr, offset, outlen, header) );
 	return 0;
 }
 
