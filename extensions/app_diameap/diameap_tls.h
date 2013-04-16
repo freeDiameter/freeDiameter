@@ -41,9 +41,10 @@
 
 #include "diameap_defs.h"
 #include <gnutls/gnutls.h>
+#pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
 #include <gcrypt.h>
-#pragma GCC diagnostic warning "-Wdeprecated-declarations"
+#pragma GCC diagnostic pop
 #include <errno.h>
 #include <pthread.h>
 

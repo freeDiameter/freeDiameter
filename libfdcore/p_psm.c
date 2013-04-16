@@ -659,7 +659,7 @@ psm_loop:
 		
 		/* At this point the message must have been fully handled already */
 		if (msg) {
-			fd_msg_log( FD_MSG_LOG_DROPPED, msg, "Internal error: unhandled message.", peer->p_hdr.info.pi_diamid );
+			fd_msg_log( FD_MSG_LOG_DROPPED, msg, "Internal error ('%s'): unhandled message.", peer->p_hdr.info.pi_diamid );
 			fd_msg_free(msg);
 		}
 		

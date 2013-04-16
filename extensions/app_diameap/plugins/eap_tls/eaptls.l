@@ -39,6 +39,7 @@
 /*Declarations and option settings*/
 %{
 #include <stdio.h>
+#include "eap_tls.h"
 #include "eaptls.tab.h"
 
 #define YY_USER_ACTION { 						\

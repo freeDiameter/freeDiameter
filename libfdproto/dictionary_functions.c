@@ -278,7 +278,7 @@ static int time_t_to_diameter_string(time_t time_stamp, char **result) {
     char *conv;
     /* XXX: 2036 fix */
     out += DIFF_EPOCH_TO_NTP;
-    CHECK_PARAMS( (out & 0xffffffff00000000) == 0);
+    CHECK_PARAMS( (out >> 32) == 0);
 
     CHECK_MALLOC(conv=(char *)malloc(5));
     
@@ -313,7 +313,7 @@ int fd_dictfct_Time_interpret(union avp_value * avp_value, void * interpreted)
 	
 	CHECK_PARAMS( avp_value && interpreted );
 	
-	return diameter_string_to_time_t(avp_value->os.data, avp_value->os.len, interpreted);
+	return diameter_string_to_time_t((const char *)avp_value->os.data, avp_value->os.len, interpreted);
 }
 
 char * fd_dictfct_Time_dump(union avp_value * avp_value)

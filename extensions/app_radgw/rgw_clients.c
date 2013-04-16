@@ -912,7 +912,7 @@ int rgw_clients_add( struct sockaddr * ip_port, unsigned char ** key, size_t key
 	struct rgw_client * prev = NULL, *new = NULL;
 	int ret;
 	
-	TRACE_ENTRY("%p %p %lu", ip_port, key, keylen);
+	TRACE_ENTRY("%p %p %zu", ip_port, key, keylen);
 	
 	CHECK_PARAMS( ip_port && key && *key && keylen );
 	CHECK_PARAMS( (ip_port->sa_family == AF_INET) || (ip_port->sa_family == AF_INET6) );

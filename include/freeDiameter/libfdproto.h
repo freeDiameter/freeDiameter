@@ -250,7 +250,8 @@ extern int fd_g_debug_lvl;
 #ifdef DEBUG
 /* A version of __FILE__ without the full path */
 static char * file_bname = NULL;
-#define __STRIPPED_FILE__	(file_bname ?: (file_bname = basename((char *)__FILE__)))
+static char * file_bname_init(char * full) { file_bname = basename(full); return file_bname; }
+#define __STRIPPED_FILE__	(file_bname ?: file_bname_init((char *)__FILE__))
 
 /* Boolean for tracing at a certain level */
 #define TRACE_BOOL(_level_) ( ((_level_) <= fd_g_debug_lvl) 					\

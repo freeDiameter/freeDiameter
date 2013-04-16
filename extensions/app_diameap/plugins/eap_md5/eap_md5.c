@@ -37,9 +37,10 @@
 
 
 #include "../../plugins.h"
+#pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
 #include <gcrypt.h>
-#pragma GCC diagnostic warning "-Wdeprecated-declarations"
+#pragma GCC diagnostic pop
 
 #define CHALLENGE_LEN	16
 

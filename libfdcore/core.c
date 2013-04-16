@@ -35,9 +35,10 @@
 
 #include "fdcore-internal.h"
 
+#pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
 #include <gcrypt.h>
-#pragma GCC diagnostic pop "-Wdeprecated-declarations"
+#pragma GCC diagnostic pop
 
 /* The static configuration structure */
 static struct fd_config g_conf;

@@ -230,6 +230,7 @@ error:
 
 /* Set the parameters of a session to use the appropriate fifo and stream information */
 #ifndef GNUTLS_VERSION_300
+# pragma GCC diagnostic push
 # pragma GCC diagnostic ignored "-Wdeprecated-declarations"
 #endif /* !GNUTLS_VERSION_300 */
 static void set_sess_transport(gnutls_session_t session, struct sctps_ctx *ctx)
@@ -250,7 +251,7 @@ static void set_sess_transport(gnutls_session_t session, struct sctps_ctx *ctx)
 	return;
 }
 #ifndef GNUTLS_VERSION_300
-# pragma GCC diagnostic pop "-Wdeprecated-declarations"
+# pragma GCC diagnostic pop
 #endif /* !GNUTLS_VERSION_300 */
 
 /*************************************************************/

@@ -63,7 +63,7 @@ int fd_ep_add_merge( struct fd_list * list, sSA * sa, socklen_t sl, uint32_t fla
 		TRACE_DEBUG(ANNOYING, "  DEBUG:fd_ep_add_merge  Current list:");
 		fd_ep_dump( 4, list );
 		TRACE_DEBUG(ANNOYING, "  DEBUG:fd_ep_add_merge  Adding:");
-		fd_log_debug("    %s {%s%s%s%s}", buf,
+		fd_log_debug("    %s {%s%s%s%s%s}", buf,
 				(flags & EP_FL_CONF) 	? "C" : "-",
 				(flags & EP_FL_DISC)	    ? "D" : "-",
 				(flags & EP_FL_ADV)	    ? "A" : "-",
