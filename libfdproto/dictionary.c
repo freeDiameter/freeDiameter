@@ -1190,7 +1190,7 @@ static void dump_enumval_data ( struct dict_enumval_data * enumval, enum dict_av
 			break;
 
 		case AVP_TYPE_INTEGER64:
-			fd_log_debug(PRId64, enumval->enum_value.i64);
+			fd_log_debug("%"PRId64, enumval->enum_value.i64);
 			break;
 
 		case AVP_TYPE_UNSIGNED32:
@@ -1198,7 +1198,7 @@ static void dump_enumval_data ( struct dict_enumval_data * enumval, enum dict_av
 			break;
 
 		case AVP_TYPE_UNSIGNED64:
-			fd_log_debug(PRIu64, enumval->enum_value.u64);
+			fd_log_debug("%"PRIu64, enumval->enum_value.u64);
 			break;
 
 		case AVP_TYPE_FLOAT32:
