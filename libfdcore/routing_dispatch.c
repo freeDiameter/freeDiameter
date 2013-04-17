@@ -1039,10 +1039,10 @@ static void * process_thr(void * arg, int (*action_cb)(struct msg * msg), struct
 		}
 		
 		if (TRACE_BOOL(FULL)) {
-			TRACE_DEBUG(FULL, "Picked next message");
+			TRACE_DEBUG(FULL, "Picked next message (%s)", action_name);
 			fd_msg_dump_one(ANNOYING, msg);
 		}
-		
+
 		/* Now process the message */
 		CHECK_FCT_DO( (*action_cb)(msg), goto fatal_error);
 

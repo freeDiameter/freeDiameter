@@ -2335,6 +2335,8 @@ int fd_msg_free ( msg_or_avp * object );
  */
 void fd_msg_dump_walk ( int level, msg_or_avp *obj );
 void fd_msg_dump_one  ( int level, msg_or_avp *obj );
+/* Dump full message to log */
+void fd_msg_dump_full ( int level, struct dictionary *dict, const char *prefix, msg_or_avp *obj );
 
 /*
  * FUNCTION:	fd_msg_log

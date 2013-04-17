@@ -218,15 +218,20 @@ char * fd_dictfct_Address_dump(union avp_value * avp_value)
 /* Dump the AVP in a natural human-readable format */
 char * fd_dictfct_UTF8String_dump(union avp_value * avp_value)
 {
-#define TRUNC_LEN	42 /* avoid very long strings */
-	char * ret = strndup((char *)avp_value->os.data, TRUNC_LEN); 
-	if (ret && (*ret != '\0')) {
+#define TRUNC_LEN	1024 /* avoid very long strings */
+	char * ret;
+	CHECK_MALLOC_DO( ret = malloc(TRUNC_LEN+2+3+1), return NULL );
+	*ret = '"';
+	strncpy(ret+1, (char *)avp_value->os.data, TRUNC_LEN);
+	/* be sure to have a nul-terminated string */
+	ret[TRUNC_LEN+1] = '\0';
+	if (ret[1] != '\0') {
 		/* We sanitize the returned string to avoid UTF8 boundary problem.
 		We do this whether the string is trucated at TRUNC_LEN or not, to avoid potential problem
 		with malformed AVP */
 
 		char * end = strchr(ret, '\0');
-		
+		char * oldend = end;
 		while (end > ret) {
 			end--;
 			char b = *end;
@@ -240,7 +245,12 @@ char * fd_dictfct_UTF8String_dump(union avp_value * avp_value)
 					break; /* This was a start byte, we can stop the loop */
 			}
 		}
-	}	
+		if (strlen((char *)avp_value->os.data) > strlen(ret+1))
+			strcat(end, "...");
+		strcat(end, "\"");
+	} else {
+		*ret = '\0';
+	}
 	return ret;
 }
 
@@ -319,13 +329,19 @@ int fd_dictfct_Time_interpret(union avp_value * avp_value, void * interpreted)
 char * fd_dictfct_Time_dump(union avp_value * avp_value)
 {
 	char * ret;
+	time_t val;
+	struct tm conv;
 	CHECK_MALLOC_DO( ret = malloc(STR_LEN), return NULL );
 	if (avp_value->os.len != 4) {
 		snprintf(ret, STR_LEN, "[invalid length: %zd]", avp_value->os.len);
 		return ret;
 	}
-	/* TODO: display the time as human-readable */
-	snprintf(ret, STR_LEN, "[TODO Time dump: 0x%02hhx%02hhx%02hhx%02hhx]", avp_value->os.data[0], avp_value->os.data[1], avp_value->os.data[2], avp_value->os.data[3]);
+	if (diameter_string_to_time_t(avp_value->os.data, avp_value->os.len, &val) != 0) {
+		snprintf(ret, STR_LEN, "[time conversion error]");
+		return ret;
+	}
+	gmtime_r(&val, &conv);
+	snprintf(ret, STR_LEN, "%d%02d%02dT%02d%02d%02d+00", conv.tm_year+1900, conv.tm_mon+1, conv.tm_mday, conv.tm_hour, conv.tm_min, conv.tm_sec);
 	return ret;
 }
 
