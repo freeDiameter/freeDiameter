@@ -39,12 +39,28 @@
 #ifndef DIAMEAP_TLS_H_
 #define DIAMEAP_TLS_H_
 
+ #if defined(__GNUC__) && ((__GNUC__ * 100) + __GNUC_MINOR__) >= 405
+# define GCC_DIAG_DO_PRAGMA(x) _Pragma (#x)
+# define GCC_DIAG_PRAGMA(x) GCC_DIAG_DO_PRAGMA(GCC diagnostic x)
+# if ((__GNUC__ * 100) + __GNUC_MINOR__) >= 406
+#  define GCC_DIAG_OFF(x) GCC_DIAG_PRAGMA(push) \
+     GCC_DIAG_PRAGMA(ignored x)
+#  define GCC_DIAG_ON(x) GCC_DIAG_PRAGMA(pop)
+# else
+#  define GCC_DIAG_OFF(x) GCC_DIAG_PRAGMA(ignored x)
+#  define GCC_DIAG_ON(x)  GCC_DIAG_PRAGMA(warning x)
+# endif
+#else
+# define GCC_DIAG_OFF(x)
+# define GCC_DIAG_ON(x)
+#endif
+
+
 #include "diameap_defs.h"
 #include <gnutls/gnutls.h>
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+GCC_DIAG_OFF("-Wdeprecated-declarations")
 #include <gcrypt.h>
-#pragma GCC diagnostic pop
+GCC_DIAG_ON("-Wdeprecated-declarations")
 #include <errno.h>
 #include <pthread.h>
 

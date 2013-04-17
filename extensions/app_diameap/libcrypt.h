@@ -39,14 +39,14 @@
 #ifndef LIBCRYPT_H_
 #define LIBCRYPT_H_
 
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
-#include <gcrypt.h>
-#pragma GCC diagnostic pop
-#include <stdio.h>
-
 /* EAP-TLS*/
 #include "diameap_tls.h"
+
+GCC_DIAG_OFF("-Wdeprecated-declarations")
+#include <gcrypt.h>
+GCC_DIAG_ON("-Wdeprecated-declarations")
+#include <stdio.h>
+
 
 
 int md5hash(void * buffer, int length, void * digest);

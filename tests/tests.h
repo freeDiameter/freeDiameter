@@ -46,10 +46,9 @@
 
 #include <pthread.h>
 #include <errno.h>
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+GCC_DIAG_OFF("-Wdeprecated-declarations")
 #include <gcrypt.h>
-#pragma GCC diagnostic pop
+GCC_DIAG_ON("-Wdeprecated-declarations")
 
 /* Test timeout duration, unless -n is passed on the command line */
 #ifndef TEST_TIMEOUT

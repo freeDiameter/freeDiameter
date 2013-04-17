@@ -226,8 +226,7 @@ static int fd_conf_print_details_func (gnutls_x509_crt_t cert,
 #endif /* GNUTLS_VERSION_300 */
 
 #ifndef GNUTLS_VERSION_300
-# pragma GCC diagnostic push
-# pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+GCC_DIAG_OFF("-Wdeprecated-declarations")
 #endif /* !GNUTLS_VERSION_300 */
 /* Parse the configuration file (using the yacc parser) */
 int fd_conf_parse()
@@ -599,7 +598,7 @@ int fd_conf_parse()
 	return 0;
 }
 #ifndef GNUTLS_VERSION_300
-# pragma GCC diagnostic pop
+GCC_DIAG_ON("-Wdeprecated-declarations")
 #endif /* !GNUTLS_VERSION_300 */
 
 
