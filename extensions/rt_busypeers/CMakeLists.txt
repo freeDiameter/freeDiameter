@@ -1,4 +1,4 @@
-# The rt_ereg extension
+# The rt_busypeer extension
 PROJECT("Handling of TOO_BUSY messages and relay timeout capability routing extension" C)
 
 # Parser files
