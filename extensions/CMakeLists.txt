@@ -71,6 +71,8 @@ FD_EXTENSION_SUBDIR(rt_default   "Configurable routing rules for freeDiameter" 	
 FD_EXTENSION_SUBDIR(rt_redirect  "Handling of Diameter Redirect messages" 			ON)
 FD_EXTENSION_SUBDIR(rt_busypeers "Handling of Diameter TOO_BUSY messages and relay timeouts"	ON)
 FD_EXTENSION_SUBDIR(rt_ereg      "Configurable routing based on regexp matching of AVP values" OFF)
+FD_EXTENSION_SUBDIR(rt_ignore_dh "Stow Destination-Host in Proxy-Info, restore to Origin-Host for answers"	ON)
+FD_EXTENSION_SUBDIR(rt_load_balance "Balance load over multiple equal hosts, based on outstanding requests"	ON)
 
 
 ####
