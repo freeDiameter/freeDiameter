@@ -937,29 +937,29 @@ int main(int argc, char *argv[])
 				CHECK( 0, fd_msg_hdr ( msg, &msgdata ) );
 				
 				/* Add a session id */
-				CHECK( 0, fd_msg_new_session( msg, "testmsg", strlen("testmsg") ) );
+				CHECK( 0, fd_msg_new_session( msg, (os0_t)"testmsg", strlen("testmsg") ) );
 				
 				/* Create two instances of Proxy-Info */
 				ADD_AVP( msg, MSG_BRW_LAST_CHILD, pi1, 0, "Proxy-Info");
 				ADD_AVP( msg, MSG_BRW_LAST_CHILD, pi2, 0, "Proxy-Info");
 
 				ADD_AVP( pi1, MSG_BRW_LAST_CHILD, avp, 0, "Proxy-State");
-				value.os.data = "ps_pi1";
-				value.os.len = strlen(value.os.data);
+				value.os.data = (os0_t)"ps_pi1";
+				value.os.len = strlen((char *)value.os.data);
 				CHECK( 0, fd_msg_avp_setvalue ( avp, &value ) );
 				
 				ADD_AVP( pi2, MSG_BRW_LAST_CHILD, avp, 0, "Proxy-State");
-				value.os.data = "pi2_state";
-				value.os.len = strlen(value.os.data);
+				value.os.data = (os0_t)"pi2_state";
+				value.os.len = strlen((char *)value.os.data);
 				CHECK( 0, fd_msg_avp_setvalue ( avp, &value ) );
 				
 				ADD_AVP( pi1, MSG_BRW_FIRST_CHILD, avp, 0, "Proxy-Host");
-				value.os.data = host1;
+				value.os.data = (os0_t)host1;
 				value.os.len = strlen(host1);
 				CHECK( 0, fd_msg_avp_setvalue ( avp, &value ) );
 				
 				ADD_AVP( pi2, MSG_BRW_LAST_CHILD, avp, 0, "Proxy-Host");
-				value.os.data = host2;
+				value.os.data = (os0_t)host2;
 				value.os.len = strlen(host2);
 				CHECK( 0, fd_msg_avp_setvalue ( avp, &value ) );
 				
@@ -983,7 +983,6 @@ int main(int argc, char *argv[])
 				/* Check there are two Proxy-Info with the two hosts */
 				{
 					int got_h1 = 0, got_h2=0;
-					struct dict_object * ph_model;
 					CHECK( 0, fd_msg_browse ( msg, MSG_BRW_FIRST_CHILD, &avp, NULL) );
 					while(avp) {
 						struct avp_hdr * avpdata = NULL;

@@ -69,7 +69,7 @@ int rt_busy_process_busy(struct msg ** pmsg, int is_req, DiamId_t sentto, size_t
 	/* Store the error in this routing data, this avoids sending the message to the same peer again */
 	CHECK_FCT( fd_rtd_error_add(rtd, 
 				    sentto, senttolen, 
-				    oh ? (DiamId_t)oh->os.data : fd_g_config->cnf_diamid, oh ? oh->os.len : fd_g_config->cnf_diamid_len , 
+				    (uint8_t *)(oh ? (DiamId_t)oh->os.data : fd_g_config->cnf_diamid), oh ? oh->os.len : fd_g_config->cnf_diamid_len , 
 	                            ER_DIAMETER_TOO_BUSY, 
 	                            &candidates, 
 	                            &sendingattemtps) );
@@ -249,7 +249,6 @@ static int rtbusy_entry(char * conffile)
 /* Unload */
 void fd_ext_fini(void)
 {
-	int i;
 	TRACE_ENTRY();
 	
 	/* Unregister the cb */
