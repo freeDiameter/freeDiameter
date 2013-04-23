@@ -5,3 +5,5 @@ postgresql-server postgresql-devel libmysqlclient-devel libxml2-devel swig pytho
 
 # Afterwards, you may need to issue the following command so that postgresql starts at boot: 
 #  insserv postgresql
+# or for open Suse 12.x:
+#  systemctl enable postgresql.service
