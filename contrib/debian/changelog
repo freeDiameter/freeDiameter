@@ -1,3 +1,22 @@
+freediameter (1.1.7) UNRELEASED; urgency=low
+
+  * Major changes in the logging system to be more syslog and user friendly
+  * New extension: dict_dcca_3gpp
+  * New extension: dict_dcca_starent (Starent DCCA vendor-specific AVPs)
+  * New extension: rt_ignore_dh (hide network topology by proxying Destination-Host).
+  * New extension: rt_load_balance (load balancer based on pending queue size).
+  * New extension: rt_busypeers. See doc/rt_busypeers.conf.sample.
+  * New script to generate dictionary extensions from org file (see contrib/tools)
+  * New compilation option: WORKAROUND_ACCEPT_INVALID_VSAI to improve interoperability.
+  * New compilation option: DISABLE_PEER_EXPIRY for use in test environments.
+  * Extensions are now also searched in LD_LIBRARY_PATH.
+  * Copy Proxy-Info AVP automatically in new answers.
+  * Port value 0 allowed in configuration to disable local server (e.g. disable non-secure port).
+  * API change: fd_msg_send_timeout now takes a separate callback for timeout situation.
+  * New function: fd_msg_dump_full
+
+ -- Sebastien Decugis <sdecugis@freediameter.net>  Tue, 23 Apr 2013 16:30:28 +0800
+
 freediameter (1.1.6) UNRELEASED; urgency=low
 
   * Fix major issue in 1.1.5 preventing to send answers to a received message.
