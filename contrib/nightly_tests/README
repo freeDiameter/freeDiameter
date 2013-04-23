@@ -37,7 +37,7 @@ INSTRUCTIONS to setup a new build slave for the freeDiameter buildserver:
       - check INSTALL.FreeBSD file for specific PostgreSQL pre-install instructions.
       - These are the instructions for Debian/Ubuntu/OpenSUSE,  adjust as needed:
 	# su - postgres
-	# createuser test
+	# createuser --interactive test
 	 Shall the new role be a superuser? (y/n) n
 	 Shall the new role be allowed to create databases? (y/n) y
 	 Shall the new role be allowed to create more new roles? (y/n) n
