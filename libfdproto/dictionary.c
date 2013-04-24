@@ -1179,7 +1179,7 @@ static void dump_enumval_data ( struct dict_enumval_data * enumval, enum dict_av
 				if (enumval->enum_value.os.len < LEN_MAX)
 					n = enumval->enum_value.os.len;
 				for (i=0; i < n; i++)
-					fd_log_debug("0x%02hhX/'%c' ", enumval->enum_value.os.data[i], ASCII(enumval->enum_value.os.data[i]));
+					fd_log_debug("0x%2hhX/'%c' ", enumval->enum_value.os.data[i], ASCII(enumval->enum_value.os.data[i]));
 				if (n == LEN_MAX)
 					fd_log_debug("...");
 			}

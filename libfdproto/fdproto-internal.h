@@ -65,8 +65,6 @@ int fd_disp_call_cb_int( struct fd_list * cb_list, struct msg ** msg, struct avp
 extern pthread_rwlock_t fd_disp_lock;
 
 /* Messages / sessions API */
-int fd_sess_fromsid_msg ( uint8_t * sid, size_t len, struct session ** session, int * new);
-int fd_sess_ref_msg ( struct session * session );
 int fd_sess_reclaim_msg ( struct session ** session );
 
 

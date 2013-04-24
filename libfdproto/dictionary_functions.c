@@ -231,7 +231,6 @@ char * fd_dictfct_UTF8String_dump(union avp_value * avp_value)
 		with malformed AVP */
 
 		char * end = strchr(ret, '\0');
-		char * oldend = end;
 		while (end > ret) {
 			end--;
 			char b = *end;
@@ -336,7 +335,7 @@ char * fd_dictfct_Time_dump(union avp_value * avp_value)
 		snprintf(ret, STR_LEN, "[invalid length: %zd]", avp_value->os.len);
 		return ret;
 	}
-	if (diameter_string_to_time_t(avp_value->os.data, avp_value->os.len, &val) != 0) {
+	if (diameter_string_to_time_t((char *)avp_value->os.data, avp_value->os.len, &val) != 0) {
 		snprintf(ret, STR_LEN, "[time conversion error]");
 		return ret;
 	}

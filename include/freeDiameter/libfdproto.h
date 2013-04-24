@@ -90,14 +90,14 @@ extern "C" {
 #endif /* SWIG */
 
 /* Remove some deprecated warnings from some gnutls versions, when possible */
-#if defined(__GNUC__) && ((__GNUC__ * 100) + __GNUC_MINOR__) >= 405
+#if defined(__GNUC__)
 # define GCC_DIAG_DO_PRAGMA(x) _Pragma (#x)
 # define GCC_DIAG_PRAGMA(x) GCC_DIAG_DO_PRAGMA(GCC diagnostic x)
-# if ((__GNUC__ * 100) + __GNUC_MINOR__) >= 406
+# if ((__GNUC__ * 100) + __GNUC_MINOR__) >= 406		/* 4.6.x */
 #  define GCC_DIAG_OFF(x) GCC_DIAG_PRAGMA(push) \
      GCC_DIAG_PRAGMA(ignored x)
 #  define GCC_DIAG_ON(x) GCC_DIAG_PRAGMA(pop)
-# else
+# else							/* older */
 #  define GCC_DIAG_OFF(x) GCC_DIAG_PRAGMA(ignored x)
 #  define GCC_DIAG_ON(x)  GCC_DIAG_PRAGMA(warning x)
 # endif
@@ -1913,6 +1913,10 @@ int fd_sess_new ( struct session ** session, DiamId_t diamid, size_t diamidlen, 
  *  ENOMEM	: Not enough memory to complete the operation
  */
 int fd_sess_fromsid ( uint8_t * sid, size_t len, struct session ** session, int * isnew);
+
+/* only use the following in specific situations, e.g. app_radgw extension. They are normally handled by the framework only */
+int fd_sess_fromsid_msg ( uint8_t * sid, size_t len, struct session ** session, int * isnew); 
+int fd_sess_ref_msg ( struct session * session );
 
 /*
  * FUNCTION:	fd_sess_getsid

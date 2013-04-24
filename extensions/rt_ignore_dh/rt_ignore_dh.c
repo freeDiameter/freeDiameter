@@ -55,7 +55,6 @@ static int restore_origin_host(struct msg **msg) {
 	struct avp *avp, *child;
 	struct avp *oh_avp = NULL;
 	struct avp *pi_avp = NULL;
-	int match;
 	void *ps, *new_oh;
 	size_t ps_len, new_oh_len = 0;
 	union avp_value val;
@@ -66,6 +65,7 @@ static int restore_origin_host(struct msg **msg) {
 	/* look for Origin-Host and Proxy-Info matching this host */
 	while (avp && (!oh_avp || !pi_avp)) {
 		struct avp_hdr * ahdr;
+		int match = 0;
 		
 		CHECK_FCT(fd_msg_avp_hdr(avp, &ahdr));
 		if (!(ahdr->avp_flags & AVP_FLAG_VENDOR)) {
@@ -76,10 +76,9 @@ static int restore_origin_host(struct msg **msg) {
 				break;
 			case AC_PROXY_INFO:
 				ps = NULL;
-				match = ps_len = 0;
+				ps_len = 0;
 				CHECK_FCT(fd_msg_parse_dict(avp, fd_g_config->cnf_dict, NULL));
 				CHECK_FCT(fd_msg_browse(avp, MSG_BRW_FIRST_CHILD, &child, NULL));
-				int match = 0;
 				while (child && (!match || !ps)) {
 					struct avp_hdr *chdr;
 					CHECK_FCT(fd_msg_avp_hdr(child, &chdr));

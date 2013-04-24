@@ -400,7 +400,6 @@ int rgw_plg_loop_ans(struct rgw_radius_msg_meta *req, struct msg **diam_ans, str
 	/* Loop in the list of extensions */
 	for (li = head->next; li != head; li = li->next) {
 		struct plg_descr * plg = ((struct plg_accel_item *) li)->plg;
-		int locstateful = 0;
 		
 		if (plg->descriptor->rgwp_diam_ans) {
 			TRACE_DEBUG(ANNOYING, "Calling next plugin: %s", plg->descriptor->rgwp_name);

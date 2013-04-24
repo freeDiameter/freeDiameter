@@ -129,7 +129,7 @@ int diameap_plugin_load(void)
 		if (!diameap_plugin_register)
 		{
 			TRACE_DEBUG(INFO,
-					"%s[%s plugin] Unable to register EAP method.",DIAMEAP_EXTENSION,
+					"%s[%s plugin] Unable to register EAP method: %s.",DIAMEAP_EXTENSION,
 					plugin->methodname, dlerror());
 			return EINVAL;
 		}

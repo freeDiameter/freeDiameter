@@ -97,7 +97,6 @@ int app_sip_RTR_cb(struct rtrsipaor *structure)
 	struct dict_object * rtr_model=NULL;
 	struct msg * message=NULL;
 	struct avp *groupedavp=NULL, *avp=NULL;
-	struct session *sess=NULL;
 	union avp_value value;
 	
 	//We must check that we have all needed value in structure

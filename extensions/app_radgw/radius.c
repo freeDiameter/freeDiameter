@@ -250,7 +250,6 @@ static char * radius_msg_dump_attr_val(struct radius_attr_hdr *hdr, char * outbu
 	int i, len;
 	unsigned char *pos;
 	u8 attrtype;
-	size_t offset = 0;
 	
 	memset(outbuf, 0, buflen);
 

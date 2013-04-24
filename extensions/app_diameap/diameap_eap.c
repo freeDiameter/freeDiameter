@@ -451,7 +451,7 @@ int diameap_eap_statemachine(struct eap_state_machine * eap_sm,
 							&eap_i->aaaEapMSKData, &eap_i->aaaEapMSKLength,
 							&eap_i->aaaEapEMSKData, &eap_i->aaaEapEMSKLength))
 					{
-						TRACE_DEBUG(INFO,"%s[EAP Protocol] Generating EAP Master Key failed.",DIAMEAP_EXTENSION,eap_sm->selectedMethod->methodname)
+						TRACE_DEBUG(INFO,"%s[EAP Protocol] [%s plugin] Generating EAP Master Key failed.",DIAMEAP_EXTENSION,eap_sm->selectedMethod->methodname)
 						eap_i->aaaEapMSKLength = 0;
 						eap_i->aaaEapEMSKLength = 0;
 						eap_i->aaaEapKeyAvailable = FALSE;
@@ -475,7 +475,7 @@ int diameap_eap_statemachine(struct eap_state_machine * eap_sm,
 			if (diameap_ba_policygetnextmethod(eap_sm, &eap_sm->currentMethod,
 					&eap_sm->currentVendor))
 			{
-				TRACE_DEBUG(INFO,"%s[EAP Protocol] Selecting EAP Method plugin failed.",DIAMEAP_EXTENSION,eap_sm->selectedMethod->methodname);
+				TRACE_DEBUG(INFO,"%s[EAP Protocol] [%s plugin] Selecting EAP Method plugin failed.",DIAMEAP_EXTENSION,eap_sm->selectedMethod->methodname);
 
 				*non_fatal_error = TRUE;
 				eap_sm->eap_state = EAP_END;

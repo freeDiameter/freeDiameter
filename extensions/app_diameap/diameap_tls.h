@@ -39,14 +39,14 @@
 #ifndef DIAMEAP_TLS_H_
 #define DIAMEAP_TLS_H_
 
- #if defined(__GNUC__) && ((__GNUC__ * 100) + __GNUC_MINOR__) >= 405
+#if defined(__GNUC__)
 # define GCC_DIAG_DO_PRAGMA(x) _Pragma (#x)
 # define GCC_DIAG_PRAGMA(x) GCC_DIAG_DO_PRAGMA(GCC diagnostic x)
-# if ((__GNUC__ * 100) + __GNUC_MINOR__) >= 406
+# if ((__GNUC__ * 100) + __GNUC_MINOR__) >= 406		/* 4.6.x */
 #  define GCC_DIAG_OFF(x) GCC_DIAG_PRAGMA(push) \
      GCC_DIAG_PRAGMA(ignored x)
 #  define GCC_DIAG_ON(x) GCC_DIAG_PRAGMA(pop)
-# else
+# else							/* older */
 #  define GCC_DIAG_OFF(x) GCC_DIAG_PRAGMA(ignored x)
 #  define GCC_DIAG_ON(x)  GCC_DIAG_PRAGMA(warning x)
 # endif
