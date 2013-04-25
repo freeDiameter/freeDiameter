@@ -187,7 +187,9 @@ disp:
 */
 int fd_os_validate_DiameterIdentity(char ** id, size_t * inoutsz, int memory)
 {
+GCC_DIAG_OFF("-Wunused-but-set-variable")
 	int gotsize = 0;
+GCC_DIAG_ON("-Wunused-but-set-variable")
 	
 	TRACE_ENTRY("%p %p", id, inoutsz);
 	CHECK_PARAMS( id && *id && inoutsz );
