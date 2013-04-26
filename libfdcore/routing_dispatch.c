@@ -1224,7 +1224,7 @@ int fd_rtdisp_cleanup(void)
 
 
 /********************************************************************************/
-/*                     For extensiosn to register a new appl                    */
+/*                     For extensions to register a new appl                    */
 /********************************************************************************/
 
 /* Add an application into the peer's supported apps */
