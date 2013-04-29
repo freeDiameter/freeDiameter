@@ -75,7 +75,46 @@
 | MBMS-Flow-Identifier                                          |  920 |         17.7.23 | OctetString      | M,V  | P   |          |          |      |
 | CN-IP-Multicast-Distribution                                  |  921 |         17.7.24 | Enumerated       | M,V  | P   |          |          |      |
 | MBMS-HC-Indicator                                             |  922 |         17.7.25 | Enumerated       | M,V  | P   |          |          |      |
-| # 3GPP 29.212-b70 (11.7.0 2012.12.20)                         |      |                 |                  |      |     |          |          |      |
+| # 3GPP 29.140-700 (7.0.0 2007.07.05)                          |      |                 |                  |      |     |          |          |      |
+| Served-User-Identity                                          | 1100 |           6.3.1 | Grouped          | M,V  |     |          |          | N    |
+| # reuses: MSISDN                                              |  701 |           6.3.2 | OctetString      | M,V  |     |          |          | N    |
+| VASP-ID                                                       | 1101 |           6.3.3 | UTF8String       | M,V  |     |          |          | N    |
+| VAS-ID                                                        | 1102 |           6.3.4 | UTF8String       | M,V  |     |          |          | N    |
+| Trigger-Event                                                 | 1103 |           6.3.5 | Enumerated       | M,V  |     |          |          | N    |
+| # reuses: 3GPP-IMSI                                           |    1 |           6.3.6 | UTF8String       | M,V  |     |          |          | N    |
+| Sender-Address                                                | 1104 |           6.3.7 | UTF8String       | M,V  |     |          |          | N    |
+| Initial-Recipient-Address                                     | 1105 |           6.3.8 | Grouped          | M,V  |     |          |          | N    |
+| Result-Recipient-Address                                      | 1106 |           6.3.9 | Grouped          | M,V  |     |          |          | N    |
+| # conflicts with one in (more common) 32.329                  |      |                 |                  |      |     |          |          |      |
+| Sequence-Number-29.140                                        | 1107 |          6.3.10 | Unsigned32       | M,V  |     |          |          | N    |
+| # conflicts with one in (more common) 32.299                  |      |                 |                  |      |     |          |          |      |
+| Recipient-Address-29.140                                      | 1108 |          6.3.11 | UTF8String       | M,V  |     |          |          | N    |
+| Routeing-Address                                              | 1109 |          6.3.12 | UTF8String       | M,V  |     |          |          | N    |
+| Originating-Interface                                         | 1110 |          6.3.13 | Enumerated       | M,V  |     |          |          | N    |
+| Delivery-Report                                               | 1111 |          6.3.14 | Enumerated       | M,V  |     |          |          | N    |
+| Read-Reply                                                    | 1112 |          6.3.15 | Enumerated       | M,V  |     |          |          | N    |
+| Sender-Visibility                                             | 1113 |          6.3.16 | Enumerated       | M,V  |     |          |          | N    |
+| Service-Key                                                   | 1114 |          6.3.17 | UTF8String       | M,V  |     |          |          | N    |
+| Billing-Information                                           | 1115 |          6.3.18 | UTF8String       | M,V  |     |          |          | N    |
+| # conflicts with one in (more common) 32.299                  |      |                 |                  |      |     |          |          |      |
+| Status-29.140                                                 | 1116 |          6.3.19 | Grouped          | M,V  |     |          |          | N    |
+| Status-Code                                                   | 1117 |          6.3.20 | UTF8String       | M,V  |     |          |          | N    |
+| Status-Text                                                   | 1118 |          6.3.21 | UTF8String       | M,V  |     |          |          | N    |
+| Routeing-Address-Resolution                                   | 1119 |          6.3.22 | Enumerated       | M,V  |     |          |          | N    |
+| # 3GPP 29.173-c00 (12.0.0 2013.03.13)                         |      |                 |                  |      |     |          |          |      |
+| LMSI                                                          | 2400 |           6.4.2 | OctetString      | M,V  |     |          |          | N    |
+| Serving-Node                                                  | 2401 |           6.4.3 | Grouped          | M,V  |     |          |          | N    |
+| MME-Name                                                      | 2402 |           6.4.4 | DiameterIdentity | M,V  |     |          |          | N    |
+| MSC-Number                                                    | 2403 |           6.4.5 | OctetString      | M,V  |     |          |          | N    |
+| LCS-Capabilities-Sets                                         | 2404 |           6.4.6 | Unsigned32       | M,V  |     |          |          | N    |
+| GMLC-Address                                                  | 2405 |           6.4.7 | Address          | M,V  |     |          |          | N    |
+| Additional-Serving-Node                                       | 2406 |           6.4.8 | Grouped          | M,V  |     |          |          | N    |
+| PPR-Address                                                   | 2407 |           6.4.9 | Address          | M,V  |     |          |          | N    |
+| MME-Realm                                                     | 2408 |          6.4.12 | DiameterIdentity | V    |     |          | M        | N    |
+| SGSN-Name                                                     | 2409 |          6.4.13 | DiameterIdentity | V    |     |          | M        | N    |
+| SGSN-Realm                                                    | 2410 |          6.4.14 | DiameterIdentity | V    |     |          | M        | N    |
+| # 3GPP 29.212-c00 (12.0.0 2013.03.15)                         |      |                 |                  |      |     |          |          |      |
+| # Gx-specific                                                 |      |                 |                  |      |     |          |          |      |
 | ADC-Revalidation-Time                                         | 2801 |          5.3.93 | Time             | V    | P   |          | M        | Y    |
 | ADC-Rule-Install                                              | 1092 |          5.3.85 | Grouped          | V    | P   |          | M        | Y    |
 | ADC-Rule-Remove                                               | 1093 |          5.3.86 | Grouped          | V    | P   |          | M        | Y    |
@@ -112,7 +151,6 @@
 | IP-CAN-Type                                                   | 1027 |          5.3.27 | Enumerated       | M,V  | P   |          |          | Y    |
 | Guaranteed-Bitrate-DL                                         | 1025 |          5.3.25 | Unsigned32       | M,V  | P   |          |          | Y    |
 | Guaranteed-Bitrate-UL                                         | 1026 |          5.3.26 | Unsigned32       | M,V  | P   |          |          | Y    |
-| HeNB-BBF-FQDN                                                 | 2803 |          5.3.94 | UTF8String       | V    | P   |          | M        | Y    |
 | HeNB-Local-IP-Address                                         | 2804 |          5.3.95 | Address          | V    | P   |          | M        | Y    |
 | Metering-Method                                               | 1007 |           5.3.8 | Enumerated       | M,V  | P   |          |          | Y    |
 | Monitoring-Key                                                | 1066 |          5.3.59 | OctetString      | V    | P   |          | M        | Y    |
@@ -132,7 +170,7 @@
 | Pre-emption-Vulnerability                                     | 1048 |          5.3.47 | Enumerated       | V    | P   |          | M        | Y    |
 | Priority-Level                                                | 1046 |          5.3.45 | Unsigned32       | V    | P   |          | M        | Y    |
 | Redirect-Information                                          | 1085 |          5.3.82 | Grouped          | V    | P   |          | M        | Y    |
-| Redirect- Support                                             | 1086 |          5.3.83 | Enumerated       | V    | P   |          | M        | Y    |
+| Redirect-Support                                              | 1086 |          5.3.83 | Enumerated       | V    | P   |          | M        | Y    |
 | Reporting-Level                                               | 1011 |          5.3.12 | Enumerated       | M,V  | P   |          |          | Y    |
 | Routing-Filter                                                | 1078 |          5.3.72 | Grouped          | V    | P   |          | M        | Y    |
 | Routing-IP-Address                                            | 1079 |          5.3.73 | Address          | V    | P   |          | M        | Y    |
@@ -147,11 +185,11 @@
 | TDF-Application-Instance-Identifier                           | 2802 |          5.3.92 | OctetString      | V    | P   |          | M        | Y    |
 | TDF-Destination-Host                                          | 1089 |          5.3.80 | DiameterIdentity | V    | P   |          | M        | Y    |
 | TDF-Destination-Realm                                         | 1090 |          5.3.79 | DiameterIdentity | V    | P   |          | M        | Y    |
-| TDF-IP-address                                                | 1091 |          5.3.81 | Address          | V    | P   |          | M        | Y    |
+| TDF-IP-Address                                                | 1091 |          5.3.81 | Address          | V    | P   |          | M        | Y    |
 | QoS-Class-Identifier                                          | 1028 |          5.3.17 | Enumerated       | M,V  | P   |          |          | Y    |
 | QoS-Information                                               | 1016 |          5.3.16 | Grouped          | M.V  | P   |          |          | Y    |
 | QoS-Negotiation                                               | 1029 |          5.3.28 | Enumerated       | M,V  | P   |          |          | Y    |
-| Qos-Upgrade                                                   | 1030 |          5.3.29 | Enumerated       | M.V  | P   |          |          | Y    |
+| QoS-Upgrade                                                   | 1030 |          5.3.29 | Enumerated       | M.V  | P   |          |          | Y    |
 | PS-to-CS-Session-Continuity                                   | 1099 |          5.3.84 | Enumerated       | V    | P   |          |          | Y    |
 | Resource-Allocation-Notification                              | 1063 |          5.3.50 | Enumerated       | V    | P   |          | M        | Y    |
 | Rule-Failure-Code                                             | 1031 |          5.3.38 | Enumerated       | M.V  | P   |          |          | Y    |
@@ -168,10 +206,11 @@
 | UDP-Source-Port                                               | 2806 |          5.3.97 | Unsigned32       | V    | P   |          | M        | Y    |
 | UE-Local-IP-Address                                           | 2805 |          5.3.96 | Address          | V    | P   |          | M        | Y    |
 | Usage-Monitoring-Information                                  | 1067 |          5.3.60 | Grouped          | V    | P   |          | M        | Y    |
-| Rule-DeActivation-Time                                        | 1044 |          5.3.43 | Time             | M,V  | P   |          |          | Y    |
+| Rule-Deactivation-Time                                        | 1044 |          5.3.43 | Time             | M,V  | P   |          |          | Y    |
 | Usage-Monitoring-Level                                        | 1068 |          5.3.61 | Enumerated       | V    | P   |          | M        | Y    |
 | Usage-Monitoring-Report                                       | 1069 |          5.3.62 | Enumerated       | V    | P   |          | M        | Y    |
 | Usage-Monitoring-Support                                      | 1070 |          5.3.63 | Enumerated       | V    | P   |          | M        | Y    |
+| # Gxx-specific                                                |      |                 |                  |      |     |          |          |      |
 | QoS-Rule-Install                                              | 1051 |          5a.3.1 | Grouped          | M,V  | P   |          |          | Y    |
 | QoS-Rule-Remove                                               | 1052 |          5a.3.2 | Grouped          | M,V  | P   |          |          | Y    |
 | QoS-Rule-Definition                                           | 1053 |          5a.3.3 | Grouped          | M,V  | P   |          |          | Y    |
@@ -179,8 +218,45 @@
 | QoS-Rule-Base-Name                                            | 1074 |          5a.3.7 | UTF8String       | V    | P   |          | M        | Y    |
 | QoS-Rule-Report                                               | 1055 |          5a.3.5 | Grouped          | M,V  | P   |          |          | Y    |
 | Session-Linking-Indicator                                     | 1064 |          5a.3.6 | Enumerated       | M,V  | P   |          |          | Y    |
+| # S15-specific                                                |      |                 |                  |      |     |          |          |      |
 | CS-Service-Qos-Request-Identifier                             | 2807 |         E.6.3.2 | OctetString      | M,V  | P   |          |          | Y    |
 | CS-Service-QoS-Request-Operation                              | 2808 |         E.6.3.3 | Enumerated       | M.V  | P   |          |          | Y    |
+| # 3GPP 29.214-b80 (11.8.0 2013.03.15)                         |      |                 |                  |      |     |          |          |      |
+| Abort-Cause                                                   |  500 |           5.3.1 | Enumerated       | M,V  | P   |          |          | Y    |
+| Access-Network-Charging-Address                               |  501 |           5.3.2 | Address          | M,V  | P   |          |          | Y    |
+| Access-Network-Charging-Identifier                            |  502 |           5.3.3 | Grouped          | M,V  | P   |          |          | Y    |
+| Access-Network-Charging-Identifier-Value                      |  503 |           5.3.4 | OctetString      | M,V  | P   |          |          | Y    |
+| Acceptable-Service-Info                                       |  526 |          5.3.24 | Grouped          | M,V  | P   |          |          | Y    |
+| AF-Application-Identifier                                     |  504 |           5.3.5 | OctetString      | M,V  | P   |          |          | Y    |
+| AF-Charging-Identifier                                        |  505 |           5.3.6 | OctetString      | M,V  | P   |          |          | Y    |
+| Application-Service-Provider-Identity                         |  532 |          5.3.29 | UTF8String       | V    | P   |          | M        | Y    |
+| Codec-Data                                                    |  524 |           5.3.7 | OctetString      | M,V  | P   |          |          | Y    |
+| Flow-Description                                              |  507 |           5.3.8 | IPFilterRule     | M,V  | P   |          |          | Y    |
+| Flow-Number                                                   |  509 |           5.3.9 | Unsigned32       | M,V  | P   |          |          | Y    |
+| Flows                                                         |  510 |          5.3.10 | Grouped          | M,V  | P   |          |          | Y    |
+| Flow-Status                                                   |  511 |          5.3.11 | Enumerated       | M,V  | P   |          |          | Y    |
+| Flow-Usage                                                    |  512 |          5.3.12 | Enumerated       | M,V  | P   |          |          | Y    |
+| Service-URN                                                   |  525 |          5.3.23 | OctetString      | M,V  | P   |          |          | Y    |
+| Specific-Action                                               |  513 |          5.3.13 | Enumerated       | M,V  | P   |          |          | Y    |
+| Max-Requested-Bandwidth-DL                                    |  515 |          5.3.14 | Unsigned32       | M,V  | P   |          |          | Y    |
+| Max-Requested-Bandwidth-UL                                    |  516 |          5.3.15 | Unsigned32       | M,V  | P   |          |          | Y    |
+| Media-Component-Description                                   |  517 |          5.3.16 | Grouped          | M,V  | P   |          |          | Y    |
+| Media-Component-Number                                        |  518 |          5.3.17 | Unsigned32       | M,V  | P   |          |          | Y    |
+| Media-Sub-Component                                           |  519 |          5.3.18 | Grouped          | M,V  | P   |          |          | Y    |
+| Media-Type                                                    |  520 |          5.3.19 | Enumerated       | M,V  | P   |          |          | Y    |
+| MPS-Identifier                                                |  528 |          5.3.30 | OctetString      | V    | P   |          | M        | Y    |
+| Min-Requested-Bandwidth-DL                                    |  534 |          5.3.32 | Unsigned32       | V    | P   |          | M        | Y    |
+| Min-Requested-Bandwidth-UL                                    |  535 |          5.3.33 | Unsigned32       | V    | P   |          | M        | Y    |
+| RR-Bandwidth                                                  |  521 |          5.3.20 | Unsigned32       | M,V  | P   |          |          | Y    |
+| RS-Bandwidth                                                  |  522 |          5.3.21 | Unsigned32       | M,V  | P   |          |          | Y    |
+| Service-Info-Status                                           |  527 |          5.3.25 | Enumerated       | M,V  | P   |          |          | Y    |
+| SIP-Forking-Indication                                        |  523 |          5.3.22 | Enumerated       | M,V  | P   |          |          | Y    |
+| Sponsor-Identity                                              |  531 |          5.3.28 | UTF8String       | V    | P   |          | M        | Y    |
+| Sponsored-Connectivity-Data                                   |  530 |          5.3.27 | Grouped          | V    | P   |          | M        | Y    |
+| AF-Signalling-Protocol                                        |  529 |          5.3.26 | Enumerated       | V    | P   |          | M        | Y    |
+| Required-Access-Info                                          |  536 |          5.3.34 | Enumerated       | V    | P   |          | M        | Y    |
+| Rx-Request-Type                                               |  533 |          5.3.31 | Enumerated       | V    | P   |          | M        | Y    |
+| IP-Domain-Id                                                  |  537 |          5.3.35 | OctetString      | V    | P   |          | M        | Y    |
 | # 3GPP 29.229-b20 (11.2.0 2012.12.21)                         |      |                 |                  |      |     |          |          |      |
 | Associated-Identities                                         |  632 |          6.3.33 | Grouped          | V    |     |          | M        | N    |
 | Associated-Registered-Identities                              |  647 |          6.3.50 | Grouped          | V    |     |          | M        | N    |
@@ -509,11 +585,165 @@
 | WLAN-Session-Id                                               | 1246 |                 | UTF8String       | M,V  | P   |          |          | N    |
 | WLAN-Technology                                               |  893 |                 | Unsigned32       | M,V  | P   |          |          | N    |
 | WLAN-UE-Local-IPAddress                                       |  894 |                 | Address          | M,V  | P   |          |          | N    |
+| # 3GPP 29.272-c00 (12.0.0 2013.03.13)                         |      |                 |                  |      |     |          |          |      |
+| Subscription-Data                                             | 1400 |           7.3.2 | Grouped          | M,V  |     |          |          | N    |
+| Terminal-Information                                          | 1401 |           7.3.3 | Grouped          | M,V  |     |          |          | N    |
+| IMEI                                                          | 1402 |           7.3.4 | UTF8String       | M,V  |     |          |          | N    |
+| Software-Version                                              | 1403 |           7.3.5 | UTF8String       | M,V  |     |          |          | N    |
+| QoS-Subscribed                                                | 1404 |          7.3.77 | OctetString      | M,V  |     |          |          | N    |
+| ULR-Flags                                                     | 1405 |           7.3.7 | Unsigned32       | M,V  |     |          |          | N    |
+| ULA-Flags                                                     | 1406 |           7.3.8 | Unsigned32       | M,V  |     |          |          | N    |
+| Visited-PLMN-Id                                               | 1407 |           7.3.9 | OctetString      | M,V  |     |          |          | N    |
+| Requested-EUTRAN-Authentication-Info                          | 1408 |          7.3.11 | Grouped          | M,V  |     |          |          | N    |
+| Requested-UTRAN- GERAN-Authentication-Info                    | 1409 |          7.3.12 | Grouped          | M,V  |     |          |          | N    |
+| Number-Of-Requested-Vectors                                   | 1410 |          7.3.14 | Unsigned32       | M,V  |     |          |          | N    |
+| Re-Synchronization-Info                                       | 1411 |          7.3.15 | OctetString      | M,V  |     |          |          | N    |
+| Immediate-Response-Preferred                                  | 1412 |          7.3.16 | Unsigned32       | M,V  |     |          |          | N    |
+| Authentication-Info                                           | 1413 |          7.3.17 | Grouped          | M,V  |     |          |          | N    |
+| E-UTRAN-Vector                                                | 1414 |          7.3.18 | Grouped          | M,V  |     |          |          | N    |
+| UTRAN-Vector                                                  | 1415 |          7.3.19 | Grouped          | M,V  |     |          |          | N    |
+| GERAN-Vector                                                  | 1416 |          7.3.20 | Grouped          | M,V  |     |          |          | N    |
+| Network-Access-Mode                                           | 1417 |          7.3.21 | Enumerated       | M,V  |     |          |          | N    |
+| HPLMN-ODB                                                     | 1418 |          7.3.22 | Unsigned32       | M,V  |     |          |          | N    |
+| Item-Number                                                   | 1419 |          7.3.23 | Unsigned32       | M,V  |     |          |          | N    |
+| Cancellation-Type                                             | 1420 |          7.3.24 | Enumerated       | M,V  |     |          |          | N    |
+| DSR-Flags                                                     | 1421 |          7.3.25 | Unsigned32       | M,V  |     |          |          | N    |
+| DSA-Flags                                                     | 1422 |          7.3.26 | Unsigned32       | M,V  |     |          |          | N    |
+| Context-Identifier                                            | 1423 |          7.3.27 | Unsigned32       | M,V  |     |          |          | N    |
+| Subscriber-Status                                             | 1424 |          7.3.29 | Enumerated       | M,V  |     |          |          | N    |
+| Operator-Determined-Barring                                   | 1425 |          7.3.30 | Unsigned32       | M,V  |     |          |          | N    |
+| Access-Restriction-Data                                       | 1426 |          7.3.31 | Unsigned32       | M,V  |     |          |          | N    |
+| APN-OI-Replacement                                            | 1427 |          7.3.32 | UTF8String       | M,V  |     |          |          | N    |
+| All-APN-Configurations-Included-Indicator                     | 1428 |          7.3.33 | Enumerated       | M,V  |     |          |          | N    |
+| APN-Configuration-Profile                                     | 1429 |          7.3.34 | Grouped          | M,V  |     |          |          | N    |
+| APN-Configuration                                             | 1430 |          7.3.35 | Grouped          | M,V  |     |          |          | N    |
+| EPS-Subscribed-QoS-Profile                                    | 1431 |          7.3.37 | Grouped          | M,V  |     |          |          | N    |
+| VPLMN-Dynamic-Address-Allowed                                 | 1432 |          7.3.38 | Enumerated       | M,V  |     |          |          | N    |
+| STN-SR                                                        | 1433 |          7.3.39 | OctetString      | M,V  |     |          |          | N    |
+| Alert-Reason                                                  | 1434 |          7.3.83 | Enumerated       | M,V  |     |          |          | N    |
+| AMBR                                                          | 1435 |          7.3.41 | Grouped          | M,V  |     |          |          | N    |
+| CSG-Subscription-Data                                         | 1436 |          7.3.78 | Grouped          | M. V |     |          |          | N    |
+| CSG-Id                                                        | 1437 |          7.3.79 | Unsigned32       | M,V  |     |          |          | N    |
+| PDN-GW-Allocation-Type                                        | 1438 |          7.3.44 | Enumerated       | M,V  |     |          |          | N    |
+| Expiration-Date                                               | 1439 |          7.3.80 | Time             | M,V  |     |          |          | N    |
+| RAT-Frequency-Selection-Priority-ID                           | 1440 |          7.3.46 | Unsigned32       | M,V  |     |          |          | N    |
+| IDA-Flags                                                     | 1441 |          7.3.47 | Unsigned32       | M,V  |     |          |          | N    |
+| PUA-Flags                                                     | 1442 |          7.3.48 | Unsigned32       | M,V  |     |          |          | N    |
+| NOR-Flags                                                     | 1443 |          7.3.49 | Unsigned32       | M,V  |     |          |          | N    |
+| User-Id                                                       | 1444 |          7.3.50 | UTF8String       | V    |     |          | M        | N    |
+| Equipment-Status                                              | 1445 |          7.3.51 | Enumerated       | M,V  |     |          |          | N    |
+| Regional-Subscription-Zone-Code                               | 1446 |          7.3.52 | OctetString      | M,V  |     |          |          | N    |
+| RAND                                                          | 1447 |          7.3.53 | OctetString      | M,V  |     |          |          | N    |
+| XRES                                                          | 1448 |          7.3.54 | OctetString      | M,V  |     |          |          | N    |
+| AUTN                                                          | 1449 |          7.3.55 | OctetString      | M,V  |     |          |          | N    |
+| KASME                                                         | 1450 |          7.3.56 | OctetString      | M,V  |     |          |          | N    |
+| Trace-Collection-Entity                                       | 1452 |          7.3.98 | Address          | M,V  |     |          |          | N    |
+| Kc                                                            | 1453 |          7.3.59 | OctetString      | M,V  |     |          |          | N    |
+| SRES                                                          | 1454 |          7.3.60 | OctetString      | M,V  |     |          |          | N    |
+| PDN-Type                                                      | 1456 |          7.3.62 | Enumerated       | M,V  |     |          |          | N    |
+| Roaming-Restricted-Due-To-Unsupported-Feature                 | 1457 |          7.3.81 | Enumerated       | M,V  |     |          |          | N    |
+| Trace-Data                                                    | 1458 |          7.3.63 | Grouped          | M,V  |     |          |          | N    |
+| Trace-Reference                                               | 1459 |          7.3.64 | OctetString      | M,V  |     |          |          | N    |
+| Trace-Depth                                                   | 1462 |          7.3.67 | Enumerated       | M,V  |     |          |          | N    |
+| Trace-NE-Type-List                                            | 1463 |          7.3.68 | OctetString      | M,V  |     |          |          | N    |
+| Trace-Interface-List                                          | 1464 |          7.3.69 | OctetString      | M,V  |     |          |          | N    |
+| Trace-Event-List                                              | 1465 |          7.3.70 | OctetString      | M,V  |     |          |          | N    |
+| OMC-Id                                                        | 1466 |          7.3.71 | OctetString      | M,V  |     |          |          | N    |
+| GPRS-Subscription-Data                                        | 1467 |          7.3.72 | Grouped          | M,V  |     |          |          | N    |
+| Complete-Data-List-Included-Indicator                         | 1468 |          7.3.73 | Enumerated       | M,V  |     |          |          | N    |
+| PDP-Context                                                   | 1469 |          7.3.74 | Grouped          | M,V  |     |          |          | N    |
+| PDP-Type                                                      | 1470 |          7.3.75 | OctetString      | M,V  |     |          |          | N    |
+| 3GPP2-MEID                                                    | 1471 |           7.3.6 | OctetString      | M,V  |     |          |          | N    |
+| Specific-APN-Info                                             | 1472 |          7.3.82 | Grouped          | M,V  |     |          |          | N    |
+| LCS-Info                                                      | 1473 |          7.3.84 | Grouped          | M,V  |     |          |          | N    |
+| GMLC-Number                                                   | 1474 |          7.3.85 | OctetString      | M,V  |     |          |          | N    |
+| LCS-PrivacyException                                          | 1475 |          7.3.86 | Grouped          | M,V  |     |          |          | N    |
+| SS-Code                                                       | 1476 |          7.3.87 | OctetString      | M,V  |     |          |          | N    |
+| SS-Status                                                     | 1477 |          7.3.88 | Grouped          | M,V  |     |          |          | N    |
+| Notification-To-UE-User                                       | 1478 |          7.3.89 | Enumerated       | M,V  |     |          |          | N    |
+| External-Client                                               | 1479 |          7.3.90 | Grouped          | M,V  |     |          |          | N    |
+| Client-Identity                                               | 1480 |          7.3.91 | OctetString      | M,V  |     |          |          | N    |
+| GMLC-Restriction                                              | 1481 |          7.3.92 | Enumerated       | M,V  |     |          |          | N    |
+| PLMN-Client                                                   | 1482 |          7.3.93 | Enumerated       | M,V  |     |          |          | N    |
+| Service-Type                                                  | 1483 |          7.3.94 | Grouped          | M,V  |     |          |          | N    |
+| ServiceTypeIdentity                                           | 1484 |          7.3.95 | Unsigned32       | M,V  |     |          |          | N    |
+| MO-LR                                                         | 1485 |          7.3.96 | Grouped          | M,V  |     |          |          | N    |
+| Teleservice-List                                              | 1486 |          7.3.99 | Grouped          | M,V  |     |          |          | N    |
+| TS-Code                                                       | 1487 |         7.3.100 | OctetString      | M,V  |     |          |          | N    |
+| Call-Barring-Infor-List                                       | 1488 |         7.3.101 | Grouped          | M,V  |     |          |          | N    |
+| SGSN-Number                                                   | 1489 |         7.3.102 | OctetString      | M,V  |     |          |          | N    |
+| IDR-Flags                                                     | 1490 |         7.3.103 | Unsigned32       | M,V  |     |          |          | N    |
+| ICS-Indicator                                                 | 1491 |         7.3.104 | Enumerated       | V    |     |          | M        | N    |
+| IMS-Voice-Over-PS-Sessions-Supported                          | 1492 |         7.3.106 | Enumerated       | V    |     |          | M        | N    |
+| Homogeneous-Support-of-IMS-Voice-Over-PS-Sessions             | 1493 |         7.3.107 | Enumerated       | V    |     |          | M        | N    |
+| Last-UE-Activity-Time                                         | 1494 |         7.3.108 | Time             | V    |     |          | M        | N    |
+| EPS-User-State                                                | 1495 |         7.3.110 | Grouped          | V    |     |          | M        | N    |
+| EPS-Location-Information                                      | 1496 |         7.3.111 | Grouped          | V    |     |          | M        | N    |
+| MME-User-State                                                | 1497 |         7.3.112 | Grouped          | V    |     |          | M        | N    |
+| SGSN-User-State                                               | 1498 |         7.3.113 | Grouped          | V    |     |          | M        | N    |
+| User-State                                                    | 1499 |         7.3.114 | Enumerated       | V    |     |          | M        | N    |
+| MME-Location Information                                      | 1600 |         7.3.115 | Grouped          | V    |     |          | M        | N    |
+| SGSN-Location-Information                                     | 1601 |         7.3.116 | Grouped          | V    |     |          | M        | N    |
+| E-UTRAN-Cell-Global-Identity                                  | 1602 |         7.3.117 | OctetString      | V    |     |          | M        | N    |
+| Tracking-Area-Identity                                        | 1603 |         7.3.118 | OctetString      | V    |     |          | M        | N    |
+| Cell-Global-Identity                                          | 1604 |         7.3.119 | OctetString      | V    |     |          | M        | N    |
+| Routing-Area-Identity                                         | 1605 |         7.3.120 | OctetString      | V    |     |          | M        | N    |
+| Location-Area-Identity                                        | 1606 |         7.3.121 | OctetString      | V    |     |          | M        | N    |
+| Service-Area-Identity                                         | 1607 |         7.3.122 | OctetString      | V    |     |          | M        | N    |
+| Geographical-Information                                      | 1608 |         7.3.123 | OctetString      | V    |     |          | M        | N    |
+| Geodetic-Information                                          | 1609 |         7.3.124 | OctetString      | V    |     |          | M        | N    |
+| Current-Location-Retrieved                                    | 1610 |         7.3.125 | Enumerated       | V    |     |          | M        | N    |
+| Age-Of-Location-Information                                   | 1611 |         7.3.126 | Unsigned32       | V    |     |          | M        | N    |
+| Active-APN                                                    | 1612 |         7.3.127 | Grouped          | V    |     |          | M        | N    |
+| Error-Diagnostic                                              | 1614 |         7.3.128 | Enumerated       | V    |     |          | M        | N    |
+| Ext-PDP-Address                                               | 1621 |         7.3.129 | Address          | V    |     |          | M        | N    |
+| UE-SRVCC-Capability                                           | 1615 |         7.3.130 | Enumerated       | V    |     |          | M        | N    |
+| MPS-Priority                                                  | 1616 |         7.3.131 | Unsigned32       | V    |     |          | M        | N    |
+| VPLMN-LIPA-Allowed                                            | 1617 |         7.3.132 | Enumerated       | V    |     |          | M        | N    |
+| LIPA-Permission                                               | 1618 |         7.3.133 | Enumerated       | V    |     |          | M        | N    |
+| Subscribed-Periodic-RAU-TAU-Timer                             | 1619 |         7.3.134 | Unsigned32       | V    |     |          | M        | N    |
+| Ext-PDP-Type                                                  | 1620 |         7.3.75A | OctetString      | V    |     |          | M        | N    |
+| SIPTO-Permission                                              | 1613 |         7.3.135 | Enumerated       | V    |     |          | M        | N    |
+| MDT-Configuration                                             | 1622 |         7.3.136 | Grouped          | V    |     |          | M        | N    |
+| Job-Type                                                      | 1623 |         7.3.137 | Enumerated       | V    |     |          | M        | N    |
+| Area-Scope                                                    | 1624 |         7.3.138 | Grouped          | V    |     |          | M        | N    |
+| List-Of-Measurements                                          | 1625 |         7.3.139 | Unsigned32       | V    |     |          | M        | N    |
+| Reporting-Trigger                                             | 1626 |         7.3.140 | Unsigned32       | V    |     |          | M        | N    |
+| Report-Interval                                               | 1627 |         7.3.141 | Enumerated       | V    |     |          | M        | N    |
+| Report-Amount                                                 | 1628 |         7.3.142 | Enumerated       | V    |     |          | M        | N    |
+| Event-Threshold-RSRP                                          | 1629 |         7.3.143 | Unsigned32       | V    |     |          | M        | N    |
+| Event-Threshold-RSRQ                                          | 1630 |         7.3.144 | Unsigned32       | V    |     |          | M        | N    |
+| Logging-Interval                                              | 1631 |         7.3.145 | Enumerated       | V    |     |          | M        | N    |
+| Logging-Duration                                              | 1632 |         7.3.146 | Enumerated       | V    |     |          | M        | N    |
+| Relay-Node-Indicator                                          | 1633 |         7.3.147 | Enumerated       | V    |     |          | M        | N    |
+| MDT-User-Consent                                              | 1634 |         7.3.148 | Enumerated       | V    |     |          | M        | N    |
+| PUR-Flags                                                     | 1635 |         7.3.149 | Unsigned32       | V    |     |          | M        | N    |
+| Subscribed-VSRVCC                                             | 1636 |         7.3.150 | Enumerated       | V    |     |          | M        | N    |
+| Equivalent-PLMN-List                                          | 1637 |         7.3.151 | Grouped          | V    |     |          | M        | N    |
+| CLR-Flags                                                     | 1638 |         7.3.152 | Unsigned32       | V    |     |          | M        | N    |
+| UVR-Flags                                                     | 1639 |         7.3.153 | Unsigned32       | M,V  |     |          |          | N    |
+| UVA-Flags                                                     | 1640 |         7.3.154 | Unsigned32       | M,V  |     |          |          | N    |
+| VPLMN-CSG-Subscription-Data                                   | 1641 |         7.3.155 | Grouped          | M,V  |     |          |          | N    |
+| Time-Zone                                                     | 1642 |         7.3.163 | UTF8String       | V    |     |          | M        | N    |
+| A-MSISDN                                                      | 1643 |         7.3.157 | OctetString      | V    |     |          | M        | N    |
+| MME-Number-for-MT-SMS                                         | 1645 |         7.3.159 | OctetString      | V    |     |          | M        | N    |
+| SMS-Register-Request                                          | 1648 |         7.3.162 | Enumerated       | V    |     |          | M        | N    |
+| Local-Time-Zone                                               | 1649 |         7.3.156 | Grouped          | V    |     |          | M        | N    |
+| Daylight-Saving-Time                                          | 1650 |         7.3.164 | Enumerated       | V    |     |          | M        | N    |
+| Subscription-Data-Flags                                       | 1654 |         7.3.165 | Unsigned32       | V    |     |          | M        | N    |
+| Measurement-Period-UMTS                                       | 1655 |         7.3.166 | Enumerated       | V    |     |          | M        | N    |
+| Measurement-Period-LTE                                        | 1656 |         7.3.167 | Enumerated       | V    |     |          | M        | N    |
+| Collection-Period-RRM-LTE                                     | 1657 |         7.3.168 | Enumerated       | V    |     |          | M        | N    |
+| Collection-Period-RRM-UMTS                                    | 1658 |         7.3.169 | Enumerated       | V    |     |          | M        | N    |
+| Positioning-Method                                            | 1659 |         7.3.170 | OctetString      | V    |     |          | M        | N    |
+| Measurement-Quantity                                          | 1660 |         7.3.171 | OctetString      | V    |     |          | M        | N    |
+| Event-Threshold-Event-1F                                      | 1661 |         7.3.172 | Integer32        | V    |     |          | M        | N    |
+| Event-Threshold-Event-1I                                      | 1662 |         7.3.173 | Integer32        | V    |     |          | M        | N    |
 | # 3GPP 29.329-b50 (11.5.0 2012.12.21)                         |      |                 |                  |      |     |          |          |      |
 | User-Identity                                                 |  700 |           6.3.1 | Grouped          | M,V  |     |          |          | N    |
 | MSISDN                                                        |  701 |           6.3.2 | OctetString      | M,V  |     |          |          | N    |
 | # Name conflict with 29.229 User-Data (606), renamed          |      |                 |                  |      |     |          |          |      |
-| User-Data-Sh                                                  |  702 |           6.3.3 | OctetString      | M,V  |     |          |          | N    |
+| User-Data-29.329                                              |  702 |           6.3.3 | OctetString      | M,V  |     |          |          | N    |
 | Data-Reference                                                |  703 |           6.3.4 | Enumerated       | M,V  |     |          |          | N    |
 | Service-Indication                                            |  704 |           6.3.5 | OctetString      | M,V  |     |          |          | N    |
 | Subs-Req-Type                                                 |  705 |           6.3.6 | Enumerated       | M,V  |     |          |          | N    |
@@ -541,3 +771,17 @@
 | Repository-Data-ID                                            |  715 |          6.3.24 | Grouped          | V    |     |          | M        | N    |
 | Sequence-Number                                               |  716 |          6.3.25 | Unsigned32       | V    |     |          | M        | N    |
 | UDR-Flags                                                     |  719 |          6.3.28 | Unsigned32       | V    |     |          | M        | N    |
+| # OMA DDS Charging_Data V1.0 20110201-A                       |      |                 |                  |      |     |          |          |      |
+| Application-Server-Id                                         | 2101 |             8.4 | UTF8String       | M,V  |     |          |          | Y    |
+| Application-Service-Type                                      | 2102 |             8.4 | UTF8String       | M,V  |     |          |          | Y    |
+| Application-Session-Id                                        | 2103 |             8.4 | UTF8String       | M,V  |     |          |          | Y    |
+| Content-ID                                                    | 2116 |             8.4 | UTF8String       | M,V  |     |          |          | Y    |
+| Content-provider-ID                                           | 2117 |             8.4 | UTF8String       | M,V  |     |          |          | Y    |
+| DCD-Information                                               | 2115 |           8.5.5 | Grouped          | M,V  |     |          |          | Y    |
+| Delivery-Status                                               | 2104 |             8.4 | UTF8String       | M,V  |     |          |          | Y    |
+| IM-Information                                                | 2110 |           8.5.6 | Grouped          | M,V  |     |          |          | Y    |
+| Number-Of-Messages-Successfully-Exploded                      | 2111 |             8.4 | Unsigned32       | M,V  |     |          |          | Y    |
+| Number-Of-Messages-Successfully-Sent                          | 2112 |             8.4 | Unsigned32       | M,V  |     |          |          | Y    |
+| Service-Generic-Information                                   | 1256 |          8.5.10 | Grouped          | M,V  |     |          |          | Y    |
+| Total-Number-Of-Messages-Exploded                             | 2113 |             8.4 | Unsigned32       | M,V  |     |          |          | Y    |
+| Total-Number-Of-Messages-Sent                                 | 2114 |             8.4 | Unsigned32       | M,V  |     |          |          | Y    |
