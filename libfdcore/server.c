@@ -231,7 +231,7 @@ static void * serv_th(void * arg)
 		struct client * c = NULL;
 		struct cnxctx * conn = NULL;
 		
-		/* Wait for a new client */
+		/* Wait for a new client or cancel */
 		CHECK_MALLOC_DO( conn = fd_cnx_serv_accept(s->conn), goto error );
 		
 		TRACE_DEBUG(FULL, "New connection accepted");
