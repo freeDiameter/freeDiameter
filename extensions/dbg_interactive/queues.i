@@ -66,7 +66,7 @@ struct fifo {
 	/* Get the length of the queue (nb elements) */
 	int length() {
 		int l;
-		int ret = fd_fifo_length ( $self, &l );
+		int ret = fd_fifo_length ( $self, &l, NULL );
 		if (ret != 0) {
 			DI_ERROR(ret, NULL, NULL);
 		}

@@ -3036,6 +3036,7 @@ int fd_fifo_move ( struct fifo * oldq, struct fifo * newq, struct fifo ** loc_up
  * PARAMETERS:
  *  queue	: The queue from which to retrieve the number of elements.
  *  length	: Upon success, the current number of elements in the queue is stored here.
+ *  max		: the maximum number of elements as specified during creation. Can be NULL.
  *
  * DESCRIPTION: 
  *  Retrieve the number of elements in a queue.
@@ -3044,8 +3045,27 @@ int fd_fifo_move ( struct fifo * oldq, struct fifo * newq, struct fifo ** loc_up
  *  0		: The length of the queue has been written.
  *  EINVAL 	: A parameter is invalid.
  */
-int fd_fifo_length ( struct fifo * queue, int * length );
+int fd_fifo_length ( struct fifo * queue, int * length, int * max);
 int fd_fifo_length_noerr ( struct fifo * queue ); /* no error checking version */
+
+/*
+ * FUNCTION:	fd_fifo_getstats
+ *
+ * PARAMETERS:
+ *  queue	: The queue from which to retrieve the timings information.
+ *  total	: Cumulated time all items spent in this queue, including blocking time (always growing, use deltas for monitoring)
+ *  blocking    : Cumulated time threads trying to post new items were blocked (queue full).
+ *  last        : For the last element retrieved from the queue, how long it take between posting (including blocking) and poping
+ *  
+ * DESCRIPTION: 
+ *  Retrieve the timing information associated with a queue, for monitoring purpose.
+ *
+ * RETURN VALUE:
+ *  0		: The statistics have been updated.
+ *  EINVAL 	: A parameter is invalid.
+ */
+int fd_fifo_getstats( struct fifo * queue, struct timespec * total, struct timespec * blocking, struct timespec * last);
+
 
 /*
  * FUNCTION:	fd_fifo_setthrhd

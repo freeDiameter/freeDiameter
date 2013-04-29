@@ -216,15 +216,16 @@ int main(int argc, char *argv[])
 	/* Basic operation */
 	{
 		struct fifo * queue = NULL;
-		int count;
+		int count, max;
 		struct msg * msg  = NULL;
 		
 		/* Create the queue */
 		CHECK( 0, fd_fifo_new(&queue, 0) );
 		
 		/* Check the count is 0 */
-		CHECK( 0, fd_fifo_length(queue, &count) );
+		CHECK( 0, fd_fifo_length(queue, &count, &max) );
 		CHECK( 0, count);
+		CHECK( 0, max);
 		
 		/* Now enqueue */
 		msg = msg1;
@@ -235,13 +236,14 @@ int main(int argc, char *argv[])
 		CHECK( 0, fd_fifo_post(queue, &msg) );
 		
 		/* Check the count is 3 */
-		CHECK( 0, fd_fifo_length(queue, &count) );
+		CHECK( 0, fd_fifo_length(queue, &count, &max) );
 		CHECK( 3, count);
+		CHECK( 0, max);
 		
 		/* Retrieve the first message using fd_fifo_get */
 		CHECK( 0, fd_fifo_get(queue, &msg) );
 		CHECK( msg1, msg);
-		CHECK( 0, fd_fifo_length(queue, &count) );
+		CHECK( 0, fd_fifo_length(queue, &count, NULL) );
 		CHECK( 2, count);
 		
 		/* Retrieve the second message using fd_fifo_timedget */
@@ -249,18 +251,18 @@ int main(int argc, char *argv[])
 		ts.tv_sec += 1; /* Set the timeout to 1 second */
 		CHECK( 0, fd_fifo_timedget(queue, &msg, &ts) );
 		CHECK( msg2, msg);
-		CHECK( 0, fd_fifo_length(queue, &count) );
+		CHECK( 0, fd_fifo_length(queue, &count, NULL) );
 		CHECK( 1, count);
 		
 		/* Retrieve the third message using meq_tryget */
 		CHECK( 0, fd_fifo_tryget(queue, &msg) );
 		CHECK( msg3, msg);
-		CHECK( 0, fd_fifo_length(queue, &count) );
+		CHECK( 0, fd_fifo_length(queue, &count, NULL) );
 		CHECK( 0, count);
 		
 		/* Check that another meq_tryget does not block */
 		CHECK( EWOULDBLOCK, fd_fifo_tryget(queue, &msg) );
-		CHECK( 0, fd_fifo_length(queue, &count) );
+		CHECK( 0, fd_fifo_length(queue, &count, NULL) );
 		CHECK( 0, count);
 		
 		/* Check the timedget actually timesout */
@@ -271,7 +273,7 @@ int main(int argc, char *argv[])
 			ts.tv_sec += 1;
 		}
 		CHECK( ETIMEDOUT, fd_fifo_timedget(queue, &msg, &ts) );
-		CHECK( 0, fd_fifo_length(queue, &count) );
+		CHECK( 0, fd_fifo_length(queue, &count, NULL) );
 		CHECK( 0, count);
 		
 		/* We're done for basic tests */
@@ -360,7 +362,7 @@ int main(int argc, char *argv[])
 		}
 		
 		/* Check the count of the queue is back to 0 */
-		CHECK( 0, fd_fifo_length(queue, &count) );
+		CHECK( 0, fd_fifo_length(queue, &count, NULL) );
 		CHECK( 0, count);
 		
 		/* Destroy this queue and the messages */

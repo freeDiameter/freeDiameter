@@ -69,6 +69,16 @@ struct fifo {
 	void		(*l_cb)(struct fifo *, void **);
 	int 		highest;/* The highest count value for which h_cb has been called */
 	int		highest_ever; /* The max count value this queue has reached (for tweaking) */
+	
+	struct timespec total_time;    /* Cumulated time all items spent in this queue, including blocking time (always growing, use deltas for monitoring) */
+	struct timespec blocking_time; /* Cumulated time threads trying to post new items were blocked (queue full). */
+	struct timespec last_time;     /* For the last element retrieved from the queue, how long it take between posting (including blocking) and poping */
+	
+};
+
+struct fifo_item {
+	struct fd_list   item;
+	struct timespec  posted_on;
 };
 
 /* The eye catcher value */
@@ -129,13 +139,19 @@ void fd_fifo_dump(int level, char * name, struct fifo * queue, void (*dump_item)
 			queue->high, queue->low, queue->highest, 
 			queue->h_cb, queue->l_cb, queue->data,
 			queue->highest_ever);
+	fd_log_debug("   timings: total:%ld.%06ld, blocking:%ld.%06ld, last:%ld.%06ld",
+			(long)queue->total_time.tv_sec,(long)(queue->total_time.tv_nsec/1000),
+			(long)queue->blocking_time.tv_sec,(long)(queue->blocking_time.tv_nsec/1000),
+			(long)queue->last_time.tv_sec,(long)(queue->last_time.tv_nsec/1000) );
 	
 	if (dump_item) {
 		struct fd_list * li;
 		int i = 0;
 		for (li = queue->list.next; li != &queue->list; li = li->next) {
-			fd_log_debug("  [%i] item %p in fifo %p:", i++, li->o, queue);
-			(*dump_item)(level, li->o);
+			struct fifo_item * fi = (struct fifo_item *)li;
+			fd_log_debug("  [%i] item %p in fifo %p, posted:ld.%06ld", 
+				i++, fi->item.o, queue, (long)fi->posted_on.tv_sec,(long)(fi->posted_on.tv_nsec/1000));
+			(*dump_item)(level, fi->item.o);
 		}
 	}
 	CHECK_POSIX_DO(  pthread_mutex_unlock( &queue->mtx ), /* continue */  );
@@ -250,9 +266,9 @@ int fd_fifo_move ( struct fifo * old, struct fifo * new, struct fifo ** loc_upda
 }
 
 /* Get the length of the queue */
-int fd_fifo_length ( struct fifo * queue, int * length )
+int fd_fifo_length ( struct fifo * queue, int * length, int * max )
 {
-	TRACE_ENTRY( "%p %p", queue, length );
+	TRACE_ENTRY( "%p %p %p", queue, length, max );
 	
 	/* Check the parameters */
 	CHECK_PARAMS( CHECK_FIFO( queue ) && length );
@@ -263,12 +279,43 @@ int fd_fifo_length ( struct fifo * queue, int * length )
 	/* Retrieve the count */
 	*length = queue->count;
 	
+	if (max)
+		*max = queue->max;
+	
 	/* Unlock */
 	CHECK_POSIX(  pthread_mutex_unlock( &queue->mtx )  );
 	
 	/* Done */
 	return 0;
 }
+
+/* Get the timings */
+int fd_fifo_getstats( struct fifo * queue, struct timespec * total, struct timespec * blocking, struct timespec * last)
+{
+	TRACE_ENTRY( "%p %p %p %p", queue, total, blocking, last);
+	
+	/* Check the parameters */
+	CHECK_PARAMS( CHECK_FIFO( queue ) );
+	
+	/* lock the queue */
+	CHECK_POSIX(  pthread_mutex_lock( &queue->mtx )  );
+	
+	if (total)
+		memcpy(total, &queue->total_time, sizeof(struct timespec));
+	
+	if (blocking)
+		memcpy(blocking, &queue->blocking_time, sizeof(struct timespec));
+	
+	if (last)
+		memcpy(last, &queue->last_time, sizeof(struct timespec));
+	
+	/* Unlock */
+	CHECK_POSIX(  pthread_mutex_unlock( &queue->mtx )  );
+	
+	/* Done */
+	return 0;
+}
+
 
 /* alternate version with no error checking */
 int fd_fifo_length_noerr ( struct fifo * queue )
@@ -325,13 +372,17 @@ static void fifo_cleanup_push(void * queue)
 /* Post a new item in the queue */
 int fd_fifo_post_int ( struct fifo * queue, void ** item )
 {
-	struct fd_list * new;
+	struct fifo_item * new;
 	int call_cb = 0;
+	struct timespec posted_on, queued_on;
 	
 	TRACE_ENTRY( "%p %p", queue, item );
 	
 	/* Check the parameters */
 	CHECK_PARAMS( CHECK_FIFO( queue ) && item && *item );
+	
+	/* Get the timing of this call */
+	CHECK_SYS(  clock_gettime(CLOCK_REALTIME, &posted_on)  );
 	
 	/* lock the queue */
 	CHECK_POSIX(  pthread_mutex_lock( &queue->mtx )  );
@@ -352,21 +403,35 @@ int fd_fifo_post_int ( struct fifo * queue, void ** item )
 	}
 	
 	/* Create a new list item */
-	CHECK_MALLOC_DO(  new = malloc (sizeof (struct fd_list)) , {
+	CHECK_MALLOC_DO(  new = malloc (sizeof (struct fifo_item)) , {
 			pthread_mutex_unlock( &queue->mtx );
 		} );
 	
-	fd_list_init(new, *item);
+	fd_list_init(&new->item, *item);
 	*item = NULL;
 	
 	/* Add the new item at the end */
-	fd_list_insert_before( &queue->list, new);
+	fd_list_insert_before( &queue->list, &new->item);
 	queue->count++;
 	if (queue->highest_ever < queue->count)
 		queue->highest_ever = queue->count;
 	if (queue->high && ((queue->count % queue->high) == 0)) {
 		call_cb = 1;
 		queue->highest = queue->count;
+	}
+	
+	/* store timing */
+	memcpy(&new->posted_on, &posted_on, sizeof(struct timespec));
+	
+	/* update queue timing info "blocking time" */
+	{
+		long long blocked_ns;
+		CHECK_SYS(  clock_gettime(CLOCK_REALTIME, &queued_on)  );
+		blocked_ns = (queued_on.tv_sec - posted_on.tv_sec) * 1000000000;
+		blocked_ns += (queued_on.tv_nsec - posted_on.tv_nsec);
+		blocked_ns += queue->blocking_time.tv_nsec;
+		queue->blocking_time.tv_sec += blocked_ns / 1000000000;
+		queue->blocking_time.tv_nsec = blocked_ns % 1000000000;
 	}
 	
 	/* Signal if threads are asleep */
@@ -393,14 +458,31 @@ int fd_fifo_post_int ( struct fifo * queue, void ** item )
 static void * mq_pop(struct fifo * queue)
 {
 	void * ret = NULL;
-	struct fd_list * li;
+	struct fifo_item * fi;
+	struct timespec now;
 	
 	ASSERT( ! FD_IS_LIST_EMPTY(&queue->list) );
 	
-	fd_list_unlink(li = queue->list.next);
+	fi = (struct fifo_item *)queue->list.next;
+	fd_list_unlink(&fi->item);
 	queue->count--;
-	ret = li->o;
-	free(li);
+	ret = fi->item.o;
+	
+	/* Update the timings */
+	CHECK_SYS_DO(  clock_gettime(CLOCK_REALTIME, &now), goto skip_timing  );
+	{
+		long long elapsed = (now.tv_sec - fi->posted_on.tv_sec) * 1000000000;
+		elapsed += now.tv_nsec - fi->posted_on.tv_nsec;
+		
+		queue->last_time.tv_sec = elapsed / 1000000000;
+		queue->last_time.tv_nsec = elapsed % 1000000000;
+		
+		elapsed += queue->total_time.tv_nsec;
+		queue->total_time.tv_sec += elapsed / 1000000000;
+		queue->total_time.tv_nsec = elapsed % 1000000000;
+	}
+skip_timing:	
+	free(fi);
 	
 	if (queue->thrs_push) {
 		CHECK_POSIX_DO( pthread_cond_signal( &queue->cond_push ), );
