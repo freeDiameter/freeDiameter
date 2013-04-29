@@ -854,6 +854,193 @@ int fd_app_check(struct fd_list * list, application_id_t aid, struct fd_app **de
 int fd_app_check_common(struct fd_list * list1, struct fd_list * list2, int * common_found);
 int fd_app_empty(struct fd_list * list);
 
+
+
+/*============================================================*/
+/*                         MONITORING                         */
+/*============================================================*/
+
+/* These functions allows an extension to collect state information about the
+ * framework state, as well as hooks at some key checkpoints in the processing
+ * for logging / statistics purpose.
+ */
+ 
+
+/* CALLBACK: 	fd_hook_cb
+ *
+ * PARAMETERS:
+ *  type	: The type of hook that triggered this call, in case same cb is registered for several hooks.
+ *  msg 	: If relevant, the pointer to the message trigging the call. NULL otherwise.
+ *  peer        : If relevant, the pointer to the peer associated with the call. NULL otherwise.
+ *  other	: For some callbacks, the remaining information is passed in this parameter. See each hook detail.
+ *  regdata     : Data pointer stored at registration, opaque for the framework.
+ *
+ * DESCRIPTION: 
+ *   When such callback is registered with fd_hook_register function, it will be called on matching events with 
+ * the parameters as described in the list of fd_hook_type below. One can use this mechanism for e.g.:
+ *  - log completely the messages for safety / backup
+ *  - create statistics information on the throughput
+ *  - ...
+ *
+ *  IMPORTANT: the callback MUST NOT change the momory pointed by the different parameters (peer, message, ...)
+ *
+ * RETURN VALUE:
+ *  none.
+ */
+ 
+/* The available hooks in the framework */
+enum fd_hook_type {
+
+	HOOK_MESSAGE_RECEIVED = 1,
+		/* Hook called when a message has been received and the structure has been parsed successfully (list of AVPs).
+		 - *msg points to the parsed message. At this time, the objects have not been dictionary resolved. If you
+		   try to call fd_msg_parse_dict, it might slow down the operation of a relay agent.
+		 - *peer is set if the message is received from a peer's connection, and NULL if the message is from a new client
+		   connected and not yet identified
+		 - *other is NULL.
+		 */
+	
+	/* HOOK_DATA_RECEIVED, <-- this one is tricky to implement, will skip in the first version */
+		/* Hook called as soon as data is received from a socket.
+		 - *msg is NULL.
+		 - *peer is set if the data is received from a peer's connection, and NULL if the message is from a new client
+		   connected and not yet identified
+		 - *other points to a structure: { .
+		 */
+		 
+	HOOK_MESSAGE_SENT,
+		/* Hook called when a message has been sent to a peer. The message might be freed as soon as the hook function returns,
+		   so it is not safe to store the pointer for asynchronous processing.
+		 - *msg points to the sent message. Again, the objects may not have been dictionary resolved. If you
+		   try to call fd_msg_parse_dict, it might slow down the operation of a relay agent.
+		 - *peer is set if the message is sent to a peer's connection, and NULL if the message is sent to a new client
+		   connected and not yet identified / being rejected
+		 - *other is NULL.
+		 */
+	
+	HOOK_MESSAGE_ROUTING_ERROR,
+		/* Hook called when a message being processed by the routing thread meets an error such as:
+		     -- parsing error
+		     -- no remaining available peer for sending, based on routing callbacks decisions (maybe after retries).
+		 - *msg points to the message. Again, the objects may not have been dictionary resolved. If you
+		   try to call fd_msg_parse_dict, it might slow down the operation of a relay agent.
+		 - *peer is NULL.
+		 - *other is a char * pointer to the error message (human-readable).
+		 */
+	
+	HOOK_MESSAGE_ROUTING_FORWARD,
+		/* Hook called when a received message is deemed to be not handled locally by the routing_dispatch process.
+		   The decision of knowing which peer it will be sent to is not made yet (or if an error will be returned).
+		   The hook is trigged before the callbacks registered with fd_rt_fwd_register are called.
+		 - *msg points to the message. Again, the objects may not have been dictionary resolved. If you
+		   try to call fd_msg_parse_dict, it might slow down the operation of a relay agent.
+		 - *peer is NULL.
+		 - *other is NULL.
+		 */
+	
+	HOOK_MESSAGE_ROUTING_LOCAL,
+		/* Hook called when a received message is handled locally by the routing_dispatch process.
+		   The hook is trigged before the callbacks registered with fd_disp_register are called.
+		 - *msg points to the message. Here, the message has been already parsed completely & successfully.
+		 - *peer is NULL.
+		 - *other is NULL.
+		 */
+	
+	HOOK_MESSAGE_DROPPED,
+		/* Hook called when a message is being discarded by the framework because of some error.
+		   It is probably a good idea to log this for analysis.
+		 - *msg points to the message.
+		 - *peer is NULL.
+		 - *other is a char * pointer to the error message (human-readable).
+		 */
+	
+	HOOK_PEER_CONNECT_FAILED,
+		/* Hook called when a connection attempt to a remote peer has failed.
+		 - *msg may be NULL (lower layer error, e.g. connection timeout) or points to the CEA message sent or received (with an error code).
+		 - *peer may be NULL for incoming requests from unknown peers being rejected, otherwise it points to the peer structure associated with the attempt.
+		 - *other is a char * pointer to the error message (human-readable).
+		 */
+	
+	HOOK_PEER_CONNECT_SUCCESS,
+		/* Hook called when a connection attempt to a remote peer has succeeded (the peer moves to OPEN state).
+		 - *msg points to the CEA message sent or received (with an success code) -- in case it is sent, you can always get access to the matching CER.
+		 - *peer points to the peer structure.
+		 - *other is NULL.
+		 */
+	
+};
+	
+/* A handler associated with a registered callback, for cleanup */
+struct fd_hook_hdl; 
+
+/*
+ * FUNCTION:	fd_hook_register
+ *
+ * PARAMETERS:
+ *  type	  : The fd_hook_type for which this cb is registered. Call several times if you want to register for several hooks.
+ *  fd_hook_cb	  : The callback function to register (see prototype above).
+ *  regdata	  : Pointer to pass to the callback when it is called. The data is opaque to the daemon.
+ *  handler       : On success, a handler to the registered callback is stored here. 
+ *		   This handler will be used to unregister the cb.
+ *
+ * DESCRIPTION: 
+ *   Register a new hookin the framework. See explanations above. 
+ *
+ * RETURN VALUE:
+ *  0      	: The callback is registered.
+ *  EINVAL 	: A parameter is invalid.
+ *  ENOMEM	: Not enough memory to complete the operation
+ */
+int fd_hook_register (  enum fd_hook_type type, 
+			void (*fd_hook_cb)(enum fd_hook_type type, struct msg * msg, struct peer_hdr * peer, void * other, void * regdata), 
+			void * regdata, struct fd_hook_hdl ** handler );
+
+/* Remove a hook registration */
+int fd_hook_unregister( struct fd_hook_hdl * handler );
+
+
+
+/*
+ * The following allows an extension to retrieve stat information on the different fifo queues involved in the freeDiameter framework.
+ * There are three global queues, plus per-peer queues.
+ * This information can be used to build SNMP-like data for example, or quickly get a status of the framework to find the loaded path of execution / bottlenecks.
+ */
+enum fd_stat_type {
+	/* For the following, no peer is associated with the stat */
+	STAT_G_LOCAL= 1,	/* Get statistics for the global queue of messages processed by local extensions */
+	STAT_G_INCOMING,	/* Get statistics for the global queue of received messages to be processed by routing_in thread */
+	STAT_G_OUTGOING,	/* Get statistics for the global queue of messages to be processed by routing_out thread */
+	
+	/* For the following, the peer must be provided */
+	STAT_P_PSM,		/* Peer state machine queue (events to be processed for this peer, including received messages) */
+	STAT_P_TOSEND,		/* Queue of messages for sending to this peer */
+};
+
+/*
+ * FUNCTION:	fd_stat_getstats
+ *
+ * PARAMETERS:
+ *  stat	  : Which queue is being queried
+ *  peer	  : (depending on the stat parameter) which peer is being queried
+ *  len	  	  : (out) The number of items in the queue currently
+ *  max	  	  : (out) The max number of items the queue accepts before becoming blocking -- 0 means no max.
+ *  highest_count : (out) The highest count the queue has reached since startup
+ *  total	  : (out) Cumulated time all items spent in this queue, including blocking time (always growing, use deltas for monitoring)
+ *  blocking      : (out) Cumulated time threads trying to post new items were blocked (queue full).
+ *  last          : (out) For the last element retrieved from the queue, how long it took between posting (including blocking) and poping
+ *  
+ * DESCRIPTION: 
+ *   Get statistics information about a given queue. 
+ *  Any of the (out) parameters can be NULL if not requested.
+ *
+ * RETURN VALUE:
+ *  0      	: The callback is registered.
+ *  EINVAL 	: A parameter is invalid.
+ */
+int fd_stat_getstats(enum fd_stat_type stat, struct peer_hdr * peer, 
+			int * len, int * max, int * highest_count, 
+			struct timespec * total, struct timespec * blocking, struct timespec * last);
+
 #ifdef __cplusplus
 }
 #endif
