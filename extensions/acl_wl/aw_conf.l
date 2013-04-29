@@ -89,6 +89,7 @@ ALLOW_OLD_TLS		{
 (\*|[[:alnum:]][[:alnum:]-]*)(\.[[:alnum:]][[:alnum:]-]*)+	{
 				/* We matched a valid label, let's directly save it into the tree. The function will issue the appropriate warnings. */
 				CHECK_FCT_DO( aw_tree_add(yytext, curflag), return LEX_ERROR);
+				yylval->string = yytext;
 				return FQDN;
 			}
 

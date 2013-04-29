@@ -110,11 +110,16 @@ void yyerror (YYLTYPE *ploc, char * conffile, char const *s)
 
 %}
 
+/* Values returned by lex for token */
+%union {
+	char 		 *string;
+}
+
 /* In case of error in the lexical analysis */
 %token 		LEX_ERROR
 
 /* Key words */
-%token 		FQDN
+%token <string>	FQDN
 
 
 /* -------------------------------------- */
@@ -125,6 +130,7 @@ conffile:		/* empty grammar is OK */
 			| conffile FQDN
 			{
 				fqdn_added++;
+				TRACE_DEBUG(FULL, "Added FQDN: %s", $2);
 			}
 			| conffile LEX_ERROR
 			{
