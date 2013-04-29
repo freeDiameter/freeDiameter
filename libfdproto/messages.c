@@ -2351,7 +2351,7 @@ static int parserules_check_one_rule(void * data, struct dict_rule_data *rule)
 			min = 1;
 	}
 	if (count < min) {
-		TRACE_DEBUG(INFO, "Conflicting rule: the number of occurences (%d) is < the rule min (%d) for '%s'.", count, min, avp_name);
+		fd_log_error("Conflicting rule: the number of occurences (%d) is < the rule min (%d) for '%s'.", count, min, avp_name);
 		if (pr_data->pei) {
 			pr_data->pei->pei_errcode = "DIAMETER_MISSING_AVP";
 			pr_data->pei->pei_avp = empty_avp(rule->rule_avp);
@@ -2361,7 +2361,7 @@ static int parserules_check_one_rule(void * data, struct dict_rule_data *rule)
 	
 	/* Check the "max" value */
 	if ((rule->rule_max != -1) && (count > rule->rule_max)) {
-		TRACE_DEBUG(INFO, "Conflicting rule: the number of occurences (%d) is > the rule max (%d) for '%s'.", count, rule->rule_max, avp_name);
+		fd_log_error("Conflicting rule: the number of occurences (%d) is > the rule max (%d) for '%s'.", count, rule->rule_max, avp_name);
 		if (pr_data->pei) {
 			if (rule->rule_max == 0)
 				pr_data->pei->pei_errcode = "DIAMETER_AVP_NOT_ALLOWED";
@@ -2382,7 +2382,7 @@ static int parserules_check_one_rule(void * data, struct dict_rule_data *rule)
 		case RULE_FIXED_HEAD:
 			/* Since "0*1<fixed>" is a valid rule specifier, we only reject cases where the AVP appears *after* its fixed position */
 			if (first > rule->rule_order) {
-				TRACE_DEBUG(INFO, "Conflicting rule: the FIXED_HEAD AVP appears first in (%d) position, the rule requires (%d) for '%s'.", first, rule->rule_order, avp_name);
+				fd_log_error("Conflicting rule: the FIXED_HEAD AVP appears first in (%d) position, the rule requires (%d) for '%s'.", first, rule->rule_order, avp_name);
 				if (pr_data->pei) {
 					pr_data->pei->pei_errcode = "DIAMETER_MISSING_AVP";
 					pr_data->pei->pei_message = "AVP was not in its fixed position";
@@ -2395,7 +2395,7 @@ static int parserules_check_one_rule(void * data, struct dict_rule_data *rule)
 		case RULE_FIXED_TAIL:
 			/* Since "0*1<fixed>" is a valid rule specifier, we only reject cases where the AVP appears *before* its fixed position */
 			if (last > rule->rule_order) {	/* We have a ">" here because we count in reverse order (i.e. from the end) */
-				TRACE_DEBUG(INFO, "Conflicting rule: the FIXED_TAIL AVP appears last in (%d) position, the rule requires (%d) for '%s'.", last, rule->rule_order, avp_name);
+				fd_log_error("Conflicting rule: the FIXED_TAIL AVP appears last in (%d) position, the rule requires (%d) for '%s'.", last, rule->rule_order, avp_name);
 				if (pr_data->pei) {
 					pr_data->pei->pei_errcode = "DIAMETER_MISSING_AVP";
 					pr_data->pei->pei_message = "AVP was not in its fixed position";
