@@ -70,6 +70,7 @@ struct fifo {
 	int 		highest;/* The highest count value for which h_cb has been called */
 	int		highest_ever; /* The max count value this queue has reached (for tweaking) */
 	
+	long long	total_items;   /* Cumulated number of items that went through this fifo (excluding current count), always increasing. */
 	struct timespec total_time;    /* Cumulated time all items spent in this queue, including blocking time (always growing, use deltas for monitoring) */
 	struct timespec blocking_time; /* Cumulated time threads trying to post new items were blocked (queue full). */
 	struct timespec last_time;     /* For the last element retrieved from the queue, how long it take between posting (including blocking) and poping */
@@ -139,8 +140,9 @@ void fd_fifo_dump(int level, char * name, struct fifo * queue, void (*dump_item)
 			queue->high, queue->low, queue->highest, 
 			queue->h_cb, queue->l_cb, queue->data,
 			queue->highest_ever);
-	fd_log_debug("   timings: total:%ld.%06ld, blocking:%ld.%06ld, last:%ld.%06ld",
-			(long)queue->total_time.tv_sec,(long)(queue->total_time.tv_nsec/1000),
+	fd_log_debug("   stats: total:%lld in %ld.%06ld, blocking:%ld.%06ld, last:%ld.%06ld",
+			queue->total_items,
+	                (long)queue->total_time.tv_sec,(long)(queue->total_time.tv_nsec/1000), 
 			(long)queue->blocking_time.tv_sec,(long)(queue->blocking_time.tv_nsec/1000),
 			(long)queue->last_time.tv_sec,(long)(queue->last_time.tv_nsec/1000) );
 	
@@ -258,6 +260,22 @@ int fd_fifo_move ( struct fifo * old, struct fifo * new, struct fifo ** loc_upda
 	old->count = 0;
 	old->eyec = FIFO_EYEC;
 	
+	/* Merge the stats in the new queue */
+	new->total_items += old->total_items;
+	old->total_items = 0;
+	
+	new->total_time.tv_nsec += old->total_time.tv_nsec;
+	new->total_time.tv_sec += old->total_time.tv_sec + (new->total_time.tv_nsec / 1000000000);
+	new->total_time.tv_nsec %= 1000000000;
+	old->total_time.tv_nsec = 0;
+	old->total_time.tv_sec = 0;
+	
+	new->blocking_time.tv_nsec += old->blocking_time.tv_nsec;
+	new->blocking_time.tv_sec += old->blocking_time.tv_sec + (new->blocking_time.tv_nsec / 1000000000);
+	new->blocking_time.tv_nsec %= 1000000000;
+	old->blocking_time.tv_nsec = 0;
+	old->blocking_time.tv_sec = 0;
+	
 	/* Unlock, we're done */
 	CHECK_POSIX(  pthread_mutex_unlock( &new->mtx )  );
 	CHECK_POSIX(  pthread_mutex_unlock( &old->mtx )  );
@@ -290,15 +308,18 @@ int fd_fifo_length ( struct fifo * queue, int * length, int * max )
 }
 
 /* Get the timings */
-int fd_fifo_getstats( struct fifo * queue, struct timespec * total, struct timespec * blocking, struct timespec * last)
+int fd_fifo_getstats( struct fifo * queue, long long *items, struct timespec * total, struct timespec * blocking, struct timespec * last)
 {
-	TRACE_ENTRY( "%p %p %p %p", queue, total, blocking, last);
+	TRACE_ENTRY( "%p %p %p %p %p", queue, items, total, blocking, last);
 	
 	/* Check the parameters */
 	CHECK_PARAMS( CHECK_FIFO( queue ) );
 	
 	/* lock the queue */
 	CHECK_POSIX(  pthread_mutex_lock( &queue->mtx )  );
+	
+	if (items)
+		*items = queue->total_items;
 	
 	if (total)
 		memcpy(total, &queue->total_time, sizeof(struct timespec));
@@ -466,6 +487,7 @@ static void * mq_pop(struct fifo * queue)
 	fi = (struct fifo_item *)queue->list.next;
 	fd_list_unlink(&fi->item);
 	queue->count--;
+	queue->total_items++;
 	ret = fi->item.o;
 	
 	/* Update the timings */

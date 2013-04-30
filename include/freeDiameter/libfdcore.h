@@ -1025,6 +1025,7 @@ enum fd_stat_type {
  *  len	  	  : (out) The number of items in the queue currently
  *  max	  	  : (out) The max number of items the queue accepts before becoming blocking -- 0 means no max.
  *  highest_count : (out) The highest count the queue has reached since startup
+ *  total_count	  : (out) Total number of items that this queue has processed (always growing, use deltas for monitoring)
  *  total	  : (out) Cumulated time all items spent in this queue, including blocking time (always growing, use deltas for monitoring)
  *  blocking      : (out) Cumulated time threads trying to post new items were blocked (queue full).
  *  last          : (out) For the last element retrieved from the queue, how long it took between posting (including blocking) and poping
@@ -1038,7 +1039,7 @@ enum fd_stat_type {
  *  EINVAL 	: A parameter is invalid.
  */
 int fd_stat_getstats(enum fd_stat_type stat, struct peer_hdr * peer, 
-			int * len, int * max, int * highest_count, 
+			int * len, int * max, int * highest_count, long long * total_count, 
 			struct timespec * total, struct timespec * blocking, struct timespec * last);
 
 #ifdef __cplusplus

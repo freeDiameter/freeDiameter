@@ -3053,6 +3053,7 @@ int fd_fifo_length_noerr ( struct fifo * queue ); /* no error checking version *
  *
  * PARAMETERS:
  *  queue	: The queue from which to retrieve the timings information.
+ *  items       : the total number of items that went through the queue (already pop'd). Always increasing.
  *  total	: Cumulated time all items spent in this queue, including blocking time (always growing, use deltas for monitoring)
  *  blocking    : Cumulated time threads trying to post new items were blocked (queue full).
  *  last        : For the last element retrieved from the queue, how long it take between posting (including blocking) and poping
@@ -3064,7 +3065,7 @@ int fd_fifo_length_noerr ( struct fifo * queue ); /* no error checking version *
  *  0		: The statistics have been updated.
  *  EINVAL 	: A parameter is invalid.
  */
-int fd_fifo_getstats( struct fifo * queue, struct timespec * total, struct timespec * blocking, struct timespec * last);
+int fd_fifo_getstats( struct fifo * queue, long long *items, struct timespec * total, struct timespec * blocking, struct timespec * last);
 
 
 /*
