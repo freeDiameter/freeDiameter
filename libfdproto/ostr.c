@@ -185,20 +185,21 @@ disp:
  if *inoutsz is != 0 on entry, *id may not be \0-terminated.
  memory has the following meaning: 0: *id can be realloc'd. 1: *id must be malloc'd on output (was static)
 */
-#if defined(DIAMID_IDNA_IGNORE) || defined(DIAMID_IDNA_REJECT)
-GCC_DIAG_OFF("-Wunused-but-set-variable")
-#endif
 int fd_os_validate_DiameterIdentity(char ** id, size_t * inoutsz, int memory)
 {
+#if defined(DIAMID_IDNA_IGNORE) || defined(DIAMID_IDNA_REJECT)
 	int gotsize = 0;
+#endif /* defined(DIAMID_IDNA_IGNORE) || defined(DIAMID_IDNA_REJECT) */
 	
 	TRACE_ENTRY("%p %p", id, inoutsz);
 	CHECK_PARAMS( id && *id && inoutsz );
 	
 	if (!*inoutsz)
 		*inoutsz = strlen(*id);
+#if defined(DIAMID_IDNA_IGNORE) || defined(DIAMID_IDNA_REJECT)
 	else
 		gotsize = 1;
+#endif /* defined(DIAMID_IDNA_IGNORE) || defined(DIAMID_IDNA_REJECT) */
 	
 #ifndef DIAMID_IDNA_IGNORE
 	
@@ -248,9 +249,6 @@ int fd_os_validate_DiameterIdentity(char ** id, size_t * inoutsz, int memory)
 	}
 	return 0;
 }
-#if defined(DIAMID_IDNA_IGNORE) || defined(DIAMID_IDNA_REJECT)
-GCC_DIAG_ON("-Wunused-but-set-variable")
-#endif
 
 /* Analyze a DiameterURI and return its components. 
   Return EINVAL if the URI is not valid. 
