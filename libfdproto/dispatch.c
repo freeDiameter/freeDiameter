@@ -96,7 +96,7 @@ int fd_disp_call_cb_int( struct fd_list * cb_list, struct msg ** msg, struct avp
 		/* We have a match, the cb must be called. */
 		CHECK_FCT_DO( (r = (*hdl->cb)(msg, avp, sess, hdl->opaque, action)),
 			{
-				fd_msg_log( FD_MSG_LOG_DROPPED, *msg, "Internal error: a DISPATCH callback returned an error (%s)", strerror(r));
+				//fd_msg_log( FD_MSG_LOG_DROPPED, *msg, "Internal error: a DISPATCH callback returned an error (%s)", strerror(r));
 				fd_msg_free(*msg);
 				*msg = NULL;
 			}

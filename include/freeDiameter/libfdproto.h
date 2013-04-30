@@ -2339,43 +2339,22 @@ int fd_msg_free ( msg_or_avp * object );
  */
 void fd_msg_dump_walk ( int level, msg_or_avp *obj );
 void fd_msg_dump_one  ( int level, msg_or_avp *obj );
-/* Dump full message to log */
-void fd_msg_dump_full ( int level, struct dictionary *dict, const char *prefix, msg_or_avp *obj );
 
-/*
- * FUNCTION:	fd_msg_log
+/* Helper functions to get a dump of an object in the logs. Several formats are available.
+ *  buf   : a buffer that can be reallocated if needed. *buf==NULL is also accepted for first allocation
+ *  buflen: the length of the buffer buf.
+ *  dict  : optional, the dictionary to use for resolving objects, if force_parsing != 0
+ *  obj   : the message or AVP to dump.
  *
- * PARAMETERS:
- *  cause	 : Context for calling this function. This allows the log facility to be configured precisely.
- *  msg		 : The message to log.
- *  prefix_format: Printf-style format message that is printed ahead of the message. Might be reason for drop or so.
- *
- * DESCRIPTION: 
- *   This function is called when a Diameter message reaches some particular points in the fD framework.
- * The actual effect is configurable: log in a separate file, dump in the debug log, etc.
- *
- * RETURN VALUE:
- *   -
+ * After use, the buf pointer should be freed.
  */
-enum fd_msg_log_cause {
-	FD_MSG_LOG_DROPPED = 1,  /* message has been dropped by the framework */ 
-	FD_MSG_LOG_RECEIVED,     /* message received from the network */ 
-	FD_MSG_LOG_SENT,         /* message sent to another peer */ 
-	FD_MSG_LOG_NODELIVER,    /* message could not be delivered to any peer */
-	FD_MSG_LOG_TIMING	 /* profiling messages */
-};
-#define FD_MSG_LOG_MAX FD_MSG_LOG_TIMING
-void fd_msg_log( enum fd_msg_log_cause cause, struct msg * msg, const char * prefix_format, ... ) _ATTRIBUTE_PRINTFLIKE_(3,4);
+/* one-line dump with only short information */
+void fd_msg_dump_summary( char ** buf, size_t buflen, struct dictionary *dict, msg_or_avp *obj, int force_parsing);
+/* one-line dump with all the contents of the message */
+void fd_msg_dump_full( char ** buf, size_t buflen, struct dictionary *dict, msg_or_avp *obj, int force_parsing);
+/* multi-line human-readable dump similar to wireshark output */
+void fd_msg_dump_treeview( char ** buf, size_t buflen, struct dictionary *dict, msg_or_avp *obj, int force_parsing);
 
-/* configure the msg_log facility */
-enum fd_msg_log_method {
-	FD_MSG_LOGTO_NONE = 0, /* The message is not dumped. This is the default. */
-	FD_MSG_LOGTO_DEBUGONLY, /* Simply log the message with other debug information, at the INFO level. */
-	FD_MSG_LOGTO_FILE,    /* Messages are dumped in a single file, defined in arg */
-	FD_MSG_LOGTO_DIR    /* Messages are dumped in different files within one directory defined in arg. */
-};
-int fd_msg_log_config(enum fd_msg_log_cause cause, enum fd_msg_log_method method, const char * arg);
-void fd_msg_log_init(struct dictionary *dict);
 
 /*********************************************/
 /*   Message metadata management functions   */
@@ -2527,28 +2506,6 @@ int fd_msg_is_routable ( struct msg * msg );
  */
 int fd_msg_source_set( struct msg * msg, DiamId_t diamid, size_t diamidlen, int add_rr, struct dictionary * dict );
 int fd_msg_source_get( struct msg * msg, DiamId_t *diamid, size_t * diamidlen );
-
-/*
- * FUNCTION:	fd_msg_ts_*
- *
- * PARAMETERS:
- *  msg		: A msg object.
- *  ts		: A struct timespec pointer, indexed on CLOCK_REALTIME
- *
- * DESCRIPTION: 
- *   Associate or retrieve timestamps meaningful for the message.
- *  A timestamp with a value of { 0, 0 } means: not set.
- *
- * RETURN VALUE:
- *  0      	: Operation complete.
- *  !0      	: an error occurred.
- */
-/* when msg was received from network */
-int fd_msg_ts_set_recv( struct msg * msg, struct timespec * ts );
-int fd_msg_ts_get_recv( struct msg * msg, struct timespec * ts );
-int fd_msg_ts_set_sent( struct msg * msg, struct timespec * ts );
-int fd_msg_ts_get_sent( struct msg * msg, struct timespec * ts );
-
 
 /*
  * FUNCTION:	fd_msg_eteid_get

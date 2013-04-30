@@ -244,7 +244,7 @@ void fd_peer_failover_msg(struct fd_peer * peer)
 		CHECK_FCT_DO(fd_fifo_post(fd_g_outgoing, &m), 
 			{
 				/* fallback: destroy the message */
-				fd_msg_log(FD_MSG_LOG_DROPPED, m, "Internal error: unable to requeue this message during failover process");
+				//fd_msg_log(FD_MSG_LOG_DROPPED, m, "Internal error: unable to requeue this message during failover process");
 				CHECK_FCT_DO(fd_msg_free(m), /* What can we do more? */)
 			} );
 	}

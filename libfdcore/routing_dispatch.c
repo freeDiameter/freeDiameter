@@ -392,7 +392,7 @@ static int return_error(struct msg ** pmsg, char * error_code, char * error_mess
 			CHECK_FCT( fd_peer_getbyid( id, idlen, 0, (void *)&peer ) );
 
 			if (!peer) {
-				fd_msg_log(FD_MSG_LOG_DROPPED, *pmsg, "Unable to send error '%s' to deleted peer '%s' in reply to this message.", error_code, id);
+				//fd_msg_log(FD_MSG_LOG_DROPPED, *pmsg, "Unable to send error '%s' to deleted peer '%s' in reply to this message.", error_code, id);
 				fd_msg_free(*pmsg);
 				*pmsg = NULL;
 				return 0;
@@ -449,7 +449,7 @@ static int msg_dispatch(struct msg * msg)
 				CHECK_FCT( fd_fifo_post(fd_g_outgoing, &msgptr) );
 			}
 			if (msgptr) {	/* another error happen'd */
-				fd_msg_log( FD_MSG_LOG_DROPPED, msgptr,  "An unexpected error occurred while parsing the message (%s)", strerror(ret));
+				//fd_msg_log( FD_MSG_LOG_DROPPED, msgptr,  "An unexpected error occurred while parsing the message (%s)", strerror(ret));
 				CHECK_FCT_DO( fd_msg_free(msgptr), /* continue */);
 			}
 			/* We're done with this one */
@@ -510,7 +510,7 @@ static int msg_dispatch(struct msg * msg)
 				}
 				
 				if (!is_req) {
-					fd_msg_log( FD_MSG_LOG_DROPPED, msgptr,  "Internal error: Answer received to locally issued request, but not handled by any handler.");
+					//fd_msg_log( FD_MSG_LOG_DROPPED, msgptr,  "Internal error: Answer received to locally issued request, but not handled by any handler.");
 					fd_msg_free(msgptr);
 					break;
 				}
@@ -755,7 +755,7 @@ static int msg_rt_in(struct msg * msg)
 			TRACE_DEBUG(ANNOYING, "Calling next FWD callback on %p : %p", msgptr, rh->rt_fwd_cb);
 			CHECK_FCT_DO( ret = (*rh->rt_fwd_cb)(rh->cbdata, &msgptr),
 				{
-					fd_msg_log( FD_MSG_LOG_DROPPED, msgptr, "Internal error: a FWD routing callback returned an error (%s)", strerror(ret));
+					//fd_msg_log( FD_MSG_LOG_DROPPED, msgptr, "Internal error: a FWD routing callback returned an error (%s)", strerror(ret));
 					fd_msg_free(msgptr);
 					msgptr = NULL;
 				} );
@@ -814,7 +814,7 @@ static int msg_rt_out(struct msg * msg)
 		/* Find the peer corresponding to this name */
 		CHECK_FCT( fd_peer_getbyid( qry_src, qry_src_len, 0, (void *) &peer ) );
 		if (fd_peer_getstate(peer) != STATE_OPEN) {
-			fd_msg_log( FD_MSG_LOG_DROPPED, msgptr, "Unable to forward answer to deleted / closed peer '%s'.", qry_src);
+			//fd_msg_log( FD_MSG_LOG_DROPPED, msgptr, "Unable to forward answer to deleted / closed peer '%s'.", qry_src);
 			fd_msg_free(msgptr);
 			return 0;
 		}
@@ -899,7 +899,7 @@ static int msg_rt_out(struct msg * msg)
 			TRACE_DEBUG(ANNOYING, "Calling next OUT callback on %p : %p (prio %d)", msgptr, rh->rt_out_cb, rh->prio);
 			CHECK_FCT_DO( ret = (*rh->rt_out_cb)(rh->cbdata, msgptr, candidates),
 				{
-					fd_msg_log( FD_MSG_LOG_DROPPED, msgptr, "Internal error: an OUT routing callback returned an error (%s)", strerror(ret));
+					//fd_msg_log( FD_MSG_LOG_DROPPED, msgptr, "Internal error: an OUT routing callback returned an error (%s)", strerror(ret));
 					fd_msg_free(msgptr);
 					msgptr = NULL;
 					break;
@@ -947,7 +947,7 @@ static int msg_rt_out(struct msg * msg)
 
 	/* If the message has not been sent, return an error */
 	if (msgptr) {
-		fd_msg_log( FD_MSG_LOG_NODELIVER, msgptr, "No suitable candidate to route the message to." );
+		//fd_msg_log( FD_MSG_LOG_NODELIVER, msgptr, "No suitable candidate to route the message to." );
 		return_error( &msgptr, "DIAMETER_UNABLE_TO_DELIVER", "No suitable candidate to route the message to", NULL);
 	}
 

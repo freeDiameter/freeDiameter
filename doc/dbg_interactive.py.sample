@@ -363,7 +363,6 @@ blank_with_value.header().avp_value.u32 = 12
 # Create empt (as for avps, pass None or a dictionary object as 1st param, and flags as optional 2nd param)y
 a_msg = msg()
 a_msg.dump()
-a_msg.log(FD_MSG_LOG_DROPPED, "Check libfdproto for more details. Configure with fd_msg_log_config.")
 del a_msg
 
 # It is also possible to pass MSGFL_* flags in second parameter (ALLOC_ETEID is default)

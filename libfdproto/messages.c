@@ -128,8 +128,6 @@ struct msg {
 		}		 msg_cb;		/* Callback to be called when an answer is received, or timeout expires, if not NULL */
 	DiamId_t		 msg_src_id;		/* Diameter Id of the peer this message was received from. This string is malloc'd and must be freed */
 	size_t			 msg_src_id_len;	/* cached length of this string */
-	struct timespec		 msg_ts_rcv;		/* Timestamp when this message was received from the network */
-	struct timespec		 msg_ts_sent;		/* Timestamp when this message was sent to the network */
 	
 };
 
@@ -733,17 +731,6 @@ static int obj_dump_msg (struct msg * msg, int indent, char **outstr, size_t *of
 		return 0;
 	}
 	
-	if ((msg->msg_ts_rcv.tv_sec != 0) || (msg->msg_ts_rcv.tv_nsec != 0)) {
-		tsoffset += strftime(buftime + tsoffset, sizeof(buftime) - tsoffset, "%D,%T", localtime_r( &msg->msg_ts_rcv.tv_sec , &tm ));
-		tsoffset += snprintf(buftime + tsoffset, sizeof(buftime) - tsoffset, ".%6.6ld", msg->msg_ts_rcv.tv_nsec / 1000);
-		CHECK_FCT( dump_add_str(outstr, offset, outlen, INOBJHDR "Received: %s|", INOBJHDRVAL, buftime) );
-	}
-	if ((msg->msg_ts_sent.tv_sec != 0) || (msg->msg_ts_sent.tv_nsec != 0)) {
-		tsoffset += strftime(buftime + tsoffset, sizeof(buftime) - tsoffset, "%D,%T", localtime_r( &msg->msg_ts_sent.tv_sec , &tm ));
-		tsoffset += snprintf(buftime + tsoffset, sizeof(buftime) - tsoffset, ".%6.6ld", msg->msg_ts_sent.tv_nsec / 1000);
-		CHECK_FCT( dump_add_str(outstr, offset, outlen, INOBJHDR "Sent    : %s|", INOBJHDRVAL, buftime) );
-	}
-	
 	if (!msg->msg_model) {
 		
 		CHECK_FCT( dump_add_str(outstr, offset, outlen, INOBJHDR "(no model)|", INOBJHDRVAL) );
@@ -997,7 +984,8 @@ static int full_obj_dump_avp ( struct avp * avp, char **outstr, size_t *offset, 
 }
 
 /* Dump full message */
-void fd_msg_dump_full ( int level, struct dictionary *dict, const char *prefix, msg_or_avp *obj )
+// TODO: need align with new prototype & behavior
+void fd_msg_dump_full_TODO ( int level, struct dictionary *dict, const char *prefix, msg_or_avp *obj )
 {
 	msg_or_avp * ref = obj;
 	char *outstr;
@@ -1360,54 +1348,6 @@ int fd_msg_source_get( struct msg * msg, DiamId_t* diamid, size_t * diamidlen )
 		*diamidlen = msg->msg_src_id_len;
 	
 	/* done */
-	return 0;
-}
-
-int fd_msg_ts_set_recv( struct msg * msg, struct timespec * ts )
-{
-	TRACE_ENTRY("%p %p", msg, ts);
-	
-	/* Check we received valid parameters */
-	CHECK_PARAMS( CHECK_MSG(msg) );
-	CHECK_PARAMS( ts );
-	
-	memcpy(&msg->msg_ts_rcv, ts, sizeof(struct timespec));
-	return 0;
-}
-
-int fd_msg_ts_get_recv( struct msg * msg, struct timespec * ts )
-{
-	TRACE_ENTRY("%p %p", msg, ts);
-	
-	/* Check we received valid parameters */
-	CHECK_PARAMS( CHECK_MSG(msg) );
-	CHECK_PARAMS( ts );
-	
-	memcpy(ts, &msg->msg_ts_rcv, sizeof(struct timespec));
-	return 0;
-}
-
-int fd_msg_ts_set_sent( struct msg * msg, struct timespec * ts )
-{
-	TRACE_ENTRY("%p %p", msg, ts);
-	
-	/* Check we received valid parameters */
-	CHECK_PARAMS( CHECK_MSG(msg) );
-	CHECK_PARAMS( ts );
-	
-	memcpy(&msg->msg_ts_sent, ts, sizeof(struct timespec));
-	return 0;
-}
-
-int fd_msg_ts_get_sent( struct msg * msg, struct timespec * ts )
-{
-	TRACE_ENTRY("%p %p", msg, ts);
-	
-	/* Check we received valid parameters */
-	CHECK_PARAMS( CHECK_MSG(msg) );
-	CHECK_PARAMS( ts );
-	
-	memcpy(ts, &msg->msg_ts_sent, sizeof(struct timespec));
 	return 0;
 }
 
@@ -2638,7 +2578,7 @@ int fd_msg_dispatch ( struct msg ** msg, struct session * session, enum disp_act
 				*error_code = "DIAMETER_APPLICATION_UNSUPPORTED";
 			*action = DISP_ACT_ERROR;
 		} else {
-			fd_msg_log( FD_MSG_LOG_DROPPED, *msg, "Internal error: Received this answer to a local query with an unsupported application %d", (*msg)->msg_public.msg_appl);
+			//fd_msg_log( FD_MSG_LOG_DROPPED, *msg, "Internal error: Received this answer to a local query with an unsupported application %d", (*msg)->msg_public.msg_appl);
 			fd_msg_free(*msg);
 			*msg = NULL;
 		}

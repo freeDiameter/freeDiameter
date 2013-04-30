@@ -73,7 +73,7 @@ int fd_queues_fini(struct fifo ** queue)
 		CHECK_FCT(ret);
 		
 		/* We got one! */
-		fd_msg_log( FD_MSG_LOG_DROPPED, msg, "Message lost because framework is terminating." );
+		//fd_msg_log( FD_MSG_LOG_DROPPED, msg, "Message lost because framework is terminating." );
 		fd_msg_free(msg);
 	}
 	

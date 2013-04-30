@@ -208,9 +208,6 @@ int fd_core_initialize(void)
 	fd_g_config = &g_conf;
 	CHECK_FCT( fd_conf_init() );
 	
-	/* Initialize the message logging facility */
-	fd_msg_log_init(fd_g_config->cnf_dict);
-
 	/* Add definitions of the base protocol */
 	CHECK_FCT( fd_dict_base_protocol(fd_g_config->cnf_dict) );
 	

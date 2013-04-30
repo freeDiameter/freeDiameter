@@ -44,7 +44,6 @@ static int do_send(struct msg ** msg, uint32_t flags, struct cnxctx * cnx, uint3
 	size_t sz;
 	int ret;
 	uint32_t bkp_hbh = 0;
-	struct timespec senton;
 	struct msg * cpy_for_logs_only;
 	
 	TRACE_ENTRY("%p %x %p %p %p", msg, flags, cnx, hbh, srl);
@@ -72,31 +71,8 @@ static int do_send(struct msg ** msg, uint32_t flags, struct cnxctx * cnx, uint3
 		CHECK_FCT_DO( ret = fd_p_sr_store(srl, msg, &hdr->msg_hbhid, bkp_hbh), goto out );
 	}
 	
-	CHECK_SYS_DO( clock_gettime(CLOCK_REALTIME, &senton), /* ... */ );
-	CHECK_FCT_DO( fd_msg_ts_set_sent(cpy_for_logs_only, &senton), /* ... */ );
-	
 	/* Log the message */
-	fd_msg_log( FD_MSG_LOG_SENT, cpy_for_logs_only, "Sent to '%s'", fd_cnx_getid(cnx));
-	
-	{
-		struct timespec rcvon, delay;
-		
-		(void) fd_msg_ts_get_recv(cpy_for_logs_only, &rcvon);
-		if (rcvon.tv_sec != 0 || rcvon.tv_nsec != 0) {
-			TS_DIFFERENCE( &delay, &rcvon, &senton);
-			fd_msg_log( FD_MSG_LOG_TIMING, cpy_for_logs_only, "Forwarded in %ld.%6.6ld sec", (long)delay.tv_sec, delay.tv_nsec/1000);
-		} else { /* We log the answer time only for answers generated locally */
-			if (!msg_is_a_req) {
-				/* get the matching request */
-				struct msg * req;
-				struct timespec reqrcvon;
-				(void) fd_msg_answ_getq(cpy_for_logs_only, &req);
-				(void) fd_msg_ts_get_recv(req, &reqrcvon);
-				TS_DIFFERENCE( &delay, &reqrcvon, &senton);
-				fd_msg_log( FD_MSG_LOG_TIMING, cpy_for_logs_only, "Answered in %ld.%6.6ld sec", (long)delay.tv_sec, delay.tv_nsec/1000);
-			}
-		}
-	}
+	// fd_msg_log( FD_MSG_LOG_SENT, cpy_for_logs_only, "Sent to '%s'", fd_cnx_getid(cnx));
 	
 	/* Send the message */
 	CHECK_FCT_DO( ret = fd_cnx_send(cnx, buf, sz, flags), );
@@ -121,7 +97,7 @@ static void cleanup_requeue(void * arg)
 	struct msg *msg = arg;
 	CHECK_FCT_DO(fd_fifo_post(fd_g_outgoing, &msg),
 		{
-			fd_msg_log( FD_MSG_LOG_DROPPED, msg, "An error occurred while attempting to requeue this message during cancellation of the sending function");
+			//fd_msg_log( FD_MSG_LOG_DROPPED, msg, "An error occurred while attempting to requeue this message during cancellation of the sending function");
 			CHECK_FCT_DO(fd_msg_free(msg), /* What can we do more? */);
 		} );
 }
@@ -154,7 +130,7 @@ static void * out_thr(void * arg)
 		CHECK_FCT_DO( ret = do_send(&msg, 0, peer->p_cnxctx, &peer->p_hbh, &peer->p_sr),
 			{
 				if (msg) {
-					fd_msg_log( FD_MSG_LOG_DROPPED, msg, "Internal error: Problem while sending (%s)", strerror(ret) );
+					//fd_msg_log( FD_MSG_LOG_DROPPED, msg, "Internal error: Problem while sending (%s)", strerror(ret) );
 					fd_msg_free(msg);
 				}
 			} );
@@ -206,7 +182,7 @@ int fd_out_send(struct msg ** msg, struct cnxctx * cnx, struct fd_peer * peer, u
 		CHECK_FCT_DO( ret = do_send(msg, flags, cnx, hbh, peer ? &peer->p_sr : NULL),
 			{
 				if (msg) {
-					fd_msg_log( FD_MSG_LOG_DROPPED, *msg, "Internal error: Problem while sending (%s)", strerror(ret) );
+					//fd_msg_log( FD_MSG_LOG_DROPPED, *msg, "Internal error: Problem while sending (%s)", strerror(ret) );
 					fd_msg_free(*msg);
 					*msg = NULL;
 				}
