@@ -873,6 +873,10 @@ int fd_app_empty(struct fd_list * list);
  *  msg 	: If relevant, the pointer to the message trigging the call. NULL otherwise.
  *  peer        : If relevant, the pointer to the peer associated with the call. NULL otherwise.
  *  other	: For some callbacks, the remaining information is passed in this parameter. See each hook detail.
+ *  permsgdata  : Structure associated with a given message, across several hooks. 
+ *                 Same structure is associated with requests and corresponding answers. 
+ *                 See fd_hook_data_hdl below for details.
+ *                 If no fd_hook_data_hdl is registered with this callback, this parameter is always NULL
  *  regdata     : Data pointer stored at registration, opaque for the framework.
  *
  * DESCRIPTION: 
@@ -882,7 +886,7 @@ int fd_app_empty(struct fd_list * list);
  *  - create statistics information on the throughput
  *  - ...
  *
- *  IMPORTANT: the callback MUST NOT change the momory pointed by the different parameters (peer, message, ...)
+ *  IMPORTANT: the callback MUST NOT change the memory pointed by the different parameters (peer, message, ...)
  *
  * RETURN VALUE:
  *  none.
@@ -891,86 +895,151 @@ int fd_app_empty(struct fd_list * list);
 /* The available hooks in the framework */
 enum fd_hook_type {
 
-	HOOK_MESSAGE_RECEIVED = 1,
-		/* Hook called when a message has been received and the structure has been parsed successfully (list of AVPs).
-		 - *msg points to the parsed message. At this time, the objects have not been dictionary resolved. If you
-		   try to call fd_msg_parse_dict, it might slow down the operation of a relay agent.
-		 - *peer is set if the message is received from a peer's connection, and NULL if the message is from a new client
-		   connected and not yet identified
-		 - *other is NULL.
-		 */
-	
-	/* HOOK_DATA_RECEIVED, <-- this one is tricky to implement, will skip in the first version */
-		/* Hook called as soon as data is received from a socket.
-		 - *msg is NULL.
-		 - *peer is set if the data is received from a peer's connection, and NULL if the message is from a new client
-		   connected and not yet identified
-		 - *other points to a structure: { .
+	HOOK_DATA_RECEIVED = 0,
+		/* Hook called as soon as a message has been received from the network, after TLS & boundary processing.
+		 - {msg} is NULL.
+		 - {peer} is NULL.
+		 - {*other} is NULL, {other} points to a valid location where you can store a pointer. 
+		    This same pointer will then passed to the next hook, once message is processed.
+		    IMPORTANT: free() will be called on this pointer if any problem, so this pointer must be malloc'd.
+		 - {permsgdata} is NULL.
 		 */
 		 
+	HOOK_MESSAGE_RECEIVED,
+		/* Hook called when a message has been received and the structure has been parsed successfully (list of AVPs).
+		 - {msg} points to the parsed message. At this time, the objects have not been dictionary resolved. If you
+		   try to call fd_msg_parse_dict, it will slow down the operation of a relay agent.
+		 - {peer} is set if the message is received from a peer's connection, and NULL if the message is from a new client
+		   connected and not yet identified
+		 - {*other} contains the pointer stored with the HOOK_DATA_RECEIVED hook if any, NULL otherwise. After this hook returns, free(*other) is called if not NULL.
+		 - {permsgdata} points to either a new empty structure allocated for this request (cf. fd_hook_data_hdl), or the request's existing structure if the message is an answer.
+		 */
+	
+	HOOK_MESSAGE_LOCAL,
+		/* Hook called when a request message has been created locally and is being sent.
+		 - {msg} points to the message.
+		 - {peer} is NULL
+		 - {other} is NULL
+		 - {permsgdata} points to a new empty structure allocated for this request (cf. fd_hook_data_hdl)
+		 */
+	
 	HOOK_MESSAGE_SENT,
 		/* Hook called when a message has been sent to a peer. The message might be freed as soon as the hook function returns,
 		   so it is not safe to store the pointer for asynchronous processing.
-		 - *msg points to the sent message. Again, the objects may not have been dictionary resolved. If you
-		   try to call fd_msg_parse_dict, it might slow down the operation of a relay agent.
-		 - *peer is set if the message is sent to a peer's connection, and NULL if the message is sent to a new client
+		 - {msg} points to the sent message. Again, the objects may not have been dictionary resolved. If you
+		   try to call fd_msg_parse_dict, it will slow down the operation of a relay agent.
+		 - {peer} is set if the message is sent to a peer's connection, and NULL if the message is sent to a new client
 		   connected and not yet identified / being rejected
-		 - *other is NULL.
+		 - {other} is NULL.
+		 - {permsgdata} points to existing structure if any, or a new structure otherwise. 
+		    If the message is an answer, the structure is shared with the corresponding request.
+		 */
+	
+	HOOK_MESSAGE_FAILOVER,
+		/* Hook called when a message that was sent to a peer is being requeued, because e.g. the connection was teared down.
+		   In that case the message will go again through the routing process.
+		 - {msg} points to the corresponding request message (the answer is discarded). Again, the objects may not have been dictionary resolved. If you
+		   try to call fd_msg_parse_dict, it might slow down the operation of a relay agent, although this hook is not on the normal execution path.
+		 - {peer} is the peer this message was previously sent to.
+		 - {other} is NULL.
+		 - {permsgdata} points to existing structure associated with this request. 
 		 */
 	
 	HOOK_MESSAGE_ROUTING_ERROR,
 		/* Hook called when a message being processed by the routing thread meets an error such as:
 		     -- parsing error
 		     -- no remaining available peer for sending, based on routing callbacks decisions (maybe after retries).
-		 - *msg points to the message. Again, the objects may not have been dictionary resolved. If you
-		   try to call fd_msg_parse_dict, it might slow down the operation of a relay agent.
-		 - *peer is NULL.
-		 - *other is a char * pointer to the error message (human-readable).
+		 - {msg} points to the message. Again, the objects may not have been dictionary resolved. If you
+		   try to call fd_msg_parse_dict, it might slow down the operation of a relay agent, although this hook is not on the normal execution path.
+		 - {peer} is NULL.
+		 - {other} is a char * pointer to the error message (human-readable).
+		 - {permsgdata} points to existing structure associated with this message (or new structure if no previous hook was registered). 
 		 */
 	
 	HOOK_MESSAGE_ROUTING_FORWARD,
 		/* Hook called when a received message is deemed to be not handled locally by the routing_dispatch process.
 		   The decision of knowing which peer it will be sent to is not made yet (or if an error will be returned).
 		   The hook is trigged before the callbacks registered with fd_rt_fwd_register are called.
-		 - *msg points to the message. Again, the objects may not have been dictionary resolved. If you
-		   try to call fd_msg_parse_dict, it might slow down the operation of a relay agent.
-		 - *peer is NULL.
-		 - *other is NULL.
+		 - {msg} points to the message. Again, the objects may not have been dictionary resolved. 
+		    If you try to call fd_msg_parse_dict, it will slow down the operation of a relay agent.
+		 - {peer} is NULL.
+		 - {other} is NULL.
+		 - {permsgdata} points to existing structure associated with this message (or new structure if no previous hook was registered). 
 		 */
 	
 	HOOK_MESSAGE_ROUTING_LOCAL,
-		/* Hook called when a received message is handled locally by the routing_dispatch process.
+		/* Hook called when a received message is handled locally by the routing_dispatch process (i.e., not forwarded).
 		   The hook is trigged before the callbacks registered with fd_disp_register are called.
-		 - *msg points to the message. Here, the message has been already parsed completely & successfully.
-		 - *peer is NULL.
-		 - *other is NULL.
+		 - {msg} points to the message. Here, the message has been already parsed completely & successfully.
+		 - {peer} is NULL.
+		 - {other} is NULL.
+		 - {permsgdata} points to existing structure associated with this message (or new structure if no previous hook was registered). 
 		 */
 	
 	HOOK_MESSAGE_DROPPED,
 		/* Hook called when a message is being discarded by the framework because of some error.
 		   It is probably a good idea to log this for analysis.
-		 - *msg points to the message.
-		 - *peer is NULL.
-		 - *other is a char * pointer to the error message (human-readable).
+		 - {msg} points to the message, which will be freed as soon as the hook returns.
+		 - {peer} is NULL.
+		 - {other} is a char * pointer to the error message (human-readable).
+		 - {permsgdata} points to existing structure associated with this message (or new structure if no previous hook was registered).
 		 */
 	
 	HOOK_PEER_CONNECT_FAILED,
 		/* Hook called when a connection attempt to a remote peer has failed.
-		 - *msg may be NULL (lower layer error, e.g. connection timeout) or points to the CEA message sent or received (with an error code).
-		 - *peer may be NULL for incoming requests from unknown peers being rejected, otherwise it points to the peer structure associated with the attempt.
-		 - *other is a char * pointer to the error message (human-readable).
+		 - {msg} may be NULL (lower layer error, e.g. connection timeout) or points to the CEA message sent or received (with an error code).
+		 - {peer} may be NULL for incoming requests from unknown peers being rejected, otherwise it points to the peer structure associated with the attempt.
+		 - {other} is a char * pointer to the error message (human-readable).
+		 - {permsgdata} is always NULL for this hook.
 		 */
 	
 	HOOK_PEER_CONNECT_SUCCESS,
 		/* Hook called when a connection attempt to a remote peer has succeeded (the peer moves to OPEN state).
-		 - *msg points to the CEA message sent or received (with an success code) -- in case it is sent, you can always get access to the matching CER.
-		 - *peer points to the peer structure.
-		 - *other is NULL.
+		 - {msg} points to the CEA message sent or received (with an success code) -- in case it is sent, you can always get access to the matching CER.
+		 - {peer} points to the peer structure.
+		 - {other} is NULL.
+		 - {permsgdata} is always NULL for this hook.
 		 */
 	
+#define HOOK_PEER_LAST	HOOK_PEER_CONNECT_SUCCESS
 };
-	
-/* A handler associated with a registered callback, for cleanup */
+
+
+/* Type if the {permsgdata} ointer. It is up to each extension to define its own structure. This is opaque for the framework. */
+struct fd_hook_permsgdata;
+
+/* A handle that will be associated with the extension, and with the permsgdata structures. */
+struct fd_hook_data_hdl;
+
+/* Function to register a new fd_hook_data_hdl. Should be called by your extension init function.
+ * The arguments are the functions called to initialize a new fd_hook_permsgdata and to free this structure when the corresponding message is being freed.
+ */
+/*
+ * FUNCTION:	fd_hook_data_register
+ *
+ * PARAMETERS:
+ *  permsgdata_new_cb     : function called to initialize a new empty fd_hook_permsgdata structure, when a hook will be called for a message with not structure yet. If the function returns NULL, it will be called again for the next hook.
+ *  permsgdata_destroy_cb : function called when a message is being disposed. It should free the resources associated with the fd_hook_permsgdata.
+ *  new_handle            : On success, a handler to the registered callback is stored here. 
+ *		             This handler will be used to unregister the cb.
+ *
+ * DESCRIPTION: 
+ *   Register a new fd_hook_data_hdl. This handle is used during hooks registration (see below) in order to associate data with the messages, to allow keeping tracking of the message easily.
+ *  Note that these handlers are statically allocated and cannot be unregistered.
+ *
+ * RETURN VALUE:
+ *  0      	: The callback is registered.
+ *  EINVAL 	: A parameter is invalid.
+ *  ENOSPC	: Too many handles already registered. You may need to increase the limit in the code.
+ */
+int fd_hook_data_register(
+	struct fd_hook_permsgdata * (*permsgdata_new_cb)     (void),
+        void (*permsgdata_destroy_cb) (struct fd_hook_permsgdata *),
+        struct fd_hook_data_hdl **    new_handle
+);
+
+
+/* A handler associated with a registered hook callback (for cleanup) */
 struct fd_hook_hdl; 
 
 /*
@@ -980,25 +1049,30 @@ struct fd_hook_hdl;
  *  type	  : The fd_hook_type for which this cb is registered. Call several times if you want to register for several hooks.
  *  fd_hook_cb	  : The callback function to register (see prototype above).
  *  regdata	  : Pointer to pass to the callback when it is called. The data is opaque to the daemon.
+ *  data_hdl      : If permsgdata is requested for the hooks, a handler registered with fd_hook_data_register. NULL otherwise.
  *  handler       : On success, a handler to the registered callback is stored here. 
- *		   This handler will be used to unregister the cb.
+ *		   This handler can be used to unregister the cb.
  *
  * DESCRIPTION: 
- *   Register a new hookin the framework. See explanations above. 
+ *   Register a new hook in the framework. See explanations above.
  *
  * RETURN VALUE:
  *  0      	: The callback is registered.
+ *  EEXIST      : Another callback is already registered for this type of hook (HOOK_DATA_RECEIVED).
  *  EINVAL 	: A parameter is invalid.
  *  ENOMEM	: Not enough memory to complete the operation
  */
 int fd_hook_register (  enum fd_hook_type type, 
 			void (*fd_hook_cb)(enum fd_hook_type type, struct msg * msg, struct peer_hdr * peer, void * other, void * regdata), 
-			void * regdata, struct fd_hook_hdl ** handler );
+			void * regdata, 
+			struct fd_hook_data_hdl *data_hdl,
+			struct fd_hook_hdl ** handler );
 
 /* Remove a hook registration */
 int fd_hook_unregister( struct fd_hook_hdl * handler );
 
 
+/*============================================================*/
 
 /*
  * The following allows an extension to retrieve stat information on the different fifo queues involved in the freeDiameter framework.
@@ -1041,6 +1115,10 @@ enum fd_stat_type {
 int fd_stat_getstats(enum fd_stat_type stat, struct peer_hdr * peer, 
 			int * len, int * max, int * highest_count, long long * total_count, 
 			struct timespec * total, struct timespec * blocking, struct timespec * last);
+
+/*============================================================*/
+/*                         EOF                                */
+/*============================================================*/
 
 #ifdef __cplusplus
 }
