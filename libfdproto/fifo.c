@@ -151,7 +151,7 @@ void fd_fifo_dump(int level, char * name, struct fifo * queue, void (*dump_item)
 		int i = 0;
 		for (li = queue->list.next; li != &queue->list; li = li->next) {
 			struct fifo_item * fi = (struct fifo_item *)li;
-			fd_log_debug("  [%i] item %p in fifo %p, posted:ld.%06ld", 
+			fd_log_debug("  [%i] item %p in fifo %p, posted:%ld.%06ld", 
 				i++, fi->item.o, queue, (long)fi->posted_on.tv_sec,(long)(fi->posted_on.tv_nsec/1000));
 			(*dump_item)(level, fi->item.o);
 		}
