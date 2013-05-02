@@ -49,6 +49,26 @@ static int 	 monitor_main(char * conffile);
 
 EXTENSION_ENTRY("dbg_monitor", monitor_main);
 
+
+
+/* Display information about a queue */
+static void display_info(char * queue_desc, char * peer, int current_count, int limit_count, int highest_count, long long total_count,
+			struct timespec * total, struct timespec * blocking, struct timespec * last)
+{
+	long long throughput = (total_count * 1000000000) / ((total->tv_sec * 1000000000) + total->tv_nsec);
+	if (peer) {
+		TRACE_DEBUG(INFO, "'%s'@'%s': cur:%d/%d, h:%d, T:%lld in %ld.%06lds (%llditems/s), blocked:%ld.%06lds, last processing:%ld.%06lds",
+			queue_desc, peer, current_count, limit_count, highest_count,
+			total_count, total->tv_sec, total->tv_nsec, throughput,
+			blocking->tv_sec, blocking->tv_nsec, last->tv_sec, last->tv_nsec);
+	} else {
+		TRACE_DEBUG(INFO, "Global '%s': cur:%d/%d, h:%d, T:%lld in %ld.%06lds (%llditems/s), blocked:%ld.%06lds, last processing:%ld.%06lds",
+			queue_desc, current_count, limit_count, highest_count,
+			total_count, total->tv_sec, total->tv_nsec, throughput,
+			blocking->tv_sec, blocking->tv_nsec, last->tv_sec, last->tv_nsec);
+	}
+}
+
 /* Thread to display periodical debug information */
 static pthread_t thr;
 static void * mn_thr(void * arg)
@@ -58,18 +78,51 @@ static void * mn_thr(void * arg)
 	
 	/* Loop */
 	while (1) {
+		int current_count, limit_count, highest_count;
+		long long total_count;
+		struct timespec total, blocking, last;
+		struct fd_list * li;
+	
 		#ifdef DEBUG
 		for (i++; i % 30; i++) {
 			fd_log_debug("[dbg_monitor] %ih%*im%*is", i/3600, 2, (i/60) % 60 , 2, i%60); /* This makes it easier to detect inactivity periods in the log file */
 			sleep(1);
 		}
 		#else /* DEBUG */
-		sleep(3600); /* 1 hour */
+		sleep(3599); /* 1 hour */
 		#endif /* DEBUG */
-		fd_log_debug("[dbg_monitor] Dumping current information");
-		CHECK_FCT_DO(fd_event_send(fd_g_config->cnf_main_ev, FDEV_DUMP_QUEUES, 0, NULL), /* continue */);
+		TRACE_DEBUG(INFO, "[dbg_monitor] Dumping queues statistics");
+		
+		CHECK_FCT_DO( fd_stat_getstats(STAT_G_LOCAL, NULL, &current_count, &limit_count, &highest_count, &total_count, &total, &blocking, &last), );
+		display_info("Local delivery", NULL, current_count, limit_count, highest_count, total_count, &total, &blocking, &last);
+		
+		CHECK_FCT_DO( fd_stat_getstats(STAT_G_INCOMING, NULL, &current_count, &limit_count, &highest_count, &total_count, &total, &blocking, &last), );
+		display_info("Total received", NULL, current_count, limit_count, highest_count, total_count, &total, &blocking, &last);
+		
+		CHECK_FCT_DO( fd_stat_getstats(STAT_G_OUTGOING, NULL, &current_count, &limit_count, &highest_count, &total_count, &total, &blocking, &last), );
+		display_info("Total sending", NULL, current_count, limit_count, highest_count, total_count, &total, &blocking, &last);
+		
+		
+		CHECK_FCT_DO( pthread_rwlock_rdlock(&fd_g_peers_rw), /* continue */ );
+
+		for (li = fd_g_peers.next; li != &fd_g_peers; li = li->next) {
+			struct peer_hdr * p = (struct peer_hdr *)li->o;
+			
+			fd_peer_dump(p, NONE);
+			
+			CHECK_FCT_DO( fd_stat_getstats(STAT_P_PSM, p, &current_count, &limit_count, &highest_count, &total_count, &total, &blocking, &last), );
+			display_info("Events, incl. recept", p->info.pi_diamid, current_count, limit_count, highest_count, total_count, &total, &blocking, &last);
+			
+			CHECK_FCT_DO( fd_stat_getstats(STAT_P_TOSEND, p, &current_count, &limit_count, &highest_count, &total_count, &total, &blocking, &last), );
+			display_info("Outgoing", p->info.pi_diamid, current_count, limit_count, highest_count, total_count, &total, &blocking, &last);
+			
+		}
+
+		CHECK_FCT_DO( pthread_rwlock_unlock(&fd_g_peers_rw), /* continue */ );
+
+		
+		
 		CHECK_FCT_DO(fd_event_send(fd_g_config->cnf_main_ev, FDEV_DUMP_SERV, 0, NULL), /* continue */);
-		CHECK_FCT_DO(fd_event_send(fd_g_config->cnf_main_ev, FDEV_DUMP_PEERS, 0, NULL), /* continue */);
 		sleep(1);
 	}
 	
