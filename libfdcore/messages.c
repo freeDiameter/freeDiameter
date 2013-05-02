@@ -414,7 +414,7 @@ int fd_msg_parse_or_error( struct msg ** msg )
 		} while (0);
 		
 		/* Just discard */
-		fd_msg_log( FD_MSG_LOG_DROPPED, m, "Answer not compliant to dictionary's ABNF (%s)", pei.pei_errcode  );
+		//fd_msg_log( FD_MSG_LOG_DROPPED, m, "Answer not compliant to dictionary's ABNF (%s)", pei.pei_errcode  );
 		CHECK_FCT( fd_msg_free( m ) );
 		*msg = NULL;
 	}

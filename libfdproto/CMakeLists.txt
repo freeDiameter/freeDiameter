@@ -12,11 +12,11 @@ SET(LFDPROTO_SRC
 	lists.c
 	log.c
 	messages.c
-	msg_log.c
 	ostr.c
 	portability.c
 	rt_data.c
 	sessions.c
+	utils.c
 	)
 
 # Save the list of files for testcases in the core's directory

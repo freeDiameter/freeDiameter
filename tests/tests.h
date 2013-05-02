@@ -215,9 +215,6 @@ static inline void test_init(int argc, char * argv[], char *fname)
 	/* Initialize the config */
 	CHECK( 0, fd_conf_init() );
 
-	/* Initialize the message logging facility */
-	fd_msg_log_init(fd_g_config->cnf_dict);
-
 	/* Add definitions of the base protocol */
 	CHECK( 0, fd_dict_base_protocol(fd_g_config->cnf_dict) );
 	

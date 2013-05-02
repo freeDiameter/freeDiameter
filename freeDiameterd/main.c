@@ -48,7 +48,6 @@ static pthread_t signals_thr;
 
 static char *conffile = NULL;
 static int gnutls_debug = 0;
-static int fd_msg_log_enabled = 0; /* all logs disabled by default, this field is a bitfield of enabled FD_MSG_LOG_* */
 
 /* gnutls debug */
 static void fd_gnutls_debug(int level, const char * str) {
@@ -87,25 +86,6 @@ int main(int argc, char * argv[])
 		TRACE_DEBUG(INFO, "Enabled GNUTLS debug at level %d", gnutls_debug);
 	}
 	
-	/* set messages logging */
-	if (fd_msg_log_enabled) {
-		if (fd_msg_log_enabled & (1 << FD_MSG_LOG_DROPPED)) {
-			CHECK_FCT( fd_msg_log_config(FD_MSG_LOG_DROPPED, FD_MSG_LOGTO_DEBUGONLY, NULL) );
-		}
-		if (fd_msg_log_enabled & (1 << FD_MSG_LOG_RECEIVED)) {
-			CHECK_FCT( fd_msg_log_config(FD_MSG_LOG_RECEIVED, FD_MSG_LOGTO_DEBUGONLY, NULL) );
-		}
-		if (fd_msg_log_enabled & (1 << FD_MSG_LOG_SENT)) {
-			CHECK_FCT( fd_msg_log_config(FD_MSG_LOG_SENT, FD_MSG_LOGTO_DEBUGONLY, NULL) );
-		}
-		if (fd_msg_log_enabled & (1 << FD_MSG_LOG_NODELIVER)) {
-			CHECK_FCT( fd_msg_log_config(FD_MSG_LOG_NODELIVER, FD_MSG_LOGTO_DEBUGONLY, NULL) );
-		}
-		if (fd_msg_log_enabled & (1 << FD_MSG_LOG_TIMING)) {
-			CHECK_FCT( fd_msg_log_config(FD_MSG_LOG_TIMING, FD_MSG_LOGTO_DEBUGONLY, NULL) );
-		}
-	}
-		
 	/* Allow SIGINT and SIGTERM from this point to terminate the application */
 	CHECK_POSIX( pthread_create(&signals_thr, NULL, catch_signals, NULL) );
 	
@@ -168,14 +148,12 @@ static void main_help( void )
 	printf( "  -h, --help             Print help and exit\n"
   		"  -V, --version          Print version and exit\n"
   		"  -c, --config=filename  Read configuration from this file instead of the \n"
-		"                           default location (" DEFAULT_CONF_PATH "/" FD_DEFAULT_CONF_FILENAME ").\n"
-		"  -M, --enable_msg_log=( DROPPED | RECEIVED | SENT | NODELIVER | TIMING )\n"
-		"                         Enable logging of these messages in the output.\n");
+		"                           default location (" DEFAULT_CONF_PATH "/" FD_DEFAULT_CONF_FILENAME ").\n");
  	printf( "\nDebug:\n"
   		"  These options are mostly useful for developers\n"
   		"  -l, --dbglocale        Set the locale for error messages\n"
-  		"  -d, --debug            Increase verbosity of debug messages\n"
-  		"  -q, --quiet            Decrease verbosity then remove debug messages\n"
+  		"  -d, --debug            Increase verbosity of debug messages if default logger is used\n"
+  		"  -q, --quiet            Decrease verbosity if default logger is used\n"
   		"  --dbg_gnutls <int>     Enable GNU TLS debug at level <int>\n");
 }
 
@@ -196,7 +174,6 @@ static int main_cmdline(int argc, char *argv[])
 		{ "dbg_func",	required_argument, 	NULL, 'f' },
 		{ "dbg_file",	required_argument, 	NULL, 'F' },
 		{ "dbg_gnutls",	required_argument, 	NULL, 'g' },
-		{ "enable_msg_log",	optional_argument, 	NULL, 'M' },
 		{ NULL,		0, 			NULL, 0 }
 	};
 	
@@ -231,30 +208,6 @@ static int main_cmdline(int argc, char *argv[])
 				}
 				break;
 				
-			case 'M':	/* disable logging of these messages */
-				if (optarg) {
-					if (!strcmp(optarg, "DROPPED")) {
-						fd_msg_log_enabled |= 1 << FD_MSG_LOG_DROPPED;
-					} else
-					if (!strcmp(optarg, "RECEIVED")) {
-						fd_msg_log_enabled |= 1 << FD_MSG_LOG_RECEIVED;
-					} else
-					if (!strcmp(optarg, "SENT")) {
-						fd_msg_log_enabled |= 1 << FD_MSG_LOG_SENT;
-					} else
-					if (!strcmp(optarg, "NODELIVER")) {
-						fd_msg_log_enabled |= 1 << FD_MSG_LOG_NODELIVER;
-					} else
-					if (!strcmp(optarg, "TIMING")) {
-						fd_msg_log_enabled |= 1 << FD_MSG_LOG_TIMING;
-					} else {
-						main_help();
-						exit(0);
-					}
-				} else {
-					fd_msg_log_enabled = -1; /* all logs enabled */
-				}
-
 			case 'd':	/* Increase verbosity of debug messages.  */
 				fd_g_debug_lvl++;
 				break;

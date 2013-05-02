@@ -2,7 +2,7 @@
 * Software License Agreement (BSD License)                                                               *
 * Author: Sebastien Decugis <sdecugis@freediameter.net>							 *
 *													 *
-* Copyright (c) 2011, WIDE Project and NICT								 *
+* Copyright (c) 2013, WIDE Project and NICT								 *
 * All rights reserved.											 *
 * 													 *
 * Redistribution and use of this software in source and binary forms, with or without modification, are  *
@@ -33,52 +33,35 @@
 * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.								 *
 *********************************************************************************************************/
 
-#include "fdcore-internal.h"
+#include "fdproto-internal.h"
 
-/* The global message queues */
-struct fifo * fd_g_incoming = NULL;
-struct fifo * fd_g_outgoing = NULL;
-struct fifo * fd_g_local = NULL;
-
-/* Initialize the message queues. */
-int fd_queues_init(void)
+char * fd_sa_dump_node(char * buf, size_t bufsize, sSA * sa, int flags) 
 {
-	TRACE_ENTRY();
-	CHECK_FCT( fd_fifo_new ( &fd_g_incoming, 20 ) );
-	CHECK_FCT( fd_fifo_new ( &fd_g_outgoing, 30 ) );
-	CHECK_FCT( fd_fifo_new ( &fd_g_local, 25 ) );
-	return 0;
+	char addrbuf[INET6_ADDRSTRLEN];
+	if (sa) {
+		int rc = getnameinfo(sa, sSAlen( sa ), addrbuf, sizeof(addrbuf), NULL, 0, flags);
+		if (rc)
+			snprintf(buf, bufsize, "%s", gai_strerror(rc));
+		else
+			snprintf(buf, bufsize, "%s", &__addrbuf[0]);
+	} else {
+		snprintf(buf, bufsize, "(NULL / ANY)");
+	}
+	return buf;
 }
 
-/* Destroy a queue after emptying it (and dumping the content) */
-int fd_queues_fini(struct fifo ** queue)
+char * fd_sa_dump_node_serv(char * buf, size_t bufsize, sSA * sa, int flags) 
 {
-	struct msg * msg;
-	int ret = 0;
-	
-	TRACE_ENTRY("%p", queue);
-	
-	/* Note : the threads that post into this queue should already been stopped before this !!! */
-	
-	CHECK_PARAMS(queue);
-	if (*queue == NULL)
-		return 0; /* the queue was not already initialized */
-
-	/* Empty all contents */
-	while (1) {
-		/* Check if there is a message in the queue */
-		ret = fd_fifo_tryget(*queue, &msg);
-		if (ret == EWOULDBLOCK)
-			break;
-		CHECK_FCT(ret);
-		
-		/* We got one! */
-		//fd_msg_log( FD_MSG_LOG_DROPPED, msg, "Message lost because framework is terminating." );
-		fd_msg_free(msg);
+	char addrbuf[INET6_ADDRSTRLEN];
+	char servbuf[32];
+	if (sa) {
+		int rc = getnameinfo(sa, sSAlen( sa ), addrbuf, sizeof(addrbuf), servbuf, sizeof(servbuf), flags);
+		if (rc)
+			snprintf(buf, bufsize, "%s", gai_strerror(rc));
+		else
+			snprintf(buf, bufsize, "%s", &__addrbuf[0]);
+	} else {
+		snprintf(buf, bufsize, "(NULL / ANY)");
 	}
-	
-	/* Now, delete the empty queue */
-	CHECK_FCT( fd_fifo_del ( queue ) );
-	
-	return 0;
+	return buf;
 }

@@ -296,11 +296,6 @@ struct msg {
 			fd_msg_dump_one(0, $self);
 	}
 	
-	/* Log to file (depending on config)  */
-	void log ( enum fd_msg_log_cause cause, char * message ) {
-		fd_msg_log( cause, $self, message );
-	}
-	
 	/* Model */
 	struct dict_object * model() {
 		struct dict_object * m = NULL;

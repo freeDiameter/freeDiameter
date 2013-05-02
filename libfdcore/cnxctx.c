@@ -643,8 +643,6 @@ again:
 		fd_cnx_markerror(conn);
 	}
 	
-	CHECK_SYS_DO( clock_gettime(CLOCK_REALTIME, &conn->cc_tls_para.recvon), /* continue */ );
-	
 	return ret;
 }
 
@@ -700,7 +698,6 @@ static void * rcvthr_notls_tcp(void * arg)
 		size_t  length;
 		ssize_t ret = 0;
 		size_t	received = 0;
-		struct timespec recv_on;
 
 		do {
 			ret = fd_cnx_s_recv(conn, &header[received], sizeof(header) - received);
@@ -737,10 +734,6 @@ static void * rcvthr_notls_tcp(void * arg)
 			}
 			received += ret;
 		}
-		
-		/* Piggy-tail the timestamp of reception */
-		CHECK_SYS_DO( clock_gettime(CLOCK_REALTIME, &recv_on), /* continue */ );
-		memcpy(newmsg + length, &recv_on, sizeof(struct timespec));
 		
 		/* We have received a complete message, pass it to the daemon */
 		CHECK_FCT_DO( fd_event_send( fd_cnx_target_queue(conn), FDEVP_CNX_MSG_RECV, length, newmsg), /* continue or destroy everything? */);
@@ -929,13 +922,10 @@ end:
 /* The function that receives TLS data and re-builds a Diameter message -- it exits only on error or cancelation */
 int fd_tls_rcvthr_core(struct cnxctx * conn, gnutls_session_t session)
 {
-	struct timespec * rcv_on = &conn->cc_tls_para.recvon;
-	
 #ifndef DISABLE_SCTP
 	void * ptr = gnutls_transport_get_ptr(session);
 	if (ptr != conn) {
 		struct sctps_ctx * ctx = (struct sctps_ctx *) ptr;
-		rcv_on = &ctx->recvon;
 	}
 #endif /* DISABLE_SCTP */
 	
@@ -983,9 +973,6 @@ int fd_tls_rcvthr_core(struct cnxctx * conn, gnutls_session_t session)
 			}
 			received += ret;
 		}
-		
-		/* The timestamp of the last TLS chunk received for this rebuilt message lives close to the session pointer, we piggyback it */
-		memcpy(newmsg + length, rcv_on, sizeof(struct timespec));
 		
 		/* We have received a complete message, pass it to the daemon */
 		CHECK_FCT_DO( ret = fd_event_send( fd_cnx_target_queue(conn), FDEVP_CNX_MSG_RECV, length, newmsg), 

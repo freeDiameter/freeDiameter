@@ -168,7 +168,7 @@ static void * client_sm(void * arg)
 	CHECK_FCT_DO( fd_msg_parse_buffer( &buf, bufsz, &msg ), /* Parsing failed */ goto cleanup );
 	
 	/* Log incoming message */
-	fd_msg_log( FD_MSG_LOG_RECEIVED, msg, "Received %zdb from new client '%s'", bufsz, fd_cnx_getid(c->conn) );
+	//fd_msg_log( FD_MSG_LOG_RECEIVED, msg, "Received %zdb from new client '%s'", bufsz, fd_cnx_getid(c->conn) );
 	
 	/* We expect a CER, it must parse with our dictionary and rules */
 	CHECK_FCT_DO( fd_msg_parse_rules( msg, fd_g_config->cnf_dict, NULL ), /* Parsing failed -- trace details ? */ goto cleanup );
@@ -194,7 +194,7 @@ cleanup:
 	
 	/* Cleanup the parsed message if any */
 	if (msg) {
-		fd_msg_log( FD_MSG_LOG_DROPPED, msg, "Received invalid/unexpected message from connecting client '%s'", fd_cnx_getid(c->conn) );
+		//fd_msg_log( FD_MSG_LOG_DROPPED, msg, "Received invalid/unexpected message from connecting client '%s'", fd_cnx_getid(c->conn) );
 		CHECK_FCT_DO( fd_msg_free(msg), /* continue */);
 	}
 	

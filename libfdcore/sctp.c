@@ -1067,7 +1067,6 @@ int fd_sctp_recvmeta(struct cnxctx * conn, uint16_t * strid, uint8_t ** buf, siz
 	size_t 			 bufsz = 0, datasize = 0;
 	size_t			 mempagesz = sysconf(_SC_PAGESIZE); /* We alloc buffer by memory pages for efficiency */
 	int 			 timedout = 0;
-	struct timespec 	 recv_on;
 	
 	TRACE_ENTRY("%p %p %p %p %p", conn, strid, buf, len, event);
 	CHECK_PARAMS( conn && buf && len && event );
@@ -1188,10 +1187,6 @@ again:
 		return 0;
 	}
 	
-	/* Piggy-tail the timestamp of reception */
-	CHECK_SYS_DO( clock_gettime(CLOCK_REALTIME, &recv_on), /* continue */ );
-	memcpy(data + datasize, &recv_on, sizeof(struct timespec));
-		
 	/* From this point, we have received a message */
 	*event = FDEVP_CNX_MSG_RECV;
 	*buf = data;
