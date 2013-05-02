@@ -372,7 +372,7 @@ int diameap_eap_statemachine(struct eap_state_machine * eap_sm,
 
 		case EAP_INTEGRITY_CHECK:
 			if ((*eap_sm->selectedMethod->eap_method_check)(eap_sm,
-					eap_i->aaaEapRespData) == FALSE)
+					&eap_i->aaaEapRespData) == FALSE)
 			{
 				TRACE_DEBUG(INFO,"%s[EAP Protocol] Invalid EAP packet received {Type=%d, Vendor=%d}. Integrity check failed (non fatal error).",DIAMEAP_EXTENSION,eap_sm->currentMethod,eap_sm->currentVendor);
 				//non_fata_error
@@ -433,7 +433,7 @@ int diameap_eap_statemachine(struct eap_state_machine * eap_sm,
 				}
 			}
 			if ((*eap_sm->selectedMethod->eap_method_process)(eap_sm,
-					eap_i->aaaEapRespData))
+					&eap_i->aaaEapRespData))
 			{
 				TRACE_DEBUG(INFO,"%s[EAP Protocol] [%s plugin] Authentication process failed.",DIAMEAP_EXTENSION,eap_sm->selectedMethod->methodname);
 				*non_fatal_error = TRUE;

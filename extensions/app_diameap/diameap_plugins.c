@@ -262,7 +262,7 @@ int diameap_plugin_load(void)
 		if (registerplugin->check)
 		{
 			plugin->eap_method_check = (boolean(*)(struct eap_state_machine *,
-					struct eap_packet)) dlsym(plugin->handler,
+					struct eap_packet*)) dlsym(plugin->handler,
 					registerplugin->check);
 			if (plugin->eap_method_check == NULL)
 			{
@@ -284,7 +284,7 @@ int diameap_plugin_load(void)
 		if (registerplugin->process)
 		{
 			plugin->eap_method_process = (int(*)(struct eap_state_machine *,
-					struct eap_packet)) dlsym(plugin->handler,
+					struct eap_packet*)) dlsym(plugin->handler,
 					registerplugin->process);
 			if (plugin->eap_method_process == NULL)
 			{
