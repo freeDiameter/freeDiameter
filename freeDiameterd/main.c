@@ -152,8 +152,8 @@ static void main_help( void )
  	printf( "\nDebug:\n"
   		"  These options are mostly useful for developers\n"
   		"  -l, --dbglocale        Set the locale for error messages\n"
-  		"  -d, --debug            Increase verbosity of debug messages\n"
-  		"  -q, --quiet            Decrease verbosity then remove debug messages\n"
+  		"  -d, --debug            Increase verbosity of debug messages if default logger is used\n"
+  		"  -q, --quiet            Decrease verbosity if default logger is used\n"
   		"  --dbg_gnutls <int>     Enable GNU TLS debug at level <int>\n");
 }
 
