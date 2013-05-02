@@ -41,7 +41,7 @@ int fd_stat_getstats(enum fd_stat_type stat, struct peer_hdr * peer,
 			struct timespec * total, struct timespec * blocking, struct timespec * last)
 {
 	struct fd_peer * p = (struct fd_peer *)peer;
-	TRACE_ENTRY( "%d %p %p %p %p %p %p %p %p", stat, peer, len, max, highest_count, total_count, total, blocking, last);
+	TRACE_ENTRY( "%d %p %p %p %p %p %p %p %p", stat, peer, current_count, limit_count, highest_count, total_count, total, blocking, last);
 	
 	switch (stat) {
 		case STAT_G_LOCAL: {
