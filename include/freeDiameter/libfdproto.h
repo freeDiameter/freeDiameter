@@ -3031,32 +3031,17 @@ int fd_fifo_del ( struct fifo  ** queue );
 int fd_fifo_move ( struct fifo * oldq, struct fifo * newq, struct fifo ** loc_update );
 
 /*
- * FUNCTION:	fd_fifo_length
- *
- * PARAMETERS:
- *  queue	: The queue from which to retrieve the number of elements.
- *  length	: Upon success, the current number of elements in the queue is stored here.
- *  max		: the maximum number of elements as specified during creation. Can be NULL.
- *
- * DESCRIPTION: 
- *  Retrieve the number of elements in a queue.
- *
- * RETURN VALUE:
- *  0		: The length of the queue has been written.
- *  EINVAL 	: A parameter is invalid.
- */
-int fd_fifo_length ( struct fifo * queue, int * length, int * max);
-int fd_fifo_length_noerr ( struct fifo * queue ); /* no error checking version */
-
-/*
  * FUNCTION:	fd_fifo_getstats
  *
  * PARAMETERS:
- *  queue	: The queue from which to retrieve the timings information.
- *  items       : the total number of items that went through the queue (already pop'd). Always increasing.
- *  total	: Cumulated time all items spent in this queue, including blocking time (always growing, use deltas for monitoring)
- *  blocking    : Cumulated time threads trying to post new items were blocked (queue full).
- *  last        : For the last element retrieved from the queue, how long it take between posting (including blocking) and poping
+ *  queue	  : The queue from which to retrieve the information.
+ *  current_count : How many items in the queue at the time of execution. This changes each time an item is pushed or poped.
+ *  limit_count   : The maximum number of items allowed in this queue. This is specified during queue creation.
+ *  highest_count : The maximum number of items this queue has contained. This enables to see if limit_count count was reached.
+ *  total_count   : the total number of items that went through the queue (already pop'd). Always increasing.
+ *  total	  : Cumulated time all items spent in this queue, including blocking time (always growing, use deltas for monitoring)
+ *  blocking      : Cumulated time threads trying to post new items were blocked (queue full).
+ *  last          : For the last element retrieved from the queue, how long it take between posting (including blocking) and poping
  *  
  * DESCRIPTION: 
  *  Retrieve the timing information associated with a queue, for monitoring purpose.
@@ -3065,8 +3050,22 @@ int fd_fifo_length_noerr ( struct fifo * queue ); /* no error checking version *
  *  0		: The statistics have been updated.
  *  EINVAL 	: A parameter is invalid.
  */
-int fd_fifo_getstats( struct fifo * queue, long long *items, struct timespec * total, struct timespec * blocking, struct timespec * last);
+int fd_fifo_getstats( struct fifo * queue, int * current_count, int * limit_count, int * highest_count, long long * total_count, 
+				           struct timespec * total, struct timespec * blocking, struct timespec * last);
 
+/*
+ * FUNCTION:	fd_fifo_length
+ *
+ * PARAMETERS:
+ *  queue	: The queue from which to retrieve the number of elements.
+ *
+ * DESCRIPTION: 
+ *  Retrieve the number of elements in a queue, without error checking.
+ *
+ * RETURN VALUE:
+ *  The number of items currently queued.
+ */
+int fd_fifo_length ( struct fifo * queue );
 
 /*
  * FUNCTION:	fd_fifo_setthrhd

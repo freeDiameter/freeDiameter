@@ -216,16 +216,15 @@ int main(int argc, char *argv[])
 	/* Basic operation */
 	{
 		struct fifo * queue = NULL;
-		int count, max;
 		struct msg * msg  = NULL;
+		int max;
+		long long count;
 		
 		/* Create the queue */
 		CHECK( 0, fd_fifo_new(&queue, 0) );
 		
 		/* Check the count is 0 */
-		CHECK( 0, fd_fifo_length(queue, &count, &max) );
-		CHECK( 0, count);
-		CHECK( 0, max);
+		CHECK( 0, fd_fifo_length(queue) );
 		
 		/* Now enqueue */
 		msg = msg1;
@@ -236,34 +235,28 @@ int main(int argc, char *argv[])
 		CHECK( 0, fd_fifo_post(queue, &msg) );
 		
 		/* Check the count is 3 */
-		CHECK( 0, fd_fifo_length(queue, &count, &max) );
-		CHECK( 3, count);
-		CHECK( 0, max);
+		CHECK( 3, fd_fifo_length(queue) );
 		
 		/* Retrieve the first message using fd_fifo_get */
 		CHECK( 0, fd_fifo_get(queue, &msg) );
 		CHECK( msg1, msg);
-		CHECK( 0, fd_fifo_length(queue, &count, NULL) );
-		CHECK( 2, count);
+		CHECK( 2, fd_fifo_length(queue) );
 		
 		/* Retrieve the second message using fd_fifo_timedget */
 		CHECK(0, clock_gettime(CLOCK_REALTIME, &ts));
 		ts.tv_sec += 1; /* Set the timeout to 1 second */
 		CHECK( 0, fd_fifo_timedget(queue, &msg, &ts) );
 		CHECK( msg2, msg);
-		CHECK( 0, fd_fifo_length(queue, &count, NULL) );
-		CHECK( 1, count);
+		CHECK( 1, fd_fifo_length(queue) );
 		
 		/* Retrieve the third message using meq_tryget */
 		CHECK( 0, fd_fifo_tryget(queue, &msg) );
 		CHECK( msg3, msg);
-		CHECK( 0, fd_fifo_length(queue, &count, NULL) );
-		CHECK( 0, count);
+		CHECK( 0, fd_fifo_length(queue) );
 		
 		/* Check that another meq_tryget does not block */
 		CHECK( EWOULDBLOCK, fd_fifo_tryget(queue, &msg) );
-		CHECK( 0, fd_fifo_length(queue, &count, NULL) );
-		CHECK( 0, count);
+		CHECK( 0, fd_fifo_length(queue) );
 		
 		/* Check the timedget actually timesout */
 		CHECK(0, clock_gettime(CLOCK_REALTIME, &ts));
@@ -273,8 +266,18 @@ int main(int argc, char *argv[])
 			ts.tv_sec += 1;
 		}
 		CHECK( ETIMEDOUT, fd_fifo_timedget(queue, &msg, &ts) );
-		CHECK( 0, fd_fifo_length(queue, &count, NULL) );
-		CHECK( 0, count);
+		CHECK( 0, fd_fifo_length(queue) );
+		
+		/* Post & get another message */
+		msg = msg1;
+		CHECK( 0, fd_fifo_post(queue, &msg) );
+		CHECK( 0, fd_fifo_timedget(queue, &msg, &ts) );
+		CHECK( msg1, msg);		
+		
+		/* Check some statistics */
+		CHECK( 0, fd_fifo_getstats(queue, NULL, NULL, &max, &count, NULL, NULL, NULL) );
+		CHECK( 3, max );
+		CHECK( 4, count );	
 		
 		/* We're done for basic tests */
 		CHECK( 0, fd_fifo_del(&queue) );
@@ -291,7 +294,6 @@ int main(int argc, char *argv[])
 		struct msg   		*msgs[NBR_MSG * NBR_THREADS * 2], *msg;
 		pthread_t  		 thr [NBR_THREADS * 2];
 		struct dict_object	*dwr_model = NULL;
-		int 			 count;
 		int			 i;
 		int			 nbr_threads;
 #ifdef _POSIX_THREAD_THREADS_MAX
@@ -362,8 +364,7 @@ int main(int argc, char *argv[])
 		}
 		
 		/* Check the count of the queue is back to 0 */
-		CHECK( 0, fd_fifo_length(queue, &count, NULL) );
-		CHECK( 0, count);
+		CHECK( 0, fd_fifo_length(queue) );
 		
 		/* Destroy this queue and the messages */
 		CHECK( 0, fd_fifo_del(&queue) );
