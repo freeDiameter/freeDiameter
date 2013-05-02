@@ -16,6 +16,7 @@ SET(LFDPROTO_SRC
 	portability.c
 	rt_data.c
 	sessions.c
+	utils.c
 	)
 
 # Save the list of files for testcases in the core's directory
