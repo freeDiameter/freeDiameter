@@ -25,6 +25,7 @@ SET(TEST_LIST
 	testpeers
 	testdict
 	testmesg
+	testmesg_stress
 	testsess
 	testdisp
 	testcnx
