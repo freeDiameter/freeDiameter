@@ -860,8 +860,8 @@ int fd_app_empty(struct fd_list * list);
 /*                         MONITORING                         */
 /*============================================================*/
 
-/* These functions allows an extension to collect state information about the
- * framework state, as well as hooks at some key checkpoints in the processing
+/* These functions allow an extension to collect state information about the
+ * framework, as well as being hooked at some key checkpoints in the processing
  * for logging / statistics purpose.
  */
  
