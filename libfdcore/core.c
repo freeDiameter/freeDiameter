@@ -303,7 +303,7 @@ int fd_core_shutdown(void)
 }
 
 
-/* Wait for the shutdown to be complete -- this must always be called after fd_core_shutdown to relaim some resources. */
+/* Wait for the shutdown to be complete -- this must always be called after fd_core_shutdown to reclaim some resources. */
 int fd_core_wait_shutdown_complete(void)
 {
 	int ret;
