@@ -187,7 +187,7 @@ disp:
 */
 int fd_os_validate_DiameterIdentity(char ** id, size_t * inoutsz, int memory)
 {
-#if defined(DIAMID_IDNA_IGNORE) || defined(DIAMID_IDNA_REJECT)
+#if !defined(DIAMID_IDNA_IGNORE) && !defined(DIAMID_IDNA_REJECT)
 	int gotsize = 0;
 #endif /* defined(DIAMID_IDNA_IGNORE) || defined(DIAMID_IDNA_REJECT) */
 	
@@ -196,7 +196,7 @@ int fd_os_validate_DiameterIdentity(char ** id, size_t * inoutsz, int memory)
 	
 	if (!*inoutsz)
 		*inoutsz = strlen(*id);
-#if defined(DIAMID_IDNA_IGNORE) || defined(DIAMID_IDNA_REJECT)
+#if !defined(DIAMID_IDNA_IGNORE) && !defined(DIAMID_IDNA_REJECT)
 	else
 		gotsize = 1;
 #endif /* defined(DIAMID_IDNA_IGNORE) || defined(DIAMID_IDNA_REJECT) */
