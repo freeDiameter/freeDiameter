@@ -340,7 +340,7 @@
 | Applic-ID                                                     | 1218 |                 | UTF8String       | M,V  | P   |          |          | N    |
 | Application-Server                                            |  836 |                 | UTF8String       | M,V  | P   |          |          | N    |
 | Application-Server-Information                                |  850 |                 | Grouped          | M,V  | P   |          |          | N    |
-| Application-provided-called-party-address                     |  837 |                 | UTF8String       | M,V  | P   |          |          | N    |
+| Application-Provided-Called-Party-Address                     |  837 |                 | UTF8String       | M,V  | P   |          |          | N    |
 | Associated-Party-Address                                      | 2035 |                 | UTF8String       | M,V  | P   |          |          | N    |
 | Associated-URI                                                |  856 |                 | UTF8String       | M,V  | P   |          |          | N    |
 | Aux-Applic-Info                                               | 1219 |                 | UTF8String       | M,V  | P   |          |          | N    |
