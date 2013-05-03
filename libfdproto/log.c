@@ -142,14 +142,16 @@ void fd_log ( int loglevel, const char * format, ... )
 	(void)pthread_mutex_unlock(&fd_log_lock);
 }
 
-/* Log debug message to file. */
-void fd_log_debug_fstr( FILE * fstr, const char * format, ... )
+/* Log a debug message */
+void fd_log_va ( int loglevel, const char * format, va_list args )
 {
-	va_list ap;
+	(void)pthread_mutex_lock(&fd_log_lock);
 	
-	va_start(ap, format);
-	vfprintf(fstr, format, ap);
-	va_end(ap);
+	pthread_cleanup_push(fd_cleanup_mutex_silent, &fd_log_lock);
+	fd_logger(loglevel, format, args);
+	pthread_cleanup_pop(0);
+	
+	(void)pthread_mutex_unlock(&fd_log_lock);
 }
 
 /* Function to set the thread's friendly name */
@@ -206,4 +208,52 @@ char * fd_log_time ( struct timespec * ts, char * buf, size_t len )
 	offset += snprintf(buf + offset, len - offset, ".%6.6ld", ts->tv_nsec / 1000);
 
 	return buf;
+}
+
+
+/* Helper function for fd_*_dump. Prints the format string from 'offset' into '*buf', extends if needed. The location of buf can be updated by this function. */
+char * fd_dump_extend(char ** buf, size_t *len, size_t *offset, const char * format, ... )
+{
+	va_list ap;
+	int to_write;
+	size_t o = 0;
+	static size_t mempagesz = 0;
+	
+	if (!mempagesz) {
+		mempagesz = sysconf(_SC_PAGESIZE); /* We alloc buffer by memory pages for efficiency */
+		if (mempagesz <= 0)
+			mempagesz = 1024; /* default size if above call failed */
+	}
+	
+	/* we do not TRACE_ENTRY this one on purpose */
+	
+	CHECK_PARAMS_DO(buf && len, return NULL);
+	
+	if (*buf == NULL) {
+		CHECK_MALLOC_DO(*buf = malloc(mempagesz), return NULL);
+		*len = mempagesz;
+	}
+	
+	if (offset)
+		o = *offset;
+	
+	va_start(ap, format);
+	to_write = vsnprintf(*buf + o, *len - o, format, ap);
+	va_end(ap);
+	
+	if (to_write + o >= *len) {
+		/* There was no room in the buffer, we extend and redo */
+		size_t new_len = (((to_write + o) / mempagesz) + 1) * mempagesz;
+		CHECK_MALLOC_DO(*buf = realloc(*buf, new_len), return NULL);
+		*len = new_len;
+		
+		va_start(ap, format);
+		to_write = vsnprintf(*buf + o, *len - o, format, ap);
+		va_end(ap);
+	}
+	
+	if (offset)
+		*offset += to_write;
+	
+	return *buf;
 }

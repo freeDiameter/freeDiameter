@@ -152,10 +152,8 @@ int fd_dictfct_Address_interpret(union avp_value * avp_value, void * interpreted
 }
 
 /* Dump the content of an Address AVP */
-char * fd_dictfct_Address_dump(union avp_value * avp_value)
+DECLARE_FD_DUMP_PROTOTYPE(fd_dictfct_Address_dump, union avp_value * avp_value)
 {
-	char * ret;
-	#define STR_LEN	1024
 	union {
 		sSA	sa;
 		sSS	ss;
@@ -163,15 +161,17 @@ char * fd_dictfct_Address_dump(union avp_value * avp_value)
 		sSA6	sin6;
 	} s;
 	uint16_t fam;
+	size_t o = 0;
+	
+	if (!offset)
+		offset = &o;
 	
 	memset(&s, 0, sizeof(s));
 	
-	CHECK_MALLOC_DO( ret = malloc(STR_LEN), return NULL );
-	
 	/* The first two octets represent the address family, http://www.iana.org/assignments/address-family-numbers/ */
 	if (avp_value->os.len < 2) {
-		snprintf(ret, STR_LEN, "[invalid length: %zd]", avp_value->os.len);
-		return ret;
+		CHECK_MALLOC_DO( fd_dump_extend(FD_DUMP_STD_PARAMS, "[invalid length: %zd]", avp_value->os.len), return NULL);
+		return *buf;
 	}
 	
 	/* Following octets are the address in network byte order already */
@@ -181,8 +181,8 @@ char * fd_dictfct_Address_dump(union avp_value * avp_value)
 			/* IP */
 			s.sa.sa_family = AF_INET;
 			if (avp_value->os.len != 6) {
-				snprintf(ret, STR_LEN, "[invalid IP length: %zd]", avp_value->os.len);
-				return ret;
+				CHECK_MALLOC_DO( fd_dump_extend(FD_DUMP_STD_PARAMS, "[invalid IP length: %zd]", avp_value->os.len), return NULL);
+				return *buf;
 			}
 			memcpy(&s.sin.sin_addr.s_addr, avp_value->os.data + 2, 4);
 			break;
@@ -190,23 +190,17 @@ char * fd_dictfct_Address_dump(union avp_value * avp_value)
 			/* IP6 */
 			s.sa.sa_family = AF_INET6;
 			if (avp_value->os.len != 18) {
-				snprintf(ret, STR_LEN, "[invalid IP6 length: %zd]", avp_value->os.len);
-				return ret;
+				CHECK_MALLOC_DO( fd_dump_extend(FD_DUMP_STD_PARAMS, "[invalid IP6 length: %zd]", avp_value->os.len), return NULL);
+				return *buf;
 			}
 			memcpy(&s.sin6.sin6_addr.s6_addr, avp_value->os.data + 2, 16);
 			break;
 		default:
-			snprintf(ret, STR_LEN, "[unsupported family: 0x%hx]", fam);
-			return ret;
+			CHECK_MALLOC_DO( fd_dump_extend(FD_DUMP_STD_PARAMS, "[unsupported family: 0x%hx]", fam), return NULL);
+			return *buf;
 	}
 	
-	{
-		int rc = getnameinfo(&s.sa, sSAlen(&s.sa), ret, STR_LEN, NULL, 0, NI_NUMERICHOST);
-		if (rc)
-			snprintf(ret, STR_LEN, "%s", (char *)gai_strerror(rc));
-	}
-	
-	return ret;
+	return fd_sa_dump_node(FD_DUMP_STD_PARAMS, &s.sa, NI_NUMERICHOST);
 }
 
 
@@ -215,42 +209,25 @@ char * fd_dictfct_Address_dump(union avp_value * avp_value)
 /*    UTF8String  AVP  type    */
 /*******************************/
 
-/* Dump the AVP in a natural human-readable format */
-char * fd_dictfct_UTF8String_dump(union avp_value * avp_value)
+/* Dump the AVP in a natural human-readable format. This dumps the complete length of the AVP, it is up to the caller to truncate if needed */
+DECLARE_FD_DUMP_PROTOTYPE(fd_dictfct_UTF8String_dump, union avp_value * avp_value)
 {
-#define TRUNC_LEN	1024 /* avoid very long strings */
-	char * ret;
-	CHECK_MALLOC_DO( ret = malloc(TRUNC_LEN+2+3+1), return NULL );
-	*ret = '"';
-	strncpy(ret+1, (char *)avp_value->os.data, TRUNC_LEN);
-	/* be sure to have a nul-terminated string */
-	ret[TRUNC_LEN+1] = '\0';
-	if (ret[1] != '\0') {
-		/* We sanitize the returned string to avoid UTF8 boundary problem.
-		We do this whether the string is trucated at TRUNC_LEN or not, to avoid potential problem
-		with malformed AVP */
-
-		char * end = strchr(ret, '\0');
-		while (end > ret) {
-			end--;
-			char b = *end;
-			/* after the position pointed by end, we have only \0s */
-			if ((b & 0x80) == 0) {
-				break; /* this is a single byte char, no problem */
-			} else {
-				/* this byte is start or cont. of multibyte sequence, as we do not know the next byte we need to delete it. */
-				*end = '\0';
-				if (b & 0x40)
-					break; /* This was a start byte, we can stop the loop */
-			}
-		}
-		if (strlen((char *)avp_value->os.data) > strlen(ret+1))
-			strcat(end, "...");
-		strcat(end, "\"");
-	} else {
-		*ret = '\0';
+	size_t o = 0, l;
+	if (!offset)
+		offset = &o;
+	
+	l = avp_value->os.len;
+	/* Just in case the string ends in invalid UTF-8 chars, we shorten it */
+	while ((l > 0) && (avp_value->os.data[l - 1] & 0x80)) {
+		/* this byte is start or cont. of multibyte sequence, as we do not know the next byte we need to delete it. */
+		l--;
+		if (avp_value->os.data[l] & 0x40)
+			break; /* This was a start byte, we can stop the loop */
 	}
-	return ret;
+	
+	CHECK_MALLOC_DO( fd_dump_extend(FD_DUMP_STD_PARAMS, "\"%.*s\"", (int)l, (char *)avp_value->os.data), return NULL);
+	
+	return *buf;
 }
 
 
@@ -325,22 +302,26 @@ int fd_dictfct_Time_interpret(union avp_value * avp_value, void * interpreted)
 	return diameter_string_to_time_t((const char *)avp_value->os.data, avp_value->os.len, interpreted);
 }
 
-char * fd_dictfct_Time_dump(union avp_value * avp_value)
+DECLARE_FD_DUMP_PROTOTYPE(fd_dictfct_Time_dump, union avp_value * avp_value)
 {
-	char * ret;
+	size_t o = 0;
 	time_t val;
 	struct tm conv;
-	CHECK_MALLOC_DO( ret = malloc(STR_LEN), return NULL );
+		
+	if (!offset)
+		offset = &o;
+	
 	if (avp_value->os.len != 4) {
-		snprintf(ret, STR_LEN, "[invalid length: %zd]", avp_value->os.len);
-		return ret;
+		CHECK_MALLOC_DO( fd_dump_extend(FD_DUMP_STD_PARAMS, "[invalid length: %zd]", avp_value->os.len), return NULL);
+		return *buf;
 	}
+
 	if (diameter_string_to_time_t((char *)avp_value->os.data, avp_value->os.len, &val) != 0) {
-		snprintf(ret, STR_LEN, "[time conversion error]");
-		return ret;
+		CHECK_MALLOC_DO( fd_dump_extend(FD_DUMP_STD_PARAMS, "[time conversion error]"), return NULL);
+		return *buf;
 	}
-	gmtime_r(&val, &conv);
-	snprintf(ret, STR_LEN, "%d%02d%02dT%02d%02d%02d+00", conv.tm_year+1900, conv.tm_mon+1, conv.tm_mday, conv.tm_hour, conv.tm_min, conv.tm_sec);
-	return ret;
+	
+	CHECK_MALLOC_DO( fd_dump_extend(FD_DUMP_STD_PARAMS, "%d%02d%02dT%02d%02d%02d+00", conv.tm_year+1900, conv.tm_mon+1, conv.tm_mday, conv.tm_hour, conv.tm_min, conv.tm_sec), return NULL);
+	return *buf;
 }
 

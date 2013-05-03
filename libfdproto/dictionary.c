@@ -147,13 +147,13 @@ struct dictionary {
 };
 
 /* Forward declarations of dump functions */
-static void dump_vendor_data 	  ( void * data );
-static void dump_application_data ( void * data );
-static void dump_type_data 	  ( void * data );
+static DECLARE_FD_DUMP_PROTOTYPE(dump_vendor_data, void * data );
+static DECLARE_FD_DUMP_PROTOTYPE(dump_application_data, void * data );
+static DECLARE_FD_DUMP_PROTOTYPE(dump_type_data, void * data );
   /* the dump function for enum has a different prototype since it need the datatype */
-static void dump_avp_data 	  ( void * data );
-static void dump_command_data 	  ( void * data );
-static void dump_rule_data 	  ( void * data );
+static DECLARE_FD_DUMP_PROTOTYPE(dump_avp_data, void * data );
+static DECLARE_FD_DUMP_PROTOTYPE(dump_command_data, void * data );
+static DECLARE_FD_DUMP_PROTOTYPE(dump_rule_data, void * data );
 
 /* Forward declarations of search functions */
 static int search_vendor 	( struct dictionary * dict, int criteria, const void * what, struct dict_object **result );
@@ -172,7 +172,7 @@ static struct {
 	int			parent;		/* 0: never; 1: may; 2: must */
 	enum dict_object_type	parenttype;	/* The type of the parent, when relevant */
 	int			eyecatcher;	/* A kind of signature for this object */
-	void 		      (*dump_data)(void * data );	/* The function to dump the data section */
+	DECLARE_FD_DUMP_PROTOTYPE( (*dump_data), void * data );	/* The function to dump the data section */
 	int 		      (*search_fct)(struct dictionary * dict, int criteria, const void * what, struct dict_object **result );;	/* The function to search an object of this type */
 	int			haslist[NB_LISTS_PER_OBJ];	/* Tell if this list is used */
 } dict_obj_info[] = { { 0, "(error)", 0, 0, 0, 0, NULL, NULL, {0, 0, 0} }
@@ -1149,29 +1149,29 @@ end:
 /*******************************************************************************************************/
 /*******************************************************************************************************/
 /* The following functions are used to debug the module, and allow to print out the content of the dictionary */
-static void dump_vendor_data ( void * data )
+static DECLARE_FD_DUMP_PROTOTYPE(dump_vendor_data, void * data )
 {
 	struct dict_vendor_data * vendor = (struct dict_vendor_data *)data;
 	
-	fd_log_debug("data: %-6u \"%s\"", vendor->vendor_id, vendor->vendor_name);
+	return fd_dump_extend( FD_DUMP_STD_PARAMS, "data: %-6u \"%s\"", vendor->vendor_id, vendor->vendor_name);
 }
-static void dump_application_data ( void * data )
+static DECLARE_FD_DUMP_PROTOTYPE(dump_application_data, void * data )
 {
 	struct dict_application_data * appli = (struct dict_application_data *) data;
-	fd_log_debug("data: %-6u \"%s\"", appli->application_id, appli->application_name);
+	return fd_dump_extend( FD_DUMP_STD_PARAMS, "data: %-6u \"%s\"", appli->application_id, appli->application_name);
 }
-static void dump_type_data ( void * data )
+static DECLARE_FD_DUMP_PROTOTYPE(dump_type_data, void * data )
 {
 	struct dict_type_data * type = ( struct dict_type_data * ) data;
 	
-	fd_log_debug("data: %-12s \"%s\"", 
+	return fd_dump_extend( FD_DUMP_STD_PARAMS, "data: %-12s \"%s\"", 
 			type_base_name[type->type_base], 
 			type->type_name);
 }
-static void dump_enumval_data ( struct dict_enumval_data * enumval, enum dict_avp_basetype type )
+static DECLARE_FD_DUMP_PROTOTYPE(dump_enumval_data, struct dict_enumval_data * enumval, enum dict_avp_basetype type )
 {
 	const int LEN_MAX = 20;
-	fd_log_debug("data: (%-12s) \"%s\" -> ", type_base_name[type], enumval->enum_name);
+	CHECK_MALLOC_DO(fd_dump_extend( FD_DUMP_STD_PARAMS, "data: (%-12s) \"%s\" -> ", type_base_name[type], enumval->enum_name), return NULL);
 	switch (type) {
 		case AVP_TYPE_OCTETSTRING:
 			{
@@ -1179,60 +1179,61 @@ static void dump_enumval_data ( struct dict_enumval_data * enumval, enum dict_av
 				if (enumval->enum_value.os.len < LEN_MAX)
 					n = enumval->enum_value.os.len;
 				for (i=0; i < n; i++)
-					fd_log_debug("0x%2hhX/'%c' ", enumval->enum_value.os.data[i], ASCII(enumval->enum_value.os.data[i]));
+					CHECK_MALLOC_DO(fd_dump_extend( FD_DUMP_STD_PARAMS, "0x%2hhX/'%c' ", enumval->enum_value.os.data[i], ASCII(enumval->enum_value.os.data[i])), return NULL);
 				if (n == LEN_MAX)
-					fd_log_debug("...");
+					CHECK_MALLOC_DO(fd_dump_extend( FD_DUMP_STD_PARAMS, "..."), return NULL);
 			}
 			break;
 		
 		case AVP_TYPE_INTEGER32:
-			fd_log_debug("%i", enumval->enum_value.i32);
+			CHECK_MALLOC_DO(fd_dump_extend( FD_DUMP_STD_PARAMS, "%i", enumval->enum_value.i32), return NULL);
 			break;
 
 		case AVP_TYPE_INTEGER64:
-			fd_log_debug("%"PRId64, enumval->enum_value.i64);
+			CHECK_MALLOC_DO(fd_dump_extend( FD_DUMP_STD_PARAMS, "%"PRId64, enumval->enum_value.i64), return NULL);
 			break;
 
 		case AVP_TYPE_UNSIGNED32:
-			fd_log_debug("%u", enumval->enum_value.u32);
+			CHECK_MALLOC_DO(fd_dump_extend( FD_DUMP_STD_PARAMS, "%u", enumval->enum_value.u32), return NULL);
 			break;
 
 		case AVP_TYPE_UNSIGNED64:
-			fd_log_debug("%"PRIu64, enumval->enum_value.u64);
+			CHECK_MALLOC_DO(fd_dump_extend( FD_DUMP_STD_PARAMS, "%"PRIu64, enumval->enum_value.u64), return NULL);
 			break;
 
 		case AVP_TYPE_FLOAT32:
-			fd_log_debug("%f", enumval->enum_value.f32);
+			CHECK_MALLOC_DO(fd_dump_extend( FD_DUMP_STD_PARAMS, "%f", enumval->enum_value.f32), return NULL);
 			break;
 
 		case AVP_TYPE_FLOAT64:
-			fd_log_debug("%g", enumval->enum_value.f64);
+			CHECK_MALLOC_DO(fd_dump_extend( FD_DUMP_STD_PARAMS, "%g", enumval->enum_value.f64), return NULL);
 			break;
 		
 		default:
-			fd_log_debug("??? (ERROR unknown type %d)", type);
+			CHECK_MALLOC_DO(fd_dump_extend( FD_DUMP_STD_PARAMS, "??? (ERROR unknown type %d)", type), return NULL);
 	}
+	return *buf;
 }
-static void dump_avp_data ( void * data )
+static DECLARE_FD_DUMP_PROTOTYPE(dump_avp_data, void * data )
 {
 	struct dict_avp_data * avp = (struct dict_avp_data * ) data;
-	fd_log_debug("data: v/m:" DUMP_AVPFL_str "/" DUMP_AVPFL_str ", %12s, %-6u \"%s\"", 
+	return fd_dump_extend( FD_DUMP_STD_PARAMS, "data: v/m:" DUMP_AVPFL_str "/" DUMP_AVPFL_str ", %12s, %-6u \"%s\"", 
 			DUMP_AVPFL_val(avp->avp_flag_val), 
 			DUMP_AVPFL_val(avp->avp_flag_mask), 
 			type_base_name[avp->avp_basetype], 
 			avp->avp_code, 
 			avp->avp_name );
 }
-static void dump_command_data ( void * data )
+static DECLARE_FD_DUMP_PROTOTYPE(dump_command_data, void * data )
 {
 	struct dict_cmd_data * cmd = (struct dict_cmd_data *) data;
-	fd_log_debug("data: v/m:" DUMP_CMDFL_str "/" DUMP_CMDFL_str ", %-6u \"%s\"", 
+	return fd_dump_extend( FD_DUMP_STD_PARAMS, "data: v/m:" DUMP_CMDFL_str "/" DUMP_CMDFL_str ", %-6u \"%s\"", 
 			DUMP_CMDFL_val(cmd->cmd_flag_val), DUMP_CMDFL_val(cmd->cmd_flag_mask), cmd->cmd_code, cmd->cmd_name);
 }
-static void dump_rule_data ( void * data )
+static DECLARE_FD_DUMP_PROTOTYPE(dump_rule_data, void * data )
 {
 	struct dict_rule_data * rule = (struct dict_rule_data * )data;
-	fd_log_debug("data: pos:%d ord:%d m/M:%2d/%2d avp:\"%s\"", 
+	return fd_dump_extend( FD_DUMP_STD_PARAMS, "data: pos:%d ord:%d m/M:%2d/%2d avp:\"%s\"",
 			rule->rule_position, 
 			rule->rule_order, 
 			rule->rule_min, 
@@ -1240,158 +1241,166 @@ static void dump_rule_data ( void * data )
 			rule->rule_avp->data.avp.avp_name);
 }
 
-static void dump_object ( struct dict_object * obj, int parents, int depth, int indent );
+static DECLARE_FD_DUMP_PROTOTYPE(dump_object, struct dict_object * obj, int parents, int depth, int indent );
 
-static void dump_list ( struct fd_list * sentinel, int parents, int depth, int indent )
+static DECLARE_FD_DUMP_PROTOTYPE(dump_list, struct fd_list * sentinel, int parents, int depth, int indent )
 {
 	struct fd_list * li = sentinel;
 	/* We don't lock here, the caller must have taken the dictionary lock for reading already */
 	while (li->next != sentinel)
 	{
 		li = li->next;
-		dump_object( _O(li->o), parents, depth, indent );
+		CHECK_MALLOC_DO( dump_object (FD_DUMP_STD_PARAMS, _O(li->o), parents, depth, indent ), return NULL);
 	}
 }
 
-static void dump_object ( struct dict_object * obj, int parents, int depth, int indent )
+static DECLARE_FD_DUMP_PROTOTYPE(dump_object, struct dict_object * obj, int parents, int depth, int indent )
 {
-	if (obj == NULL)
-		return;
+	CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "%*s{dictobj}(@%p): ", indent, "", obj), return NULL);
 	
-	if (parents)
-		dump_object (obj->parent, parents-1, 0, indent + 1 );
+	if (!verify_object(obj)) {
+		CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "INVALID/NULL\n"), return NULL);
+		return *buf;
+	}
 	
-	fd_log_debug("%*s@%p: %s%s (p:%-9p) ", 
-			indent,
-			"",
-			obj, 
-			verify_object(obj) ? "" : "INVALID ", 
-			_OBINFO(obj).name, 
-			obj->parent);
+	CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "%s p:%p ", 
+								_OBINFO(obj).name, 
+								obj->parent), return NULL);
 	
-	if (obj->type == DICT_ENUMVAL)
-		dump_enumval_data ( &obj->data.enumval, obj->parent->data.type.type_base );
-	else
-		_OBINFO(obj).dump_data(&obj->data);
+	if (obj->type == DICT_ENUMVAL) {
+		CHECK_MALLOC_DO( dump_enumval_data ( FD_DUMP_STD_PARAMS, &obj->data.enumval, obj->parent->data.type.type_base ), return NULL);
+	} else {
+		CHECK_MALLOC_DO( _OBINFO(obj).dump_data(FD_DUMP_STD_PARAMS, &obj->data), return NULL);
+	}
+	
+	CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "\n"), return NULL);
+	
+	if (parents) {
+		CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "%*sparent:", indent + 1, ""), return NULL);
+		CHECK_MALLOC_DO( dump_object (FD_DUMP_STD_PARAMS, obj->parent, parents-1, 0, 0 ), return NULL);
+	}
 	
 	if (depth) {
 		int i;
 		for (i=0; i<NB_LISTS_PER_OBJ; i++) {
 			if ((obj->list[i].o == NULL) && (obj->list[i].next != &obj->list[i])) {
-				fd_log_debug("%*s>%p: list[%d]:", indent, "", obj, i);
-				dump_list(&obj->list[i], parents, depth - 1, indent + 2);
+				CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "%*slist[%d]:\n", indent + 1, "", i), return NULL);
+				CHECK_MALLOC_DO( dump_list(FD_DUMP_STD_PARAMS, &obj->list[i], 0, depth - 1, indent + 2), return NULL);
 			}
 		}
 	}
+	
+	return *buf;
 }
 
-void fd_dict_dump_object(struct dict_object * obj)
+DECLARE_FD_DUMP_PROTOTYPE(fd_dict_dump_object, struct dict_object * obj)
 {
-	fd_log_debug("Dictionary object %p dump:", obj);
-	dump_object( obj, 1, 2, 2 );
+	size_t o = 0;
+
+	if (!offset)
+		offset = &o;
+	
+	CHECK_MALLOC_DO( dump_object(FD_DUMP_STD_PARAMS, obj, 1, 2, 0), return NULL);
+	
+	return *buf;
 }
 
-void fd_dict_dump(struct dictionary * dict)
+DECLARE_FD_DUMP_PROTOTYPE(fd_dict_dump, struct dictionary * dict)
 {
 	int i;
 	struct fd_list * li;
+	size_t o = 0;
+
+	if (!offset)
+		offset = &o;
+		
+	CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "{dictionary}(@%p): ", dict), return NULL);
 	
-	CHECK_PARAMS_DO(dict && (dict->dict_eyec == DICT_EYECATCHER), return);
+	if ((dict == NULL) || (dict->dict_eyec != DICT_EYECATCHER)) {
+		return fd_dump_extend(FD_DUMP_STD_PARAMS, "INVALID/NULL\n");
+	}
 	
 	CHECK_POSIX_DO(  pthread_rwlock_rdlock( &dict->dict_lock ), /* ignore */  );
 	
-	fd_log_debug("######################################################");
-	fd_log_debug("###### Dumping vendors, AVPs and related rules #######");
-	
-	dump_object( &dict->dict_vendors, 0, 3, 0 );
+	CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "\n {dict:%p > vendors, AVPs and related rules}\n", dict), goto error);
+	CHECK_MALLOC_DO( dump_object (FD_DUMP_STD_PARAMS, &dict->dict_vendors, 0, 3, 3 ), goto error);
 	for (li = dict->dict_vendors.list[0].next; li != &dict->dict_vendors.list[0]; li = li->next)
-		dump_object( li->o, 0, 3, 0 );
+		CHECK_MALLOC_DO( dump_object (FD_DUMP_STD_PARAMS, li->o, 0, 3, 3 ), goto error);
 	
-	fd_log_debug("######          Dumping applications           #######");
-
-	dump_object( &dict->dict_applications, 0, 1, 0 );
+	CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, " {dict:%p > applications}\n", dict), goto error);
+	CHECK_MALLOC_DO( dump_object (FD_DUMP_STD_PARAMS, &dict->dict_applications, 0, 1, 3 ), goto error);
 	for (li = dict->dict_applications.list[0].next; li != &dict->dict_applications.list[0]; li = li->next)
-		dump_object( li->o, 0, 1, 0 );
+		CHECK_MALLOC_DO( dump_object (FD_DUMP_STD_PARAMS, li->o, 0, 1, 3 ), goto error);
 	
-	fd_log_debug("######             Dumping types               #######");
-
-	dump_list( &dict->dict_types, 0, 2, 0 );
+	CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, " {dict:%p > types}\n", dict), goto error);
+	CHECK_MALLOC_DO( dump_list(FD_DUMP_STD_PARAMS, &dict->dict_types, 0, 2, 3 ), goto error);
 	
-	fd_log_debug("######      Dumping commands per name          #######");
-
-	dump_list( &dict->dict_cmd_name, 0, 2, 0 );
+	CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, " {dict:%p > commands}\n", dict), goto error);
+	CHECK_MALLOC_DO( dump_list(FD_DUMP_STD_PARAMS, &dict->dict_cmd_code, 0, 0, 3 ), goto error);
 	
-	fd_log_debug("######   Dumping commands per code and flags   #######");
-
-	dump_list( &dict->dict_cmd_code, 0, 0, 0 );
-	
-	fd_log_debug("######             Statistics                  #######");
-
+	CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, " {dict:%p > statistics}\n", dict), goto error);
 	for (i=1; i<=DICT_TYPE_MAX; i++)
-		fd_log_debug(" %5d objects of type %s", dict->dict_count[i], dict_obj_info[i].name);
+		CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "   %5d: %s\n",  dict->dict_count[i], dict_obj_info[i].name), goto error);
 	
-	fd_log_debug("######################################################");
-	
+	CHECK_POSIX_DO(  pthread_rwlock_unlock( &dict->dict_lock ), /* ignore */  );
+	return *buf;
+error:	
 	/* Free the rwlock */
 	CHECK_POSIX_DO(  pthread_rwlock_unlock( &dict->dict_lock ), /* ignore */  );
+	return NULL;
 }
 
 /**************************** Dump AVP values ********************************/
 
 /* Default dump functions */
-static int dump_val_os(union avp_value * value, char **outstr, size_t *offset, size_t *outlen)
+static DECLARE_FD_DUMP_PROTOTYPE(dump_val_os, union avp_value * value)
 {
 	int i;
-	CHECK_FCT( dump_add_str(outstr, offset, outlen, "<") );
+	
+	CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "<"), return NULL);
 	for (i = 0; i < value->os.len; i++) {
 		if (i == 1024) { /* Dump only up to 1024 bytes of the buffer */
-			CHECK_FCT( dump_add_str(outstr, offset, outlen, "[...] (len=%zd)", value->os.len) );
+			CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "[...] (len=%zd)", value->os.len), return NULL);
 			break;
 		}
-		CHECK_FCT( dump_add_str(outstr, offset, outlen, "%s%02.2X", (i==0 ? "" : " "), value->os.data[i]) );
+		CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "%s%02hhX", (i==0 ? "" : " "), value->os.data[i]), return NULL);
 	}
-	CHECK_FCT( dump_add_str(outstr, offset, outlen, ">") );
-	return 0;
+	CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, ">"), return NULL);
+	return *buf;
 }
 
-static int dump_val_i32(union avp_value * value, char **outstr, size_t *offset, size_t *outlen)
+static DECLARE_FD_DUMP_PROTOTYPE(dump_val_i32, union avp_value * value)
 {
-	CHECK_FCT( dump_add_str(outstr, offset, outlen, "%i (0x%x)", value->i32, value->i32) );
-	return 0;
+	return fd_dump_extend( FD_DUMP_STD_PARAMS, "%i (0x%x)", value->i32, value->i32);
 }
 
-static int dump_val_i64(union avp_value * value, char **outstr, size_t *offset, size_t *outlen)
+static DECLARE_FD_DUMP_PROTOTYPE(dump_val_i64, union avp_value * value)
 {
-	CHECK_FCT( dump_add_str(outstr, offset, outlen, "%lli (0x%llx)", value->i64, value->i64) );
-	return 0;
+	return fd_dump_extend( FD_DUMP_STD_PARAMS, "%" PRId64 " (0x%" PRIx64 ")", value->i64, value->i64);
 }
 
-static int dump_val_u32(union avp_value * value, char **outstr, size_t *offset, size_t *outlen)
+static DECLARE_FD_DUMP_PROTOTYPE(dump_val_u32, union avp_value * value)
 {
-	CHECK_FCT( dump_add_str(outstr, offset, outlen, "%u (0x%x)", value->u32, value->u32) );
-	return 0;
+	return fd_dump_extend( FD_DUMP_STD_PARAMS, "%u (0x%x)", value->u32, value->u32);
 }
 
-static int dump_val_u64(union avp_value * value, char **outstr, size_t *offset, size_t *outlen)
+static DECLARE_FD_DUMP_PROTOTYPE(dump_val_u64, union avp_value * value)
 {
-	CHECK_FCT( dump_add_str(outstr, offset, outlen, "%llu (0x%llx)", value->u64, value->u64) );
-	return 0;
+	return fd_dump_extend( FD_DUMP_STD_PARAMS, "%" PRIu64 " (0x%" PRIx64 ")", value->u64, value->u64);
 }
 
-static int dump_val_f32(union avp_value * value, char **outstr, size_t *offset, size_t *outlen)
+static DECLARE_FD_DUMP_PROTOTYPE(dump_val_f32, union avp_value * value)
 {
-	CHECK_FCT( dump_add_str(outstr, offset, outlen, "%f", value->f32) );
-	return 0;
+	return fd_dump_extend( FD_DUMP_STD_PARAMS, "%f", value->f32);
 }
 
-static int dump_val_f64(union avp_value * value, char **outstr, size_t *offset, size_t *outlen)
+static DECLARE_FD_DUMP_PROTOTYPE(dump_val_f64, union avp_value * value)
 {
-	CHECK_FCT( dump_add_str(outstr, offset, outlen, "%g", value->f64) );
-	return 0;
+	return fd_dump_extend( FD_DUMP_STD_PARAMS, "%g", value->f64);
 }
 
 /* Get the dump function for basic dict_avp_basetype */
-static int (*get_default_dump_val_cb(enum dict_avp_basetype datatype))(union avp_value *, char **, size_t *, size_t *)
+static DECLARE_FD_DUMP_PROTOTYPE((*get_default_dump_val_cb(enum dict_avp_basetype datatype)), union avp_value *)
 {
 	switch (datatype) {
 		case AVP_TYPE_OCTETSTRING:
@@ -1425,63 +1434,63 @@ static int (*get_default_dump_val_cb(enum dict_avp_basetype datatype))(union avp
 #define INOBJHDR 	"%*s   "
 #define INOBJHDRVAL 	indent<0 ? 1 : indent, indent<0 ? "-" : "|"
 
+typedef DECLARE_FD_DUMP_PROTOTYPE((*dump_val_cb_t), union avp_value *);
+
 /* Formatter for the AVP value dump line */
-static int dump_avp_val(union avp_value *avp_value, 
-			int (*def_dump_val_cb)(union avp_value *, char **, size_t *, size_t *), 
-			char * (*dump_val_cb)(union avp_value *), 
+static DECLARE_FD_DUMP_PROTOTYPE(dump_avp_val, union avp_value *avp_value, 
+			dump_val_cb_t def_dump_val_cb, 
+			dump_val_cb_t dump_val_cb, 
 			enum dict_avp_basetype datatype, 
 			char * type_name, 
 			char * const_name, 
 			int indent, 
-			char **outstr, 
-			size_t *offset, 
-			size_t *outlen,
 		        int header)
 {
 	if (header) {
 		/* Header for all AVP values dumps: */
-		CHECK_FCT( dump_add_str(outstr, offset, outlen, INOBJHDR "value ", INOBJHDRVAL) );
+		CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, INOBJHDR "value ", INOBJHDRVAL), return NULL);
 	
 		/* If the type is provided, write it */
 		if (type_name) {
-			CHECK_FCT( dump_add_str(outstr, offset, outlen, "t: '%s' ", type_name) );
+			CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "t: '%s' ", type_name), return NULL);
 		}
 	
 		/* Always give the base datatype anyway */
-		CHECK_FCT( dump_add_str(outstr, offset, outlen, "(%s) ", type_base_name[datatype]) );
+		CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "(%s) ", type_base_name[datatype]), return NULL);
 
 		/* Now, the value */
-		CHECK_FCT( dump_add_str(outstr, offset, outlen, "v: ") );
+		CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "v: "), return NULL);
 	}
 	if (const_name) {
-		CHECK_FCT( dump_add_str(outstr, offset, outlen, "'%s' (", const_name) );
+		CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "'%s' (", const_name), return NULL);
 	}
 	if (dump_val_cb) {
-		char * str;
-		CHECK_MALLOC_DO( str = (*dump_val_cb)(avp_value), dump_add_str(outstr, offset, outlen, "(dump failed)") );
-		CHECK_FCT( dump_add_str(outstr, offset, outlen, "%s", str) );
-		free(str);
+		CHECK_MALLOC_DO( (*dump_val_cb)( FD_DUMP_STD_PARAMS, avp_value), fd_dump_extend( FD_DUMP_STD_PARAMS, "(dump failed)"));
 	} else {
-		CHECK_FCT( (*def_dump_val_cb)(avp_value, outstr, offset, outlen) );
+		CHECK_MALLOC_DO( (*def_dump_val_cb)( FD_DUMP_STD_PARAMS, avp_value), return NULL);
 	}
 	if (const_name) {
-		CHECK_FCT( dump_add_str(outstr, offset, outlen, ")") );
+		CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, ")"), return NULL);
 	}
 	
 	/* Done! */
-	return 0;
+	return *buf;
 }
 
 /* Dump the value of an AVP of known type into the returned str */
-int fd_dict_dump_avp_value(union avp_value *avp_value, struct dict_object * model, int indent, char **outstr, size_t *offset, size_t *outlen, int header)
+DECLARE_FD_DUMP_PROTOTYPE(fd_dict_dump_avp_value, union avp_value *avp_value, struct dict_object * model, int indent, int header)
 {
-	char * (*dump_val_cb)(union avp_value *avp_value) = NULL;
+	DECLARE_FD_DUMP_PROTOTYPE((*dump_val_cb), union avp_value *avp_value) = NULL;
 	struct dict_object * type = NULL;
 	char * type_name = NULL;
 	char * const_name = NULL;
+	size_t o = 0;
+	
+	if (!offset)
+		offset = &o;
 	
 	/* Check the parameters are correct */
-	CHECK_PARAMS( avp_value && verify_object(model) && (model->type == DICT_AVP) );
+	CHECK_PARAMS_DO( avp_value && verify_object(model) && (model->type == DICT_AVP), return NULL );
 	
 	/* Get the type definition of this AVP */
 	type = model->parent;
@@ -1501,14 +1510,14 @@ int fd_dict_dump_avp_value(union avp_value *avp_value, struct dict_object * mode
 		memcpy(&request.search.enum_value, avp_value, sizeof(union avp_value));
 		/* bypass checks */
 		if ((search_enumval( type->dico, ENUMVAL_BY_STRUCT, &request, &enumval ) == 0) && (enumval)) {
-			/* We found a cosntant, get its name */
+			/* We found a constant, get its name */
 			const_name = enumval->data.enumval.enum_name;
 		}
 	}
 	
 	/* And finally, dump the value */
-	CHECK_FCT( dump_avp_val(avp_value, get_default_dump_val_cb(model->data.avp.avp_basetype), dump_val_cb, model->data.avp.avp_basetype, type_name, const_name, indent, outstr, offset, outlen, header) );
-	return 0;
+	CHECK_MALLOC_DO( dump_avp_val(FD_DUMP_STD_PARAMS, avp_value, get_default_dump_val_cb(model->data.avp.avp_basetype), dump_val_cb, model->data.avp.avp_basetype, type_name, const_name, indent, header), return NULL );
+	return *buf;
 }
 
 /*******************************************************************************************************/
@@ -1573,51 +1582,51 @@ int fd_dict_new ( struct dictionary * dict, enum dict_object_type type, void * d
 	/* Check the "parent" parameter */
 	switch (dict_obj_info[type].parent) {
 		case 0:	/* parent is forbidden */
-			CHECK_PARAMS( parent == NULL );
+			CHECK_PARAMS_DO( parent == NULL, goto error_param );
 		
 		case 1:	/* parent is optional */
 			if (parent == NULL)
 				break;
 		
 		case 2: /* parent is mandatory */
-			CHECK_PARAMS(  verify_object(parent)  );
+			CHECK_PARAMS_DO(  verify_object(parent), goto error_param  );
 			
 			if (type == DICT_RULE ) { /* Special case : grouped AVP or Command parents are allowed */
-				CHECK_PARAMS( (parent->type == DICT_COMMAND ) 
-						|| ( (parent->type == DICT_AVP) && (parent->data.avp.avp_basetype == AVP_TYPE_GROUPED ) ) );
+				CHECK_PARAMS_DO( (parent->type == DICT_COMMAND ) 
+						|| ( (parent->type == DICT_AVP) && (parent->data.avp.avp_basetype == AVP_TYPE_GROUPED ) ), goto error_param );
 			} else {
-				CHECK_PARAMS( parent->type == dict_obj_info[type].parenttype );
+				CHECK_PARAMS_DO( parent->type == dict_obj_info[type].parenttype, goto error_param );
 			}
 	}
 	
 	/* For AVP object, we must also check that the "vendor" referenced exists */
 	if (type == DICT_AVP) {
 		CHECK_FCT_DO(  fd_dict_search( dict, DICT_VENDOR, VENDOR_BY_ID, &(((struct dict_avp_data *)data)->avp_vendor), (void*)&vendor, ENOENT ),
-			{ TRACE_DEBUG(INFO, "Unable to find vendor '%d' referenced in the AVP data", ((struct dict_avp_data *)data)->avp_vendor); return EINVAL; }  );
+			{ TRACE_DEBUG(INFO, "Unable to find vendor '%d' referenced in the AVP data", ((struct dict_avp_data *)data)->avp_vendor); goto error_param; }  );
 		
 		/* Also check if a parent is provided, that the type are the same */
 		if (parent) {
-			CHECK_PARAMS(  parent->data.type.type_base == ((struct dict_avp_data *)data)->avp_basetype  );
+			CHECK_PARAMS_DO(  parent->data.type.type_base == ((struct dict_avp_data *)data)->avp_basetype, goto error_param  );
 		}
 	}
 	
 	/* For RULE object, we must also check that the "avp" referenced exists */
 	if (type == DICT_RULE) {
-		CHECK_PARAMS(  verify_object(((struct dict_rule_data *)data)->rule_avp)  );
-		CHECK_PARAMS(  ((struct dict_rule_data *)data)->rule_avp->type == DICT_AVP  );
+		CHECK_PARAMS_DO(  verify_object(((struct dict_rule_data *)data)->rule_avp), goto error_param  );
+		CHECK_PARAMS_DO(  ((struct dict_rule_data *)data)->rule_avp->type == DICT_AVP, goto error_param  );
 	}
 	
 	/* For COMMAND object, check that the 'R' flag is fixed */
 	if (type == DICT_COMMAND) {
-		CHECK_PARAMS( ((struct dict_cmd_data *)data)->cmd_flag_mask & CMD_FLAG_REQUEST   );
+		CHECK_PARAMS_DO( ((struct dict_cmd_data *)data)->cmd_flag_mask & CMD_FLAG_REQUEST, goto error_param   );
 	}
 	
 	/* We have to check that the new values are not equal to the sentinels */
 	if (type == DICT_VENDOR) {
-		CHECK_PARAMS( ((struct dict_vendor_data *)data)->vendor_id != 0   );
+		CHECK_PARAMS_DO( ((struct dict_vendor_data *)data)->vendor_id != 0, goto error_param   );
 	}
 	if (type == DICT_APPLICATION) {
-		CHECK_PARAMS( ((struct dict_application_data *)data)->application_id != 0   );
+		CHECK_PARAMS_DO( ((struct dict_application_data *)data)->application_id != 0, goto error_param   );
 	}
 	
 	/* Parameters are valid, create the new object */
@@ -1717,6 +1726,10 @@ int fd_dict_new ( struct dictionary * dict, enum dict_object_type type, void * d
 	
 	return 0;
 	
+error_param:
+	ret = EINVAL;
+	goto all_errors;
+
 error_unlock:
 	CHECK_POSIX_DO(  pthread_rwlock_unlock(&dict->dict_lock),  /* continue */  );
 	if (ret == EEXIST) {
@@ -1727,7 +1740,7 @@ error_unlock:
 				/* if we are here, it means the two vendors id are identical */
 				if (fd_os_cmp(locref->data.vendor.vendor_name, locref->datastr_len, 
 						new->data.vendor.vendor_name, new->datastr_len)) {
-					TRACE_DEBUG(FULL, "Conflicting vendor name");
+					TRACE_DEBUG(INFO, "Conflicting vendor name: %s", new->data.vendor.vendor_name);
 					break;
 				}
 				/* Otherwise (same name), we consider the function succeeded, since the (same) object is in the dictionary */
@@ -1865,23 +1878,26 @@ error_unlock:
 				ret = 0;
 				break;
 		}
-		if (ret) {
-			TRACE_DEBUG(INFO, "An existing object with different non-key data was found: EEXIST");
-			if (TRACE_BOOL(INFO)) {
-				fd_log_debug("New object to insert:");
-				dump_object(new, 0, 0, 3);
-				fd_log_debug("Object already in dictionary:");			
-				dump_object(locref, 0, 0 , 3);
-			}
-		} else {
+		if (!ret) {
 			TRACE_DEBUG(FULL, "An existing object with the same data was found, ignoring the error...");
 		}
 		if (ref)
 			*ref = locref;
-	} else {
-		CHECK_FCT_DO( ret, ); /* log the error */ 
 	}
-
+all_errors:
+	if (ret != 0) {
+		char * buf = NULL;
+		size_t len = 0;
+		
+		CHECK_MALLOC( dict_obj_info[CHECK_TYPE(type) ? type : 0].dump_data(&buf, &len, NULL, data) );
+		TRACE_DEBUG(INFO, "An error occurred while adding the following data in the dictionary: %s", buf);
+		
+		if (ret == EEXIST) {
+			CHECK_MALLOC( dump_object(&buf, &len, NULL, locref, 0, 0, 0) );
+			TRACE_DEBUG(INFO, "Conflicting entry in the dictionary: %s", buf);
+		}
+		free(buf);
+	}
 error_free:
 	free(new);
 	return ret;

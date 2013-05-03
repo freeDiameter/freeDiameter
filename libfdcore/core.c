@@ -84,32 +84,6 @@ static void * core_runner_thread(void * arg)
 		int code; size_t sz; void * data;
 		CHECK_FCT_DO(  fd_event_get(fd_g_config->cnf_main_ev, &code, &sz, &data),  break  );
 		switch (code) {
-			case FDEV_DUMP_DICT:
-				fd_dict_dump(fd_g_config->cnf_dict);
-				break;
-			
-			case FDEV_DUMP_EXT:
-				fd_ext_dump();
-				break;
-			
-			case FDEV_DUMP_SERV:
-				fd_servers_dump();
-				break;
-			
-			case FDEV_DUMP_QUEUES:
-				fd_fifo_dump(0, "Incoming messages", fd_g_incoming, fd_msg_dump_walk);
-				fd_fifo_dump(0, "Outgoing messages", fd_g_outgoing, fd_msg_dump_walk);
-				fd_fifo_dump(0, "Local messages",    fd_g_local,    fd_msg_dump_walk);
-				break;
-			
-			case FDEV_DUMP_CONFIG:
-				fd_conf_dump();
-				break;
-			
-			case FDEV_DUMP_PEERS:
-				fd_peer_dump_list(FULL);
-				break;
-			
 			case FDEV_TRIGGER:
 				{
 					int tv, *p;
@@ -181,7 +155,7 @@ int fd_core_initialize(void)
 		return ret;
 	}
 	
-	TRACE_DEBUG(INFO, "libfdproto initialized.");
+	LOG_D("libfdproto initialized.");
 	
 	/* Name this thread */
 	fd_log_threadname("Main");
@@ -224,6 +198,10 @@ int fd_core_initialize(void)
 /* Parse the freeDiameter.conf configuration file, load the extensions */
 int fd_core_parseconf(const char * conffile)
 {
+	char * buf = NULL, *b;
+	size_t len = 0, offset=0;
+	
+	
 	TRACE_ENTRY("%p", conffile);
 	
 	/* Conf file */
@@ -239,11 +217,17 @@ int fd_core_parseconf(const char * conffile)
 	CHECK_FCT(  fd_ext_load()  );
 	
 	/* Display configuration */
-	fd_conf_dump();
+	b = fd_conf_dump(&buf, &len, NULL);
+	LOG_N("%s\n", b ?: "Error during configuration dump...");
 	
 	/* Display registered triggers for FDEV_TRIGGER */
-	fd_event_trig_dump();
+	b = fd_event_trig_dump(&buf, &len, &offset);
+	if (!b || offset) {
+		LOG_N("%s\n", b ?: "Error during triggers dump...");
+	}
 	
+	free(buf);	
+		
 	return 0;
 }
 

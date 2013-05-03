@@ -50,58 +50,18 @@ void fd_sess_fini(void);
 /* Where debug messages are sent */
 extern FILE * fd_g_debug_fstr;
 
-/* Special message dump function */
-void fd_msg_dump_fstr_one ( struct msg * msg, FILE * fstr );
-void fd_msg_dump_fstr ( struct msg * msg, FILE * fstr );
-
 /* Iterator on the rules of a parent object */
 int fd_dict_iterate_rules ( struct dict_object *parent, void * data, int (*cb)(void *, struct dict_rule_data *) );
 
 /* Dispatch / messages / dictionary API */
 int fd_dict_disp_cb(enum dict_object_type type, struct dict_object *obj, struct fd_list ** cb_list);
-int fd_dict_dump_avp_value(union avp_value *avp_value, struct dict_object * model, int indent, char **outstr, size_t *offset, size_t *outlen, int header);
+DECLARE_FD_DUMP_PROTOTYPE(fd_dict_dump_avp_value, union avp_value *avp_value, struct dict_object * model, int indent, int header);
 int fd_disp_call_cb_int( struct fd_list * cb_list, struct msg ** msg, struct avp *avp, struct session *sess, enum disp_action *action, 
 			struct dict_object * obj_app, struct dict_object * obj_cmd, struct dict_object * obj_avp, struct dict_object * obj_enu);
 extern pthread_rwlock_t fd_disp_lock;
 
 /* Messages / sessions API */
 int fd_sess_reclaim_msg ( struct session ** session );
-
-
-/* For dump routines into string buffers */
-#include <stdarg.h>
-static __inline__ int dump_init_str(char **outstr, size_t *offset, size_t *outlen) 
-{
-	*outlen = 1<<12;
-	CHECK_MALLOC( *outstr = malloc(*outlen) );
-	*offset = 0;
-	(*outstr)[0] = 0;
-	return 0;
-}
-static __inline__ int dump_add_str(char **outstr, size_t *offset, size_t *outlen, char * fmt, ...) 
-{
-	va_list argp;
-	int len;
-	va_start(argp, fmt);
-	len = vsnprintf(*outstr + *offset, *outlen - *offset, fmt, argp);
-	va_end(argp);
-	if ((len + *offset) >= *outlen) {
-		char * newstr;
-		/* buffer was too short, extend */
-		size_t newsize = ((len + *offset) + (1<<12)) & ~((1<<12) - 1); /* next multiple of 4k */
-		CHECK_MALLOC( newstr = realloc(*outstr, newsize) );
-		
-		/* redo */
-		*outstr = newstr;
-		*outlen = newsize;
-		va_start(argp, fmt);
-		len = vsnprintf(*outstr + *offset, *outlen - *offset, fmt, argp);
-		va_end(argp);
-	}
-	*offset += len;
-	return 0;
-}
-
 
 
 #endif /* _LIBFDPROTO_INTERNAL_H */

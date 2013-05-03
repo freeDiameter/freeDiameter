@@ -85,7 +85,6 @@
 /* Configuration */
 int fd_conf_init();
 int fd_conf_deinit();
-void fd_conf_dump();
 int fd_conf_parse();
 int fddparse(struct fd_config * conf); /* yacc generated */
 int fd_conf_stream_to_gnutls_datum(FILE * pemfile, gnutls_datum_t *out);
@@ -94,7 +93,6 @@ int fd_conf_stream_to_gnutls_datum(FILE * pemfile, gnutls_datum_t *out);
 /* Extensions */
 int fd_ext_add( char * filename, char * conffile );
 int fd_ext_load();
-void fd_ext_dump(void);
 int fd_ext_term(void);
 
 /* Messages */
@@ -217,11 +215,8 @@ struct fd_peer { /* The "real" definition of the peer structure */
 
 /* Events codespace for struct fd_peer->p_events */
 enum {
-	/* Dump all info about this peer in the debug log */
-	 FDEVP_DUMP_ALL = 1500
-	
 	/* request to terminate this peer : disconnect, requeue all messages */
-	,FDEVP_TERMINATE
+	FDEVP_TERMINATE = 1500
 	
 	/* A connection object has received a message. (data contains the buffer + struct timespec piggytailed -- unaligned) */
 	,FDEVP_CNX_MSG_RECV
@@ -249,13 +244,12 @@ enum {
 	
 };
 #define CHECK_PEVENT( _e ) \
-	(((int)(_e) >= FDEVP_DUMP_ALL) && ((int)(_e) <= FDEVP_PSM_TIMEOUT))
+	(((int)(_e) >= FDEVP_TERMINATE) && ((int)(_e) <= FDEVP_PSM_TIMEOUT))
 /* The following macro is actually called in p_psm.c -- another solution would be to declare it static inline */
 #define DECLARE_PEV_STR()				\
 const char * fd_pev_str(int event)			\
 {							\
 	switch (event) {				\
-		case_str(FDEVP_DUMP_ALL);		\
 		case_str(FDEVP_TERMINATE);		\
 		case_str(FDEVP_CNX_MSG_RECV);		\
 		case_str(FDEVP_CNX_ERROR);		\
@@ -280,8 +274,6 @@ struct cnx_incoming {
 
 /* Functions */
 int  fd_peer_fini();
-void fd_peer_dump_list(int details);
-void fd_peer_dump(struct fd_peer * peer, int details);
 int  fd_peer_alloc(struct fd_peer ** ptr);
 int  fd_peer_free(struct fd_peer ** ptr);
 int fd_peer_handle_newCER( struct msg ** cer, struct cnxctx ** cnx );
@@ -338,7 +330,6 @@ extern pthread_rwlock_t fd_g_activ_peers_rw; /* protect the list */
 
 
 /* Server sockets */
-void fd_servers_dump();
 int  fd_servers_start();
 int  fd_servers_stop();
 

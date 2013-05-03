@@ -132,12 +132,9 @@ void fd_libproto_fini(void);
 
 /*
  * FUNCTION:	fd_log
- * MACRO:	fd_log_debug
- * MACRO:	fd_log_notice
- * MACRO:	fd_log_error
  *
  * PARAMETERS:
- *  loglevel	: Integer, how important the message is
+ *  loglevel	: Integer, how important the message is. Valid values are macros FD_LOG_*
  *  format 	: Same format string as in the printf function
  *  ...		: Same list as printf
  *
@@ -150,11 +147,7 @@ void fd_libproto_fini(void);
  *  None.
  */
 void fd_log ( int, const char *, ... ) _ATTRIBUTE_PRINTFLIKE_(2,3);
-#define fd_log_debug(format,args...)  fd_log(FD_LOG_DEBUG, format, ## args)
-#define fd_log_notice(format,args...) fd_log(FD_LOG_NOTICE, format, ## args)
-#define fd_log_error(format,args...)  fd_log(FD_LOG_ERROR, format, ## args)
-
-void fd_log_debug_fstr( FILE *, const char *, ... );
+void fd_log_va( int, const char *, va_list args );
 
 /* these are internal objects of the debug facility, 
 might be useful to control the behavior from outside */
@@ -228,6 +221,25 @@ int fd_log_handler_register ( void (*logger)(int loglevel, const char * format, 
 int fd_log_handler_unregister ( void );
 
 
+/* Helper function for the *dump functions that add into a buffer */
+char * fd_dump_extend(char ** buf, size_t *len, size_t *offset, const char * format, ... ) _ATTRIBUTE_PRINTFLIKE_(4,5);
+
+/* All dump functions follow the same prototype:
+ * PARAMETERS:
+ *   buf   : *buf can be NULL on entry, it will be malloc'd. Otherwise it can be realloc'd if needed.
+ *   len   : the current size of the buffer (in/out)
+ *   offset: (optional) if provided, starts writing dump at offset in the buffer, and updated upon exit. if NULL, starts at offset O.
+ *
+ * RETURN VALUE:
+ *   *buf upon success, NULL upon failure.
+ * After the buffer has been used, it should be freed.
+ */
+#define DECLARE_FD_DUMP_PROTOTYPE( function_name, args... )	\
+	char * function_name(char ** buf, size_t *len, size_t *offset, ##args)
+	
+#define FD_DUMP_STD_PARAMS  buf, len, offset
+
+
 /*============================================================*/
 /*                    DEBUG MACROS                            */
 /*============================================================*/
@@ -236,20 +248,14 @@ int fd_log_handler_unregister ( void );
 #define ASSERT(x) assert(x)
 #endif /* ASSERT */
 
-/* log levels definitions */
-#define FD_LOG_DEBUG  0  /* Verbose information for developers use */
-#define FD_LOG_NOTICE 3  /* Normal execution states worth noting */
-#define FD_LOG_ERROR  5  /* Error conditions, both recoverable or not */
+/* log levels definitions, that are passed to the logger */
+#define FD_LOG_ANNOYING  0  /* very verbose loops and such "overkill" traces. Only active when the framework is compiled in DEBUG mode. */
+#define FD_LOG_DEBUG     1  /* Get a detailed sense of what is going on in the framework. Use this level for normal debug */
+#define FD_LOG_NOTICE    3  /* Normal execution states worth noting */
+#define FD_LOG_ERROR     5  /* Recoverable or expected error conditions */
+#define FD_LOG_FATAL     6  /* Unrecoverable error, e.g. malloc fail, etc. that requires the framework to shutdown */
 
-/* print level definitions */
-#define NONE 0	/* Display no debug message */
-#define INFO 1	/* Display errors only */
-#define FULL 2  /* Display additional information to follow code execution */
-#define ANNOYING 4 /* Very verbose, for example in loops */
-#define FCTS 6  /* Display entry parameters of most functions */
-#define CALL 9  /* Display calls to most functions (with CHECK macros) */
-
-/* A global level, changed by configuration or cmd line for example. Default is INFO (in libfdproto/log.c). */
+/* The level used by the default logger, can be changed by command-line arguments. Ignored for other loggers. */
 extern int fd_g_debug_lvl;
 
 /* Some portability code to get nice function name in __PRETTY_FUNCTION__ */
@@ -264,121 +270,321 @@ extern int fd_g_debug_lvl;
 #define __PRETTY_FUNCTION__ __func__
 #endif /* __PRETTY_FUNCTION__ */
 
-#ifdef DEBUG
 /* A version of __FILE__ without the full path */
 static char * file_bname = NULL;
 static char * file_bname_init(char * full) { file_bname = basename(full); return file_bname; }
 #define __STRIPPED_FILE__	(file_bname ?: file_bname_init((char *)__FILE__))
 
-/* Boolean for tracing at a certain level */
-#define TRACE_BOOL(_level_) ( ((_level_) <= fd_g_debug_lvl) 					\
-				|| (fd_debug_one_function && !strcmp(fd_debug_one_function, __PRETTY_FUNCTION__)) 	\
-				|| (fd_debug_one_file && !strcmp(fd_debug_one_file, __STRIPPED_FILE__) ) )
-#else /* DEBUG */
-#define TRACE_BOOL(_level_) ((_level_) <= fd_g_debug_lvl)
-#define __STRIPPED_FILE__ __FILE__
-#endif /* DEBUG */
 
 
-#define STD_TRACE_FMT_STRING "pid:%s in %s@%s:%d: "
-/*************
- The general debug macro, each call results in two lines of debug messages (change the macro for more compact output) 
- *************/
+/* In DEBUG mode, we add meta-information along each trace. This makes multi-threading problems easier to debug. */
 #ifdef DEBUG
-/* In DEBUG mode, we add (a lot of) meta-information along each trace. This makes multi-threading problems easier to debug. */
-#define TRACE(printlevel,level,format,args... ) {										\
-	if ( TRACE_BOOL(level) ) {												\
-		const char * __thn = ((char *)pthread_getspecific(fd_log_thname) ?: "unnamed");					\
-		fd_log((printlevel), STD_TRACE_FMT_STRING format, 								\
-					__thn, __PRETTY_FUNCTION__, __STRIPPED_FILE__, __LINE__, ## args); 			\
-	}															\
-}
+# define STD_TRACE_FMT_STRING "pid:%s in %s@%s:%d: "
+# define STD_TRACE_FMT_ARGS   , ((char *)pthread_getspecific(fd_log_thname) ?: "unnamed"), __PRETTY_FUNCTION__, __STRIPPED_FILE__, __LINE__
 #else /* DEBUG */
-/* Do not print thread, function, ... only the message itself in this case */
-#define TRACE(printlevel,level,format,args... ) {					\
-	if ( TRACE_BOOL(level) ) {							\
-		fd_log((printlevel), format, ## args);    				\
-	}										\
-}
+# define STD_TRACE_FMT_STRING ""
+# define STD_TRACE_FMT_ARGS
 #endif /* DEBUG */
 
-/* Report debug information */
-#define TRACE_DEBUG(level,format,args... ) \
-	TRACE(FD_LOG_DEBUG,(level),format,##args)
+/*************************
+  The general debug macro
+ *************************/
+#define LOG(printlevel,format,args... ) \
+	fd_log((printlevel), STD_TRACE_FMT_STRING format STD_TRACE_FMT_ARGS, ## args)
+
+/*
+ * Use the following macros in the code to get traces with location & pid in debug mode: 
+ */
+#ifdef DEBUG
+# define LOG_A(format,args... ) \
+		LOG(FD_LOG_ANNOYING,format,##args)
+#else /* DEBUG */
+# define LOG_A(format,args... ) /* not defined in release */
+#endif /* DEBUG */
+
+/* Debug information useful to follow in detail what is going on */
+#define LOG_D(format,args... ) \
+		LOG(FD_LOG_DEBUG, format, ##args)
 
 /* Report a normal message that is useful for normal admin monitoring */
-#define TRACE_NOTICE(format,args... ) \
-	TRACE(FD_LOG_NOTICE,INFO,format,##args)
+#define LOG_N(format,args... ) \
+		LOG(FD_LOG_NOTICE, format,##args)
 
 /* Report an error */
-#define TRACE_ERROR(format,args... ) \
-	TRACE(FD_LOG_ERROR, NONE, format, ##args)
+#define LOG_E(format,args... ) \
+		LOG(FD_LOG_ERROR, format, ##args)
 
-/* 
-TRACE_NOTICE(...) and fd_log_notice(...) are equivalent when the code is not compiled in DEBUG mode,
-but there is more contextual information when compiled in DEBUG with the TRACE_NOTICE macro,
-hence it is recommended to use this one except for formatted output (e.g. fd_*_dump function)
+/* Report a fatal error */
+#define LOG_F(format,args... ) \
+		LOG(FD_LOG_FATAL, format, ##args)
 
-resp. TRACE_DEBUG and TRACE_ERROR.
-*/
 
 /*************
- Derivatives for debug
+ Derivatives
  ************/
+/* Trace a binary buffer content */
+#define LOG_BUFFER(printlevel, prefix, buf, bufsz, suffix ) {								\
+	int __i;													\
+	size_t __sz = (size_t)(bufsz);											\
+	uint8_t * __buf = (uint8_t *)(buf);										\
+	char __strbuf[1024+1];												\
+	for (__i = 0; (__i < __sz) && (__i<(sizeof(__strbuf)/2)); __i++) {						\
+		sprintf(__strbuf + (2 * __i), "%02hhx", __buf[__i]);     						\
+	}														\
+        fd_log(printlevel, STD_TRACE_FMT_STRING "%s%s%s" STD_TRACE_FMT_ARGS,  						\
+               (prefix), __strbuf, (suffix));										\
+}
+
 /* Helper for function entry -- for very detailed trace of the execution */
 #define TRACE_ENTRY(_format,_args... ) \
-	TRACE_DEBUG(FCTS, "[enter] %s(" _format ") {" #_args "}", __PRETTY_FUNCTION__, ##_args );
+		LOG_A(FCTS, "[enter] %s(" _format ") {" #_args "}", __PRETTY_FUNCTION__, ##_args );
 
 /* Helper for debugging by adding traces -- for debuging a specific location of the code */
 #define TRACE_HERE()	\
-	TRACE_DEBUG(NONE, " -- debug checkpoint %d -- ", fd_breakhere());
+		LOG_F(" -- debug checkpoint %d -- ", fd_breakhere());
 int fd_breakhere(void);
 
 /* Helper for tracing the CHECK_* macros below -- very very verbose code execution! */
-#define TRACE_DEBUG_ALL( str... ) 	\
-	TRACE_DEBUG(CALL, str );
+#define TRACE_CALL( str... ) 	\
+		if ((fd_debug_one_function && !strcmp(fd_debug_one_function, __PRETTY_FUNCTION__)) 	\
+		 || (fd_debug_one_file && !strcmp(fd_debug_one_file, __STRIPPED_FILE__) ) ) {		\
+		 	LOG_A( str );									\
+		}
 
 /* For development only, to keep track of TODO locations in the code */
 #ifndef ERRORS_ON_TODO
-#define TODO( _msg, _args... ) \
-	TRACE_DEBUG(NONE, "TODO: " _msg , ##_args);
+# define TODO( _msg, _args... ) \
+		LOG_F( "TODO: " _msg , ##_args);
 #else /* ERRORS_ON_TODO */
-#define TODO( _msg, _args... ) \
-	"TODO" = _msg ## _args; /* just a stupid compilation error to spot the todo */
+# define TODO( _msg, _args... ) \
+		"TODO" = _msg ## _args; /* just a stupid compilation error to spot the todo */
 #endif /* ERRORS_ON_TODO */
 
-/* Trace a binary buffer content */
-#ifdef DEBUG
-/* In DEBUG mode, we add (a lot of) meta-information along each trace. This makes multi-threading problems easier to debug. */
-#define TRACE_BUFFER(printlevel, level, prefix, buf, bufsz, suffix ) {								\
-	if ( TRACE_BOOL(level) ) {												\
+
+/*============================================================*/
+/*                  ERROR CHECKING MACRO                      */
+/*============================================================*/
+
+/* Macros to check a return value and branch out in case of error.
+ * These macro additionally provide the logging information.
+ *
+ * The name "__ret__" is always available in the __fallback__ parameter and contains the error code.
+ */
+ 
+#define CHECK_PRELUDE(__call__) 			\
+		int __ret__; 				\
+		TRACE_CALL("Check: %s", #__call__ );	\
+		__ret__ = (__call__)
+	
+#define DEFAULT_FB	return __ret__;
+
+/* System check: error case if < 0, error value in errno */
+#define CHECK_SYS_GEN( faillevel, __call__, __fallback__  ) { 						\
+		CHECK_PRELUDE(__call__);								\
+		if (__ret__ < 0) {									\
+			__ret__ = errno;								\
+			LOG(faillevel, "ERROR: in '%s' :\t%s",  #__call__ , strerror(__ret__));    	\
+			__fallback__;									\
+		}											\
+}
+
+
+/* Check the return value of a function and execute fallback in case of error or special value */
+#define CHECK_FCT_GEN2( faillevel, __call__, __speval__, __fallback1__, __fallback2__ ) {		\
+		CHECK_PRELUDE(__call__);								\
+		if (__ret__ != 0) {									\
+			if (__ret__ == (__speval__)) {							\
+				__fallback1__;								\
+			} else {									\
+				LOG(faillevel, "ERROR: in '%s' :\t%s", #__call__ , strerror(__ret__));	\
+				__fallback2__;								\
+			}										\
+		}											\
+}
+
+/* Check the return value of a function and execute fallback in case of error (return value different from 0) */
+#define CHECK_FCT_GEN( faillevel, __call__, __fallback__) \
+	       CHECK_FCT_GEN2( faillevel, (__call__), 0, , (__fallback__) )
+
+/* Check that a memory allocator did not return NULL, otherwise log an error and execute fallback */
+#define CHECK_MALLOC_GEN( faillevel, __call__, __fallback__ ) { 				       \
+	       void *  __ptr__; 								       \
+	       TRACE_CALL("Check: %s", #__call__ );						       \
+	       __ptr__ = (void *)(__call__);							       \
+	       if (__ptr__ == NULL) {								       \
+		       int __ret__ = errno;							       \
+		       LOG(faillevel, "ERROR: in '%s' :\t%s",  #__call__ , strerror(__ret__));         \
+		       __fallback__;								       \
+	       }										       \
+}
+
+/* Check parameters at function entry, execute fallback on error */
+#define CHECK_PARAMS_GEN( faillevel, __bool__, __fallback__ ) {					       \
+	       TRACE_CALL("Check: %s", #__bool__ );						       \
+	       if ( ! (__bool__) ) {								       \
+		       int __ret__ = EINVAL;							       \
+		       LOG(faillevel, "ERROR: invalid parameter '%s'",  #__bool__ );  	       	       \
+		       __fallback__;								       \
+	       }										       \
+}
+
+
+/*============================================================*/
+/*          COMPATIBILITY MACROS, TO BE REMOVED		      */
+/*============================================================*/
+/* Redefine the old macros for transition of the code */
+#ifndef EXCLUDE_DEPRECATED
+
+#define MARK_DEPRECATED	/* __attribute__ ((deprecated)) */
+
+enum old_levels {
+	NONE = 0,
+	INFO = 1,
+	FULL = 2,
+	ANNOYING = 4,
+	FCTS = 6,
+	CALL = 9
+} MARK_DEPRECATED;
+
+static __inline__ int TRACE_BOOL( enum old_levels level ) MARK_DEPRECATED
+{ 
+	return (level <= fd_g_debug_lvl)
+		|| (fd_debug_one_function && !strcmp(fd_debug_one_function, __PRETTY_FUNCTION__))
+		|| (fd_debug_one_file && !strcmp(fd_debug_one_file, __STRIPPED_FILE__) ); 
+}
+
+static __inline__ void fd_log_deprecated( int level, const char *format, ... ) MARK_DEPRECATED
+{ 
+	va_list ap;
+	va_start(ap, format);
+	fd_log_va(level, format, ap);
+	va_end(ap);	
+}
+static __inline__ void replace_me() MARK_DEPRECATED { }
+
+#define TRACE_sSA(...) replace_me();
+#define sSA_DUMP_NODE_SERV(...) replace_me();
+#define sSA_DUMP_NODE(...) replace_me();
+#define TRACE_BUFFER(...) replace_me();
+#define TRACE_NOTICE(...) replace_me();
+
+
+/* Use the LOG_* instead, or use the new *_dump functions when dumping an object */
+#define fd_log_debug(format,args...)  fd_log_deprecated(FD_LOG_DEBUG, format, ## args)
+#define fd_log_notice(format,args...) fd_log_deprecated(FD_LOG_NOTICE, format, ## args)
+#define fd_log_error(format,args...)  fd_log_deprecated(FD_LOG_ERROR, format, ## args)
+
+/* old macro for traces. To be replaced by appropriate LOG_* macros. */
+# define TRACE_DEBUG(oldlevel, format,args... ) {					\
+		if (TRACE_BOOL(oldlevel)) {						\
+			if      (oldlevel == NONE) { LOG_E(format,##args); }		\
+			else if (oldlevel == INFO) { LOG_N(format,##args); }		\
+			else                       { LOG_D(format,##args); }		\
+}		}
+
+/* the following macro must be replaced with LOG_E or LOG_F */
+# define TRACE_ERROR	fd_log_error
+
+
+/* The following macros are missing the faillevel information, which indicates at what log level the error case should be displayed. */
+# define CHECK_SYS_DO( __call__, __fallback__  ) { 							\
+		CHECK_PRELUDE(__call__);								\
+		if (__ret__ < 0) {									\
+			__ret__ = errno;								\
+			TRACE_ERROR("ERROR: in '%s' :\t%s",  #__call__ , strerror(__ret__));    	\
+			__fallback__;									\
+		}											\
+}
+
+# define CHECK_SYS( __call__  ) \
+		CHECK_SYS_DO( (__call__), return __ret__  )
+
+
+# define CHECK_POSIX_DO2( __call__, __speval__, __fallback1__, __fallback2__ ) {			\
+		CHECK_PRELUDE(__call__);								\
+		if (__ret__ != 0) {									\
+			if (__ret__ == (__speval__)) {							\
+				__fallback1__;								\
+			} else {									\
+				TRACE_ERROR("ERROR: in '%s' :\t%s", #__call__ , strerror(__ret__));	\
+				__fallback2__;								\
+			}										\
+		}											\
+}
+
+# define CHECK_POSIX_DO( __call__, __fallback__ )	\
+		CHECK_POSIX_DO2( (__call__), 0, , __fallback__ )
+
+# define CHECK_POSIX( __call__ )	\
+		CHECK_POSIX_DO( (__call__), return __ret__ )
+		
+# define CHECK_MALLOC_DO( __call__, __fallback__ ) { 				   		       \
+	       void *  __ptr__; 								       \
+	       TRACE_CALL("Check: %s", #__call__ );						       \
+	       __ptr__ = (void *)(__call__);							       \
+	       if (__ptr__ == NULL) {								       \
+		       int __ret__ = errno;							       \
+		      TRACE_ERROR("ERROR: in '%s' :\t%s",  #__call__ , strerror(__ret__));             \
+		       __fallback__;								       \
+	       }										       \
+}
+
+# define CHECK_MALLOC( __call__ )	\
+		CHECK_MALLOC_DO( (__call__), return __ret__ )
+	
+# define CHECK_PARAMS_DO( __bool__, __fallback__ ) {					       	       \
+	       TRACE_CALL("Check: %s", #__bool__ );						       \
+	       if ( ! (__bool__) ) {								       \
+		       int __ret__ = EINVAL;							       \
+		       TRACE_ERROR("ERROR: invalid parameter '%s'",  #__bool__ );  	               \
+		       __fallback__;								       \
+	       }										       \
+}
+
+# define CHECK_PARAMS( __bool__ )	\
+		CHECK_PARAMS_DO( (__bool__), return __ret__ )
+
+# define CHECK_FCT_DO	CHECK_POSIX_DO
+# define CHECK_FCT	CHECK_POSIX
+
+#endif /* EXCLUDE_DEPRECATED */
+	       
+
+/*============================================================*/
+/*	Optimized code: remove all debugging code	      */
+/*============================================================*/
+#ifdef STRIP_DEBUG_CODE
+#undef LOG_D
+#undef LOG_N
+#undef LOG_E
+#undef LOG_F
+#undef LOG_BUFFER
+
+#define LOG_D(format,args... ) /* noop */
+#define LOG_N(format,args...) fd_log(FD_LOG_NOTICE, format, ## args)
+#define LOG_E(format,args...) fd_log(FD_LOG_ERROR, format, ## args)
+#define LOG_F(format,args...) fd_log(FD_LOG_FATAL, format, ## args)
+#define LOG_BUFFER(printlevel, level, prefix, buf, bufsz, suffix ) {								\
+	if (printlevel > FD_LOG_DEBUG) {											\
 		int __i;													\
 		size_t __sz = (size_t)(bufsz);											\
 		uint8_t * __buf = (uint8_t *)(buf);										\
-		char __strbuf[1024+1];												\
-		char * __thn = ((char *)pthread_getspecific(fd_log_thname) ?: "unnamed");					\
-		for (__i = 0; (__i < __sz) && (__i<(sizeof(__strbuf)/2)); __i++) {						\
-			sprintf(__strbuf + (2 * __i), "%2.2hhx", __buf[__i]);     						\
+		char * __strbuf[1024+1];											\
+		for (__i = 0; (__i < __sz) && (__i<(sizeof(__strbuf)/2); __i++) {						\
+			sprintf(__strbuf + (2 * __i), "%02.2hhx", __buf[__i]);     						\
 		}														\
-                fd_log(printlevel, STD_TRACE_FMT_STRING "%s%s%s",      								\
-                       __thn, __PRETTY_FUNCTION__, __STRIPPED_FILE__, __LINE__, (prefix), __strbuf, (suffix));			\
-	}															\
-}
-#else /* DEBUG */
-/* Do not print thread, function, ... only the message itself in this case */
-#define TRACE_BUFFER(printlevel, level, prefix, buf, bufsz, suffix ) {								\
-	if ( TRACE_BOOL(level) ) {												\
-		int __i;													\
-		size_t __sz = (size_t)(bufsz);											\
-		uint8_t * __buf = (uint8_t *)(buf);										\
-		char __strbuf[1024+1];												\
-		for (__i = 0; (__i < __sz) && (__i<(sizeof(__strbuf)/2)); __i++) {						\
-			sprintf(__strbuf + (2 * __i), "%2.2hhx", __buf[__i]);     						\
-		}														\
-                fd_log(printlevel, "%s%s%s", (prefix), __strbuf, (suffix));							\
-	}															\
-}
-#endif /* DEBUG */
+                fd_log(printlevel, prefix"%s"suffix, __strbuf);									\
+	}
+#endif /* STRIP_DEBUG_CODE */
+
+/*============================================================*/
+/*		    OTHER MACROS			      */
+/*============================================================*/
+/* helper macros (pre-processor hacks to allow macro arguments) */
+#define __tostr( arg )  #arg
+#define _stringize( arg ) __tostr( arg )
+#define __agr( arg1, arg2 ) arg1 ## arg2
+#define _aggregate( arg1, arg2 ) __agr( arg1, arg2 )
 
 /* Some aliases to socket addresses structures */
 #define sSS	struct sockaddr_storage
@@ -392,217 +598,8 @@ int fd_breakhere(void);
 				((((sSA *)_sa_)->sa_family == AF_INET6) ? (sizeof(sSA6)) :	\
 					0 ) ) )
 
-/* Dump one sockaddr Node information */
-#define sSA_DUMP_NODE( buf, bufsize, sa, flag ) {                	\
-	sSA * __sa = (sSA *)(sa);					\
-	char __addrbuf[INET6_ADDRSTRLEN];				\
-	if (__sa) {							\
-	  int __rc = getnameinfo(__sa, 					\
-	  		sSAlen(__sa),					\
-			__addrbuf,					\
-			sizeof(__addrbuf),				\
-			NULL,						\
-			0,						\
-			(flag));					\
-	  if (__rc)							\
-		snprintf(buf, bufsize, "%s", gai_strerror(__rc));	\
-	  else								\
-		snprintf(buf, bufsize, "%s", &__addrbuf[0]);       	\
-	} else {							\
-		snprintf(buf, bufsize, "(NULL / ANY)");             	\
-	}								\
-}
-/* Same but with the port (service) also */
-#define sSA_DUMP_NODE_SERV( buf, bufsize, sa, flag ) {                  \
-	sSA * __sa = (sSA *)(sa);					\
-	char __addrbuf[INET6_ADDRSTRLEN];				\
-	char __servbuf[32];						\
-	if (__sa) {							\
-	  int __rc = getnameinfo(__sa, 					\
-	  		sSAlen(__sa),					\
-			__addrbuf,					\
-			sizeof(__addrbuf),				\
-			__servbuf,					\
-			sizeof(__servbuf),				\
-			(flag));					\
-	  if (__rc)							\
-		snprintf(buf, bufsize, "%s", gai_strerror(__rc));  \
-	  else								\
-		snprintf(buf, bufsize, "[%s]:%s", &__addrbuf[0],&__servbuf[0]); \
-	} else {							\
-		snprintf(buf, bufsize,"(NULL / ANY)");         \
-	}								\
-}
-
-#ifdef DEBUG
-/* In DEBUG mode, we add (a lot of) meta-information along each trace. This makes multi-threading problems easier to debug. */
-#define TRACE_sSA(printlevel, level, prefix, sa, flags, suffix ) {										\
-	if ( TRACE_BOOL(level) ) {												\
-		char __buf[1024]; 												\
-		char * __thn = ((char *)pthread_getspecific(fd_log_thname) ?: "unnamed");					\
-		sSA_DUMP_NODE_SERV(__buf, sizeof(__buf), sa, flags );       							\
-		fd_log(printlevel, STD_TRACE_FMT_STRING "%s%s%s" ,     								\
-                       __thn, __PRETTY_FUNCTION__, __STRIPPED_FILE__, __LINE__, (prefix), __buf, (suffix)); 			\
-	}															\
-}
-#else /* DEBUG */
-/* Do not print thread, function, ... only the message itself in this case */
-#define TRACE_sSA(printlevel, level, prefix, sa, flags, suffix ) {										\
-	if ( TRACE_BOOL(level) ) {												\
-		char __buf[1024]; 												\
-		sSA_DUMP_NODE_SERV(__buf, sizeof(__buf), sa, flags );       							\
-		fd_log(printlevel, "%s%s%s" , (prefix), __buf, (suffix)); 							\
-	}															\
-}
-#endif /* DEBUG */
-
-/******************
- Optimized code: remove all debugging code
- **/
-#ifdef STRIP_DEBUG_CODE
-#undef TRACE_DEBUG
-#undef TRACE_NOTICE
-#undef TRACE_ERROR
-#undef TRACE_BOOL
-#undef TRACE_BUFFER
-#undef TRACE_sSA
-
-#define TRACE_DEBUG(level,format,args... ) /* noop */
-#define TRACE_BOOL(_level_) (0)	/* always false */
-#define TRACE_NOTICE fd_log_notice
-#define TRACE_ERROR fd_log_error
-#define TRACE_BUFFER(printlevel, level, prefix, buf, bufsz, suffix ) {								\
-	if (printlevel > FD_LOG_DEBUG) {											\
-		int __i;													\
-		size_t __sz = (size_t)(bufsz);											\
-		uint8_t * __buf = (uint8_t *)(buf);										\
-		char * __strbuf[1024+1];											\
-		for (__i = 0; (__i < __sz) && (__i<(sizeof(__strbuf)/2); __i++) {						\
-			sprintf(__strbuf + (2 * __i), "%02.2hhx", __buf[__i]);     						\
-		}														\
-                fd_log(printlevel, prefix"%s"suffix, __strbuf);									\
-	}
-#define TRACE_sSA(printlevel, level, prefix, sa, flags, suffix )  {								\
-	if (printlevel > FD_LOG_DEBUG) {											\
-		char __buf[1024]; 												\
-		sSA_DUMP_NODE_SERV(__buf, sizeof(__buf), sa, flags );       							\
-		fd_log(printlevel, prefix "%s" suffix, __buf);				 					\
-	}
-#endif /* STRIP_DEBUG_CODE */
-
-
-/*============================================================*/
-/*                  ERROR CHECKING MACRO                      */
-/*============================================================*/
-
-/* Macros to check a return value and branch out in case of error.
- * These macro should be used only when errors are improbable, not for expected errors.
- */
-
-/* Check the return value of a system function and execute fallback in case of error */
-#define CHECK_SYS_DO( __call__, __fallback__  ) { 					\
-	int __ret__;									\
-	TRACE_DEBUG_ALL( "Check SYS: %s", #__call__ );					\
-	__ret__ = (__call__);								\
-	if (__ret__ < 0) {								\
-		int __err__ = errno;	/* We may handle EINTR here */			\
-		TRACE_ERROR("ERROR: in '%s' :\t%s",  #__call__ , strerror(__err__));    \
-		__fallback__;								\
-	}										\
-}
-/* Check the return value of a system function, return error code on error */
-#define CHECK_SYS( __call__  ) { 							\
-	int __ret__;									\
-	TRACE_DEBUG_ALL( "Check SYS: %s", #__call__ );					\
-	__ret__ = (__call__);								\
-	if (__ret__ < 0) {								\
-		int __err__ = errno;	/* We may handle EINTR here */			\
-		TRACE_ERROR("ERROR: in '%s' :\t%s", #__call__ , strerror(__err__));     \
-		return __err__;								\
-	}										\
-}
-
-/* Check the return value of a POSIX function and execute fallback in case of error or special value */
-#define CHECK_POSIX_DO2( __call__, __speval__, __fallback1__, __fallback2__ ) {			\
-	int __ret__;										\
-	TRACE_DEBUG_ALL( "Check POSIX: %s", #__call__ );					\
-	__ret__ = (__call__);									\
-	if (__ret__ != 0) {									\
-		if (__ret__ == (__speval__)) {							\
-			__fallback1__;								\
-		} else {									\
-			TRACE_ERROR("ERROR: in '%s':\t%s", #__call__, strerror(__ret__));	\
-			__fallback2__;								\
-		}										\
-	}											\
-}
-
-/* Check the return value of a POSIX function and execute fallback in case of error */
-#define CHECK_POSIX_DO( __call__, __fallback__ ) 					\
-	CHECK_POSIX_DO2( (__call__), 0, , __fallback__ );
-
-/* Check the return value of a POSIX function and return it if error */
-#define CHECK_POSIX( __call__ ) { 							\
-	int __v__;									\
-	CHECK_POSIX_DO( __v__ = (__call__), return __v__ );				\
-}
-
-/* Check that a memory allocator did not return NULL, otherwise log an error and execute fallback */
-#define CHECK_MALLOC_DO( __call__, __fallback__ ) { 					\
-	void *  __ret__;								\
-	TRACE_DEBUG_ALL( "Check MALLOC: %s", #__call__ );				\
-	__ret__ = (void *)( __call__ );							\
-	if (__ret__ == NULL) {								\
-		int __err__ = errno;							\
-		TRACE_ERROR("ERROR: in '%s':\t%s", #__call__, strerror(__err__));	\
-		__fallback__;								\
-	}										\
-}
-
-/* Check that a memory allocator did not return NULL, otherwise return ENOMEM */
-#define CHECK_MALLOC( __call__ )							\
-	CHECK_MALLOC_DO( __call__, return ENOMEM );
-
-
-/* Check parameters at function entry, execute fallback on error */
-#define CHECK_PARAMS_DO( __bool__, __fallback__ )						\
-	TRACE_DEBUG_ALL( "Check PARAMS: %s", #__bool__ );					\
-	if ( ! (__bool__) ) {									\
-		TRACE_ERROR("Warning: Invalid parameter received in '%s'", #__bool__);		\
-		__fallback__;									\
-	}
-/* Check parameters at function entry, return EINVAL if the boolean is false (similar to assert) */
-#define CHECK_PARAMS( __bool__ )							\
-	CHECK_PARAMS_DO( __bool__, return EINVAL );
-
-/* Check the return value of an internal function, log and propagate */
-#define CHECK_FCT_DO( __call__, __fallback__ ) {					\
-	int __ret__;									\
-	TRACE_DEBUG_ALL( "Check FCT: %s", #__call__ );					\
-	__ret__ = (__call__);								\
-	if (__ret__ != 0) {								\
-		TRACE_ERROR("ERROR: in '%s':\t%s", #__call__, strerror(__ret__));	\
-		__fallback__;								\
-	}										\
-}
-/* Check the return value of a function call, return any error code */
-#define CHECK_FCT( __call__ ) {								\
-	int __v__;									\
-	CHECK_FCT_DO( __v__ = (__call__), return __v__ );				\
-}
-
-
-
-/*============================================================*/
-/*                  OTHER MACROS                              */
-/*============================================================*/
-
-
-/* helper macros (pre-processor hacks to allow macro arguments) */
-#define __tostr( arg )  #arg
-#define _stringize( arg ) __tostr( arg )
-#define __agr( arg1, arg2 ) arg1 ## arg2
-#define _aggregate( arg1, arg2 ) __agr( arg1, arg2 )
+DECLARE_FD_DUMP_PROTOTYPE(fd_sa_dump_node, sSA * sa, int flags);
+DECLARE_FD_DUMP_PROTOTYPE(fd_sa_dump_node_serv, sSA * sa, int flags);
 
 
 /* A l4 protocol name (TCP / SCTP) */
@@ -983,8 +980,8 @@ int fd_dict_gettype ( struct dict_object * object, enum dict_object_type * type)
 int fd_dict_getdict ( struct dict_object * object, struct dictionary ** dict);
 
 /* Debug functions */
-void fd_dict_dump_object(struct dict_object * obj);
-void fd_dict_dump(struct dictionary * dict);
+DECLARE_FD_DUMP_PROTOTYPE(fd_dict_dump_object, struct dict_object * obj);
+DECLARE_FD_DUMP_PROTOTYPE(fd_dict_dump, struct dictionary * dict);
 
 /* Function to access full contents of the dictionary, see doc in dictionary.c */
 int fd_dict_getlistof(int criteria, void * parent, struct fd_list ** sentinel);
@@ -1222,7 +1219,7 @@ struct dict_type_data {
 	char *	 		 type_name;	/* The name of this type */
 	dict_avpdata_interpret	 type_interpret;/* cb to convert the AVP value in more comprehensive format (or NULL) */
 	dict_avpdata_encode	 type_encode;	/* cb to convert formatted data into an AVP value (or NULL) */
-	char * 			(*type_dump)(union avp_value * val);	/* cb called by fd_msg_dump_one for this type of data (if != NULL). Returned string must be freed.  */
+	DECLARE_FD_DUMP_PROTOTYPE((*type_dump), union avp_value * val); /* cb called by fd_msg_dump_one for this type of data (if != NULL). Returned string must be freed.  */
 };
 
 /* The criteria for searching a type object in the dictionary */
@@ -1239,15 +1236,15 @@ enum {
 /* Convert an Address type AVP into a struct sockaddr_storage */
 int fd_dictfct_Address_encode(void * data, union avp_value * avp_value);
 int fd_dictfct_Address_interpret(union avp_value * avp_value, void * interpreted);
-char * fd_dictfct_Address_dump(union avp_value * avp_value);
+DECLARE_FD_DUMP_PROTOTYPE(fd_dictfct_Address_dump, union avp_value * avp_value);
 
 /* Display the content of an AVP of type UTF8String in the log file */
-char * fd_dictfct_UTF8String_dump(union avp_value * avp_value);
+DECLARE_FD_DUMP_PROTOTYPE(fd_dictfct_UTF8String_dump, union avp_value * avp_value);
 
 /* For Time AVPs, map with time_t value directly */
 int fd_dictfct_Time_encode(void * data, union avp_value * avp_value);
 int fd_dictfct_Time_interpret(union avp_value * avp_value, void * interpreted);
-char * fd_dictfct_Time_dump(union avp_value * avp_value);
+DECLARE_FD_DUMP_PROTOTYPE(fd_dictfct_Time_dump, union avp_value * avp_value);
 
 
 
@@ -1821,6 +1818,8 @@ struct session;
 /* The state information that a module associate with a session -- each module defines its own data format */
 typedef void session_state;
 
+typedef DECLARE_FD_DUMP_PROTOTYPE(session_state_dump, session_state * st);
+
 /* The following function must be called to activate the session expiry mechanism */
 int fd_sess_start(void);
 
@@ -1830,6 +1829,7 @@ int fd_sess_start(void);
  * PARAMETERS:
  *  handler	: location where the new handler must be stored.
  *  cleanup	: a callback function that must be called when the session with associated data is destroyed.
+ *  dumper      : if not NULL, will be called during fd_sess_dump to display the data associated with a session. NULL otherwise.
  *  opaque      : A pointer that is passed to the cleanup callback -- the content is never examined by the framework.
  *
  * DESCRIPTION: 
@@ -1842,10 +1842,10 @@ int fd_sess_start(void);
  *  EINVAL 	: A parameter is invalid.
  *  ENOMEM	: Not enough memory to complete the operation
  */
-int fd_sess_handler_create_internal ( struct session_handler ** handler, void (*cleanup)(session_state * state, os0_t sid, void * opaque), void * opaque );
+int fd_sess_handler_create_internal ( struct session_handler ** handler, void (*cleanup)(session_state * state, os0_t sid, void * opaque), session_state_dump dumper, void * opaque );
 /* Macro to avoid casting everywhere */
-#define fd_sess_handler_create( _handler, _cleanup, _opaque ) \
-	fd_sess_handler_create_internal( (_handler), (void (*)(session_state *, os0_t, void *))(_cleanup), (void *)(_opaque) )
+#define fd_sess_handler_create( _handler, _cleanup, _dumper, _opaque ) \
+	fd_sess_handler_create_internal( (_handler), (void (*)(session_state *, os0_t, void *))(_cleanup), _dumper, (void *)(_opaque) )
 
 	
 /*
@@ -2045,8 +2045,8 @@ int fd_sess_state_retrieve_internal ( struct session_handler * handler, struct s
 
 
 /* For debug */
-void fd_sess_dump(int level, struct session * session);
-void fd_sess_dump_hdl(int level, struct session_handler * handler);
+DECLARE_FD_DUMP_PROTOTYPE(fd_sess_dump, struct session * session, int with_states);
+DECLARE_FD_DUMP_PROTOTYPE(fd_sess_dump_hdl, struct session_handler * handler);
 
 /* For statistics / monitoring: get the number of struct session in memory */
 int fd_sess_getcount(uint32_t *cnt);
@@ -2327,33 +2327,26 @@ int fd_msg_free ( msg_or_avp * object );
  * FUNCTION:	fd_msg_dump_*
  *
  * PARAMETERS:
- *  level	: the log level (INFO, FULL, ...) at which the object is dumped
- *  obj		: A msg or avp object.
+ *  see definition of DECLARE_FD_DUMP_PROTOTYPE,
+ *  obj		 : A msg or avp object to dump.
+ *  dict         : the dictionary to use if parsing is requested (optional)
+ *  force_parsing: by default these functions do not parse the object but dump hexa values in that case.
+ *                 use !0 to force parsing. If parsing fails, the hexa dump is still provided.
+ *  recurse      : allow the function to go through the children objects if any to dump more information. might require parsing.
  *
  * DESCRIPTION: 
- *   These functions dump the content of a message to the debug log
+ *   These functions dump the content of a message or avp into a buffer
  * either recursively or only the object itself.
  *
  * RETURN VALUE:
- *   -
- */
-void fd_msg_dump_walk ( int level, msg_or_avp *obj );
-void fd_msg_dump_one  ( int level, msg_or_avp *obj );
-
-/* Helper functions to get a dump of an object in the logs. Several formats are available.
- *  buf   : a buffer that can be reallocated if needed. *buf==NULL is also accepted for first allocation
- *  buflen: the length of the buffer buf.
- *  dict  : optional, the dictionary to use for resolving objects, if force_parsing != 0
- *  obj   : the message or AVP to dump.
- *
- * After use, the buf pointer should be freed.
+ *   - see DECLARE_FD_DUMP_PROTOTYPE,
  */
 /* one-line dump with only short information */
-void fd_msg_dump_summary( char ** buf, size_t buflen, struct dictionary *dict, msg_or_avp *obj, int force_parsing);
+DECLARE_FD_DUMP_PROTOTYPE( fd_msg_dump_summary, msg_or_avp *obj, struct dictionary *dict, int force_parsing, int recurse );
 /* one-line dump with all the contents of the message */
-void fd_msg_dump_full( char ** buf, size_t buflen, struct dictionary *dict, msg_or_avp *obj, int force_parsing);
+DECLARE_FD_DUMP_PROTOTYPE( fd_msg_dump_full, msg_or_avp *obj, struct dictionary *dict, int force_parsing, int recurse );
 /* multi-line human-readable dump similar to wireshark output */
-void fd_msg_dump_treeview( char ** buf, size_t buflen, struct dictionary *dict, msg_or_avp *obj, int force_parsing);
+DECLARE_FD_DUMP_PROTOTYPE( fd_msg_dump_treeview, msg_or_avp *obj, struct dictionary *dict, int force_parsing, int recurse );
 
 
 /*********************************************/
@@ -3140,7 +3133,8 @@ int fd_fifo_timedget_int ( struct fifo * queue, void ** item, const struct times
 	fd_fifo_timedget_int((queue), (void *)(item), (abstime))
 
 /* Dump a fifo list and optionally its inner elements -- beware of deadlocks! */
-void fd_fifo_dump(int level, char * name, struct fifo * queue, void (*dump_item)(int level, void * item));
+typedef DECLARE_FD_DUMP_PROTOTYPE((*fd_fifo_dump_item_cb), void * item); /* This function should be 1 line if possible, or use indent level. Ends with '\n' */
+DECLARE_FD_DUMP_PROTOTYPE(fd_fifo_dump, char * name, struct fifo * queue, fd_fifo_dump_item_cb dump_item);
 
 #ifdef __cplusplus
 }

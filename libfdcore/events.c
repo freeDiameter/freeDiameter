@@ -105,12 +105,6 @@ const char * fd_ev_str(int event)
 	#define case_str( _val )\
 		case _val : return #_val
 		case_str(FDEV_TERMINATE);
-		case_str(FDEV_DUMP_DICT);
-		case_str(FDEV_DUMP_EXT);
-		case_str(FDEV_DUMP_SERV);
-		case_str(FDEV_DUMP_QUEUES);
-		case_str(FDEV_DUMP_CONFIG);
-		case_str(FDEV_DUMP_PEERS);
 		case_str(FDEV_TRIGGER);
 		
 		default:
@@ -167,20 +161,22 @@ int fd_event_trig_regcb(int trigger_val, const char * module, void (*cb)(void))
 	return 0;
 }
 
-void fd_event_trig_dump()
+DECLARE_FD_DUMP_PROTOTYPE(fd_event_trig_dump)
 {
 	struct fd_list * li;
-	if (!TRACE_BOOL(FULL))
-		return;
+	size_t o=0;
+	if (!offset)
+		offset=&o;
 	
 	CHECK_POSIX_DO( pthread_rwlock_rdlock(&trig_rwl),  );
 	
 	for (li = trig_list.next; li != &trig_list; li = li->next) {
 		struct trig_item *t = li->o;
-		fd_log_debug("  Trigger %d, module '%s': %p", t->trig_value, t->trig_module, t->cb);
+		CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "{trigger sig:%d}'%s'->%p ", t->trig_value, t->trig_module, t->cb), break);
 	}
 	
 	CHECK_POSIX_DO( pthread_rwlock_unlock(&trig_rwl),  );
+	return *buf;
 }
 
 static void *call_cb_detached(void * arg)

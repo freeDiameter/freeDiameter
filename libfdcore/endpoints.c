@@ -57,19 +57,6 @@ int fd_ep_add_merge( struct fd_list * list, sSA * sa, socklen_t sl, uint32_t fla
 		fd_list_init(list, NULL);
 	}
 	
-	if (TRACE_BOOL(ANNOYING + 1)) {
-		char buf[1024];
-		sSA_DUMP_NODE_SERV( buf, sizeof(buf), sa, NI_NUMERICHOST | NI_NUMERICSERV );
-		TRACE_DEBUG(ANNOYING, "  DEBUG:fd_ep_add_merge  Current list:");
-		fd_ep_dump( 4, list );
-		TRACE_DEBUG(ANNOYING, "  DEBUG:fd_ep_add_merge  Adding:");
-		fd_log_debug("    %s {%s%s%s%s%s}", buf,
-				(flags & EP_FL_CONF) 	? "C" : "-",
-				(flags & EP_FL_DISC)	    ? "D" : "-",
-				(flags & EP_FL_ADV)	    ? "A" : "-",
-				(flags & EP_FL_LL)	    ? "L" : "-",
-				(flags & EP_FL_PRIMARY)     ? "P" : "-");
-	}
 	ptr.sa = sa;
 	
 	/* Filter out a bunch of invalid addresses */
@@ -81,9 +68,7 @@ int fd_ep_add_merge( struct fd_list * list, sSA * sa, socklen_t sl, uint32_t fla
 				    /* the next one filters both EXPERIMENTAL, BADCLASS and MULTICAST. */
 				 || ((ntohl(ptr.sin->sin_addr.s_addr) & 0xe0000000) == 0xe0000000)
 				 || (ptr.sin->sin_addr.s_addr == INADDR_BROADCAST)) {
-					if (TRACE_BOOL(ANNOYING + 1)) {
-						TRACE_DEBUG(ANNOYING, "  DEBUG:fd_ep_add_merge  Address was ignored, not added.");
-					}
+					LOG_A("  DEBUG:fd_ep_add_merge  Address was ignored, not added.");
 					return 0;
 				}
 			}
@@ -97,9 +82,7 @@ int fd_ep_add_merge( struct fd_list * list, sSA * sa, socklen_t sl, uint32_t fla
 				 || IN6_IS_ADDR_MULTICAST(&ptr.sin6->sin6_addr)
 				 || IN6_IS_ADDR_LINKLOCAL(&ptr.sin6->sin6_addr)
 				 || IN6_IS_ADDR_SITELOCAL(&ptr.sin6->sin6_addr)) {
-					if (TRACE_BOOL(ANNOYING + 1)) {
-						TRACE_DEBUG(ANNOYING, "  DEBUG:fd_ep_add_merge  Address was ignored, not added.");
-					}
+					LOG_A("  DEBUG:fd_ep_add_merge  Address was ignored, not added.");
 					return 0;
 				}
 			}
@@ -107,9 +90,7 @@ int fd_ep_add_merge( struct fd_list * list, sSA * sa, socklen_t sl, uint32_t fla
 			break;
 
 		default:
-			if (TRACE_BOOL(ANNOYING + 1)) {
-				TRACE_DEBUG(ANNOYING, "  DEBUG:fd_ep_add_merge  Address family was unknown, not added.");
-			}
+			LOG_A("  DEBUG:fd_ep_add_merge  Address family was unknown, not added.");
 			return 0;
 	}
 
@@ -174,10 +155,6 @@ int fd_ep_add_merge( struct fd_list * list, sSA * sa, socklen_t sl, uint32_t fla
 	/* Merge the flags */
 	ep->flags |= flags;
 	
-	if (TRACE_BOOL(ANNOYING + 1)) {
-		TRACE_DEBUG(ANNOYING, "  DEBUG:fd_ep_add_merge  New list:");
-		fd_ep_dump( 4, list );
-	}
 	return 0;
 }
 
@@ -189,10 +166,6 @@ int fd_ep_filter( struct fd_list * list, uint32_t flags )
 	TRACE_ENTRY("%p %x", list, flags);
 	CHECK_PARAMS(list);
 	
-	if (TRACE_BOOL(ANNOYING + 1)) {
-		TRACE_DEBUG(ANNOYING, "  DEBUG:fd_ep_filter  Filter this list for flags %x:", flags);
-		fd_ep_dump( 4, list );
-	}
 	for (li = list->next; li != list; li = li->next) {
 		struct fd_endpoint * ep = (struct fd_endpoint *)li;
 		
@@ -203,10 +176,6 @@ int fd_ep_filter( struct fd_list * list, uint32_t flags )
 		}
 	}
 	
-	if (TRACE_BOOL(ANNOYING + 1)) {
-		TRACE_DEBUG(ANNOYING, "  DEBUG:fd_ep_filter  Resulting list:");
-		fd_ep_dump( 4, list );
-	}
 	return 0;
 }
 
@@ -218,10 +187,6 @@ int fd_ep_filter_family( struct fd_list * list, int af )
 	TRACE_ENTRY("%p %d", list, af);
 	CHECK_PARAMS(list);
 	
-	if (TRACE_BOOL(ANNOYING + 1)) {
-		TRACE_DEBUG(ANNOYING, "  DEBUG:fd_ep_filter_family  Filter this list for family %d:", af);
-		fd_ep_dump( 4, list );
-	}
 	for (li = list->next; li != list; li = li->next) {
 		struct fd_endpoint * ep = (struct fd_endpoint *)li;
 		
@@ -232,10 +197,6 @@ int fd_ep_filter_family( struct fd_list * list, int af )
 		}
 	}
 	
-	if (TRACE_BOOL(ANNOYING + 1)) {
-		TRACE_DEBUG(ANNOYING, "  DEBUG:fd_ep_filter_family  Resulting list:");
-		fd_ep_dump( 4, list );
-	}
 	return 0;
 }
 
@@ -252,12 +213,6 @@ int fd_ep_filter_list( struct fd_list * list, struct fd_list * exclude_list )
 	li_out = list->next;
 	li_ex = exclude_list->next;
 	
-	if (TRACE_BOOL(ANNOYING + 1)) {
-		TRACE_DEBUG(ANNOYING, "  DEBUG:fd_ep_filter_list  Filter this list ");
-		fd_ep_dump( 4, list );
-		TRACE_DEBUG(ANNOYING, "  DEBUG:fd_ep_filter_list  Removing from list");
-		fd_ep_dump( 6, exclude_list );
-	}
 	/* Now browse both lists in parallel */
 	while ((li_out != list) && (li_ex != exclude_list)) {
 		int cmp;
@@ -303,10 +258,6 @@ int fd_ep_filter_list( struct fd_list * list, struct fd_list * exclude_list )
 		free(li);
 	}
 	
-	if (TRACE_BOOL(ANNOYING + 1)) {
-		TRACE_DEBUG(ANNOYING, "  DEBUG:fd_ep_filter_list  Resulting list:");
-		fd_ep_dump( 4, list );
-	}
 	return 0;
 
 }
@@ -333,26 +284,44 @@ int fd_ep_clearflags( struct fd_list * list, uint32_t flags )
 	return 0;
 }
 
-void fd_ep_dump_one( char * prefix, struct fd_endpoint * ep )
+DECLARE_FD_DUMP_PROTOTYPE(fd_ep_dump_one, struct fd_endpoint * ep )
 {
-	char buf[1024];
+	size_t o = 0;
+	if (!offset)
+		offset=&o;
 	
-	sSA_DUMP_NODE_SERV( buf, sizeof(buf), &ep->sa, NI_NUMERICHOST | NI_NUMERICSERV );
-	fd_log_debug("%s%s {%s%s%s%s}%s", prefix ?: "", buf,
+	CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "{ep}(@%p): ", ep), return NULL);
+	
+	if (!ep) {
+		CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "INVALID/NULL\n"), return NULL);
+		return *buf;
+	}
+	
+	CHECK_MALLOC_DO( fd_sa_dump_node_serv( FD_DUMP_STD_PARAMS, &ep->sa, NI_NUMERICHOST | NI_NUMERICSERV ), return NULL);
+	CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, " {%s%s%s%s%s}",
 			(ep->flags & EP_FL_CONF) 	? "C" : "-",
 			(ep->flags & EP_FL_DISC) 	? "D" : "-",
 			(ep->flags & EP_FL_ADV) 	? "A" : "-",
 			(ep->flags & EP_FL_LL) 		? "L" : "-",
-			(ep->flags & EP_FL_PRIMARY) 	? "P" : "-");
+			(ep->flags & EP_FL_PRIMARY) 	? "P" : "-"), return NULL);
+	return *buf;
 }
 
-void fd_ep_dump( int indent, struct fd_list * eps )
+DECLARE_FD_DUMP_PROTOTYPE(fd_ep_dump, int indent, struct fd_list * eps  )
 {
 	struct fd_list * li;
-	for (li = eps->next; li != eps; li = li->next) {
-		struct fd_endpoint * ep = (struct fd_endpoint *)li;
-		fd_log_debug("%*s", indent, "");
-		fd_ep_dump_one( NULL, ep );
+	size_t o = 0;
+	if (!offset)
+		offset=&o;
+	
+	CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "%*s{eps}(@%p):\n", indent, "", eps), return NULL);
+	if (eps) {
+		for (li = eps->next; li != eps; li = li->next) {
+			struct fd_endpoint * ep = (struct fd_endpoint *)li;
+			CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "%*s", indent+1, ""), return NULL);
+			CHECK_MALLOC_DO( fd_ep_dump_one( FD_DUMP_STD_PARAMS, ep ), return NULL);
+			CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "\n"), return NULL);
+		}
 	}
 }
 	

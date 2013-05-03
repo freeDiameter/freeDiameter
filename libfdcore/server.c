@@ -93,33 +93,35 @@ static void set_status(struct server * s, enum s_state st)
 
 
 /* Dump all servers information */
-void fd_servers_dump()
+DECLARE_FD_DUMP_PROTOTYPE(fd_servers_dump)
 {
 	struct fd_list * li, *cli;
+	size_t o=0;
+	if (!offset)
+		offset = &o;
 	
-	fd_log_debug("Dumping servers list :");
 	for (li = FD_SERVERS.next; li != &FD_SERVERS; li = li->next) {
 		struct server * s = (struct server *)li;
 		enum s_state st = get_status(s);
-		fd_log_debug("  Serv %p '%s': %s, %s, %s", 
-				s, fd_cnx_getid(s->conn), 
+		
+		CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "{server}(@%p)'%s': %s, %s, %s\n", s, fd_cnx_getid(s->conn), 
 				IPPROTO_NAME( s->proto ),
 				s->secur ? "Secur" : "NotSecur",
 				(st == NOT_CREATED) ? "Thread not created" :
 				((st == RUNNING) ? "Thread running" :
 				((st == TERMINATED) ? "Thread terminated" :
-							  "Thread status unknown")));
+							  "Thread status unknown"))), return NULL);
 		/* Dump the client list of this server */
 		CHECK_POSIX_DO( pthread_mutex_lock(&s->clients_mtx), );
 		for (cli = s->clients.next; cli != &s->clients; cli = cli->next) {
 			struct client * c = (struct client *)cli;
 			char bufts[128];
-			fd_log_debug("     Connected: '%s' (timeout: %s)",
-					fd_cnx_getid(c->conn),
-					fd_log_time(&c->ts, bufts, sizeof(bufts)));
+			CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "  {client}(@%p)'%s': to:%s\n", c, fd_cnx_getid(c->conn), fd_log_time(&c->ts, bufts, sizeof(bufts))), break);
 		}
 		CHECK_POSIX_DO( pthread_mutex_unlock(&s->clients_mtx), );
 	}
+	
+	return *buf;
 }
 
 
@@ -392,9 +394,14 @@ int fd_servers_start()
 			return EINVAL;
 		}
 	}
-	if (TRACE_BOOL(FULL)){
-		fd_log_debug("  Local server address(es) :");
-		fd_ep_dump( 5, &fd_g_config->cnf_endpoints );
+	
+	{
+		char * buf = NULL;
+		size_t len = 0, offset = 0;
+		CHECK_MALLOC_DO( fd_dump_extend( &buf, &len, &offset , "Local server address(es): "), );
+		CHECK_MALLOC_DO( fd_ep_dump(  &buf, &len, &offset, 5, &fd_g_config->cnf_endpoints ), );
+		LOG_N("%s", buf ?: "Error dumping addresses");
+		free(buf);
 	}
 	return 0;
 }

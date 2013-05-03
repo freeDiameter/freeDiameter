@@ -57,21 +57,34 @@ extern "C" {
 
 
 /* Check the return value of a GNUTLS function, log and propagate */
-#define CHECK_GNUTLS_DO( __call__, __fallback__ ) {						\
-	int __ret__;										\
-	TRACE_DEBUG(GNUTLS_DBG_LEVEL, "GNUTLS call: %s", #__call__ );				\
-	__ret__ = (__call__);									\
-	if (__ret__ < 0) {									\
-		TRACE_DEBUG(INFO, "Error in '%s':\t%s", #__call__ , gnutls_strerror(__ret__));	\
-		__fallback__;									\
-	}											\
+#define CHECK_GNUTLS_GEN( faillevel, __call__, __fallback__  ) { 					\
+		CHECK_PRELUDE(__call__);								\
+		if (__ret__ < 0) {									\
+			__ret__ = errno;								\
+			LOG(faillevel, "ERROR: in '%s' :\t%s",  #__call__ ,  gnutls_strerror(__ret__)); \
+			__fallback__;									\
+		}											\
 }
 
-/* For GNUTLS routines that do not return a value */
+/* we use this macro to help debugging gnutls usage issues -- just change the content to display what you need */
 #define GNUTLS_TRACE( __call__) {					\
-	TRACE_DEBUG(GNUTLS_DBG_LEVEL, "GNUTLS call: " #__call__ );	\
+	TRACE_CALL("Check: %s", #__call__ );				\
 	(__call__);							\
 }
+
+
+#ifndef EXCLUDE_DEPRECATED
+/* Macro for transition, replace with CHECK_GNUTLS_GEN */
+#define CHECK_GNUTLS_DO( __call__, __fallback__ ) {						        \
+		CHECK_PRELUDE(__call__);								\
+		if (__ret__ < 0) {									\
+			__ret__ = errno;								\
+			TRACE_ERROR("ERROR: in '%s' :\t%s",  #__call__ ,  gnutls_strerror(__ret__));    \
+			__fallback__;									\
+		}											\
+}
+
+#endif /* EXCLUDE_DEPRECATED */
 
 
 /*============================================================*/
@@ -777,12 +790,6 @@ struct fd_event {
 /* Daemon's codespace: 1000->1999 (1500->1999 defined in fdcore-internal.h) */
 enum {
 	 FDEV_TERMINATE	= 1000	/* request to terminate */
-	,FDEV_DUMP_DICT		/* Dump the content of the dictionary */
-	,FDEV_DUMP_EXT		/* Dump state of extensions */
-	,FDEV_DUMP_SERV		/* Dump the server socket status */
-	,FDEV_DUMP_QUEUES	/* Dump the message queues */
-	,FDEV_DUMP_CONFIG	/* Dump the configuration */
-	,FDEV_DUMP_PEERS	/* Dump the list of peers */
 	,FDEV_TRIGGER		/* Trigger available for extensions. size is sizeof(int), data is int * */
 };
 
@@ -794,8 +801,15 @@ const char * fd_ev_str(int event);
 
 /* for extensions */
 int fd_event_trig_regcb(int trigger_val, const char * module, void (*cb)(void));
-void fd_event_trig_dump();
 
+DECLARE_FD_DUMP_PROTOTYPE(fd_event_trig_dump);
+
+/* The "old" FD_EV_DUMP_* events are replaced with direct calls to the following dump functions */
+DECLARE_FD_DUMP_PROTOTYPE(fd_conf_dump);
+DECLARE_FD_DUMP_PROTOTYPE(fd_ext_dump);
+DECLARE_FD_DUMP_PROTOTYPE(fd_peer_dump_list, int details);
+DECLARE_FD_DUMP_PROTOTYPE(fd_peer_dump, struct peer_hdr * p, int details);
+DECLARE_FD_DUMP_PROTOTYPE(fd_servers_dump);
 
 /*============================================================*/
 /*                         ENDPOINTS                          */
@@ -831,8 +845,8 @@ int fd_ep_filter( struct fd_list * list, uint32_t flags );
 int fd_ep_filter_family( struct fd_list * list, int af );
 int fd_ep_filter_list( struct fd_list * list, struct fd_list * exclude_list );
 int fd_ep_clearflags( struct fd_list * list, uint32_t flags );
-void fd_ep_dump_one( char * prefix, struct fd_endpoint * ep );
-void fd_ep_dump( int indent, struct fd_list * eps );
+DECLARE_FD_DUMP_PROTOTYPE(fd_ep_dump_one, struct fd_endpoint * ep );
+DECLARE_FD_DUMP_PROTOTYPE(fd_ep_dump, int indent, struct fd_list * eps  );
 
 
 /*============================================================*/

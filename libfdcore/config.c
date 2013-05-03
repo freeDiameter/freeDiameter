@@ -80,68 +80,71 @@ int fd_conf_init()
 	return 0;
 }
 
-void fd_conf_dump()
+DECLARE_FD_DUMP_PROTOTYPE(fd_conf_dump)
 {
-	if (!TRACE_BOOL(INFO))
-		return;
+	size_t o=0;
+	if (!offset)
+		offset = &o;
 	
-	fd_log_debug("-- Configuration :");
-	fd_log_debug("  Debug trace level ...... : %+d", fd_g_debug_lvl);
-	fd_log_debug("  Configuration file ..... : %s", fd_g_config->cnf_file);
-	fd_log_debug("  Diameter Identity ...... : %s (l:%Zi)", fd_g_config->cnf_diamid, fd_g_config->cnf_diamid_len);
-	fd_log_debug("  Diameter Realm ......... : %s (l:%Zi)", fd_g_config->cnf_diamrlm, fd_g_config->cnf_diamrlm_len);
-	fd_log_debug("  Tc Timer ............... : %u", fd_g_config->cnf_timer_tc);
-	fd_log_debug("  Tw Timer ............... : %u", fd_g_config->cnf_timer_tw);
-	fd_log_debug("  Local port ............. : %hu", fd_g_config->cnf_port);
-	fd_log_debug("  Local secure port ...... : %hu", fd_g_config->cnf_port_tls);
-	fd_log_debug("  Number of SCTP streams . : %hu", fd_g_config->cnf_sctp_str);
-	fd_log_debug("  Number of server threads : %hu", fd_g_config->cnf_dispthr);
+	CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "{freeDiameter configuration}(@%p): \n", fd_g_config), return NULL);	
+	CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "  Default trace level .... : %+d\n", fd_g_debug_lvl), return NULL);
+	CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "  Configuration file ..... : %s\n", fd_g_config->cnf_file), return NULL);
+	CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "  Diameter Identity ...... : %s (l:%Zi)\n", fd_g_config->cnf_diamid, fd_g_config->cnf_diamid_len), return NULL);
+	CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "  Diameter Realm ......... : %s (l:%Zi)\n", fd_g_config->cnf_diamrlm, fd_g_config->cnf_diamrlm_len), return NULL);
+	CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "  Tc Timer ............... : %u\n", fd_g_config->cnf_timer_tc), return NULL);
+	CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "  Tw Timer ............... : %u\n", fd_g_config->cnf_timer_tw), return NULL);
+	CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "  Local port ............. : %hu\n", fd_g_config->cnf_port), return NULL);
+	CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "  Local secure port ...... : %hu\n", fd_g_config->cnf_port_tls), return NULL);
+	CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "  Number of SCTP streams . : %hu\n", fd_g_config->cnf_sctp_str), return NULL);
+	CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "  Number of server threads : %hu\n", fd_g_config->cnf_dispthr), return NULL);
 	if (FD_IS_LIST_EMPTY(&fd_g_config->cnf_endpoints)) {
-		fd_log_debug("  Local endpoints ........ : Default (use all available)");
+		CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "  Local endpoints ........ : Default (use all available)\n"), return NULL);
 	} else {
-		fd_log_debug("  Local endpoints ........ : ");
-		fd_ep_dump( 29, &fd_g_config->cnf_endpoints );
+		CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "  Local endpoints ........ : \n"), return NULL);
+		CHECK_MALLOC_DO( fd_ep_dump( FD_DUMP_STD_PARAMS, 29, &fd_g_config->cnf_endpoints ), return NULL);
 	}
 	if (FD_IS_LIST_EMPTY(&fd_g_config->cnf_apps)) {
-		fd_log_debug("  Local applications ..... : (none)");
+		CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "  Local applications ..... : (none)\n"), return NULL);
 	} else {
 		struct fd_list * li = fd_g_config->cnf_apps.next;
-		fd_log_debug("  Local applications ..... : ");
+		CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "  Local applications ..... : \n"), return NULL);
 		while (li != &fd_g_config->cnf_apps) {
 			struct fd_app * app = (struct fd_app *)li;
-			if (li != fd_g_config->cnf_apps.next) fd_log_debug("                             ");
-			fd_log_debug("App: %u\t%s%s\tVnd: %u", 
+			CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "                             App: %u\t%s%s\tVnd: %u\n", 
 					app->appid,
 					app->flags.auth ? "Au" : "--",
 					app->flags.acct ? "Ac" : "--",
-					app->vndid);
+					app->vndid), return NULL);
 			li = li->next;
 		}
 	}
 	
-	fd_log_debug("  Flags : - IP ........... : %s", fd_g_config->cnf_flags.no_ip4 ? "DISABLED" : "Enabled");
-	fd_log_debug("          - IPv6 ......... : %s", fd_g_config->cnf_flags.no_ip6 ? "DISABLED" : "Enabled");
-	fd_log_debug("          - Relay app .... : %s", fd_g_config->cnf_flags.no_fwd ? "DISABLED" : "Enabled");
-	fd_log_debug("          - TCP .......... : %s", fd_g_config->cnf_flags.no_tcp ? "DISABLED" : "Enabled");
+	CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "  Flags : - IP ........... : %s\n", fd_g_config->cnf_flags.no_ip4 ? "DISABLED" : "Enabled"), return NULL);
+	CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "          - IPv6 ......... : %s\n", fd_g_config->cnf_flags.no_ip6 ? "DISABLED" : "Enabled"), return NULL);
+	CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "          - Relay app .... : %s\n", fd_g_config->cnf_flags.no_fwd ? "DISABLED" : "Enabled"), return NULL);
+	CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "          - TCP .......... : %s\n", fd_g_config->cnf_flags.no_tcp ? "DISABLED" : "Enabled"), return NULL);
 	#ifdef DISABLE_SCTP
-	fd_log_debug("          - SCTP ......... : DISABLED (at compilation)");
+	CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "          - SCTP ......... : DISABLED (at compilation)\n"), return NULL);
 	#else /* DISABLE_SCTP */
-	fd_log_debug("          - SCTP ......... : %s", fd_g_config->cnf_flags.no_sctp ? "DISABLED" : "Enabled");
+	CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "          - SCTP ......... : %s\n", fd_g_config->cnf_flags.no_sctp ? "DISABLED" : "Enabled"), return NULL);
 	#endif /* DISABLE_SCTP */
-	fd_log_debug("          - Pref. proto .. : %s", fd_g_config->cnf_flags.pr_tcp ? "TCP" : "SCTP");
-	fd_log_debug("          - TLS method ... : %s", fd_g_config->cnf_flags.tls_alg ? "INBAND" : "Separate port");
+	CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "          - Pref. proto .. : %s\n", fd_g_config->cnf_flags.pr_tcp ? "TCP" : "SCTP"), return NULL);
+	CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "          - TLS method ... : %s\n", fd_g_config->cnf_flags.tls_alg ? "INBAND" : "Separate port"), return NULL);
 	
-	fd_log_debug("  TLS :   - Certificate .. : %s", fd_g_config->cnf_sec_data.cert_file ?: "(NONE)");
-	fd_log_debug("          - Private key .. : %s", fd_g_config->cnf_sec_data.key_file ?: "(NONE)");
-	fd_log_debug("          - CA (trust) ... : %s (%d certs)", fd_g_config->cnf_sec_data.ca_file ?: "(none)", fd_g_config->cnf_sec_data.ca_file_nr);
-	fd_log_debug("          - CRL .......... : %s", fd_g_config->cnf_sec_data.crl_file ?: "(none)");
-	fd_log_debug("          - Priority ..... : %s", fd_g_config->cnf_sec_data.prio_string ?: "(default: '" GNUTLS_DEFAULT_PRIORITY "')");
-	if (fd_g_config->cnf_sec_data.dh_file)
-		fd_log_debug("          - DH file ...... : %s", fd_g_config->cnf_sec_data.dh_file);
-	else
-		fd_log_debug("          - DH bits ...... : %d", fd_g_config->cnf_sec_data.dh_bits ?: GNUTLS_DEFAULT_DHBITS);
+	CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "  TLS :   - Certificate .. : %s\n", fd_g_config->cnf_sec_data.cert_file ?: "(NONE)"), return NULL);
+	CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "          - Private key .. : %s\n", fd_g_config->cnf_sec_data.key_file ?: "(NONE)"), return NULL);
+	CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "          - CA (trust) ... : %s (%d certs)\n", fd_g_config->cnf_sec_data.ca_file ?: "(none)", fd_g_config->cnf_sec_data.ca_file_nr), return NULL);
+	CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "          - CRL .......... : %s\n", fd_g_config->cnf_sec_data.crl_file ?: "(none)"), return NULL);
+	CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "          - Priority ..... : %s\n", fd_g_config->cnf_sec_data.prio_string ?: "(default: '" GNUTLS_DEFAULT_PRIORITY "')"), return NULL);
+	if (fd_g_config->cnf_sec_data.dh_file) {
+		CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "          - DH file ...... : %s\n", fd_g_config->cnf_sec_data.dh_file), return NULL);
+	} else {
+		CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "          - DH bits ...... : %d\n", fd_g_config->cnf_sec_data.dh_bits ?: GNUTLS_DEFAULT_DHBITS), return NULL);
+	}
 	
-	fd_log_debug("  Origin-State-Id ........ : %u", fd_g_config->cnf_orstateid);
+	CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "  Origin-State-Id ........ : %u", fd_g_config->cnf_orstateid), return NULL);
+	
+	return *buf;
 }
 
 /* read contents of a file opened in "rb" mode and alloc this data into a gnutls_datum_t (must be freed afterwards) */

@@ -453,12 +453,6 @@ psm_loop:
 		goto psm_loop;
 	}
 
-	/* Handle the (easy) debug event now */
-	if (event == FDEVP_DUMP_ALL) {
-		fd_peer_dump(peer, ANNOYING);
-		goto psm_loop;
-	}
-
 	/* Requests to terminate the peer object */
 	if (event == FDEVP_TERMINATE) {
 		switch (cur_state) {
@@ -711,11 +705,12 @@ psm_loop:
 		/* Get the new ones */
 		CHECK_FCT_DO( fd_cnx_getremoteeps(peer->p_cnxctx, &peer->p_hdr.info.pi_endpoints), /* ignore the error */);
 		
-		/* We do not support local endpoints change currently, but it could be added here if needed (refresh fd_g_config->cnf_endpoints)*/
-		
-		if (TRACE_BOOL(ANNOYING)) {
-			TRACE_DEBUG(ANNOYING, "New remote endpoint(s):" );
-			fd_ep_dump(6, &peer->p_hdr.info.pi_endpoints);
+		/* We do not support local endpoints change currently, but it could be added here if needed (refresh fd_g_config->cnf_endpoints) */
+		{
+			char * buf = NULL;
+			size_t len = 0;
+			LOG_D("New remote endpoint(s): %s",  fd_ep_dump(&buf, &len, NULL, 6, &peer->p_hdr.info.pi_endpoints) ?: "error");
+			free(buf);
 		}
 		
 		/* Done */

@@ -35,33 +35,44 @@
 
 #include "fdproto-internal.h"
 
-char * fd_sa_dump_node(char * buf, size_t bufsize, sSA * sa, int flags) 
+DECLARE_FD_DUMP_PROTOTYPE(fd_sa_dump_node, sSA * sa, int flags)
 {
 	char addrbuf[INET6_ADDRSTRLEN];
+	size_t o = 0;
+	if (!offset)
+		offset = &o;
+	
 	if (sa) {
 		int rc = getnameinfo(sa, sSAlen( sa ), addrbuf, sizeof(addrbuf), NULL, 0, flags);
-		if (rc)
-			snprintf(buf, bufsize, "%s", gai_strerror(rc));
-		else
-			snprintf(buf, bufsize, "%s", &addrbuf[0]);
+		if (rc) {
+			CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "%s", gai_strerror(rc)), return NULL);
+		} else {
+			CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "%s", &addrbuf[0]), return NULL);
+		}
 	} else {
-		snprintf(buf, bufsize, "(NULL / ANY)");
+		CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "(NULL / ANY)"), return NULL);
 	}
-	return buf;
+	
+	return *buf;
 }
 
-char * fd_sa_dump_node_serv(char * buf, size_t bufsize, sSA * sa, int flags) 
+DECLARE_FD_DUMP_PROTOTYPE(fd_sa_dump_node_serv, sSA * sa, int flags) 
 {
 	char addrbuf[INET6_ADDRSTRLEN];
 	char servbuf[32];
+	size_t o = 0;
+	if (!offset)
+		offset = &o;
+	
 	if (sa) {
 		int rc = getnameinfo(sa, sSAlen( sa ), addrbuf, sizeof(addrbuf), servbuf, sizeof(servbuf), flags);
-		if (rc)
-			snprintf(buf, bufsize, "%s", gai_strerror(rc));
-		else
-			snprintf(buf, bufsize, "%s", &addrbuf[0]);
+		if (rc) {
+			CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "%s", gai_strerror(rc)), return NULL);
+		} else {
+			CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "%s", &addrbuf[0]), return NULL);
+		}
 	} else {
-		snprintf(buf, bufsize, "(NULL / ANY)");
+		CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "(NULL / ANY)"), return NULL);
 	}
-	return buf;
+	return *buf;
 }

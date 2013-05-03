@@ -69,6 +69,7 @@ struct session_handler {
 	int		  eyec;	/* An eye catcher also used to ensure the object is valid, must be SH_EYEC */
 	int		  id;	/* A unique integer to identify this handler */
 	void 		(*cleanup)(session_state *, os0_t, void *); /* The cleanup function to be called for cleaning a state */
+	session_state_dump *state_dump; /* dumper function */
 	void             *opaque; /* a value that is passed as is to the cleanup callback */
 };
 
@@ -272,7 +273,7 @@ void fd_sess_fini(void)
 }
 
 /* Create a new handler */
-int fd_sess_handler_create_internal ( struct session_handler ** handler, void (*cleanup)(session_state *, os0_t, void *), void * opaque )
+int fd_sess_handler_create_internal ( struct session_handler ** handler, void (*cleanup)(session_state *, os0_t, void *), session_state_dump dumper, void * opaque )
 {
 	struct session_handler *new;
 	
@@ -289,6 +290,7 @@ int fd_sess_handler_create_internal ( struct session_handler ** handler, void (*
 	
 	new->eyec = SH_EYEC;
 	new->cleanup = cleanup;
+	new->state_dump = dumper;
 	new->opaque = opaque;
 	
 	*handler = new;
@@ -872,49 +874,63 @@ int fd_sess_reclaim_msg ( struct session ** session )
 
 
 /* Dump functions */
-void fd_sess_dump(int level, struct session * session)
+DECLARE_FD_DUMP_PROTOTYPE(fd_sess_dump, struct session * session, int with_states)
 {
-	struct fd_list * li;
-	char buf[30];
-	struct tm tm;
+	size_t o = 0;
+	if (!offset)
+		offset = &o;
 	
-	if (!TRACE_BOOL(level))
-		return;
+	CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "{session}(@%p): ", session), return NULL);
 	
-	fd_log_debug("\t  %*s -- Session @%p --", level, "", session);
 	if (!VALIDATE_SI(session)) {
-		fd_log_debug("\t  %*s  Invalid session object", level, "");
+		CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "INVALID/NULL\n"), return NULL);
 	} else {
+		char timebuf[30];
+		struct tm tm;
+
+		strftime(timebuf, sizeof(timebuf), "%D,%T", localtime_r( &session->timeout.tv_sec , &tm ));
+		CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "'%s'(%zd) h:%x m:%d d:%d to:%s.%06ld\n",
+							session->sid, session->sidlen, session->hash, session->msg_cnt, session->is_destroyed,
+							timebuf, session->timeout.tv_nsec/1000), 
+				 return NULL);
 		
-		fd_log_debug("\t  %*s  sid '%s'(%zd), hash %x, msg %d, destroyed %d", level, "", session->sid, session->sidlen, session->hash, session->msg_cnt, session->is_destroyed);
-
-		strftime(buf, sizeof(buf), "%D,%T", localtime_r( &session->timeout.tv_sec , &tm ));
-		fd_log_debug("\t  %*s  timeout %s.%09ld", level, "", buf, session->timeout.tv_nsec);
-
-		CHECK_POSIX_DO( pthread_mutex_lock(&session->stlock), /* ignore */ );
-		pthread_cleanup_push( fd_cleanup_mutex, &session->stlock );
-		for (li = session->states.next; li != &session->states; li = li->next) {
-			struct state * st = (struct state *)(li->o);
-			fd_log_debug("\t  %*s    handler %d registered data %p", level, "", st->hdl->id, st->state);
+		if (with_states) {
+			struct fd_list * li;
+			CHECK_POSIX_DO( pthread_mutex_lock(&session->stlock), /* ignore */ );
+			pthread_cleanup_push( fd_cleanup_mutex, &session->stlock );
+			
+			for (li = session->states.next; li != &session->states; li = li->next) {
+				struct state * st = (struct state *)(li->o);
+				CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "  {state i:%d}(@%p): \n", st->hdl->id, st), return NULL);
+				if (st->hdl->state_dump) {
+					CHECK_MALLOC_DO( (*st->hdl->state_dump)( FD_DUMP_STD_PARAMS, st->state), 
+							fd_dump_extend( FD_DUMP_STD_PARAMS, "[dumper error]\n"));
+				} else {
+					CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "<%p>\n", st->state), return NULL);
+				}
+			}
+			
+			pthread_cleanup_pop(0);
+			CHECK_POSIX_DO( pthread_mutex_unlock(&session->stlock), /* ignore */ );
 		}
-		pthread_cleanup_pop(0);
-		CHECK_POSIX_DO( pthread_mutex_unlock(&session->stlock), /* ignore */ );
 	}
-	fd_log_debug("\t  %*s -- end of session @%p --", level, "", session);
+	return *buf;
 }
 
-void fd_sess_dump_hdl(int level, struct session_handler * handler)
+DECLARE_FD_DUMP_PROTOTYPE(fd_sess_dump_hdl, struct session_handler * handler)
 {
-	if (!TRACE_BOOL(level))
-		return;
+	size_t o = 0;
+	if (!offset)
+		offset = &o;
 	
-	fd_log_debug("\t  %*s -- Handler @%p --", level, "", handler);
+	CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "{sesshdl}(@%p): ", handler), return NULL);
+	
 	if (!VALIDATE_SH(handler)) {
-		fd_log_debug("\t  %*s  Invalid session handler object", level, "");
+		CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "INVALID/NULL\n"), return NULL);
 	} else {
-		fd_log_debug("\t  %*s  id %d, cleanup %p, opaque %p", level, "", handler->id, handler->cleanup, handler->opaque);
+		CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "i:%d cl:%p d:%p o:%p\n", handler->id, handler->cleanup, handler->state_dump, handler->opaque), return NULL);
 	}
-	fd_log_debug("\t  %*s -- end of handler @%p --", level, "", handler);
+	return *buf;
 }	
 
 int fd_sess_getcount(uint32_t *cnt)

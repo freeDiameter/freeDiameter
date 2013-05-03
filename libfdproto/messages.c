@@ -710,6 +710,34 @@ int fd_msg_free ( msg_or_avp * object )
 /***************************************************************************************************************/
 /* Debug functions: dumping */
 
+#warning "todo"
+DECLARE_FD_DUMP_PROTOTYPE( fd_msg_dump_summary, msg_or_avp *obj, struct dictionary *dict, int force_parsing, int recurse )
+{
+	return NULL;
+}
+/* one-line dump with all the contents of the message */
+DECLARE_FD_DUMP_PROTOTYPE( fd_msg_dump_full, msg_or_avp *obj, struct dictionary *dict, int force_parsing, int recurse )
+{
+	return NULL;
+}
+/* multi-line human-readable dump similar to wireshark output */
+DECLARE_FD_DUMP_PROTOTYPE( fd_msg_dump_treeview, msg_or_avp *obj, struct dictionary *dict, int force_parsing, int recurse )
+{
+	return NULL;
+}
+
+#ifndef OLD_CODE_TO_BE_REPLACED
+void fd_msg_dump_walk ( int level, msg_or_avp *obj )
+{
+	LOG_D("fd_msg_dump_walk %d, %p is deprecated", level, obj);
+}
+void fd_msg_dump_one ( int level, msg_or_avp * obj )
+{
+	LOG_D("fd_msg_dump_one %d, %p is deprecated", level, obj);
+}
+#else  /* OLD_CODE_TO_BE_REPLACED */
+
+
 /* indent inside an object */
 #define INOBJHDR 	"%*s   "
 #define INOBJHDRVAL 	indent<0 ? 1 : indent, indent<0 ? "-" : "|"
@@ -1075,7 +1103,7 @@ void fd_msg_dump_one ( int level, msg_or_avp * obj )
 	free(outstr);
 }
 
-
+#endif /*  OLD_CODE_TO_BE_REPLACED */
 /***************************************************************************************************************/
 /* Simple meta-data management */
 

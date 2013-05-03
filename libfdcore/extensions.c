@@ -77,17 +77,19 @@ int fd_ext_add( char * filename, char * conffile )
 }
 
 /* Dump the list */
-void fd_ext_dump(void)
+DECLARE_FD_DUMP_PROTOTYPE(fd_ext_dump)
 {
 	struct fd_list * li;
-	
-	fd_log_debug("Dumping extensions list :");
+	size_t o=0;
+	if (!offset)
+		offset = &o;
 	
 	for (li = ext_list.next; li != &ext_list; li = li->next)
 	{
 		struct fd_ext_info * ext = (struct fd_ext_info *)li;
-		fd_log_debug(" - '%s'[%s] is %sloaded", ext->filename, ext->conffile?:"no conf", ext->handler ? "" : "not ");
+		CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "{extension}(@%p): '%s'[%s], %sloaded\n", ext, ext->filename, ext->conffile?:"no conf", ext->handler ? "" : "not "), return NULL);
 	}
+	return *buf;
 }
 
 /* Check the dependencies. The object must have been dlopened already. */

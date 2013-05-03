@@ -409,53 +409,63 @@ int fd_peer_fini()
 }
 
 /* Dump info of one peer */
-void fd_peer_dump(struct fd_peer * peer, int details)
+DECLARE_FD_DUMP_PROTOTYPE(fd_peer_dump, struct peer_hdr * p, int details)
 {
-	char buf[1024];
-	if (peer->p_eyec != EYEC_PEER) {
-		fd_log_debug("  Invalid peer @ %p !", peer);
-		return;
+	size_t o=0;
+	if (!offset)
+		offset = &o;
+	
+	CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "{peer}(@%p): ", p), return NULL);
+	
+	if (!CHECK_PEER(p)) {
+		CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "INVALID/NULL"), return NULL);
+	} else {
+		struct fd_peer * peer = (struct fd_peer *)p;
+		
+		CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "%s [%s, cnt:%ldsr,%ldpa]", peer->p_hdr.info.pi_diamid, STATE_STR(fd_peer_getstate(peer)), peer->p_sr.cnt, peer->p_reqin_count), return NULL);
+		if (details > 0) {
+			CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, " rlm:%s", peer->p_hdr.info.runtime.pir_realm ?: "<unknown>"), return NULL);
+			if (peer->p_hdr.info.runtime.pir_prodname) {
+				CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, " ['%s' %u]", peer->p_hdr.info.runtime.pir_prodname, peer->p_hdr.info.runtime.pir_firmrev), return NULL);
+			}
+		}
+		if (details > 1) {
+			CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, " [from:%s] flags:%s%s%s%s%s%s%s lft:%ds", 
+				peer->p_dbgorig ?: "unset",
+				peer->p_hdr.info.config.pic_flags.pro3 == PI_P3_DEFAULT ? "-" :
+					(peer->p_hdr.info.config.pic_flags.pro3 == PI_P3_IP ? "4" : "6"),
+				peer->p_hdr.info.config.pic_flags.pro4 == PI_P4_DEFAULT ? "-" :
+					(peer->p_hdr.info.config.pic_flags.pro4 == PI_P4_TCP ? "T" : "S"),
+				peer->p_hdr.info.config.pic_flags.alg ? "P" : "-",
+				peer->p_hdr.info.config.pic_flags.sec & PI_SEC_NONE ? "N" :"-",
+				peer->p_hdr.info.config.pic_flags.sec & PI_SEC_TLS_OLD ? "O" :"-",
+				peer->p_hdr.info.config.pic_flags.exp ? "E" : "-",
+				peer->p_hdr.info.config.pic_flags.persist ? "P" : "-",
+				peer->p_hdr.info.config.pic_lft), return NULL);
+		}
+	
 	}
-
-	snprintf(buf, sizeof(buf), ">  %s\t%s\t[%ldsr,%ldpa]", STATE_STR(fd_peer_getstate(peer)), peer->p_hdr.info.pi_diamid, peer->p_sr.cnt, peer->p_reqin_count);
-	if (details > INFO) {
-		snprintf(buf+strlen(buf), sizeof(buf)-strlen(buf), "\t(rlm:%s)", peer->p_hdr.info.runtime.pir_realm ?: "<unknown>");
-		if (peer->p_hdr.info.runtime.pir_prodname)
-			snprintf(buf+strlen(buf), sizeof(buf)-strlen(buf), "\t['%s' %u]", peer->p_hdr.info.runtime.pir_prodname, peer->p_hdr.info.runtime.pir_firmrev);
-	}
-	fd_log_debug("%s", buf);
-	if (details > FULL) {
-		/* Dump all info */
-		fd_log_debug("\tEntry origin : %s", peer->p_dbgorig?: "not set");
-		fd_log_debug("\tConfig flags : %s%s%s - %s%s - %s%s", 
-				peer->p_hdr.info.config.pic_flags.pro3 == PI_P3_DEFAULT ? "." :
-					(peer->p_hdr.info.config.pic_flags.pro3 == PI_P3_IP ? "IP" : "IPv6"),
-				peer->p_hdr.info.config.pic_flags.pro4 == PI_P4_DEFAULT ? "." :
-					(peer->p_hdr.info.config.pic_flags.pro4 == PI_P4_TCP ? "TCP" : "SCTP"),
-				peer->p_hdr.info.config.pic_flags.alg ? "PrefTCP" : ".",
-				peer->p_hdr.info.config.pic_flags.sec & PI_SEC_NONE ? "NoTLSok" :".",
-				peer->p_hdr.info.config.pic_flags.sec & PI_SEC_TLS_OLD ? "OldTLS" :".",
-				peer->p_hdr.info.config.pic_flags.exp ? "Expire" : ".",
-				peer->p_hdr.info.config.pic_flags.persist ? "Persist" : "."
-				);
-		fd_log_debug("\tLifetime : %d sec", peer->p_hdr.info.config.pic_lft);
-	}
+	
+	return *buf;
 }
 
 /* Dump the list of peers */
-void fd_peer_dump_list(int details)
+DECLARE_FD_DUMP_PROTOTYPE(fd_peer_dump_list, int details)
 {
 	struct fd_list * li;
+	size_t o=0;
+	if (!offset)
+		offset = &o;
 	
-	fd_log_debug("Dumping list of peers :");
 	CHECK_FCT_DO( pthread_rwlock_rdlock(&fd_g_peers_rw), /* continue */ );
 	
 	for (li = fd_g_peers.next; li != &fd_g_peers; li = li->next) {
-		struct fd_peer * np = (struct fd_peer *)li->o;
-		fd_peer_dump(np, details);
+		CHECK_MALLOC_DO( fd_peer_dump(FD_DUMP_STD_PARAMS, (struct peer_hdr *)li->o, details), break);
+		CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "\n"), break);
 	}
 	
 	CHECK_FCT_DO( pthread_rwlock_unlock(&fd_g_peers_rw), /* continue */ );
+	return *buf;
 }
 
 static struct dict_object *avp_oh_model = NULL;

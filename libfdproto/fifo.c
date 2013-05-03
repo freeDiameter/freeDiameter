@@ -118,46 +118,46 @@ int fd_fifo_new ( struct fifo ** queue, int max )
 }
 
 /* Dump the content of a queue */
-void fd_fifo_dump(int level, char * name, struct fifo * queue, void (*dump_item)(int level, void * item))
+DECLARE_FD_DUMP_PROTOTYPE(fd_fifo_dump, char * name, struct fifo * queue, fd_fifo_dump_item_cb dump_item)
 {
-	TRACE_ENTRY("%i %p %p %p", level, name, queue, dump_item);
+	size_t o = 0;
+	if (!offset)
+		offset = &o;
 	
-	if (!TRACE_BOOL(level))
-		return;
+	if (name) {
+		CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "'%s'(@%p): ", name, queue), return NULL);	
+	} else {
+		CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "{fifo}(@%p): ", queue), return NULL);
+	}
 	
-	fd_log_debug("Dumping queue '%s' (%p):", name ?: "?", queue);
 	if (!CHECK_FIFO( queue )) {
-		fd_log_debug("  Queue invalid!");
-		if (queue)
-			fd_log_debug("  (%x != %x)", queue->eyec, FIFO_EYEC);
-		return;
+		return fd_dump_extend(FD_DUMP_STD_PARAMS, "INVALID/NULL\n");
 	}
 	
 	CHECK_POSIX_DO(  pthread_mutex_lock( &queue->mtx ), /* continue */  );
-	fd_log_debug("   %d elements in queue / %d threads waiting", queue->count, queue->thrs);
-	fd_log_debug("   %d elements max / %d threads waiting to push", queue->max, queue->thrs_push);
-	fd_log_debug("   thresholds: %d / %d (h:%d), cb: %p,%p (%p), highest: %d",
-			queue->high, queue->low, queue->highest, 
-			queue->h_cb, queue->l_cb, queue->data,
-			queue->highest_ever);
-	fd_log_debug("   stats: total:%lld in %ld.%06ld, blocking:%ld.%06ld, last:%ld.%06ld",
-			queue->total_items,
-	                (long)queue->total_time.tv_sec,(long)(queue->total_time.tv_nsec/1000), 
-			(long)queue->blocking_time.tv_sec,(long)(queue->blocking_time.tv_nsec/1000),
-			(long)queue->last_time.tv_sec,(long)(queue->last_time.tv_nsec/1000) );
+	CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "items:%d,%d,%d threads:%d,%d stats:%lld/%ld.%06ld,%ld.%06ld,%ld.%06ld thresholds:%d,%d,%d,%p,%p,%p\n", 
+						queue->count, queue->highest_ever, queue->max,
+						queue->thrs, queue->thrs_push,
+						queue->total_items,(long)queue->total_time.tv_sec,(long)(queue->total_time.tv_nsec/1000),(long)queue->blocking_time.tv_sec,(long)(queue->blocking_time.tv_nsec/1000),(long)queue->last_time.tv_sec,(long)(queue->last_time.tv_nsec/1000),
+						queue->high, queue->low, queue->highest, queue->h_cb, queue->l_cb, queue->data), 
+			 goto error);
 	
 	if (dump_item) {
 		struct fd_list * li;
 		int i = 0;
 		for (li = queue->list.next; li != &queue->list; li = li->next) {
 			struct fifo_item * fi = (struct fifo_item *)li;
-			fd_log_debug("  [%i] item %p in fifo %p, posted:%ld.%06ld", 
-				i++, fi->item.o, queue, (long)fi->posted_on.tv_sec,(long)(fi->posted_on.tv_nsec/1000));
-			(*dump_item)(level, fi->item.o);
+			CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, " [#%i](@%p)@%ld.%06ld: ", 
+						i++, fi->item.o, (long)fi->posted_on.tv_sec,(long)(fi->posted_on.tv_nsec/1000)), 
+					 goto error);
+			CHECK_MALLOC_DO( (*dump_item)(FD_DUMP_STD_PARAMS, fi->item.o), goto error);
 		}
 	}
 	CHECK_POSIX_DO(  pthread_mutex_unlock( &queue->mtx ), /* continue */  );
-	
+	return *buf;
+error:
+	CHECK_POSIX_DO(  pthread_mutex_unlock( &queue->mtx ), /* continue */  );
+	return NULL;
 }
 
 /* Delete a queue. It must be empty. */ 
