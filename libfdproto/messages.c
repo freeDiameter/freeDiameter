@@ -720,9 +720,6 @@ int fd_msg_free ( msg_or_avp * object )
 static int obj_dump_msg (struct msg * msg, int indent, char **outstr, size_t *offset, size_t *outlen )
 {
 	int ret = 0;
-	char buftime[256];
-	size_t tsoffset = 0;
-	struct tm tm;
 	
 	CHECK_FCT( dump_add_str(outstr, offset, outlen, "%*sMSG: %p|", INOBJHDRVAL, msg) );
 	

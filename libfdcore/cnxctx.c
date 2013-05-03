@@ -922,14 +922,6 @@ end:
 /* The function that receives TLS data and re-builds a Diameter message -- it exits only on error or cancelation */
 int fd_tls_rcvthr_core(struct cnxctx * conn, gnutls_session_t session)
 {
-#ifndef DISABLE_SCTP
-	void * ptr = gnutls_transport_get_ptr(session);
-	if (ptr != conn) {
-		struct sctps_ctx * ctx = (struct sctps_ctx *) ptr;
-	}
-#endif /* DISABLE_SCTP */
-	
-	
 	/* No guarantee that GnuTLS preserves the message boundaries, so we re-build it as in TCP */
 	do {
 		uint8_t header[4];

@@ -43,7 +43,7 @@ char * fd_sa_dump_node(char * buf, size_t bufsize, sSA * sa, int flags)
 		if (rc)
 			snprintf(buf, bufsize, "%s", gai_strerror(rc));
 		else
-			snprintf(buf, bufsize, "%s", &__addrbuf[0]);
+			snprintf(buf, bufsize, "%s", &addrbuf[0]);
 	} else {
 		snprintf(buf, bufsize, "(NULL / ANY)");
 	}
@@ -59,7 +59,7 @@ char * fd_sa_dump_node_serv(char * buf, size_t bufsize, sSA * sa, int flags)
 		if (rc)
 			snprintf(buf, bufsize, "%s", gai_strerror(rc));
 		else
-			snprintf(buf, bufsize, "%s", &__addrbuf[0]);
+			snprintf(buf, bufsize, "%s", &addrbuf[0]);
 	} else {
 		snprintf(buf, bufsize, "(NULL / ANY)");
 	}

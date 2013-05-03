@@ -44,7 +44,6 @@ static int do_send(struct msg ** msg, uint32_t flags, struct cnxctx * cnx, uint3
 	size_t sz;
 	int ret;
 	uint32_t bkp_hbh = 0;
-	struct msg * cpy_for_logs_only;
 	
 	TRACE_ENTRY("%p %x %p %p %p", msg, flags, cnx, hbh, srl);
 	
@@ -64,7 +63,7 @@ static int do_send(struct msg ** msg, uint32_t flags, struct cnxctx * cnx, uint3
 	CHECK_FCT(fd_msg_bufferize( *msg, &buf, &sz ));
 	pthread_cleanup_push( free, buf );
 	
-	cpy_for_logs_only = *msg;
+	// cpy_for_logs_only = *msg;
 	
 	/* Save a request before sending so that there is no race condition with the answer */
 	if (msg_is_a_req) {
