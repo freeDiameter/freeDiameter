@@ -55,19 +55,19 @@ EXTENSION_ENTRY("dbg_monitor", monitor_main);
 static void display_info(char * queue_desc, char * peer, int current_count, int limit_count, int highest_count, long long total_count,
 			struct timespec * total, struct timespec * blocking, struct timespec * last)
 {
-	long long ms = (total->tv_sec * 1000000) + (total->tv_nsec / 1000);
+	long long us = (total->tv_sec * 1000000) + (total->tv_nsec / 1000);
 	long double throughput = (long double)total_count * 1000000;
-	throughput /= ms;
+	throughput /= us;
 	if (peer) {
 		TRACE_DEBUG(INFO, "'%s'@'%s': cur:%d/%d, h:%d, T:%lld in %ld.%06lds (%.2LFitems/s), blocked:%ld.%06lds, last processing:%ld.%06lds",
 			queue_desc, peer, current_count, limit_count, highest_count,
-			total_count, total->tv_sec, total->tv_nsec, throughput,
-			blocking->tv_sec, blocking->tv_nsec, last->tv_sec, last->tv_nsec);
+			total_count, total->tv_sec, total->tv_nsec/1000, throughput,
+			blocking->tv_sec, blocking->tv_nsec/1000, last->tv_sec, last->tv_nsec/1000);
 	} else {
 		TRACE_DEBUG(INFO, "Global '%s': cur:%d/%d, h:%d, T:%lld in %ld.%06lds (%.2LFitems/s), blocked:%ld.%06lds, last processing:%ld.%06lds",
 			queue_desc, current_count, limit_count, highest_count,
-			total_count, total->tv_sec, total->tv_nsec, throughput,
-			blocking->tv_sec, blocking->tv_nsec, last->tv_sec, last->tv_nsec);
+			total_count, total->tv_sec, total->tv_nsec/1000, throughput,
+			blocking->tv_sec, blocking->tv_nsec/1000, last->tv_sec, last->tv_nsec/1000);
 	}
 }
 
@@ -121,8 +121,6 @@ static void * mn_thr(void * arg)
 		}
 
 		CHECK_FCT_DO( pthread_rwlock_unlock(&fd_g_peers_rw), /* continue */ );
-
-		
 		
 		CHECK_FCT_DO(fd_event_send(fd_g_config->cnf_main_ev, FDEV_DUMP_SERV, 0, NULL), /* continue */);
 		sleep(1);
