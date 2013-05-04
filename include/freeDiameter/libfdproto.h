@@ -337,7 +337,7 @@ static char * file_bname_init(char * full) { file_bname = basename(full); return
 
 /* Helper for function entry -- for very detailed trace of the execution */
 #define TRACE_ENTRY(_format,_args... ) \
-		LOG_A(FCTS, "[enter] %s(" _format ") {" #_args "}", __PRETTY_FUNCTION__, ##_args );
+		LOG_A("[enter] %s(" _format ") {" #_args "}", __PRETTY_FUNCTION__, ##_args );
 
 /* Helper for debugging by adding traces -- for debuging a specific location of the code */
 #define TRACE_HERE()	\
