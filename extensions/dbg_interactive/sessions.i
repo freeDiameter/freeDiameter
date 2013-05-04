@@ -193,7 +193,7 @@ struct session {
 		int ret;
 		struct sess_state * st = NULL;
 		PyObject * state = NULL;
-		ret = fd_sess_state_retrieve_internal(handler, $self, (void *) &st);
+		ret = fd_sess_state_retrieve(handler, $self, (void *) &st);
 		if (ret != 0) {
 			DI_ERROR(ret, NULL, NULL);
 			return NULL;
