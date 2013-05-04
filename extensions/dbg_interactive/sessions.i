@@ -38,8 +38,12 @@
 /****** SESSIONS *********/
 
 %{
+struct sess_state {
+	PyObject * pystate;
+};
+
 /* call it (might be called from a different thread than the interpreter, when session times out) */
-static void call_the_python_cleanup_callback(session_state * state, os0_t sid, void * cb) {
+static void call_the_python_cleanup_callback(struct sess_state * state, os0_t sid, void * cb) {
 	PyObject *result;
 	if (!cb) {
 		fd_log_debug("Internal error: missing callback object!");
@@ -66,7 +70,7 @@ struct session_handler {
 		
 		Py_XINCREF(PyCb);
 		
-		ret = fd_sess_handler_create_internal ( &hdl, call_the_python_cleanup_callback, PyCb );
+		ret = fd_sess_handler_create ( &hdl, call_the_python_cleanup_callback, NULL, PyCb );
 		if (ret != 0) {
 			DI_ERROR(ret, NULL, NULL);
 			return NULL;
@@ -86,7 +90,10 @@ struct session_handler {
 		return;
 	}
 	void dump() {
-		fd_sess_dump_hdl(0, $self);
+		char * buf = NULL;
+		size_t len;
+		printf("%s", fd_sess_dump_hdl(&buf, &len, NULL, $self));
+		free(buf);
 	}
 }
 
@@ -165,13 +172,18 @@ struct session {
 		}
 	}
 	void dump() {
-		fd_sess_dump(0, $self);
+		char * buf = NULL;
+		size_t len = 0;
+		printf("%s", fd_sess_dump(&buf, &len, NULL, $self, 1) );
+		free(buf);
 	}
 	void store(struct session_handler * handler, PyObject * DISOWN) {
 		int ret;
-		void * store = DISOWN;
+		struct sess_state * st = NULL;
+		st = malloc(sizeof(struct sess_state));
+		st->pystate = DISOWN;
 		Py_XINCREF(DISOWN);
-		ret = fd_sess_state_store_internal(handler, $self, (void *) &store);
+		ret = fd_sess_state_store(handler, $self, (void *) &st);
 		if (ret != 0) {
 			DI_ERROR(ret, NULL, NULL);
 		}
@@ -179,16 +191,19 @@ struct session {
 	%newobject retrieve;
 	PyObject * retrieve(struct session_handler * handler) {
 		int ret;
+		struct sess_state * st = NULL;
 		PyObject * state = NULL;
-		ret = fd_sess_state_retrieve_internal(handler, $self, (void *) &state);
+		ret = fd_sess_state_retrieve_internal(handler, $self, (void *) &st);
 		if (ret != 0) {
 			DI_ERROR(ret, NULL, NULL);
 			return NULL;
 		}
-		if (state == NULL) {
+		if (st == NULL) {
 			Py_INCREF(Py_None);
 			return Py_None;
 		}
+		state = st->pystate;
+		free(st);
 		return state;
 	}
 }	

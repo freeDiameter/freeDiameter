@@ -77,6 +77,8 @@ static void * mn_thr(void * arg)
 {
 	int i = 0;
 	fd_log_threadname("Monitor thread");
+	char * buf = NULL;
+	size_t len;
 	
 	/* Loop */
 	while (1) {
@@ -110,7 +112,7 @@ static void * mn_thr(void * arg)
 		for (li = fd_g_peers.next; li != &fd_g_peers; li = li->next) {
 			struct peer_hdr * p = (struct peer_hdr *)li->o;
 			
-			fd_peer_dump(p, NONE);
+			TRACE_DEBUG(INFO, "%s", fd_peer_dump(&buf, &len, NULL, p, 1));
 			
 			CHECK_FCT_DO( fd_stat_getstats(STAT_P_PSM, p, &current_count, &limit_count, &highest_count, &total_count, &total, &blocking, &last), );
 			display_info("Events, incl. recept", p->info.pi_diamid, current_count, limit_count, highest_count, total_count, &total, &blocking, &last);
@@ -122,20 +124,28 @@ static void * mn_thr(void * arg)
 
 		CHECK_FCT_DO( pthread_rwlock_unlock(&fd_g_peers_rw), /* continue */ );
 		
-		CHECK_FCT_DO(fd_event_send(fd_g_config->cnf_main_ev, FDEV_DUMP_SERV, 0, NULL), /* continue */);
+		TRACE_DEBUG(INFO, "[dbg_monitor] Dumping servers information");
+		TRACE_DEBUG(INFO, "%s", fd_servers_dump(&buf, &len, NULL));
+		
 		sleep(1);
 	}
 	
+	free(buf);
 	return NULL;
 }
 
 /* Function called on receipt of MONITOR_SIGNAL */
 static void got_sig()
 {
-	fd_log_debug("[dbg_monitor] Dumping extra information");
-	CHECK_FCT_DO(fd_event_send(fd_g_config->cnf_main_ev, FDEV_DUMP_DICT, 0, NULL), /* continue */);
-	CHECK_FCT_DO(fd_event_send(fd_g_config->cnf_main_ev, FDEV_DUMP_CONFIG, 0, NULL), /* continue */);
-	CHECK_FCT_DO(fd_event_send(fd_g_config->cnf_main_ev, FDEV_DUMP_EXT, 0, NULL), /* continue */);
+	char * buf = NULL;
+	size_t len;
+	TRACE_DEBUG(INFO, "[dbg_monitor] Dumping config information");
+	TRACE_DEBUG(INFO, "%s", fd_conf_dump(&buf, &len, NULL));
+	TRACE_DEBUG(INFO, "[dbg_monitor] Dumping extensions information");
+	TRACE_DEBUG(INFO, "%s", fd_ext_dump(&buf, &len, NULL));
+	TRACE_DEBUG(INFO, "[dbg_monitor] Dumping dictionary information");
+	TRACE_DEBUG(INFO, "%s", fd_dict_dump(&buf, &len, NULL, fd_g_config->cnf_dict));
+	free(buf);
 }
 
 /* Entry point */

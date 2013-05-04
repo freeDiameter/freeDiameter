@@ -45,7 +45,7 @@
 
 static struct session_handler * ta_cli_reg = NULL;
 
-struct ta_mess_info {
+struct sess_state {
 	int32_t		randval;	/* a random value to store in Test-AVP */
 	struct timespec ts;		/* Time of sending the message */
 } ;
@@ -53,7 +53,7 @@ struct ta_mess_info {
 /* Cb called when an answer is received */
 static void ta_cb_ans(void * data, struct msg ** msg)
 {
-	struct ta_mess_info * mi = NULL;
+	struct sess_state * mi = NULL;
 	struct timespec ts;
 	struct session * sess;
 	struct avp * avp;
@@ -176,7 +176,7 @@ static void ta_cli_test_message()
 	struct msg * req = NULL;
 	struct avp * avp;
 	union avp_value val;
-	struct ta_mess_info * mi = NULL, *svg;
+	struct sess_state * mi = NULL, *svg;
 	struct session *sess = NULL;
 	
 	TRACE_DEBUG(FULL, "Creating a new message for sending.");
@@ -190,7 +190,7 @@ static void ta_cli_test_message()
 	CHECK_FCT_DO( fd_msg_sess_get(fd_g_config->cnf_dict, req, &sess, NULL), goto out );
 	
 	/* Create the random value to store with the session */
-	mi = malloc(sizeof(struct ta_mess_info));
+	mi = malloc(sizeof(struct sess_state));
 	if (mi == NULL) {
 		fd_log_debug("malloc failed: %s", strerror(errno));
 		goto out;
@@ -264,7 +264,7 @@ out:
 
 int ta_cli_init(void)
 {
-	CHECK_FCT( fd_sess_handler_create(&ta_cli_reg, free, NULL) );
+	CHECK_FCT( fd_sess_handler_create(&ta_cli_reg, (void *)free, NULL, NULL) );
 	
 	CHECK_FCT( fd_event_trig_regcb(ta_conf->signal, "test_app.cli", ta_cli_test_message ) );
 	

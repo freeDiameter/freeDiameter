@@ -212,11 +212,6 @@ extern struct session_handler * ds_sess_hdl;
 #define CODE_SIP_USER_DATA_TYPE	388
 #define CODE_SIP_AOR	122
 
-struct ds_nonce
-{
-	char *nonce;
-};
-
 //Storage for some useful AVPs
 struct app_sip_dict{
 	struct dict_object * Auth_Session_State;

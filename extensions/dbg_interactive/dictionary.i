@@ -59,7 +59,10 @@ struct dictionary {
 		return;
 	}
 	void dump() {
-		fd_dict_dump($self);
+		char * buf = NULL;
+		size_t len;
+		printf("%s", fd_dict_dump(&buf, &len, NULL, $self));
+		free(buf);
 	}
 	PyObject * vendors_list() {
 		uint32_t *list = NULL, *li;
@@ -127,7 +130,10 @@ struct dict_object {
 
 %extend dict_object {
 	void dump() {
-		fd_dict_dump_object($self);
+		char * buf = NULL;
+		size_t len;
+		printf("%s", fd_dict_dump_object(&buf, &len, NULL, $self));
+		free(buf);
 	}
 	enum dict_object_type gettype() {
 		enum dict_object_type t;

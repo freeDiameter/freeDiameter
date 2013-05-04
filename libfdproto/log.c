@@ -37,11 +37,9 @@
 
 #include <stdarg.h>
 
-FILE * fd_g_debug_fstr;
-
 pthread_mutex_t fd_log_lock = PTHREAD_MUTEX_INITIALIZER;
 pthread_key_t	fd_log_thname;
-int fd_g_debug_lvl = INFO;
+int fd_g_debug_lvl = FD_LOG_NOTICE;
 
 static void fd_internal_logger( int, const char *, va_list );
 static int use_colors = 0; /* 0: not init, 1: yes, 2: no */
@@ -87,16 +85,16 @@ static void fd_cleanup_mutex_silent( void * mutex )
 }
 
 
-static void fd_internal_logger( int loglevel, const char *format, va_list ap )
+static void fd_internal_logger( int printlevel, const char *format, va_list ap )
 {
     char buf[25];
-    FILE *fstr = fd_g_debug_fstr ?: stdout;
-    int local_use_color = 0;
 
-    /* logging has been decided by macros outside already */
+    /* Do we need to trace this ? */
+    if (printlevel < fd_g_debug_lvl)
+    	return;
 
     /* add timestamp */
-    fprintf(fstr, "%s  ", fd_log_time(NULL, buf, sizeof(buf)));
+    printf("%s  ", fd_log_time(NULL, buf, sizeof(buf)));
     
     /* Use colors on stdout ? */
     if (!use_colors) {
@@ -106,22 +104,20 @@ static void fd_internal_logger( int loglevel, const char *format, va_list ap )
 		use_colors = 2;
     }
     
-    /* now, this time log, do we use colors? */
-    if ((fstr == stdout) && (use_colors == 1))
-	    local_use_color = 1;
-    
-    switch(loglevel) {
-	    case FD_LOG_DEBUG:  fprintf(fstr, "%s DBG   ", local_use_color ? "\e[0;37m" : ""); break;
-	    case FD_LOG_NOTICE: fprintf(fstr, "%sNOTI   ", local_use_color ? "\e[1;37m" : ""); break;
-	    case FD_LOG_ERROR:  fprintf(fstr, "%sERROR  ", local_use_color ? "\e[0;31m" : ""); break;
-	    default:            fprintf(fstr, "%s ???   ", local_use_color ? "\e[0;31m" : "");
+    switch(printlevel) {
+	    case FD_LOG_ANNOYING:  printf("%s	A   ", (use_colors == 1) ? "\e[0;37m" : ""); break;
+	    case FD_LOG_DEBUG:     printf("%s DBG   ", (use_colors == 1) ? "\e[0;37m" : ""); break;
+	    case FD_LOG_NOTICE:    printf("%sNOTI   ", (use_colors == 1) ? "\e[1;37m" : ""); break;
+	    case FD_LOG_ERROR:     printf("%sERROR  ", (use_colors == 1) ? "\e[0;31m" : ""); break;
+	    case FD_LOG_FATAL:     printf("%sFATAL! ", (use_colors == 1) ? "\e[0;31m" : ""); break;
+	    default:               printf("%s ???   ", (use_colors == 1) ? "\e[0;31m" : "");
     }
-    vfprintf(fstr, format, ap);
-    if (local_use_color)
-	     fprintf(fstr, "\e[00m");
-    fprintf(fstr, "\n");
+    vprintf(format, ap);
+    if (use_colors == 1)
+	     printf("\e[00m");
+    printf("\n");
     
-    fflush(fstr);
+    fflush(stdout);
 }
 
 /* Log a debug message */
@@ -211,19 +207,25 @@ char * fd_log_time ( struct timespec * ts, char * buf, size_t len )
 }
 
 
+static size_t sys_mempagesz = 0;
+
+static size_t get_mempagesz(void) {
+	if (!sys_mempagesz) {
+		sys_mempagesz = sysconf(_SC_PAGESIZE); /* We alloc buffer by memory pages for efficiency */
+		if (sys_mempagesz <= 0)
+			sys_mempagesz = 1024; /* default size if above call failed */
+	}
+	return sys_mempagesz;
+}
+
+
 /* Helper function for fd_*_dump. Prints the format string from 'offset' into '*buf', extends if needed. The location of buf can be updated by this function. */
 char * fd_dump_extend(char ** buf, size_t *len, size_t *offset, const char * format, ... )
 {
 	va_list ap;
 	int to_write;
 	size_t o = 0;
-	static size_t mempagesz = 0;
-	
-	if (!mempagesz) {
-		mempagesz = sysconf(_SC_PAGESIZE); /* We alloc buffer by memory pages for efficiency */
-		if (mempagesz <= 0)
-			mempagesz = 1024; /* default size if above call failed */
-	}
+	size_t mempagesz = get_mempagesz();
 	
 	/* we do not TRACE_ENTRY this one on purpose */
 	
@@ -254,6 +256,64 @@ char * fd_dump_extend(char ** buf, size_t *len, size_t *offset, const char * for
 	
 	if (offset)
 		*offset += to_write;
+	
+	return *buf;
+}
+
+char * fd_dump_extend_hexdump(char ** buf, size_t *len, size_t *offset, uint8_t *data, size_t datalen, size_t trunc, size_t wrap )
+{
+	int truncated = 0;
+	size_t towrite = 0;
+	size_t o = 0;
+	int i;
+	char * p;
+	size_t mempagesz = get_mempagesz();
+#define TRUNK_MARK "[...]"
+
+	CHECK_PARAMS_DO(buf && len && data, return NULL);
+	
+	if (trunc && (datalen > trunc)) {
+		datalen = trunc;
+		truncated = 1;
+	}
+	
+	towrite = datalen * 2;
+	
+	if (wrap)
+		towrite += datalen / wrap; /* add 1 '\n' every wrap byte */
+	
+	if (truncated)
+		towrite += CONSTSTRLEN(TRUNK_MARK);
+	
+	
+	if (offset)
+		o = *offset;
+	
+	if (*buf == NULL) {
+		/* Directly allocate the size we need */
+		*len = (((towrite + o) / mempagesz) + 1 ) * mempagesz;
+		CHECK_MALLOC_DO(*buf = malloc(*len), return NULL);
+	} else if ((towrite + o) >= *len) {
+		/* There is no room in the buffer, we extend and redo */
+		size_t new_len = (((towrite + o) / mempagesz) + 1) * mempagesz;
+		CHECK_MALLOC_DO(*buf = realloc(*buf, new_len), return NULL);
+		*len = new_len;
+	}
+	
+	p = *buf + o;
+	for (i = 0; i < datalen; i++) {
+		sprintf(p, "%2hhX", data[i]);
+		p+=2;
+		if ((wrap) && ((i+1) % wrap == 0)) {
+			*p++='\n'; *p ='\0'; /* we want to ensure the buffer is always 0-terminated */
+		}
+	}
+	
+	if (truncated)
+		memcpy(p, TRUNK_MARK, CONSTSTRLEN(TRUNK_MARK));
+		
+	if (offset)
+		*offset += towrite;
 	
 	return *buf;
 }

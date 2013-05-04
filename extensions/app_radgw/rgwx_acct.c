@@ -159,6 +159,11 @@ struct sess_state {
 	uint32_t	 term_cause;	/* If not 0, the Termination-Cause to put in the STR. */
 };
 
+static DECLARE_FD_DUMP_PROTOTYPE(acct_conf_session_state_dump, struct sess_state * st)
+{
+	return fd_dump_extend( FD_DUMP_STD_PARAMS, "[rgwx sess_state](@%p): aai:%x str:%d TC:%u", st, st->auth_appl, st->send_str, st->term_cause);
+}
+
 /* Initialize the plugin */
 static int acct_conf_parse(char * conffile, struct rgwp_config ** state)
 {
@@ -171,7 +176,7 @@ static int acct_conf_parse(char * conffile, struct rgwp_config ** state)
 	CHECK_MALLOC( new = malloc(sizeof(struct rgwp_config)) );
 	memset(new, 0, sizeof(struct rgwp_config));
 	
-	CHECK_FCT( fd_sess_handler_create( &new->sess_hdl, free, NULL ) );
+	CHECK_FCT( fd_sess_handler_create( &new->sess_hdl, (void *)free, acct_conf_session_state_dump, NULL ) );
 	new->confstr = conffile;
 	
 	if (conffile && strstr(conffile, "nonai"))

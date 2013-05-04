@@ -1808,9 +1808,6 @@ int dict_lxml_parse(char * xmlfilename)
 		} );
 	
 	TRACE_DEBUG(FULL, "Conversion from '%s' to freeDiameter internal format complete.", xmlfilename);
-	if (TRACE_BOOL(ANNOYING)) {
-		fd_dict_dump(fd_g_config->cnf_dict);
-	}
 	
 	/* Done */
 	del_dict_contents(&data.dict);

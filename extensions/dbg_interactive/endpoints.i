@@ -125,6 +125,9 @@
 	}
 	
 	void dump() {
-		fd_ep_dump_one( "", $self );
+		char * buf = NULL;
+		size_t len;
+		printf("%s", fd_ep_dump_one(&buf, &len, NULL, $self));
+		free(buf);
 	}
 }

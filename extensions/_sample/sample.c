@@ -84,7 +84,6 @@ static int sample_main(char * conffile)
 		rule_data.rule_max = -1;
 		CHECK_FCT( fd_dict_new ( fd_g_config->cnf_dict, DICT_RULE, &rule_data, example_avp_avp, NULL ));
 		
-		fd_dict_dump_object(example_avp_avp);
 	}
 	TRACE_DEBUG(INFO, "'Example-AVP' created without error");
 	

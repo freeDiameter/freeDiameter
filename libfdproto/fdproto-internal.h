@@ -47,9 +47,6 @@ void fd_msg_eteid_init(void);
 int fd_sess_init(void);
 void fd_sess_fini(void);
 
-/* Where debug messages are sent */
-extern FILE * fd_g_debug_fstr;
-
 /* Iterator on the rules of a parent object */
 int fd_dict_iterate_rules ( struct dict_object *parent, void * data, int (*cb)(void *, struct dict_rule_data *) );
 

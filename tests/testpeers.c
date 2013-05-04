@@ -56,7 +56,7 @@ int main(int argc, char *argv[])
 			CHECK( 0, fd_peer_add(&inf, __FILE__, NULL, NULL));
 		}
 	}
-	fd_peer_dump_list(0);
+	fd_log_debug("%s", fd_peer_dump_list(FD_DUMP_TEST_PARAMS, 0));
 	/* Check we are able to find again any of these */
 	{
 		int i;

@@ -84,11 +84,9 @@ struct avp_max_occurences auth_avps[] =
 
 
 
-void diameap_cli_sess_cleanup(void * arg, char * sid, void * opaque)
+void diameap_cli_sess_cleanup(struct sess_state * diameap_sess_data, os0_t sid, void * opaque)
 {
 
-	struct diameap_sess_data_sm * diameap_sess_data =
-			(struct diameap_sess_data_sm *) arg;
 	CHECK_PARAMS_DO( diameap_sess_data, return );
 
 	if (diameap_sess_data != NULL)
@@ -140,7 +138,7 @@ void diameap_cli_sess_cleanup(void * arg, char * sid, void * opaque)
 
 static int diameap_initialize_diameap_sm(
 		struct diameap_state_machine * diameap_sm,
-		struct diameap_sess_data_sm * diameap_sess_data)
+		struct sess_state * diameap_sess_data)
 {
 	TRACE_ENTRY("%p %p", diameap_sm, diameap_sess_data);
 
@@ -1016,7 +1014,7 @@ static int diameap_parse_avps(struct diameap_state_machine * diameap_sm,
 
 
 static int diameap_sess_data_new(
-		struct diameap_sess_data_sm *diameap_sess_data,
+		struct sess_state *diameap_sess_data,
 		struct diameap_state_machine *diameap_sm)
 {
 	if (!diameap_sm)
@@ -3063,7 +3061,7 @@ static int diameap_server_callback(struct msg ** rmsg, struct avp * ravp,
 {
 	TRACE_ENTRY("%p %p %p %p", rmsg, ravp, sess, action);
 
-	struct diameap_sess_data_sm * diameap_sess_data = NULL;
+	struct sess_state * diameap_sess_data = NULL;
 	struct diameap_state_machine * diameap_sm = NULL;
 	struct diameap_eap_interface eap_i;
 	struct msg *req, *ans;
@@ -3257,9 +3255,9 @@ static int diameap_server_callback(struct msg ** rmsg, struct avp * ravp,
 			;
 			TRACE_DEBUG(FULL+1,"%sStoring DiamEAP session data.",DIAMEAP_EXTENSION)
 			;
-			CHECK_MALLOC(diameap_sess_data = malloc(sizeof(struct diameap_sess_data_sm)))
+			CHECK_MALLOC(diameap_sess_data = malloc(sizeof(struct sess_state)))
 			;
-			memset(diameap_sess_data, 0, sizeof(struct diameap_sess_data_sm));
+			memset(diameap_sess_data, 0, sizeof(struct sess_state));
 			diameap_sess_data_new(diameap_sess_data, diameap_sm);
 
 			CHECK_FCT_DO(fd_sess_state_store(diameap_server_reg, sess, &diameap_sess_data),
@@ -3388,7 +3386,7 @@ int diameap_start_server(void)
 	struct disp_when when;
 
 	/*create handler for sessions */
-	CHECK_FCT(fd_sess_handler_create(&diameap_server_reg, diameap_cli_sess_cleanup, NULL));
+	CHECK_FCT(fd_sess_handler_create(&diameap_server_reg, diameap_cli_sess_cleanup, NULL, NULL));
 
 	/* Register the callback */
 	memset(&when, 0, sizeof(when));

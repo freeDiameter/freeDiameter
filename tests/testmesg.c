@@ -60,8 +60,8 @@ int main(int argc, char *argv[])
 		
 		#if 0
 		/* For debug: dump the object */
-		fd_log_debug("Dumping Accounting-Request empty message");
-		fd_msg_dump_walk( 0, acr );
+		fd_log_debug("Dumping Accounting-Request empty message:");
+		fd_log_debug("%s", fd_msg_dump_treeview(FD_DUMP_TEST_PARAMS, acr, fd_g_config->cnf_dict, 0, 1));
 		#endif
 	}
 	
@@ -78,9 +78,9 @@ int main(int argc, char *argv[])
 		#if 0
 		/* For debug: dump the object */
 		fd_log_debug("Dumping Proxy-Info AVP");
-		fd_msg_dump_walk(0, pi);
+		fd_log_debug("%s", fd_msg_dump_treeview(FD_DUMP_TEST_PARAMS, pi, fd_g_config->cnf_dict, 0, 1));
 		fd_log_debug("Dumping dictionary model");
-		fd_dict_dump_object(pi_model);
+		fd_log_debug("%s", fd_dict_dump_object(FD_DUMP_TEST_PARAMS, pi_model));
 		#endif
 		
 	}
@@ -106,7 +106,7 @@ int main(int argc, char *argv[])
 		#if 0
 		/* For debug: dump the object */
 		fd_log_debug("Dumping Accounting-Request with Proxy-Info AVP at the end");
-		fd_msg_dump_walk(0, acr);
+		fd_log_debug("%s", fd_msg_dump_treeview(FD_DUMP_TEST_PARAMS, acr, fd_g_config->cnf_dict, 0, 1));
 		#endif
 	}
 	
@@ -305,12 +305,12 @@ int main(int argc, char *argv[])
 				< grouped >
 						*/
 			#if 0
-			fd_dict_dump_object ( gavp );
+			fd_log_debug("%s", fd_dict_dump_object(FD_DUMP_TEST_PARAMS, gavp));
 			#endif
 		}
 		#if 0
 		{
-			fd_dict_dump_object ( vendor );
+			fd_log_debug("%s", fd_dict_dump_object(FD_DUMP_TEST_PARAMS, vendor));
 		}
 		#endif
 	}
@@ -364,7 +364,7 @@ int main(int argc, char *argv[])
 			CHECK( 0, fd_msg_update_length ( avpi ) );
 			#if 0
 			fd_log_debug("AVP no vendor, value 3.1415:");
-			fd_msg_dump_one(0, avpi);
+			fd_log_debug("%s", fd_msg_dump_treeview(FD_DUMP_TEST_PARAMS, avpi, fd_g_config->cnf_dict, 0, 0));
 			#endif
 			CHECK( 0, fd_msg_avp_hdr ( avpi, &avpdata ) );
 			CHECK( 12, avpdata->avp_len );
@@ -381,7 +381,7 @@ int main(int argc, char *argv[])
 			CHECK( 0, fd_msg_update_length ( avpi ) );
 			#if 0
 			fd_log_debug("AVP vendor, value 0x123456789abcdeL:");
-			fd_msg_dump_one(0, avpi);
+			fd_log_debug("%s", fd_msg_dump_treeview(FD_DUMP_TEST_PARAMS, avpi, fd_g_config->cnf_dict, 0, 0));
 			#endif
 			CHECK( 0, fd_msg_avp_hdr ( avpi, &avpdata ) );
 			CHECK( 20, avpdata->avp_len );
@@ -407,7 +407,7 @@ int main(int argc, char *argv[])
 				CHECK( 0, fd_msg_avp_setvalue ( avpi, &request.search.enum_value ) );
 				#if 0
 				fd_log_debug("AVP enum i32, value 2 (from const):");
-				fd_msg_dump_one(0, avpi);
+				fd_log_debug("%s", fd_msg_dump_treeview(FD_DUMP_TEST_PARAMS, avpi, fd_g_config->cnf_dict, 0, 0));
 				#endif
 			}
 			
@@ -428,7 +428,7 @@ int main(int argc, char *argv[])
 				CHECK( 0, fd_msg_avp_setvalue ( avpi, &request.search.enum_value ) );
 				#if 0
 				fd_log_debug("AVP enum i32, value -5 (from const):");
-				fd_msg_dump_one(0, avpi);
+				fd_log_debug("%s", fd_msg_dump_treeview(FD_DUMP_TEST_PARAMS, avpi, fd_g_config->cnf_dict, 0, 0));
 				#endif
 				/* Check the size is correct ( 12 for header + 4 for value ) */
 				CHECK( 0, fd_msg_update_length ( avpi ) );
@@ -443,7 +443,7 @@ int main(int argc, char *argv[])
 			CHECK( 0, fd_msg_update_length ( avpi ) );
 			#if 0
 			fd_log_debug("AVP vendor enum i32, value -10 (not const):");
-			fd_msg_dump_one(0, avpi);
+			fd_log_debug("%s", fd_msg_dump_treeview(FD_DUMP_TEST_PARAMS, avpi, fd_g_config->cnf_dict, 0, 0));
 			#endif
 			
 			/* Add an octetstring AVP */
@@ -458,7 +458,7 @@ int main(int argc, char *argv[])
 				CHECK( 0, fd_msg_update_length ( avpi ) );
 				#if 0
 				fd_log_debug("AVP octet string, 'This\\0 is a b...'");
-				fd_msg_dump_one(0, avpi);
+				fd_log_debug("%s", fd_msg_dump_treeview(FD_DUMP_TEST_PARAMS, avpi, fd_g_config->cnf_dict, 0, 0));
 				#endif
 				CHECK( 0, fd_msg_avp_hdr ( avpi, &avpdata ) );
 				CHECK( 101, avpdata->avp_len );
@@ -487,7 +487,7 @@ int main(int argc, char *argv[])
 				CHECK( 0, fd_msg_avp_setvalue ( avpi, &request.search.enum_value ) );
 				#if 0
 				fd_log_debug("AVP Enumuerated OctetString (from const):");
-				fd_msg_dump_one(0, avpi);
+				fd_log_debug("%s", fd_msg_dump_treeview(FD_DUMP_TEST_PARAMS, avpi, fd_g_config->cnf_dict, 0, 0));
 				#endif
 				/* Check the size is correct ( 12 for header + 5 for value ) */
 				CHECK( 0, fd_msg_update_length ( avpi ) );
@@ -512,7 +512,7 @@ int main(int argc, char *argv[])
 				CHECK( 0, fd_msg_avp_setvalue ( avpi, &request.search.enum_value ) );
 				#if 0
 				fd_log_debug("AVP Enumuerated OctetString (from const):");
-				fd_msg_dump_one(0, avpi);
+				fd_log_debug("%s", fd_msg_dump_treeview(FD_DUMP_TEST_PARAMS, avpi, fd_g_config->cnf_dict, 0, 0));
 				#endif
 				/* Check the size is correct ( 12 for header + 3 for value ) */
 				CHECK( 0, fd_msg_update_length ( avpi ) );
@@ -534,7 +534,7 @@ int main(int argc, char *argv[])
 				CHECK( 0, fd_msg_avp_setvalue ( avpch, &value ) );
 				#if 0
 				fd_log_debug("AVP octet string, '1234678'");
-				fd_msg_dump_one(0, avpch);
+				fd_log_debug("%s", fd_msg_dump_treeview(FD_DUMP_TEST_PARAMS, avpch, fd_g_config->cnf_dict, 0, 0));
 				#endif
 				CHECK( 0, fd_msg_update_length ( avpch ) );
 				CHECK( 0, fd_msg_avp_hdr ( avpch, &avpdata ) );
@@ -547,7 +547,7 @@ int main(int argc, char *argv[])
 				CHECK( 0, fd_msg_avp_setvalue ( avpch, &value ) );
 				#if 0
 				fd_log_debug("AVP octet string, '12346789'");
-				fd_msg_dump_one(0, avpch);
+				fd_log_debug("%s", fd_msg_dump_treeview(FD_DUMP_TEST_PARAMS, avpch, fd_g_config->cnf_dict, 0, 0));
 				#endif
 			  }
 			
@@ -579,7 +579,7 @@ int main(int argc, char *argv[])
 			 */
 			CHECK( 0, fd_msg_update_length ( msg ) );
 			#if 0
-			fd_msg_dump_walk(0, msg);
+			fd_log_debug("%s", fd_msg_dump_treeview(FD_DUMP_TEST_PARAMS, msg, fd_g_config->cnf_dict, 0, 1));
 			#endif
 			CHECK( 344, msgdata->msg_length );
 			
@@ -659,7 +659,7 @@ int main(int argc, char *argv[])
 			CPYBUF();
 			CHECK( 0, fd_msg_parse_buffer( &buf_cpy, 344, &msg) );
 			#if 0
-			fd_msg_dump_walk(0, msg);
+			fd_log_debug("%s", fd_msg_dump_treeview(FD_DUMP_TEST_PARAMS, msg, fd_g_config->cnf_dict, 0, 1));
 			#endif
 			
 			/* reinit the msg */
@@ -732,7 +732,7 @@ int main(int argc, char *argv[])
 				CHECK( 0, fd_msg_parse_dict( msg, fd_g_config->cnf_dict, NULL ) );
 				
 				#if 0
-				fd_msg_dump_walk(0, msg);
+				fd_log_debug("%s", fd_msg_dump_treeview(FD_DUMP_TEST_PARAMS, msg, fd_g_config->cnf_dict, 0, 1));
 				#endif
 				
 				/* reset */
@@ -768,7 +768,7 @@ int main(int argc, char *argv[])
 				
 				CHECK( 0, fd_msg_bufferize( msg, &buftmp, NULL ) );				
 				
-				fd_msg_dump_walk(0, msg);
+				fd_log_debug("%s", fd_msg_dump_treeview(FD_DUMP_TEST_PARAMS, msg, fd_g_config->cnf_dict, 0, 1));
 				
 				TODO("Check the Failed-AVP is as expected");
 				
@@ -782,7 +782,7 @@ int main(int argc, char *argv[])
 			CHECK( 0, fd_msg_parse_buffer( &buf, 344, &msg) );
 			CHECK( 0, fd_msg_parse_dict( msg, fd_g_config->cnf_dict, NULL ) );
 			#if 0
-			fd_msg_dump_walk(0, msg);
+			fd_log_debug("%s", fd_msg_dump_treeview(FD_DUMP_TEST_PARAMS, msg, fd_g_config->cnf_dict, 0, 1));
 			#endif
 		}
 		
@@ -1335,14 +1335,14 @@ int main(int argc, char *argv[])
 			
 			/* Okay, now delete the message and parse the buffer, then check we obtain the same values back */
 			#if 0
-			fd_msg_dump_walk(0, msg);
+			fd_log_debug("%s", fd_msg_dump_treeview(FD_DUMP_TEST_PARAMS, msg, fd_g_config->cnf_dict, 0, 1));
 			#endif
 			CHECK( 0, fd_msg_free( msg ) );
 			
 			CHECK( 0, fd_msg_parse_buffer( &buf, 148, &msg) );
 			CHECK( 0, fd_msg_parse_dict( msg, fd_g_config->cnf_dict, NULL ) );
 			#if 0
-			fd_msg_dump_walk(0, msg);
+			fd_log_debug("%s", fd_msg_dump_treeview(FD_DUMP_TEST_PARAMS, msg, fd_g_config->cnf_dict, 0, 1));
 			#endif
 			
 			CHECK( 0, fd_msg_browse ( msg, MSG_BRW_FIRST_CHILD, &avp, NULL) );

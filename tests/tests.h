@@ -67,31 +67,36 @@ GCC_DIAG_ON("-Wdeprecated-declarations")
 
 /* Define the macro to fail a test with a message */
 #define FAILTEST( message... ){				\
-	TRACE_ERROR(message);				\
-	TRACE_ERROR("FAILED: %s ", __STRIPPED_FILE__);	\
+	LOG_F(message);					\
+	LOG_F("FAILED: %s ", __STRIPPED_FILE__);	\
+	free(tbuf);					\
 	exit(FAIL);					\
 }
 
 /* Define the macro to pass a test */
 #define PASSTEST( ){					\
-	TRACE_NOTICE("PASS: %s", __STRIPPED_FILE__);	\
+	LOG_N("PASS: %s", __STRIPPED_FILE__);		\
 	(void)fd_core_shutdown();			\
 	(void)fd_core_wait_shutdown_complete();		\
 	(void)fd_thr_term(&signal_thr);			\
+	free(tbuf);					\
 	exit(PASS);					\
 }
 
-static int test_verbo = 0;
 static struct fd_config conf;
 extern struct fd_config * fd_g_config;
 
+/* for dumps */
+static char * tbuf = NULL; size_t tbuflen = 0;
+#define FD_DUMP_TEST_PARAMS &tbuf, &tbuflen, NULL
+
+
 /* Define the standard check routines */
 #define CHECK( _val, _assert ){				\
-	if (test_verbo > 0) {				\
-		TRACE_NOTICE("CHECK( %s == %s )",	\
+	LOG_D("CHECK( %s == %s )",			\
 				#_assert,		\
 				#_val);			\
-	}{						\
+	{						\
 	__typeof__ (_val) __ret = (_assert);		\
 	if (__ret != (_val)) {				\
 		FAILTEST( "%s:%d: CHECK FAILED : %s == %lx != %lx",	\
@@ -142,11 +147,11 @@ static inline void parse_cmdline(int argc, char * argv[]) {
 	while ((c = getopt (argc, argv, "dqnf:F:g:")) != -1) {
 		switch (c) {
 			case 'd':	/* Increase verbosity of debug messages.  */
-				test_verbo++;
+				fd_g_debug_lvl--;
 				break;
 				
 			case 'q':	/* Decrease verbosity.  */
-				test_verbo--;
+				fd_g_debug_lvl++;
 				break;
 			
 			case 'n':	/* Disable the timeout of the test.  */
@@ -177,7 +182,6 @@ static inline void parse_cmdline(int argc, char * argv[]) {
 				return;
 		}
 	}
-	fd_g_debug_lvl = (test_verbo > 0) ? (test_verbo - 1) : 0;
 	if (!no_timeout) {
 		alarm(TEST_TIMEOUT);
 	}

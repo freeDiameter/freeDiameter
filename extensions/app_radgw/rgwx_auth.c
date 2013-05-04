@@ -124,6 +124,11 @@ struct rgwp_config {
 	int ignore_nai;
 };
 
+struct sess_state {
+	char req_auth[16];
+};
+
+
 /* Initialize the plugin */
 static int auth_conf_parse(char * confstr, struct rgwp_config ** state)
 {
@@ -136,7 +141,7 @@ static int auth_conf_parse(char * confstr, struct rgwp_config ** state)
 	CHECK_MALLOC( new = malloc(sizeof(struct rgwp_config)) );
 	memset(new, 0, sizeof(struct rgwp_config));
 	
-	CHECK_FCT( fd_sess_handler_create( &new->sess_hdl, free, NULL ) );
+	CHECK_FCT( fd_sess_handler_create( &new->sess_hdl, (void *)free, NULL, NULL ) );
 	new->confstr = confstr;
 	
 	if (confstr && strstr(confstr, "nonai"))
@@ -1056,11 +1061,11 @@ static int auth_rad_req( struct rgwp_config * cs, struct radius_msg * rad_req, s
 
 	/* Store the request identifier in the session (if provided) */
 	{
-		unsigned char * req_auth;
-		CHECK_MALLOC(req_auth = malloc(16));
-		memcpy(req_auth, &rad_req->hdr->authenticator[0], 16);
+		struct sess_state  *st;
+		CHECK_MALLOC(st = malloc(sizeof(struct sess_state)));
+		memcpy(st->req_auth, &rad_req->hdr->authenticator[0], 16);
 		
-		CHECK_FCT( fd_sess_state_store( cs->sess_hdl, sess, &req_auth ) );
+		CHECK_FCT( fd_sess_state_store( cs->sess_hdl, sess, &st ) );
 	}
 	
 	return 0;
@@ -1076,7 +1081,7 @@ static int auth_diam_ans( struct rgwp_config * cs, struct msg ** diam_ans, struc
 	int ta_set = 0;
 	int no_str = 0; /* indicate if an STR is required for this server */
 	uint8_t	tuntag = 0;
-	unsigned char * req_auth = NULL;
+	struct sess_state  *st;
 	int error_cause = 0;
 	struct session * sess;
 	os0_t sid = NULL;
@@ -1088,7 +1093,7 @@ static int auth_diam_ans( struct rgwp_config * cs, struct msg ** diam_ans, struc
 	/* Retrieve the request identified which was stored in the session */
 	CHECK_FCT( fd_msg_sess_get(fd_g_config->cnf_dict, *diam_ans, &sess, NULL) );
 	if (sess) {
-		CHECK_FCT( fd_sess_state_retrieve( cs->sess_hdl, sess, &req_auth ) );
+		CHECK_FCT( fd_sess_state_retrieve( cs->sess_hdl, sess, &st ) );
 		CHECK_FCT( fd_sess_getsid(sess, &sid, &sidlen) );
 	} /* else ? */
 	
@@ -1758,7 +1763,7 @@ static int auth_diam_ans( struct rgwp_config * cs, struct msg ** diam_ans, struc
 											size_t len[3];
 											
 											/* We need the request authenticator */
-											CHECK_PARAMS(req_auth);
+											CHECK_PARAMS(st);
 
 											/* Retrieve the shared secret */
 											CHECK_FCT(rgw_clients_getkey(cli, &secret, &secret_len));
@@ -1777,7 +1782,7 @@ static int auth_diam_ans( struct rgwp_config * cs, struct msg ** diam_ans, struc
 											/* Initial b1 = MD5(S + R + A) */
 											addr[0] = secret;
 											len[0] = secret_len;
-											addr[1] = req_auth;
+											addr[1] = st->req_auth;
 											len[1] = 16;
 											addr[2] = &buf[1];
 											len[2] = 2;
@@ -1852,7 +1857,7 @@ static int auth_diam_ans( struct rgwp_config * cs, struct msg ** diam_ans, struc
 						size_t recv_len, send_len;
 
 						/* We need the request authenticator */
-						CHECK_PARAMS(req_auth);
+						CHECK_PARAMS(st);
 
 						/* Retrieve the shared secret */
 						CHECK_FCT(rgw_clients_getkey(cli, &secret, &secret_len));
@@ -1865,7 +1870,7 @@ static int auth_diam_ans( struct rgwp_config * cs, struct msg ** diam_ans, struc
 						recv_len = ahdr->avp_value->os.len >= 32 ? 32 : ahdr->avp_value->os.len;
 						send_len = ahdr->avp_value->os.len - recv_len;
 						
-						if ( ! radius_msg_add_mppe_keys(*rad_fw, req_auth, secret, secret_len, 
+						if ( ! radius_msg_add_mppe_keys(*rad_fw, st->req_auth, secret, secret_len, 
 								ahdr->avp_value->os.data + recv_len, send_len,
 								ahdr->avp_value->os.data, recv_len) ) {
 							TRACE_DEBUG(INFO, "Error while converting EAP-Master-Session-Key to RADIUS message");
@@ -1924,7 +1929,7 @@ static int auth_diam_ans( struct rgwp_config * cs, struct msg ** diam_ans, struc
 	}
 	
 	CHECK_FCT( fd_msg_free( aoh ) );
-	free(req_auth);
+	free(st);
 	
 	if (error_cause) {
 		if ( ! radius_msg_add_attr_int32(*rad_fw, RADIUS_ATTR_ERROR_CAUSE, error_cause) ) {

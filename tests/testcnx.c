@@ -714,7 +714,7 @@ int main(int argc, char *argv[])
 		#if 0
 		/* For debug: dump the object */
 		fd_log_debug("Dumping CER");
-		fd_msg_dump_walk(0, cer);
+		fd_log_debug("%s", fd_msg_dump_treeview(FD_DUMP_TEST_PARAMS, cer, fd_g_config->cnf_dict, 0, 1));
 		#endif
 		
 		CHECK( 0, fd_msg_bufferize( cer, &cer_buf, &cer_sz ) );

@@ -209,7 +209,7 @@ static int main_cmdline(int argc, char *argv[])
 				break;
 				
 			case 'd':	/* Increase verbosity of debug messages.  */
-				fd_g_debug_lvl++;
+				fd_g_debug_lvl--;
 				break;
 				
 			case 'f':	/* Full debug for the function with this name.  */
@@ -235,7 +235,7 @@ static int main_cmdline(int argc, char *argv[])
 				break;
 				
 			case 'q':	/* Decrease verbosity then remove debug messages.  */
-				fd_g_debug_lvl--;
+				fd_g_debug_lvl++;
 				break;
 
 			case '?':	/* Invalid option.  */

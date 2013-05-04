@@ -698,7 +698,7 @@ int main(int argc, char *argv[])
 		CHECK( 0, app->flags.acct );
 		
 		#if 0
-		fd_conf_dump();
+		fd_log_debug("%s", fd_conf_dump(FD_DUMP_TEST_PARAMS));
 		#endif
 	}
 	

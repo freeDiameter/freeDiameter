@@ -57,9 +57,6 @@ int fd_libproto_init()
 		return ret;
 	}
 	
-	/* Set the debug stream */
-	fd_g_debug_fstr = stdout;
-	
 	/* Initialize the modules that need it */
 	fd_msg_eteid_init();
 	CHECK_FCT( fd_sess_init() );

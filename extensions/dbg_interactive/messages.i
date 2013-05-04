@@ -290,10 +290,10 @@ struct msg {
 	
 	/* Dump */
 	void dump (int tree = 1) {
-		if (tree)
-			fd_msg_dump_walk(0, $self);
-		else
-			fd_msg_dump_one(0, $self);
+		char * buf = NULL;
+		size_t len;
+		printf("%s", fd_msg_dump_treeview(&buf, &len, NULL, $self, NULL, 0, tree));
+		free(buf);
 	}
 	
 	/* Model */
@@ -569,10 +569,10 @@ struct avp {
 	
 	/* Dump */
 	void dump (int tree = 1) {
-		if (tree)
-			fd_msg_dump_walk(0, $self);
-		else
-			fd_msg_dump_one(0, $self);
+		char * buf = NULL;
+		size_t len;
+		printf("%s", fd_msg_dump_treeview(&buf, &len, NULL, $self, NULL, 0, tree));
+		free(buf);
 	}
 	
 	/* Model */

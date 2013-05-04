@@ -42,14 +42,14 @@
 #define TEST_SID	(os0_t)TEST_SID_IN
 
 #define TEST_EYEC	0x7e57e1ec
-struct mystate {
+struct sess_state {
 	int	eyec;	/* TEST_EYEC */
 	os0_t   sid; 	/* the session with which the data was registered */
 	int  *  freed;	/* location where to write the freed status */
 	void *  opaque; /* if opaque was provided, this is the value we expect */
 };
 
-static void mycleanup( struct mystate * data, os0_t sid, void * opaque )
+static void mycleanup( struct sess_state * data, os0_t sid, void * opaque )
 {
 	/* sanity */
 	CHECK( 1, sid ? 1 : 0 );
@@ -66,12 +66,12 @@ static void mycleanup( struct mystate * data, os0_t sid, void * opaque )
 	free(data);
 }
 
-static __inline__ struct mystate * new_state(os0_t sid, int *freed) 
+static __inline__ struct sess_state * new_state(os0_t sid, int *freed) 
 {
-	struct mystate *new;
-	new = malloc(sizeof(struct mystate));
+	struct sess_state *new;
+	new = malloc(sizeof(struct sess_state));
 	CHECK( 1, new ? 1 : 0 );
-	memset(new, 0, sizeof(struct mystate));
+	memset(new, 0, sizeof(struct sess_state));
 	new->eyec = TEST_EYEC;
 	new->sid = os0dup(sid, strlen((char *)sid));
 	CHECK( 1, new->sid ? 1 : 0 );
@@ -105,14 +105,14 @@ int main(int argc, char *argv[])
 	/* Test functions related to handlers (simple situation) */
 	{
 		void * testptr = NULL;
-		CHECK( 0, fd_sess_handler_create ( &hdl1, mycleanup, NULL ) );
-		CHECK( 0, fd_sess_handler_create ( &hdl2, mycleanup, NULL ) );
+		CHECK( 0, fd_sess_handler_create ( &hdl1, mycleanup, NULL, NULL ) );
+		CHECK( 0, fd_sess_handler_create ( &hdl2, mycleanup, NULL, NULL ) );
 		CHECK( 0, fd_sess_handler_destroy( &hdl2, &testptr ) );
 		CHECK( 1, testptr == NULL ? 1 : 0 );
-		CHECK( 0, fd_sess_handler_create ( &hdl2, mycleanup, g_opaque ) );
+		CHECK( 0, fd_sess_handler_create ( &hdl2, mycleanup, NULL, g_opaque ) );
 		#if 0
-		fd_sess_dump_hdl(0, hdl1);
-		fd_sess_dump_hdl(0, hdl2);
+		fd_log_debug("%s\n", fd_sess_dump_hdl(FD_DUMP_TEST_PARAMS, hdl1));
+		fd_log_debug("%s\n", fd_sess_dump_hdl(FD_DUMP_TEST_PARAMS, hdl2));
 		#endif
 	}
 	
@@ -122,8 +122,8 @@ int main(int argc, char *argv[])
 		CHECK( 0, fd_sess_new( &sess1, TEST_DIAM_ID, CONSTSTRLEN(TEST_DIAM_ID), NULL, 0 ) );
 		CHECK( 0, fd_sess_new( &sess2, TEST_DIAM_ID, CONSTSTRLEN(TEST_DIAM_ID), NULL, 0 ) );
 		#if 0
-		fd_sess_dump(0, sess1);
-		fd_sess_dump(0, sess2);
+		fd_log_debug("%s\n", fd_sess_dump(FD_DUMP_TEST_PARAMS, sess1, 1));
+		fd_log_debug("%s\n", fd_sess_dump(FD_DUMP_TEST_PARAMS, sess2, 1));
 		#endif
 		
 		/* Check both string start with the diameter Id, but are different */
@@ -140,8 +140,8 @@ int main(int argc, char *argv[])
 		CHECK( 0, fd_sess_new( &sess1, TEST_DIAM_ID, 0, TEST_OPT, 0 ) );
 		CHECK( 0, fd_sess_new( &sess2, TEST_DIAM_ID, CONSTSTRLEN(TEST_DIAM_ID), TEST_OPT, CONSTSTRLEN(TEST_OPT_IN) - 1 ) );
 		#if 0
-		fd_sess_dump(0, sess1);
-		fd_sess_dump(0, sess2);
+		fd_log_debug("%s\n", fd_sess_dump(FD_DUMP_TEST_PARAMS, sess1, 1));
+		fd_log_debug("%s\n", fd_sess_dump(FD_DUMP_TEST_PARAMS, sess2, 1));
 		#endif
 		
 		CHECK( 0, fd_sess_getsid(sess1, &str1, &str1len) );
@@ -164,8 +164,8 @@ int main(int argc, char *argv[])
 		CHECK( sess3, sess1 );
 		CHECK( 0, fd_sess_new( &sess2, NULL, 0, TEST_SID, CONSTSTRLEN(TEST_SID_IN) - 1 ) );
 		#if 0
-		fd_sess_dump(0, sess1);
-		fd_sess_dump(0, sess2);
+		fd_log_debug("%s\n", fd_sess_dump(FD_DUMP_TEST_PARAMS, sess1, 1));
+		fd_log_debug("%s\n", fd_sess_dump(FD_DUMP_TEST_PARAMS, sess2, 1));
 		#endif
 		CHECK( 0, fd_sess_getsid(sess1, &str1, &str1len) );
 		CHECK( 0, fd_sess_getsid(sess2, &str2, &str2len) );
@@ -210,7 +210,7 @@ int main(int argc, char *argv[])
 	
 	/* Test fd_sess_reclaim */
 	{
-		struct mystate *tms;
+		struct sess_state *tms;
 		
 		CHECK( 0, fd_sess_fromsid( TEST_SID, CONSTSTRLEN(TEST_SID_IN), &sess1, &new ) );
 		CHECK( 1, new ? 1 : 0 );
@@ -270,7 +270,7 @@ int main(int argc, char *argv[])
 	
 	/* Test states operations */
 	{
-		struct mystate * ms[6], *tms;
+		struct sess_state * ms[6], *tms;
 		int freed[6];
 		struct timespec timeout;
 		void * testptr = NULL;
@@ -294,7 +294,7 @@ int main(int argc, char *argv[])
 		CHECK( 1, ms[1] ? 1 : 0 );
 		
 		#if 0
-		fd_sess_dump(0, sess1);
+		fd_log_debug("%s\n", fd_sess_dump(FD_DUMP_TEST_PARAMS, sess1, 1));
 		#endif
 		
 		CHECK( 0, fd_sess_state_retrieve( hdl1, sess1, &ms[0] ) );
@@ -331,9 +331,9 @@ int main(int argc, char *argv[])
 		CHECK( 0, fd_sess_state_store ( hdl2, sess3, &ms[5] ) );
 		
 		#if 0
-		fd_sess_dump(0, sess1);
-		fd_sess_dump(0, sess2);
-		fd_sess_dump(0, sess3);
+		fd_log_debug("%s\n", fd_sess_dump(FD_DUMP_TEST_PARAMS, sess1, 1));
+		fd_log_debug("%s\n", fd_sess_dump(FD_DUMP_TEST_PARAMS, sess2, 1));
+		fd_log_debug("%s\n", fd_sess_dump(FD_DUMP_TEST_PARAMS, sess3, 1));
 		#endif
 		
 		/* Destroy session 3 */
@@ -356,8 +356,8 @@ int main(int argc, char *argv[])
 		CHECK( 1, testptr == g_opaque ? 1 : 0 );
 		
 		#if 1
-		fd_sess_dump(0, sess1);
-		fd_sess_dump(0, sess2);
+		fd_log_debug("%s\n", fd_sess_dump(FD_DUMP_TEST_PARAMS, sess1, 1));
+		fd_log_debug("%s\n", fd_sess_dump(FD_DUMP_TEST_PARAMS, sess2, 1));
 		#endif
 		
 		/* Create again session 3, check that no data is associated to it */
@@ -372,8 +372,8 @@ int main(int argc, char *argv[])
 		CHECK( 0, clock_gettime(CLOCK_REALTIME, &timeout) );
 		CHECK( 0, fd_sess_settimeout( sess2, &timeout) );
 		#if 1
-		fd_sess_dump(0, sess1);
-		fd_sess_dump(0, sess2);
+		fd_log_debug("%s\n", fd_sess_dump(FD_DUMP_TEST_PARAMS, sess1, 1));
+		fd_log_debug("%s\n", fd_sess_dump(FD_DUMP_TEST_PARAMS, sess2, 1));
 		#endif
 		timeout.tv_sec = 0;
 		timeout.tv_nsec= 50000000; /* 50 ms */

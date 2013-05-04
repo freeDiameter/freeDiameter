@@ -558,8 +558,6 @@ int main(int argc, char *argv[])
 		
 		CHECK( 14, iter );
 		
-		/* fd_fifo_dump(0, "test", queue, NULL); */
-		
 		for (; i < td.nbr; i++) {
 			CHECK( 0, fd_fifo_tryget(queue, &item) );
 			CHECK( i, *item);

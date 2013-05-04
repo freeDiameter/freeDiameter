@@ -39,9 +39,9 @@
 #ifndef DIAMEAP_SERVER_H_
 #define DIAMEAP_SERVER_H_
 
-
+ 
 /* session data structure to store */
-struct diameap_sess_data_sm
+struct sess_state
 {
 	int invalid_eappackets; /* Number of invalid EAP Packet received*/
 

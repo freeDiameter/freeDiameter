@@ -191,7 +191,7 @@ int main(int argc, char *argv[])
 		
 		CHECK(1, obj ? 1 : 0 );
 #if 1
-		fd_dict_dump_object(obj);
+		fd_log_debug("%s", fd_dict_dump_object(FD_DUMP_TEST_PARAMS, obj));
 #endif
 		CHECK( 0, fd_dict_delete(obj) );
 		cntbkp = count;

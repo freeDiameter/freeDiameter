@@ -221,8 +221,9 @@ int fd_log_handler_register ( void (*logger)(int loglevel, const char * format, 
 int fd_log_handler_unregister ( void );
 
 
-/* Helper function for the *dump functions that add into a buffer */
+/* Helper functions for the *dump functions that add into a buffer */
 char * fd_dump_extend(char ** buf, size_t *len, size_t *offset, const char * format, ... ) _ATTRIBUTE_PRINTFLIKE_(4,5);
+char * fd_dump_extend_hexdump(char ** buf, size_t *len, size_t *offset, uint8_t *data, size_t datalen, size_t trunc, size_t wrap );
 
 /* All dump functions follow the same prototype:
  * PARAMETERS:
@@ -1816,9 +1817,9 @@ struct session_handler;
 struct session;
 
 /* The state information that a module associate with a session -- each module defines its own data format */
-typedef void session_state;
+struct sess_state; /* declare this in your own extension */
 
-typedef DECLARE_FD_DUMP_PROTOTYPE(session_state_dump, session_state * st);
+typedef DECLARE_FD_DUMP_PROTOTYPE((*session_state_dump), struct sess_state * st);
 
 /* The following function must be called to activate the session expiry mechanism */
 int fd_sess_start(void);
@@ -1842,10 +1843,7 @@ int fd_sess_start(void);
  *  EINVAL 	: A parameter is invalid.
  *  ENOMEM	: Not enough memory to complete the operation
  */
-int fd_sess_handler_create_internal ( struct session_handler ** handler, void (*cleanup)(session_state * state, os0_t sid, void * opaque), session_state_dump dumper, void * opaque );
-/* Macro to avoid casting everywhere */
-#define fd_sess_handler_create( _handler, _cleanup, _dumper, _opaque ) \
-	fd_sess_handler_create_internal( (_handler), (void (*)(session_state *, os0_t, void *))(_cleanup), _dumper, (void *)(_opaque) )
+int fd_sess_handler_create ( struct session_handler ** handler, void (*cleanup)(struct sess_state * state, os0_t sid, void * opaque), session_state_dump dumper, void * opaque );
 
 	
 /*
@@ -2017,9 +2015,7 @@ int fd_sess_reclaim ( struct session ** session );
  *  EALREADY	: Data was already associated with this session and client.
  *  ENOMEM	: Not enough memory to complete the operation
  */
-int fd_sess_state_store_internal ( struct session_handler * handler, struct session * session, session_state ** state );
-#define fd_sess_state_store( _handler, _session, _state ) \
-	fd_sess_state_store_internal( (_handler), (_session), (void *)(_state) )
+int fd_sess_state_store ( struct session_handler * handler, struct session * session, struct sess_state ** state );
 
 /*
  * FUNCTION:	fd_sess_state_retrieve
@@ -2039,9 +2035,7 @@ int fd_sess_state_store_internal ( struct session_handler * handler, struct sess
  *  0      	: *state is updated (NULL or points to the state if it was found).
  *  EINVAL 	: A parameter is invalid.
  */
-int fd_sess_state_retrieve_internal ( struct session_handler * handler, struct session * session, session_state ** state ); 
-#define fd_sess_state_retrieve( _handler, _session, _state ) \
-	fd_sess_state_retrieve_internal( (_handler), (_session), (void *)(_state) )
+int fd_sess_state_retrieve ( struct session_handler * handler, struct session * session, struct sess_state ** state ); 
 
 
 /* For debug */

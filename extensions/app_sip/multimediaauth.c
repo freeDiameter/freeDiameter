@@ -35,6 +35,11 @@
 *********************************************************************************************************/
 #include "app_sip.h"
 
+struct sess_state
+{
+	char *nonce;
+};
+
 
 int app_sip_MAR_cb( struct msg ** msg, struct avp * paramavp, struct session * sess, void * opaque, enum disp_action * act)
 {
@@ -55,7 +60,7 @@ int app_sip_MAR_cb( struct msg ** msg, struct avp * paramavp, struct session * s
 	unsigned char *username=NULL;
 	
 	//The nonce we will store and retrieve in session
-	struct ds_nonce *storednonce=NULL;
+	struct sess_state *storednonce=NULL;
 	
 	
 	TRACE_ENTRY("%p %p %p %p", msg, paramavp, sess, act);
@@ -361,8 +366,8 @@ int app_sip_MAR_cb( struct msg ** msg, struct avp * paramavp, struct session * s
 									
 									
 									//We store the nonce (storednonce structure) inside the session
-									storednonce=malloc(sizeof(struct ds_nonce));
-									memset(storednonce,0,sizeof(struct ds_nonce));
+									storednonce=malloc(sizeof(struct sess_state));
+									memset(storednonce,0,sizeof(struct sess_state));
 									CHECK_MALLOC(storednonce->nonce=malloc(NONCE_SIZE*2+1));
 									memcpy(storednonce->nonce,(char *)nonce,NONCE_SIZE*2+1);
 									CHECK_FCT( fd_sess_state_store ( ds_sess_hdl, sess, &storednonce ));  

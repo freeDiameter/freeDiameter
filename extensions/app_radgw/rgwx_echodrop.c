@@ -37,20 +37,31 @@
 
 #include "rgwx_echodrop.h"
 
+struct sess_state {
+	struct fd_list sentinel;
+};
+
 /* If a session is destroyed, empty the list of ed_saved_attribute */
-static void state_delete(void * arg, char * sid, void * opaque) {
-	struct fd_list * list = (struct fd_list *)arg;
-	
-	CHECK_PARAMS_DO( list, return );
-	
-	while (!FD_IS_LIST_EMPTY(list)) {
-		struct ed_saved_attribute * esa = (struct ed_saved_attribute *)(list->next);
+static void state_delete(struct sess_state * arg, os0_t sid, void * opaque) {
+	while (!FD_IS_LIST_EMPTY(&arg->sentinel)) {
+		struct ed_saved_attribute * esa = (struct ed_saved_attribute *)(arg->sentinel.next);
 		fd_list_unlink(&esa->chain);
 		free(esa);
 	}
-	free(list);
+	free(arg);
 }
 
+static DECLARE_FD_DUMP_PROTOTYPE(ed_session_state_dump, struct sess_state * st)
+{
+	struct fd_list * li;
+	CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "[rgwx sess_state](@%p):\n", st), return NULL);	
+	for (li = st->sentinel.next; li != &st->sentinel; li = li->next) {
+		struct ed_saved_attribute * esa = (struct ed_saved_attribute *)(li);
+		CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "[rgwx sess_state {esa}] t:%2hhx l:%2hhx d:", esa->attr.type, esa->attr.length), return NULL);
+		CHECK_MALLOC_DO( fd_dump_extend_hexdump(FD_DUMP_STD_PARAMS, (&esa->attr.length) + 1, esa->attr.length - 2, 0,0), return NULL);
+		CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "\n"), return NULL);
+	}
+}
 
 /* Initialize the plugin and parse the configuration. */
 static int ed_conf_parse(char * conffile, struct rgwp_config ** state)
@@ -68,7 +79,7 @@ static int ed_conf_parse(char * conffile, struct rgwp_config ** state)
 	fd_list_init(&new->attributes, NULL);
 	
 	/* Create the session handler */
-	CHECK_FCT( fd_sess_handler_create( &new->sess_hdl, state_delete, NULL ) );
+	CHECK_FCT( fd_sess_handler_create( &new->sess_hdl, state_delete, ed_session_state_dump, NULL ) );
 	
 	/* Parse the configuration file */
 	CHECK_FCT( ed_conffile_parse(conffile, new) );
@@ -216,6 +227,7 @@ static int ed_rad_req( struct rgwp_config * cs, struct radius_msg * rad_req, str
 	/* Save the echoed values in the session, if any */
 	if (!FD_IS_LIST_EMPTY(&echo_list)) {
 		struct session * sess;
+		struct sess_state * st;
 		
 		CHECK_FCT( fd_msg_sess_get(fd_g_config->cnf_dict, *diam_fw, &sess, NULL) );
 
@@ -228,12 +240,12 @@ static int ed_rad_req( struct rgwp_config * cs, struct radius_msg * rad_req, str
 			} );
 		
 		/* Move the values in a dynamically allocated list */
-		CHECK_MALLOC( li = malloc(sizeof(struct fd_list)) );
-		fd_list_init(li, NULL);
-		fd_list_move_end(li, &echo_list);
+		CHECK_MALLOC( st = malloc(sizeof(struct sess_state)) );
+		fd_list_init(&st->sentinel, NULL);
+		fd_list_move_end(&st->sentinel, &echo_list);
 		
 		/* Save the list in the session */
-		CHECK_FCT( fd_sess_state_store( cs->sess_hdl, sess, &li ) );
+		CHECK_FCT( fd_sess_state_store( cs->sess_hdl, sess, &st ) );
 	}
 	
 	return 0;
@@ -242,8 +254,8 @@ static int ed_rad_req( struct rgwp_config * cs, struct radius_msg * rad_req, str
 /* Process an answer: add the ECHO attributes back, if any */
 static int ed_diam_ans( struct rgwp_config * cs, struct msg ** diam_ans, struct radius_msg ** rad_fw, struct rgw_client * cli )
 {
-	struct fd_list * list = NULL;
 	struct session * sess;
+	struct sess_state * st;
 	
 	TRACE_ENTRY("%p %p %p %p", cs, diam_ans, rad_fw, cli);
 	CHECK_PARAMS(cs);
@@ -257,8 +269,8 @@ static int ed_diam_ans( struct rgwp_config * cs, struct msg ** diam_ans, struct 
 	}
 	
 	/* Now try and retrieve any data from the session */
-	CHECK_FCT( fd_sess_state_retrieve( cs->sess_hdl, sess, &list ) );
-	if (list == NULL) {
+	CHECK_FCT( fd_sess_state_retrieve( cs->sess_hdl, sess, &st ) );
+	if (st == NULL) {
 		/* No attribute saved in the session, just return */
 		return 0;
 	}
@@ -267,8 +279,8 @@ static int ed_diam_ans( struct rgwp_config * cs, struct msg ** diam_ans, struct 
 	
 	CHECK_PARAMS( rad_fw && *rad_fw);
 	
-	while (! FD_IS_LIST_EMPTY(list) ) {
-		struct ed_saved_attribute * esa = (struct ed_saved_attribute *)(list->next);
+	while (! FD_IS_LIST_EMPTY(&st->sentinel) ) {
+		struct ed_saved_attribute * esa = (struct ed_saved_attribute *)(st->sentinel.next);
 		
 		fd_list_unlink(&esa->chain);
 		
@@ -279,7 +291,7 @@ static int ed_diam_ans( struct rgwp_config * cs, struct msg ** diam_ans, struct 
 		
 		free(esa);
 	}
-	free(list);
+	free(st);
 
 	return 0;
 }

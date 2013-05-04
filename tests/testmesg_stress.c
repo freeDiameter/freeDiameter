@@ -196,15 +196,7 @@ int main(int argc, char *argv[])
 			     *1 [ enumos ]
 				< grouped >
 						*/
-			#if 0
-			fd_dict_dump_object ( gavp );
-			#endif
 		}
-		#if 0
-		{
-			fd_dict_dump_object ( vendor );
-		}
-		#endif
 	}
 	
 	/* Now create some values and check the length is correctly handled */

@@ -49,7 +49,6 @@ struct disp_hdl * app_sip_SL_LIR_hdl=NULL;
 
 
 struct disp_hdl * app_sip_default_hdl=NULL;
-struct session_handler * ds_sess_hdl;
 
 //configuration stucture
 struct as_conf * as_conf=NULL;
@@ -212,8 +211,6 @@ int as_entry(char * conffile)
 	if(start_mysql_connection())
 		return EINVAL;
 	
-	CHECK_FCT(fd_sess_handler_create(&ds_sess_hdl, free, NULL));
-	
 	//Creation of thread for Registration Termination	
 	if(pthread_create(&rtr_thread, NULL,rtr_socket, NULL))
 	{
@@ -237,7 +234,6 @@ void fd_ext_fini(void)
 	//TODO:unregister other callbacks
 	
 	(void) fd_disp_unregister(&app_sip_MAR_hdl, NULL);
-	CHECK_FCT_DO( fd_sess_handler_destroy(&ds_sess_hdl, NULL),return);
 	
 	
 	//We close database connection

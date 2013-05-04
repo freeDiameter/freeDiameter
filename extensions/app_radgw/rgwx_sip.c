@@ -133,7 +133,6 @@ struct rgwp_config {
 		
 		
 	} dict; /* cache of the dictionary objects we use */
-	struct session_handler * sess_hdl; /* We store RADIUS request authenticator information in the session */
 	char * confstr;
 	//Chained list of nonce
 	struct fd_list listnonce;
@@ -257,7 +256,6 @@ static int sip_conf_parse(char * conffile, struct rgwp_config ** state)
 	CHECK_MALLOC( new = malloc(sizeof(struct rgwp_config)) );
 	memset(new, 0, sizeof(struct rgwp_config));
 	
-	CHECK_FCT( fd_sess_handler_create( &new->sess_hdl, free, NULL ) );
 	new->confstr = conffile;
 	
 	/* Resolve all dictionary objects we use */
@@ -311,15 +309,12 @@ static void sip_conf_free(struct rgwp_config * state)
 	TRACE_ENTRY("%p", state);
 	CHECK_PARAMS_DO( state, return );
 	
-	CHECK_FCT_DO( fd_sess_handler_destroy( &state->sess_hdl, NULL ),  );
-	
 	nonce_deletelistnonce(state);
 	CHECK_POSIX_DO(pthread_mutex_destroy(&state->nonce_mutex), /*continue*/);
 	
 	free(state);
 	return;
 }
-
 
 /* Handle an incoming RADIUS request */
 static int sip_rad_req( struct rgwp_config * cs, struct radius_msg * rad_req, struct radius_msg ** rad_ans, struct msg ** diam_fw, struct rgw_client * cli )
@@ -716,15 +711,6 @@ static int sip_rad_req( struct rgwp_config * cs, struct radius_msg * rad_req, st
 
 	//fd_msg_dump_walk(1,*diam_fw);
 	
-	/* Store the request identifier in the session */
-	{
-		unsigned char * req_sip;
-		CHECK_MALLOC(req_sip = malloc(16));
-		memcpy(req_sip, &rad_req->hdr->authenticator[0], 16);
-		
-		CHECK_FCT( fd_sess_state_store( cs->sess_hdl, sess, &req_sip ) );
-	}
-	
 	
 	return 0;
 }
@@ -855,9 +841,6 @@ static int sip_diam_ans( struct rgwp_config * cs, struct msg ** diam_ans, struct
 			CHECK_FCT( fd_msg_free( avp ) );
 		}
 	}
-	
-	CHECK_FCT( fd_sess_state_retrieve( cs->sess_hdl, sess, &req_sip ) );
-	free(req_sip);
 	
 	return 0;
 }

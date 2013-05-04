@@ -68,8 +68,8 @@
 struct session_handler {
 	int		  eyec;	/* An eye catcher also used to ensure the object is valid, must be SH_EYEC */
 	int		  id;	/* A unique integer to identify this handler */
-	void 		(*cleanup)(session_state *, os0_t, void *); /* The cleanup function to be called for cleaning a state */
-	session_state_dump *state_dump; /* dumper function */
+	void 		(*cleanup)(struct sess_state *, os0_t, void *); /* The cleanup function to be called for cleaning a state */
+	session_state_dump state_dump; /* dumper function */
 	void             *opaque; /* a value that is passed as is to the cleanup callback */
 };
 
@@ -80,7 +80,7 @@ static pthread_mutex_t	hdl_lock = PTHREAD_MUTEX_INITIALIZER;	/* lock to protect 
 /* Data structures linked from the sessions, containing the applications states */
 struct state {
 	int			 eyec;	/* Must be SD_EYEC */
-	session_state		*state;	/* The state registered by the application, never NULL (or the whole object is deleted) */
+	struct sess_state	*state;	/* The state registered by the application, never NULL (or the whole object is deleted) */
 	struct fd_list		 chain;	/* Chaining in the list of session's states ordered by hdl->id */
 	union {
 		struct session_handler	*hdl;	/* The handler for which this state was registered */
@@ -273,7 +273,7 @@ void fd_sess_fini(void)
 }
 
 /* Create a new handler */
-int fd_sess_handler_create_internal ( struct session_handler ** handler, void (*cleanup)(session_state *, os0_t, void *), session_state_dump dumper, void * opaque )
+int fd_sess_handler_create ( struct session_handler ** handler, void (*cleanup)(struct sess_state *, os0_t, void *), session_state_dump dumper, void * opaque )
 {
 	struct session_handler *new;
 	
@@ -719,7 +719,7 @@ int fd_sess_reclaim ( struct session ** session )
 }
 
 /* Save a state information with a session */
-int fd_sess_state_store_internal ( struct session_handler * handler, struct session * session, session_state ** state )
+int fd_sess_state_store ( struct session_handler * handler, struct session * session, struct sess_state ** state )
 {
 	struct state *new;
 	struct fd_list * li;
@@ -772,7 +772,7 @@ out:
 }
 
 /* Get the data back */
-int fd_sess_state_retrieve_internal ( struct session_handler * handler, struct session * session, session_state ** state )
+int fd_sess_state_retrieve ( struct session_handler * handler, struct session * session, struct sess_state ** state )
 {
 	struct fd_list * li;
 	struct state * st = NULL;
