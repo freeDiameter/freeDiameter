@@ -140,11 +140,12 @@ static void fd_gnutls_debug(int level, const char * str) {
 }
 static int gnutls_debug = 0;
 
+static int test_parameter = 0;
 
 static inline void parse_cmdline(int argc, char * argv[]) {
 	int c;
 	int no_timeout = 0;
-	while ((c = getopt (argc, argv, "dqnf:F:g:")) != -1) {
+	while ((c = getopt (argc, argv, "dqnf:F:g:p:")) != -1) {
 		switch (c) {
 			case 'd':	/* Increase verbosity of debug messages.  */
 				fd_g_debug_lvl--;
@@ -176,6 +177,10 @@ static inline void parse_cmdline(int argc, char * argv[]) {
 				
 			case 'g':	/* Set a debug level and function for GNU TLS calls.  */
 				gnutls_debug = (int)atoi(optarg);
+				break;
+				
+			case 'p':	/* Set a debug level and function for GNU TLS calls.  */
+				test_parameter = (int)atoi(optarg);
 				break;
 				
 			default:	/* bug: option not considered.  */

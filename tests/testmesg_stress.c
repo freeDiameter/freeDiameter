@@ -36,7 +36,17 @@
 #include "tests.h"
 
 /* The number of times each operation is repeated to measure the average operation time */
-#define NUMBER_OF_SAMPLES	100000
+#define DEFAULT_NUMBER_OF_SAMPLES	100000
+
+static void display_result(int nr, struct timespec * start, struct timespec * end, char * fct, char * type, char *op)
+{
+	long double dur = (long double)end->tv_sec + (long double)end->tv_nsec/1000000000;
+	dur -= (long double)start->tv_sec + (long double)start->tv_nsec/1000000000;
+	long double thrp = (long double)nr / dur;
+	printf("%-19s: %d %-8s %-7s in %.6LFs (%.1LFmsg/s)\n", fct, nr, type, op, dur, thrp);
+}
+
+
 
 /* Main test routine */
 int main(int argc, char *argv[])
@@ -44,6 +54,8 @@ int main(int argc, char *argv[])
 	struct msg * acr = NULL;
 	struct avp * pi = NULL, *avp1, *avp2;
 	unsigned char * buf = NULL;
+	
+	test_parameter = DEFAULT_NUMBER_OF_SAMPLES;
 	
 	/* First, initialize the daemon modules */
 	INIT_FD();
@@ -370,7 +382,10 @@ int main(int argc, char *argv[])
 	
 	/* Test the throughput of the different functions function */
 	{
-		void ** stress_array;
+		struct stress_struct {
+			struct msg * m;
+			uint8_t * b;
+		} * stress_array;
 		int i;
 		struct timespec start, end;
 		
@@ -384,86 +399,125 @@ int main(int argc, char *argv[])
 		}
 		
 		/* Create the copies of the message buffer */
-		stress_array = calloc(NUMBER_OF_SAMPLES, sizeof(void *));
+		stress_array = calloc(test_parameter, sizeof(struct stress_struct));
 		CHECK( stress_array ? 1 : 0, 1);
 		
-		for (i=0; i < NUMBER_OF_SAMPLES; i++) {
+		for (i=0; i < test_parameter; i++) {
 			CPYBUF();
-			stress_array[i] = buf_cpy;
+			stress_array[i].b = buf_cpy;
 		}
+		
+	/* fd_msg_parse_buffer */
 		
 		CHECK( 0, clock_gettime(CLOCK_REALTIME, &start) );
 		
 		/* Test the msg_parse_buffer function */
-		for (i=0; i < NUMBER_OF_SAMPLES; i++) {
-			CHECK( 0, fd_msg_parse_buffer( (uint8_t **)&stress_array[i], 344, &msg) );
-			stress_array[i] = msg;
+		for (i=0; i < test_parameter; i++) {
+			CHECK( 0, fd_msg_parse_buffer( &stress_array[i].b, 344, &stress_array[i].m) );
 		}
 		
 		CHECK( 0, clock_gettime(CLOCK_REALTIME, &end) );
+		display_result(test_parameter, &start, &end, "fd_msg_parse_buffer", "buffers", "parsed");
 		
-		{
-			long us = (end.tv_sec - start.tv_sec) * 1000000;
-			us += (end.tv_nsec - start.tv_nsec) / 1000;
-			long double thrp = (NUMBER_OF_SAMPLES * (long double)1000000) / us;
-			printf("fd_msg_bufferize  : %d buffers  parsed in %ldus (%.2LFmsg/s)\n", NUMBER_OF_SAMPLES, us, thrp);
-		}
-		
-		
+	/* fd_msg_parse_dict */
 		
 		CHECK( 0, clock_gettime(CLOCK_REALTIME, &start) );
 		
 		/* Test the fd_msg_parse_dict function */
-		for (i=0; i < NUMBER_OF_SAMPLES; i++) {
-			CHECK( 0, fd_msg_parse_dict( stress_array[i], fd_g_config->cnf_dict, NULL ) );
+		for (i=0; i < test_parameter; i++) {
+			CHECK( 0, fd_msg_parse_dict( stress_array[i].m, fd_g_config->cnf_dict, NULL ) );
 		}
 		
 		CHECK( 0, clock_gettime(CLOCK_REALTIME, &end) );
-		
-		{
-			long us = (end.tv_sec - start.tv_sec) * 1000000;
-			us += (end.tv_nsec - start.tv_nsec) / 1000;
-			long double thrp = (NUMBER_OF_SAMPLES * (long double)1000000) / us;
-			printf("fd_msg_parse_dict : %d messages parsed in %ldus (%.2LFmsg/s)\n", NUMBER_OF_SAMPLES, us, thrp);
-		}
+		display_result(test_parameter, &start, &end, "fd_msg_parse_dict", "messages", "parsed");
 		
 		
+	/* fd_msg_parse_rules */
 		
 		CHECK( 0, clock_gettime(CLOCK_REALTIME, &start) );
 		
 		/* Test the fd_msg_parse_rules function */
-		for (i=0; i < NUMBER_OF_SAMPLES; i++) {
-			CHECK( 0, fd_msg_parse_rules( stress_array[i], fd_g_config->cnf_dict, NULL ) );
+		for (i=0; i < test_parameter; i++) {
+			CHECK( 0, fd_msg_parse_rules( stress_array[i].m, fd_g_config->cnf_dict, NULL ) );
 		}
 		
 		CHECK( 0, clock_gettime(CLOCK_REALTIME, &end) );
+		display_result(test_parameter, &start, &end, "fd_msg_parse_rules", "messages", "parsed");
 		
-		{
-			long us = (end.tv_sec - start.tv_sec) * 1000000;
-			us += (end.tv_nsec - start.tv_nsec) / 1000;
-			long double thrp = (NUMBER_OF_SAMPLES * (long double)1000000) / us;
-			printf("fd_msg_parse_rules: %d messages parsed in %ldus (%.2LFmsg/s)\n", NUMBER_OF_SAMPLES, us, thrp);
+		
+	/* fd_msg_new_answer_from_req (0) */
+		
+		CHECK( 0, clock_gettime(CLOCK_REALTIME, &start) );
+		
+		/* Test the fd_msg_new_answer_from_req function */
+		for (i=0; i < test_parameter; i++) {
+			CHECK( 0, fd_msg_new_answer_from_req( fd_g_config->cnf_dict, &stress_array[i].m, 0 ) );
+		}
+		
+		CHECK( 0, clock_gettime(CLOCK_REALTIME, &end) );
+		display_result(test_parameter, &start, &end, "new_answer(normal)", "messages", "created");
+		
+		/* unlink answers and go back to request messages */
+		for (i=0; i < test_parameter; i++) {
+			struct msg * ans = stress_array[i].m;
+			CHECK( 0, fd_msg_answ_getq( ans, &stress_array[i].m ) );
+			CHECK( 0, fd_msg_answ_detach( ans ) );
+			fd_msg_free( ans );
 		}
 		
 		
+	/* fd_msg_new_answer_from_req (MSGFL_ANSW_ERROR) */
+		
+		CHECK( 0, clock_gettime(CLOCK_REALTIME, &start) );
+		
+		/* Test the fd_msg_new_answer_from_req function */
+		for (i=0; i < test_parameter; i++) {
+			CHECK( 0, fd_msg_new_answer_from_req( fd_g_config->cnf_dict, &stress_array[i].m, MSGFL_ANSW_ERROR ) );
+		}
+		
+		CHECK( 0, clock_gettime(CLOCK_REALTIME, &end) );
+		display_result(test_parameter, &start, &end, "new_answer(error)", "messages", "created");
+		
+		/* unlink answers and go back to request messages */
+		for (i=0; i < test_parameter; i++) {
+			struct msg * ans = stress_array[i].m;
+			CHECK( 0, fd_msg_answ_getq( ans, &stress_array[i].m ) );
+			CHECK( 0, fd_msg_answ_detach( ans ) );
+			fd_msg_free( ans );
+		}
+		
+		
+	/* fd_msg_bufferize */
+		
+
+		CHECK( 0, clock_gettime(CLOCK_REALTIME, &start) );
+		
+		/* Test the fd_msg_bufferize function */
+		for (i=0; i < test_parameter; i++) {
+			size_t len = 0;
+			CHECK( 0, fd_msg_bufferize( stress_array[i].m, &stress_array[i].b, &len ) );
+		}
+		
+		CHECK( 0, clock_gettime(CLOCK_REALTIME, &end) );
+		display_result(test_parameter, &start, &end, "fd_msg_bufferize", "buffers", "created");
+		
+		
+	/* fd_msg_free */
 		
 		CHECK( 0, clock_gettime(CLOCK_REALTIME, &start) );
 		
 		/* Free those messages */
-		for (i=0; i < NUMBER_OF_SAMPLES; i++) {
-			fd_msg_free( stress_array[i]);
-			stress_array[i] = NULL;
+		for (i=0; i < test_parameter; i++) {
+			fd_msg_free( stress_array[i].m );
 		}
 		
 		CHECK( 0, clock_gettime(CLOCK_REALTIME, &end) );
+		display_result(test_parameter, &start, &end, "fd_msg_free", "messages", "freed");
 		
-		{
-			long us = (end.tv_sec - start.tv_sec) * 1000000;
-			us += (end.tv_nsec - start.tv_nsec) / 1000;
-			long double thrp = (NUMBER_OF_SAMPLES * (long double)1000000) / us;
-			printf("fd_msg_free       : %d messages freed  in %ldus (%.2LFmsg/s)\n", NUMBER_OF_SAMPLES, us, thrp);
+		
+		for (i=0; i < test_parameter; i++) {
+			free(stress_array[i].b);
 		}
-		
 		free(stress_array);
 	}
 		
