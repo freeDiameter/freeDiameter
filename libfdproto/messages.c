@@ -88,6 +88,10 @@ struct avp {
 	struct msg_avp_chain	 avp_chain;		/* Chaining information of this AVP */
 	int			 avp_eyec;		/* Must be equal to MSG_AVP_EYEC */
 	struct dict_object	*avp_model;		/* If not NULL, pointer to the dictionary object of this avp */
+	struct {
+		avp_code_t	 mnf_code;		
+		vendor_id_t	 mnf_vendor;		
+	}  			 avp_model_not_found;	/* When model resolution has failed, store a copy of the data here to avoid searching again */
 	struct avp_hdr		 avp_public;		/* AVP data that can be managed by other modules */
 	
 	uint8_t			*avp_source;		/* If the message was parsed from a buffer, pointer to the AVP data start in the buffer. */
@@ -112,6 +116,10 @@ struct msg {
 	struct msg_avp_chain	 msg_chain;		/* List of the AVPs in the message */
 	int			 msg_eyec;		/* Must be equal to MSG_MSG_EYEC */
 	struct dict_object	*msg_model;		/* If not NULL, pointer to the dictionary object of this message */
+	struct {
+		command_code_t	 mnf_code;
+		uint8_t		 mnf_flags;		
+	}  			 msg_model_not_found;	/* When model resolution has failed, store a copy of the data here to avoid searching again */
 	struct msg_hdr		 msg_public;		/* Message data that can be managed by extensions. */
 	
 	uint8_t			*msg_rawbuffer;		/* data buffer that was received, saved during fd_msg_parse_buffer and freed in fd_msg_parse_dict */
@@ -346,13 +354,15 @@ int fd_msg_new_answer_from_req ( struct dictionary * dict, struct msg ** msg, in
 	
 	/* Add the Session-Id AVP if session is known */
 	if (sess && dict) {
-		struct dict_object * sess_id_avp;
+		static struct dict_object * sess_id_avp = NULL;
 		os0_t sid;
 		size_t sidlen;
 		struct avp * avp;
 		union avp_value val;
 		
-		CHECK_FCT( fd_dict_search( dict, DICT_AVP, AVP_BY_NAME, "Session-Id", &sess_id_avp, ENOENT) );
+		if (!sess_id_avp) {
+			CHECK_FCT( fd_dict_search( dict, DICT_AVP, AVP_BY_NAME, "Session-Id", &sess_id_avp, ENOENT) );
+		}
 		CHECK_FCT( fd_sess_getsid ( sess, &sid, &sidlen ) );
 		CHECK_FCT( fd_msg_avp_new ( sess_id_avp, 0, &avp ) );
 		val.os.data = sid;
@@ -1968,16 +1978,26 @@ static int parsedict_do_avp(struct dictionary * dict, struct avp * avp, int mand
 		}
 	}
 	
-	/* Now try and resolve the model from the avp code and vendor */
-	if (avp->avp_public.avp_flags & AVP_FLAG_VENDOR) {
-		struct dict_avp_request_ex avpreq;
-		memset(&avpreq, 0, sizeof(avpreq));
-		avpreq.avp_vendor.vendor_id = avp->avp_public.avp_vendor;
-		avpreq.avp_data.avp_code = avp->avp_public.avp_code;
-		CHECK_FCT( fd_dict_search ( dict, DICT_AVP, AVP_BY_STRUCT, &avpreq, &avp->avp_model, 0));
-	} else {
-		/* no vendor */
-		CHECK_FCT( fd_dict_search ( dict, DICT_AVP, AVP_BY_CODE, &avp->avp_public.avp_code, &avp->avp_model, 0));
+	/* Check if we already searched for this model without success */
+	if ((avp->avp_model_not_found.mnf_code != avp->avp_public.avp_code)
+	||  (avp->avp_model_not_found.mnf_vendor != avp->avp_public.avp_vendor)) {
+	
+		/* Now try and resolve the model from the avp code and vendor */
+		if (avp->avp_public.avp_flags & AVP_FLAG_VENDOR) {
+			struct dict_avp_request_ex avpreq;
+			memset(&avpreq, 0, sizeof(avpreq));
+			avpreq.avp_vendor.vendor_id = avp->avp_public.avp_vendor;
+			avpreq.avp_data.avp_code = avp->avp_public.avp_code;
+			CHECK_FCT( fd_dict_search ( dict, DICT_AVP, AVP_BY_STRUCT, &avpreq, &avp->avp_model, 0));
+		} else {
+			/* no vendor */
+			CHECK_FCT( fd_dict_search ( dict, DICT_AVP, AVP_BY_CODE, &avp->avp_public.avp_code, &avp->avp_model, 0));
+		}
+		
+		if (!avp->avp_model) {
+			avp->avp_model_not_found.mnf_code = avp->avp_public.avp_code;
+			avp->avp_model_not_found.mnf_vendor = avp->avp_public.avp_vendor;
+		}
 	}
 	
 	/* First handle the case where we have not found this AVP in the dictionary */
@@ -2142,19 +2162,44 @@ static int parsedict_do_msg(struct dictionary * dict, struct msg * msg, int only
 	
 	CHECK_PARAMS(  CHECK_MSG(msg)  );
 	
+	/* First, check if we already have a model. */
+	if (msg->msg_model != NULL) {
+		/* Check if this model is still valid for the message data */
+		enum dict_object_type 	 dicttype;
+		struct dict_cmd_data     data;
+		ASSERT(((fd_dict_gettype(msg->msg_model, &dicttype) == 0) && (dicttype == DICT_COMMAND)));
+		(void)fd_dict_getval( msg->msg_model, &data);
+		if ((data.cmd_code != msg->msg_public.msg_code) 
+		||  ((data.cmd_flag_val & data.cmd_flag_mask) != (msg->msg_public.msg_flags && data.cmd_flag_mask))) {
+			msg->msg_model = NULL;
+		} else {
+			goto chain;
+		}
+	}
+	
+	/* Check if we already searched for this model without success */
+	if ((msg->msg_model_not_found.mnf_code == msg->msg_public.msg_code) 
+	&& (msg->msg_model_not_found.mnf_flags == msg->msg_public.msg_flags)) {
+		goto no_model;
+	} else {
+		msg->msg_model_not_found.mnf_code = 0;
+	}
+	
 	/* Look for the model from the header */
 	CHECK_FCT_DO( ret = fd_dict_search ( dict, DICT_COMMAND, 
 			(msg->msg_public.msg_flags & CMD_FLAG_REQUEST) ? CMD_BY_CODE_R : CMD_BY_CODE_A,
 			&msg->msg_public.msg_code,
 			&msg->msg_model, ENOTSUP),
 		{
-			if ((ret == ENOTSUP) && (error_info)) {
-				error_info->pei_errcode = "DIAMETER_COMMAND_UNSUPPORTED";
-				error_info->pei_protoerr = 1;
+			if (ret == ENOTSUP) {
+				/* update the model not found info */
+				msg->msg_model_not_found.mnf_code = msg->msg_public.msg_code;
+				msg->msg_model_not_found.mnf_flags = msg->msg_public.msg_flags;
+				goto no_model;
 			}
 			return ret;
 		} );
-	
+chain:	
 	if (!only_hdr) {
 		/* Then process the children */
 		ret = parsedict_do_chain(dict, &msg->msg_chain.children, 1, error_info);
@@ -2167,6 +2212,12 @@ static int parsedict_do_msg(struct dictionary * dict, struct msg * msg, int only
 	}
 	
 	return ret;
+no_model:
+	if (error_info) {
+		error_info->pei_errcode = "DIAMETER_COMMAND_UNSUPPORTED";
+		error_info->pei_protoerr = 1;
+	}
+	return ENOTSUP;
 }
 
 int fd_msg_parse_dict ( msg_or_avp * object, struct dictionary * dict, struct fd_pei *error_info )
