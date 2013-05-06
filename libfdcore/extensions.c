@@ -87,7 +87,7 @@ DECLARE_FD_DUMP_PROTOTYPE(fd_ext_dump)
 	for (li = ext_list.next; li != &ext_list; li = li->next)
 	{
 		struct fd_ext_info * ext = (struct fd_ext_info *)li;
-		CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "{extension}(@%p): '%s'[%s], %sloaded\n", ext, ext->filename, ext->conffile?:"no conf", ext->handler ? "" : "not "), return NULL);
+		CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "{extension}(@%p): '%s'[%s], %sloaded%s", ext, ext->filename, ext->conffile?:"no conf", ext->handler ? "" : "not ", (li->next == &ext_list) ? "":"\n"), return NULL);
 	}
 	return *buf;
 }

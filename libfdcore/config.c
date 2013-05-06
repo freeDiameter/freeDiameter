@@ -82,9 +82,7 @@ int fd_conf_init()
 
 DECLARE_FD_DUMP_PROTOTYPE(fd_conf_dump)
 {
-	size_t o=0;
-	if (!offset)
-		offset = &o;
+	FD_DUMP_HANDLE_OFFSET();
 	
 	CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "{freeDiameter configuration}(@%p): \n", fd_g_config), return NULL);	
 	CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "  Default trace level .... : %+d\n", fd_g_debug_lvl), return NULL);

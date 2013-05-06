@@ -203,6 +203,8 @@ int main(int argc, char *argv[])
 		
 	}
 	
+	LOG_D( "Dictionary at the end of %s: %s", __FILE__, fd_dict_dump(FD_DUMP_TEST_PARAMS, fd_g_config->cnf_dict) ?: "error");
+	
 	/* That's all for the tests yet */
 	PASSTEST();
 } 

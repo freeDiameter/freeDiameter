@@ -876,20 +876,18 @@ int fd_sess_reclaim_msg ( struct session ** session )
 /* Dump functions */
 DECLARE_FD_DUMP_PROTOTYPE(fd_sess_dump, struct session * session, int with_states)
 {
-	size_t o = 0;
-	if (!offset)
-		offset = &o;
+	FD_DUMP_HANDLE_OFFSET();
 	
 	CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "{session}(@%p): ", session), return NULL);
 	
 	if (!VALIDATE_SI(session)) {
-		CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "INVALID/NULL\n"), return NULL);
+		CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "INVALID/NULL"), return NULL);
 	} else {
 		char timebuf[30];
 		struct tm tm;
 
 		strftime(timebuf, sizeof(timebuf), "%D,%T", localtime_r( &session->timeout.tv_sec , &tm ));
-		CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "'%s'(%zd) h:%x m:%d d:%d to:%s.%06ld\n",
+		CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "'%s'(%zd) h:%x m:%d d:%d to:%s.%06ld",
 							session->sid, session->sidlen, session->hash, session->msg_cnt, session->is_destroyed,
 							timebuf, session->timeout.tv_nsec/1000), 
 				 return NULL);
@@ -901,12 +899,12 @@ DECLARE_FD_DUMP_PROTOTYPE(fd_sess_dump, struct session * session, int with_state
 			
 			for (li = session->states.next; li != &session->states; li = li->next) {
 				struct state * st = (struct state *)(li->o);
-				CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "  {state i:%d}(@%p): \n", st->hdl->id, st), return NULL);
+				CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "\n  {state i:%d}(@%p): ", st->hdl->id, st), return NULL);
 				if (st->hdl->state_dump) {
 					CHECK_MALLOC_DO( (*st->hdl->state_dump)( FD_DUMP_STD_PARAMS, st->state), 
-							fd_dump_extend( FD_DUMP_STD_PARAMS, "[dumper error]\n"));
+							fd_dump_extend( FD_DUMP_STD_PARAMS, "[dumper error]"));
 				} else {
-					CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "<%p>\n", st->state), return NULL);
+					CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "<%p>", st->state), return NULL);
 				}
 			}
 			
@@ -914,21 +912,20 @@ DECLARE_FD_DUMP_PROTOTYPE(fd_sess_dump, struct session * session, int with_state
 			CHECK_POSIX_DO( pthread_mutex_unlock(&session->stlock), /* ignore */ );
 		}
 	}
+	
 	return *buf;
 }
 
 DECLARE_FD_DUMP_PROTOTYPE(fd_sess_dump_hdl, struct session_handler * handler)
 {
-	size_t o = 0;
-	if (!offset)
-		offset = &o;
+	FD_DUMP_HANDLE_OFFSET();
 	
 	CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "{sesshdl}(@%p): ", handler), return NULL);
 	
 	if (!VALIDATE_SH(handler)) {
-		CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "INVALID/NULL\n"), return NULL);
+		CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "INVALID/NULL"), return NULL);
 	} else {
-		CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "i:%d cl:%p d:%p o:%p\n", handler->id, handler->cleanup, handler->state_dump, handler->opaque), return NULL);
+		CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "i:%d cl:%p d:%p o:%p", handler->id, handler->cleanup, handler->state_dump, handler->opaque), return NULL);
 	}
 	return *buf;
 }	

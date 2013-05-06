@@ -221,24 +221,33 @@ int fd_log_handler_register ( void (*logger)(int loglevel, const char * format, 
 int fd_log_handler_unregister ( void );
 
 
-/* Helper functions for the *dump functions that add into a buffer */
-char * fd_dump_extend(char ** buf, size_t *len, size_t *offset, const char * format, ... ) _ATTRIBUTE_PRINTFLIKE_(4,5);
-char * fd_dump_extend_hexdump(char ** buf, size_t *len, size_t *offset, uint8_t *data, size_t datalen, size_t trunc, size_t wrap );
-
-/* All dump functions follow the same prototype:
+/* All dump functions follow this same prototype:
  * PARAMETERS:
- *   buf   : *buf can be NULL on entry, it will be malloc'd. Otherwise it can be realloc'd if needed.
+ *   buf   : *buf can be NULL on entry, it will be malloc'd. Otherwise it is realloc'd if needed.
  *   len   : the current size of the buffer (in/out)
  *   offset: (optional) if provided, starts writing dump at offset in the buffer, and updated upon exit. if NULL, starts at offset O.
  *
  * RETURN VALUE:
  *   *buf upon success, NULL upon failure.
- * After the buffer has been used, it should be freed.
+ *
+ * REMARKS:
+ *  - After the buffer has been used, it should be freed.
+ *  - Depending on the function, the created string may be multi-line. However, it should never be terminated with a '\n'.
  */
 #define DECLARE_FD_DUMP_PROTOTYPE( function_name, args... )	\
 	char * function_name(char ** buf, size_t *len, size_t *offset, ##args)
 	
+
+/* Helper functions for the *dump functions that add into a buffer */
+DECLARE_FD_DUMP_PROTOTYPE( fd_dump_extend, const char * format, ... ) _ATTRIBUTE_PRINTFLIKE_(4,5);
+DECLARE_FD_DUMP_PROTOTYPE( fd_dump_extend_hexdump, uint8_t *data, size_t datalen, size_t trunc, size_t wrap );
+
+
+/* Some helpers macro for writing such *_dump routine */
 #define FD_DUMP_STD_PARAMS  buf, len, offset
+#define FD_DUMP_HANDLE_OFFSET()  size_t o = 0; if (!offset) offset = &o
+#define FD_DUMP_HANDLE_TRAIL()	while ((*buf) && (*offset > 0) && ((*buf)[*offset - 1] == '\n')) { *offset -= 1; (*buf)[*offset] = '\0'; }
+
 
 
 /*============================================================*/
@@ -1015,7 +1024,8 @@ struct dict_vendor_data {
 enum {
 	VENDOR_BY_ID = 10,	/* "what" points to a vendor_id_t */
 	VENDOR_BY_NAME,		/* "what" points to a char * */
-	VENDOR_OF_APPLICATION	/* "what" points to a struct dict_object containing an application (see below) */
+	VENDOR_OF_APPLICATION,	/* "what" points to a struct dict_object containing an application (see below) */
+	VENDOR_OF_AVP,		/* "what" points to a struct dict_object containing an avp (see below) */
 };
 
 /***
@@ -1404,8 +1414,10 @@ typedef uint32_t	avp_code_t;
 #define	AVP_FLAG_RESERVED8	0x01
 
 /* For dumping flags and values */
-#define DUMP_AVPFL_str	"%c%c"
-#define DUMP_AVPFL_val(_val) (_val & AVP_FLAG_VENDOR)?'V':'-' , (_val & AVP_FLAG_MANDATORY)?'M':'-'
+#define DUMP_AVPFL_str	"%c%c%s%s%s%s%s%s"
+#define DUMP_AVPFL_val(_val) (_val & AVP_FLAG_VENDOR)?'V':'-' , (_val & AVP_FLAG_MANDATORY)?'M':'-',	\
+				(_val & AVP_FLAG_RESERVED3)?"3":"", (_val & AVP_FLAG_RESERVED4)?"4":"", \
+				(_val & AVP_FLAG_RESERVED5)?"5":"", (_val & AVP_FLAG_RESERVED6)?"6":"", (_val & AVP_FLAG_RESERVED7)?"7":"", (_val & AVP_FLAG_RESERVED8)?"8":""
 
 /* Type to hold data associated to an avp */
 struct dict_avp_data {
@@ -1554,8 +1566,9 @@ typedef uint32_t	command_code_t;
 #define CMD_FLAG_RESERVED8	0x01
 
 /* For dumping flags and values */
-#define DUMP_CMDFL_str	"%c%c%c%c"
-#define DUMP_CMDFL_val(_val) (_val & CMD_FLAG_REQUEST)?'R':'-' , (_val & CMD_FLAG_PROXIABLE)?'P':'-' , (_val & CMD_FLAG_ERROR)?'E':'-' , (_val & CMD_FLAG_RETRANSMIT)?'T':'-'
+#define DUMP_CMDFL_str	"%c%c%c%c%s%s%s%s"
+#define DUMP_CMDFL_val(_val) (_val & CMD_FLAG_REQUEST)?'R':'-' , (_val & CMD_FLAG_PROXIABLE)?'P':'-' , (_val & CMD_FLAG_ERROR)?'E':'-' , (_val & CMD_FLAG_RETRANSMIT)?'T':'-', \
+				(_val & CMD_FLAG_RESERVED5)?"5":"", (_val & CMD_FLAG_RESERVED6)?"6":"", (_val & CMD_FLAG_RESERVED7)?"7":"", (_val & CMD_FLAG_RESERVED8)?"8":""
 
 /* Type to hold data associated to a command */
 struct dict_cmd_data {

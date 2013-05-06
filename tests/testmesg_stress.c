@@ -373,6 +373,8 @@ int main(int argc, char *argv[])
 		
 		CHECK( 0, fd_msg_bufferize( msg, &buf, NULL ) );
 		
+		LOG_D( "Test message: %s", fd_msg_dump_treeview(FD_DUMP_TEST_PARAMS, msg, NULL, 0, 1));
+		
 		/* Now free the message, we keep only the buffer. */
 		CHECK( 0, fd_msg_free( msg ) );
 		
@@ -389,23 +391,20 @@ int main(int argc, char *argv[])
 		int i;
 		struct timespec start, end;
 		
-		unsigned char * buf_cpy = NULL;
 		struct msg * msg;
 		
-		#define CPYBUF() {			\
-			buf_cpy = malloc(344);		\
-			CHECK( buf_cpy ? 1 : 0, 1);	\
-			memcpy(buf_cpy, buf, 344);	\
-		}
 		
 		/* Create the copies of the message buffer */
 		stress_array = calloc(test_parameter, sizeof(struct stress_struct));
 		CHECK( stress_array ? 1 : 0, 1);
 		
 		for (i=0; i < test_parameter; i++) {
-			CPYBUF();
-			stress_array[i].b = buf_cpy;
+			stress_array[i].b = malloc(344);
+			if (!stress_array[i].b)
+				break;
+			memcpy(stress_array[i].b, buf, 344);
 		}
+		CHECK( test_parameter, i ); /* if false, a malloc failed */
 		
 	/* fd_msg_parse_buffer */
 		
@@ -413,8 +412,10 @@ int main(int argc, char *argv[])
 		
 		/* Test the msg_parse_buffer function */
 		for (i=0; i < test_parameter; i++) {
-			CHECK( 0, fd_msg_parse_buffer( &stress_array[i].b, 344, &stress_array[i].m) );
+			if (0 != fd_msg_parse_buffer( &stress_array[i].b, 344, &stress_array[i].m) )
+				break;
 		}
+		CHECK( test_parameter, i ); /* if false, a call failed */
 		
 		CHECK( 0, clock_gettime(CLOCK_REALTIME, &end) );
 		display_result(test_parameter, &start, &end, "fd_msg_parse_buffer", "buffers", "parsed");
@@ -425,8 +426,10 @@ int main(int argc, char *argv[])
 		
 		/* Test the fd_msg_parse_dict function */
 		for (i=0; i < test_parameter; i++) {
-			CHECK( 0, fd_msg_parse_dict( stress_array[i].m, fd_g_config->cnf_dict, NULL ) );
+			if (0 != fd_msg_parse_dict( stress_array[i].m, fd_g_config->cnf_dict, NULL ) )
+				break;
 		}
+		CHECK( test_parameter, i ); /* if false, a call failed */
 		
 		CHECK( 0, clock_gettime(CLOCK_REALTIME, &end) );
 		display_result(test_parameter, &start, &end, "fd_msg_parse_dict", "messages", "parsed");
@@ -438,8 +441,10 @@ int main(int argc, char *argv[])
 		
 		/* Test the fd_msg_parse_rules function */
 		for (i=0; i < test_parameter; i++) {
-			CHECK( 0, fd_msg_parse_rules( stress_array[i].m, fd_g_config->cnf_dict, NULL ) );
+			if (0 != fd_msg_parse_rules( stress_array[i].m, fd_g_config->cnf_dict, NULL ) )
+				break;
 		}
+		CHECK( test_parameter, i ); /* if false, a call failed */
 		
 		CHECK( 0, clock_gettime(CLOCK_REALTIME, &end) );
 		display_result(test_parameter, &start, &end, "fd_msg_parse_rules", "messages", "parsed");
@@ -451,8 +456,10 @@ int main(int argc, char *argv[])
 		
 		/* Test the fd_msg_new_answer_from_req function */
 		for (i=0; i < test_parameter; i++) {
-			CHECK( 0, fd_msg_new_answer_from_req( fd_g_config->cnf_dict, &stress_array[i].m, 0 ) );
+			if (0 != fd_msg_new_answer_from_req( fd_g_config->cnf_dict, &stress_array[i].m, 0 ) )
+				break;
 		}
+		CHECK( test_parameter, i ); /* if false, a call failed */
 		
 		CHECK( 0, clock_gettime(CLOCK_REALTIME, &end) );
 		display_result(test_parameter, &start, &end, "new_answer(normal)", "messages", "created");
@@ -460,10 +467,13 @@ int main(int argc, char *argv[])
 		/* unlink answers and go back to request messages */
 		for (i=0; i < test_parameter; i++) {
 			struct msg * ans = stress_array[i].m;
-			CHECK( 0, fd_msg_answ_getq( ans, &stress_array[i].m ) );
-			CHECK( 0, fd_msg_answ_detach( ans ) );
+			if (0 != fd_msg_answ_getq( ans, &stress_array[i].m ) )
+				break;
+			if (0 != fd_msg_answ_detach( ans ) )
+				break;
 			fd_msg_free( ans );
 		}
+		CHECK( test_parameter, i ); /* if false, a call failed */
 		
 		
 	/* fd_msg_new_answer_from_req (MSGFL_ANSW_ERROR) */
@@ -472,8 +482,10 @@ int main(int argc, char *argv[])
 		
 		/* Test the fd_msg_new_answer_from_req function */
 		for (i=0; i < test_parameter; i++) {
-			CHECK( 0, fd_msg_new_answer_from_req( fd_g_config->cnf_dict, &stress_array[i].m, MSGFL_ANSW_ERROR ) );
+			if ( 0 != fd_msg_new_answer_from_req( fd_g_config->cnf_dict, &stress_array[i].m, MSGFL_ANSW_ERROR ) )
+				break;
 		}
+		CHECK( test_parameter, i ); /* if false, a call failed */
 		
 		CHECK( 0, clock_gettime(CLOCK_REALTIME, &end) );
 		display_result(test_parameter, &start, &end, "new_answer(error)", "messages", "created");
@@ -481,8 +493,10 @@ int main(int argc, char *argv[])
 		/* unlink answers and go back to request messages */
 		for (i=0; i < test_parameter; i++) {
 			struct msg * ans = stress_array[i].m;
-			CHECK( 0, fd_msg_answ_getq( ans, &stress_array[i].m ) );
-			CHECK( 0, fd_msg_answ_detach( ans ) );
+			if (0 != fd_msg_answ_getq( ans, &stress_array[i].m ) )
+				break;
+			if (0 != fd_msg_answ_detach( ans ) )
+				break;
 			fd_msg_free( ans );
 		}
 		
@@ -495,8 +509,10 @@ int main(int argc, char *argv[])
 		/* Test the fd_msg_bufferize function */
 		for (i=0; i < test_parameter; i++) {
 			size_t len = 0;
-			CHECK( 0, fd_msg_bufferize( stress_array[i].m, &stress_array[i].b, &len ) );
+			if (0 != fd_msg_bufferize( stress_array[i].m, &stress_array[i].b, &len ) )
+				break;
 		}
+		CHECK( test_parameter, i ); /* if false, a call failed */
 		
 		CHECK( 0, clock_gettime(CLOCK_REALTIME, &end) );
 		display_result(test_parameter, &start, &end, "fd_msg_bufferize", "buffers", "created");

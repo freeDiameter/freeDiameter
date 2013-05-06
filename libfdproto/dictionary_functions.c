@@ -161,10 +161,8 @@ DECLARE_FD_DUMP_PROTOTYPE(fd_dictfct_Address_dump, union avp_value * avp_value)
 		sSA6	sin6;
 	} s;
 	uint16_t fam;
-	size_t o = 0;
 	
-	if (!offset)
-		offset = &o;
+	FD_DUMP_HANDLE_OFFSET();
 	
 	memset(&s, 0, sizeof(s));
 	
@@ -212,9 +210,8 @@ DECLARE_FD_DUMP_PROTOTYPE(fd_dictfct_Address_dump, union avp_value * avp_value)
 /* Dump the AVP in a natural human-readable format. This dumps the complete length of the AVP, it is up to the caller to truncate if needed */
 DECLARE_FD_DUMP_PROTOTYPE(fd_dictfct_UTF8String_dump, union avp_value * avp_value)
 {
-	size_t o = 0, l;
-	if (!offset)
-		offset = &o;
+	size_t l;
+	FD_DUMP_HANDLE_OFFSET();
 	
 	l = avp_value->os.len;
 	/* Just in case the string ends in invalid UTF-8 chars, we shorten it */
@@ -304,12 +301,10 @@ int fd_dictfct_Time_interpret(union avp_value * avp_value, void * interpreted)
 
 DECLARE_FD_DUMP_PROTOTYPE(fd_dictfct_Time_dump, union avp_value * avp_value)
 {
-	size_t o = 0;
 	time_t val;
 	struct tm conv;
 		
-	if (!offset)
-		offset = &o;
+	FD_DUMP_HANDLE_OFFSET();
 	
 	if (avp_value->os.len != 4) {
 		CHECK_MALLOC_DO( fd_dump_extend(FD_DUMP_STD_PARAMS, "[invalid length: %zd]", avp_value->os.len), return NULL);

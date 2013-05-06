@@ -411,9 +411,7 @@ int fd_peer_fini()
 /* Dump info of one peer */
 DECLARE_FD_DUMP_PROTOTYPE(fd_peer_dump, struct peer_hdr * p, int details)
 {
-	size_t o=0;
-	if (!offset)
-		offset = &o;
+	FD_DUMP_HANDLE_OFFSET();
 	
 	CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "{peer}(@%p): ", p), return NULL);
 	
@@ -453,15 +451,15 @@ DECLARE_FD_DUMP_PROTOTYPE(fd_peer_dump, struct peer_hdr * p, int details)
 DECLARE_FD_DUMP_PROTOTYPE(fd_peer_dump_list, int details)
 {
 	struct fd_list * li;
-	size_t o=0;
-	if (!offset)
-		offset = &o;
+	FD_DUMP_HANDLE_OFFSET();
 	
 	CHECK_FCT_DO( pthread_rwlock_rdlock(&fd_g_peers_rw), /* continue */ );
 	
 	for (li = fd_g_peers.next; li != &fd_g_peers; li = li->next) {
 		CHECK_MALLOC_DO( fd_peer_dump(FD_DUMP_STD_PARAMS, (struct peer_hdr *)li->o, details), break);
-		CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "\n"), break);
+		if (li->next != &fd_g_peers) {
+			CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "\n"), break);
+		}
 	}
 	
 	CHECK_FCT_DO( pthread_rwlock_unlock(&fd_g_peers_rw), /* continue */ );

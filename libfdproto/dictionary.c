@@ -718,6 +718,21 @@ in the local context where they are called. They are meant to be called only fro
 		ret = ENOENT;							\
 }
 
+/* For searchs of type "xxx_OF_xxx": if the search object is sentinel list for the "what" object */
+#define SEARCH_sentinel( type_of_what, what_list_nr, sentinel_list_nr ) {			\
+	struct dict_object *__what = (struct dict_object *) what;				\
+	CHECK_PARAMS_DO( verify_object(__what) && 						\
+		(__what->type == (type_of_what)), 						\
+		   {  ret = EINVAL; goto end;  }  );						\
+	ret = 0;										\
+	if (result) {										\
+		/* this is similar to the "container_of" */					\
+		*result = (struct dict_object *)((char *)(__what->list[what_list_nr].head) - 	\
+		   		(size_t)&(((struct dict_object *)0)->list[sentinel_list_nr]));	\
+	}											\
+}
+
+
 static int search_vendor ( struct dictionary * dict, int criteria, const void * what, struct dict_object **result )
 {
 	int ret = 0;
@@ -739,6 +754,11 @@ static int search_vendor ( struct dictionary * dict, int criteria, const void * 
 		case VENDOR_OF_APPLICATION:
 			/* "what" should be an application object */
 			SEARCH_childs_parent( DICT_APPLICATION, &dict->dict_vendors );
+			break;
+		
+		case VENDOR_OF_AVP:
+			/* "what" should be an avp object */
+			SEARCH_sentinel( DICT_AVP, 0, 1 );
 			break;
 		
 		default:
@@ -1247,10 +1267,15 @@ static DECLARE_FD_DUMP_PROTOTYPE(dump_list, struct fd_list * sentinel, int paren
 {
 	struct fd_list * li = sentinel;
 	/* We don't lock here, the caller must have taken the dictionary lock for reading already */
-	while (li->next != sentinel)
-	{
-		li = li->next;
-		CHECK_MALLOC_DO( dump_object (FD_DUMP_STD_PARAMS, _O(li->o), parents, depth, indent ), return NULL);
+	if (FD_IS_LIST_EMPTY(sentinel)) {
+		CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "\n%*s{empty list}", indent, ""), return NULL);
+	} else {
+		while (li->next != sentinel)
+		{
+			li = li->next;
+			CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "\n"), return NULL);
+			CHECK_MALLOC_DO( dump_object (FD_DUMP_STD_PARAMS, _O(li->o), parents, depth, indent ), return NULL);
+		}
 	}
 }
 
@@ -1259,7 +1284,7 @@ static DECLARE_FD_DUMP_PROTOTYPE(dump_object, struct dict_object * obj, int pare
 	CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "%*s{dictobj}(@%p): ", indent, "", obj), return NULL);
 	
 	if (!verify_object(obj)) {
-		CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "INVALID/NULL\n"), return NULL);
+		CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "INVALID/NULL"), return NULL);
 		return *buf;
 	}
 	
@@ -1273,10 +1298,8 @@ static DECLARE_FD_DUMP_PROTOTYPE(dump_object, struct dict_object * obj, int pare
 		CHECK_MALLOC_DO( _OBINFO(obj).dump_data(FD_DUMP_STD_PARAMS, &obj->data), return NULL);
 	}
 	
-	CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "\n"), return NULL);
-	
 	if (parents) {
-		CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "%*sparent:", indent + 1, ""), return NULL);
+		CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "\n%*sparent:", indent + 1, ""), return NULL);
 		CHECK_MALLOC_DO( dump_object (FD_DUMP_STD_PARAMS, obj->parent, parents-1, 0, 0 ), return NULL);
 	}
 	
@@ -1284,8 +1307,8 @@ static DECLARE_FD_DUMP_PROTOTYPE(dump_object, struct dict_object * obj, int pare
 		int i;
 		for (i=0; i<NB_LISTS_PER_OBJ; i++) {
 			if ((obj->list[i].o == NULL) && (obj->list[i].next != &obj->list[i])) {
-				CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "%*slist[%d]:\n", indent + 1, "", i), return NULL);
 				CHECK_MALLOC_DO( dump_list(FD_DUMP_STD_PARAMS, &obj->list[i], 0, depth - 1, indent + 2), return NULL);
+				break; /* we get duplicate information sorted by another criteria otherwise, which is not very useful */
 			}
 		}
 	}
@@ -1295,10 +1318,7 @@ static DECLARE_FD_DUMP_PROTOTYPE(dump_object, struct dict_object * obj, int pare
 
 DECLARE_FD_DUMP_PROTOTYPE(fd_dict_dump_object, struct dict_object * obj)
 {
-	size_t o = 0;
-
-	if (!offset)
-		offset = &o;
+	FD_DUMP_HANDLE_OFFSET();
 	
 	CHECK_MALLOC_DO( dump_object(FD_DUMP_STD_PARAMS, obj, 1, 2, 0), return NULL);
 	
@@ -1309,38 +1329,40 @@ DECLARE_FD_DUMP_PROTOTYPE(fd_dict_dump, struct dictionary * dict)
 {
 	int i;
 	struct fd_list * li;
-	size_t o = 0;
-
-	if (!offset)
-		offset = &o;
+	
+	FD_DUMP_HANDLE_OFFSET();
 		
 	CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "{dictionary}(@%p): ", dict), return NULL);
 	
 	if ((dict == NULL) || (dict->dict_eyec != DICT_EYECATCHER)) {
-		return fd_dump_extend(FD_DUMP_STD_PARAMS, "INVALID/NULL\n");
+		return fd_dump_extend(FD_DUMP_STD_PARAMS, "INVALID/NULL");
 	}
 	
 	CHECK_POSIX_DO(  pthread_rwlock_rdlock( &dict->dict_lock ), /* ignore */  );
 	
-	CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "\n {dict:%p > vendors, AVPs and related rules}\n", dict), goto error);
+	CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "\n {dict(%p) : VENDORS / AVP / RULES}\n", dict), goto error);
 	CHECK_MALLOC_DO( dump_object (FD_DUMP_STD_PARAMS, &dict->dict_vendors, 0, 3, 3 ), goto error);
-	for (li = dict->dict_vendors.list[0].next; li != &dict->dict_vendors.list[0]; li = li->next)
+	for (li = dict->dict_vendors.list[0].next; li != &dict->dict_vendors.list[0]; li = li->next) {
+		CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "\n"), return NULL);
 		CHECK_MALLOC_DO( dump_object (FD_DUMP_STD_PARAMS, li->o, 0, 3, 3 ), goto error);
+	}
 	
-	CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, " {dict:%p > applications}\n", dict), goto error);
+	CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "\n {dict(%p) : APPLICATIONS}\n", dict), goto error);
 	CHECK_MALLOC_DO( dump_object (FD_DUMP_STD_PARAMS, &dict->dict_applications, 0, 1, 3 ), goto error);
-	for (li = dict->dict_applications.list[0].next; li != &dict->dict_applications.list[0]; li = li->next)
+	for (li = dict->dict_applications.list[0].next; li != &dict->dict_applications.list[0]; li = li->next) {
+		CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "\n"), return NULL);
 		CHECK_MALLOC_DO( dump_object (FD_DUMP_STD_PARAMS, li->o, 0, 1, 3 ), goto error);
+	}
 	
-	CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, " {dict:%p > types}\n", dict), goto error);
+	CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "\n {dict(%p) : TYPES / ENUMVAL}", dict), goto error);
 	CHECK_MALLOC_DO( dump_list(FD_DUMP_STD_PARAMS, &dict->dict_types, 0, 2, 3 ), goto error);
 	
-	CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, " {dict:%p > commands}\n", dict), goto error);
+	CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "\n {dict(%p) : COMMANDS / RULES}", dict), goto error);
 	CHECK_MALLOC_DO( dump_list(FD_DUMP_STD_PARAMS, &dict->dict_cmd_code, 0, 0, 3 ), goto error);
 	
-	CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, " {dict:%p > statistics}\n", dict), goto error);
+	CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "\n {dict(%p) : statistics}", dict), goto error);
 	for (i=1; i<=DICT_TYPE_MAX; i++)
-		CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "   %5d: %s\n",  dict->dict_count[i], dict_obj_info[i].name), goto error);
+		CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "\n   %5d: %s",  dict->dict_count[i], dict_obj_info[i].name), goto error);
 	
 	CHECK_POSIX_DO(  pthread_rwlock_unlock( &dict->dict_lock ), /* ignore */  );
 	return *buf;
@@ -1484,10 +1506,8 @@ DECLARE_FD_DUMP_PROTOTYPE(fd_dict_dump_avp_value, union avp_value *avp_value, st
 	struct dict_object * type = NULL;
 	char * type_name = NULL;
 	char * const_name = NULL;
-	size_t o = 0;
 	
-	if (!offset)
-		offset = &o;
+	FD_DUMP_HANDLE_OFFSET();
 	
 	/* Check the parameters are correct */
 	CHECK_PARAMS_DO( avp_value && verify_object(model) && (model->type == DICT_AVP), return NULL );

@@ -120,9 +120,7 @@ int fd_fifo_new ( struct fifo ** queue, int max )
 /* Dump the content of a queue */
 DECLARE_FD_DUMP_PROTOTYPE(fd_fifo_dump, char * name, struct fifo * queue, fd_fifo_dump_item_cb dump_item)
 {
-	size_t o = 0;
-	if (!offset)
-		offset = &o;
+	FD_DUMP_HANDLE_OFFSET();
 	
 	if (name) {
 		CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "'%s'(@%p): ", name, queue), return NULL);	
@@ -131,11 +129,11 @@ DECLARE_FD_DUMP_PROTOTYPE(fd_fifo_dump, char * name, struct fifo * queue, fd_fif
 	}
 	
 	if (!CHECK_FIFO( queue )) {
-		return fd_dump_extend(FD_DUMP_STD_PARAMS, "INVALID/NULL\n");
+		return fd_dump_extend(FD_DUMP_STD_PARAMS, "INVALID/NULL");
 	}
 	
 	CHECK_POSIX_DO(  pthread_mutex_lock( &queue->mtx ), /* continue */  );
-	CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "items:%d,%d,%d threads:%d,%d stats:%lld/%ld.%06ld,%ld.%06ld,%ld.%06ld thresholds:%d,%d,%d,%p,%p,%p\n", 
+	CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "items:%d,%d,%d threads:%d,%d stats:%lld/%ld.%06ld,%ld.%06ld,%ld.%06ld thresholds:%d,%d,%d,%p,%p,%p", 
 						queue->count, queue->highest_ever, queue->max,
 						queue->thrs, queue->thrs_push,
 						queue->total_items,(long)queue->total_time.tv_sec,(long)(queue->total_time.tv_nsec/1000),(long)queue->blocking_time.tv_sec,(long)(queue->blocking_time.tv_nsec/1000),(long)queue->last_time.tv_sec,(long)(queue->last_time.tv_nsec/1000),
@@ -147,13 +145,14 @@ DECLARE_FD_DUMP_PROTOTYPE(fd_fifo_dump, char * name, struct fifo * queue, fd_fif
 		int i = 0;
 		for (li = queue->list.next; li != &queue->list; li = li->next) {
 			struct fifo_item * fi = (struct fifo_item *)li;
-			CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, " [#%i](@%p)@%ld.%06ld: ", 
+			CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "\n [#%i](@%p)@%ld.%06ld: ", 
 						i++, fi->item.o, (long)fi->posted_on.tv_sec,(long)(fi->posted_on.tv_nsec/1000)), 
 					 goto error);
 			CHECK_MALLOC_DO( (*dump_item)(FD_DUMP_STD_PARAMS, fi->item.o), goto error);
 		}
 	}
 	CHECK_POSIX_DO(  pthread_mutex_unlock( &queue->mtx ), /* continue */  );
+	
 	return *buf;
 error:
 	CHECK_POSIX_DO(  pthread_mutex_unlock( &queue->mtx ), /* continue */  );

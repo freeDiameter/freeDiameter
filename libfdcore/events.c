@@ -164,15 +164,13 @@ int fd_event_trig_regcb(int trigger_val, const char * module, void (*cb)(void))
 DECLARE_FD_DUMP_PROTOTYPE(fd_event_trig_dump)
 {
 	struct fd_list * li;
-	size_t o=0;
-	if (!offset)
-		offset=&o;
+	FD_DUMP_HANDLE_OFFSET();
 	
 	CHECK_POSIX_DO( pthread_rwlock_rdlock(&trig_rwl),  );
 	
 	for (li = trig_list.next; li != &trig_list; li = li->next) {
 		struct trig_item *t = li->o;
-		CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "{trigger sig:%d}'%s'->%p ", t->trig_value, t->trig_module, t->cb), break);
+		CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "{signal:%d}'%s'->%p ", t->trig_value, t->trig_module, t->cb), break);
 	}
 	
 	CHECK_POSIX_DO( pthread_rwlock_unlock(&trig_rwl),  );

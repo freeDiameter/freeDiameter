@@ -38,9 +38,7 @@
 DECLARE_FD_DUMP_PROTOTYPE(fd_sa_dump_node, sSA * sa, int flags)
 {
 	char addrbuf[INET6_ADDRSTRLEN];
-	size_t o = 0;
-	if (!offset)
-		offset = &o;
+	FD_DUMP_HANDLE_OFFSET();
 	
 	if (sa) {
 		int rc = getnameinfo(sa, sSAlen( sa ), addrbuf, sizeof(addrbuf), NULL, 0, flags);
@@ -60,9 +58,7 @@ DECLARE_FD_DUMP_PROTOTYPE(fd_sa_dump_node_serv, sSA * sa, int flags)
 {
 	char addrbuf[INET6_ADDRSTRLEN];
 	char servbuf[32];
-	size_t o = 0;
-	if (!offset)
-		offset = &o;
+	FD_DUMP_HANDLE_OFFSET();
 	
 	if (sa) {
 		int rc = getnameinfo(sa, sSAlen( sa ), addrbuf, sizeof(addrbuf), servbuf, sizeof(servbuf), flags);

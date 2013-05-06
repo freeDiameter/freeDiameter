@@ -286,14 +286,12 @@ int fd_ep_clearflags( struct fd_list * list, uint32_t flags )
 
 DECLARE_FD_DUMP_PROTOTYPE(fd_ep_dump_one, struct fd_endpoint * ep )
 {
-	size_t o = 0;
-	if (!offset)
-		offset=&o;
+	FD_DUMP_HANDLE_OFFSET();
 	
 	CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "{ep}(@%p): ", ep), return NULL);
 	
 	if (!ep) {
-		CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "INVALID/NULL\n"), return NULL);
+		CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "INVALID/NULL"), return NULL);
 		return *buf;
 	}
 	
@@ -310,17 +308,15 @@ DECLARE_FD_DUMP_PROTOTYPE(fd_ep_dump_one, struct fd_endpoint * ep )
 DECLARE_FD_DUMP_PROTOTYPE(fd_ep_dump, int indent, struct fd_list * eps  )
 {
 	struct fd_list * li;
-	size_t o = 0;
-	if (!offset)
-		offset=&o;
 	
-	CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "%*s{eps}(@%p):\n", indent, "", eps), return NULL);
+	FD_DUMP_HANDLE_OFFSET();
+	
+	CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "%*s{eps}(@%p):", indent, "", eps), return NULL);
 	if (eps) {
 		for (li = eps->next; li != eps; li = li->next) {
 			struct fd_endpoint * ep = (struct fd_endpoint *)li;
-			CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "%*s", indent+1, ""), return NULL);
+			CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "\n%*s", indent+1, ""), return NULL);
 			CHECK_MALLOC_DO( fd_ep_dump_one( FD_DUMP_STD_PARAMS, ep ), return NULL);
-			CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "\n"), return NULL);
 		}
 	}
 }

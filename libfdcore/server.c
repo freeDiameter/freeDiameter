@@ -96,15 +96,14 @@ static void set_status(struct server * s, enum s_state st)
 DECLARE_FD_DUMP_PROTOTYPE(fd_servers_dump)
 {
 	struct fd_list * li, *cli;
-	size_t o=0;
-	if (!offset)
-		offset = &o;
+	
+	FD_DUMP_HANDLE_OFFSET();
 	
 	for (li = FD_SERVERS.next; li != &FD_SERVERS; li = li->next) {
 		struct server * s = (struct server *)li;
 		enum s_state st = get_status(s);
 		
-		CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "{server}(@%p)'%s': %s, %s, %s\n", s, fd_cnx_getid(s->conn), 
+		CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "{server}(@%p)'%s': %s, %s, %s", s, fd_cnx_getid(s->conn), 
 				IPPROTO_NAME( s->proto ),
 				s->secur ? "Secur" : "NotSecur",
 				(st == NOT_CREATED) ? "Thread not created" :
@@ -116,9 +115,13 @@ DECLARE_FD_DUMP_PROTOTYPE(fd_servers_dump)
 		for (cli = s->clients.next; cli != &s->clients; cli = cli->next) {
 			struct client * c = (struct client *)cli;
 			char bufts[128];
-			CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "  {client}(@%p)'%s': to:%s\n", c, fd_cnx_getid(c->conn), fd_log_time(&c->ts, bufts, sizeof(bufts))), break);
+			CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "\n  {client}(@%p)'%s': to:%s", c, fd_cnx_getid(c->conn), fd_log_time(&c->ts, bufts, sizeof(bufts))), break);
 		}
 		CHECK_POSIX_DO( pthread_mutex_unlock(&s->clients_mtx), );
+		
+		if (li->next != &FD_SERVERS) {
+			CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "\n"), return NULL);
+		}
 	}
 	
 	return *buf;
