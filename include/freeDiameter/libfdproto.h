@@ -2084,6 +2084,9 @@ void fd_rtd_candidate_extract(struct rt_data * rtd, struct fd_list ** candidates
 /* If a peer returned a protocol error for this message, save it so that we don't try to send it there again. Optionally retrieve the current list of candidates. */
 int  fd_rtd_error_add(struct rt_data * rtd, DiamId_t sentto, size_t senttolen, uint8_t * origin, size_t originsz, uint32_t rcode, struct fd_list ** candidates, int * sendingattemtps);
 
+/* Only retrieve the number of times this message has been processed by the routing-out mechanism (i.e. number of times it was failed over) */
+int  fd_rtd_get_nb_attempts(struct rt_data * rtd, int * sendingattemtps);
+
 /* The extracted list items have the following structure: */
 struct rtd_candidate {
 	struct fd_list	chain;	/* link in the list returned by the previous fcts */

@@ -248,6 +248,21 @@ after_origin:
 	return 0;
 }
 
+/* Only retrieve the number of times this message has been processed by the routing-out mechanism (i.e. number of times it was failed over) */
+int  fd_rtd_get_nb_attempts(struct rt_data * rtd, int * sendingattemtps)
+{
+	struct fd_list * li;
+	int match = 0;
+	
+	TRACE_ENTRY("%p %p", rtd, sendingattemtps);
+	CHECK_PARAMS( rtd && sendingattemtps );
+	
+	*sendingattemtps = rtd->extracted;
+	
+	/* Done! */
+	return 0;
+}
+
 /* Extract the list of valid candidates, and initialize their scores */
 void fd_rtd_candidate_extract(struct rt_data * rtd, struct fd_list ** candidates, int ini_score)
 {
