@@ -302,7 +302,7 @@ char * fd_dump_extend_hexdump(char ** buf, size_t *len, size_t *offset, uint8_t 
 	
 	p = *buf + o;
 	for (i = 0; i < datalen; i++) {
-		sprintf(p, "%2hhX", data[i]);
+		sprintf(p, "%02hhX", data[i]);
 		p+=2;
 		if ((wrap) && ((i+1) % wrap == 0)) {
 			*p++='\n'; *p ='\0'; /* we want to ensure the buffer is always 0-terminated */

@@ -80,9 +80,7 @@ int fd_ext_add( char * filename, char * conffile )
 DECLARE_FD_DUMP_PROTOTYPE(fd_ext_dump)
 {
 	struct fd_list * li;
-	size_t o=0;
-	if (!offset)
-		offset = &o;
+	FD_DUMP_HANDLE_OFFSET();
 	
 	for (li = ext_list.next; li != &ext_list; li = li->next)
 	{
