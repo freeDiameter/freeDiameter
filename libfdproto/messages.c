@@ -1017,18 +1017,132 @@ end:
 	
 	return *buf;
 }
+
 /* one-line dump with all the contents of the message */
 DECLARE_FD_DUMP_PROTOTYPE( fd_msg_dump_full, msg_or_avp *obj, struct dictionary *dict, int force_parsing, int recurse )
 {
 	return msg_dump_process(FD_DUMP_STD_PARAMS, msg_format_full, avp_format_full, obj, dict, force_parsing, recurse);
 }
 
-#warning "todo"
+
+
+/*
+ * One-line dumper for compact but complete traces
+ */
+static DECLARE_FD_DUMP_PROTOTYPE( msg_format_summary, struct msg * msg )
+{
+	if (!CHECK_MSG(msg)) {
+		CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "{message}(@%p): INVALID", msg), return NULL);
+		return *buf;
+	}
+	
+	CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "{message}(@%p): ", msg), return NULL);
+	if (!msg->msg_model) {
+		CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "(no model)"), return NULL);
+	} else {
+		enum dict_object_type dicttype;
+		struct dict_cmd_data  dictdata;
+		if (fd_dict_gettype(msg->msg_model, &dicttype) || (dicttype != DICT_COMMAND) || (fd_dict_getval(msg->msg_model, &dictdata))) {
+			CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "(model error)"), return NULL);
+		} else {
+			CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "'%s'", dictdata.cmd_name), return NULL);
+		}
+	}
+	CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "%u/%u f:" DUMP_CMDFL_str " src:'%s' len:%d", 
+				msg->msg_public.msg_appl, msg->msg_public.msg_code, DUMP_CMDFL_val(msg->msg_public.msg_flags), msg->msg_src_id?:"(nil)", msg->msg_public.msg_length), return NULL);
+
+	return *buf;
+}
+
+static DECLARE_FD_DUMP_PROTOTYPE( avp_format_summary, struct avp * avp, int level, int first, int last )
+{
+	char * name;
+	struct dict_avp_data  dictdata;
+	struct dict_avp_data *dictinfo = NULL;
+	struct dict_vendor_data  vendordata;
+	struct dict_vendor_data *vendorinfo = NULL;
+	
+	if (level) {
+		if (first) {
+			CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, " {"), return NULL);
+		} else {
+			CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "+"), return NULL);
+		}
+	}
+	
+	if (!CHECK_AVP(avp)) {
+		CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "INVALID"), return NULL);
+		goto end;
+	}
+	
+	if (!level) {
+		/* We have been called to explicitely dump this AVP, so we parse its name if available */
+		if (!avp->avp_model) {
+			name = "(no model)";
+		} else {
+			enum dict_object_type dicttype;
+			if (fd_dict_gettype(avp->avp_model, &dicttype) || (dicttype != DICT_AVP) || (fd_dict_getval(avp->avp_model, &dictdata))) {
+				name = "(model error)";
+			} else {
+				name = dictdata.avp_name;
+				dictinfo = &dictdata;
+				if (avp->avp_public.avp_flags & AVP_FLAG_VENDOR) {
+					struct dictionary * dict;
+					struct dict_object * vendor;
+					if ((!fd_dict_getdict(avp->avp_model, &dict))
+					&& (!fd_dict_search(dict, DICT_VENDOR, VENDOR_OF_AVP, avp->avp_model, &vendor, ENOENT))
+					&& (!fd_dict_getval(vendor, &vendordata))) {
+						vendorinfo = &vendordata;
+					}
+				}
+			}
+		}
+
+		if (dictinfo) {
+			CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "'%s'(%u)", name, avp->avp_public.avp_code), return NULL);
+		} else {
+			CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "%u%s", avp->avp_public.avp_code, name), return NULL);
+		}
+
+		if (avp->avp_public.avp_flags & AVP_FLAG_VENDOR) {
+			if (vendorinfo) {
+				CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, " V='%s'(%u)", vendorinfo->vendor_name, avp->avp_public.avp_vendor), return NULL);
+			} else {
+				CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, " V=%u", avp->avp_public.avp_vendor), return NULL);
+			}
+		}
+
+		CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, " L=%d F=" DUMP_AVPFL_str " V=", avp->avp_public.avp_len, DUMP_AVPFL_val(avp->avp_public.avp_flags)), return NULL);
+
+		if ((!dictinfo) || (dictinfo->avp_basetype != AVP_TYPE_GROUPED)) {
+			if (avp->avp_public.avp_value) {
+				CHECK_MALLOC_DO( fd_dict_dump_avp_value(FD_DUMP_STD_PARAMS, avp->avp_public.avp_value, avp->avp_model, 0, 0), return NULL);
+			} else if (avp->avp_rawdata) {
+				CHECK_MALLOC_DO( fd_dump_extend_hexdump(FD_DUMP_STD_PARAMS, avp->avp_rawdata, avp->avp_rawlen, 0, 0), return NULL);
+			} else {
+				CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "(not set)"), return NULL);
+			}
+		}
+	} else {
+		/* For embedded AVPs, we only display (vendor,) code & length */
+		if (avp->avp_public.avp_flags & AVP_FLAG_VENDOR) {
+			CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "V=%u,", avp->avp_public.avp_vendor), return NULL);
+		}
+		CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "C=%u,L=%d", avp->avp_public.avp_code, avp->avp_public.avp_len), return NULL);
+	}
+	
+end:
+	if ((level) && (last)) {
+		CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "}"), return NULL);
+	}
+	
+	return *buf;
+}
 
 /* This one only prints a short display, does not go into the complete tree */
 DECLARE_FD_DUMP_PROTOTYPE( fd_msg_dump_summary, msg_or_avp *obj, struct dictionary *dict, int force_parsing, int recurse )
 {
-	return NULL;
+	return msg_dump_process(FD_DUMP_STD_PARAMS, msg_format_summary, avp_format_summary, obj, dict, force_parsing, recurse);
 }
 
 #ifndef OLD_CODE_TO_BE_REPLACED
@@ -1040,375 +1154,7 @@ void fd_msg_dump_one ( int level, msg_or_avp * obj )
 {
 	LOG_D("fd_msg_dump_one %d, %p is deprecated", level, obj);
 }
-#else  /* OLD_CODE_TO_BE_REPLACED */
-
-
-/* indent inside an object */
-#define INOBJHDR 	"%*s   "
-#define INOBJHDRVAL 	indent<0 ? 1 : indent, indent<0 ? "-" : "|"
-
-/* Write some debug data in a buffer */
-
-/* Dump a msg_t object */
-static int obj_dump_msg (struct msg * msg, int indent, char **outstr, size_t *offset, size_t *outlen )
-{
-	int ret = 0;
-	
-	CHECK_FCT( dump_add_str(outstr, offset, outlen, "%*sMSG: %p|", INOBJHDRVAL, msg) );
-	
-	if (!CHECK_MSG(msg)) {
-		CHECK_FCT( dump_add_str(outstr, offset, outlen, INOBJHDR "INVALID!", INOBJHDRVAL) );
-		return 0;
-	}
-	
-	if (!msg->msg_model) {
-		
-		CHECK_FCT( dump_add_str(outstr, offset, outlen, INOBJHDR "(no model)|", INOBJHDRVAL) );
-		
-	} else {
-		
-		enum dict_object_type dicttype;
-		struct dict_cmd_data  dictdata;
-		ret = fd_dict_gettype(msg->msg_model, &dicttype);
-		if (ret || (dicttype != DICT_COMMAND)) {
-			CHECK_FCT( dump_add_str(outstr, offset, outlen, INOBJHDR "(invalid model: %d %d)|", INOBJHDRVAL, ret, dicttype) );
-			goto public;
-		}
-		ret = fd_dict_getval(msg->msg_model, &dictdata);
-		if (ret != 0) {
-			CHECK_FCT( dump_add_str(outstr, offset, outlen, INOBJHDR "(error getting model data: %s)|", INOBJHDRVAL, strerror(ret)) );
-			goto public;
-		}
-		CHECK_FCT( dump_add_str(outstr, offset, outlen, INOBJHDR "model : v/m:" DUMP_CMDFL_str "/" DUMP_CMDFL_str ", %u \"%s\"|", INOBJHDRVAL, 
-			DUMP_CMDFL_val(dictdata.cmd_flag_val), DUMP_CMDFL_val(dictdata.cmd_flag_mask), dictdata.cmd_code, dictdata.cmd_name) );
-	}
-public:	
-	CHECK_FCT( dump_add_str(outstr, offset, outlen, INOBJHDR "public: V:%d L:%d fl:" DUMP_CMDFL_str " CC:%u A:%d hi:%x ei:%x|", INOBJHDRVAL, 
-		msg->msg_public.msg_version,
-		msg->msg_public.msg_length,
-		DUMP_CMDFL_val(msg->msg_public.msg_flags),
-		msg->msg_public.msg_code,
-		msg->msg_public.msg_appl,
-		msg->msg_public.msg_hbhid,
-		msg->msg_public.msg_eteid
-		) );
-	CHECK_FCT( dump_add_str(outstr, offset, outlen, INOBJHDR "intern: rwb:%p rt:%d cb:%p,%p(%p) qry:%p asso:%d sess:%p src:%s(%zd)|", 
-			INOBJHDRVAL, msg->msg_rawbuffer, msg->msg_routable, msg->msg_cb.anscb, msg->msg_cb.expirecb, msg->msg_cb.data, msg->msg_query, msg->msg_associated, msg->msg_sess, msg->msg_src_id?:"(nil)", msg->msg_src_id_len) );
-	return 0;
-}
-
-/* Dump an avp object */
-static int obj_dump_avp ( struct avp * avp, int indent, char **outstr, size_t *offset, size_t *outlen )
-{
-	int ret = 0;
-	
-	if (!CHECK_AVP(avp)) {
-		CHECK_FCT( dump_add_str(outstr, offset, outlen, INOBJHDR "INVALID!", INOBJHDRVAL) );
-		return 0;
-	}
-	
-	if (!avp->avp_model) {
-		
-		CHECK_FCT( dump_add_str(outstr, offset, outlen, INOBJHDR "(no model resolved)|", INOBJHDRVAL) );
-		
-	} else {
-		
-		enum dict_object_type dicttype;
-		struct dict_avp_data dictdata;
-		ret = fd_dict_gettype(avp->avp_model, &dicttype);
-		if (ret || (dicttype != DICT_AVP)) {
-			CHECK_FCT( dump_add_str(outstr, offset, outlen, INOBJHDR "(invalid model: %d %d)|", INOBJHDRVAL, ret, dicttype) );
-			goto public;
-		}
-		ret = fd_dict_getval(avp->avp_model, &dictdata);
-		if (ret != 0) {
-			CHECK_FCT( dump_add_str(outstr, offset, outlen, INOBJHDR "(error getting model data: %s)|", INOBJHDRVAL, strerror(ret)) );
-			goto public;
-		}
-		CHECK_FCT( dump_add_str(outstr, offset, outlen, INOBJHDR "model : v/m:" DUMP_AVPFL_str "/" DUMP_AVPFL_str ", %12s, %u \"%s\"|", INOBJHDRVAL, 
-			DUMP_AVPFL_val(dictdata.avp_flag_val), 
-			DUMP_AVPFL_val(dictdata.avp_flag_mask), 
-			type_base_name[dictdata.avp_basetype], 
-			dictdata.avp_code, 
-			dictdata.avp_name ) );
-	}
-public:	
-	CHECK_FCT( dump_add_str(outstr, offset, outlen, INOBJHDR "public: C:%u fl:" DUMP_AVPFL_str " L:%d V:%u  data:@%p|", INOBJHDRVAL, 
-		avp->avp_public.avp_code,
-		DUMP_AVPFL_val(avp->avp_public.avp_flags),
-		avp->avp_public.avp_len,
-		avp->avp_public.avp_vendor,
-		avp->avp_public.avp_value
-		) );
-	/* Dump the value if set */
-	if (avp->avp_public.avp_value) {
-		if (!avp->avp_model) {
-			CHECK_FCT( dump_add_str(outstr, offset, outlen, INOBJHDR "(data set but no model: ERROR)|", INOBJHDRVAL) );
-		} else {
-			CHECK_FCT( fd_dict_dump_avp_value(avp->avp_public.avp_value, avp->avp_model, indent, outstr, offset, outlen, 1) );
-		}
-	}
-
-	CHECK_FCT( dump_add_str(outstr, offset, outlen, INOBJHDR "intern: src:%p mf:%d raw:%p(%d)|", INOBJHDRVAL, avp->avp_source, avp->avp_mustfreeos, avp->avp_rawdata, avp->avp_rawlen) );
-	return 0;
-}
-
-/* Dump a single object content into out string, realloc if needed */
-static int msg_dump_intern ( int level, msg_or_avp * obj, int indent, char **outstr, size_t *offset, size_t *outlen )
-{
-	/* Log only if we are at least at level */
-	if ( ! TRACE_BOOL(level) )
-		return 0;
-	
-	/* Check the object */
-	if (!VALIDATE_OBJ(obj)) {
-		CHECK_FCT( dump_add_str(outstr, offset, outlen, ">>> invalid object (%p)!.", obj) );
-		return 0;
-	}
-	
-	/* Dump the object */
-	switch (_C(obj)->type) {
-		case MSG_AVP:
-			CHECK_FCT( obj_dump_avp ( _A(obj), indent, outstr, offset, outlen ));
-			break;
-		
-		case MSG_MSG:
-			CHECK_FCT( obj_dump_msg ( _M(obj), indent, outstr, offset, outlen ) );
-			break;
-		
-		default:
-			ASSERT(0);
-	}
-	return 0;
-}
-
-/* Dump a message to a specified file stream */
-void fd_msg_dump_fstr ( struct msg * msg, FILE * fstr )
-{
-	msg_or_avp * ref = msg;
-	int indent = 2;
-	char *outstr;
-	size_t offset, outlen;
-	CHECK_FCT_DO( dump_init_str(&outstr, &offset, &outlen), { fd_log_debug_fstr(fstr, "Error initializing string for dumping %p", msg); return; } );
-	do {
-		CHECK_FCT_DO(  msg_dump_intern ( NONE, ref, indent, &outstr, &offset, &outlen ),
-				fd_log_debug_fstr(fstr, "Error while dumping %p", ref) );
-		
-		/* Now find the next object */
-		CHECK_FCT_DO(  fd_msg_browse ( ref, MSG_BRW_WALK, &ref, &indent ), break  );
-		
-		/* dump next object */
-	} while (ref);
-	
-	/* now really output this in one shot, so it is not interrupted */
-	fd_log_debug_fstr(fstr, "%s", outstr);
-	
-	free(outstr);
-}
-void fd_msg_dump_fstr_one ( struct msg * msg, FILE * fstr ) /* just the header */
-{
-	char *outstr;
-	size_t offset, outlen;
-	CHECK_FCT_DO( dump_init_str(&outstr, &offset, &outlen), { fd_log_debug_fstr(fstr, "Error initializing string for dumping %p", msg); return; } );
-	CHECK_FCT_DO(  msg_dump_intern ( NONE, msg, 2, &outstr, &offset, &outlen ),
-				fd_log_debug_fstr(fstr, "Error while dumping %p", msg) );
-	/* now really output this in one shot, so it is not interrupted */
-	fd_log_debug_fstr(fstr, "%s", outstr);
-	
-	free(outstr);
-}
-
-/* Completely dump a msg_t object */
-static int full_obj_dump_msg (struct msg * msg, struct dictionary *dict, char **outstr, size_t *offset, size_t *outlen)
-{
-	int ret = 0;
-	int success = 0;
-	struct dict_cmd_data dictdata;
-	char buf[20];
-
-	if (!CHECK_MSG(msg)) {
-		CHECK_FCT( dump_add_str(outstr, offset, outlen, "INVALID MESSAGE") );
-		return 0;
-	}
-	
-	if (!msg->msg_model) {
-		fd_msg_parse_dict(msg, dict, NULL);
-	}
-	if (!msg->msg_model) {
-		CHECK_FCT( dump_add_str(outstr, offset, outlen, "(no model) ") );
-	} else {
-		enum dict_object_type dicttype;
-		ret = fd_dict_gettype(msg->msg_model, &dicttype);
-		if (ret || (dicttype != DICT_COMMAND)) {
-			CHECK_FCT( dump_add_str(outstr, offset, outlen, "(invalid model: %d %d) ", ret, dicttype) );
-		} else {
-			ret = fd_dict_getval(msg->msg_model, &dictdata);
-			if (ret != 0) {
-				CHECK_FCT( dump_add_str(outstr, offset, outlen, "(error getting model data: %s) ", strerror(ret)) );
-			} else {
-				success = 1;
-			}
-		}
-	}
-
-	if (msg->msg_public.msg_appl) {
-		snprintf(buf, sizeof(buf), "%u/", msg->msg_public.msg_appl);
-	} else {
-		buf[0] = '\0';
-	}
-	CHECK_FCT( dump_add_str(outstr, offset, outlen, "%s(%s%u)[" DUMP_CMDFL_str "], Length=%u, Hop-By-Hop-Id=0x%08x, End-to-End=0x%08x",
-				success ? dictdata.cmd_name :  "unknown", buf, msg->msg_public.msg_code, DUMP_CMDFL_val(msg->msg_public.msg_flags),
-				msg->msg_public.msg_length, msg->msg_public.msg_hbhid, msg->msg_public.msg_eteid));
-
-	return 0;
-}
-
-/* Dump an avp object completely */
-static int full_obj_dump_avp ( struct avp * avp, char **outstr, size_t *offset, size_t *outlen, int first )
-{
-	int success = 0;
-	struct dict_avp_data dictdata;
-	char buf[20];
-
-	CHECK_FCT( dump_add_str(outstr, offset, outlen, first ? ((*outstr)[*offset-1] == '=' ? "{ " : ", { ") : ", ") );
-
-	if (!CHECK_AVP(avp)) {
-		CHECK_FCT( dump_add_str(outstr, offset, outlen, "INVALID AVP") );
-		return 0;
-	}
-	
-	if (avp->avp_model) {
-		enum dict_object_type dicttype;
-		int ret;
-		ret = fd_dict_gettype(avp->avp_model, &dicttype);
-		if (ret || (dicttype != DICT_AVP)) {
-			CHECK_FCT( dump_add_str(outstr, offset, outlen, "(invalid model: %d %d) ", ret, dicttype) );
-		} else { 
-			ret = fd_dict_getval(avp->avp_model, &dictdata);
-			if (ret != 0) {
-				CHECK_FCT( dump_add_str(outstr, offset, outlen, "(error getting model data: %s) ", strerror(ret)) );
-			} else {
-				success = 1;
-			}
-		}
-	}
-
-	if (avp->avp_public.avp_vendor) {
-		snprintf(buf, sizeof(buf), "%u/", avp->avp_public.avp_vendor);
-	} else {
-		buf[0] = '\0';
-	}
-	/* \todo add full vendorname? */
-	CHECK_FCT(dump_add_str(outstr, offset, outlen, "%s(%s%u)[" DUMP_AVPFL_str "]=", success ? dictdata.avp_name : "unknown", buf, avp->avp_public.avp_code, DUMP_AVPFL_val(avp->avp_public.avp_flags)));
-
-	/* Dump the value if set */
-	if (avp->avp_public.avp_value) {
-		if (!avp->avp_model) {
-			CHECK_FCT( dump_add_str(outstr, offset, outlen, "(unknown data type)") );
-		} else {
-			CHECK_FCT( fd_dict_dump_avp_value(avp->avp_public.avp_value, avp->avp_model, 1, outstr, offset, outlen, 0) );
-		}
-	}
-
-	return 0;
-}
-
-/* Dump full message */
-// TODO: need align with new prototype & behavior
-void fd_msg_dump_full_TODO ( int level, struct dictionary *dict, const char *prefix, msg_or_avp *obj )
-{
-	msg_or_avp * ref = obj;
-	char *outstr;
-	int indent = 1;
-	int first = 1;
-	int previous;
-	size_t offset, outlen;
-	CHECK_FCT_DO( dump_init_str(&outstr, &offset, &outlen), 
-		      { fd_log_error("Error initializing string for dumping %p", obj); return; } );
-	CHECK_FCT_DO( dump_add_str(&outstr, &offset, &outlen, "%s: ", prefix),
-		      { fd_log_error("Error while dumping %p", ref); return; });
-
-	do {
-		/* Check the object */
-		if (!VALIDATE_OBJ(ref)) {
-			CHECK_FCT_DO( dump_add_str(&outstr, &offset, &outlen, ">>> invalid object (%p)", ref),
-				      { fd_log_error("Error in error handling dumping %p", ref); break; });
-		}
-		/* Dump the object */
-		switch (_C(ref)->type) {
-		case MSG_AVP:
-			CHECK_FCT_DO( full_obj_dump_avp ( _A(ref), &outstr, &offset, &outlen, first ),
-				      { fd_log_error("Error in error handling dumping %p", ref); });
-			break;
-		case MSG_MSG:
-			CHECK_FCT_DO( full_obj_dump_msg ( _M(obj), dict, &outstr, &offset, &outlen ),
-				      { fd_log_error("Error in error handling dumping %p", ref); });
-			break;
-		default:
-			ASSERT(0);
-		}
-
-		first = 0;
-		previous = indent;
-		/* Now find the next object */
-		CHECK_FCT_DO( fd_msg_browse ( ref, MSG_BRW_WALK, &ref, &indent ), break  );
-		if (previous < indent) {
-			first = 1;
-		} else while (previous-- > indent) {
-			CHECK_FCT_DO( dump_add_str(&outstr, &offset, &outlen, " }"),
-				      { fd_log_error("Error while dumping %p", ref); return; });
-		}
-		/* dump next object */
-	} while (ref);
-
-	fd_log(level, "%s", outstr);
-	free(outstr);
-}
-
-/* Dump a message content -- for debug mostly */
-void fd_msg_dump_walk ( int level, msg_or_avp *obj )
-{
-	msg_or_avp * ref = obj;
-	int indent = 1;
-	char *outstr;
-	size_t offset, outlen;
-	CHECK_FCT_DO( dump_init_str(&outstr, &offset, &outlen), 
-			{ fd_log_debug_fstr(fd_g_debug_fstr, "Error initializing string for dumping %p", obj); return; } );
-
-	do {
-		CHECK_FCT_DO(  msg_dump_intern ( level, ref, indent, &outstr, &offset, &outlen ),
-				fd_log_debug_fstr(fd_g_debug_fstr, "Error while dumping %p", ref) );
-		
-		/* Now find the next object */
-		CHECK_FCT_DO(  fd_msg_browse ( ref, MSG_BRW_WALK, &ref, &indent ), break  );
-		
-		/* dump next object */
-	} while (ref);
-	
-	/* now really output this in one shot, so it is not interrupted */
-	TRACE_DEBUG(level, "------ Dumping object %p (w)-------", obj);
-	TRACE_DEBUG(level, "%s", outstr);
-	TRACE_DEBUG(level, "------ /end of object %p -------", obj);
-	
-	free(outstr);
-}
-
-/* Dump a single object content -- for debug mostly */
-void fd_msg_dump_one ( int level, msg_or_avp * obj )
-{
-	char *outstr;
-	size_t offset, outlen;
-	CHECK_FCT_DO( dump_init_str(&outstr, &offset, &outlen), 
-			{ fd_log_debug_fstr(fd_g_debug_fstr, "Error initializing string for dumping %p", obj); return; } );
-	CHECK_FCT_DO(  msg_dump_intern ( level, obj, 1, &outstr, &offset, &outlen ),
-			fd_log_debug_fstr(fd_g_debug_fstr, "Error while dumping %p", obj) );
-	TRACE_DEBUG(level, "------ Dumping object %p (s)-------", obj);
-	TRACE_DEBUG(level, "%s", outstr);
-	TRACE_DEBUG(level, "------ /end of object %p -------", obj);
-	free(outstr);
-}
-
-#endif /*  OLD_CODE_TO_BE_REPLACED */
+#endif
 /***************************************************************************************************************/
 /* Simple meta-data management */
 
