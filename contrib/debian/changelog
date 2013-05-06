@@ -1,4 +1,4 @@
-freediameter (1.1.7) UNRELEASED; urgency=low
+freediameter (1.2.0) UNRELEASED; urgency=low
 
   * Major changes in the logging system to be more syslog and user friendly
   * New extension: dict_dcca_3gpp
@@ -6,6 +6,10 @@ freediameter (1.1.7) UNRELEASED; urgency=low
   * New extension: rt_ignore_dh (hide network topology by proxying Destination-Host).
   * New extension: rt_load_balance (load balancer based on pending queue size).
   * New extension: rt_busypeers. See doc/rt_busypeers.conf.sample.
+  * New API (fd_hook_*) for extensions to control messages logging & profiling
+  * New API (fd_stats_*) for extensions to monitor framework state (e.g. SNMP implem)
+  * API changes: all the fd_*_dump functions now return strings instead of logging directly.
+  * Updated dbg_monitoring extension to use the new API
   * New script to generate dictionary extensions from org file (see contrib/tools)
   * New compilation option: WORKAROUND_ACCEPT_INVALID_VSAI to improve interoperability.
   * New compilation option: DISABLE_PEER_EXPIRY for use in test environments.
@@ -13,9 +17,10 @@ freediameter (1.1.7) UNRELEASED; urgency=low
   * Copy Proxy-Info AVP automatically in new answers.
   * Port value 0 allowed in configuration to disable local server (e.g. disable non-secure port).
   * API change: fd_msg_send_timeout now takes a separate callback for timeout situation.
-  * New function: fd_msg_dump_full
+  * Function changes: fd_msg_dump_* now split in three different type of output.
+  * New test testmesg_stress to measure message parser performance
 
- -- Sebastien Decugis <sdecugis@freediameter.net>  Tue, 23 Apr 2013 16:30:28 +0800
+ -- Sebastien Decugis <sdecugis@freediameter.net>  Mon, 06 May 2013 10:45:26 +0800
 
 freediameter (1.1.6) UNRELEASED; urgency=low
 
