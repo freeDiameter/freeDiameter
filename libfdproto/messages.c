@@ -722,7 +722,7 @@ int fd_msg_free ( msg_or_avp * object )
 
 /* messages and AVP formatters */
 typedef DECLARE_FD_DUMP_PROTOTYPE( (*msg_dump_formatter_msg), struct msg * msg );
-typedef DECLARE_FD_DUMP_PROTOTYPE( (*msg_dump_formatter_avp), struct avp * avp, int level );
+typedef DECLARE_FD_DUMP_PROTOTYPE( (*msg_dump_formatter_avp), struct avp * avp, int level, int first, int last );
 
 /* Core function to process the dumping */
 static DECLARE_FD_DUMP_PROTOTYPE( msg_dump_process, msg_dump_formatter_msg msg_format, msg_dump_formatter_avp avp_format, msg_or_avp *obj, struct dictionary *dict, int force_parsing, int recurse )
@@ -735,7 +735,7 @@ static DECLARE_FD_DUMP_PROTOTYPE( msg_dump_process, msg_dump_formatter_msg msg_f
 	
 	switch (_C(obj)->type) {
 		case MSG_AVP:
-			CHECK_MALLOC_DO( (*avp_format)(FD_DUMP_STD_PARAMS, (struct avp *)obj, 0), return NULL);
+			CHECK_MALLOC_DO( (*avp_format)(FD_DUMP_STD_PARAMS, (struct avp *)obj, 0, 1, 1), return NULL);
 			break;
 
 		case MSG_MSG:
@@ -748,15 +748,16 @@ static DECLARE_FD_DUMP_PROTOTYPE( msg_dump_process, msg_dump_formatter_msg msg_f
 		
 	if (recurse) {
 		struct avp * avp = NULL;
+		int first = 1;
 		CHECK_FCT_DO(  fd_msg_browse ( obj, MSG_BRW_FIRST_CHILD, &avp, NULL ), avp = NULL );
 		while (avp) {
-			CHECK_MALLOC_DO( (*avp_format)(FD_DUMP_STD_PARAMS, avp, 1), return NULL);
-			CHECK_FCT_DO(  fd_msg_browse ( avp, MSG_BRW_NEXT, &avp, NULL ), avp = NULL  );
+			struct avp * nextavp = NULL;
+			CHECK_FCT_DO(  fd_msg_browse ( avp, MSG_BRW_NEXT, &nextavp, NULL ), nextavp = NULL  );
+			CHECK_MALLOC_DO( (*avp_format)(FD_DUMP_STD_PARAMS, avp, 1, first, nextavp ? 0 : 1), return NULL);
+			avp = nextavp;
+			first = 0;
 		};
 	}
-	
-	/* we remove the final \n if any */
-	FD_DUMP_HANDLE_TRAIL();
 	
 	return *buf;
 }
@@ -764,11 +765,10 @@ static DECLARE_FD_DUMP_PROTOTYPE( msg_dump_process, msg_dump_formatter_msg msg_f
 /*
  * Tree View message dump
  */
-
 static DECLARE_FD_DUMP_PROTOTYPE( msg_format_treeview, struct msg * msg )
 {
 	if (!CHECK_MSG(msg)) {
-		CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "{message}(@%p): INVALID\n", msg), return NULL);
+		CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "{message}(@%p): INVALID", msg), return NULL);
 		return *buf;
 	}
 	
@@ -798,20 +798,25 @@ static DECLARE_FD_DUMP_PROTOTYPE( msg_format_treeview, struct msg * msg )
 	CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "  ApplicationId: %d\n", msg->msg_public.msg_appl), return NULL);
 	CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "  Hop-by-Hop Identifier: 0x%8X\n", msg->msg_public.msg_hbhid), return NULL);
 	CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "  End-to-End Identifier: 0x%8X\n", msg->msg_public.msg_eteid), return NULL);
-	CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "   {debug data}: src:%s(%zd) rwb:%p rt:%d cb:%p,%p(%p) qry:%p asso:%d sess:%p\n", msg->msg_src_id?:"(nil)", msg->msg_src_id_len, msg->msg_rawbuffer, msg->msg_routable, msg->msg_cb.anscb, msg->msg_cb.expirecb, msg->msg_cb.data, msg->msg_query, msg->msg_associated, msg->msg_sess), return NULL);
+	CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "   {debug data}: src:%s(%zd) rwb:%p rt:%d cb:%p,%p(%p) qry:%p asso:%d sess:%p", msg->msg_src_id?:"(nil)", msg->msg_src_id_len, msg->msg_rawbuffer, msg->msg_routable, msg->msg_cb.anscb, msg->msg_cb.expirecb, msg->msg_cb.data, msg->msg_query, msg->msg_associated, msg->msg_sess), return NULL);
 	
 	return *buf;
 }
 
-static DECLARE_FD_DUMP_PROTOTYPE( avp_format_treeview, struct avp * avp, int level )
+static DECLARE_FD_DUMP_PROTOTYPE( avp_format_treeview, struct avp * avp, int level, int first, int last )
 {
 	char * name;
 	struct dict_avp_data  dictdata;
 	struct dict_avp_data *dictinfo = NULL;
 	struct dict_vendor_data  vendordata;
 	struct dict_vendor_data *vendorinfo = NULL;
+	
+	if (level) {
+		CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "\n"), return NULL);
+	}
+	
 	if (!CHECK_AVP(avp)) {
-		CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "{avp}(@%p): INVALID\n", avp), return NULL);
+		CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "{avp}(@%p): INVALID", avp), return NULL);
 		return *buf;
 	}
 	
@@ -865,13 +870,20 @@ static DECLARE_FD_DUMP_PROTOTYPE( avp_format_treeview, struct avp * avp, int lev
 	CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, " l=%d f=" DUMP_AVPFL_str " val=", avp->avp_public.avp_len, DUMP_AVPFL_val(avp->avp_public.avp_flags)), return NULL);
 	
 	if (dictinfo && (dictinfo->avp_basetype == AVP_TYPE_GROUPED)) {
-		struct avp * inavp = NULL;
-		CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "(grouped)\n"), return NULL);
-		CHECK_FCT_DO(  fd_msg_browse ( avp, MSG_BRW_FIRST_CHILD, &inavp, NULL ), inavp = NULL );
-		while (inavp) {
-			CHECK_MALLOC_DO( avp_format_treeview(FD_DUMP_STD_PARAMS, inavp, level + 1), return NULL);
-			CHECK_FCT_DO(  fd_msg_browse ( inavp, MSG_BRW_NEXT, &inavp, NULL ), inavp = NULL  );
-		};
+		CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "(grouped)"), return NULL);
+		if (level) {
+			struct avp * inavp = NULL;
+			int first = 1;
+			CHECK_FCT_DO(  fd_msg_browse ( avp, MSG_BRW_FIRST_CHILD, &inavp, NULL ), inavp = NULL );
+			while (inavp) {
+				struct avp * nextavp = NULL;
+				CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "\n"), return NULL);
+				CHECK_FCT_DO(  fd_msg_browse ( inavp, MSG_BRW_NEXT, &nextavp, NULL ), inavp = NULL  );
+				CHECK_MALLOC_DO( avp_format_treeview(FD_DUMP_STD_PARAMS, inavp, level + 1, first, nextavp ? 0 : 1), return NULL);
+				inavp = nextavp;
+				first = 0;
+			};
+		}
 	} else {
 		if (avp->avp_public.avp_value) {
 			CHECK_MALLOC_DO( fd_dict_dump_avp_value(FD_DUMP_STD_PARAMS, avp->avp_public.avp_value, avp->avp_model, 0, 0), return NULL);
@@ -880,7 +892,6 @@ static DECLARE_FD_DUMP_PROTOTYPE( avp_format_treeview, struct avp * avp, int lev
 		} else {
 			CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "(not set)"), return NULL);
 		}
-		CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "\n"), return NULL);
 	}
 
 	return *buf;
@@ -893,12 +904,126 @@ DECLARE_FD_DUMP_PROTOTYPE( fd_msg_dump_treeview, msg_or_avp *obj, struct diction
 }
 
 
-#warning "todo"
+/*
+ * One-line dumper for compact but complete traces
+ */
+static DECLARE_FD_DUMP_PROTOTYPE( msg_format_full, struct msg * msg )
+{
+	int success = 0;
+	struct dict_cmd_data dictdata;
+	
+	if (!CHECK_MSG(msg)) {
+		CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "INVALID MESSAGE", msg), return NULL);
+		return *buf;
+	}
+	
+	if (!msg->msg_model) {
+		CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "(no model) "), return NULL);
+	} else {
+		enum dict_object_type dicttype=0;
+		if (fd_dict_gettype(msg->msg_model, &dicttype) || (dicttype != DICT_COMMAND)) {
+			CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "(invalid model %d) ", dicttype), return NULL);
+		} else if (fd_dict_getval(msg->msg_model, &dictdata)) {
+			CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "(error getting model data) "), return NULL);
+		} else {
+			success = 1;
+		}
+	}
+	if (msg->msg_public.msg_appl) {
+		CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, 
+				   "%s(%u/%u)[" DUMP_CMDFL_str "], Length=%u, Hop-By-Hop-Id=0x%08x, End-to-End=0x%08x",
+					success ? dictdata.cmd_name :  "unknown",  msg->msg_public.msg_appl, msg->msg_public.msg_code, DUMP_CMDFL_val(msg->msg_public.msg_flags),
+					msg->msg_public.msg_length, msg->msg_public.msg_hbhid, msg->msg_public.msg_eteid), return NULL);
+	} else {
+		CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, 
+				   "%s(%u)[" DUMP_CMDFL_str "], Length=%u, Hop-By-Hop-Id=0x%08x, End-to-End=0x%08x",
+					success ? dictdata.cmd_name :  "unknown", msg->msg_public.msg_code, DUMP_CMDFL_val(msg->msg_public.msg_flags),
+					msg->msg_public.msg_length, msg->msg_public.msg_hbhid, msg->msg_public.msg_eteid), return NULL);
+	}
+	return *buf;
+}
+
+static DECLARE_FD_DUMP_PROTOTYPE( avp_format_full, struct avp * avp, int level, int first, int last )
+{
+	int success = 0;
+	struct dict_avp_data  dictdata;
+	struct dict_vendor_data  vendordata;
+	struct dict_vendor_data *vendorinfo = NULL;
+	
+	
+	if (level) {
+		if ((first) && ((*buf)[*offset - 1] == '=')) {
+			/* We are first AVP of a grouped AVP */
+			CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "{ "), return NULL);
+		} else {
+			/* We follow another AVP, or a message header */
+			CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, ", { "), return NULL);
+		}
+	}
+	
+	if (!CHECK_AVP(avp)) {
+		CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "INVALID AVP"), return NULL);
+		goto end;
+	}
+	
+
+	if (avp->avp_model) {
+		enum dict_object_type dicttype;
+		if (fd_dict_gettype(avp->avp_model, &dicttype) || (dicttype != DICT_AVP)) {
+			CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "(invalid model: %d) ", dicttype), return NULL);
+		} else if (fd_dict_getval(avp->avp_model, &dictdata)) {
+			CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "(error getting model data) "), return NULL);
+		} else {
+			success = 1;
+		}
+	}
+	
+	if (avp->avp_public.avp_flags & AVP_FLAG_VENDOR) {
+		CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "%s(%u/%u)[" DUMP_AVPFL_str "]=", 
+					success ? dictdata.avp_name : "unknown", avp->avp_public.avp_vendor, avp->avp_public.avp_code, DUMP_AVPFL_val(avp->avp_public.avp_flags)), return NULL);
+	} else {
+		CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "%s(%u)[" DUMP_AVPFL_str "]=", 
+					success ? dictdata.avp_name : "unknown", avp->avp_public.avp_code, DUMP_AVPFL_val(avp->avp_public.avp_flags)), return NULL);
+	}
+
+		
+	if (success && (dictdata.avp_basetype == AVP_TYPE_GROUPED)) {
+		if (level) {
+			struct avp * inavp = NULL;
+			int first = 1;
+			CHECK_FCT_DO(  fd_msg_browse ( avp, MSG_BRW_FIRST_CHILD, &inavp, NULL ), inavp = NULL );
+			while (inavp) {
+				struct avp * nextavp = NULL;
+				CHECK_FCT_DO(  fd_msg_browse ( inavp, MSG_BRW_NEXT, &nextavp, NULL ), inavp = NULL  );
+				CHECK_MALLOC_DO( avp_format_full(FD_DUMP_STD_PARAMS, inavp, level + 1, first, nextavp ? 0 : 1), return NULL);
+				inavp = nextavp;
+				first = 0;
+			};
+		}
+	} else {
+		if (avp->avp_public.avp_value) {
+			CHECK_MALLOC_DO( fd_dict_dump_avp_value(FD_DUMP_STD_PARAMS, avp->avp_public.avp_value, avp->avp_model, 0, 0), return NULL);
+		} else if (avp->avp_rawdata) {
+			CHECK_MALLOC_DO( fd_dump_extend_hexdump(FD_DUMP_STD_PARAMS, avp->avp_rawdata, avp->avp_rawlen, 0, 0), return NULL);
+		} else {
+			CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "(not set)"), return NULL);
+		}
+	}
+	
+end:
+	if (level) {
+		CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, " }"), return NULL);
+	}
+	
+	return *buf;
+}
 /* one-line dump with all the contents of the message */
 DECLARE_FD_DUMP_PROTOTYPE( fd_msg_dump_full, msg_or_avp *obj, struct dictionary *dict, int force_parsing, int recurse )
 {
-	return NULL;
+	return msg_dump_process(FD_DUMP_STD_PARAMS, msg_format_full, avp_format_full, obj, dict, force_parsing, recurse);
 }
+
+#warning "todo"
 
 /* This one only prints a short display, does not go into the complete tree */
 DECLARE_FD_DUMP_PROTOTYPE( fd_msg_dump_summary, msg_or_avp *obj, struct dictionary *dict, int force_parsing, int recurse )
