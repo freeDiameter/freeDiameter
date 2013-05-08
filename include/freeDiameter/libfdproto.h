@@ -79,9 +79,7 @@ extern "C" {
 #include <unistd.h>
 #include <stdarg.h>
 
-#ifdef DEBUG
-#include <libgen.h>	/* for basename if --dbg_file is specified */
-#endif /* DEBUG */
+#include <libgen.h>	/* for basename */
 
 #ifdef SWIG
 #define _ATTRIBUTE_PRINTFLIKE_(_f,_v)
