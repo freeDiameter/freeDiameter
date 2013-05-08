@@ -1250,8 +1250,8 @@ int fd_msg_anscb_associate( struct msg * msg, void ( *anscb)(void *, struct msg 
 	if (! (msg->msg_public.msg_flags & CMD_FLAG_REQUEST ))
 		return anscb ? EINVAL : 0; /* we associate with requests only */
 	
-	CHECK_PARAMS( (anscb == NULL)    || (msg->msg_cb.anscb == NULL) ); /* We are not overwritting a cb */
-	CHECK_PARAMS( (expirecb == NULL) || (msg->msg_cb.expirecb == NULL) ); /* We are not overwritting a cb */
+	CHECK_PARAMS( (anscb == NULL)    || (msg->msg_cb.anscb == NULL) ); /* We are not overwriting a cb */
+	CHECK_PARAMS( (expirecb == NULL) || (msg->msg_cb.expirecb == NULL) ); /* We are not overwriting a cb */
 	
 	/* Associate callback and data with the message, if any */
 	msg->msg_cb.anscb = anscb;
