@@ -1085,7 +1085,7 @@ int fd_sctp_recvmeta(struct cnxctx * conn, uint16_t * strid, uint8_t ** buf, siz
 	
 	/* We will loop while all data is not received. */
 incomplete:
-	while (datasize + sizeof(struct timespec) >= bufsz ) {
+	while (datasize >= bufsz ) {
 		/* The buffer is full, enlarge it */
 		bufsz += mempagesz;
 		CHECK_MALLOC( data = realloc(data, bufsz ) );
@@ -1093,7 +1093,7 @@ incomplete:
 	/* the new data will be received following the preceding */
 	memset(&iov,  0, sizeof(iov));
 	iov.iov_base = data + datasize ;
-	iov.iov_len  = bufsz - sizeof(struct timespec) - datasize;
+	iov.iov_len  = bufsz - datasize;
 
 	/* Receive data from the socket */
 again:

@@ -218,7 +218,7 @@ enum {
 	/* request to terminate this peer : disconnect, requeue all messages */
 	FDEVP_TERMINATE = 1500
 	
-	/* A connection object has received a message. (data contains the buffer + struct timespec piggytailed -- unaligned) */
+	/* A connection object has received a message. (data contains the buffer + padding + struct fd_msg_pmdl) */
 	,FDEVP_CNX_MSG_RECV
 			 
 	/* A connection object has encountered an error (disconnected). */
@@ -270,7 +270,6 @@ struct cnx_incoming {
 	struct cnxctx	* cnx;		/* The connection context */
 	int  		  validate;	/* The peer is new, it must be validated (by an extension) or error CEA to be sent */
 };
-
 
 /* Functions */
 int  fd_peer_fini();
@@ -366,4 +365,7 @@ int             fd_tls_verify_credentials_2(gnutls_session_t session);
 void   fd_hook_call(enum fd_hook_type type, struct msg * msg, struct fd_peer * peer, void * other, struct fd_msg_pmdl * pmdl);
 void   fd_hook_associate(struct msg * msg, struct fd_msg_pmdl * pmdl);
 int    fd_hooks_init(void);
+size_t fd_msg_pmdl_sizewithoverhead(size_t datalen);
+struct fd_msg_pmdl * fd_msg_pmdl_get_inbuf(uint8_t * buf, size_t datalen); 
+
 #endif /* _FDCORE_INTERNAL_H */

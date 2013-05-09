@@ -915,7 +915,7 @@ enum fd_hook_type {
 		/* Hook called as soon as a message has been received from the network, after TLS & boundary processing.
 		 - {msg} is NULL.
 		 - {peer} is NULL.
-		 - {other} is a pointer to a structure { size_t len; uint8_t * buf; } containing the received buffer.
+		 - {other} is a pointer to a struct fd_cnx_rcvdata containing the received buffer.
 		 - {permsgdata} points to either a new empty structure allocated for this message (cf. fd_hook_data_hdl), or NULL if no hdl is registered.
 		 */
 		 
@@ -1023,6 +1023,12 @@ struct fd_hook_permsgdata;
 
 /* A handle that will be associated with the extension, and with the permsgdata structures. */
 struct fd_hook_data_hdl;
+
+/* The following structure is what is passed to the HOOK_DATA_RECEIVED hook */
+struct fd_cnx_rcvdata {
+	size_t  length;
+	uint8_t * buffer; /* internal note: the buffer is padded with a struct fd_msg_pmdl, not accounted for in length */
+};
 
 /* Function to register a new fd_hook_data_hdl. Should be called by your extension init function.
  * The arguments are the functions called to initialize a new fd_hook_permsgdata and to free this structure when the corresponding message is being freed.

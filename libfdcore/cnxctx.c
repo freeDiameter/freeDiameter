@@ -672,6 +672,53 @@ again:
 	return ret;
 }
 
+#define ALIGNOF(t) ((char *)(&((struct { char c; t _h; } *)0)->_h) - (char *)0)  /* Could use __alignof__(t) on some systems but this is more portable probably */
+#define PMDL_PADDED(len) ( ((len) + ALIGNOF(struct fd_msg_pmdl) - 1) & ~(ALIGNOF(struct fd_msg_pmdl) - 1) )
+
+size_t fd_msg_pmdl_sizewithoverhead(size_t datalen)
+{
+	return PMDL_PADDED(datalen);
+}
+
+struct fd_msg_pmdl * fd_msg_pmdl_get_inbuf(uint8_t * buf, size_t datalen)
+{
+	return (struct fd_msg_pmdl *)(buf + PMDL_PADDED(datalen));
+} 
+
+static int fd_cnx_init_msg_buffer(uint8_t * buffer, size_t expected_len, struct fd_msg_pmdl ** pmdl)
+{
+	*pmdl = fd_msg_pmdl_get_inbuf(buffer, expected_len);
+	fd_list_init(&(*pmdl)->sentinel, NULL);
+	CHECK_POSIX(pthread_mutex_init(&(*pmdl)->lock, NULL) );
+	return 0;
+}
+
+static uint8_t * fd_cnx_alloc_msg_buffer(size_t expected_len, struct fd_msg_pmdl ** pmdl)
+{
+	uint8_t * ret = NULL;
+	
+	CHECK_MALLOC_DO(  ret = malloc( PMDL_PADDED(expected_len) ), return NULL );
+	CHECK_FCT_DO( fd_cnx_init_msg_buffer(ret, expected_len, pmdl), {free(ret); return NULL;} );
+	return ret;
+}
+
+static uint8_t * fd_cnx_realloc_msg_buffer(uint8_t * buffer, size_t expected_len, struct fd_msg_pmdl ** pmdl)
+{
+	uint8_t * ret = NULL;
+	
+	CHECK_MALLOC_DO(  ret = realloc( buffer, PMDL_PADDED(expected_len) ), return NULL );
+	CHECK_FCT_DO( fd_cnx_init_msg_buffer(ret, expected_len, pmdl), {free(ret); return NULL;} );
+	return ret;
+}
+
+static void free_rcvdata(void * arg) 
+{
+	struct fd_cnx_rcvdata * data = arg;
+	struct fd_msg_pmdl * pmdl = fd_msg_pmdl_get_inbuf(data->buffer, data->length);
+	(void) pthread_mutex_destroy(&pmdl->lock);
+	free(data->buffer);
+}
+
 /* Receiver thread (TCP & noTLS) : incoming message is directly saved into the target queue */
 static void * rcvthr_notls_tcp(void * arg)
 {
@@ -694,8 +741,8 @@ static void * rcvthr_notls_tcp(void * arg)
 	/* Receive from a TCP connection: we have to rebuild the message boundaries */
 	do {
 		uint8_t header[4];
-		uint8_t * newmsg;
-		size_t  length;
+		struct fd_cnx_rcvdata rcv_data;
+		struct fd_msg_pmdl *pmdl=NULL;
 		ssize_t ret = 0;
 		size_t	received = 0;
 
@@ -708,37 +755,42 @@ static void * rcvthr_notls_tcp(void * arg)
 			received += ret;
 		} while (received < sizeof(header));
 
-		length = ((size_t)header[1] << 16) + ((size_t)header[2] << 8) + (size_t)header[3];
+		rcv_data.length = ((size_t)header[1] << 16) + ((size_t)header[2] << 8) + (size_t)header[3];
 
 		/* Check the received word is a valid begining of a Diameter message */
 		if ((header[0] != DIAMETER_VERSION)	/* defined in <libfdproto.h> */
-		   || (length > DIAMETER_MSG_SIZE_MAX)) { /* to avoid too big mallocs */
+		   || (rcv_data.length > DIAMETER_MSG_SIZE_MAX)) { /* to avoid too big mallocs */
 			/* The message is suspect */
-			TRACE_DEBUG(INFO, "Received suspect header [ver: %d, size: %zd], assume disconnection", (int)header[0], length);
+			LOG_E( "Received suspect header [ver: %d, size: %zd], assuming disconnection", (int)header[0], rcv_data.length);
 			fd_cnx_markerror(conn);
 			goto out; /* Stop the thread, the recipient of the event will cleanup */
 		}
 
 		/* Ok, now we can really receive the data */
-		CHECK_MALLOC_DO(  newmsg = malloc( length + sizeof(struct timespec) ), goto fatal );
-		memcpy(newmsg, header, sizeof(header));
+		CHECK_MALLOC_DO(  rcv_data.buffer = fd_cnx_alloc_msg_buffer( rcv_data.length, &pmdl ), goto fatal );
+		memcpy(rcv_data.buffer, header, sizeof(header));
 
-		while (received < length) {
-			pthread_cleanup_push(free, newmsg); /* In case we are canceled, clean the partialy built buffer */
-			ret = fd_cnx_s_recv(conn, newmsg + received, length - received);
+		while (received < rcv_data.length) {
+			pthread_cleanup_push(free_rcvdata, &rcv_data); /* In case we are canceled, clean the partialy built buffer */
+			ret = fd_cnx_s_recv(conn, rcv_data.buffer + received, rcv_data.length - received);
 			pthread_cleanup_pop(0);
 
 			if (ret <= 0) {
-				free(newmsg);
+				free_rcvdata(&rcv_data);
 				goto out;
 			}
 			received += ret;
 		}
 		
-		// fd_msg_log(....)
+		fd_hook_call(HOOK_DATA_RECEIVED, NULL, NULL, &rcv_data, pmdl);
 		
 		/* We have received a complete message, pass it to the daemon */
-		CHECK_FCT_DO( fd_event_send( fd_cnx_target_queue(conn), FDEVP_CNX_MSG_RECV, length, newmsg), /* continue or destroy everything? */);
+		CHECK_FCT_DO( fd_event_send( fd_cnx_target_queue(conn), FDEVP_CNX_MSG_RECV, rcv_data.length, rcv_data.buffer), 
+			{ 
+				free_rcvdata(&rcv_data);
+				CHECK_FCT_DO(fd_event_send(fd_g_config->cnf_main_ev, FDEV_TERMINATE, 0, NULL), );
+				return NULL; 
+			} );
 		
 	} while (conn->cc_loop);
 	
@@ -757,8 +809,7 @@ fatal:
 static void * rcvthr_notls_sctp(void * arg)
 {
 	struct cnxctx * conn = arg;
-	uint8_t * buf;
-	size_t    bufsz;
+	struct fd_cnx_rcvdata rcv_data;
 	int	  event;
 	
 	TRACE_ENTRY("%p", arg);
@@ -776,7 +827,8 @@ static void * rcvthr_notls_sctp(void * arg)
 	ASSERT( fd_cnx_target_queue(conn) );
 	
 	do {
-		CHECK_FCT_DO( fd_sctp_recvmeta(conn, NULL, &buf, &bufsz, &event), goto fatal );
+		struct fd_msg_pmdl *pmdl=NULL;
+		CHECK_FCT_DO( fd_sctp_recvmeta(conn, NULL, &rcv_data.buffer, &rcv_data.length, &event), goto fatal );
 		if (event == FDEVP_CNX_ERROR) {
 			fd_cnx_markerror(conn);
 			goto out;
@@ -786,8 +838,12 @@ static void * rcvthr_notls_sctp(void * arg)
 			/* Just ignore the notification for now, we will get another error later anyway */
 			continue;
 		}
-		/* Note: the real size of buf is bufsz + struct timespec */
-		CHECK_FCT_DO( fd_event_send( fd_cnx_target_queue(conn), event, bufsz, buf), goto fatal );
+
+		if (event == FDEVP_CNX_MSG_RECV) {
+			CHECK_MALLOC_DO( rcv_data.buffer = fd_cnx_realloc_msg_buffer(rcv_data.buffer, rcv_data.length, &pmdl), goto fatal );
+			fd_hook_call(HOOK_DATA_RECEIVED, NULL, NULL, &rcv_data, pmdl);
+		}
+		CHECK_FCT_DO( fd_event_send( fd_cnx_target_queue(conn), event, rcv_data.length, rcv_data.buffer), goto fatal );
 		
 	} while (conn->cc_loop || (event != FDEVP_CNX_MSG_RECV));
 	
@@ -927,8 +983,8 @@ int fd_tls_rcvthr_core(struct cnxctx * conn, gnutls_session_t session)
 	/* No guarantee that GnuTLS preserves the message boundaries, so we re-build it as in TCP */
 	do {
 		uint8_t header[4];
-		uint8_t * newmsg;
-		size_t  length;
+		struct fd_cnx_rcvdata rcv_data;
+		struct fd_msg_pmdl *pmdl=NULL;
 		ssize_t ret = 0;
 		size_t	received = 0;
 
@@ -941,37 +997,39 @@ int fd_tls_rcvthr_core(struct cnxctx * conn, gnutls_session_t session)
 			received += ret;
 		} while (received < sizeof(header));
 
-		length = ((size_t)header[1] << 16) + ((size_t)header[2] << 8) + (size_t)header[3];
+		rcv_data.length = ((size_t)header[1] << 16) + ((size_t)header[2] << 8) + (size_t)header[3];
 
 		/* Check the received word is a valid beginning of a Diameter message */
 		if ((header[0] != DIAMETER_VERSION)	/* defined in <libfreeDiameter.h> */
-		   || (length > DIAMETER_MSG_SIZE_MAX)) { /* to avoid too big mallocs */
+		   || (rcv_data.length > DIAMETER_MSG_SIZE_MAX)) { /* to avoid too big mallocs */
 			/* The message is suspect */
-			TRACE_DEBUG(INFO, "Received suspect header [ver: %d, size: %zd], assume disconnection", (int)header[0], length);
+			LOG_E( "Received suspect header [ver: %d, size: %zd], assume disconnection", (int)header[0], rcv_data.length);
 			fd_cnx_markerror(conn);
 			goto out;
 		}
 
 		/* Ok, now we can really receive the data */
-		CHECK_MALLOC(  newmsg = malloc( length + sizeof(struct timespec)) );
-		memcpy(newmsg, header, sizeof(header));
+		CHECK_MALLOC(  rcv_data.buffer = fd_cnx_alloc_msg_buffer( rcv_data.length, &pmdl ) );
+		memcpy(rcv_data.buffer, header, sizeof(header));
 
-		while (received < length) {
-			pthread_cleanup_push(free, newmsg); /* In case we are canceled, clean the partialy built buffer */
-			ret = fd_tls_recv_handle_error(conn, session, newmsg + received, length - received);
+		while (received < rcv_data.length) {
+			pthread_cleanup_push(free_rcvdata, &rcv_data); /* In case we are canceled, clean the partialy built buffer */
+			ret = fd_tls_recv_handle_error(conn, session, rcv_data.buffer + received, rcv_data.length - received);
 			pthread_cleanup_pop(0);
 
 			if (ret <= 0) {
-				free(newmsg);
+				free_rcvdata(&rcv_data);
 				goto out;
 			}
 			received += ret;
 		}
 		
+		fd_hook_call(HOOK_DATA_RECEIVED, NULL, NULL, &rcv_data, pmdl);
+		
 		/* We have received a complete message, pass it to the daemon */
-		CHECK_FCT_DO( ret = fd_event_send( fd_cnx_target_queue(conn), FDEVP_CNX_MSG_RECV, length, newmsg), 
+		CHECK_FCT_DO( ret = fd_event_send( fd_cnx_target_queue(conn), FDEVP_CNX_MSG_RECV, rcv_data.length, rcv_data.buffer), 
 			{ 
-				free(newmsg); 
+				free_rcvdata(&rcv_data);
 				CHECK_FCT_DO(fd_event_send(fd_g_config->cnf_main_ev, FDEV_TERMINATE, 0, NULL), );
 				return ret; 
 			} );
