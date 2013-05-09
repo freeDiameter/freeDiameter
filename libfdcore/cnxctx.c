@@ -1757,7 +1757,7 @@ int fd_cnx_send(struct cnxctx * conn, unsigned char * buf, size_t len, uint32_t 
 #endif /* DISABLE_SCTP */
 	
 		default:
-			TRACE_DEBUG(INFO, "Unknwon protocol: %d", conn->cc_proto);
+			TRACE_DEBUG(INFO, "Unknown protocol: %d", conn->cc_proto);
 			ASSERT(0);
 			return ENOTSUP;	/* or EINVAL... */
 	}

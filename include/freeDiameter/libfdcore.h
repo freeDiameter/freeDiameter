@@ -949,7 +949,7 @@ enum fd_hook_type {
 		 */
 	
 	HOOK_MESSAGE_FAILOVER,
-		/* Hook called when a message that was sent to a peer is being requeued, because e.g. the connection was teared down.
+		/* Hook called when a message that was sent to a peer is being requeued, because e.g. the connection was torn down.
 		   In that case the message will go again through the routing process.
 		 - {msg} points to the corresponding request message (the answer is discarded). Again, the objects may not have been dictionary resolved. If you
 		   try to call fd_msg_parse_dict, it might slow down the operation of a relay agent, although this hook is not on the normal execution path.
@@ -1018,7 +1018,7 @@ enum fd_hook_type {
 };
 
 
-/* Type if the {permsgdata}. It is up to each extension to define its own structure. This is opaque for the framework. */
+/* Type of the {permsgdata} pointer. It is up to each extension to define its own structure. This is opaque for the framework. */
 struct fd_hook_permsgdata;
 
 /* A handle that will be associated with the extension, and with the permsgdata structures. */
