@@ -878,7 +878,7 @@ int fd_app_empty(struct fd_list * list);
 
 /* These functions allow an extension to collect state information about the
  * framework, as well as being hooked at some key checkpoints in the processing
- * for logging / statistics purpose.
+ * for logging or statistics purpose.
  */
  
 
@@ -886,11 +886,11 @@ int fd_app_empty(struct fd_list * list);
  *
  * PARAMETERS:
  *  type	: The type of hook that triggered this call, in case same cb is registered for several hooks.
- *  msg 	: If relevant, the pointer to the message trigging the call. NULL otherwise.
+ *  msg 	: If relevant, the pointer to the message triggering the call. NULL otherwise.
  *  peer        : If relevant, the pointer to the peer associated with the call. NULL otherwise.
  *  other	: For some callbacks, the remaining information is passed in this parameter. See each hook detail.
  *  permsgdata  : Structure associated with a given message, across several hooks. 
- *                 Same structure is associated with requests and corresponding answers. 
+ *                 A different structure is associated with requests and corresponding answers. 
  *                 See fd_hook_data_hdl below for details.
  *                 If no fd_hook_data_hdl is registered with this callback, this parameter is always NULL
  *  regdata     : Data pointer stored at registration, opaque for the framework.
@@ -915,10 +915,8 @@ enum fd_hook_type {
 		/* Hook called as soon as a message has been received from the network, after TLS & boundary processing.
 		 - {msg} is NULL.
 		 - {peer} is NULL.
-		 - {*other} is NULL, {other} points to a valid location where you can store a pointer. 
-		    This same pointer will then passed to the next hook, once message is processed.
-		    IMPORTANT: free() will be called on this pointer if any problem, so this pointer must be malloc'd.
-		 - {permsgdata} is NULL.
+		 - {other} is a pointer to a structure { size_t len; uint8_t * buf; } containing the received buffer.
+		 - {permsgdata} points to either a new empty structure allocated for this message (cf. fd_hook_data_hdl), or NULL if no hdl is registered.
 		 */
 		 
 	HOOK_MESSAGE_RECEIVED,
@@ -927,8 +925,8 @@ enum fd_hook_type {
 		   try to call fd_msg_parse_dict, it will slow down the operation of a relay agent.
 		 - {peer} is set if the message is received from a peer's connection, and NULL if the message is from a new client
 		   connected and not yet identified
-		 - {*other} contains the pointer stored with the HOOK_DATA_RECEIVED hook if any, NULL otherwise. After this hook returns, free(*other) is called if not NULL.
-		 - {permsgdata} points to either a new empty structure allocated for this request (cf. fd_hook_data_hdl), or the request's existing structure if the message is an answer.
+		 - {other} is NULL.
+		 - {permsgdata} points to either a new empty structure allocated for this message or the one passed to HOOK_DATA_RECEIVED if used.
 		 */
 	
 	HOOK_MESSAGE_LOCAL,
@@ -945,10 +943,9 @@ enum fd_hook_type {
 		 - {msg} points to the sent message. Again, the objects may not have been dictionary resolved. If you
 		   try to call fd_msg_parse_dict, it will slow down the operation of a relay agent.
 		 - {peer} is set if the message is sent to a peer's connection, and NULL if the message is sent to a new client
-		   connected and not yet identified / being rejected
+		   connected and not yet identified, or being rejected
 		 - {other} is NULL.
 		 - {permsgdata} points to existing structure if any, or a new structure otherwise. 
-		    If the message is an answer, the structure is shared with the corresponding request.
 		 */
 	
 	HOOK_MESSAGE_FAILOVER,
@@ -958,7 +955,7 @@ enum fd_hook_type {
 		   try to call fd_msg_parse_dict, it might slow down the operation of a relay agent, although this hook is not on the normal execution path.
 		 - {peer} is the peer this message was previously sent to.
 		 - {other} is NULL.
-		 - {permsgdata} points to existing structure associated with this request. 
+		 - {permsgdata} points to existing structure if any, or a new structure otherwise. 
 		 */
 	
 	HOOK_MESSAGE_ROUTING_ERROR,
@@ -993,8 +990,8 @@ enum fd_hook_type {
 		 */
 	
 	HOOK_MESSAGE_DROPPED,
-		/* Hook called when a message is being discarded by the framework because of some error.
-		   It is probably a good idea to log this for analysis.
+		/* Hook called when a message is being discarded by the framework because of some error condition (normal or abnormal).
+		   It is probably a good idea to log this for analysis / backup.
 		 - {msg} points to the message, which will be freed as soon as the hook returns.
 		 - {peer} is NULL.
 		 - {other} is a char * pointer to the error message (human-readable).
@@ -1021,7 +1018,7 @@ enum fd_hook_type {
 };
 
 
-/* Type if the {permsgdata} ointer. It is up to each extension to define its own structure. This is opaque for the framework. */
+/* Type if the {permsgdata}. It is up to each extension to define its own structure. This is opaque for the framework. */
 struct fd_hook_permsgdata;
 
 /* A handle that will be associated with the extension, and with the permsgdata structures. */
@@ -1034,14 +1031,17 @@ struct fd_hook_data_hdl;
  * FUNCTION:	fd_hook_data_register
  *
  * PARAMETERS:
- *  permsgdata_new_cb     : function called to initialize a new empty fd_hook_permsgdata structure, when a hook will be called for a message with not structure yet. If the function returns NULL, it will be called again for the next hook.
- *  permsgdata_destroy_cb : function called when a message is being disposed. It should free the resources associated with the fd_hook_permsgdata.
- *  new_handle            : On success, a handler to the registered callback is stored here. 
+ *  permsgdata_size     : the size of the fd_hook_permsgdata structure. 
+ *  permsgdata_init_cb  : function called to initialize a new fd_hook_permsgdata structure, when a hook will be called for a message that does not have such structure yet. 
+ *                           The memory is already allocated and blanked, so you can pass NULL if no further handling is required.
+ *  permsgdata_fini_cb  : function called when a message is being disposed. It should free the resources associated with the fd_hook_permsgdata. 
+ *                           You can pass NULL if no special handling is required. The memory of the permsgdata structure itself will be freed by the framework.
+ *  new_handle          : On success, a handler to the registered callback is stored here. 
  *		             This handler will be used to unregister the cb.
  *
  * DESCRIPTION: 
  *   Register a new fd_hook_data_hdl. This handle is used during hooks registration (see below) in order to associate data with the messages, to allow keeping tracking of the message easily.
- *  Note that these handlers are statically allocated and cannot be unregistered.
+ *  Note that these handlers are statically allocated and cannot be unregistered. FD_HOOK_HANDLE_LIMIT handlers can be registered at maximum (recompile libfdproto if you change this value)
  *
  * RETURN VALUE:
  *  0      	: The callback is registered.
@@ -1049,11 +1049,11 @@ struct fd_hook_data_hdl;
  *  ENOSPC	: Too many handles already registered. You may need to increase the limit in the code.
  */
 int fd_hook_data_register(
-	struct fd_hook_permsgdata * (*permsgdata_new_cb)     (void),
-        void (*permsgdata_destroy_cb) (struct fd_hook_permsgdata *),
-        struct fd_hook_data_hdl **    new_handle
+	size_t permsgdata_size,
+	void (*permsgdata_init_cb) (struct fd_hook_permsgdata *),
+        void (*permsgdata_fini_cb) (struct fd_hook_permsgdata *),
+        struct fd_hook_data_hdl **new_handle
 );
-
 
 /* A handler associated with a registered hook callback (for cleanup) */
 struct fd_hook_hdl; 
@@ -1062,7 +1062,7 @@ struct fd_hook_hdl;
  * FUNCTION:	fd_hook_register
  *
  * PARAMETERS:
- *  type	  : The fd_hook_type for which this cb is registered. Call several times if you want to register for several hooks.
+ *  type_mask	  : A bitmask of fd_hook_type bits for which this cb is registered, e.g. ((1 << HOOK_MESSAGE_RECEIVED) || (1 << HOOK_MESSAGE_SENT))
  *  fd_hook_cb	  : The callback function to register (see prototype above).
  *  regdata	  : Pointer to pass to the callback when it is called. The data is opaque to the daemon.
  *  data_hdl      : If permsgdata is requested for the hooks, a handler registered with fd_hook_data_register. NULL otherwise.
@@ -1078,9 +1078,9 @@ struct fd_hook_hdl;
  *  EINVAL 	: A parameter is invalid.
  *  ENOMEM	: Not enough memory to complete the operation
  */
-int fd_hook_register (  enum fd_hook_type type, 
-			void (*fd_hook_cb)(enum fd_hook_type type, struct msg * msg, struct peer_hdr * peer, void * other, void * regdata), 
-			void * regdata, 
+int fd_hook_register (  uint32_t type_mask, 
+			void (*fd_hook_cb)(enum fd_hook_type type, struct msg * msg, struct peer_hdr * peer, void * other, struct fd_hook_permsgdata *pmd, void * regdata), 
+			void  *regdata, 
 			struct fd_hook_data_hdl *data_hdl,
 			struct fd_hook_hdl ** handler );
 

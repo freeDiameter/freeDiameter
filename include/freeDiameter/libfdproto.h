@@ -2549,6 +2549,14 @@ int fd_msg_sess_get(struct dictionary * dict, struct msg * msg, struct session *
 int fd_msg_sess_set(struct msg * msg, struct session * session);
 
 
+/* Helper for the hooks mechanism, for use from libfdcore */
+struct fd_msg_pmdl {
+	struct fd_list sentinel; /* if the sentinel.o field is NULL, the structure is not initialized. Otherwise it points to the cleanup function in libfdcore. */
+	pthread_mutex_t lock;
+};
+#define FD_MSG_PMDL_INITIALIZER(pmdl_ptr)        { FD_LIST_INITIALIZER(  (pmdl_ptr)->sentinel       ), PTHREAD_MUTEX_INITIALIZER }
+struct fd_msg_pmdl * fd_msg_pmdl_get(struct msg * msg);
+
 /***************************************/
 /*   Manage AVP values                 */
 /***************************************/

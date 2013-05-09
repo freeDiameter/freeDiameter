@@ -186,6 +186,7 @@ int fd_core_initialize(void)
 	CHECK_FCT( fd_dict_base_protocol(fd_g_config->cnf_dict) );
 	
 	/* Initialize some modules */
+	CHECK_FCT( fd_hooks_init()  );
 	CHECK_FCT( fd_queues_init() );
 	CHECK_FCT( fd_msg_init()    );
 	CHECK_FCT( fd_sess_start()  );

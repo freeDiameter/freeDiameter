@@ -735,6 +735,8 @@ static void * rcvthr_notls_tcp(void * arg)
 			received += ret;
 		}
 		
+		// fd_msg_log(....)
+		
 		/* We have received a complete message, pass it to the daemon */
 		CHECK_FCT_DO( fd_event_send( fd_cnx_target_queue(conn), FDEVP_CNX_MSG_RECV, length, newmsg), /* continue or destroy everything? */);
 		

@@ -362,4 +362,8 @@ int             fd_tls_verify_credentials_2(gnutls_session_t session);
 /* Flags for the fd_cnx_send function : */
 #define FD_CNX_ORDERED		(1 << 0)	/* All messages sent with this flag set will be delivered in the same order. No guarantee on other messages */
 
+/* Internal calls of the hook mechanism */
+void   fd_hook_call(enum fd_hook_type type, struct msg * msg, struct fd_peer * peer, void * other, struct fd_msg_pmdl * pmdl);
+void   fd_hook_associate(struct msg * msg, struct fd_msg_pmdl * pmdl);
+int    fd_hooks_init(void);
 #endif /* _FDCORE_INTERNAL_H */

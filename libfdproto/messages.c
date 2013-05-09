@@ -136,7 +136,7 @@ struct msg {
 		}		 msg_cb;		/* Callback to be called when an answer is received, or timeout expires, if not NULL */
 	DiamId_t		 msg_src_id;		/* Diameter Id of the peer this message was received from. This string is malloc'd and must be freed */
 	size_t			 msg_src_id_len;	/* cached length of this string */
-	
+	struct fd_msg_pmdl	 msg_pmdl;		/* list of permessagedata structures. */
 };
 
 /* Macro to compute the message header size */
@@ -671,6 +671,10 @@ static int destroy_obj (struct msg_avp_chain * obj )
 	
 	if ((obj->type == MSG_MSG) && (_M(obj)->msg_sess != NULL)) {
 		CHECK_FCT_DO( fd_sess_reclaim_msg ( &_M(obj)->msg_sess ), /* continue */);
+	}
+	
+	if ((obj->type == MSG_MSG) && (_M(obj)->msg_pmdl.sentinel.o != NULL)) {
+		((void (*)(struct fd_msg_pmdl *))_M(obj)->msg_pmdl.sentinel.o)(&_M(obj)->msg_pmdl);
 	}
 	
 	/* free the object */
@@ -1495,6 +1499,13 @@ int fd_msg_sess_get(struct dictionary * dict, struct msg * msg, struct session *
 	}
 	
 	return 0;
+}
+
+/* Retrieve the location of the pmd list for the message; return NULL if failed */
+struct fd_msg_pmdl * fd_msg_pmdl_get(struct msg * msg)
+{
+	CHECK_PARAMS_DO( CHECK_MSG(msg), return NULL );
+	return &msg->msg_pmdl;
 }
 
 
