@@ -235,7 +235,8 @@ static void * connect_thr(void * arg)
 			}
 			if (FD_IS_LIST_EMPTY(&peer->p_connparams)) {
 				/* We encountered an error or we have looped over all the addresses of the peer. */
-				TRACE_DEBUG(INFO, "Unable to connect to the peer %s, aborting attempts for now.", peer->p_hdr.info.pi_diamid);
+				fd_hook_call(HOOK_PEER_CONNECT_FAILED, NULL, peer, "All connection attempts failed, will retry later", NULL);
+				
 				CHECK_FCT_DO( fatal_error = fd_event_send(peer->p_events, FDEVP_CNX_FAILED, 0, NULL), goto out );
 				return NULL;
 			}
@@ -278,12 +279,13 @@ static void * connect_thr(void * arg)
 		CHECK_FCT_DO( fd_cnx_handshake(cnx, GNUTLS_CLIENT, peer->p_hdr.info.config.pic_priority, NULL),
 			{
 				/* Handshake failed ...  */
-				TRACE_DEBUG(INFO, "TLS Handshake failed with peer '%s', resetting the connection", peer->p_hdr.info.pi_diamid);
+				fd_hook_call(HOOK_PEER_CONNECT_FAILED, NULL, peer, "TLS Handshake failed", NULL);
 				fd_cnx_destroy(cnx);
 				empty_connection_list(peer);
 				fd_ep_filter(&peer->p_hdr.info.pi_endpoints, EP_FL_CONF);
 				goto out_pop;
 			} );
+		LOG_A("%s: TLS handshake successful.", peer->p_hdr.info.pi_diamid);
 	} else {
 		/* Prepare to receive the next message */
 		CHECK_FCT_DO( fatal_error = fd_cnx_start_clear(cnx, 0), goto out_pop );

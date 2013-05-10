@@ -205,6 +205,8 @@ static inline void test_init(int argc, char * argv[], char *fname)
 	
 	CHECK( 0, fd_libproto_init() );
 	
+	CHECK( 0, fd_hooks_init() );	
+	
 	fd_log_threadname(fname);
 	
 	/* Parse the command line */

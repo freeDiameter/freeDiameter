@@ -201,6 +201,9 @@ static void init_msg ( struct msg * msg )
 	memset(msg, 0, sizeof(struct msg));
 	init_chain( &msg->msg_chain, MSG_MSG);
 	msg->msg_eyec = MSG_MSG_EYEC;
+	
+	fd_list_init(&msg->msg_pmdl.sentinel, NULL);
+	CHECK_POSIX_DO( pthread_mutex_init(&msg->msg_pmdl.lock, NULL), );
 }
 
 
@@ -1951,23 +1954,20 @@ int fd_msg_parse_buffer ( unsigned char ** buffer, size_t buflen, struct msg ** 
 	
 	CHECK_PARAMS(  buffer &&  *buffer  &&  msg  &&  (buflen >= GETMSGHDRSZ())  );
 	buf = *buffer;
-	*buffer = NULL;
 	
 	if ( buf[0] != DIAMETER_VERSION) {
 		TRACE_DEBUG(INFO, "Invalid version in message: %d (supported: %d)", buf[0], DIAMETER_VERSION);
-		free(buf);
 		return EBADMSG;
 	}
 	
 	msglen = ntohl(*(uint32_t *)buf) & 0x00ffffff;
 	if ( buflen < msglen ) {  
 		TRACE_DEBUG(INFO, "Truncated message (%zd / %d)", buflen, msglen );
-		free(buf);
 		return EBADMSG; 
 	}
 	
 	/* Create a new object */
-	CHECK_MALLOC_DO( new = malloc (sizeof(struct msg)),  { free(buf); return ENOMEM; }  );
+	CHECK_MALLOC( new = malloc (sizeof(struct msg)) );
 	
 	/* Initialize the fields */
 	init_msg(new);
@@ -1983,11 +1983,12 @@ int fd_msg_parse_buffer ( unsigned char ** buffer, size_t buflen, struct msg ** 
 	new->msg_public.msg_hbhid = ntohl(*(uint32_t *)(buf+12));
 	new->msg_public.msg_eteid = ntohl(*(uint32_t *)(buf+16));
 	
-	new->msg_rawbuffer = buf;
-	
 	/* Parse the AVP list */
 	CHECK_FCT_DO( ret = parsebuf_list(buf + GETMSGHDRSZ(), buflen - GETMSGHDRSZ(), &new->msg_chain.children), { destroy_tree(_C(new)); return ret; }  );
 	
+	/* Parsing successful */
+	new->msg_rawbuffer = buf;
+	*buffer = NULL;
 	*msg = new;
 	return 0;
 }

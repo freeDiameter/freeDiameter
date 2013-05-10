@@ -85,6 +85,7 @@ FD_EXTENSION_SUBDIR(acl_wl "White-list based authorization of incoming connectio
 # Debug & test extensions
 
 FD_EXTENSION_SUBDIR(dbg_monitor "Outputs periodical status information"              OFF)
+FD_EXTENSION_SUBDIR(dbg_msg_timings "Show some timing information for messages"      OFF)
 FD_EXTENSION_SUBDIR(dbg_rt      "Routing extension for debugging the routing module" OFF)
 FD_EXTENSION_SUBDIR(test_app    "Testing application to send dummy message to another peer, like a Diameter 'ping'" OFF)
 FD_EXTENSION_SUBDIR(test_sip    "Testing application to simulate Diameter-SIP client (RFC4740)" OFF)

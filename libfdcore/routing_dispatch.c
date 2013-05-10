@@ -431,7 +431,7 @@ static int msg_dispatch(struct msg * msg)
 	enum disp_action action;
 	char * ec = NULL;
 	char * em = NULL;
-	struct msg *msgptr = msg;
+	struct msg *msgptr = msg, *error = NULL;
 
 	/* Read the message header */
 	CHECK_FCT( fd_msg_hdr(msg, &hdr) );
@@ -441,19 +441,27 @@ static int msg_dispatch(struct msg * msg)
 	  (draft-asveren-dime-dupcons-00). This may conflict with path validation decisions, no clear answer yet */
 
 	/* At this point, we need to understand the message content, so parse it */
-	CHECK_FCT_DO( ret = fd_msg_parse_or_error( &msgptr ),
+	CHECK_FCT_DO( fd_msg_parse_or_error( &msgptr, &error ),
 		{
-			/* in case of error */
-			if ((ret == EBADMSG) && (msgptr != NULL)) {
-				/* msgptr now contains the answer message to send back */
-				CHECK_FCT( fd_fifo_post(fd_g_outgoing, &msgptr) );
+			int rescue = 0;
+			if (__ret__ != EBADMSG) {
+				fd_hook_call(HOOK_MESSAGE_DROPPED, msgptr, NULL, "Error while parsing received answer", fd_msg_pmdl_get(msgptr));
+				fd_msg_free(msgptr);
+			} else {
+				if (!msgptr) {
+					/* error now contains the answer message to send back */
+					CHECK_FCT( fd_fifo_post(fd_g_outgoing, &error) );
+				} else if (!error) {
+					/* We have received an invalid answer to our query */
+					fd_hook_call(HOOK_MESSAGE_DROPPED, msgptr, NULL, "Received answer failed the dictionary / rules parsing", fd_msg_pmdl_get(msgptr));
+					fd_msg_free(msgptr);
+				} else {
+					/* We will pass the invalid received error to the application */
+					rescue = 1;
+				}
 			}
-			if (msgptr) {	/* another error happen'd */
-				//fd_msg_log( FD_MSG_LOG_DROPPED, msgptr,  "An unexpected error occurred while parsing the message (%s)", strerror(ret));
-				CHECK_FCT_DO( fd_msg_free(msgptr), /* continue */);
-			}
-			/* We're done with this one */
-			return 0;
+			if (!rescue)
+				return 0; /* We are done with this message, go to the next */
 		} );
 
 	/* First, if the original request was registered with a callback and we receive the answer, call it. */

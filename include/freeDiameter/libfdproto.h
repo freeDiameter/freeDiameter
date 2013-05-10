@@ -145,7 +145,9 @@ void fd_libproto_fini(void);
  *  None.
  */
 void fd_log ( int, const char *, ... ) _ATTRIBUTE_PRINTFLIKE_(2,3);
+#ifndef SWIG
 void fd_log_va( int, const char *, va_list args );
+#endif /* SWIG */
 
 /* these are internal objects of the debug facility, 
 might be useful to control the behavior from outside */
@@ -608,6 +610,8 @@ static __inline__ void replace_me() MARK_DEPRECATED { }
 
 DECLARE_FD_DUMP_PROTOTYPE(fd_sa_dump_node, sSA * sa, int flags);
 DECLARE_FD_DUMP_PROTOTYPE(fd_sa_dump_node_serv, sSA * sa, int flags);
+#define sSA_DUMP_STRLEN	(INET6_ADDRSTRLEN + 1 + 32 + 2)
+void fd_sa_sdump_numeric(char * buf /* must be at least sSA_DUMP_STRLEN */, sSA * sa);
 
 
 /* A l4 protocol name (TCP / SCTP) */

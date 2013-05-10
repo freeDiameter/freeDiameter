@@ -490,9 +490,8 @@ int fd_peer_handle_newCER( struct msg ** cer, struct cnxctx ** cnx )
 	CHECK_POSIX( pthread_mutex_lock(&cache_avp_lock) );
 	if (!avp_oh_model) {
 		avp_code_t code = AC_ORIGIN_HOST;
-		int ret;
-		CHECK_FCT_DO( ret = fd_dict_search ( fd_g_config->cnf_dict, DICT_AVP, AVP_BY_CODE, &code, &avp_oh_model, ENOENT),
-			{ CHECK_POSIX( pthread_mutex_unlock(&cache_avp_lock) ); return ret; } );
+		CHECK_FCT_DO( fd_dict_search ( fd_g_config->cnf_dict, DICT_AVP, AVP_BY_CODE, &code, &avp_oh_model, ENOENT),
+			{ LOG_E("Cannot find Origin-Host AVP definition in the dictionary!"); (void) pthread_mutex_unlock(&cache_avp_lock); return __ret__; } );
 	}
 	CHECK_POSIX( pthread_mutex_unlock(&cache_avp_lock) );
 	
@@ -503,10 +502,12 @@ int fd_peer_handle_newCER( struct msg ** cer, struct cnxctx ** cnx )
 	
 	/* First, check if the Origin-Host value is valid */
 	if (!fd_os_is_valid_DiameterIdentity(avp_hdr->avp_value->os.data, avp_hdr->avp_value->os.len)) {
-		TRACE_DEBUG(INFO, "Received new CER with invalid Origin-Host");
 		CHECK_FCT( fd_msg_new_answer_from_req ( fd_g_config->cnf_dict, cer, MSGFL_ANSW_ERROR ) );
 		CHECK_FCT( fd_msg_rescode_set(*cer, "DIAMETER_INVALID_AVP_VALUE", 
 							"Your Origin-Host contains invalid characters.", avp_oh, 1 ) );
+		
+		fd_hook_call(HOOK_PEER_CONNECT_FAILED, *cer, NULL, "Received CER with invalid Origin-Host AVP", NULL);
+		
 		CHECK_FCT( fd_out_send(cer, *cnx, NULL, FD_CNX_ORDERED) );
 		return EINVAL;
 	}
@@ -544,6 +545,8 @@ int fd_peer_handle_newCER( struct msg ** cer, struct cnxctx ** cnx )
 		CHECK_MALLOC_DO( peer->p_dbgorig = strdup(fd_cnx_getid(*cnx)), { ret = ENOMEM; goto out; } );
 		peer->p_flags.pf_responder = 1;
 		peer->p_flags.pf_delete = 1;
+		
+		LOG_D("Created new peer object for incoming CER: %s", peer->p_hdr.info.pi_diamid);
 		
 #ifndef DISABLE_PEER_EXPIRY
 		/* Set this peer to expire on inactivity */
@@ -590,6 +593,10 @@ out:
 		/* Reset the "out" parameters, so that they are not cleanup on function return. */
 		*cer = NULL;
 		*cnx = NULL;
+	} else {
+		char buf[1024];
+		snprintf(buf, sizeof(buf), "An error occurred while processing new incoming CER: %s", strerror(ret));
+		fd_hook_call(HOOK_PEER_CONNECT_FAILED, *cer, NULL, buf, NULL);
 	}
 	
 	return ret;

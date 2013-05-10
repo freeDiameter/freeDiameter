@@ -756,6 +756,7 @@ int main(int argc, char *argv[])
 			
 			{
 				unsigned char * buftmp = NULL;
+				struct msg * error;
 				/* Check the parse or error works as expected */
 				CPYBUF();
 				
@@ -764,7 +765,9 @@ int main(int argc, char *argv[])
 				/* Check that we cannot support this message now */
 				CHECK( 0, fd_msg_init() );
 				CHECK( 0, fd_msg_parse_buffer( &buf_cpy, 344, &msg) );
-				CHECK( EBADMSG, fd_msg_parse_or_error( &msg ) );
+				CHECK( EBADMSG, fd_msg_parse_or_error( &msg, &error ) );
+				CHECK( NULL, msg );
+				msg = error;
 				
 				CHECK( 0, fd_msg_bufferize( msg, &buftmp, NULL ) );				
 				

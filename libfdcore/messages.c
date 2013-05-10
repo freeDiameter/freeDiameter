@@ -345,7 +345,7 @@ int fd_msg_send_timeout ( struct msg ** pmsg, void (*anscb)(void *, struct msg *
 
 
 /* Parse a message against our dictionary, and in case of error log and eventually build the error reply -- returns the parsing status */
-int fd_msg_parse_or_error( struct msg ** msg )
+int fd_msg_parse_or_error( struct msg ** msg, struct msg **error)
 {
 	int ret = 0;
 	struct msg * m;
@@ -354,8 +354,9 @@ int fd_msg_parse_or_error( struct msg ** msg )
 	
 	TRACE_ENTRY("%p", msg);
 	
-	CHECK_PARAMS(msg && *msg);
+	CHECK_PARAMS(msg && *msg && error);
 	m = *msg;
+	*error = NULL;
 	
 	/* Parse the message against our dictionary */
 	ret = fd_msg_parse_rules ( m, fd_g_config->cnf_dict, &pei);
@@ -363,8 +364,8 @@ int fd_msg_parse_or_error( struct msg ** msg )
 		&& (ret != ENOTSUP))	/* Command is not supported / Mandatory AVP is not supported */
 		return ret; /* 0 or another error */
 	
-	TRACE_DEBUG(INFO, "A message does not comply to the dictionary and/or rules (%s)", pei.pei_errcode);
-	fd_msg_dump_walk(FULL, m);
+	/* Log */
+	fd_hook_call(HOOK_MESSAGE_PARSING_ERROR, m, NULL, pei.pei_message ?: pei.pei_errcode, fd_msg_pmdl_get(m));
 	
 	CHECK_FCT( fd_msg_hdr(m, &hdr) );
 	
@@ -372,10 +373,13 @@ int fd_msg_parse_or_error( struct msg ** msg )
 	if (hdr->msg_flags & CMD_FLAG_REQUEST) {
 		
 		/* Create the error message */
-		CHECK_FCT( fd_msg_new_answer_from_req ( fd_g_config->cnf_dict, msg, pei.pei_protoerr ? MSGFL_ANSW_ERROR : 0 ) );
+		CHECK_FCT( fd_msg_new_answer_from_req ( fd_g_config->cnf_dict, &m, pei.pei_protoerr ? MSGFL_ANSW_ERROR : 0 ) );
 		
 		/* Set the error code */
-		CHECK_FCT( fd_msg_rescode_set(*msg, pei.pei_errcode, pei.pei_message, pei.pei_avp, 1 ) );
+		CHECK_FCT( fd_msg_rescode_set(m, pei.pei_errcode, pei.pei_message, pei.pei_avp, 1 ) );
+		
+		*msg = NULL;
+		*error = m;
 		
 	} else {
 		do { /* Rescue error messages */
@@ -408,15 +412,10 @@ int fd_msg_parse_or_error( struct msg ** msg )
 						
 					default: /* Other errors */
 						/* We let the application decide what to do with the message, we rescue it */
-						return 0;
+						*error = m;
 				}
 			}
 		} while (0);
-		
-		/* Just discard */
-		//fd_msg_log( FD_MSG_LOG_DROPPED, m, "Answer not compliant to dictionary's ABNF (%s)", pei.pei_errcode  );
-		CHECK_FCT( fd_msg_free( m ) );
-		*msg = NULL;
 	}
 	
 	return EBADMSG; /* We convert ENOTSUP to EBADMSG as well */

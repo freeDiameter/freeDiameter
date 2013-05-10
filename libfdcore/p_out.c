@@ -36,7 +36,7 @@
 #include "fdcore-internal.h"
 
 /* Alloc a new hbh for requests, bufferize the message and send on the connection, save in sentreq if provided */
-static int do_send(struct msg ** msg, uint32_t flags, struct cnxctx * cnx, uint32_t * hbh, struct sr_list * srl)
+static int do_send(struct msg ** msg, uint32_t flags, struct cnxctx * cnx, uint32_t * hbh, struct fd_peer * peer)
 {
 	struct msg_hdr * hdr;
 	int msg_is_a_req;
@@ -44,15 +44,16 @@ static int do_send(struct msg ** msg, uint32_t flags, struct cnxctx * cnx, uint3
 	size_t sz;
 	int ret;
 	uint32_t bkp_hbh = 0;
+	struct msg *cpy_for_logs_only;
 	
-	TRACE_ENTRY("%p %x %p %p %p", msg, flags, cnx, hbh, srl);
+	TRACE_ENTRY("%p %x %p %p %p", msg, flags, cnx, hbh, peer);
 	
 	/* Retrieve the message header */
 	CHECK_FCT( fd_msg_hdr(*msg, &hdr) );
 	
 	msg_is_a_req = (hdr->msg_flags & CMD_FLAG_REQUEST);
 	if (msg_is_a_req) {
-		CHECK_PARAMS(hbh && srl);
+		CHECK_PARAMS(hbh && peer);
 		/* Alloc the hop-by-hop id and increment the value for next message */
 		bkp_hbh = hdr->msg_hbhid;
 		hdr->msg_hbhid = *hbh;
@@ -63,15 +64,15 @@ static int do_send(struct msg ** msg, uint32_t flags, struct cnxctx * cnx, uint3
 	CHECK_FCT(fd_msg_bufferize( *msg, &buf, &sz ));
 	pthread_cleanup_push( free, buf );
 	
-	// cpy_for_logs_only = *msg;
+	cpy_for_logs_only = *msg;
 	
 	/* Save a request before sending so that there is no race condition with the answer */
 	if (msg_is_a_req) {
-		CHECK_FCT_DO( ret = fd_p_sr_store(srl, msg, &hdr->msg_hbhid, bkp_hbh), goto out );
+		CHECK_FCT_DO( ret = fd_p_sr_store(&peer->p_sr, msg, &hdr->msg_hbhid, bkp_hbh), goto out );
 	}
 	
 	/* Log the message */
-	// fd_msg_log( FD_MSG_LOG_SENT, cpy_for_logs_only, "Sent to '%s'", fd_cnx_getid(cnx));
+	fd_hook_call(HOOK_MESSAGE_SENT, cpy_for_logs_only, peer, NULL, fd_msg_pmdl_get(cpy_for_logs_only));
 	
 	/* Send the message */
 	CHECK_FCT_DO( ret = fd_cnx_send(cnx, buf, sz, flags), );
@@ -126,7 +127,7 @@ static void * out_thr(void * arg)
 		pthread_cleanup_push(cleanup_requeue, msg);
 		
 		/* Send the message, log any error */
-		CHECK_FCT_DO( ret = do_send(&msg, 0, peer->p_cnxctx, &peer->p_hbh, &peer->p_sr),
+		CHECK_FCT_DO( ret = do_send(&msg, 0, peer->p_cnxctx, &peer->p_hbh, peer),
 			{
 				if (msg) {
 					//fd_msg_log( FD_MSG_LOG_DROPPED, msg, "Internal error: Problem while sending (%s)", strerror(ret) );
@@ -178,7 +179,7 @@ int fd_out_send(struct msg ** msg, struct cnxctx * cnx, struct fd_peer * peer, u
 			cnx = peer->p_cnxctx;
 
 		/* Do send the message */
-		CHECK_FCT_DO( ret = do_send(msg, flags, cnx, hbh, peer ? &peer->p_sr : NULL),
+		CHECK_FCT_DO( ret = do_send(msg, flags, cnx, hbh, peer),
 			{
 				if (msg) {
 					//fd_msg_log( FD_MSG_LOG_DROPPED, *msg, "Internal error: Problem while sending (%s)", strerror(ret) );

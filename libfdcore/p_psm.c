@@ -482,27 +482,32 @@ psm_loop:
 	if (event == FDEVP_CNX_MSG_RECV) {
 		struct msg * msg = NULL;
 		struct msg_hdr * hdr;
+		struct fd_cnx_rcvdata rcv_data;
+		struct fd_msg_pmdl * pmdl = NULL;
+		
+		rcv_data.buffer = ev_data;
+		rcv_data.length = ev_sz;
+		pmdl = fd_msg_pmdl_get_inbuf(rcv_data.buffer, rcv_data.length);
 		
 		/* Parse the received buffer */
 		CHECK_FCT_DO( fd_msg_parse_buffer( (void *)&ev_data, ev_sz, &msg), 
 			{
-				fd_log_debug("Received invalid data from peer '%s', closing the connection", peer->p_hdr.info.pi_diamid);
+				fd_hook_call(HOOK_MESSAGE_PARSING_ERROR, NULL, peer, &rcv_data, pmdl );
 				free(ev_data);
 				CHECK_FCT_DO( fd_event_send(peer->p_events, FDEVP_CNX_ERROR, 0, NULL), goto psm_reset );
 				goto psm_loop;
 			} );
 			
+		fd_hook_associate(msg, pmdl);
+	
 		/* If the current state does not allow receiving messages, just drop it */
 		if (cur_state == STATE_CLOSED) {
 			/* In such case, just discard the message */
-			//fd_msg_log( FD_MSG_LOG_DROPPED, msg, "Purged from peer '%s''s queue (CLOSED state).", peer->p_hdr.info.pi_diamid );
+			fd_hook_call(HOOK_MESSAGE_DROPPED, msg, peer, "Message purged from queue, peer in CLOSED state", fd_msg_pmdl_get(msg));
 			fd_msg_free(msg);
 			goto psm_loop;
 		}
 		
-		/* Log incoming message */
-		//fd_msg_log( FD_MSG_LOG_RECEIVED, msg, "Received %zdb from '%s' (%s)", ev_sz, peer->p_hdr.info.pi_diamid, STATE_STR(cur_state) );
-	
 		/* Extract the header */
 		CHECK_FCT_DO( fd_msg_hdr(msg, &hdr), goto psm_end );
 		
@@ -512,7 +517,7 @@ psm_loop:
 			/* Search matching request (same hbhid) */
 			CHECK_FCT_DO( fd_p_sr_fetch(&peer->p_sr, hdr->msg_hbhid, &req), goto psm_end );
 			if (req == NULL) {
-				//fd_msg_log( FD_MSG_LOG_DROPPED, msg, "Answer received with no corresponding sent request." );
+				fd_hook_call(HOOK_MESSAGE_DROPPED, msg, peer, "Answer received with no corresponding sent request.", fd_msg_pmdl_get(msg));
 				fd_msg_free(msg);
 				goto psm_loop;
 			}
@@ -520,16 +525,15 @@ psm_loop:
 			/* Associate */
 			CHECK_FCT_DO( fd_msg_answ_associate( msg, req ), goto psm_end );
 			
-			/* Display the delay to receive the answer */
-			{
-				//fd_msg_log( FD_MSG_LOG_TIMING, msg, "Answer received in %ld.%6.6ld sec.", (long)delay.tv_sec, delay.tv_nsec / 1000 );
-			}
 		} else {
 			/* Mark the incoming request so that we know we have pending answers for this peer */
 			CHECK_POSIX_DO( pthread_mutex_lock(&peer->p_state_mtx), goto psm_end  );
 			peer->p_reqin_count++;
 			CHECK_POSIX_DO( pthread_mutex_unlock(&peer->p_state_mtx), goto psm_end  );
 		}
+		
+		/* Log incoming message */
+		fd_hook_call(HOOK_MESSAGE_RECEIVED, msg, peer, NULL, fd_msg_pmdl_get(msg));
 		
 		if (cur_state == STATE_OPEN_NEW) {
 			/* OK, we have received something, so the connection is supposedly now in OPEN state at the remote site */
@@ -568,30 +572,41 @@ psm_loop:
 				case STATE_WAITCNXACK_ELEC:
 				case STATE_WAITCEA:
 				case STATE_CLOSED:
-				default:
+				default: {
 					/* In such case, just discard the message */
-					//fd_msg_log( FD_MSG_LOG_DROPPED, msg, "Received from peer '%s' while connection was not in state %s.", peer->p_hdr.info.pi_diamid, STATE_STR(cur_state) );
+					char buf[128];
+					snprintf(buf, sizeof(buf), "Received while peer state machine was in state %s.", STATE_STR(cur_state));
+					fd_hook_call(HOOK_MESSAGE_DROPPED, msg, peer, buf, fd_msg_pmdl_get(msg));
 					fd_msg_free(msg);
+				}
 			}
 			goto psm_loop;
 		}
 		
 		/* Link-local message: They must be understood by our dictionary, otherwise we return an error */
 		{
-			int ret = fd_msg_parse_or_error( &msg );
+			struct msg * error = NULL;
+			int ret = fd_msg_parse_or_error( &msg, &error );
 			if (ret != EBADMSG) {
-				CHECK_FCT_DO( ret, goto psm_end );
+				CHECK_FCT_DO( ret, 
+					{ 
+						LOG_E("%s: An unexpected error occurred while parsing a link-local message", peer->p_hdr.info.pi_diamid); 
+						fd_msg_free(msg); 
+						goto psm_end; 
+					} );
 			} else {
-				if (msg) {
+				if (msg == NULL) {
 					/* Send the error back to the peer */
-					CHECK_FCT_DO( ret = fd_out_send(&msg, NULL, peer, FD_CNX_ORDERED),  );
-					if (msg) {
+					CHECK_FCT_DO( ret = fd_out_send(&error, NULL, peer, FD_CNX_ORDERED),  );
+					if (error) {
 						/* Only if an error occurred & the message was not saved / dumped */
-						//fd_msg_log( FD_MSG_LOG_DROPPED, msg, "Internal error: Problem while sending (%s)", strerror(ret) );
-						CHECK_FCT_DO( fd_msg_free(msg), goto psm_end);
+						LOG_E("%s: error sending a message", peer->p_hdr.info.pi_diamid); 
+						CHECK_FCT_DO( fd_msg_free(error), goto psm_end);
 					}
 				} else {
 					/* We received an invalid answer, let's disconnect */
+					LOG_E("%s: Received invalid answer to Base protocol message, disconnecting...", peer->p_hdr.info.pi_diamid);
+					CHECK_FCT_DO( fd_msg_free(msg), goto psm_end);
 					CHECK_FCT_DO( fd_event_send(peer->p_events, FDEVP_CNX_ERROR, 0, NULL), goto psm_reset );
 				}
 				goto psm_loop;
@@ -601,7 +616,12 @@ psm_loop:
 		/* Handle the LL message and update the expiry timer appropriately */
 		switch (hdr->msg_code) {
 			case CC_CAPABILITIES_EXCHANGE:
-				CHECK_FCT_DO( fd_p_ce_msgrcv(&msg, (hdr->msg_flags & CMD_FLAG_REQUEST), peer), goto psm_reset );
+				CHECK_FCT_DO( fd_p_ce_msgrcv(&msg, (hdr->msg_flags & CMD_FLAG_REQUEST), peer), 
+					{
+						if (msg)
+							CHECK_FCT_DO( fd_msg_free(msg), );
+						goto psm_reset;
+					} );
 				break;
 			
 			case CC_DISCONNECT_PEER:
@@ -670,6 +690,8 @@ psm_loop:
 			default:
 				/* Mark the connection problem */
 				peer->p_flags.pf_cnx_pb = 1;
+			
+				fd_hook_call(HOOK_PEER_CONNECT_FAILED, NULL, peer, "The connection was broken", NULL);
 				
 				/* Destroy the connection, restart the timer to a new connection attempt */
 				fd_psm_next_timeout(peer, 1, peer->p_hdr.info.config.pic_tctimer ?: fd_g_config->cnf_timer_tc);
@@ -731,7 +753,6 @@ psm_loop:
 			params->cnx = NULL;
 		}
 		if (params->cer) {
-			//fd_msg_log( FD_MSG_LOG_DROPPED, params->cer, "Internal error: this CER was not handled as expected." );
 			CHECK_FCT_DO( fd_msg_free(params->cer), );
 			params->cer = NULL;
 		}
@@ -752,6 +773,7 @@ psm_loop:
 		switch (cur_state) {
 			case STATE_WAITCNXACK_ELEC:
 			case STATE_WAITCNXACK:
+				LOG_D("%s: Connection established", peer->p_hdr.info.pi_diamid);
 				fd_p_ce_handle_newcnx(peer, cnx);
 				break;
 				
@@ -780,6 +802,7 @@ psm_loop:
 				break;
 				
 			case STATE_WAITCNXACK:
+				LOG_D("%s: Connection attempt failed", peer->p_hdr.info.pi_diamid);
 				/* Go back to CLOSE */
 				fd_psm_next_timeout(peer, 1, peer->p_hdr.info.config.pic_tctimer ?: fd_g_config->cnf_timer_tc);
 				goto psm_reset;
@@ -802,6 +825,7 @@ psm_loop:
 				goto psm_loop;
 				
 			case STATE_CLOSED:
+				LOG_D("%s: Connecting...", peer->p_hdr.info.pi_diamid);
 				CHECK_FCT_DO( fd_psm_change_state(peer, STATE_WAITCNXACK), goto psm_end );
 				fd_psm_next_timeout(peer, 0, CNX_TIMEOUT);
 				CHECK_FCT_DO( fd_p_cnx_init(peer), goto psm_end );
@@ -810,9 +834,10 @@ psm_loop:
 			case STATE_SUSPECT:
 				/* Mark the connection problem */
 				peer->p_flags.pf_cnx_pb = 1;
-			case STATE_CLOSING:
 			case STATE_WAITCNXACK:
 			case STATE_WAITCEA:
+				fd_hook_call(HOOK_PEER_CONNECT_FAILED, NULL, peer, "Timeout while waiting for remote peer", NULL);
+			case STATE_CLOSING:
 				/* Destroy the connection, restart the timer to a new connection attempt */
 				fd_psm_next_timeout(peer, 1, peer->p_hdr.info.config.pic_tctimer ?: fd_g_config->cnf_timer_tc);
 				goto psm_reset;
@@ -848,6 +873,7 @@ psm_reset:
 	goto psm_loop;
 	
 psm_end:
+	LOG_N("%s: Going to ZOMBIE state (no more activity)", peer->p_hdr.info.pi_diamid);
 	fd_psm_cleanup(peer, 1);
 	TRACE_DEBUG(INFO, "'%s'\t-> STATE_ZOMBIE (terminated)\t'%s'",
 			STATE_STR(fd_peer_getstate(peer)),

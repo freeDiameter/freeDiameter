@@ -185,8 +185,7 @@ void   fd_hook_associate(struct msg * msg, struct fd_msg_pmdl * pmdl)
 	CHECK_PARAMS_DO( msg && pmdl, return );
 	in_msg = fd_msg_pmdl_get(msg);
 	ASSERT(in_msg && (in_msg->sentinel.o == NULL)); /* error / already initialized ??? */
-	fd_list_init(&in_msg->sentinel, pmdl_free);
-	CHECK_POSIX_DO( pthread_mutex_init(&in_msg->lock, NULL), );
+	in_msg->sentinel.o = pmdl_free;
 	/* Now move all items from the pmdl pointer into the initialized list */
 	CHECK_POSIX_DO( pthread_mutex_lock(&pmdl->lock), );
 	fd_list_move_end(&in_msg->sentinel, &pmdl->sentinel);
@@ -200,7 +199,12 @@ static struct fd_hook_permsgdata * get_or_create_pmd(struct fd_msg_pmdl *pmdl, s
 {
 	struct fd_hook_permsgdata * ret = NULL;
 	struct fd_list * li;
+	
 	CHECK_POSIX_DO( pthread_mutex_lock(&pmdl->lock), );
+	
+	if (pmdl->sentinel.o == NULL) {
+		pmdl->sentinel.o = pmdl_free;
+	}
 	
 	/* Search in the list for an item with the same handle. The list is ordered by this handle */
 	for (li=pmdl->sentinel.next; li != &pmdl->sentinel; li = li->next) {
@@ -230,30 +234,175 @@ static struct fd_hook_permsgdata * get_or_create_pmd(struct fd_msg_pmdl *pmdl, s
 	return ret;
 }
 
+struct fd_hook_permsgdata * fd_hook_get_request_pmd(struct fd_hook_data_hdl *data_hdl, struct msg * answer)
+{
+	struct msg * qry;
+	struct fd_msg_pmdl *pmdl;
+	struct fd_hook_permsgdata * ret = NULL;
+	struct fd_list * li;
+	
+	CHECK_FCT_DO( fd_msg_answ_getq(answer, &qry), return NULL );
+	if (!qry)
+		return NULL;
+	
+	pmdl = fd_msg_pmdl_get(qry);
+	if (!pmdl)
+		return NULL;
+	
+	CHECK_POSIX_DO( pthread_mutex_lock(&pmdl->lock), );
+	/* Search in the list for an item with the same handle. The list is ordered by this handle */
+	for (li=pmdl->sentinel.next; li != &pmdl->sentinel; li = li->next) {
+		struct pmd_list_item * pli = (struct pmd_list_item *) li;
+		if (pli->hdl == data_hdl)
+			ret = &pli->pmd;
+		if (pli->hdl >= data_hdl)
+			break;
+	}
+	CHECK_POSIX_DO( pthread_mutex_unlock(&pmdl->lock), );
+	return ret;
+}
 
 /* The function that does the work of calling the extension's callbacks and also managing the permessagedata structures */
 void   fd_hook_call(enum fd_hook_type type, struct msg * msg, struct fd_peer * peer, void * other, struct fd_msg_pmdl * pmdl)
 {
 	struct fd_list * li;
 	ASSERT(type <= HOOK_PEER_LAST);
+	int call_default = 0;
 	
 	/* lock the list of hooks for this type */
 	CHECK_POSIX_DO( pthread_rwlock_rdlock(&HS_array[type].rwlock), );
 	
-	/* for each registered hook */
-	for (li = HS_array[type].sentinel.next; li != &HS_array[type].sentinel; li = li->next) {
-		struct fd_hook_hdl * h = (struct fd_hook_hdl *)li->o;
-		struct fd_hook_permsgdata * pmd = NULL;
-		
-		/* do we need to handle pmd ? */
-		if (h->data_hdl && pmdl) {
-			pmd = get_or_create_pmd(pmdl, h);
+	if (FD_IS_LIST_EMPTY(&HS_array[type].sentinel)) {
+		call_default = 1;
+	} else {
+		/* for each registered hook */
+		for (li = HS_array[type].sentinel.next; li != &HS_array[type].sentinel; li = li->next) {
+			struct fd_hook_hdl * h = (struct fd_hook_hdl *)li->o;
+			struct fd_hook_permsgdata * pmd = NULL;
+
+			/* do we need to handle pmd ? */
+			if (h->data_hdl && pmdl) {
+				pmd = get_or_create_pmd(pmdl, h);
+			}
+
+			/* Now, call this callback */
+			(*h->fd_hook_cb)(type, msg, &peer->p_hdr, other, pmd, h->regdata);
 		}
-		
-		/* Now, call this callback */
-		(*h->fd_hook_cb)(type, msg, &peer->p_hdr, other, pmd, h->regdata);
 	}
 	
 	/* done */
 	CHECK_POSIX_DO( pthread_rwlock_unlock(&HS_array[type].rwlock), );
+	
+	if (call_default) {
+		char * buf = NULL;
+		size_t len = 0;
+	
+		/* There was no registered handler, default behavior for this hook */
+		switch (type) {
+			case HOOK_DATA_RECEIVED: {
+				struct fd_cnx_rcvdata *rcv_data = other;
+				LOG_A("RCV: %zd bytes", rcv_data->length);
+				break;
+			}
+			
+			case HOOK_MESSAGE_RECEIVED: {
+				CHECK_MALLOC_DO(fd_msg_dump_summary(&buf, &len, NULL, msg, NULL, 0, 1), break);
+				LOG_D("RCV from '%s': %s", peer ? peer->p_hdr.info.pi_diamid : "<unknown>", buf);
+				break;
+			}
+			
+			case HOOK_MESSAGE_LOCAL: {
+				CHECK_MALLOC_DO(fd_msg_dump_full(&buf, &len, NULL, msg, NULL, 0, 1), break);
+				LOG_A("Handled to framework for sending: %s", buf);
+				break;
+			}
+			
+			case HOOK_MESSAGE_SENT: {
+				CHECK_MALLOC_DO(fd_msg_dump_summary(&buf, &len, NULL, msg, NULL, 0, 1), break);
+				LOG_D("SENT to '%s': %s", peer ? peer->p_hdr.info.pi_diamid : "<unknown>", buf);
+				break;
+			}
+			
+			case HOOK_MESSAGE_FAILOVER: {
+				CHECK_MALLOC_DO(fd_msg_dump_summary(&buf, &len, NULL, msg, NULL, 0, 1), break);
+				LOG_D("Failing over message sent to '%s': %s", peer ? peer->p_hdr.info.pi_diamid : "<unknown>", buf);
+				break;
+			}
+			
+			case HOOK_MESSAGE_PARSING_ERROR: {
+				if (msg) {
+					DiamId_t id = NULL;
+					size_t idlen;
+					if (!fd_msg_source_get( msg, &id, &idlen ))
+						id = (DiamId_t)"<error getting source>";
+					
+					if (!id)
+						id = (DiamId_t)"<local>";
+					
+					CHECK_MALLOC_DO(fd_msg_dump_treeview(&buf, &len, NULL, msg, NULL, 0, 1), break);
+					
+					LOG_E("Parsing error: '%s' for the following message received from '%s':\n%s", (char *)other, (char *)id, buf);
+				} else {
+					struct fd_cnx_rcvdata *rcv_data = other;
+					CHECK_MALLOC_DO(fd_dump_extend_hexdump(&buf, &len, NULL, rcv_data->buffer, rcv_data->length, 0, 0), break);
+					LOG_E("Parsing error: cannot parse %zdB buffer from '%s': %s",  rcv_data->length, peer ? peer->p_hdr.info.pi_diamid : "<unknown>", buf);
+				}
+				break;
+			}
+			
+			case HOOK_MESSAGE_ROUTING_ERROR: {
+				DiamId_t id = NULL;
+				size_t idlen;
+				if (!fd_msg_source_get( msg, &id, &idlen ))
+					id = (DiamId_t)"<error getting source>";
+
+				if (!id)
+					id = (DiamId_t)"<local>";
+
+				CHECK_MALLOC_DO(fd_msg_dump_treeview(&buf, &len, NULL, msg, NULL, 0, 1), break);
+
+				LOG_E("Routing error: '%s' for the following message:\n%s", (char *)other, buf);
+				break;
+			}
+			
+			case HOOK_MESSAGE_ROUTING_FORWARD: {
+				CHECK_MALLOC_DO(fd_msg_dump_summary(&buf, &len, NULL, msg, NULL, 0, 1), break);
+				LOG_D("FORWARDING: %s", buf);
+				break;
+			}
+			
+			case HOOK_MESSAGE_ROUTING_LOCAL: {
+				CHECK_MALLOC_DO(fd_msg_dump_summary(&buf, &len, NULL, msg, NULL, 0, 1), break);
+				LOG_D("DISPATCHING: %s", buf);
+				break;
+			}
+			
+			case HOOK_MESSAGE_DROPPED: {
+				CHECK_MALLOC_DO(fd_msg_dump_treeview(&buf, &len, NULL, msg, NULL, 0, 1), break);
+				LOG_E("Message discarded ('%s'):\n%s", (char *)other, buf);
+				break;
+			}
+			
+			case HOOK_PEER_CONNECT_FAILED: {
+				if (msg) {
+					size_t offset = 0;
+					CHECK_MALLOC_DO(fd_dump_extend(&buf, &len, &offset, " CER/CEA dump:\n"), break);
+					CHECK_MALLOC_DO(fd_msg_dump_treeview(&buf, &len, &offset, msg, NULL, 0, 1), break);
+					LOG_N("Connection to '%s' failed: %s%s", peer ? peer->p_hdr.info.pi_diamid : "<unknown>", (char *)other, buf);
+				} else {
+					LOG_D("Connection to '%s' failed: %s", peer ? peer->p_hdr.info.pi_diamid : "<unknown>", (char *)other);
+				}
+				break;
+			}
+			
+			case HOOK_PEER_CONNECT_SUCCESS: {
+				CHECK_MALLOC_DO(fd_msg_dump_treeview(&buf, &len, NULL, msg, NULL, 0, 1), break);
+				LOG_N("Connected to '%s', remote capabilities: %s", peer ? peer->p_hdr.info.pi_diamid : "<unknown>", buf);
+				break;
+			}
+			
+		}
+		
+		free(buf);
+	}
 }

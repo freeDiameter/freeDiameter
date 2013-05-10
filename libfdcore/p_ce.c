@@ -670,6 +670,8 @@ int fd_p_ce_handle_newcnx(struct fd_peer * peer, struct cnxctx * initiator)
 			/* Close initiator connection */
 			fd_cnx_destroy(initiator);
 
+			LOG_D("%s: Election lost on outgoing connection, closing and answering CEA on incoming connection.", peer->p_hdr.info.pi_diamid);
+			
 			/* Process with the receiver side */
 			CHECK_FCT( fd_p_ce_process_receiver(peer) );
 
@@ -677,6 +679,8 @@ int fd_p_ce_handle_newcnx(struct fd_peer * peer, struct cnxctx * initiator)
 			struct fd_pei pei;
 			memset(&pei, 0, sizeof(pei));
 			pei.pei_errcode = "ELECTION_LOST";
+			pei.pei_message = "Please answer my CER instead, you won the election.";
+			LOG_D("%s: Election lost on incoming connection, closing and waiting for CEA on outgoing connection.", peer->p_hdr.info.pi_diamid);
 
 			/* Answer an ELECTION LOST to the receiver side */
 			receiver_reject(&peer->p_receiver, &peer->p_cer, &pei);
@@ -719,7 +723,11 @@ int fd_p_ce_msgrcv(struct msg ** msg, int req, struct fd_peer * peer)
 	/* If the state is not WAITCEA, just discard the message */
 	if (req || ((st = fd_peer_getstate(peer)) != STATE_WAITCEA)) {
 		if (*msg) {
-			//fd_msg_log( FD_MSG_LOG_DROPPED, *msg, "Received CER/CEA while in '%s' state.", STATE_STR(st));
+			/* In such case, just discard the message */
+			char buf[128];
+			snprintf(buf, sizeof(buf), "Received while peer state machine was in state %s.", STATE_STR(st));
+			fd_hook_call(HOOK_MESSAGE_DROPPED, *msg, peer, buf, fd_msg_pmdl_get(*msg));
+
 			CHECK_FCT_DO( fd_msg_free(*msg), /* continue */);
 			*msg = NULL;
 		}
@@ -730,21 +738,28 @@ int fd_p_ce_msgrcv(struct msg ** msg, int req, struct fd_peer * peer)
 	memset(&pei, 0, sizeof(pei));
 	
 	/* Save info from the CEA into the peer */
-	CHECK_FCT_DO( save_remote_CE_info(*msg, peer, &pei, &rc), goto cleanup );
-	
-	/* Dispose of the message, we don't need it anymore */
-	CHECK_FCT_DO( fd_msg_free(*msg), /* continue */ );
-	*msg = NULL;
+	CHECK_FCT_DO( save_remote_CE_info(*msg, peer, &pei, &rc), 
+		{
+			fd_hook_call(HOOK_PEER_CONNECT_FAILED, *msg, peer, "An error occurred while processing incoming CEA.", NULL);
+			goto cleanup;
+		} );
 	
 	/* Check the Result-Code */
 	switch (rc) {
 		case ER_DIAMETER_SUCCESS:
+			/* Log success */
+			fd_hook_call(HOOK_PEER_CONNECT_SUCCESS, *msg, peer, NULL, NULL);
+			
+			/* Dispose of the message, we don't need it anymore */
+			CHECK_FCT_DO( fd_msg_free(*msg), /* continue */ );
+			*msg = NULL;
+			
 			/* No problem, we can continue */
 			break;
 			
 		case ER_DIAMETER_TOO_BUSY:
 			/* Retry later */
-			TRACE_DEBUG(INFO, "Peer %s replied a CEA with Result-Code AVP DIAMETER_TOO_BUSY, will retry later.", peer->p_hdr.info.pi_diamid);
+			fd_hook_call(HOOK_PEER_CONNECT_FAILED, *msg, peer, "Remote peer is too busy", NULL);
 			fd_psm_cleanup(peer, 0);
 			fd_psm_next_timeout(peer, 0, 300);
 			return 0;
@@ -756,9 +771,10 @@ int fd_p_ce_msgrcv(struct msg ** msg, int req, struct fd_peer * peer)
 		
 		default:
 			/* In any other case, we abort all attempts to connect to this peer */
-			TRACE_DEBUG(INFO, "Peer %s replied a CEA with Result-Code %d, aborting connection attempts.", peer->p_hdr.info.pi_diamid, rc);
+			fd_hook_call(HOOK_PEER_CONNECT_FAILED, *msg, peer, "CEA with unexpected error code", NULL);
 			return EINVAL;
 	}
+	
 	
 	/* Handshake if needed, start clear otherwise */
 	if ( ! fd_cnx_getTLS(peer->p_cnxctx) ) {
@@ -777,7 +793,7 @@ int fd_p_ce_msgrcv(struct msg ** msg, int req, struct fd_peer * peer)
 			CHECK_FCT_DO( fd_cnx_handshake(peer->p_cnxctx, GNUTLS_CLIENT, peer->p_hdr.info.config.pic_priority, NULL),
 				{
 					/* Handshake failed ...  */
-					fd_log_debug("TLS Handshake failed with peer '%s', resetting the connection", peer->p_hdr.info.pi_diamid);
+					fd_hook_call(HOOK_PEER_CONNECT_FAILED, NULL, peer, "TLS handshake failed after CER/CEA exchange", NULL);
 					goto cleanup;
 				} );
 
@@ -817,7 +833,11 @@ int fd_p_ce_process_receiver(struct fd_peer * peer)
 	
 	TRACE_ENTRY("%p", peer);
 	
-	CHECK_FCT( set_peer_cnx(peer, &peer->p_receiver) );
+	CHECK_FCT_DO( set_peer_cnx(peer, &peer->p_receiver),
+		{
+			fd_hook_call(HOOK_PEER_CONNECT_FAILED, NULL, peer, "Error saving the incoming connection in the peer structure", NULL);
+			return __ret__;
+		} );
 	msg = peer->p_cer;
 	peer->p_cer = NULL;
 	
@@ -927,6 +947,10 @@ int fd_p_ce_process_receiver(struct fd_peer * peer)
 	CHECK_FCT( fd_msg_new_answer_from_req ( fd_g_config->cnf_dict, &msg, 0 ) );
 	CHECK_FCT( fd_msg_rescode_set(msg, "DIAMETER_SUCCESS", NULL, NULL, 0 ) );
 	CHECK_FCT( add_CE_info(msg, peer->p_cnxctx, isi & PI_SEC_TLS_OLD, isi & PI_SEC_NONE) );
+	
+	/* The connection is complete, but we may still need TLS handshake */
+	fd_hook_call(HOOK_PEER_CONNECT_SUCCESS, msg, peer, NULL, NULL);
+	
 	CHECK_FCT( fd_out_send(&msg, peer->p_cnxctx, peer, FD_CNX_ORDERED ) );
 	
 	/* Handshake if needed */
@@ -935,19 +959,25 @@ int fd_p_ce_process_receiver(struct fd_peer * peer)
 		CHECK_FCT_DO( fd_cnx_handshake(peer->p_cnxctx, GNUTLS_SERVER, peer->p_hdr.info.config.pic_priority, NULL),
 			{
 				/* Handshake failed ...  */
-				fd_log_debug("TLS Handshake failed with peer '%s', resetting the connection", peer->p_hdr.info.pi_diamid);
+				fd_hook_call(HOOK_PEER_CONNECT_FAILED, NULL, peer, "TLS handshake failed after CER/CEA exchange", NULL);
 				goto cleanup;
 			} );
 		
 		/* Retrieve the credentials */
-		CHECK_FCT( fd_cnx_getcred(peer->p_cnxctx, &peer->p_hdr.info.runtime.pir_cert_list, &peer->p_hdr.info.runtime.pir_cert_list_size) );
+		CHECK_FCT_DO( fd_cnx_getcred(peer->p_cnxctx, &peer->p_hdr.info.runtime.pir_cert_list, &peer->p_hdr.info.runtime.pir_cert_list_size),
+			{
+				/* Error ...  */
+				fd_hook_call(HOOK_PEER_CONNECT_FAILED, NULL, peer, "Unable to retrieve remote credentials after TLS handshake", NULL);
+				goto cleanup;
+			} );
+		
 		
 		/* Call second validation callback if needed */
 		if (peer->p_cb2) {
 			TRACE_DEBUG(FULL, "Calling second validation callback for %s", peer->p_hdr.info.pi_diamid);
 			CHECK_FCT_DO( (*peer->p_cb2)( &peer->p_hdr.info ),
 				{
-					TRACE_DEBUG(INFO, "Validation callback rejected the peer %s after handshake", peer->p_hdr.info.pi_diamid);
+					fd_hook_call(HOOK_PEER_CONNECT_FAILED, NULL, peer, "Validation callback rejected the peer after handshake", NULL);
 					CHECK_FCT( fd_psm_terminate( peer, "DO_NOT_WANT_TO_TALK_TO_YOU" ) );
 					return 0;
 				}  );
@@ -981,12 +1011,16 @@ int fd_p_ce_process_receiver(struct fd_peer * peer)
 error_abort:
 	if (pei.pei_errcode) {
 		/* Send the error */
+		fd_hook_call(HOOK_PEER_CONNECT_FAILED, msg, peer, pei.pei_message ?: pei.pei_errcode, NULL);
 		receiver_reject(&peer->p_cnxctx, &msg, &pei);
+	} else {
+		char buf[1024];
+		snprintf(buf, sizeof(buf), "Unexpected error occurred while processing incoming connection from '%s'.", peer->p_hdr.info.pi_diamid);
+		fd_hook_call(HOOK_PEER_CONNECT_FAILED, msg, peer, buf, NULL);
 	}
 	
 cleanup:
 	if (msg) {
-		//fd_msg_log(FD_MSG_LOG_DROPPED, msg, "An error occurred while processing a CER.");
 		fd_msg_free(msg);
 	}
 	fd_p_ce_clear_cnx(peer, NULL);
@@ -1026,6 +1060,7 @@ int fd_p_ce_handle_newCER(struct msg ** msg, struct fd_peer * peer, struct cnxct
 			if (election_result(peer)) {
 				
 				/* Close initiator connection (was already set as principal) */
+				LOG_D("%s: Election lost on outgoing connection, closing and answering CEA on incoming connection.", peer->p_hdr.info.pi_diamid);
 				fd_p_ce_clear_cnx(peer, NULL);
 				
 				/* and go on with the receiver side */
@@ -1040,6 +1075,7 @@ int fd_p_ce_handle_newCER(struct msg ** msg, struct fd_peer * peer, struct cnxct
 				/* Answer an ELECTION LOST to the receiver side and continue */
 				pei.pei_errcode = "ELECTION_LOST";
 				pei.pei_message = "Please answer my CER instead, you won the election.";
+				LOG_D("%s: Election lost on incoming connection, closing and waiting for CEA on outgoing connection.", peer->p_hdr.info.pi_diamid);
 				receiver_reject(cnx, msg, &pei);
 			}
 			break;
@@ -1047,6 +1083,7 @@ int fd_p_ce_handle_newCER(struct msg ** msg, struct fd_peer * peer, struct cnxct
 		default:
 			pei.pei_errcode = "DIAMETER_UNABLE_TO_COMPLY"; /* INVALID COMMAND? in case of Capabilities-Updates? */
 			pei.pei_message = "Invalid state to receive a new connection attempt.";
+			LOG_E("%s: Rejecting new connection attempt while our state machine is in state '%s'", peer->p_hdr.info.pi_diamid, STATE_STR(cur_state));
 			receiver_reject(cnx, msg, &pei);
 	}
 				

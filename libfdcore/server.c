@@ -133,10 +133,11 @@ static void * client_sm(void * arg)
 {
 	struct client * c = arg;
 	struct server * s = NULL;
-	uint8_t       * buf = NULL;
-	size_t 		bufsz;
+	struct fd_cnx_rcvdata rcv_data;
+	struct fd_msg_pmdl * pmdl = NULL;
 	struct msg    * msg = NULL;
 	struct msg_hdr *hdr = NULL;
+	struct fd_pei pei;
 	
 	TRACE_ENTRY("%p", c);
 	
@@ -151,9 +152,11 @@ static void * client_sm(void * arg)
 	if (s->secur) {
 		int ret = fd_cnx_handshake(c->conn, GNUTLS_SERVER, NULL, NULL);
 		if (ret != 0) {
-			if (TRACE_BOOL(INFO)) {
-				fd_log_debug("TLS handshake failed for client '%s', connection aborted.", fd_cnx_getid(c->conn));
-			}
+			char buf[1024];
+			snprintf(buf, sizeof(buf), "TLS handshake failed for client '%s', connection aborted.", fd_cnx_getid(c->conn));
+			
+			fd_hook_call(HOOK_PEER_CONNECT_FAILED, NULL, NULL, buf, NULL);
+			
 			goto cleanup;
 		}
 	} else {
@@ -165,23 +168,65 @@ static void * client_sm(void * arg)
 	c->ts.tv_sec += INCNX_TIMEOUT;
 	
 	/* Receive the first Diameter message on the connection -- cleanup in case of timeout */
-	CHECK_FCT_DO( fd_cnx_receive(c->conn, &c->ts, &buf, &bufsz), goto cleanup );
+	CHECK_FCT_DO( fd_cnx_receive(c->conn, &c->ts, &rcv_data.buffer, &rcv_data.length), 
+		{
+			char buf[1024];
+			
+			switch (__ret__) {
+			case ETIMEDOUT:
+				snprintf(buf, sizeof(buf), "Client '%s' did not send CER within %ds, connection aborted.", fd_cnx_getid(c->conn), INCNX_TIMEOUT);
+				fd_hook_call(HOOK_PEER_CONNECT_FAILED, NULL, NULL, buf, NULL);
+				break;
+			
+			case ENOTCONN:
+				snprintf(buf, sizeof(buf), "Connection from '%s' in error before CER was received.", fd_cnx_getid(c->conn));
+				fd_hook_call(HOOK_PEER_CONNECT_FAILED, NULL, NULL, buf, NULL);
+				break;
+			
+			default:
+				snprintf(buf, sizeof(buf), "Connection from '%s': unspecified error, connection aborted.", fd_cnx_getid(c->conn));
+				fd_hook_call(HOOK_PEER_CONNECT_FAILED, NULL, NULL, buf, NULL);
+			}
+			goto cleanup;
+		} );
 	
-	TRACE_DEBUG(FULL, "Received %zdb from new client '%s'", bufsz, fd_cnx_getid(c->conn));
+	TRACE_DEBUG(FULL, "Received %zdb from new client '%s'", rcv_data.length, fd_cnx_getid(c->conn));
+	
+	pmdl = fd_msg_pmdl_get_inbuf(rcv_data.buffer, rcv_data.length);
 	
 	/* Try parsing this message */
-	CHECK_FCT_DO( fd_msg_parse_buffer( &buf, bufsz, &msg ), /* Parsing failed */ goto cleanup );
+	CHECK_FCT_DO( fd_msg_parse_buffer( &rcv_data.buffer, rcv_data.length, &msg ), 
+		{ 	/* Parsing failed */ 
+			fd_hook_call(HOOK_MESSAGE_PARSING_ERROR, NULL, NULL, &rcv_data, pmdl );
+			goto cleanup;
+		} );
 	
 	/* Log incoming message */
-	//fd_msg_log( FD_MSG_LOG_RECEIVED, msg, "Received %zdb from new client '%s'", bufsz, fd_cnx_getid(c->conn) );
+	fd_hook_associate(msg, pmdl);
+	fd_hook_call(HOOK_MESSAGE_RECEIVED, msg, NULL, fd_cnx_getid(c->conn), fd_msg_pmdl_get(msg));
 	
 	/* We expect a CER, it must parse with our dictionary and rules */
-	CHECK_FCT_DO( fd_msg_parse_rules( msg, fd_g_config->cnf_dict, NULL ), /* Parsing failed -- trace details ? */ goto cleanup );
+	CHECK_FCT_DO( fd_msg_parse_rules( msg, fd_g_config->cnf_dict, &pei ), 
+		{ /* Parsing failed -- trace details */ 
+			char buf[1024];
+			
+			fd_hook_call(HOOK_MESSAGE_PARSING_ERROR, msg, NULL, pei.pei_message ?: pei.pei_errcode, fd_msg_pmdl_get(msg));
+			
+			snprintf(buf, sizeof(buf), "Error parsing CER from '%s', connection aborted.", fd_cnx_getid(c->conn));
+			fd_hook_call(HOOK_PEER_CONNECT_FAILED, NULL, NULL, buf, NULL);
+			
+			goto cleanup;
+		} );
 	
 	/* Now check we received a CER */
 	CHECK_FCT_DO( fd_msg_hdr ( msg, &hdr ), goto fatal_error );
 	CHECK_PARAMS_DO( (hdr->msg_appl == 0) && (hdr->msg_flags & CMD_FLAG_REQUEST) && (hdr->msg_code == CC_CAPABILITIES_EXCHANGE),
-		{ fd_log_debug("Connection '%s', expecting CER, received something else, closing...", fd_cnx_getid(c->conn)); goto cleanup; } );
+		{ /* Parsing failed -- trace details */ 
+			char buf[1024];
+			snprintf(buf, sizeof(buf), "Expected CER from '%s', received a different message, connection aborted.", fd_cnx_getid(c->conn));
+			fd_hook_call(HOOK_PEER_CONNECT_FAILED, msg, NULL, buf, NULL);
+			goto cleanup;
+		} );
 	
 	/* Finally, pass the information to the peers module which will handle it next */
 	pthread_cleanup_push((void *)fd_cnx_destroy, c->conn);
@@ -199,7 +244,6 @@ cleanup:
 	
 	/* Cleanup the parsed message if any */
 	if (msg) {
-		//fd_msg_log( FD_MSG_LOG_DROPPED, msg, "Received invalid/unexpected message from connecting client '%s'", fd_cnx_getid(c->conn) );
 		CHECK_FCT_DO( fd_msg_free(msg), /* continue */);
 	}
 	
@@ -208,7 +252,7 @@ cleanup:
 		fd_cnx_destroy(c->conn);
 	
 	/* Cleanup the received buffer if any */
-	free(buf);
+	free(rcv_data.buffer);
 	
 	/* Detach the thread, cleanup the client structure */
 	pthread_detach(pthread_self());
@@ -239,8 +283,6 @@ static void * serv_th(void * arg)
 		/* Wait for a new client or cancel */
 		CHECK_MALLOC_DO( conn = fd_cnx_serv_accept(s->conn), goto error );
 		
-		TRACE_DEBUG(FULL, "New connection accepted");
-		
 		/* Create a client structure */
 		CHECK_MALLOC_DO( c = malloc(sizeof(struct client)), goto error );
 		memset(c, 0, sizeof(struct client));
@@ -260,8 +302,9 @@ static void * serv_th(void * arg)
 error:	
 	if (s)
 		set_status(s, TERMINATED);
-	/* Send error signal to the daemon */
-	TRACE_DEBUG(INFO, "An error occurred in server module! Thread is terminating...");
+
+	/* Send error signal to the core */
+	LOG_F( "An error occurred in server module! Thread is terminating...");
 	CHECK_FCT_DO(fd_event_send(fd_g_config->cnf_main_ev, FDEV_TERMINATE, 0, NULL), );
 
 	return NULL;

@@ -411,6 +411,7 @@ int fd_fifo_post_int ( struct fifo * queue, void ** item )
 	/* Create a new list item */
 	CHECK_MALLOC_DO(  new = malloc (sizeof (struct fifo_item)) , {
 			pthread_mutex_unlock( &queue->mtx );
+			return ENOMEM;
 		} );
 	
 	fd_list_init(&new->item, *item);
@@ -469,11 +470,11 @@ static void * mq_pop(struct fifo * queue)
 	
 	ASSERT( ! FD_IS_LIST_EMPTY(&queue->list) );
 	
-	fi = (struct fifo_item *)queue->list.next;
+	fi = (struct fifo_item *)(queue->list.next);
+	ret = fi->item.o;
 	fd_list_unlink(&fi->item);
 	queue->count--;
 	queue->total_items++;
-	ret = fi->item.o;
 	
 	/* Update the timings */
 	CHECK_SYS_DO(  clock_gettime(CLOCK_REALTIME, &now), goto skip_timing  );
@@ -597,7 +598,7 @@ awaken:
 		TRACE_DEBUG(FULL, "The queue is being destroyed -> EPIPE");
 		return EPIPE;
 	}
-		
+	
 	if (queue->count > 0) {
 		/* There are items in the queue, so pick the first one */
 		*item = mq_pop(queue);

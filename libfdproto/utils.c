@@ -65,10 +65,28 @@ DECLARE_FD_DUMP_PROTOTYPE(fd_sa_dump_node_serv, sSA * sa, int flags)
 		if (rc) {
 			CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "%s", gai_strerror(rc)), return NULL);
 		} else {
-			CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "%s", &addrbuf[0]), return NULL);
+			CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "%s(s)", &addrbuf[0], &servbuf[0]), return NULL);
 		}
 	} else {
 		CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "(NULL / ANY)"), return NULL);
 	}
 	return *buf;
+}
+
+void fd_sa_sdump_numeric(char * buf /* must be at least sSA_DUMP_STRLEN */, sSA * sa)
+{
+	char addrbuf[INET6_ADDRSTRLEN];
+	char servbuf[32];
+	
+	if (sa) {
+		int rc = getnameinfo(sa, sSAlen( sa ), addrbuf, sizeof(addrbuf), servbuf, sizeof(servbuf), NI_NUMERICHOST | NI_NUMERICSERV);
+		if (rc) {
+			snprintf(buf, sSA_DUMP_STRLEN, "%s", gai_strerror(rc));
+		} else {
+			snprintf(buf, sSA_DUMP_STRLEN, "%s(%s)", addrbuf, servbuf);
+		}
+	} else {
+		snprintf(buf, sSA_DUMP_STRLEN, "(NULL / ANY)");
+	}
+	
 }

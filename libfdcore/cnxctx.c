@@ -227,12 +227,6 @@ struct cnxctx * fd_cnx_serv_accept(struct cnxctx * serv)
 	/* Accept the new connection -- this is blocking until new client enters or until cancellation */
 	CHECK_SYS_DO( cli_sock = accept(serv->cc_socket, (sSA *)&ss, &ss_len), return NULL );
 	
-	if (TRACE_BOOL(INFO)) {
-		char buf[1024];
-		sSA_DUMP_NODE( buf, sizeof(buf), &ss, NI_NUMERICHOST );
-		fd_log_debug("%s : accepted new client [%s].", fd_cnx_getid(serv), buf);
-	}
-	
 	CHECK_MALLOC_DO( cli = fd_cnx_init(1), { shutdown(cli_sock, SHUT_RDWR); close(cli_sock); return NULL; } );
 	cli->cc_socket = cli_sock;
 	cli->cc_family = serv->cc_family;
@@ -263,6 +257,8 @@ struct cnxctx * fd_cnx_serv_accept(struct cnxctx * serv)
 		if (rc)
 			snprintf(cli->cc_remid, sizeof(cli->cc_remid), "[err:%s]", gai_strerror(rc));
 	}
+	
+	LOG_D("Incoming connection: '%s' <- '%s'   {%s}", fd_cnx_getid(serv), cli->cc_remid, cli->cc_id);
 
 #ifndef DISABLE_SCTP
 	/* SCTP-specific handlings */
@@ -274,7 +270,7 @@ struct cnxctx * fd_cnx_serv_accept(struct cnxctx * serv)
 		else
 			cli->cc_sctp_para.pairs = cli->cc_sctp_para.str_in;
 		
-		TRACE_DEBUG(FULL,"%s : client '%s' (SCTP:%d, %d/%d streams)", fd_cnx_getid(serv), fd_cnx_getid(cli), cli->cc_socket, cli->cc_sctp_para.str_in, cli->cc_sctp_para.str_out);
+		LOG_A( "%s : client '%s' (SCTP:%d, %d/%d streams)", fd_cnx_getid(serv), fd_cnx_getid(cli), cli->cc_socket, cli->cc_sctp_para.str_in, cli->cc_sctp_para.str_out);
 	}
 #endif /* DISABLE_SCTP */
 
@@ -286,34 +282,20 @@ struct cnxctx * fd_cnx_cli_connect_tcp(sSA * sa /* contains the port already */,
 {
 	int sock = 0;
 	struct cnxctx * cnx = NULL;
+	char sa_buf[sSA_DUMP_STRLEN];
 	
 	TRACE_ENTRY("%p %d", sa, addrlen);
 	CHECK_PARAMS_DO( sa && addrlen, return NULL );
+	
+	fd_sa_sdump_numeric(sa_buf, sa);
 	
 	/* Create the socket and connect, which can take some time and/or fail */
 	{
 		int ret = fd_tcp_client( &sock, sa, addrlen );
 		if (ret != 0) {
-			int lvl;
-			switch (ret) {
-				case ECONNREFUSED:
-
-					/* "Normal" errors */
-					lvl = FULL;
-					break;
-				default:
-					lvl = INFO;
-			}
-			/* Some errors are expected, we log at different level */
-			TRACE_DEBUG( lvl, "fd_tcp_client returned an error: %s", strerror(ret));
+			LOG_A("TCP connection to %s failed: %s", sa_buf, strerror(ret));
 			return NULL;
 		}
-	}
-	
-	if (TRACE_BOOL(INFO)) {
-		char buf[1024];
-		sSA_DUMP_NODE_SERV( buf, sizeof(buf), sa, NI_NUMERICSERV);
-		fd_log_debug("Connection established to server '%s' (TCP:%d).", buf, sock);
 	}
 	
 	/* Once the socket is created successfuly, prepare the remaining of the cnx */
@@ -328,24 +310,17 @@ struct cnxctx * fd_cnx_cli_connect_tcp(sSA * sa /* contains the port already */,
 	
 	/* Generate the names for the object */
 	{
-		char addrbuf[INET6_ADDRSTRLEN];
-		char portbuf[10];
 		int  rc;
 		
-		/* Numeric values for debug... */
-		rc = getnameinfo(sa, addrlen, addrbuf, sizeof(addrbuf), portbuf, sizeof(portbuf), NI_NUMERICHOST | NI_NUMERICSERV);
-		if (rc) {
-			snprintf(addrbuf, sizeof(addrbuf), "[err:%s]", gai_strerror(rc));
-			portbuf[0] = '\0';
-		}
-		
-		snprintf(cnx->cc_id, sizeof(cnx->cc_id), "TCP to [%s]:%s (%d)", addrbuf, portbuf, cnx->cc_socket);
+		snprintf(cnx->cc_id, sizeof(cnx->cc_id), "TCP,#%d->%s", cnx->cc_socket, sa_buf);
 		
 		/* ...Name for log messages */
 		rc = getnameinfo(sa, addrlen, cnx->cc_remid, sizeof(cnx->cc_remid), NULL, 0, 0);
 		if (rc)
 			snprintf(cnx->cc_remid, sizeof(cnx->cc_remid), "[err:%s]", gai_strerror(rc));
 	}
+	
+	LOG_A("TCP connection to %s succeed (socket:%d).", sa_buf, sock);
 	
 	return cnx;
 }
@@ -361,26 +336,18 @@ struct cnxctx * fd_cnx_cli_connect_sctp(int no_ip6, uint16_t port, struct fd_lis
 #else /* DISABLE_SCTP */
 	int sock = 0;
 	struct cnxctx * cnx = NULL;
+	char sa_buf[sSA_DUMP_STRLEN];
 	sSS primary;
 	
 	TRACE_ENTRY("%p", list);
 	CHECK_PARAMS_DO( list && !FD_IS_LIST_EMPTY(list), return NULL );
 	
+	fd_sa_sdump_numeric(sa_buf, &((struct fd_endpoint *)(list->next))->sa);
+	
 	{
 		int ret = fd_sctp_client( &sock, no_ip6, port, list );
 		if (ret != 0) {
-			int lvl;
-			switch (ret) {
-				case ECONNREFUSED:
-
-					/* "Normal" errors */
-					lvl = FULL;
-					break;
-				default:
-					lvl = INFO;
-			}
-			/* Some errors are expected, we log at different level */
-			TRACE_DEBUG( lvl, "fd_sctp_client returned an error: %s", strerror(ret));
+			LOG_A("SCTP connection to [%s,...] failed: %s", sa_buf, strerror(ret));
 			return NULL;
 		}
 	}
@@ -402,32 +369,21 @@ struct cnxctx * fd_cnx_cli_connect_sctp(int no_ip6, uint16_t port, struct fd_lis
 	else
 		cnx->cc_sctp_para.pairs = cnx->cc_sctp_para.str_in;
 	
-	if (TRACE_BOOL(INFO)) {
-		char buf[1024];
-		sSA_DUMP_NODE_SERV( buf, sizeof(buf), &primary, NI_NUMERICSERV);
-		fd_log_debug("Connection established to server '%s' (SCTP:%d, %d/%d streams).", buf, sock, cnx->cc_sctp_para.str_in, cnx->cc_sctp_para.str_out);
-	}
+	fd_sa_sdump_numeric(sa_buf, (sSA *)&primary);
 	
 	/* Generate the names for the object */
 	{
-		char addrbuf[INET6_ADDRSTRLEN];
-		char portbuf[10];
 		int  rc;
 		
-		/* Numeric values for debug... */
-		rc = getnameinfo((sSA *)&primary, sSAlen(&primary), addrbuf, sizeof(addrbuf), portbuf, sizeof(portbuf), NI_NUMERICHOST | NI_NUMERICSERV);
-		if (rc) {
-			snprintf(addrbuf, sizeof(addrbuf), "[err:%s]", gai_strerror(rc));
-			portbuf[0] = '\0';
-		}
-		
-		snprintf(cnx->cc_id, sizeof(cnx->cc_id), "SCTP to [%s]:%s (%d)", addrbuf, portbuf, cnx->cc_socket);
+		snprintf(cnx->cc_id, sizeof(cnx->cc_id), "SCTP,#%d->%s", cnx->cc_socket, sa_buf);
 		
 		/* ...Name for log messages */
 		rc = getnameinfo((sSA *)&primary, sSAlen(&primary), cnx->cc_remid, sizeof(cnx->cc_remid), NULL, 0, 0);
 		if (rc)
 			snprintf(cnx->cc_remid, sizeof(cnx->cc_remid), "[err:%s]", gai_strerror(rc));
 	}
+	
+	LOG_A("SCTP connection to %s succeed (socket:%d, %d/%d streams).", sa_buf, sock, cnx->cc_sctp_para.str_in, cnx->cc_sctp_para.str_out);
 	
 	return cnx;
 
@@ -677,7 +633,7 @@ again:
 
 size_t fd_msg_pmdl_sizewithoverhead(size_t datalen)
 {
-	return PMDL_PADDED(datalen);
+	return PMDL_PADDED(datalen) + sizeof(struct fd_msg_pmdl);
 }
 
 struct fd_msg_pmdl * fd_msg_pmdl_get_inbuf(uint8_t * buf, size_t datalen)
@@ -697,7 +653,7 @@ static uint8_t * fd_cnx_alloc_msg_buffer(size_t expected_len, struct fd_msg_pmdl
 {
 	uint8_t * ret = NULL;
 	
-	CHECK_MALLOC_DO(  ret = malloc( PMDL_PADDED(expected_len) ), return NULL );
+	CHECK_MALLOC_DO(  ret = malloc( fd_msg_pmdl_sizewithoverhead(expected_len) ), return NULL );
 	CHECK_FCT_DO( fd_cnx_init_msg_buffer(ret, expected_len, pmdl), {free(ret); return NULL;} );
 	return ret;
 }
@@ -706,7 +662,7 @@ static uint8_t * fd_cnx_realloc_msg_buffer(uint8_t * buffer, size_t expected_len
 {
 	uint8_t * ret = NULL;
 	
-	CHECK_MALLOC_DO(  ret = realloc( buffer, PMDL_PADDED(expected_len) ), return NULL );
+	CHECK_MALLOC_DO(  ret = realloc( buffer, fd_msg_pmdl_sizewithoverhead(expected_len) ), return NULL );
 	CHECK_FCT_DO( fd_cnx_init_msg_buffer(ret, expected_len, pmdl), {free(ret); return NULL;} );
 	return ret;
 }
@@ -761,7 +717,7 @@ static void * rcvthr_notls_tcp(void * arg)
 		if ((header[0] != DIAMETER_VERSION)	/* defined in <libfdproto.h> */
 		   || (rcv_data.length > DIAMETER_MSG_SIZE_MAX)) { /* to avoid too big mallocs */
 			/* The message is suspect */
-			LOG_E( "Received suspect header [ver: %d, size: %zd], assuming disconnection", (int)header[0], rcv_data.length);
+			LOG_E( "Received suspect header [ver: %d, size: %zd] from '%s', assuming disconnection", (int)header[0], rcv_data.length, conn->cc_remid);
 			fd_cnx_markerror(conn);
 			goto out; /* Stop the thread, the recipient of the event will cleanup */
 		}
@@ -1003,7 +959,7 @@ int fd_tls_rcvthr_core(struct cnxctx * conn, gnutls_session_t session)
 		if ((header[0] != DIAMETER_VERSION)	/* defined in <libfreeDiameter.h> */
 		   || (rcv_data.length > DIAMETER_MSG_SIZE_MAX)) { /* to avoid too big mallocs */
 			/* The message is suspect */
-			LOG_E( "Received suspect header [ver: %d, size: %zd], assume disconnection", (int)header[0], rcv_data.length);
+			LOG_E( "Received suspect header [ver: %d, size: %zd] from '%s', assume disconnection", (int)header[0], rcv_data.length, conn->cc_remid);
 			fd_cnx_markerror(conn);
 			goto out;
 		}

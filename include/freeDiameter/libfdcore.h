@@ -552,8 +552,13 @@ int fd_msg_add_origin ( struct msg * msg, int osi );
 int fd_msg_new_session( struct msg * msg, os0_t opt, size_t optlen );
 
 
-/* Parse a message against our dictionary, and in case of error log and eventually build the error reply (on return and EBADMSG, *msg == NULL or *msg is the error message ready to send) */
-int fd_msg_parse_or_error( struct msg ** msg );
+/* Parse a message against our dictionary, 
+	return 0 in case of success.
+	log parsing error & return error code in case of failure in parsing. 
+	In addition, if the error code is EBADMSG (the message does not follow our dictionary) 
+		if *msg was a request, *msg is NULL and *error contains the error message ready to send back on return
+		if *msg was an answer, *msg is untouched and *error==*msg if *msg was an error message, *error is null otherwise */
+int fd_msg_parse_or_error( struct msg ** msg, struct msg **error );
 
 
 
@@ -925,7 +930,7 @@ enum fd_hook_type {
 		   try to call fd_msg_parse_dict, it will slow down the operation of a relay agent.
 		 - {peer} is set if the message is received from a peer's connection, and NULL if the message is from a new client
 		   connected and not yet identified
-		 - {other} is NULL.
+		 - {other} is NULL, or a char * identifying the connection when {peer} is null.
 		 - {permsgdata} points to either a new empty structure allocated for this message or the one passed to HOOK_DATA_RECEIVED if used.
 		 */
 	
@@ -958,10 +963,16 @@ enum fd_hook_type {
 		 - {permsgdata} points to existing structure if any, or a new structure otherwise. 
 		 */
 	
+	HOOK_MESSAGE_PARSING_ERROR,
+		/* Hook called when a message being processed cannot be parsed successfully.
+		 - {msg} points to the message if buffer was parsed successfully, or NULL otherwise. You should not call fd_msg_parse_dict on this in any case.
+		 - {peer} is NULL or the peer that received the message. If NULL and the message is not NULL, you can still retrieve the source from the message itself.
+		 - {other} is a char * pointer to the error message (human-readable) if {msg} is not NULL, a pointer to struct fd_cnx_rcvdata containing the received buffer otherwise.
+		 - {permsgdata} points to existing structure associated with this message (or new structure if no previous hook was registered). 
+		 */
+	
 	HOOK_MESSAGE_ROUTING_ERROR,
-		/* Hook called when a message being processed by the routing thread meets an error such as:
-		     -- parsing error
-		     -- no remaining available peer for sending, based on routing callbacks decisions (maybe after retries).
+		/* Hook called when a message being processed by the routing thread meets an error such as no remaining available peer for sending, based on routing callbacks decisions (maybe after retries).
 		 - {msg} points to the message. Again, the objects may not have been dictionary resolved. If you
 		   try to call fd_msg_parse_dict, it might slow down the operation of a relay agent, although this hook is not on the normal execution path.
 		 - {peer} is NULL.
@@ -993,22 +1004,23 @@ enum fd_hook_type {
 		/* Hook called when a message is being discarded by the framework because of some error condition (normal or abnormal).
 		   It is probably a good idea to log this for analysis / backup.
 		 - {msg} points to the message, which will be freed as soon as the hook returns.
-		 - {peer} is NULL.
+		 - {peer} may be NULL or a peer related to the event.
 		 - {other} is a char * pointer to the error message (human-readable).
 		 - {permsgdata} points to existing structure associated with this message (or new structure if no previous hook was registered).
 		 */
 	
 	HOOK_PEER_CONNECT_FAILED,
-		/* Hook called when a connection attempt to a remote peer has failed.
-		 - {msg} may be NULL (lower layer error, e.g. connection timeout) or points to the CEA message sent or received (with an error code).
+		/* Hook called when a connection attempt to/from a remote peer has failed. This hook is also called when the peer was in OPEN state and the connection is broken.
+		 - {msg} may be NULL (lower layer error, e.g. connection timeout) or points to a message showing the error (either invalid incoming message, or the CEA message sent or received with an error code).
 		 - {peer} may be NULL for incoming requests from unknown peers being rejected, otherwise it points to the peer structure associated with the attempt.
 		 - {other} is a char * pointer to the error message (human-readable).
 		 - {permsgdata} is always NULL for this hook.
 		 */
 	
 	HOOK_PEER_CONNECT_SUCCESS,
-		/* Hook called when a connection attempt to a remote peer has succeeded (the peer moves to OPEN state).
-		 - {msg} points to the CEA message sent or received (with an success code) -- in case it is sent, you can always get access to the matching CER.
+		/* Hook called when a connection attempt to/from a remote peer has succeeded (the peer moves to OPEN_HANDSHAKE or OPEN state).
+		    In case of deprecated TLS handshake after the CER/CEA exchange, this hook can still be followed by HOOK_PEER_CONNECT_FAILED if TLS handshake fails.
+		 - {msg} points to the CEA message sent or received (with a success code) -- in case it is sent, you can always get access to the matching CER.
 		 - {peer} points to the peer structure.
 		 - {other} is NULL.
 		 - {permsgdata} is always NULL for this hook.
@@ -1068,7 +1080,7 @@ struct fd_hook_hdl;
  * FUNCTION:	fd_hook_register
  *
  * PARAMETERS:
- *  type_mask	  : A bitmask of fd_hook_type bits for which this cb is registered, e.g. ((1 << HOOK_MESSAGE_RECEIVED) || (1 << HOOK_MESSAGE_SENT))
+ *  type_mask	  : A bitmask of fd_hook_type bits for which this cb is registered, e.g. ((1 << HOOK_MESSAGE_RECEIVED) | (1 << HOOK_MESSAGE_SENT))
  *  fd_hook_cb	  : The callback function to register (see prototype above).
  *  regdata	  : Pointer to pass to the callback when it is called. The data is opaque to the daemon.
  *  data_hdl      : If permsgdata is requested for the hooks, a handler registered with fd_hook_data_register. NULL otherwise.
@@ -1092,6 +1104,10 @@ int fd_hook_register (  uint32_t type_mask,
 
 /* Remove a hook registration */
 int fd_hook_unregister( struct fd_hook_hdl * handler );
+
+
+/* Use the following function to retrieve any pmd structure associated with a request matching the current answer. Returns NULL in case of error / no such structure */
+struct fd_hook_permsgdata * fd_hook_get_request_pmd(struct fd_hook_data_hdl *data_hdl, struct msg * answer);
 
 
 /*============================================================*/
