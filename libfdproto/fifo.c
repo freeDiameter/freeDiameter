@@ -578,8 +578,8 @@ static void fifo_cleanup(void * queue)
 /* The internal function for fd_fifo_timedget and fd_fifo_get */
 static int fifo_tget ( struct fifo * queue, void ** item, int istimed, const struct timespec *abstime)
 {
-	int timedout = 0;
 	int call_cb = 0;
+	int ret = 0;
 	
 	/* Check the parameters */
 	CHECK_PARAMS( CHECK_FIFO( queue ) && item && (abstime || !istimed) );
@@ -604,7 +604,6 @@ awaken:
 		*item = mq_pop(queue);
 		call_cb = test_l_cb(queue);
 	} else {
-		int ret = 0;
 		/* We have to wait for a new item */
 		queue->thrs++ ;
 		pthread_cleanup_push( fifo_cleanup, queue);
@@ -618,12 +617,7 @@ awaken:
 		if (ret == 0)
 			goto awaken;  /* test for spurious wake-ups */
 		
-		if (istimed && (ret == ETIMEDOUT)) {
-			timedout = 1;
-		} else {
-			/* Unexpected error condition (means we need to debug) */
-			ASSERT( ret == 0 /* never true */ );
-		}
+		/* otherwise (ETIMEDOUT / other error) just continue */
 	}
 	
 	/* Unlock */
@@ -634,7 +628,7 @@ awaken:
 		(*queue->l_cb)(queue, &queue->data);
 	
 	/* Done */
-	return timedout ? ETIMEDOUT : 0;
+	return ret;
 }
 
 /* Get the next available item, block until there is one */

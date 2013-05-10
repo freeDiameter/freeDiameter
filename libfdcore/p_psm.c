@@ -335,7 +335,7 @@ void fd_psm_next_timeout(struct fd_peer * peer, int add_random, int delay)
 		/* Add a random value between 0 and 4sec */
 		peer->p_psm_timer.tv_sec += random() % 4;
 		peer->p_psm_timer.tv_nsec+= random() % 1000000000L;
-		if (peer->p_psm_timer.tv_nsec > 1000000000L) {
+		if (peer->p_psm_timer.tv_nsec >= 1000000000L) {
 			peer->p_psm_timer.tv_nsec -= 1000000000L;
 			peer->p_psm_timer.tv_sec ++;
 		}
