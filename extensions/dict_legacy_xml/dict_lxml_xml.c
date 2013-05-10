@@ -1789,7 +1789,7 @@ int dict_lxml_parse(char * xmlfilename)
 	/* Parse the file */
 	ret = xmlSAXUserParseFile(&handler, &data, xmlfilename);
 	if (ret < 0) {
-		TRACE_DEBUG(INFO, "An error occurred while parsing %s, abording.", xmlfilename);
+		TRACE_DEBUG(INFO, "An error occurred while parsing %s, aborting.", xmlfilename);
 		del_dict_contents(&data.dict);
 		return -1;
 	}

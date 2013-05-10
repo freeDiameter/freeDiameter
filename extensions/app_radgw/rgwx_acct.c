@@ -824,7 +824,7 @@ static int acct_rad_req( struct rgwp_config * cs, struct radius_msg * rad_req, s
 						value.u32 = ACV_ART_INTERIM_RECORD;
 						break;
 					default:
-						TRACE_DEBUG(INFO, "Unknown RADIUS_ATTR_ACCT_STATUS_TYPE value %d, abording...", status_type);
+						TRACE_DEBUG(INFO, "Unknown RADIUS_ATTR_ACCT_STATUS_TYPE value %d, aborting...", status_type);
 						return ENOTSUP;
 				}
 				CHECK_FCT( fd_msg_avp_new ( cs->dict.Accounting_Record_Type, 0, &avp ) );

@@ -104,7 +104,7 @@ static void * call_expirecb(void * arg) {
 	fd_log_threadname ( "Expired req cb." );
 	
 	/* Log */
-	TRACE_DEBUG(INFO, "The expiration timer for a request has been reached, abording this attempt now & calling cb...");
+	TRACE_DEBUG(INFO, "The expiration timer for a request has been reached, aborting this attempt now & calling cb...");
 	
 	/* Retrieve callback in the message */
 	CHECK_FCT_DO( fd_msg_anscb_get( ed->request, NULL, &expirecb, &data ), return NULL);
