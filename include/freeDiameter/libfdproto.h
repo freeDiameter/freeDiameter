@@ -472,9 +472,6 @@ static __inline__ void fd_log_deprecated( int level, const char *format, ... ) M
 }
 static __inline__ void replace_me() MARK_DEPRECATED { }
 
-#define TRACE_sSA(...) replace_me();
-#define sSA_DUMP_NODE_SERV(...) replace_me();
-#define sSA_DUMP_NODE(...) replace_me();
 #define TRACE_BUFFER(...) replace_me();
 #define TRACE_NOTICE(...) replace_me();
 

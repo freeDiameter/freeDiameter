@@ -346,13 +346,11 @@ int fd_conf_parse()
 			struct fd_endpoint * ep = (struct fd_endpoint *)li;
 			if ( (fd_g_config->cnf_flags.no_ip4 && (ep->sa.sa_family == AF_INET))
 			   ||(fd_g_config->cnf_flags.no_ip6 && (ep->sa.sa_family == AF_INET6)) ) {
+				char sa_buf[sSA_DUMP_STRLEN];;
 				li = li->prev;
 				fd_list_unlink(&ep->chain);
-				if (TRACE_BOOL(INFO)) {
-					char buf[1024];
-					sSA_DUMP_NODE( buf, sizeof(buf), &ep->sa, NI_NUMERICHOST );
-					fd_log_debug("Info: Removing local address conflicting with the flags no_IP / no_IP6 : %s", buf);
-				}
+				fd_sa_sdump_numeric(sa_buf, &ep->sa);
+				LOG_N("Info: Removing local address conflicting with the flags no_IP / no_IP6 : %s", sa_buf);
 				free(ep);
 			}
 		}

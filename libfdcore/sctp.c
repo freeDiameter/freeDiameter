@@ -738,7 +738,7 @@ redo:
 			goto redo;
 		}
 		
-		if (TRACE_BOOL(SCTP_LEVEL)) {
+		#if 0
 			union {
 				sSA	*sa;
 				uint8_t *buf;
@@ -750,7 +750,7 @@ redo:
 				TRACE_sSA(FD_LOG_DEBUG, FULL, "    - ", ptr.sa, NI_NUMERICHOST | NI_NUMERICSERV, "" );
 				ptr.buf += (ptr.sa->sa_family == AF_INET) ? sizeof(sSA4) : sizeof(sSA6) ;
 			}
-		}
+		#endif
 		
 		/* Bind to this array */
 		CHECK_SYS(  sctp_bindx(*sock, sar, count, SCTP_BINDX_ADD_ADDR)  );
@@ -763,7 +763,7 @@ redo:
 	CHECK_FCT( fd_setsockopt_postbind(*sock, bind_default) );
 	
 	/* Debug: show all local listening addresses */
-	if (TRACE_BOOL(SCTP_LEVEL)) {
+	#if 0
 		sSA *sar;
 		union {
 			sSA	*sa;
@@ -778,7 +778,7 @@ redo:
 			TRACE_sSA(FD_LOG_DEBUG, FULL, "    - ", ptr.sa, NI_NUMERICHOST | NI_NUMERICSERV, "" );
 		}
 		sctp_freeladdrs(sar);
-	}
+	#endif
 
 	return 0;
 }
@@ -829,8 +829,9 @@ int fd_sctp_client( int *sock, int no_ip6, uint16_t port, struct fd_list * list 
 	CHECK_FCT_DO( ret = add_addresses_from_list_mask(&sar.buf, &size, &count, family, htons(port), list, EP_FL_CONF | EP_FL_DISC, 0		), goto out );
 	
 	/* Try connecting */
-	if (TRACE_BOOL(FULL)) {
-		TRACE_DEBUG(FULL, "Attempting SCTP connection (%d addresses attempted) :", count);
+	LOG_A("Attempting SCTP connection (%d addresses attempted) ", count);
+		
+#if 0
 		/* Dump the SAs */
 		union {
 			uint8_t *buf;
@@ -844,7 +845,7 @@ int fd_sctp_client( int *sock, int no_ip6, uint16_t port, struct fd_list * list 
 			TRACE_sSA(FD_LOG_DEBUG, FULL, "  - ", ptr.sa, NI_NUMERICHOST | NI_NUMERICSERV, "" );
 			ptr.buf += (ptr.sa->sa_family == AF_INET) ? sizeof(sSA4) : sizeof(sSA6);
 		}
-	}
+#endif
 	
 #ifdef SCTP_CONNECTX_4_ARGS
 	ret = sctp_connectx(*sock, sar.sa, count, NULL);
@@ -907,9 +908,9 @@ int fd_sctp_get_str_info( int sock, uint16_t *in, uint16_t *out, sSS *primary )
 		TRACE_DEBUG(INFO, "Invalid size of socket option: %d / %zd", sz, sizeof(status));
 		return ENOTSUP;
 	}
-	if (TRACE_BOOL(SCTP_LEVEL)) {
-		char buf[1024];
-		sSA_DUMP_NODE_SERV(buf, sizeof(buf), &status.sstat_primary.spinfo_address, NI_NUMERICHOST | NI_NUMERICSERV );
+#if 0
+		char sa_buf[sSA_DUMP_STRLEN];
+		fd_sa_sdump_numeric(sa_buf, &status.sstat_primary.spinfo_address);
 		fd_log_debug( "SCTP_STATUS : sstat_state                  : %i" , status.sstat_state);
 		fd_log_debug( "              sstat_rwnd  	          : %u" , status.sstat_rwnd);
 		fd_log_debug( "		     sstat_unackdata	          : %hu", status.sstat_unackdata);
@@ -917,13 +918,13 @@ int fd_sctp_get_str_info( int sock, uint16_t *in, uint16_t *out, sSS *primary )
 		fd_log_debug( "		     sstat_instrms  	          : %hu", status.sstat_instrms);
 		fd_log_debug( "		     sstat_outstrms 	          : %hu", status.sstat_outstrms);
 		fd_log_debug( "		     sstat_fragmentation_point    : %u" , status.sstat_fragmentation_point);
-		fd_log_debug( "		     sstat_primary.spinfo_address : %s" , buf);
+		fd_log_debug( "		     sstat_primary.spinfo_address : %s" , sa_buf);
 		fd_log_debug( "		     sstat_primary.spinfo_state   : %d" , status.sstat_primary.spinfo_state);
 		fd_log_debug( "		     sstat_primary.spinfo_cwnd    : %u" , status.sstat_primary.spinfo_cwnd);
 		fd_log_debug( "		     sstat_primary.spinfo_srtt    : %u" , status.sstat_primary.spinfo_srtt);
 		fd_log_debug( "		     sstat_primary.spinfo_rto     : %u" , status.sstat_primary.spinfo_rto);
 		fd_log_debug( "		     sstat_primary.spinfo_mtu     : %u" , status.sstat_primary.spinfo_mtu);
-	}
+#endif /* 0 */
 	
 	*in = status.sstat_instrms;
 	*out = status.sstat_outstrms;
@@ -1149,7 +1150,7 @@ again:
 	
 			case SCTP_PEER_ADDR_CHANGE:
 				TRACE_DEBUG(FULL, "Received SCTP_PEER_ADDR_CHANGE notification");
-				TRACE_sSA(FD_LOG_DEBUG, SCTP_LEVEL, "    intf_change : ", &(notif->sn_paddr_change.spc_aaddr), NI_NUMERICHOST | NI_NUMERICSERV, "" );
+				/* TRACE_sSA(FD_LOG_DEBUG, SCTP_LEVEL, "    intf_change : ", &(notif->sn_paddr_change.spc_aaddr), NI_NUMERICHOST | NI_NUMERICSERV, "" ); */
 				TRACE_DEBUG(SCTP_LEVEL, "          state : %d", notif->sn_paddr_change.spc_state);
 				TRACE_DEBUG(SCTP_LEVEL, "          error : %d", notif->sn_paddr_change.spc_error);
 				

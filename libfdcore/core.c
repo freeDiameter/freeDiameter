@@ -219,12 +219,12 @@ int fd_core_parseconf(const char * conffile)
 	
 	/* Display configuration */
 	b = fd_conf_dump(&buf, &len, NULL);
-	LOG_N("%s\n", b ?: "Error during configuration dump...");
+	LOG_N("%s", b ?: "Error during configuration dump...");
 	
 	/* Display registered triggers for FDEV_TRIGGER */
 	b = fd_event_trig_dump(&buf, &len, &offset);
 	if (!b || offset) {
-		LOG_N("%s\n", b ?: "Error during triggers dump...");
+		LOG_N("%s", b ?: "Error during triggers dump...");
 	}
 	
 	free(buf);	

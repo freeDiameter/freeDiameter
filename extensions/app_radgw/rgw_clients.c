@@ -920,8 +920,10 @@ int rgw_clients_add( struct sockaddr * ip_port, unsigned char ** key, size_t key
 	
 	/* Dump the entry in debug mode */
 	if (TRACE_BOOL(FULL + 1 )) {
+		char sa_buf[sSA_DUMP_STRLEN];
+		fd_sa_sdump_numeric(sa_buf, ip_port);
 		TRACE_DEBUG(FULL, "Adding %s:", (type == RGW_CLI_NAS) ? "NAS" : "PROXY"  );
-		TRACE_sSA(FD_LOG_DEBUG, FULL, 	 "\tIP : ", ip_port, NI_NUMERICHOST | NI_NUMERICSERV, "" );
+		TRACE_DEBUG(FULL, "\tIP : %s", sa_buf );
 		TRACE_BUFFER(FD_LOG_DEBUG, FULL, "\tKey: [", *key, keylen, "]" );
 	}
 	
@@ -940,6 +942,7 @@ int rgw_clients_add( struct sockaddr * ip_port, unsigned char ** key, size_t key
 	}
 	
 	if (ret == EEXIST) {
+		char sa_buf[sSA_DUMP_STRLEN];
 		/* Check if the key is the same, then skip or return an error */
 		if ((keylen == prev->key.len ) && ( ! memcmp(*key, prev->key.data, keylen) ) && (type == prev->type)) {
 			TRACE_DEBUG(INFO, "Skipping duplicate client description");
@@ -949,10 +952,12 @@ int rgw_clients_add( struct sockaddr * ip_port, unsigned char ** key, size_t key
 		
 		fd_log_error("ERROR: Conflicting RADIUS clients descriptions!");
 		TRACE_ERROR("Previous entry: %s", (prev->type == RGW_CLI_NAS) ? "NAS" : "PROXY");
-		TRACE_sSA(FD_LOG_ERROR, NONE, 	 "\tIP : ", prev->sa, NI_NUMERICHOST | NI_NUMERICSERV, "" );
+		fd_sa_sdump_numeric(sa_buf, prev->sa);
+		TRACE_ERROR("\tIP : %s", sa_buf);
 		TRACE_BUFFER(FD_LOG_ERROR, NONE, "\tKey: [", prev->key.data, prev->key.len, "]" );
 		TRACE_ERROR("Conflicting entry: %s", (type == RGW_CLI_NAS) ? "NAS" : "PROXY");
-		TRACE_sSA(FD_LOG_ERROR, NONE, 	 "\tIP : ", ip_port, NI_NUMERICHOST | NI_NUMERICSERV, "" );
+		fd_sa_sdump_numeric(sa_buf, ip_port);
+		TRACE_ERROR("\tIP : %s", sa_buf);
 		TRACE_BUFFER(FD_LOG_ERROR, NONE, "\tKey: [", *key, keylen, "]" );
 	}
 end:
@@ -968,9 +973,11 @@ static void dump_cli_list(struct fd_list *senti)
 	struct fd_list *ref = NULL;
 	
 	for (ref = senti->next; ref != senti; ref = ref->next) {
+		char sa_buf[sSA_DUMP_STRLEN];
 		client = (struct rgw_client *)ref;
 		/* TODO: use a fct param instead of hardcoded FD_LOG_DEBUG */
-		TRACE_sSA(FD_LOG_DEBUG, NONE, 	 "  - ", client->sa, NI_NUMERICHOST | NI_NUMERICSERV, (client->type == RGW_CLI_NAS) ? "" : " [PROXY]" );
+		TODO("Replace with appropriate code");
+/*		TRACE_sSA(FD_LOG_DEBUG, NONE, 	 "  - ", client->sa, NI_NUMERICHOST | NI_NUMERICSERV, (client->type == RGW_CLI_NAS) ? "" : " [PROXY]" ); */
 	}
 }
 

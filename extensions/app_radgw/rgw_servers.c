@@ -110,6 +110,7 @@ static void * server_thread(void * param)
 	/* Now loop on this socket, parse and queue each message received, until thread is cancelled. */
 	while (1) {
 		struct sockaddr_storage from;
+		char sa_buf[sSA_DUMP_STRLEN];
 		socklen_t fromlen = sizeof(from);
 		int len;
 		struct rgw_client * nas_info = NULL;
@@ -132,17 +133,13 @@ static void * server_thread(void * param)
 			continue;
 		}
 		
-		{
-			char __buf[1024];
-			sSA_DUMP_NODE_SERV(__buf, sizeof(__buf), &from, NI_NUMERICHOST | NI_NUMERICSERV );
-			TRACE_DEBUG(FULL, "Received %d bytes from %s", len, __buf);
-		}
+		fd_sa_sdump_numeric(sa_buf, (sSA*)&from);
+		TRACE_DEBUG(FULL, "Received %d bytes from %s", len, sa_buf);
 		
 		/* Search the associated client definition, if any */
 		CHECK_FCT_DO( rgw_clients_search((struct sockaddr *) &from, &nas_info),
 			{
-				TRACE_NOTICE("Discarding %d bytes received from unknown IP:", len);
-				TRACE_sSA(FD_LOG_NOTICE, INFO, " ", &from, NI_NUMERICHOST | NI_NUMERICSERV, "" );
+				TRACE_NOTICE("Discarding %d bytes received from unknown IP: %s", len, sa_buf);
 				continue;
 			} );
 				
@@ -249,6 +246,7 @@ int rgw_servers_send(int type, unsigned char *buf, size_t buflen, struct sockadd
 	int idx = 0;
 	int ret = 0;
 	struct sockaddr_storage sto;
+	char sa_buf[sSA_DUMP_STRLEN];
 	
 	/* Find the appropriate socket to use (not sure if it is important) */
 	for (idx = 0; idx < sizeof(SERVERS) / sizeof(SERVERS[0]); idx++) {
@@ -275,11 +273,8 @@ int rgw_servers_send(int type, unsigned char *buf, size_t buflen, struct sockadd
 		((struct sockaddr_in6 *)&sto)->sin6_port = to_port;
 	}
 	
-	{
-		char __buf[1024];
-		sSA_DUMP_NODE_SERV(__buf, sizeof(__buf), &sto, NI_NUMERICHOST | NI_NUMERICSERV );
-		TRACE_DEBUG(FULL, "Sending %zd bytes to %s", buflen, __buf);
-	}
+	fd_sa_sdump_numeric(sa_buf, (sSA*)&sto);
+	TRACE_DEBUG(FULL, "Sending %zd bytes to %s", buflen, sa_buf);
 		
 	/* Send */
 	ret = sendto(SERVERS[idx].sock, buf, buflen, 0, (struct sockaddr *)&sto, sSAlen(&sto));
