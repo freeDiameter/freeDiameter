@@ -52,7 +52,7 @@ sub print_insert($$) {
 }
 
 sub usage($) {
-    die("usage: org_to_fd.pl [-V vendor_name -v vendor] [file ...]\n");
+    die("usage: org_to_fd.pl [-V vendor_name -v vendor_code] [file ...]\n");
     exit(@_);
 }
 
