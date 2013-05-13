@@ -83,12 +83,12 @@ static void core_state_set(enum core_state newstate)
 
 static int core_state_wait(enum core_state waitstate)
 {
-	int ret;
+	int ret = 0;
 	CHECK_POSIX( pthread_mutex_lock( &core_mtx ));
 	pthread_cleanup_push( fd_cleanup_mutex, &core_mtx );
-	do {
+	while (waitstate > core_state) {
 		CHECK_POSIX_DO(ret = pthread_cond_wait(&core_cnd, &core_mtx), break);
-	} while (waitstate > core_state);
+	}
 	pthread_cleanup_pop( 0 );
 	CHECK_POSIX( pthread_mutex_unlock( &core_mtx ));
 	return ret;
@@ -188,7 +188,7 @@ int fd_core_initialize(void)
 		return ret;
 	}
 	
-	LOG_D("libfdproto initialized.");
+	LOG_N("libfdproto initialized.");
 	
 	/* Name this thread */
 	fd_log_threadname("Main");
@@ -304,6 +304,7 @@ int fd_core_shutdown(void)
 	
 	if (cur_state < CORE_RUNNING) {
 		core_shutdown();
+		core_state_set(CORE_TERM);
 	} else if (cur_state == CORE_RUNNING) {
 		core_state_set(CORE_SHUTDOWN);
 		CHECK_FCT( fd_event_send(fd_g_config->cnf_main_ev, FDEV_TERMINATE, 0, NULL) );
@@ -322,10 +323,10 @@ int fd_core_wait_shutdown_complete(void)
 	enum core_state cur_state = core_state_get();
 	void * th_ret = NULL;
 	
+	CHECK_FCT(core_state_wait(CORE_SHUTDOWN));
+	
 	if (cur_state == CORE_TERM)
 		return 0;
-	
-	CHECK_FCT(core_state_wait(CORE_SHUTDOWN));
 	
 	/* Just wait for core_runner_thread to complete and return gracefully */
 	CHECK_POSIX(pthread_join(core_runner, &th_ret));
