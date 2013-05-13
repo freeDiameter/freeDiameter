@@ -148,8 +148,11 @@ static int rtbusy_fwd_cb(void * cbdata, struct msg ** pmsg)
 	
 	/* If the message is a request, we only associate the timeout */
 	if (hdr->msg_flags & CMD_FLAG_REQUEST) {
-		struct timespec tm = { .tv_sec = rtbusy_conf.RelayTimeout/1000, .tv_nsec=1000000LL * (rtbusy_conf.RelayTimeout % 1000) };
-		CHECK_FCT( fd_msg_anscb_associate( *pmsg, NULL, NULL, rtbusy_expirecb, &tm ) );
+		struct timespec expire;
+		CHECK_SYS(  clock_gettime(CLOCK_REALTIME, &expire)  );
+		expire.tv_sec += rtbusy_conf.RelayTimeout/1000 + ((expire.tv_nsec + (1000000LL * (rtbusy_conf.RelayTimeout % 1000))) / 1000000000LL);
+		expire.tv_nsec = (expire.tv_nsec + (1000000LL * (rtbusy_conf.RelayTimeout % 1000))) % 1000000000LL;
+		CHECK_FCT( fd_msg_anscb_associate( *pmsg, NULL, NULL, rtbusy_expirecb, &expire ) );
 		return 0;
 	}
 	
