@@ -39,7 +39,7 @@
 
 
 # Parameter: RelayTimeout
-# If the value of this parameter is not 0, it specifies the number of seconds that the local relay waits for an answer to a 
+# If the value of this parameter is not 0, it specifies the number of milliseconds (1/1000 s) that the local relay waits for an answer to a 
 # forwarded request before considering the remote peer is busy and taking corrective action (similar as if that relay had returned TOO_BUSY status).
 # Note: this parameter does not apply for requests issued locally. In that case, the extension issuing the request should directly specify the timeout.
 # Default: 0, meaning that there is no timeout parameter.

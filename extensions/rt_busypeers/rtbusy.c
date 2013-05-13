@@ -106,7 +106,7 @@ int rt_busy_process_busy(struct msg ** pmsg, int is_req, DiamId_t sentto, size_t
 		}
 		/* Send the query again. We  need to re-associate the expirecb which was cleaned, if it is used */
 		if (rtbusy_conf.RelayTimeout) {
-			struct timespec tm = { .tv_sec = rtbusy_conf.RelayTimeout, .tv_nsec=0 };
+			struct timespec tm = { .tv_sec = rtbusy_conf.RelayTimeout/1000, .tv_nsec=1000000LL * (rtbusy_conf.RelayTimeout % 1000) };
 			CHECK_FCT( fd_msg_send_timeout( pmsg, NULL, NULL, rtbusy_expirecb, &tm ) );
 		} else {
 			CHECK_FCT( fd_msg_send(pmsg, NULL, NULL) );
@@ -117,7 +117,7 @@ int rt_busy_process_busy(struct msg ** pmsg, int is_req, DiamId_t sentto, size_t
 			/* We must create an answer */
 			CHECK_FCT( fd_msg_new_answer_from_req ( fd_g_config->cnf_dict, pmsg, MSGFL_ANSW_ERROR ) );
 			
-			CHECK_FCT( fd_msg_rescode_set(*pmsg, "DIAMETER_TOO_BUSY", "[rt_busypeers] Timeout reached while waiting for an anwer", NULL, 1 ) );
+			CHECK_FCT( fd_msg_rescode_set(*pmsg, "DIAMETER_TOO_BUSY", "[rt_busypeers] Timeout reached while waiting for an answer", NULL, 1 ) );
 		
 			CHECK_FCT( fd_msg_send(pmsg, NULL, NULL) );
 		}
@@ -148,7 +148,7 @@ static int rtbusy_fwd_cb(void * cbdata, struct msg ** pmsg)
 	
 	/* If the message is a request, we only associate the timeout */
 	if (hdr->msg_flags & CMD_FLAG_REQUEST) {
-		struct timespec tm = { .tv_sec = rtbusy_conf.RelayTimeout, .tv_nsec=0 };
+		struct timespec tm = { .tv_sec = rtbusy_conf.RelayTimeout/1000, .tv_nsec=1000000LL * (rtbusy_conf.RelayTimeout % 1000) };
 		CHECK_FCT( fd_msg_anscb_associate( *pmsg, NULL, NULL, rtbusy_expirecb, &tm ) );
 		return 0;
 	}
