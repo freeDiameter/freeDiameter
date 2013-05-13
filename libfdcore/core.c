@@ -48,36 +48,84 @@ struct fd_config * fd_g_config = NULL;
 GCRY_THREAD_OPTION_PTHREAD_IMPL;
 #endif /* GNUTLS_VERSION_210 */
 
-/* Signal extensions when the framework is completely initialized (they are waiting in fd_core_waitstartcomplete()) */
-static int             is_ready = 0;
-static pthread_mutex_t is_ready_mtx = PTHREAD_MUTEX_INITIALIZER;
-static pthread_cond_t  is_ready_cnd = PTHREAD_COND_INITIALIZER;
-
-static int signal_framework_ready(void)
-{
-	TRACE_ENTRY("");
-	CHECK_POSIX( pthread_mutex_lock( &is_ready_mtx ) );
-	is_ready = 1;
-	CHECK_POSIX( pthread_cond_broadcast( &is_ready_cnd ) );
-	CHECK_POSIX( pthread_mutex_unlock( &is_ready_mtx ) );
-	return 0;
-}
-
 /* Thread that process incoming events on the main queue -- and terminates the framework when requested */
 static pthread_t core_runner = (pthread_t)NULL;
 
-/* How the thread is terminated */
-enum core_mode {
-	CORE_MODE_EVENTS,
-	CORE_MODE_IMMEDIATE
-};
+/* Signal extensions when the framework is completely initialized (they are waiting in fd_core_waitstartcomplete()) */
+static enum core_state {
+	CORE_NOT_INIT,	/* initial state */
+	CORE_LIBS_INIT,	/* fd_core_initialize was called */
+	CORE_CONF_READY,/* Configuration was parsed, extensions are loaded */
+	CORE_RUNNING,	/* Servers and clients are started, core_runner thread is running */
+	CORE_SHUTDOWN,	/* The framework is terminating all objects */
+	CORE_TERM	/* Shutdown complete. */	
+} core_state = CORE_NOT_INIT;
+static pthread_mutex_t core_mtx = PTHREAD_MUTEX_INITIALIZER;
+static pthread_cond_t  core_cnd = PTHREAD_COND_INITIALIZER;
+
+static enum core_state core_state_get(void)
+{
+	enum core_state cur_state;
+	CHECK_POSIX_DO( pthread_mutex_lock( &core_mtx ), );
+	cur_state = core_state;
+	CHECK_POSIX_DO( pthread_mutex_unlock( &core_mtx ), );
+	return cur_state;
+}
+
+static void core_state_set(enum core_state newstate)
+{
+	CHECK_POSIX_DO( pthread_mutex_lock( &core_mtx ), );
+	LOG_D("Core state: %d -> %d", core_state, newstate);
+	core_state = newstate;
+	CHECK_POSIX_DO( pthread_cond_broadcast( &core_cnd ), );
+	CHECK_POSIX_DO( pthread_mutex_unlock( &core_mtx ), );
+}
+
+static int core_state_wait(enum core_state waitstate)
+{
+	int ret;
+	CHECK_POSIX( pthread_mutex_lock( &core_mtx ));
+	pthread_cleanup_push( fd_cleanup_mutex, &core_mtx );
+	do {
+		CHECK_POSIX_DO(ret = pthread_cond_wait(&core_cnd, &core_mtx), break);
+	} while (waitstate > core_state);
+	pthread_cleanup_pop( 0 );
+	CHECK_POSIX( pthread_mutex_unlock( &core_mtx ));
+	return ret;
+}
+
+static void core_shutdown(void)
+{
+	LOG_N( FD_PROJECT_BINARY " framework is stopping...");
+	fd_log_threadname("fD Core Shutdown");
+	
+	/* cleanups */
+	CHECK_FCT_DO( fd_servers_stop(), /* Stop accepting new connections */ );
+	CHECK_FCT_DO( fd_rtdisp_cleanstop(), /* Stop dispatch thread(s) after a clean loop if possible */ );
+	CHECK_FCT_DO( fd_peer_fini(), /* Stop all connections */ );
+	CHECK_FCT_DO( fd_rtdisp_fini(), /* Stop routing threads and destroy routing queues */ );
+	
+	CHECK_FCT_DO( fd_ext_term(), /* Cleanup all extensions */ );
+	CHECK_FCT_DO( fd_rtdisp_cleanup(), /* destroy remaining handlers */ );
+	
+	GNUTLS_TRACE( gnutls_global_deinit() );
+	
+	CHECK_FCT_DO( fd_conf_deinit(), );
+	
+	CHECK_FCT_DO( fd_event_trig_fini(), );
+	
+	fd_log_debug(FD_PROJECT_BINARY " framework is terminated.");
+	
+	fd_libproto_fini();
+	
+}	
+
 
 static void * core_runner_thread(void * arg) 
 {
-	if (arg && (*(int *)arg == CORE_MODE_IMMEDIATE))
-		goto end;
-	
 	fd_log_threadname("fD Core Runner");
+	
+	core_state_wait(CORE_RUNNING);
 	
 	/* Handle events incoming on the main event queue */
 	while (1) {
@@ -109,27 +157,7 @@ static void * core_runner_thread(void * arg)
 	}
 	
 end:
-	TRACE_DEBUG(INFO, FD_PROJECT_BINARY " framework is stopping...");
-	fd_log_threadname("fD Core Shutdown");
-	
-	/* cleanups */
-	CHECK_FCT_DO( fd_servers_stop(), /* Stop accepting new connections */ );
-	CHECK_FCT_DO( fd_rtdisp_cleanstop(), /* Stop dispatch thread(s) after a clean loop if possible */ );
-	CHECK_FCT_DO( fd_peer_fini(), /* Stop all connections */ );
-	CHECK_FCT_DO( fd_rtdisp_fini(), /* Stop routing threads and destroy routing queues */ );
-	
-	CHECK_FCT_DO( fd_ext_term(), /* Cleanup all extensions */ );
-	CHECK_FCT_DO( fd_rtdisp_cleanup(), /* destroy remaining handlers */ );
-	
-	GNUTLS_TRACE( gnutls_global_deinit() );
-	
-	CHECK_FCT_DO( fd_conf_deinit(), );
-	
-	CHECK_FCT_DO( fd_event_trig_fini(), );
-	
-	fd_log_debug(FD_PROJECT_BINARY " framework is terminated.");
-	
-	fd_libproto_fini();
+	core_shutdown();
 	
 	return NULL;
 }
@@ -147,6 +175,11 @@ const char *fd_core_version(void)
 int fd_core_initialize(void)
 {
 	int ret;
+	
+	if (core_state_get() != CORE_NOT_INIT) {
+		fprintf(stderr, "fd_core_initialize() called more than once!\n");
+		return EINVAL;
+	}
 	
 	/* Initialize the library -- must come first since it initializes the debug facility */
 	ret = fd_libproto_init();
@@ -192,6 +225,8 @@ int fd_core_initialize(void)
 	CHECK_FCT( fd_sess_start()  );
 	CHECK_FCT( fd_p_expi_init() );
 	
+	core_state_set(CORE_LIBS_INIT);
+	
 	/* Next thing is to parse the config, leave this for a different function */
 	return 0;
 }
@@ -229,27 +264,17 @@ int fd_core_parseconf(const char * conffile)
 	
 	free(buf);	
 		
+	core_state_set(CORE_CONF_READY);
+	
 	return 0;
 }
 
 /* For threads that would need to wait complete start of the framework (ex: in extensions) */
 int fd_core_waitstartcomplete(void)
 {
-	int ret = 0;
-	
 	TRACE_ENTRY("");
 	
-	CHECK_POSIX( pthread_mutex_lock( &is_ready_mtx ) );
-	pthread_cleanup_push( fd_cleanup_mutex, &is_ready_mtx );
-	
-	while (!ret && !is_ready) {
-		CHECK_POSIX_DO( ret = pthread_cond_wait( &is_ready_cnd, &is_ready_mtx ),  );
-	}
-	
-	pthread_cleanup_pop( 0 );
-	CHECK_POSIX( pthread_mutex_unlock( &is_ready_mtx ) );
-	
-	return ret;
+	return core_state_wait(CORE_RUNNING);
 }
 
 /* Start the server & client threads */
@@ -263,9 +288,9 @@ int fd_core_start(void)
 	
 	/* Start the core runner thread that handles main events (until shutdown) */
 	CHECK_POSIX( pthread_create(&core_runner, NULL, core_runner_thread, NULL) );
-
+	
 	/* Unlock threads waiting into fd_core_waitstartcomplete */
-	CHECK_FCT( signal_framework_ready() );
+	core_state_set(CORE_RUNNING);
 	
 	/* Ok, everything is running now... */
 	return 0;
@@ -275,34 +300,38 @@ int fd_core_start(void)
 /* Initialize shutdown of the framework. This is not blocking. */
 int fd_core_shutdown(void)
 {
-	if (core_runner != (pthread_t)NULL) {
-		/* Signal the framework to terminate */
+	enum core_state cur_state = core_state_get();
+	
+	if (cur_state < CORE_RUNNING) {
+		core_shutdown();
+	} else if (cur_state == CORE_RUNNING) {
+		core_state_set(CORE_SHUTDOWN);
 		CHECK_FCT( fd_event_send(fd_g_config->cnf_main_ev, FDEV_TERMINATE, 0, NULL) );
-	} else {
-		/* The framework was maybe not fully initialized (ex: tests) */
-		enum core_mode arg = CORE_MODE_IMMEDIATE;
-		(void) core_runner_thread(&arg);
 	}
+	
+	/* Other case, the framework is already shutting down */
 	
 	return 0;
 }
 
 
-/* Wait for the shutdown to be complete -- this must always be called after fd_core_shutdown to reclaim some resources. */
+/* Wait for the shutdown to be complete -- this must be called after fd_core_shutdown to reclaim some resources. */
 int fd_core_wait_shutdown_complete(void)
 {
 	int ret;
+	enum core_state cur_state = core_state_get();
 	void * th_ret = NULL;
 	
-	if (core_runner != (pthread_t)NULL) {
-		/* Just wait for core_runner_thread to complete and return gracefully */
-		ret = pthread_join(core_runner, &th_ret);
-		if (ret != 0) {
-			TRACE_ERROR( "Unable to wait for main framework thread termination: %s", strerror(ret));
-			return ret;
-		}
-	}
+	if (cur_state == CORE_TERM)
+		return 0;
 	
+	CHECK_FCT(core_state_wait(CORE_SHUTDOWN));
+	
+	/* Just wait for core_runner_thread to complete and return gracefully */
+	CHECK_POSIX(pthread_join(core_runner, &th_ret));
+
+	core_state_set(CORE_TERM);
+		
 	return 0;
 }
 
