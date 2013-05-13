@@ -93,7 +93,7 @@ static void set_status(struct server * s, enum s_state st)
 
 
 /* Dump all servers information */
-DECLARE_FD_DUMP_PROTOTYPE(fd_servers_dump)
+DECLARE_FD_DUMP_PROTOTYPE(fd_servers_dump, int details)
 {
 	struct fd_list * li, *cli;
 	
@@ -103,24 +103,29 @@ DECLARE_FD_DUMP_PROTOTYPE(fd_servers_dump)
 		struct server * s = (struct server *)li;
 		enum s_state st = get_status(s);
 		
-		CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "{server}(@%p)'%s': %s, %s, %s", s, fd_cnx_getid(s->conn), 
-				IPPROTO_NAME( s->proto ),
-				s->secur ? "Secur" : "NotSecur",
-				(st == NOT_CREATED) ? "Thread not created" :
-				((st == RUNNING) ? "Thread running" :
-				((st == TERMINATED) ? "Thread terminated" :
-							  "Thread status unknown"))), return NULL);
-		/* Dump the client list of this server */
-		CHECK_POSIX_DO( pthread_mutex_lock(&s->clients_mtx), );
-		for (cli = s->clients.next; cli != &s->clients; cli = cli->next) {
-			struct client * c = (struct client *)cli;
-			char bufts[128];
-			CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "\n  {client}(@%p)'%s': to:%s", c, fd_cnx_getid(c->conn), fd_log_time(&c->ts, bufts, sizeof(bufts))), break);
-		}
-		CHECK_POSIX_DO( pthread_mutex_unlock(&s->clients_mtx), );
-		
-		if (li->next != &FD_SERVERS) {
-			CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "\n"), return NULL);
+		if (details) {
+			CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "{server}(@%p)'%s': %s, %s, %s", s, fd_cnx_getid(s->conn), 
+					IPPROTO_NAME( s->proto ),
+					s->secur ? "Secur" : "NotSecur",
+					(st == NOT_CREATED) ? "Thread not created" :
+					((st == RUNNING) ? "Thread running" :
+					((st == TERMINATED) ? "Thread terminated" :
+								  "Thread status unknown"))), return NULL);
+			/* Dump the client list of this server */
+			CHECK_POSIX_DO( pthread_mutex_lock(&s->clients_mtx), );
+			for (cli = s->clients.next; cli != &s->clients; cli = cli->next) {
+				struct client * c = (struct client *)cli;
+				char bufts[128];
+				CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "\n  {client}(@%p)'%s': to:%s", c, fd_cnx_getid(c->conn), fd_log_time(&c->ts, bufts, sizeof(bufts))), break);
+			}
+			CHECK_POSIX_DO( pthread_mutex_unlock(&s->clients_mtx), );
+
+			if (li->next != &FD_SERVERS) {
+				CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "\n"), return NULL);
+			}
+		} else {
+			CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "'%s'(%s,%s)  ", fd_cnx_getid(s->conn), 
+					IPPROTO_NAME( s->proto ), s->secur ? "Secur" : "NotSecur"), return NULL);
 		}
 	}
 	
@@ -445,7 +450,7 @@ int fd_servers_start()
 		char * buf = NULL;
 		size_t len = 0, offset = 0;
 		CHECK_MALLOC_DO( fd_dump_extend( &buf, &len, &offset , "Local server address(es): "), );
-		CHECK_MALLOC_DO( fd_ep_dump(  &buf, &len, &offset, 5, &fd_g_config->cnf_endpoints ), );
+		CHECK_MALLOC_DO( fd_ep_dump(  &buf, &len, &offset, 0, 0, &fd_g_config->cnf_endpoints ), );
 		LOG_N("%s", buf ?: "Error dumping addresses");
 		free(buf);
 	}

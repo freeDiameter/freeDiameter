@@ -284,11 +284,13 @@ int fd_ep_clearflags( struct fd_list * list, uint32_t flags )
 	return 0;
 }
 
-DECLARE_FD_DUMP_PROTOTYPE(fd_ep_dump_one, struct fd_endpoint * ep )
+DECLARE_FD_DUMP_PROTOTYPE(fd_ep_dump_one, int preamble, struct fd_endpoint * ep )
 {
 	FD_DUMP_HANDLE_OFFSET();
 	
-	CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "{ep}(@%p): ", ep), return NULL);
+	if (preamble) {
+		CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "{ep}(@%p): ", ep), return NULL);
+	}
 	
 	if (!ep) {
 		CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "INVALID/NULL"), return NULL);
@@ -296,27 +298,33 @@ DECLARE_FD_DUMP_PROTOTYPE(fd_ep_dump_one, struct fd_endpoint * ep )
 	}
 	
 	CHECK_MALLOC_DO( fd_sa_dump_node_serv( FD_DUMP_STD_PARAMS, &ep->sa, NI_NUMERICHOST | NI_NUMERICSERV ), return NULL);
-	CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, " {%s%s%s%s%s}",
-			(ep->flags & EP_FL_CONF) 	? "C" : "-",
-			(ep->flags & EP_FL_DISC) 	? "D" : "-",
-			(ep->flags & EP_FL_ADV) 	? "A" : "-",
-			(ep->flags & EP_FL_LL) 		? "L" : "-",
-			(ep->flags & EP_FL_PRIMARY) 	? "P" : "-"), return NULL);
+	CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "{%s%s%s%s%s}",
+				(ep->flags & EP_FL_CONF) 	? "C" : "-",
+				(ep->flags & EP_FL_DISC) 	? "D" : "-",
+				(ep->flags & EP_FL_ADV) 	? "A" : "-",
+				(ep->flags & EP_FL_LL) 		? "L" : "-",
+				(ep->flags & EP_FL_PRIMARY) 	? "P" : "-"), return NULL);
 	return *buf;
 }
 
-DECLARE_FD_DUMP_PROTOTYPE(fd_ep_dump, int indent, struct fd_list * eps  )
+DECLARE_FD_DUMP_PROTOTYPE(fd_ep_dump, int preamble, int indent, struct fd_list * eps  )
 {
 	struct fd_list * li;
 	
 	FD_DUMP_HANDLE_OFFSET();
 	
-	CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "%*s{eps}(@%p):", indent, "", eps), return NULL);
+	if (preamble) {
+		CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "%*s{eps}(@%p):", indent, "", eps), return NULL);
+	}
 	if (eps) {
 		for (li = eps->next; li != eps; li = li->next) {
 			struct fd_endpoint * ep = (struct fd_endpoint *)li;
-			CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "\n%*s", indent+1, ""), return NULL);
-			CHECK_MALLOC_DO( fd_ep_dump_one( FD_DUMP_STD_PARAMS, ep ), return NULL);
+			if (preamble) {
+				CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "\n%*s", indent+1, ""), return NULL);
+			} else if (li->prev != eps) {
+				CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "\t"), return NULL);
+			}
+			CHECK_MALLOC_DO( fd_ep_dump_one( FD_DUMP_STD_PARAMS, preamble, ep ), return NULL);
 		}
 	}
 }

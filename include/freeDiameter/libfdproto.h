@@ -2921,6 +2921,8 @@ void fd_disp_unregister_all ( void );
  *  session	: The session corresponding to this object, if any.
  *  action	: Upon return, the action that must be taken on the message
  *  error_code	: Upon return with action == DISP_ACT_ERROR, contains the error (such as "DIAMETER_UNABLE_TO_COMPLY")
+ *  drop_reason : if set on return, the message must be freed for this reason.
+ *  drop_msg    : if drop_reason is set, this points to the message to be freed while *msg is NULL.
  *
  * DESCRIPTION: 
  *   Call all handlers registered for a given message.
@@ -2933,7 +2935,7 @@ void fd_disp_unregister_all ( void );
  *  EINVAL 	: A parameter is invalid.
  *  (other errors)
  */
-int fd_msg_dispatch ( struct msg ** msg, struct session * session, enum disp_action *action, char ** error_code );
+int fd_msg_dispatch ( struct msg ** msg, struct session * session, enum disp_action *action, char ** error_code, char ** drop_reason, struct msg ** drop_msg );
 
 
 

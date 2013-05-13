@@ -150,7 +150,7 @@ int fd_ext_load()
 	for (li = ext_list.next; li != &ext_list; li = li->next)
 	{
 		struct fd_ext_info * ext = (struct fd_ext_info *)li;
-		TRACE_DEBUG (INFO, "Loading : %s", ext->filename);
+		LOG_D( "Loading : %s", ext->filename);
 		
 		/* Load the extension */
 #ifndef DEBUG
@@ -161,7 +161,7 @@ int fd_ext_load()
 #endif /* DEBUG */
 		if (ext->handler == NULL) {
 			/* An error occured */
-			TRACE_ERROR("Loading of extension %s failed: %s", ext->filename, dlerror());
+			LOG_F("Loading of extension %s failed: %s", ext->filename, dlerror());
 			#ifdef DEBUG
 			ext->handler = dlopen(ext->filename, RTLD_LAZY | RTLD_GLOBAL);
 			if (ext->handler) {
@@ -207,7 +207,7 @@ int fd_ext_load()
 		/* Proceed to the next extension */
 	}
 
-	TRACE_DEBUG (INFO, "All extensions loaded.");
+	LOG_N("All extensions loaded.");
 	
 	/* We have finished. */
 	return 0;

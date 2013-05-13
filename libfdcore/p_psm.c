@@ -240,7 +240,7 @@ void fd_psm_events_free(struct fd_peer * peer)
 			
 			case FDEVP_CNX_INCOMING: {
 				struct cnx_incoming * evd = ev->data;
-				//fd_msg_log( FD_MSG_LOG_DROPPED, evd->cer, "Message discarded while cleaning peer state machine queue." );
+				fd_hook_call(HOOK_MESSAGE_DROPPED, evd->cer, NULL, "Message discarded while cleaning peer state machine queue.", fd_msg_pmdl_get(evd->cer));
 				CHECK_FCT_DO( fd_msg_free(evd->cer), /* continue */);
 				fd_cnx_destroy(evd->cnx);
 			}
@@ -576,6 +576,7 @@ psm_loop:
 					/* In such case, just discard the message */
 					char buf[128];
 					snprintf(buf, sizeof(buf), "Received while peer state machine was in state %s.", STATE_STR(cur_state));
+					LOG_E("%s",buf); 
 					fd_hook_call(HOOK_MESSAGE_DROPPED, msg, peer, buf, fd_msg_pmdl_get(msg));
 					fd_msg_free(msg);
 				}
@@ -589,8 +590,11 @@ psm_loop:
 			int ret = fd_msg_parse_or_error( &msg, &error );
 			if (ret != EBADMSG) {
 				CHECK_FCT_DO( ret, 
-					{ 
-						LOG_E("%s: An unexpected error occurred while parsing a link-local message", peer->p_hdr.info.pi_diamid); 
+					{
+						char buf[256];
+						snprintf(buf, sizeof(buf), "%s: An unexpected error occurred while parsing a link-local message", peer->p_hdr.info.pi_diamid); 
+						LOG_E("%s",buf); 
+						fd_hook_call(HOOK_MESSAGE_DROPPED, msg, peer, buf, fd_msg_pmdl_get(msg));
 						fd_msg_free(msg); 
 						goto psm_end; 
 					} );
@@ -599,13 +603,18 @@ psm_loop:
 					/* Send the error back to the peer */
 					CHECK_FCT_DO( ret = fd_out_send(&error, NULL, peer, FD_CNX_ORDERED),  );
 					if (error) {
+						char buf[256];
 						/* Only if an error occurred & the message was not saved / dumped */
-						LOG_E("%s: error sending a message", peer->p_hdr.info.pi_diamid); 
+						snprintf(buf, sizeof(buf), "%s: error sending a message", peer->p_hdr.info.pi_diamid); 
+						LOG_E("%s",buf); 
+						fd_hook_call(HOOK_MESSAGE_DROPPED, error, peer, buf, fd_msg_pmdl_get(error));
 						CHECK_FCT_DO( fd_msg_free(error), goto psm_end);
 					}
 				} else {
+					char buf[256];
 					/* We received an invalid answer, let's disconnect */
-					LOG_E("%s: Received invalid answer to Base protocol message, disconnecting...", peer->p_hdr.info.pi_diamid);
+					snprintf(buf, sizeof(buf), "%s: Received invalid answer to Base protocol message, disconnecting...", peer->p_hdr.info.pi_diamid);
+					LOG_E("%s",buf); 
 					CHECK_FCT_DO( fd_msg_free(msg), goto psm_end);
 					CHECK_FCT_DO( fd_event_send(peer->p_events, FDEVP_CNX_ERROR, 0, NULL), goto psm_reset );
 				}
@@ -656,7 +665,10 @@ psm_loop:
 				
 				/* Cleanup the message if not done */
 				if (msg) {
-					//fd_msg_log( FD_MSG_LOG_DROPPED, msg, "Received un-handled non-routable command from peer '%s'.", peer->p_hdr.info.pi_diamid );
+					char buf[256];
+					snprintf(buf, sizeof(buf), "Received un-handled non-routable command from peer '%s'.", peer->p_hdr.info.pi_diamid);
+					LOG_E("%s",buf);
+					fd_hook_call(HOOK_MESSAGE_DROPPED, msg, NULL, buf, fd_msg_pmdl_get(msg));
 					CHECK_FCT_DO( fd_msg_free(msg), /* continue */);
 					msg = NULL;
 				}
@@ -664,7 +676,10 @@ psm_loop:
 		
 		/* At this point the message must have been fully handled already */
 		if (msg) {
-			//fd_msg_log( FD_MSG_LOG_DROPPED, msg, "Internal error ('%s'): unhandled message.", peer->p_hdr.info.pi_diamid );
+			char buf[256];
+			snprintf(buf, sizeof(buf), "Internal error ('%s'): unhandled message.", peer->p_hdr.info.pi_diamid);
+			LOG_E("%s",buf);
+			fd_hook_call(HOOK_MESSAGE_DROPPED, msg, NULL, buf, fd_msg_pmdl_get(msg));
 			fd_msg_free(msg);
 		}
 		
@@ -731,7 +746,7 @@ psm_loop:
 		{
 			char * buf = NULL;
 			size_t len = 0;
-			LOG_D("New remote endpoint(s): %s",  fd_ep_dump(&buf, &len, NULL, 6, &peer->p_hdr.info.pi_endpoints) ?: "error");
+			LOG_D("New remote endpoint(s): %s",  fd_ep_dump(&buf, &len, NULL, 0, 0, &peer->p_hdr.info.pi_endpoints) ?: "error");
 			free(buf);
 		}
 		

@@ -125,7 +125,7 @@ static void * mn_thr(void * arg)
 		CHECK_FCT_DO( pthread_rwlock_unlock(&fd_g_peers_rw), /* continue */ );
 		
 		TRACE_DEBUG(INFO, "[dbg_monitor] Dumping servers information");
-		TRACE_DEBUG(INFO, "%s", fd_servers_dump(&buf, &len, NULL));
+		TRACE_DEBUG(INFO, "%s", fd_servers_dump(&buf, &len, NULL, 1));
 		
 		sleep(1);
 	}

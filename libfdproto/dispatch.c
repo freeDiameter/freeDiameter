@@ -67,7 +67,8 @@ struct disp_hdl {
 
 /* Call CBs from a given list (any_handlers if cb_list is NULL) -- must have locked fd_disp_lock before */
 int fd_disp_call_cb_int( struct fd_list * cb_list, struct msg ** msg, struct avp *avp, struct session *sess, enum disp_action *action, 
-			struct dict_object * obj_app, struct dict_object * obj_cmd, struct dict_object * obj_avp, struct dict_object * obj_enu)
+			struct dict_object * obj_app, struct dict_object * obj_cmd, struct dict_object * obj_avp, struct dict_object * obj_enu,
+			char ** drop_reason, struct msg ** drop_msg)
 {
 	struct fd_list * senti, *li;
 	int r;
@@ -96,8 +97,8 @@ int fd_disp_call_cb_int( struct fd_list * cb_list, struct msg ** msg, struct avp
 		/* We have a match, the cb must be called. */
 		CHECK_FCT_DO( (r = (*hdl->cb)(msg, avp, sess, hdl->opaque, action)),
 			{
-				//fd_msg_log( FD_MSG_LOG_DROPPED, *msg, "Internal error: a DISPATCH callback returned an error (%s)", strerror(r));
-				fd_msg_free(*msg);
+				*drop_reason = "Internal error: a DISPATCH callback returned an error";
+				*drop_msg = *msg;
 				*msg = NULL;
 			}
 		 );

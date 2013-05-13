@@ -84,7 +84,7 @@ DECLARE_FD_DUMP_PROTOTYPE(fd_conf_dump)
 {
 	FD_DUMP_HANDLE_OFFSET();
 	
-	CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "{freeDiameter configuration}(@%p): \n", fd_g_config), return NULL);	
+	CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "freeDiameter configuration:\n", fd_g_config), return NULL);	
 	CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "  Default trace level .... : %+d\n", fd_g_debug_lvl), return NULL);
 	CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "  Configuration file ..... : %s\n", fd_g_config->cnf_file), return NULL);
 	CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "  Diameter Identity ...... : %s (l:%Zi)\n", fd_g_config->cnf_diamid, fd_g_config->cnf_diamid_len), return NULL);
@@ -98,17 +98,17 @@ DECLARE_FD_DUMP_PROTOTYPE(fd_conf_dump)
 	if (FD_IS_LIST_EMPTY(&fd_g_config->cnf_endpoints)) {
 		CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "  Local endpoints ........ : Default (use all available)\n"), return NULL);
 	} else {
-		CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "  Local endpoints ........ : \n"), return NULL);
-		CHECK_MALLOC_DO( fd_ep_dump( FD_DUMP_STD_PARAMS, 29, &fd_g_config->cnf_endpoints ), return NULL);
+		CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "  Local endpoints ........ : "), return NULL);
+		CHECK_MALLOC_DO( fd_ep_dump( FD_DUMP_STD_PARAMS, 0, 0, &fd_g_config->cnf_endpoints ), return NULL);
 	}
 	if (FD_IS_LIST_EMPTY(&fd_g_config->cnf_apps)) {
-		CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "  Local applications ..... : (none)\n"), return NULL);
+		CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "  Local applications ..... : (none)"), return NULL);
 	} else {
 		struct fd_list * li = fd_g_config->cnf_apps.next;
-		CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "  Local applications ..... : \n"), return NULL);
+		CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "  Local applications ..... : "), return NULL);
 		while (li != &fd_g_config->cnf_apps) {
 			struct fd_app * app = (struct fd_app *)li;
-			CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "                             App: %u\t%s%s\tVnd: %u\n", 
+			CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "App: %u,%s%s,Vnd:%u\t", 
 					app->appid,
 					app->flags.auth ? "Au" : "--",
 					app->flags.acct ? "Ac" : "--",
@@ -117,7 +117,7 @@ DECLARE_FD_DUMP_PROTOTYPE(fd_conf_dump)
 		}
 	}
 	
-	CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "  Flags : - IP ........... : %s\n", fd_g_config->cnf_flags.no_ip4 ? "DISABLED" : "Enabled"), return NULL);
+	CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "\n  Flags : - IP ........... : %s\n", fd_g_config->cnf_flags.no_ip4 ? "DISABLED" : "Enabled"), return NULL);
 	CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "          - IPv6 ......... : %s\n", fd_g_config->cnf_flags.no_ip6 ? "DISABLED" : "Enabled"), return NULL);
 	CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "          - Relay app .... : %s\n", fd_g_config->cnf_flags.no_fwd ? "DISABLED" : "Enabled"), return NULL);
 	CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "          - TCP .......... : %s\n", fd_g_config->cnf_flags.no_tcp ? "DISABLED" : "Enabled"), return NULL);
@@ -587,7 +587,7 @@ int fd_conf_parse()
 		free(dhparams.data);
 		
 	} else {
-		TRACE_DEBUG(INFO, "Generating fresh Diffie-Hellman parameters of size %d (this takes some time)... ", fd_g_config->cnf_sec_data.dh_bits ?: GNUTLS_DEFAULT_DHBITS);
+		LOG_D( "Generating fresh Diffie-Hellman parameters of size %d (this takes some time)... ", fd_g_config->cnf_sec_data.dh_bits ?: GNUTLS_DEFAULT_DHBITS);
 		CHECK_GNUTLS_DO( gnutls_dh_params_generate2( 
 					fd_g_config->cnf_sec_data.dh_cache,
 					fd_g_config->cnf_sec_data.dh_bits ?: GNUTLS_DEFAULT_DHBITS),

@@ -813,7 +813,7 @@ DECLARE_FD_DUMP_PROTOTYPE(fd_event_trig_dump);
 /* The "old" FD_EV_DUMP_* events are replaced with direct calls to the following dump functions */
 DECLARE_FD_DUMP_PROTOTYPE(fd_conf_dump);
 DECLARE_FD_DUMP_PROTOTYPE(fd_ext_dump);
-DECLARE_FD_DUMP_PROTOTYPE(fd_servers_dump);
+DECLARE_FD_DUMP_PROTOTYPE(fd_servers_dump, int details);
 #endif /* SWIG */
 DECLARE_FD_DUMP_PROTOTYPE(fd_peer_dump_list, int details);
 DECLARE_FD_DUMP_PROTOTYPE(fd_peer_dump, struct peer_hdr * p, int details);
@@ -852,8 +852,8 @@ int fd_ep_filter( struct fd_list * list, uint32_t flags );
 int fd_ep_filter_family( struct fd_list * list, int af );
 int fd_ep_filter_list( struct fd_list * list, struct fd_list * exclude_list );
 int fd_ep_clearflags( struct fd_list * list, uint32_t flags );
-DECLARE_FD_DUMP_PROTOTYPE(fd_ep_dump_one, struct fd_endpoint * ep );
-DECLARE_FD_DUMP_PROTOTYPE(fd_ep_dump, int indent, struct fd_list * eps  );
+DECLARE_FD_DUMP_PROTOTYPE(fd_ep_dump_one, int preamble, struct fd_endpoint * ep );
+DECLARE_FD_DUMP_PROTOTYPE(fd_ep_dump, int preamble, int indent, struct fd_list * eps  );
 
 
 /*============================================================*/
@@ -935,7 +935,7 @@ enum fd_hook_type {
 		 */
 	
 	HOOK_MESSAGE_LOCAL,
-		/* Hook called when a request message has been created locally and is being sent.
+		/* Hook called when a request message has been created locally by an extension and is being sent.
 		 - {msg} points to the message.
 		 - {peer} is NULL
 		 - {other} is NULL

@@ -392,7 +392,9 @@ static int return_error(struct msg ** pmsg, char * error_code, char * error_mess
 			CHECK_FCT( fd_peer_getbyid( id, idlen, 0, (void *)&peer ) );
 
 			if (!peer) {
-				//fd_msg_log(FD_MSG_LOG_DROPPED, *pmsg, "Unable to send error '%s' to deleted peer '%s' in reply to this message.", error_code, id);
+				char buf[256];
+				snprintf(buf, sizeof(buf), "Unable to send error '%s' to deleted peer '%s' in reply to this message.", error_code, id);
+				fd_hook_call(HOOK_MESSAGE_DROPPED, *pmsg, NULL, buf, fd_msg_pmdl_get(*pmsg));
 				fd_msg_free(*pmsg);
 				*pmsg = NULL;
 				return 0;
@@ -495,7 +497,7 @@ static int msg_dispatch(struct msg * msg)
 	CHECK_FCT( fd_msg_sess_get(fd_g_config->cnf_dict, msgptr, &sess, NULL) );
 
 	/* Now, call any callback registered for the message */
-	CHECK_FCT( fd_msg_dispatch ( &msgptr, sess, &action, &ec) );
+	CHECK_FCT( fd_msg_dispatch ( &msgptr, sess, &action, &ec, &em, &error) );
 
 	/* Now, act depending on msg and action and ec */
 	if (msgptr) {
@@ -504,6 +506,7 @@ static int msg_dispatch(struct msg * msg)
 				/* No callback has handled the message, let's reply with a generic error or relay it */
 				if (!fd_g_config->cnf_flags.no_fwd) {
 					/* requeue to fd_g_outgoing */
+					fd_hook_call(HOOK_MESSAGE_ROUTING_FORWARD, msgptr, NULL, NULL, fd_msg_pmdl_get(msgptr));
 					CHECK_FCT( fd_fifo_post(fd_g_outgoing, &msgptr) );
 					break;
 				}
@@ -518,7 +521,7 @@ static int msg_dispatch(struct msg * msg)
 				}
 				
 				if (!is_req) {
-					//fd_msg_log( FD_MSG_LOG_DROPPED, msgptr,  "Internal error: Answer received to locally issued request, but not handled by any handler.");
+					fd_hook_call(HOOK_MESSAGE_DROPPED, msgptr, NULL, "Internal error: Answer received to locally issued request, but not handled by any handler.", fd_msg_pmdl_get(msgptr));
 					fd_msg_free(msgptr);
 					break;
 				}
@@ -531,6 +534,9 @@ static int msg_dispatch(struct msg * msg)
 				/* Now, send the message */
 				CHECK_FCT( fd_fifo_post(fd_g_outgoing, &msgptr) );
 		}
+	} else if (em) {
+		fd_hook_call(HOOK_MESSAGE_DROPPED, error, NULL, em, fd_msg_pmdl_get(error));
+		fd_msg_free(error);
 	}
 	
 	/* We're done with dispatching this message */
@@ -554,6 +560,7 @@ static int msg_rt_in(struct msg * msg)
 
 	/* Handle incorrect bits */
 	if (is_req && is_err) {
+		fd_hook_call(HOOK_MESSAGE_PARSING_ERROR, msgptr, NULL, "R & E bits were set", fd_msg_pmdl_get(msgptr));
 		CHECK_FCT( return_error( &msgptr, "DIAMETER_INVALID_HDR_BITS", "R & E bits were set", NULL) );
 		return 0;
 	}
@@ -572,8 +579,7 @@ static int msg_rt_in(struct msg * msg)
 
 		/* Check if we have local support for the message application */
 		if ( (hdr->msg_appl == 0) || (hdr->msg_appl == AI_RELAY) ) {
-			TRACE_DEBUG(INFO, "Received a routable message with application id 0 or " _stringize(AI_RELAY) " (relay),"
-					  " returning DIAMETER_APPLICATION_UNSUPPORTED");
+			fd_hook_call(HOOK_MESSAGE_PARSING_ERROR, msgptr, NULL, "Received a routable message with application id 0 or " _stringize(AI_RELAY) " (relay)", fd_msg_pmdl_get(msgptr));
 			CHECK_FCT( return_error( &msgptr, "DIAMETER_APPLICATION_UNSUPPORTED", "Routable message with application id 0 or relay", NULL) );
 			return 0;
 		} else {
@@ -600,9 +606,11 @@ static int msg_rt_in(struct msg * msg)
 						CHECK_FCT_DO( ret = fd_msg_parse_dict ( avp, fd_g_config->cnf_dict, &error_info ),
 							{
 								if (error_info.pei_errcode) {
+									fd_hook_call(HOOK_MESSAGE_PARSING_ERROR, msgptr, NULL, error_info.pei_message ?: error_info.pei_errcode, fd_msg_pmdl_get(msgptr));
 									CHECK_FCT( return_error( &msgptr, error_info.pei_errcode, error_info.pei_message, error_info.pei_avp) );
 									return 0;
 								} else {
+									fd_hook_call(HOOK_MESSAGE_PARSING_ERROR, msgptr, NULL, "Unspecified error while parsing Destination-Host AVP", fd_msg_pmdl_get(msgptr));
 									return ret;
 								}
 							} );
@@ -620,9 +628,11 @@ static int msg_rt_in(struct msg * msg)
 						CHECK_FCT_DO( ret = fd_msg_parse_dict ( avp, fd_g_config->cnf_dict, &error_info ),
 							{
 								if (error_info.pei_errcode) {
+									fd_hook_call(HOOK_MESSAGE_PARSING_ERROR, msgptr, NULL, error_info.pei_message ?: error_info.pei_errcode, fd_msg_pmdl_get(msgptr));
 									CHECK_FCT( return_error( &msgptr, error_info.pei_errcode, error_info.pei_message, error_info.pei_avp) );
 									return 0;
 								} else {
+									fd_hook_call(HOOK_MESSAGE_PARSING_ERROR, msgptr, NULL, "Unspecified error while parsing Destination-Realm AVP", fd_msg_pmdl_get(msgptr));
 									return ret;
 								}
 							} );
@@ -642,9 +652,11 @@ static int msg_rt_in(struct msg * msg)
 						CHECK_FCT_DO( ret = fd_msg_parse_dict ( avp, fd_g_config->cnf_dict, &error_info ),
 							{
 								if (error_info.pei_errcode) {
+									fd_hook_call(HOOK_MESSAGE_PARSING_ERROR, msgptr, NULL, error_info.pei_message ?: error_info.pei_errcode, fd_msg_pmdl_get(msgptr));
 									CHECK_FCT( return_error( &msgptr, error_info.pei_errcode, error_info.pei_message, error_info.pei_avp) );
 									return 0;
 								} else {
+									fd_hook_call(HOOK_MESSAGE_PARSING_ERROR, msgptr, NULL, "Unspecified error while parsing User-Name AVP", fd_msg_pmdl_get(msgptr));
 									return ret;
 								}
 							} );
@@ -667,6 +679,7 @@ static int msg_rt_in(struct msg * msg)
 
 		/* Handle the missing routing AVPs first */
 		if ( is_dest_realm == UNKNOWN ) {
+			fd_hook_call(HOOK_MESSAGE_PARSING_ERROR, msgptr, NULL, "Non-routable message not supported (invalid bit ? missing Destination-Realm ?)", fd_msg_pmdl_get(msgptr));
 			CHECK_FCT( return_error( &msgptr, "DIAMETER_COMMAND_UNSUPPORTED", "Non-routable message not supported (invalid bit ? missing Destination-Realm ?)", NULL) );
 			return 0;
 		}
@@ -675,9 +688,11 @@ static int msg_rt_in(struct msg * msg)
 		if (is_dest_host == YES) {
 			if (is_local_app == YES) {
 				/* Ok, give the message to the dispatch thread */
+				fd_hook_call(HOOK_MESSAGE_ROUTING_LOCAL, msgptr, NULL, NULL, fd_msg_pmdl_get(msgptr));
 				CHECK_FCT( fd_fifo_post(fd_g_local, &msgptr) );
 			} else {
 				/* We don't support the application, reply an error */
+				fd_hook_call(HOOK_MESSAGE_PARSING_ERROR, msgptr, NULL, "Application unsupported", fd_msg_pmdl_get(msgptr));
 				CHECK_FCT( return_error( &msgptr, "DIAMETER_APPLICATION_UNSUPPORTED", NULL, NULL) );
 			}
 			return 0;
@@ -686,6 +701,7 @@ static int msg_rt_in(struct msg * msg)
 		/* If the message is explicitely for someone else */
 		if ((is_dest_host == NO) || (is_dest_realm == NO)) {
 			if (fd_g_config->cnf_flags.no_fwd) {
+				fd_hook_call(HOOK_MESSAGE_ROUTING_ERROR, msgptr, NULL, "Message for another realm/host", fd_msg_pmdl_get(msgptr));
 				CHECK_FCT( return_error( &msgptr, "DIAMETER_UNABLE_TO_DELIVER", "I am not a Diameter agent", NULL) );
 				return 0;
 			}
@@ -699,6 +715,7 @@ static int msg_rt_in(struct msg * msg)
 				CHECK_FCT_DO( process_decorated_NAI(&is_nai, un_val, dr_val),
 					{
 						/* If the process failed, we assume it is because of the AVP format */
+						fd_hook_call(HOOK_MESSAGE_PARSING_ERROR, msgptr, NULL, "Failed to process decorated NAI", fd_msg_pmdl_get(msgptr));
 						CHECK_FCT( return_error( &msgptr, "DIAMETER_INVALID_AVP_VALUE", "Failed to process decorated NAI", un) );
 						return 0;
 					} );
@@ -712,12 +729,14 @@ static int msg_rt_in(struct msg * msg)
 
 			if (is_local_app == YES) {
 				/* Handle localy since we are able to */
+				fd_hook_call(HOOK_MESSAGE_ROUTING_LOCAL, msgptr, NULL, NULL, fd_msg_pmdl_get(msgptr));
 				CHECK_FCT(fd_fifo_post(fd_g_local, &msgptr) );
 				return 0;
 			}
 
 			if (fd_g_config->cnf_flags.no_fwd) {
 				/* We return an error */
+				fd_hook_call(HOOK_MESSAGE_ROUTING_ERROR, msgptr, NULL, "Application unsupported", fd_msg_pmdl_get(msgptr));
 				CHECK_FCT( return_error( &msgptr, "DIAMETER_APPLICATION_UNSUPPORTED", NULL, NULL) );
 				return 0;
 			}
@@ -735,6 +754,7 @@ static int msg_rt_in(struct msg * msg)
 
 		if ((!qry_src) && (!is_err)) {
 			/* The message is a normal answer to a request issued localy, we do not call the callbacks chain on it. */
+			fd_hook_call(HOOK_MESSAGE_ROUTING_LOCAL, msgptr, NULL, NULL, fd_msg_pmdl_get(msgptr));
 			CHECK_FCT(fd_fifo_post(fd_g_local, &msgptr) );
 			return 0;
 		}
@@ -763,9 +783,13 @@ static int msg_rt_in(struct msg * msg)
 			TRACE_DEBUG(ANNOYING, "Calling next FWD callback on %p : %p", msgptr, rh->rt_fwd_cb);
 			CHECK_FCT_DO( ret = (*rh->rt_fwd_cb)(rh->cbdata, &msgptr),
 				{
-					//fd_msg_log( FD_MSG_LOG_DROPPED, msgptr, "Internal error: a FWD routing callback returned an error (%s)", strerror(ret));
+					char buf[256];
+					snprintf(buf, sizeof(buf), "A FWD routing callback returned an error: %s", strerror(ret));
+					fd_hook_call(HOOK_MESSAGE_ROUTING_ERROR, msgptr, NULL, buf, fd_msg_pmdl_get(msgptr));
+					fd_hook_call(HOOK_MESSAGE_DROPPED, msgptr, NULL, buf, fd_msg_pmdl_get(msgptr));
 					fd_msg_free(msgptr);
 					msgptr = NULL;
+					break;
 				} );
 		}
 
@@ -779,8 +803,10 @@ static int msg_rt_in(struct msg * msg)
 
 	/* Now pass the message to the next step: either forward to another peer, or dispatch to local extensions */
 	if (is_req || qry_src) {
+		fd_hook_call(HOOK_MESSAGE_ROUTING_FORWARD, msgptr, NULL, NULL, fd_msg_pmdl_get(msgptr));
 		CHECK_FCT(fd_fifo_post(fd_g_outgoing, &msgptr) );
 	} else {
+		fd_hook_call(HOOK_MESSAGE_ROUTING_LOCAL, msgptr, NULL, NULL, fd_msg_pmdl_get(msgptr));
 		CHECK_FCT(fd_fifo_post(fd_g_local, &msgptr) );
 	}
 
@@ -822,7 +848,10 @@ static int msg_rt_out(struct msg * msg)
 		/* Find the peer corresponding to this name */
 		CHECK_FCT( fd_peer_getbyid( qry_src, qry_src_len, 0, (void *) &peer ) );
 		if (fd_peer_getstate(peer) != STATE_OPEN) {
-			//fd_msg_log( FD_MSG_LOG_DROPPED, msgptr, "Unable to forward answer to deleted / closed peer '%s'.", qry_src);
+			char buf[128];
+			snprintf(buf, sizeof(buf), "Unable to forward answer to deleted / closed peer '%s'.", qry_src);
+			fd_hook_call(HOOK_MESSAGE_ROUTING_ERROR, msgptr, NULL, buf, fd_msg_pmdl_get(msgptr));
+			fd_hook_call(HOOK_MESSAGE_DROPPED, msgptr, NULL, buf, fd_msg_pmdl_get(msgptr));
 			fd_msg_free(msgptr);
 			return 0;
 		}
@@ -907,7 +936,10 @@ static int msg_rt_out(struct msg * msg)
 			TRACE_DEBUG(ANNOYING, "Calling next OUT callback on %p : %p (prio %d)", msgptr, rh->rt_out_cb, rh->prio);
 			CHECK_FCT_DO( ret = (*rh->rt_out_cb)(rh->cbdata, msgptr, candidates),
 				{
-					//fd_msg_log( FD_MSG_LOG_DROPPED, msgptr, "Internal error: an OUT routing callback returned an error (%s)", strerror(ret));
+					char buf[256];
+					snprintf(buf, sizeof(buf), "An OUT routing callback returned an error: %s", strerror(ret));
+					fd_hook_call(HOOK_MESSAGE_ROUTING_ERROR, msgptr, NULL, buf, fd_msg_pmdl_get(msgptr));
+					fd_hook_call(HOOK_MESSAGE_DROPPED, msgptr, NULL, buf, fd_msg_pmdl_get(msgptr));
 					fd_msg_free(msgptr);
 					msgptr = NULL;
 					break;
@@ -955,7 +987,7 @@ static int msg_rt_out(struct msg * msg)
 
 	/* If the message has not been sent, return an error */
 	if (msgptr) {
-		//fd_msg_log( FD_MSG_LOG_NODELIVER, msgptr, "No suitable candidate to route the message to." );
+		fd_hook_call(HOOK_MESSAGE_ROUTING_ERROR, msgptr, NULL, "No remaining suitable candidate to route the message to", fd_msg_pmdl_get(msgptr));
 		return_error( &msgptr, "DIAMETER_UNABLE_TO_DELIVER", "No suitable candidate to route the message to", NULL);
 	}
 

@@ -127,7 +127,7 @@
 	void dump() {
 		char * buf = NULL;
 		size_t len;
-		printf("%s", fd_ep_dump_one(&buf, &len, NULL, $self));
+		printf("%s", fd_ep_dump_one(&buf, &len, NULL, 1, $self));
 		free(buf);
 	}
 }

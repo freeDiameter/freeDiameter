@@ -97,7 +97,7 @@ static void cleanup_requeue(void * arg)
 	struct msg *msg = arg;
 	CHECK_FCT_DO(fd_fifo_post(fd_g_outgoing, &msg),
 		{
-			//fd_msg_log( FD_MSG_LOG_DROPPED, msg, "An error occurred while attempting to requeue this message during cancellation of the sending function");
+			fd_hook_call(HOOK_MESSAGE_DROPPED, msg, NULL, "An error occurred while attempting to requeue this message during cancellation of the sending function", fd_msg_pmdl_get(msg));
 			CHECK_FCT_DO(fd_msg_free(msg), /* What can we do more? */);
 		} );
 }
@@ -130,7 +130,9 @@ static void * out_thr(void * arg)
 		CHECK_FCT_DO( ret = do_send(&msg, 0, peer->p_cnxctx, &peer->p_hbh, peer),
 			{
 				if (msg) {
-					//fd_msg_log( FD_MSG_LOG_DROPPED, msg, "Internal error: Problem while sending (%s)", strerror(ret) );
+					char buf[256];
+					snprintf(buf, sizeof(buf), "Error while sending this message: s", strerror(ret));
+					fd_hook_call(HOOK_MESSAGE_DROPPED, msg, NULL, buf, fd_msg_pmdl_get(msg));
 					fd_msg_free(msg);
 				}
 			} );
@@ -182,7 +184,9 @@ int fd_out_send(struct msg ** msg, struct cnxctx * cnx, struct fd_peer * peer, u
 		CHECK_FCT_DO( ret = do_send(msg, flags, cnx, hbh, peer),
 			{
 				if (msg) {
-					//fd_msg_log( FD_MSG_LOG_DROPPED, *msg, "Internal error: Problem while sending (%s)", strerror(ret) );
+					char buf[256];
+					snprintf(buf, sizeof(buf), "Error while sending this message: s", strerror(ret));
+					fd_hook_call(HOOK_MESSAGE_DROPPED, *msg, NULL, buf, fd_msg_pmdl_get(*msg));
 					fd_msg_free(*msg);
 					*msg = NULL;
 				}

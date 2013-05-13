@@ -241,10 +241,11 @@ void fd_peer_failover_msg(struct fd_peer * peer)
 	
 	/* Requeue all messages in the "out" queue */
 	while ( fd_fifo_tryget(peer->p_tosend, &m) == 0 ) {
+		fd_hook_call(HOOK_MESSAGE_FAILOVER, m, peer, NULL, fd_msg_pmdl_get(m));
 		CHECK_FCT_DO(fd_fifo_post(fd_g_outgoing, &m), 
 			{
 				/* fallback: destroy the message */
-				//fd_msg_log(FD_MSG_LOG_DROPPED, m, "Internal error: unable to requeue this message during failover process");
+				fd_hook_call(HOOK_MESSAGE_DROPPED, m, NULL, "Internal error: unable to requeue this message during failover process", fd_msg_pmdl_get(m));
 				CHECK_FCT_DO(fd_msg_free(m), /* What can we do more? */)
 			} );
 	}

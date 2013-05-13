@@ -313,19 +313,36 @@ int fd_msg_rescode_set( struct msg * msg, char * rescode, char * errormsg, struc
 	return 0;
 }
 
+static int fd_msg_send_int( struct msg ** pmsg, void (*anscb)(void *, struct msg **), void * data, void (*expirecb)(void *, DiamId_t, size_t, struct msg **), const struct timespec *timeout )
+{
+	struct msg_hdr *hdr;
+	DiamId_t diamid;
+	size_t diamidlen;
+	
+	/* Save the callback in the message, with the timeout */
+	CHECK_FCT(  fd_msg_anscb_associate( *pmsg, anscb, data, expirecb, timeout )  );
+	
+	/* If this is a new request, call the HOOK_MESSAGE_LOCAL hook */
+	if ( (fd_msg_hdr(*pmsg, &hdr) == 0)
+	 &&  (hdr->msg_flags & CMD_FLAG_REQUEST)
+	 &&  (fd_msg_source_get(*pmsg, &diamid, &diamidlen) == 0)
+	 &&  (diamid == NULL)) {
+		fd_hook_call(HOOK_MESSAGE_LOCAL, *pmsg, NULL, NULL, fd_msg_pmdl_get(*pmsg));
+	}
+		
+	/* Post the message in the outgoing queue */
+	CHECK_FCT( fd_fifo_post(fd_g_outgoing, pmsg) );
+	
+	return 0;
+}
+
 /* Send a message and optionaly register a callback for an answer */
 int fd_msg_send ( struct msg ** pmsg, void (*anscb)(void *, struct msg **), void * data )
 {
 	TRACE_ENTRY("%p %p %p", pmsg, anscb, data);
 	CHECK_PARAMS( pmsg );
 	
-	/* Save the callback in the message */
-	CHECK_FCT(  fd_msg_anscb_associate( *pmsg, anscb, data, NULL, NULL /* we should maybe use a safeguard here like 1 hour or so? */ )  );
-	
-	/* Post the message in the outgoing queue */
-	CHECK_FCT( fd_fifo_post(fd_g_outgoing, pmsg) );
-	
-	return 0;
+	return fd_msg_send_int(pmsg, anscb, data, NULL, NULL);
 }
 
 /* The variation of the same function with a timeout callback */
@@ -334,13 +351,7 @@ int fd_msg_send_timeout ( struct msg ** pmsg, void (*anscb)(void *, struct msg *
 	TRACE_ENTRY("%p %p %p %p %p", pmsg, anscb, data, expirecb, timeout);
 	CHECK_PARAMS( pmsg && expirecb && timeout );
 	
-	/* Save the callback in the message, with the timeout */
-	CHECK_FCT(  fd_msg_anscb_associate( *pmsg, anscb, data, expirecb, timeout )  );
-	
-	/* Post the message in the outgoing queue */
-	CHECK_FCT( fd_fifo_post(fd_g_outgoing, pmsg) );
-	
-	return 0;
+	return fd_msg_send_int(pmsg, anscb, data, expirecb, timeout);
 }
 
 

@@ -2669,7 +2669,7 @@ int fd_msg_update_length ( msg_or_avp * object )
 		goto out;
 
 /* Call all dispatch callbacks for a given message */
-int fd_msg_dispatch ( struct msg ** msg, struct session * session, enum disp_action *action, char ** error_code)
+int fd_msg_dispatch ( struct msg ** msg, struct session * session, enum disp_action *action, char ** error_code, char ** drop_reason, struct msg ** drop_msg)
 {
 	struct dictionary  * dict;
 	struct dict_object * app;
@@ -2683,6 +2683,8 @@ int fd_msg_dispatch ( struct msg ** msg, struct session * session, enum disp_act
 	
 	if (error_code)
 		*error_code = NULL;
+	if (drop_reason)
+		*drop_reason = NULL;
 	*action = DISP_ACT_CONT;
 	
 	/* Take the dispatch lock */
@@ -2690,7 +2692,7 @@ int fd_msg_dispatch ( struct msg ** msg, struct session * session, enum disp_act
 	pthread_cleanup_push( fd_cleanup_rwlock, &fd_disp_lock );
 	
 	/* First, call the DISP_HOW_ANY callbacks */
-	CHECK_FCT_DO( ret = fd_disp_call_cb_int( NULL, msg, NULL, session, action, NULL, NULL, NULL, NULL ), goto out );
+	CHECK_FCT_DO( ret = fd_disp_call_cb_int( NULL, msg, NULL, session, action, NULL, NULL, NULL, NULL, drop_reason, drop_msg ), goto out );
 
 	TEST_ACTION_STOP();
 	
@@ -2707,8 +2709,8 @@ int fd_msg_dispatch ( struct msg ** msg, struct session * session, enum disp_act
 				*error_code = "DIAMETER_APPLICATION_UNSUPPORTED";
 			*action = DISP_ACT_ERROR;
 		} else {
-			//fd_msg_log( FD_MSG_LOG_DROPPED, *msg, "Internal error: Received this answer to a local query with an unsupported application %d", (*msg)->msg_public.msg_appl);
-			fd_msg_free(*msg);
+			*drop_reason = "Internal error: Received this answer to a local query with an unsupported application";
+			*drop_msg = *msg;
 			*msg = NULL;
 		}
 		goto out;
@@ -2739,7 +2741,7 @@ int fd_msg_dispatch ( struct msg ** msg, struct session * session, enum disp_act
 			}
 			
 			/* Call the callbacks */
-			CHECK_FCT_DO( ret = fd_disp_call_cb_int( cb_list, msg, avp, session, action, app, cmd, avp->avp_model, enumval ), goto out );
+			CHECK_FCT_DO( ret = fd_disp_call_cb_int( cb_list, msg, avp, session, action, app, cmd, avp->avp_model, enumval, drop_reason, drop_msg ), goto out );
 			TEST_ACTION_STOP();
 		}
 		/* Go to next AVP */
@@ -2748,12 +2750,12 @@ int fd_msg_dispatch ( struct msg ** msg, struct session * session, enum disp_act
 		
 	/* Now call command and application callbacks */
 	CHECK_FCT_DO( ret = fd_dict_disp_cb(DICT_COMMAND, cmd, &cb_list), goto out );
-	CHECK_FCT_DO( ret = fd_disp_call_cb_int( cb_list, msg, NULL, session, action, app, cmd, NULL, NULL ), goto out );
+	CHECK_FCT_DO( ret = fd_disp_call_cb_int( cb_list, msg, NULL, session, action, app, cmd, NULL, NULL, drop_reason, drop_msg ), goto out );
 	TEST_ACTION_STOP();
 	
 	if (app) {
 		CHECK_FCT_DO( ret = fd_dict_disp_cb(DICT_APPLICATION, app, &cb_list), goto out );
-		CHECK_FCT_DO( ret = fd_disp_call_cb_int( cb_list, msg, NULL, session, action, app, cmd, NULL, NULL ), goto out );
+		CHECK_FCT_DO( ret = fd_disp_call_cb_int( cb_list, msg, NULL, session, action, app, cmd, NULL, NULL, drop_reason, drop_msg ), goto out );
 		TEST_ACTION_STOP();
 	}
 out:

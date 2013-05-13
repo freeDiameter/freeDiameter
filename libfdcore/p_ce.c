@@ -649,7 +649,7 @@ destroy:
 	fd_cnx_destroy(*recv_cnx);
 	*recv_cnx = NULL;
 	if (*cer) {
-		//fd_msg_log(FD_MSG_LOG_DROPPED, *cer, "An error occurred while rejecting a CER.");
+		fd_hook_call(HOOK_MESSAGE_DROPPED, *cer, NULL, "An error occurred while rejecting this CER.", fd_msg_pmdl_get(*cer));
 		fd_msg_free(*cer);
 		*cer = NULL;
 	}
