@@ -186,6 +186,7 @@ static void * sr_expiry_th(void * arg) {
 		CHECK_MALLOC_DO( ed = malloc(sizeof(struct expire_data)), goto error );
 		ed->sentto = first->chain.head->o;
 		ed->request = first->req;
+		*((uint32_t *)first->chain.o) = first->prevhbh; /* Restore the hbhid */
 		fd_list_unlink(&first->chain);
 		fd_list_unlink(&first->expire);
 		free(first);
