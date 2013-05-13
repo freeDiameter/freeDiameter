@@ -484,9 +484,10 @@ static __inline__ void replace_me() MARK_DEPRECATED { }
 /* old macro for traces. To be replaced by appropriate LOG_* macros. */
 # define TRACE_DEBUG(oldlevel, format,args... ) {					\
 		if (TRACE_BOOL(oldlevel)) {						\
-			if      (oldlevel == NONE) { LOG_E(format,##args); }		\
-			else if (oldlevel == INFO) { LOG_N(format,##args); }		\
-			else                       { LOG_D(format,##args); }		\
+			if      (oldlevel <= NONE) { LOG_E(format,##args); }		\
+			else if (oldlevel <= INFO) { LOG_N(format,##args); }		\
+			else if (oldlevel <= FULL) { LOG_D(format,##args); }		\
+			else                       { LOG_A(format,##args); }		\
 }		}
 
 /* the following macro must be replaced with LOG_E or LOG_F */
