@@ -106,8 +106,11 @@ int rt_busy_process_busy(struct msg ** pmsg, int is_req, DiamId_t sentto, size_t
 		}
 		/* Send the query again. We  need to re-associate the expirecb which was cleaned, if it is used */
 		if (rtbusy_conf.RelayTimeout) {
-			struct timespec tm = { .tv_sec = rtbusy_conf.RelayTimeout/1000, .tv_nsec=1000000LL * (rtbusy_conf.RelayTimeout % 1000) };
-			CHECK_FCT( fd_msg_send_timeout( pmsg, NULL, NULL, rtbusy_expirecb, &tm ) );
+			struct timespec expire;
+			CHECK_SYS(  clock_gettime(CLOCK_REALTIME, &expire)  );
+			expire.tv_sec += rtbusy_conf.RelayTimeout/1000 + ((expire.tv_nsec + (1000000LL * (rtbusy_conf.RelayTimeout % 1000))) / 1000000000LL);
+			expire.tv_nsec = (expire.tv_nsec + (1000000LL * (rtbusy_conf.RelayTimeout % 1000))) % 1000000000LL;
+			CHECK_FCT( fd_msg_send_timeout( pmsg, NULL, NULL, rtbusy_expirecb, &expire ) );
 		} else {
 			CHECK_FCT( fd_msg_send(pmsg, NULL, NULL) );
 		}
