@@ -48,28 +48,25 @@ void rgw_servers_dump(void)
 {
 	char ipstr[INET6_ADDRSTRLEN];
 	
-	if ( ! TRACE_BOOL(FULL) )
-		return;
-	
-	fd_log_debug(" auth server:");
-	fd_log_debug("    disabled..... : %s", rgw_servers.auth_serv.disabled ? "TRUE":"false");
-	fd_log_debug("    IP disabled.. : %s", rgw_servers.auth_serv.ip_disabled ? "TRUE":"false");
-	fd_log_debug("    IPv6 disabled : %s", rgw_servers.auth_serv.ip6_disabled ? "TRUE":"false");
-	fd_log_debug("    port......... : %hu", ntohs(rgw_servers.auth_serv.port));
+	LOG_D(" auth server:");
+	LOG_D("    disabled..... : %s", rgw_servers.auth_serv.disabled ? "TRUE":"false");
+	LOG_D("    IP disabled.. : %s", rgw_servers.auth_serv.ip_disabled ? "TRUE":"false");
+	LOG_D("    IPv6 disabled : %s", rgw_servers.auth_serv.ip6_disabled ? "TRUE":"false");
+	LOG_D("    port......... : %hu", ntohs(rgw_servers.auth_serv.port));
 	inet_ntop(AF_INET, &rgw_servers.auth_serv.ip_endpoint,ipstr,sizeof(ipstr));
-	fd_log_debug("    IP bind...... : %s", ipstr);
+	LOG_D("    IP bind...... : %s", ipstr);
 	inet_ntop(AF_INET6, &rgw_servers.auth_serv.ip6_endpoint,ipstr,sizeof(ipstr));
-	fd_log_debug("    IPv6 bind.... : %s", ipstr);
+	LOG_D("    IPv6 bind.... : %s", ipstr);
 
-	fd_log_debug(" acct server:");
-	fd_log_debug("    disabled..... : %s", rgw_servers.acct_serv.disabled ? "TRUE":"false");
-	fd_log_debug("    IP disabled.. : %s", rgw_servers.acct_serv.ip_disabled ? "TRUE":"false");
-	fd_log_debug("    IPv6 disabled : %s", rgw_servers.acct_serv.ip6_disabled ? "TRUE":"false");
-	fd_log_debug("    port......... : %hu", ntohs(rgw_servers.acct_serv.port));
+	LOG_D(" acct server:");
+	LOG_D("    disabled..... : %s", rgw_servers.acct_serv.disabled ? "TRUE":"false");
+	LOG_D("    IP disabled.. : %s", rgw_servers.acct_serv.ip_disabled ? "TRUE":"false");
+	LOG_D("    IPv6 disabled : %s", rgw_servers.acct_serv.ip6_disabled ? "TRUE":"false");
+	LOG_D("    port......... : %hu", ntohs(rgw_servers.acct_serv.port));
 	inet_ntop(AF_INET, &rgw_servers.acct_serv.ip_endpoint,ipstr,sizeof(ipstr));
-	fd_log_debug("    IP bind...... : %s", ipstr);
+	LOG_D("    IP bind...... : %s", ipstr);
 	inet_ntop(AF_INET6, &rgw_servers.acct_serv.ip6_endpoint,ipstr,sizeof(ipstr));
-	fd_log_debug("    IPv6 bind.... : %s", ipstr);
+	LOG_D("    IPv6 bind.... : %s", ipstr);
 
 }
 
@@ -124,22 +121,19 @@ static void * server_thread(void * param)
 		CHECK_SYS_DO( len = recvfrom( me->sock, &buf[0], sizeof(buf), 0, (struct sockaddr *) &from, &fromlen),  break );
 		
 		/* Get the port */
-		if (from.ss_family == AF_INET)
-			port = ((struct sockaddr_in *)&from)->sin_port;
-		if (from.ss_family == AF_INET6)
-			port = ((struct sockaddr_in6 *)&from)->sin6_port;
+		port = sSAport(&from);
 		if (!port) {
-			TRACE_DEBUG(INFO, "Invalid port (family: %d), discarding received %d bytes...", from.ss_family, len);
+			LOG_E("Invalid port (family: %d), discarding received %d bytes...", from.ss_family, len);
 			continue;
 		}
 		
 		fd_sa_sdump_numeric(sa_buf, (sSA*)&from);
-		TRACE_DEBUG(FULL, "Received %d bytes from %s", len, sa_buf);
+		LOG_D("RADIUS: RCV %dB from %s", len, sa_buf);
 		
 		/* Search the associated client definition, if any */
 		CHECK_FCT_DO( rgw_clients_search((struct sockaddr *) &from, &nas_info),
 			{
-				TRACE_NOTICE("Discarding %d bytes received from unknown IP: %s", len, sa_buf);
+				LOG_E("Discarding %d bytes received from unknown IP: %s", len, sa_buf);
 				continue;
 			} );
 				
@@ -150,7 +144,7 @@ static void * server_thread(void * param)
 				DiamId_t cliname = NULL;
 				size_t clisz;
 				CHECK_FCT_DO( rgw_clients_get_origin(nas_info, &cliname, &clisz, NULL, NULL), );
-				TRACE_DEBUG(INFO, "Discarding invalid RADIUS message from '%s'", cliname);
+				LOG_E( "Discarding invalid RADIUS message from '%s'", cliname);
 				rgw_clients_dispose(&nas_info);
 				continue; 
 			} );
@@ -257,7 +251,7 @@ int rgw_servers_send(int type, unsigned char *buf, size_t buflen, struct sockadd
 	}
 	
 	if (!ret) {
-		TRACE_DEBUG(INFO, "Trying to send a message from a disabled server: %s / %s", 
+		LOG_E( "Trying to send a message from a disabled server: %s / %s", 
 				(type == RGW_PLG_TYPE_AUTH) ? "Auth" : "Acct",
 				(to->sa_family == AF_INET)  ? "IP (v4)" : "IPv6");
 		return EINVAL;
@@ -274,8 +268,8 @@ int rgw_servers_send(int type, unsigned char *buf, size_t buflen, struct sockadd
 	}
 	
 	fd_sa_sdump_numeric(sa_buf, (sSA*)&sto);
-	TRACE_DEBUG(FULL, "Sending %zd bytes to %s", buflen, sa_buf);
-		
+	LOG_D("RADIUS: SND %zdB   to %s", buflen, sa_buf);
+	
 	/* Send */
 	ret = sendto(SERVERS[idx].sock, buf, buflen, 0, (struct sockaddr *)&sto, sSAlen(&sto));
 	if (ret < 0) {

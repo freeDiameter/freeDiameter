@@ -246,6 +246,7 @@ static void receive_diam_answer(void * paback, struct msg **ans)
 				} else {
 					switch (ahdr->avp_code) {
 						/* A few AVPs can be safely ignored here: */
+						case DIAM_ATTR_SESSION_ID:
 						case DIAM_ATTR_ROUTE_RECORD:
 						case DIAM_ATTR_PROXY_INFO:
 
@@ -254,7 +255,7 @@ static void receive_diam_answer(void * paback, struct msg **ans)
 							break;
 
 						default:
-							TRACE_DEBUG(FULL, "Remaining Mandatory AVP, code %d", ahdr->avp_code);
+							LOG_D("Remaining Mandatory AVP, code %d", ahdr->avp_code);
 							pb++;
 					}
 				}

@@ -47,7 +47,7 @@ static int rgw_main(char * conffile)
 	
 	CHECK_FCT( rgw_conf_handle(conffile) );
 	
-	TRACE_DEBUG(INFO, "Extension RADIUS Gateway initialized with configuration: '%s'", conffile);
+	LOG_D( "Extension RADIUS Gateway initialized with configuration: '%s'", conffile);
 	rgw_servers_dump();
 	rgw_clients_dump();
 	rgw_plg_dump();
