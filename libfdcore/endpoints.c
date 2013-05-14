@@ -93,7 +93,7 @@ int fd_ep_add_merge( struct fd_list * list, sSA * sa, socklen_t sl, uint32_t fla
 			LOG_A("  DEBUG:fd_ep_add_merge  Address family was unknown, not added.");
 			return 0;
 	}
-
+	
 	/* remove the ACCEPTALL flag */
 	flags &= ~EP_ACCEPTALL;
 	
@@ -134,8 +134,10 @@ int fd_ep_add_merge( struct fd_list * list, sSA * sa, socklen_t sl, uint32_t fla
 			*ep_port = *port;
 			break;
 		}
-		if (*ep_port < *port)
+		if (*ep_port < *port) {
+			cmp = -1;
 			continue;
+		}
 		if (*ep_port > *port)
 			cmp = 1;
 		break;
@@ -216,7 +218,8 @@ int fd_ep_filter_list( struct fd_list * list, struct fd_list * exclude_list )
 	/* Now browse both lists in parallel */
 	while ((li_out != list) && (li_ex != exclude_list)) {
 		int cmp;
-
+		in_port_t * port_out, *port_ex;
+		
 		out = (struct fd_endpoint *)li_out;
 		ex = (struct fd_endpoint *)li_ex;
 
@@ -234,9 +237,13 @@ int fd_ep_filter_list( struct fd_list * list, struct fd_list * exclude_list )
 		switch (out->sa.sa_family) {
 			case AF_INET:
 				cmp = memcmp(&out->sin.sin_addr, &ex->sin.sin_addr, sizeof(struct in_addr));
+				port_out = &out->sin.sin_port;
+				port_ex = &ex->sin.sin_port;
 				break;
 			case AF_INET6:
 				cmp = memcmp(&out->sin6.sin6_addr, &ex->sin6.sin6_addr, sizeof(struct in6_addr));
+				port_out = &out->sin6.sin6_port;
+				port_ex = &ex->sin6.sin6_port;
 				break;
 			default:
 				/* Filter this out */
@@ -249,6 +256,17 @@ int fd_ep_filter_list( struct fd_list * list, struct fd_list * exclude_list )
 		if (cmp > 0) {
 			li_ex = li_ex->next;
 			continue;
+		}
+		
+		if (port_out && (*port_out != 0) && (*port_ex != 0)) {
+			if (*port_out < *port_ex) {
+				li_out = li_out->next;
+				continue;
+			}
+			if (*port_out > *port_ex) {
+				li_ex = li_ex->next;
+				continue;
+			}
 		}
 	
 		/* We remove this element then loop */
@@ -297,7 +315,7 @@ DECLARE_FD_DUMP_PROTOTYPE(fd_ep_dump_one, int preamble, struct fd_endpoint * ep 
 		return *buf;
 	}
 	
-	CHECK_MALLOC_DO( fd_sa_dump_node_serv( FD_DUMP_STD_PARAMS, &ep->sa, NI_NUMERICHOST | NI_NUMERICSERV ), return NULL);
+	CHECK_MALLOC_DO( fd_sa_dump( FD_DUMP_STD_PARAMS, &ep->sa, NI_NUMERICHOST | NI_NUMERICSERV ), return NULL);
 	CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "{%s%s%s%s%s}",
 				(ep->flags & EP_FL_CONF) 	? "C" : "-",
 				(ep->flags & EP_FL_DISC) 	? "D" : "-",

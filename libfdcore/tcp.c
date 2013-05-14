@@ -137,7 +137,7 @@ int fd_tcp_client( int *sock, sSA * sa, socklen_t salen )
 	/* Cleanup if we are cancelled */
 	pthread_cleanup_push(fd_cleanup_socket, &s);
 	
-	LOG_D( "Attempting TCP connection to %s...", fd_sa_dump_node(&buf, &len, NULL, sa, NI_NUMERICHOST | NI_NUMERICSERV)?:"<error>" );
+	LOG_D( "Attempting TCP connection to %s...", fd_sa_dump(&buf, &len, NULL, sa, NI_NUMERICHOST | NI_NUMERICSERV)?:"<error>" );
 	free(buf);
 	
 	/* Try connecting to the remote address */

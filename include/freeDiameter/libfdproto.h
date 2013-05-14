@@ -609,9 +609,12 @@ static __inline__ void replace_me() MARK_DEPRECATED { }
 	( (socklen_t) ( (((sSA *)_sa_)->sa_family == AF_INET) ? (sizeof(sSA4)) :		\
 				((((sSA *)_sa_)->sa_family == AF_INET6) ? (sizeof(sSA6)) :	\
 					0 ) ) )
+#define sSAport( _sa_ )	\
+	( (socklen_t) ( (((sSA *)_sa_)->sa_family == AF_INET) ? (((sSA4 *)(_sa_))->sin_port) :		\
+				((((sSA *)_sa_)->sa_family == AF_INET6) ? (((sSA6 *)(_sa_))->sin6_port) :	\
+					0 ) ) )
 
-DECLARE_FD_DUMP_PROTOTYPE(fd_sa_dump_node, sSA * sa, int flags);
-DECLARE_FD_DUMP_PROTOTYPE(fd_sa_dump_node_serv, sSA * sa, int flags);
+DECLARE_FD_DUMP_PROTOTYPE(fd_sa_dump, sSA * sa, int flags);
 #define sSA_DUMP_STRLEN	(INET6_ADDRSTRLEN + 1 + 32 + 2)
 void fd_sa_sdump_numeric(char * buf /* must be at least sSA_DUMP_STRLEN */, sSA * sa);
 

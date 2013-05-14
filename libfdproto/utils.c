@@ -35,37 +35,29 @@
 
 #include "fdproto-internal.h"
 
-DECLARE_FD_DUMP_PROTOTYPE(fd_sa_dump_node, sSA * sa, int flags)
-{
-	char addrbuf[INET6_ADDRSTRLEN];
-	FD_DUMP_HANDLE_OFFSET();
-	
-	if (sa) {
-		int rc = getnameinfo(sa, sSAlen( sa ), addrbuf, sizeof(addrbuf), NULL, 0, flags);
-		if (rc) {
-			CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "%s", gai_strerror(rc)), return NULL);
-		} else {
-			CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "%s", &addrbuf[0]), return NULL);
-		}
-	} else {
-		CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "(NULL / ANY)"), return NULL);
-	}
-	
-	return *buf;
-}
-
-DECLARE_FD_DUMP_PROTOTYPE(fd_sa_dump_node_serv, sSA * sa, int flags) 
+DECLARE_FD_DUMP_PROTOTYPE(fd_sa_dump, sSA * sa, int flags) 
 {
 	char addrbuf[INET6_ADDRSTRLEN];
 	char servbuf[32];
+	int rc;
 	FD_DUMP_HANDLE_OFFSET();
 	
+	servbuf[0] = 0;
+	
 	if (sa) {
-		int rc = getnameinfo(sa, sSAlen( sa ), addrbuf, sizeof(addrbuf), servbuf, sizeof(servbuf), flags);
+		if (sSAport(sa)) {
+			rc = getnameinfo(sa, sSAlen( sa ), addrbuf, sizeof(addrbuf), servbuf, sizeof(servbuf), flags);
+		} else {
+			rc = getnameinfo(sa, sSAlen( sa ), addrbuf, sizeof(addrbuf), NULL, 0, flags);
+		}
 		if (rc) {
 			CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "%s", gai_strerror(rc)), return NULL);
 		} else {
-			CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "%s(%s)", &addrbuf[0], &servbuf[0]), return NULL);
+			if (servbuf[0]) {
+				CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "%s(%s)", &addrbuf[0], &servbuf[0]), return NULL);
+			} else {
+				CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "%s", &addrbuf[0]), return NULL);
+			}
 		}
 	} else {
 		CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "(NULL / ANY)"), return NULL);

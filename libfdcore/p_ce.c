@@ -109,7 +109,6 @@ static int add_CE_info(struct msg *msg, struct cnxctx * cnx, int isi_tls, int is
 	/* Add the AVP(s) -- not sure what is the purpose... We could probably only add the primary one ? */
 	for (li = fd_g_config->cnf_endpoints.next; li != &fd_g_config->cnf_endpoints; li = li->next) {
 		struct fd_endpoint * ep = (struct fd_endpoint *)li;
-		
 		CHECK_FCT( fd_msg_avp_new ( dictobj, 0, &avp ) );
 		CHECK_FCT( fd_msg_avp_value_encode ( &ep->ss, avp ) );
 		CHECK_FCT( fd_msg_avp_add( msg, MSG_BRW_LAST_CHILD, avp ) );
