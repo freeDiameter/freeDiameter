@@ -94,8 +94,10 @@ static int debug_rad_req( struct rgwp_config * cs, struct radius_msg * rad_req, 
 	if (!diam_fw || ! *diam_fw) {
 		fd_log_debug(" Diameter message: NULL pointer");
 	} else {
-		fd_log_debug(" Diameter message (%p) DUMP:", *diam_fw);
-		fd_msg_dump_walk(0, *diam_fw);
+		char * buf = NULL; size_t buflen;
+		CHECK_MALLOC( fd_msg_dump_treeview(&buf, &buflen, NULL, *diam_fw, NULL, 0, 1) );
+		fd_log_debug(" Diameter message (%p) DUMP: %s", *diam_fw, buf);
+		free(buf);
 	}
 	
 	fd_log_debug("===========  Debug%s%s%s complete =============", cs ? " [" : "", cs ? (char *)cs : "", cs ? "]" : "");
@@ -113,8 +115,10 @@ static int debug_diam_ans( struct rgwp_config * cs, struct msg ** diam_ans, stru
 	if (!diam_ans || ! *diam_ans) {
 		fd_log_debug(" Diameter message: NULL pointer");
 	} else {
-		fd_log_debug(" Diameter message (%p) DUMP:", *diam_ans);
-		fd_msg_dump_walk(0, *diam_ans);
+		char * buf = NULL; size_t buflen;
+		CHECK_MALLOC( fd_msg_dump_treeview(&buf, &buflen, NULL, *diam_ans, NULL, 0, 1) );
+		fd_log_debug(" Diameter message (%p) DUMP: %s", *diam_ans, buf);
+		free(buf);
 	}
 	
 	if (!rad_fw || ! *rad_fw) {

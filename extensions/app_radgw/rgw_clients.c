@@ -975,9 +975,8 @@ static void dump_cli_list(struct fd_list *senti)
 	for (ref = senti->next; ref != senti; ref = ref->next) {
 		char sa_buf[sSA_DUMP_STRLEN];
 		client = (struct rgw_client *)ref;
-		/* TODO: use a fct param instead of hardcoded FD_LOG_DEBUG */
-		TODO("Replace with appropriate code");
-/*		TRACE_sSA(FD_LOG_DEBUG, NONE, 	 "  - ", client->sa, NI_NUMERICHOST | NI_NUMERICSERV, (client->type == RGW_CLI_NAS) ? "" : " [PROXY]" ); */
+		fd_sa_sdump_numeric(sa_buf, client->sa);
+		LOG_D("  - %s%s", sa_buf, (client->type == RGW_CLI_NAS) ? "" : " [PROXY]" );
 	}
 }
 

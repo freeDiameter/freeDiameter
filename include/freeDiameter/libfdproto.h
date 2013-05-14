@@ -146,7 +146,7 @@ void fd_libproto_fini(void);
  */
 void fd_log ( int, const char *, ... ) _ATTRIBUTE_PRINTFLIKE_(2,3);
 #ifndef SWIG
-void fd_log_va( int, const char *, va_list args );
+void fd_log_va( int, const char *, va_list);
 #endif /* SWIG */
 
 /* these are internal objects of the debug facility, 
@@ -463,13 +463,17 @@ static __inline__ int TRACE_BOOL( enum old_levels level ) MARK_DEPRECATED
 		|| (fd_debug_one_file && !strcmp(fd_debug_one_file, __STRIPPED_FILE__) ); 
 }
 
+#ifndef SWIG
 static __inline__ void fd_log_deprecated( int level, const char *format, ... ) MARK_DEPRECATED
 { 
 	va_list ap;
 	va_start(ap, format);
 	fd_log_va(level, format, ap);
-	va_end(ap);	
+	va_end(ap);
 }
+#else /* SWIG */
+void fd_log_deprecated( int level, const char *format, ... );
+#endif /* SWIG */
 static __inline__ void replace_me() MARK_DEPRECATED { }
 
 #define TRACE_BUFFER(...) replace_me();
@@ -544,7 +548,7 @@ static __inline__ void replace_me() MARK_DEPRECATED { }
 	       TRACE_CALL("Check: %s", #__bool__ );						       \
 	       if ( ! (__bool__) ) {								       \
 		       int __ret__ = EINVAL;							       \
-		       TRACE_ERROR("ERROR: invalid parameter '%s'",  #__bool__ );  	               \
+		       TRACE_ERROR("ERROR: Invalid parameter '%s', %d",  #__bool__, __ret__ );         \
 		       __fallback__;								       \
 	       }										       \
 }
@@ -1230,7 +1234,7 @@ struct dict_type_data {
 	char *	 		 type_name;	/* The name of this type */
 	dict_avpdata_interpret	 type_interpret;/* cb to convert the AVP value in more comprehensive format (or NULL) */
 	dict_avpdata_encode	 type_encode;	/* cb to convert formatted data into an AVP value (or NULL) */
-	DECLARE_FD_DUMP_PROTOTYPE((*type_dump), union avp_value * val); /* cb called by fd_msg_dump_one for this type of data (if != NULL). Returned string must be freed.  */
+	DECLARE_FD_DUMP_PROTOTYPE((*type_dump), union avp_value * val); /* cb called by fd_msg_dump_* for this type of data (if != NULL). Returned string must be freed.  */
 };
 
 /* The criteria for searching a type object in the dictionary */

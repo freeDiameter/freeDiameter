@@ -50,8 +50,7 @@ static int check_state_id(struct msg * msg, struct fd_peer * peer)
 		CHECK_FCT(  fd_msg_avp_hdr( osi, &hdr )  );
 		if (hdr->avp_value == NULL) {
 			/* This is a sanity check */
-			TRACE_DEBUG(NONE, "BUG: Unset value in Origin-State-Id in DWR / DWA");
-			fd_msg_dump_one(NONE, osi);
+			LOG_F("Ignored an Origin-State-Id AVP with unset value in DWR/DWA");
 			ASSERT(0); /* To check if this really happens, and understand why... */
 		}
 

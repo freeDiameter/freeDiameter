@@ -722,7 +722,6 @@ static int sip_diam_ans( struct rgwp_config * cs, struct msg ** diam_ans, struct
 	struct avp *avp, *next;
 	struct avp_hdr *ahdr;
 	//char buf[254]; /* to store some attributes values (with final '\0') */
-	unsigned char * req_sip = NULL;
 	struct session * sess;
 	os0_t sid = NULL;
 	size_t sidlen;

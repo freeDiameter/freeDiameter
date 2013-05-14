@@ -327,5 +327,6 @@ DECLARE_FD_DUMP_PROTOTYPE(fd_ep_dump, int preamble, int indent, struct fd_list *
 			CHECK_MALLOC_DO( fd_ep_dump_one( FD_DUMP_STD_PARAMS, preamble, ep ), return NULL);
 		}
 	}
+	return *buf;
 }
 	

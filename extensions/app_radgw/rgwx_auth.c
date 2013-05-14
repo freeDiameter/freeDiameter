@@ -125,7 +125,7 @@ struct rgwp_config {
 };
 
 struct sess_state {
-	char req_auth[16];
+	uint8_t req_auth[16];
 };
 
 

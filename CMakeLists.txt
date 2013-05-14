@@ -51,6 +51,9 @@ SET(CMAKE_C_FLAGS_MAXPERFORMANCE "${CMAKE_C_FLAGS_RELEASE} -DSTRIP_DEBUG_CODE")
 # Add a "DebianPackage" build type used when creating the Debian packages
 SET(CMAKE_C_FLAGS_DEBIANPACKAGE "${CMAKE_C_FLAGS_RELWITHDEBINFO}")
 
+# Set the "Debug" flags
+SET(CMAKE_C_FLAGS_DEBUG "-Wall -g -O0")
+
 # Add a "DebugValgrind" build type used for checking execution with Valgrind tool
 SET(CMAKE_C_FLAGS_DEBUGVALGRIND "-Wall -g -O0")
 

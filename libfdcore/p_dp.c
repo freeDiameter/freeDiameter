@@ -75,8 +75,7 @@ int fd_p_dp_handle(struct msg ** msg, int req, struct fd_peer * peer)
 			CHECK_FCT(  fd_msg_avp_hdr( dc, &hdr )  );
 			if (hdr->avp_value == NULL) {
 				/* This is a sanity check */
-				TRACE_DEBUG(NONE, "BUG: Unset value in Disconnect-Cause in DPR");
-				fd_msg_dump_one(NONE, dc);
+				LOG_F("BUG: Unset value in Disconnect-Cause in DPR");
 				ASSERT(0); /* To check if this really happens, and understand why... */
 			}
 

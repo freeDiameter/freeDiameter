@@ -79,8 +79,6 @@ static void srl_dump(const char * text, struct fd_list * srlist)
 		fd_log_debug(" - Next req (hbh:%x): [since %ld.%06ld sec]", *nexthbh, 
 			(long)((now.tv_nsec >= sr->added_on.tv_nsec) ? (now.tv_sec - sr->added_on.tv_sec) : (now.tv_sec - sr->added_on.tv_sec - 1)),
 			(long)((now.tv_nsec >= sr->added_on.tv_nsec) ? ((now.tv_nsec - sr->added_on.tv_nsec) / 1000) : ((now.tv_nsec - sr->added_on.tv_nsec + 1000000000) / 1000)));
-		
-		fd_msg_dump_one(ANNOYING + 1, sr->req);
 	}
 }
 

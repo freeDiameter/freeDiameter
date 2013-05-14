@@ -428,7 +428,7 @@ static int return_error(struct msg ** pmsg, char * error_code, char * error_mess
 static int msg_dispatch(struct msg * msg)
 {
 	struct msg_hdr * hdr;
-	int is_req = 0, ret;
+	int is_req = 0;
 	struct session * sess;
 	enum disp_action action;
 	char * ec = NULL;
@@ -1078,10 +1078,7 @@ static void * process_thr(void * arg, int (*action_cb)(struct msg * msg), struct
 			CHECK_FCT_DO( ret, goto fatal_error );
 		}
 		
-		if (TRACE_BOOL(FULL)) {
-			TRACE_DEBUG(FULL, "Picked next message (%s)", action_name);
-			fd_msg_dump_one(ANNOYING, msg);
-		}
+		LOG_A("%s: Picked next message", action_name);
 
 		/* Now process the message */
 		CHECK_FCT_DO( (*action_cb)(msg), goto fatal_error);

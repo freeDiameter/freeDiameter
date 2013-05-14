@@ -61,6 +61,7 @@ static DECLARE_FD_DUMP_PROTOTYPE(ed_session_state_dump, struct sess_state * st)
 		CHECK_MALLOC_DO( fd_dump_extend_hexdump(FD_DUMP_STD_PARAMS, (&esa->attr.length) + 1, esa->attr.length - 2, 0,0), return NULL);
 		CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "\n"), return NULL);
 	}
+	return *buf;
 }
 
 /* Initialize the plugin and parse the configuration. */

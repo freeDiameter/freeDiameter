@@ -200,10 +200,6 @@ int app_sip_LIR_cb( struct msg ** msg, struct avp * paramavp, struct session * s
 out:
 	CHECK_FCT( fd_msg_rescode_set( ans, result, NULL, NULL, 1 ) );
 	
-	//DEBUG
-	fd_msg_dump_walk(INFO,qry);
-	fd_msg_dump_walk(INFO,ans);
-	
 	CHECK_FCT( fd_msg_send( msg, NULL, NULL ));
 	
 	

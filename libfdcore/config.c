@@ -84,7 +84,7 @@ DECLARE_FD_DUMP_PROTOTYPE(fd_conf_dump)
 {
 	FD_DUMP_HANDLE_OFFSET();
 	
-	CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "freeDiameter configuration:\n", fd_g_config), return NULL);	
+	CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "freeDiameter configuration:\n"), return NULL);	
 	CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "  Default trace level .... : %+d\n", fd_g_debug_lvl), return NULL);
 	CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "  Configuration file ..... : %s\n", fd_g_config->cnf_file), return NULL);
 	CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "  Diameter Identity ...... : %s (l:%Zi)\n", fd_g_config->cnf_diamid, fd_g_config->cnf_diamid_len), return NULL);

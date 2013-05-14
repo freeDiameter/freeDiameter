@@ -131,7 +131,7 @@ static void * out_thr(void * arg)
 			{
 				if (msg) {
 					char buf[256];
-					snprintf(buf, sizeof(buf), "Error while sending this message: s", strerror(ret));
+					snprintf(buf, sizeof(buf), "Error while sending this message: %s", strerror(ret));
 					fd_hook_call(HOOK_MESSAGE_DROPPED, msg, NULL, buf, fd_msg_pmdl_get(msg));
 					fd_msg_free(msg);
 				}
@@ -185,7 +185,7 @@ int fd_out_send(struct msg ** msg, struct cnxctx * cnx, struct fd_peer * peer, u
 			{
 				if (msg) {
 					char buf[256];
-					snprintf(buf, sizeof(buf), "Error while sending this message: s", strerror(ret));
+					snprintf(buf, sizeof(buf), "Error while sending this message: %s", strerror(ret));
 					fd_hook_call(HOOK_MESSAGE_DROPPED, *msg, NULL, buf, fd_msg_pmdl_get(*msg));
 					fd_msg_free(*msg);
 					*msg = NULL;

@@ -251,9 +251,6 @@ after_origin:
 /* Only retrieve the number of times this message has been processed by the routing-out mechanism (i.e. number of times it was failed over) */
 int  fd_rtd_get_nb_attempts(struct rt_data * rtd, int * sendingattemtps)
 {
-	struct fd_list * li;
-	int match = 0;
-	
 	TRACE_ENTRY("%p %p", rtd, sendingattemtps);
 	CHECK_PARAMS( rtd && sendingattemtps );
 	

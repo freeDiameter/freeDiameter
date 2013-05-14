@@ -151,6 +151,17 @@ static const char * wrapper_error_txt; /* if NULL, use strerror(errno) */
 %{
 /* Forward declaration for the peers module */
 static void fd_add_cb(struct peer_info *peer, void *data);
+
+/* This one gives problems when included from the header file */
+void fd_log_va( int, const char *, va_list);
+void fd_log_deprecated( int level, const char *format, ... ) MARK_DEPRECATED
+{ 
+	va_list ap;
+	va_start(ap, format);
+	fd_log_va(level, format, ap);
+	va_end(ap);
+}
+
 %}
 
 /* Overwrite declaration to apply typemaps */

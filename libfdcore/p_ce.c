@@ -274,8 +274,7 @@ static int save_remote_CE_info(struct msg * msg, struct fd_peer * peer, struct f
 
 		if (hdr->avp_flags & AVP_FLAG_VENDOR) {
 			/* Ignore all vendor-specific AVPs in CER/CEA because we don't support any currently */
-			TRACE_DEBUG(FULL, "Ignored a vendor AVP in CER / CEA");
-			fd_msg_dump_one(FULL, avp);
+			LOG_A("Ignored a vendor-specific AVP in CER / CEA");
 			goto next;
 		}
 
@@ -283,8 +282,7 @@ static int save_remote_CE_info(struct msg * msg, struct fd_peer * peer, struct f
 			case AC_RESULT_CODE: /* Result-Code */
 				if (hdr->avp_value == NULL) {
 					/* This is a sanity check */
-					TRACE_DEBUG(NONE, "Ignored an AVP with unset value in CER/CEA");
-					fd_msg_dump_one(NONE, avp);
+					LOG_F("Ignored an AVP (code %x) with unset value in CER/CEA", hdr->avp_code);
 					ASSERT(0); /* To check if this really happens, and understand why... */
 					goto next;
 				}
@@ -296,8 +294,7 @@ static int save_remote_CE_info(struct msg * msg, struct fd_peer * peer, struct f
 			case AC_ORIGIN_HOST: /* Origin-Host */
 				if (hdr->avp_value == NULL) {
 					/* This is a sanity check */
-					TRACE_DEBUG(NONE, "Ignored an AVP with unset value in CER/CEA");
-					fd_msg_dump_one(NONE, avp);
+					LOG_F("Ignored an AVP (code %x) with unset value in CER/CEA", hdr->avp_code);
 					ASSERT(0); /* To check if this really happens, and understand why... */
 					goto next;
 				}
@@ -318,8 +315,7 @@ static int save_remote_CE_info(struct msg * msg, struct fd_peer * peer, struct f
 			case AC_ORIGIN_REALM: /* Origin-Realm */
 				if (hdr->avp_value == NULL) {
 					/* This is a sanity check */
-					TRACE_DEBUG(NONE, "Ignored an AVP with unset value in CER/CEA");
-					fd_msg_dump_one(NONE, avp);
+					LOG_F("Ignored an AVP (code %x) with unset value in CER/CEA", hdr->avp_code);
 					ASSERT(0); /* To check if this really happens, and understand why... */
 					goto next;
 				}
@@ -349,8 +345,7 @@ static int save_remote_CE_info(struct msg * msg, struct fd_peer * peer, struct f
 			case AC_HOST_IP_ADDRESS: /* Host-IP-Address */
 				if (hdr->avp_value == NULL) {
 					/* This is a sanity check */
-					TRACE_DEBUG(NONE, "Ignored an AVP with unset value in CER/CEA");
-					fd_msg_dump_one(NONE, avp);
+					LOG_F("Ignored an AVP (code %x) with unset value in CER/CEA", hdr->avp_code);
 					ASSERT(0); /* To check if this really happens, and understand why... */
 					goto next;
 				}
@@ -375,8 +370,7 @@ static int save_remote_CE_info(struct msg * msg, struct fd_peer * peer, struct f
 			case AC_VENDOR_ID: /* Vendor-Id */
 				if (hdr->avp_value == NULL) {
 					/* This is a sanity check */
-					TRACE_DEBUG(NONE, "Ignored an AVP with unset value in CER/CEA");
-					fd_msg_dump_one(NONE, avp);
+					LOG_F("Ignored an AVP (code %x) with unset value in CER/CEA", hdr->avp_code);
 					ASSERT(0); /* To check if this really happens, and understand why... */
 					goto next;
 				}
@@ -396,8 +390,7 @@ static int save_remote_CE_info(struct msg * msg, struct fd_peer * peer, struct f
 			case AC_PRODUCT_NAME: /* Product-Name */
 				if (hdr->avp_value == NULL) {
 					/* This is a sanity check */
-					TRACE_DEBUG(NONE, "Ignored an AVP with unset value in CER/CEA");
-					fd_msg_dump_one(NONE, avp);
+					LOG_F("Ignored an AVP (code %x) with unset value in CER/CEA", hdr->avp_code);
 					ASSERT(0); /* To check if this really happens, and understand why... */
 					goto next;
 				}
@@ -418,8 +411,7 @@ static int save_remote_CE_info(struct msg * msg, struct fd_peer * peer, struct f
 			case AC_ORIGIN_STATE_ID: /* Origin-State-Id */
 				if (hdr->avp_value == NULL) {
 					/* This is a sanity check */
-					TRACE_DEBUG(NONE, "Ignored an AVP with unset value in CER/CEA");
-					fd_msg_dump_one(NONE, avp);
+					LOG_F("Ignored an AVP (code %x) with unset value in CER/CEA", hdr->avp_code);
 					ASSERT(0); /* To check if this really happens, and understand why... */
 					goto next;
 				}
@@ -439,8 +431,7 @@ static int save_remote_CE_info(struct msg * msg, struct fd_peer * peer, struct f
 			case AC_SUPPORTED_VENDOR_ID: /* Supported-Vendor-Id */
 				if (hdr->avp_value == NULL) {
 					/* This is a sanity check */
-					TRACE_DEBUG(NONE, "Ignored an AVP with unset value in CER/CEA");
-					fd_msg_dump_one(NONE, avp);
+					LOG_F("Ignored an AVP (code %x) with unset value in CER/CEA", hdr->avp_code);
 					ASSERT(0); /* To check if this really happens, and understand why... */
 					goto next;
 				}
@@ -467,15 +458,13 @@ static int save_remote_CE_info(struct msg * msg, struct fd_peer * peer, struct f
 						CHECK_FCT(  fd_msg_avp_hdr( inavp, &inhdr )  );
 
 						if (inhdr->avp_flags & AVP_FLAG_VENDOR) {
-							TRACE_DEBUG(FULL, "Ignored a vendor AVP inside Vendor-Specific-Application-Id AVP");
-							fd_msg_dump_one(FULL, avp);
+							LOG_A("Ignored a vendor AVP inside Vendor-Specific-Application-Id AVP");
 							goto innext;
 						}
 
 						if (inhdr->avp_value == NULL) {
 							/* This is a sanity check */
-							TRACE_DEBUG(NONE, "Ignored an AVP with unset value in CER/CEA");
-							fd_msg_dump_one(NONE, avp);
+							LOG_F("Ignored an AVP (code %x) with unset value in CER/CEA", hdr->avp_code);
 							ASSERT(0); /* To check if this really happens, and understand why... */
 							goto innext;
 						}
@@ -507,8 +496,7 @@ static int save_remote_CE_info(struct msg * msg, struct fd_peer * peer, struct f
 						}
 						
 						if (invalid) {
-							TRACE_DEBUG(FULL, "Invalid Vendor-Specific-Application-Id AVP received, ignored");
-							fd_msg_dump_one(FULL, avp);
+							TRACE_DEBUG(FULL, "Invalid Vendor-Specific-Application-Id AVP received");
 							error->pei_errcode = "DIAMETER_INVALID_AVP_VALUE";
 							error->pei_avp = avp;
 							return EINVAL;
@@ -532,8 +520,7 @@ static int save_remote_CE_info(struct msg * msg, struct fd_peer * peer, struct f
 			case AC_AUTH_APPLICATION_ID: /* Auth-Application-Id */
 				if (hdr->avp_value == NULL) {
 					/* This is a sanity check */
-					TRACE_DEBUG(NONE, "Ignored an AVP with unset value in CER/CEA");
-					fd_msg_dump_one(NONE, avp);
+					LOG_F("Ignored an AVP (code %x) with unset value in CER/CEA", hdr->avp_code);
 					ASSERT(0); /* To check if this really happens, and understand why... */
 					goto next;
 				}
@@ -548,8 +535,7 @@ static int save_remote_CE_info(struct msg * msg, struct fd_peer * peer, struct f
 			case AC_ACCT_APPLICATION_ID: /* Acct-Application-Id */
 				if (hdr->avp_value == NULL) {
 					/* This is a sanity check */
-					TRACE_DEBUG(NONE, "Ignored an AVP with unset value in CER/CEA");
-					fd_msg_dump_one(NONE, avp);
+					LOG_F("Ignored an AVP (code %x) with unset value in CER/CEA", hdr->avp_code);
 					ASSERT(0); /* To check if this really happens, and understand why... */
 					goto next;
 				}
@@ -565,8 +551,7 @@ static int save_remote_CE_info(struct msg * msg, struct fd_peer * peer, struct f
 			case AC_FIRMWARE_REVISION: /* Firmware-Revision */
 				if (hdr->avp_value == NULL) {
 					/* This is a sanity check */
-					TRACE_DEBUG(NONE, "Ignored an AVP with unset value in CER/CEA");
-					fd_msg_dump_one(NONE, avp);
+					LOG_F("Ignored an AVP (code %x) with unset value in CER/CEA", hdr->avp_code);
 					ASSERT(0); /* To check if this really happens, and understand why... */
 					goto next;
 				}
@@ -577,8 +562,7 @@ static int save_remote_CE_info(struct msg * msg, struct fd_peer * peer, struct f
 			case AC_INBAND_SECURITY_ID: /* Inband-Security-Id */
 				if (hdr->avp_value == NULL) {
 					/* This is a sanity check */
-					TRACE_DEBUG(NONE, "Ignored an AVP with unset value in CER/CEA");
-					fd_msg_dump_one(NONE, avp);
+					LOG_F("Ignored an AVP (code %x) with unset value in CER/CEA", hdr->avp_code);
 					ASSERT(0); /* To check if this really happens, and understand why... */
 					goto next;
 				}

@@ -1277,6 +1277,7 @@ static DECLARE_FD_DUMP_PROTOTYPE(dump_list, struct fd_list * sentinel, int paren
 			CHECK_MALLOC_DO( dump_object (FD_DUMP_STD_PARAMS, _O(li->o), parents, depth, indent ), return NULL);
 		}
 	}
+	return *buf;
 }
 
 static DECLARE_FD_DUMP_PROTOTYPE(dump_object, struct dict_object * obj, int parents, int depth, int indent )

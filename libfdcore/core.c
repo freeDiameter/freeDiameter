@@ -319,7 +319,6 @@ int fd_core_shutdown(void)
 /* Wait for the shutdown to be complete -- this must be called after fd_core_shutdown to reclaim some resources. */
 int fd_core_wait_shutdown_complete(void)
 {
-	int ret;
 	enum core_state cur_state = core_state_get();
 	void * th_ret = NULL;
 	

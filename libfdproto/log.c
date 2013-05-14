@@ -211,9 +211,9 @@ static size_t sys_mempagesz = 0;
 
 static size_t get_mempagesz(void) {
 	if (!sys_mempagesz) {
-		sys_mempagesz = sysconf(_SC_PAGESIZE); /* We alloc buffer by memory pages for efficiency */
+		sys_mempagesz = sysconf(_SC_PAGESIZE); /* We alloc buffer by memory pages for efficiency. This can be readjusted if too memory consuming */
 		if (sys_mempagesz <= 0)
-			sys_mempagesz = 1024; /* default size if above call failed */
+			sys_mempagesz = 256; /* default size if above call failed */
 	}
 	return sys_mempagesz;
 }

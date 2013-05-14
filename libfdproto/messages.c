@@ -920,7 +920,7 @@ static DECLARE_FD_DUMP_PROTOTYPE( msg_format_full, struct msg * msg )
 	struct dict_cmd_data dictdata;
 	
 	if (!CHECK_MSG(msg)) {
-		CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "INVALID MESSAGE", msg), return NULL);
+		CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "INVALID MESSAGE"), return NULL);
 		return *buf;
 	}
 	
@@ -954,9 +954,6 @@ static DECLARE_FD_DUMP_PROTOTYPE( avp_format_full, struct avp * avp, int level, 
 {
 	int success = 0;
 	struct dict_avp_data  dictdata;
-	struct dict_vendor_data  vendordata;
-	struct dict_vendor_data *vendorinfo = NULL;
-	
 	
 	if (level) {
 		if ((first) && ((*buf)[*offset - 1] == '=')) {
@@ -1152,16 +1149,6 @@ DECLARE_FD_DUMP_PROTOTYPE( fd_msg_dump_summary, msg_or_avp *obj, struct dictiona
 	return msg_dump_process(FD_DUMP_STD_PARAMS, msg_format_summary, avp_format_summary, obj, dict, force_parsing, recurse);
 }
 
-#ifndef OLD_CODE_TO_BE_REPLACED
-void fd_msg_dump_walk ( int level, msg_or_avp *obj )
-{
-	LOG_D("fd_msg_dump_walk %d, %p is deprecated", level, obj);
-}
-void fd_msg_dump_one ( int level, msg_or_avp * obj )
-{
-	LOG_D("fd_msg_dump_one %d, %p is deprecated", level, obj);
-}
-#endif
 /***************************************************************************************************************/
 /* Simple meta-data management */
 
@@ -2057,11 +2044,16 @@ static int parsedict_do_avp(struct dictionary * dict, struct avp * avp, int mand
 	if (!avp->avp_model) {
 		
 		if (mandatory && (avp->avp_public.avp_flags & AVP_FLAG_MANDATORY)) {
-			TRACE_DEBUG(INFO, "Unsupported mandatory AVP found:");
-			fd_msg_dump_one(INFO, avp);
+			TRACE_DEBUG(INFO, "Unsupported mandatory AVP found");
 			if (error_info) {
 				error_info->pei_errcode = "DIAMETER_AVP_UNSUPPORTED";
 				error_info->pei_avp = avp;
+			} else {
+				char * buf = NULL;
+				size_t buflen;
+				CHECK_MALLOC(fd_msg_dump_treeview(&buf, &buflen, NULL, avp, NULL, 0, 0));
+				LOG_E("Unsupported AVP: %s", buf);
+				free(buf);
 			}
 			return ENOTSUP;
 		}
@@ -2101,13 +2093,18 @@ static int parsedict_do_avp(struct dictionary * dict, struct avp * avp, int mand
 	/* Check the size is valid */
 	if ((avp_value_sizes[dictdata.avp_basetype] != 0) &&
 	    (avp->avp_public.avp_len - GETAVPHDRSZ( avp->avp_public.avp_flags ) != avp_value_sizes[dictdata.avp_basetype])) {
-		TRACE_DEBUG(INFO, "The AVP size is not suitable for the type:");
-		fd_msg_dump_one(INFO, avp);
+		TRACE_DEBUG(INFO, "The AVP size is not suitable for the type");
 		if (error_info) {
 			error_info->pei_errcode = "DIAMETER_INVALID_AVP_LENGTH";
 			error_info->pei_avp = avp;
 			snprintf(error_message, sizeof(error_message), "I expected a size of %d for this AVP according to my dictionary", avp_value_sizes[dictdata.avp_basetype]);
 			error_info->pei_message = error_message;
+		} else {
+			char * buf = NULL;
+			size_t buflen;
+			CHECK_MALLOC(fd_msg_dump_treeview(&buf, &buflen, NULL, avp, NULL, 0, 0));
+			LOG_E("Invalid length AVP: %s", buf);
+			free(buf);
 		}
 		avp->avp_model = NULL;
 		return EBADMSG;

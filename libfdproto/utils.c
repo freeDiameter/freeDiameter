@@ -65,7 +65,7 @@ DECLARE_FD_DUMP_PROTOTYPE(fd_sa_dump_node_serv, sSA * sa, int flags)
 		if (rc) {
 			CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "%s", gai_strerror(rc)), return NULL);
 		} else {
-			CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "%s(s)", &addrbuf[0], &servbuf[0]), return NULL);
+			CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "%s(%s)", &addrbuf[0], &servbuf[0]), return NULL);
 		}
 	} else {
 		CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "(NULL / ANY)"), return NULL);

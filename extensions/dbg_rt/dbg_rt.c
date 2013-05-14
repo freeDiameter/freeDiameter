@@ -45,12 +45,15 @@ static struct fd_rt_out_hdl * out_hdl = NULL;
 /* Proxying debug callback */
 static int dbgrt_fwd_cb(void * cbdata, struct msg ** msg)
 {
+	char * buf = NULL; size_t buflen;
 	TRACE_ENTRY("%p %p", cbdata, msg);
 	
-	fd_log_debug("[dbg_rt] FWD routing message: %p", msg ? *msg : NULL);
-	if (msg)
-		fd_msg_dump_walk(INFO, *msg);
-	
+	LOG_D("[dbg_rt] FWD routing message: %p", msg ? *msg : NULL);
+	if (msg) {
+		CHECK_MALLOC( fd_msg_dump_treeview(&buf, &buflen, NULL, *msg, NULL, 0, 1) );
+		LOG_D("%s", buf);
+	}
+	free(buf);
 	return 0;
 }
 
@@ -58,16 +61,18 @@ static int dbgrt_fwd_cb(void * cbdata, struct msg ** msg)
 static int dbgrt_out_cb(void * cbdata, struct msg * msg, struct fd_list * candidates)
 {
 	struct fd_list * li;
+	char * buf = NULL; size_t buflen;
 	
 	TRACE_ENTRY("%p %p %p", cbdata, msg, candidates);
 	
-	fd_log_debug("[dbg_rt] OUT routing message: %p", msg);
-	fd_msg_dump_walk(INFO, msg);
-	fd_log_debug("[dbg_rt] Current list of candidates (%p): (score - id)", msg);
+	LOG_D("[dbg_rt] OUT routing message: %p", msg);
+	CHECK_MALLOC( fd_msg_dump_treeview(&buf, &buflen, NULL, msg, NULL, 0, 1) );
+	LOG_D("%s", buf);
+	LOG_D("[dbg_rt] Current list of candidates (%p): (score - id)", msg);
 	
 	for (li = candidates->next; li != candidates; li = li->next) {
 		struct rtd_candidate *c = (struct rtd_candidate *) li;
-		fd_log_debug("[dbg_rt]   %d -\t%s", c->score, c->diamid);
+		LOG_D("[dbg_rt]   %d -\t%s", c->score, c->diamid);
 	}
 	
 	return 0;

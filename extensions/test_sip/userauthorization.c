@@ -144,7 +144,6 @@ int test_sip_UAR_cb()
 		
 	}
 	
-	fd_msg_dump_walk(INFO,message);
 	CHECK_FCT( fd_msg_send( &message, NULL, NULL ));
 	
 	return 0;

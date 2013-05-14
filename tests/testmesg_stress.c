@@ -52,7 +52,6 @@ static void display_result(int nr, struct timespec * start, struct timespec * en
 int main(int argc, char *argv[])
 {
 	struct msg * acr = NULL;
-	struct avp * pi = NULL, *avp1, *avp2;
 	unsigned char * buf = NULL;
 	
 	test_parameter = DEFAULT_NUMBER_OF_SAMPLES;
@@ -216,7 +215,6 @@ int main(int argc, char *argv[])
 		struct dict_object * cmd_model = NULL;
 		struct msg         * msg = NULL;
 		struct dict_object * avp_model = NULL;
-		struct avp         * avp = NULL;
 		union avp_value      value;
 		
 		CHECK( 0, fd_dict_search ( fd_g_config->cnf_dict, DICT_COMMAND, CMD_BY_NAME, "Test-Command-Request", &cmd_model, ENOENT ) );
@@ -225,7 +223,6 @@ int main(int argc, char *argv[])
 		{
 			struct avp * avpi = NULL;
 			struct avp * avpch = NULL;
-			struct avp_hdr * avpdata = NULL;
 			struct msg_hdr * msgdata = NULL;
 			#define ADD_AVP( _parent, _position, _avpi, _avpvendor, _avpname) {			\
 				struct dict_object * _avp = NULL;						\
@@ -390,9 +387,6 @@ int main(int argc, char *argv[])
 		} * stress_array;
 		int i;
 		struct timespec start, end;
-		
-		struct msg * msg;
-		
 		
 		/* Create the copies of the message buffer */
 		stress_array = calloc(test_parameter, sizeof(struct stress_struct));
