@@ -3283,6 +3283,8 @@ static int diameap_server_callback(struct msg ** rmsg, struct avp * ravp,
 					{	TRACE_DEBUG(INFO,"%s Adding EAP-Payload AVP failed.",DIAMEAP_EXTENSION); goto s_end;})
 			;
 
+			LOG_N("%s Auth FAIL: %.*s",DIAMEAP_EXTENSION, diameap_sm->eap_sm.user.useridLength, diameap_sm->eap_sm.user.userid);
+			
 			CHECK_FCT_DO( diameap_send(rmsg),
 					goto s_end)
 			;
@@ -3322,6 +3324,9 @@ static int diameap_server_callback(struct msg ** rmsg, struct avp * ravp,
 			CHECK_FCT_DO(diameap_add_accounting_eap_auth_method(diameap_sm, ans),
 					{	TRACE_DEBUG(INFO,"%s Adding accounting AVP failed",DIAMEAP_EXTENSION); goto s_end;})
 			;
+			
+			LOG_N("%s Auth Success: %.*s",DIAMEAP_EXTENSION, diameap_sm->eap_sm.user.useridLength, diameap_sm->eap_sm.user.userid);
+			
 			CHECK_FCT_DO( diameap_send(rmsg),
 					goto s_end)
 			;

@@ -512,7 +512,7 @@ static int deap_entry(char * conffile)
 		
 	}
 	
-	TRACE_DEBUG(INFO, "Extension 'Dictionary definitions for EAP' initialized");
+	LOG_D( "Extension 'Dictionary definitions for EAP' initialized");
 	return 0;
 }
 

@@ -317,7 +317,6 @@ static int fd_msg_send_int( struct msg ** pmsg, void (*anscb)(void *, struct msg
 {
 	struct msg_hdr *hdr;
 	DiamId_t diamid;
-	size_t diamidlen;
 	
 	/* Save the callback in the message, with the timeout */
 	CHECK_FCT(  fd_msg_anscb_associate( *pmsg, anscb, data, expirecb, timeout )  );
@@ -325,7 +324,7 @@ static int fd_msg_send_int( struct msg ** pmsg, void (*anscb)(void *, struct msg
 	/* If this is a new request, call the HOOK_MESSAGE_LOCAL hook */
 	if ( (fd_msg_hdr(*pmsg, &hdr) == 0)
 	 &&  (hdr->msg_flags & CMD_FLAG_REQUEST)
-	 &&  (fd_msg_source_get(*pmsg, &diamid, &diamidlen) == 0)
+	 &&  (fd_msg_source_get(*pmsg, &diamid, NULL) == 0)
 	 &&  (diamid == NULL)) {
 		fd_hook_call(HOOK_MESSAGE_LOCAL, *pmsg, NULL, NULL, fd_msg_pmdl_get(*pmsg));
 	}

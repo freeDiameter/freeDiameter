@@ -2135,7 +2135,7 @@ int dict_rfc5777_init(char * conffile)
 		}
 	}
 
-	TRACE_DEBUG(INFO, "Dictionary Extension 'Traffic Classification and Quality of Service (QoS) Attributes for Diameter (RFC 5777)' initialized");
+	LOG_D( "Dictionary Extension 'Traffic Classification and Quality of Service (QoS) Attributes for Diameter (RFC 5777)' initialized");
 	return 0;
 }
 EXTENSION_ENTRY("dict_rfc5777", dict_rfc5777_init);

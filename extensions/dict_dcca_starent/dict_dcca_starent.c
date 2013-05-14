@@ -282,7 +282,7 @@ static int dict_dcca_starent_entry(char * conffile)
 	};
 
 
-	TRACE_DEBUG(INFO, "Extension 'Dictionary definitions for DCCA Starent' initialized");
+	LOG_D( "Extension 'Dictionary definitions for DCCA Starent' initialized");
 	return 0;
 }
 

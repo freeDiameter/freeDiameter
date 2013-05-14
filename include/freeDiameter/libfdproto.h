@@ -2499,8 +2499,7 @@ int fd_msg_is_routable ( struct msg * msg );
  * PARAMETERS:
  *  msg		: A msg object.
  *  diamid,len	: The diameter id of the peer from which this message was received.
- *  add_rr	: if true, a Route-Record AVP is added to the message with content diamid. In that case, dict must be supplied.
- *  dict	: a dictionary with definition of Route-Record AVP (if add_rr is true)
+ *  dict	: a dictionary with definition of Route-Record AVP (for fd_msg_source_setrr)
  *
  * DESCRIPTION: 
  *   Store or retrieve the diameted id of the peer from which this message was received.
@@ -2511,7 +2510,8 @@ int fd_msg_is_routable ( struct msg * msg );
  *  0      	: Operation complete.
  *  !0      	: an error occurred.
  */
-int fd_msg_source_set( struct msg * msg, DiamId_t diamid, size_t diamidlen, int add_rr, struct dictionary * dict );
+int fd_msg_source_set( struct msg * msg, DiamId_t diamid, size_t diamidlen );
+int fd_msg_source_setrr( struct msg * msg, DiamId_t diamid, size_t diamidlen, struct dictionary * dict );
 int fd_msg_source_get( struct msg * msg, DiamId_t *diamid, size_t * diamidlen );
 
 /*

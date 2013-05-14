@@ -105,7 +105,7 @@ static int do_duplicates()
 				/* Duplicate the message */
 				CHECK_FCT( fd_msg_bufferize(m, &buf, &len) );
 				CHECK_FCT( fd_msg_parse_buffer(&buf, len, &nm) );
-				CHECK_FCT( fd_msg_source_set(nm, src, srclen, 0, NULL) );
+				CHECK_FCT( fd_msg_source_set(nm, src, srclen) );
 				CHECK_FCT( fd_msg_hdr(nm, &nh) );
 				nh->msg_flags |= CMD_FLAG_RETRANSMIT; /* Add the 'T' flag */
 				TRACE_DEBUG(FULL, "[tne] Duplicated message %p as %p", m, nm);

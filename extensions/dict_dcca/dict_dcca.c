@@ -1464,7 +1464,7 @@ static int dict_dcca_entry(char * conffile)
 	    PARSE_loc_rules( rules, cmd );
 	}
     }
-    TRACE_DEBUG(INFO, "Extension 'Dictionary definitions for DCCA (rfc4006)' initialized");
+    LOG_D( "Extension 'Dictionary definitions for DCCA (rfc4006)' initialized");
     return 0;
 }
 

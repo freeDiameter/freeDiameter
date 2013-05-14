@@ -550,7 +550,6 @@ static int msg_rt_in(struct msg * msg)
 	int is_req = 0;
 	int is_err = 0;
 	DiamId_t qry_src = NULL;
-	size_t   qry_src_len = 0;
 	struct msg *msgptr = msg;
 
 	/* Read the message header */
@@ -750,7 +749,7 @@ static int msg_rt_in(struct msg * msg)
 
 		/* Retrieve the corresponding query and its origin */
 		CHECK_FCT( fd_msg_answ_getq( msgptr, &qry ) );
-		CHECK_FCT( fd_msg_source_get( qry, &qry_src, &qry_src_len ) );
+		CHECK_FCT( fd_msg_source_get( qry, &qry_src, NULL ) );
 
 		if ((!qry_src) && (!is_err)) {
 			/* The message is a normal answer to a request issued localy, we do not call the callbacks chain on it. */

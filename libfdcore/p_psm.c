@@ -281,7 +281,7 @@ int fd_psm_change_state(struct fd_peer * peer, int new_state)
 	if (old == new_state)
 		return 0;
 	
-	TRACE_DEBUG(((old == STATE_OPEN) || (new_state == STATE_OPEN)) ? INFO : FULL, "'%s'\t-> '%s'\t'%s'",
+	LOG(((old == STATE_OPEN) || (new_state == STATE_OPEN)) ? FD_LOG_NOTICE : FD_LOG_DEBUG, "'%s'\t-> '%s'\t'%s'",
 			STATE_STR(old),
 			STATE_STR(new_state),
 			peer->p_hdr.info.pi_diamid);
@@ -499,6 +499,7 @@ psm_loop:
 			} );
 			
 		fd_hook_associate(msg, pmdl);
+		CHECK_FCT_DO( fd_msg_source_set( msg, peer->p_hdr.info.pi_diamid, peer->p_hdr.info.pi_diamidlen), goto psm_end);
 	
 		/* If the current state does not allow receiving messages, just drop it */
 		if (cur_state == STATE_CLOSED) {
@@ -556,7 +557,7 @@ psm_loop:
 					CHECK_FCT_DO( fd_p_expi_update(peer), goto psm_end );
 
 					/* Set the message source and add the Route-Record */
-					CHECK_FCT_DO( fd_msg_source_set( msg, peer->p_hdr.info.pi_diamid, peer->p_hdr.info.pi_diamidlen, 1, fd_g_config->cnf_dict ), goto psm_end);
+					CHECK_FCT_DO( fd_msg_source_setrr( msg, peer->p_hdr.info.pi_diamid, peer->p_hdr.info.pi_diamidlen, fd_g_config->cnf_dict ), goto psm_end);
 
 					/* Requeue to the global incoming queue */
 					CHECK_FCT_DO(fd_fifo_post(fd_g_incoming, &msg), goto psm_end );
@@ -741,7 +742,7 @@ psm_loop:
 		{
 			char * buf = NULL;
 			size_t len = 0;
-			LOG_D("New remote endpoint(s): %s",  fd_ep_dump(&buf, &len, NULL, 0, 0, &peer->p_hdr.info.pi_endpoints) ?: "error");
+			LOG_D("Got low layer notification (IGNORED): remote endpoint(s) changed: %s",  fd_ep_dump(&buf, &len, NULL, 0, 0, &peer->p_hdr.info.pi_endpoints) ?: "error");
 			free(buf);
 		}
 		

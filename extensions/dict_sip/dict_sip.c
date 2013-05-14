@@ -2946,7 +2946,7 @@ int ds_dict_init(char * conffile)
 		}
 	}
 	
-	TRACE_DEBUG(INFO, "Extension 'Dictionary definitions for SIP' initialized");
+	LOG_D( "Extension 'Dictionary definitions for SIP' initialized");
 	return 0;
 }
 EXTENSION_ENTRY("dict_sip", ds_dict_init);

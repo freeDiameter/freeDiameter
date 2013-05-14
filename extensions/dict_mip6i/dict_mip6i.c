@@ -1131,7 +1131,7 @@ int dict_mip6i_init(char * conffile)
 		}
 	}
 
-	TRACE_DEBUG(INFO, "Dictionary Extension 'Diameter Mobile IPv6 IKE (MIP6I)' initialized");
+	LOG_D( "Dictionary Extension 'Diameter Mobile IPv6 IKE (MIP6I)' initialized");
 	return 0;
 }
 EXTENSION_ENTRY("dict_mip6i", dict_mip6i_init, "dict_rfc5777");

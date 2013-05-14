@@ -77,7 +77,7 @@ int fd_ext_add( char * filename, char * conffile )
 }
 
 /* Dump the list */
-DECLARE_FD_DUMP_PROTOTYPE(fd_ext_dump)
+DECLARE_FD_DUMP_PROTOTYPE(fd_ext_dump, int indent_next)
 {
 	struct fd_list * li;
 	FD_DUMP_HANDLE_OFFSET();
@@ -85,7 +85,10 @@ DECLARE_FD_DUMP_PROTOTYPE(fd_ext_dump)
 	for (li = ext_list.next; li != &ext_list; li = li->next)
 	{
 		struct fd_ext_info * ext = (struct fd_ext_info *)li;
-		CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "{extension}(@%p): '%s'[%s], %sloaded%s", ext, ext->filename, ext->conffile?:"no conf", ext->handler ? "" : "not ", (li->next == &ext_list) ? "":"\n"), return NULL);
+		CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "%*s'%s'[%s], %sloaded%s", (li == ext_list.next) ? 0 : indent_next,"", 
+					ext->filename, 
+					ext->conffile?:"no conf", 
+					ext->handler ? "" : "not ", (li->next == &ext_list) ? "":"\n"), return NULL);
 	}
 	return *buf;
 }

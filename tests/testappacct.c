@@ -238,7 +238,8 @@ int main(int argc, char *argv[])
 		}
 		
 		/* Source */
-		CHECK( 0, fd_msg_source_set( msg, "peer3", CONSTSTRLEN("peer3"), 1, fd_g_config->cnf_dict ) );
+		CHECK( 0, fd_msg_source_set( msg, "peer3", CONSTSTRLEN("peer3") ) );
+		CHECK( 0, fd_msg_source_setrr( msg, "peer3", CONSTSTRLEN("peer3"), fd_g_config->cnf_dict ) );
 	}
 	
 	/* Now, have the daemon handle this */

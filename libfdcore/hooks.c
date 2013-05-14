@@ -332,8 +332,7 @@ void   fd_hook_call(enum fd_hook_type type, struct msg * msg, struct fd_peer * p
 			case HOOK_MESSAGE_PARSING_ERROR: {
 				if (msg) {
 					DiamId_t id = NULL;
-					size_t idlen;
-					if (!fd_msg_source_get( msg, &id, &idlen ))
+					if (!fd_msg_source_get( msg, &id, NULL ))
 						id = (DiamId_t)"<error getting source>";
 					
 					if (!id)
@@ -352,8 +351,7 @@ void   fd_hook_call(enum fd_hook_type type, struct msg * msg, struct fd_peer * p
 			
 			case HOOK_MESSAGE_ROUTING_ERROR: {
 				DiamId_t id = NULL;
-				size_t idlen;
-				if (!fd_msg_source_get( msg, &id, &idlen ))
+				if (!fd_msg_source_get( msg, &id, NULL ))
 					id = (DiamId_t)"<error getting source>";
 
 				if (!id)
@@ -396,6 +394,10 @@ void   fd_hook_call(enum fd_hook_type type, struct msg * msg, struct fd_peer * p
 			}
 			
 			case HOOK_PEER_CONNECT_SUCCESS: {
+				DiamId_t id = NULL;
+				if ((!fd_msg_source_get( msg, &id, NULL )) && (id == NULL)) { /* The CEA is locally issued */
+					fd_msg_answ_getq(msg, &msg); /* We dump the CER in that case */
+				}
 				CHECK_MALLOC_DO(fd_msg_dump_treeview(&buf, &len, NULL, msg, NULL, 0, 1), break);
 				LOG_N("Connected to '%s', remote capabilities: %s", peer ? peer->p_hdr.info.pi_diamid : "<unknown>", buf);
 				break;

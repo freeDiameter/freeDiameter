@@ -256,6 +256,10 @@ int fd_core_parseconf(const char * conffile)
 	b = fd_conf_dump(&buf, &len, NULL);
 	LOG_N("%s", b ?: "Error during configuration dump...");
 	
+	/* Display extensions status */
+	b = fd_ext_dump(&buf, &len, NULL, 19);
+	LOG_N("Loaded extensions: %s", b ?: "Error during extensions dump...");
+	
 	/* Display registered triggers for FDEV_TRIGGER */
 	b = fd_event_trig_dump(&buf, &len, &offset);
 	if (!b || offset) {

@@ -252,7 +252,7 @@ int dict_nas_mipv6_init(char * conffile)
 		}
 	}
 
-	TRACE_DEBUG(INFO, "Dictionary Extension 'MIPv6 NAS-to-HAAA Interaction' initialized");
+	LOG_D( "Dictionary Extension 'MIPv6 NAS-to-HAAA Interaction' initialized");
 	return 0;
 }
 EXTENSION_ENTRY("dict_nas_mipv6", dict_nas_mipv6_init);

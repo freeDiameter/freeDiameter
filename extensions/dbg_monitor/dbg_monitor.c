@@ -142,7 +142,7 @@ static void got_sig()
 	TRACE_DEBUG(INFO, "[dbg_monitor] Dumping config information");
 	TRACE_DEBUG(INFO, "%s", fd_conf_dump(&buf, &len, NULL));
 	TRACE_DEBUG(INFO, "[dbg_monitor] Dumping extensions information");
-	TRACE_DEBUG(INFO, "%s", fd_ext_dump(&buf, &len, NULL));
+	TRACE_DEBUG(INFO, "%s", fd_ext_dump(&buf, &len, NULL, 0));
 	TRACE_DEBUG(INFO, "[dbg_monitor] Dumping dictionary information");
 	TRACE_DEBUG(INFO, "%s", fd_dict_dump(&buf, &len, NULL, fd_g_config->cnf_dict));
 	free(buf);

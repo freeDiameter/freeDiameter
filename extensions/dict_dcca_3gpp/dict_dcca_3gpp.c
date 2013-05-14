@@ -10756,7 +10756,7 @@ static int dict_dcca_3gpp_entry(char * conffile)
 			PARSE_loc_rules(rules, rule_avp);
         }
 	
-	TRACE_DEBUG(INFO, "Extension 'Dictionary definitions for DCCA 3GPP' initialized");
+	LOG_D( "Extension 'Dictionary definitions for DCCA 3GPP' initialized");
 	return 0;
 }
 

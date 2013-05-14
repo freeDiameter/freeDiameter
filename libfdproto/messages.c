@@ -803,8 +803,8 @@ static DECLARE_FD_DUMP_PROTOTYPE( msg_format_treeview, struct msg * msg )
 	CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "  Flags: 0x%02hhX (" DUMP_CMDFL_str ")\n", msg->msg_public.msg_flags, DUMP_CMDFL_val(msg->msg_public.msg_flags)), return NULL);
 	CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "  Command Code: %u\n", msg->msg_public.msg_code), return NULL);
 	CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "  ApplicationId: %d\n", msg->msg_public.msg_appl), return NULL);
-	CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "  Hop-by-Hop Identifier: 0x%8X\n", msg->msg_public.msg_hbhid), return NULL);
-	CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "  End-to-End Identifier: 0x%8X\n", msg->msg_public.msg_eteid), return NULL);
+	CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "  Hop-by-Hop Identifier: 0x%08X\n", msg->msg_public.msg_hbhid), return NULL);
+	CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "  End-to-End Identifier: 0x%08X\n", msg->msg_public.msg_eteid), return NULL);
 	CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "   {debug data}: src:%s(%zd) rwb:%p rt:%d cb:%p,%p(%p) qry:%p asso:%d sess:%p", msg->msg_src_id?:"(nil)", msg->msg_src_id_len, msg->msg_rawbuffer, msg->msg_routable, msg->msg_cb.anscb, msg->msg_cb.expirecb, msg->msg_cb.data, msg->msg_query, msg->msg_associated, msg->msg_sess), return NULL);
 	
 	return *buf;
@@ -1070,7 +1070,7 @@ static DECLARE_FD_DUMP_PROTOTYPE( avp_format_summary, struct avp * avp, int leve
 		if (first) {
 			CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, " {"), return NULL);
 		} else {
-			CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "+"), return NULL);
+			CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, ","), return NULL);
 		}
 	}
 	
@@ -1130,9 +1130,9 @@ static DECLARE_FD_DUMP_PROTOTYPE( avp_format_summary, struct avp * avp, int leve
 	} else {
 		/* For embedded AVPs, we only display (vendor,) code & length */
 		if (avp->avp_public.avp_flags & AVP_FLAG_VENDOR) {
-			CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "V=%u,", avp->avp_public.avp_vendor), return NULL);
+			CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "V:%u/", avp->avp_public.avp_vendor), return NULL);
 		}
-		CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "C=%u,L=%d", avp->avp_public.avp_code, avp->avp_public.avp_len), return NULL);
+		CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "C:%u/l:%d", avp->avp_public.avp_code, avp->avp_public.avp_len), return NULL);
 	}
 	
 end:
@@ -1341,12 +1341,12 @@ static struct dictionary  *cached_avp_rr_dict  = NULL;
 static pthread_mutex_t     cached_avp_rr_lock = PTHREAD_MUTEX_INITIALIZER;
 
 /* Associate source peer */
-int fd_msg_source_set( struct msg * msg, DiamId_t diamid, size_t diamidlen, int add_rr, struct dictionary * dict )
+int fd_msg_source_set( struct msg * msg, DiamId_t diamid, size_t diamidlen )
 {
-	TRACE_ENTRY( "%p %p %zd %d %p", msg, diamid, diamidlen, add_rr, dict);
+	TRACE_ENTRY( "%p %p %zd", msg, diamid, diamidlen);
 	
 	/* Check we received a valid message */
-	CHECK_PARAMS( CHECK_MSG(msg) && ( (! add_rr) || dict ) );
+	CHECK_PARAMS( CHECK_MSG(msg) );
 	
 	/* Cleanup any previous source */
 	free(msg->msg_src_id); msg->msg_src_id = NULL; msg->msg_src_id_len = 0;
@@ -1359,45 +1359,53 @@ int fd_msg_source_set( struct msg * msg, DiamId_t diamid, size_t diamidlen, int 
 	/* Otherwise save the new informations */
 	CHECK_MALLOC( msg->msg_src_id = os0dup(diamid, diamidlen) );
 	msg->msg_src_id_len = diamidlen;
-	
-	
-	if (add_rr) {
-		struct dict_object 	*avp_rr_model = NULL;
-		avp_code_t 		 code = AC_ROUTE_RECORD;
-		struct avp 		*avp;
-		union avp_value		 val;
-		
-		/* Lock the cached values */
-		CHECK_POSIX( pthread_mutex_lock(&cached_avp_rr_lock) );
-		if (cached_avp_rr_dict == dict) {
-			avp_rr_model = cached_avp_rr_model;
-		}
-		CHECK_POSIX( pthread_mutex_unlock(&cached_avp_rr_lock) );
-		
-		/* If it was not cached */
-		if (!avp_rr_model) {
-			/* Find the model for Route-Record in the dictionary */
-			CHECK_FCT( fd_dict_search ( dict, DICT_AVP, AVP_BY_CODE, &code, &avp_rr_model, ENOENT) );
-			
-			/* Now cache this result */
-			CHECK_POSIX( pthread_mutex_lock(&cached_avp_rr_lock) );
-			cached_avp_rr_dict  = dict;
-			cached_avp_rr_model = avp_rr_model;
-			CHECK_POSIX( pthread_mutex_unlock(&cached_avp_rr_lock) );
-		}
-		
-		/* Create the AVP with this model */
-		CHECK_FCT( fd_msg_avp_new ( avp_rr_model, 0, &avp ) );
-		
-		/* Set the AVP value with the diameter id */
-		memset(&val, 0, sizeof(val));
-		val.os.data = (uint8_t *)diamid;
-		val.os.len  = diamidlen;
-		CHECK_FCT( fd_msg_avp_setvalue( avp, &val ) );
+	/* done */
+	return 0;
+}
 
-		/* Add the AVP in the message */
-		CHECK_FCT( fd_msg_avp_add( msg, MSG_BRW_LAST_CHILD, avp ) );
+/* Associate source peer */
+int fd_msg_source_setrr( struct msg * msg, DiamId_t diamid, size_t diamidlen, struct dictionary * dict )
+{
+	struct dict_object 	*avp_rr_model = NULL;
+	avp_code_t 		 code = AC_ROUTE_RECORD;
+	struct avp 		*avp;
+	union avp_value		 val;
+
+	TRACE_ENTRY( "%p %p %zd %p", msg, diamid, diamidlen, dict);
+	
+	/* Check we received a valid message */
+	CHECK_PARAMS( CHECK_MSG(msg) && dict );
+	
+	/* Lock the cached values */
+	CHECK_POSIX( pthread_mutex_lock(&cached_avp_rr_lock) );
+	if (cached_avp_rr_dict == dict) {
+		avp_rr_model = cached_avp_rr_model;
 	}
+	CHECK_POSIX( pthread_mutex_unlock(&cached_avp_rr_lock) );
+
+	/* If it was not cached */
+	if (!avp_rr_model) {
+		/* Find the model for Route-Record in the dictionary */
+		CHECK_FCT( fd_dict_search ( dict, DICT_AVP, AVP_BY_CODE, &code, &avp_rr_model, ENOENT) );
+
+		/* Now cache this result */
+		CHECK_POSIX( pthread_mutex_lock(&cached_avp_rr_lock) );
+		cached_avp_rr_dict  = dict;
+		cached_avp_rr_model = avp_rr_model;
+		CHECK_POSIX( pthread_mutex_unlock(&cached_avp_rr_lock) );
+	}
+
+	/* Create the AVP with this model */
+	CHECK_FCT( fd_msg_avp_new ( avp_rr_model, 0, &avp ) );
+
+	/* Set the AVP value with the diameter id */
+	memset(&val, 0, sizeof(val));
+	val.os.data = (uint8_t *)diamid;
+	val.os.len  = diamidlen;
+	CHECK_FCT( fd_msg_avp_setvalue( avp, &val ) );
+
+	/* Add the AVP in the message */
+	CHECK_FCT( fd_msg_avp_add( msg, MSG_BRW_LAST_CHILD, avp ) );
 	
 	/* done */
 	return 0;

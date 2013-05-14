@@ -3728,7 +3728,7 @@ static int dnr_entry(char * conffile)
 		}
 	}
 	
-	TRACE_DEBUG(INFO, "Extension 'Dictionary definitions for NASREQ' initialized");
+	LOG_D( "Extension 'Dictionary definitions for NASREQ' initialized");
 	return 0;
 }
 

@@ -59,7 +59,7 @@ static int diameap_main(char * conffile)
 	/* Announce the support of Diameter EAP Application to other peers */
 	CHECK_FCT(fd_disp_app_support(dataobj_diameap_app, dataobj_diameap_ven, 1, 0));
 
-	TRACE_DEBUG(INFO,"%sDiameter EAP Application Extension started successfully.",DIAMEAP_EXTENSION);
+	LOG_D("%sDiameter EAP Application Extension started successfully.",DIAMEAP_EXTENSION);
 
 	return 0;
 }
