@@ -1908,13 +1908,19 @@ error_unlock:
 all_errors:
 	if (ret != 0) {
 		char * buf = NULL;
-		size_t len = 0;
+		size_t len = 0, offset=0;
 		
-		CHECK_MALLOC( dict_obj_info[CHECK_TYPE(type) ? type : 0].dump_data(&buf, &len, NULL, data) );
+		if (type == DICT_ENUMVAL) {
+			CHECK_MALLOC( dump_enumval_data ( &buf, &len, &offset, data, parent->data.type.type_base ));
+		} else {
+			CHECK_MALLOC( dict_obj_info[CHECK_TYPE(type) ? type : 0].dump_data(&buf, &len, &offset, data) );
+		}
+	
 		TRACE_DEBUG(INFO, "An error occurred while adding the following data in the dictionary: %s", buf);
 		
 		if (ret == EEXIST) {
-			CHECK_MALLOC( dump_object(&buf, &len, NULL, locref, 0, 0, 0) );
+			offset=0;
+			CHECK_MALLOC( dump_object(&buf, &len, &offset, locref, 0, 0, 0) );
 			TRACE_DEBUG(INFO, "Conflicting entry in the dictionary: %s", buf);
 		}
 		free(buf);

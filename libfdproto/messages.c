@@ -884,7 +884,6 @@ static DECLARE_FD_DUMP_PROTOTYPE( avp_format_treeview, struct avp * avp, int lev
 			CHECK_FCT_DO(  fd_msg_browse ( avp, MSG_BRW_FIRST_CHILD, &inavp, NULL ), inavp = NULL );
 			while (inavp) {
 				struct avp * nextavp = NULL;
-				CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "\n"), return NULL);
 				CHECK_FCT_DO(  fd_msg_browse ( inavp, MSG_BRW_NEXT, &nextavp, NULL ), inavp = NULL  );
 				CHECK_MALLOC_DO( avp_format_treeview(FD_DUMP_STD_PARAMS, inavp, level + 1, first, nextavp ? 0 : 1), return NULL);
 				inavp = nextavp;

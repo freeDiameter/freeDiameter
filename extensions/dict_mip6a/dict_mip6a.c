@@ -404,7 +404,7 @@ int dict_mip6a_init(char * conffile)
 			*/
 			struct dict_object * 	 type;
 			struct dict_type_data 	 tdata = { AVP_TYPE_INTEGER32, "Enumerated(MIP-Algorithm-Type)", NULL, NULL, NULL };
-			struct dict_enumval_data t_2 = { "HMAC-SHA-1", { .i32 = 2 }};
+			struct dict_enumval_data t_2 = { "HMAC-SHA-1 [HMAC]", { .i32 = 2 }};
 			struct dict_avp_data data = {
 					345, 					/* Code */
 					0, 					/* Vendor */

@@ -77,22 +77,21 @@ static void mt_hook_cb(enum fd_hook_type type, struct msg * msg, struct peer_hdr
 			ASSERT(qpmd->sent_on.tv_sec); /* same, would mean the HOOK_MESSAGE_SENT hook was not trigged */
 			TS_DIFFERENCE( &delay, &qpmd->sent_on, &pmd->received_on );
 			CHECK_MALLOC_DO( fd_msg_dump_summary(&buf, &len, NULL, msg, NULL, 0, 1), return );
-			LOG_N("[TIMING] RCV ANS %ld.%06ld sec: %s", (long)delay.tv_sec, delay.tv_nsec / 1000, buf);
+			LOG_N("[TIMING] RCV ANS %ld.%06ld sec <-'%s': %s", (long)delay.tv_sec, delay.tv_nsec / 1000, peer ? peer->info.pi_diamid : "<unidentified>", buf);
 		}
 	} else if (type == HOOK_MESSAGE_SENT) {
 		DiamId_t source = NULL;
-		size_t slen = 0;
 		
 		(void)clock_gettime(CLOCK_REALTIME, &pmd->sent_on);
 		
 		/* Is this a forwarded message ? */
-		CHECK_FCT_DO( fd_msg_source_get(msg, &source, &slen), return );
+		CHECK_FCT_DO( fd_msg_source_get(msg, &source, NULL), return );
 		if (source) {
 			struct timespec delay;
 			ASSERT(pmd->received_on.tv_sec);
 			TS_DIFFERENCE( &delay, &pmd->received_on, &pmd->sent_on );
 			CHECK_MALLOC_DO( fd_msg_dump_summary(&buf, &len, NULL, msg, NULL, 0, 1), return );
-			LOG_N("[TIMING] FWD %ld.%06ld sec: %s", (long)delay.tv_sec, delay.tv_nsec / 1000, buf);
+			LOG_N("[TIMING] FWD %ld.%06ld sec '%s'->'%s': %s", (long)delay.tv_sec, delay.tv_nsec / 1000, source, peer ? peer->info.pi_diamid : "<unidentified>", buf);
 		} else if (hdr->msg_flags & CMD_FLAG_REQUEST) {
 			/* We are sending a request issued locally, nothing special to log */
 		} else {
@@ -102,7 +101,7 @@ static void mt_hook_cb(enum fd_hook_type type, struct msg * msg, struct peer_hdr
 				struct timespec delay;
 				TS_DIFFERENCE( &delay, &qpmd->received_on, &pmd->sent_on );
 				CHECK_MALLOC_DO( fd_msg_dump_summary(&buf, &len, NULL, msg, NULL, 0, 1), return );
-				LOG_N("[TIMING] ANS %ld.%06ld sec: %s", (long)delay.tv_sec, delay.tv_nsec / 1000, buf);
+				LOG_N("[TIMING] ANS %ld.%06ld sec ->'%s': %s", (long)delay.tv_sec, delay.tv_nsec / 1000, peer ? peer->info.pi_diamid : "<unidentified>", buf);
 			}
 		}
 	}

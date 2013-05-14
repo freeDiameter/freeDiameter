@@ -34,6 +34,14 @@
 *********************************************************************************************************/
 
 #include "tests.h"
+#include <dirent.h>
+#include <libgen.h>
+#include <dlfcn.h>
+
+#ifndef BUILD_DIR
+#error "Missing BUILD_DIR information"
+#endif /* BUILD_DIR */
+
 
 /* The number of times each operation is repeated to measure the average operation time */
 #define DEFAULT_NUMBER_OF_SAMPLES	100000
@@ -46,7 +54,138 @@ static void display_result(int nr, struct timespec * start, struct timespec * en
 	printf("%-19s: %d %-8s %-7s in %.6LFs (%.1LFmsg/s)\n", fct, nr, type, op, dur, thrp);
 }
 
+struct ext_info {
+	struct fd_list	chain;		/* link in the list */
+	void 		*handler;	/* object returned by dlopen() */
+	int 		(*init_cb)(int, int, char *);
+	char		*ext_name;	/* points to the extension name, either inside depends, or basename(filename) */
+	int		free_ext_name;	/* must be freed if it was malloc'd */
+	const char 	**depends;	/* names of the other extensions this one depends on (if provided) */
+};
+	
+static void load_all_extensions(char * prefix)
+{
+	DIR *dir;
+	struct dirent *dp;
+	char fullname[512];
+	int pathlen;
+	struct fd_list all_extensions = FD_LIST_INITIALIZER(all_extensions);
+	struct fd_list ext_with_depends = FD_LIST_INITIALIZER(ext_with_depends);
 
+	/* Find all extensions which have been compiled along the test */
+	LOG_D("Loading %s*.fdx from: '%s'", BUILD_DIR "/extensions", prefix ?: "");
+	CHECK( 0, (dir = opendir (BUILD_DIR "/extensions")) == NULL ? 1 : 0 );
+	pathlen = snprintf(fullname, sizeof(fullname), BUILD_DIR "/extensions/");
+	
+	while ((dp = readdir (dir)) != NULL) {
+		char * dot = strrchr(dp->d_name, '.');
+		if (dot && ((!prefix) || !(strncmp(dp->d_name, prefix, strlen(prefix)))) && (!(strcmp(dot, ".fdx")))) {
+			/* We found a file with name dict_*.fdx, attempt to load it */
+			struct ext_info * new = malloc(sizeof(struct ext_info));
+			CHECK( 1, new ? 1:0);
+			fd_list_init(&new->chain, new);
+			
+			snprintf(fullname + pathlen, sizeof(fullname) - pathlen, "%s", dp->d_name);
+			
+			LOG_D("Extension: '%s'", dp->d_name);
+			
+			/* load */
+			new->handler = dlopen(fullname, RTLD_NOW | RTLD_GLOBAL);
+			if (!new->handler) {
+				TRACE_DEBUG(INFO, "Unable to load '%s': %s.", fullname, dlerror());
+			}
+			CHECK( 0, new->handler == NULL ? 1 : 0 );
+			
+			/* resolve entry */
+			new->init_cb = dlsym( new->handler, "fd_ext_init" );
+			if (!new->init_cb) {
+				TRACE_DEBUG(INFO, "No 'fd_ext_init' entry point in '%s': %s.", fullname, dlerror());
+			}
+			CHECK( 0, new->init_cb == NULL ? 1 : 0 );
+			
+			new->depends = dlsym( new->handler, "fd_ext_depends" );
+			if (new->depends) {
+				new->ext_name = (char *)new->depends[0];
+				new->free_ext_name = 0;
+				if ( new->depends[1] ) {
+					fd_list_insert_before(&ext_with_depends, &new->chain);
+				} else {
+					fd_list_insert_before(&all_extensions, &new->chain);
+				}
+			} else {
+				new->ext_name = strdup(basename(dp->d_name));
+				new->free_ext_name = 1;
+				fd_list_insert_before(&all_extensions, &new->chain);
+			}
+			
+		}
+	}
+	
+	/* Now, reorder the list by dependencies */
+	{
+		int count, prevcount = 0;
+		struct fd_list * li;
+		do {
+			count = 0;
+			for (li=ext_with_depends.next; li != &ext_with_depends; li=li->next) {
+				struct ext_info * e = li->o;
+				int d;
+				int satisfied=0;
+				
+				/* Can we satisfy all dependencies? */
+				for (d=1;  ;d++) {
+					struct fd_list * eli;
+					if (!e->depends[d]) {
+						satisfied = 1;
+						break;
+					}
+					
+					/* can we find this dependency in the list? */
+					for (eli=all_extensions.next; eli != &all_extensions; eli = eli->next) {
+						struct ext_info * de = eli->o;
+						if (!strcasecmp(de->ext_name, e->depends[d]))
+							break; /* this dependency is satisfied */
+					}
+					
+					if (eli == &all_extensions) {
+						satisfied = 0;
+						break;
+					}
+				}
+				
+				if (satisfied) {
+					/* OK, we have all our dependencies in the list */
+					li=li->prev;
+					fd_list_unlink(&e->chain);
+					fd_list_insert_before(&all_extensions, &e->chain);
+				} else {
+					count++;
+				}
+			}
+			
+			if (prevcount && (prevcount == count)) {
+				LOG_E("Some extensions cannot have their dependencies satisfied, e.g.: %s", ((struct ext_info *)ext_with_depends.next->o)->ext_name);
+				CHECK(0, 1);
+			}
+			prevcount = count;
+			
+			if (FD_IS_LIST_EMPTY(&ext_with_depends))
+				break;
+		} while (1);
+	}
+	
+	/* Now, load all the extensions */
+	{
+		struct fd_list * li;
+		for (li=all_extensions.next; li != &all_extensions; li=li->next) {
+			struct ext_info * e = li->o;
+			int ret = (*e->init_cb)( FD_PROJECT_VERSION_MAJOR, FD_PROJECT_VERSION_MINOR, NULL );
+			LOG_N("Initializing extension '%s': %s", e->ext_name, ret ? strerror(ret) : "Success");
+		}
+	}
+	
+	/* We should probably clean the list here ? */
+}
 
 /* Main test routine */
 int main(int argc, char *argv[])
@@ -54,10 +193,16 @@ int main(int argc, char *argv[])
 	struct msg * acr = NULL;
 	unsigned char * buf = NULL;
 	
+	int dictionaries_loaded = 0;
+	
 	test_parameter = DEFAULT_NUMBER_OF_SAMPLES;
 	
 	/* First, initialize the daemon modules */
 	INIT_FD();
+	CHECK( 0, fd_queues_init()  );
+	CHECK( 0, fd_msg_init()  );
+	CHECK( 0, fd_rtdisp_init()  );
+	
 	
 	{
 		struct dict_object * acr_model = NULL;
@@ -378,7 +523,7 @@ int main(int argc, char *argv[])
 	}
 	
 	/* We have our "buf" now, length is 344 -- cf. testmesg.c. */
-	
+redo:	
 	/* Test the throughput of the different functions function */
 	{
 		struct stress_struct {
@@ -530,7 +675,13 @@ int main(int argc, char *argv[])
 		}
 		free(stress_array);
 	}
-		
+	
+	if (!dictionaries_loaded) {
+		load_all_extensions("dict_");
+		dictionaries_loaded = 1;
+		printf("Loaded all dictionary extensions, restarting...\n");
+		goto redo;
+	}
 	
 	/* That's all for the tests yet */
 	PASSTEST();
