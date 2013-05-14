@@ -576,7 +576,6 @@ psm_loop:
 					/* In such case, just discard the message */
 					char buf[128];
 					snprintf(buf, sizeof(buf), "Received while peer state machine was in state %s.", STATE_STR(cur_state));
-					LOG_E("%s",buf); 
 					fd_hook_call(HOOK_MESSAGE_DROPPED, msg, peer, buf, fd_msg_pmdl_get(msg));
 					fd_msg_free(msg);
 				}
@@ -593,7 +592,6 @@ psm_loop:
 					{
 						char buf[256];
 						snprintf(buf, sizeof(buf), "%s: An unexpected error occurred while parsing a link-local message", peer->p_hdr.info.pi_diamid); 
-						LOG_E("%s",buf); 
 						fd_hook_call(HOOK_MESSAGE_DROPPED, msg, peer, buf, fd_msg_pmdl_get(msg));
 						fd_msg_free(msg); 
 						goto psm_end; 
@@ -606,7 +604,6 @@ psm_loop:
 						char buf[256];
 						/* Only if an error occurred & the message was not saved / dumped */
 						snprintf(buf, sizeof(buf), "%s: error sending a message", peer->p_hdr.info.pi_diamid); 
-						LOG_E("%s",buf); 
 						fd_hook_call(HOOK_MESSAGE_DROPPED, error, peer, buf, fd_msg_pmdl_get(error));
 						CHECK_FCT_DO( fd_msg_free(error), goto psm_end);
 					}
@@ -614,7 +611,7 @@ psm_loop:
 					char buf[256];
 					/* We received an invalid answer, let's disconnect */
 					snprintf(buf, sizeof(buf), "%s: Received invalid answer to Base protocol message, disconnecting...", peer->p_hdr.info.pi_diamid);
-					LOG_E("%s",buf); 
+					fd_hook_call(HOOK_MESSAGE_DROPPED, msg, peer, buf, fd_msg_pmdl_get(msg));
 					CHECK_FCT_DO( fd_msg_free(msg), goto psm_end);
 					CHECK_FCT_DO( fd_event_send(peer->p_events, FDEVP_CNX_ERROR, 0, NULL), goto psm_reset );
 				}
@@ -667,7 +664,6 @@ psm_loop:
 				if (msg) {
 					char buf[256];
 					snprintf(buf, sizeof(buf), "Received un-handled non-routable command from peer '%s'.", peer->p_hdr.info.pi_diamid);
-					LOG_E("%s",buf);
 					fd_hook_call(HOOK_MESSAGE_DROPPED, msg, NULL, buf, fd_msg_pmdl_get(msg));
 					CHECK_FCT_DO( fd_msg_free(msg), /* continue */);
 					msg = NULL;
@@ -678,7 +674,6 @@ psm_loop:
 		if (msg) {
 			char buf[256];
 			snprintf(buf, sizeof(buf), "Internal error ('%s'): unhandled message.", peer->p_hdr.info.pi_diamid);
-			LOG_E("%s",buf);
 			fd_hook_call(HOOK_MESSAGE_DROPPED, msg, NULL, buf, fd_msg_pmdl_get(msg));
 			fd_msg_free(msg);
 		}
