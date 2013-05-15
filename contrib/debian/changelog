@@ -1,21 +1,21 @@
 freediameter (1.2.0) UNRELEASED; urgency=low
 
   * Major changes in the logging system to be more syslog and user friendly
-  * Host-IP-Address AVP: now piggy-tail the port number by default. Disable with ADDRESS_AVP_INCLUDE_PORT:BOOL=OFF.
   * New extension: dict_dcca_3gpp
   * New extension: dict_dcca_starent (Starent DCCA vendor-specific AVPs)
   * New extension: rt_ignore_dh (hide network topology by proxying Destination-Host).
   * New extension: rt_load_balance (load balancer based on pending queue size).
   * New extension: rt_busypeers. See doc/rt_busypeers.conf.sample.
-  * New extension: dbg_msg_timings. Sample for the hooks mechanism.
+  * New extension: dbg_msg_timings. Measures timing of message operations.
+  * New extension: dbg_msg_dumps. Use to vizualize all received and sent messages.
   * New API (fd_hook_*) for extensions to control messages logging & profiling
   * New API (fd_stats_*) for extensions to monitor framework state (e.g. SNMP implem)
-  * API changes: all the fd_*_dump functions now return strings instead of logging directly.
+  * API changes: all the fd_*_dump functions now return malloc'd strings instead of logging directly.
   * Updated dbg_monitoring extension to use the new API
   * New script to generate dictionary extensions from org file (see contrib/tools)
   * New compilation option: WORKAROUND_ACCEPT_INVALID_VSAI to improve interoperability.
   * New compilation option: DISABLE_PEER_EXPIRY for use in test environments.
-  * New compilation option: ADDRESS_AVP_INCLUDE_PORT see above.
+  * Host-IP-Address AVP: now piggy-tail the port number by default. Disable with ADDRESS_AVP_INCLUDE_PORT:BOOL=OFF.
   * Extensions are now also searched in LD_LIBRARY_PATH.
   * Copy Proxy-Info AVP automatically in new answers.
   * Port value 0 allowed in configuration to disable local server (e.g. disable non-secure port).
@@ -23,9 +23,9 @@ freediameter (1.2.0) UNRELEASED; urgency=low
   * Function changes: fd_msg_dump_* now split in three different type of output.
   * New test testmesg_stress to measure message parser performance
   * Fix termination of the framework to avoid failures.
-  * Fix invalid timespec value in peer PSM appearing randomly.
+  * Fix invalid timespec value in peer PSM appearing randomly (leading to crash).
 
- -- Sebastien Decugis <sdecugis@freediameter.net>  Tue, 14 May 2013 18:12:24 +0800
+ -- Sebastien Decugis <sdecugis@freediameter.net>  Wed, 15 May 2013 11:50:09 +0800
 
 freediameter (1.1.6) UNRELEASED; urgency=low
 
