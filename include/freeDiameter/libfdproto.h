@@ -456,12 +456,16 @@ enum old_levels {
 	CALL = 9
 } MARK_DEPRECATED;
 
-static __inline__ int TRACE_BOOL( enum old_levels level ) MARK_DEPRECATED
-{ 
-	return (level <= fd_g_debug_lvl)
-		|| (fd_debug_one_function && !strcmp(fd_debug_one_function, __PRETTY_FUNCTION__))
-		|| (fd_debug_one_file && !strcmp(fd_debug_one_file, __STRIPPED_FILE__) ); 
+static __inline__ int old_TRACE_BOOL( enum old_levels level, const char * file, const char * func ) MARK_DEPRECATED
+{
+	if ((fd_debug_one_function && !strcmp(fd_debug_one_function, func))
+		|| (fd_debug_one_file && !strcmp(fd_debug_one_file, file) ))
+		return 2; /* Level override */
+	if (level <= fd_g_debug_lvl)
+		return 1; /* Normal level */
+	return 0;  /* No trace */
 }
+#define TRACE_BOOL(level)  old_TRACE_BOOL((level), __STRIPPED_FILE__, __PRETTY_FUNCTION__)
 
 #ifndef SWIG
 static __inline__ void fd_log_deprecated( int level, const char *format, ... ) MARK_DEPRECATED
@@ -487,9 +491,11 @@ static __inline__ void replace_me() MARK_DEPRECATED { }
 
 /* old macro for traces. To be replaced by appropriate LOG_* macros. */
 # define TRACE_DEBUG(oldlevel, format,args... ) {					\
-		if (TRACE_BOOL(oldlevel)) {						\
+		int __l__;								\
+		if ((__l__ = TRACE_BOOL(oldlevel))) {					\
 			if      (oldlevel <= NONE) { LOG_E(format,##args); }		\
 			else if (oldlevel <= INFO) { LOG_N(format,##args); }		\
+			else if (__l__ == 2)       { LOG_N(format,##args); }		\
 			else if (oldlevel <= FULL) { LOG_D(format,##args); }		\
 			else                       { LOG_A(format,##args); }		\
 }		}

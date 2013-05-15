@@ -151,10 +151,13 @@ static void main_help( void )
 		"                           default location (" DEFAULT_CONF_PATH "/" FD_DEFAULT_CONF_FILENAME ").\n");
  	printf( "\nDebug:\n"
   		"  These options are mostly useful for developers\n"
-  		"  -l, --dbglocale        Set the locale for error messages\n"
-  		"  -d, --debug            Increase verbosity of debug messages if default logger is used\n"
-  		"  -q, --quiet            Decrease verbosity if default logger is used\n"
-  		"  --dbg_gnutls <int>     Enable GNU TLS debug at level <int>\n");
+  		"  -l, --dbglocale         Set the locale for error messages\n"
+  		"  -d, --debug             Increase verbosity of debug messages if default logger is used\n"
+  		"  -q, --quiet             Decrease verbosity if default logger is used\n"
+  		"  -f, --dbg_func <func>   Enable all traces within the function <func>\n"
+  		"  -F, --dbg_file <file.c> Enable all traces within the file <file.c> (basename match)\n"
+  		"  --dbg_gnutls <int>      Enable GNU TLS debug at level <int>\n"
+	);
 }
 
 /* Parse the command-line */
