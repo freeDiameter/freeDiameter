@@ -775,11 +775,10 @@ static DECLARE_FD_DUMP_PROTOTYPE( msg_dump_process, msg_dump_formatter_msg msg_f
 static DECLARE_FD_DUMP_PROTOTYPE( msg_format_treeview, struct msg * msg )
 {
 	if (!CHECK_MSG(msg)) {
-		CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "{message}(@%p): INVALID", msg), return NULL);
+		CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "INVALID MESSAGE"), return NULL);
 		return *buf;
 	}
 	
-	CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "{message}(@%p): ", msg), return NULL);
 	if (!msg->msg_model) {
 		if (msg->msg_model_not_found.mnf_code) {
 			CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "(not found in dictionary)\n"), return NULL);
@@ -805,7 +804,7 @@ static DECLARE_FD_DUMP_PROTOTYPE( msg_format_treeview, struct msg * msg )
 	CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "  ApplicationId: %d\n", msg->msg_public.msg_appl), return NULL);
 	CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "  Hop-by-Hop Identifier: 0x%08X\n", msg->msg_public.msg_hbhid), return NULL);
 	CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "  End-to-End Identifier: 0x%08X\n", msg->msg_public.msg_eteid), return NULL);
-	CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "   {debug data}: src:%s(%zd) rwb:%p rt:%d cb:%p,%p(%p) qry:%p asso:%d sess:%p", msg->msg_src_id?:"(nil)", msg->msg_src_id_len, msg->msg_rawbuffer, msg->msg_routable, msg->msg_cb.anscb, msg->msg_cb.expirecb, msg->msg_cb.data, msg->msg_query, msg->msg_associated, msg->msg_sess), return NULL);
+	CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "   {internal data}: src:%s(%zd) rwb:%p rt:%d cb:%p,%p(%p) qry:%p asso:%d sess:%p", msg->msg_src_id?:"(nil)", msg->msg_src_id_len, msg->msg_rawbuffer, msg->msg_routable, msg->msg_cb.anscb, msg->msg_cb.expirecb, msg->msg_cb.data, msg->msg_query, msg->msg_associated, msg->msg_sess), return NULL);
 	
 	return *buf;
 }
@@ -823,13 +822,11 @@ static DECLARE_FD_DUMP_PROTOTYPE( avp_format_treeview, struct avp * avp, int lev
 	}
 	
 	if (!CHECK_AVP(avp)) {
-		CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "{avp}(@%p): INVALID", avp), return NULL);
+		CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "INVALID AVP"), return NULL);
 		return *buf;
 	}
 	
-	if (!level) {
-		CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "{avp}(@%p): ", avp), return NULL);
-	} else {
+	if (level) {
 		CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "%*sAVP: ", level * 3, ""), return NULL);
 	}
 	
@@ -1035,11 +1032,10 @@ DECLARE_FD_DUMP_PROTOTYPE( fd_msg_dump_full, msg_or_avp *obj, struct dictionary 
 static DECLARE_FD_DUMP_PROTOTYPE( msg_format_summary, struct msg * msg )
 {
 	if (!CHECK_MSG(msg)) {
-		CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "{message}(@%p): INVALID", msg), return NULL);
+		CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "INVALID MESSAGE"), return NULL);
 		return *buf;
 	}
 	
-	CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "{message}(@%p): ", msg), return NULL);
 	if (!msg->msg_model) {
 		CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "(no model)"), return NULL);
 	} else {
@@ -1074,7 +1070,7 @@ static DECLARE_FD_DUMP_PROTOTYPE( avp_format_summary, struct avp * avp, int leve
 	}
 	
 	if (!CHECK_AVP(avp)) {
-		CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "INVALID"), return NULL);
+		CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "INVALID AVP"), return NULL);
 		goto end;
 	}
 	
@@ -1512,7 +1508,9 @@ static pthread_mutex_t fd_eteid_lck = PTHREAD_MUTEX_INITIALIZER;
 
 void fd_msg_eteid_init(void)
 {
-	fd_eteid = ((uint32_t)time(NULL) << 20) | ((uint32_t)lrand48() & ( (1 << 20) - 1 ));
+	uint32_t t = (uint32_t)time(NULL);
+	srand48(t);
+	fd_eteid = (t << 20) | ((uint32_t)lrand48() & ( (1 << 20) - 1 ));
 }
 
 uint32_t fd_msg_eteid_get ( void )
