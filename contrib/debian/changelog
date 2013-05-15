@@ -7,7 +7,7 @@ freediameter (1.2.0) UNRELEASED; urgency=low
   * New extension: rt_load_balance (load balancer based on pending queue size).
   * New extension: rt_busypeers. See doc/rt_busypeers.conf.sample.
   * New extension: dbg_msg_timings. Measures timing of message operations.
-  * New extension: dbg_msg_dumps. Use to vizualize all received and sent messages.
+  * New extension: dbg_msg_dumps. Use to visualize all received and sent messages.
   * New API (fd_hook_*) for extensions to control messages logging & profiling
   * New API (fd_stats_*) for extensions to monitor framework state (e.g. SNMP implem)
   * API changes: all the fd_*_dump functions now return malloc'd strings instead of logging directly.
