@@ -63,7 +63,7 @@ static int md_main(char * conffile)
 {
 	TRACE_ENTRY("%p", conffile);
 	
-	CHECK_FCT( fd_hook_register( ((1 << HOOK_MESSAGE_RECEIVED) | (1 << HOOK_MESSAGE_SENT)), 
+	CHECK_FCT( fd_hook_register( HOOK_MASK( HOOK_MESSAGE_RECEIVED, HOOK_MESSAGE_SENT ), 
 					md_hook_cb, NULL, NULL, &md_hdl) );
 	
 	return 0;

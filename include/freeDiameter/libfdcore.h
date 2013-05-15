@@ -1076,11 +1076,14 @@ int fd_hook_data_register(
 /* A handler associated with a registered hook callback (for cleanup) */
 struct fd_hook_hdl; 
 
+/* Helper for building a mask of hooks for registration */
+#define HOOK_MASK(hooklist...)	fd_hook_mask_helper(0, ## hooklist, -1)
+
 /*
  * FUNCTION:	fd_hook_register
  *
  * PARAMETERS:
- *  type_mask	  : A bitmask of fd_hook_type bits for which this cb is registered, e.g. ((1 << HOOK_MESSAGE_RECEIVED) | (1 << HOOK_MESSAGE_SENT))
+ *  type_mask	  : A bitmask of fd_hook_type bits for which this cb is registered, e.g. HOOK_MASK( HOOK_MESSAGE_RECEIVED, HOOK_MESSAGE_SENT )
  *  fd_hook_cb	  : The callback function to register (see prototype above).
  *  regdata	  : Pointer to pass to the callback when it is called. The data is opaque to the daemon.
  *  data_hdl      : If permsgdata is requested for the hooks, a handler registered with fd_hook_data_register. NULL otherwise.
@@ -1109,6 +1112,8 @@ int fd_hook_unregister( struct fd_hook_hdl * handler );
 /* Use the following function to retrieve any pmd structure associated with a request matching the current answer. Returns NULL in case of error / no such structure */
 struct fd_hook_permsgdata * fd_hook_get_request_pmd(struct fd_hook_data_hdl *data_hdl, struct msg * answer);
 
+/* The following is used by HOOK_MASK macro */
+uint32_t fd_hook_mask_helper(int dummy, ...);
 
 /*============================================================*/
 

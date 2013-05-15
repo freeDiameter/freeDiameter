@@ -262,6 +262,24 @@ struct fd_hook_permsgdata * fd_hook_get_request_pmd(struct fd_hook_data_hdl *dat
 	return ret;
 }
 
+/* Create a mask */
+uint32_t fd_hook_mask_helper(int dummy, ...)
+{
+	va_list ap;
+	uint32_t ret = 0;
+	int next;
+	
+	va_start(ap, dummy);
+	while ((next = va_arg(ap, int)) >= 0) {
+		if (next > HOOK_PEER_LAST)
+			break; /* invalid parameter */
+		ret |= (1<<next);
+	}
+	va_end(ap);
+
+	return ret;
+}
+
 /* The function that does the work of calling the extension's callbacks and also managing the permessagedata structures */
 void   fd_hook_call(enum fd_hook_type type, struct msg * msg, struct fd_peer * peer, void * other, struct fd_msg_pmdl * pmdl)
 {

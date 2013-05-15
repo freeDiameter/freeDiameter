@@ -116,7 +116,7 @@ static int mt_main(char * conffile)
 	
 	CHECK_FCT( fd_hook_data_register( sizeof(struct fd_hook_permsgdata), NULL, NULL, &mt_data_hdl ) );
 	
-	CHECK_FCT( fd_hook_register( ((1 << HOOK_MESSAGE_RECEIVED) | (1 << HOOK_MESSAGE_SENT) | (1 << HOOK_DATA_RECEIVED)), 
+	CHECK_FCT( fd_hook_register( HOOK_MASK( HOOK_MESSAGE_RECEIVED, HOOK_MESSAGE_SENT, HOOK_DATA_RECEIVED ), 
 					mt_hook_cb, NULL, mt_data_hdl, &mt_hdl) );
 	
 	return 0;
