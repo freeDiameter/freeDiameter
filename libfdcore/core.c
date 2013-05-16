@@ -221,7 +221,6 @@ int fd_core_initialize(void)
 	/* Initialize some modules */
 	CHECK_FCT( fd_hooks_init()  );
 	CHECK_FCT( fd_queues_init() );
-	CHECK_FCT( fd_msg_init()    );
 	CHECK_FCT( fd_sess_start()  );
 	CHECK_FCT( fd_p_expi_init() );
 	
@@ -268,6 +267,10 @@ int fd_core_parseconf(const char * conffile)
 	
 	free(buf);	
 		
+	/* Since some extensions might have modified the definitions from the dict_base_protocol, we only load the objects now */
+	CHECK_FCT( fd_msg_init()    );
+	
+	/* Ok, ready for next step */
 	core_state_set(CORE_CONF_READY);
 	
 	return 0;
