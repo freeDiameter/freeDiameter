@@ -33,10 +33,7 @@ OPTION(DISABLE_PEER_EXPIRY "Disable RFC3539 Peers Connections Expiration after i
 # compliancy of their implementation with the Diameter RFC...
 OPTION(WORKAROUND_ACCEPT_INVALID_VSAI "Do not reject a CER/CEA with a Vendor-Specific-Application-Id AVP containing both Auth- and Acct- application AVPs?" OFF)
 
-# If the following is defined, the Address-based AVPs issued locally are extended to include the port information.
-OPTION(ADDRESS_AVP_INCLUDE_PORT "Include the port number in the Address-based AVPs?" OFF)
-
-MARK_AS_ADVANCED(DISABLE_SCTP DEBUG_SCTP SCTP_USE_MAPPED_ADDRESSES ERRORS_ON_TODO DIAMID_IDNA_IGNORE DIAMID_IDNA_REJECT DISABLE_PEER_EXPIRY WORKAROUND_ACCEPT_INVALID_VSAI ADDRESS_AVP_INCLUDE_PORT)
+MARK_AS_ADVANCED(DISABLE_SCTP DEBUG_SCTP SCTP_USE_MAPPED_ADDRESSES ERRORS_ON_TODO DIAMID_IDNA_IGNORE DIAMID_IDNA_REJECT DISABLE_PEER_EXPIRY WORKAROUND_ACCEPT_INVALID_VSAI)
 
 ########################
 ### System checks part
