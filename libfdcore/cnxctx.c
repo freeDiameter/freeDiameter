@@ -658,6 +658,7 @@ static uint8_t * fd_cnx_alloc_msg_buffer(size_t expected_len, struct fd_msg_pmdl
 	return ret;
 }
 
+#ifndef DISABLE_SCTP
 static uint8_t * fd_cnx_realloc_msg_buffer(uint8_t * buffer, size_t expected_len, struct fd_msg_pmdl ** pmdl)
 {
 	uint8_t * ret = NULL;
@@ -666,6 +667,7 @@ static uint8_t * fd_cnx_realloc_msg_buffer(uint8_t * buffer, size_t expected_len
 	CHECK_FCT_DO( fd_cnx_init_msg_buffer(ret, expected_len, pmdl), {free(ret); return NULL;} );
 	return ret;
 }
+#endif /* DISABLE_SCTP */
 
 static void free_rcvdata(void * arg) 
 {

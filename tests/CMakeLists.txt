@@ -47,6 +47,7 @@ SET(testcnx_ADDITIONAL_LIB  ${CLOCK_GETTIME_LIBS})
 SET(testfifo_ADDITIONAL_LIB ${CLOCK_GETTIME_LIBS})
 SET(testsess_ADDITIONAL_LIB ${CLOCK_GETTIME_LIBS})
 SET(testloadext_ADDITIONAL_LIB ${CMAKE_DL_LIBS})
+SET(testmesg_stress_ADDITIONAL_LIB ${CLOCK_GETTIME_LIBS} ${CMAKE_DL_LIBS})
 
 ##############################
 # App_acct test
