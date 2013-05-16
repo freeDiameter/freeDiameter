@@ -15,7 +15,6 @@ freediameter (1.2.0) UNRELEASED; urgency=low
   * New script to generate dictionary extensions from org file (see contrib/tools)
   * New compilation option: WORKAROUND_ACCEPT_INVALID_VSAI to improve interoperability.
   * New compilation option: DISABLE_PEER_EXPIRY for use in test environments.
-  * Host-IP-Address AVP: now piggy-tail the port number by default. Disable with ADDRESS_AVP_INCLUDE_PORT:BOOL=OFF.
   * Extensions are now also searched in LD_LIBRARY_PATH.
   * Copy Proxy-Info AVP automatically in new answers.
   * Port value 0 allowed in configuration to disable local server (e.g. disable non-secure port).

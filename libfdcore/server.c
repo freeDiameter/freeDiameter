@@ -341,8 +341,6 @@ int fd_servers_start()
 	
 	int empty_conf_ep = FD_IS_LIST_EMPTY(&fd_g_config->cnf_endpoints);
 	
-	struct fd_list filter_list = FD_LIST_INITIALIZER(filter_list);
-	
 	/* SCTP */
 	if (!fd_g_config->cnf_flags.no_sctp) {
 #ifdef DISABLE_SCTP
@@ -447,33 +445,6 @@ int fd_servers_start()
 			return EINVAL;
 		}
 	}
-	
-	/* we will filter this list and create endpoints with port information */
-	#ifdef ADDRESS_AVP_INCLUDE_PORT
-	fd_list_move_end(&filter_list, &fd_g_config->cnf_endpoints);
-	while (!FD_IS_LIST_EMPTY(&filter_list)) {
-		struct fd_endpoint * ep = (struct fd_endpoint *)filter_list.next;
-		in_port_t * port = NULL;
-		fd_list_unlink(&ep->chain);
-		
-		switch( ep->sa.sa_family ) {
-		case AF_INET: port = &ep->sin.sin_port; break;
-		case AF_INET6: port = &ep->sin6.sin6_port; break;
-		}
-		
-		if (port) {
-			if (fd_g_config->cnf_port) {
-				*port = htons(fd_g_config->cnf_port);
-				CHECK_FCT(fd_ep_add_merge( &fd_g_config->cnf_endpoints, &ep->sa, sSAlen(&ep->sa), ep->flags ));
-			}
-			if (fd_g_config->cnf_port_tls) {
-				*port = htons(fd_g_config->cnf_port_tls);
-				CHECK_FCT(fd_ep_add_merge( &fd_g_config->cnf_endpoints, &ep->sa, sSAlen(&ep->sa), ep->flags ));
-			}
-		}
-		free(ep);
-	}
-	#endif /* ADDRESS_AVP_INCLUDE_PORT */
 	
 	{
 		char * buf = NULL;

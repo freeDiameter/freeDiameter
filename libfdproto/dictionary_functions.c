@@ -73,20 +73,11 @@ int fd_dictfct_Address_encode(void * data, union avp_value * avp_value)
 				
 				AddressType = 1;/* see http://www.iana.org/assignments/address-family-numbers/ */
 				size = 6;	/* 2 for AddressType + 4 for data */
-				#ifdef ADDRESS_AVP_INCLUDE_PORT
-				if (sin->sin_port != 0)
-					size += 2;
-				#endif /* ADDRESS_AVP_INCLUDE_PORT */
 				
 				CHECK_MALLOC(  buf = malloc(size)  );
 				
 				/* may not work because of alignment: *(uint32_t *)(buf+2) = htonl(sin->sin_addr.s_addr); */
 				memcpy(buf + 2, &sin->sin_addr.s_addr, 4);
-				
-				#ifdef ADDRESS_AVP_INCLUDE_PORT
-				if (sin->sin_port != 0)
-					memcpy(buf + 6, &sin->sin_port, 2);
-				#endif /* ADDRESS_AVP_INCLUDE_PORT */
 			}
 			break;
 				
@@ -97,20 +88,12 @@ int fd_dictfct_Address_encode(void * data, union avp_value * avp_value)
 				
 				AddressType = 2;/* see http://www.iana.org/assignments/address-family-numbers/ */
 				size = 18;	/* 2 for AddressType + 16 for data */
-				#ifdef ADDRESS_AVP_INCLUDE_PORT
-				if (sin6->sin6_port != 0)
-					size += 2;
-				#endif /* ADDRESS_AVP_INCLUDE_PORT */
 				
 				CHECK_MALLOC(  buf = malloc(size)  );
 				
 				/* The order is already good here */
 				memcpy(buf + 2, &sin6->sin6_addr.s6_addr, 16);
 				
-				#ifdef ADDRESS_AVP_INCLUDE_PORT
-				if (sin6->sin6_port != 0)
-					memcpy(buf + 18, &sin6->sin6_port, 2);
-				#endif /* ADDRESS_AVP_INCLUDE_PORT */
 			}
 			break;
 				
@@ -143,14 +126,11 @@ int fd_dictfct_Address_interpret(union avp_value * avp_value, void * interpreted
 			{
 				sSA4 * sin = (sSA4 *)interpreted;
 				
-				CHECK_PARAMS(  avp_value->os.len >= 6  );
+				CHECK_PARAMS(  avp_value->os.len == 6  );
 				
 				sin->sin_family = AF_INET;
 				/* sin->sin_addr.s_addr = ntohl( * (uint32_t *) buf); -- may not work because of bad alignment */
 				memcpy(&sin->sin_addr.s_addr, buf, 4);
-				
-				if (avp_value->os.len == 8)
-					memcpy(&sin->sin_port, buf + 4, 2);
 			}
 			break;
 				
@@ -158,13 +138,10 @@ int fd_dictfct_Address_interpret(union avp_value * avp_value, void * interpreted
 			{
 				sSA6 * sin6 = (sSA6 *)interpreted;
 				
-				CHECK_PARAMS(  avp_value->os.len >= 18  );
+				CHECK_PARAMS(  avp_value->os.len == 18  );
 				
 				sin6->sin6_family = AF_INET6;
 				memcpy(&sin6->sin6_addr.s6_addr, buf, 16);
-				
-				if (avp_value->os.len == 20)
-					memcpy(&sin6->sin6_port, buf + 16, 2);
 				
 			}
 			break;

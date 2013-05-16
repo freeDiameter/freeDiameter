@@ -850,7 +850,6 @@ struct fd_endpoint {
 int fd_ep_add_merge( struct fd_list * list, sSA * sa, socklen_t sl, uint32_t flags );
 int fd_ep_filter( struct fd_list * list, uint32_t flags );
 int fd_ep_filter_family( struct fd_list * list, int af );
-int fd_ep_filter_list( struct fd_list * list, struct fd_list * exclude_list );
 int fd_ep_clearflags( struct fd_list * list, uint32_t flags );
 DECLARE_FD_DUMP_PROTOTYPE(fd_ep_dump_one, int preamble, struct fd_endpoint * ep );
 DECLARE_FD_DUMP_PROTOTYPE(fd_ep_dump, int preamble, int indent, struct fd_list * eps  );

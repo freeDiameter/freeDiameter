@@ -60,7 +60,6 @@ extern "C" {
 #cmakedefine DIAMID_IDNA_REJECT
 #cmakedefine DISABLE_PEER_EXPIRY
 #cmakedefine WORKAROUND_ACCEPT_INVALID_VSAI
-#cmakedefine ADDRESS_AVP_INCLUDE_PORT
 #cmakedefine GNUTLS_VERSION_210
 #cmakedefine GNUTLS_VERSION_300
 #cmakedefine GNUTLS_VERSION_310
