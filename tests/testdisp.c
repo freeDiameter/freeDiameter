@@ -525,7 +525,7 @@ int main(int argc, char *argv[])
 		CHECK( 0, cbcalled[2] );
 		CHECK( 0, cbcalled[3] );
 		CHECK( 0, msg ? 1 : 0);
-		CHECK( 1, ec ? 1 : 0);
+		CHECK( 1, em ? 1 : 0);
 		CHECK( 0, fd_msg_free( error ) );
 		
 		CHECK( 0, fd_disp_unregister( &hdl[0], NULL ) );
@@ -549,7 +549,7 @@ int main(int argc, char *argv[])
 		CHECK( 0, cbcalled[2] );
 		CHECK( 0, cbcalled[3] );
 		CHECK( NULL, msg );
-		CHECK( NULL, ec );
+		CHECK( NULL, em );
 		
 		CHECK( 0, fd_disp_unregister( &hdl[0], NULL ) );
 		CHECK( 0, fd_disp_unregister( &hdl[1], NULL ) );
