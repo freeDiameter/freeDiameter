@@ -128,7 +128,7 @@ static int check_dependencies(struct fd_ext_info * ext)
 		
 		if (li == &ext->chain) {
 			/* the dependency was not found */
-			TRACE_ERROR("Error: extension [%s] depends on [%s] which was not loaded first. Please fix your configuration file.",
+			LOG_F("Error: extension [%s] depends on [%s] which was not loaded first. Please fix your configuration file.",
 				ext->ext_name, ext->depends[i]);
 			return ESRCH;
 		}
@@ -165,14 +165,12 @@ int fd_ext_load()
 		if (ext->handler == NULL) {
 			/* An error occured */
 			LOG_F("Loading of extension %s failed: %s", ext->filename, dlerror());
-			#ifdef DEBUG
 			ext->handler = dlopen(ext->filename, RTLD_LAZY | RTLD_GLOBAL);
 			if (ext->handler) {
 				if (!check_dependencies(ext)) {
-					TRACE_ERROR("In addition, not all declared dependencies are satisfied (Internal Error!)");
+					LOG_F("In addition, not all declared dependencies are satisfied (Internal Error!)");
 				}
 			}
-			#endif /* DEBUG */
 			return EINVAL;
 		}
 		
