@@ -10340,6 +10340,31 @@ static int dict_dcca_3gpp_entry(char * conffile)
 	/* 32.299 */
 
 	{
+		/* additional allowed AVPs */
+		struct dict_object *ccr;
+		CHECK_dict_search(DICT_COMMAND, CMD_BY_NAME, "Credit-Control-Request", &ccr);
+		struct local_rules_definition rules[] = 
+			{
+				{ { .avp_vendor = 10415, .avp_name = "AoC-Request-Type"}, RULE_OPTIONAL, -1, 1 },
+				{ { .avp_vendor = 10415, .avp_name = "Service-Information"}, RULE_OPTIONAL, -1, 1 },
+			};
+		PARSE_loc_rules(rules, ccr);
+        }
+
+	{
+		/* additional allowed AVPs */
+		struct dict_object *ccr;
+		CHECK_dict_search(DICT_COMMAND, CMD_BY_NAME, "Credit-Control-Answer", &ccr);
+		struct local_rules_definition rules[] = 
+			{
+				{ { .avp_vendor = 10415, .avp_name = "Low-Balance-Indication"}, RULE_OPTIONAL, -1, 1 },
+				{ { .avp_vendor = 10415, .avp_name = "Remaining-Balance"}, RULE_OPTIONAL, -1, 1 },
+				{ { .avp_vendor = 10415, .avp_name = "Service-Information"}, RULE_OPTIONAL, -1, 1 },
+			};
+		PARSE_loc_rules(rules, ccr);
+        }
+
+	{
 		struct dict_object *rule_avp;
 		struct dict_avp_request vpa;
 		vpa.avp_vendor = 10415;
@@ -10367,6 +10392,21 @@ static int dict_dcca_3gpp_entry(char * conffile)
 				{ { .avp_vendor = 0,     .avp_name = "CC-Input-Octets" }, RULE_OPTIONAL, -1, 1 },
 				{ { .avp_vendor = 0,     .avp_name = "CC-Output-Octets" }, RULE_OPTIONAL, -1, 1 },
 				{ { .avp_vendor = 0,     .avp_name = "CC-Service-Specific-Units" }, RULE_OPTIONAL, -1, 1 },
+			};
+			PARSE_loc_rules(rules, rule_avp);
+        }
+
+	{
+		struct dict_object *rule_avp;
+		struct dict_avp_request vpa;
+		vpa.avp_vendor = 10415;
+		vpa.avp_name = "Event-Type";
+		CHECK_dict_search(DICT_AVP, AVP_BY_NAME_AND_VENDOR, &vpa, &rule_avp);
+		struct local_rules_definition rules[] =
+			{
+				{ { .avp_vendor = 10415, .avp_name = "SIP-Method" }, RULE_OPTIONAL, -1, 1 },
+				{ { .avp_vendor = 10415, .avp_name = "Event" }, RULE_OPTIONAL, -1, 1 },
+				{ { .avp_vendor = 10415, .avp_name = "Expires" }, RULE_OPTIONAL, -1, 1 },
 			};
 			PARSE_loc_rules(rules, rule_avp);
         }
@@ -10568,7 +10608,7 @@ static int dict_dcca_3gpp_entry(char * conffile)
 				{ { .avp_vendor = 10415, .avp_name = "Charging-Rule-Base-Name" }, RULE_OPTIONAL, -1, 1 },
 				{ { .avp_vendor = 10415, .avp_name = "3GPP-User-Location-Info" }, RULE_OPTIONAL, -1, 1 },
 				{ { .avp_vendor = 10415, .avp_name = "User-CSG-Information" }, RULE_OPTIONAL, -1, 1 },
-				{ { .avp_vendor = 5535, .avp_name = "3GPP2-BSID" }, RULE_OPTIONAL, -1, 1 },
+				{ { .avp_vendor = 5535,  .avp_name = "3GPP2-BSID" }, RULE_OPTIONAL, -1, 1 },
 				{ { .avp_vendor = 10415, .avp_name = "3GPP-RAT-Type" }, RULE_OPTIONAL, -1, 1 },
 				{ { .avp_vendor = 10415, .avp_name = "PS-Furnish-Charging-Information" }, RULE_OPTIONAL, -1, 1 },
 				{ { .avp_vendor = 10415, .avp_name = "PDP-Context-Type" }, RULE_OPTIONAL, -1, 1 },
