@@ -1408,6 +1408,9 @@ int fd_tls_verify_credentials_2(gnutls_session_t session)
     				}
 				break;
 
+			default:
+				fd_log_debug("\t - unknown session type (%d)", cred);
+
 		}                           /* switch */
 
 		if (ecdh != 0)
