@@ -91,12 +91,12 @@ static int diameap_ba_policygetnextmethod(struct eap_state_machine * eap_sm,
 	TRACE_ENTRY("%p %p %p",eap_sm,eaptype,vendor);
 	*vendor = 0;
 	*eaptype = TYPE_NONE;
-	eap_sm->selectedMethod = NULL;
-
 	if (eap_sm == NULL)
 	{
 		return EINVAL;
 	}
+
+	eap_sm->selectedMethod = NULL;
 
 	if (eap_sm->user.userid == NULL)
 	{
