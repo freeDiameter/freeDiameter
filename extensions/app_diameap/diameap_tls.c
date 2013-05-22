@@ -395,6 +395,8 @@ void diameap_tls_dump(struct tls_msg tlsmsg)
 	}
 	*/
 	fprintf(stderr, "-------------End Dump EAP-TLS msg-------------\n");
+	
+	free(data);
 }
 
 int diameap_tls_initialize(struct tls_data * data)

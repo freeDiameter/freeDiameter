@@ -1130,16 +1130,16 @@ static void free_avp_attrib(struct avp_attribute * avp_attrib)
 
 static void free_ans_attrib(struct avp_attribute * ans_attrib)
 {
-	if (ans_attrib->tofree == 1)
-	{
-		if(ans_attrib->value.os.data){
-		free(ans_attrib->value.os.data);
-		ans_attrib->value.os.data = NULL;
-		}
-	}
 	if(ans_attrib){
-	free(ans_attrib);
-	ans_attrib = NULL;
+		if (ans_attrib->tofree == 1)
+		{
+			if(ans_attrib->value.os.data){
+			free(ans_attrib->value.os.data);
+			ans_attrib->value.os.data = NULL;
+			}
+		}
+		free(ans_attrib);
+		ans_attrib = NULL;
 	}
 }
 
@@ -1184,64 +1184,64 @@ static int diameap_unlink_attributes_lists(
 static void diameap_free(struct diameap_state_machine * diameap_sm)
 {
 
-	if (diameap_sm->eap_sm.user.userid != NULL)
-	{
-		free(diameap_sm->eap_sm.user.userid);
-		diameap_sm->eap_sm.user.userid = NULL;
-	}
-
-	if (diameap_sm->eap_sm.user.password != NULL)
-	{
-		free(diameap_sm->eap_sm.user.password);
-		diameap_sm->eap_sm.user.password = NULL;
-	}
-
-	diameap_sm->eap_sm.selectedMethod = NULL;
-
-	if (diameap_sm->eap_sm.methodData != NULL)
-	{
-
-		struct plugin * cplugin;
-		if (diameap_plugin_get(diameap_sm->eap_sm.currentVendor,
-				diameap_sm->eap_sm.currentMethod, &cplugin))
-		{
-			TRACE_DEBUG(INFO,"%sUnable to access EAP Method plugin {Type=%d, Vendor=%d}.",DIAMEAP_EXTENSION,diameap_sm->eap_sm.currentMethod,diameap_sm->eap_sm.currentVendor);
-		}
-
-		if (cplugin->eap_method_free)
-		{
-			(*cplugin->eap_method_free)(diameap_sm->eap_sm.methodData);
-			diameap_sm->eap_sm.methodData = NULL;
-		}
-		else
-		{
-			TRACE_DEBUG(INFO,"%s[%s plugin] datafree function not available.",DIAMEAP_EXTENSION,cplugin->methodname);
-			if (diameap_sm->eap_sm.methodData != NULL)
-			{
-				free(diameap_sm->eap_sm.methodData);
-				diameap_sm->eap_sm.methodData = NULL;
-			}
-		}
-		if (diameap_sm->eap_sm.methodData)
-		{
-			TRACE_DEBUG(INFO,"%sSession state was not been freed correctly!!!",DIAMEAP_EXTENSION);
-		}
-	}
-
-	if (diameap_sm->failedavp != NULL)
-	{
-		CHECK_FCT_DO(fd_msg_free(diameap_sm->failedavp), );
-	}
-
-	if (diameap_sm->lastReqEAPavp != NULL)
-	{
-		CHECK_FCT_DO(fd_msg_free(diameap_sm->lastReqEAPavp), );
-	}
-
-	CHECK_FCT_DO(diameap_unlink_attributes_lists(diameap_sm), );
-
 	if (diameap_sm != NULL)
 	{
+		if (diameap_sm->eap_sm.user.userid != NULL)
+		{
+			free(diameap_sm->eap_sm.user.userid);
+			diameap_sm->eap_sm.user.userid = NULL;
+		}
+
+		if (diameap_sm->eap_sm.user.password != NULL)
+		{
+			free(diameap_sm->eap_sm.user.password);
+			diameap_sm->eap_sm.user.password = NULL;
+		}
+
+		diameap_sm->eap_sm.selectedMethod = NULL;
+
+		if (diameap_sm->eap_sm.methodData != NULL)
+		{
+
+			struct plugin * cplugin;
+			if (diameap_plugin_get(diameap_sm->eap_sm.currentVendor,
+					diameap_sm->eap_sm.currentMethod, &cplugin))
+			{
+				TRACE_DEBUG(INFO,"%sUnable to access EAP Method plugin {Type=%d, Vendor=%d}.",DIAMEAP_EXTENSION,diameap_sm->eap_sm.currentMethod,diameap_sm->eap_sm.currentVendor);
+			}
+
+			if (cplugin->eap_method_free)
+			{
+				(*cplugin->eap_method_free)(diameap_sm->eap_sm.methodData);
+				diameap_sm->eap_sm.methodData = NULL;
+			}
+			else
+			{
+				TRACE_DEBUG(INFO,"%s[%s plugin] datafree function not available.",DIAMEAP_EXTENSION,cplugin->methodname);
+				if (diameap_sm->eap_sm.methodData != NULL)
+				{
+					free(diameap_sm->eap_sm.methodData);
+					diameap_sm->eap_sm.methodData = NULL;
+				}
+			}
+			if (diameap_sm->eap_sm.methodData)
+			{
+				TRACE_DEBUG(INFO,"%sSession state was not been freed correctly!!!",DIAMEAP_EXTENSION);
+			}
+		}
+
+		if (diameap_sm->failedavp != NULL)
+		{
+			CHECK_FCT_DO(fd_msg_free(diameap_sm->failedavp), );
+		}
+
+		if (diameap_sm->lastReqEAPavp != NULL)
+		{
+			CHECK_FCT_DO(fd_msg_free(diameap_sm->lastReqEAPavp), );
+		}
+
+		CHECK_FCT_DO(diameap_unlink_attributes_lists(diameap_sm), );
+
 		free(diameap_sm);
 		diameap_sm = NULL;
 	}

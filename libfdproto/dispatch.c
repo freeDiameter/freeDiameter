@@ -122,7 +122,7 @@ int fd_disp_register ( int (*cb)( struct msg **, struct avp *, struct session *,
 {
 	struct fd_list * cb_list = NULL;
 	struct disp_hdl * new;
-	struct dict_object * type_enum, * type_avp;
+	struct dict_object * type_enum = NULL, * type_avp;
 	struct dictionary  * dict = NULL;
 	
 	TRACE_ENTRY("%p %d %p %p", cb, how, when, handle);
@@ -149,7 +149,9 @@ int fd_disp_register ( int (*cb)( struct msg **, struct avp *, struct session *,
 			CHECK_FCT( fd_dict_disp_cb(DICT_AVP, when->avp, &cb_list) );
 			if (dict) {
 				CHECK_FCT( fd_dict_search(dict, DICT_TYPE, TYPE_OF_AVP, when->avp, &type_avp, EINVAL) );
-				CHECK_PARAMS( type_enum == type_avp );
+				if (type_enum) {
+					CHECK_PARAMS( type_enum == type_avp );
+				}
 			}
 			break;
 		
