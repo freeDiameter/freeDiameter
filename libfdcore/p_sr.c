@@ -320,6 +320,9 @@ void fd_p_sr_failover(struct sr_list * srlist)
 			if (hdr)
 				hdr->msg_flags |= CMD_FLAG_RETRANSMIT;
 			
+			/* Restore the original hop-by-hop id of the request */
+			*((uint32_t *)sr->chain.o) = sr->prevhbh;
+			
 			fd_hook_call(HOOK_MESSAGE_FAILOVER, sr->req, (struct fd_peer *)srlist->srs.o, NULL, fd_msg_pmdl_get(sr->req));
 			
 			/* Requeue for sending to another peer */
