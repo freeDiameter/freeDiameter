@@ -587,7 +587,7 @@ static int msg_rt_in(struct msg * msg)
 			is_local_app = (app ? YES : NO);
 		}
 
-		/* Parse the message for Dest-Host and Dest-Realm */
+		/* Parse the message for Dest-Host, Dest-Realm, and Route-Record */
 		CHECK_FCT(  fd_msg_browse(msgptr, MSG_BRW_FIRST_CHILD, &avp, NULL)  );
 		while (avp) {
 			struct avp_hdr * ahdr;
@@ -663,6 +663,32 @@ static int msg_rt_in(struct msg * msg)
 						un = avp;
 						un_val = ahdr->avp_value;
 						break;
+						
+					case AC_ROUTE_RECORD:
+						/* Parse this AVP */
+						CHECK_FCT_DO( ret = fd_msg_parse_dict ( avp, fd_g_config->cnf_dict, &error_info ),
+							{
+								if (error_info.pei_errcode) {
+									fd_hook_call(HOOK_MESSAGE_PARSING_ERROR, msgptr, NULL, error_info.pei_message ?: error_info.pei_errcode, fd_msg_pmdl_get(msgptr));
+									CHECK_FCT( return_error( &msgptr, error_info.pei_errcode, error_info.pei_message, error_info.pei_avp) );
+									return 0;
+								} else {
+									fd_hook_call(HOOK_MESSAGE_PARSING_ERROR, msgptr, NULL, "Unspecified error while parsing Route-Record AVP", fd_msg_pmdl_get(msgptr));
+									return ret;
+								}
+							} );
+						ASSERT( ahdr->avp_value );
+						/* Is this our own name ? */
+						if (!fd_os_almostcasesrch(ahdr->avp_value->os.data, ahdr->avp_value->os.len, fd_g_config->cnf_diamid, fd_g_config->cnf_diamid_len, NULL)) {
+							/* Yes: then we must return DIAMETER_LOOP_DETECTED according to Diameter RFC */
+							char * error = "DIAMETER_LOOP_DETECTED";
+							fd_hook_call(HOOK_MESSAGE_PARSING_ERROR, msgptr, NULL, error, fd_msg_pmdl_get(msgptr));
+							CHECK_FCT( return_error( &msgptr, error, NULL, NULL) );
+							return 0;
+						}
+						break;
+						
+					
 				}
 			}
 
