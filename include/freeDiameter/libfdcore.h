@@ -150,6 +150,8 @@ struct fd_config {
 	} 		 cnf_flags;
 	
 	struct {
+		int				 tls_disabled;
+		
 		/* Credentials parameters (backup) */
 		char *  			 cert_file;
 		char *				 key_file;

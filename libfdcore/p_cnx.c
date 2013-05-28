@@ -128,6 +128,14 @@ static int prepare_connection_list(struct fd_peer * peer)
 		return 0;
 	}
 	
+	/* Check if we are able to communicate with this peer */
+	if (fd_g_config->cnf_sec_data.tls_disabled && ( peer->p_hdr.info.config.pic_flags.sec != PI_SEC_NONE)) {
+		LOG_E("Peer '%s' not configured for No_TLS and TLS is locally disabled; giving up connection attempts", 
+					peer->p_hdr.info.pi_diamid);
+		fd_psm_terminate( peer, NULL );
+		return 0;
+	}
+	
 	/* Cleanup any previous list */
 	empty_connection_list(peer);
 	

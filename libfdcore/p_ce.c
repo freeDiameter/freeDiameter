@@ -595,7 +595,14 @@ static int create_CER(struct fd_peer * peer, struct cnxctx * cnx, struct msg ** 
 	/* Do we need Inband-Security-Id AVPs ? If we're already using TLS, we don't... */
 	if (!fd_cnx_getTLS(cnx)) {
 		isi_none = peer->p_hdr.info.config.pic_flags.sec & PI_SEC_NONE; /* we add it even if the peer does not use the old mechanism, it is impossible to distinguish */
-		isi_tls  = peer->p_hdr.info.config.pic_flags.sec & PI_SEC_TLS_OLD;
+
+		if (peer->p_hdr.info.config.pic_flags.sec & PI_SEC_TLS_OLD) {
+			if (fd_g_config->cnf_sec_data.tls_disabled) {
+				LOG_N("TLS disabled locally, so Inband-Security-Id (TLS) not included for peer %s", peer->p_hdr.info.pi_diamid);
+			} else {
+				isi_tls  = 1;
+			}
+		}
 	}
 	
 	/* Add the information about the local peer */
@@ -770,8 +777,13 @@ int fd_p_ce_msgrcv(struct msg ** msg, int req, struct fd_peer * peer)
 			/* Ok for clear connection */
 			TRACE_DEBUG(INFO, "No TLS protection negotiated with peer '%s'.", peer->p_hdr.info.pi_diamid);
 			CHECK_FCT( fd_cnx_start_clear(peer->p_cnxctx, 1) );
-		} else {
 			
+		} else if (fd_g_config->cnf_sec_data.tls_disabled) {
+			LOG_E("Clear connection with remote peer '%s' is not (explicitly) allowed, and TLS is disabled. Giving up...", peer->p_hdr.info.pi_diamid);
+			fd_hook_call(HOOK_PEER_CONNECT_FAILED, NULL, peer, "TLS is disabled and peer is not configured for IPsec", NULL);
+			goto cleanup;
+			
+		} else {
 			fd_psm_change_state(peer, STATE_OPEN_HANDSHAKE);
 			CHECK_FCT_DO( fd_cnx_handshake(peer->p_cnxctx, GNUTLS_CLIENT, peer->p_hdr.info.config.pic_priority, NULL),
 				{
@@ -899,6 +911,9 @@ int fd_p_ce_process_receiver(struct fd_peer * peer)
 				if ((peer->p_hdr.info.config.pic_flags.sec & PI_SEC_NONE) && (peer->p_hdr.info.runtime.pir_isi & PI_SEC_NONE)) {
 					/* We have allowed IPsec */
 					isi = PI_SEC_NONE;
+				} else if (fd_g_config->cnf_sec_data.tls_disabled) {
+					/* We can agree on TLS */
+					TRACE_DEBUG(INFO, "Remote peer is not allowed for IPsec and TLS is disabled.");;
 				} else if (peer->p_hdr.info.runtime.pir_isi & PI_SEC_TLS_OLD) {
 					/* We can agree on TLS */
 					isi = PI_SEC_TLS_OLD;

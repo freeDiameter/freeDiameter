@@ -251,7 +251,7 @@ int fd_conf_parse()
 	}
 	if (fddin == NULL) {
 		int ret = errno;
-		TRACE_ERROR("Unable to open configuration file for reading; tried the following locations: %s%s%s; Error: %s",
+		LOG_F("Unable to open configuration file for reading; tried the following locations: %s%s%s; Error: %s",
 				  orig ?: "", orig? " and " : "", fd_g_config->cnf_file, strerror(ret));
 		return ret;
 	}
@@ -265,12 +265,18 @@ int fd_conf_parse()
 	
 	/* Check that TLS private key was given */
 	if (! fd_g_config->cnf_sec_data.key_file) {
-		TRACE_ERROR( "Missing private key configuration for TLS. Please provide the TLS_cred configuration directive.");
-		return EINVAL;
+		/* If TLS is not enabled, we allow empty TLS configuration */
+		if ((fd_g_config->cnf_port_tls == 0) && (fd_g_config->cnf_flags.tls_alg == 0)) {
+			LOG_N("TLS is disabled, this is *NOT* a recommended practice! Diameter protocol conveys highly sensitive information on your users.");
+			fd_g_config->cnf_sec_data.tls_disabled = 1;
+		} else {
+			LOG_F( "Missing private key configuration for TLS. Please provide the TLS_cred configuration directive.");
+			return EINVAL;
+		}
 	}
 	
 	/* If the CA is not provided, let's use the same file (assuming self-signed certificate) */
-	if (! fd_g_config->cnf_sec_data.ca_file) {
+	if ((!fd_g_config->cnf_sec_data.tls_disabled) && (!fd_g_config->cnf_sec_data.ca_file)) {
 		CHECK_MALLOC( fd_g_config->cnf_sec_data.ca_file = strdup(fd_g_config->cnf_sec_data.cert_file) );
 		CHECK_GNUTLS_DO( fd_g_config->cnf_sec_data.ca_file_nr += gnutls_certificate_set_x509_trust_file( 
 					fd_g_config->cnf_sec_data.credentials,
@@ -357,7 +363,7 @@ int fd_conf_parse()
 	}
 	
 	/* Configure TLS default parameters */
-	if (! fd_g_config->cnf_sec_data.prio_string) {
+	if ((!fd_g_config->cnf_sec_data.tls_disabled) && (!fd_g_config->cnf_sec_data.prio_string)) {
 		const char * err_pos = NULL;
 		CHECK_GNUTLS_DO( gnutls_priority_init( 
 					&fd_g_config->cnf_sec_data.prio_cache,
@@ -367,7 +373,7 @@ int fd_conf_parse()
 	}
 	
 	/* Verify that our certificate is valid -- otherwise remote peers will reject it */
-	{
+	if (!fd_g_config->cnf_sec_data.tls_disabled) {
 		int ret = 0, i;
 		
 		gnutls_datum_t certfile;
@@ -534,65 +540,68 @@ int fd_conf_parse()
 			GNUTLS_TRACE( gnutls_x509_crt_deinit (certs[i]) );
 		}
 		free(certs);
-	}
 	
+		#ifdef GNUTLS_VERSION_300
+		/* Use certificate verification during the handshake */
+		gnutls_certificate_set_verify_function (fd_g_config->cnf_sec_data.credentials, fd_tls_verify_credentials_2);
+		#endif /* GNUTLS_VERSION_300 */
+
+	}
 	
 	/* gnutls_certificate_set_verify_limits -- so far the default values are fine... */
 	
-	#ifdef GNUTLS_VERSION_300
-	/* Use certificate verification during the handshake */
-	gnutls_certificate_set_verify_function (fd_g_config->cnf_sec_data.credentials, fd_tls_verify_credentials_2);
-	#endif /* GNUTLS_VERSION_300 */
-	
 	/* DH */
-	if (fd_g_config->cnf_sec_data.dh_file) {
-		gnutls_datum_t dhparams = { NULL, 0 };
-		size_t alloc = 0;
-		FILE *stream = fopen (fd_g_config->cnf_sec_data.dh_file, "rb");
-		if (!stream) {
-			int err = errno;
-			TRACE_DEBUG(INFO, "An error occurred while opening '%s': %s", fd_g_config->cnf_sec_data.dh_file, strerror(err));
-			return err; 
-		}
-		do {
-			uint8_t * realloced = NULL;
-			size_t read = 0;
-			
-			if (alloc < dhparams.size + BUFSIZ + 1) {
-				alloc += alloc / 2 + BUFSIZ + 1;
-				CHECK_MALLOC_DO( realloced = realloc(dhparams.data, alloc),
-					{
-						free(dhparams.data);
-						return ENOMEM;
-					} )
-				dhparams.data = realloced;
-			}
-			
-			read = fread( dhparams.data + dhparams.size, 1, alloc - dhparams.size - 1, stream );
-			dhparams.size += read;
-			
-			if (ferror(stream)) {
+	if (!fd_g_config->cnf_sec_data.tls_disabled) {
+		if (fd_g_config->cnf_sec_data.dh_file) {
+			gnutls_datum_t dhparams = { NULL, 0 };
+			size_t alloc = 0;
+			FILE *stream = fopen (fd_g_config->cnf_sec_data.dh_file, "rb");
+			if (!stream) {
 				int err = errno;
-				TRACE_DEBUG(INFO, "An error occurred while reading '%s': %s", fd_g_config->cnf_sec_data.dh_file, strerror(err));
+				TRACE_DEBUG(INFO, "An error occurred while opening '%s': %s", fd_g_config->cnf_sec_data.dh_file, strerror(err));
 				return err; 
 			}
-		} while (!feof(stream));
-		dhparams.data[dhparams.size] = '\0';
-		fclose(stream);
-		CHECK_GNUTLS_DO( gnutls_dh_params_import_pkcs3( 
-					fd_g_config->cnf_sec_data.dh_cache,
-					&dhparams,
-					GNUTLS_X509_FMT_PEM),
-					 { TRACE_ERROR("Error in DH bits value : %d", fd_g_config->cnf_sec_data.dh_bits ?: GNUTLS_DEFAULT_DHBITS); return EINVAL; } );
-		free(dhparams.data);
-		
-	} else {
-		LOG_D( "Generating fresh Diffie-Hellman parameters of size %d (this takes some time)... ", fd_g_config->cnf_sec_data.dh_bits ?: GNUTLS_DEFAULT_DHBITS);
-		CHECK_GNUTLS_DO( gnutls_dh_params_generate2( 
-					fd_g_config->cnf_sec_data.dh_cache,
-					fd_g_config->cnf_sec_data.dh_bits ?: GNUTLS_DEFAULT_DHBITS),
-					 { TRACE_ERROR("Error in DH bits value : %d", fd_g_config->cnf_sec_data.dh_bits ?: GNUTLS_DEFAULT_DHBITS); return EINVAL; } );
-	}			
+			do {
+				uint8_t * realloced = NULL;
+				size_t read = 0;
+
+				if (alloc < dhparams.size + BUFSIZ + 1) {
+					alloc += alloc / 2 + BUFSIZ + 1;
+					CHECK_MALLOC_DO( realloced = realloc(dhparams.data, alloc),
+						{
+							free(dhparams.data);
+							return ENOMEM;
+						} )
+					dhparams.data = realloced;
+				}
+
+				read = fread( dhparams.data + dhparams.size, 1, alloc - dhparams.size - 1, stream );
+				dhparams.size += read;
+
+				if (ferror(stream)) {
+					int err = errno;
+					TRACE_DEBUG(INFO, "An error occurred while reading '%s': %s", fd_g_config->cnf_sec_data.dh_file, strerror(err));
+					return err; 
+				}
+			} while (!feof(stream));
+			dhparams.data[dhparams.size] = '\0';
+			fclose(stream);
+			CHECK_GNUTLS_DO( gnutls_dh_params_import_pkcs3( 
+						fd_g_config->cnf_sec_data.dh_cache,
+						&dhparams,
+						GNUTLS_X509_FMT_PEM),
+						 { TRACE_ERROR("Error in DH bits value : %d", fd_g_config->cnf_sec_data.dh_bits ?: GNUTLS_DEFAULT_DHBITS); return EINVAL; } );
+			free(dhparams.data);
+
+		} else {
+			LOG_D( "Generating fresh Diffie-Hellman parameters of size %d (this takes some time)... ", fd_g_config->cnf_sec_data.dh_bits ?: GNUTLS_DEFAULT_DHBITS);
+			CHECK_GNUTLS_DO( gnutls_dh_params_generate2( 
+						fd_g_config->cnf_sec_data.dh_cache,
+						fd_g_config->cnf_sec_data.dh_bits ?: GNUTLS_DEFAULT_DHBITS),
+						 { TRACE_ERROR("Error in DH bits value : %d", fd_g_config->cnf_sec_data.dh_bits ?: GNUTLS_DEFAULT_DHBITS); return EINVAL; } );
+		}			
+	
+	}
 	
 	return 0;
 }
