@@ -23,8 +23,10 @@ freediameter (1.2.0) UNRELEASED; urgency=low
   * New test testmesg_stress to measure message parser performance
   * Fix termination of the framework to avoid failures.
   * Fix invalid timespec value in peer PSM appearing randomly (leading to crash).
+  * Return DIAMETER_LOOP_DETECTED if local peer in the Route-Record list of a message.
+  * Allow running without TLS configuration.
 
- -- Sebastien Decugis <sdecugis@freediameter.net>  Wed, 15 May 2013 11:50:09 +0800
+ -- Sebastien Decugis <sdecugis@freediameter.net>  Thu, 30 May 2013 15:47:32 +0800
 
 freediameter (1.1.6) UNRELEASED; urgency=low
 
