@@ -127,7 +127,7 @@ struct fd_config {
 	unsigned int 	 cnf_timer_tw;	/* The value in seconds of the default Tw timer */
 	
 	uint16_t	 cnf_port;	/* the local port for legacy Diameter (default: 3868) in host byte order */
-	uint16_t	 cnf_port_tls;	/* the local port for Diameter/TLS (default: 3869) in host byte order */
+	uint16_t	 cnf_port_tls;	/* the local port for Diameter/TLS (default: 5658) in host byte order */
 	uint16_t	 cnf_sctp_str;	/* default max number of streams for SCTP associations (def: 30) */
 	struct fd_list	 cnf_endpoints;	/* the local endpoints to bind the server to. list of struct fd_endpoint. default is empty (bind all). After servers are started, this is the actual list of endpoints including port information. */
 	struct fd_list	 cnf_apps;	/* Applications locally supported (except relay, see flags). Use fd_disp_app_support to add one. list of struct fd_app. */
