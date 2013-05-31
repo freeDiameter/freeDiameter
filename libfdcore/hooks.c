@@ -358,7 +358,8 @@ void   fd_hook_call(enum fd_hook_type type, struct msg * msg, struct fd_peer * p
 					
 					CHECK_MALLOC_DO(fd_msg_dump_treeview(&buf, &len, NULL, msg, NULL, 0, 1), break);
 					
-					LOG_E("Parsing error: '%s' for the following message received from '%s':\n%s", (char *)other, (char *)id, buf);
+					LOG_E("Parsing error: '%s' for the following message received from '%s':", (char *)other, (char *)id);
+					LOG_E("%s", buf);
 				} else {
 					struct fd_cnx_rcvdata *rcv_data = other;
 					CHECK_MALLOC_DO(fd_dump_extend_hexdump(&buf, &len, NULL, rcv_data->buffer, rcv_data->length, 0, 0), break);
@@ -377,7 +378,8 @@ void   fd_hook_call(enum fd_hook_type type, struct msg * msg, struct fd_peer * p
 
 				CHECK_MALLOC_DO(fd_msg_dump_treeview(&buf, &len, NULL, msg, NULL, 0, 1), break);
 
-				LOG_E("Routing error: '%s' for the following message:\n%s", (char *)other, buf);
+				LOG_E("Routing error: '%s' for the following message:", (char *)other);
+				LOG_E("%s", buf);
 				break;
 			}
 			
@@ -395,7 +397,8 @@ void   fd_hook_call(enum fd_hook_type type, struct msg * msg, struct fd_peer * p
 			
 			case HOOK_MESSAGE_DROPPED: {
 				CHECK_MALLOC_DO(fd_msg_dump_treeview(&buf, &len, NULL, msg, NULL, 0, 1), break);
-				LOG_E("Message discarded ('%s'):\n%s", (char *)other, buf);
+				LOG_E("Message discarded ('%s'):", (char *)other);
+				LOG_E("%s", buf);
 				break;
 			}
 			
