@@ -109,7 +109,7 @@ extern "C" {
 /*============================================================*/
 
 #define DIAMETER_PORT		3868
-#define DIAMETER_SECURE_PORT	3869
+#define DIAMETER_SECURE_PORT	5658
 
 
 /*============================================================*/

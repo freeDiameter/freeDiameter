@@ -1,9 +1,12 @@
 # This is a sample configuration file for freeDiameter daemon.
 
-# Only the "TLS_Cred" directive is really mandatory in this file.
+# Most of the options can be omitted, as they default to reasonable values.
+# Only TLS-related options must be configured properly in usual setups.
 
 # It is possible to use "include" keyword to import additional files
 # e.g.: include "/etc/freeDiameter.d/*.conf"
+# This is exactly equivalent as copy & paste the content of the included file(s) 
+# where the "include" keyword is found.
 
 
 ##############################################################
@@ -22,42 +25,43 @@
 ##  Transport protocol configuration
 
 # The port this peer is listening on for incoming connections (TCP and SCTP).
-# Default: 3868
+# Default: 3868. Use 0 to disable.
 #Port = 3868;
 
-# The port this peer is listening on for incoming TLS connections (TCP and SCTP).
-# See TLS_old_method for more information.
-# Default: 3869
-#SecPort = 3869;
+# The port this peer is listening on for incoming TLS-protected connections (TCP and SCTP).
+# See TLS_old_method for more information about TLS flavours.
+# Default: 5658. Use 0 to disable.
+#SecPort = 5658;
 
-# Use RFC3588 method for TLS protection, where TLS is negociated after CER/CEA
-# on the same port. This only affects outgoing connections. It can be overwritten
-# on per peer basis.
-# Default: use RFC3588bis method with separate port for TLS.
+# Use RFC3588 method for TLS protection, where TLS is negociated after CER/CEA exchange is completed 
+# on the unsecure connection. The alternative is RFC6733 mechanism, where TLS protects also the 
+# CER/CEA exchange on a dedicated secure port.
+# This parameter only affects outgoing connections. 
+# The setting can be also defined per-peer (see Peers configuration section).
+# Default: use RFC6733 method with separate port for TLS.
 #TLS_old_method;
 
-# Disable use of TCP protocol (only listen and connect in SCTP)
+# Disable use of TCP protocol (only listen and connect over SCTP)
 # Default : TCP enabled
 #No_TCP;
 
-# Disable use of SCTP protocol (only listen and connect in TCP)
+# Disable use of SCTP protocol (only listen and connect over TCP)
 # Default : SCTP enabled
 #No_SCTP;
-# This option has no effect if freeDiameter is compiled with DISABLE_SCTP option,
-# in which case the value is forced to "SCTP disabled".
+# This option is ignored if freeDiameter is compiled with DISABLE_SCTP option.
 
-# Prefer TCP over SCTP for establishing new connections.
-# It may be overwritten per peer in peer configuration blocs.
-# Default : SCTP is prefered.
+# Prefer TCP instead of SCTP for establishing new connections.
+# This setting may be overwritten per peer in peer configuration blocs.
+# Default : SCTP is attempted first.
 #Prefer_TCP;
 
 # Default number of streams per SCTP associations.
-# It can be overwritten per peer basis.
+# This setting may be overwritten per peer basis.
 # Default : 30 streams
 #SCTP_streams = 30;
 
 ##############################################################
-##  Endpoints configuration
+##  Endpoint configuration
 
 # Disable use of IP addresses (only IPv6)
 # Default : IP enabled
@@ -67,14 +71,11 @@
 # Default : IPv6 enabled
 #No_IPv6;
 
-# Specify local addresses where the server must listen
+# Specify local addresses the server must bind to
 # Default : listen on all addresses available.
 #ListenOn = "202.249.37.5";
 #ListenOn = "2001:200:903:2::202:1";
 #ListenOn = "fe80::21c:5ff:fe98:7d62%eth0";
-
-# Note: although by default freeDiameter listens also on the loopback interface, it
-# will not be able to connect to the loopback address.
 
 ##############################################################
 ##  TLS Configuration
@@ -103,7 +104,7 @@ TLS_Cred = "/etc/ssl/certs/freeDiameter.pem", "/etc/ssl/private/freeDiameter.key
 # The information about revoked certificates.
 # The file contains a list of trusted CRLs in PEM format. They should have been verified before. 
 # (This parameter is passed to gnutls_certificate_set_x509_crl_file function)
-# Note: currently, openssl CRL seems not supported...
+# Note: openssl CRL format might have interoperability issue with GNUTLS format.
 # Default : GNUTLS default behavior
 #TLS_CRL = "<file.PEM>";
 
@@ -111,7 +112,7 @@ TLS_Cred = "/etc/ssl/certs/freeDiameter.pem", "/etc/ssl/private/freeDiameter.key
 # This string allows to configure the behavior of GNUTLS key exchanges 
 # algorithms. See gnutls_priority_init function documentation for information.
 # You should also refer to the Diameter required TLS support here:
-#   http://tools.ietf.org/html/draft-ietf-dime-rfc3588bis-18#section-13.1
+#   http://tools.ietf.org/html/rfc6733#section-13.1
 # Default : "NORMAL"
 # Example: TLS_Prio = "NONE:+VERS-TLS1.1:+AES-128-CBC:+RSA:+SHA1:+COMP-NULL";
 #TLS_Prio = "NORMAL";
@@ -160,18 +161,17 @@ TLS_Cred = "/etc/ssl/certs/freeDiameter.pem", "/etc/ssl/private/freeDiameter.key
 #NoRelay;
 
 # Number of server threads that can handle incoming messages at the same time.
-#  TODO: implement dynamic # of threads depending on the length of the queue.
 # Default: 4
 #AppServThreads = 4;
 
-# Other applications are configured by loading appropriate extensions.
+# Other applications are configured by loaded extensions.
 
 ##############################################################
 ##  Extensions configuration
 
-#  The freeDiameter daemon merely provides support for
+#  The freeDiameter framework merely provides support for
 # Diameter Base Protocol. The specific application behaviors,
-# as well as advanced functions of the daemon, are provided
+# as well as advanced functions, are provided
 # by loadable extensions (plug-ins).
 #  These extensions may in addition receive the name of a 
 # configuration file, the format of which is extension-specific.
@@ -183,32 +183,35 @@ TLS_Cred = "/etc/ssl/certs/freeDiameter.pem", "/etc/ssl/private/freeDiameter.key
 #LoadExtension = "extensions/sample.fdx";
 #LoadExtension = "extensions/sample.fdx":"conf/sample.conf";
 
+# Extensions are named as follow:
+# dict_* for extensions that add content to the dictionary definitions.
+# dbg_*  for extensions useful only to retrieve more information on the framework execution.
+# acl_*  : Access control list, to control which peers are allowed to connect.
+# rt_*   : routing extensions that impact how messages are forwarded to other peers.
+# app_*  : applications, these extensions usually register callbacks to handle specific messages.
+# test_* : dummy extensions that are useful only in testing environments.
+
 
 ##############################################################
 ##  Peers configuration
 
 #  The local server listens for incoming connections. By default,
-# all unknown connecting peers are rejected. Extensions can override this behavior.
+# all unknown connecting peers are rejected. Extensions can override this behavior (e.g., acl_wl).
 # 
 #  In addition to incoming connections, the local peer can
 # be configured to establish and maintain connections to some 
 # Diameter nodes and allow connections from these nodes.
 #  This is achieved with the ConnectPeer directive described below.
 #
-# Note that the configured Diameter Id MUST match
+# Note that the configured Diameter Identity MUST match
 # the information received inside CEA, or the connection will be aborted.
-#
-# Note also, loopback addresses are not allowed currently in freeDiameter 
-# (because of a bad behavior if they are allowed).
-# As a workaround, one might provide a public address of the local machine to
-# test locally.
 #
 # Format:
 #ConnectPeer = "diameterid" [ { parameter1; parameter2; ...} ] ;
 # Parameters that can be specified in the peer's parameter list:
 #  No_TCP; No_SCTP; No_IP; No_IPv6; Prefer_TCP; TLS_old_method;
 #  No_TLS;       # assume transparent security instead of TLS
-#  Port = 3868;  # The port to connect to
+#  Port = 5658;  # The port to connect to
 #  TcTimer = 30;
 #  TwTimer = 30;
 #  ConnectTo = "202.249.37.5";
@@ -217,7 +220,7 @@ TLS_Cred = "/etc/ssl/certs/freeDiameter.pem", "/etc/ssl/private/freeDiameter.key
 #  Realm = "realm.net"; # Reject the peer if it does not advertise this realm.
 # Examples:
 #ConnectPeer = "aaa.wide.ad.jp";
-#ConnectPeer = "old.diameter.serv" { TcTimer = 60; TLS_old_method; No_SCTP; } ;
+#ConnectPeer = "old.diameter.serv" { TcTimer = 60; TLS_old_method; No_SCTP; Port=3868; } ;
 
 
 ##############################################################
