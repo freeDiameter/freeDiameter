@@ -110,23 +110,7 @@ int main(int argc, char * argv[])
 /* Display package version */
 static void main_version_core(void)
 {
-	printf("%s, version %d.%d.%d"
-#ifdef HG_VERSION
-		" (r%s"
-# ifdef PACKAGE_HG_REVISION
-		"/%s"
-# endif /* PACKAGE_HG_VERSION */
-		")"
-#endif /* HG_VERSION */
-		" (libfdcore: %s)\n", 
-		FD_PROJECT_NAME, FD_PROJECT_VERSION_MAJOR, FD_PROJECT_VERSION_MINOR, FD_PROJECT_VERSION_REV
-#ifdef HG_VERSION
-		, HG_VERSION
-# ifdef PACKAGE_HG_REVISION
-		, PACKAGE_HG_REVISION
-# endif /* PACKAGE_HG_VERSION */
-#endif /* HG_VERSION */
-		, fd_core_version());
+	printf("%s, version %s\n", FD_PROJECT_NAME, fd_core_version);
 }
 
 /* Display package version and general info */

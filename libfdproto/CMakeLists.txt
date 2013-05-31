@@ -1,6 +1,7 @@
 # Name of the subproject
 Project("libfdproto" C)
 
+
 # List of source files for the library
 SET(LFDPROTO_SRC
 	fdproto-internal.h
@@ -17,7 +18,9 @@ SET(LFDPROTO_SRC
 	rt_data.c
 	sessions.c
 	utils.c
+	version.c
 	)
+
 
 # Save the list of files for testcases in the core's directory
 SET(LFDPROTO_SRC ${LFDPROTO_SRC} PARENT_SCOPE)
@@ -27,6 +30,8 @@ INCLUDE_DIRECTORIES(${LFDPROTO_INCLUDES})
 
 # Build as a shared library
 ADD_LIBRARY(libfdproto SHARED ${LFDPROTO_SRC})
+
+ADD_DEPENDENCIES(libfdproto version_information)
 
 # Avoid the liblib name, and set the version
 SET_TARGET_PROPERTIES(libfdproto PROPERTIES 

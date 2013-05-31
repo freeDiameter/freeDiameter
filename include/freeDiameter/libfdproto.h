@@ -122,6 +122,8 @@ int fd_libproto_init(void); /* note if you are using libfdcore, it handles this 
 /* Call this one when the application terminates, to destroy internal threads */
 void fd_libproto_fini(void);
 
+/* Retrieve the version of the binary */
+extern const char fd_libproto_version[];
 
 /*============================================================*/
 /*                          DEBUG                             */

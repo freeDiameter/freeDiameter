@@ -34,6 +34,7 @@ SET(FDCORE_SRC
 	routing_dispatch.c
 	server.c
 	tcp.c
+	version.c
 	)
 
 IF(NOT DISABLE_SCTP)
@@ -52,9 +53,11 @@ SET(FDCORE_GEN_SRC ${FDCORE_GEN_SRC} PARENT_SCOPE)
 
 # Include path
 INCLUDE_DIRECTORIES(${LFDCORE_INCLUDES})
+INCLUDE_DIRECTORIES(${CMAKE_CURRENT_SOURCE_DIR})
 
 # Build the executable
 ADD_LIBRARY(libfdcore SHARED ${FDCORE_SRC} ${FDCORE_GEN_SRC})
+ADD_DEPENDENCIES(libfdcore version_information)
 
 # Avoid the liblib name, and set the version
 SET_TARGET_PROPERTIES(libfdcore PROPERTIES 

@@ -186,6 +186,33 @@ SET(HAVE_PTHREAD_BAR ${HAVE_PTHREAD_BAR} PARENT_SCOPE)
 
 ##########################
 
+# Additional hg version when relevant, stored in version.h
+if (EXISTS "${CMAKE_SOURCE_DIR}/.hg")
+	# Search for hg binary to use
+	FIND_PROGRAM(HGCOMMAND hg)
+	if (HGCOMMAND)
+		# Ok, add the custom target so that hg is executed at every build
+		ADD_CUSTOM_TARGET(version_information
+				   COMMAND ${CMAKE_COMMAND} -D HGCOMMAND="${HGCOMMAND}" -D SRC="${CMAKE_CURRENT_SOURCE_DIR}/version.h.in" -D DST="${CMAKE_CURRENT_BINARY_DIR}/version.h" -P "${CMAKE_SOURCE_DIR}/cmake/Modules/GetVersionWithHg.cmake"
+				   DEPENDS "${CMAKE_SOURCE_DIR}/.hg/dirstate"
+				   WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+				   COMMENT "Retrieving version of the hg repository"
+				   )
+	else (HGCOMMAND)
+		# Display at least "unknown" rev in this case
+		SET(FD_PROJECT_VERSION_HG "unknown")
+		CONFIGURE_FILE(${CMAKE_CURRENT_SOURCE_DIR}/version.h.in ${CMAKE_CURRENT_BINARY_DIR}/version.h)
+		ADD_CUSTOM_TARGET(version_information DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/version.h)
+	endif(HGCOMMAND)
+else (EXISTS "${CMAKE_SOURCE_DIR}/.hg")
+	# We use the pure version number without extension
+	CONFIGURE_FILE(${CMAKE_CURRENT_SOURCE_DIR}/version.h.in ${CMAKE_CURRENT_BINARY_DIR}/version.h)
+	ADD_CUSTOM_TARGET(version_information DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/version.h)
+endif (EXISTS "${CMAKE_SOURCE_DIR}/.hg")
+
+
+##########################
+
 # LFDPROTO_LIBS = libraries required by the libfdproto.
 SET(LFDPROTO_LIBS ${CLOCK_GETTIME_LIBS} ${CMAKE_THREAD_LIBS_INIT} ${IDNA_LIBRARIES} PARENT_SCOPE)
 # And includes paths

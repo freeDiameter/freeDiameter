@@ -165,12 +165,6 @@ end:
 /*********************************/
 /* Public interfaces */
 
-/* Return a string describing the version of the library */
-const char *fd_core_version(void)
-{
-	return _stringize(FD_PROJECT_VERSION_MAJOR) "." _stringize(FD_PROJECT_VERSION_MINOR) "." _stringize(FD_PROJECT_VERSION_REV);
-}
-
 /* Initialize the libfdcore internals. This also initializes libfdproto */
 int fd_core_initialize(void)
 {
@@ -188,10 +182,10 @@ int fd_core_initialize(void)
 		return ret;
 	}
 	
-	LOG_N("libfdproto initialized.");
-	
 	/* Name this thread */
 	fd_log_threadname("Main");
+	
+	LOG_N("libfdproto '%s' initialized.", fd_libproto_version);
 	
 	/* Initialize gcrypt and gnutls */
 	#ifndef GNUTLS_VERSION_210
@@ -225,6 +219,9 @@ int fd_core_initialize(void)
 	CHECK_FCT( fd_p_expi_init() );
 	
 	core_state_set(CORE_LIBS_INIT);
+	
+	LOG_N("libfdcore '%s' initialized.", fd_core_version);
+	
 	
 	/* Next thing is to parse the config, leave this for a different function */
 	return 0;

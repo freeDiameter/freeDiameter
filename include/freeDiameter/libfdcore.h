@@ -60,8 +60,7 @@ extern "C" {
 #define CHECK_GNUTLS_GEN( faillevel, __call__, __fallback__  ) { 					\
 		CHECK_PRELUDE(__call__);								\
 		if (__ret__ < 0) {									\
-			__ret__ = errno;								\
-			LOG(faillevel, "ERROR: in '%s' :\t%s",  #__call__ ,  gnutls_strerror(__ret__)); \
+			LOG(faillevel, "TLS ERROR: in '%s' :\t%s",  #__call__ ,  gnutls_strerror(__ret__)); \
 			__fallback__;									\
 		}											\
 }
@@ -75,14 +74,8 @@ extern "C" {
 
 #ifndef EXCLUDE_DEPRECATED
 /* Macro for transition, replace with CHECK_GNUTLS_GEN */
-#define CHECK_GNUTLS_DO( __call__, __fallback__ ) {						        \
-		CHECK_PRELUDE(__call__);								\
-		if (__ret__ < 0) {									\
-			__ret__ = errno;								\
-			TRACE_ERROR("ERROR: in '%s' :\t%s",  #__call__ ,  gnutls_strerror(__ret__));    \
-			__fallback__;									\
-		}											\
-}
+#define CHECK_GNUTLS_DO( __call__, __fallback__ )	\
+	CHECK_GNUTLS_GEN( FD_LOG_ERROR, __call__, __fallback__  )
 
 #endif /* EXCLUDE_DEPRECATED */
 
@@ -95,8 +88,8 @@ extern "C" {
 /* Initialize the libfdcore internals. This also initializes libfdproto */
 int fd_core_initialize(void);
 
-/* Return a string describing the version of the library */
-const char *fd_core_version(void);
+/* A string describing the version of the library */
+extern const char fd_core_version[];
 
 /* Parse the freeDiameter.conf configuration file, load the extensions */
 int fd_core_parseconf(const char * conffile);
