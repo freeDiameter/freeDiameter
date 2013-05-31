@@ -111,8 +111,8 @@ int main(int argc, char *argv[])
 		CHECK( 1, testptr == NULL ? 1 : 0 );
 		CHECK( 0, fd_sess_handler_create ( &hdl2, mycleanup, NULL, g_opaque ) );
 		#if 0
-		fd_log_debug("%s\n", fd_sess_dump_hdl(FD_DUMP_TEST_PARAMS, hdl1));
-		fd_log_debug("%s\n", fd_sess_dump_hdl(FD_DUMP_TEST_PARAMS, hdl2));
+		fd_log_debug("%s", fd_sess_dump_hdl(FD_DUMP_TEST_PARAMS, hdl1));
+		fd_log_debug("%s", fd_sess_dump_hdl(FD_DUMP_TEST_PARAMS, hdl2));
 		#endif
 	}
 	
@@ -122,8 +122,8 @@ int main(int argc, char *argv[])
 		CHECK( 0, fd_sess_new( &sess1, TEST_DIAM_ID, CONSTSTRLEN(TEST_DIAM_ID), NULL, 0 ) );
 		CHECK( 0, fd_sess_new( &sess2, TEST_DIAM_ID, CONSTSTRLEN(TEST_DIAM_ID), NULL, 0 ) );
 		#if 0
-		fd_log_debug("%s\n", fd_sess_dump(FD_DUMP_TEST_PARAMS, sess1, 1));
-		fd_log_debug("%s\n", fd_sess_dump(FD_DUMP_TEST_PARAMS, sess2, 1));
+		fd_log_debug("%s", fd_sess_dump(FD_DUMP_TEST_PARAMS, sess1, 1));
+		fd_log_debug("%s", fd_sess_dump(FD_DUMP_TEST_PARAMS, sess2, 1));
 		#endif
 		
 		/* Check both string start with the diameter Id, but are different */
@@ -140,8 +140,8 @@ int main(int argc, char *argv[])
 		CHECK( 0, fd_sess_new( &sess1, TEST_DIAM_ID, 0, TEST_OPT, 0 ) );
 		CHECK( 0, fd_sess_new( &sess2, TEST_DIAM_ID, CONSTSTRLEN(TEST_DIAM_ID), TEST_OPT, CONSTSTRLEN(TEST_OPT_IN) - 1 ) );
 		#if 0
-		fd_log_debug("%s\n", fd_sess_dump(FD_DUMP_TEST_PARAMS, sess1, 1));
-		fd_log_debug("%s\n", fd_sess_dump(FD_DUMP_TEST_PARAMS, sess2, 1));
+		fd_log_debug("%s", fd_sess_dump(FD_DUMP_TEST_PARAMS, sess1, 1));
+		fd_log_debug("%s", fd_sess_dump(FD_DUMP_TEST_PARAMS, sess2, 1));
 		#endif
 		
 		CHECK( 0, fd_sess_getsid(sess1, &str1, &str1len) );
@@ -164,8 +164,8 @@ int main(int argc, char *argv[])
 		CHECK( sess3, sess1 );
 		CHECK( 0, fd_sess_new( &sess2, NULL, 0, TEST_SID, CONSTSTRLEN(TEST_SID_IN) - 1 ) );
 		#if 0
-		fd_log_debug("%s\n", fd_sess_dump(FD_DUMP_TEST_PARAMS, sess1, 1));
-		fd_log_debug("%s\n", fd_sess_dump(FD_DUMP_TEST_PARAMS, sess2, 1));
+		fd_log_debug("%s", fd_sess_dump(FD_DUMP_TEST_PARAMS, sess1, 1));
+		fd_log_debug("%s", fd_sess_dump(FD_DUMP_TEST_PARAMS, sess2, 1));
 		#endif
 		CHECK( 0, fd_sess_getsid(sess1, &str1, &str1len) );
 		CHECK( 0, fd_sess_getsid(sess2, &str2, &str2len) );
@@ -294,7 +294,7 @@ int main(int argc, char *argv[])
 		CHECK( 1, ms[1] ? 1 : 0 );
 		
 		#if 0
-		fd_log_debug("%s\n", fd_sess_dump(FD_DUMP_TEST_PARAMS, sess1, 1));
+		fd_log_debug("%s", fd_sess_dump(FD_DUMP_TEST_PARAMS, sess1, 1));
 		#endif
 		
 		CHECK( 0, fd_sess_state_retrieve( hdl1, sess1, &ms[0] ) );
@@ -331,9 +331,9 @@ int main(int argc, char *argv[])
 		CHECK( 0, fd_sess_state_store ( hdl2, sess3, &ms[5] ) );
 		
 		#if 0
-		fd_log_debug("%s\n", fd_sess_dump(FD_DUMP_TEST_PARAMS, sess1, 1));
-		fd_log_debug("%s\n", fd_sess_dump(FD_DUMP_TEST_PARAMS, sess2, 1));
-		fd_log_debug("%s\n", fd_sess_dump(FD_DUMP_TEST_PARAMS, sess3, 1));
+		fd_log_debug("%s", fd_sess_dump(FD_DUMP_TEST_PARAMS, sess1, 1));
+		fd_log_debug("%s", fd_sess_dump(FD_DUMP_TEST_PARAMS, sess2, 1));
+		fd_log_debug("%s", fd_sess_dump(FD_DUMP_TEST_PARAMS, sess3, 1));
 		#endif
 		
 		/* Destroy session 3 */
@@ -356,8 +356,8 @@ int main(int argc, char *argv[])
 		CHECK( 1, testptr == g_opaque ? 1 : 0 );
 		
 		#if 1
-		fd_log_debug("%s\n", fd_sess_dump(FD_DUMP_TEST_PARAMS, sess1, 1));
-		fd_log_debug("%s\n", fd_sess_dump(FD_DUMP_TEST_PARAMS, sess2, 1));
+		fd_log_debug("%s", fd_sess_dump(FD_DUMP_TEST_PARAMS, sess1, 1));
+		fd_log_debug("%s", fd_sess_dump(FD_DUMP_TEST_PARAMS, sess2, 1));
 		#endif
 		
 		/* Create again session 3, check that no data is associated to it */
@@ -372,8 +372,8 @@ int main(int argc, char *argv[])
 		CHECK( 0, clock_gettime(CLOCK_REALTIME, &timeout) );
 		CHECK( 0, fd_sess_settimeout( sess2, &timeout) );
 		#if 1
-		fd_log_debug("%s\n", fd_sess_dump(FD_DUMP_TEST_PARAMS, sess1, 1));
-		fd_log_debug("%s\n", fd_sess_dump(FD_DUMP_TEST_PARAMS, sess2, 1));
+		fd_log_debug("%s", fd_sess_dump(FD_DUMP_TEST_PARAMS, sess1, 1));
+		fd_log_debug("%s", fd_sess_dump(FD_DUMP_TEST_PARAMS, sess2, 1));
 		#endif
 		timeout.tv_sec = 0;
 		timeout.tv_nsec= 50000000; /* 50 ms */
