@@ -37,11 +37,11 @@
 #include <freeDiameter/version.h>
 
 #ifdef FD_PROJECT_VERSION_HG
-# define VERSION \
+# define FD_LIBFDPROTO_VERSION \
 	_stringize(FD_PROJECT_VERSION_MAJOR) "." _stringize(FD_PROJECT_VERSION_MINOR) "." _stringize(FD_PROJECT_VERSION_REV) "-" FD_PROJECT_VERSION_HG_VAL
 #else
-# define VERSION \
+# define FD_LIBFDPROTO_VERSION \
 	_stringize(FD_PROJECT_VERSION_MAJOR) "." _stringize(FD_PROJECT_VERSION_MINOR) "." _stringize(FD_PROJECT_VERSION_REV)
 #endif
 
-const char fd_libproto_version[] = VERSION;
+const char fd_libproto_version[] = FD_LIBFDPROTO_VERSION;
