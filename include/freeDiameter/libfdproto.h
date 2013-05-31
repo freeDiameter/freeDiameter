@@ -347,6 +347,17 @@ static char * file_bname_init(char * full) { file_bname = basename(full); return
                (prefix), __strbuf, (suffix));										\
 }
 
+/* Split a multi-line buffer into separate calls to the LOG function. */
+#define LOG_SPLIT(printlevel, per_line_prefix, mlbuf, per_line_suffix ) {						\
+	char * __line = (mlbuf), *__next;										\
+	char * __p = (per_line_prefix), *__s = (per_line_suffix);							\
+	while ((__next = strchr(__line, '\n')) != NULL) {								\
+		LOG(printlevel, "%s%.*s%s", __p ?:"", __next - __line, __line, __s ?:"");				\
+		__line = __next + 1;											\
+	}														\
+	LOG(printlevel, "%s%s%s", __p ?:"", __line, __s ?:"");								\
+}
+
 /* Helper for function entry -- for very detailed trace of the execution */
 #define TRACE_ENTRY(_format,_args... ) \
 		LOG_A("[enter] %s(" _format ") {" #_args "}", __PRETTY_FUNCTION__, ##_args );
