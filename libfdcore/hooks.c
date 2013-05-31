@@ -359,7 +359,7 @@ void   fd_hook_call(enum fd_hook_type type, struct msg * msg, struct fd_peer * p
 					CHECK_MALLOC_DO(fd_msg_dump_treeview(&buf, &len, NULL, msg, NULL, 0, 1), break);
 					
 					LOG_E("Parsing error: '%s' for the following message received from '%s':", (char *)other, (char *)id);
-					LOG_E("%s", buf);
+					LOG_SPLIT(FD_LOG_ERROR, "   ", buf?:"<error dumping message>", NULL);
 				} else {
 					struct fd_cnx_rcvdata *rcv_data = other;
 					CHECK_MALLOC_DO(fd_dump_extend_hexdump(&buf, &len, NULL, rcv_data->buffer, rcv_data->length, 0, 0), break);
@@ -379,7 +379,7 @@ void   fd_hook_call(enum fd_hook_type type, struct msg * msg, struct fd_peer * p
 				CHECK_MALLOC_DO(fd_msg_dump_treeview(&buf, &len, NULL, msg, NULL, 0, 1), break);
 
 				LOG_E("Routing error: '%s' for the following message:", (char *)other);
-				LOG_E("%s", buf);
+				LOG_SPLIT(FD_LOG_ERROR, "   ", buf?:"<error dumping message>", NULL);
 				break;
 			}
 			
@@ -398,16 +398,15 @@ void   fd_hook_call(enum fd_hook_type type, struct msg * msg, struct fd_peer * p
 			case HOOK_MESSAGE_DROPPED: {
 				CHECK_MALLOC_DO(fd_msg_dump_treeview(&buf, &len, NULL, msg, NULL, 0, 1), break);
 				LOG_E("Message discarded ('%s'):", (char *)other);
-				LOG_E("%s", buf);
+				LOG_SPLIT(FD_LOG_ERROR, "   ", buf?:"<error dumping message>", NULL);
 				break;
 			}
 			
 			case HOOK_PEER_CONNECT_FAILED: {
 				if (msg) {
-					size_t offset = 0;
-					CHECK_MALLOC_DO(fd_dump_extend(&buf, &len, &offset, " CER/CEA dump:\n"), break);
-					CHECK_MALLOC_DO(fd_msg_dump_treeview(&buf, &len, &offset, msg, NULL, 0, 1), break);
-					LOG_N("Connection to '%s' failed: %s%s", peer ? peer->p_hdr.info.pi_diamid : "<unknown>", (char *)other, buf);
+					CHECK_MALLOC_DO(fd_msg_dump_treeview(&buf, &len, NULL, msg, NULL, 0, 1), break);
+					LOG_N("Connection to '%s' failed: '%s'; CER/CEA dump:", peer ? peer->p_hdr.info.pi_diamid : "<unknown>", (char *)other);
+					LOG_SPLIT(FD_LOG_NOTICE, "   ", buf?:"<error dumping message>", NULL);
 				} else {
 					LOG_D("Connection to '%s' failed: %s", peer ? peer->p_hdr.info.pi_diamid : "<unknown>", (char *)other);
 				}
@@ -420,7 +419,8 @@ void   fd_hook_call(enum fd_hook_type type, struct msg * msg, struct fd_peer * p
 					fd_msg_answ_getq(msg, &msg); /* We dump the CER in that case */
 				}
 				CHECK_MALLOC_DO(fd_msg_dump_treeview(&buf, &len, NULL, msg, NULL, 0, 1), break);
-				LOG_N("Connected to '%s', remote capabilities: %s", peer ? peer->p_hdr.info.pi_diamid : "<unknown>", buf);
+				LOG_N("Connected to '%s', remote capabilities: ", peer ? peer->p_hdr.info.pi_diamid : "<unknown>");
+				LOG_SPLIT(FD_LOG_NOTICE, "   ", buf?:"<error dumping message>", NULL);
 				break;
 			}
 			

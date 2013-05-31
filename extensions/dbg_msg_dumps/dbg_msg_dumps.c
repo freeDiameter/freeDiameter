@@ -50,10 +50,10 @@ static void md_hook_cb(enum fd_hook_type type, struct msg * msg, struct peer_hdr
 	CHECK_MALLOC_DO( fd_msg_dump_treeview(&buf, &len, NULL, msg, fd_g_config->cnf_dict, 1, 1), 
 		{ LOG_E("Error while dumping a message"); return; } );
 	
-	LOG_N("%s %s: %s",
+	LOG_N("%s %s:",
 		(type == HOOK_MESSAGE_RECEIVED) ? "RCV FROM" : "SENT TO",
-		peer ? peer->info.pi_diamid:"<unknown>", 
-		buf);
+		peer ? peer->info.pi_diamid:"<unknown>");
+	LOG_SPLIT( FD_LOG_NOTICE, "   ", buf ?:"<error dumping message>", NULL);
 
 	free(buf);
 }
