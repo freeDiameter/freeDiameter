@@ -807,9 +807,12 @@ DECLARE_FD_DUMP_PROTOTYPE(fd_event_trig_dump);
 
 /* The "old" FD_EV_DUMP_* events are replaced with direct calls to the following dump functions */
 DECLARE_FD_DUMP_PROTOTYPE(fd_conf_dump);
+#else /* SWIG */
+DECLARE_FD_DUMP_PROTOTYPE_simple(fd_event_trig_dump);
+DECLARE_FD_DUMP_PROTOTYPE_simple(fd_conf_dump);
+#endif /* SWIG */
 DECLARE_FD_DUMP_PROTOTYPE(fd_ext_dump, int indent_next);
 DECLARE_FD_DUMP_PROTOTYPE(fd_servers_dump, int details);
-#endif /* SWIG */
 DECLARE_FD_DUMP_PROTOTYPE(fd_peer_dump_list, int details);
 DECLARE_FD_DUMP_PROTOTYPE(fd_peer_dump, struct peer_hdr * p, int details);
 

@@ -29,8 +29,9 @@
 #
 
 # The remaining of this file gives some examples of how to use the python interpreter.
-# Note that the support is not yet totally usable. You'll probably have to extend some classes
-# or write some typemaps in the source code of the extension to do what you want.
+# Note that at the moment not 100% of the framework is usable. 
+# You may have to extend some classes or write some typemaps in the source code 
+# of the extension to do what you want.
 
 
 ############# Compilation-time constants (from freeDiameter-host.h) ############
@@ -42,7 +43,7 @@ print "%s %d.%d.%d" % (FD_PROJECT_NAME, FD_PROJECT_VERSION_MAJOR, FD_PROJECT_VER
 ############# Debug ############
 
 # Change the global debug level of the framework (cvar contains all global variables)
-cvar.fd_g_debug_lvl = FULL
+cvar.fd_g_debug_lvl = 1
 
 
 # Turn on debug for a specific function (if framework compiled with DEBUG support)
@@ -52,13 +53,16 @@ cvar.fd_debug_one_function = "gc_th_fct"
 # Print messages to freeDiameter's debug facility
 # Note: the python version does not support printf-like argument list. The formating should be done in python.
 #       See SWIG documentation about varargs functions for more information.
-fd_log_debug_fstr(None, "3 + 4 = %d" % (7))
+fd_log(FD_LOG_NOTICE, "3 + 4 = %d" % (7))
 
 
 # Display some framework state information
-r = fd_event_send(cvar.fd_g_config.cnf_main_ev, FDEV_DUMP_PEERS, 0, None)
-r = fd_event_send(cvar.fd_g_config.cnf_main_ev, FDEV_DUMP_SERV, 0, None)
-r = fd_event_send(cvar.fd_g_config.cnf_main_ev, FDEV_DUMP_EXT, 0, None)
+conf = fd_conf_dump();
+print conf;
+
+fd_peer_dump_list(0)
+fd_servers_dump(0)
+fd_ext_dump(0)
 
 
 ############# Global variables ############
@@ -658,6 +662,9 @@ myqueue.timedget(3, "struct fd_event *")
 del myqueue
 
 
+############# HOOKS ############
+
+# TODO
 
 ############# PEERS ############
 

@@ -121,6 +121,18 @@ static const char * wrapper_error_txt; /* if NULL, use strerror(errno) */
 	%append_output(SWIG_NewPointerObj(*$1, $*1_descriptor, 0));
 }
 
+/* Case of the fd_*_dump functions */
+%typemap(in,noblock=1,numinputs=0) (char ** buf, size_t *len, size_t *offset) ($*1_ltype temp = NULL, $*2_ltype tempn) {
+	$1 = &temp; $2 = &tempn; $3 = NULL;
+}
+%typemap(freearg,match="in") (char ** buf, size_t *len, size_t *offset) "";
+%typemap(argout,noblock=1,fragment="SWIG_FromCharPtr")(char ** buf, size_t *len, size_t *offset) { 
+  if (*$1) {
+    %append_output(SWIG_FromCharPtr(*$1));
+    free(*$1);					  	     
+  }					  	     
+}							     
+
 /* Typemap to return a boolean value as output parameter */
 %typemap(in, numinputs=0,noblock=1) int * BOOL_OUT (int temp) {
 	$1 = &temp;

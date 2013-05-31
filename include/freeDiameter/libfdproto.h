@@ -238,6 +238,11 @@ int fd_log_handler_unregister ( void );
  */
 #define DECLARE_FD_DUMP_PROTOTYPE( function_name, args... )	\
 	char * function_name(char ** buf, size_t *len, size_t *offset, ##args)
+
+#ifdef SWIG
+#define DECLARE_FD_DUMP_PROTOTYPE_simple( function_name )	\
+	char * function_name(char ** buf, size_t *len, size_t *offset)
+#endif /* SWIG */
 	
 
 /* Helper functions for the *dump functions that add into a buffer */

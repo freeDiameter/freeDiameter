@@ -79,7 +79,7 @@ static void * myinterp (void * arg)
 end:	
 	/* Upon exit, issue the order of terminating to fD, if the interpreter was started without a file */
 	if (!arg) {
-		CHECK_FCT_DO(fd_event_send(fd_g_config->cnf_main_ev, FDEV_TERMINATE, 0, NULL), );
+		(void)fd_core_shutdown();
 	}
 
 	return NULL;
