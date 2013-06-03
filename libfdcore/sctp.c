@@ -924,11 +924,15 @@ int fd_sctp_client( int *sock, int no_ip6, uint16_t port, struct fd_list * list 
 		}
 #endif
 	
+	/* Bug in some Linux kernel, the sctp_connectx is not a cancellation point. To avoid blocking freeDiameter, we allow async cancel here */
+	pthread_setcanceltype(PTHREAD_CANCEL_ASYNCHRONOUS, NULL);
 #ifdef SCTP_CONNECTX_4_ARGS
 	ret = sctp_connectx(*sock, sar.sa, count, NULL);
 #else /* SCTP_CONNECTX_4_ARGS */
 	ret = sctp_connectx(*sock, sar.sa, count);
 #endif /* SCTP_CONNECTX_4_ARGS */
+	/* back to normal cancelation behabior */
+	pthread_setcanceltype(PTHREAD_CANCEL_DEFERRED, NULL);
 	
 	if (ret < 0) {
 		int lvl;
