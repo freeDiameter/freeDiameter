@@ -1,7 +1,5 @@
 # This file is called at build time. It regenerates the version.h file based on the hg version.
 
-message(STATUS "Calling script")
-
 EXECUTE_PROCESS(
 	COMMAND ${HGCOMMAND} id -i
 	WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
