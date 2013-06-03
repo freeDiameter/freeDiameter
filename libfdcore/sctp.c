@@ -44,12 +44,14 @@
 #define CMSG_BUF_LEN	1024
 #endif /* CMSG_BUF_LEN */
 
-/* Level of SCTP-specific traces */
-#ifdef DEBUG_SCTP
-#define SCTP_LEVEL	FULL
-#else /* DEBUG_SCTP */
-#define SCTP_LEVEL	(FCTS + 1)
-#endif /* DEBUG_SCTP */
+/* Use old draft-ietf-tsvwg-sctpsocket-17 API ? If not defined, RFC6458 API will be used */
+/* #define OLD_SCTP_SOCKET_API */
+
+/* Automatically fallback to old API if some of the new symbols are not defined */
+#if (!defined(SCTP_CONNECTX_4_ARGS) || (!defined(SCTP_RECVRCVINFO)) || (!defined(SCTP_SNDINFO))) 
+# define OLD_SCTP_SOCKET_API
+#endif
+
 
 /* Temper with the retransmission timers to try and improve disconnection detection response? Undef this to keep the defaults of SCTP stack */
 #ifndef USE_DEFAULT_SCTP_RTX_PARAMS	/* make this a configuration option if useful */
@@ -57,7 +59,6 @@
 #endif /* USE_DEFAULT_SCTP_RTX_PARAMS */
 
 /* Pre-binding socket options -- # streams read in config */
-/* The code of this file is based on draft-ietf-tsvwg-sctpsocket, versions 17 to 21 */
 static int fd_setsockopt_prebind(int sk)
 {
 	socklen_t sz;
@@ -78,7 +79,7 @@ static int fd_setsockopt_prebind(int sk)
 		struct sctp_rtoinfo rtoinfo;
 		memset(&rtoinfo, 0, sizeof(rtoinfo));
 
-		if (TRACE_BOOL(SCTP_LEVEL)) {
+		if (TRACE_BOOL(ANNOYING)) {
 			sz = sizeof(rtoinfo);
 			/* Read socket defaults */
 			CHECK_SYS(  getsockopt(sk, IPPROTO_SCTP, SCTP_RTOINFO, &rtoinfo, &sz)  );
@@ -99,7 +100,7 @@ static int fd_setsockopt_prebind(int sk)
 		/* Set the option to the socket */
 		CHECK_SYS(  setsockopt(sk, IPPROTO_SCTP, SCTP_RTOINFO, &rtoinfo, sizeof(rtoinfo))  );
 		
-		if (TRACE_BOOL(SCTP_LEVEL)) {
+		if (TRACE_BOOL(ANNOYING)) {
 			/* Check new values */
 			CHECK_SYS(  getsockopt(sk, IPPROTO_SCTP, SCTP_RTOINFO, &rtoinfo, &sz)  );
 			fd_log_debug( "New SCTP_RTOINFO : srto_initial : %u", rtoinfo.srto_initial);
@@ -108,7 +109,7 @@ static int fd_setsockopt_prebind(int sk)
 		}
 	}
 	#else /* SCTP_RTOINFO */
-	TRACE_DEBUG(SCTP_LEVEL, "Skipping SCTP_RTOINFO");
+	TRACE_DEBUG(ANNOYING, "Skipping SCTP_RTOINFO");
 	#endif /* SCTP_RTOINFO */
 	
 	/* Set the association parameters: max number of retransmits, ... */
@@ -117,7 +118,7 @@ static int fd_setsockopt_prebind(int sk)
 		struct sctp_assocparams assoc;
 		memset(&assoc, 0, sizeof(assoc));
 
-		if (TRACE_BOOL(SCTP_LEVEL)) {
+		if (TRACE_BOOL(ANNOYING)) {
 			sz = sizeof(assoc);
 			/* Read socket defaults */
 			CHECK_SYS(  getsockopt(sk, IPPROTO_SCTP, SCTP_ASSOCINFO, &assoc, &sz)  );
@@ -139,7 +140,7 @@ static int fd_setsockopt_prebind(int sk)
 		/* Set the option to the socket */
 		CHECK_SYS(  setsockopt(sk, IPPROTO_SCTP, SCTP_ASSOCINFO, &assoc, sizeof(assoc))  );
 		
-		if (TRACE_BOOL(SCTP_LEVEL)) {
+		if (TRACE_BOOL(ANNOYING)) {
 			/* Check new values */
 			CHECK_SYS(  getsockopt(sk, IPPROTO_SCTP, SCTP_ASSOCINFO, &assoc, &sz)  );
 			fd_log_debug( "New SCTP_ASSOCINFO : sasoc_asocmaxrxt               : %hu", assoc.sasoc_asocmaxrxt);
@@ -150,7 +151,7 @@ static int fd_setsockopt_prebind(int sk)
 		}
 	}
 	#else /* SCTP_ASSOCINFO */
-	TRACE_DEBUG(SCTP_LEVEL, "Skipping SCTP_ASSOCINFO");
+	TRACE_DEBUG(ANNOYING, "Skipping SCTP_ASSOCINFO");
 	#endif /* SCTP_ASSOCINFO */
 #endif /* ADJUST_RTX_PARAMS */
 	
@@ -160,7 +161,7 @@ static int fd_setsockopt_prebind(int sk)
 		struct sctp_initmsg init;
 		memset(&init, 0, sizeof(init));
 		
-		if (TRACE_BOOL(SCTP_LEVEL)) {
+		if (TRACE_BOOL(ANNOYING)) {
 			sz = sizeof(init);
 
 			/* Read socket defaults */
@@ -183,7 +184,7 @@ static int fd_setsockopt_prebind(int sk)
 		/* Set the option to the socket */
 		CHECK_SYS(  setsockopt(sk, IPPROTO_SCTP, SCTP_INITMSG, &init, sizeof(init))  );
 		
-		if (TRACE_BOOL(SCTP_LEVEL)) {
+		if (TRACE_BOOL(ANNOYING)) {
 			/* Check new values */
 			CHECK_SYS(  getsockopt(sk, IPPROTO_SCTP, SCTP_INITMSG, &init, &sz)  );
 			fd_log_debug( "New SCTP_INITMSG : sinit_num_ostreams   : %hu", init.sinit_num_ostreams);
@@ -193,7 +194,7 @@ static int fd_setsockopt_prebind(int sk)
 		}
 	}
 	#else /* SCTP_INITMSG */
-	TRACE_DEBUG(SCTP_LEVEL, "Skipping SCTP_INITMSG");
+	TRACE_DEBUG(ANNOYING, "Skipping SCTP_INITMSG");
 	#endif /* SCTP_INITMSG */
 	
 	/* The SO_LINGER option will be reset if we want to perform SCTP ABORT */
@@ -202,7 +203,7 @@ static int fd_setsockopt_prebind(int sk)
 		struct linger linger;
 		memset(&linger, 0, sizeof(linger));
 		
-		if (TRACE_BOOL(SCTP_LEVEL)) {
+		if (TRACE_BOOL(ANNOYING)) {
 			sz = sizeof(linger);
 			/* Read socket defaults */
 			CHECK_SYS(  getsockopt(sk, SOL_SOCKET, SO_LINGER, &linger, &sz)  );
@@ -221,7 +222,7 @@ static int fd_setsockopt_prebind(int sk)
 		/* Set the option */
 		CHECK_SYS(  setsockopt(sk, SOL_SOCKET, SO_LINGER, &linger, sizeof(linger))  );
 		
-		if (TRACE_BOOL(SCTP_LEVEL)) {
+		if (TRACE_BOOL(ANNOYING)) {
 			/* Check new values */
 			CHECK_SYS(  getsockopt(sk, SOL_SOCKET, SO_LINGER, &linger, &sz)  );
 			fd_log_debug( "New SO_LINGER : l_onoff  : %d", linger.l_onoff);
@@ -229,7 +230,7 @@ static int fd_setsockopt_prebind(int sk)
 		}
 	}
 	#else /* SO_LINGER */
-	TRACE_DEBUG(SCTP_LEVEL, "Skipping SO_LINGER");
+	TRACE_DEBUG(ANNOYING, "Skipping SO_LINGER");
 	#endif /* SO_LINGER */
 	
 	/* Set the NODELAY option (Nagle-like algorithm) */
@@ -237,7 +238,7 @@ static int fd_setsockopt_prebind(int sk)
 	{
 		int nodelay;
 		
-		if (TRACE_BOOL(SCTP_LEVEL)) {
+		if (TRACE_BOOL(ANNOYING)) {
 			sz = sizeof(nodelay);
 			/* Read socket defaults */
 			CHECK_SYS(  getsockopt(sk, IPPROTO_SCTP, SCTP_NODELAY, &nodelay, &sz)  );
@@ -254,14 +255,14 @@ static int fd_setsockopt_prebind(int sk)
 		/* Set the option to the socket */
 		CHECK_SYS(  setsockopt(sk, IPPROTO_SCTP, SCTP_NODELAY, &nodelay, sizeof(nodelay))  );
 		
-		if (TRACE_BOOL(SCTP_LEVEL)) {
+		if (TRACE_BOOL(ANNOYING)) {
 			/* Check new values */
 			CHECK_SYS(  getsockopt(sk, IPPROTO_SCTP, SCTP_NODELAY, &nodelay, &sz)  );
 			fd_log_debug( "New SCTP_NODELAY value : %s", nodelay ? "true" : "false");
 		}
 	}
 	#else /* SCTP_NODELAY */
-	TRACE_DEBUG(SCTP_LEVEL, "Skipping SCTP_NODELAY");
+	TRACE_DEBUG(ANNOYING, "Skipping SCTP_NODELAY");
 	#endif /* SCTP_NODELAY */
 	
 	/*
@@ -277,7 +278,7 @@ static int fd_setsockopt_prebind(int sk)
 	{
 		int nofrag;
 		
-		if (TRACE_BOOL(SCTP_LEVEL)) {
+		if (TRACE_BOOL(ANNOYING)) {
 			sz = sizeof(nofrag);
 			/* Read socket defaults */
 			CHECK_SYS(  getsockopt(sk, IPPROTO_SCTP, SCTP_DISABLE_FRAGMENTS, &nofrag, &sz)  );
@@ -294,7 +295,7 @@ static int fd_setsockopt_prebind(int sk)
 		/* Set the option to the socket */
 		CHECK_SYS(  setsockopt(sk, IPPROTO_SCTP, SCTP_DISABLE_FRAGMENTS, &nofrag, sizeof(nofrag))  );
 		
-		if (TRACE_BOOL(SCTP_LEVEL)) {
+		if (TRACE_BOOL(ANNOYING)) {
 			/* Check new values */
 			CHECK_SYS(  getsockopt(sk, IPPROTO_SCTP, SCTP_DISABLE_FRAGMENTS, &nofrag, &sz)  );
 			fd_log_debug( "New SCTP_DISABLE_FRAGMENTS value : %s", nofrag ? "true" : "false");
@@ -313,7 +314,7 @@ static int fd_setsockopt_prebind(int sk)
 		/* Some kernel versions need this to be set */
 		parms.spp_address.ss_family = AF_INET;
 		
-		if (TRACE_BOOL(SCTP_LEVEL)) {
+		if (TRACE_BOOL(ANNOYING)) {
 			sz = sizeof(parms);
 
 			/* Read socket defaults */
@@ -344,7 +345,7 @@ static int fd_setsockopt_prebind(int sk)
 		/* Set the option to the socket */
 		CHECK_SYS(  setsockopt(sk, IPPROTO_SCTP, SCTP_PEER_ADDR_PARAMS, &parms, sizeof(parms)) );
 		
-		if (TRACE_BOOL(SCTP_LEVEL)) {
+		if (TRACE_BOOL(ANNOYING)) {
 			/* Check new values */
 			CHECK_SYS(  getsockopt(sk, IPPROTO_SCTP, SCTP_PEER_ADDR_PARAMS, &parms, &sz)  );
 			fd_log_debug( "New SCTP_PEER_ADDR_PARAMS : spp_hbinterval    : %u",  parms.spp_hbinterval);
@@ -356,15 +357,16 @@ static int fd_setsockopt_prebind(int sk)
 		}
 	}
 	#else /* SCTP_PEER_ADDR_PARAMS */
-	TRACE_DEBUG(SCTP_LEVEL, "Skipping SCTP_PEER_ADDR_PARAMS");
+	TRACE_DEBUG(ANNOYING, "Skipping SCTP_PEER_ADDR_PARAMS");
 	#endif /* SCTP_PEER_ADDR_PARAMS */
 	
 	/*
-	   SCTP_DEFAULT_SEND_PARAM	parameters for the sendto() call, we don't use it.
+	   SCTP_DEFAULT_SEND_PARAM - DEPRECATED // parameters for the sendto() call, we don't use it.
 	*/
 
 	/* Subscribe to some notifications */
-	#ifdef SCTP_EVENTS
+#ifdef OLD_SCTP_SOCKET_API
+	#ifdef SCTP_EVENTS /* DEPRECATED */
 	{
 		struct sctp_event_subscribe event;
 
@@ -382,7 +384,7 @@ static int fd_setsockopt_prebind(int sk)
 		/* Set the option to the socket */
 		CHECK_SYS(  setsockopt(sk, IPPROTO_SCTP, SCTP_EVENTS, &event, sizeof(event)) );
 		
-		if (TRACE_BOOL(SCTP_LEVEL)) {
+		if (TRACE_BOOL(ANNOYING)) {
 			sz = sizeof(event);
 			CHECK_SYS(  getsockopt(sk, IPPROTO_SCTP, SCTP_EVENTS, &event, &sz) );
 			if (sz != sizeof(event))
@@ -403,15 +405,16 @@ static int fd_setsockopt_prebind(int sk)
 		}
 	}
 	#else /* SCTP_EVENTS */
-	TRACE_DEBUG(SCTP_LEVEL, "Skipping SCTP_EVENTS");
+	TRACE_DEBUG(ANNOYING, "Skipping SCTP_EVENTS");
 	#endif /* SCTP_EVENTS */
+#endif /*  OLD_SCTP_SOCKET_API */
 	
 	/* Set the v4 mapped addresses option */
 	#ifdef SCTP_I_WANT_MAPPED_V4_ADDR
 	if (!fd_g_config->cnf_flags.no_ip6) {
 		int v4mapped;
 		
-		if (TRACE_BOOL(SCTP_LEVEL)) {
+		if (TRACE_BOOL(ANNOYING)) {
 			sz = sizeof(v4mapped);
 			/* Read socket defaults */
 			CHECK_SYS(  getsockopt(sk, IPPROTO_SCTP, SCTP_I_WANT_MAPPED_V4_ADDR, &v4mapped, &sz)  );
@@ -432,16 +435,16 @@ static int fd_setsockopt_prebind(int sk)
 		/* Set the option to the socket */
 		CHECK_SYS(  setsockopt(sk, IPPROTO_SCTP, SCTP_I_WANT_MAPPED_V4_ADDR, &v4mapped, sizeof(v4mapped))  );
 		
-		if (TRACE_BOOL(SCTP_LEVEL)) {
+		if (TRACE_BOOL(ANNOYING)) {
 			/* Check new values */
 			CHECK_SYS(  getsockopt(sk, IPPROTO_SCTP, SCTP_I_WANT_MAPPED_V4_ADDR, &v4mapped, &sz)  );
 			fd_log_debug( "New SCTP_I_WANT_MAPPED_V4_ADDR value : %s", v4mapped ? "true" : "false");
 		}
 	} else {
-		TRACE_DEBUG(SCTP_LEVEL, "Skipping SCTP_I_WANT_MAPPED_V4_ADDR, since IPv6 disabled.");
+		TRACE_DEBUG(ANNOYING, "Skipping SCTP_I_WANT_MAPPED_V4_ADDR, since IPv6 disabled.");
 	}
 	#else /* SCTP_I_WANT_MAPPED_V4_ADDR */
-	TRACE_DEBUG(SCTP_LEVEL, "Skipping SCTP_I_WANT_MAPPED_V4_ADDR");
+	TRACE_DEBUG(ANNOYING, "Skipping SCTP_I_WANT_MAPPED_V4_ADDR");
 	#endif /* SCTP_I_WANT_MAPPED_V4_ADDR */
 	
 	/*
@@ -457,7 +460,7 @@ static int fd_setsockopt_prebind(int sk)
 	{
 		int interleave;
 		
-		if (TRACE_BOOL(SCTP_LEVEL)) {
+		if (TRACE_BOOL(ANNOYING)) {
 			sz = sizeof(interleave);
 			/* Read socket defaults */
 			CHECK_SYS(  getsockopt(sk, IPPROTO_SCTP, SCTP_FRAGMENT_INTERLEAVE, &interleave, &sz)  );
@@ -478,19 +481,19 @@ static int fd_setsockopt_prebind(int sk)
 		/* Set the option to the socket */
 		CHECK_SYS(  setsockopt(sk, IPPROTO_SCTP, SCTP_FRAGMENT_INTERLEAVE, &interleave, sizeof(interleave))  );
 		
-		if (TRACE_BOOL(SCTP_LEVEL)) {
+		if (TRACE_BOOL(ANNOYING)) {
 			/* Check new values */
 			CHECK_SYS(  getsockopt(sk, IPPROTO_SCTP, SCTP_FRAGMENT_INTERLEAVE, &interleave, &sz)  );
 			fd_log_debug( "New SCTP_FRAGMENT_INTERLEAVE value : %d", interleave);
 		}
 	}
 	#else /* SCTP_FRAGMENT_INTERLEAVE */
-	TRACE_DEBUG(SCTP_LEVEL, "Skipping SCTP_FRAGMENT_INTERLEAVE");
+	TRACE_DEBUG(ANNOYING, "Skipping SCTP_FRAGMENT_INTERLEAVE");
 	#endif /* SCTP_FRAGMENT_INTERLEAVE */
 	
 	/*
 	   SCTP_PARTIAL_DELIVERY_POINT	control partial delivery size
-	   SCTP_USE_EXT_RCVINFO		use extended receive info structure (information about the next message if available)
+	   SCTP_USE_EXT_RCVINFO	- DEPRECATED	use extended receive info structure (information about the next message if available)
 	 */
 	/* SCTP_AUTO_ASCONF is set by the postbind function */
 	/*
@@ -503,7 +506,7 @@ static int fd_setsockopt_prebind(int sk)
 	{
 		int bool;
 		
-		if (TRACE_BOOL(SCTP_LEVEL)) {
+		if (TRACE_BOOL(ANNOYING)) {
 			sz = sizeof(bool);
 			/* Read socket defaults */
 			CHECK_SYS(  getsockopt(sk, IPPROTO_SCTP, SCTP_EXPLICIT_EOR, &bool, &sz)  );
@@ -520,21 +523,95 @@ static int fd_setsockopt_prebind(int sk)
 		/* Set the option to the socket */
 		CHECK_SYS(  setsockopt(sk, IPPROTO_SCTP, SCTP_EXPLICIT_EOR, &bool, sizeof(bool))  );
 		
-		if (TRACE_BOOL(SCTP_LEVEL)) {
+		if (TRACE_BOOL(ANNOYING)) {
 			/* Check new values */
 			CHECK_SYS(  getsockopt(sk, IPPROTO_SCTP, SCTP_EXPLICIT_EOR, &bool, &sz)  );
 			fd_log_debug( "New SCTP_EXPLICIT_EOR value : %s", bool ? "true" : "false");
 		}
 	}
 	#else /* SCTP_EXPLICIT_EOR */
-	TRACE_DEBUG(SCTP_LEVEL, "Skipping SCTP_EXPLICIT_EOR");
+	TRACE_DEBUG(ANNOYING, "Skipping SCTP_EXPLICIT_EOR");
 	#endif /* SCTP_EXPLICIT_EOR */
 	
 	/*
 	   SCTP_REUSE_PORT		share one listening port with several sockets
-	   SCTP_EVENT			same as EVENTS ?
 	*/
 	
+#ifndef OLD_SCTP_SOCKET_API
+	#ifdef SCTP_EVENT
+	{
+		/* Subscribe to the following events */
+		int events_I_want[] = {
+		#ifdef SCTP_ASSOC_CHANGE
+			/* SCTP_ASSOC_CHANGE, */
+		#endif 
+		#ifdef SCTP_PEER_ADDR_CHANGE
+			SCTP_PEER_ADDR_CHANGE,
+		#endif
+		#ifdef SCTP_REMOTE_ERROR
+			SCTP_REMOTE_ERROR,
+		#endif
+		#ifdef SCTP_SEND_FAILED_EVENT
+			SCTP_SEND_FAILED_EVENT,
+		#endif
+		#ifdef SCTP_SHUTDOWN_EVENT
+			SCTP_SHUTDOWN_EVENT,
+		#endif
+		#ifdef SCTP_ADAPTATION_INDICATION
+			/* SCTP_ADAPTATION_INDICATION, */
+		#endif
+		#ifdef SCTP_PARTIAL_DELIVERY_EVENT
+			/* SCTP_PARTIAL_DELIVERY_EVENT, */
+		#endif
+		#ifdef SCTP_AUTHENTICATION_EVENT
+			/* SCTP_AUTHENTICATION_EVENT, */
+		#endif
+		#ifdef SCTP_SENDER_DRY_EVENT
+			/* SCTP_SENDER_DRY_EVENT, */
+		#endif
+			0
+		};
+		int i;
+		
+		struct sctp_event event;
+		
+		for (i = 0; i < (sizeof(events_I_want) / sizeof(events_I_want[0]) - 1; i++) {
+			memset(&event, 0, sizeof(event));
+			event.se_type = events_I_want[i];
+			event.se_on = 1;
+			
+			/* Set the option to the socket */
+			CHECK_SYS(  setsockopt(sk, IPPROTO_SCTP, SCTP_EVENT, &event, sizeof(event)) );
+		}
+	}
+	#else /* SCTP_EVENT */
+	TRACE_DEBUG(ANNOYING, "Skipping SCTP_EVENT");
+	#endif /* SCTP_EVENT */
+	
+	
+	#ifdef SCTP_RECVRCVINFO /* Replaces SCTP_SNDRCV */
+	{
+		int bool = 1;
+		
+		/* Set the option to the socket */
+		CHECK_SYS(  setsockopt(sk, IPPROTO_SCTP, SCTP_RECVRCVINFO, &bool, sizeof(bool))  );
+		
+	}
+	#else /* SCTP_RECVRCVINFO */
+	TRACE_DEBUG(ANNOYING, "Skipping SCTP_RECVRCVINFO");
+	#endif /* SCTP_RECVRCVINFO */
+	
+	
+#endif /* OLD_SCTP_SOCKET_API */
+	
+	/* 
+		SCTP_RECVNXTINFO
+		
+		SCTP_DEFAULT_SNDINFO : send defaults
+		SCTP_DEFAULT_PRINFO  : default PR-SCTP
+	*/
+	
+
 	/* In case of no_ip4, force the v6only option */
 	#ifdef IPV6_V6ONLY
 	if (fd_g_config->cnf_flags.no_ip4) {
@@ -559,7 +636,7 @@ static int fd_setsockopt_postbind(int sk, int bound_to_default)
 	if (bound_to_default) {
 		int asconf;
 		
-		if (TRACE_BOOL(SCTP_LEVEL)) {
+		if (TRACE_BOOL(ANNOYING)) {
 			socklen_t sz;
 
 			sz = sizeof(asconf);
@@ -578,7 +655,7 @@ static int fd_setsockopt_postbind(int sk, int bound_to_default)
 		/* Set the option to the socket */
 		CHECK_SYS(  setsockopt(sk, IPPROTO_SCTP, SCTP_AUTO_ASCONF, &asconf, sizeof(asconf))  );
 		
-		if (TRACE_BOOL(SCTP_LEVEL)) {
+		if (TRACE_BOOL(ANNOYING)) {
 			socklen_t sz = sizeof(asconf);
 			/* Check new values */
 			CHECK_SYS(  getsockopt(sk, IPPROTO_SCTP, SCTP_AUTO_ASCONF, &asconf, &sz)  );
@@ -586,7 +663,7 @@ static int fd_setsockopt_postbind(int sk, int bound_to_default)
 		}
 	}
 	#else /* SCTP_AUTO_ASCONF */
-	TRACE_DEBUG(SCTP_LEVEL, "Skipping SCTP_AUTO_ASCONF");
+	TRACE_DEBUG(ANNOYING, "Skipping SCTP_AUTO_ASCONF");
 	#endif /* SCTP_AUTO_ASCONF */
 	
 	return 0;
@@ -1004,8 +1081,13 @@ int fd_sctp_sendstr(struct cnxctx * conn, uint16_t strid, uint8_t * buf, size_t 
 	struct msghdr mhdr;
 	struct iovec  iov;
 	struct cmsghdr 		*hdr;
+#ifdef OLD_SCTP_SOCKET_API
 	struct sctp_sndrcvinfo	*sndrcv;
 	uint8_t anci[CMSG_SPACE(sizeof(struct sctp_sndrcvinfo))];
+#else /* OLD_SCTP_SOCKET_API */
+	struct sctp_sndinfo 	*sndinf;
+	uint8_t anci[CMSG_SPACE(sizeof(struct sctp_sndinfo))];	
+#endif /* OLD_SCTP_SOCKET_API */
 	ssize_t ret;
 	int timedout = 0;
 	
@@ -1022,11 +1104,17 @@ int fd_sctp_sendstr(struct cnxctx * conn, uint16_t strid, uint8_t * buf, size_t 
 	
 	/* Anciliary data: specify SCTP stream */
 	hdr = (struct cmsghdr *)anci;
-	sndrcv = (struct sctp_sndrcvinfo *)CMSG_DATA(hdr);
 	hdr->cmsg_len   = sizeof(anci);
 	hdr->cmsg_level = IPPROTO_SCTP;
+#ifdef OLD_SCTP_SOCKET_API
 	hdr->cmsg_type  = SCTP_SNDRCV;
+	sndrcv = (struct sctp_sndrcvinfo *)CMSG_DATA(hdr);
 	sndrcv->sinfo_stream = strid;
+#else /* OLD_SCTP_SOCKET_API */
+	hdr->cmsg_type  = SCTP_SNDINFO;
+	sndinf = (struct sctp_sndinfo *)CMSG_DATA(hdr);
+	sndinf->snd_sid = strid;
+#endif /* OLD_SCTP_SOCKET_API */
 	/* note : we could store other data also, for example in .sinfo_ppid for remote peer or in .sinfo_context for errors. */
 	
 	/* We don't use mhdr.msg_name here; it could be used to specify an address different from the primary */
@@ -1084,6 +1172,9 @@ int fd_sctp_recvmeta(struct cnxctx * conn, uint16_t * strid, uint8_t ** buf, siz
 	mhdr.msg_control    = &ancidata;
 	mhdr.msg_controllen = sizeof(ancidata);
 	
+next_message:
+	datasize = 0;
+	
 	/* We will loop while all data is not received. */
 incomplete:
 	while (datasize >= bufsz ) {
@@ -1138,50 +1229,63 @@ again:
 	
 		switch (notif->sn_header.sn_type) {
 			
-			case SCTP_ASSOC_CHANGE:
+			case SCTP_ASSOC_CHANGE: /* We should not receive these as we did not subscribe for it */
 				TRACE_DEBUG(FULL, "Received SCTP_ASSOC_CHANGE notification");
-				TRACE_DEBUG(SCTP_LEVEL, "    state : %hu", notif->sn_assoc_change.sac_state);
-				TRACE_DEBUG(SCTP_LEVEL, "    error : %hu", notif->sn_assoc_change.sac_error);
-				TRACE_DEBUG(SCTP_LEVEL, "    instr : %hu", notif->sn_assoc_change.sac_inbound_streams);
-				TRACE_DEBUG(SCTP_LEVEL, "   outstr : %hu", notif->sn_assoc_change.sac_outbound_streams);
+				TRACE_DEBUG(ANNOYING, "    state : %hu", notif->sn_assoc_change.sac_state);
+				TRACE_DEBUG(ANNOYING, "    error : %hu", notif->sn_assoc_change.sac_error);
+				TRACE_DEBUG(ANNOYING, "    instr : %hu", notif->sn_assoc_change.sac_inbound_streams);
+				TRACE_DEBUG(ANNOYING, "   outstr : %hu", notif->sn_assoc_change.sac_outbound_streams);
 				
 				*event = FDEVP_CNX_EP_CHANGE;
 				break;
 	
 			case SCTP_PEER_ADDR_CHANGE:
 				TRACE_DEBUG(FULL, "Received SCTP_PEER_ADDR_CHANGE notification");
-				/* TRACE_sSA(FD_LOG_DEBUG, SCTP_LEVEL, "    intf_change : ", &(notif->sn_paddr_change.spc_aaddr), NI_NUMERICHOST | NI_NUMERICSERV, "" ); */
-				TRACE_DEBUG(SCTP_LEVEL, "          state : %d", notif->sn_paddr_change.spc_state);
-				TRACE_DEBUG(SCTP_LEVEL, "          error : %d", notif->sn_paddr_change.spc_error);
+				/* TRACE_sSA(FD_LOG_DEBUG, ANNOYING, "    intf_change : ", &(notif->sn_paddr_change.spc_aaddr), NI_NUMERICHOST | NI_NUMERICSERV, "" ); */
+				TRACE_DEBUG(ANNOYING, "          state : %d", notif->sn_paddr_change.spc_state);
+				TRACE_DEBUG(ANNOYING, "          error : %d", notif->sn_paddr_change.spc_error);
 				
 				*event = FDEVP_CNX_EP_CHANGE;
 				break;
 	
-			case SCTP_SEND_FAILED:
-				TRACE_DEBUG(FULL, "Received SCTP_SEND_FAILED notification");
-				TRACE_DEBUG(SCTP_LEVEL, "    len : %hu", notif->sn_send_failed.ssf_length);
-				TRACE_DEBUG(SCTP_LEVEL, "    err : %d",  notif->sn_send_failed.ssf_error);
-				
-				*event = FDEVP_CNX_ERROR;
-				break;
-			
 			case SCTP_REMOTE_ERROR:
 				TRACE_DEBUG(FULL, "Received SCTP_REMOTE_ERROR notification");
-				TRACE_DEBUG(SCTP_LEVEL, "    err : %hu", ntohs(notif->sn_remote_error.sre_error));
-				TRACE_DEBUG(SCTP_LEVEL, "    len : %hu", ntohs(notif->sn_remote_error.sre_length));
+				TRACE_DEBUG(ANNOYING, "    err : %hu", ntohs(notif->sn_remote_error.sre_error));
+				TRACE_DEBUG(ANNOYING, "    len : %hu", ntohs(notif->sn_remote_error.sre_length));
 				
 				*event = FDEVP_CNX_ERROR;
 				break;
 	
+#ifdef OLD_SCTP_SOCKET_API
+			case SCTP_SEND_FAILED:
+				TRACE_DEBUG(FULL, "Received SCTP_SEND_FAILED notification");
+				TRACE_DEBUG(ANNOYING, "    len : %hu", notif->sn_send_failed.ssf_length);
+				TRACE_DEBUG(ANNOYING, "    err : %d",  notif->sn_send_failed.ssf_error);
+				
+				*event = FDEVP_CNX_ERROR;
+				break;
+#else /*  OLD_SCTP_SOCKET_API */
+			case SCTP_SEND_FAILED_EVENT:
+				TRACE_DEBUG(FULL, "Received SCTP_SEND_FAILED_EVENT notification");
+				*event = FDEVP_CNX_ERROR;
+				break;
+#endif	/*  OLD_SCTP_SOCKET_API */		
 			case SCTP_SHUTDOWN_EVENT:
 				TRACE_DEBUG(FULL, "Received SCTP_SHUTDOWN_EVENT notification");
 				
 				*event = FDEVP_CNX_SHUTDOWN;
 				break;
+				
+#ifndef OLD_SCTP_SOCKET_API
+			case SCTP_NOTIFICATIONS_STOPPED_EVENT:
+				TRACE_DEBUG(INFO, "Received SCTP_NOTIFICATIONS_STOPPED_EVENT notification, marking the association in error state");
+				*event = FDEVP_CNX_ERROR;
+				break;
+#endif	/*  OLD_SCTP_SOCKET_API */		
 			
 			default:	
-				TRACE_DEBUG(FULL, "Received unknown notification %d, assume error", notif->sn_header.sn_type);
-				*event = FDEVP_CNX_ERROR;
+				TRACE_DEBUG(FULL, "Received unknown notification %d, ignored", notif->sn_header.sn_type);
+				goto next_message;
 		}
 		
 		free(data);
@@ -1195,7 +1299,11 @@ again:
 	
 	if (strid) {
 		struct cmsghdr 		*hdr;
+#ifdef OLD_SCTP_SOCKET_API
 		struct sctp_sndrcvinfo	*sndrcv;
+#else /*  OLD_SCTP_SOCKET_API */
+		struct sctp_rcvinfo	*rcvinf;
+#endif /*  OLD_SCTP_SOCKET_API */
 		
 		/* Handle the anciliary data */
 		for (hdr = CMSG_FIRSTHDR(&mhdr); hdr; hdr = CMSG_NXTHDR(&mhdr, hdr)) {
@@ -1206,6 +1314,7 @@ again:
 				continue;
 			}
 			
+#ifdef OLD_SCTP_SOCKET_API
 			/* Also only interested in SCTP_SNDRCV message for the moment */
 			if (hdr->cmsg_type != SCTP_SNDRCV) {
 				TRACE_DEBUG(FULL, "Anciliary block IPPROTO_SCTP / %d, skipped", hdr->cmsg_type);
@@ -1213,7 +1322,7 @@ again:
 			}
 			
 			sndrcv = (struct sctp_sndrcvinfo *) CMSG_DATA(hdr);
-			if (TRACE_BOOL(SCTP_LEVEL)) {
+			if (TRACE_BOOL(ANNOYING)) {
 				fd_log_debug( "Anciliary block IPPROTO_SCTP / SCTP_SNDRCV");
 				fd_log_debug( "    sinfo_stream    : %hu", sndrcv->sinfo_stream);
 				fd_log_debug( "    sinfo_ssn       : %hu", sndrcv->sinfo_ssn);
@@ -1227,6 +1336,19 @@ again:
 			}
 
 			*strid = sndrcv->sinfo_stream;
+#else /*  OLD_SCTP_SOCKET_API */
+			/* Also only interested in SCTP_RCVINFO message for the moment */
+			if (hdr->cmsg_type != SCTP_RCVINFO) {
+				TRACE_DEBUG(FULL, "Anciliary block IPPROTO_SCTP / %d, skipped", hdr->cmsg_type);
+				continue;
+			}
+			
+			rcvinf = (struct sctp_rcvinfo *) CMSG_DATA(hdr);
+
+			*strid = rcvinf->rcv_sid;
+#endif /*  OLD_SCTP_SOCKET_API */
+			
+			
 		}
 		TRACE_DEBUG(FULL, "Received %zdb data on socket %d, stream %hu", datasize, conn->cc_socket, *strid);
 	} else {
