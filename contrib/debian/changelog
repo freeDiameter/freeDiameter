@@ -25,8 +25,10 @@ freediameter (1.2.0) UNRELEASED; urgency=low
   * Fix invalid timespec value in peer PSM appearing randomly (leading to crash).
   * Return DIAMETER_LOOP_DETECTED if local peer in the Route-Record list of a message.
   * Allow running without TLS configuration.
+  * Upgraded SCTP code to comply with RFC 6458
+  * Using default secure Diameter port number 5658 as per RFC 6733
 
- -- Sebastien Decugis <sdecugis@freediameter.net>  Thu, 30 May 2013 15:47:32 +0800
+ -- Sebastien Decugis <sdecugis@freediameter.net>  Mon, 03 Jun 2013 14:20:05 +0800
 
 freediameter (1.1.6) UNRELEASED; urgency=low
 
