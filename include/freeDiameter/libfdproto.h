@@ -357,7 +357,7 @@ static char * file_bname_init(char * full) { file_bname = basename(full); return
 	char * __line = (mlbuf), *__next;										\
 	char * __p = (per_line_prefix), *__s = (per_line_suffix);							\
 	while ((__next = strchr(__line, '\n')) != NULL) {								\
-		LOG(printlevel, "%s%.*s%s", __p ?:"", __next - __line, __line, __s ?:"");				\
+		LOG(printlevel, "%s%.*s%s", __p ?:"", (int)(__next - __line), __line, __s ?:"");			\
 		__line = __next + 1;											\
 	}														\
 	LOG(printlevel, "%s%s%s", __p ?:"", __line, __s ?:"");								\
