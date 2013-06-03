@@ -664,7 +664,18 @@ del myqueue
 
 ############# HOOKS ############
 
-# TODO
+def my_hook_cb(type, msg, peer, other, oldpmd):
+    print "callback type ", type, " called: ", msg, other, oldpmd
+    return "this is the new pmd"
+
+# Create a wrapped fd_hook_data_hdl:
+datahdl = fd_hook_data_hdl()
+
+# Register the hook callback:
+hdl = fd_hook_hdl(1 << HOOK_MESSAGE_SENT, my_hook_cb, datahdl)
+
+
+
 
 ############# PEERS ############
 
