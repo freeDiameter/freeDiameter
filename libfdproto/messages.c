@@ -737,7 +737,7 @@ static DECLARE_FD_DUMP_PROTOTYPE( msg_dump_process, msg_dump_formatter_msg msg_f
 	FD_DUMP_HANDLE_OFFSET();
 		
 	if (!VALIDATE_OBJ(obj)) {
-		CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "INVALID MESSAGE OR AVP @%p"), return NULL);
+		CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "INVALID MESSAGE OR AVP @%p", obj), return NULL);
 		return *buf;
 	}
 	
@@ -756,7 +756,7 @@ static DECLARE_FD_DUMP_PROTOTYPE( msg_dump_process, msg_dump_formatter_msg msg_f
 
 		default:
 			ASSERT(0);
-			free(*buf):
+			free(*buf);
 			*buf = NULL;
 			return NULL;
 	}
