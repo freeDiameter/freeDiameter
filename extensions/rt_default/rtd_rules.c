@@ -413,7 +413,7 @@ int rtd_add(enum rtd_crit_type ct, char * criteria, enum rtd_targ_type tt, char 
 	struct rule * rul = NULL;
 	
 	TRACE_ENTRY("%d %p %d %p %d %x", ct, criteria, tt, target, score, flags);
-	CHECK_PARAMS((ct < RTD_CRI_MAX) && ((ct == 0) || criteria) && (tt < RTD_TAR_MAX) && target);
+	CHECK_PARAMS((ct < RTD_CRI_MAX) && ((ct == RTD_CRI_ALL) || criteria) && (tt < RTD_TAR_MAX) && target);
 	
 	/* First, search in the TARGET list if we already have this target */
 	for (target_suiv = TARGETS[tt].next; target_suiv != &TARGETS[tt]; target_suiv = target_suiv->next) {
@@ -450,10 +450,10 @@ int rtd_add(enum rtd_crit_type ct, char * criteria, enum rtd_targ_type tt, char 
 	}
 	
 	/* Now, search for the rule position in this target's list */
-	if (ct == 0) {
+	if (ct == RTD_CRI_ALL) {
 		/* Special case: we don't have a criteria -- always create a rule element */
 		CHECK_MALLOC( rul = new_rule(NULL, 0, score) );
-		fd_list_insert_before( &trg->rules[0], &rul->chain );
+		fd_list_insert_before( &trg->rules[RTD_CRI_ALL], &rul->chain );
 	} else {
 		for (rule_suiv = trg->rules[ct].next; rule_suiv != &trg->rules[ct]; rule_suiv = rule_suiv->next) {
 			int cmp;
@@ -535,10 +535,10 @@ int rtd_process( struct msg * msg, struct fd_list * candidates )
 					break;
 				
 				/* First, apply all rules of criteria RTD_CRI_ALL */
-				for ( l = target->rules[0].next; l != &target->rules[0]; l = l->next ) {
+				for ( l = target->rules[RTD_CRI_ALL].next; l != &target->rules[RTD_CRI_ALL]; l = l->next ) {
 					r = (struct rule *)l;
 					cand->score += r->score;
-					TRACE_DEBUG(ANNOYING, "Applied rule {'%s' : '%s' += %d} to candidate '%s'", r->md.plain, target->md.plain, r->score, cand->diamid);
+					TRACE_DEBUG(ANNOYING, "Applied rule {'*' : '%s' += %d} to candidate '%s'", target->md.plain, r->score, cand->diamid);
 				}
 				
 				/* The target is matching this candidate, check if there are additional rules criteria matching this message. */
