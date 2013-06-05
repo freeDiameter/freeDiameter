@@ -565,7 +565,7 @@ int fd_sctp3436_handshake_others(struct cnxctx * conn, char * priority, void * a
 	/* Initialize the session objects and start the handshake in a separate thread */
 	for (i = 1; i < conn->cc_sctp_para.pairs; i++) {
 		/* Set credentials and priority */
-		CHECK_FCT( fd_tls_prepare(&conn->cc_sctp3436_data.array[i].session, conn->cc_tls_para.mode, priority, alt_creds) );
+		CHECK_FCT( fd_tls_prepare(&conn->cc_sctp3436_data.array[i].session, conn->cc_tls_para.mode, 0, priority, alt_creds) );
 		
 		/* additional initialization for gnutls 3.x */
 		#ifdef GNUTLS_VERSION_300

@@ -95,6 +95,8 @@ static struct cnxctx * fd_cnx_init(int full)
 	return conn;
 }
 
+#define CC_ID_HDR "{----} "
+
 /* Create and bind a server socket to the given endpoint and port */
 struct cnxctx * fd_cnx_serv_tcp(uint16_t port, int family, struct fd_endpoint * ep)
 {
@@ -138,7 +140,7 @@ struct cnxctx * fd_cnx_serv_tcp(uint16_t port, int family, struct fd_endpoint * 
 		rc = getnameinfo(sa, sSAlen(sa), addrbuf, sizeof(addrbuf), NULL, 0, NI_NUMERICHOST);
 		if (rc)
 			snprintf(addrbuf, sizeof(addrbuf), "[err:%s]", gai_strerror(rc));
-		snprintf(cnx->cc_id, sizeof(cnx->cc_id), "TCP srv [%s]:%hu (%d)", addrbuf, port, cnx->cc_socket);
+		snprintf(cnx->cc_id, sizeof(cnx->cc_id), CC_ID_HDR "TCP srv [%s]:%hu (%d)", addrbuf, port, cnx->cc_socket);
 	}
 
 	cnx->cc_proto = IPPROTO_TCP;
@@ -178,7 +180,7 @@ struct cnxctx * fd_cnx_serv_sctp(uint16_t port, struct fd_list * ep_list)
 	CHECK_FCT_DO( fd_sctp_create_bind_server( &cnx->cc_socket, cnx->cc_family, ep_list, port ), goto error );
 
 	/* Generate the name for the connection object */
-	snprintf(cnx->cc_id, sizeof(cnx->cc_id), "SCTP srv :%hu (%d)", port, cnx->cc_socket);
+	snprintf(cnx->cc_id, sizeof(cnx->cc_id), CC_ID_HDR "SCTP srv :%hu (%d)", port, cnx->cc_socket);
 
 	cnx->cc_proto = IPPROTO_SCTP;
 
@@ -248,7 +250,7 @@ struct cnxctx * fd_cnx_serv_accept(struct cnxctx * serv)
 		}
 		
 		/* Numeric values for debug... */
-		snprintf(cli->cc_id, sizeof(cli->cc_id), "%s from [%s]:%s (%d<-%d)", 
+		snprintf(cli->cc_id, sizeof(cli->cc_id), CC_ID_HDR "%s from [%s]:%s (%d<-%d)", 
 				IPPROTO_NAME(cli->cc_proto), addrbuf, portbuf, serv->cc_socket, cli->cc_socket);
 		
 		
@@ -312,7 +314,7 @@ struct cnxctx * fd_cnx_cli_connect_tcp(sSA * sa /* contains the port already */,
 	{
 		int  rc;
 		
-		snprintf(cnx->cc_id, sizeof(cnx->cc_id), "TCP,#%d->%s", cnx->cc_socket, sa_buf);
+		snprintf(cnx->cc_id, sizeof(cnx->cc_id), CC_ID_HDR "TCP,#%d->%s", cnx->cc_socket, sa_buf);
 		
 		/* ...Name for log messages */
 		rc = getnameinfo(sa, addrlen, cnx->cc_remid, sizeof(cnx->cc_remid), NULL, 0, 0);
@@ -375,7 +377,7 @@ struct cnxctx * fd_cnx_cli_connect_sctp(int no_ip6, uint16_t port, struct fd_lis
 	{
 		int  rc;
 		
-		snprintf(cnx->cc_id, sizeof(cnx->cc_id), "SCTP,#%d->%s", cnx->cc_socket, sa_buf);
+		snprintf(cnx->cc_id, sizeof(cnx->cc_id), CC_ID_HDR "SCTP,#%d->%s", cnx->cc_socket, sa_buf);
 		
 		/* ...Name for log messages */
 		rc = getnameinfo((sSA *)&primary, sSAlen(&primary), cnx->cc_remid, sizeof(cnx->cc_remid), NULL, 0, 0);
@@ -432,16 +434,39 @@ int  fd_cnx_teststate(struct cnxctx * conn, uint32_t flag)
 	CHECK_POSIX_DO( pthread_mutex_unlock(&state_lock), { ASSERT(0); } );
 	return st & flag;
 }
+void fd_cnx_update_id(struct cnxctx * conn) {
+	if (conn->cc_state & CC_STATUS_CLOSING)
+		conn->cc_id[1] = 'C';
+	else
+		conn->cc_id[1] = '-';
+	
+	if (conn->cc_state & CC_STATUS_ERROR)
+		conn->cc_id[2] = 'E';
+	else
+		conn->cc_id[2] = '-';
+	
+	if (conn->cc_state & CC_STATUS_SIGNALED)
+		conn->cc_id[3] = 'S';
+	else
+		conn->cc_id[3] = '-';
+	
+	if (conn->cc_state & CC_STATUS_TLS)
+		conn->cc_id[4] = 'T';
+	else
+		conn->cc_id[4] = '-';
+}
 void fd_cnx_addstate(struct cnxctx * conn, uint32_t orstate)
 {
 	CHECK_POSIX_DO( pthread_mutex_lock(&state_lock), { ASSERT(0); } );
 	conn->cc_state |= orstate;
+	fd_cnx_update_id(conn);
 	CHECK_POSIX_DO( pthread_mutex_unlock(&state_lock), { ASSERT(0); } );
 }
 void fd_cnx_setstate(struct cnxctx * conn, uint32_t abstate)
 {
 	CHECK_POSIX_DO( pthread_mutex_lock(&state_lock), { ASSERT(0); } );
 	conn->cc_state = abstate;
+	fd_cnx_update_id(conn);
 	CHECK_POSIX_DO( pthread_mutex_unlock(&state_lock), { ASSERT(0); } );
 }
 
@@ -658,7 +683,7 @@ static uint8_t * fd_cnx_alloc_msg_buffer(size_t expected_len, struct fd_msg_pmdl
 	return ret;
 }
 
-#ifndef DISABLE_SCTP
+#ifndef DISABLE_SCTP /* WE use this function only in SCTP code */
 static uint8_t * fd_cnx_realloc_msg_buffer(uint8_t * buffer, size_t expected_len, struct fd_msg_pmdl ** pmdl)
 {
 	uint8_t * ret = NULL;
@@ -852,12 +877,12 @@ int fd_cnx_start_clear(struct cnxctx * conn, int loop)
 
 
 
-/* Returns 0 on error, received data size otherwise (always >= 0) */
+/* Returns 0 on error, received data size otherwise (always >= 0). This is not used for DTLS-protected associations. */
 static ssize_t fd_tls_recv_handle_error(struct cnxctx * conn, gnutls_session_t session, void * data, size_t sz)
 {
 	ssize_t ret;
 again:	
-	CHECK_GNUTLS_DO( ret = gnutls_record_recv(session, data, sz),
+	CHECK_GNUTLS_DO( ret = gnutls_record_recv(session, data, sz), 
 		{
 			switch (ret) {
 				case GNUTLS_E_REHANDSHAKE: 
@@ -884,7 +909,11 @@ again:
 					break;
 				
 				default:
-					TRACE_DEBUG(INFO, "This GNU TLS error is not handled, assume unrecoverable error");
+					if (gnutls_error_is_fatal (ret) == 0) {
+						LOG_N("Ignoring non-fatal GNU TLS error: %s", gnutls_strerror (ret));
+						goto again;
+					}
+					LOG_E("Fatal GNUTLS error: %s", gnutls_strerror (ret));
 			}
 		} );
 		
@@ -897,7 +926,7 @@ end:
 	return ret;
 }
 
-/* Wrapper around gnutls_record_send to handle some error codes */
+/* Wrapper around gnutls_record_send to handle some error codes. This is also used for DTLS-protected associations */
 static ssize_t fd_tls_send_handle_error(struct cnxctx * conn, gnutls_session_t session, void * data, size_t sz)
 {
 	ssize_t ret;
@@ -924,7 +953,11 @@ again:
 					break;
 
 				default:
-					TRACE_DEBUG(INFO, "This TLS error is not handled, assume unrecoverable error");
+					if (gnutls_error_is_fatal (ret) == 0) {
+						LOG_N("Ignoring non-fatal GNU TLS error: %s", gnutls_strerror (ret));
+						goto again;
+					}
+					LOG_E("Fatal GNUTLS error: %s", gnutls_strerror (ret));
 			}
 		} );
 end:	
@@ -936,9 +969,15 @@ end:
 
 
 /* The function that receives TLS data and re-builds a Diameter message -- it exits only on error or cancelation */
+/* 	   For the case of DTLS, since we are not using SCTP_UNORDERED, the messages over a single stream are ordered.
+	   Furthermore, as long as messages are shorter than the MTU [2^14 = 16384 bytes], they are delivered in a single
+	   record, as far as I understand. 
+	   For larger messages, however, it is possible that pieces of messages coming from different streams can get interleaved. 
+	   As a result, we do not use the following function for DTLS reception, because we use the sequence number to rebuild the
+	   messages. */
 int fd_tls_rcvthr_core(struct cnxctx * conn, gnutls_session_t session)
 {
-	/* No guarantee that GnuTLS preserves the message boundaries, so we re-build it as in TCP */
+	/* No guarantee that GnuTLS preserves the message boundaries, so we re-build it as in TCP. */
 	do {
 		uint8_t header[4];
 		struct fd_cnx_rcvdata rcv_data;
@@ -1024,8 +1063,13 @@ static void * rcvthr_tls_single(void * arg)
 }
 
 /* Prepare a gnutls session object for handshake */
-int fd_tls_prepare(gnutls_session_t * session, int mode, char * priority, void * alt_creds)
+int fd_tls_prepare(gnutls_session_t * session, int mode, int dtls, char * priority, void * alt_creds)
 {
+	if (dtls) {
+		LOG_E("DTLS sessions not yet supported");
+		return ENOTSUP;
+	}
+
 	/* Create the session context */
 	CHECK_GNUTLS_DO( gnutls_init (session, mode), return ENOMEM );
 
@@ -1065,17 +1109,18 @@ int fd_tls_verify_credentials(gnutls_session_t session, struct cnxctx * conn, in
 	CHECK_PARAMS(conn);
 	
 	/* Trace the session information -- http://www.gnu.org/software/gnutls/manual/gnutls.html#Obtaining-session-information */
-	if (verbose && TRACE_BOOL(FULL)) {
+	#ifdef DEBUG
+	if (verbose) {
 		const char *tmp;
 		gnutls_kx_algorithm_t kx;
   		gnutls_credentials_type_t cred;
 		
-		fd_log_debug("TLS Session information for connection '%s':", conn->cc_id);
+		LOG_A("TLS Session information for connection '%s':", conn->cc_id);
 
 		/* print the key exchange's algorithm name */
 		GNUTLS_TRACE( kx = gnutls_kx_get (session) );
 		GNUTLS_TRACE( tmp = gnutls_kx_get_name (kx) );
-		fd_log_debug("\t - Key Exchange: %s", tmp);
+		LOG_A("\t - Key Exchange: %s", tmp);
 
 		/* Check the authentication type used and switch
 		* to the appropriate. */
@@ -1083,35 +1128,35 @@ int fd_tls_verify_credentials(gnutls_session_t session, struct cnxctx * conn, in
 		switch (cred)
 		{
 			case GNUTLS_CRD_IA:
-				fd_log_debug("\t - TLS/IA session");
+				LOG_A("\t - TLS/IA session");
 				break;
 
 			case GNUTLS_CRD_PSK:
 				/* This returns NULL in server side. */
 				if (gnutls_psk_client_get_hint (session) != NULL)
-					fd_log_debug("\t - PSK authentication. PSK hint '%s'",
+					LOG_A("\t - PSK authentication. PSK hint '%s'",
 						gnutls_psk_client_get_hint (session));
 				/* This returns NULL in client side. */
 				if (gnutls_psk_server_get_username (session) != NULL)
-					fd_log_debug("\t - PSK authentication. Connected as '%s'",
+					LOG_A("\t - PSK authentication. Connected as '%s'",
 						gnutls_psk_server_get_username (session));
 				break;
 
 			case GNUTLS_CRD_ANON:	/* anonymous authentication */
-				fd_log_debug("\t - Anonymous DH using prime of %d bits",
+				LOG_A("\t - Anonymous DH using prime of %d bits",
 					gnutls_dh_get_prime_bits (session));
 				break;
 
 			case GNUTLS_CRD_CERTIFICATE:	/* certificate authentication */
 				/* Check if we have been using ephemeral Diffie-Hellman. */
 				if (kx == GNUTLS_KX_DHE_RSA || kx == GNUTLS_KX_DHE_DSS) {
-					fd_log_debug("\t - Ephemeral DH using prime of %d bits",
+					LOG_A("\t - Ephemeral DH using prime of %d bits",
 						gnutls_dh_get_prime_bits (session));
 				}
 				break;
 #ifdef ENABLE_SRP				
 			case GNUTLS_CRD_SRP:
-				fd_log_debug("\t - SRP session with username %s",
+				LOG_A("\t - SRP session with username %s",
 					gnutls_srp_server_get_username (session));
 				break;
 #endif /* ENABLE_SRP */
@@ -1124,24 +1169,25 @@ int fd_tls_verify_credentials(gnutls_session_t session, struct cnxctx * conn, in
 
 		/* print the protocol's name (ie TLS 1.0) */
 		tmp = gnutls_protocol_get_name (gnutls_protocol_get_version (session));
-		fd_log_debug("\t - Protocol: %s", tmp);
+		LOG_A("\t - Protocol: %s", tmp);
 
 		/* print the certificate type of the peer. ie X.509 */
 		tmp = gnutls_certificate_type_get_name (gnutls_certificate_type_get (session));
-		fd_log_debug("\t - Certificate Type: %s", tmp);
+		LOG_A("\t - Certificate Type: %s", tmp);
 
 		/* print the compression algorithm (if any) */
 		tmp = gnutls_compression_get_name (gnutls_compression_get (session));
-		fd_log_debug("\t - Compression: %s", tmp);
+		LOG_A("\t - Compression: %s", tmp);
 
 		/* print the name of the cipher used. ie 3DES. */
 		tmp = gnutls_cipher_get_name (gnutls_cipher_get (session));
-		fd_log_debug("\t - Cipher: %s", tmp);
+		LOG_A("\t - Cipher: %s", tmp);
 
 		/* Print the MAC algorithms name. ie SHA1 */
 		tmp = gnutls_mac_get_name (gnutls_mac_get (session));
-		fd_log_debug("\t - MAC: %s", tmp);
+		LOG_A("\t - MAC: %s", tmp);
 	}
+	#endif /* DEBUG */
 	
 	/* First, use built-in verification */
 	CHECK_GNUTLS_DO( gnutls_certificate_verify_peers2 (session, &gtret), return EINVAL );
@@ -1172,27 +1218,27 @@ int fd_tls_verify_credentials(gnutls_session_t session, struct cnxctx * conn, in
 	
 	now = time(NULL);
 	
-	if (verbose && TRACE_BOOL(FULL)) {
+	#ifdef DEBUG
 		char serial[40];
 		char dn[128];
 		size_t size;
 		unsigned int algo, bits;
 		time_t expiration_time, activation_time;
 		
-		fd_log_debug("TLS Certificate information for connection '%s' (%d certs provided):", conn->cc_id, cert_list_size);
+		LOG_D("TLS Certificate information for connection '%s' (%d certs provided):", conn->cc_id, cert_list_size);
 		for (i = 0; i < cert_list_size; i++)
 		{
 
 			CHECK_GNUTLS_DO( gnutls_x509_crt_init (&cert), return EINVAL);
 			CHECK_GNUTLS_DO( gnutls_x509_crt_import (cert, &cert_list[i], GNUTLS_X509_FMT_DER), return EINVAL);
 		
-			fd_log_debug(" Certificate %d info:", i);
+			LOG_A(" Certificate %d info:", i);
 
 			GNUTLS_TRACE( expiration_time = gnutls_x509_crt_get_expiration_time (cert) );
 			GNUTLS_TRACE( activation_time = gnutls_x509_crt_get_activation_time (cert) );
 
-			fd_log_debug("\t - Certificate is valid since: %s", ctime (&activation_time));
-			fd_log_debug("\t - Certificate expires: %s", ctime (&expiration_time));
+			LOG( i ? FD_LOG_ANNOYING : FD_LOG_DEBUG, "\t - Certificate is valid since: %.24s", ctime (&activation_time));
+			LOG( i ? FD_LOG_ANNOYING : FD_LOG_DEBUG, "\t - Certificate expires: %.24s", ctime (&expiration_time));
 
 			/* Print the serial number of the certificate. */
 			size = sizeof (serial);
@@ -1205,29 +1251,29 @@ int fd_tls_verify_credentials(gnutls_session_t session, struct cnxctx * conn, in
 				for (j = 0; j < size; j++) {
 					snprintf(buf+strlen(buf), sizeof(buf)-strlen(buf), "%02hhx", serial[j]);
 				}
-				fd_log_debug("%s", buf);
+				LOG( i ? FD_LOG_ANNOYING : FD_LOG_DEBUG, "%s", buf);
 			}
 
 			/* Extract some of the public key algorithm's parameters */
 			GNUTLS_TRACE( algo = gnutls_x509_crt_get_pk_algorithm (cert, &bits) );
-			fd_log_debug("\t - Certificate public key: %s",
+			LOG( i ? FD_LOG_ANNOYING : FD_LOG_DEBUG, "\t - Certificate public key: %s",
 			      gnutls_pk_algorithm_get_name (algo));
 
 			/* Print the version of the X.509 certificate. */
-			fd_log_debug("\t - Certificate version: #%d",
+			LOG( i ? FD_LOG_ANNOYING : FD_LOG_DEBUG, "\t - Certificate version: #%d",
 			      gnutls_x509_crt_get_version (cert));
 
 			size = sizeof (dn);
 			GNUTLS_TRACE( gnutls_x509_crt_get_dn (cert, dn, &size) );
-			fd_log_debug("\t - DN: %s", dn);
+			LOG( i ? FD_LOG_ANNOYING : FD_LOG_DEBUG, "\t - DN: %s", dn);
 
 			size = sizeof (dn);
 			GNUTLS_TRACE( gnutls_x509_crt_get_issuer_dn (cert, dn, &size) );
-			fd_log_debug("\t - Issuer's DN: %s", dn);
+			LOG( i ? FD_LOG_ANNOYING : FD_LOG_DEBUG, "\t - Issuer's DN: %s", dn);
 
 			GNUTLS_TRACE( gnutls_x509_crt_deinit (cert) );
 		}
-	}
+	#endif /* DEBUG */
 
 	/* Check validity of all the certificates */
 	for (i = 0; i < cert_list_size; i++)
@@ -1290,7 +1336,7 @@ int fd_tls_verify_credentials_2(gnutls_session_t session)
 	conn = gnutls_session_get_ptr (session);
 	
 	/* Trace the session information -- http://www.gnu.org/software/gnutls/manual/gnutls.html#Obtaining-session-information */
-	if (TRACE_BOOL(FULL)) {
+#ifdef DEBUG
 		const char *tmp;
 		gnutls_credentials_type_t cred;
 		gnutls_kx_algorithm_t kx;
@@ -1298,13 +1344,13 @@ int fd_tls_verify_credentials_2(gnutls_session_t session)
 
 		dhe = ecdh = 0;
 
-		fd_log_debug("TLS Session information for connection '%s':", conn->cc_id);
+		LOG_A("TLS Session information for connection '%s':", conn->cc_id);
 		
 		/* print the key exchange's algorithm name
 		*/
 		GNUTLS_TRACE( kx = gnutls_kx_get (session) );
 		GNUTLS_TRACE( tmp = gnutls_kx_get_name (kx) );
-		fd_log_debug("\t- Key Exchange: %s", tmp);
+		LOG_A("\t- Key Exchange: %s", tmp);
 
 		/* Check the authentication type used and switch
 		* to the appropriate.
@@ -1313,13 +1359,13 @@ int fd_tls_verify_credentials_2(gnutls_session_t session)
 		switch (cred)
 		{
 			case GNUTLS_CRD_IA:
-				fd_log_debug("\t - TLS/IA session");
+				LOG_A("\t - TLS/IA session");
 				break;
 
 
 			#ifdef ENABLE_SRP
 			case GNUTLS_CRD_SRP:
-				fd_log_debug("\t - SRP session with username %s",
+				LOG_A("\t - SRP session with username %s",
 					gnutls_srp_server_get_username (session));
 				break;
 			#endif
@@ -1328,12 +1374,12 @@ int fd_tls_verify_credentials_2(gnutls_session_t session)
 				/* This returns NULL in server side.
 				*/
 				if (gnutls_psk_client_get_hint (session) != NULL)
-					fd_log_debug("\t - PSK authentication. PSK hint '%s'",
+					LOG_A("\t - PSK authentication. PSK hint '%s'",
 						gnutls_psk_client_get_hint (session));
 				/* This returns NULL in client side.
 				*/
 				if (gnutls_psk_server_get_username (session) != NULL)
-					fd_log_debug("\t - PSK authentication. Connected as '%s'",
+					LOG_A("\t - PSK authentication. Connected as '%s'",
 						gnutls_psk_server_get_username (session));
 
 				if (kx == GNUTLS_KX_ECDHE_PSK)
@@ -1343,7 +1389,7 @@ int fd_tls_verify_credentials_2(gnutls_session_t session)
 				break;
 
 			case GNUTLS_CRD_ANON:      /* anonymous authentication */
-				fd_log_debug("\t - Anonymous DH using prime of %d bits",
+				LOG_A("\t - Anonymous DH using prime of %d bits",
 					gnutls_dh_get_prime_bits (session));
 				if (kx == GNUTLS_KX_ANON_ECDH)
 					ecdh = 1;
@@ -1366,7 +1412,7 @@ int fd_tls_verify_credentials_2(gnutls_session_t session)
 
 					cert_list = gnutls_certificate_get_peers (session, &cert_list_size);
 
-					fd_log_debug("\t Peer provided %d certificates.", cert_list_size);
+					LOG_A("\t Peer provided %d certificates.", cert_list_size);
 
 					if (cert_list_size > 0)
 					{
@@ -1378,7 +1424,7 @@ int fd_tls_verify_credentials_2(gnutls_session_t session)
 
 						gnutls_x509_crt_import (cert, &cert_list[0], GNUTLS_X509_FMT_DER);
 
-						fd_log_debug("\t Certificate info:");
+												LOG_A("\t Certificate info:");
 
 						/* This is the preferred way of printing short information about
 						 a certificate. */
@@ -1386,7 +1432,7 @@ int fd_tls_verify_credentials_2(gnutls_session_t session)
 						ret = gnutls_x509_crt_print (cert, GNUTLS_CRT_PRINT_ONELINE, &cinfo);
 						if (ret == 0)
 						{
-						  fd_log_debug("\t\t%s", cinfo.data);
+						  LOG_A("\t\t%s", cinfo.data);
 						  gnutls_free (cinfo.data);
 						}
 						
@@ -1409,46 +1455,46 @@ int fd_tls_verify_credentials_2(gnutls_session_t session)
 				break;
 
 			default:
-				fd_log_debug("\t - unknown session type (%d)", cred);
+				LOG_A("\t - unknown session type (%d)", cred);
 
 		}                           /* switch */
 
 		if (ecdh != 0)
-			fd_log_debug("\t - Ephemeral ECDH using curve %s",
+			LOG_A("\t - Ephemeral ECDH using curve %s",
 				gnutls_ecc_curve_get_name (gnutls_ecc_curve_get (session)));
 		else if (dhe != 0)
-			fd_log_debug("\t - Ephemeral DH using prime of %d bits",
+			LOG_A("\t - Ephemeral DH using prime of %d bits",
 				gnutls_dh_get_prime_bits (session));
 
 		/* print the protocol's name (ie TLS 1.0) 
 		*/
 		tmp = gnutls_protocol_get_name (gnutls_protocol_get_version (session));
-		fd_log_debug("\t - Protocol: %s", tmp);
+		LOG_A("\t - Protocol: %s", tmp);
 
 		/* print the certificate type of the peer.
 		* ie X.509
 		*/
 		tmp = gnutls_certificate_type_get_name (gnutls_certificate_type_get (session));
-		fd_log_debug("\t - Certificate Type: %s", tmp);
+		LOG_A("\t - Certificate Type: %s", tmp);
 
 		/* print the compression algorithm (if any)
 		*/
 		tmp = gnutls_compression_get_name (gnutls_compression_get (session));
-		fd_log_debug("\t - Compression: %s", tmp);
+		LOG_A("\t - Compression: %s", tmp);
 
 		/* print the name of the cipher used.
 		* ie 3DES.
 		*/
 		tmp = gnutls_cipher_get_name (gnutls_cipher_get (session));
-		fd_log_debug("\t - Cipher: %s", tmp);
+		LOG_A("\t - Cipher: %s", tmp);
 
 		/* Print the MAC algorithms name.
 		* ie SHA1
 		*/
 		tmp = gnutls_mac_get_name (gnutls_mac_get (session));
-		fd_log_debug("\t - MAC: %s", tmp);
+		LOG_A("\t - MAC: %s", tmp);
 	
-	}
+#endif /* DEBUG */		
 
 	/* This verification function uses the trusted CAs in the credentials
 	* structure. So you must have installed one or more CA certificates.
@@ -1508,14 +1554,29 @@ int fd_tls_verify_credentials_2(gnutls_session_t session)
 
 #endif /* GNUTLS_VERSION_300 */
 
+static int fd_cnx_may_dtls(struct cnxctx * conn) {
+#ifndef DISABLE_SCTP
+	if ((conn->cc_proto == IPPROTO_SCTP) && (conn->cc_tls_para.algo == ALGO_HANDSHAKE_DEFAULT))
+		return 1;
+#endif /* DISABLE_SCTP */
+	return 0;
+}
+
+static int fd_cnx_uses_dtls(struct cnxctx * conn) {
+	return fd_cnx_may_dtls(conn) && (fd_cnx_teststate(conn, CC_STATUS_TLS));
+}
+
 /* TLS handshake a connection; no need to have called start_clear before. Reception is active if handhsake is successful */
-int fd_cnx_handshake(struct cnxctx * conn, int mode, char * priority, void * alt_creds)
+int fd_cnx_handshake(struct cnxctx * conn, int mode, int algo, char * priority, void * alt_creds)
 {
-	TRACE_ENTRY( "%p %d %p %p", conn, mode, priority, alt_creds);
+	int dtls = 0;
+	
+	TRACE_ENTRY( "%p %d %d %p %p", conn, mode, algo, priority, alt_creds);
 	CHECK_PARAMS( conn && (!fd_cnx_teststate(conn, CC_STATUS_TLS)) && ( (mode == GNUTLS_CLIENT) || (mode == GNUTLS_SERVER) ) && (!conn->cc_loop) );
 
 	/* Save the mode */
 	conn->cc_tls_para.mode = mode;
+	conn->cc_tls_para.algo = algo;
 	
 	/* Cancel receiving thread if any -- it should already be terminated anyway, we just release the resources */
 	CHECK_FCT_DO( fd_thr_term(&conn->cc_rcvthr), /* continue */);
@@ -1523,11 +1584,13 @@ int fd_cnx_handshake(struct cnxctx * conn, int mode, char * priority, void * alt
 	/* Once TLS handshake is done, we don't stop after the first message */
 	conn->cc_loop = 1;
 	
+	dtls = fd_cnx_may_dtls(conn);
+	
 	/* Prepare the master session credentials and priority */
-	CHECK_FCT( fd_tls_prepare(&conn->cc_tls_para.session, mode, priority, alt_creds) );
+	CHECK_FCT( fd_tls_prepare(&conn->cc_tls_para.session, mode, dtls, priority, alt_creds) );
 
 	/* Special case: multi-stream TLS is not natively managed in GNU TLS, we use a wrapper library */
-	if (conn->cc_sctp_para.pairs > 1) {
+	if ((!dtls) && (conn->cc_sctp_para.pairs > 1)) {
 #ifdef DISABLE_SCTP
 		ASSERT(0);
 		CHECK_FCT( ENOTSUP );
@@ -1540,8 +1603,13 @@ int fd_cnx_handshake(struct cnxctx * conn, int mode, char * priority, void * alt
 		GNUTLS_TRACE( gnutls_transport_set_ptr( conn->cc_tls_para.session, (gnutls_transport_ptr_t) conn ) );
 
 		/* Set the push and pull callbacks */
-		GNUTLS_TRACE( gnutls_transport_set_pull_function(conn->cc_tls_para.session, (void *)fd_cnx_s_recv) );
-		GNUTLS_TRACE( gnutls_transport_set_push_function(conn->cc_tls_para.session, (void *)fd_cnx_s_send) );
+		if (!dtls) {
+			GNUTLS_TRACE( gnutls_transport_set_pull_function(conn->cc_tls_para.session, (void *)fd_cnx_s_recv) );
+			GNUTLS_TRACE( gnutls_transport_set_push_function(conn->cc_tls_para.session, (void *)fd_cnx_s_send) );
+		} else {
+			TODO("DTLS push/pull functions");
+			return ENOTSUP;
+		}
 	}
 	
 	/* additional initialization for gnutls 3.x */
@@ -1588,9 +1656,9 @@ int fd_cnx_handshake(struct cnxctx * conn, int mode, char * priority, void * alt
 			});
 		#endif /* GNUTLS_VERSION_300 */
 	}
-
+	
 	/* Multi-stream TLS: handshake other streams as well */
-	if (conn->cc_sctp_para.pairs > 1) {
+	if ((!dtls) && (conn->cc_sctp_para.pairs > 1)) {
 #ifndef DISABLE_SCTP
 		/* Start reading the messages from the master session. That way, if the remote peer closed, we are not stuck inside handshake */
 		CHECK_FCT(fd_sctp3436_startthreads(conn, 0));
@@ -1603,7 +1671,13 @@ int fd_cnx_handshake(struct cnxctx * conn, int mode, char * priority, void * alt
 #endif /* DISABLE_SCTP */
 	} else {
 		/* Start decrypting the data */
-		CHECK_POSIX( pthread_create( &conn->cc_rcvthr, NULL, rcvthr_tls_single, conn ) );
+		if (!dtls) {
+			CHECK_POSIX( pthread_create( &conn->cc_rcvthr, NULL, rcvthr_tls_single, conn ) );
+		} else {
+			TODO("Signal the dtls_push function that multiple streams can be used from this point.");
+			TODO("Create DTLS rcvthr (must reassembly based on seq numbers & stream id ?)");
+			return ENOTSUP;
+		}
 	}
 	
 	return 0;
@@ -1736,40 +1810,49 @@ int fd_cnx_send(struct cnxctx * conn, unsigned char * buf, size_t len, uint32_t 
 		
 #ifndef DISABLE_SCTP
 		case IPPROTO_SCTP: {
-			if (flags & FD_CNX_ORDERED) {
-				/* We send over stream #0 */
-				CHECK_FCT( send_simple(conn, buf, len) );
-			} else {
-				/* Default case : no flag specified */
-			
-				int another_str = 0; /* do we send over stream #0 ? */
-				
-				if ((conn->cc_sctp_para.str_out > 1) && ((!fd_cnx_teststate(conn, CC_STATUS_TLS)) || (conn->cc_sctp_para.pairs > 1)))  {
-					/* Update the id of the stream we will send this message over */
-					conn->cc_sctp_para.next += 1;
-					conn->cc_sctp_para.next %= (fd_cnx_teststate(conn, CC_STATUS_TLS) ? conn->cc_sctp_para.pairs : conn->cc_sctp_para.str_out);
-					another_str = (conn->cc_sctp_para.next ? 1 : 0);
-				}
+			int dtls = fd_cnx_uses_dtls(conn);
 
-				if ( ! another_str ) {
+			if (!dtls) {
+				if (flags & FD_CNX_ORDERED) {
+					/* We send over stream #0 */
 					CHECK_FCT( send_simple(conn, buf, len) );
 				} else {
-					if (!fd_cnx_teststate(conn, CC_STATUS_TLS)) {
-						CHECK_FCT_DO( fd_sctp_sendstr(conn, conn->cc_sctp_para.next, buf, len), { fd_cnx_markerror(conn); return ENOTCONN; } );
-					} else {
-						/* push the record to the appropriate session */
-						ssize_t ret;
-						size_t sent = 0;
-						ASSERT(conn->cc_sctp3436_data.array != NULL);
-						do {
-							CHECK_GNUTLS_DO( ret = fd_tls_send_handle_error(conn, conn->cc_sctp3436_data.array[conn->cc_sctp_para.next].session, buf + sent, len - sent), );
-							if (ret <= 0)
-								return ENOTCONN;
+					/* Default case : no flag specified */
+			
+					int another_str = 0; /* do we send over stream #0 ? */
 
-							sent += ret;
-						} while ( sent < len );
+					if ((conn->cc_sctp_para.str_out > 1) && ((!fd_cnx_teststate(conn, CC_STATUS_TLS)) || (conn->cc_sctp_para.pairs > 1)))  {
+						/* Update the id of the stream we will send this message over */
+						conn->cc_sctp_para.next += 1;
+						conn->cc_sctp_para.next %= (fd_cnx_teststate(conn, CC_STATUS_TLS) ? conn->cc_sctp_para.pairs : conn->cc_sctp_para.str_out);
+						another_str = (conn->cc_sctp_para.next ? 1 : 0);
+					}
+
+					if ( ! another_str ) {
+						CHECK_FCT( send_simple(conn, buf, len) );
+					} else {
+						if (!fd_cnx_teststate(conn, CC_STATUS_TLS)) {
+							CHECK_FCT_DO( fd_sctp_sendstr(conn, conn->cc_sctp_para.next, buf, len), { fd_cnx_markerror(conn); return ENOTCONN; } );
+						} else {
+							/* push the record to the appropriate session */
+							ssize_t ret;
+							size_t sent = 0;
+							ASSERT(conn->cc_sctp3436_data.array != NULL);
+							do {
+								CHECK_GNUTLS_DO( ret = fd_tls_send_handle_error(conn, conn->cc_sctp3436_data.array[conn->cc_sctp_para.next].session, buf + sent, len - sent), );
+								if (ret <= 0)
+									return ENOTCONN;
+
+								sent += ret;
+							} while ( sent < len );
+						}
 					}
 				}
+			} else {
+				/* DTLS */
+				/* We signal the push function directly to tell if using stream 0 or round-robin */
+				TODO("DTLS send");
+				return ENOTSUP;
 			}
 		}
 		break;
@@ -1801,7 +1884,8 @@ void fd_cnx_destroy(struct cnxctx * conn)
 	/* Initiate shutdown of the TLS session(s): call gnutls_bye(WR), then read until error */
 	if (fd_cnx_teststate(conn, CC_STATUS_TLS)) {
 #ifndef DISABLE_SCTP
-		if (conn->cc_sctp_para.pairs > 1) {
+		int dtls = fd_cnx_uses_dtls(conn);
+		if ((!dtls) && (conn->cc_sctp_para.pairs > 1)) {
 			if (! fd_cnx_teststate(conn, CC_STATUS_ERROR )) {
 				/* Bye on master session */
 				CHECK_GNUTLS_DO( gnutls_bye(conn->cc_tls_para.session, GNUTLS_SHUT_WR), fd_cnx_markerror(conn) );

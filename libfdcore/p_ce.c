@@ -785,7 +785,7 @@ int fd_p_ce_msgrcv(struct msg ** msg, int req, struct fd_peer * peer)
 			
 		} else {
 			fd_psm_change_state(peer, STATE_OPEN_HANDSHAKE);
-			CHECK_FCT_DO( fd_cnx_handshake(peer->p_cnxctx, GNUTLS_CLIENT, peer->p_hdr.info.config.pic_priority, NULL),
+			CHECK_FCT_DO( fd_cnx_handshake(peer->p_cnxctx, GNUTLS_CLIENT, ALGO_HANDSHAKE_3436, peer->p_hdr.info.config.pic_priority, NULL),
 				{
 					/* Handshake failed ...  */
 					fd_hook_call(HOOK_PEER_CONNECT_FAILED, NULL, peer, "TLS handshake failed after CER/CEA exchange", NULL);
@@ -954,7 +954,7 @@ int fd_p_ce_process_receiver(struct fd_peer * peer)
 	/* Handshake if needed */
 	if (isi & PI_SEC_TLS_OLD) {
 		fd_psm_change_state(peer, STATE_OPEN_HANDSHAKE);
-		CHECK_FCT_DO( fd_cnx_handshake(peer->p_cnxctx, GNUTLS_SERVER, peer->p_hdr.info.config.pic_priority, NULL),
+		CHECK_FCT_DO( fd_cnx_handshake(peer->p_cnxctx, GNUTLS_SERVER, ALGO_HANDSHAKE_3436, peer->p_hdr.info.config.pic_priority, NULL),
 			{
 				/* Handshake failed ...  */
 				fd_hook_call(HOOK_PEER_CONNECT_FAILED, NULL, peer, "TLS handshake failed after CER/CEA exchange", NULL);

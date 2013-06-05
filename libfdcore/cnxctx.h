@@ -40,7 +40,7 @@
 
 /* The connection context structure */
 struct cnxctx {
-	char		cc_id[60];	/* The name of this connection */
+	char		cc_id[60];	/* The name of this connection. the first 5 chars are reserved for flags display (cc_state). */
 	char		cc_remid[60];	/* Id of remote peer */
 	
 	int 		cc_socket;	/* The socket object of the connection -- <=0 if no socket is created */
@@ -64,6 +64,7 @@ struct cnxctx {
 	struct {
 		DiamId_t 			 cn;		/* If not NULL, remote certif will be checked to match this Common Name */
 		int				 mode; 		/* GNUTLS_CLIENT / GNUTLS_SERVER */
+		int				 algo;		/* ALGO_HANDSHAKE_DEFAULT / ALGO_HANDSHAKE_3436 */
 		gnutls_session_t 		 session;	/* Session object (stream #0 in case of SCTP) */
 	}		cc_tls_para;
 
@@ -96,7 +97,7 @@ void fd_cnx_s_setto(int sock);
 
 /* TLS */
 int fd_tls_rcvthr_core(struct cnxctx * conn, gnutls_session_t session);
-int fd_tls_prepare(gnutls_session_t * session, int mode, char * priority, void * alt_creds);
+int fd_tls_prepare(gnutls_session_t * session, int mode, int dtls, char * priority, void * alt_creds);
 #ifndef GNUTLS_VERSION_300
 int fd_tls_verify_credentials(gnutls_session_t session, struct cnxctx * conn, int verbose);
 #endif /* GNUTLS_VERSION_300 */

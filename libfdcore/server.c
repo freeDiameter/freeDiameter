@@ -53,7 +53,7 @@ struct server {
 
 	struct cnxctx *	conn;		/* server connection context (listening socket) */
 	int 		proto;		/* IPPROTO_TCP or IPPROTO_SCTP */
-	int 		secur;		/* TLS is started immediatly after connection ? */
+	int 		secur;		/* TLS is started immediatly after connection ? 0: no; 1: yes (TLS/TCP or DTLS/SCTP); 2: yes (TLS/TCP or TLS/SCTP) */
 	
 	pthread_t	thr;		/* The thread listening for new connections */
 	enum s_state	state;		/* state of the thread */
@@ -104,9 +104,9 @@ DECLARE_FD_DUMP_PROTOTYPE(fd_servers_dump, int details)
 		enum s_state st = get_status(s);
 		
 		if (details) {
-			CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "{server}(@%p)'%s': %s, %s, %s", s, fd_cnx_getid(s->conn), 
+			CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "{server}(@%p)'%s': %s, %s(%d), %s", s, fd_cnx_getid(s->conn), 
 					IPPROTO_NAME( s->proto ),
-					s->secur ? "Secur" : "NotSecur",
+					s->secur ? "Secur" : "NotSecur", s->secur,
 					(st == NOT_CREATED) ? "Thread not created" :
 					((st == RUNNING) ? "Thread running" :
 					((st == TERMINATED) ? "Thread terminated" :
@@ -146,7 +146,10 @@ static void * client_sm(void * arg)
 	
 	TRACE_ENTRY("%p", c);
 	
+	memset(&rcv_data, 0, sizeof(rcv_data));
+	
 	CHECK_PARAMS_DO(c && c->conn && c->chain.head, goto fatal_error );
+	
 	
 	s = c->chain.head->o;
 	
@@ -155,7 +158,7 @@ static void * client_sm(void * arg)
 	
 	/* Handshake if we are a secure server port, or start clear otherwise */
 	if (s->secur) {
-		int ret = fd_cnx_handshake(c->conn, GNUTLS_SERVER, NULL, NULL);
+		int ret = fd_cnx_handshake(c->conn, GNUTLS_SERVER, (s->secur == 1) ? ALGO_HANDSHAKE_DEFAULT : ALGO_HANDSHAKE_3436, NULL, NULL);
 		if (ret != 0) {
 			char buf[1024];
 			snprintf(buf, sizeof(buf), "TLS handshake failed for client '%s', connection aborted.", fd_cnx_getid(c->conn));
@@ -359,6 +362,14 @@ int fd_servers_start()
 		if (fd_g_config->cnf_port_tls) {
 			CHECK_MALLOC( s = new_serv(IPPROTO_SCTP, 1) );
 			CHECK_MALLOC( s->conn = fd_cnx_serv_sctp(fd_g_config->cnf_port_tls, empty_conf_ep ? NULL : &fd_g_config->cnf_endpoints) );
+			fd_list_insert_before( &FD_SERVERS, &s->chain );
+			CHECK_POSIX( pthread_create( &s->thr, NULL, serv_th, s ) );
+		}
+		
+		/* Create the other server on 3436 secure port */
+		if (fd_g_config->cnf_port_3436) {
+			CHECK_MALLOC( s = new_serv(IPPROTO_SCTP, 2) );
+			CHECK_MALLOC( s->conn = fd_cnx_serv_sctp(fd_g_config->cnf_port_3436, empty_conf_ep ? NULL : &fd_g_config->cnf_endpoints) );
 			fd_list_insert_before( &FD_SERVERS, &s->chain );
 			CHECK_POSIX( pthread_create( &s->thr, NULL, serv_th, s ) );
 		}

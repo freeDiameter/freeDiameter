@@ -784,7 +784,7 @@ psm_loop:
 		switch (cur_state) {
 			case STATE_WAITCNXACK_ELEC:
 			case STATE_WAITCNXACK:
-				LOG_D("%s: Connection established", peer->p_hdr.info.pi_diamid);
+				LOG_D("%s: Connection established, %s", peer->p_hdr.info.pi_diamid, fd_cnx_getid(cnx));
 				fd_p_ce_handle_newcnx(peer, cnx);
 				break;
 				

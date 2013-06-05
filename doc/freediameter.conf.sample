@@ -35,7 +35,8 @@
 
 # freeDiameter 1.2.0 introduces the support of DTLS over SCTP (RFC6083) instead of TLS over SCTP (RFC3436), 
 # as specified in RFC6733. If you need compatibility with older implementation that use TLS over SCTP, you 
-# can open an additional SCTP server port using this method:
+# can open an additional SCTP server port using TLS/SCTP by specifying the following parameter.
+# Note that no TCP server is started on the following port.
 # Default: 0 (disabled). Use 3869 for compatibility with freeDiameter < 1.2.0.
 #SctpSec3436 = 0;
 

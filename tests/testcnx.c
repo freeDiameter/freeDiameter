@@ -548,6 +548,7 @@ static void * connect_thr(void * arg)
 struct handshake_flags {
 	struct cnxctx * cnx;
 	gnutls_certificate_credentials_t	creds;
+	int algo;
 	int ret;
 };
 
@@ -556,7 +557,7 @@ static void * handshake_thr(void * arg)
 {
 	struct handshake_flags * hf = arg;
 	fd_log_threadname ( "testcnx:handshake" );
-	hf->ret = fd_cnx_handshake(hf->cnx, GNUTLS_CLIENT, NULL, hf->creds);
+	hf->ret = fd_cnx_handshake(hf->cnx, GNUTLS_CLIENT, hf->algo, NULL, hf->creds);
 	return NULL;
 }
 
@@ -863,7 +864,7 @@ int main(int argc, char *argv[])
 		
 		/* At this point in legacy Diameter we start the handshake */
 		CHECK( 0, pthread_create(&thr, NULL, handshake_thr, &hf) );
-		CHECK( 0, fd_cnx_handshake(server_side, GNUTLS_SERVER, NULL, NULL) );
+		CHECK( 0, fd_cnx_handshake(server_side, GNUTLS_SERVER, ALGO_HANDSHAKE_DEFAULT /* No impact on TCP */, NULL, NULL) );
 		CHECK( 0, pthread_join(thr, NULL) );
 		CHECK( 0, hf.ret );
 		
@@ -904,6 +905,7 @@ int main(int argc, char *argv[])
 		cf.proto = IPPROTO_SCTP;
 		
 		memset(&hf, 0, sizeof(hf));
+		hf.algo = ALGO_HANDSHAKE_3436; /* this is mandatory for old TLS mechanism */
 		
 		/* Initialize remote certificate */
 		CHECK_GNUTLS_DO( ret = gnutls_certificate_allocate_credentials (&hf.creds), );
@@ -948,7 +950,7 @@ int main(int argc, char *argv[])
 		
 		/* At this point in legacy Diameter we start the handshake */
 		CHECK( 0, pthread_create(&thr, NULL, handshake_thr, &hf) );
-		CHECK( 0, fd_cnx_handshake(server_side, GNUTLS_SERVER, NULL, NULL) );
+		CHECK( 0, fd_cnx_handshake(server_side, GNUTLS_SERVER, ALGO_HANDSHAKE_3436, NULL, NULL) );
 		CHECK( 0, pthread_join(thr, NULL) );
 		CHECK( 0, hf.ret );
 		
@@ -1014,7 +1016,7 @@ int main(int argc, char *argv[])
 		
 		/* Start the handshake directly */
 		CHECK( 0, pthread_create(&thr, NULL, handshake_thr, &hf) );
-		CHECK( 0, fd_cnx_handshake(server_side, GNUTLS_SERVER, NULL, NULL) );
+		CHECK( 0, fd_cnx_handshake(server_side, GNUTLS_SERVER, ALGO_HANDSHAKE_DEFAULT, NULL, NULL) );
 		CHECK( 0, pthread_join(thr, NULL) );
 		CHECK( 0, hf.ret );
 		
@@ -1045,7 +1047,11 @@ int main(int argc, char *argv[])
 	}
 	
 #ifndef DISABLE_SCTP
-	/* SCTP Client / server emulating new Diameter behavior (handshake at connection directly) */
+	
+	
+	/* SCTP Client / server emulating new Diameter behavior (DTLS handshake at connection directly) */
+	TODO("Enabled after DTLS implementation");
+	if (0)
 	{
 		struct connect_flags cf;
 		struct handshake_flags hf;
@@ -1079,7 +1085,73 @@ int main(int argc, char *argv[])
 		
 		/* Start the handshake directly */
 		CHECK( 0, pthread_create(&thr, NULL, handshake_thr, &hf) );
-		CHECK( 0, fd_cnx_handshake(server_side, GNUTLS_SERVER, NULL, NULL) );
+		CHECK( 0, fd_cnx_handshake(server_side, GNUTLS_SERVER, ALGO_HANDSHAKE_DEFAULT, NULL, NULL) );
+		CHECK( 0, pthread_join(thr, NULL) );
+		CHECK( 0, hf.ret );
+		
+		/* Send a few TLS protected messages, and replies */
+		for (i = 0; i < 2 * NB_STREAMS; i++) {
+			CHECK( 0, fd_cnx_send(server_side, cer_buf, cer_sz, 0));
+			CHECK( 0, fd_cnx_receive(client_side, NULL, &rcv_buf, &rcv_sz));
+			CHECK( cer_sz, rcv_sz );
+			CHECK( 0, memcmp( rcv_buf, cer_buf, cer_sz ) );
+			free(rcv_buf);
+
+			CHECK( 0, fd_cnx_send(client_side, cer_buf, cer_sz, 0));
+			CHECK( 0, fd_cnx_receive(server_side, NULL, &rcv_buf, &rcv_sz));
+			CHECK( cer_sz, rcv_sz );
+			CHECK( 0, memcmp( rcv_buf, cer_buf, cer_sz ) );
+			free(rcv_buf);
+		}
+		
+		
+		/* Now close the connection */
+		CHECK( 0, pthread_create(&thr, NULL, destroy_thr, client_side) );
+		fd_cnx_destroy(server_side);
+		CHECK( 0, pthread_join(thr, NULL) );
+		
+		/* Free the credentials */
+		gnutls_certificate_free_keys(hf.creds);
+		gnutls_certificate_free_cas(hf.creds);
+		gnutls_certificate_free_credentials(hf.creds);
+	}
+	
+	/* SCTP Client / server emulating old intermediary Diameter behavior (TLS handshake at connection directly) */
+	{
+		struct connect_flags cf;
+		struct handshake_flags hf;
+		
+		memset(&cf, 0, sizeof(cf));
+		cf.proto = IPPROTO_SCTP;
+		
+		memset(&hf, 0, sizeof(hf));
+		hf.algo = ALGO_HANDSHAKE_3436; /* this is mandatory for old TLS mechanism */
+		
+		/* Initialize remote certificate */
+		CHECK_GNUTLS_DO( ret = gnutls_certificate_allocate_credentials (&hf.creds), );
+		CHECK( GNUTLS_E_SUCCESS, ret );
+		/* Set the CA */
+		CHECK_GNUTLS_DO( ret = gnutls_certificate_set_x509_trust_mem( hf.creds, &ca, GNUTLS_X509_FMT_PEM), );
+		CHECK( 1, ret );
+		/* Set the key */
+		CHECK_GNUTLS_DO( ret = gnutls_certificate_set_x509_key_mem( hf.creds, &client_cert, &client_priv, GNUTLS_X509_FMT_PEM), );
+		CHECK( GNUTLS_E_SUCCESS, ret );
+		
+		/* Start the client thread */
+		CHECK( 0, pthread_create(&thr, NULL, connect_thr, &cf) );
+
+		/* Accept the connection of the client */
+		server_side = fd_cnx_serv_accept(listener_sctp);
+		CHECK( 1, server_side ? 1 : 0 );
+		
+		/* Retrieve the client connection object */
+		CHECK( 0, pthread_join( thr, (void *)&client_side ) );
+		CHECK( 1, client_side ? 1 : 0 );
+		hf.cnx = client_side;
+		
+		/* Start the handshake directly */
+		CHECK( 0, pthread_create(&thr, NULL, handshake_thr, &hf) );
+		CHECK( 0, fd_cnx_handshake(server_side, GNUTLS_SERVER, ALGO_HANDSHAKE_3436, NULL, NULL) );
 		CHECK( 0, pthread_join(thr, NULL) );
 		CHECK( 0, hf.ret );
 		
@@ -1113,6 +1185,9 @@ int main(int argc, char *argv[])
 	
 	/* Test with different number of streams between server and client */
 #ifndef DISABLE_SCTP
+	/* DTLS / SCTP style */
+	TODO("Enabled after DTLS implementation");
+	if (0)
 	{
 		struct connect_flags cf;
 		struct handshake_flags hf;
@@ -1147,7 +1222,7 @@ int main(int argc, char *argv[])
 		
 		/* Start the handshake directly */
 		CHECK( 0, pthread_create(&thr, NULL, handshake_thr, &hf) );
-		CHECK( 0, fd_cnx_handshake(server_side, GNUTLS_SERVER, NULL, NULL) );
+		CHECK( 0, fd_cnx_handshake(server_side, GNUTLS_SERVER, ALGO_HANDSHAKE_DEFAULT, NULL, NULL) );
 		CHECK( 0, pthread_join(thr, NULL) );
 		CHECK( 0, hf.ret );
 		
@@ -1186,7 +1261,7 @@ int main(int argc, char *argv[])
 		
 		/* Start the handshake directly */
 		CHECK( 0, pthread_create(&thr, NULL, handshake_thr, &hf) );
-		CHECK( 0, fd_cnx_handshake(server_side, GNUTLS_SERVER, NULL, NULL) );
+		CHECK( 0, fd_cnx_handshake(server_side, GNUTLS_SERVER, ALGO_HANDSHAKE_DEFAULT, NULL, NULL) );
 		CHECK( 0, pthread_join(thr, NULL) );
 		CHECK( 0, hf.ret );
 		
@@ -1216,6 +1291,113 @@ int main(int argc, char *argv[])
 		gnutls_certificate_free_cas(hf.creds);
 		gnutls_certificate_free_credentials(hf.creds);
 	}
+	
+	/* TLS / SCTP style */
+	{
+		struct connect_flags cf;
+		struct handshake_flags hf;
+		
+		memset(&cf, 0, sizeof(cf));
+		cf.proto = IPPROTO_SCTP;
+		
+		memset(&hf, 0, sizeof(hf));
+		hf.algo = ALGO_HANDSHAKE_3436;
+		
+		/* Initialize remote certificate */
+		CHECK_GNUTLS_DO( ret = gnutls_certificate_allocate_credentials (&hf.creds), );
+		CHECK( GNUTLS_E_SUCCESS, ret );
+		/* Set the CA */
+		CHECK_GNUTLS_DO( ret = gnutls_certificate_set_x509_trust_mem( hf.creds, &ca, GNUTLS_X509_FMT_PEM), );
+		CHECK( 1, ret );
+		/* Set the key */
+		CHECK_GNUTLS_DO( ret = gnutls_certificate_set_x509_key_mem( hf.creds, &client_cert, &client_priv, GNUTLS_X509_FMT_PEM), );
+		CHECK( GNUTLS_E_SUCCESS, ret );
+		
+		/* Start the client thread with more streams than the server */
+		fd_g_config->cnf_sctp_str = 2 * NB_STREAMS;
+		CHECK( 0, pthread_create(&thr, NULL, connect_thr, &cf) );
+
+		/* Accept the connection of the client */
+		server_side = fd_cnx_serv_accept(listener_sctp);
+		CHECK( 1, server_side ? 1 : 0 );
+		
+		/* Retrieve the client connection object */
+		CHECK( 0, pthread_join( thr, (void *)&client_side ) );
+		CHECK( 1, client_side ? 1 : 0 );
+		hf.cnx = client_side;
+		
+		/* Start the handshake directly */
+		CHECK( 0, pthread_create(&thr, NULL, handshake_thr, &hf) );
+		CHECK( 0, fd_cnx_handshake(server_side, GNUTLS_SERVER, ALGO_HANDSHAKE_3436, NULL, NULL) );
+		CHECK( 0, pthread_join(thr, NULL) );
+		CHECK( 0, hf.ret );
+		
+		/* Send a few TLS protected message, and replies */
+		for (i = 0; i < 4 * NB_STREAMS; i++) {
+			CHECK( 0, fd_cnx_send(server_side, cer_buf, cer_sz, 0));
+			CHECK( 0, fd_cnx_receive(client_side, NULL, &rcv_buf, &rcv_sz));
+			CHECK( cer_sz, rcv_sz );
+			CHECK( 0, memcmp( rcv_buf, cer_buf, cer_sz ) );
+			free(rcv_buf);
+
+			CHECK( 0, fd_cnx_send(client_side, cer_buf, cer_sz, 0));
+			CHECK( 0, fd_cnx_receive(server_side, NULL, &rcv_buf, &rcv_sz));
+			CHECK( cer_sz, rcv_sz );
+			CHECK( 0, memcmp( rcv_buf, cer_buf, cer_sz ) );
+			free(rcv_buf);
+		}
+		
+		/* Now close the connection */
+		CHECK( 0, pthread_create(&thr, NULL, destroy_thr, client_side) );
+		fd_cnx_destroy(server_side);
+		CHECK( 0, pthread_join(thr, NULL) );
+		
+		/* Do the same test but with more streams on the server this time */
+		fd_g_config->cnf_sctp_str = NB_STREAMS / 2;
+		CHECK( 0, pthread_create(&thr, NULL, connect_thr, &cf) );
+
+		/* Accept the connection of the client */
+		server_side = fd_cnx_serv_accept(listener_sctp);
+		CHECK( 1, server_side ? 1 : 0 );
+		
+		/* Retrieve the client connection object */
+		CHECK( 0, pthread_join( thr, (void *)&client_side ) );
+		CHECK( 1, client_side ? 1 : 0 );
+		hf.cnx = client_side;
+		
+		/* Start the handshake directly */
+		CHECK( 0, pthread_create(&thr, NULL, handshake_thr, &hf) );
+		CHECK( 0, fd_cnx_handshake(server_side, GNUTLS_SERVER, ALGO_HANDSHAKE_3436, NULL, NULL) );
+		CHECK( 0, pthread_join(thr, NULL) );
+		CHECK( 0, hf.ret );
+		
+		/* Send a few TLS protected message, and replies */
+		for (i = 0; i < 2 * NB_STREAMS; i++) {
+			CHECK( 0, fd_cnx_send(server_side, cer_buf, cer_sz, 0));
+			CHECK( 0, fd_cnx_receive(client_side, NULL, &rcv_buf, &rcv_sz));
+			CHECK( cer_sz, rcv_sz );
+			CHECK( 0, memcmp( rcv_buf, cer_buf, cer_sz ) );
+			free(rcv_buf);
+
+			CHECK( 0, fd_cnx_send(client_side, cer_buf, cer_sz, 0));
+			CHECK( 0, fd_cnx_receive(server_side, NULL, &rcv_buf, &rcv_sz));
+			CHECK( cer_sz, rcv_sz );
+			CHECK( 0, memcmp( rcv_buf, cer_buf, cer_sz ) );
+			free(rcv_buf);
+		}
+		
+		/* Now close the connection */
+		CHECK( 0, pthread_create(&thr, NULL, destroy_thr, client_side) );
+		fd_cnx_destroy(server_side);
+		CHECK( 0, pthread_join(thr, NULL) );
+		
+		
+		/* Free the credentials */
+		gnutls_certificate_free_keys(hf.creds);
+		gnutls_certificate_free_cas(hf.creds);
+		gnutls_certificate_free_credentials(hf.creds);
+	}
+	
 #endif /* DISABLE_SCTP */
 	
 	
@@ -1256,7 +1438,7 @@ int main(int argc, char *argv[])
 		
 		/* Start the handshake directly */
 		CHECK( 0, pthread_create(&thr, NULL, handshake_thr, &hf) );
-		CHECK( EINVAL, fd_cnx_handshake(server_side, GNUTLS_SERVER, NULL, NULL) );
+		CHECK( EINVAL, fd_cnx_handshake(server_side, GNUTLS_SERVER, ALGO_HANDSHAKE_DEFAULT, NULL, NULL) );
 		fd_cnx_destroy(server_side);
 		
 		CHECK( 0, pthread_join(thr, NULL) );
@@ -1273,6 +1455,9 @@ int main(int argc, char *argv[])
 	
 	/* Same in SCTP */
 #ifndef DISABLE_SCTP
+	/* DTLS */
+	TODO("Enabled after DTLS implementation");
+	if (0)
 	{
 		struct connect_flags cf;
 		struct handshake_flags hf;
@@ -1307,7 +1492,57 @@ int main(int argc, char *argv[])
 		
 		/* Start the handshake directly */
 		CHECK( 0, pthread_create(&thr, NULL, handshake_thr, &hf) );
-		CHECK( EINVAL, fd_cnx_handshake(server_side, GNUTLS_SERVER, NULL, NULL) );
+		CHECK( EINVAL, fd_cnx_handshake(server_side, GNUTLS_SERVER, ALGO_HANDSHAKE_DEFAULT, NULL, NULL) );
+		fd_cnx_destroy(server_side);
+		CHECK( 0, pthread_join(thr, NULL) );
+		
+		/* Now close the connection */
+		CHECK( 0, pthread_create(&thr, NULL, destroy_thr, client_side) );
+		CHECK( 0, pthread_join(thr, NULL) );
+		
+		/* Free the credentials */
+		gnutls_certificate_free_keys(hf.creds);
+		gnutls_certificate_free_cas(hf.creds);
+		gnutls_certificate_free_credentials(hf.creds);
+	}
+	
+	/* TLS */
+	{
+		struct connect_flags cf;
+		struct handshake_flags hf;
+		
+		memset(&cf, 0, sizeof(cf));
+		cf.proto = IPPROTO_SCTP;
+		
+		memset(&hf, 0, sizeof(hf));
+		hf.algo = ALGO_HANDSHAKE_3436;
+		
+		/* Initialize remote certificate */
+		CHECK_GNUTLS_DO( ret = gnutls_certificate_allocate_credentials (&hf.creds), );
+		CHECK( GNUTLS_E_SUCCESS, ret );
+		/* Set the CA */
+		CHECK_GNUTLS_DO( ret = gnutls_certificate_set_x509_trust_mem( hf.creds, &notrust_ca, GNUTLS_X509_FMT_PEM), );
+		CHECK_GNUTLS_DO( ret = gnutls_certificate_set_x509_trust_mem( hf.creds, &ca, GNUTLS_X509_FMT_PEM), );
+		CHECK( 1, ret );
+		/* Set the key */
+		CHECK_GNUTLS_DO( ret = gnutls_certificate_set_x509_key_mem( hf.creds, &notrust_cert, &notrust_priv, GNUTLS_X509_FMT_PEM), );
+		CHECK( GNUTLS_E_SUCCESS, ret );
+		
+		/* Start the client thread */
+		CHECK( 0, pthread_create(&thr, NULL, connect_thr, &cf) );
+
+		/* Accept the connection of the client */
+		server_side = fd_cnx_serv_accept(listener_sctp);
+		CHECK( 1, server_side ? 1 : 0 );
+		
+		/* Retrieve the client connection object */
+		CHECK( 0, pthread_join( thr, (void *)&client_side ) );
+		CHECK( 1, client_side ? 1 : 0 );
+		hf.cnx = client_side;
+		
+		/* Start the handshake directly */
+		CHECK( 0, pthread_create(&thr, NULL, handshake_thr, &hf) );
+		CHECK( EINVAL, fd_cnx_handshake(server_side, GNUTLS_SERVER, ALGO_HANDSHAKE_3436, NULL, NULL) );
 		fd_cnx_destroy(server_side);
 		CHECK( 0, pthread_join(thr, NULL) );
 		
@@ -1356,7 +1591,7 @@ int main(int argc, char *argv[])
 		
 		/* Start the handshake directly */
 		CHECK( 0, pthread_create(&thr, NULL, handshake_thr, &hf) );
-		CHECK( EINVAL, fd_cnx_handshake(server_side, GNUTLS_SERVER, NULL, NULL) );
+		CHECK( EINVAL, fd_cnx_handshake(server_side, GNUTLS_SERVER, ALGO_HANDSHAKE_DEFAULT, NULL, NULL) );
 		fd_cnx_destroy(server_side);
 		CHECK( 0, pthread_join(thr, NULL) );
 		
@@ -1408,7 +1643,7 @@ int main(int argc, char *argv[])
 		
 		/* Start the handshake, check it is successful */
 		CHECK( 0, pthread_create(&thr, NULL, handshake_thr, &hf) );
-		CHECK( 0, fd_cnx_handshake(server_side, GNUTLS_SERVER, NULL, NULL) );
+		CHECK( 0, fd_cnx_handshake(server_side, GNUTLS_SERVER, ALGO_HANDSHAKE_DEFAULT, NULL, NULL) );
 		CHECK( 0, pthread_join(thr, NULL) );
 		CHECK( 0, hf.ret );
 		
@@ -1434,7 +1669,7 @@ int main(int argc, char *argv[])
 		
 		/* Start the handshake, check it is successful */
 		CHECK( 0, pthread_create(&thr, NULL, handshake_thr, &hf) );
-		CHECK( EINVAL, fd_cnx_handshake(server_side, GNUTLS_SERVER, NULL, NULL) );
+		CHECK( EINVAL, fd_cnx_handshake(server_side, GNUTLS_SERVER, ALGO_HANDSHAKE_DEFAULT, NULL, NULL) );
 		fd_cnx_destroy(server_side);
 		CHECK( 0, pthread_join(thr, NULL) );
 		
@@ -1488,7 +1723,7 @@ int main(int argc, char *argv[])
 		
 		/* Start the handshake */
 		CHECK( 0, pthread_create(&thr, NULL, handshake_thr, &hf) );
-		CHECK( 0, fd_cnx_handshake(server_side, GNUTLS_SERVER, NULL, NULL) );
+		CHECK( 0, fd_cnx_handshake(server_side, GNUTLS_SERVER, ALGO_HANDSHAKE_DEFAULT, NULL, NULL) );
 		CHECK( 0, pthread_join(thr, NULL) );
 		CHECK( 0, hf.ret );
 		
@@ -1542,6 +1777,8 @@ int main(int argc, char *argv[])
 	
 #ifndef DISABLE_SCTP
 	/* And re-test with a SCTP connection */
+	TODO("Enabled after DTLS implementation");
+	if (0)
 	{
 		struct connect_flags cf;
 		struct handshake_flags hf;
@@ -1581,7 +1818,100 @@ int main(int argc, char *argv[])
 		
 		/* Start the handshake */
 		CHECK( 0, pthread_create(&thr, NULL, handshake_thr, &hf) );
-		CHECK( 0, fd_cnx_handshake(server_side, GNUTLS_SERVER, NULL, NULL) );
+		CHECK( 0, fd_cnx_handshake(server_side, GNUTLS_SERVER, ALGO_HANDSHAKE_DEFAULT, NULL, NULL) );
+		CHECK( 0, pthread_join(thr, NULL) );
+		CHECK( 0, hf.ret );
+		
+		/* Test some simple functions */
+		
+		/* fd_cnx_getid */
+		str = fd_cnx_getid(server_side);
+		CHECK( 1, str ? 1 : 0 );
+		CHECK( 1, (str[0] != '\0') ? 1 : 0 );
+		
+		/* fd_cnx_getproto */
+		i = fd_cnx_getproto(server_side);
+		CHECK( IPPROTO_SCTP, i);
+		
+		/* fd_cnx_getTLS */
+		i = fd_cnx_getTLS(server_side);
+		CHECK( 1, i ? 1 : 0 );
+		
+		/* fd_cnx_getcred */
+		CHECK( 0, fd_cnx_getcred(server_side, &cert_list, &cert_list_size) );
+		CHECK( 1, (cert_list_size > 0) ? 1 : 0 );
+		/* We could also verify that the cert_list really contains the client_cert and ca certificates */
+		
+		/* fd_cnx_getremoteid */
+		str = fd_cnx_getremoteid(server_side);
+		CHECK( 1, str ? 1 : 0 );
+		CHECK( 1, (str[0] != '\0') ? 1 : 0 );
+		
+		/* fd_cnx_recv_setaltfifo */
+		CHECK( 0, fd_cnx_send(client_side, cer_buf, cer_sz, 0));
+		CHECK( 0, fd_fifo_new(&myfifo, 0) );
+		CHECK( 0, fd_cnx_recv_setaltfifo(server_side, myfifo) );
+		CHECK( 0, clock_gettime(CLOCK_REALTIME, &now) );
+		do {
+			CHECK( 0, fd_event_timedget(myfifo, &now, ETIMEDOUT, &ev_code, NULL, (void *)&rcv_buf) );
+			free(rcv_buf);
+		} while (ev_code != FDEVP_CNX_MSG_RECV);
+		
+		/* Now close the connection */
+		CHECK( 0, pthread_create(&thr, NULL, destroy_thr, client_side) );
+		fd_cnx_destroy(server_side);
+		CHECK( 0, pthread_join(thr, NULL) );
+		
+		fd_event_destroy(&myfifo, free);
+		
+		/* Free the credentials */
+		gnutls_certificate_free_keys(hf.creds);
+		gnutls_certificate_free_cas(hf.creds);
+		gnutls_certificate_free_credentials(hf.creds);
+	}
+	
+	/* TLS */
+	{
+		struct connect_flags cf;
+		struct handshake_flags hf;
+		char * str;
+		const gnutls_datum_t *cert_list;
+		unsigned int cert_list_size;
+		struct fifo * myfifo = NULL;
+		struct timespec now;
+		int ev_code;
+		
+		memset(&cf, 0, sizeof(cf));
+		cf.proto = IPPROTO_SCTP;
+		
+		memset(&hf, 0, sizeof(hf));
+		hf.algo = ALGO_HANDSHAKE_3436;
+		
+		/* Initialize remote certificate */
+		CHECK_GNUTLS_DO( ret = gnutls_certificate_allocate_credentials (&hf.creds), );
+		CHECK( GNUTLS_E_SUCCESS, ret );
+		/* Set the CA */
+		CHECK_GNUTLS_DO( ret = gnutls_certificate_set_x509_trust_mem( hf.creds, &ca, GNUTLS_X509_FMT_PEM), );
+		CHECK( 1, ret );
+		/* Set the key */
+		CHECK_GNUTLS_DO( ret = gnutls_certificate_set_x509_key_mem( hf.creds, &client_cert, &client_priv, GNUTLS_X509_FMT_PEM), );
+		CHECK( GNUTLS_E_SUCCESS, ret );
+		
+		/* Start the client thread */
+		CHECK( 0, pthread_create(&thr, NULL, connect_thr, &cf) );
+
+		/* Accept the connection of the client */
+		server_side = fd_cnx_serv_accept(listener_sctp);
+		CHECK( 1, server_side ? 1 : 0 );
+		
+		/* Retrieve the client connection object */
+		CHECK( 0, pthread_join( thr, (void *)&client_side ) );
+		CHECK( 1, client_side ? 1 : 0 );
+		hf.cnx = client_side;
+		
+		/* Start the handshake */
+		CHECK( 0, pthread_create(&thr, NULL, handshake_thr, &hf) );
+		CHECK( 0, fd_cnx_handshake(server_side, GNUTLS_SERVER, ALGO_HANDSHAKE_3436, NULL, NULL) );
 		CHECK( 0, pthread_join(thr, NULL) );
 		CHECK( 0, hf.ret );
 		

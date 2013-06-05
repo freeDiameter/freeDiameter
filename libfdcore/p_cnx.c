@@ -281,7 +281,9 @@ static void * connect_thr(void * arg)
 	
 	/* Handshake if needed (secure port) */
 	if (nc->dotls) {
-		CHECK_FCT_DO( fd_cnx_handshake(cnx, GNUTLS_CLIENT, peer->p_hdr.info.config.pic_priority, NULL),
+		CHECK_FCT_DO( fd_cnx_handshake(cnx, GNUTLS_CLIENT, 
+						(peer->p_hdr.info.config.pic_flags.sctpsec == PI_SCTPSEC_3436) ? ALGO_HANDSHAKE_3436 : ALGO_HANDSHAKE_DEFAULT,
+						peer->p_hdr.info.config.pic_priority, NULL),
 			{
 				/* Handshake failed ...  */
 				fd_hook_call(HOOK_PEER_CONNECT_FAILED, NULL, peer, "TLS Handshake failed", NULL);
