@@ -245,6 +245,7 @@ nomatch:
 (?i:"Realm")		{ return REALM;   	}
 (?i:"Port")		{ return PORT;    	}
 (?i:"SecPort")		{ return SECPORT;  	}
+(?i:"SctpSec3436")	{ return SEC3436;  	}
 (?i:"No_IPv6")		{ return NOIP6;		}
 (?i:"No_IP")		{ return NOIP;		}
 (?i:"No_TCP")		{ return NOTCP;		}

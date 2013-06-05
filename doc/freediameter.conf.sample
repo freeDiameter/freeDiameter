@@ -33,6 +33,12 @@
 # Default: 5658. Use 0 to disable.
 #SecPort = 5658;
 
+# freeDiameter 1.2.0 introduces the support of DTLS over SCTP (RFC6083) instead of TLS over SCTP (RFC3436), 
+# as specified in RFC6733. If you need compatibility with older implementation that use TLS over SCTP, you 
+# can open an additional SCTP server port using this method:
+# Default: 0 (disabled). Use 3869 for compatibility with freeDiameter < 1.2.0.
+#SctpSec3436 = 0;
+
 # Use RFC3588 method for TLS protection, where TLS is negociated after CER/CEA exchange is completed 
 # on the unsecure connection. The alternative is RFC6733 mechanism, where TLS protects also the 
 # CER/CEA exchange on a dedicated secure port.
@@ -211,6 +217,7 @@ TLS_Cred = "/etc/ssl/certs/freeDiameter.pem", "/etc/ssl/private/freeDiameter.key
 # Parameters that can be specified in the peer's parameter list:
 #  No_TCP; No_SCTP; No_IP; No_IPv6; Prefer_TCP; TLS_old_method;
 #  No_TLS;       # assume transparent security instead of TLS
+#  SctpSec3436;	 # Use TLS/SCTP instead of DTLS/SCTP to protect SCTP associations with this peer.
 #  Port = 5658;  # The port to connect to
 #  TcTimer = 30;
 #  TwTimer = 30;

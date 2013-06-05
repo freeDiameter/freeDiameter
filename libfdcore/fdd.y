@@ -97,6 +97,7 @@ struct peer_info fddpi;
 %token		REALM
 %token		PORT
 %token		SECPORT
+%token		SEC3436
 %token		NOIP
 %token		NOIP6
 %token		NOTCP
@@ -132,6 +133,7 @@ conffile:		/* Empty is OK -- for simplicity here, we reject in daemon later */
 			| conffile twtimer
 			| conffile port
 			| conffile secport
+			| conffile sec3436
 			| conffile sctpstreams
 			| conffile listenon
 			| conffile norelay
@@ -202,6 +204,14 @@ secport:		SECPORT '=' INTEGER ';'
 				CHECK_PARAMS_DO( ($3 >= 0) && ($3 < 1<<16),
 					{ yyerror (&yylloc, conf, "Invalid value"); YYERROR; } );
 				conf->cnf_port_tls = (uint16_t)$3;
+			}
+			;
+
+sec3436:		SEC3436 '=' INTEGER ';'
+			{
+				CHECK_PARAMS_DO( ($3 >= 0) && ($3 < 1<<16),
+					{ yyerror (&yylloc, conf, "Invalid value"); YYERROR; } );
+				conf->cnf_port_3436 = (uint16_t)$3;
 			}
 			;
 
@@ -451,6 +461,10 @@ peerparams:		/* empty */
 			| peerparams NOTLS ';'
 			{
 				fddpi.config.pic_flags.sec |= PI_SEC_NONE;
+			}
+			| peerparams SEC3436 ';'
+			{
+				fddpi.config.pic_flags.sctpsec |= PI_SCTPSEC_3436;
 			}
 			| peerparams REALM '=' QSTRING ';'
 			{

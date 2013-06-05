@@ -1533,7 +1533,7 @@ int fd_cnx_handshake(struct cnxctx * conn, int mode, char * priority, void * alt
 		CHECK_FCT( ENOTSUP );
 #else /* DISABLE_SCTP */
 		/* Initialize the wrapper, start the demux thread */
-		CHECK_FCT( fd_sctps_init(conn) );
+		CHECK_FCT( fd_sctp3436_init(conn) );
 #endif /* DISABLE_SCTP */
 	} else {
 		/* Set the transport pointer passed to push & pull callbacks */
@@ -1593,13 +1593,13 @@ int fd_cnx_handshake(struct cnxctx * conn, int mode, char * priority, void * alt
 	if (conn->cc_sctp_para.pairs > 1) {
 #ifndef DISABLE_SCTP
 		/* Start reading the messages from the master session. That way, if the remote peer closed, we are not stuck inside handshake */
-		CHECK_FCT(fd_sctps_startthreads(conn, 0));
+		CHECK_FCT(fd_sctp3436_startthreads(conn, 0));
 
 		/* Resume all additional sessions from the master one. */
-		CHECK_FCT(fd_sctps_handshake_others(conn, priority, alt_creds));
+		CHECK_FCT(fd_sctp3436_handshake_others(conn, priority, alt_creds));
 
 		/* Start decrypting the messages from all threads and queuing them in target queue */
-		CHECK_FCT(fd_sctps_startthreads(conn, 1));
+		CHECK_FCT(fd_sctp3436_startthreads(conn, 1));
 #endif /* DISABLE_SCTP */
 	} else {
 		/* Start decrypting the data */
@@ -1760,9 +1760,9 @@ int fd_cnx_send(struct cnxctx * conn, unsigned char * buf, size_t len, uint32_t 
 						/* push the record to the appropriate session */
 						ssize_t ret;
 						size_t sent = 0;
-						ASSERT(conn->cc_sctps_data.array != NULL);
+						ASSERT(conn->cc_sctp3436_data.array != NULL);
 						do {
-							CHECK_GNUTLS_DO( ret = fd_tls_send_handle_error(conn, conn->cc_sctps_data.array[conn->cc_sctp_para.next].session, buf + sent, len - sent), );
+							CHECK_GNUTLS_DO( ret = fd_tls_send_handle_error(conn, conn->cc_sctp3436_data.array[conn->cc_sctp_para.next].session, buf + sent, len - sent), );
 							if (ret <= 0)
 								return ENOTCONN;
 
@@ -1809,30 +1809,30 @@ void fd_cnx_destroy(struct cnxctx * conn)
 
 			if (! fd_cnx_teststate(conn, CC_STATUS_ERROR ) ) {
 				/* and other stream pairs */
-				fd_sctps_bye(conn);
+				fd_sctp3436_bye(conn);
 			}
 
 			if (! fd_cnx_teststate(conn, CC_STATUS_ERROR ) ) {
 				/* Now wait for all decipher threads to terminate */
-				fd_sctps_waitthreadsterm(conn);
+				fd_sctp3436_waitthreadsterm(conn);
 			} else {
 				/* Abord the threads, the connection is dead already */
-				fd_sctps_stopthreads(conn);
+				fd_sctp3436_stopthreads(conn);
 			}
 
 			/* Deinit gnutls resources */
-			fd_sctps_gnutls_deinit_others(conn);
+			fd_sctp3436_gnutls_deinit_others(conn);
 			if (conn->cc_tls_para.session) {
 				GNUTLS_TRACE( gnutls_deinit(conn->cc_tls_para.session) );
 				conn->cc_tls_para.session = NULL;
 			}
 			
 			/* Destroy the wrapper (also stops the demux thread) */
-			fd_sctps_destroy(conn);
+			fd_sctp3436_destroy(conn);
 
 		} else {
 #endif /* DISABLE_SCTP */
-		/* We are TLS, but not using the sctps wrapper layer */
+		/* We are TLS, but not using the sctp3436 wrapper layer */
 			if (! fd_cnx_teststate(conn, CC_STATUS_ERROR ) ) {
 				/* Master session */
 				CHECK_GNUTLS_DO( gnutls_bye(conn->cc_tls_para.session, GNUTLS_SHUT_WR), fd_cnx_markerror(conn) );

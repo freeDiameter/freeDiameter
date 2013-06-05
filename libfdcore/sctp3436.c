@@ -83,7 +83,7 @@ static void * demuxer(void * arg)
 	
 	ASSERT( conn->cc_proto == IPPROTO_SCTP );
 	ASSERT( fd_cnx_target_queue(conn) );
-	ASSERT( conn->cc_sctps_data.array );
+	ASSERT( conn->cc_sctp3436_data.array );
 	
 	do {
 		CHECK_FCT_DO( fd_sctp_recvmeta(conn, &strid, &buf, &bufsz, &event), goto fatal );
@@ -91,7 +91,7 @@ static void * demuxer(void * arg)
 			case FDEVP_CNX_MSG_RECV:
 				/* Demux this message to the appropriate fifo, another thread will pull, gnutls process, and send to target queue */
 				if (strid < conn->cc_sctp_para.pairs) {
-					CHECK_FCT_DO(fd_event_send(conn->cc_sctps_data.array[strid].raw_recv, event, bufsz, buf), goto fatal );
+					CHECK_FCT_DO(fd_event_send(conn->cc_sctp3436_data.array[strid].raw_recv, event, bufsz, buf), goto fatal );
 				} else {
 					TRACE_DEBUG(INFO, "Received packet (%zd bytes) on out-of-range stream #%d from %s, discarded.", bufsz, strid, conn->cc_remid);
 					free(buf);
@@ -119,8 +119,8 @@ static void * demuxer(void * arg)
 out:
 	/* Signal termination of the connection to all decipher threads */
 	for (strid = 0; strid < conn->cc_sctp_para.pairs; strid++) {
-		if (conn->cc_sctps_data.array[strid].raw_recv) {
-			CHECK_FCT_DO(fd_event_send(conn->cc_sctps_data.array[strid].raw_recv, FDEVP_CNX_ERROR, 0, NULL), goto fatal );
+		if (conn->cc_sctp3436_data.array[strid].raw_recv) {
+			CHECK_FCT_DO(fd_event_send(conn->cc_sctp3436_data.array[strid].raw_recv, FDEVP_CNX_ERROR, 0, NULL), goto fatal );
 		}
 	}
 	fd_cnx_markerror(conn);
@@ -136,7 +136,7 @@ fatal:
 /* Decrypt the data received in this stream pair and store it in the target queue */
 static void * decipher(void * arg)
 {
-	struct sctps_ctx * ctx = arg;
+	struct sctp3436_ctx * ctx = arg;
 	struct cnxctx 	 *cnx;
 	
 	TRACE_ENTRY("%p", arg);
@@ -164,9 +164,9 @@ error:
 /*************************************************************/
 
 /* Send data over the connection, called by gnutls */
-static ssize_t sctps_push(gnutls_transport_ptr_t tr, const void * data, size_t len)
+static ssize_t sctp3436_push(gnutls_transport_ptr_t tr, const void * data, size_t len)
 {
-	struct sctps_ctx * ctx = (struct sctps_ctx *) tr;
+	struct sctp3436_ctx * ctx = (struct sctp3436_ctx *) tr;
 	
 	TRACE_ENTRY("%p %p %zd", tr, data, len);
 	CHECK_PARAMS_DO( tr && data, { errno = EINVAL; return -1; } );
@@ -177,9 +177,9 @@ static ssize_t sctps_push(gnutls_transport_ptr_t tr, const void * data, size_t l
 }
 
 /* Retrieve data received on a stream and already demultiplexed */
-static ssize_t sctps_pull(gnutls_transport_ptr_t tr, void * buf, size_t len)
+static ssize_t sctp3436_pull(gnutls_transport_ptr_t tr, void * buf, size_t len)
 {
-	struct sctps_ctx * ctx = (struct sctps_ctx *) tr;
+	struct sctp3436_ctx * ctx = (struct sctp3436_ctx *) tr;
 	size_t pulled = 0;
 	int emptied;
 	
@@ -228,7 +228,7 @@ error:
 #ifndef GNUTLS_VERSION_300
 GCC_DIAG_OFF("-Wdeprecated-declarations")
 #endif /* !GNUTLS_VERSION_300 */
-static void set_sess_transport(gnutls_session_t session, struct sctps_ctx *ctx)
+static void set_sess_transport(gnutls_session_t session, struct sctp3436_ctx *ctx)
 {
 	/* Set the transport pointer passed to push & pull callbacks */
 	GNUTLS_TRACE( gnutls_transport_set_ptr( session, (gnutls_transport_ptr_t) ctx ) );
@@ -240,8 +240,8 @@ static void set_sess_transport(gnutls_session_t session, struct sctps_ctx *ctx)
 #endif /* GNUTLS_VERSION_300 */
 	
 	/* Set the push and pull callbacks */
-	GNUTLS_TRACE( gnutls_transport_set_pull_function(session, sctps_pull) );
-	GNUTLS_TRACE( gnutls_transport_set_push_function(session, sctps_push) );
+	GNUTLS_TRACE( gnutls_transport_set_pull_function(session, sctp3436_pull) );
+	GNUTLS_TRACE( gnutls_transport_set_push_function(session, sctp3436_push) );
 
 	return;
 }
@@ -271,14 +271,14 @@ struct sr_data {
 static int store_init(struct cnxctx * conn)
 {
 	TRACE_ENTRY("%p", conn);
-	CHECK_PARAMS( conn && !conn->cc_sctps_data.sess_store );
+	CHECK_PARAMS( conn && !conn->cc_sctp3436_data.sess_store );
 	
-	CHECK_MALLOC( conn->cc_sctps_data.sess_store = malloc(sizeof(struct sr_store)) );
-	memset(conn->cc_sctps_data.sess_store, 0, sizeof(struct sr_store));
+	CHECK_MALLOC( conn->cc_sctp3436_data.sess_store = malloc(sizeof(struct sr_store)) );
+	memset(conn->cc_sctp3436_data.sess_store, 0, sizeof(struct sr_store));
 	
-	fd_list_init(&conn->cc_sctps_data.sess_store->list, NULL);
-	CHECK_POSIX( pthread_rwlock_init(&conn->cc_sctps_data.sess_store->lock, NULL) );
-	conn->cc_sctps_data.sess_store->parent = conn;
+	fd_list_init(&conn->cc_sctp3436_data.sess_store->list, NULL);
+	CHECK_POSIX( pthread_rwlock_init(&conn->cc_sctp3436_data.sess_store->lock, NULL) );
+	conn->cc_sctp3436_data.sess_store->parent = conn;
 	
 	return 0;
 }
@@ -290,21 +290,21 @@ static void store_destroy(struct cnxctx * conn)
 	TRACE_ENTRY("%p", conn);
 	CHECK_PARAMS_DO( conn, return );
 	
-	if (!conn->cc_sctps_data.sess_store)
+	if (!conn->cc_sctp3436_data.sess_store)
 		return;
 	
-	CHECK_POSIX_DO( pthread_rwlock_destroy(&conn->cc_sctps_data.sess_store->lock), /* continue */ );
+	CHECK_POSIX_DO( pthread_rwlock_destroy(&conn->cc_sctp3436_data.sess_store->lock), /* continue */ );
 	
-	while (!FD_IS_LIST_EMPTY(&conn->cc_sctps_data.sess_store->list)) {
-		struct sr_data * sr = (struct sr_data *) conn->cc_sctps_data.sess_store->list.next;
+	while (!FD_IS_LIST_EMPTY(&conn->cc_sctp3436_data.sess_store->list)) {
+		struct sr_data * sr = (struct sr_data *) conn->cc_sctp3436_data.sess_store->list.next;
 		fd_list_unlink( &sr->chain );
 		free(sr->key.data);
 		free(sr->data.data);
 		free(sr);
 	}
 	
-	free(conn->cc_sctps_data.sess_store);
-	conn->cc_sctps_data.sess_store = NULL;
+	free(conn->cc_sctp3436_data.sess_store);
+	conn->cc_sctp3436_data.sess_store = NULL;
 	return;
 }
 
@@ -454,7 +454,7 @@ static void set_resume_callbacks(gnutls_session_t session, struct cnxctx * conn)
 	GNUTLS_TRACE( gnutls_db_set_retrieve_function(session, sr_fetch));
 	GNUTLS_TRACE( gnutls_db_set_remove_function  (session, sr_remove));
 	GNUTLS_TRACE( gnutls_db_set_store_function   (session, sr_store));
-	GNUTLS_TRACE( gnutls_db_set_ptr              (session, conn->cc_sctps_data.sess_store));
+	GNUTLS_TRACE( gnutls_db_set_ptr              (session, conn->cc_sctp3436_data.sess_store));
 	
 	return;
 }
@@ -462,7 +462,7 @@ static void set_resume_callbacks(gnutls_session_t session, struct cnxctx * conn)
 /* The handshake is made in parallel in several threads to speed up */
 static void * handshake_resume_th(void * arg)
 {
-	struct sctps_ctx * ctx = (struct sctps_ctx *) arg;
+	struct sctp3436_ctx * ctx = (struct sctp3436_ctx *) arg;
 	int resumed;
 	
 	TRACE_ENTRY("%p", arg);
@@ -503,23 +503,23 @@ static void * handshake_resume_th(void * arg)
 /*************************************************************/
 
 /* Initialize the wrapper for the connection */
-int fd_sctps_init(struct cnxctx * conn)
+int fd_sctp3436_init(struct cnxctx * conn)
 {
 	uint16_t i;
 	
 	TRACE_ENTRY("%p", conn);
-	CHECK_PARAMS( conn && (conn->cc_sctp_para.pairs > 1) && (!conn->cc_sctps_data.array) );
+	CHECK_PARAMS( conn && (conn->cc_sctp_para.pairs > 1) && (!conn->cc_sctp3436_data.array) );
 	
 	/* First, alloc the array and initialize the non-TLS data */
-	CHECK_MALLOC( conn->cc_sctps_data.array = calloc(conn->cc_sctp_para.pairs, sizeof(struct sctps_ctx))  );
+	CHECK_MALLOC( conn->cc_sctp3436_data.array = calloc(conn->cc_sctp_para.pairs, sizeof(struct sctp3436_ctx))  );
 	for (i = 0; i < conn->cc_sctp_para.pairs; i++) {
-		conn->cc_sctps_data.array[i].parent = conn;
-		conn->cc_sctps_data.array[i].strid  = i;
-		CHECK_FCT( fd_fifo_new(&conn->cc_sctps_data.array[i].raw_recv, 10) );
+		conn->cc_sctp3436_data.array[i].parent = conn;
+		conn->cc_sctp3436_data.array[i].strid  = i;
+		CHECK_FCT( fd_fifo_new(&conn->cc_sctp3436_data.array[i].raw_recv, 10) );
 	}
 	
 	/* Set push/pull functions in the master session, using fifo in array[0] */
-	set_sess_transport(conn->cc_tls_para.session, &conn->cc_sctps_data.array[0]);
+	set_sess_transport(conn->cc_tls_para.session, &conn->cc_sctp3436_data.array[0]);
 	
 	/* For server side, we also initialize the resuming capabilities */
 	if (conn->cc_tls_para.mode == GNUTLS_SERVER) {
@@ -538,14 +538,14 @@ int fd_sctps_init(struct cnxctx * conn)
 }
 
 /* Handshake other streams, after full handshake on the master session */
-int fd_sctps_handshake_others(struct cnxctx * conn, char * priority, void * alt_creds)
+int fd_sctp3436_handshake_others(struct cnxctx * conn, char * priority, void * alt_creds)
 {
 	uint16_t i;
 	int errors = 0;
 	gnutls_datum_t 	master_data;
 	
 	TRACE_ENTRY("%p %p", conn, priority);
-	CHECK_PARAMS( conn && (conn->cc_sctp_para.pairs > 1) && conn->cc_sctps_data.array );
+	CHECK_PARAMS( conn && (conn->cc_sctp_para.pairs > 1) && conn->cc_sctp3436_data.array );
 
 	/* Server side: we set all the parameters, the resume callback will take care of resuming the session */
 	/* Client side: we duplicate the parameters of the master session, then set the transport pointer */
@@ -565,38 +565,38 @@ int fd_sctps_handshake_others(struct cnxctx * conn, char * priority, void * alt_
 	/* Initialize the session objects and start the handshake in a separate thread */
 	for (i = 1; i < conn->cc_sctp_para.pairs; i++) {
 		/* Set credentials and priority */
-		CHECK_FCT( fd_tls_prepare(&conn->cc_sctps_data.array[i].session, conn->cc_tls_para.mode, priority, alt_creds) );
+		CHECK_FCT( fd_tls_prepare(&conn->cc_sctp3436_data.array[i].session, conn->cc_tls_para.mode, priority, alt_creds) );
 		
 		/* additional initialization for gnutls 3.x */
 		#ifdef GNUTLS_VERSION_300
 			/* the verify function has already been set in the global initialization in config.c */
 
 		/* fd_tls_verify_credentials_2 uses the connection */
-		gnutls_session_set_ptr (conn->cc_sctps_data.array[i].session, (void *) conn);
+		gnutls_session_set_ptr (conn->cc_sctp3436_data.array[i].session, (void *) conn);
 
 		if ((conn->cc_tls_para.cn != NULL) && (conn->cc_tls_para.mode == GNUTLS_CLIENT)) {
 			/* this might allow virtual hosting on the remote peer */
-			CHECK_GNUTLS_DO( gnutls_server_name_set (conn->cc_sctps_data.array[i].session, GNUTLS_NAME_DNS, conn->cc_tls_para.cn, strlen(conn->cc_tls_para.cn)), /* ignore failure */);
+			CHECK_GNUTLS_DO( gnutls_server_name_set (conn->cc_sctp3436_data.array[i].session, GNUTLS_NAME_DNS, conn->cc_tls_para.cn, strlen(conn->cc_tls_para.cn)), /* ignore failure */);
 		}
 
 		#endif /* GNUTLS_VERSION_300 */
 
 		#ifdef GNUTLS_VERSION_310
-		GNUTLS_TRACE( gnutls_handshake_set_timeout( conn->cc_sctps_data.array[i].session, GNUTLS_DEFAULT_HANDSHAKE_TIMEOUT));
+		GNUTLS_TRACE( gnutls_handshake_set_timeout( conn->cc_sctp3436_data.array[i].session, GNUTLS_DEFAULT_HANDSHAKE_TIMEOUT));
 		#endif /* GNUTLS_VERSION_310 */
 
 		/* For the client, copy data from master session; for the server, set session resuming pointers */
 		if (conn->cc_tls_para.mode == GNUTLS_CLIENT) {
-			CHECK_GNUTLS_DO( gnutls_session_set_data(conn->cc_sctps_data.array[i].session, master_data.data, master_data.size), return ENOMEM );
+			CHECK_GNUTLS_DO( gnutls_session_set_data(conn->cc_sctp3436_data.array[i].session, master_data.data, master_data.size), return ENOMEM );
 		} else {
-			set_resume_callbacks(conn->cc_sctps_data.array[i].session, conn);
+			set_resume_callbacks(conn->cc_sctp3436_data.array[i].session, conn);
 		}
 		
 		/* Set transport parameters */
-		set_sess_transport(conn->cc_sctps_data.array[i].session, &conn->cc_sctps_data.array[i]);
+		set_sess_transport(conn->cc_sctp3436_data.array[i].session, &conn->cc_sctp3436_data.array[i]);
 		
 		/* Start the handshake thread */
-		CHECK_POSIX( pthread_create( &conn->cc_sctps_data.array[i].thr, NULL, handshake_resume_th, &conn->cc_sctps_data.array[i] ) );
+		CHECK_POSIX( pthread_create( &conn->cc_sctp3436_data.array[i].thr, NULL, handshake_resume_th, &conn->cc_sctp3436_data.array[i] ) );
 	}
 	
 	/* We can now release the memory of master session data if any */
@@ -607,8 +607,8 @@ int fd_sctps_handshake_others(struct cnxctx * conn, char * priority, void * alt_
 	/* Now wait for all handshakes to finish */
 	for (i = 1; i < conn->cc_sctp_para.pairs; i++) {
 		void * ret;
-		CHECK_POSIX( pthread_join(conn->cc_sctps_data.array[i].thr, &ret) );
-		conn->cc_sctps_data.array[i].thr = (pthread_t) NULL;
+		CHECK_POSIX( pthread_join(conn->cc_sctp3436_data.array[i].thr, &ret) );
+		conn->cc_sctp3436_data.array[i].thr = (pthread_t) NULL;
 		if (ret == NULL) {
 			errors++; /* Handshake failed on this stream */
 		}
@@ -624,115 +624,115 @@ int fd_sctps_handshake_others(struct cnxctx * conn, char * priority, void * alt_
 }
 
 /* Receive messages from others ? all other stream pairs : the master pair */
-int fd_sctps_startthreads(struct cnxctx * conn, int others)
+int fd_sctp3436_startthreads(struct cnxctx * conn, int others)
 {
 	uint16_t i;
 	
 	TRACE_ENTRY("%p", conn);
-	CHECK_PARAMS( conn && conn->cc_sctps_data.array );
+	CHECK_PARAMS( conn && conn->cc_sctp3436_data.array );
 	
 	if (others) {
 		for (i = 1; i < conn->cc_sctp_para.pairs; i++) {
 
 			/* Start the decipher thread */
-			CHECK_POSIX( pthread_create( &conn->cc_sctps_data.array[i].thr, NULL, decipher, &conn->cc_sctps_data.array[i] ) );
+			CHECK_POSIX( pthread_create( &conn->cc_sctp3436_data.array[i].thr, NULL, decipher, &conn->cc_sctp3436_data.array[i] ) );
 		}
 	} else {
-		CHECK_POSIX( pthread_create( &conn->cc_sctps_data.array[0].thr, NULL, decipher, &conn->cc_sctps_data.array[0] ) );
+		CHECK_POSIX( pthread_create( &conn->cc_sctp3436_data.array[0].thr, NULL, decipher, &conn->cc_sctp3436_data.array[0] ) );
 	}
 	return 0;
 }
 
 /* Initiate a "bye" on all stream pairs */
-void fd_sctps_bye(struct cnxctx * conn)
+void fd_sctp3436_bye(struct cnxctx * conn)
 {
 	uint16_t i;
 	
-	CHECK_PARAMS_DO( conn && conn->cc_sctps_data.array, return );
+	CHECK_PARAMS_DO( conn && conn->cc_sctp3436_data.array, return );
 	
 	/* End all TLS sessions, in series (not as efficient as paralel, but simpler) */
 	for (i = 1; i < conn->cc_sctp_para.pairs; i++) {
 		if ( ! fd_cnx_teststate(conn, CC_STATUS_ERROR)) {
-			CHECK_GNUTLS_DO( gnutls_bye(conn->cc_sctps_data.array[i].session, GNUTLS_SHUT_WR), fd_cnx_markerror(conn) );
+			CHECK_GNUTLS_DO( gnutls_bye(conn->cc_sctp3436_data.array[i].session, GNUTLS_SHUT_WR), fd_cnx_markerror(conn) );
 		}
 	}
 }
 
 /* After "bye" was sent on all streams, read from sessions until an error is received */
-void fd_sctps_waitthreadsterm(struct cnxctx * conn)
+void fd_sctp3436_waitthreadsterm(struct cnxctx * conn)
 {
 	uint16_t i;
 	
 	TRACE_ENTRY("%p", conn);
-	CHECK_PARAMS_DO( conn && conn->cc_sctps_data.array, return );
+	CHECK_PARAMS_DO( conn && conn->cc_sctp3436_data.array, return );
 	
 	for (i = 0; i < conn->cc_sctp_para.pairs; i++) {
-		if (conn->cc_sctps_data.array[i].thr != (pthread_t)NULL) {
-			CHECK_POSIX_DO( pthread_join(conn->cc_sctps_data.array[i].thr, NULL), /* continue */ );
-			conn->cc_sctps_data.array[i].thr = (pthread_t)NULL;
+		if (conn->cc_sctp3436_data.array[i].thr != (pthread_t)NULL) {
+			CHECK_POSIX_DO( pthread_join(conn->cc_sctp3436_data.array[i].thr, NULL), /* continue */ );
+			conn->cc_sctp3436_data.array[i].thr = (pthread_t)NULL;
 		}
 	}
 	return;
 }
 
 /* Free gnutls resources of all sessions */
-void fd_sctps_gnutls_deinit_others(struct cnxctx * conn)
+void fd_sctp3436_gnutls_deinit_others(struct cnxctx * conn)
 {
 	uint16_t i;
 	
 	TRACE_ENTRY("%p", conn);
-	CHECK_PARAMS_DO( conn && conn->cc_sctps_data.array, return );
+	CHECK_PARAMS_DO( conn && conn->cc_sctp3436_data.array, return );
 	
 	for (i = 1; i < conn->cc_sctp_para.pairs; i++) {
-		if (conn->cc_sctps_data.array[i].session) {
-			GNUTLS_TRACE( gnutls_deinit(conn->cc_sctps_data.array[i].session) );
-			conn->cc_sctps_data.array[i].session = NULL;
+		if (conn->cc_sctp3436_data.array[i].session) {
+			GNUTLS_TRACE( gnutls_deinit(conn->cc_sctp3436_data.array[i].session) );
+			conn->cc_sctp3436_data.array[i].session = NULL;
 		}
 	}
 }
 
 
 /* Stop all receiver threads */
-void fd_sctps_stopthreads(struct cnxctx * conn)
+void fd_sctp3436_stopthreads(struct cnxctx * conn)
 {
 	uint16_t i;
 	
 	TRACE_ENTRY("%p", conn);
-	CHECK_PARAMS_DO( conn && conn->cc_sctps_data.array, return );
+	CHECK_PARAMS_DO( conn && conn->cc_sctp3436_data.array, return );
 	
 	for (i = 0; i < conn->cc_sctp_para.pairs; i++) {
-		CHECK_FCT_DO( fd_thr_term(&conn->cc_sctps_data.array[i].thr), /* continue */ );
+		CHECK_FCT_DO( fd_thr_term(&conn->cc_sctp3436_data.array[i].thr), /* continue */ );
 	}
 	return;
 }
 
 /* Destroy a wrapper context */
-void fd_sctps_destroy(struct cnxctx * conn)
+void fd_sctp3436_destroy(struct cnxctx * conn)
 {
 	uint16_t i;
 	
-	CHECK_PARAMS_DO( conn && conn->cc_sctps_data.array, return );
+	CHECK_PARAMS_DO( conn && conn->cc_sctp3436_data.array, return );
 	
 	/* Terminate all receiving threads in case we did not do it yet */
-	fd_sctps_stopthreads(conn);
+	fd_sctp3436_stopthreads(conn);
 	
 	/* Now, stop the demux thread */
 	CHECK_FCT_DO( fd_thr_term(&conn->cc_rcvthr), /* continue */ );
 	
 	/* Free remaining data in the array */
 	for (i = 0; i < conn->cc_sctp_para.pairs; i++) {
-		if (conn->cc_sctps_data.array[i].raw_recv)
-			fd_event_destroy( &conn->cc_sctps_data.array[i].raw_recv, free );
-		free(conn->cc_sctps_data.array[i].partial.buf);
-		if (conn->cc_sctps_data.array[i].session) {
-			GNUTLS_TRACE( gnutls_deinit(conn->cc_sctps_data.array[i].session) );
-			conn->cc_sctps_data.array[i].session = NULL;
+		if (conn->cc_sctp3436_data.array[i].raw_recv)
+			fd_event_destroy( &conn->cc_sctp3436_data.array[i].raw_recv, free );
+		free(conn->cc_sctp3436_data.array[i].partial.buf);
+		if (conn->cc_sctp3436_data.array[i].session) {
+			GNUTLS_TRACE( gnutls_deinit(conn->cc_sctp3436_data.array[i].session) );
+			conn->cc_sctp3436_data.array[i].session = NULL;
 		}
 	}
 	
 	/* Free the array itself now */
-	free(conn->cc_sctps_data.array);
-	conn->cc_sctps_data.array = NULL;
+	free(conn->cc_sctp3436_data.array);
+	conn->cc_sctp3436_data.array = NULL;
 	
 	/* Delete the store of sessions */
 	store_destroy(conn);

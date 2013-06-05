@@ -77,9 +77,9 @@ struct cnxctx {
 
 	/* If both conditions */
 	struct {
-		struct sctps_ctx *array; /* an array of cc_sctp_para.pairs elements -- the #0 is special (session is outside)*/
+		struct sctp3436_ctx *array; /* an array of cc_sctp_para.pairs elements -- the #0 is special (session is outside)*/
 		struct sr_store	 *sess_store; /* Session data of the master session, to resume the children sessions */
-	} 		cc_sctps_data;
+	} 		cc_sctp3436_data;
 };
 
 void fd_cnx_markerror(struct cnxctx * conn);
@@ -120,7 +120,7 @@ int fd_sctp_sendstr(struct cnxctx * conn, uint16_t strid, uint8_t * buf, size_t 
 int fd_sctp_recvmeta(struct cnxctx * conn, uint16_t * strid, uint8_t ** buf, size_t * len, int *event);
 
 /* TLS over SCTP (multi-stream) */
-struct sctps_ctx {
+struct sctp3436_ctx {
 	struct cnxctx 	*parent; 	/* for info such as socket, conn name, event list */
 	uint16_t	 strid;		/* Stream # of this session */
 	struct fifo	*raw_recv;	/* Raw data received on this stream, for demux */
@@ -133,14 +133,14 @@ struct sctps_ctx {
 	gnutls_session_t session;	/* TLS context using this pair of streams -- except if strid == 0, in that case session is outside the array */
 };
 
-int fd_sctps_init(struct cnxctx * conn);
-int fd_sctps_handshake_others(struct cnxctx * conn, char * priority, void * alt_creds);
-int fd_sctps_startthreads(struct cnxctx * conn, int others);
-void fd_sctps_bye(struct cnxctx * conn);
-void fd_sctps_waitthreadsterm(struct cnxctx * conn);
-void fd_sctps_gnutls_deinit_others(struct cnxctx * conn);
-void fd_sctps_stopthreads(struct cnxctx * conn);
-void fd_sctps_destroy(struct cnxctx * conn);
+int fd_sctp3436_init(struct cnxctx * conn);
+int fd_sctp3436_handshake_others(struct cnxctx * conn, char * priority, void * alt_creds);
+int fd_sctp3436_startthreads(struct cnxctx * conn, int others);
+void fd_sctp3436_bye(struct cnxctx * conn);
+void fd_sctp3436_waitthreadsterm(struct cnxctx * conn);
+void fd_sctp3436_gnutls_deinit_others(struct cnxctx * conn);
+void fd_sctp3436_stopthreads(struct cnxctx * conn);
+void fd_sctp3436_destroy(struct cnxctx * conn);
 
 #endif /* DISABLE_SCTP */
 

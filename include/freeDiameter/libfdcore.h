@@ -128,6 +128,7 @@ struct fd_config {
 	
 	uint16_t	 cnf_port;	/* the local port for legacy Diameter (default: 3868) in host byte order */
 	uint16_t	 cnf_port_tls;	/* the local port for Diameter/TLS (default: 5658) in host byte order */
+	uint16_t	 cnf_port_3436; /* Open an additional server port to listen to old TLS/SCTP clients (RFC3436, freeDiameter versions < 1.2.0) */
 	uint16_t	 cnf_sctp_str;	/* default max number of streams for SCTP associations (def: 30) */
 	struct fd_list	 cnf_endpoints;	/* the local endpoints to bind the server to. list of struct fd_endpoint. default is empty (bind all). After servers are started, this is the actual list of endpoints including port information. */
 	struct fd_list	 cnf_apps;	/* Applications locally supported (except relay, see flags). Use fd_disp_app_support to add one. list of struct fd_app. */
@@ -248,6 +249,9 @@ extern const char *peer_state_str[];
 #define PI_SEC_NONE	1	/* Transparent security with this peer (IPsec) */
 #define PI_SEC_TLS_OLD	2	/* Old TLS security (use Inband-Security-Id AVP during CER/CEA) */
 				/* Set sec = 3 to authorize use of (Inband-Security-Id == NONE) with this peer, sec = 2 only authorizing TLS */
+				
+#define PI_SCTPSEC_DEF	0	/* Use DTLS over SCTP to connect to this peer (default) */
+#define PI_SCTPSEC_3436	1	/* Use TLS over SCTP to connect to this peer (RFC3436) */
 
 #define PI_EXP_NONE	0	/* the peer entry does not expire */
 #define PI_EXP_INACTIVE	1	/* the peer entry expires (i.e. is deleted) after pi_lft seconds without activity */
@@ -267,6 +271,7 @@ struct peer_info {
 			unsigned	pro4 :2;	/* PI_P4_* */
 			unsigned	alg :1;		/* PI_ALGPREF_* */
 			unsigned	sec :2;		/* PI_SEC_* */
+			unsigned	sctpsec :1;	/* PI_SCTPSEC_* */
 			unsigned	exp :1;		/* PI_EXP_* */
 			unsigned	persist :1;	/* PI_PRST_* */
 			
