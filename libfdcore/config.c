@@ -278,20 +278,6 @@ int fd_conf_parse()
 		}
 	}
 	
-	/* If the CA is not provided, let's use the same file (assuming self-signed certificate) */
-	if ((!fd_g_config->cnf_sec_data.tls_disabled) && (!fd_g_config->cnf_sec_data.ca_file)) {
-		CHECK_MALLOC( fd_g_config->cnf_sec_data.ca_file = strdup(fd_g_config->cnf_sec_data.cert_file) );
-		CHECK_GNUTLS_DO( fd_g_config->cnf_sec_data.ca_file_nr += gnutls_certificate_set_x509_trust_file( 
-					fd_g_config->cnf_sec_data.credentials,
-					fd_g_config->cnf_sec_data.ca_file,
-					GNUTLS_X509_FMT_PEM),
-				{ 
-					TRACE_ERROR("Unable to use the local certificate as trusted security anchor (CA), please provide a valid TLS_CA='...' directive.");
-					return EINVAL;
-				} );
-	}
-	
-	
 	/* Resolve hostname if not provided */
 	if (fd_g_config->cnf_diamid == NULL) {
 		char buf[HOST_NAME_MAX + 1];
@@ -452,7 +438,7 @@ int fd_conf_parse()
 			{
 				fd_log_debug("TLS: Local certificate chain '%s' is invalid :", fd_g_config->cnf_sec_data.cert_file);
 				if (output & GNUTLS_CERT_SIGNER_NOT_FOUND)
-					TRACE_ERROR(" - The certificate hasn't got a known issuer.");
+					TRACE_ERROR(" - The certificate hasn't got a known issuer. Did you forget to specify TLS_CA ?");
 				if (output & GNUTLS_CERT_SIGNER_NOT_CA)
 					TRACE_ERROR(" - The certificate signer is not a CA, or uses version 1, or 3 without basic constraints.");
 				if (output & GNUTLS_CERT_NOT_ACTIVATED)
