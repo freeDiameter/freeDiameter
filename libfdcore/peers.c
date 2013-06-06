@@ -353,6 +353,7 @@ int fd_peer_fini()
 	
 	if (!list_empty) {
 		CHECK_SYS(  clock_gettime(CLOCK_REALTIME, &now)  );
+		fd_psm_start(); /* just in case */
 		TRACE_DEBUG(INFO, "Waiting for connections shutdown... (%d sec max)", DPR_TIMEOUT + 1);
 		wait_until.tv_sec  = now.tv_sec + DPR_TIMEOUT + 1;
 		wait_until.tv_nsec = now.tv_nsec;
