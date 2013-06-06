@@ -86,17 +86,17 @@ int main(int argc, char * argv[])
 		TRACE_DEBUG(INFO, "Enabled GNUTLS debug at level %d", gnutls_debug);
 	}
 	
-	/* Allow SIGINT and SIGTERM from this point to terminate the application */
-	CHECK_POSIX( pthread_create(&signals_thr, NULL, catch_signals, NULL) );
-	
 	/* Parse the configuration file */
-	CHECK_FCT( fd_core_parseconf(conffile) );
+	CHECK_FCT_DO( fd_core_parseconf(conffile), goto error );
 	
 	/* Start the servers */
-	CHECK_FCT( fd_core_start() );
+	CHECK_FCT_DO( fd_core_start(), goto error );
+	
+	/* Allow SIGINT and SIGTERM from this point to terminate the application */
+	CHECK_POSIX_DO( pthread_create(&signals_thr, NULL, catch_signals, NULL), goto error );
 	
 	TRACE_DEBUG(INFO, FD_PROJECT_BINARY " daemon initialized.");
-	
+
 	/* Now, just wait for termination */
 	CHECK_FCT( fd_core_wait_shutdown_complete() );
 	
@@ -104,6 +104,11 @@ int main(int argc, char * argv[])
 	fd_thr_term(&signals_thr);
 	
 	return 0;
+error:	
+	CHECK_FCT_DO( fd_core_shutdown(),  );
+	CHECK_FCT( fd_core_wait_shutdown_complete() );
+	fd_thr_term(&signals_thr);
+	return -1;
 }
 
 

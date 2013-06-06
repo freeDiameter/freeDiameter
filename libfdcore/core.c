@@ -227,8 +227,10 @@ int fd_core_initialize(void)
 	return 0;
 }
 
+static pthread_mutex_t core_lock = PTHREAD_MUTEX_INITIALIZER;
+
 /* Parse the freeDiameter.conf configuration file, load the extensions */
-int fd_core_parseconf(const char * conffile)
+static int fd_core_parseconf_int(const char * conffile)
 {
 	char * buf = NULL, *b;
 	size_t len = 0, offset=0;
@@ -273,6 +275,16 @@ int fd_core_parseconf(const char * conffile)
 	return 0;
 }
 
+int fd_core_parseconf(const char * conffile)
+{
+	int ret;
+	CHECK_POSIX( pthread_mutex_lock(&core_lock) );
+	ret = fd_core_parseconf_int(conffile);
+	CHECK_POSIX( pthread_mutex_unlock(&core_lock) );
+	return ret;
+}
+
+
 /* For threads that would need to wait complete start of the framework (ex: in extensions) */
 int fd_core_waitstartcomplete(void)
 {
@@ -282,7 +294,7 @@ int fd_core_waitstartcomplete(void)
 }
 
 /* Start the server & client threads */
-int fd_core_start(void)
+static int fd_core_start_int(void)
 {
 	/* Start server threads */ 
 	CHECK_FCT( fd_servers_start() );
@@ -300,6 +312,14 @@ int fd_core_start(void)
 	return 0;
 }
 
+int fd_core_start(void)
+{
+	int ret;
+	CHECK_POSIX( pthread_mutex_lock(&core_lock) );
+	ret = fd_core_start_int();
+	CHECK_POSIX( pthread_mutex_unlock(&core_lock) );
+	return ret;
+}
 
 /* Initialize shutdown of the framework. This is not blocking. */
 int fd_core_shutdown(void)
@@ -307,8 +327,15 @@ int fd_core_shutdown(void)
 	enum core_state cur_state = core_state_get();
 	
 	if (cur_state < CORE_RUNNING) {
+		/* Calling application must make sure the initialization is not ongoing in a separate thread... */
+		if (pthread_mutex_lock(&core_lock) != 0) {
+			/* This function must not be called asynchronously from fd_core_parseconf / fd_core_start ! Please review your main app design */
+			ASSERT(0);
+			return EINVAL;
+		}
 		core_shutdown();
 		core_state_set(CORE_TERM);
+		pthread_mutex_unlock(&core_lock);
 	} else if (cur_state == CORE_RUNNING) {
 		core_state_set(CORE_SHUTDOWN);
 		CHECK_FCT( fd_event_send(fd_g_config->cnf_main_ev, FDEV_TERMINATE, 0, NULL) );
