@@ -122,7 +122,7 @@ static const char * wrapper_error_txt; /* if NULL, use strerror(errno) */
 }
 
 /* Case of the fd_*_dump functions */
-%typemap(in,noblock=1,numinputs=0) (char ** buf, size_t *len, size_t *offset) ($*1_ltype temp = NULL, $*2_ltype tempn) {
+%typemap(in,noblock=1,numinputs=0) (char ** buf, size_t *len, size_t *offset) ($*1_ltype temp = NULL, $*2_ltype tempn = 0) {
 	$1 = &temp; $2 = &tempn; $3 = NULL;
 }
 %typemap(freearg,match="in") (char ** buf, size_t *len, size_t *offset) "";

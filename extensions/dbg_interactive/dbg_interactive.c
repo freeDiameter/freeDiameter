@@ -55,6 +55,7 @@ static pthread_t pyinterp = (pthread_t)NULL;
 static void * myinterp (void * arg)
 {
 	char * dum[3] = { "<dbg_interactive>", arg, NULL };
+
 	TRACE_ENTRY("%p", arg);
 	
 	fd_log_threadname ( "fDpy" );
@@ -70,10 +71,12 @@ static void * myinterp (void * arg)
 			goto end;
 		}
 		printf("Starting interactive python interpreter [experimental].\n");
+		printf("Please use Ctrl-D to exit.\n");
 		printf("Example syntax:\n");
 		printf("   >>> print cvar.fd_g_config.cnf_diamid\n");
 		printf("   '%s'\n", fd_g_config->cnf_diamid);
 		Py_Main(1, dum);
+		printf("Python interpreter has exited...\n");
 	}
 	
 end:	
@@ -92,7 +95,7 @@ static int di_main(char * conffile)
 	int mustfree = 0;
 	TRACE_ENTRY("%p", conffile);
 	
-	Py_Initialize();
+	Py_InitializeEx(0);
 	
 	WRAPPER_INIT;
 	
@@ -124,11 +127,11 @@ static int di_main(char * conffile)
 void fd_ext_fini(void)
 {
 	TRACE_ENTRY();
-	
-	CHECK_FCT_DO(fd_thr_term(&pyinterp), );
+	void * ret;
 	
 	/* Cleanup the python interpreter */
 	Py_Finalize();
+	pthread_join(pyinterp, &ret);
 	
 	return ;
 }
