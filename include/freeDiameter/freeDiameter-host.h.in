@@ -61,6 +61,7 @@ extern "C" {
 #cmakedefine DISABLE_PEER_EXPIRY
 #cmakedefine WORKAROUND_ACCEPT_INVALID_VSAI
 #cmakedefine GNUTLS_VERSION_210
+#cmakedefine GNUTLS_VERSION_212
 #cmakedefine GNUTLS_VERSION_300
 #cmakedefine GNUTLS_VERSION_310
 

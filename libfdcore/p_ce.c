@@ -632,7 +632,7 @@ static void receiver_reject(struct cnxctx ** recv_cnx, struct msg ** cer, struct
 	/* Create and send the CEA with appropriate error code */
 	CHECK_FCT_DO( fd_msg_new_answer_from_req ( fd_g_config->cnf_dict, cer, MSGFL_ANSW_ERROR ), goto destroy );
 	CHECK_FCT_DO( fd_msg_rescode_set(*cer, error->pei_errcode, error->pei_message, error->pei_avp, 1 ), goto destroy );
-	CHECK_FCT_DO( fd_out_send(cer, *recv_cnx, NULL, FD_CNX_ORDERED), goto destroy );
+	CHECK_FCT_DO( fd_out_send(cer, *recv_cnx, NULL), goto destroy );
 	
 	/* And now destroy this connection */
 destroy:
@@ -652,7 +652,7 @@ int fd_p_ce_handle_newcnx(struct fd_peer * peer, struct cnxctx * initiator)
 	
 	/* Send CER on the new connection */
 	CHECK_FCT( create_CER(peer, initiator, &cer) );
-	CHECK_FCT( fd_out_send(&cer, initiator, peer, FD_CNX_ORDERED) );
+	CHECK_FCT( fd_out_send(&cer, initiator, peer) );
 	
 	/* Are we doing an election ? */
 	if (fd_peer_getstate(peer) == STATE_WAITCNXACK_ELEC) {
@@ -707,7 +707,7 @@ int fd_p_ce_msgrcv(struct msg ** msg, int req, struct fd_peer * peer)
 		CHECK_FCT( fd_msg_rescode_set(*msg, "DIAMETER_UNABLE_TO_COMPLY", "No CER allowed in current state", NULL, 1 ) );
 
 		/* msg now contains an answer message to send back */
-		CHECK_FCT_DO( fd_out_send(msg, NULL, peer, FD_CNX_ORDERED), /* In case of error the message has already been dumped */ );
+		CHECK_FCT_DO( fd_out_send(msg, NULL, peer), /* In case of error the message has already been dumped */ );
 	}
 	
 	/* If the state is not WAITCEA, just discard the message */
@@ -949,7 +949,7 @@ int fd_p_ce_process_receiver(struct fd_peer * peer)
 	/* The connection is complete, but we may still need TLS handshake */
 	fd_hook_call(HOOK_PEER_CONNECT_SUCCESS, msg, peer, NULL, NULL);
 	
-	CHECK_FCT( fd_out_send(&msg, peer->p_cnxctx, peer, FD_CNX_ORDERED ) );
+	CHECK_FCT( fd_out_send(&msg, peer->p_cnxctx, peer ) );
 	
 	/* Handshake if needed */
 	if (isi & PI_SEC_TLS_OLD) {
@@ -993,7 +993,7 @@ int fd_p_ce_process_receiver(struct fd_peer * peer)
 		fd_psm_change_state(peer, STATE_REOPEN );
 		CHECK_FCT( fd_p_dw_reopen(peer) );
 	} else {
-		if ((!tls_sync) && (fd_cnx_isMultichan(peer->p_cnxctx))) {
+		if ((!tls_sync) && (fd_cnx_is_unordered_delivery_supported(peer->p_cnxctx))) {
 			fd_psm_change_state(peer, STATE_OPEN_NEW );
 			/* send DWR */
 			CHECK_FCT( fd_p_dw_timeout(peer) );

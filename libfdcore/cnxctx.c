@@ -38,6 +38,7 @@
 
 #include <net/if.h>
 #include <ifaddrs.h> /* for getifaddrs */
+#include <sys/uio.h> /* writev */
 
 /* The maximum size of Diameter message we accept to receive (<= 2^24) to avoid too big mallocs in case of trashed headers */
 #ifndef DIAMETER_MSG_SIZE_MAX
@@ -478,13 +479,21 @@ int fd_cnx_getTLS(struct cnxctx * conn)
 	return fd_cnx_teststate(conn, CC_STATUS_TLS);
 }
 
+/* Mark the connection to tell if OOO delivery is permitted (only for SCTP) */
+int fd_cnx_unordered_delivery(struct cnxctx * conn, int is_allowed)
+{
+	CHECK_PARAMS( conn );
+	conn->cc_sctp_para.unordered = is_allowed;
+	return 0;
+}
+
 /* Return true if the connection supports unordered delivery of messages */
-int fd_cnx_isMultichan(struct cnxctx * conn)
+int fd_cnx_is_unordered_delivery_supported(struct cnxctx * conn)
 {
 	CHECK_PARAMS_DO( conn, return 0 );
 	#ifndef DISABLE_SCTP
 	if (conn->cc_proto == IPPROTO_SCTP)
-		return (conn->cc_sctp_para.str_in > 1) || (conn->cc_sctp_para.str_out > 1);
+		return (conn->cc_sctp_para.str_out > 1);
 	#endif /* DISABLE_SCTP */
 	return 0;
 }
@@ -528,6 +537,22 @@ char * fd_cnx_getremoteid(struct cnxctx * conn)
 {
 	CHECK_PARAMS_DO( conn, return "" );
 	return conn->cc_remid;
+}
+
+static int fd_cnx_may_dtls(struct cnxctx * conn);
+
+/* Get a short string representing the connection */
+int fd_cnx_proto_info(struct cnxctx * conn, char * buf, size_t len) 
+{
+	CHECK_PARAMS( conn );
+	
+	if (fd_cnx_teststate(conn, CC_STATUS_TLS)) {
+		snprintf(buf, len, "%s,%s,soc#%d", IPPROTO_NAME(conn->cc_proto), fd_cnx_may_dtls(conn) ? "DTLS" : "TLS", conn->cc_socket);
+	} else {
+		snprintf(buf, len, "%s,soc#%d", IPPROTO_NAME(conn->cc_proto), conn->cc_socket);
+	}
+	
+	return 0;
 }
 
 /* Retrieve a list of all IP addresses of the local system from the kernel, using getifaddrs */
@@ -600,6 +625,24 @@ void fd_cnx_s_setto(int sock)
 	CHECK_SYS_DO( setsockopt(sock, SOL_SOCKET, SO_SNDTIMEO, &tv, sizeof(tv)), /* Also timeout for sending, to avoid waiting forever */ );
 }
 
+
+#ifdef GNUTLS_VERSION_300
+/* The pull_timeout function for gnutls */
+static int fd_cnx_s_select (struct cnxctx * conn, unsigned int ms)
+{
+	fd_set rfds;
+	struct timeval tv;
+	
+	FD_ZERO (&rfds);
+	FD_SET (conn->cc_socket, &rfds);
+	
+	tv.tv_sec = ms / 1000;
+	tv.tv_usec = (ms * 1000) % 1000000;
+	
+	return select (conn->cc_socket + 1, &rfds, NULL, NULL, &tv);
+}		
+#endif /* GNUTLS_VERSION_300 */
+
 /* A recv-like function, taking a cnxctx object instead of socket as entry. We use it to quickly react to timeouts without traversing GNUTLS wrapper each time */
 ssize_t fd_cnx_s_recv(struct cnxctx * conn, void *buffer, size_t length)
 {
@@ -627,13 +670,41 @@ again:
 	return ret;
 }
 
-/* Send */
-static ssize_t fd_cnx_s_send(struct cnxctx * conn, void *buffer, size_t length)
+/* Send, for older GNUTLS */
+#ifndef GNUTLS_VERSION_212
+static ssize_t fd_cnx_s_send(struct cnxctx * conn, const void *buffer, size_t length)
 {
 	ssize_t ret = 0;
 	int timedout = 0;
 again:
 	ret = send(conn->cc_socket, buffer, length, 0);
+	/* Handle special case of timeout */
+	if ((ret < 0) && ((errno == EAGAIN) || (errno == EINTR))) {
+		pthread_testcancel();
+		if (! fd_cnx_teststate(conn, CC_STATUS_CLOSING ))
+			goto again; /* don't care, just ignore */
+		if (!timedout) {
+			timedout ++; /* allow for one timeout while closing */
+			goto again;
+		}
+		CHECK_SYS_DO(ret, /* continue */);
+	}
+	
+	/* Mark the error */
+	if (ret <= 0)
+		fd_cnx_markerror(conn);
+	
+	return ret;
+}
+#endif /* GNUTLS_VERSION_212 */
+
+/* Send */
+static ssize_t fd_cnx_s_sendv(struct cnxctx * conn, const struct iovec * iov, int iovcnt)
+{
+	ssize_t ret = 0;
+	int timedout = 0;
+again:
+	ret = writev(conn->cc_socket, iov, iovcnt);
 	/* Handle special case of timeout */
 	if ((ret < 0) && ((errno == EAGAIN) || (errno == EINTR))) {
 		pthread_testcancel();
@@ -1604,8 +1675,15 @@ int fd_cnx_handshake(struct cnxctx * conn, int mode, int algo, char * priority, 
 
 		/* Set the push and pull callbacks */
 		if (!dtls) {
+			#ifdef GNUTLS_VERSION_300
+			GNUTLS_TRACE( gnutls_transport_set_pull_timeout_function( conn->cc_tls_para.session, (void *)fd_cnx_s_select ) );
+			#endif /* GNUTLS_VERSION_300 */
 			GNUTLS_TRACE( gnutls_transport_set_pull_function(conn->cc_tls_para.session, (void *)fd_cnx_s_recv) );
+			#ifndef GNUTLS_VERSION_212
 			GNUTLS_TRACE( gnutls_transport_set_push_function(conn->cc_tls_para.session, (void *)fd_cnx_s_send) );
+			#else /* GNUTLS_VERSION_212 */
+			GNUTLS_TRACE( gnutls_transport_set_vec_push_function(conn->cc_tls_para.session, (void *)fd_cnx_s_sendv) );
+			#endif /* GNUTLS_VERSION_212 */
 		} else {
 			TODO("DTLS push/pull functions");
 			return ENOTSUP;
@@ -1783,8 +1861,10 @@ static int send_simple(struct cnxctx * conn, unsigned char * buf, size_t len)
 		if (fd_cnx_teststate(conn, CC_STATUS_TLS)) {
 			CHECK_GNUTLS_DO( ret = fd_tls_send_handle_error(conn, conn->cc_tls_para.session, buf + sent, len - sent),  );
 		} else {
-			/* Maybe better to replace this call with sendmsg for atomic sending? */
-			CHECK_SYS_DO( ret = fd_cnx_s_send(conn, buf + sent, len - sent), );
+			struct iovec iov;
+			iov.iov_base = buf + sent;
+			iov.iov_len  = len - sent;
+			CHECK_SYS_DO( ret = fd_cnx_s_sendv(conn, &iov, 1), );
 		}
 		if (ret <= 0)
 			return ENOTCONN;
@@ -1795,9 +1875,9 @@ static int send_simple(struct cnxctx * conn, unsigned char * buf, size_t len)
 }
 
 /* Send a message -- this is synchronous -- and we assume it's never called by several threads at the same time (on the same conn), so we don't protect. */
-int fd_cnx_send(struct cnxctx * conn, unsigned char * buf, size_t len, uint32_t flags)
+int fd_cnx_send(struct cnxctx * conn, unsigned char * buf, size_t len)
 {
-	TRACE_ENTRY("%p %p %zd %x", conn, buf, len, flags);
+	TRACE_ENTRY("%p %p %zd", conn, buf, len);
 	
 	CHECK_PARAMS(conn && (conn->cc_socket > 0) && (! fd_cnx_teststate(conn, CC_STATUS_ERROR)) && buf && len);
 
@@ -1811,48 +1891,50 @@ int fd_cnx_send(struct cnxctx * conn, unsigned char * buf, size_t len, uint32_t 
 #ifndef DISABLE_SCTP
 		case IPPROTO_SCTP: {
 			int dtls = fd_cnx_uses_dtls(conn);
-
 			if (!dtls) {
-				if (flags & FD_CNX_ORDERED) {
-					/* We send over stream #0 */
+				int stream = 0;
+				if (conn->cc_sctp_para.unordered) {
+					int limit;
+					if (fd_cnx_teststate(conn, CC_STATUS_TLS))
+						limit = conn->cc_sctp_para.pairs;
+					else
+						limit = conn->cc_sctp_para.str_out;
+					
+					if (limit > 1) {
+						conn->cc_sctp_para.next += 1;
+						conn->cc_sctp_para.next %= limit;
+						stream = conn->cc_sctp_para.next;
+					}
+				}
+				
+				if (stream == 0) {
+					/* We can use default function, it sends over stream #0 */
 					CHECK_FCT( send_simple(conn, buf, len) );
 				} else {
-					/* Default case : no flag specified */
-			
-					int another_str = 0; /* do we send over stream #0 ? */
-
-					if ((conn->cc_sctp_para.str_out > 1) && ((!fd_cnx_teststate(conn, CC_STATUS_TLS)) || (conn->cc_sctp_para.pairs > 1)))  {
-						/* Update the id of the stream we will send this message over */
-						conn->cc_sctp_para.next += 1;
-						conn->cc_sctp_para.next %= (fd_cnx_teststate(conn, CC_STATUS_TLS) ? conn->cc_sctp_para.pairs : conn->cc_sctp_para.str_out);
-						another_str = (conn->cc_sctp_para.next ? 1 : 0);
-					}
-
-					if ( ! another_str ) {
-						CHECK_FCT( send_simple(conn, buf, len) );
+					if (!fd_cnx_teststate(conn, CC_STATUS_TLS)) {
+						struct iovec iov;
+						iov.iov_base = buf;
+						iov.iov_len  = len;
+						
+						CHECK_SYS_DO( fd_sctp_sendstrv(conn, stream, &iov, 1), { fd_cnx_markerror(conn); return ENOTCONN; } );
 					} else {
-						if (!fd_cnx_teststate(conn, CC_STATUS_TLS)) {
-							CHECK_FCT_DO( fd_sctp_sendstr(conn, conn->cc_sctp_para.next, buf, len), { fd_cnx_markerror(conn); return ENOTCONN; } );
-						} else {
-							/* push the record to the appropriate session */
-							ssize_t ret;
-							size_t sent = 0;
-							ASSERT(conn->cc_sctp3436_data.array != NULL);
-							do {
-								CHECK_GNUTLS_DO( ret = fd_tls_send_handle_error(conn, conn->cc_sctp3436_data.array[conn->cc_sctp_para.next].session, buf + sent, len - sent), );
-								if (ret <= 0)
-									return ENOTCONN;
+						/* push the data to the appropriate session */
+						ssize_t ret;
+						size_t sent = 0;
+						ASSERT(conn->cc_sctp3436_data.array != NULL);
+						do {
+							CHECK_GNUTLS_DO( ret = fd_tls_send_handle_error(conn, conn->cc_sctp3436_data.array[stream].session, buf + sent, len - sent), );
+							if (ret <= 0)
+								return ENOTCONN;
 
-								sent += ret;
-							} while ( sent < len );
-						}
+							sent += ret;
+						} while ( sent < len );
 					}
 				}
 			} else {
 				/* DTLS */
-				/* We signal the push function directly to tell if using stream 0 or round-robin */
-				TODO("DTLS send");
-				return ENOTSUP;
+				/* Multistream is handled at lower layer in the push/pull function */
+				CHECK_FCT( send_simple(conn, buf, len) );
 			}
 		}
 		break;

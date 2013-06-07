@@ -117,7 +117,7 @@ int fd_p_dp_handle(struct msg ** msg, int req, struct fd_peer * peer)
 			CHECK_FCT( fd_psm_change_state(peer, STATE_CLOSING) );
 		
 			/* Now send the DPA */
-			CHECK_FCT( fd_out_send( msg, NULL, peer, FD_CNX_ORDERED) );
+			CHECK_FCT( fd_out_send( msg, NULL, peer) );
 			
 			/* and move to CLOSED */
 			fd_psm_cleanup(peer, 0);
@@ -131,7 +131,7 @@ int fd_p_dp_handle(struct msg ** msg, int req, struct fd_peer * peer)
 			fd_psm_next_timeout(peer, 0, GRACE_TIMEOUT);
 			
 			/* Now send the DPA */
-			CHECK_FCT( fd_out_send( msg, NULL, peer, FD_CNX_ORDERED) );
+			CHECK_FCT( fd_out_send( msg, NULL, peer) );
 		}
 	} else {
 		/* We received a DPA */
@@ -201,7 +201,7 @@ int fd_p_dp_initiate(struct fd_peer * peer, char * reason)
 	fd_psm_next_timeout(peer, 0, DPR_TIMEOUT);
 	
 	/* Now send the DPR message */
-	CHECK_FCT_DO( fd_out_send(&msg, NULL, peer, FD_CNX_ORDERED), /* ignore since we are on timeout anyway */ );
+	CHECK_FCT_DO( fd_out_send(&msg, NULL, peer), /* ignore since we are on timeout anyway */ );
 	
 	return 0;
 }

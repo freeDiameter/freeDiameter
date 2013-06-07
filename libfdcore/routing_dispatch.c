@@ -412,7 +412,7 @@ static int return_error(struct msg ** pmsg, char * error_code, char * error_mess
 	if (is_loc) {
 		CHECK_FCT( fd_fifo_post(fd_g_incoming, pmsg) );
 	} else {
-		CHECK_FCT( fd_out_send(pmsg, NULL, peer, 0) );
+		CHECK_FCT( fd_out_send(pmsg, NULL, peer) );
 	}
 	
 	/* Done */
@@ -886,7 +886,7 @@ static int msg_rt_out(struct msg * msg)
 		hdr->msg_hbhid = qry_hdr->msg_hbhid;
 
 		/* Push the message into this peer */
-		CHECK_FCT( fd_out_send(&msgptr, NULL, peer, 0) );
+		CHECK_FCT( fd_out_send(&msgptr, NULL, peer) );
 
 		/* We're done with this answer */
 		return 0;
@@ -1003,7 +1003,7 @@ static int msg_rt_out(struct msg * msg)
 
 		if (fd_peer_getstate(peer) == STATE_OPEN) {
 			/* Send to this one */
-			CHECK_FCT_DO( fd_out_send(&msgptr, NULL, peer, 0), continue );
+			CHECK_FCT_DO( fd_out_send(&msgptr, NULL, peer), continue );
 			
 			/* If the sending was successful */
 			break;

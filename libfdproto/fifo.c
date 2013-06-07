@@ -645,3 +645,37 @@ int fd_fifo_timedget_int ( struct fifo * queue, void ** item, const struct times
 	return fifo_tget(queue, item, 1, abstime);
 }
 
+/* Test if data is available in the queue, without pulling it */
+int fd_fifo_select ( struct fifo * queue, const struct timespec *abstime )
+{
+	int ret = 0;
+	TRACE_ENTRY( "%p %p", queue, abstime );
+	
+	CHECK_PARAMS_DO( CHECK_FIFO( queue ), return -EINVAL );
+	
+	/* lock the queue */
+	CHECK_POSIX_DO(  pthread_mutex_lock( &queue->mtx ), return -__ret__  );
+	
+awaken:	
+	ret = (queue->count > 0 ) ? queue->count : 0;
+	if ((ret == 0) && (abstime != NULL)) {
+		/* We have to wait for a new item */
+		queue->thrs++ ;
+		pthread_cleanup_push( fifo_cleanup, queue);
+		ret = pthread_cond_timedwait( &queue->cond_pull, &queue->mtx, abstime );
+		pthread_cleanup_pop(0);
+		queue->thrs-- ;
+		if (ret == 0)
+			goto awaken;  /* test for spurious wake-ups */
+		
+		if (ret == ETIMEDOUT)
+			ret = 0;
+		else 
+			ret = -ret;
+	}
+	
+	/* Unlock */
+	CHECK_POSIX_DO(  pthread_mutex_unlock( &queue->mtx ), return -__ret__  );
+	
+	return ret;
+}

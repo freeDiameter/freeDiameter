@@ -295,7 +295,7 @@ int fd_psm_change_state(struct fd_peer * peer, int new_state);
 void fd_psm_cleanup(struct fd_peer * peer, int terminate);
 
 /* Peer out */
-int fd_out_send(struct msg ** msg, struct cnxctx * cnx, struct fd_peer * peer, uint32_t flags);
+int fd_out_send(struct msg ** msg, struct cnxctx * cnx, struct fd_peer * peer);
 int fd_out_start(struct fd_peer * peer);
 int fd_out_stop(struct fd_peer * peer);
 
@@ -341,27 +341,26 @@ struct cnxctx * fd_cnx_cli_connect_tcp(sSA * sa, socklen_t addrlen);
 struct cnxctx * fd_cnx_cli_connect_sctp(int no_ip6, uint16_t port, struct fd_list * list);
 int             fd_cnx_start_clear(struct cnxctx * conn, int loop);
 void		fd_cnx_sethostname(struct cnxctx * conn, DiamId_t hn);
+int		fd_cnx_proto_info(struct cnxctx * conn, char * buf, size_t len);
 #define ALGO_HANDSHAKE_DEFAULT	0 /* TLS for TCP, DTLS for SCTP */
 #define ALGO_HANDSHAKE_3436	1 /* For TLS for SCTP also */
 int             fd_cnx_handshake(struct cnxctx * conn, int mode, int algo, char * priority, void * alt_creds);
 char *          fd_cnx_getid(struct cnxctx * conn);
 int		fd_cnx_getproto(struct cnxctx * conn);
 int		fd_cnx_getTLS(struct cnxctx * conn);
-int		fd_cnx_isMultichan(struct cnxctx * conn);
+int		fd_cnx_is_unordered_delivery_supported(struct cnxctx * conn);
+int		fd_cnx_unordered_delivery(struct cnxctx * conn, int is_allowed);
 int             fd_cnx_getcred(struct cnxctx * conn, const gnutls_datum_t **cert_list, unsigned int *cert_list_size);
 int 		fd_cnx_get_local_eps(struct fd_list * list);
 int             fd_cnx_getremoteeps(struct cnxctx * conn, struct fd_list * eps);
 char *          fd_cnx_getremoteid(struct cnxctx * conn);
 int             fd_cnx_receive(struct cnxctx * conn, struct timespec * timeout, unsigned char **buf, size_t * len);
 int             fd_cnx_recv_setaltfifo(struct cnxctx * conn, struct fifo * alt_fifo); /* send FDEVP_CNX_MSG_RECV event to the fifo list */
-int             fd_cnx_send(struct cnxctx * conn, unsigned char * buf, size_t len, uint32_t flags);
+int             fd_cnx_send(struct cnxctx * conn, unsigned char * buf, size_t len);
 void            fd_cnx_destroy(struct cnxctx * conn);
 #ifdef GNUTLS_VERSION_300
 int             fd_tls_verify_credentials_2(gnutls_session_t session);
 #endif /* GNUTLS_VERSION_300 */
-
-/* Flags for the fd_cnx_send function : */
-#define FD_CNX_ORDERED		(1 << 0)	/* All messages sent with this flag set will be delivered in the same order. No guarantee on other messages */
 
 /* Internal calls of the hook mechanism */
 void   fd_hook_call(enum fd_hook_type type, struct msg * msg, struct fd_peer * peer, void * other, struct fd_msg_pmdl * pmdl);

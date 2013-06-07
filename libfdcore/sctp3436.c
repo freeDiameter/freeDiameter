@@ -51,12 +51,12 @@ Architecture of this wrapper:
  - the push function sends the data on a certain stream.
  We also have a demux thread that reads the socket and store received data in the appropriate fifo
  
- We have one gnutls_session per stream pair, and as many streams that read the gnutls records and save incoming data to the target queue.
+ We have one gnutls_session per stream pair, and as many threads that read the gnutls records and save incoming data to the target queue.
  
 This complexity is required because we cannot read a socket for a given stream only; we can only get the next message and find its stream.
 */
 
-/* TODO: change this whole wrapper to DTLS which should not require many different threads */
+/* Note that this mechanism is replaced by DTLS in RFC6733 */
 
 /*************************************************************/
 /*                      threads                              */
@@ -163,18 +163,63 @@ error:
 /*                     push / pull                           */
 /*************************************************************/
 
+#ifdef GNUTLS_VERSION_300
+/* Check if data is available for gnutls on a given context */
+static int sctp3436_pull_timeout(gnutls_transport_ptr_t tr, unsigned int ms)
+{
+	struct sctp3436_ctx * ctx = (struct sctp3436_ctx *) tr;
+	struct timespec tsstore, *ts = NULL;
+	int ret;
+	
+	TRACE_ENTRY("%p %d", tr, ms);
+	
+	if (ctx->partial.buf)
+		return 1; /* data is already available for pull */
+	
+	if (ms) {
+		CHECK_SYS_DO(  clock_gettime(CLOCK_REALTIME, &tsstore),  return -1  );
+		tsstore.tv_nsec += (long)ms * 1000000;
+		tsstore.tv_sec += tsstore.tv_nsec / 1000000000L;
+		tsstore.tv_nsec %= 1000000000L;
+		ts = &tsstore;
+	}
+	
+	ret = fd_fifo_select ( ctx->raw_recv, ts );
+	if (ret < 0) {
+		errno = -ret;
+		ret = -1;
+	}
+		
+	return ret;
+}
+#endif /* GNUTLS_VERSION_300 */
+
 /* Send data over the connection, called by gnutls */
+#ifndef GNUTLS_VERSION_212
 static ssize_t sctp3436_push(gnutls_transport_ptr_t tr, const void * data, size_t len)
 {
 	struct sctp3436_ctx * ctx = (struct sctp3436_ctx *) tr;
+	struct iovec iov;
 	
 	TRACE_ENTRY("%p %p %zd", tr, data, len);
 	CHECK_PARAMS_DO( tr && data, { errno = EINVAL; return -1; } );
 	
-	CHECK_FCT_DO( fd_sctp_sendstr(ctx->parent, ctx->strid, (uint8_t *)data, len), return -1 );
+	iov.iov_base = (void *)data;
+	iov.iov_len  = len;
 	
-	return len;
+	return fd_sctp_sendstrv(ctx->parent, ctx->strid, &iov, 1);
 }
+#else /*  GNUTLS_VERSION_212 */
+static ssize_t sctp3436_pushv(gnutls_transport_ptr_t tr, const giovec_t * iov, int iovcnt)
+{
+	struct sctp3436_ctx * ctx = (struct sctp3436_ctx *) tr;
+	
+	TRACE_ENTRY("%p %p %d", tr, iov, iovcnt);
+	CHECK_PARAMS_DO( tr && iov, { errno = EINVAL; return -1; } );
+	
+	return fd_sctp_sendstrv(ctx->parent, ctx->strid, (const struct iovec *)iov, iovcnt);
+}
+#endif /*  GNUTLS_VERSION_212 */
 
 /* Retrieve data received on a stream and already demultiplexed */
 static ssize_t sctp3436_pull(gnutls_transport_ptr_t tr, void * buf, size_t len)
@@ -237,11 +282,18 @@ static void set_sess_transport(gnutls_session_t session, struct sctp3436_ctx *ct
 #ifndef GNUTLS_VERSION_300
 	/* starting version 2.12, this call is not needed */
 	GNUTLS_TRACE( gnutls_transport_set_lowat( session, 0 ) );
+#else  /* GNUTLS_VERSION_300 */
+	/* but in 3.0 we have to provide the pull_timeout callback */
+	GNUTLS_TRACE( gnutls_transport_set_pull_timeout_function( session, sctp3436_pull_timeout ) );
 #endif /* GNUTLS_VERSION_300 */
 	
 	/* Set the push and pull callbacks */
 	GNUTLS_TRACE( gnutls_transport_set_pull_function(session, sctp3436_pull) );
+#ifndef GNUTLS_VERSION_212
 	GNUTLS_TRACE( gnutls_transport_set_push_function(session, sctp3436_push) );
+#else /* GNUTLS_VERSION_212 */
+	GNUTLS_TRACE( gnutls_transport_set_vec_push_function(session, sctp3436_pushv) );
+#endif /* GNUTLS_VERSION_212 */
 
 	return;
 }

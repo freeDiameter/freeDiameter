@@ -36,7 +36,7 @@
 #include "fdcore-internal.h"
 
 /* Alloc a new hbh for requests, bufferize the message and send on the connection, save in sentreq if provided */
-static int do_send(struct msg ** msg, uint32_t flags, struct cnxctx * cnx, uint32_t * hbh, struct fd_peer * peer)
+static int do_send(struct msg ** msg, struct cnxctx * cnx, uint32_t * hbh, struct fd_peer * peer)
 {
 	struct msg_hdr * hdr;
 	int msg_is_a_req;
@@ -46,7 +46,7 @@ static int do_send(struct msg ** msg, uint32_t flags, struct cnxctx * cnx, uint3
 	uint32_t bkp_hbh = 0;
 	struct msg *cpy_for_logs_only;
 	
-	TRACE_ENTRY("%p %x %p %p %p", msg, flags, cnx, hbh, peer);
+	TRACE_ENTRY("%p %p %p %p", msg, cnx, hbh, peer);
 	
 	/* Retrieve the message header */
 	CHECK_FCT( fd_msg_hdr(*msg, &hdr) );
@@ -75,7 +75,7 @@ static int do_send(struct msg ** msg, uint32_t flags, struct cnxctx * cnx, uint3
 	fd_hook_call(HOOK_MESSAGE_SENT, cpy_for_logs_only, peer, NULL, fd_msg_pmdl_get(cpy_for_logs_only));
 	
 	/* Send the message */
-	CHECK_FCT_DO( ret = fd_cnx_send(cnx, buf, sz, flags), );
+	CHECK_FCT_DO( ret = fd_cnx_send(cnx, buf, sz), );
 out:
 	;	
 	pthread_cleanup_pop(1);
@@ -127,7 +127,7 @@ static void * out_thr(void * arg)
 		pthread_cleanup_push(cleanup_requeue, msg);
 		
 		/* Send the message, log any error */
-		CHECK_FCT_DO( ret = do_send(&msg, 0, peer->p_cnxctx, &peer->p_hbh, peer),
+		CHECK_FCT_DO( ret = do_send(&msg, peer->p_cnxctx, &peer->p_hbh, peer),
 			{
 				if (msg) {
 					char buf[256];
@@ -148,11 +148,11 @@ error:
 }
 
 /* Wrapper to sending a message either by out thread (peer in OPEN state) or directly; cnx or peer must be provided. Flags are valid only for direct sending, not through thread (unused) */
-int fd_out_send(struct msg ** msg, struct cnxctx * cnx, struct fd_peer * peer, uint32_t flags)
+int fd_out_send(struct msg ** msg, struct cnxctx * cnx, struct fd_peer * peer)
 {
 	struct msg_hdr * hdr;
 	
-	TRACE_ENTRY("%p %p %p %x", msg, cnx, peer, flags);
+	TRACE_ENTRY("%p %p %p", msg, cnx, peer);
 	CHECK_PARAMS( msg && *msg && (cnx || (peer && peer->p_cnxctx)));
 	
 	if (peer) {
@@ -181,7 +181,7 @@ int fd_out_send(struct msg ** msg, struct cnxctx * cnx, struct fd_peer * peer, u
 			cnx = peer->p_cnxctx;
 
 		/* Do send the message */
-		CHECK_FCT_DO( ret = do_send(msg, flags, cnx, hbh, peer),
+		CHECK_FCT_DO( ret = do_send(msg, cnx, hbh, peer),
 			{
 				if (msg) {
 					char buf[256];
@@ -204,6 +204,8 @@ int fd_out_start(struct fd_peer * peer)
 	
 	CHECK_POSIX( pthread_create(&peer->p_outthr, NULL, out_thr, peer) );
 	
+	CHECK_FCT( fd_cnx_unordered_delivery(peer->p_cnxctx, 1) );
+	
 	return 0;
 }
 
@@ -212,6 +214,8 @@ int fd_out_stop(struct fd_peer * peer)
 {
 	TRACE_ENTRY("%p", peer);
 	CHECK_PARAMS( CHECK_PEER(peer) );
+	
+	CHECK_FCT( fd_cnx_unordered_delivery(peer->p_cnxctx, 0) );
 	
 	CHECK_FCT( fd_thr_term(&peer->p_outthr) );
 	

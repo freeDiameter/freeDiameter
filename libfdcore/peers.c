@@ -257,6 +257,24 @@ void fd_peer_failover_msg(struct fd_peer * peer)
 	return;
 }
 
+/* Describe the current connection */
+int fd_peer_cnx_proto_info(struct peer_hdr *peer, char * buf, size_t len)
+{
+	struct fd_peer * p = (struct fd_peer *)peer;
+	TRACE_ENTRY("%p %p %zd", peer, buf, len);
+	CHECK_PARAMS(CHECK_PEER(peer) && buf && len);
+	
+	if (p->p_cnxctx) {
+		CHECK_FCT(fd_cnx_proto_info(p->p_cnxctx, buf, len));
+	} else if (p->p_receiver) {
+		CHECK_FCT(fd_cnx_proto_info(p->p_receiver, buf, len));
+	} else {
+		snprintf(buf, len, "Not Connected");
+	}
+	
+	return 0;
+}
+
 /* Return the value of srlist->cnt */
 int fd_peer_get_load_pending(struct peer_hdr *peer, long * to_receive, long * to_send)
 {
@@ -511,7 +529,7 @@ int fd_peer_handle_newCER( struct msg ** cer, struct cnxctx ** cnx )
 		
 		fd_hook_call(HOOK_PEER_CONNECT_FAILED, *cer, NULL, "Received CER with invalid Origin-Host AVP", NULL);
 		
-		CHECK_FCT( fd_out_send(cer, *cnx, NULL, FD_CNX_ORDERED) );
+		CHECK_FCT( fd_out_send(cer, *cnx, NULL) );
 		return EINVAL;
 	}
 	

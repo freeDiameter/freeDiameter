@@ -5,6 +5,7 @@
 #  GNUTLS_INCLUDE_DIR - where to find gnutls.h, etc.
 #  GNUTLS_LIBRARIES - List of libraries when using gnutls.
 #  GNUTLS_VERSION_210 - true if GnuTLS version is >= 2.10.0 (does not require additional separate gcrypt initialization)
+#  GNUTLS_VERSION_212 - true if GnuTLS version is >= 2.12.0 (supports gnutls_transport_set_vec_push_function)
 #  GNUTLS_VERSION_300 - true if GnuTLS version is >= 3.00.0 (x509 verification functions changed)
 #  GNUTLS_VERSION_310 - true if GnuTLS version is >= 3.01.0 (stabilization branch with new APIs)
 
@@ -47,12 +48,15 @@ IF(GNUTLS_FOUND)
     MESSAGE(STATUS "Checking GNUTLS version")
     UNSET(GNUTLS_VERSION_210)
     UNSET(GNUTLS_VERSION_210 CACHE)
+    UNSET(GNUTLS_VERSION_212)
+    UNSET(GNUTLS_VERSION_212 CACHE)
     UNSET(GNUTLS_VERSION_300)
     UNSET(GNUTLS_VERSION_300 CACHE)
     UNSET(GNUTLS_VERSION_310)
     UNSET(GNUTLS_VERSION_310 CACHE)
     GET_FILENAME_COMPONENT(GNUTLS_PATH ${GNUTLS_LIBRARY} PATH)
     CHECK_LIBRARY_EXISTS(gnutls gnutls_hash ${GNUTLS_PATH} GNUTLS_VERSION_210) 
+    CHECK_LIBRARY_EXISTS(gnutls gnutls_transport_set_vec_push_function ${GNUTLS_PATH} GNUTLS_VERSION_212) 
     CHECK_LIBRARY_EXISTS(gnutls gnutls_x509_trust_list_verify_crt ${GNUTLS_PATH} GNUTLS_VERSION_300) 
     CHECK_LIBRARY_EXISTS(gnutls gnutls_handshake_set_timeout ${GNUTLS_PATH} GNUTLS_VERSION_310) 
     SET( GNUTLS_VERSION_TEST_FOR ${GNUTLS_LIBRARY} CACHE INTERNAL "Version the test was made against" )

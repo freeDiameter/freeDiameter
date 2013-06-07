@@ -60,6 +60,7 @@ int main(int argc, char *argv[])
 	char buf1[]="abcdef";
 	char *buf2;
 	size_t sz;
+	struct iovec iov;
 	struct fd_list eps = FD_LIST_INITIALIZER(eps);
 	uint16_t str;
 	int ev;
@@ -103,7 +104,9 @@ int main(int argc, char *argv[])
 	srv.cc_socket = accept(sock, NULL, NULL);
 	
 	/* Send a first message */
-	CHECK( 0, fd_sctp_sendstr(&srv, 1, (uint8_t *)buf1, sizeof(buf1) ) );
+	iov.iov_base = buf1;
+	iov.iov_len = sizeof(buf1);
+	CHECK( sizeof(buf1), fd_sctp_sendstrv(&srv, 1, &iov, 1 ) );
 	CHECK( 0, srv.cc_state);
 	
 	/* Receive this message */
@@ -119,7 +122,7 @@ redo1:
 	free(buf2); buf2 = NULL;
 	
 	/* Send in the other direction */
-	CHECK( 0, fd_sctp_sendstr(&cli, 2, (uint8_t *)buf1, sizeof(buf1)) );
+	CHECK( sizeof(buf1), fd_sctp_sendstrv(&cli, 2, &iov, 1) );
 	CHECK( 0, cli.cc_state);
 	
 	/* Receive this message */

@@ -74,6 +74,7 @@ struct cnxctx {
 		uint16_t str_in;	/* In streams */
 		uint16_t pairs;		/* max number of pairs ( = min(in, out)) */
 		uint16_t next;		/* # of stream the next message will be sent to */
+		int	 unordered;	/* boolean telling if use of streams > 0 is permitted */
 	} 		cc_sctp_para;
 
 	/* If both conditions */
@@ -117,7 +118,7 @@ int fd_sctp_client( int *sock, int no_ip6, uint16_t port, struct fd_list * list 
 int fd_sctp_get_local_ep(int sock,  struct fd_list * list);
 int fd_sctp_get_remote_ep(int sock, struct fd_list * list);
 int fd_sctp_get_str_info( int sock, uint16_t *in, uint16_t *out, sSS *primary );
-int fd_sctp_sendstr(struct cnxctx * conn, uint16_t strid, uint8_t * buf, size_t len);
+ssize_t fd_sctp_sendstrv(struct cnxctx * conn, uint16_t strid, const struct iovec *iov, int iovcnt);
 int fd_sctp_recvmeta(struct cnxctx * conn, uint16_t * strid, uint8_t ** buf, size_t * len, int *event);
 
 /* TLS over SCTP (multi-stream) */

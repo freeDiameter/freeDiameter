@@ -1079,11 +1079,10 @@ stop:
 	return 0;
 }
 
-/* Send a buffer over a specified stream */
-int fd_sctp_sendstr(struct cnxctx * conn, uint16_t strid, uint8_t * buf, size_t len)
+/* Send a vector over a specified stream */
+ssize_t fd_sctp_sendstrv(struct cnxctx * conn, uint16_t strid, const struct iovec *iov, int iovcnt)
 {
 	struct msghdr mhdr;
-	struct iovec  iov;
 	struct cmsghdr 		*hdr;
 #ifdef OLD_SCTP_SOCKET_API
 	struct sctp_sndrcvinfo	*sndrcv;
@@ -1095,16 +1094,11 @@ int fd_sctp_sendstr(struct cnxctx * conn, uint16_t strid, uint8_t * buf, size_t 
 	ssize_t ret;
 	int timedout = 0;
 	
-	TRACE_ENTRY("%p %hu %p %zd", conn, strid, buf, len);
-	CHECK_PARAMS(conn && buf && len);
+	TRACE_ENTRY("%p %hu %p %d", conn, strid, iov, iovcnt);
+	CHECK_PARAMS_DO(conn && iov && iovcnt, { errno = EINVAL; return -1; } );
 	
 	memset(&mhdr, 0, sizeof(mhdr));
-	memset(&iov,  0, sizeof(iov));
 	memset(&anci, 0, sizeof(anci));
-	
-	/* IO Vector: message data */
-	iov.iov_base = buf;
-	iov.iov_len  = len;
 	
 	/* Anciliary data: specify SCTP stream */
 	hdr = (struct cmsghdr *)anci;
@@ -1123,13 +1117,13 @@ int fd_sctp_sendstr(struct cnxctx * conn, uint16_t strid, uint8_t * buf, size_t 
 	
 	/* We don't use mhdr.msg_name here; it could be used to specify an address different from the primary */
 	
-	mhdr.msg_iov    = &iov;
-	mhdr.msg_iovlen = 1;
+	mhdr.msg_iov    = (struct iovec *)iov;
+	mhdr.msg_iovlen = iovcnt;
 	
 	mhdr.msg_control    = anci;
 	mhdr.msg_controllen = sizeof(anci);
 	
-	TRACE_DEBUG(FULL, "Sending %zdb data on stream %hu of socket %d", len, strid, conn->cc_socket);
+	TRACE_DEBUG(FULL, "Sending %d chunks of data (first:%zdb) on stream %hu of socket %d", iovcnt, iov[0].iov_len, strid, conn->cc_socket);
 again:	
 	ret = sendmsg(conn->cc_socket, &mhdr, 0);
 	/* Handle special case of timeout */
@@ -1143,10 +1137,9 @@ again:
 		}
 	}
 	
-	CHECK_SYS( ret );
-	ASSERT( ret == len ); /* There should not be partial delivery with sendmsg... */
+	CHECK_SYS_DO( ret, ); /* for tracing error only */
 	
-	return 0;
+	return ret;
 }
 
 /* Receive the next data from the socket, or next notification */

@@ -3183,6 +3183,28 @@ int fd_fifo_timedget_int ( struct fifo * queue, void ** item, const struct times
 #define fd_fifo_timedget(queue, item, abstime) \
 	fd_fifo_timedget_int((queue), (void *)(item), (abstime))
 
+
+/*
+ * FUNCTION:	fd_fifo_select
+ *
+ * PARAMETERS:
+ *  queue	: The queue to test.
+ *  abstime	: the absolute time until which we can block waiting for an item. If NULL, the function returns immediatly.
+ *
+ * DESCRIPTION: 
+ *  This function is similar to select(), it waits for data to be available in the queue
+ * until the abstime is expired.
+ * Upon function entry, even if abstime is already expired the data availability is tested.
+ *
+ * RETURN VALUE:
+ *  0		: timeout expired without available data.
+ *  <0		: An error occurred (e.g., -EINVAL...)
+ *  >0		: data is available. The next call to fd_fifo_get will not block.
+ */
+int fd_fifo_select ( struct fifo * queue, const struct timespec *abstime );
+
+
+
 /* Dump a fifo list and optionally its inner elements -- beware of deadlocks! */
 typedef DECLARE_FD_DUMP_PROTOTYPE((*fd_fifo_dump_item_cb), void * item); /* This function should be 1 line if possible, or use indent level. Ends with '\n' */
 DECLARE_FD_DUMP_PROTOTYPE(fd_fifo_dump, char * name, struct fifo * queue, fd_fifo_dump_item_cb dump_item);

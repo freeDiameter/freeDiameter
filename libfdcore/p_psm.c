@@ -71,7 +71,7 @@ sent unordered from this point.
 
 Note about (5) and (6): if the Diameter Identity received in CER or CEA
 does not match the credentials from the certificate presented during
-DTLS handshake, we may need to specify a path of clean disconnection
+TLS handshake, we may need to specify a path of clean disconnection
 (not blocking the remote peer waiting for something).
 
 This proposed mechanism removes the problem of application messages
@@ -600,7 +600,7 @@ psm_loop:
 			} else {
 				if (msg == NULL) {
 					/* Send the error back to the peer */
-					CHECK_FCT_DO( ret = fd_out_send(&error, NULL, peer, FD_CNX_ORDERED),  );
+					CHECK_FCT_DO( ret = fd_out_send(&error, NULL, peer),  );
 					if (error) {
 						char buf[256];
 						/* Only if an error occurred & the message was not saved / dumped */
@@ -654,7 +654,7 @@ psm_loop:
 						CHECK_FCT_DO( fd_msg_rescode_set(msg, "DIAMETER_COMMAND_UNSUPPORTED", "Or maybe the P-bit or application Id are erroneous.", NULL, 1 ), break );
 
 						/* Send the answer */
-						CHECK_FCT_DO( fd_out_send(&msg, peer->p_cnxctx, peer, FD_CNX_ORDERED), break );
+						CHECK_FCT_DO( fd_out_send(&msg, peer->p_cnxctx, peer), break );
 					} while (0);
 				} else {
 					/* We did ASK for it ??? */

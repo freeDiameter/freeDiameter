@@ -419,7 +419,14 @@ void   fd_hook_call(enum fd_hook_type type, struct msg * msg, struct fd_peer * p
 					fd_msg_answ_getq(msg, &msg); /* We dump the CER in that case */
 				}
 				CHECK_MALLOC_DO(fd_msg_dump_treeview(&buf, &len, NULL, msg, NULL, 0, 1), break);
-				LOG_N("Connected to '%s', remote capabilities: ", peer ? peer->p_hdr.info.pi_diamid : "<unknown>");
+				char protobuf[40];
+				if (peer) {
+					CHECK_FCT_DO(fd_peer_cnx_proto_info(&peer->p_hdr, protobuf, sizeof(protobuf)), break );
+				} else {
+					protobuf[0] = '-';
+					protobuf[1] = '\0';
+				}
+				LOG_N("Connected to '%s' (%s), remote capabilities: ", peer ? peer->p_hdr.info.pi_diamid : "<unknown>", protobuf);
 				LOG_SPLIT(FD_LOG_NOTICE, "   ", buf?:"<error dumping message>", NULL);
 				break;
 			}

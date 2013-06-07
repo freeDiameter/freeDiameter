@@ -398,6 +398,23 @@ int fd_peer_getbyid( DiamId_t diamid, size_t diamidlen, int igncase, struct peer
 int fd_peer_get_state(struct peer_hdr *peer);
 
 /* 
+ * FUNCTION:	fd_peer_cnx_proto_info
+ *
+ * PARAMETERS:
+ *  peer	: The peer which information to be read
+ *  buf		: Where to store the protocol information
+ *  len		: available space in bug
+ *
+ * DESCRIPTION: 
+ *   Creates a string describing the current connection to this peer, e.g.: "TCP,TLS,soc#3".
+ *
+ * RETURN VALUE:
+ *  0   : buffer was written
+ * >=0	: error code.
+ */
+int fd_peer_cnx_proto_info(struct peer_hdr *peer, char * buf, size_t len);
+
+/* 
  * FUNCTION:	fd_peer_get_load_pending
  *
  * PARAMETERS:

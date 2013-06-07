@@ -345,3 +345,4 @@ void fd_p_cnx_abort(struct fd_peer * peer, int cleanup_all)
 		empty_connection_list(peer);
 	}
 }
+
