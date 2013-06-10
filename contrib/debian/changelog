@@ -27,8 +27,9 @@ freediameter (1.2.0) UNRELEASED; urgency=low
   * Allow running without TLS configuration.
   * Upgraded SCTP code to comply with RFC 6458
   * Using default secure Diameter port number 5658 as per RFC 6733
+  * Updated TLS code for performance improvements with new GNU TLS.
 
- -- Sebastien Decugis <sdecugis@freediameter.net>  Mon, 03 Jun 2013 14:20:05 +0800
+ -- Sebastien Decugis <sdecugis@freediameter.net>  Mon, 10 Jun 2013 12:03:59 +0800
 
 freediameter (1.1.6) UNRELEASED; urgency=low
 

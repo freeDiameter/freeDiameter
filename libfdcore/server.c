@@ -53,7 +53,7 @@ struct server {
 
 	struct cnxctx *	conn;		/* server connection context (listening socket) */
 	int 		proto;		/* IPPROTO_TCP or IPPROTO_SCTP */
-	int 		secur;		/* TLS is started immediatly after connection ? 0: no; 1: yes (TLS/TCP or DTLS/SCTP); 2: yes (TLS/TCP or TLS/SCTP) */
+	int 		secur;		/* TLS is started immediatly after connection ? 0: no; 2: yes (TLS/TCP or TLS/SCTP) */
 	
 	pthread_t	thr;		/* The thread listening for new connections */
 	enum s_state	state;		/* state of the thread */
@@ -360,19 +360,19 @@ int fd_servers_start()
 		
 		/* Create the server on secure port */
 		if (fd_g_config->cnf_port_tls) {
-			CHECK_MALLOC( s = new_serv(IPPROTO_SCTP, 1) );
+			CHECK_MALLOC( s = new_serv(IPPROTO_SCTP, 2 /* Change when DTLS is introduced */) );
 			CHECK_MALLOC( s->conn = fd_cnx_serv_sctp(fd_g_config->cnf_port_tls, empty_conf_ep ? NULL : &fd_g_config->cnf_endpoints) );
 			fd_list_insert_before( &FD_SERVERS, &s->chain );
 			CHECK_POSIX( pthread_create( &s->thr, NULL, serv_th, s ) );
 		}
 		
 		/* Create the other server on 3436 secure port */
-		if (fd_g_config->cnf_port_3436) {
+		/*if (fd_g_config->cnf_port_3436) {
 			CHECK_MALLOC( s = new_serv(IPPROTO_SCTP, 2) );
 			CHECK_MALLOC( s->conn = fd_cnx_serv_sctp(fd_g_config->cnf_port_3436, empty_conf_ep ? NULL : &fd_g_config->cnf_endpoints) );
 			fd_list_insert_before( &FD_SERVERS, &s->chain );
 			CHECK_POSIX( pthread_create( &s->thr, NULL, serv_th, s ) );
-		}
+		}*/
 		
 #endif /* DISABLE_SCTP */
 	}
