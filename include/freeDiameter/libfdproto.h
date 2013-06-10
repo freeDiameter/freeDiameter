@@ -3121,6 +3121,10 @@ int fd_fifo_post_int ( struct fifo * queue, void ** item );
 #define fd_fifo_post(queue, item) \
 	fd_fifo_post_int((queue), (void *)(item))
 
+/* Similar function but does not block. It can cause the number of items in the queue to exceed the maximum set. Do not use for normal operation,
+only for failure recovery for example. */
+int fd_fifo_post_noblock( struct fifo * queue, void ** item );
+
 /*
  * FUNCTION:	fd_fifo_get
  *

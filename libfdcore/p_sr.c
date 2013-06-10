@@ -326,7 +326,7 @@ void fd_p_sr_failover(struct sr_list * srlist)
 			fd_hook_call(HOOK_MESSAGE_FAILOVER, sr->req, (struct fd_peer *)srlist->srs.o, NULL, fd_msg_pmdl_get(sr->req));
 			
 			/* Requeue for sending to another peer */
-			CHECK_FCT_DO( ret = fd_fifo_post(fd_g_outgoing, &sr->req),
+			CHECK_FCT_DO( ret = fd_fifo_post_noblock(fd_g_outgoing, (void *)&sr->req),
 				{
 					char buf[256];
 					snprintf(buf, sizeof(buf), "Internal error: error while requeuing during failover: %s", strerror(ret));

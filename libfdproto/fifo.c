@@ -376,16 +376,11 @@ static void fifo_cleanup_push(void * queue)
 
 
 /* Post a new item in the queue */
-int fd_fifo_post_int ( struct fifo * queue, void ** item )
+int fd_fifo_post_internal ( struct fifo * queue, void ** item, int skip_max )
 {
 	struct fifo_item * new;
 	int call_cb = 0;
 	struct timespec posted_on, queued_on;
-	
-	TRACE_ENTRY( "%p %p", queue, item );
-	
-	/* Check the parameters */
-	CHECK_PARAMS( CHECK_FIFO( queue ) && item && *item );
 	
 	/* Get the timing of this call */
 	CHECK_SYS(  clock_gettime(CLOCK_REALTIME, &posted_on)  );
@@ -393,7 +388,7 @@ int fd_fifo_post_int ( struct fifo * queue, void ** item )
 	/* lock the queue */
 	CHECK_POSIX(  pthread_mutex_lock( &queue->mtx )  );
 	
-	if (queue->max) {
+	if ((!skip_max) && (queue->max)) {
 		while (queue->count >= queue->max) {
 			int ret = 0;
 			
@@ -459,6 +454,30 @@ int fd_fifo_post_int ( struct fifo * queue, void ** item )
 	
 	/* Done */
 	return 0;
+}
+
+/* Post a new item in the queue */
+int fd_fifo_post_int ( struct fifo * queue, void ** item )
+{
+	TRACE_ENTRY( "%p %p", queue, item );
+	
+	/* Check the parameters */
+	CHECK_PARAMS( CHECK_FIFO( queue ) && item && *item );
+	
+	return fd_fifo_post_internal ( queue,item, 0 );
+	
+}
+
+/* Post a new item in the queue, not blocking */
+int fd_fifo_post_noblock ( struct fifo * queue, void ** item )
+{
+	TRACE_ENTRY( "%p %p", queue, item );
+	
+	/* Check the parameters */
+	CHECK_PARAMS( CHECK_FIFO( queue ) && item && *item );
+	
+	return fd_fifo_post_internal ( queue,item, 1 );
+	
 }
 
 /* Pop the first item from the queue */
