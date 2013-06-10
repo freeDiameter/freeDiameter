@@ -108,6 +108,7 @@ struct peer_info fddpi;
 %token		SCTPSTREAMS
 %token		APPSERVTHREADS
 %token		LISTENON
+%token		THRPERSRV
 %token		TCTIMER
 %token		TWTIMER
 %token		NORELAY
@@ -136,6 +137,7 @@ conffile:		/* Empty is OK -- for simplicity here, we reject in daemon later */
 			| conffile sec3436
 			| conffile sctpstreams
 			| conffile listenon
+			| conffile thrpersrv
 			| conffile norelay
 			| conffile appservthreads
 			| conffile noip
@@ -235,6 +237,14 @@ listenon:		LISTENON '=' QSTRING ';'
 				CHECK_FCT_DO( fd_ep_add_merge( &conf->cnf_endpoints, ai->ai_addr, ai->ai_addrlen, EP_FL_CONF ), YYERROR );
 				freeaddrinfo(ai);
 				free($3);
+			}
+			;
+
+thrpersrv:		THRPERSRV '=' INTEGER ';'
+			{
+				CHECK_PARAMS_DO( ($3 > 0),
+					{ yyerror (&yylloc, conf, "Invalid value"); YYERROR; } );
+				conf->cnf_thr_srv = $3;
 			}
 			;
 

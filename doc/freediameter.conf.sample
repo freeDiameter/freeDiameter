@@ -78,6 +78,16 @@
 #ListenOn = "2001:200:903:2::202:1";
 #ListenOn = "fe80::21c:5ff:fe98:7d62%eth0";
 
+
+##############################################################
+##  Server configuration
+
+# How many Diameter peers are allowed to be connecting at the same time ?
+# This parameter limits the number of incoming connections from the time
+# the connection is accepted until the first CER is received.
+# Default: 5 unidentified clients in paralel.
+#ThreadsPerServer = 5;
+
 ##############################################################
 ##  TLS Configuration
 

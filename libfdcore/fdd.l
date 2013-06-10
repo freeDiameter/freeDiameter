@@ -255,6 +255,7 @@ nomatch:
 (?i:"SCTP_streams")	{ return SCTPSTREAMS;	}
 (?i:"AppServThreads")	{ return APPSERVTHREADS;}
 (?i:"ListenOn")		{ return LISTENON;	}
+(?i:"ThreadsPerServer")	{ return THRPERSRV;	}
 (?i:"TcTimer")		{ return TCTIMER;	}
 (?i:"TwTimer")		{ return TWTIMER;	}
 (?i:"NoRelay")		{ return NORELAY;	}

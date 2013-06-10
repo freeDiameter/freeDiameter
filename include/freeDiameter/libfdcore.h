@@ -131,6 +131,7 @@ struct fd_config {
 	uint16_t	 cnf_port_3436; /* Open an additional server port to listen to old TLS/SCTP clients (RFC3436, freeDiameter versions < 1.2.0) */
 	uint16_t	 cnf_sctp_str;	/* default max number of streams for SCTP associations (def: 30) */
 	struct fd_list	 cnf_endpoints;	/* the local endpoints to bind the server to. list of struct fd_endpoint. default is empty (bind all). After servers are started, this is the actual list of endpoints including port information. */
+	int		 cnf_thr_srv;	/* Number of threads per servers handling the connection state machines */
 	struct fd_list	 cnf_apps;	/* Applications locally supported (except relay, see flags). Use fd_disp_app_support to add one. list of struct fd_app. */
 	uint16_t	 cnf_dispthr;	/* Number of dispatch threads to create */
 	struct {
