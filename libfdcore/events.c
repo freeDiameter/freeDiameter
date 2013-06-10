@@ -104,7 +104,7 @@ const char * fd_ev_str(int event)
 	switch (event) {
 	#define case_str( _val )\
 		case _val : return #_val
-		case_str(FDEV_TERMINATE);
+		case_str(FDEV_TERMINATE_INT);
 		case_str(FDEV_TRIGGER);
 		
 		default:

@@ -610,7 +610,7 @@ void fd_cnx_markerror(struct cnxctx * conn)
 fatal:
 	/* An unrecoverable error occurred, stop the daemon */
 	ASSERT(0);
-	CHECK_FCT_DO(fd_event_send(fd_g_config->cnf_main_ev, FDEV_TERMINATE, 0, NULL), );	
+	CHECK_FCT_DO(fd_core_shutdown(), );	
 }
 
 /* Set the timeout option on the socket */
@@ -842,8 +842,7 @@ static void * rcvthr_notls_tcp(void * arg)
 		CHECK_FCT_DO( fd_event_send( fd_cnx_target_queue(conn), FDEVP_CNX_MSG_RECV, rcv_data.length, rcv_data.buffer), 
 			{ 
 				free_rcvdata(&rcv_data);
-				CHECK_FCT_DO(fd_event_send(fd_g_config->cnf_main_ev, FDEV_TERMINATE, 0, NULL), );
-				return NULL; 
+				goto fatal; 
 			} );
 		
 	} while (conn->cc_loop);
@@ -854,7 +853,7 @@ out:
 	
 fatal:
 	/* An unrecoverable error occurred, stop the daemon */
-	CHECK_FCT_DO(fd_event_send(fd_g_config->cnf_main_ev, FDEV_TERMINATE, 0, NULL), );
+	CHECK_FCT_DO(fd_core_shutdown(), );
 	goto out;
 }
 
@@ -907,7 +906,7 @@ out:
 
 fatal:
 	/* An unrecoverable error occurred, stop the daemon */
-	CHECK_FCT_DO(fd_event_send(fd_g_config->cnf_main_ev, FDEV_TERMINATE, 0, NULL), );
+	CHECK_FCT_DO(fd_core_shutdown(), );
 	goto out;
 }
 #endif /* DISABLE_SCTP */
@@ -1098,7 +1097,7 @@ int fd_tls_rcvthr_core(struct cnxctx * conn, gnutls_session_t session)
 		CHECK_FCT_DO( ret = fd_event_send( fd_cnx_target_queue(conn), FDEVP_CNX_MSG_RECV, rcv_data.length, rcv_data.buffer), 
 			{ 
 				free_rcvdata(&rcv_data);
-				CHECK_FCT_DO(fd_event_send(fd_g_config->cnf_main_ev, FDEV_TERMINATE, 0, NULL), );
+				CHECK_FCT_DO(fd_core_shutdown(), );
 				return ret; 
 			} );
 		

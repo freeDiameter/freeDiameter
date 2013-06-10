@@ -812,8 +812,8 @@ struct fd_event {
 
 /* Daemon's codespace: 1000->1999 (1500->1999 defined in fdcore-internal.h) */
 enum {
-	 FDEV_TERMINATE	= 1000	/* request to terminate */
-	,FDEV_TRIGGER		/* Trigger available for extensions. size is sizeof(int), data is int * */
+	 FDEV_TERMINATE_INT= 1000	/* request to terminate. DO NOT USE. Use fd_core_shutdown() instead.  */
+	,FDEV_TRIGGER			/* Trigger available for extensions. size is sizeof(int), data is int * */
 };
 
 int fd_event_send(struct fifo *queue, int code, size_t datasz, void * data);

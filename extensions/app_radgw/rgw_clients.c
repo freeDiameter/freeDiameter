@@ -203,7 +203,7 @@ static void * dupl_th(void * arg) {
 	}
 	
 	/* If we reach this part, some fatal error was encountered */
-	CHECK_FCT_DO(fd_event_send(fd_g_config->cnf_main_ev, FDEV_TERMINATE, 0, NULL), );
+	CHECK_FCT_DO(fd_core_shutdown(), );
 	TRACE_DEBUG(FULL, "Thread terminated");	
 	return NULL;
 }

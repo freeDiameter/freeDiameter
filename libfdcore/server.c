@@ -303,7 +303,7 @@ error:
 
 	/* Send error signal to the core */
 	LOG_F( "An error occurred in server module! Thread is terminating...");
-	CHECK_FCT_DO(fd_event_send(fd_g_config->cnf_main_ev, FDEV_TERMINATE, 0, NULL), );
+	CHECK_FCT_DO(fd_core_shutdown(), );
 
 	return NULL;
 }

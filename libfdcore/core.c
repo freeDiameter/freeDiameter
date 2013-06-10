@@ -148,7 +148,7 @@ static void * core_runner_thread(void * arg)
 				}
 				break;
 			
-			case FDEV_TERMINATE:
+			case FDEV_TERMINATE_INT:
 				goto end;
 			
 			default:
@@ -326,6 +326,8 @@ int fd_core_shutdown(void)
 {
 	enum core_state cur_state = core_state_get();
 	
+	LOG_F("Initiating freeDiameter shutdown sequence (%d)", cur_state);
+		
 	if (cur_state < CORE_RUNNING) {
 		/* Calling application must make sure the initialization is not ongoing in a separate thread... */
 		if (pthread_mutex_lock(&core_lock) != 0) {
@@ -338,7 +340,7 @@ int fd_core_shutdown(void)
 		pthread_mutex_unlock(&core_lock);
 	} else if (cur_state == CORE_RUNNING) {
 		core_state_set(CORE_SHUTDOWN);
-		CHECK_FCT( fd_event_send(fd_g_config->cnf_main_ev, FDEV_TERMINATE, 0, NULL) );
+		CHECK_FCT( fd_event_send(fd_g_config->cnf_main_ev, FDEV_TERMINATE_INT, 0, NULL) );
 	}
 	
 	/* Other case, the framework is already shutting down */

@@ -1114,7 +1114,7 @@ static void * process_thr(void * arg, int (*action_cb)(struct msg * msg), struct
 	
 fatal_error:
 	TRACE_DEBUG(INFO, "An unrecoverable error occurred, %s thread is terminating...", action_name);
-	CHECK_FCT_DO(fd_event_send(fd_g_config->cnf_main_ev, FDEV_TERMINATE, 0, NULL), );
+	CHECK_FCT_DO(fd_core_shutdown(), );
 	
 end:	
 	; /* noop so that we get rid of "label at end of compund statement" warning */

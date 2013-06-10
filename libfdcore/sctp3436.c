@@ -129,7 +129,7 @@ out:
 	
 fatal:
 	/* An unrecoverable error occurred, stop the daemon */
-	CHECK_FCT_DO(fd_event_send(fd_g_config->cnf_main_ev, FDEV_TERMINATE, 0, NULL), );
+	CHECK_FCT_DO(fd_core_shutdown(), );
 	goto out;
 }
 
