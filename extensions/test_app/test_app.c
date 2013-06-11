@@ -43,6 +43,7 @@
 struct ta_conf * ta_conf = NULL;
 static struct ta_conf _conf;
 static pthread_t ta_stats_th = (pthread_t)NULL;
+static struct fd_hook_hdl * hookhdl = NULL;
 
 static int ta_conf_init(void)
 {
@@ -95,7 +96,7 @@ static void * ta_stats(void * arg) {
 	/* Now, loop until canceled */
 	while (1) {
 		/* Display statistics every XX seconds */
-		sleep(ta_conf->bench_duration * 3);
+		sleep(ta_conf->bench_duration + 3);
 		
 		/* Now, get the current stats */
 		CHECK_POSIX_DO( pthread_mutex_lock(&ta_conf->stats_lock), );
@@ -135,6 +136,11 @@ static void * ta_stats(void * arg) {
 	return NULL; /* never called */
 }
 
+static void ta_hook_cb(enum fd_hook_type type, struct msg * msg, struct peer_hdr * peer, void * other, struct fd_hook_permsgdata *pmd, void * regdata) {
+
+}
+
+
 /* entry point */
 static int ta_entry(char * conffile)
 {
@@ -171,6 +177,13 @@ static int ta_entry(char * conffile)
 	/* Advertise the support for the test application in the peer */
 	CHECK_FCT( fd_disp_app_support ( ta_appli, ta_vendor, 1, 0 ) );
 	
+	if (ta_conf->mode & MODE_BENCH) {
+		/* Register an empty hook to disable the default handling */
+		CHECK_FCT( fd_hook_register( (1<<HOOK_LAST) - 1, 
+					ta_hook_cb, NULL, NULL, &hookhdl) );
+		
+	}
+	
 	/* Start the statistics thread */
 	CHECK_POSIX( pthread_create(&ta_stats_th, NULL, ta_stats, NULL) );
 	
@@ -184,6 +197,8 @@ void fd_ext_fini(void)
 		ta_cli_fini();
 	if (ta_conf->mode & MODE_SERV)
 		ta_serv_fini();
+	if (hookhdl)
+		fd_hook_unregister( hookhdl );
 	CHECK_FCT_DO( fd_thr_term(&ta_stats_th), );
 	CHECK_POSIX_DO( pthread_mutex_destroy(&ta_conf->stats_lock), );
 }
