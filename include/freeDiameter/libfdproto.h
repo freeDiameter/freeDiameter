@@ -519,7 +519,7 @@ static __inline__ void replace_me() MARK_DEPRECATED { }
 }		}
 
 /* the following macro must be replaced with LOG_E or LOG_F */
-# define TRACE_ERROR	fd_log_error
+# define TRACE_ERROR	LOG_E
 
 
 /* The following macros are missing the faillevel information, which indicates at what log level the error case should be displayed. */
