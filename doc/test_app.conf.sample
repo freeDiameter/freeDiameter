@@ -1,6 +1,6 @@
 #######################
 # This file contains the description of configuration and general information about the
-# "App_test" extension.
+# "test_app" extension.
 
 # This extension provides a simple way to send a predefined message over the Diameter Network.
 # It may be used to test the Routing or other base mechanisms from the Diameter network.
@@ -63,5 +63,5 @@
 # user-name = "user@server.foreign.net";
 
 # The signal that triggers sending the test message
-# Note: Symbolic names are now recognized, you must use integers
+# Note: Symbolic names are not recognized, you must use integers
 # signal = 10;

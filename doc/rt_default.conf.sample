@@ -20,7 +20,7 @@
 # discovery extension).
 #
 # The default forwarding behavior of freeDiameter is:
-# - if the message contains a Destination-Host AVP, and this the designated peer is an eligible candidate, send to this peer.
+# - if the message contains a Destination-Host AVP, and the designated peer is an eligible candidate, send to this peer.
 # - if a peer does not support the message application or Relay application, give it a penalty for this message 
 #    (it means that unless overwritten by an extension, the message will not be sent to that peer)
 # - if one of the eligible peer advertised a realm matching the message's Destination-Realm, send to this peer.

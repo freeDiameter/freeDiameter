@@ -250,7 +250,7 @@ static int fd_setsockopt_prebind(int sk)
 			fd_log_debug( "Def SCTP_NODELAY value : %s", nodelay ? "true" : "false");
 		}
 
-		nodelay = 1;	/* We turn ON the Nagle algorithm (probably the default already), since we might have several messages to send through the same proxy (not the same session). */
+		nodelay = 1;	/* We turn ON to disable the Nagle algorithm, so that packets are sent ASAP. */
 		
 		/* Set the option to the socket */
 		CHECK_SYS(  setsockopt(sk, IPPROTO_SCTP, SCTP_NODELAY, &nodelay, sizeof(nodelay))  );
