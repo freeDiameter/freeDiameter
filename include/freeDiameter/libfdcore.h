@@ -1046,7 +1046,7 @@ enum fd_hook_type {
 		 - {permsgdata} is always NULL for this hook.
 		 */
 	
-#define HOOK_PEER_LAST	HOOK_PEER_CONNECT_SUCCESS
+#define HOOK_LAST	HOOK_PEER_CONNECT_SUCCESS
 };
 
 

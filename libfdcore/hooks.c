@@ -55,7 +55,7 @@ struct pmd_list_item {
 
 /* Now a hook registered by an extension */
 struct fd_hook_hdl {
-	struct fd_list chain[HOOK_PEER_LAST+1];
+	struct fd_list chain[HOOK_LAST+1];
 	void (*fd_hook_cb)(enum fd_hook_type type, struct msg * msg, struct peer_hdr * peer, void * other, struct fd_hook_permsgdata *pmd, void * regdata);
 	void  *regdata;
 	struct fd_hook_data_hdl *data_hdl;
@@ -65,13 +65,13 @@ struct fd_hook_hdl {
 struct {
 	struct fd_list sentinel;
 	pthread_rwlock_t rwlock;
-} HS_array[HOOK_PEER_LAST+1];
+} HS_array[HOOK_LAST+1];
 
 /* Initialize the array of sentinels for the hooks */
 int fd_hooks_init(void)
 {
 	int i;
-	for (i=0; i <= HOOK_PEER_LAST; i++) {
+	for (i=0; i <= HOOK_LAST; i++) {
 		fd_list_init(&HS_array[i].sentinel, NULL);
 		CHECK_POSIX( pthread_rwlock_init(&HS_array[i].rwlock, NULL) );
 	}
@@ -128,7 +128,7 @@ int fd_hook_register (  uint32_t type_mask,
 	newhdl->regdata = regdata;
 	newhdl->data_hdl = data_hdl;
 	
-	for (i=0; i <= HOOK_PEER_LAST; i++) {
+	for (i=0; i <= HOOK_LAST; i++) {
 		fd_list_init(&newhdl->chain[i], newhdl);
 		if (type_mask & (1<<i)) {
 			CHECK_POSIX( pthread_rwlock_wrlock(&HS_array[i].rwlock) );
@@ -148,7 +148,7 @@ int fd_hook_unregister( struct fd_hook_hdl * handler )
 	TRACE_ENTRY("%p", handler);
 	CHECK_PARAMS( handler );
 	
-	for (i=0; i <= HOOK_PEER_LAST; i++) {
+	for (i=0; i <= HOOK_LAST; i++) {
 		if ( ! FD_IS_LIST_EMPTY(&handler->chain[i])) {
 			CHECK_POSIX( pthread_rwlock_wrlock(&HS_array[i].rwlock) );
 			fd_list_unlink(&handler->chain[i]);
@@ -271,7 +271,7 @@ uint32_t fd_hook_mask_helper(int dummy, ...)
 	
 	va_start(ap, dummy);
 	while ((next = va_arg(ap, int)) >= 0) {
-		if (next > HOOK_PEER_LAST)
+		if (next > HOOK_LAST)
 			break; /* invalid parameter */
 		ret |= (1<<next);
 	}
@@ -284,7 +284,7 @@ uint32_t fd_hook_mask_helper(int dummy, ...)
 void   fd_hook_call(enum fd_hook_type type, struct msg * msg, struct fd_peer * peer, void * other, struct fd_msg_pmdl * pmdl)
 {
 	struct fd_list * li;
-	ASSERT(type <= HOOK_PEER_LAST);
+	ASSERT(type <= HOOK_LAST);
 	int call_default = 0;
 	
 	/* lock the list of hooks for this type */
