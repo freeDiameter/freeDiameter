@@ -154,6 +154,8 @@ static void * client_worker(void * arg)
 next_client:
 	LOG_A("Ready to process next incoming connection");
 
+	memset(&rcv_data, 0, sizeof(rcv_data));
+	
 	/* Get the next connection */
 	CHECK_FCT_DO( fd_fifo_get( s->pending, &c ), { fatal = 1; goto cleanup; } );
 
@@ -177,8 +179,6 @@ next_client:
 	/* Set the timeout to receive the first message */
 	CHECK_SYS_DO( clock_gettime(CLOCK_REALTIME, &ts), { fatal = 1; goto cleanup; } );
 	ts.tv_sec += INCNX_TIMEOUT;
-	
-	memset(&rcv_data, 0, sizeof(rcv_data));
 	
 	/* Receive the first Diameter message on the connection -- cleanup in case of timeout */
 	CHECK_FCT_DO( fd_cnx_receive(c, &ts, &rcv_data.buffer, &rcv_data.length), 

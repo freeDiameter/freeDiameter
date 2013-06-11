@@ -807,6 +807,9 @@ static void * rcvthr_notls_tcp(void * arg)
 			}
 
 			received += ret;
+			
+			if (header[0] != DIAMETER_VERSION)
+				break; /* No need to wait for 4 bytes in this case */
 		} while (received < sizeof(header));
 
 		rcv_data.length = ((size_t)header[1] << 16) + ((size_t)header[2] << 8) + (size_t)header[3];
