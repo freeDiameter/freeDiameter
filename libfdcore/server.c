@@ -146,7 +146,7 @@ static void * client_worker(void * arg)
 	/* Set the thread name */
 	{
 		char buf[48];
-		snprintf(buf, sizeof(buf), "Worker#%d@%s", pw->id, fd_cnx_getid(s->conn));
+		snprintf(buf, sizeof(buf), "Worker#%d[%s%s]", pw->id, IPPROTO_NAME(s->proto), s->secur?", Sec" : "");
 		fd_log_threadname ( buf );
 	}
 	
