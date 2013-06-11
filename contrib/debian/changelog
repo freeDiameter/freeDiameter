@@ -13,7 +13,8 @@ freediameter (1.2.0) UNRELEASED; urgency=low
   * API changes: all the fd_*_dump functions now return malloc'd strings instead of logging directly.
   * Updated dbg_monitoring extension to use the new API
   * New script to generate dictionary extensions from org file (see contrib/tools)
-  * New compilation option: WORKAROUND_ACCEPT_INVALID_VSAI to improve interoperability.
+  * New compilation option: WORKAROUND_ACCEPT_INVALID_VSAI to improve compatibility
+    with invalid Vendor-Specific-Application-Id AVPs received from some equipments (e.g. Cisco).
   * New compilation option: DISABLE_PEER_EXPIRY for use in test environments.
   * Extensions are now also searched in LD_LIBRARY_PATH.
   * Copy Proxy-Info AVP automatically in new answers.

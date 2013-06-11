@@ -890,7 +890,14 @@ int fd_dict_base_protocol(struct dictionary * dict)
 					};
 					
 			struct local_rules_definition rules[] = 
-						{ 	 {  "Vendor-Id", 			RULE_REQUIRED, -1, 1 }
+						{
+#ifndef WORKAROUND_ACCEPT_INVALID_VSAI
+							/* ABNF from RFC6733 */
+						 	 {  "Vendor-Id", 			RULE_REQUIRED, -1, 1 }
+#else /* WORKAROUND_ACCEPT_INVALID_VSAI */
+							/* ABNF from RFC3588 (including erratum, because original text is nonsense) */
+						 	 {  "Vendor-Id", 			RULE_REQUIRED, -1, -1}
+#endif /* WORKAROUND_ACCEPT_INVALID_VSAI */
 							,{  "Auth-Application-Id",		RULE_OPTIONAL, -1, 1 }
 							,{  "Acct-Application-Id",		RULE_OPTIONAL, -1, 1 }
 						};

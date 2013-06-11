@@ -469,8 +469,10 @@ static int save_remote_CE_info(struct msg * msg, struct fd_peer * peer, struct f
 						}
 						switch (inhdr->avp_code) {
 							case AC_VENDOR_ID: /* Vendor-Id */
+#ifndef WORKAROUND_ACCEPT_INVALID_VSAI
 								if (vid != 0)
-									invalid++; /* We already had one such AVP */
+									invalid++; /* We already had one such AVP. This is invalid according to RFC6733 but not RFC3588 (but there is an erratum) */
+#endif /* WORKAROUND_ACCEPT_INVALID_VSAI */
 								vid = inhdr->avp_value->u32;
 								break;
 							case AC_AUTH_APPLICATION_ID: /* Auth-Application-Id */
