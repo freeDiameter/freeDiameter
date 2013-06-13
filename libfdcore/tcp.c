@@ -123,7 +123,6 @@ int fd_tcp_client( int *sock, sSA * sa, socklen_t salen )
 {
 	int ret = 0;
 	int s;
-	char * buf = NULL; size_t len = 0;
 	
 	TRACE_ENTRY("%p %p %d", sock, sa, salen);
 	CHECK_PARAMS( sock && (*sock <= 0) && sa && salen );
@@ -137,27 +136,14 @@ int fd_tcp_client( int *sock, sSA * sa, socklen_t salen )
 	/* Cleanup if we are cancelled */
 	pthread_cleanup_push(fd_cleanup_socket, &s);
 	
-	LOG_D( "Attempting TCP connection to %s...", fd_sa_dump(&buf, &len, NULL, sa, NI_NUMERICHOST | NI_NUMERICSERV)?:"<error>" );
-	free(buf);
-	
 	/* Try connecting to the remote address */
 	ret = connect(s, sa, salen);
 	
 	pthread_cleanup_pop(0);
 	
 	if (ret < 0) {
-		int lvl;
-		switch (ret = errno) {
-			case ECONNREFUSED:
-			
-				/* "Normal" errors */
-				lvl = FULL;
-				break;
-			default:
-				lvl = INFO;
-		}
-		/* Some errors are expected, we log at different level */
-		TRACE_DEBUG( lvl, "connect returned an error: %s", strerror(ret));
+		ret = errno;
+		LOG_A( "connect returned an error: %s", strerror(ret));
 		CHECK_SYS_DO( close(s), /* continue */ );
 		*sock = -1;
 		return ret;

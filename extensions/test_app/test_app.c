@@ -179,7 +179,7 @@ static int ta_entry(char * conffile)
 	
 	if (ta_conf->mode & MODE_BENCH) {
 		/* Register an empty hook to disable the default handling */
-		CHECK_FCT( fd_hook_register( (1<<HOOK_LAST) - 1, 
+		CHECK_FCT( fd_hook_register( HOOK_MASK( HOOK_DATA_RECEIVED, HOOK_MESSAGE_RECEIVED, HOOK_MESSAGE_LOCAL, HOOK_MESSAGE_SENT, HOOK_MESSAGE_FAILOVER, HOOK_MESSAGE_ROUTING_FORWARD, HOOK_MESSAGE_ROUTING_LOCAL ), 
 					ta_hook_cb, NULL, NULL, &hookhdl) );
 		
 	}

@@ -813,7 +813,6 @@ psm_loop:
 				break;
 				
 			case STATE_WAITCNXACK:
-				LOG_D("%s: Connection attempt failed", peer->p_hdr.info.pi_diamid);
 				/* Go back to CLOSE */
 				fd_psm_next_timeout(peer, 1, peer->p_hdr.info.config.pic_tctimer ?: fd_g_config->cnf_timer_tc);
 				goto psm_reset;

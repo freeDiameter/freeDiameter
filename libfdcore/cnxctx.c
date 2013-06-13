@@ -292,11 +292,13 @@ struct cnxctx * fd_cnx_cli_connect_tcp(sSA * sa /* contains the port already */,
 	
 	fd_sa_sdump_numeric(sa_buf, sa);
 	
+	LOG_D("Connecting to TCP %s...", sa_buf);
+	
 	/* Create the socket and connect, which can take some time and/or fail */
 	{
 		int ret = fd_tcp_client( &sock, sa, addrlen );
 		if (ret != 0) {
-			LOG_A("TCP connection to %s failed: %s", sa_buf, strerror(ret));
+			LOG_D("TCP connection to %s failed: %s", sa_buf, strerror(ret));
 			return NULL;
 		}
 	}
@@ -347,10 +349,12 @@ struct cnxctx * fd_cnx_cli_connect_sctp(int no_ip6, uint16_t port, struct fd_lis
 	
 	fd_sa_sdump_numeric(sa_buf, &((struct fd_endpoint *)(list->next))->sa);
 	
+	LOG_D("Connecting to SCTP %s:%hu...", sa_buf, port);
+	
 	{
 		int ret = fd_sctp_client( &sock, no_ip6, port, list );
 		if (ret != 0) {
-			LOG_A("SCTP connection to [%s,...] failed: %s", sa_buf, strerror(ret));
+			LOG_D("SCTP connection to [%s,...] failed: %s", sa_buf, strerror(ret));
 			return NULL;
 		}
 	}

@@ -77,6 +77,7 @@ static int prepare_connection_list(struct fd_peer * peer)
 	
 	uint16_t	port_no; /* network order */
 	int		dotls_immediate;
+	int count = 0;
 	
 	TRACE_ENTRY("%p", peer);
 	 
@@ -183,6 +184,7 @@ static int prepare_connection_list(struct fd_peer * peer)
 			} else {
 				fd_list_insert_before(&peer->p_connparams, &new->chain);
 			}
+			count++;
 		}
 	}
 	
@@ -205,8 +207,11 @@ static int prepare_connection_list(struct fd_peer * peer)
 		} else {
 			fd_list_insert_after(&peer->p_connparams, &new->chain); /* very first position */
 		}
+		count++;
 	}
 #endif /* DISABLE_SCTP */
+	
+	LOG_D("Prepared %d sets of connection parameters to peer %s", count, peer->p_hdr.info.pi_diamid);
 	
 	return 0;
 }

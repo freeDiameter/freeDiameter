@@ -935,18 +935,9 @@ int fd_sctp_client( int *sock, int no_ip6, uint16_t port, struct fd_list * list 
 	pthread_setcanceltype(PTHREAD_CANCEL_DEFERRED, NULL);
 	
 	if (ret < 0) {
-		int lvl;
-		switch (ret = errno) {
-			case ECONNREFUSED:
-			
-				/* "Normal" errors */
-				lvl = FULL;
-				break;
-			default:
-				lvl = INFO;
-		}
+		ret = errno;
 		/* Some errors are expected, we log at different level */
-		TRACE_DEBUG( lvl, "sctp_connectx returned an error: %s", strerror(ret));
+		LOG_A("sctp_connectx returned an error: %s", strerror(ret));
 		goto out;
 	}
 	
