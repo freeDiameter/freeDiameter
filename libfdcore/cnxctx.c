@@ -624,9 +624,9 @@ void fd_cnx_s_setto(int sock)
 	
 	/* Set a timeout on the socket so that in any case we are not stuck waiting for something */
 	memset(&tv, 0, sizeof(tv));
-	tv.tv_sec = 3;	/* allow 3 seconds timeout for TLS session cleanup */
-	CHECK_SYS_DO( setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv)), /* best effort only */ );
-	CHECK_SYS_DO( setsockopt(sock, SOL_SOCKET, SO_SNDTIMEO, &tv, sizeof(tv)), /* Also timeout for sending, to avoid waiting forever */ );
+	tv.tv_usec = 100000L;	/* 100ms, to react quickly to head-of-the-line blocking. */
+	CHECK_SYS_DO( setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv)),  );
+	CHECK_SYS_DO( setsockopt(sock, SOL_SOCKET, SO_SNDTIMEO, &tv, sizeof(tv)),  );
 }
 
 
@@ -674,50 +674,30 @@ again:
 	return ret;
 }
 
-/* Send, for older GNUTLS */
-#ifndef GNUTLS_VERSION_212
-static ssize_t fd_cnx_s_send(struct cnxctx * conn, const void *buffer, size_t length)
-{
-	ssize_t ret = 0;
-	int timedout = 0;
-again:
-	ret = send(conn->cc_socket, buffer, length, 0);
-	/* Handle special case of timeout */
-	if ((ret < 0) && ((errno == EAGAIN) || (errno == EINTR))) {
-		pthread_testcancel();
-		if (! fd_cnx_teststate(conn, CC_STATUS_CLOSING ))
-			goto again; /* don't care, just ignore */
-		if (!timedout) {
-			timedout ++; /* allow for one timeout while closing */
-			goto again;
-		}
-		CHECK_SYS_DO(ret, /* continue */);
-	}
-	
-	/* Mark the error */
-	if (ret <= 0)
-		fd_cnx_markerror(conn);
-	
-	return ret;
-}
-#endif /* GNUTLS_VERSION_212 */
-
 /* Send */
 static ssize_t fd_cnx_s_sendv(struct cnxctx * conn, const struct iovec * iov, int iovcnt)
 {
 	ssize_t ret = 0;
-	int timedout = 0;
+	struct timespec ts, now;
+	CHECK_SYS_DO(  clock_gettime(CLOCK_REALTIME, &ts), return -1 );
 again:
 	ret = writev(conn->cc_socket, iov, iovcnt);
 	/* Handle special case of timeout */
 	if ((ret < 0) && ((errno == EAGAIN) || (errno == EINTR))) {
+		ret = -errno;
 		pthread_testcancel();
-		if (! fd_cnx_teststate(conn, CC_STATUS_CLOSING ))
+		
+		/* Check how much time we were blocked for this sending. */
+		CHECK_SYS_DO(  clock_gettime(CLOCK_REALTIME, &now), return -1 );
+		if ( ((now.tv_sec - ts.tv_sec) * 1000 + ((now.tv_nsec - ts.tv_nsec) / 1000000L)) > MAX_HOTL_BLOCKING_TIME) {
+			LOG_D("Unable to send any data for %dms, closing the connection", MAX_HOTL_BLOCKING_TIME);
+		} else if (! fd_cnx_teststate(conn, CC_STATUS_CLOSING )) {
 			goto again; /* don't care, just ignore */
-		if (!timedout) {
-			timedout ++; /* allow for one timeout while closing */
-			goto again;
 		}
+		
+		/* propagate the error */
+		errno = -ret;
+		ret = -1;
 		CHECK_SYS_DO(ret, /* continue */);
 	}
 	
@@ -727,6 +707,17 @@ again:
 	
 	return ret;
 }
+
+/* Send, for older GNUTLS */
+#ifndef GNUTLS_VERSION_212
+static ssize_t fd_cnx_s_send(struct cnxctx * conn, const void *buffer, size_t length)
+{
+	struct iovec iov;
+	iov.iov_base = (void *)buffer;
+	iov.iov_len  = length;
+	return fd_cnx_s_sendv(conn, &iov, 1);
+}
+#endif /* GNUTLS_VERSION_212 */
 
 #define ALIGNOF(t) ((char *)(&((struct { char c; t _h; } *)0)->_h) - (char *)0)  /* Could use __alignof__(t) on some systems but this is more portable probably */
 #define PMDL_PADDED(len) ( ((len) + ALIGNOF(struct fd_msg_pmdl) - 1) & ~(ALIGNOF(struct fd_msg_pmdl) - 1) )
@@ -1007,9 +998,12 @@ end:
 static ssize_t fd_tls_send_handle_error(struct cnxctx * conn, gnutls_session_t session, void * data, size_t sz)
 {
 	ssize_t ret;
+	struct timespec ts, now;
+	CHECK_SYS_DO(  clock_gettime(CLOCK_REALTIME, &ts), return -1 );
 again:	
 	CHECK_GNUTLS_DO( ret = gnutls_record_send(session, data, sz),
 		{
+			pthread_testcancel();
 			switch (ret) {
 				case GNUTLS_E_REHANDSHAKE: 
 					if (!fd_cnx_teststate(conn, CC_STATUS_CLOSING)) {
@@ -1024,9 +1018,12 @@ again:
 
 				case GNUTLS_E_AGAIN:
 				case GNUTLS_E_INTERRUPTED:
-					if (!fd_cnx_teststate(conn, CC_STATUS_CLOSING))
+					CHECK_SYS_DO(  clock_gettime(CLOCK_REALTIME, &now), return -1 );
+					if ( ((now.tv_sec - ts.tv_sec) * 1000 + ((now.tv_nsec - ts.tv_nsec) / 1000000L)) > MAX_HOTL_BLOCKING_TIME) {
+						LOG_D("Unable to send any data for %dms, closing the connection", MAX_HOTL_BLOCKING_TIME);
+					} else if (! fd_cnx_teststate(conn, CC_STATUS_CLOSING )) {
 						goto again;
-					TRACE_DEBUG(INFO, "Connection is closing, so abord gnutls_record_send now.");
+					}
 					break;
 
 				default:

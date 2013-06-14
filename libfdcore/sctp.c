@@ -1083,10 +1083,11 @@ ssize_t fd_sctp_sendstrv(struct cnxctx * conn, uint16_t strid, const struct iove
 	uint8_t anci[CMSG_SPACE(sizeof(struct sctp_sndinfo))];	
 #endif /* OLD_SCTP_SOCKET_API */
 	ssize_t ret;
-	int timedout = 0;
+	struct timespec ts, now;
 	
 	TRACE_ENTRY("%p %hu %p %d", conn, strid, iov, iovcnt);
 	CHECK_PARAMS_DO(conn && iov && iovcnt, { errno = EINVAL; return -1; } );
+	CHECK_SYS_DO(  clock_gettime(CLOCK_REALTIME, &ts), return -1 );
 	
 	memset(&mhdr, 0, sizeof(mhdr));
 	memset(&anci, 0, sizeof(anci));
@@ -1120,12 +1121,17 @@ again:
 	/* Handle special case of timeout */
 	if ((ret < 0) && ((errno == EAGAIN) || (errno == EINTR))) {
 		pthread_testcancel();
-		if (! fd_cnx_teststate(conn, CC_STATUS_CLOSING ))
+		/* Check how much time we were blocked for this sending. */
+		CHECK_SYS_DO(  clock_gettime(CLOCK_REALTIME, &now), return -1 );
+		if ( ((now.tv_sec - ts.tv_sec) * 1000 + ((now.tv_nsec - ts.tv_nsec) / 1000000L)) > MAX_HOTL_BLOCKING_TIME) {
+			LOG_D("Unable to send any data for %dms, closing the connection", MAX_HOTL_BLOCKING_TIME);
+		} else if (! fd_cnx_teststate(conn, CC_STATUS_CLOSING )) {
 			goto again; /* don't care, just ignore */
-		if (!timedout) {
-			timedout ++; /* allow for one timeout while closing */
-			goto again;
 		}
+		
+		/* propagate the error */
+		errno = -ret;
+		ret = -1;
 	}
 	
 	CHECK_SYS_DO( ret, ); /* for tracing error only */
