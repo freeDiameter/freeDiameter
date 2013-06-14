@@ -198,6 +198,7 @@ out:
 static void ta_bench_start() {
 	struct timespec end_time, now;
 	struct ta_stats start, end;
+	int nsec = 0;
 	
 	/* Save the initial stats */
 	CHECK_POSIX_DO( pthread_mutex_lock(&ta_conf->stats_lock), );
@@ -212,10 +213,12 @@ static void ta_bench_start() {
 	/* Now loop until timeout is reached */
 	do {
 		/* Do not create more that NB_CONCURRENT_MESSAGES in paralel */
-		int ret = sem_wait(&ta_sem);
+		int ret = sem_timedwait(&ta_sem, &end_time);
 		if (ret == -1) {
 			ret = errno;
-			CHECK_POSIX_DO(ret, ); /* Just to log it */
+			if (ret != ETIMEDOUT) {
+				CHECK_POSIX_DO(ret, ); /* Just to log it */
+			}
 			break;
 		}
 		
@@ -229,32 +232,37 @@ static void ta_bench_start() {
 		ta_bench_test_message();
 	} while (1);
 	
-	/* Save the stats now */
-	CHECK_POSIX_DO( pthread_mutex_lock(&ta_conf->stats_lock), );
-	CHECK_SYS_DO( clock_gettime(CLOCK_REALTIME, &now), ); /* Re-read the time because we might have spent some time wiating for the mutex */
-	memcpy(&end, &ta_conf->stats, sizeof(struct ta_stats));
-	CHECK_POSIX_DO( pthread_mutex_unlock(&ta_conf->stats_lock), );
-	
-	/* Now, display the statistics */
-	LOG_N( "------- app_test Benchmark result ---------");
-	if (now.tv_nsec >= end_time.tv_nsec) {
-		LOG_N( " Executing for: %d.%06ld sec",
-				(int)(now.tv_sec + ta_conf->bench_duration - end_time.tv_sec),
-				(long)(now.tv_nsec - end_time.tv_nsec) / 1000);
-	} else {
-		LOG_N( " Executing for: %d.%06ld sec",
-				(int)(now.tv_sec + ta_conf->bench_duration - 1 - end_time.tv_sec),
-				(long)(now.tv_nsec + 1000000000 - end_time.tv_nsec) / 1000);
-	}
-	LOG_N( "   %llu messages sent", end.nb_sent - start.nb_sent);
-	LOG_N( "   %llu error(s) received", end.nb_errs - start.nb_errs);
-	LOG_N( "   %llu answer(s) received", end.nb_recv - start.nb_recv);
-	LOG_N( "   Overall:");
-	LOG_N( "     fastest: %ld.%06ld sec.", end.shortest / 1000000, end.shortest % 1000000);
-	LOG_N( "     slowest: %ld.%06ld sec.", end.longest / 1000000, end.longest % 1000000);
-	LOG_N( "     Average: %ld.%06ld sec.", end.avg / 1000000, end.avg % 1000000);
-	LOG_N( "   Throughput: %llu messages / sec", (end.nb_recv - start.nb_recv) / (( now.tv_sec + ta_conf->bench_duration - end_time.tv_sec ) + ((now.tv_nsec - end_time.tv_nsec) / 1000000000)));
-	LOG_N( "-------------------------------------");
+	do {
+		CHECK_POSIX_DO( pthread_mutex_lock(&ta_conf->stats_lock), );
+		CHECK_SYS_DO( clock_gettime(CLOCK_REALTIME, &now), ); /* Re-read the time because we might have spent some time wiating for the mutex */
+		memcpy(&end, &ta_conf->stats, sizeof(struct ta_stats));
+		CHECK_POSIX_DO( pthread_mutex_unlock(&ta_conf->stats_lock), );
+		
+		/* Now, display the statistics */
+		LOG_N( "------- app_test Benchmark results, end sending +%ds ---------", nsec);
+		if (now.tv_nsec >= end_time.tv_nsec) {
+			LOG_N( " Executing for: %d.%06ld sec",
+					(int)(now.tv_sec + ta_conf->bench_duration - end_time.tv_sec),
+					(long)(now.tv_nsec - end_time.tv_nsec) / 1000);
+		} else {
+			LOG_N( " Executing for: %d.%06ld sec",
+					(int)(now.tv_sec + ta_conf->bench_duration - 1 - end_time.tv_sec),
+					(long)(now.tv_nsec + 1000000000 - end_time.tv_nsec) / 1000);
+		}
+		LOG_N( "   %llu messages sent", end.nb_sent - start.nb_sent);
+		LOG_N( "   %llu error(s) received", end.nb_errs - start.nb_errs);
+		LOG_N( "   %llu answer(s) received", end.nb_recv - start.nb_recv);
+		LOG_N( "   Overall:");
+		LOG_N( "     fastest: %ld.%06ld sec.", end.shortest / 1000000, end.shortest % 1000000);
+		LOG_N( "     slowest: %ld.%06ld sec.", end.longest / 1000000, end.longest % 1000000);
+		LOG_N( "     Average: %ld.%06ld sec.", end.avg / 1000000, end.avg % 1000000);
+		LOG_N( "   Throughput: %llu messages / sec", (end.nb_recv - start.nb_recv) / (( now.tv_sec + ta_conf->bench_duration - end_time.tv_sec ) + ((now.tv_nsec - end_time.tv_nsec) / 1000000000)));
+		LOG_N( "-------------------------------------");
+		
+		nsec ++;
+		sleep(1);
+	} while ( (end.nb_sent - start.nb_sent) > (end.nb_errs - start.nb_errs) + (end.nb_recv - start.nb_recv) );
+	LOG_N( "--------------- Test Complete --------------");
 
 }
 
