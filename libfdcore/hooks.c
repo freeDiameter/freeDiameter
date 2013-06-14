@@ -369,15 +369,7 @@ void   fd_hook_call(enum fd_hook_type type, struct msg * msg, struct fd_peer * p
 			}
 			
 			case HOOK_MESSAGE_ROUTING_ERROR: {
-				DiamId_t id = NULL;
-				if (!fd_msg_source_get( msg, &id, NULL ))
-					id = (DiamId_t)"<error getting source>";
-
-				if (!id)
-					id = (DiamId_t)"<local>";
-
 				CHECK_MALLOC_DO(fd_msg_dump_treeview(&buf, &len, NULL, msg, NULL, 0, 1), break);
-
 				LOG_E("Routing error: '%s' for the following message:", (char *)other);
 				LOG_SPLIT(FD_LOG_ERROR, "   ", buf?:"<error dumping message>", NULL);
 				break;
