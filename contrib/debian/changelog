@@ -7,7 +7,7 @@ freediameter (1.2.0) UNRELEASED; urgency=low
   * New extension: rt_load_balance (load balancer based on pending queue size).
   * New extension: rt_busypeers. See doc/rt_busypeers.conf.sample.
   * New extension: dbg_msg_timings. Measures timing of message operations.
-  * New extension: dbg_msg_dumps. Use to visualize all received and sent messages.
+  * New extension: dbg_msg_dumps. Use to control hooks display.
   * New API (fd_hook_*) for extensions to control messages logging & profiling
   * New API (fd_stats_*) for extensions to monitor framework state (e.g. SNMP implem)
   * API changes: all the fd_*_dump functions now return malloc'd strings instead of logging directly.
@@ -29,8 +29,9 @@ freediameter (1.2.0) UNRELEASED; urgency=low
   * Upgraded SCTP code to comply with RFC 6458
   * Using default secure Diameter port number 5658 as per RFC 6733
   * Updated TLS code for performance improvements with new GNU TLS.
+  * Fix interlocking problem when large number of requests were failed over.
 
- -- Sebastien Decugis <sdecugis@freediameter.net>  Mon, 10 Jun 2013 12:03:59 +0800
+ -- Sebastien Decugis <sdecugis@freediameter.net>  Fri, 14 Jun 2013 17:36:07 +0800
 
 freediameter (1.1.6) UNRELEASED; urgency=low
 
