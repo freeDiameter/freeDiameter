@@ -121,6 +121,10 @@ static int prepare_connection_list(struct fd_peer * peer)
 					AF_INET));
 	}
 	
+	/* We don't use the alternate addresses that were sent by the remote peer */
+	CHECK_FCT( fd_ep_clearflags(&peer->p_hdr.info.pi_endpoints, EP_FL_ADV) );
+	
+	
 	/* Now check we have at least one address to attempt */
 	if (FD_IS_LIST_EMPTY(&peer->p_hdr.info.pi_endpoints)) {
 		TRACE_DEBUG(INFO, "No address %savailable to connect to peer '%s', aborting", 
