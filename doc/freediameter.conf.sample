@@ -203,6 +203,15 @@ TLS_Cred = "/etc/ssl/certs/freeDiameter.pem", "/etc/ssl/private/freeDiameter.key
 # test_* : dummy extensions that are useful only in testing environments.
 
 
+# The dbg_msg_dump.fdx extension allows you to tweak the way freeDiameter displays some
+# information about some events. This extension does not actually use a configuration file
+# but receives directly a parameter in the string passed to the extension. Here are some examples:
+# LoadExtension = "dbg_msg_dump.fdx" : "0x1111"; # Removes all default hooks, very quiet even in case of errors.
+# LoadExtension = "dbg_msg_dump.fdx" : "0x2222"; # Display all events with few details.
+# LoadExtension = "dbg_msg_dump.fdx" : "0x80"; # Dump complete information about sent and received messages.
+# See the top of extensions/dbg_msg/dump/dbg_msg.dump.c file for more details on the value.
+
+
 ##############################################################
 ##  Peers configuration
 
