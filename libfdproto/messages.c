@@ -706,6 +706,9 @@ int fd_msg_free ( msg_or_avp * object )
 {
 	TRACE_ENTRY("%p", object);
 	
+	if (object == NULL)
+		return 0;
+	
 	if (CHECK_MSG(object)) {
 		if (_M(object)->msg_query) {
 			_M(_M(object)->msg_query)->msg_associated = 0;
