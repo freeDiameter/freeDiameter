@@ -183,6 +183,7 @@ struct fd_peer { /* The "real" definition of the peer structure */
 	
 	/* Sent requests (for fallback), list of struct sentreq ordered by hbh */
 	struct sr_list	 p_sr;
+	struct fifo	*p_tofailover;
 	
 	/* Pending received requests not yet answered (count only) */
 	long		 p_reqin_count; /* We use p_state_mtx to protect this value */

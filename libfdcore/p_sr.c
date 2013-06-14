@@ -37,9 +37,9 @@
 
 /* Structure to store a sent request */
 struct sentreq {
-	struct fd_list	chain; 	/* the "o" field points directly to the hop-by-hop of the request (uint32_t *)  */
+	struct fd_list	chain; 	/* the "o" field points directly to the (new) hop-by-hop of the request (uint32_t *)  */
 	struct msg	*req;	/* A request that was sent and not yet answered. */
-	uint32_t	prevhbh;/* The value to set in the hbh header when the message is retrieved */
+	uint32_t	prevhbh;/* The value to set back in the hbh header when the message is retrieved */
 	struct fd_list  expire; /* the list of expiring requests */
 	struct timespec added_on; /* the time the request was added */
 };
@@ -65,10 +65,7 @@ static void srl_dump(const char * text, struct fd_list * srlist)
 	struct fd_list * li;
 	struct timespec now;
 	
-	if (!TRACE_BOOL(ANNOYING))
-		return;
-	
-	fd_log_debug("%sSentReq list @%p:", text, srlist);
+	LOG_D("%sSentReq list @%p:", text, srlist);
 	
 	CHECK_SYS_DO( clock_gettime(CLOCK_REALTIME, &now), );
 	
@@ -76,7 +73,7 @@ static void srl_dump(const char * text, struct fd_list * srlist)
 		struct sentreq * sr = (struct sentreq *)li;
 		uint32_t * nexthbh = li->o;
 		
-		fd_log_debug(" - Next req (hbh:%x): [since %ld.%06ld sec]", *nexthbh, 
+		LOG_D(" - Next req (hbh:0x%x, prev:0x%x): [since %ld.%06ld sec]", *nexthbh, sr->prevhbh,
 			(long)((now.tv_nsec >= sr->added_on.tv_nsec) ? (now.tv_sec - sr->added_on.tv_sec) : (now.tv_sec - sr->added_on.tv_sec - 1)),
 			(long)((now.tv_nsec >= sr->added_on.tv_nsec) ? ((now.tv_nsec - sr->added_on.tv_nsec) / 1000) : ((now.tv_nsec - sr->added_on.tv_nsec + 1000000000) / 1000)));
 	}
@@ -224,8 +221,9 @@ int fd_p_sr_store(struct sr_list * srlist, struct msg **req, uint32_t *hbhloc, u
 	CHECK_POSIX( pthread_mutex_lock(&srlist->mtx) );
 	next = find_or_next(&srlist->srs, *hbhloc, &match);
 	if (match) {
-		TRACE_DEBUG(INFO, "A request with the same hop-by-hop Id was already sent: error");
+		TRACE_DEBUG(INFO, "A request with the same hop-by-hop Id (0x%x) was already sent: error", *hbhloc);
 		free(sr);
+		srl_dump("Current list of SR: ", &srlist->srs);
 		CHECK_POSIX_DO( pthread_mutex_unlock(&srlist->mtx), /* ignore */ );
 		return EINVAL;
 	}
@@ -234,7 +232,6 @@ int fd_p_sr_store(struct sr_list * srlist, struct msg **req, uint32_t *hbhloc, u
 	*req = NULL;
 	fd_list_insert_before(next, &sr->chain);
 	srlist->cnt++;
-	srl_dump("Saved new request, ", &srlist->srs);
 	
 	/* In case of request with a timeout, also store in the timeout list */
 	ts = fd_msg_anscb_gettimeout( sr->req );
@@ -279,10 +276,10 @@ int fd_p_sr_fetch(struct sr_list * srlist, uint32_t hbh, struct msg **req)
 	
 	/* Search the request in the list */
 	CHECK_POSIX( pthread_mutex_lock(&srlist->mtx) );
-	srl_dump("Fetching a request, ", &srlist->srs);
 	sr = (struct sentreq *)find_or_next(&srlist->srs, hbh, &match);
 	if (!match) {
 		TRACE_DEBUG(INFO, "There is no saved request with this hop-by-hop id (%x)", hbh);
+		srl_dump("Current list of SR: ", &srlist->srs);
 		*req = NULL;
 	} else {
 		/* Restore hop-by-hop id */

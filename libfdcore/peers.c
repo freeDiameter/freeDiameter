@@ -77,6 +77,7 @@ int fd_peer_alloc(struct fd_peer ** ptr)
 	fd_list_init(&p->p_actives, p);
 	fd_list_init(&p->p_expiry, p);
 	CHECK_FCT( fd_fifo_new(&p->p_tosend, 5) );
+	CHECK_FCT( fd_fifo_new(&p->p_tofailover, 0) );
 	p->p_hbh = lrand48();
 	
 	fd_list_init(&p->p_sr.srs, p);
@@ -232,7 +233,7 @@ int fd_peer_getbyid( DiamId_t diamid, size_t diamidlen, int igncase, struct peer
 		free(__li);						\
 	}
 
-/* Empty the lists of p_tosend and p_sentreq messages */
+/* Empty the lists of p_tosend, p_failover, and p_sentreq messages */
 void fd_peer_failover_msg(struct fd_peer * peer)
 {
 	struct msg *m;
@@ -255,6 +256,17 @@ void fd_peer_failover_msg(struct fd_peer * peer)
 			/* fd_hook_call(HOOK_MESSAGE_DROPPED, m, NULL, "Non-routable message freed during handover", fd_msg_pmdl_get(m)); */
 			CHECK_FCT_DO(fd_msg_free(m), /* What can we do more? */)
 		}
+	}
+	
+	/* Requeue all messages in the "failover" queue */
+	while ( fd_fifo_tryget(peer->p_tofailover, &m) == 0 ) {
+		fd_hook_call(HOOK_MESSAGE_FAILOVER, m, peer, NULL, fd_msg_pmdl_get(m));
+		CHECK_FCT_DO(fd_fifo_post_noblock(fd_g_outgoing, (void *)&m), 
+			{
+				/* fallback: destroy the message */
+				fd_hook_call(HOOK_MESSAGE_DROPPED, m, NULL, "Internal error: unable to requeue this message during failover process", fd_msg_pmdl_get(m));
+				CHECK_FCT_DO(fd_msg_free(m), /* What can we do more? */)
+			} );
 	}
 	
 	/* Requeue all routable sent requests */
@@ -334,6 +346,7 @@ int fd_peer_free(struct fd_peer ** ptr)
 	fd_list_unlink(&p->p_actives);
 	
 	CHECK_FCT_DO( fd_fifo_del(&p->p_tosend), /* continue */ );
+	CHECK_FCT_DO( fd_fifo_del(&p->p_tofailover), /* continue */ );
 	CHECK_POSIX_DO( pthread_mutex_destroy(&p->p_state_mtx), /* continue */);
 	CHECK_POSIX_DO( pthread_mutex_destroy(&p->p_sr.mtx), /* continue */);
 	CHECK_POSIX_DO( pthread_cond_destroy(&p->p_sr.cnd), /* continue */);
