@@ -43,7 +43,6 @@
 struct ta_conf * ta_conf = NULL;
 static struct ta_conf _conf;
 static pthread_t ta_stats_th = (pthread_t)NULL;
-static struct fd_hook_hdl * hookhdl = NULL;
 
 static int ta_conf_init(void)
 {
@@ -136,8 +135,19 @@ static void * ta_stats(void * arg) {
 	return NULL; /* never called */
 }
 
-static void ta_hook_cb(enum fd_hook_type type, struct msg * msg, struct peer_hdr * peer, void * other, struct fd_hook_permsgdata *pmd, void * regdata) {
+static struct fd_hook_hdl * hookhdl[2] = { NULL, NULL };
+static void ta_hook_cb_silent(enum fd_hook_type type, struct msg * msg, struct peer_hdr * peer, void * other, struct fd_hook_permsgdata *pmd, void * regdata) {
+}
+static void ta_hook_cb_oneline(enum fd_hook_type type, struct msg * msg, struct peer_hdr * peer, void * other, struct fd_hook_permsgdata *pmd, void * regdata) {
+	char * buf = NULL;
+	size_t len;
+	
+	CHECK_MALLOC_DO( fd_msg_dump_summary(&buf, &len, NULL, msg, NULL, 0, 0), 
+		{ LOG_E("Error while dumping a message"); return; } );
+	
+	LOG_N("{%d} %s: %s", type, (char *)other ?:"<nil>", buf ?:"<nil>");
 
+	free(buf);
 }
 
 
@@ -179,8 +189,10 @@ static int ta_entry(char * conffile)
 	
 	if (ta_conf->mode & MODE_BENCH) {
 		/* Register an empty hook to disable the default handling */
-		CHECK_FCT( fd_hook_register( HOOK_MASK( HOOK_DATA_RECEIVED, HOOK_MESSAGE_RECEIVED, HOOK_MESSAGE_LOCAL, HOOK_MESSAGE_SENT, HOOK_MESSAGE_FAILOVER, HOOK_MESSAGE_ROUTING_FORWARD, HOOK_MESSAGE_ROUTING_LOCAL ), 
-					ta_hook_cb, NULL, NULL, &hookhdl) );
+		CHECK_FCT( fd_hook_register( HOOK_MASK( HOOK_DATA_RECEIVED, HOOK_MESSAGE_RECEIVED, HOOK_MESSAGE_LOCAL, HOOK_MESSAGE_SENT, HOOK_MESSAGE_ROUTING_FORWARD, HOOK_MESSAGE_ROUTING_LOCAL ), 
+					ta_hook_cb_silent, NULL, NULL, &hookhdl[0]) );
+		CHECK_FCT( fd_hook_register( HOOK_MASK( HOOK_MESSAGE_ROUTING_ERROR, HOOK_MESSAGE_DROPPED ), 
+					ta_hook_cb_oneline, NULL, NULL, &hookhdl[1]) );
 		
 	}
 	
@@ -197,8 +209,10 @@ void fd_ext_fini(void)
 		ta_cli_fini();
 	if (ta_conf->mode & MODE_SERV)
 		ta_serv_fini();
-	if (hookhdl)
-		fd_hook_unregister( hookhdl );
+	if (hookhdl[0])
+		fd_hook_unregister( hookhdl[0] );
+	if (hookhdl[1])
+		fd_hook_unregister( hookhdl[1] );
 	CHECK_FCT_DO( fd_thr_term(&ta_stats_th), );
 	CHECK_POSIX_DO( pthread_mutex_destroy(&ta_conf->stats_lock), );
 }
