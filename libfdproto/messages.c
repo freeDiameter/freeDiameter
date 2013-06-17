@@ -1297,14 +1297,13 @@ struct timespec *fd_msg_anscb_gettimeout( struct msg * msg )
 }
 
 /* Associate routing lists */
-int fd_msg_rt_associate( struct msg * msg, struct rt_data ** rtd )
+int fd_msg_rt_associate( struct msg * msg, struct rt_data * rtd )
 {
 	TRACE_ENTRY( "%p %p", msg, rtd );
 	
 	CHECK_PARAMS(  CHECK_MSG(msg) && rtd  );
 	
-	msg->msg_rtdata = *rtd;
-	*rtd = NULL;
+	msg->msg_rtdata = rtd;
 	
 	return 0;
 }
@@ -1316,7 +1315,6 @@ int fd_msg_rt_get( struct msg * msg, struct rt_data ** rtd )
 	CHECK_PARAMS(  CHECK_MSG(msg) && rtd  );
 	
 	*rtd = msg->msg_rtdata;
-	msg->msg_rtdata = NULL;
 	
 	return 0;
 }	

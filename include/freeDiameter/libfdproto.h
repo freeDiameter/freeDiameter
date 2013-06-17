@@ -2501,7 +2501,7 @@ struct timespec *fd_msg_anscb_gettimeout( struct msg * msg ); /* returns NULL or
  *  0 	  : ok
  *  EINVAL: a parameter is invalid
  */
-int fd_msg_rt_associate( struct msg * msg, struct rt_data ** rtd );
+int fd_msg_rt_associate( struct msg * msg, struct rt_data * rtd );
 int fd_msg_rt_get      ( struct msg * msg, struct rt_data ** rtd );
 
 /*

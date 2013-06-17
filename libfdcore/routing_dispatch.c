@@ -942,6 +942,9 @@ static int msg_rt_out(struct msg * msg)
 			/* Go to next AVP */
 			CHECK_FCT(  fd_msg_browse(avp, MSG_BRW_NEXT, &avp, NULL)  );
 		}
+		
+		/* Save the routing information in the message */
+		CHECK_FCT( fd_msg_rt_associate ( msgptr, rtd ) );
 	}
 
 	/* Note: we reset the scores and pass the message to the callbacks, maybe we could re-use the saved scores when we have received an error ? -- TODO */
@@ -984,9 +987,6 @@ static int msg_rt_out(struct msg * msg)
 	
 	/* Order the candidate peers by score attributed by the callbacks */
 	CHECK_FCT( fd_rtd_candidate_reorder(candidates) );
-
-	/* Save the routing information in the message */
-	CHECK_FCT( fd_msg_rt_associate ( msgptr, &rtd ) );
 
 	/* Now try sending the message */
 	for (li = candidates->prev; li != candidates; li = li->prev) {

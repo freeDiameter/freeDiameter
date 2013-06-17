@@ -341,7 +341,7 @@ struct msg {
 	}
 	void set_rtd(struct rt_data *DISOWN) {
 		struct rt_data * r = DISOWN;
-		int ret = fd_msg_rt_associate($self, &r);
+		int ret = fd_msg_rt_associate($self, r);
 		if (ret != 0) {
 			DI_ERROR(ret, NULL, NULL);
 		}
