@@ -1636,9 +1636,11 @@ static int fd_cnx_may_dtls(struct cnxctx * conn) {
 	return 0;
 }
 
+#ifndef DISABLE_SCTP
 static int fd_cnx_uses_dtls(struct cnxctx * conn) {
 	return fd_cnx_may_dtls(conn) && (fd_cnx_teststate(conn, CC_STATUS_TLS));
 }
+#endif /* DISABLE_SCTP */
 
 /* TLS handshake a connection; no need to have called start_clear before. Reception is active if handhsake is successful */
 int fd_cnx_handshake(struct cnxctx * conn, int mode, int algo, char * priority, void * alt_creds)
