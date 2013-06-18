@@ -314,7 +314,12 @@ static char * file_bname_init(char * full) { file_bname = basename(full); return
  */
 #ifdef DEBUG
 # define LOG_A(format,args... ) \
-		LOG(FD_LOG_ANNOYING,format,##args)
+		do { if ((fd_debug_one_function && !strcmp(fd_debug_one_function, __PRETTY_FUNCTION__)) \
+		 || (fd_debug_one_file && !strcmp(fd_debug_one_file, __STRIPPED_FILE__) ) ) {		\
+		 	LOG(FD_LOG_DEBUG,"[DBG_MATCH] " format,##args);					\
+		} else {										\
+			LOG(FD_LOG_ANNOYING,format,##args);						\
+		} } while (0)
 #else /* DEBUG */
 # define LOG_A(format,args... ) /* not defined in release */
 #endif /* DEBUG */
@@ -374,10 +379,7 @@ int fd_breakhere(void);
 
 /* Helper for tracing the CHECK_* macros below -- very very verbose code execution! */
 #define TRACE_CALL( str... ) 	\
-		if ((fd_debug_one_function && !strcmp(fd_debug_one_function, __PRETTY_FUNCTION__)) 	\
-		 || (fd_debug_one_file && !strcmp(fd_debug_one_file, __STRIPPED_FILE__) ) ) {		\
-		 	LOG_A( str );									\
-		}
+	 	LOG_A( str )
 
 /* For development only, to keep track of TODO locations in the code */
 #ifndef ERRORS_ON_TODO
