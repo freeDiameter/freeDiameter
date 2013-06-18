@@ -120,6 +120,8 @@ void yyerror (YYLTYPE *ploc, char * conffile, char const *s)
 %token 		APPLI_ID
 %token 		CMD_ID
 %token 		AVP_ID
+%token 		LONG_AVP_ID
+%token 		LONG_AVP_LEN
 %token 		MODE
 %token 		DEST_REALM
 %token 		DEST_HOST
@@ -145,6 +147,8 @@ conffile:		/* empty grammar is OK */
 			| conffile appli
 			| conffile cmd
 			| conffile avp
+			| conffile long_avp_id
+			| conffile long_avp_len
 			| conffile mode
 			| conffile dstrealm
 			| conffile dsthost
@@ -174,6 +178,18 @@ cmd:			CMD_ID '=' INTEGER ';'
 avp:			AVP_ID '=' INTEGER ';'
 			{
 				ta_conf->avp_id = $3;
+			}
+			;
+
+long_avp_id:		LONG_AVP_ID '=' INTEGER ';'
+			{
+				ta_conf->long_avp_id = $3;
+			}
+			;
+
+long_avp_len:		LONG_AVP_LEN '=' INTEGER ';'
+			{
+				ta_conf->long_avp_len = $3;
 			}
 			;
 

@@ -59,6 +59,8 @@ struct ta_conf {
 	uint32_t	appli_id;	/* default 123456 */
 	uint32_t	cmd_id;		/* default 234567 */
 	uint32_t	avp_id;		/* default 345678 */
+	uint32_t	long_avp_id;	/* default 0 */
+	size_t		long_avp_len;	/* default 5000 */
 	int		mode;		/* default MODE_SERV | MODE_CLI */
 	char 	*	dest_realm;	/* default local realm */
 	char 	*	dest_host;	/* default NULL */
@@ -104,6 +106,7 @@ extern struct dict_object * ta_appli;
 extern struct dict_object * ta_cmd_r;
 extern struct dict_object * ta_cmd_a;
 extern struct dict_object * ta_avp;
+extern struct dict_object * ta_avp_long;
 
 extern struct dict_object * ta_sess_id;
 extern struct dict_object * ta_origin_host;

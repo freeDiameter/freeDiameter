@@ -42,6 +42,7 @@ struct dict_object * ta_appli = NULL;
 struct dict_object * ta_cmd_r = NULL;
 struct dict_object * ta_cmd_a = NULL;
 struct dict_object * ta_avp = NULL;
+struct dict_object * ta_avp_long = NULL;
 
 struct dict_object * ta_sess_id = NULL;
 struct dict_object * ta_origin_host = NULL;
@@ -94,6 +95,18 @@ int ta_dict_init(void)
 		data.avp_flag_val = AVP_FLAG_VENDOR;
 		data.avp_basetype = AVP_TYPE_INTEGER32;
 		CHECK_FCT(fd_dict_new( fd_g_config->cnf_dict, DICT_AVP, &data, NULL, &ta_avp));
+	}
+	
+	/* Create the Test Payload AVP */
+	if (ta_conf->long_avp_id) {
+		struct dict_avp_data data;
+		data.avp_code = ta_conf->long_avp_id;
+		data.avp_vendor = ta_conf->vendor_id;
+		data.avp_name = "Test-Payload-AVP";
+		data.avp_flag_mask = AVP_FLAG_VENDOR;
+		data.avp_flag_val = AVP_FLAG_VENDOR;
+		data.avp_basetype = AVP_TYPE_OCTETSTRING;
+		CHECK_FCT(fd_dict_new( fd_g_config->cnf_dict, DICT_AVP, &data, NULL, &ta_avp_long));
 	}
 	
 	/* Now resolve some other useful AVPs */

@@ -94,6 +94,20 @@ static int ta_tr_cb( struct msg ** msg, struct avp * avp, struct session * sess,
 		CHECK_FCT( fd_msg_avp_add( ans, MSG_BRW_LAST_CHILD, avp ) );
 	}
 	
+	/* Set the Test-Payload-AVP AVP */
+	if (ta_conf->long_avp_id) {
+		struct avp * src = NULL;
+		struct avp_hdr * hdr = NULL;
+		
+		CHECK_FCT( fd_msg_search_avp ( qry, ta_avp_long, &src) );
+		CHECK_FCT( fd_msg_avp_hdr( src, &hdr )  );
+		
+		CHECK_FCT( fd_msg_avp_new ( ta_avp_long, 0, &avp ) );
+		CHECK_FCT( fd_msg_avp_setvalue( avp, hdr->avp_value ) );
+		CHECK_FCT( fd_msg_avp_add( ans, MSG_BRW_LAST_CHILD, avp ) );
+	}
+	
+	
 	/* Set the Origin-Host, Origin-Realm, Result-Code AVPs */
 	CHECK_FCT( fd_msg_rescode_set( ans, "DIAMETER_SUCCESS", NULL, NULL, 1 ) );
 	

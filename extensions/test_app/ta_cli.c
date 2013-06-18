@@ -181,7 +181,7 @@ static void ta_cli_test_message()
 	
 	TRACE_DEBUG(FULL, "Creating a new message for sending.");
 	
-	/* Create the request from template */
+	/* Create the request */
 	CHECK_FCT_DO( fd_msg_new( ta_cmd_r, MSGFL_ALLOC_ETEID, &req ), goto out );
 	
 	/* Create a new session */
@@ -235,6 +235,19 @@ static void ta_cli_test_message()
 		CHECK_FCT_DO( fd_msg_avp_new ( ta_avp, 0, &avp ), goto out  );
 		val.i32 = mi->randval;
 		CHECK_FCT_DO( fd_msg_avp_setvalue( avp, &val ), goto out  );
+		CHECK_FCT_DO( fd_msg_avp_add( req, MSG_BRW_LAST_CHILD, avp ), goto out  );
+	}
+	
+	/* Set the Test-Payload-AVP AVP */
+	if (ta_conf->long_avp_id) {
+		int l;
+		CHECK_FCT_DO( fd_msg_avp_new ( ta_avp_long, 0, &avp ), goto out  );
+		CHECK_MALLOC_DO( val.os.data = malloc(ta_conf->long_avp_len), goto out);
+		val.os.len = ta_conf->long_avp_len;
+		for (l=0; l < ta_conf->long_avp_len; l++)
+			val.os.data[l]=l;
+		CHECK_FCT_DO( fd_msg_avp_setvalue( avp, &val ), goto out  );
+		free(val.os.data);
 		CHECK_FCT_DO( fd_msg_avp_add( req, MSG_BRW_LAST_CHILD, avp ), goto out  );
 	}
 	

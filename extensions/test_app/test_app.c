@@ -54,6 +54,7 @@ static int ta_conf_init(void)
 	ta_conf->appli_id   = 0xffffff;	/* dummy value */
 	ta_conf->cmd_id     = 0xfffffe;	/* Experimental */
 	ta_conf->avp_id     = 0xffffff;	/* dummy value */
+	ta_conf->long_avp_len = 5000;
 	ta_conf->mode       = MODE_SERV | MODE_CLI;
 	ta_conf->dest_realm = strdup(fd_g_config->cnf_diamrlm);
 	ta_conf->dest_host  = NULL;
@@ -76,6 +77,8 @@ static void ta_conf_dump(void)
 	fd_log_debug( " Application Id ..... : %u", ta_conf->appli_id);
 	fd_log_debug( " Command Id ......... : %u", ta_conf->cmd_id);
 	fd_log_debug( " AVP Id ............. : %u", ta_conf->avp_id);
+	fd_log_debug( " Long AVP Id ........ : %u", ta_conf->long_avp_id);
+	fd_log_debug( " Long AVP len ....... : %zu", ta_conf->long_avp_len);
 	fd_log_debug( " Mode ............... : %s%s%s", ta_conf->mode & MODE_SERV ? "Serv" : "", ta_conf->mode & MODE_CLI ? "Cli" : "",  ta_conf->mode & MODE_BENCH ? " (Benchmark)" : "");
 	fd_log_debug( " Destination Realm .. : %s", ta_conf->dest_realm ?: "- none -");
 	fd_log_debug( " Destination Host ... : %s", ta_conf->dest_host ?: "- none -");

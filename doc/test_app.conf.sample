@@ -28,6 +28,13 @@
 # The AVP id for the test.
 # avp-id = 345678;
 
+# Another AVP id for long payload test. default to value 0, meaning this is not used.
+# long-avp-id = 0;
+
+# Define the payload length of the long-avp. Default 5000 bytes.
+# long-avp-len = 5000;
+
+
 #######################
 # Configuration of the extension behavior
 

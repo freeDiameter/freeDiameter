@@ -117,6 +117,14 @@
 				return AVP_ID;
 			}
 
+(?i:"long-avp-id")	{
+				return LONG_AVP_ID;
+			}
+
+(?i:"long-avp-len")	{
+				return LONG_AVP_LEN;
+			}
+
 (?i:"mode")		{
 				return MODE;
 			}
