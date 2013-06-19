@@ -125,8 +125,9 @@ static int proceed(char * value, size_t len, struct fd_list * candidates)
 }
 
 /* The callback called on new messages */
-static int rtereg_out(void * cbdata, struct msg * msg, struct fd_list * candidates)
+static int rtereg_out(void * cbdata, struct msg ** pmsg, struct fd_list * candidates)
 {
+	struct msg * msg = *pmsg;
 	struct avp * avp = NULL;
 	
 	TRACE_ENTRY("%p %p %p", cbdata, msg, candidates);

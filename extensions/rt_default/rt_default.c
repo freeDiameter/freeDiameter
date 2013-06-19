@@ -40,8 +40,9 @@
 #include "rt_default.h"
 
 /* The callback called on new messages */
-static int rtd_out(void * cbdata, struct msg * msg, struct fd_list * candidates)
+static int rtd_out(void * cbdata, struct msg ** pmsg, struct fd_list * candidates)
 {
+	struct msg * msg = *pmsg;
 	TRACE_ENTRY("%p %p %p", cbdata, msg, candidates);
 	
 	CHECK_PARAMS(msg && candidates);

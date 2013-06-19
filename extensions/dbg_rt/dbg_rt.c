@@ -58,9 +58,10 @@ static int dbgrt_fwd_cb(void * cbdata, struct msg ** msg)
 }
 
 /* Path selection debug callback */
-static int dbgrt_out_cb(void * cbdata, struct msg * msg, struct fd_list * candidates)
+static int dbgrt_out_cb(void * cbdata, struct msg ** pmsg, struct fd_list * candidates)
 {
 	struct fd_list * li;
+	struct msg * msg = *pmsg;
 	char * buf = NULL; size_t buflen;
 	
 	TRACE_ENTRY("%p %p %p", cbdata, msg, candidates);

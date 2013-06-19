@@ -36,9 +36,10 @@
  */
 
 /* The callback for load balancing the requests across the peers */
-static int rt_load_balancing(void * cbdata, struct msg * msg, struct fd_list * candidates)
+static int rt_load_balancing(void * cbdata, struct msg ** pmsg, struct fd_list * candidates)
 {
 	struct fd_list *lic;
+	struct msg * msg = *pmsg;
 	
 	TRACE_ENTRY("%p %p %p", cbdata, msg, candidates);
 	

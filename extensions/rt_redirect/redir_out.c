@@ -37,7 +37,7 @@
 
 
 /* Find the data pertinent to a type in the input data */
-static int get_data_to_match(enum redir_h_u type, struct msg * msg, union matchdata * data, int * nodata)
+static int get_data_to_match(enum redir_h_u type, struct msg *msg, union matchdata * data, int * nodata)
 {
 	TRACE_ENTRY("%d %p %p %p", type, msg, data, nodata);
 	
@@ -219,9 +219,10 @@ static int apply_rule(struct redir_entry * e, struct msg * msg, struct fd_list *
 
 
 /* OUT callback */
-int redir_out_cb(void * cbdata, struct msg * msg, struct fd_list * candidates)
+int redir_out_cb(void * cbdata, struct msg ** pmsg, struct fd_list * candidates)
 {
 	int i, ret = 0;
+	struct msg * msg = *pmsg;
 	
 	TRACE_ENTRY("%p %p %p", cbdata, msg, candidates);
 	

@@ -170,4 +170,4 @@ int redir_exp_set(struct redir_entry * e, uint32_t duration);
 int redir_fwd_cb(void * cbdata, struct msg ** msg);
 
 /* Out callback */
-int redir_out_cb(void * cbdata, struct msg * msg, struct fd_list * candidates);
+int redir_out_cb(void * cbdata, struct msg ** pmsg, struct fd_list * candidates);

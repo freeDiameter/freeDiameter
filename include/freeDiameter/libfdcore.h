@@ -762,13 +762,13 @@ enum fd_rt_out_score {
  *  EINVAL 	: A parameter is invalid.
  *  ENOMEM	: Not enough memory to complete the operation
  */
-int fd_rt_out_register ( int (*rt_out_cb)(void * cbdata, struct msg * msg, struct fd_list * candidates), void * cbdata, int priority, struct fd_rt_out_hdl ** handler );
+int fd_rt_out_register ( int (*rt_out_cb)(void * cbdata, struct msg ** pmsg, struct fd_list * candidates), void * cbdata, int priority, struct fd_rt_out_hdl ** handler );
 /*
  * CALLBACK:	rt_out_cb
  *
  * PARAMETERS:
  *  cbdata	: pointer to some data that was registered with the callback.
- *  msg 	: The message that must be sent.
+ *  pmsg 	: pointer to the message that must be sent. upon return if *msg is NULL, the processing stops and the message is not sent.
  *  list        : The list of peers to which the message may be sent to, as returned by fd_rtd_candidate_extract
  *
  * DESCRIPTION: 

@@ -57,7 +57,7 @@ struct rt_hdl {
 	};
 	union {
 		int (*rt_fwd_cb)(void * cbdata, struct msg ** msg);
-		int (*rt_out_cb)(void * cbdata, struct msg * msg, struct fd_list * candidates);
+		int (*rt_out_cb)(void * cbdata, struct msg ** msg, struct fd_list * candidates);
 	};
 };	
 
@@ -134,7 +134,7 @@ int fd_rt_fwd_unregister ( struct fd_rt_fwd_hdl * handler, void ** cbdata )
 }
 
 /* Register a new OUT callback */
-int fd_rt_out_register ( int (*rt_out_cb)(void * cbdata, struct msg * msg, struct fd_list * candidates), void * cbdata, int priority, struct fd_rt_out_hdl ** handler )
+int fd_rt_out_register ( int (*rt_out_cb)(void * cbdata, struct msg ** pmsg, struct fd_list * candidates), void * cbdata, int priority, struct fd_rt_out_hdl ** handler )
 {
 	struct rt_hdl * new;
 	
@@ -188,8 +188,9 @@ int fd_rt_out_unregister ( struct fd_rt_out_hdl * handler, void ** cbdata )
 /********************************************************************************/
 
 /* Prevent sending to peers that do not support the message application */
-static int dont_send_if_no_common_app(void * cbdata, struct msg * msg, struct fd_list * candidates)
+static int dont_send_if_no_common_app(void * cbdata, struct msg ** pmsg, struct fd_list * candidates)
 {
+	struct msg * msg = *pmsg;
 	struct fd_list * li;
 	struct msg_hdr * hdr;
 	
@@ -220,8 +221,9 @@ static int dont_send_if_no_common_app(void * cbdata, struct msg * msg, struct fd
 }
 
 /* Detect if the Destination-Host and Destination-Realm match the peer */
-static int score_destination_avp(void * cbdata, struct msg * msg, struct fd_list * candidates)
+static int score_destination_avp(void * cbdata, struct msg ** pmsg, struct fd_list * candidates)
 {
+	struct msg * msg = *pmsg;
 	struct fd_list * li;
 	struct avp * avp;
 	union avp_value *dh = NULL, *dr = NULL;
@@ -958,11 +960,11 @@ static int msg_rt_out(struct msg * msg)
 		pthread_cleanup_push( fd_cleanup_rwlock, &rt_out_lock );
 
 		/* We call the cb by reverse priority order */
-		for (	li = rt_out_list.prev ; li != &rt_out_list ; li = li->prev ) {
+		for (	li = rt_out_list.prev ; (msgptr != NULL) && (li != &rt_out_list) ; li = li->prev ) {
 			struct rt_hdl * rh = (struct rt_hdl *)li;
 
 			TRACE_DEBUG(ANNOYING, "Calling next OUT callback on %p : %p (prio %d)", msgptr, rh->rt_out_cb, rh->prio);
-			CHECK_FCT_DO( ret = (*rh->rt_out_cb)(rh->cbdata, msgptr, candidates),
+			CHECK_FCT_DO( ret = (*rh->rt_out_cb)(rh->cbdata, &msgptr, candidates),
 				{
 					char buf[256];
 					snprintf(buf, sizeof(buf), "An OUT routing callback returned an error: %s", strerror(ret));
@@ -970,17 +972,14 @@ static int msg_rt_out(struct msg * msg)
 					fd_hook_call(HOOK_MESSAGE_DROPPED, msgptr, NULL, buf, fd_msg_pmdl_get(msgptr));
 					fd_msg_free(msgptr);
 					msgptr = NULL;
-					break;
 				} );
 		}
 
 		pthread_cleanup_pop(0);
 		CHECK_FCT( pthread_rwlock_unlock( &rt_out_lock ) );
 
-		/* If an error occurred, skip to the next message */
+		/* If an error occurred or the callback disposed of the message, go to next message */
 		if (! msgptr) {
-			if (rtd)
-				fd_rtd_free(&rtd);
 			return 0;
 		}
 	}

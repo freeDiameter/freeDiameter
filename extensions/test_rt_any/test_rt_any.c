@@ -40,8 +40,9 @@
 #include <stdlib.h>
 
 /* The callback */
-static int tra_out_cb(void * cbdata, struct msg * msg, struct fd_list * candidates)
+static int tra_out_cb(void * cbdata, struct msg ** pmsg, struct fd_list * candidates)
 {
+	struct msg * msg = *pmsg;
 	struct fd_list * li;
 	
 	TRACE_ENTRY("%p %p %p", cbdata, msg, candidates);
