@@ -280,6 +280,10 @@ uint32_t fd_hook_mask_helper(int dummy, ...)
 	return ret;
 }
 
+static pthread_mutex_t hook_default_mtx = PTHREAD_MUTEX_INITIALIZER;
+static char * hook_default_buf = NULL;
+static size_t hook_default_len = 0;
+
 /* The function that does the work of calling the extension's callbacks and also managing the permessagedata structures */
 void   fd_hook_call(enum fd_hook_type type, struct msg * msg, struct fd_peer * peer, void * other, struct fd_msg_pmdl * pmdl)
 {
@@ -289,6 +293,8 @@ void   fd_hook_call(enum fd_hook_type type, struct msg * msg, struct fd_peer * p
 	
 	/* lock the list of hooks for this type */
 	CHECK_POSIX_DO( pthread_rwlock_rdlock(&HS_array[type].rwlock), );
+	
+	pthread_cleanup_push( fd_cleanup_rwlock, &HS_array[type].rwlock );
 	
 	if (FD_IS_LIST_EMPTY(&HS_array[type].sentinel)) {
 		call_default = 1;
@@ -308,12 +314,15 @@ void   fd_hook_call(enum fd_hook_type type, struct msg * msg, struct fd_peer * p
 		}
 	}
 	
+	pthread_cleanup_pop(0);
+	
 	/* done */
 	CHECK_POSIX_DO( pthread_rwlock_unlock(&HS_array[type].rwlock), );
 	
 	if (call_default) {
-		char * buf = NULL;
-		size_t len = 0;
+		CHECK_POSIX_DO( pthread_mutex_lock(&hook_default_mtx), );
+		
+		pthread_cleanup_push( fd_cleanup_mutex, &hook_default_mtx );
 	
 		/* There was no registered handler, default behavior for this hook */
 		switch (type) {
@@ -324,26 +333,26 @@ void   fd_hook_call(enum fd_hook_type type, struct msg * msg, struct fd_peer * p
 			}
 			
 			case HOOK_MESSAGE_RECEIVED: {
-				CHECK_MALLOC_DO(fd_msg_dump_summary(&buf, &len, NULL, msg, NULL, 0, 1), break);
-				LOG_D("RCV from '%s': %s", peer ? peer->p_hdr.info.pi_diamid : "<unknown>", buf);
+				CHECK_MALLOC_DO(fd_msg_dump_summary(&hook_default_buf, &hook_default_len, NULL, msg, NULL, 0, 1), break);
+				LOG_D("RCV from '%s': %s", peer ? peer->p_hdr.info.pi_diamid : "<unknown>", hook_default_buf);
 				break;
 			}
 			
 			case HOOK_MESSAGE_LOCAL: {
-				CHECK_MALLOC_DO(fd_msg_dump_full(&buf, &len, NULL, msg, NULL, 0, 1), break);
-				LOG_A("Handled to framework for sending: %s", buf);
+				CHECK_MALLOC_DO(fd_msg_dump_full(&hook_default_buf, &hook_default_len, NULL, msg, NULL, 0, 1), break);
+				LOG_A("Handled to framework for sending: %s", hook_default_buf);
 				break;
 			}
 			
 			case HOOK_MESSAGE_SENT: {
-				CHECK_MALLOC_DO(fd_msg_dump_summary(&buf, &len, NULL, msg, NULL, 0, 1), break);
-				LOG_D("SENT to '%s': %s", peer ? peer->p_hdr.info.pi_diamid : "<unknown>", buf);
+				CHECK_MALLOC_DO(fd_msg_dump_summary(&hook_default_buf, &hook_default_len, NULL, msg, NULL, 0, 1), break);
+				LOG_D("SENT to '%s': %s", peer ? peer->p_hdr.info.pi_diamid : "<unknown>", hook_default_buf);
 				break;
 			}
 			
 			case HOOK_MESSAGE_FAILOVER: {
-				CHECK_MALLOC_DO(fd_msg_dump_summary(&buf, &len, NULL, msg, NULL, 0, 1), break);
-				LOG_D("Failing over message sent to '%s': %s", peer ? peer->p_hdr.info.pi_diamid : "<unknown>", buf);
+				CHECK_MALLOC_DO(fd_msg_dump_summary(&hook_default_buf, &hook_default_len, NULL, msg, NULL, 0, 1), break);
+				LOG_D("Failing over message sent to '%s': %s", peer ? peer->p_hdr.info.pi_diamid : "<unknown>", hook_default_buf);
 				break;
 			}
 			
@@ -356,49 +365,49 @@ void   fd_hook_call(enum fd_hook_type type, struct msg * msg, struct fd_peer * p
 					if (!id)
 						id = (DiamId_t)"<local>";
 					
-					CHECK_MALLOC_DO(fd_msg_dump_treeview(&buf, &len, NULL, msg, NULL, 0, 1), break);
+					CHECK_MALLOC_DO(fd_msg_dump_treeview(&hook_default_buf, &hook_default_len, NULL, msg, NULL, 0, 1), break);
 					
 					LOG_E("Parsing error: '%s' for the following message received from '%s':", (char *)other, (char *)id);
-					LOG_SPLIT(FD_LOG_ERROR, "   ", buf?:"<error dumping message>", NULL);
+					LOG_SPLIT(FD_LOG_ERROR, "   ", hook_default_buf, NULL);
 				} else {
 					struct fd_cnx_rcvdata *rcv_data = other;
-					CHECK_MALLOC_DO(fd_dump_extend_hexdump(&buf, &len, NULL, rcv_data->buffer, rcv_data->length, 0, 0), break);
-					LOG_E("Parsing error: cannot parse %zdB buffer from '%s': %s",  rcv_data->length, peer ? peer->p_hdr.info.pi_diamid : "<unknown>", buf);
+					CHECK_MALLOC_DO(fd_dump_extend_hexdump(&hook_default_buf, &hook_default_len, NULL, rcv_data->buffer, rcv_data->length, 0, 0), break);
+					LOG_E("Parsing error: cannot parse %zdB buffer from '%s': %s",  rcv_data->length, peer ? peer->p_hdr.info.pi_diamid : "<unknown>", hook_default_buf);
 				}
 				break;
 			}
 			
 			case HOOK_MESSAGE_ROUTING_ERROR: {
-				CHECK_MALLOC_DO(fd_msg_dump_treeview(&buf, &len, NULL, msg, NULL, 0, 1), break);
+				CHECK_MALLOC_DO(fd_msg_dump_treeview(&hook_default_buf, &hook_default_len, NULL, msg, NULL, 0, 1), break);
 				LOG_E("Routing error: '%s' for the following message:", (char *)other);
-				LOG_SPLIT(FD_LOG_ERROR, "   ", buf?:"<error dumping message>", NULL);
+				LOG_SPLIT(FD_LOG_ERROR, "   ", hook_default_buf, NULL);
 				break;
 			}
 			
 			case HOOK_MESSAGE_ROUTING_FORWARD: {
-				CHECK_MALLOC_DO(fd_msg_dump_summary(&buf, &len, NULL, msg, NULL, 0, 1), break);
-				LOG_D("FORWARDING: %s", buf);
+				CHECK_MALLOC_DO(fd_msg_dump_summary(&hook_default_buf, &hook_default_len, NULL, msg, NULL, 0, 1), break);
+				LOG_D("FORWARDING: %s", hook_default_buf);
 				break;
 			}
 			
 			case HOOK_MESSAGE_ROUTING_LOCAL: {
-				CHECK_MALLOC_DO(fd_msg_dump_summary(&buf, &len, NULL, msg, NULL, 0, 1), break);
-				LOG_D("DISPATCHING: %s", buf);
+				CHECK_MALLOC_DO(fd_msg_dump_summary(&hook_default_buf, &hook_default_len, NULL, msg, NULL, 0, 1), break);
+				LOG_D("DISPATCHING: %s", hook_default_buf);
 				break;
 			}
 			
 			case HOOK_MESSAGE_DROPPED: {
-				CHECK_MALLOC_DO(fd_msg_dump_treeview(&buf, &len, NULL, msg, NULL, 0, 1), break);
+				CHECK_MALLOC_DO(fd_msg_dump_treeview(&hook_default_buf, &hook_default_len, NULL, msg, NULL, 0, 1), break);
 				LOG_E("Message discarded ('%s'):", (char *)other);
-				LOG_SPLIT(FD_LOG_ERROR, "   ", buf?:"<error dumping message>", NULL);
+				LOG_SPLIT(FD_LOG_ERROR, "   ", hook_default_buf, NULL);
 				break;
 			}
 			
 			case HOOK_PEER_CONNECT_FAILED: {
 				if (msg) {
-					CHECK_MALLOC_DO(fd_msg_dump_treeview(&buf, &len, NULL, msg, NULL, 0, 1), break);
+					CHECK_MALLOC_DO(fd_msg_dump_treeview(&hook_default_buf, &hook_default_len, NULL, msg, NULL, 0, 1), break);
 					LOG_N("Connection to '%s' failed: '%s'; CER/CEA dump:", peer ? peer->p_hdr.info.pi_diamid : "<unknown>", (char *)other);
-					LOG_SPLIT(FD_LOG_NOTICE, "   ", buf?:"<error dumping message>", NULL);
+					LOG_SPLIT(FD_LOG_NOTICE, "   ", hook_default_buf, NULL);
 				} else {
 					LOG_D("Connection to '%s' failed: %s", peer ? peer->p_hdr.info.pi_diamid : "<unknown>", (char *)other);
 				}
@@ -410,7 +419,7 @@ void   fd_hook_call(enum fd_hook_type type, struct msg * msg, struct fd_peer * p
 				if ((!fd_msg_source_get( msg, &id, NULL )) && (id == NULL)) { /* The CEA is locally issued */
 					fd_msg_answ_getq(msg, &msg); /* We dump the CER in that case */
 				}
-				CHECK_MALLOC_DO(fd_msg_dump_treeview(&buf, &len, NULL, msg, NULL, 0, 1), break);
+				CHECK_MALLOC_DO(fd_msg_dump_treeview(&hook_default_buf, &hook_default_len, NULL, msg, NULL, 0, 1), break);
 				char protobuf[40];
 				if (peer) {
 					CHECK_FCT_DO(fd_peer_cnx_proto_info(&peer->p_hdr, protobuf, sizeof(protobuf)), break );
@@ -419,12 +428,14 @@ void   fd_hook_call(enum fd_hook_type type, struct msg * msg, struct fd_peer * p
 					protobuf[1] = '\0';
 				}
 				LOG_N("Connected to '%s' (%s), remote capabilities: ", peer ? peer->p_hdr.info.pi_diamid : "<unknown>", protobuf);
-				LOG_SPLIT(FD_LOG_NOTICE, "   ", buf?:"<error dumping message>", NULL);
+				LOG_SPLIT(FD_LOG_NOTICE, "   ", hook_default_buf, NULL);
 				break;
 			}
 			
 		}
 		
-		free(buf);
+		pthread_cleanup_pop(0);
+		
+		CHECK_POSIX_DO( pthread_mutex_unlock(&hook_default_mtx), );
 	}
 }
