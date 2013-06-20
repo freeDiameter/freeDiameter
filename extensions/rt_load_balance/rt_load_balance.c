@@ -59,8 +59,8 @@ static int rt_load_balancing(void * cbdata, struct msg ** pmsg, struct fd_list *
 		CHECK_FCT(fd_peer_get_load_pending(peer, &to_receive, &to_send));
                 load = to_receive + to_send;
 		score = cand->score;
-		if (load > 5)
-			cand->score -= 5;
+		if ((cand->score > 0) && (load >= cand->score))
+			cand->score = 1;
 		else
 			cand->score -= load;
 		TRACE_DEBUG(INFO, "evaluated peer `%.*s', score was %d, now %d", (int)cand->diamidlen, cand->diamid, score, cand->score);
