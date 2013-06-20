@@ -178,7 +178,7 @@ struct fd_rt_fwd_hdl {
 
 %{
 /* call it (will be called from a different thread than the interpreter, when message arrives) */
-static int call_the_python_rt_out_callback(void * pycb, struct msg *msg, struct fd_list * candidates) {
+static int call_the_python_rt_out_callback(void * pycb, struct msg **msg, struct fd_list * candidates) {
 	PyObject *PyMsg, *PyCands;
 	PyObject *cb, *result = NULL;
 	int ret = 0;
@@ -191,7 +191,7 @@ static int call_the_python_rt_out_callback(void * pycb, struct msg *msg, struct 
 	
 	SWIG_PYTHON_THREAD_BEGIN_BLOCK;
 	/* Convert the arguments */
-	PyMsg   = SWIG_NewPointerObj((void *)msg,        SWIGTYPE_p_msg,     0 );
+	PyMsg   = SWIG_NewPointerObj((void *)*msg,       SWIGTYPE_p_msg,     0 );
 	PyCands = SWIG_NewPointerObj((void *)candidates, SWIGTYPE_p_fd_list, 0 );
 	
 	/* Call the function */
