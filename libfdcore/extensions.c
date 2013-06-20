@@ -77,7 +77,7 @@ int fd_ext_add( char * filename, char * conffile )
 }
 
 /* Dump the list */
-DECLARE_FD_DUMP_PROTOTYPE(fd_ext_dump, int indent_next)
+DECLARE_FD_DUMP_PROTOTYPE(fd_ext_dump)
 {
 	struct fd_list * li;
 	FD_DUMP_HANDLE_OFFSET();

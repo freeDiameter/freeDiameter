@@ -255,7 +255,7 @@ static int fd_core_parseconf_int(const char * conffile)
 	LOG_SPLIT(FD_LOG_NOTICE, NULL, b ?: "<Error during configuration dump...>", NULL);
 	
 	/* Display extensions status */
-	b = fd_ext_dump(&buf, &len, NULL, 19);
+	b = fd_ext_dump(&buf, &len, NULL);
 	LOG_SPLIT(FD_LOG_NOTICE, "Loaded extensions: ", b?:"<Error during extensions dump...>", NULL);
 	
 	/* Display registered triggers for FDEV_TRIGGER */
