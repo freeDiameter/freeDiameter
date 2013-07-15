@@ -91,6 +91,21 @@ static int dict_dcca_entry(char * conffile)
 						   { .u32 = 4011}};
             CHECK_dict_new(DICT_ENUMVAL, &error_code, ResultCodeType, NULL);
         }
+        {
+            struct dict_enumval_data error_code = {"CREDIT_LIMIT_REACHED",
+						   { .u32 = 4012}};
+            CHECK_dict_new(DICT_ENUMVAL, &error_code, ResultCodeType, NULL);
+        }
+        {
+            struct dict_enumval_data error_code = {"USER_UNKNOWN",
+						   { .u32 = 5030}};
+            CHECK_dict_new(DICT_ENUMVAL, &error_code, ResultCodeType, NULL);
+        }
+        {
+            struct dict_enumval_data error_code = {"RATING_FAILED",
+						   { .u32 = 5031}};
+            CHECK_dict_new(DICT_ENUMVAL, &error_code, ResultCodeType, NULL);
+        }
 
     }
 
