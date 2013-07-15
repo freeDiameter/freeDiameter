@@ -322,6 +322,7 @@ DECLARE_FD_DUMP_PROTOTYPE(fd_dictfct_Time_dump, union avp_value * avp_value)
 		return *buf;
 	}
 	
+	CHECK_MALLOC_DO ( gmtime_r(&val, &conv), return NULL);
 	CHECK_MALLOC_DO( fd_dump_extend(FD_DUMP_STD_PARAMS, "%d%02d%02dT%02d%02d%02d+00", conv.tm_year+1900, conv.tm_mon+1, conv.tm_mday, conv.tm_hour, conv.tm_min, conv.tm_sec), return NULL);
 	return *buf;
 }
