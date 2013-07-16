@@ -34,6 +34,7 @@
 *********************************************************************************************************/
 
 #include "fdproto-internal.h"
+#include <time.h>
 
 /* This file contains helpers functions to be reused as callbacks in the struct dict_type_data structure.
 There are three callbacks there:
@@ -305,10 +306,35 @@ int fd_dictfct_Time_interpret(union avp_value * avp_value, void * interpreted)
 	return diameter_string_to_time_t((const char *)avp_value->os.data, avp_value->os.len, interpreted);
 }
 
+static void _format_offs (long offset, char *buf) {
+    int offs_hours, offs_minutes, sgn = 1;
+    if (offset < 0) {
+        offset = -offset;
+        sgn = 1;
+    }
+    offs_hours = (int)(offset/3600);
+    offs_minutes = (offset%3600)/60;
+
+    char* s = buf;
+
+    *(s++) = sgn == 1 ? '+' : '-';
+    *(s++) = (char)(offs_hours/10) + '0';
+    *(s++) = offs_hours%10 + '0';
+
+    if (offs_minutes == 0) {
+        *(s++) = '\0';
+    } else {
+        *(s++) = (char)(offs_minutes/10) + '0';
+        *(s++) = offs_minutes%10 + '0';
+        *(s++) = '\0';
+    }
+}
+
 DECLARE_FD_DUMP_PROTOTYPE(fd_dictfct_Time_dump, union avp_value * avp_value)
 {
 	time_t val;
 	struct tm conv;
+	char tz_buf[7];
 		
 	FD_DUMP_HANDLE_OFFSET();
 	
@@ -322,8 +348,9 @@ DECLARE_FD_DUMP_PROTOTYPE(fd_dictfct_Time_dump, union avp_value * avp_value)
 		return *buf;
 	}
 	
-	CHECK_MALLOC_DO ( gmtime_r(&val, &conv), return NULL);
-	CHECK_MALLOC_DO( fd_dump_extend(FD_DUMP_STD_PARAMS, "%d%02d%02dT%02d%02d%02d+00", conv.tm_year+1900, conv.tm_mon+1, conv.tm_mday, conv.tm_hour, conv.tm_min, conv.tm_sec), return NULL);
+	CHECK_MALLOC_DO( localtime_r(&val, &conv), return NULL);
+	_format_offs(conv.tm_gmtoff, tz_buf);
+	CHECK_MALLOC_DO( fd_dump_extend(FD_DUMP_STD_PARAMS, "%d%02d%02dT%02d%02d%02d%s", conv.tm_year+1900, conv.tm_mon+1, conv.tm_mday, conv.tm_hour, conv.tm_min, conv.tm_sec, tz_buf), return NULL);
 	return *buf;
 }
 
