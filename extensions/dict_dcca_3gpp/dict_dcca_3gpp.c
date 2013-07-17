@@ -1305,6 +1305,23 @@ static int dict_dcca_3gpp_entry(char * conffile)
 		CHECK_dict_new(DICT_AVP, &data, DiameterIdentity_type, NULL);
 	};
 
+	/* 3GPP 29.210-670 (6.7.0 2006-12-18)                           */
+	/* PDP-Session-Operation */
+	{
+		struct dict_avp_data data = {
+			1015,	/* Code */
+			10415,	/* Vendor */
+			"PDP-Session-Operation",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flag values */
+			AVP_TYPE_INTEGER32	/* base type of data */
+		};
+		struct dict_object		*type;
+		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "3GPP/Enumerated(PDP-Session-Operation)", NULL, NULL, NULL };
+		CHECK_dict_new(DICT_TYPE, &tdata, NULL, &type);
+		CHECK_dict_new(DICT_AVP, &data, type, NULL);
+	};
+
 	/* 3GPP 29.212-c00 (12.0.0 2013.03.15)                          */
 	/* Gx-specific                                                  */
 	/* ADC-Revalidation-Time */
@@ -10277,6 +10294,7 @@ static int dict_dcca_3gpp_entry(char * conffile)
 		};
 		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
 	};
+
 
 
 
