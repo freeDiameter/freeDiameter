@@ -21,6 +21,7 @@ struct local_rules_definition {
 
 #define RULE_ORDER( _position ) ((((_position) == RULE_FIXED_HEAD) || ((_position) == RULE_FIXED_TAIL)) ? 1 : 0 )
 
+/* Attention! This version of the macro uses AVP_BY_NAME_ALL_VENDORS, in contrast to most other copies! */
 #define PARSE_loc_rules( _rulearray, _parent) {								\
 	int __ar;											\
 	for (__ar=0; __ar < sizeof(_rulearray) / sizeof((_rulearray)[0]); __ar++) {			\
@@ -33,7 +34,7 @@ struct local_rules_definition {
 		CHECK_FCT(  fd_dict_search( 								\
 			fd_g_config->cnf_dict,								\
 			DICT_AVP, 									\
-			AVP_BY_NAME, 									\
+			AVP_BY_NAME_ALL_VENDORS, 							\
 			(_rulearray)[__ar].avp_name, 							\
 			&__data.rule_avp, 0 ) );							\
 		if ( !__data.rule_avp ) {								\
@@ -281,6 +282,42 @@ static int dict_dcca_starent_entry(char * conffile)
 		CHECK_dict_new(DICT_AVP, &data, type, NULL);
 	};
 
+
+	/* Rules section */
+
+	/* SN-Total-Used-Service-Unit */
+	{
+		struct dict_object *rule_avp;
+		struct dict_avp_request vpa;
+		vpa.avp_vendor = 8164;
+		vpa.avp_name = "SN-Total-Used-Service-Unit";
+		CHECK_dict_search(DICT_AVP, AVP_BY_NAME_AND_VENDOR, &vpa, &rule_avp);
+		struct local_rules_definition rules[] = {
+			{  "Tariff-Change-Usage",	RULE_OPTIONAL,	-1, 1 },
+			{  "CC-Time",	       		RULE_OPTIONAL,	-1, 1 },
+			{  "CC-Total-Octets",		RULE_OPTIONAL,	-1, 1 },
+			{  "CC-Input-Octets",		RULE_OPTIONAL,	-1, 1 },
+			{  "CC-Output-Octets",		RULE_OPTIONAL,	-1, 1 },
+			{  "CC-Service-Specific-Units",	RULE_OPTIONAL,	-1, 1 },
+			{  "Reporting-Reason",		RULE_OPTIONAL,	-1, 1 }
+		};
+		PARSE_loc_rules( rules, rule_avp );
+	}
+
+	/* SN-Usage-Monitoring-Control */
+	{
+		struct dict_object *rule_avp;
+		struct dict_avp_request vpa;
+		vpa.avp_vendor = 8164;
+		vpa.avp_name = "SN-Usage-Monitoring-Control";
+		CHECK_dict_search(DICT_AVP, AVP_BY_NAME_AND_VENDOR, &vpa, &rule_avp);
+		struct local_rules_definition rules[] = {
+			{  "SN-Monitoring-Key",		RULE_OPTIONAL,	-1, 1 },
+			{  "SN-Usage-Monitoring",	RULE_OPTIONAL,	-1, 1 },
+			{  "SN-Usage-Volume",		RULE_OPTIONAL,	-1, 1 },
+		};
+		PARSE_loc_rules( rules, rule_avp );
+	}
 
 	LOG_D( "Extension 'Dictionary definitions for DCCA Starent' initialized");
 	return 0;
