@@ -67,12 +67,12 @@
 # Example: Table = "incoming";
 
 # Timestamp_field:
-# Optionaly, you can specify a name of a field that will receive the value 'now' when a new record is inserted.
+# Optionally, you can specify a name of a field that will receive the value 'now' when a new record is inserted.
 # Default: no timestamp is inserted.
 # Example: Timestamp_field = "recorded_on";
 
 # Server_name_field:
-# Optionaly, you can specify a field which will receive the Diameter Identity of the local server for each record saved.
+# Optionally, you can specify a field which will receive the Diameter Identity of the local server for each record saved.
 # This is useful especially if you have several Accounting servers and want to check Load-Balancing behavior or so,
 # after aggregating all the data.
 # Default: no server name inserted.

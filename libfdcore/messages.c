@@ -335,7 +335,7 @@ static int fd_msg_send_int( struct msg ** pmsg, void (*anscb)(void *, struct msg
 	return 0;
 }
 
-/* Send a message and optionaly register a callback for an answer */
+/* Send a message and optionally register a callback for an answer */
 int fd_msg_send ( struct msg ** pmsg, void (*anscb)(void *, struct msg **), void * data )
 {
 	TRACE_ENTRY("%p %p %p", pmsg, anscb, data);

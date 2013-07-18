@@ -963,7 +963,7 @@ out:
 	return ret;
 }
 
-/* Retrieve streams information from a connected association -- optionaly provide the primary address */
+/* Retrieve streams information from a connected association -- optionally provide the primary address */
 int fd_sctp_get_str_info( int sock, uint16_t *in, uint16_t *out, sSS *primary )
 {
 	struct sctp_status status;

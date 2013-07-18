@@ -20,7 +20,7 @@ This folder contains several tools to use and parse the data from the app_acct.f
     This PHP script processes the records pertaining to users sessions, as follow:
   * when a session is complete (STOP record received), it stores a session summary
   into the processed records table (see process_database.sql file for format). 
-  * It optionaly archives the processed records into a different table, before deleting them.
+  * It optionally archives the processed records into a different table, before deleting them.
   * It can also move records of unterminated sessions that are older than a configurable time 
   to an orphan_records table, so that they are not re-processed every time. 
   This orphans table must have the same structure as the "incoming" table.
