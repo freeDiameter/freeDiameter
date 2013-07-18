@@ -1254,11 +1254,15 @@ int fd_msg_anscb_associate( struct msg * msg, void ( *anscb)(void *, struct msg 
 	CHECK_PARAMS( (expirecb == NULL) || (msg->msg_cb.expirecb == NULL) ); /* We are not overwriting a cb */
 	
 	/* Associate callback and data with the message, if any */
-	msg->msg_cb.anscb = anscb;
-	msg->msg_cb.expirecb = expirecb;
-	msg->msg_cb.data = data;
-	if (timeout) {
-		memcpy(&msg->msg_cb.timeout, timeout, sizeof(struct timespec));
+	if (anscb) {
+		msg->msg_cb.anscb = anscb;
+		msg->msg_cb.data = data;
+	}
+	if (expirecb) {
+		msg->msg_cb.expirecb = expirecb;
+		if (timeout) {
+			memcpy(&msg->msg_cb.timeout, timeout, sizeof(struct timespec));
+		}
 	}
 	
 	return 0;
