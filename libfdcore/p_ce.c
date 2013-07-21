@@ -636,6 +636,10 @@ static void receiver_reject(struct cnxctx ** recv_cnx, struct msg ** cer, struct
 	CHECK_FCT_DO( fd_msg_rescode_set(*cer, error->pei_errcode, error->pei_message, error->pei_avp, 1 ), goto destroy );
 	CHECK_FCT_DO( fd_out_send(cer, *recv_cnx, NULL), goto destroy );
 	
+	if (error->pei_avp_free) {
+		fd_msg_free(error->pei_avp);
+	}
+	
 	/* And now destroy this connection */
 destroy:
 	fd_cnx_destroy(*recv_cnx);

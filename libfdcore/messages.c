@@ -388,6 +388,11 @@ int fd_msg_parse_or_error( struct msg ** msg, struct msg **error)
 		/* Set the error code */
 		CHECK_FCT( fd_msg_rescode_set(m, pei.pei_errcode, pei.pei_message, pei.pei_avp, 1 ) );
 		
+		/* free the pei AVP to avoid memory leak */
+		if (pei.pei_avp_free) {
+			fd_msg_free(pei.pei_avp);
+		}
+		
 		*msg = NULL;
 		*error = m;
 		

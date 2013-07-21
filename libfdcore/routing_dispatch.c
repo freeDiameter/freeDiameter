@@ -609,6 +609,7 @@ static int msg_rt_in(struct msg * msg)
 								if (error_info.pei_errcode) {
 									fd_hook_call(HOOK_MESSAGE_PARSING_ERROR, msgptr, NULL, error_info.pei_message ?: error_info.pei_errcode, fd_msg_pmdl_get(msgptr));
 									CHECK_FCT( return_error( &msgptr, error_info.pei_errcode, error_info.pei_message, error_info.pei_avp) );
+									if (error_info.pei_avp_free) { fd_msg_free(error_info.pei_avp); }
 									return 0;
 								} else {
 									fd_hook_call(HOOK_MESSAGE_PARSING_ERROR, msgptr, NULL, "Unspecified error while parsing Destination-Host AVP", fd_msg_pmdl_get(msgptr));
@@ -631,6 +632,7 @@ static int msg_rt_in(struct msg * msg)
 								if (error_info.pei_errcode) {
 									fd_hook_call(HOOK_MESSAGE_PARSING_ERROR, msgptr, NULL, error_info.pei_message ?: error_info.pei_errcode, fd_msg_pmdl_get(msgptr));
 									CHECK_FCT( return_error( &msgptr, error_info.pei_errcode, error_info.pei_message, error_info.pei_avp) );
+									if (error_info.pei_avp_free) { fd_msg_free(error_info.pei_avp); }
 									return 0;
 								} else {
 									fd_hook_call(HOOK_MESSAGE_PARSING_ERROR, msgptr, NULL, "Unspecified error while parsing Destination-Realm AVP", fd_msg_pmdl_get(msgptr));
@@ -655,6 +657,7 @@ static int msg_rt_in(struct msg * msg)
 								if (error_info.pei_errcode) {
 									fd_hook_call(HOOK_MESSAGE_PARSING_ERROR, msgptr, NULL, error_info.pei_message ?: error_info.pei_errcode, fd_msg_pmdl_get(msgptr));
 									CHECK_FCT( return_error( &msgptr, error_info.pei_errcode, error_info.pei_message, error_info.pei_avp) );
+									if (error_info.pei_avp_free) { fd_msg_free(error_info.pei_avp); }
 									return 0;
 								} else {
 									fd_hook_call(HOOK_MESSAGE_PARSING_ERROR, msgptr, NULL, "Unspecified error while parsing User-Name AVP", fd_msg_pmdl_get(msgptr));
@@ -673,6 +676,7 @@ static int msg_rt_in(struct msg * msg)
 								if (error_info.pei_errcode) {
 									fd_hook_call(HOOK_MESSAGE_PARSING_ERROR, msgptr, NULL, error_info.pei_message ?: error_info.pei_errcode, fd_msg_pmdl_get(msgptr));
 									CHECK_FCT( return_error( &msgptr, error_info.pei_errcode, error_info.pei_message, error_info.pei_avp) );
+									if (error_info.pei_avp_free) { fd_msg_free(error_info.pei_avp); }
 									return 0;
 								} else {
 									fd_hook_call(HOOK_MESSAGE_PARSING_ERROR, msgptr, NULL, "Unspecified error while parsing Route-Record AVP", fd_msg_pmdl_get(msgptr));
@@ -931,6 +935,7 @@ static int msg_rt_out(struct msg * msg)
 					{
 						if (error_info.pei_errcode) {
 							CHECK_FCT( return_error( &msgptr, error_info.pei_errcode, error_info.pei_message, error_info.pei_avp) );
+							if (error_info.pei_avp_free) { fd_msg_free(error_info.pei_avp); }
 							return 0;
 						} else {
 							return ret;

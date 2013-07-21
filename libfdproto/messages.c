@@ -2370,12 +2370,16 @@ static struct avp * empty_avp(struct dict_object * model_avp)
 	/* Type of the AVP */
 	CHECK_FCT_DO( fd_dict_getval(model_avp, &avp_info), return NULL );
 	
+	/* Set an initial size */
+	avp->avp_public.avp_len = GETAVPHDRSZ( avp->avp_public.avp_flags ) + avp_value_sizes[avp_info.avp_basetype];
+	
 	/* Prepare the empty value */
 	memset(&val, 0, sizeof(val));
 	switch (avp_info.avp_basetype) {
 		case AVP_TYPE_OCTETSTRING:
 			val.os.data = os;
 			val.os.len  = sizeof(os);
+			avp->avp_public.avp_len += val.os.len;
 		case AVP_TYPE_INTEGER32:
 		case AVP_TYPE_INTEGER64:
 		case AVP_TYPE_UNSIGNED32:
@@ -2439,6 +2443,7 @@ static int parserules_check_one_rule(void * data, struct dict_rule_data *rule)
 		if (pr_data->pei) {
 			pr_data->pei->pei_errcode = "DIAMETER_MISSING_AVP";
 			pr_data->pei->pei_avp = empty_avp(rule->rule_avp);
+			pr_data->pei->pei_avp_free = 1;
 		}
 		return EBADMSG;
 	}
@@ -2452,6 +2457,7 @@ static int parserules_check_one_rule(void * data, struct dict_rule_data *rule)
 			else
 				pr_data->pei->pei_errcode = "DIAMETER_AVP_OCCURS_TOO_MANY_TIMES";
 			pr_data->pei->pei_avp = empty_avp(rule->rule_avp); /* Well we are supposed to return the (max + 1)th instance of the AVP instead... Pfff... */ TODO("Improve...");
+			pr_data->pei->pei_avp_free = 1;
 		}
 		return EBADMSG;
 	}
@@ -2471,6 +2477,7 @@ static int parserules_check_one_rule(void * data, struct dict_rule_data *rule)
 					pr_data->pei->pei_errcode = "DIAMETER_MISSING_AVP";
 					pr_data->pei->pei_message = "AVP was not in its fixed position";
 					pr_data->pei->pei_avp = empty_avp(rule->rule_avp);
+					pr_data->pei->pei_avp_free = 1;
 				}
 				return EBADMSG;
 			}
@@ -2484,6 +2491,7 @@ static int parserules_check_one_rule(void * data, struct dict_rule_data *rule)
 					pr_data->pei->pei_errcode = "DIAMETER_MISSING_AVP";
 					pr_data->pei->pei_message = "AVP was not in its fixed position";
 					pr_data->pei->pei_avp = empty_avp(rule->rule_avp);
+					pr_data->pei->pei_avp_free = 1;
 				}
 				return EBADMSG;
 			}
