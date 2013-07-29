@@ -10544,6 +10544,22 @@ static int dict_dcca_3gpp_entry(char * conffile)
         }
 
 	{
+		/* Used-Service-Unit */
+		/* additional allowed AVPs */
+		struct dict_object *rule_avp;
+		struct dict_avp_request vpa;
+		vpa.avp_vendor = 0;
+		vpa.avp_name = "Used-Service-Unit";
+		CHECK_dict_search(DICT_AVP, AVP_BY_NAME_AND_VENDOR, &vpa, &rule_avp);
+		struct local_rules_definition rules[] =
+			{
+				{ { .avp_vendor = 10415, .avp_name = "Reporting-Reason" }, RULE_OPTIONAL, -1, 1 },
+				{ { .avp_vendor = 10415, .avp_name = "Event-Charging-TimeStamp" }, RULE_OPTIONAL, -1, -1 },
+			};
+		PARSE_loc_rules(rules, rule_avp);
+        }
+
+	{
 		struct dict_object *rule_avp;
 		struct dict_avp_request vpa;
 		vpa.avp_vendor = 10415;
