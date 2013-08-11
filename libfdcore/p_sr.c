@@ -41,6 +41,7 @@ struct sentreq {
 	struct msg	*req;	/* A request that was sent and not yet answered. */
 	uint32_t	prevhbh;/* The value to set back in the hbh header when the message is retrieved */
 	struct fd_list  expire; /* the list of expiring requests */
+	struct timespec timeout; /* Cache the expire date of the request so that the timeout thread does not need to get it each time. */
 	struct timespec added_on; /* the time the request was added */
 };
 
@@ -54,6 +55,22 @@ static struct fd_list * find_or_next(struct fd_list * srlist, uint32_t hbh, int 
 		if (*nexthbh < hbh)
 			continue;
 		if (*nexthbh == hbh)
+			*match = 1;
+		break;
+	}
+	return li;
+}
+
+/* Similar but start from the end, since we add requests in growing hbh order usually */
+static struct fd_list * find_or_prev(struct fd_list * srlist, uint32_t hbh, int * match)
+{
+	struct fd_list * li;
+	*match = 0;
+	for (li = srlist->prev; li != srlist; li = li->prev) {
+		uint32_t * prevhbh = li->o;
+		if (*prevhbh > hbh)
+			continue;
+		if (*prevhbh == hbh)
 			*match = 1;
 		break;
 	}
@@ -79,55 +96,9 @@ static void srl_dump(const char * text, struct fd_list * srlist)
 	}
 }
 
-struct expire_data {
-	struct msg * request;
-	struct fd_peer * sentto;
-};
-
-/* (detached) thread that calls the anscb on expired messages. 
-  We do it in a separate thread to avoid blocking the reception of new messages during this time */
-static void * call_expirecb(void * arg) {
-	struct expire_data * ed = arg;
-	
-	void (*expirecb)(void *, DiamId_t, size_t, struct msg **);
-	void * data;
-	
-	TRACE_ENTRY("%p", arg);
-	CHECK_PARAMS_DO( arg, return NULL );
-	
-	/* Set the thread name */
-	fd_log_threadname ( "Expired req cb." );
-	
-	/* Log */
-	TRACE_DEBUG(INFO, "The expiration timer for a request has been reached, aborting this attempt now & calling cb...");
-	
-	/* Retrieve callback in the message */
-	CHECK_FCT_DO( fd_msg_anscb_get( ed->request, NULL, &expirecb, &data ), return NULL);
-	ASSERT(expirecb);
-	
-	/* Clean up this data from the message */
-	CHECK_FCT_DO( fd_msg_anscb_associate( ed->request, NULL, NULL, NULL, NULL ), return NULL);
-
-	/* Call it */
-	(*expirecb)(data, ed->sentto->p_hdr.info.pi_diamid, ed->sentto->p_hdr.info.pi_diamidlen, &ed->request);
-	
-	/* If the callback did not dispose of the message, do it now */
-	if (ed->request) {
-		fd_hook_call(HOOK_MESSAGE_DROPPED, ed->request, NULL, "Expiration period completed without an answer, and the expiry callback did not dispose of the message.", fd_msg_pmdl_get(ed->request));
-		CHECK_FCT_DO( fd_msg_free(ed->request), /* ignore */ );
-	}
-	
-	free(ed);
-	
-	/* Finish */
-	return NULL;
-}
-
 /* thread that handles messages expiring. The thread is started only when needed */
 static void * sr_expiry_th(void * arg) {
 	struct sr_list * srlist = arg;
-	pthread_attr_t detached;
-	struct expire_data * ed;
 	
 	TRACE_ENTRY("%p", arg);
 	CHECK_PARAMS_DO( arg, return NULL );
@@ -139,60 +110,87 @@ static void * sr_expiry_th(void * arg) {
 		fd_log_threadname ( buf );
 	}
 	
-	CHECK_POSIX_DO( pthread_attr_init(&detached), return NULL );
-	CHECK_POSIX_DO( pthread_attr_setdetachstate(&detached, PTHREAD_CREATE_DETACHED), return NULL );
-	
-	CHECK_POSIX_DO( pthread_mutex_lock(&srlist->mtx),  return NULL );
-	pthread_cleanup_push( fd_cleanup_mutex, &srlist->mtx );
-	
 	do {
-		struct timespec	now, *t;
+		struct timespec	now;
 		struct sentreq * first;
-		pthread_t th;
-		
+		struct msg * request;
+		struct fd_peer * sentto;
+		void (*expirecb)(void *, DiamId_t, size_t, struct msg **);
+		void (*anscb)(void *, struct msg **);
+		void * data;
+		int no_error;
+
+		CHECK_POSIX_DO( pthread_mutex_lock(&srlist->mtx),  return NULL );
+		pthread_cleanup_push( fd_cleanup_mutex, &srlist->mtx );
+
+loop:	
+		no_error = 0;
+
 		/* Check if there are expiring requests available */
 		if (FD_IS_LIST_EMPTY(&srlist->exp)) {
 			/* Just wait for a change or cancelation */
-			CHECK_POSIX_DO( pthread_cond_wait( &srlist->cnd, &srlist->mtx ), goto error );
+			CHECK_POSIX_DO( pthread_cond_wait( &srlist->cnd, &srlist->mtx ), goto unlock );
 			/* Restart the loop on wakeup */
-			continue;
+			goto loop;
 		}
 		
 		/* Get the pointer to the request that expires first */
 		first = (struct sentreq *)(srlist->exp.next->o);
-		t = fd_msg_anscb_gettimeout( first->req );
-		ASSERT(t);
 		
 		/* Get the current time */
-		CHECK_SYS_DO(  clock_gettime(CLOCK_REALTIME, &now),  goto error  );
+		CHECK_SYS_DO(  clock_gettime(CLOCK_REALTIME, &now),  goto unlock  );
 
 		/* If first request is not expired, we just wait until it happens */
-		if ( TS_IS_INFERIOR( &now, t ) ) {
+		if ( TS_IS_INFERIOR( &now, &first->timeout ) ) {
 			
-			CHECK_POSIX_DO2(  pthread_cond_timedwait( &srlist->cnd, &srlist->mtx, t ),  
+			CHECK_POSIX_DO2(  pthread_cond_timedwait( &srlist->cnd, &srlist->mtx, &first->timeout ),  
 					ETIMEDOUT, /* ETIMEDOUT is a normal return value, continue */,
-					/* on other error, */ goto error );
+					/* on other error, */ goto unlock );
 	
 			/* on wakeup, loop */
-			continue;
+			goto loop;
 		}
 		
-		/* Now, the first request in the list is expired; remove it and call the anscb for it in a new thread */
-		CHECK_MALLOC_DO( ed = malloc(sizeof(struct expire_data)), goto error );
-		ed->sentto = first->chain.head->o;
-		ed->request = first->req;
-		*((uint32_t *)first->chain.o) = first->prevhbh; /* Restore the hbhid */
+		/* Now, the first request in the list is expired; remove it and call the expirecb for it */
+		request = first->req;
+		sentto = first->chain.head->o;
+		
+		TRACE_DEBUG(FULL, "Request %x was not answered by %s within the timer delay", *((uint32_t *)first->chain.o), sentto->p_hdr.info.pi_diamid);
+		
+		/* Restore the hbhid */
+		*((uint32_t *)first->chain.o) = first->prevhbh; 
+		
+		/* Free the sentreq information */
 		fd_list_unlink(&first->chain);
 		fd_list_unlink(&first->expire);
 		free(first);
 		
-		CHECK_POSIX_DO( pthread_create( &th, &detached, call_expirecb, ed ), goto error );
+		no_error = 1;
+unlock:
+		; /* pthread_cleanup_pop sometimes expands as "} ..." and the label before this cause some compilers to complain... */
+		pthread_cleanup_pop( 1 ); /* unlock the mutex */
+		if (!no_error)
+			break;
 
-		/* loop */
+		
+		/* Retrieve callback in the message */
+		CHECK_FCT_DO( fd_msg_anscb_get( request, &anscb, &expirecb, &data ), break);
+		ASSERT(expirecb);
+	
+		/* Clean up this expirecb from the message */
+		CHECK_FCT_DO( fd_msg_anscb_associate( request, anscb, data, NULL, NULL ), break);
+
+		/* Call it */
+		(*expirecb)(data, sentto->p_hdr.info.pi_diamid, sentto->p_hdr.info.pi_diamidlen, &request);
+	
+		/* If the callback did not dispose of the message, do it now */
+		if (request) {
+			fd_hook_call(HOOK_MESSAGE_DROPPED, request, NULL, "Expiration period completed without an answer, and the expiry callback did not dispose of the message.", fd_msg_pmdl_get(request));
+			CHECK_FCT_DO( fd_msg_free(request), /* ignore */ );
+		}
+	
 	} while (1);
-error:	
-	; /* pthread_cleanup_pop sometimes expands as "} ..." and the label before this cause some compilers to complain... */
-	pthread_cleanup_pop( 1 );
+	
 	ASSERT(0); /* we have encountered a problem, maybe time to signal the framework to terminate? */
 	return NULL;
 }
@@ -202,7 +200,7 @@ error:
 int fd_p_sr_store(struct sr_list * srlist, struct msg **req, uint32_t *hbhloc, uint32_t hbh_restore)
 {
 	struct sentreq * sr;
-	struct fd_list * next;
+	struct fd_list * prev;
 	int match;
 	struct timespec * ts;
 	
@@ -219,7 +217,7 @@ int fd_p_sr_store(struct sr_list * srlist, struct msg **req, uint32_t *hbhloc, u
 	
 	/* Search the place in the list */
 	CHECK_POSIX( pthread_mutex_lock(&srlist->mtx) );
-	next = find_or_next(&srlist->srs, *hbhloc, &match);
+	prev = find_or_prev(&srlist->srs, *hbhloc, &match);
 	if (match) {
 		TRACE_DEBUG(INFO, "A request with the same hop-by-hop Id (0x%x) was already sent: error", *hbhloc);
 		free(sr);
@@ -230,21 +228,20 @@ int fd_p_sr_store(struct sr_list * srlist, struct msg **req, uint32_t *hbhloc, u
 	
 	/* Save in the list */
 	*req = NULL;
-	fd_list_insert_before(next, &sr->chain);
+	fd_list_insert_after(prev, &sr->chain);
 	srlist->cnt++;
 	
 	/* In case of request with a timeout, also store in the timeout list */
 	ts = fd_msg_anscb_gettimeout( sr->req );
 	if (ts) {
 		struct fd_list * li;
-		struct timespec * t;
+		
+		memcpy(&sr->timeout, ts, sizeof(struct timespec));
 		
 		/* browse srlist->exp from the end */
 		for (li = srlist->exp.prev; li != &srlist->exp; li = li->prev) {
 			struct sentreq * s = (struct sentreq *)(li->o);
-			t = fd_msg_anscb_gettimeout( s->req );
-			ASSERT( t ); /* sanity */
-			if (TS_IS_INFERIOR(t, ts))
+			if (TS_IS_INFERIOR(&s->timeout, ts))
 				break;
 		}
 		
