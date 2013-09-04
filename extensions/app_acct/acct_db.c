@@ -174,7 +174,8 @@ int acct_db_init(void)
 	ADD_EXTEND("\") VALUES (");
 	
 	if (acct_config->tsfield) {
-		ADD_EXTEND("$%d, ", ++idx);
+		++idx;
+		ADD_EXTEND("$%d, ", idx);
 	}
 	if (acct_config->srvnfield) {
 		ADD_EXTEND("'");
@@ -184,7 +185,8 @@ int acct_db_init(void)
 	
 	for (li = emptyrecords.all.next; li != &emptyrecords.all; li = li->next) {
 		struct acct_record_item * i = (struct acct_record_item *)(li->o);
-		ADD_EXTEND("$%d::%s", ++idx, diam2db_types_mapping[i->param->avptype]);
+		++idx;
+		ADD_EXTEND("$%d::%s", idx, diam2db_types_mapping[i->param->avptype]);
 		
 		if (li->next != &emptyrecords.all) {
 			ADD_EXTEND(", ");
