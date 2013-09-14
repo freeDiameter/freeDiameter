@@ -1,6 +1,6 @@
 freediameter (1.2.0) UNRELEASED; urgency=low
 
-  * Major changes in the logging system to be more syslog and user friendly
+  * Major changes in the logging system to be more syslog and production friendly
   * New extension: dict_dcca_3gpp
   * New extension: dict_dcca_starent (Starent DCCA vendor-specific AVPs)
   * New extension: rt_ignore_dh (hide network topology by proxying Destination-Host).
@@ -10,7 +10,8 @@ freediameter (1.2.0) UNRELEASED; urgency=low
   * New extension: dbg_msg_dumps. Use to control hooks display.
   * New API (fd_hook_*) for extensions to control messages logging & profiling
   * New API (fd_stats_*) for extensions to monitor framework state (e.g. SNMP implem)
-  * API changes: all the fd_*_dump functions now return malloc'd strings instead of logging directly.
+  * API change: all the fd_*_dump functions now return malloc'd strings instead of logging directly.
+  * API change: callback parameter of fd_rt_out_register had its signature updated.
   * Updated dbg_monitoring extension to use the new API
   * New script to generate dictionary extensions from org file (see contrib/tools)
   * New compilation option: WORKAROUND_ACCEPT_INVALID_VSAI to improve compatibility
@@ -30,8 +31,10 @@ freediameter (1.2.0) UNRELEASED; urgency=low
   * Using default secure Diameter port number 5658 as per RFC 6733
   * Updated TLS code for performance improvements with new GNU TLS.
   * Fix interlocking problem when large number of requests were failed over.
+  * New option in test_app.fdx extension for long messages payload.
+  * Performance improvement in message sending code path.
 
- -- Sebastien Decugis <sdecugis@freediameter.net>  Fri, 14 Jun 2013 17:36:07 +0800
+ -- Sebastien Decugis <sdecugis@freediameter.net>  Sat, 14 Sep 2013 18:08:07 +0800
 
 freediameter (1.1.6) UNRELEASED; urgency=low
 
