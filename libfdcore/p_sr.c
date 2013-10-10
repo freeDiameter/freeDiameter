@@ -336,6 +336,7 @@ void fd_p_sr_failover(struct sr_list * srlist)
 	}
 	/* The list of expiring requests must be empty now */
 	ASSERT( FD_IS_LIST_EMPTY(&srlist->exp) );
+	ASSERT( srlist->cnt == 0 ); /* debug the counter management if needed */
 	
 	CHECK_POSIX_DO( pthread_mutex_unlock(&srlist->mtx), /* continue anyway */ );
 	

@@ -112,12 +112,12 @@ int fd_p_dp_handle(struct msg ** msg, int req, struct fd_peer * peer)
 		/* Do we have pending exchanges with this peer? */
 		CHECK_FCT( fd_peer_get_load_pending(&peer->p_hdr, &to_receive, &to_send) );
 		
-		if ((to_receive == 0) && (to_send == 1 /* only the DPA */)) {
+		if ((to_receive == 0) && (to_send == 0)) {
 			/* No pending exchange, move to CLOSING directly */
 			CHECK_FCT( fd_psm_change_state(peer, STATE_CLOSING) );
 		
 			/* Now send the DPA */
-			CHECK_FCT( fd_out_send( msg, NULL, peer) );
+			CHECK_FCT( fd_out_send( msg, NULL, peer, 0) );
 			
 			/* and move to CLOSED */
 			fd_psm_cleanup(peer, 0);
@@ -131,7 +131,7 @@ int fd_p_dp_handle(struct msg ** msg, int req, struct fd_peer * peer)
 			fd_psm_next_timeout(peer, 0, GRACE_TIMEOUT);
 			
 			/* Now send the DPA */
-			CHECK_FCT( fd_out_send( msg, NULL, peer) );
+			CHECK_FCT( fd_out_send( msg, NULL, peer, 0) );
 		}
 	} else {
 		/* We received a DPA */
@@ -201,7 +201,7 @@ int fd_p_dp_initiate(struct fd_peer * peer, char * reason)
 	fd_psm_next_timeout(peer, 0, DPR_TIMEOUT);
 	
 	/* Now send the DPR message */
-	CHECK_FCT_DO( fd_out_send(&msg, NULL, peer), /* ignore since we are on timeout anyway */ );
+	CHECK_FCT_DO( fd_out_send(&msg, NULL, peer, 0), /* ignore since we are on timeout anyway */ );
 	
 	return 0;
 }

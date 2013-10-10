@@ -549,7 +549,7 @@ int fd_peer_handle_newCER( struct msg ** cer, struct cnxctx ** cnx )
 		
 		fd_hook_call(HOOK_PEER_CONNECT_FAILED, *cer, NULL, "Received CER with invalid Origin-Host AVP", NULL);
 		
-		CHECK_FCT( fd_out_send(cer, *cnx, NULL) );
+		CHECK_FCT( fd_out_send(cer, *cnx, NULL, 0) );
 		return EINVAL;
 	}
 	

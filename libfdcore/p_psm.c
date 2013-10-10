@@ -526,11 +526,6 @@ psm_loop:
 			/* Associate */
 			CHECK_FCT_DO( fd_msg_answ_associate( msg, req ), goto psm_end );
 			
-		} else {
-			/* Mark the incoming request so that we know we have pending answers for this peer */
-			CHECK_POSIX_DO( pthread_mutex_lock(&peer->p_state_mtx), goto psm_end  );
-			peer->p_reqin_count++;
-			CHECK_POSIX_DO( pthread_mutex_unlock(&peer->p_state_mtx), goto psm_end  );
 		}
 		
 		/* Log incoming message */
@@ -559,6 +554,13 @@ psm_loop:
 					/* Set the message source and add the Route-Record */
 					CHECK_FCT_DO( fd_msg_source_setrr( msg, peer->p_hdr.info.pi_diamid, peer->p_hdr.info.pi_diamidlen, fd_g_config->cnf_dict ), goto psm_end);
 
+					if ((hdr->msg_flags & CMD_FLAG_REQUEST)) {
+						/* Mark the incoming request so that we know we have pending answers for this peer */
+						CHECK_POSIX_DO( pthread_mutex_lock(&peer->p_state_mtx), goto psm_end  );
+						peer->p_reqin_count++;
+						CHECK_POSIX_DO( pthread_mutex_unlock(&peer->p_state_mtx), goto psm_end  );
+					}
+						
 					/* Requeue to the global incoming queue */
 					CHECK_FCT_DO(fd_fifo_post(fd_g_incoming, &msg), goto psm_end );
 
@@ -600,7 +602,7 @@ psm_loop:
 			} else {
 				if (msg == NULL) {
 					/* Send the error back to the peer */
-					CHECK_FCT_DO( ret = fd_out_send(&error, NULL, peer),  );
+					CHECK_FCT_DO( ret = fd_out_send(&error, NULL, peer, 0),  );
 					if (error) {
 						char buf[256];
 						/* Only if an error occurred & the message was not saved / dumped */
@@ -654,7 +656,7 @@ psm_loop:
 						CHECK_FCT_DO( fd_msg_rescode_set(msg, "DIAMETER_COMMAND_UNSUPPORTED", "Or maybe the P-bit or application Id are erroneous.", NULL, 1 ), break );
 
 						/* Send the answer */
-						CHECK_FCT_DO( fd_out_send(&msg, peer->p_cnxctx, peer), break );
+						CHECK_FCT_DO( fd_out_send(&msg, peer->p_cnxctx, peer, 0), break );
 					} while (0);
 				} else {
 					/* We did ASK for it ??? */

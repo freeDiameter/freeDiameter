@@ -296,7 +296,7 @@ int fd_psm_change_state(struct fd_peer * peer, int new_state);
 void fd_psm_cleanup(struct fd_peer * peer, int terminate);
 
 /* Peer out */
-int fd_out_send(struct msg ** msg, struct cnxctx * cnx, struct fd_peer * peer);
+int fd_out_send(struct msg ** msg, struct cnxctx * cnx, struct fd_peer * peer, int update_reqin_cnt);
 int fd_out_start(struct fd_peer * peer);
 int fd_out_stop(struct fd_peer * peer);
 
