@@ -162,6 +162,7 @@ loop:
 		
 		/* Free the sentreq information */
 		fd_list_unlink(&first->chain);
+		srlist->cnt--;
 		fd_list_unlink(&first->expire);
 		free(first);
 		
