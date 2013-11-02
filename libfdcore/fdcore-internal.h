@@ -129,6 +129,8 @@ struct sr_list {
 	struct fd_list 	srs; /* requests ordered by hop-by-hop id */
 	struct fd_list  exp; /* requests that have a timeout set, ordered by timeout */
 	long            cnt; /* number of requests in the srs list */
+	long		cnt_lost; /* number of requests that have not been answered in time. 
+				     It is decremented when an unexpected answer is received, so this may not be accurate. */
 	pthread_mutex_t	mtx; /* mutex to protect these lists */
 	pthread_cond_t  cnd; /* cond var used by the thread that handles timeouts */
 	pthread_t       thr; /* the thread that handles timeouts (expirecb called in separate forked threads) */
@@ -296,7 +298,7 @@ int fd_psm_change_state(struct fd_peer * peer, int new_state);
 void fd_psm_cleanup(struct fd_peer * peer, int terminate);
 
 /* Peer out */
-int fd_out_send(struct msg ** msg, struct cnxctx * cnx, struct fd_peer * peer);
+int fd_out_send(struct msg ** msg, struct cnxctx * cnx, struct fd_peer * peer, int update_reqin_cnt);
 int fd_out_start(struct fd_peer * peer);
 int fd_out_stop(struct fd_peer * peer);
 

@@ -162,6 +162,8 @@ loop:
 		
 		/* Free the sentreq information */
 		fd_list_unlink(&first->chain);
+		srlist->cnt--;
+		srlist->cnt_lost++; /* We are not waiting for this answer anymore, but the remote peer may still be processing it. */
 		fd_list_unlink(&first->expire);
 		free(first);
 		
@@ -278,6 +280,9 @@ int fd_p_sr_fetch(struct sr_list * srlist, uint32_t hbh, struct msg **req)
 		TRACE_DEBUG(INFO, "There is no saved request with this hop-by-hop id (%x)", hbh);
 		srl_dump("Current list of SR: ", &srlist->srs);
 		*req = NULL;
+		if (srlist->cnt_lost > 0) {
+			srlist->cnt_lost--; /* This is probably an answer for a request we already timedout. */
+		} /* else, probably a bug in the remote peer */
 	} else {
 		/* Restore hop-by-hop id */
 		*((uint32_t *)sr->chain.o) = sr->prevhbh;
@@ -336,6 +341,7 @@ void fd_p_sr_failover(struct sr_list * srlist)
 	}
 	/* The list of expiring requests must be empty now */
 	ASSERT( FD_IS_LIST_EMPTY(&srlist->exp) );
+	ASSERT( srlist->cnt == 0 ); /* debug the counter management if needed */
 	
 	CHECK_POSIX_DO( pthread_mutex_unlock(&srlist->mtx), /* continue anyway */ );
 	

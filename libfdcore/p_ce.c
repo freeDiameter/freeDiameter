@@ -634,7 +634,7 @@ static void receiver_reject(struct cnxctx ** recv_cnx, struct msg ** cer, struct
 	/* Create and send the CEA with appropriate error code */
 	CHECK_FCT_DO( fd_msg_new_answer_from_req ( fd_g_config->cnf_dict, cer, MSGFL_ANSW_ERROR ), goto destroy );
 	CHECK_FCT_DO( fd_msg_rescode_set(*cer, error->pei_errcode, error->pei_message, error->pei_avp, 1 ), goto destroy );
-	CHECK_FCT_DO( fd_out_send(cer, *recv_cnx, NULL), goto destroy );
+	CHECK_FCT_DO( fd_out_send(cer, *recv_cnx, NULL, 0), goto destroy );
 	
 	if (error->pei_avp_free) {
 		fd_msg_free(error->pei_avp);
@@ -658,7 +658,7 @@ int fd_p_ce_handle_newcnx(struct fd_peer * peer, struct cnxctx * initiator)
 	
 	/* Send CER on the new connection */
 	CHECK_FCT( create_CER(peer, initiator, &cer) );
-	CHECK_FCT( fd_out_send(&cer, initiator, peer) );
+	CHECK_FCT( fd_out_send(&cer, initiator, peer, 0) );
 	
 	/* Are we doing an election ? */
 	if (fd_peer_getstate(peer) == STATE_WAITCNXACK_ELEC) {
@@ -713,7 +713,7 @@ int fd_p_ce_msgrcv(struct msg ** msg, int req, struct fd_peer * peer)
 		CHECK_FCT( fd_msg_rescode_set(*msg, "DIAMETER_UNABLE_TO_COMPLY", "No CER allowed in current state", NULL, 1 ) );
 
 		/* msg now contains an answer message to send back */
-		CHECK_FCT_DO( fd_out_send(msg, NULL, peer), /* In case of error the message has already been dumped */ );
+		CHECK_FCT_DO( fd_out_send(msg, NULL, peer, 0), /* In case of error the message has already been dumped */ );
 	}
 	
 	/* If the state is not WAITCEA, just discard the message */
@@ -942,11 +942,6 @@ int fd_p_ce_process_receiver(struct fd_peer * peer)
 			isi = 0;
 	}
 	
-	/* Update the counter to match with the answer being sent */
-	CHECK_POSIX( pthread_mutex_lock(&peer->p_state_mtx) );
-	peer->p_reqin_count++;
-	CHECK_POSIX( pthread_mutex_unlock(&peer->p_state_mtx) );
-
 	/* Reply a CEA */
 	CHECK_FCT( fd_msg_new_answer_from_req ( fd_g_config->cnf_dict, &msg, 0 ) );
 	CHECK_FCT( fd_msg_rescode_set(msg, "DIAMETER_SUCCESS", NULL, NULL, 0 ) );
@@ -955,7 +950,7 @@ int fd_p_ce_process_receiver(struct fd_peer * peer)
 	/* The connection is complete, but we may still need TLS handshake */
 	fd_hook_call(HOOK_PEER_CONNECT_SUCCESS, msg, peer, NULL, NULL);
 	
-	CHECK_FCT( fd_out_send(&msg, peer->p_cnxctx, peer ) );
+	CHECK_FCT( fd_out_send(&msg, peer->p_cnxctx, peer, 0 ) );
 	
 	/* Handshake if needed */
 	if (isi & PI_SEC_TLS_OLD) {
