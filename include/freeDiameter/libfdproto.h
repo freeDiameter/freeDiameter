@@ -295,13 +295,13 @@ static char * file_bname_init(char * full) { file_bname = basename(full); return
 
 
 /* In DEBUG mode, we add meta-information along each trace. This makes multi-threading problems easier to debug. */
-#ifdef DEBUG
+#if (defined(DEBUG) && !defined(DEBUG_WITHOUT_META))
 # define STD_TRACE_FMT_STRING "pid:%s in %s@%s:%d: "
 # define STD_TRACE_FMT_ARGS   , ((char *)pthread_getspecific(fd_log_thname) ?: "unnamed"), __PRETTY_FUNCTION__, __STRIPPED_FILE__, __LINE__
-#else /* DEBUG */
+#else /* DEBUG && !DEBUG_WITHOUT_META */
 # define STD_TRACE_FMT_STRING ""
 # define STD_TRACE_FMT_ARGS
-#endif /* DEBUG */
+#endif /* DEBUG && !DEBUG_WITHOUT_META */
 
 /*************************
   The general debug macro

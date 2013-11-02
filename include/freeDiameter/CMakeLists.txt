@@ -15,6 +15,9 @@ ENDIF (NOT DISABLE_SCTP)
 # Find TODO items in the code easily ?
 OPTION(ERRORS_ON_TODO "(development) Generate compilation errors on TODO items ?" OFF)
 
+# In DEBUG mode, each log contains pid, calling function and file for easy debug. Set to ON to strip this information.
+OPTION(DEBUG_WITHOUT_META "Strip calling location in logs?" OFF)
+	
 # Create the absolute path for searching extensions
 SET(DEFAULT_EXTENSIONS_PATH ${CMAKE_INSTALL_PREFIX}/${INSTALL_EXTENSIONS_SUFFIX})
 
@@ -33,7 +36,7 @@ OPTION(DISABLE_PEER_EXPIRY "Disable RFC3539 Peers Connections Expiration after i
 # compliancy of their implementation with the Diameter RFC...
 OPTION(WORKAROUND_ACCEPT_INVALID_VSAI "Do not reject a CER/CEA with a Vendor-Specific-Application-Id AVP containing both Auth- and Acct- application AVPs?" OFF)
 
-MARK_AS_ADVANCED(DISABLE_SCTP DEBUG_SCTP SCTP_USE_MAPPED_ADDRESSES ERRORS_ON_TODO DIAMID_IDNA_IGNORE DIAMID_IDNA_REJECT DISABLE_PEER_EXPIRY WORKAROUND_ACCEPT_INVALID_VSAI)
+MARK_AS_ADVANCED(DISABLE_SCTP DEBUG_SCTP SCTP_USE_MAPPED_ADDRESSES ERRORS_ON_TODO DEBUG_WITHOUT_META DIAMID_IDNA_IGNORE DIAMID_IDNA_REJECT DISABLE_PEER_EXPIRY WORKAROUND_ACCEPT_INVALID_VSAI)
 
 ########################
 ### System checks part
