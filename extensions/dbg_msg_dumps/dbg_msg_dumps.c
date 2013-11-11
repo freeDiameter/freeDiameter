@@ -286,7 +286,7 @@ static int md_main(char * conffile)
 	
 	if (conffile != NULL) {
 		char * endp;
-		dump_level = (uint8_t)strtoul(conffile, &endp, 16);
+		dump_level = (uint32_t)strtoul(conffile, &endp, 16);
 		CHECK_PARAMS_DO( *endp == '\0', {
 			LOG_E("Configuration parameter must be in the form \"0xNNNN\"");
 			return EINVAL; });
