@@ -82,13 +82,17 @@ DECLARE_FD_DUMP_PROTOTYPE(fd_ext_dump)
 	struct fd_list * li;
 	FD_DUMP_HANDLE_OFFSET();
 	
-	for (li = ext_list.next; li != &ext_list; li = li->next)
-	{
-		struct fd_ext_info * ext = (struct fd_ext_info *)li;
-		CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "'%s'[%s], %sloaded%s",
-					ext->filename, 
-					ext->conffile?:"(no config file)", 
-					ext->handler ? "" : "not ", (li->next == &ext_list) ? "":"\n"), return NULL);
+	if (FD_IS_LIST_EMPTY(&ext_list)) {
+		CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "-none-"), return NULL);
+	} else {
+		for (li = ext_list.next; li != &ext_list; li = li->next)
+		{
+			struct fd_ext_info * ext = (struct fd_ext_info *)li;
+			CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "'%s'[%s], %sloaded%s",
+						ext->filename, 
+						ext->conffile?:"(no config file)", 
+						ext->handler ? "" : "not ", (li->next == &ext_list) ? "":"\n"), return NULL);
+		}
 	}
 	return *buf;
 }

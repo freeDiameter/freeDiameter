@@ -252,7 +252,7 @@ DECLARE_FD_DUMP_PROTOTYPE( fd_dump_extend_hexdump, uint8_t *data, size_t datalen
 
 /* Some helpers macro for writing such *_dump routine */
 #define FD_DUMP_STD_PARAMS  buf, len, offset
-#define FD_DUMP_HANDLE_OFFSET()  size_t o = 0; if (!offset) offset = &o
+#define FD_DUMP_HANDLE_OFFSET()  size_t o = 0; if (!offset) offset = &o; if (buf && (*buf) && !(*offset)) **buf='\0'
 #define FD_DUMP_HANDLE_TRAIL()	while ((*buf) && (*offset > 0) && ((*buf)[*offset - 1] == '\n')) { *offset -= 1; (*buf)[*offset] = '\0'; }
 
 
