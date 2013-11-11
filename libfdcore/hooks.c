@@ -405,7 +405,7 @@ void   fd_hook_call(enum fd_hook_type type, struct msg * msg, struct fd_peer * p
 			
 			case HOOK_PEER_CONNECT_FAILED: {
 				if (msg) {
-					CHECK_MALLOC_DO(fd_msg_dump_treeview(&hook_default_buf, &hook_default_len, NULL, msg, NULL, 0, 1), break);
+					CHECK_MALLOC_DO(fd_msg_dump_full(&hook_default_buf, &hook_default_len, NULL, msg, NULL, 0, 1), break);
 					LOG_N("Connection to '%s' failed: '%s'; CER/CEA dump:", peer ? peer->p_hdr.info.pi_diamid : "<unknown>", (char *)other);
 					LOG_SPLIT(FD_LOG_NOTICE, "   ", hook_default_buf, NULL);
 				} else {
@@ -419,7 +419,7 @@ void   fd_hook_call(enum fd_hook_type type, struct msg * msg, struct fd_peer * p
 				if ((!fd_msg_source_get( msg, &id, NULL )) && (id == NULL)) { /* The CEA is locally issued */
 					fd_msg_answ_getq(msg, &msg); /* We dump the CER in that case */
 				}
-				CHECK_MALLOC_DO(fd_msg_dump_treeview(&hook_default_buf, &hook_default_len, NULL, msg, NULL, 0, 1), break);
+				CHECK_MALLOC_DO(fd_msg_dump_full(&hook_default_buf, &hook_default_len, NULL, msg, NULL, 0, 1), break);
 				char protobuf[40];
 				if (peer) {
 					CHECK_FCT_DO(fd_peer_cnx_proto_info(&peer->p_hdr, protobuf, sizeof(protobuf)), break );

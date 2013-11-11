@@ -52,17 +52,21 @@ The value is an hexadecimal value with the following bits meaning: */
 
 #define HK_ROUTING_QUIET   0x0100  	 /* routing decisions are not dumped -- removes the default handling as well */
 #define HK_ROUTING_COMPACT 0x0200  	 /* routing decisions in compact mode */
+#define HK_ROUTING_FULL    0x0400  	 /* routing decisions in full mode */
+#define HK_ROUTING_TREE    0x0800  	 /* routing decisions in tree mode */
 
 #define HK_PEERS_QUIET     0x1000  	 /* peers connections events are not dumped -- removes the default handling as well */
 #define HK_PEERS_COMPACT   0x2000  	 /* peers connections events in compact mode */
+#define HK_PEERS_FULL      0x4000  	 /* peers connections events in full mode */
+#define HK_PEERS_TREE      0x8000  	 /* peers connections events in tree mode */
 /*
-Default value is HK_ERRORS_DETAIL + HK_SNDRCV_DETAIL + HK_PEERS_COMPACT
+Default value is HK_ERRORS_TREE + HK_SNDRCV_TREE + HK_PEERS_TREE
 */
 
 #include <freeDiameter/extension.h>
 
 static struct fd_hook_hdl *md_hdl[4] = {NULL,NULL,NULL,NULL};
-static uint32_t dump_level = HK_ERRORS_TREE | HK_SNDRCV_TREE | HK_PEERS_COMPACT; /* default */
+static uint32_t dump_level = HK_ERRORS_TREE | HK_SNDRCV_TREE | HK_PEERS_TREE; /* default */
 static char * buf = NULL;
 static size_t len;
 static pthread_mutex_t mtx = PTHREAD_MUTEX_INITIALIZER;
@@ -119,14 +123,39 @@ static void md_hook_cb_tree(enum fd_hook_type type, struct msg * msg, struct pee
 		LOG_SPLIT(FD_LOG_NOTICE, "     ", buf, NULL);
 		break;
 	
-/* The following are not received in this hook */
+/* routing */
 	case HOOK_MESSAGE_LOCAL:
+		LOG_N("ISSUED:");
+		LOG_SPLIT(FD_LOG_NOTICE, "     ", buf, NULL);
+		break;
 	case HOOK_MESSAGE_ROUTING_FORWARD:
+		LOG_N("FORWARDING: %s", buf);
+		LOG_SPLIT(FD_LOG_NOTICE, "     ", buf, NULL);
+		break;
 	case HOOK_MESSAGE_ROUTING_LOCAL:
+		LOG_N("DISPATCHING: %s", buf);
+		LOG_SPLIT(FD_LOG_NOTICE, "     ", buf, NULL);
+		break;
 	
+/* peers */
 	case HOOK_PEER_CONNECT_FAILED:
+		LOG_N("CONNECT FAILED to %s: %s", peer_name, (char *)other);
+		break;
 	case HOOK_PEER_CONNECT_SUCCESS:
+		{
+			char protobuf[40];
+			if (peer) {
+				CHECK_FCT_DO(fd_peer_cnx_proto_info(peer, protobuf, sizeof(protobuf)), break );
+			} else {
+				protobuf[0] = '-';
+				protobuf[1] = '\0';
+			}
+			LOG_N("CONNECTED TO '%s' (%s):", peer_name, protobuf);
+			LOG_SPLIT(FD_LOG_NOTICE, "     ", buf, NULL);
+		}
+		break;
 
+/* Not handled */
 	case HOOK_DATA_RECEIVED:
 		break;
 	}
@@ -179,14 +208,33 @@ static void md_hook_cb_full(enum fd_hook_type type, struct msg * msg, struct pee
 		LOG_N("SND to '%s': %s", peer_name, buf);
 		break;
 	
-/* The following are not received in this hook */
+/* routing */
 	case HOOK_MESSAGE_LOCAL:
+		LOG_N("ISSUED: %s", buf);
+		break;
 	case HOOK_MESSAGE_ROUTING_FORWARD:
+		LOG_N("FORWARDING: %s", buf);
+		break;
 	case HOOK_MESSAGE_ROUTING_LOCAL:
+		LOG_N("DISPATCHING: %s", buf);
+		break;
 	
+/* peers */
 	case HOOK_PEER_CONNECT_FAILED:
-	case HOOK_PEER_CONNECT_SUCCESS:
-
+		LOG_N("CONNECT FAILED to %s: %s", peer_name, (char *)other);
+		break;
+	case HOOK_PEER_CONNECT_SUCCESS: {
+			char protobuf[40];
+			if (peer) {
+				CHECK_FCT_DO(fd_peer_cnx_proto_info(peer, protobuf, sizeof(protobuf)), break );
+			} else {
+				protobuf[0] = '-';
+				protobuf[1] = '\0';
+			}
+			LOG_N("CONNECTED TO '%s' (%s): %s", peer_name, protobuf, buf);
+		}
+		break;
+/* Not handled */
 	case HOOK_DATA_RECEIVED:
 		break;
 	}
@@ -309,9 +357,13 @@ static int md_main(char * conffile)
 	
 	mask_full  = (dump_level & HK_ERRORS_FULL)  ? mask_errors : 0;
 	mask_full |= (dump_level & HK_SNDRCV_FULL)  ? mask_sndrcv : 0;
+	mask_full |= (dump_level & HK_ROUTING_FULL) ? mask_routing : 0;
+	mask_full |= (dump_level & HK_PEERS_FULL)   ? mask_peers : 0;
 	
 	mask_tree  = (dump_level & HK_ERRORS_TREE)  ? mask_errors : 0;
 	mask_tree |= (dump_level & HK_SNDRCV_TREE)  ? mask_sndrcv : 0;
+	mask_tree |= (dump_level & HK_ROUTING_TREE) ? mask_routing : 0;
+	mask_tree |= (dump_level & HK_PEERS_TREE)   ? mask_peers : 0;
 	
 	if (mask_quiet) {
 		CHECK_FCT( fd_hook_register( mask_quiet, md_hook_cb_quiet, NULL, NULL, &md_hdl[0]) );
