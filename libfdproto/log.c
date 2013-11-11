@@ -94,8 +94,13 @@ static void fd_internal_logger( int printlevel, const char *format, va_list ap )
     	return;
 
     /* add timestamp */
-    printf("%s  ", fd_log_time(NULL, buf, sizeof(buf)));
-    
+    printf("%s  ", fd_log_time(NULL, buf, sizeof(buf), 
+#if (defined(DEBUG) && !defined(DEBUG_WITHOUT_META))
+    	1, 1
+#else /* (defined(DEBUG) && !defined(DEBUG_WITHOUT_META)) */
+        0, 0
+#endif /* (defined(DEBUG) && !defined(DEBUG_WITHOUT_META)) */
+	    ));
     /* Use colors on stdout ? */
     if (!use_colors) {
 	if (isatty(STDOUT_FILENO))
@@ -183,7 +188,7 @@ void fd_log_threadname ( const char * name )
 }
 
 /* Write time into a buffer */
-char * fd_log_time ( struct timespec * ts, char * buf, size_t len )
+char * fd_log_time ( struct timespec * ts, char * buf, size_t len, int incl_date, int incl_ms )
 {
 	int ret;
 	size_t offset = 0;
@@ -200,8 +205,9 @@ char * fd_log_time ( struct timespec * ts, char * buf, size_t len )
 		ts = &tp;
 	}
 	
-	offset += strftime(buf + offset, len - offset, "%D,%T", localtime_r( &ts->tv_sec , &tm ));
-	offset += snprintf(buf + offset, len - offset, ".%6.6ld", ts->tv_nsec / 1000);
+	offset += strftime(buf + offset, len - offset, incl_date?"%D,%T":"%T", localtime_r( &ts->tv_sec , &tm ));
+	if (incl_ms)
+		offset += snprintf(buf + offset, len - offset, ".%6.6ld", ts->tv_nsec / 1000);
 
 	return buf;
 }

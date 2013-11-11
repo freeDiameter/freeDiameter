@@ -182,6 +182,8 @@ extern pthread_key_t	fd_log_thname;
  *  ts	 	: The timestamp to log, or NULL for "now"
  *  buf 	: An array where the time must be stored
  *  len		: size of the buffer
+ *  incl_date   : The day of year is included in the output
+ *  incl_ms     : millisecond value is included in the output
  *
  * DESCRIPTION: 
  *  Writes the timestamp (in human readable format) in a buffer. 
@@ -189,7 +191,7 @@ extern pthread_key_t	fd_log_thname;
  * RETURN VALUE:
  *  pointer to buf.
  */
-char * fd_log_time ( struct timespec * ts, char * buf, size_t len );
+char * fd_log_time ( struct timespec * ts, char * buf, size_t len, int incl_date, int incl_ms );
 
 /*
  * FUNCTION:    fd_log_handler_register
