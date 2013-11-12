@@ -310,7 +310,7 @@ static void md_hook_cb_compact(enum fd_hook_type type, struct msg * msg, struct 
 				protobuf[0] = '-';
 				protobuf[1] = '\0';
 			}
-			LOG_N("CONNECTED TO '%s' (%s): %s", peer_name, protobuf, buf);
+			LOG_N("CONNECTED TO '%s' (%s)", peer_name, protobuf);
 		}
 		break;
 /* Not handled */
