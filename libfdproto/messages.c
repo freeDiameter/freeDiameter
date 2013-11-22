@@ -1266,7 +1266,28 @@ int fd_msg_anscb_associate( struct msg * msg, void ( *anscb)(void *, struct msg 
 	}
 	
 	return 0;
-}	
+}
+
+/* Remove a callback */
+int fd_msg_anscb_reset(struct msg * msg, int clear_anscb, int clear_expirecb) 
+{
+	TRACE_ENTRY("%p %d %d", msg, clear_anscb, clear_expirecb);
+	
+	/* Check the parameters */
+	CHECK_PARAMS( CHECK_MSG(msg) );
+	
+	if (clear_anscb) {
+		msg->msg_cb.anscb = NULL;
+		msg->msg_cb.data = NULL;
+	}
+	if (clear_expirecb) {
+		msg->msg_cb.expirecb = NULL;
+		memset(&msg->msg_cb.timeout, 0, sizeof(struct timespec));
+	}
+	
+	return 0;
+}
+
 
 int fd_msg_anscb_get( struct msg * msg, void (**anscb)(void *, struct msg **), void (**expirecb)(void *, DiamId_t, size_t, struct msg **), void ** data )
 {

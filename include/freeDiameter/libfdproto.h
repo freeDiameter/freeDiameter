@@ -2488,6 +2488,7 @@ int fd_msg_answ_detach   ( struct msg * answer );
  */
 int fd_msg_anscb_associate( struct msg * msg, void ( *anscb)(void *, struct msg **), void  * data, void (*expirecb)(void *, DiamId_t, size_t, struct msg **), const struct timespec *timeout );
 int fd_msg_anscb_get( struct msg * msg, void (**anscb)(void *, struct msg **), void (**expirecb)(void *, DiamId_t, size_t, struct msg **), void ** data );
+int fd_msg_anscb_reset(struct msg * msg, int clear_anscb, int clear_expirecb);
 struct timespec *fd_msg_anscb_gettimeout( struct msg * msg ); /* returns NULL or a valid non-0 timespec */
 
 /*

@@ -116,7 +116,6 @@ static void * sr_expiry_th(void * arg) {
 		struct msg * request;
 		struct fd_peer * sentto;
 		void (*expirecb)(void *, DiamId_t, size_t, struct msg **);
-		void (*anscb)(void *, struct msg **);
 		void * data;
 		int no_error;
 
@@ -176,11 +175,11 @@ unlock:
 
 		
 		/* Retrieve callback in the message */
-		CHECK_FCT_DO( fd_msg_anscb_get( request, &anscb, &expirecb, &data ), break);
+		CHECK_FCT_DO( fd_msg_anscb_get( request, NULL, &expirecb, &data ), break);
 		ASSERT(expirecb);
 	
 		/* Clean up this expirecb from the message */
-		CHECK_FCT_DO( fd_msg_anscb_associate( request, anscb, data, NULL, NULL ), break);
+		CHECK_FCT_DO( fd_msg_anscb_reset( request, 0, 1 ), break);
 
 		/* Call it */
 		(*expirecb)(data, sentto->p_hdr.info.pi_diamid, sentto->p_hdr.info.pi_diamidlen, &request);
