@@ -631,9 +631,19 @@ static int to_waitcea(struct fd_peer * peer, struct cnxctx * cnx)
 /* Reject an incoming connection attempt */
 static void receiver_reject(struct cnxctx ** recv_cnx, struct msg ** cer, struct fd_pei * error)
 {
+	struct msg_hdr * hdr = NULL;
+	
 	/* Create and send the CEA with appropriate error code */
 	CHECK_FCT_DO( fd_msg_new_answer_from_req ( fd_g_config->cnf_dict, cer, MSGFL_ANSW_ERROR ), goto destroy );
-	CHECK_FCT_DO( fd_msg_rescode_set(*cer, error->pei_errcode, error->pei_message, error->pei_avp, 1 ), goto destroy );
+	CHECK_FCT_DO( fd_msg_rescode_set(*cer, error->pei_errcode, error->pei_message, error->pei_avp, 0 ), goto destroy );
+	CHECK_FCT_DO(  fd_msg_hdr( *cer, &hdr ), goto destroy  );
+	if (hdr->msg_flags & CMD_FLAG_ERROR) {
+		/* Generic error format, just add the origin AVPs */
+		CHECK_FCT_DO( fd_msg_add_origin ( *cer, 1 ), goto destroy );
+	} else {
+		/* Add other AVPs to be compliant with the ABNF */
+		CHECK_FCT_DO( add_CE_info(*cer, *recv_cnx, 0, 0), goto destroy );
+	}
 	CHECK_FCT_DO( fd_out_send(cer, *recv_cnx, NULL, 0), goto destroy );
 	
 	if (error->pei_avp_free) {
