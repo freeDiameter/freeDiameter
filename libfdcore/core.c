@@ -170,8 +170,9 @@ int fd_core_initialize(void)
 {
 	int ret;
 	
-	if (core_state_get() != CORE_NOT_INIT) {
-		fprintf(stderr, "fd_core_initialize() called more than once!\n");
+	if ((core_state_get() != CORE_NOT_INIT) &&
+            (core_state_get() != CORE_TERM)) {
+		fprintf(stderr, "fd_core_initialize() called when already initialized!\n");
 		return EINVAL;
 	}
 	
