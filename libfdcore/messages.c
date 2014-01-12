@@ -238,17 +238,32 @@ int fd_msg_rescode_set( struct msg * msg, char * rescode, char * errormsg, struc
 	if (optavp) {
 		struct avp * optavp_cpy = NULL;
 		struct avp_hdr *opt_hdr, *optcpy_hdr;
+		struct dict_object * opt_model = NULL;
+		int is_grouped = 0;
 		
 		/* Create the Failed-AVP AVP */
 		CHECK_FCT( fd_msg_avp_new( dict_avp_FAVP, 0, &avp_FAVP ) );
 		
+		/* Was this AVP a grouped one? Best effort only here */
+		if (!fd_msg_model ( optavp, &opt_model ) && (opt_model != NULL)) {
+			struct dict_avp_data  dictdata;
+			CHECK_FCT(  fd_dict_getval(opt_model, &dictdata)  );
+			if (dictdata.avp_basetype == AVP_TYPE_GROUPED) 
+				is_grouped = 1;
+		}
+		
 		/* Create a new AVP with a copy of the data of the invalid or missing AVP */
 		optavp_cpy = optavp;
-		CHECK_FCT( fd_msg_avp_new( NULL, AVPFL_SET_BLANK_VALUE | AVPFL_SET_RAWDATA_FROM_AVP, &optavp_cpy) );
 		
-		CHECK_FCT( fd_msg_avp_hdr(optavp, &opt_hdr) );
-		CHECK_FCT( fd_msg_avp_hdr(optavp_cpy, &optcpy_hdr) );
-		memcpy(optcpy_hdr, opt_hdr, sizeof(struct avp_hdr));
+		if (is_grouped) {
+			CHECK_FCT( fd_msg_avp_new( opt_model, 0, &optavp_cpy) );
+		} else {
+			CHECK_FCT( fd_msg_avp_new( NULL, AVPFL_SET_BLANK_VALUE | AVPFL_SET_RAWDATA_FROM_AVP, &optavp_cpy) );
+		
+			CHECK_FCT( fd_msg_avp_hdr(optavp, &opt_hdr) );
+			CHECK_FCT( fd_msg_avp_hdr(optavp_cpy, &optcpy_hdr) );
+			memcpy(optcpy_hdr, opt_hdr, sizeof(struct avp_hdr));
+		}
 		
 		/* Add the passed AVP inside it */
 		CHECK_FCT( fd_msg_avp_add( avp_FAVP, MSG_BRW_LAST_CHILD, optavp_cpy ) );
