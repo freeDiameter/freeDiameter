@@ -1510,8 +1510,21 @@ DECLARE_FD_DUMP_PROTOTYPE(fd_dict_dump_avp_value, union avp_value *avp_value, st
 	
 	FD_DUMP_HANDLE_OFFSET();
 	
-	/* Check the parameters are correct */
-	CHECK_PARAMS_DO( avp_value && verify_object(model) && (model->type == DICT_AVP), return NULL );
+	/* Handle invalid parameters */
+	if (!avp_value) {
+		CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "(avp value not set)"), return NULL);
+		return *buf;
+	}
+
+	if (!model) {
+		CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "(model not set)"), return NULL);
+		return *buf;
+	}
+	
+	if (! (	verify_object(model) && (model->type == DICT_AVP) )) {
+		CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "(invalid model)"), return NULL);
+		return *buf;
+	}
 	
 	/* Get the type definition of this AVP */
 	type = model->parent;
