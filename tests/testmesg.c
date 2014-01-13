@@ -1013,6 +1013,12 @@ int main(int argc, char *argv[])
 					CHECK(1, got_h2);
 				}
 				
+				/* Now test the behavior of fd_msg_rescode_set with a grouped AVP */
+				CHECK( 0, fd_msg_rescode_set(msg, "DIAMETER_AVP_OCCURS_TOO_MANY_TIMES", NULL, pi1, 1) );
+				
+				fd_log_debug("%s", fd_msg_dump_treeview(FD_DUMP_TEST_PARAMS, msg, fd_g_config->cnf_dict, 0, 1));
+				
+				TODO("Check the Failed-AVP is as expected");
 			}
 			
 		}
