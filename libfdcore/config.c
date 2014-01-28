@@ -88,8 +88,8 @@ DECLARE_FD_DUMP_PROTOTYPE(fd_conf_dump)
 	CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "freeDiameter configuration:\n"), return NULL);	
 	CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "  Default trace level .... : %+d\n", fd_g_debug_lvl), return NULL);
 	CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "  Configuration file ..... : %s\n", fd_g_config->cnf_file), return NULL);
-	CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "  Diameter Identity ...... : %s (l:%Zi)\n", fd_g_config->cnf_diamid, fd_g_config->cnf_diamid_len), return NULL);
-	CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "  Diameter Realm ......... : %s (l:%Zi)\n", fd_g_config->cnf_diamrlm, fd_g_config->cnf_diamrlm_len), return NULL);
+	CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "  Diameter Identity ...... : %s (l:%zi)\n", fd_g_config->cnf_diamid, fd_g_config->cnf_diamid_len), return NULL);
+	CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "  Diameter Realm ......... : %s (l:%zi)\n", fd_g_config->cnf_diamrlm, fd_g_config->cnf_diamrlm_len), return NULL);
 	CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "  Tc Timer ............... : %u\n", fd_g_config->cnf_timer_tc), return NULL);
 	CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "  Tw Timer ............... : %u\n", fd_g_config->cnf_timer_tw), return NULL);
 	CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "  Local port ............. : %hu\n", fd_g_config->cnf_port), return NULL);
