@@ -626,7 +626,7 @@ tls_crl:		TLS_CRL '=' QSTRING ';'
 				conf->cnf_sec_data.crl_file = $3;
 				CHECK_GNUTLS_DO( gnutls_certificate_set_x509_crl_file( 
 							conf->cnf_sec_data.credentials,
-							conf->cnf_sec_data.ca_file,
+							conf->cnf_sec_data.crl_file,
 							GNUTLS_X509_FMT_PEM),
 						{ yyerror (&yylloc, conf, "Error setting CRL parameters."); YYERROR; } );
 			}
