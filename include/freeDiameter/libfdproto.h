@@ -483,7 +483,7 @@ static __inline__ int old_TRACE_BOOL( enum old_levels level, const char * file, 
 	if ((fd_debug_one_function && !strcmp(fd_debug_one_function, func))
 		|| (fd_debug_one_file && !strcmp(fd_debug_one_file, file) ))
 		return 2; /* Level override */
-	if (level <= fd_g_debug_lvl)
+	if ((int)level <= fd_g_debug_lvl)
 		return 1; /* Normal level */
 	return 0;  /* No trace */
 }
