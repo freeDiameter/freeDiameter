@@ -1625,6 +1625,7 @@ int fd_msg_avp_value_encode ( void *data, struct avp *avp )
 {
 	enum dict_avp_basetype type = -1;
 	struct dict_type_data type_data;
+	memset(&type_data, 0, sizeof(type_data));
 	
 	TRACE_ENTRY("%p %p", data, avp);
 	
@@ -1646,11 +1647,44 @@ int fd_msg_avp_value_encode ( void *data, struct avp *avp )
 		
 		/* Then retrieve information about the parent's type (= derived type) */
 		CHECK_FCT(  fd_dict_getdict( avp->avp_model, &dict )  );
-		CHECK_FCT(  fd_dict_search( dict, DICT_TYPE, TYPE_OF_AVP, avp->avp_model, &parenttype, EINVAL)  );
-		CHECK_FCT(  fd_dict_getval(parenttype, &type_data)  );
+		fd_dict_search( dict, DICT_TYPE, TYPE_OF_AVP, avp->avp_model, &parenttype, EINVAL);
+		if (parenttype != NULL) {
+			CHECK_FCT(  fd_dict_getval(parenttype, &type_data)  );
+		}
 		if (type_data.type_encode == NULL) {
-			TRACE_DEBUG(INFO, "This AVP type does not provide a callback to encode formatted data. ENOTSUP.");
-			return ENOTSUP;
+			/* Perform the most obvious encoding operation */
+			union avp_value val;
+			switch (type)
+			{
+			case AVP_TYPE_FLOAT32:
+				val.f32 = *(float*)data;
+				break;
+			case AVP_TYPE_FLOAT64:
+				val.f64 = *(double*)data;
+				break;
+			case AVP_TYPE_INTEGER32:
+				val.i32 = *(int32_t*)data;
+				break;
+			case AVP_TYPE_INTEGER64:
+				val.i64 = *(int64_t*)data;
+				break;
+			case AVP_TYPE_UNSIGNED32:
+				val.u32 = *(uint32_t*)data;
+				break;
+			case AVP_TYPE_UNSIGNED64:
+				val.u64 = *(uint64_t*)data;
+				break;
+			case AVP_TYPE_OCTETSTRING:
+				val.os.data = (uint8_t*)data;
+				val.os.len = strlen(data);
+				break;
+			case AVP_TYPE_GROUPED:
+			default:
+				/* There's no obvious rendering for GROUPED AVPs */
+				TRACE_DEBUG(INFO, "This AVP type does not provide a callback to encode formatted data. ENOTSUP.");
+				return ENOTSUP;
+			}
+			return fd_msg_avp_setvalue(avp, &val);
 		}
 	}
 	
