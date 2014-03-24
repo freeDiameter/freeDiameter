@@ -1,8 +1,9 @@
 /*********************************************************************************************************
 * Software License Agreement (BSD License)                                                               *
-* Author: Sebastien Decugis <sdecugis@freediameter.net>							 *
+* Authors: Sebastien Decugis <sdecugis@freediameter.net>						 *
+* and Thomas Klausner <tk@giga.or.at>									 *
 *													 *
-* Copyright (c) 2013, WIDE Project and NICT								 *
+* Copyright (c) 2013, 2014, WIDE Project and NICT							 *
 * All rights reserved.											 *
 * 													 *
 * Redistribution and use of this software in source and binary forms, with or without modification, are  *
@@ -217,6 +218,72 @@ static int apply_rule(struct redir_entry * e, struct msg * msg, struct fd_list *
 	return 0;
 }
 
+static int redir_exist_for_type(int rule_type)
+{
+	int ret;
+
+	switch(rule_type) {
+	case ALL_SESSION:
+	case ALL_USER:
+		ret = redirect_hash_table[rule_type] != NULL;
+		break;
+	default:
+		ret = !FD_IS_LIST_EMPTY(&redirects_usages[rule_type].sentinel);
+		break;
+	}
+	return ret;
+}
+
+static int match_message(int rule_type, struct msg *msg, union matchdata *data, struct fd_list * candidates)
+{
+	struct fd_list * li;
+	struct redir_entry * e = NULL;
+	int ret = 0;
+
+	switch(rule_type) {
+	case ALL_SESSION:
+		HASH_FIND(hh, redirect_hash_table[rule_type], data->session.s, data->session.l, e);
+		if (e) {
+			/* This message matches a rule, apply */
+			CHECK_FCT_DO( ret = apply_rule(e, msg, candidates), break );
+		}
+		break;
+	case ALL_USER:
+		HASH_FIND(hh, redirect_hash_table[rule_type], data->user.s, data->user.l, e);
+		if (e) {
+			/* This message matches a rule, apply */
+			CHECK_FCT_DO( ret = apply_rule(e, msg, candidates), break );
+		}
+		break;
+	default:
+		/* Attempt each rule we have stored */
+		for (li = redirects_usages[rule_type].sentinel.next; li != &redirects_usages[rule_type].sentinel; li = li->next) {
+			e = li->o;
+
+			/* Does it match ? */
+			if (rule_type != ALL_HOST) { /* this one is an exception, we handle it separately */
+				int cmp = redir_entry_cmp_key[rule_type](data, &e->data);
+				if (cmp > 0)
+					continue;
+				if (cmp < 0)
+					break;
+			}
+
+			/* This rule matches (or we are in ALL_HOST), apply */
+			CHECK_FCT_DO( ret = apply_rule(e, msg, candidates), break );
+
+			/* If this was a DONT_CACHE rule, we unlink it, so that it will not be used again */
+			if (rule_type == DONT_CACHE) {
+				li = li->prev;
+				fd_list_unlink( li->next );
+				/* We cannot delete here without taking the mutex, which would mean we have first to release the lock...
+				   just let expiry garbage collect the rule */
+			}
+		}
+	}
+
+	return ret;
+}
 
 /* OUT callback */
 int redir_out_cb(void * cbdata, struct msg ** pmsg, struct fd_list * candidates)
@@ -234,42 +301,16 @@ int redir_out_cb(void * cbdata, struct msg ** pmsg, struct fd_list * candidates)
 			CHECK_POSIX( pthread_rwlock_rdlock( &redirects_usages[i].lock ) );
 		}
 
-		if (!FD_IS_LIST_EMPTY(&redirects_usages[i].sentinel)) {
+		if (redir_exist_for_type(i)) {
 			union matchdata data;
 			int nodata; /* The message does not allow to apply this rule, skip */
 
 			/* Retrieve the data that may match in the message */
 			CHECK_FCT_DO( ret = get_data_to_match(i, msg, &data, &nodata), goto out );
 
-			/* If this message may match some of our rules */
-			if (!nodata) {
-				struct fd_list * li;
-				/* Attempt each rule we have stored */
-				for (li = redirects_usages[i].sentinel.next; li != &redirects_usages[i].sentinel; li = li->next) {
-					struct redir_entry * e = li->o;
-
-					/* Does it match ? */
-					if (i != ALL_HOST) { /* this one is an exception, we handle it separately */
-						int cmp = redir_entry_cmp_key[i](&data, &e->data);
-						if (cmp > 0)
-							continue;
-						if (cmp < 0)
-							break;
-					}
-
-					/* This rule matches (or we are in ALL_HOST), apply */
-					CHECK_FCT_DO( ret = apply_rule(e, msg, candidates), goto out );
-
-					/* If this was a DONT_CACHE rule, we unlink it, so that it will not be used again */
-					if (i == DONT_CACHE) {
-						li=li->prev;
-						fd_list_unlink( li->next );
-						/* We cannot delete here without taking the mutex, which would mean we have first to release the lock...
-							just let expiry garbage collet the rule */
-					}
-				}
-			}
-
+			/* If data found for this type of rule, then try matching it */
+			if (!nodata)
+				ret = match_message(i, msg, &data, candidates);
 		}
 out:
 		CHECK_POSIX( pthread_rwlock_unlock( &redirects_usages[i].lock ) );

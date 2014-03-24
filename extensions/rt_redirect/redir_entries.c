@@ -1,8 +1,9 @@
 /*********************************************************************************************************
 * Software License Agreement (BSD License)                                                               *
-* Author: Sebastien Decugis <sdecugis@freediameter.net>							 *
+* Authors: Sebastien Decugis <sdecugis@freediameter.net>						 *
+* and Thomas Klausner <tk@giga.or.at>									 *
 *													 *
-* Copyright (c) 2011, WIDE Project and NICT								 *
+* Copyright (c) 2011, 2014, WIDE Project and NICT							 *
 * All rights reserved.											 *
 * 													 *
 * Redistribution and use of this software in source and binary forms, with or without modification, are  *
@@ -34,9 +35,13 @@
 *********************************************************************************************************/
 
 #include "rt_redir.h"
+#include "uthash.h"
 
 /* The array with all entries ordered by their data */
 struct redir_line redirects_usages[H_U_MAX + 1];
+
+/* for symmetry reasons, hash tables for all types exist, but only ALL_SESSION and ALL_USER will be used */
+struct redir_entry *redirect_hash_table[H_U_MAX+1];
 
 /* Initialize the array */
 int redir_entry_init()
@@ -49,8 +54,14 @@ int redir_entry_init()
 	memset(&redirects_usages, 0, sizeof(redirects_usages));
 
 	for (i = 0; i <= H_U_MAX; i++) {
+		/* only one of the two will be used for each type, but initialize both to be on the safe side */
+
+		/* initialize list */
 		CHECK_POSIX( pthread_rwlock_init( &redirects_usages[i].lock, NULL) );
 		fd_list_init( &redirects_usages[i].sentinel, &redirects_usages[i] );
+
+		/* initialize hash table */
+		redirect_hash_table[i] = NULL;
 	}
 
 	/* initialize the scores */
@@ -65,6 +76,37 @@ int redir_entry_init()
 	return 0;
 }
 
+int redir_entry_fini()
+{
+	int i;
+	struct redir_entry *current_entry, *tmp;
+
+	/* Empty all entries */
+	CHECK_POSIX_DO( pthread_mutex_lock(&redir_exp_peer_lock),   );
+	for (i = 0; i <= H_U_MAX; i++) {
+		CHECK_POSIX_DO( pthread_rwlock_wrlock( &redirects_usages[i].lock), );
+		switch(i) {
+		case ALL_SESSION:
+		case ALL_USER:
+			HASH_ITER(hh, redirect_hash_table[i], current_entry, tmp) {
+				HASH_DEL(redirect_hash_table[i], current_entry);
+				CHECK_FCT_DO( redir_entry_destroy(current_entry), );
+			}
+			break;
+		default:
+			while (!FD_IS_LIST_EMPTY(&redirects_usages[i].sentinel)) {
+				struct redir_entry * e = redirects_usages[i].sentinel.next->o;
+				fd_list_unlink(&e->redir_list);
+				CHECK_FCT_DO( redir_entry_destroy(e), );
+			}
+		}
+		CHECK_POSIX_DO( pthread_rwlock_unlock( &redirects_usages[i].lock), );
+		CHECK_POSIX_DO( pthread_rwlock_destroy( &redirects_usages[i].lock), );
+	}
+	CHECK_POSIX_DO( pthread_mutex_unlock(&redir_exp_peer_lock),   );
+
+	return 0;
+}
 
 /* Create a new redir_entry and add the correct data */
 int redir_entry_new(struct redir_entry ** e, struct fd_list * targets, uint32_t rhu, struct msg * qry, DiamId_t nh, size_t nhlen, os0_t oh, size_t ohlen)
@@ -90,6 +132,7 @@ int redir_entry_new(struct redir_entry ** e, struct fd_list * targets, uint32_t 
 	fd_list_init(&entry->exp_list, entry);
 
 	entry->type = rhu;
+	/* list entry for putting into redirects_usage; also doubles as pointer into that list so it can be removed easily */
 	fd_list_init(&entry->redir_list, entry);
 	/* finally initialize the data */
 	switch (rhu) {
@@ -237,6 +280,7 @@ int (*redir_entry_cmp_key[H_U_MAX +1])(union matchdata * , union matchdata * ) =
 int redir_entry_insert(struct redir_entry * e)
 {
 	struct fd_list * li;
+	struct redir_entry * r = NULL;
 
 	TRACE_ENTRY("%p", e);
 	CHECK_PARAMS(e && (e->eyec == REDIR_ENTRY_EYEC));
@@ -244,14 +288,36 @@ int redir_entry_insert(struct redir_entry * e)
 	/* Write-Lock the line */
 	CHECK_POSIX( pthread_rwlock_wrlock( RWLOCK_REDIR(e) ) );
 
-	for (li = redirects_usages[e->type].sentinel.next; li != &redirects_usages[e->type].sentinel; li = li->next) {
-		struct redir_entry * n = li->o;
-		int cmp = redir_entry_cmp_key[e->type](&e->data, &n->data);
-		if (cmp <= 0)
-			break;
-	}
+	switch (e->type) {
+	case ALL_SESSION:
+		HASH_FIND(hh, redirect_hash_table[e->type], e->data.session.s, e->data.session.l, r);
+		if (r) {
+			/* previously existing entry, delete it from hash and free it */
+			HASH_DELETE(hh, redirect_hash_table[e->type], r);
+			CHECK_FCT_DO( redir_entry_destroy(r), );
+		}
+		HASH_ADD_KEYPTR(hh, redirect_hash_table[e->type], e->data.session.s, e->data.session.l, e);
+		break;
+	case ALL_USER:
+		HASH_FIND(hh, redirect_hash_table[e->type], e->data.user.s, e->data.user.l, r);
+		if (r) {
+			/* previously existing entry, delete it from hash and free it */
+			HASH_DELETE(hh, redirect_hash_table[e->type], r);
+			CHECK_FCT_DO( redir_entry_destroy(r), );
+		}
+		HASH_ADD_KEYPTR(hh, redirect_hash_table[e->type], e->data.user.s, e->data.user.l, e);
+		break;
+	default:
+		for (li = redirects_usages[e->type].sentinel.next; li != &redirects_usages[e->type].sentinel; li = li->next) {
+			struct redir_entry * n = li->o;
+			int cmp = redir_entry_cmp_key[e->type](&e->data, &n->data);
+			if (cmp <= 0)
+				break;
+		}
 
-	fd_list_insert_before(li, &e->redir_list);
+		fd_list_insert_before(li, &e->redir_list);
+		break;
+	}
 
 	/* unLock the line */
 	CHECK_POSIX( pthread_rwlock_unlock( RWLOCK_REDIR(e) ) );
@@ -262,14 +328,39 @@ int redir_entry_insert(struct redir_entry * e)
 /* Destroy -- the exp_peer_lock must be held when this function is called */
 int redir_entry_destroy(struct redir_entry * e)
 {
+	struct redir_entry *match;
 	TRACE_ENTRY("%p", e);
 	CHECK_PARAMS(e && (e->eyec == REDIR_ENTRY_EYEC));
 
-	/* If the entry is linked, lock the rwlock also */
-	if (!FD_IS_LIST_EMPTY(&e->redir_list)) {
-		CHECK_POSIX( pthread_rwlock_wrlock( RWLOCK_REDIR(e) ) );
-		fd_list_unlink(&e->redir_list);
-		CHECK_POSIX( pthread_rwlock_unlock( RWLOCK_REDIR(e) ) );
+	switch (e->type) {
+	case ALL_SESSION:
+		/* If the entry is in the hash table, lock the rwlock also */
+		HASH_FIND(hh, redirect_hash_table[e->type], e->data.session.s, e->data.session.l, match);
+		if (match) {
+			/* TODO: check if e == match? */
+			CHECK_POSIX( pthread_rwlock_wrlock( RWLOCK_REDIR(e) ) );
+			HASH_DELETE(hh, redirect_hash_table[e->type], match);
+			CHECK_POSIX( pthread_rwlock_unlock( RWLOCK_REDIR(e) ) );
+		}
+		break;
+	case ALL_USER:
+		/* If the entry is in the hash table, lock the rwlock also */
+		HASH_FIND(hh, redirect_hash_table[e->type], e->data.user.s, e->data.user.l, match);
+		if (match) {
+			/* TODO: check if e == match? */
+			CHECK_POSIX( pthread_rwlock_wrlock( RWLOCK_REDIR(e) ) );
+			HASH_DELETE(hh, redirect_hash_table[e->type], match);
+			CHECK_POSIX( pthread_rwlock_unlock( RWLOCK_REDIR(e) ) );
+		}
+		break;
+	default:
+		/* If the entry is linked, lock the rwlock also */
+		if (!FD_IS_LIST_EMPTY(&e->redir_list)) {
+			CHECK_POSIX( pthread_rwlock_wrlock( RWLOCK_REDIR(e) ) );
+			fd_list_unlink(&e->redir_list);
+			CHECK_POSIX( pthread_rwlock_unlock( RWLOCK_REDIR(e) ) );
+		}
+		break;
 	}
 
 	/* Now unlink from other list */

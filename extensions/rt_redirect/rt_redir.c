@@ -1,8 +1,9 @@
 /*********************************************************************************************************
 * Software License Agreement (BSD License)                                                               *
-* Author: Sebastien Decugis <sdecugis@freediameter.net>							 *
+* Authors: Sebastien Decugis <sdecugis@freediameter.net>						 *
+* and Thomas Klausner <tk@giga.or.at>									 *
 *													 *
-* Copyright (c) 2011, WIDE Project and NICT								 *
+* Copyright (c) 2011, 2014, WIDE Project and NICT							 *
 * All rights reserved.											 *
 * 													 *
 * Redistribution and use of this software in source and binary forms, with or without modification, are  *
@@ -71,8 +72,6 @@ EXTENSION_ENTRY("rt_redirect", redir_entry);
 /* And terminate it */
 void fd_ext_fini(void)
 {
-	int i;
-
 	/* Unregister the callbacks */
 	if (fwd_hdl) {
 		CHECK_FCT_DO( fd_rt_fwd_unregister(fwd_hdl, NULL), );
@@ -85,18 +84,7 @@ void fd_ext_fini(void)
 	CHECK_FCT_DO( fd_thr_term(&exp_thr), );
 
 	/* Empty all entries */
-	CHECK_POSIX_DO( pthread_mutex_lock(&redir_exp_peer_lock),   );
-	for (i = 0; i <= H_U_MAX; i++) {
-		CHECK_POSIX_DO( pthread_rwlock_wrlock( &redirects_usages[i].lock), );
-		while (!FD_IS_LIST_EMPTY(&redirects_usages[i].sentinel)) {
-			struct redir_entry * e = redirects_usages[i].sentinel.next->o;
-			fd_list_unlink(&e->redir_list);
-			CHECK_FCT_DO( redir_entry_destroy(e), );
-		}
-		CHECK_POSIX_DO( pthread_rwlock_unlock( &redirects_usages[i].lock), );
-		CHECK_POSIX_DO( pthread_rwlock_destroy( &redirects_usages[i].lock), );
-	}
-	CHECK_POSIX_DO( pthread_mutex_unlock(&redir_exp_peer_lock),   );
+	redir_entry_fini();
 
 	return;
 }
