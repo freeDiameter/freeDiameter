@@ -42,17 +42,17 @@ struct redir_line redirects_usages[H_U_MAX + 1];
 int redir_entry_init()
 {
 	int i;
-	
+
 	TRACE_ENTRY("");
-	
+
 	/* redirects_usages */
 	memset(&redirects_usages, 0, sizeof(redirects_usages));
-	
+
 	for (i = 0; i <= H_U_MAX; i++) {
 		CHECK_POSIX( pthread_rwlock_init( &redirects_usages[i].lock, NULL) );
 		fd_list_init( &redirects_usages[i].sentinel, &redirects_usages[i] );
 	}
-	
+
 	/* initialize the scores */
 	redirects_usages[ DONT_CACHE		].score = FD_SCORE_REDIR_ONCE;
 	redirects_usages[ ALL_SESSION		].score = FD_SCORE_REDIR_SESSION;
@@ -72,23 +72,23 @@ int redir_entry_new(struct redir_entry ** e, struct fd_list * targets, uint32_t 
 	struct redir_entry * entry = NULL;
 	os0_t s;
 	size_t l;
-	
+
 	TRACE_ENTRY("%p %p %d %p %p %zd %p %zd", e, targets, rhu, qry, nh, nhlen, oh, ohlen)
 	ASSERT(e && targets && (rhu <= H_U_MAX) && qry && nh && nhlen && oh && ohlen);
-	
+
 	CHECK_MALLOC( entry = malloc(sizeof(struct redir_entry)) );
 	memset(entry, 0, sizeof(struct redir_entry));
-	
+
 	entry->eyec = REDIR_ENTRY_EYEC;
-	
+
 	CHECK_MALLOC( entry->from.s = os0dup(nh, nhlen) );
 	entry->from.l = nhlen;
-	
+
 	fd_list_init(&entry->target_peers_list, entry);
 	fd_list_move_end(&entry->target_peers_list, targets);
-	
+
 	fd_list_init(&entry->exp_list, entry);
-	
+
 	entry->type = rhu;
 	fd_list_init(&entry->redir_list, entry);
 	/* finally initialize the data */
@@ -96,7 +96,7 @@ int redir_entry_new(struct redir_entry ** e, struct fd_list * targets, uint32_t 
 		case DONT_CACHE:
 			entry->data.message.msg = qry;
 			break;
-			
+
 		case ALL_SESSION:
 			{
 				/* There is a good chance that the session is already cached in the message, so retrieve it */
@@ -113,7 +113,7 @@ int redir_entry_new(struct redir_entry ** e, struct fd_list * targets, uint32_t 
 				entry->data.session.l = l;
 			}
 			break;
-		
+
 		case ALL_REALM:
 			{
 				/* Search the Destination-Realm of the message */
@@ -131,7 +131,7 @@ int redir_entry_new(struct redir_entry ** e, struct fd_list * targets, uint32_t 
 				entry->data.realm.l = ahdr->avp_value->os.len;
 			}
 			break;
-				
+
 		case REALM_AND_APPLICATION:
 			{
 				/* Search the Destination-Realm of the message */
@@ -155,7 +155,7 @@ int redir_entry_new(struct redir_entry ** e, struct fd_list * targets, uint32_t 
 				entry->data.realm_app.a = hdr->msg_appl;
 			}
 			break;
-				
+
 		case ALL_APPLICATION:
 			{
 				struct msg_hdr * hdr;
@@ -163,12 +163,12 @@ int redir_entry_new(struct redir_entry ** e, struct fd_list * targets, uint32_t 
 				entry->data.app.a = hdr->msg_appl;
 			}
 			break;
-			
+
 		case ALL_HOST:
 			CHECK_MALLOC( entry->data.host.s = os0dup(oh, ohlen) );
 			entry->data.host.l = ohlen;
 			break;
-			
+
 		case ALL_USER:
 			{
 				/* Search the User-Name of the message */
@@ -186,12 +186,12 @@ int redir_entry_new(struct redir_entry ** e, struct fd_list * targets, uint32_t 
 				entry->data.user.l = ahdr->avp_value->os.len;
 			}
 			break;
-		
+
 		default:
 			ASSERT(0);
 			return EINVAL;
 	}
-	
+
 	/* We're done */
 	*e = entry;
 	return 0;
@@ -202,7 +202,7 @@ int redir_entry_new(struct redir_entry ** e, struct fd_list * targets, uint32_t 
 static int compare_entries_ptr(union matchdata * d1, union matchdata * d2) {
 	unsigned long v1 = (unsigned long) d1->message.msg;
 	unsigned long v2 = (unsigned long) d2->message.msg;
-	if (v1 > v2) 
+	if (v1 > v2)
 		return 1;
 	if (v1 < v2)
 		return -1;
@@ -210,9 +210,9 @@ static int compare_entries_ptr(union matchdata * d1, union matchdata * d2) {
 }
 /* Compare two applications (REALM_AND_APPLICATION and ALL_APPLICATION) */
 static int compare_entries_appl(union matchdata * d1, union matchdata * d2) {
-	if (d1->app.a > d2->app.a) 
+	if (d1->app.a > d2->app.a)
 		return 1;
-	if (d1->app.a < d2->app.a) 
+	if (d1->app.a < d2->app.a)
 		return -1;
 	return 0;
 }
@@ -237,22 +237,22 @@ int (*redir_entry_cmp_key[H_U_MAX +1])(union matchdata * , union matchdata * ) =
 int redir_entry_insert(struct redir_entry * e)
 {
 	struct fd_list * li;
-	
+
 	TRACE_ENTRY("%p", e);
 	CHECK_PARAMS(e && (e->eyec == REDIR_ENTRY_EYEC));
-	
+
 	/* Write-Lock the line */
 	CHECK_POSIX( pthread_rwlock_wrlock( RWLOCK_REDIR(e) ) );
-	
+
 	for (li = redirects_usages[e->type].sentinel.next; li != &redirects_usages[e->type].sentinel; li = li->next) {
 		struct redir_entry * n = li->o;
 		int cmp = redir_entry_cmp_key[e->type](&e->data, &n->data);
 		if (cmp <= 0)
 			break;
 	}
-	
+
 	fd_list_insert_before(li, &e->redir_list);
-	
+
 	/* unLock the line */
 	CHECK_POSIX( pthread_rwlock_unlock( RWLOCK_REDIR(e) ) );
 
@@ -264,26 +264,26 @@ int redir_entry_destroy(struct redir_entry * e)
 {
 	TRACE_ENTRY("%p", e);
 	CHECK_PARAMS(e && (e->eyec == REDIR_ENTRY_EYEC));
-	
+
 	/* If the entry is linked, lock the rwlock also */
 	if (!FD_IS_LIST_EMPTY(&e->redir_list)) {
 		CHECK_POSIX( pthread_rwlock_wrlock( RWLOCK_REDIR(e) ) );
 		fd_list_unlink(&e->redir_list);
 		CHECK_POSIX( pthread_rwlock_unlock( RWLOCK_REDIR(e) ) );
 	}
-	
+
 	/* Now unlink from other list */
 	fd_list_unlink(&e->exp_list);
-	
+
 	/* Empty the targets list */
 	while (!FD_IS_LIST_EMPTY(&e->target_peers_list)) {
 		struct redir_host * h = (struct redir_host *)e->target_peers_list.next->o;
-		
+
 		fd_list_unlink(&h->chain);
 		free(h->id);
 		free(h);
 	}
-	
+
 	/* Now we can destroy the data safely */
 	switch (e->type) {
 		case DONT_CACHE:
@@ -311,9 +311,9 @@ int redir_entry_destroy(struct redir_entry * e)
 			ASSERT(0);
 			return EINVAL;
 	}
-	
+
 	free(e->from.s);
-	
+
 	free(e);
 	return 0;
 }

@@ -38,7 +38,7 @@
 
 /* There are 2 locks in this module. The priority is established as follow to avoid deadlocks:
 exp_peer mutex > usages rwlock.
-(e.g., the rwlock can be taken while holding the mutex, but not the other way) 
+(e.g., the rwlock can be taken while holding the mutex, but not the other way)
 */
 
 /* The types of redirects (from Redirect-Host-Usage AVP value) */
@@ -58,14 +58,14 @@ enum redir_h_u {
 
 /* Expiration time set for DONT_CACHE tasks, so that the entry is found when the code is called back */
 #define DEFAULT_EXPIRE_TIME 10 /* seconds */
-	
+
 /* Structure to store a parsed Redirect-Host */
 struct redir_host {
-	struct fd_list chain; 
-	
+	struct fd_list chain;
+
 	DiamId_t id;	/* malloc'd */
 	size_t	 len;
-	/* We don't use the following yet because we don't support dynamic new connections 
+	/* We don't use the following yet because we don't support dynamic new connections
 	int 	 secure;
 	uint16_t port;
 	int	 l4;
@@ -116,12 +116,12 @@ union matchdata {
 		size_t l;
 	} user;
 };
-	
+
 
 /* Structure to store a Redirect indication */
 struct redir_entry {
 	uint32_t eyec; /* must be REDIR_ENTRY_EYEC, used for debug only */
-	
+
 	struct {
 		os0_t s; /* alloc'd, must be freed */
 		size_t l;
@@ -131,7 +131,7 @@ struct redir_entry {
 
 	struct timespec  timeout;  /* When does this entry expires? */
 	struct fd_list   exp_list; /* chain in the expire_list list, ordered by expiration date, protected by exp_peer_lock */
-	
+
 	enum redir_h_u type;  /* Type of this entry */
 	struct fd_list redir_list; /* link in redirects_usages lists. Lists are ordered by the data value. Protected by rw locks */
 	union matchdata	data;	/* The strings are duplicated & must be freed in this structure */

@@ -58,28 +58,28 @@ int redir_fwd_cb(void * cbdata, struct msg ** msg)
 	size_t   nhlen;
 	int nbrh = 0;
 	struct redir_entry * entry;
-	
+
 	TRACE_ENTRY("%p %p", cbdata, msg);
-	
+
 	CHECK_PARAMS(msg && *msg);
-	
+
 	m = *msg;
-	
+
 	/* First get the header */
 	CHECK_FCT( fd_msg_hdr(m, &hdr) );
-	
+
 	/* Check if we have an error */
 	ASSERT(!(hdr->msg_flags & CMD_FLAG_REQUEST));
 	if (!(hdr->msg_flags & CMD_FLAG_ERROR)) {
 		/* This answer does not have the E flag, no need to process further */
 		return 0;
 	}
-	
+
 	/* Now get the AVPs we are interested in */
 	CHECK_FCT(  fd_msg_browse(m, MSG_BRW_FIRST_CHILD, &avp, NULL)  );
 	while (avp) {
 		struct avp_hdr * ahdr;
-			
+
 		CHECK_FCT(  fd_msg_avp_hdr( avp, &ahdr )  );
 		if (! (ahdr->avp_flags & AVP_FLAG_VENDOR)) {
 			switch (ahdr->avp_code) {
@@ -89,19 +89,19 @@ int redir_fwd_cb(void * cbdata, struct msg ** msg)
 					ASSERT( ahdr->avp_value );
 					a_oh = ahdr->avp_value;
 					break;
-					
+
 				case AC_RESULT_CODE:
 					/* Parse this AVP */
 					CHECK_FCT( fd_msg_parse_dict ( avp, fd_g_config->cnf_dict, NULL ) );
 					ASSERT( ahdr->avp_value );
 					a_rc = ahdr->avp_value;
-					
+
 					if (a_rc->u32 != ER_DIAMETER_REDIRECT_INDICATION) {
 						/* It is not a REDIRECT error, we don't do anything */
 						goto out;
 					}
 					break;
-					
+
 				case AC_REDIRECT_HOST:
 					{
 						struct redir_host * h = NULL;
@@ -111,20 +111,20 @@ int redir_fwd_cb(void * cbdata, struct msg ** msg)
 						uint16_t port = 0;
 						int	 l4 = 0;
 						char	 proto = 0;
-						
+
 						/* Parse this AVP */
 						CHECK_FCT( fd_msg_parse_dict ( avp, fd_g_config->cnf_dict, NULL ) );
 						ASSERT( ahdr->avp_value );
-						
+
 						nbrh++;
-						
-						CHECK_FCT_DO( fd_os_parse_DiameterURI(ahdr->avp_value->os.data, ahdr->avp_value->os.len, 
+
+						CHECK_FCT_DO( fd_os_parse_DiameterURI(ahdr->avp_value->os.data, ahdr->avp_value->os.len,
 									&id, &len, &secure, &port, &l4, &proto),
 							{
 								TRACE_DEBUG(INFO, "Received an invalid Redirect-Host AVP value ('%.*s'), ignored", (int)ahdr->avp_value->os.len, ahdr->avp_value->os.data);
 								break;
 							} );
-						
+
 						/* Now check if the transport & protocol are supported */
 						if (proto && (proto != 'd')) {
 							TRACE_DEBUG(FULL, "Ignored unsupported non-Diameter Redirect-Host AVP (%.*s)", (int)ahdr->avp_value->os.len, ahdr->avp_value->os.data);
@@ -136,16 +136,16 @@ int redir_fwd_cb(void * cbdata, struct msg ** msg)
 							free(id);
 							break;
 						}
-						
+
 						/* It looks OK, save this entry. */
-						
+
 						CHECK_MALLOC( h = malloc(sizeof(struct redir_host)) );
 						memset(h, 0, sizeof(struct redir_host));
 						fd_list_init(&h->chain, h);
 						h->id = id;
 						h->len = len;
 						/* later: secure, port */
-						
+
 						/* The list is kept ordered by id so that it is faster to compare to candidates later */
 						for (li = task.rh.next; li != &task.rh; li = li->next) {
 							struct redir_host * nhost = li->o;
@@ -182,18 +182,18 @@ int redir_fwd_cb(void * cbdata, struct msg ** msg)
 		/* Go to next AVP */
 		CHECK_FCT(  fd_msg_browse(avp, MSG_BRW_NEXT, &avp, NULL)  );
 	}
-	
+
 	/* Check we have received the necessary information */
 	if (!a_rc) {
 		TRACE_DEBUG(FULL, "Invalid Diameter answer without a Result-Code AVP, Redirect module gave up");
 		goto out;
 	}
-	
+
 	if (!a_oh) {
 		TRACE_DEBUG(FULL, "Invalid Diameter answer without an Origin-Host AVP, Redirect module gave up");
 		goto out;
 	}
-	
+
 	if (FD_IS_LIST_EMPTY(&task.rh)) {
 		TRACE_DEBUG(FULL, "Diameter answer with a DIAMETER_REDIRECT_INDICATION Result-Code AVP but no valid/supported Redirect-Host AVP, Redirect module gave up");
 		goto out;
@@ -203,14 +203,14 @@ int redir_fwd_cb(void * cbdata, struct msg ** msg)
 		TRACE_DEBUG(FULL, "Invalid Diameter Redirect answer with a Redirect-Host-Usage AVP but no Redirect-Max-Cache-Time, Redirect module gave up");
 		goto out;
 	}
-	
+
 	/* It looks like we can process the Redirect indication */
-	
+
 	/* Search for the peers we already know */
 	for (li = task.rh.next; li != &task.rh; li = li->next) {
 		struct redir_host * h = li->o;
 		struct peer_hdr * peer;
-		
+
 		CHECK_FCT( fd_peer_getbyid( h->id, h->len, 1, &peer ) );
 		if (peer) {
 			known ++;
@@ -220,28 +220,28 @@ int redir_fwd_cb(void * cbdata, struct msg ** msg)
 			}
 		}
 	}
-	
+
 	TRACE_DEBUG(FULL, "Redirect module: received %d Redirect-Hosts, %d are known peers, %d have an OPEN connection", nbrh, known, actives);
-	
+
 	/* in this version, we only redirect when there are known active peers. TODO: add new peers via fd_peer_add when no active peer is available */
-	
+
 	if (!actives) {
 		TRACE_DEBUG(INFO, "Unable to comply to Redirect indication: none of the peers included is in OPEN state");
 		goto out;
 	}
-	
+
 	/* From this point, we will re-send the query to a different peer, so stop forwarding the answer here */
 	*msg = NULL;
-	
+
 	/* Get the query's routing data & add the new error */
 	CHECK_FCT( fd_msg_answ_getq(m, &q) );
 	CHECK_FCT( fd_msg_rt_get(q, &rtd) );
 	CHECK_FCT( fd_msg_source_get( m, &nh, &nhlen ) );
 	CHECK_FCT( fd_rtd_error_add(rtd, nh, nhlen, a_oh->os.data, a_oh->os.len, a_rc->u32, NULL, NULL) );
-	
+
 	/* Create a redir_rule  */
 	CHECK_FCT( redir_entry_new(&entry, &task.rh, task.rhu, q, nh, nhlen, a_oh->os.data, a_oh->os.len) );
-		
+
 	CHECK_POSIX(  pthread_mutex_lock(&redir_exp_peer_lock)  );
 	/* Insert in the split list */
 	CHECK_FCT( redir_entry_insert(entry) );
@@ -252,12 +252,12 @@ int redir_fwd_cb(void * cbdata, struct msg ** msg)
 	/* Now we can get rid of the received answer and send again the query. */
 	CHECK_FCT( fd_msg_answ_detach(m) );
 	CHECK_FCT( fd_msg_free(m) );
-	
+
 	/* Send it */
 	CHECK_FCT( fd_msg_send(&q, NULL, NULL) );
-	
+
 	/* Done! */
-	
+
 out:
 	while (!FD_IS_LIST_EMPTY(&task.rh)) {
 		struct redir_host * h = task.rh.next->o;
@@ -265,7 +265,7 @@ out:
 		free(h->id);
 		free(h);
 	}
-		
+
 	return 0;
 
 }
