@@ -200,6 +200,10 @@ DECLARE_FD_DUMP_PROTOTYPE(fd_dictfct_Address_dump, union avp_value * avp_value)
 			if (avp_value->os.len == 20)
 				memcpy(&s.sin6.sin6_port, avp_value->os.data + 18, 2);
 			break;
+		case 8:
+			/* E.164 */
+			CHECK_MALLOC_DO( fd_dump_extend(FD_DUMP_STD_PARAMS, "%.*s", avp_value->os.len-2, avp_value->os.data+2), return NULL);
+			return *buf;
 		default:
 			CHECK_MALLOC_DO( fd_dump_extend(FD_DUMP_STD_PARAMS, "[unsupported family: 0x%hx]", fam), return NULL);
 			return *buf;
