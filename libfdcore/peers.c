@@ -180,6 +180,32 @@ int fd_peer_add ( struct peer_info * info, const char * orig_dbg, void (*cb)(str
 	return ret;
 }
 
+// Remove a peer entry.
+int fd_peer_remove ( DiamId_t diamid, size_t diamidlen )
+{
+	struct fd_list * li;
+
+	// Find the peer in the peer list from its pi_diamid.
+	CHECK_POSIX( pthread_rwlock_wrlock(&fd_g_peers_rw) );
+	for (li = fd_g_peers.next; li != &fd_g_peers; li = li->next) {
+		struct fd_peer * peer = (struct fd_peer *)li;
+		int cmp = fd_os_cmp( diamid, diamidlen, peer->p_hdr.info.pi_diamid, peer->p_hdr.info.pi_diamidlen );
+
+		if (cmp == 0) {
+			/* update the peer lifetime, set the expiry flag and call fd_p_expi_update so that the
+			 * p_exp_timer value is updated and the peer expires immediately. */
+			peer->p_hdr.info.config.pic_flags.exp = PI_EXP_INACTIVE;
+			peer->p_hdr.info.config.pic_lft = 0;
+			CHECK_FCT( fd_p_expi_update(peer) );
+			break;
+		}
+	}
+
+	CHECK_POSIX( pthread_rwlock_unlock(&fd_g_peers_rw) );
+
+	return 0;
+}
+
 /* Search for a peer */
 int fd_peer_getbyid( DiamId_t diamid, size_t diamidlen, int igncase, struct peer_hdr ** peer )
 {
@@ -334,6 +360,7 @@ int fd_peer_free(struct fd_peer ** ptr)
 	free_null(p->p_hdr.info.config.pic_realm); 
 	free_null(p->p_hdr.info.config.pic_priority); 
 	
+	free_null(p->p_hdr.info.runtime.pir_host);
 	free_null(p->p_hdr.info.runtime.pir_realm);
 	free_null(p->p_hdr.info.runtime.pir_prodname);
 	free_list( &p->p_hdr.info.runtime.pir_apps );
@@ -462,6 +489,7 @@ DECLARE_FD_DUMP_PROTOTYPE(fd_peer_dump, struct peer_hdr * p, int details)
 		
 		CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "%s [%s, cnt:%ldsr,%ldpa]", peer->p_hdr.info.pi_diamid, STATE_STR(fd_peer_getstate(peer)), peer->p_sr.cnt, peer->p_reqin_count), return NULL);
 		if (details > 0) {
+			CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, " hst:%s", peer->p_hdr.info.runtime.pir_host ?: "<unknown>"), return NULL);
 			CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, " rlm:%s", peer->p_hdr.info.runtime.pir_realm ?: "<unknown>"), return NULL);
 			if (peer->p_hdr.info.runtime.pir_prodname) {
 				CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, " ['%s' %u]", peer->p_hdr.info.runtime.pir_prodname, peer->p_hdr.info.runtime.pir_firmrev), return NULL);

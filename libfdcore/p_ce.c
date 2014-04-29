@@ -81,9 +81,24 @@ void fd_p_ce_clear_cnx(struct fd_peer * peer, struct cnxctx ** cnx_kept)
 }
 
 /* Election: compare the Diameter Ids by lexical order, return true if the election is won */
-static __inline__ int election_result(struct fd_peer * peer)
+static __inline__ int election_result(struct fd_peer * peer, struct msg * cer)
 {
-	int ret = (strcasecmp(peer->p_hdr.info.pi_diamid, fd_g_config->cnf_diamid) < 0);
+	/* Default to winning the election.  We only hit this case if the peer's CER is malformed. */
+	int ret = 1;
+
+	/* Find the Origin-Host AVP in the CER */
+	struct avp * avp = NULL;
+	CHECK_FCT( fd_msg_browse( cer, MSG_BRW_FIRST_CHILD, &avp, NULL) );
+	while (avp) {
+		struct avp_hdr * hdr;
+		CHECK_FCT(  fd_msg_avp_hdr( avp, &hdr )  );
+		if ((!(hdr->avp_flags & AVP_FLAG_VENDOR)) && (hdr->avp_code == AC_ORIGIN_HOST))
+		{
+			/* Found the Origin-Host.  Compare it with the configured identity. */
+			ret = (strncasecmp(hdr->avp_value->os.data, fd_g_config->cnf_diamid, hdr->avp_value->os.len) < 0);
+			break;
+		}
+	}
 	if (ret) {
 		TRACE_DEBUG(INFO, "Election WON against peer '%s'", peer->p_hdr.info.pi_diamid);
 	} else {
@@ -237,6 +252,7 @@ static int add_CE_info(struct msg *msg, struct cnxctx * cnx, int isi_tls, int is
 static void cleanup_remote_CE_info(struct fd_peer * peer)
 {
 	/* free linked information */
+	free(peer->p_hdr.info.runtime.pir_host);
 	free(peer->p_hdr.info.runtime.pir_realm);
 	free(peer->p_hdr.info.runtime.pir_prodname);
 	while (!FD_IS_LIST_EMPTY(&peer->p_hdr.info.runtime.pir_apps)) {
@@ -298,17 +314,40 @@ static int save_remote_CE_info(struct msg * msg, struct fd_peer * peer, struct f
 					goto next;
 				}
 				
-				/* We check that the value matches what we know, otherwise disconnect the peer */
-				if (fd_os_almostcasesrch(hdr->avp_value->os.data, hdr->avp_value->os.len, 
-							peer->p_hdr.info.pi_diamid, peer->p_hdr.info.pi_diamidlen, NULL)) {
-					TRACE_DEBUG(INFO, "Received a message with Origin-Host set to '%.*s' while expecting '%s'", 
-							(int)hdr->avp_value->os.len, hdr->avp_value->os.data, peer->p_hdr.info.pi_diamid);
-					error->pei_errcode = "DIAMETER_AVP_NOT_ALLOWED";
-					error->pei_message = "Your Origin-Host value does not match my configuration.";
+				/* In case of multiple AVPs */
+				if (peer->p_hdr.info.runtime.pir_host) {
+					TRACE_DEBUG(INFO, "Multiple instances of the Origin-Host AVP");
+					error->pei_errcode = "DIAMETER_AVP_OCCURS_TOO_MANY_TIMES";
+					error->pei_message = "I found several Origin-Host AVPs";
 					error->pei_avp = avp;
 					return EINVAL;
 				}
+				
+				/* Either learn the Diameter Identity, or check it against what we know */
+				if (peer->p_hdr.info.config.pic_flags.diamid == PI_DIAMID_DYN) {
+					/* If the octet string contains a \0 */
+					if (!fd_os_is_valid_DiameterIdentity(hdr->avp_value->os.data, hdr->avp_value->os.len)) {
+						error->pei_errcode = "DIAMETER_INVALID_AVP_VALUE";
+						error->pei_message = "Your Origin-Host contains invalid characters.";
+						error->pei_avp = avp;
+						return EINVAL;
+					}
+					
+				} else {
+					if (fd_os_almostcasesrch(hdr->avp_value->os.data, hdr->avp_value->os.len, 
+								peer->p_hdr.info.pi_diamid, peer->p_hdr.info.pi_diamidlen, NULL)) {
+						TRACE_DEBUG(INFO, "Received a message with Origin-Host set to '%.*s' while expecting '%s'", 
+								(int)hdr->avp_value->os.len, hdr->avp_value->os.data, peer->p_hdr.info.pi_diamid);
+						error->pei_errcode = "DIAMETER_AVP_NOT_ALLOWED";
+						error->pei_message = "Your Origin-Host value does not match my configuration.";
+						error->pei_avp = avp;
+						return EINVAL;
+					}
+				}
 
+				/* Save the value */
+				CHECK_MALLOC(  peer->p_hdr.info.runtime.pir_host = os0dup( hdr->avp_value->os.data, hdr->avp_value->os.len )  );
+				peer->p_hdr.info.runtime.pir_hostlen = hdr->avp_value->os.len;
 				break;
 		
 			case AC_ORIGIN_REALM: /* Origin-Realm */
@@ -680,7 +719,7 @@ int fd_p_ce_handle_newcnx(struct fd_peer * peer, struct cnxctx * initiator)
 	
 	/* Are we doing an election ? */
 	if (fd_peer_getstate(peer) == STATE_WAITCNXACK_ELEC) {
-		if (election_result(peer)) {
+		if (election_result(peer, peer->p_cer)) {
 			/* Close initiator connection */
 			fd_cnx_destroy(initiator);
 
@@ -1108,7 +1147,7 @@ int fd_p_ce_handle_newCER(struct msg ** msg, struct fd_peer * peer, struct cnxct
 			break;
 			
 		case STATE_WAITCEA:
-			if (election_result(peer)) {
+			if (election_result(peer, *msg)) {
 				
 				/* Close initiator connection (was already set as principal) */
 				LOG_D("%s: Election lost on outgoing connection, closing and answering CEA on incoming connection.", peer->p_hdr.info.pi_diamid);

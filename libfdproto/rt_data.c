@@ -89,6 +89,7 @@ void fd_rtd_free(struct rt_data ** rtd)
 		struct rtd_candidate * c = (struct rtd_candidate *) old->candidates.next;
 		
 		fd_list_unlink(&c->chain);
+		free(c->cfg_diamid);
 		free(c->diamid);
 		free(c->realm);
 		free(c);
@@ -109,13 +110,13 @@ void fd_rtd_free(struct rt_data ** rtd)
 }
 
 /* Add a peer to the candidates list. The source is our local peer list, so no need to care for the case here. */
-int  fd_rtd_candidate_add(struct rt_data * rtd, DiamId_t peerid, size_t peeridlen, DiamId_t realm, size_t realmlen)
+int  fd_rtd_candidate_add(struct rt_data * rtd, DiamId_t cfg_peerid, size_t cfg_peeridlen, DiamId_t peerid, size_t peeridlen, DiamId_t realm, size_t realmlen)
 {
 	struct fd_list * prev;
 	struct rtd_candidate * new;
 	
-	TRACE_ENTRY("%p %p %zd %p %zd", rtd, peerid, peeridlen, realm, realmlen);
-	CHECK_PARAMS(rtd && peerid && peeridlen);
+	TRACE_ENTRY("%p %p %zd %p %zd", rtd, cfg_peerid, cfded_peeridlen, peerid, peeridlen, realm, realmlen);
+	CHECK_PARAMS(rtd && cfg_peerid && cfg_peeridlen && peerid && peeridlen);
 	
 	/* Since the peers are ordered when they are added (fd_g_activ_peers) we search for the position from the end -- this should be efficient */
 	for (prev = rtd->candidates.prev; prev != &rtd->candidates; prev = prev->prev) {
@@ -132,6 +133,8 @@ int  fd_rtd_candidate_add(struct rt_data * rtd, DiamId_t peerid, size_t peeridle
 	CHECK_MALLOC( new = malloc(sizeof(struct rtd_candidate)) );
 	memset(new, 0, sizeof(struct rtd_candidate) );
 	fd_list_init(&new->chain, new);
+	CHECK_MALLOC( new->cfg_diamid = os0dup(cfg_peerid, cfg_peeridlen) )
+	new->cfg_diamidlen = cfg_peeridlen;
 	CHECK_MALLOC( new->diamid = os0dup(peerid, peeridlen) )
 	new->diamidlen = peeridlen;
 	if (realm) {
@@ -165,6 +168,7 @@ void fd_rtd_candidate_del(struct rt_data * rtd, uint8_t * id, size_t idsz)
 		if (!cmp) {
 			/* Found it! Remove it */
 			fd_list_unlink(&c->chain);
+			free(c->cfg_diamid);
 			free(c->diamid);
 			free(c->realm);
 			free(c);

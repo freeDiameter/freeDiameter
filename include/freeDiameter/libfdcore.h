@@ -270,6 +270,9 @@ extern const char *peer_state_str[];
 #define PI_PRST_NONE	0	/* the peer entry is deleted after disconnection / error */
 #define PI_PRST_ALWAYS	1	/* the peer entry is persistant (will be kept as ZOMBIE in case of error) */
 			
+#define PI_DIAMID_STAT	0	/* the peer's Diameter Identity is statically configured */
+#define PI_DIAMID_DYN	1	/* the peer's Diameter Identity is learnt dynamically from the CEA */
+			
 /* Information about a remote peer */
 struct peer_info {
 	
@@ -285,6 +288,7 @@ struct peer_info {
 			unsigned	sctpsec :1;	/* PI_SCTPSEC_* */
 			unsigned	exp :1;		/* PI_EXP_* */
 			unsigned	persist :1;	/* PI_PRST_* */
+			unsigned	diamid :1;	/* PI_DIAMID_* */
 			
 		}		pic_flags;	/* Flags influencing the connection to the remote peer */
 		
@@ -303,6 +307,9 @@ struct peer_info {
 		
 		/* enum peer_state	pir_state; */ 
 		/* Since 1.1.0, read the state with fd_peer_getstate(peer). */
+		
+		DiamId_t	pir_host;	/* The received host in CER/CEA. */
+		size_t		pir_hostlen;	/* length of the host */
 		
 		DiamId_t	pir_realm;	/* The received realm in CER/CEA. */
 		size_t		pir_realmlen;	/* length of the realm */
@@ -374,6 +381,22 @@ extern pthread_rwlock_t fd_g_peers_rw; /* protect the list */
  *    ENOMEM 	: Memory allocation for the new object element failed.)
  */
 int fd_peer_add ( struct peer_info * info, const char * orig_dbg, void (*cb)(struct peer_info *, void *), void * cb_data );
+
+/*
+ * FUNCTION:	fd_peer_remove
+ *
+ * PARAMETERS:
+ *  diamid 	: an UTF8 string describing the diameter Id of the peer to seek
+ *  diamidlen	: length of the diamid
+ *
+ * DESCRIPTION:
+ *  Remove a peer from the list of peers to which the daemon must maintain a connection.
+ *
+ * RETURN VALUE:
+ *  0      	: The peer is removed.
+ *  !0    	: An error occurred.
+ */
+int fd_peer_remove ( DiamId_t diamid, size_t diamidlen );
 
 /*
  * FUNCTION:	fd_peer_getbyid
