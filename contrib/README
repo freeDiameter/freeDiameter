@@ -55,5 +55,7 @@ to top-level README file.
 
 - dict_gx: untested implementation of the Gx interface.
 
+- test_Gx: a responder on the Gx interface that always send SUCCESS status.
+
 - wireshark: This contains some information on how to use Wireshark to monitor Diameter
 	exchange protected with TLS. It involves patching the wireshark software.
