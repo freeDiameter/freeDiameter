@@ -1,8 +1,9 @@
 /*********************************************************************************************************
 * Software License Agreement (BSD License)                                                               *
-* Author: Sebastien Decugis <sdecugis@freediameter.net>							 *
+* Authors: Sebastien Decugis <sdecugis@freediameter.net>						 *
+* and Thomas Klausner <tk@giga.or.at>									 *
 *													 *
-* Copyright (c) 2011, WIDE Project and NICT								 *
+* Copyright (c) 2011, 2014, WIDE Project and NICT							 *
 * All rights reserved.											 *
 * 													 *
 * Redistribution and use of this software in source and binary forms, with or without modification, are  *
@@ -46,17 +47,17 @@ static pthread_t exp_thr  = (pthread_t)NULL;
 static int redir_entry(char * conffile)
 {
 	TRACE_ENTRY("");
-	
+
 	/* Dictionary objects */
 	CHECK_FCT(  fd_dict_search( fd_g_config->cnf_dict, DICT_AVP, AVP_BY_NAME, "Destination-Realm", &redir_dict_dr, ENOENT)  );
 	CHECK_FCT(  fd_dict_search( fd_g_config->cnf_dict, DICT_AVP, AVP_BY_NAME, "User-Name", &redir_dict_un, ENOENT)  );
 
 	/* Initialize the entries array */
 	CHECK_FCT( redir_entry_init() );
-	
+
 	/* Start the expire thread */
 	CHECK_POSIX( pthread_create( &exp_thr, NULL, redir_exp_thr_fct, NULL ) );
-	
+
 	/* Register the callback that receives the answers and processes when it contains a Redirect indication. */
 	CHECK_FCT( fd_rt_fwd_register ( redir_fwd_cb, NULL, RT_FWD_ANS, &fwd_hdl ) );
 
@@ -71,8 +72,6 @@ EXTENSION_ENTRY("rt_redirect", redir_entry);
 /* And terminate it */
 void fd_ext_fini(void)
 {
-	int i;
-	
 	/* Unregister the callbacks */
 	if (fwd_hdl) {
 		CHECK_FCT_DO( fd_rt_fwd_unregister(fwd_hdl, NULL), );
@@ -80,23 +79,12 @@ void fd_ext_fini(void)
 	if (out_hdl) {
 		CHECK_FCT_DO( fd_rt_out_unregister(out_hdl, NULL), );
 	}
-	
+
 	/* Stop the expiry thread */
 	CHECK_FCT_DO( fd_thr_term(&exp_thr), );
-	
+
 	/* Empty all entries */
-	CHECK_POSIX_DO( pthread_mutex_lock(&redir_exp_peer_lock),   );
-	for (i = 0; i <= H_U_MAX; i++) {
-		CHECK_POSIX_DO( pthread_rwlock_wrlock( &redirects_usages[i].lock), );
-		while (!FD_IS_LIST_EMPTY(&redirects_usages[i].sentinel)) {
-			struct redir_entry * e = redirects_usages[i].sentinel.next->o;
-			fd_list_unlink(&e->redir_list);
-			CHECK_FCT_DO( redir_entry_destroy(e), );
-		}
-		CHECK_POSIX_DO( pthread_rwlock_unlock( &redirects_usages[i].lock), );
-		CHECK_POSIX_DO( pthread_rwlock_destroy( &redirects_usages[i].lock), );
-	}
-	CHECK_POSIX_DO( pthread_mutex_unlock(&redir_exp_peer_lock),   );
-	
+	redir_entry_fini();
+
 	return;
 }

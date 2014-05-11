@@ -1,8 +1,9 @@
 /*********************************************************************************************************
 * Software License Agreement (BSD License)                                                               *
-* Author: Sebastien Decugis <sdecugis@freediameter.net>							 *
-*													 *
-* Copyright (c) 2013, WIDE Project and NICT								 *
+* Author: Sebastien Decugis <sdecugis@freediameter.net> and						 *
+* Thomas Klausner <tk@giga.or.at>									 *
+* 													 *
+* Copyright (c) 2013, 2014, WIDE Project and NICT							 *
 * All rights reserved.											 *
 * 													 *
 * Redistribution and use of this software in source and binary forms, with or without modification, are  *
@@ -36,9 +37,11 @@
 /* Diameter Redirect management */
 #include <freeDiameter/extension.h>
 
+#include "uthash.h"
+
 /* There are 2 locks in this module. The priority is established as follow to avoid deadlocks:
 exp_peer mutex > usages rwlock.
-(e.g., the rwlock can be taken while holding the mutex, but not the other way) 
+(e.g., the rwlock can be taken while holding the mutex, but not the other way)
 */
 
 /* The types of redirects (from Redirect-Host-Usage AVP value) */
@@ -58,14 +61,14 @@ enum redir_h_u {
 
 /* Expiration time set for DONT_CACHE tasks, so that the entry is found when the code is called back */
 #define DEFAULT_EXPIRE_TIME 10 /* seconds */
-	
+
 /* Structure to store a parsed Redirect-Host */
 struct redir_host {
-	struct fd_list chain; 
-	
+	struct fd_list chain;
+
 	DiamId_t id;	/* malloc'd */
 	size_t	 len;
-	/* We don't use the following yet because we don't support dynamic new connections 
+	/* We don't use the following yet because we don't support dynamic new connections
 	int 	 secure;
 	uint16_t port;
 	int	 l4;
@@ -116,12 +119,12 @@ union matchdata {
 		size_t l;
 	} user;
 };
-	
+
 
 /* Structure to store a Redirect indication */
 struct redir_entry {
 	uint32_t eyec; /* must be REDIR_ENTRY_EYEC, used for debug only */
-	
+
 	struct {
 		os0_t s; /* alloc'd, must be freed */
 		size_t l;
@@ -129,12 +132,13 @@ struct redir_entry {
 
 	struct fd_list	 target_peers_list; /* The list of Redirect-Hosts for this entry */
 
-	struct timespec  timeout;  /* When does this entry expires? */
+	struct timespec  timeout;  /* When does this entry expire? */
 	struct fd_list   exp_list; /* chain in the expire_list list, ordered by expiration date, protected by exp_peer_lock */
-	
-	enum redir_h_u type;  /* Type of this entry */
+
+	enum redir_h_u type;       /* Type of this entry */
 	struct fd_list redir_list; /* link in redirects_usages lists. Lists are ordered by the data value. Protected by rw locks */
-	union matchdata	data;	/* The strings are duplicated & must be freed in this structure */
+	union matchdata	data;	   /* The strings are duplicated & must be freed in this structure */
+	UT_hash_handle hh;         /* magic entry for hash table */
 };
 
 /* The array where the redir_entries are stored */
@@ -144,6 +148,8 @@ struct redir_line {
 	struct fd_list		sentinel; /* list of redir_entry, the "o" field of the sentinel points to the redir_line entry */
 };
 extern struct redir_line redirects_usages[];
+/* the hash table where entries are stored for ALL_SESSION and ALL_USER */
+extern struct redir_entry *redirect_hash_table[];
 
 /* Accelerator to the line lock */
 #define RWLOCK_REDIR( _entry ) ( &(redirects_usages[(_entry)->type].lock) )
@@ -157,6 +163,7 @@ extern struct dict_object * redir_dict_un;
 
 /* Functions on redir_entry */
 int redir_entry_init();
+int redir_entry_fini();
 int redir_entry_new(struct redir_entry ** e, struct fd_list * targets, uint32_t rhu, struct msg * qry, DiamId_t nh, size_t nhlen, os0_t oh, size_t ohlen);
 extern int (*redir_entry_cmp_key[])(union matchdata * , union matchdata *); /* compare functions */
 int redir_entry_insert(struct redir_entry * e);

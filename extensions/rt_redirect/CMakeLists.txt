@@ -8,6 +8,7 @@ SET(RT_REDIR_SRC
 	redir_expiry.c
 	redir_fwd.c
 	redir_out.c
+	uthash.h
 	)
 
 # Compile as a module
