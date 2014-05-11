@@ -176,14 +176,14 @@ int acct_conf_parse(char * conffile)
 /* Function to report the errors */
 void yyerror (YYLTYPE *ploc, char * conffile, char const *s)
 {
-	TRACE_DEBUG(INFO, "Error in configuration parsing");
+	LOG_E( "Error in configuration parsing");
 	
 	if (ploc->first_line != ploc->last_line)
-		fd_log_debug("%s:%d.%d-%d.%d : %s", conffile, ploc->first_line, ploc->first_column, ploc->last_line, ploc->last_column, s);
+		LOG_E("%s:%d.%d-%d.%d : %s", conffile, ploc->first_line, ploc->first_column, ploc->last_line, ploc->last_column, s);
 	else if (ploc->first_column != ploc->last_column)
-		fd_log_debug("%s:%d.%d-%d : %s", conffile, ploc->first_line, ploc->first_column, ploc->last_column, s);
+		LOG_E("%s:%d.%d-%d : %s", conffile, ploc->first_line, ploc->first_column, ploc->last_column, s);
 	else
-		fd_log_debug("%s:%d.%d : %s", conffile, ploc->first_line, ploc->first_column, s);
+		LOG_E("%s:%d.%d : %s", conffile, ploc->first_line, ploc->first_column, s);
 }
 
 static struct acct_conf_avp avpdata;
