@@ -63,7 +63,7 @@ static int rt_load_balancing(void * cbdata, struct msg ** pmsg, struct fd_list *
 			cand->score = 1;
 		else
 			cand->score -= load;
-		TRACE_DEBUG(INFO, "evaluated peer `%.*s', score was %d, now %d", (int)cand->diamidlen, cand->diamid, score, cand->score);
+		TRACE_DEBUG(FULL, "evaluated peer `%.*s', score was %d, now %d", (int)cand->diamidlen, cand->diamid, score, cand->score);
 	}
 
 	return 0;
