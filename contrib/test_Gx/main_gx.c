@@ -13,58 +13,13 @@
 #define VENDOR_ID_3GPP  			    10415
 /* The content of this file follows the same structure as dict_base_proto.c */
 
+#if 0
 #define CHECK_dict_new( _type, _data, _parent, _ref )  \
        CHECK_FCT(  fd_dict_new( fd_g_config->cnf_dict, (_type), (_data), (_parent), (_ref))  );
-
-#define CHECK_dict_search( _type, _criteria, _what, _result )  \
-       CHECK_FCT(  fd_dict_search( fd_g_config->cnf_dict, (_type), (_criteria), (_what), (_result), ENOENT) );
+#endif
 
 void dump_sess_eyec(struct session *sess, const char *);
-struct local_rules_definition {
-       char		       *avp_name;
-       enum rule_position      position;
-       int		       min;
-       int		       max;
-};
 
-#define RULE_ORDER( _position ) ((((_position) == RULE_FIXED_HEAD) || ((_position) == RULE_FIXED_TAIL)) ? 1 : 0 )
-
-#define PARSE_loc_rules( _rulearray, _parent) { 							       \
-       int __ar;										       \
-       for (__ar=0; __ar < sizeof(_rulearray) / sizeof((_rulearray)[0]); __ar++) {		       \
-	       struct dict_rule_data __data = { NULL,						       \
-		       (_rulearray)[__ar].position,						       \
-		       0,									       \
-		       (_rulearray)[__ar].min,  						       \
-		       (_rulearray)[__ar].max}; 						       \
-	       __data.rule_order = RULE_ORDER(__data.rule_position);				       \
-	       CHECK_FCT(  fd_dict_search(							       \
-		       fd_g_config->cnf_dict,							       \
-		       DICT_AVP,								       \
-		       AVP_BY_NAME,								       \
-		       (_rulearray)[__ar].avp_name,						       \
-		       &__data.rule_avp, 0 ) ); 						       \
-	       if ( !__data.rule_avp ) {							       \
-		       TRACE_DEBUG(INFO, "AVP Not found: '%s'", (_rulearray)[__ar].avp_name );         \
-		       return ENOENT;								       \
-	       }										       \
-	       CHECK_FCT_DO( fd_dict_new( fd_g_config->cnf_dict, DICT_RULE, &__data, _parent, NULL),   \
-		       {									       \
-			       TRACE_DEBUG(INFO, "Error on rule with AVP '%s'", 		       \
-					(_rulearray)[__ar].avp_name );  			       \
-			       return EINVAL;							       \
-		       } );									       \
-       }											       \
-}
-
-#define enumval_def_u32( _val_, _str_ ) \
-	       { _str_, 	       { .u32 = _val_ }}
-
-#define enumval_def_os( _len_, _val_, _str_ ) \
-	       { _str_, 	       { .os = { .data = (unsigned char *)_val_, .len = _len_ }}}
-
-
- 
 static int ccr_cb( struct msg ** msg, struct avp * avp, struct session * sess, void * opaque, enum disp_action * act);
 static int reauth_cb( struct msg ** msg, struct avp * avp, struct session * sess, void * opaque, enum disp_action * act);
 static int cca_cb( struct msg ** msg, struct avp * avp, struct session * sess, void * opaque, enum disp_action * act);
@@ -287,7 +242,7 @@ static int app_gx_entry(char * conffile)
     CHECK_FCT( fd_event_trig_regcb(SIGUSR1, "app_gx", sig_hdlr ) );
 
 
-       TRACE_DEBUG(INFO, "Extension 'Dictionary definitions for DCCA (rfc4006)' initialized");
+       TRACE_DEBUG(INFO, "Extension 'Gx' initialized");
        return 0;
 }
 
@@ -860,5 +815,5 @@ static int gx_entry(char * conffile)
 {
  return 0;
 }
-EXTENSION_ENTRY( "app_gx", app_gx_entry, "dict_dcca");
+EXTENSION_ENTRY( "app_gx", app_gx_entry, "dict_dcca_3gpp");
 //EXTENSION_ENTRY( "app_gx", gx_entry);
