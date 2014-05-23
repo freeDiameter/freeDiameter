@@ -42,15 +42,6 @@ struct dict_object * ph_avp_do; /* cache the Proxy-Host dictionary object */
 struct dict_object * pi_avp_do; /* cache the Proxy-Info dictionary object */
 struct dict_object * ps_avp_do; /* cache the Proxy-State dictionary object */
 
-static void *memdup(void *data, size_t len)
-{
-	void *mem;
-	if ((mem=malloc(len)) == NULL)
-		return NULL;
-	memcpy(mem, data, len);
-	return mem;
-}
-
 static int restore_origin_host(struct msg **msg) {
 	struct avp *avp, *child;
 	struct avp *oh_avp = NULL;
@@ -91,12 +82,8 @@ static int restore_origin_host(struct msg **msg) {
 							}
 							break;
 						case AC_PROXY_STATE:
+							ps = chdr->avp_value->os.data;
 							ps_len = chdr->avp_value->os.len;
-							ps = memdup(chdr->avp_value->os.data, ps_len);
-							if (!ps) {
-								TRACE_ERROR("malloc failure");
-								return 0;
-							}
 							break;
 						default:
 							break;
@@ -108,8 +95,7 @@ static int restore_origin_host(struct msg **msg) {
 					new_oh = ps;
 					new_oh_len = ps_len;
 					pi_avp = avp;
-				} else
-					free(ps);
+				}
 				break;
 			default:
 				break;
@@ -151,13 +137,13 @@ static int stow_destination_host(struct msg **msg) {
 			/* add Proxy-Info->{Proxy-Host, Proxy-State} using Destination-Host information */
 			CHECK_FCT(fd_msg_avp_new(ph_avp_do, 0, &ph_avp));
 			memset(&val, 0, sizeof(val));
-                        val.os.data = memdup(fd_g_config->cnf_diamid, fd_g_config->cnf_diamid_len);
+                        val.os.data = fd_g_config->cnf_diamid;
 			val.os.len = fd_g_config->cnf_diamid_len;
 			CHECK_FCT(fd_msg_avp_setvalue(ph_avp, &val));
 
 			CHECK_FCT(fd_msg_avp_new(ps_avp_do, 0, &ps_avp));
 			memset(&val, 0, sizeof(val));
-			val.os.data = memdup(ahdr->avp_value->os.data, ahdr->avp_value->os.len);
+			val.os.data = ahdr->avp_value->os.data;
 			val.os.len = ahdr->avp_value->os.len;
 			CHECK_FCT(fd_msg_avp_setvalue(ps_avp, &val));
 
