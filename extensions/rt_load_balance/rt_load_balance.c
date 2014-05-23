@@ -2,7 +2,7 @@
 * Software License Agreement (BSD License)                                                               *
 * Author: Thomas Klausner <tk@giga.or.at>                                                                *
 *                                                                                                        *
-* Copyright (c) 2013, Thomas Klausner                                                                    *
+* Copyright (c) 2013, 2014 Thomas Klausner                                                               *
 * All rights reserved.                                                                                   *
 *                                                                                                        *
 * Written under contract by nfotex IT GmbH, http://nfotex.com/                                           *
@@ -58,11 +58,17 @@ static int rt_load_balancing(void * cbdata, struct msg ** pmsg, struct fd_list *
 		CHECK_FCT(fd_peer_getbyid(cand->diamid, cand->diamidlen, 0, &peer));
 		CHECK_FCT(fd_peer_get_load_pending(peer, &to_receive, &to_send));
                 load = to_receive + to_send;
-		score = cand->score;
-		if ((cand->score > 0) && (load >= cand->score))
-			cand->score = 1;
-		else
-			cand->score -= load;
+		/* other routing mechanisms need to add to the
+		 * appropriate entries so their base value is high
+		 * enough that they are considered */
+
+		/* logarithmic scaling */
+                int load_log = 0;
+                while (load > 0) {
+                    load_log++;
+                    load /= 2;
+                }
+		cand->score -= load_log;
 		TRACE_DEBUG(FULL, "evaluated peer `%.*s', score was %d, now %d", (int)cand->diamidlen, cand->diamid, score, cand->score);
 	}
 
