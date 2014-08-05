@@ -87,10 +87,12 @@ static int dict_dcca_starent_entry(char * conffile)
 	/* The following is created automatically. Do not modify. */
 	/* Changes will be lost during the next update. Modify the source org file instead. */
 
-	/* Cisco ASR 5000 Series AAA Interface  */
-	/* Administration and Reference         */
-	/* Release 8.x and 9.0                  */
-	/* Last Updated June 30, 2010           */
+	/* Cisco ASR 5000 Series AAA Interface                                              */
+	/* Administration and Reference                                                     */
+	/* Release 8.x and 9.0                                                              */
+	/* Last Updated June 30, 2010                                                       */
+	/* updated using v15 docs from Jan 2014                                             */
+	/* www.cisco.com/c/dam/en/us/td/docs/wireless/asr_5000/15-0/15-0-AAA-Reference.pdf  */
 	/* SN-Volume-Quota-Threshold */
 	{
 		struct dict_avp_data data = {
@@ -282,8 +284,158 @@ static int dict_dcca_starent_entry(char * conffile)
 		CHECK_dict_new(DICT_AVP, &data, type, NULL);
 	};
 
+	/* SN-Session-Start-Indicator */
+	{
+		struct dict_avp_data data = {
+			522,	/* Code */
+			8164,	/* Vendor */
+			"SN-Session-Start-Indicator",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flag values */
+			AVP_TYPE_OCTETSTRING	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+	};
+
+	/* SN-Phase0-PSAPName */
+	{
+		struct dict_avp_data data = {
+			523,	/* Code */
+			8164,	/* Vendor */
+			"SN-Phase0-PSAPName",	/* Name */
+			AVP_FLAG_VENDOR,	/* Fixed flags */
+			AVP_FLAG_VENDOR,	/* Fixed flag values */
+			AVP_TYPE_OCTETSTRING	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, UTF8String_type, NULL);
+	};
+
+	/* SN-Charging-Id */
+	{
+		struct dict_avp_data data = {
+			525,	/* Code */
+			8164,	/* Vendor */
+			"SN-Charging-Id",	/* Name */
+			AVP_FLAG_VENDOR,	/* Fixed flags */
+			AVP_FLAG_VENDOR,	/* Fixed flag values */
+			AVP_TYPE_OCTETSTRING	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+	};
+
+	/* SN-Remaining-Service-Unit */
+	{
+		struct dict_avp_data data = {
+			526,	/* Code */
+			8164,	/* Vendor */
+			"SN-Remaining-Service-Unit",	/* Name */
+			AVP_FLAG_VENDOR,	/* Fixed flags */
+			AVP_FLAG_VENDOR,	/* Fixed flag values */
+			AVP_TYPE_GROUPED	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+	};
+
+	/* SN-Service-Start-Timestamp */
+	{
+		struct dict_avp_data data = {
+			527,	/* Code */
+			8164,	/* Vendor */
+			"SN-Service-Start-Timestamp",	/* Name */
+			AVP_FLAG_VENDOR,	/* Fixed flags */
+			AVP_FLAG_VENDOR,	/* Fixed flag values */
+			AVP_TYPE_OCTETSTRING	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, Time_type, NULL);
+	};
+
+	/* SN-Rulsebase-Id */
+	{
+		struct dict_avp_data data = {
+			528,	/* Code */
+			8164,	/* Vendor */
+			"SN-Rulsebase-Id",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flag values */
+			AVP_TYPE_OCTETSTRING	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, UTF8String_type, NULL);
+	};
+
+	/* SN-CF-Policy-ID */
+	{
+		struct dict_avp_data data = {
+			529,	/* Code */
+			8164,	/* Vendor */
+			"SN-CF-Policy-ID",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flag values */
+			AVP_TYPE_UNSIGNED32	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+	};
+
+	/* SN-Charging-Collection-Function-Name */
+	{
+		struct dict_avp_data data = {
+			530,	/* Code */
+			8164,	/* Vendor */
+			"SN-Charging-Collection-Function-Name",	/* Name */
+			AVP_FLAG_VENDOR,	/* Fixed flags */
+			AVP_FLAG_VENDOR,	/* Fixed flag values */
+			AVP_TYPE_OCTETSTRING	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, UTF8String_type, NULL);
+	};
+
+	/* SN-Fast-Reauth-Username */
+	{
+		struct dict_avp_data data = {
+			11010,	/* Code */
+			8164,	/* Vendor */
+			"SN-Fast-Reauth-Username",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flag values */
+			AVP_TYPE_OCTETSTRING	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+	};
+
+	/* SN-Pseudonym-Username */
+	{
+		struct dict_avp_data data = {
+			11011,	/* Code */
+			8164,	/* Vendor */
+			"SN-Pseudonym-Username",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flag values */
+			AVP_TYPE_OCTETSTRING	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+	};
+
+
 
 	/* Rules section */
+
+	/* SN-Remaining-Service-Unit */
+	{
+		struct dict_object *rule_avp;
+		struct dict_avp_request vpa;
+		vpa.avp_vendor = 8164;
+		vpa.avp_name = "SN-Remaining-Service-Unit";
+		CHECK_dict_search(DICT_AVP, AVP_BY_NAME_AND_VENDOR, &vpa, &rule_avp);
+		struct local_rules_definition rules[] = {
+			{  "Tariff-Change-Usage",	RULE_OPTIONAL,	-1, 1 },
+			{  "CC-Time",	       		RULE_OPTIONAL,	-1, 1 },
+			{  "CC-Total-Octets",		RULE_OPTIONAL,	-1, 1 },
+			{  "CC-Input-Octets",		RULE_OPTIONAL,	-1, 1 },
+			{  "CC-Output-Octets",		RULE_OPTIONAL,	-1, 1 },
+			{  "CC-Service-Specific-Units",	RULE_OPTIONAL,	-1, 1 },
+			{  "Reporting-Reason",		RULE_OPTIONAL,	-1, 1 }
+		};
+		PARSE_loc_rules( rules, rule_avp );
+	}
 
 	/* SN-Total-Used-Service-Unit */
 	{
