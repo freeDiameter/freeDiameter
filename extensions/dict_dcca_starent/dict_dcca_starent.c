@@ -349,12 +349,12 @@ static int dict_dcca_starent_entry(char * conffile)
 		CHECK_dict_new(DICT_AVP, &data, Time_type, NULL);
 	};
 
-	/* SN-Rulsebase-Id */
+	/* SN-Rulebase-Id */
 	{
 		struct dict_avp_data data = {
 			528,	/* Code */
 			8164,	/* Vendor */
-			"SN-Rulsebase-Id",	/* Name */
+			"SN-Rulebase-Id",	/* Name */
 			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
 			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flag values */
 			AVP_TYPE_OCTETSTRING	/* base type of data */
