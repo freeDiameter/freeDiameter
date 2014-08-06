@@ -2,14 +2,14 @@
 PROJECT("Routing extension splits requests evenly over multiple hosts, using current load as routing indicator" C)
 
 # List of source files
-SET(RT_IGNORE_DH_SRC
+SET(RT_LOAD_BALANCE_SRC
 	rt_load_balance.c
 )
 
 INCLUDE_DIRECTORIES(${CMAKE_CURRENT_BINARY_DIR})
 
 # Compile these files as a freeDiameter extension
-FD_ADD_EXTENSION(rt_load_balance ${RT_IGNORE_DH_SRC})
+FD_ADD_EXTENSION(rt_load_balance ${RT_LOAD_BALANCE_SRC})
 
 ####
 ## INSTALL section ##
