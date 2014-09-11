@@ -950,6 +950,9 @@ int fd_p_ce_process_receiver(struct fd_peer * peer)
 		/* Do not send the ISI IPsec if we are using the new mechanism */
 		if ((isi == PI_SEC_NONE) && (! (peer->p_hdr.info.config.pic_flags.sec & PI_SEC_TLS_OLD)))
 			isi = 0;
+	} else if (peer->p_hdr.info.runtime.pir_isi & PI_SEC_TLS_OLD) {
+		/* Seem some weird peers are sending the Inband-Security-Id AVP on the secure port... No harm */
+		isi = PI_SEC_TLS_OLD;
 	}
 	
 	/* Reply a CEA */
