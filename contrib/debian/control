@@ -48,7 +48,7 @@ Package: freediameter-debug-tools
 Architecture: any
 Section: contrib/debug
 Depends: ${misc:Depends}, freediameter-common (= ${binary:Version})
-Suggests: python, libmysqlclient16
+Suggests: python, libmysqlclient16 | libmysqlclient18
 Description: freeDiameter debug tools.
  This package provides useful tools to help tracking 
  problems in freeDiameter installation. For example,
@@ -197,7 +197,7 @@ Description: freeDiameter simple Accounting server.
 
 Package: freediameter-eap-server
 Architecture: any
-Depends: ${misc:Depends}, freediameter-daemon (= ${binary:Version}), libmysqlclient16, freediameter-dictionary-rfc4072 (= ${binary:Version})
+Depends: ${misc:Depends}, freediameter-daemon (= ${binary:Version}), libmysqlclient16 | libmysqlclient18, freediameter-dictionary-rfc4072 (= ${binary:Version})
 Description: freeDiameter Diameter EAP server implementation.
  This freeDiameter extension implements a Diameter EAP server. 
  It supports EAP-MD5 and EAP-TLS methods currently.
@@ -212,7 +212,7 @@ Description: freeDiameter Diameter EAP server implementation.
 
 Package: freediameter-sip-server
 Architecture: any
-Depends: ${misc:Depends}, freediameter-daemon (= ${binary:Version}), libmysqlclient16, freediameter-dictionary-rfc4740 (= ${binary:Version})
+Depends: ${misc:Depends}, freediameter-daemon (= ${binary:Version}), libmysqlclient16 | libmysqlclient18, freediameter-dictionary-rfc4740 (= ${binary:Version})
 Description: freeDiameter Diameter SIP server implementation.
  This freeDiameter extension implements a prototype 
  Diameter SIP server.
