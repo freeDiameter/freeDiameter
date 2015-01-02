@@ -878,7 +878,7 @@ static int msg_rt_out(struct msg * msg)
 
 		/* Find the peer corresponding to this name */
 		CHECK_FCT( fd_peer_getbyid( qry_src, qry_src_len, 0, (void *) &peer ) );
-		if (fd_peer_getstate(peer) != STATE_OPEN) {
+		if (fd_peer_getstate(peer) != STATE_OPEN && fd_peer_getstate(peer) != STATE_CLOSING_GRACE) {
 			char buf[128];
 			snprintf(buf, sizeof(buf), "Unable to forward answer to deleted / closed peer '%s'.", qry_src);
 			fd_hook_call(HOOK_MESSAGE_ROUTING_ERROR, msgptr, NULL, buf, fd_msg_pmdl_get(msgptr));

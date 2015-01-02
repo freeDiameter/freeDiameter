@@ -49,7 +49,7 @@ int rt_busy_process_busy(struct msg ** pmsg, int is_req, DiamId_t sentto, size_t
 	struct msg * qry = NULL;
 	struct rt_data * rtd = NULL;
 	struct fd_list * candidates = NULL;
-	int sendingattemtps;
+	int sendingattempts;
 	int resend = 1;
 	
 	
@@ -72,13 +72,13 @@ int rt_busy_process_busy(struct msg ** pmsg, int is_req, DiamId_t sentto, size_t
 				    (uint8_t *)(oh ? (DiamId_t)oh->os.data : fd_g_config->cnf_diamid), oh ? oh->os.len : fd_g_config->cnf_diamid_len , 
 	                            ER_DIAMETER_TOO_BUSY, 
 	                            &candidates, 
-	                            &sendingattemtps) );
+	                            &sendingattempts) );
 	
 	/* Now we need to decide if we re-send this query to a different peer or return an error to upstream */
 	
 	/* First, are we exceeding the allowed attempts? */
 	if (rtbusy_conf.RetryMaxPeers != 0) {
-		if (sendingattemtps >= rtbusy_conf.RetryMaxPeers) {
+		if (sendingattempts >= rtbusy_conf.RetryMaxPeers) {
 			TRACE_DEBUG(FULL, "Maximum number of sending attempts reached for message %p, returning an error upstream", qry);
 			resend = 0;
 		}
@@ -106,10 +106,16 @@ int rt_busy_process_busy(struct msg ** pmsg, int is_req, DiamId_t sentto, size_t
 		}
 		/* Send the query again. We  need to re-associate the expirecb which was cleaned, if it is used */
 		if (rtbusy_conf.RelayTimeout) {
+			char *buf = NULL;
+			size_t len;
 			struct timespec expire;
 			CHECK_SYS(  clock_gettime(CLOCK_REALTIME, &expire)  );
 			expire.tv_sec += rtbusy_conf.RelayTimeout/1000 + ((expire.tv_nsec + (1000000LL * (rtbusy_conf.RelayTimeout % 1000))) / 1000000000LL);
 			expire.tv_nsec = (expire.tv_nsec + (1000000LL * (rtbusy_conf.RelayTimeout % 1000))) % 1000000000LL;
+			CHECK_MALLOC_DO( fd_msg_dump_full(&buf, &len, NULL, *pmsg, fd_g_config->cnf_dict, 0, 1), /* nothing */);
+			TRACE_ERROR( "No answer received for message from peer '%.*s' before timeout (%dms), re-sending: %s", senttolen, sentto,
+				     rtbusy_conf.RelayTimeout, buf);
+			free(buf);
 			CHECK_FCT( fd_msg_send_timeout( pmsg, NULL, NULL, rtbusy_expirecb, &expire ) );
 		} else {
 			CHECK_FCT( fd_msg_send(pmsg, NULL, NULL) );
@@ -117,6 +123,13 @@ int rt_busy_process_busy(struct msg ** pmsg, int is_req, DiamId_t sentto, size_t
 	
 	} else {
 		if (is_req) {
+			char *buf = NULL;
+			size_t len;
+
+			CHECK_MALLOC_DO( fd_msg_dump_full(&buf, &len, NULL, *pmsg, fd_g_config->cnf_dict, 0, 1), /* nothing */);
+			TRACE_ERROR( "No answer received for message from peer '%.*s' before timeout (%dms), giving up and sending error reply: %s", senttolen, sentto,
+				     rtbusy_conf.RelayTimeout, buf);
+			free(buf);
 			/* We must create an answer */
 			CHECK_FCT( fd_msg_new_answer_from_req ( fd_g_config->cnf_dict, pmsg, MSGFL_ANSW_ERROR ) );
 			

@@ -2,7 +2,7 @@
 * Software License Agreement (BSD License)                                                               *
 * Author: Thomas Klausner <tk@giga.or.at>                                                                *
 *                                                                                                        *
-* Copyright (c) 2013, 2014 Thomas Klausner                                                               *
+* Copyright (c) 2014 Thomas Klausner                                                                     *
 * All rights reserved.                                                                                   *
 *                                                                                                        *
 * Written under contract by nfotex IT GmbH, http://nfotex.com/                                           *
@@ -32,14 +32,20 @@
 #include <freeDiameter/extension.h>
 
 /*
- * Load balancing extension. Send request to least-loaded node.
+ * Load balancing extension. If there are multiple highest-rated hosts with the same score,
+ * randomly increase the score of one of them.
  */
 
-/* The callback for load balancing the requests across the peers */
-static int rt_load_balancing(void * cbdata, struct msg ** pmsg, struct fd_list * candidates)
+#include <stdlib.h>
+
+static int seed;
+
+static int rt_randomizing(void * cbdata, struct msg ** pmsg, struct fd_list * candidates)
 {
 	struct fd_list *lic;
 	struct msg * msg = *pmsg;
+	int max_score = -1;
+	int max_score_count = 0;
 	
 	TRACE_ENTRY("%p %p %p", cbdata, msg, candidates);
 	
@@ -49,42 +55,48 @@ static int rt_load_balancing(void * cbdata, struct msg ** pmsg, struct fd_list *
 	if (FD_IS_LIST_EMPTY(candidates))
 		return 0;
 
-	/* load balancing */
+	/* find out maximal score and how many candidates have it */
 	for (lic = candidates->next; lic != candidates; lic = lic->next) {
 		struct rtd_candidate * cand = (struct rtd_candidate *) lic;
-		struct peer_hdr *peer;
-		long to_receive, to_send, load;
-		int score;
-		CHECK_FCT(fd_peer_getbyid(cand->diamid, cand->diamidlen, 0, &peer));
-		CHECK_FCT(fd_peer_get_load_pending(peer, &to_receive, &to_send));
-                load = to_receive + to_send;
-		/* other routing mechanisms need to add to the
-		 * appropriate entries so their base value is high
-		 * enough that they are considered */
+		if (max_score < cand->score) {
+			max_score = cand->score;
+			max_score_count = 1;
+		}
+		else if (cand->score == max_score) {
+			max_score_count++;
+		}
+	}
 
-		/* logarithmic scaling */
-                int load_log = 0;
-                while (load > 0) {
-                    load_log++;
-                    load /= 2;
-                }
-		cand->score -= load_log;
-		TRACE_DEBUG(FULL, "evaluated peer `%.*s', score was %d, now %d", (int)cand->diamidlen, cand->diamid, score, cand->score);
+	/* if there is more than one with positive score, randomly increase one of their scores by one */
+	if (max_score >= 0 && max_score_count > 1) {
+		int lucky_candidate = rand_r(&seed) % max_score_count;
+		int i = 0;
+
+		for (lic = candidates->next; lic != candidates; lic = lic->next) {
+			struct rtd_candidate * cand = (struct rtd_candidate *) lic;
+			if (cand->score == max_score) {
+				if (i == lucky_candidate) {
+					cand->score++;
+					break;
+				}
+				i++;
+			}
+		}
 	}
 
 	return 0;
 }
 
 /* handler */
-static struct fd_rt_out_hdl * rt_load_balancing_hdl = NULL;
+static struct fd_rt_out_hdl * rt_randomizing_hdl = NULL;
 
 /* entry point */
-static int rt_load_balance_entry(char * conffile)
+static int rt_randomize_entry(char * conffile)
 {
 	/* Register the callback */
-	CHECK_FCT(fd_rt_out_register(rt_load_balancing, NULL, 10, &rt_load_balancing_hdl));
-
-	TRACE_DEBUG(INFO, "Extension 'Load Balancing' initialized");
+	CHECK_FCT(fd_rt_out_register(rt_randomizing, NULL, 4, &rt_randomizing_hdl));
+	seed = (int)time(NULL);
+	TRACE_DEBUG(INFO, "Extension 'Randomizing' initialized");
 	return 0;
 }
 
@@ -92,8 +104,8 @@ static int rt_load_balance_entry(char * conffile)
 void fd_ext_fini(void)
 {
 	/* Unregister the callbacks */
-	CHECK_FCT_DO(fd_rt_out_unregister(rt_load_balancing_hdl, NULL), /* continue */);
+	CHECK_FCT_DO(fd_rt_out_unregister(rt_randomizing_hdl, NULL), /* continue */);
 	return ;
 }
 
-EXTENSION_ENTRY("rt_load_balance", rt_load_balance_entry);
+EXTENSION_ENTRY("rt_randomize", rt_randomize_entry);
