@@ -1,6 +1,9 @@
 # The subproject name
 Project("freeDiameter core library" C)
 
+# Configuration for newer cmake
+cmake_policy(SET CMP0022 OLD)
+
 # Configuration parser
 BISON_FILE(fdd.y)
 FLEX_FILE(fdd.l)

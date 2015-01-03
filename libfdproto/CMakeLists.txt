@@ -1,6 +1,8 @@
 # Name of the subproject
 Project("libfdproto" C)
 
+# Configuration for newer cmake
+cmake_policy(SET CMP0022 OLD)
 
 # List of source files for the library
 SET(LFDPROTO_SRC

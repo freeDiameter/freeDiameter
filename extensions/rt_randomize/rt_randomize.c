@@ -38,7 +38,7 @@
 
 #include <stdlib.h>
 
-static int seed;
+static unsigned int seed;
 
 static int rt_randomizing(void * cbdata, struct msg ** pmsg, struct fd_list * candidates)
 {
@@ -95,7 +95,7 @@ static int rt_randomize_entry(char * conffile)
 {
 	/* Register the callback */
 	CHECK_FCT(fd_rt_out_register(rt_randomizing, NULL, 4, &rt_randomizing_hdl));
-	seed = (int)time(NULL);
+	seed = (unsigned int)time(NULL);
 	TRACE_DEBUG(INFO, "Extension 'Randomizing' initialized");
 	return 0;
 }

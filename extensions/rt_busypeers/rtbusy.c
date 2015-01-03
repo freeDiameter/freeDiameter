@@ -113,7 +113,7 @@ int rt_busy_process_busy(struct msg ** pmsg, int is_req, DiamId_t sentto, size_t
 			expire.tv_sec += rtbusy_conf.RelayTimeout/1000 + ((expire.tv_nsec + (1000000LL * (rtbusy_conf.RelayTimeout % 1000))) / 1000000000LL);
 			expire.tv_nsec = (expire.tv_nsec + (1000000LL * (rtbusy_conf.RelayTimeout % 1000))) % 1000000000LL;
 			CHECK_MALLOC_DO( fd_msg_dump_full(&buf, &len, NULL, *pmsg, fd_g_config->cnf_dict, 0, 1), /* nothing */);
-			TRACE_ERROR( "No answer received for message from peer '%.*s' before timeout (%dms), re-sending: %s", senttolen, sentto,
+			TRACE_ERROR( "No answer received for message from peer '%.*s' before timeout (%dms), re-sending: %s", (int)senttolen, sentto,
 				     rtbusy_conf.RelayTimeout, buf);
 			free(buf);
 			CHECK_FCT( fd_msg_send_timeout( pmsg, NULL, NULL, rtbusy_expirecb, &expire ) );
@@ -127,7 +127,7 @@ int rt_busy_process_busy(struct msg ** pmsg, int is_req, DiamId_t sentto, size_t
 			size_t len;
 
 			CHECK_MALLOC_DO( fd_msg_dump_full(&buf, &len, NULL, *pmsg, fd_g_config->cnf_dict, 0, 1), /* nothing */);
-			TRACE_ERROR( "No answer received for message from peer '%.*s' before timeout (%dms), giving up and sending error reply: %s", senttolen, sentto,
+			TRACE_ERROR( "No answer received for message from peer '%.*s' before timeout (%dms), giving up and sending error reply: %s", (int)senttolen, sentto,
 				     rtbusy_conf.RelayTimeout, buf);
 			free(buf);
 			/* We must create an answer */

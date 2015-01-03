@@ -202,7 +202,7 @@ DECLARE_FD_DUMP_PROTOTYPE(fd_dictfct_Address_dump, union avp_value * avp_value)
 			break;
 		case 8:
 			/* E.164 */
-			CHECK_MALLOC_DO( fd_dump_extend(FD_DUMP_STD_PARAMS, "%.*s", avp_value->os.len-2, avp_value->os.data+2), return NULL);
+			CHECK_MALLOC_DO( fd_dump_extend(FD_DUMP_STD_PARAMS, "%.*s", (int)(avp_value->os.len-2), avp_value->os.data+2), return NULL);
 			return *buf;
 		default:
 			CHECK_MALLOC_DO( fd_dump_extend(FD_DUMP_STD_PARAMS, "[unsupported family: 0x%hx]", fam), return NULL);

@@ -137,7 +137,7 @@ static int stow_destination_host(struct msg **msg) {
 			/* add Proxy-Info->{Proxy-Host, Proxy-State} using Destination-Host information */
 			CHECK_FCT(fd_msg_avp_new(ph_avp_do, 0, &ph_avp));
 			memset(&val, 0, sizeof(val));
-                        val.os.data = fd_g_config->cnf_diamid;
+                        val.os.data = (uint8_t *)(fd_g_config->cnf_diamid);
 			val.os.len = fd_g_config->cnf_diamid_len;
 			CHECK_FCT(fd_msg_avp_setvalue(ph_avp, &val));
 
