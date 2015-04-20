@@ -742,10 +742,17 @@ static int msg_rt_in(struct msg * msg)
 			return 0;
 		}
 
-		/* If the message is explicitely for someone else */
+		/* If the message is explicitly for someone else */
 		if ((is_dest_host == NO) || (is_dest_realm == NO)) {
 			if (fd_g_config->cnf_flags.no_fwd) {
-				fd_hook_call(HOOK_MESSAGE_ROUTING_ERROR, msgptr, NULL, "Message for another realm/host", fd_msg_pmdl_get(msgptr));
+				char * error;
+				if (is_dest_host == NO) {
+					error = "Message for another host";
+				}
+				else if (is_dest_realm == NO) {
+					error = "Message for another realm";
+				}
+				fd_hook_call(HOOK_MESSAGE_ROUTING_ERROR, msgptr, NULL, error, fd_msg_pmdl_get(msgptr));
 				CHECK_FCT( return_error( &msgptr, "DIAMETER_UNABLE_TO_DELIVER", "I am not a Diameter agent", NULL) );
 				return 0;
 			}
