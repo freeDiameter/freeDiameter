@@ -40,6 +40,15 @@ SET(INSTALL_EXTENSIONS_SUFFIX 	${LIB_INSTALL_DIR}/freeDiameter	CACHE PATH "Direc
 # All source code should be POSIX 200112L compatible, but some other extensions might be used, so:
 ADD_DEFINITIONS(-D_GNU_SOURCE)
 
+# Set a default build type if none was specified
+if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
+  message(STATUS "Setting build type to 'Debug' as none was specified.")
+  set(CMAKE_BUILD_TYPE Debug CACHE STRING "Choose the type of build." FORCE)
+  # Set the possible values of build type for cmake-gui
+  set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS "Debug" "Release"
+    "MinSizeRel" "RelWithDebInfo" "Profiling" "MaxPerformance" "DebianPackage" "DebugValgrind")
+endif()
+
 # Add a "Profiling" build type
 # SET(CMAKE_BUILD_TYPE Profiling)
 SET(CMAKE_C_FLAGS_PROFILING "-fprofile-arcs -ftest-coverage -fstack-protector -g -Wall")
