@@ -44,6 +44,8 @@ FROM SOURCES
    Notes:
     * GNU IDN (libidn) is optional, see below
     * When libusrsctp package is available, you can use it as well.
+        However, it requires some rework on the source code as libusrsctp is not fully
+        compliant with the other SCTP stack.
 
 3) Retrieve source code:
     $ hg clone http://www.freediameter.net/hg/freeDiameter
