@@ -70,7 +70,7 @@ ENDIF (NOT HAVE_GETIFADDRS)
 TEST_BIG_ENDIAN(HOST_BIG_ENDIAN)
 
 # Check if ntohll is provided on the system
-CHECK_SYMBOL_EXISTS(ntohll "" HAVE_NTOHLL)
+CHECK_SYMBOL_EXISTS(ntohll netinet/in.h HAVE_NTOHLL)
 
 # malloc.h ?
 CHECK_INCLUDE_FILES (malloc.h HAVE_MALLOC_H)
