@@ -36,16 +36,66 @@
 /* Create and send a message, and receive it */
 
 #include "test_app.h"
-
-#include <semaphore.h>
 #include <stdio.h>
+
+#ifndef __APPLE__ /* they deprecated the semaphore there... */
+#include <semaphore.h>
+
+#define my_sem_t sem_t
+#define my_sem_init sem_init
+#define my_sem_destroy sem_detroy
+#define my_sem_timedwait sem_timedwait
+#define my_sem_post sem_post
+
+#else // on APPLE
+#include <sched.h>
+#include <dispatch/dispatch.h>
+
+#define my_sem_t dispatch_semaphore_t
+
+static int my_sem_init(my_sem_t * s, int pshared, unsigned int value ) {
+	*s = dispatch_semaphore_create(value);
+	if (*s == NULL)
+		return ENOMEM;
+	return 0;
+}
+
+static int my_sem_destroy(my_sem_t *s) {
+	dispatch_release(*s);
+	*s = NULL;
+	return 0;
+}
+
+static int my_sem_timedwait(my_sem_t * s, struct timespec *ts) {
+	struct timespec tsn;
+	int64_t nsec;
+	dispatch_time_t when;
+	
+	CHECK_SYS( clock_gettime(CLOCK_REALTIME, &tsn) );
+	
+	nsec = (ts->tv_sec * 1000000000) + ts->tv_nsec
+		- (tsn.tv_sec * 1000000000) - tsn.tv_nsec;
+	
+	when = dispatch_time (  DISPATCH_TIME_NOW, nsec );
+	
+	return dispatch_semaphore_wait ( *s, when ) ? ETIMEDOUT : 0;
+}
+
+static int my_sem_post(my_sem_t *s) {
+	dispatch_semaphore_signal(*s);
+	return 0;
+}
+
+#endif // APPLE
+
+
 
 struct ta_mess_info {
 	int32_t		randval;	/* a random value to store in Test-AVP */
 	struct timespec ts;		/* Time of sending the message */
 };
 
-static sem_t ta_sem; /* To handle the concurrency */
+static my_sem_t ta_sem; /* To handle the concurrency */
 
 /* Cb called when an answer is received */
 static void ta_cb_ans(void * data, struct msg ** msg)
@@ -109,7 +159,7 @@ end:
 	free(mi);
 	
 	/* Post the semaphore */
-	CHECK_SYS_DO( sem_post(&ta_sem), );
+	CHECK_SYS_DO( my_sem_post(&ta_sem), );
 	
 	return;
 }
@@ -213,7 +263,7 @@ static void ta_bench_start() {
 	/* Now loop until timeout is reached */
 	do {
 		/* Do not create more that NB_CONCURRENT_MESSAGES in paralel */
-		int ret = sem_timedwait(&ta_sem, &end_time);
+		int ret = my_sem_timedwait(&ta_sem, &end_time);
 		if (ret == -1) {
 			ret = errno;
 			if (ret != ETIMEDOUT) {
@@ -269,7 +319,7 @@ static void ta_bench_start() {
 
 int ta_bench_init(void)
 {
-	CHECK_SYS( sem_init( &ta_sem, 0, ta_conf->bench_concur) );
+	CHECK_SYS( my_sem_init( &ta_sem, 0, ta_conf->bench_concur) );
 
 	CHECK_FCT( fd_event_trig_regcb(ta_conf->signal, "test_app.bench", ta_bench_start ) );
 	
@@ -280,7 +330,7 @@ void ta_bench_fini(void)
 {
 	// CHECK_FCT_DO( fd_sig_unregister(ta_conf->signal), /* continue */ );
 	
-	CHECK_SYS_DO( sem_destroy(&ta_sem), );
+	CHECK_SYS_DO( my_sem_destroy(&ta_sem), );
 	
 	return;
 };
