@@ -43,7 +43,7 @@
 
 #define my_sem_t sem_t
 #define my_sem_init sem_init
-#define my_sem_destroy sem_detroy
+#define my_sem_destroy sem_destroy
 #define my_sem_timedwait sem_timedwait
 #define my_sem_post sem_post
 
