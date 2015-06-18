@@ -53,7 +53,7 @@ extern "C" {
 
 #cmakedefine DISABLE_SCTP
 #cmakedefine DEBUG_SCTP
-#cmakedefine DEBUG_WITHOUT_META
+#cmakedefine DEBUG_WITH_META
 #cmakedefine SCTP_USE_MAPPED_ADDRESSES
 #cmakedefine SCTP_CONNECTX_4_ARGS
 #cmakedefine SKIP_DLCLOSE

@@ -95,11 +95,11 @@ static void fd_internal_logger( int printlevel, const char *format, va_list ap )
 
     /* add timestamp */
     printf("%s  ", fd_log_time(NULL, buf, sizeof(buf), 
-#if (defined(DEBUG) && !defined(DEBUG_WITHOUT_META))
+#if (defined(DEBUG) && defined(DEBUG_WITH_META))
     	1, 1
-#else /* (defined(DEBUG) && !defined(DEBUG_WITHOUT_META)) */
+#else /* (defined(DEBUG) && defined(DEBUG_WITH_META)) */
         0, 0
-#endif /* (defined(DEBUG) && !defined(DEBUG_WITHOUT_META)) */
+#endif /* (defined(DEBUG) && defined(DEBUG_WITH_META)) */
 	    ));
     /* Use colors on stdout ? */
     if (!use_colors) {
