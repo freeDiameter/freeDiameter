@@ -1,12 +1,12 @@
-freediameter (1.2.1) UNRELEASED; urgency=medium
+freediameter (1.2.1) UNRELEASED; urgency=low
 
   * New extension: rt_randomize (load-balancing on possible destinations)
   * New contrib: Gx extension.
-  * rt_redirect.fdx improvement: use a hash table. Thanks Thomas.
+  * rt_redirect.fdx and rt_load_balance.fdx improvement: use a hash table. Thanks Thomas.
   * Simplified log output. Old output can be recovered with DEBUG_WITH_META build option.
-  * Improvements on internal counters.
+  * Updated the internal counters for finer control on the load.
   * Fixes in message expiry mechanism.
-  * Improvements on error messages format.
+  * Bug fixes in error messages generation.
   * Improvements on shutdown sequence handling.
   * Improvements to the dict_dcca_* extensions.
   * Improved default CMake configuration.
