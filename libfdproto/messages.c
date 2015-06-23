@@ -231,7 +231,7 @@ int fd_msg_avp_new ( struct dict_object * model, int flags, struct avp ** avp )
 	if (model) {
 		struct dict_avp_data dictdata;
 		
-		CHECK_FCT(  fd_dict_getval(model, &dictdata)  );
+		CHECK_FCT_DO(  fd_dict_getval(model, &dictdata), { free(new); return __ret__; }  );
 	
 		new->avp_model = model;
 		new->avp_public.avp_code    = dictdata.avp_code;
@@ -247,7 +247,7 @@ int fd_msg_avp_new ( struct dict_object * model, int flags, struct avp ** avp )
 	if (flags & AVPFL_SET_RAWDATA_FROM_AVP) {
 		new->avp_rawlen = (*avp)->avp_public.avp_len - GETAVPHDRSZ( (*avp)->avp_public.avp_flags );
 		if (new->avp_rawlen) {
-			CHECK_MALLOC(  new->avp_rawdata = malloc(new->avp_rawlen)  );
+			CHECK_MALLOC_DO(  new->avp_rawdata = malloc(new->avp_rawlen), { free(new); return __ret__; }  );
 			memset(new->avp_rawdata, 0x00, new->avp_rawlen);
 		}
 	}
@@ -285,18 +285,18 @@ int fd_msg_new ( struct dict_object * model, int flags, struct msg ** msg )
 		struct dict_cmd_data     dictdata;
 		struct dict_object     	*dictappl;
 		
-		CHECK_FCT( fd_dict_getdict(model, &dict) );
-		CHECK_FCT( fd_dict_getval(model, &dictdata)  );
+		CHECK_FCT_DO( fd_dict_getdict(model, &dict), { free(new); return __ret__; } );
+		CHECK_FCT_DO( fd_dict_getval(model, &dictdata), { free(new); return __ret__; }  );
 		
 		new->msg_model = model;
 		new->msg_public.msg_flags	= dictdata.cmd_flag_val;
 		new->msg_public.msg_code	= dictdata.cmd_code;
 
 		/* Initialize application from the parent, if any */
-		CHECK_FCT(  fd_dict_search( dict, DICT_APPLICATION, APPLICATION_OF_COMMAND, model, &dictappl, 0)  );
+		CHECK_FCT_DO(  fd_dict_search( dict, DICT_APPLICATION, APPLICATION_OF_COMMAND, model, &dictappl, 0), { free(new); return __ret__; }  );
 		if (dictappl != NULL) {
 			struct dict_application_data appdata;
-			CHECK_FCT(  fd_dict_getval(dictappl, &appdata)  );
+			CHECK_FCT_DO(  fd_dict_getval(dictappl, &appdata), { free(new); return __ret__; }  );
 			new->msg_public.msg_appl = appdata.application_id;
 		}
 	}
@@ -364,16 +364,16 @@ int fd_msg_new_answer_from_req ( struct dictionary * dict, struct msg ** msg, in
 		union avp_value val;
 		
 		if (!sess_id_avp) {
-			CHECK_FCT( fd_dict_search( dict, DICT_AVP, AVP_BY_NAME, "Session-Id", &sess_id_avp, ENOENT) );
+			CHECK_FCT_DO( fd_dict_search( dict, DICT_AVP, AVP_BY_NAME, "Session-Id", &sess_id_avp, ENOENT), { free(ans); return __ret__; } );
 		}
-		CHECK_FCT( fd_sess_getsid ( sess, &sid, &sidlen ) );
-		CHECK_FCT( fd_msg_avp_new ( sess_id_avp, 0, &avp ) );
+		CHECK_FCT_DO( fd_sess_getsid ( sess, &sid, &sidlen ), { free(ans); return __ret__; } );
+		CHECK_FCT_DO( fd_msg_avp_new ( sess_id_avp, 0, &avp ), { free(ans); return __ret__; } );
 		val.os.data = sid;
 		val.os.len  = sidlen;
-		CHECK_FCT( fd_msg_avp_setvalue( avp, &val ) );
-		CHECK_FCT( fd_msg_avp_add( ans, MSG_BRW_FIRST_CHILD, avp ) );
+		CHECK_FCT_DO( fd_msg_avp_setvalue( avp, &val ), { free(avp); free(ans); return __ret__; } );
+		CHECK_FCT_DO( fd_msg_avp_add( ans, MSG_BRW_FIRST_CHILD, avp ), { free(avp); free(ans); return __ret__; } );
 		ans->msg_sess = sess;
-		CHECK_FCT( fd_sess_ref_msg(sess) );
+		CHECK_FCT_DO( fd_sess_ref_msg(sess), { free(ans); return __ret__; }  );
 	}
 	
 	/* Add all Proxy-Info AVPs from the query if any */
@@ -382,7 +382,7 @@ int fd_msg_new_answer_from_req ( struct dictionary * dict, struct msg ** msg, in
 		struct fd_pei pei;
 		struct fd_list avpcpylist = FD_LIST_INITIALIZER(avpcpylist);
 		
-		CHECK_FCT(  fd_msg_browse(qry, MSG_BRW_FIRST_CHILD, &avp, NULL)  );
+		CHECK_FCT_DO(  fd_msg_browse(qry, MSG_BRW_FIRST_CHILD, &avp, NULL) , { free(ans); return __ret__; } );
 		while (avp) {
 			if ( (avp->avp_public.avp_code   == AC_PROXY_INFO)
 			  && (avp->avp_public.avp_vendor == 0) ) {
@@ -393,15 +393,15 @@ int fd_msg_new_answer_from_req ( struct dictionary * dict, struct msg ** msg, in
 				size_t offset = 0;
 
 				/* Create a buffer with the content of the AVP. This is easier than going through the list */
-				CHECK_FCT(  fd_msg_update_length(avp)  );
-				CHECK_MALLOC(  buf = malloc(avp->avp_public.avp_len)  );
-				CHECK_FCT( bufferize_avp(buf, avp->avp_public.avp_len, &offset, avp)  );
+				CHECK_FCT_DO(  fd_msg_update_length(avp), { free(ans); return __ret__; }  );
+				CHECK_MALLOC_DO(  buf = malloc(avp->avp_public.avp_len), { free(ans); return __ret__; }  );
+				CHECK_FCT_DO( bufferize_avp(buf, avp->avp_public.avp_len, &offset, avp), { free(buf); free(ans); return __ret__; }  );
 
 				/* Now we parse this buffer to create a copy AVP */
-				CHECK_FCT( parsebuf_list(buf, avp->avp_public.avp_len, &avpcpylist) );
+				CHECK_FCT_DO( parsebuf_list(buf, avp->avp_public.avp_len, &avpcpylist), { free(buf); free(ans); return __ret__; } );
 				
 				/* Parse dictionary objects now to remove the dependency on the buffer */
-				CHECK_FCT( parsedict_do_chain(dict, &avpcpylist, 0, &pei) );
+				CHECK_FCT_DO( parsedict_do_chain(dict, &avpcpylist, 0, &pei), { /* leaking the avpcpylist -- this should never happen anyway */ free(buf); free(ans); return __ret__; } );
 
 				/* Done for this AVP */
 				free(buf);
@@ -410,7 +410,7 @@ int fd_msg_new_answer_from_req ( struct dictionary * dict, struct msg ** msg, in
 				fd_list_move_end(&ans->msg_chain.children, &avpcpylist);
 			}
 			/* move to next AVP in the message, we can have several Proxy-Info instances */
-			CHECK_FCT( fd_msg_browse(avp, MSG_BRW_NEXT, &avp, NULL) );
+			CHECK_FCT_DO( fd_msg_browse(avp, MSG_BRW_NEXT, &avp, NULL), { free(ans); return __ret__; } );
 		}
 	}
 
