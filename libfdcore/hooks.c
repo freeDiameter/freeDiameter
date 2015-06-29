@@ -359,7 +359,7 @@ void   fd_hook_call(enum fd_hook_type type, struct msg * msg, struct fd_peer * p
 			case HOOK_MESSAGE_PARSING_ERROR: {
 				if (msg) {
 					DiamId_t id = NULL;
-					if (!fd_msg_source_get( msg, &id, NULL ))
+					if (fd_msg_source_get( msg, &id, NULL ))
 						id = (DiamId_t)"<error getting source>";
 					
 					if (!id)

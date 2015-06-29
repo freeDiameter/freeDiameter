@@ -92,7 +92,7 @@ static void md_hook_cb_tree(enum fd_hook_type type, struct msg * msg, struct pee
 	case HOOK_MESSAGE_PARSING_ERROR:
 		if (msg) {
 			DiamId_t id = NULL;
-			if (!fd_msg_source_get( msg, &id, NULL ))
+			if (fd_msg_source_get( msg, &id, NULL ))
 				id = (DiamId_t)"<error getting source>";
 			if (!id)
 				id = (DiamId_t)"<local>";
@@ -182,7 +182,7 @@ static void md_hook_cb_full(enum fd_hook_type type, struct msg * msg, struct pee
 	case HOOK_MESSAGE_PARSING_ERROR:
 		if (msg) {
 			DiamId_t id = NULL;
-			if (!fd_msg_source_get( msg, &id, NULL ))
+			if (fd_msg_source_get( msg, &id, NULL ))
 				id = (DiamId_t)"<error getting source>";
 			if (!id)
 				id = (DiamId_t)"<local>";
@@ -261,7 +261,7 @@ static void md_hook_cb_compact(enum fd_hook_type type, struct msg * msg, struct 
 	case HOOK_MESSAGE_PARSING_ERROR:
 		if (msg) {
 			DiamId_t id = NULL;
-			if (!fd_msg_source_get( msg, &id, NULL ))
+			if (fd_msg_source_get( msg, &id, NULL ))
 				id = (DiamId_t)"<error getting source>";
 			if (!id)
 				id = (DiamId_t)"<local>";
