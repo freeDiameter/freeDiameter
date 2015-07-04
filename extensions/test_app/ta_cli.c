@@ -70,7 +70,6 @@ static void ta_cb_ans(void * data, struct msg ** msg)
 		ASSERT( new == 0 );
 		
 		CHECK_FCT_DO( fd_sess_state_retrieve( ta_cli_reg, sess, &mi ), return );
-		TRACE_DEBUG( INFO, "%p %p", mi, data);
 		ASSERT( (void *)mi == data );
 	}
 	

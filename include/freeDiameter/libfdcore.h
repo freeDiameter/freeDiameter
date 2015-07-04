@@ -964,6 +964,16 @@ enum fd_hook_type {
 		 - {permsgdata} points to a new empty structure allocated for this request (cf. fd_hook_data_hdl)
 		 */
 	
+	HOOK_MESSAGE_SENDING,
+		/* Hook called when a message is about to be sent to a peer. The message pointer cannot be modified here, but the content of the message
+		  could still be changed (for example add or remove some AVP. This is the last chance.
+		 - {msg} points to the message. Some objects may not have been dictionary resolved. If you
+		   try to call fd_msg_parse_dict, it will slow down the operation of the instance.
+		 - {peer} is the one the message is being sent to.
+		 - {other} is NULL.
+		 - {permsgdata} points to existing structure if any, or a new structure otherwise. 
+		 */
+	
 	HOOK_MESSAGE_SENT,
 		/* Hook called when a message has been sent to a peer. The message might be freed as soon as the hook function returns,
 		   so it is not safe to store the pointer for asynchronous processing.

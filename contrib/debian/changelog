@@ -3,6 +3,8 @@ freediameter (1.2.1) UNRELEASED; urgency=low
   * New extension: rt_randomize (load-balancing on possible destinations)
   * New contrib: Gx extension.
   * rt_redirect.fdx and rt_load_balance.fdx improvement: use a hash table. Thanks Thomas.
+  * New hook HOOK_MESSAGE_SENDING to give a last chance to edit messages before they are sent.
+    This will be mostly used for enforcing interoperability constraints on non-compliant peers.
   * Simplified log output. Old output can be recovered with DEBUG_WITH_META build option.
   * Updated the internal counters for finer control on the load.
   * Fixes in message expiry mechanism.

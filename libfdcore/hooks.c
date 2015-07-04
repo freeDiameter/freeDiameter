@@ -344,6 +344,11 @@ void   fd_hook_call(enum fd_hook_type type, struct msg * msg, struct fd_peer * p
 				break;
 			}
 			
+			case HOOK_MESSAGE_SENDING: {
+				LOG_A("SENDING message to '%s'", peer ? peer->p_hdr.info.pi_diamid : "<unknown>");
+				break;
+			}
+			
 			case HOOK_MESSAGE_SENT: {
 				CHECK_MALLOC_DO(fd_msg_dump_summary(&hook_default_buf, &hook_default_len, NULL, msg, NULL, 0, 1), break);
 				LOG_D("SENT to '%s': %s", peer ? peer->p_hdr.info.pi_diamid : "<unknown>", hook_default_buf);

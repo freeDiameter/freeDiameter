@@ -165,6 +165,8 @@ int fd_out_send(struct msg ** msg, struct cnxctx * cnx, struct fd_peer * peer, i
 	
 	TRACE_ENTRY("%p %p %p", msg, cnx, peer);
 	CHECK_PARAMS( msg && *msg && (cnx || (peer && peer->p_cnxctx)));
+
+	fd_hook_call(HOOK_MESSAGE_SENDING, *msg, peer, NULL, fd_msg_pmdl_get(*msg));
 	
 	if (update_reqin_cnt && peer) {
 		CHECK_FCT( fd_msg_hdr(*msg, &hdr) );
