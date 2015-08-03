@@ -416,36 +416,50 @@ int fd_peer_fini()
 		CHECK_FCT_DO( pthread_rwlock_unlock(&fd_g_peers_rw), /* continue */ );
 		CHECK_SYS(  clock_gettime(CLOCK_REALTIME, &now)  );
 	}
-	
-	if (!list_empty) {
-		TRACE_DEBUG(INFO, "Forcing connections shutdown");
-		CHECK_FCT_DO( pthread_rwlock_wrlock(&fd_g_peers_rw), /* continue */ );
-		while (!FD_IS_LIST_EMPTY(&fd_g_peers)) {
-			struct fd_peer * peer = (struct fd_peer *)(fd_g_peers.next->o);
-			fd_psm_abord(peer);
-			fd_list_unlink(&peer->p_hdr.chain);
-			fd_list_insert_before(&purge, &peer->p_hdr.chain);
-		}
-		CHECK_FCT_DO( pthread_rwlock_unlock(&fd_g_peers_rw), /* continue */ );
-	}
-	
-	/* Free memory objects of all peers */
-	while (!FD_IS_LIST_EMPTY(&purge)) {
-		struct fd_peer * peer = (struct fd_peer *)(purge.next->o);
-		fd_list_unlink(&peer->p_hdr.chain);
-		fd_peer_free(&peer);
-	}
-	
-	/* Now empty the validators list */
-	CHECK_FCT_DO( pthread_rwlock_wrlock(&validators_rw), /* continue */ );
-	while (!FD_IS_LIST_EMPTY( &validators )) {
-		struct fd_list * v = validators.next;
-		fd_list_unlink(v);
-		free(v);
-	}
-	CHECK_FCT_DO( pthread_rwlock_unlock(&validators_rw), /* continue */ );
+
+        fd_peer_fini_force();
+
+        /* Free memory objects of all peers */
+        while (!FD_IS_LIST_EMPTY(&purge)) {
+                struct fd_peer * peer = (struct fd_peer *)(purge.next->o);
+                fd_list_unlink(&peer->p_hdr.chain);
+                fd_peer_free(&peer);
+        }
+
+        /* Now empty the validators list */
+        CHECK_FCT_DO( pthread_rwlock_wrlock(&validators_rw), /* continue */ );
+        while (!FD_IS_LIST_EMPTY( &validators )) {
+                struct fd_list * v = validators.next;
+                fd_list_unlink(v);
+                free(v);
+        }
+        CHECK_FCT_DO( pthread_rwlock_unlock(&validators_rw), /* continue */ );
 	
 	return 0;
+}
+
+/* Terminate peer module (destroy all peers forcibly) */
+int fd_peer_fini_force()
+{
+        struct fd_list * li;
+        struct fd_list purge = FD_LIST_INITIALIZER(purge); /* Store zombie peers here */
+        int list_empty;
+
+        CHECK_FCT_DO( pthread_rwlock_wrlock(&fd_g_peers_rw), /* continue */ );
+        list_empty = FD_IS_LIST_EMPTY(&fd_g_peers);
+        CHECK_FCT_DO( pthread_rwlock_unlock(&fd_g_peers_rw), /* continue */ );
+
+        if (!list_empty) {
+                TRACE_DEBUG(INFO, "Forcing connections shutdown");
+                CHECK_FCT_DO( pthread_rwlock_wrlock(&fd_g_peers_rw), /* continue */ );
+                while (!FD_IS_LIST_EMPTY(&fd_g_peers)) {
+                        struct fd_peer * peer = (struct fd_peer *)(fd_g_peers.next->o);
+                        fd_psm_abord(peer);
+                        fd_list_unlink(&peer->p_hdr.chain);
+                        fd_list_insert_before(&purge, &peer->p_hdr.chain);
+                }
+                CHECK_FCT_DO( pthread_rwlock_unlock(&fd_g_peers_rw), /* continue */ );
+        }
 }
 
 /* Dump info of one peer */

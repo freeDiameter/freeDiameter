@@ -287,6 +287,7 @@ void fd_peer_failover_msg(struct fd_peer * peer);
 /* Peer expiry */
 int fd_p_expi_init(void);
 int fd_p_expi_fini(void);
+int fd_p_expi_fini_force(void);
 int fd_p_expi_update(struct fd_peer * peer );
 
 /* Peer state machine */
