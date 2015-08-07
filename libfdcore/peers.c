@@ -460,6 +460,13 @@ int fd_peer_fini_force()
                 }
                 CHECK_FCT_DO( pthread_rwlock_unlock(&fd_g_peers_rw), /* continue */ );
         }
+
+        /* Free memory objects of all peers */
+        while (!FD_IS_LIST_EMPTY(&purge)) {
+                struct fd_peer * peer = (struct fd_peer *)(purge.next->o);
+                fd_list_unlink(&peer->p_hdr.chain);
+                fd_peer_free(&peer);
+        }
 }
 
 /* Dump info of one peer */
