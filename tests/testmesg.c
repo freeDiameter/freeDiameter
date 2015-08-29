@@ -308,6 +308,15 @@ int main(int argc, char *argv[])
 			fd_log_debug("%s", fd_dict_dump_object(FD_DUMP_TEST_PARAMS, gavp));
 			#endif
 		}
+
+		{ 
+			struct dict_object  * type = NULL;
+			struct dict_type_data type_data = { AVP_TYPE_OCTETSTRING, "OS test2", NULL, NULL, NULL, fd_dictfct_CharInOS_check, "@." };
+			struct dict_avp_data  avp_data = { 73575, 73565, "AVP Test - os2", AVP_FLAG_VENDOR, AVP_FLAG_VENDOR, AVP_TYPE_OCTETSTRING };
+			CHECK( 0, fd_dict_new ( fd_g_config->cnf_dict, DICT_TYPE, &type_data , NULL, &type ) );
+			CHECK( 0, fd_dict_new ( fd_g_config->cnf_dict, DICT_AVP, &avp_data , type, NULL ) );
+		}
+		
 		#if 0
 		{
 			fd_log_debug("%s", fd_dict_dump_object(FD_DUMP_TEST_PARAMS, vendor));
@@ -752,6 +761,48 @@ int main(int argc, char *argv[])
 				
 				/* reset */
 				CHECK( 0, fd_msg_free ( msg ) );
+			}
+			
+			/* Test with a type verifier */
+			{
+				struct fd_pei error_info;
+				CPYBUF();
+				buf_cpy[103] = 0x67;	/* Replaced AVP code = 0x00011F67, OS test2 type in the dictionary */
+				
+				/* Check that we cannot support this message now */
+				CHECK( 0, fd_msg_parse_buffer( &buf_cpy, 344, &msg) );
+				CHECK( EBADMSG, fd_msg_parse_dict( msg, fd_g_config->cnf_dict, NULL ) );
+				
+				/* reset */
+				CHECK( 0, fd_msg_free ( msg ) );
+
+				CPYBUF();
+				buf_cpy[103] = 0x67;	/* Replaced AVP code = 0x00011F67, OS test2 type in the dictionary */
+				
+				/* Check error reporting works */
+				CHECK( 0, fd_msg_parse_buffer( &buf_cpy, 344, &msg) );
+				CHECK( EBADMSG, fd_msg_parse_dict( msg, fd_g_config->cnf_dict, &error_info ) );
+				
+				#if 1
+				fd_log_debug("Error reported: %s\n in AVP: %s", error_info.pei_message, fd_msg_dump_treeview(FD_DUMP_TEST_PARAMS, error_info.pei_avp, fd_g_config->cnf_dict, 0, 1));
+				#endif
+				
+				/* reset */
+				CHECK( 0, fd_msg_free ( msg ) );
+				
+				CPYBUF();
+				buf_cpy[103] = 0x67;	/* Replaced AVP code = 0x00011F67, OS test2 type in the dictionary */
+				buf_cpy[130] = '@';
+				buf_cpy[140] = '.';     /* now we comply to the constraints */
+				
+				/* Check that we cannot support this message now */
+				CHECK( 0, fd_msg_parse_buffer( &buf_cpy, 344, &msg) );
+				CHECK( 0, fd_msg_parse_dict( msg, fd_g_config->cnf_dict, NULL ) );
+				
+				/* reset */
+				CHECK( 0, fd_msg_free ( msg ) );
+				
+				
 			}
 			
 			{
@@ -1398,7 +1449,6 @@ int main(int argc, char *argv[])
 		}
 	}
 	
-
 	/* That's all for the tests yet */
 	PASSTEST();
 } 

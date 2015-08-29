@@ -2036,6 +2036,8 @@ static char error_message[256];
 static int parsedict_do_avp(struct dictionary * dict, struct avp * avp, int mandatory, struct fd_pei *error_info)
 {
 	struct dict_avp_data dictdata;
+	struct dict_type_data derivedtypedata;
+	struct dict_object * avp_derived_type = NULL;
 	uint8_t * source;
 	
 	TRACE_ENTRY("%p %p %d %p", dict, avp, mandatory, error_info);
@@ -2216,6 +2218,33 @@ static int parsedict_do_avp(struct dictionary * dict, struct avp * avp, int mand
 			}
 			break;
 	
+	}
+	
+	/* Is there a derived type check function ? */
+	CHECK_FCT ( fd_dict_search ( dict, DICT_TYPE, TYPE_OF_AVP, avp->avp_model, &avp_derived_type, 0) );
+	if (avp_derived_type) {
+		CHECK_FCT(  fd_dict_getval(avp_derived_type, &derivedtypedata)  );
+		if (derivedtypedata.type_check != NULL) {
+			char * err;
+			int ret = (*derivedtypedata.type_check)( derivedtypedata.type_check_param, &avp->avp_storage, &err );
+
+			if (ret != 0) {
+				TRACE_DEBUG(INFO, "The AVP failed to pass the dictionary validation");
+				if (error_info) {				
+						error_info->pei_errcode = "DIAMETER_INVALID_AVP_VALUE";
+						error_info->pei_avp = avp;
+						strncpy(error_message, err, sizeof(error_message));
+						error_info->pei_message = error_message;
+				} else {
+					char * buf = NULL;
+					size_t buflen;
+					CHECK_MALLOC(fd_msg_dump_treeview(&buf, &buflen, NULL, avp, NULL, 0, 0));
+					LOG_E("Invalid AVP: %s", buf);
+					free(buf);
+				}
+				return ret; /* should we just return EBADMSG? */
+			}
+		}
 	}
 	
 	/* The value is now set, so set the data pointer and return 0 */

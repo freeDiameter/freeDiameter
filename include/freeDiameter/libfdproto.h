@@ -1258,6 +1258,28 @@ typedef int (*dict_avpdata_interpret) (union avp_value * value, void * interpret
  */
 typedef int (*dict_avpdata_encode) (void * data, union avp_value * val);
 
+/*
+ * CALLBACK:	dict_avpdata_check
+ *
+ * PARAMETERS:
+ *   val	: Pointer to the AVP value that was received and needs to be sanity checked.
+ *   data      : a parameter stored in the type structure (to enable more generic check functions)
+ *   error_msg: upon erroneous value, a string describing the error can be returned here (it will be strcpy by caller). This description will be returned in the error message, if any. 
+ *
+ * DESCRIPTION: 
+ *   This callback can be provided with a derived type in order to improve the operation of the
+ *  fd_msg_parse_dict function. When this callback is present, the value of the AVP that has
+ * been parsed is passed to this function for finer granularity check. For example for some 
+ * speccific AVP, the format of an OCTETSTRING value can be further checked, or the
+ * interger value can be verified.
+ *
+ * RETURN VALUE:
+ *  0      	: The value is valid.
+ *  !0          : An error occurred, the error code is returned. It is advised to return EINVAL on incorrect val
+ */
+typedef int (*dict_avpdata_check) (void * data, union avp_value * val, char ** error_msg);
+
+
 
 /* Type to hold data associated to a derived AVP data type */
 struct dict_type_data {
@@ -1266,6 +1288,8 @@ struct dict_type_data {
 	dict_avpdata_interpret	 type_interpret;/* cb to convert the AVP value in more comprehensive format (or NULL) */
 	dict_avpdata_encode	 type_encode;	/* cb to convert formatted data into an AVP value (or NULL) */
 	DECLARE_FD_DUMP_PROTOTYPE((*type_dump), union avp_value * val); /* cb called by fd_msg_dump_* for this type of data (if != NULL). Returned string must be freed.  */
+	dict_avpdata_check       type_check;
+	void  *                          type_check_param;
 };
 
 /* The criteria for searching a type object in the dictionary */
@@ -1292,6 +1316,9 @@ int fd_dictfct_Time_encode(void * data, union avp_value * avp_value);
 int fd_dictfct_Time_interpret(union avp_value * avp_value, void * interpreted);
 DECLARE_FD_DUMP_PROTOTYPE(fd_dictfct_Time_dump, union avp_value * avp_value);
 
+
+/* For string AVP, the following type_check function provides simple basic check for specific characters presence, e.g. use "@." for trivial email address check */
+int fd_dictfct_CharInOS_check(void * data, union avp_value * val, char ** error_msg);
 
 
 /****/

@@ -358,3 +358,30 @@ DECLARE_FD_DUMP_PROTOTYPE(fd_dictfct_Time_dump, union avp_value * avp_value)
 	return *buf;
 }
 
+/* Check that a given AVP value contains all the characters from data in the same order */
+static char error_message[80];
+int fd_dictfct_CharInOS_check(void * data, union avp_value * val, char ** error_msg)
+{
+	char * inChar = data;
+	char * inData = (char *)val->os.data;
+	int i = 0;
+	CHECK_PARAMS(data);
+	while (*inChar != '\0') {
+		while (i < val->os.len) {
+			if (*inChar == inData[i++]) {
+				inChar++;
+				break;
+			}
+		}
+		if (i >= val->os.len)
+			break;
+	}
+	if (*inChar == '\0')
+		return 0;
+	
+	if (error_msg) {
+		snprintf(error_message, sizeof(error_message), "Could not find '%c' in AVP", *inChar);
+		*error_msg = error_message;
+	}
+	return EBADMSG;
+}
