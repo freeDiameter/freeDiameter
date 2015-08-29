@@ -453,6 +453,7 @@ static int msg_dispatch(struct msg * msg)
 				fd_msg_free(msgptr);
 			} else {
 				if (!msgptr) {
+					fd_hook_call(HOOK_MESSAGE_PARSING_ERROR2, error, NULL, NULL, fd_msg_pmdl_get(error));
 					/* error now contains the answer message to send back */
 					CHECK_FCT( fd_fifo_post(fd_g_outgoing, &error) );
 				} else if (!error) {

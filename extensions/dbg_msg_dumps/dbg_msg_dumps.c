@@ -104,6 +104,10 @@ static void md_hook_cb_tree(enum fd_hook_type type, struct msg * msg, struct pee
 			LOG_E("PARSING ERROR: %zdB msg from '%s': %s", rcv_data->length, peer_name, buf);
 		}
 		break;
+	case HOOK_MESSAGE_PARSING_ERROR2:
+		LOG_E("PARSING ERROR, returning:");
+		LOG_SPLIT(FD_LOG_ERROR, "     ", buf, NULL);
+		break;
 	case HOOK_MESSAGE_ROUTING_ERROR:
 		LOG_E("ROUTING ERROR '%s' for: ", (char *)other);
 		LOG_SPLIT(FD_LOG_ERROR, "     ", buf, NULL);
@@ -197,6 +201,9 @@ static void md_hook_cb_full(enum fd_hook_type type, struct msg * msg, struct pee
 			LOG_E("PARSING ERROR: %zdB msg from '%s': %s", rcv_data->length, peer_name, buf);
 		}
 		break;
+	case HOOK_MESSAGE_PARSING_ERROR2:
+		LOG_E("PARSING ERROR, returning: %s", buf);
+		break;
 	case HOOK_MESSAGE_ROUTING_ERROR:
 		LOG_E("ROUTING ERROR '%s' for: %s", (char *)other, buf);
 		break;
@@ -279,6 +286,9 @@ static void md_hook_cb_compact(enum fd_hook_type type, struct msg * msg, struct 
 			LOG_E("PARSING ERROR: %zdB msg from '%s': %s", rcv_data->length, peer_name, buf);
 		}
 		break;
+	case HOOK_MESSAGE_PARSING_ERROR2:
+		LOG_E("PARSING ERROR, returning: %s", buf);
+		break;
 	case HOOK_MESSAGE_ROUTING_ERROR:
 		LOG_E("ROUTING ERROR '%s' for: %s", (char *)other, buf);
 		break;
@@ -350,7 +360,7 @@ static int md_main(char * conffile)
 			return EINVAL; });
 	}
 	
-	mask_errors = HOOK_MASK( HOOK_MESSAGE_FAILOVER, HOOK_MESSAGE_PARSING_ERROR, HOOK_MESSAGE_ROUTING_ERROR, HOOK_MESSAGE_DROPPED  );
+	mask_errors = HOOK_MASK( HOOK_MESSAGE_FAILOVER, HOOK_MESSAGE_PARSING_ERROR, HOOK_MESSAGE_PARSING_ERROR2, HOOK_MESSAGE_ROUTING_ERROR, HOOK_MESSAGE_DROPPED  );
 	mask_sndrcv = HOOK_MASK( HOOK_MESSAGE_RECEIVED, HOOK_MESSAGE_SENT ); /* We don t access SENDING hook here */
 	mask_routing= HOOK_MASK( HOOK_MESSAGE_LOCAL, HOOK_MESSAGE_ROUTING_FORWARD, HOOK_MESSAGE_ROUTING_LOCAL );
 	mask_peers  = HOOK_MASK( HOOK_PEER_CONNECT_FAILED, HOOK_PEER_CONNECT_SUCCESS );

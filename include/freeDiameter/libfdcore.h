@@ -1002,7 +1002,7 @@ enum fd_hook_type {
 		 - {other} is a char * pointer to the error message (human-readable) if {msg} is not NULL, a pointer to struct fd_cnx_rcvdata containing the received buffer otherwise.
 		 - {permsgdata} points to existing structure associated with this message (or new structure if no previous hook was registered). 
 		 */
-	
+		 
 	HOOK_MESSAGE_ROUTING_ERROR,
 		/* Hook called when a message being processed by the routing thread meets an error such as no remaining available peer for sending, based on routing callbacks decisions (maybe after retries).
 		 - {msg} points to the message. Again, the objects may not have been dictionary resolved. If you
@@ -1058,7 +1058,16 @@ enum fd_hook_type {
 		 - {permsgdata} is always NULL for this hook.
 		 */
 	
-#define HOOK_LAST	HOOK_PEER_CONNECT_SUCCESS
+	HOOK_MESSAGE_PARSING_ERROR2,
+		/* Hook called after an error message has been generated due to a dictionary parsing error.
+		 - {msg} points to the error message that has been generated.
+		 - {peer} is NULL. You can still retrieve the source from the message itself.
+		 - {other} is NULL
+		 - {permsgdata} points to existing structure associated with this message (or new structure if no previous hook was registered). 
+		 Use this hook if you need to populate more data in the error being returned, from the error message. 
+		 (e.g. some AVP need to be added to replies even if error case.
+		 */
+#define HOOK_LAST	HOOK_MESSAGE_PARSING_ERROR2
 };
 
 

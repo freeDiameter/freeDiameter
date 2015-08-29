@@ -382,6 +382,14 @@ void   fd_hook_call(enum fd_hook_type type, struct msg * msg, struct fd_peer * p
 				break;
 			}
 			
+			case HOOK_MESSAGE_PARSING_ERROR2: {
+				CHECK_MALLOC_DO(fd_msg_dump_treeview(&hook_default_buf, &hook_default_len, NULL, msg, NULL, 0, 1), break);
+
+				LOG_E("Returning following message after parsing error:");
+				LOG_SPLIT(FD_LOG_ERROR, "   ", hook_default_buf, NULL);
+				break;
+			}
+			
 			case HOOK_MESSAGE_ROUTING_ERROR: {
 				CHECK_MALLOC_DO(fd_msg_dump_treeview(&hook_default_buf, &hook_default_len, NULL, msg, NULL, 0, 1), break);
 				LOG_E("Routing error: '%s' for the following message:", (char *)other);
