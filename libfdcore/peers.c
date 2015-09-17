@@ -213,8 +213,14 @@ int fd_peer_remove ( DiamId_t diamid, size_t diamidlen )
 			peer->p_hdr.info.config.pic_flags.exp = PI_EXP_INACTIVE;
 			peer->p_hdr.info.config.pic_lft = 0;
 			CHECK_FCT( fd_p_expi_update(peer) );
+			found = 1;
 			break;
 		}
+	}
+
+	if (!found)
+	{
+		TRACE_ERROR("Diameter peer %*s not valid - caller is out of sync", (int)diamidlen, diamid);
 	}
 
 	CHECK_POSIX( pthread_rwlock_unlock(&fd_g_peers_rw) );
