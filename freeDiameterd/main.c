@@ -171,7 +171,7 @@ static int main_cmdline(int argc, char *argv[])
 	
 	/* Loop on arguments */
 	while (1) {
-		c = getopt_long (argc, argv, "hVc:dql:M:", long_options, &option_index);
+		c = getopt_long (argc, argv, "hVc:dql:f:F:g:", long_options, &option_index);
 		if (c == -1) 
 			break;	/* Exit from the loop.  */
 		
