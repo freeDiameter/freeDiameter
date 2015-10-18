@@ -207,6 +207,7 @@ static int main_cmdline(int argc, char *argv[])
 			case 'f':	/* Full debug for the function with this name.  */
 				#ifdef DEBUG
 				fd_debug_one_function = optarg;
+				fd_g_debug_lvl = FD_LOG_DEBUG;
 				#else /* DEBUG */
 				fprintf(stderr, "Error: must compile with DEBUG support to use --dbg_func feature!\n");
 				return EINVAL;
@@ -216,6 +217,7 @@ static int main_cmdline(int argc, char *argv[])
 			case 'F':	/* Full debug for the file with this name.  */
 				#ifdef DEBUG
 				fd_debug_one_file = basename(optarg);
+				fd_g_debug_lvl = FD_LOG_DEBUG;
 				#else /* DEBUG */
 				fprintf(stderr, "Error: must compile with DEBUG support to use --dbg_file feature!\n");
 				return EINVAL;
