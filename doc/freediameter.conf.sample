@@ -31,8 +31,8 @@
 # The port this peer is listening on for incoming TLS-protected connections (TCP and SCTP).
 # See TLS_old_method for more information about TLS flavours.
 # Note: we use TLS/SCTP instead of DTLS/SCTP at the moment. This will change in future version of freeDiameter.
-# Default: 5658. Use 0 to disable.
-#SecPort = 5658;
+# Default: 5868. Use 0 to disable.
+#SecPort = 5868;
 
 # Use RFC3588 method for TLS protection, where TLS is negociated after CER/CEA exchange is completed 
 # on the unsecure connection. The alternative is RFC6733 mechanism, where TLS protects also the 
@@ -237,7 +237,7 @@ TLS_Cred = "/etc/ssl/certs/freeDiameter.pem", "/etc/ssl/private/freeDiameter.key
 # Parameters that can be specified in the peer's parameter list:
 #  No_TCP; No_SCTP; No_IP; No_IPv6; Prefer_TCP; TLS_old_method;
 #  No_TLS;       # assume transparent security instead of TLS. DTLS is not supported yet (will change in future versions).
-#  Port = 5658;  # The port to connect to
+#  Port = 5868;  # The port to connect to
 #  TcTimer = 30;
 #  TwTimer = 30;
 #  ConnectTo = "202.249.37.5";

@@ -13,8 +13,9 @@ freediameter (1.2.1) UNRELEASED; urgency=low
   * Improvements to the dict_dcca_* extensions.
   * Improved default CMake configuration.
   * Fixes for a few newer operating systems compatibility.
+  * Fixed default secure Diameter port number 5868 instead of5658 (errata of RFC 6733)
 
- -- Sebastien Decugis <sdecugis@freediameter.net>  Fri, 19 Jun 2015 01:19:16 +0800
+ -- Sebastien Decugis <sdecugis@freediameter.net>  Sat, 30 Jan 2016 23:38:03 +0800
 
 freediameter (1.2.0) UNRELEASED; urgency=low
 
