@@ -154,9 +154,16 @@ int fd_peer_add ( struct peer_info * info, const char * orig_dbg, void (*cb)(str
 			li_inf = li; /* it will come after this element, for sure */
 		
 		if (cmp == 0) {
-			ret = EEXIST; /* we have a duplicate */
-			break;
+			if (fd_peer_getstate(li) == STATE_ZOMBIE) {
+				/* If the existing peer is in zombie state then we can add it again, so
+				 * continue as if we hadn't found it */
+				li_inf = li;
+			} else {
+				ret = EEXIST; /* we have a duplicate */
+				break;
+			}
 		}
+
 		if (!cont)
 			break;
 	}
@@ -175,6 +182,13 @@ int fd_peer_add ( struct peer_info * info, const char * orig_dbg, void (*cb)(str
 	if (ret) {
 		CHECK_FCT( fd_peer_free(&p) );
 	} else {
+		char* peers_str = NULL;
+		size_t peers_str_len;
+		fd_peer_dump_list(&peers_str, &peers_str_len, NULL, 0);
+		TRACE_DEBUG(FULL, "Diameter peer %.*s added", (int)info->pi_diamidlen, info->pi_diamid);
+		TRACE_DEBUG(FULL, "New global list of peers:\n%.*s", (int)peers_str_len, peers_str);
+		free(peers_str); peers_str = NULL;
+
 		CHECK_FCT( fd_psm_begin(p) );
 	}
 	return ret;
@@ -184,6 +198,8 @@ int fd_peer_add ( struct peer_info * info, const char * orig_dbg, void (*cb)(str
 int fd_peer_remove ( DiamId_t diamid, size_t diamidlen )
 {
 	struct fd_list * li;
+	TRACE_DEBUG(FULL, "Remove diameter peer %.*s", (int)diamidlen, diamid);
+	int found = 0;
 
 	// Find the peer in the peer list from its pi_diamid.
 	CHECK_POSIX( pthread_rwlock_wrlock(&fd_g_peers_rw) );
@@ -191,7 +207,7 @@ int fd_peer_remove ( DiamId_t diamid, size_t diamidlen )
 		struct fd_peer * peer = (struct fd_peer *)li;
 		int cmp = fd_os_cmp( diamid, diamidlen, peer->p_hdr.info.pi_diamid, peer->p_hdr.info.pi_diamidlen );
 
-		if (cmp == 0) {
+		if ((cmp == 0) && (fd_peer_getstate(peer) != STATE_ZOMBIE)) {
 			/* update the peer lifetime, set the expiry flag and call fd_p_expi_update so that the
 			 * p_exp_timer value is updated and the peer expires immediately. */
 			peer->p_hdr.info.config.pic_flags.exp = PI_EXP_INACTIVE;
@@ -214,6 +230,7 @@ int fd_peer_getbyid( DiamId_t diamid, size_t diamidlen, int igncase, struct peer
 	CHECK_PARAMS( diamid && diamidlen && peer );
 	
 	*peer = NULL;
+	struct peer_hdr* zombie_peer = NULL;
 	
 	/* Search in the list */
 	CHECK_POSIX( pthread_rwlock_rdlock(&fd_g_peers_rw) );
@@ -223,8 +240,13 @@ int fd_peer_getbyid( DiamId_t diamid, size_t diamidlen, int igncase, struct peer
 			int cmp, cont;
 			cmp = fd_os_almostcasesrch( diamid, diamidlen, next->p_hdr.info.pi_diamid, next->p_hdr.info.pi_diamidlen, &cont );
 			if (cmp == 0) {
-				*peer = &next->p_hdr;
-				break;
+				if (fd_peer_getstate(next) != STATE_ZOMBIE) {
+					*peer = &next->p_hdr;
+					break;
+				}
+				else if (zombie_peer == NULL) {
+					zombie_peer = &next->p_hdr;
+				}
 			}
 			if (!cont)
 				break;
@@ -235,12 +257,23 @@ int fd_peer_getbyid( DiamId_t diamid, size_t diamidlen, int igncase, struct peer
 			int cmp = fd_os_cmp( diamid, diamidlen, next->p_hdr.info.pi_diamid, next->p_hdr.info.pi_diamidlen );
 			if (cmp > 0)
 				continue;
-			if (cmp == 0)
-				*peer = &next->p_hdr;
-			break;
+			if (cmp == 0) {
+				if (fd_peer_getstate(next) != STATE_ZOMBIE) {
+					*peer = &next->p_hdr;
+					break;
+				}
+				else if (zombie_peer == NULL) {
+					zombie_peer = &next->p_hdr;
+				}
+			}
 		}
 	}
 	CHECK_POSIX( pthread_rwlock_unlock(&fd_g_peers_rw) );
+
+	if ((peer == NULL) && (zombie_peer != NULL))
+	{
+		*peer = zombie_peer;
+	}
 	
 	return 0;
 }
@@ -595,8 +628,15 @@ int fd_peer_handle_newCER( struct msg ** cer, struct cnxctx ** cnx )
 			li_inf = li;
 		}
 		if (cmp == 0) {
-			found = 1;
-			break;
+			if (fd_peer_getstate(li) == STATE_ZOMBIE) {
+				/* If the existing peer is in zombie state then we can add it again, so
+				 * continue as if we hadn't found it */
+				li_inf = li;
+			}
+			else {
+				found = 1;
+				break;
+			}
 		}
 		if (!cont)
 			break;
@@ -631,18 +671,6 @@ int fd_peer_handle_newCER( struct msg ** cer, struct cnxctx ** cnx )
 		
 		/* Start the PSM, which will receive the event below */
 		CHECK_FCT_DO( ret = fd_psm_begin(peer), goto out );
-	} else {
-		/* Check if the peer is in zombie state */
-		if (fd_peer_getstate(peer) == STATE_ZOMBIE) {
-			/* Re-activate the peer */
-			if (peer->p_hdr.info.config.pic_flags.exp)
-				peer->p_flags.pf_responder = 1;
-			CHECK_POSIX_DO( pthread_mutex_lock(&peer->p_state_mtx), );
-			peer->p_state = STATE_NEW;
-			CHECK_POSIX_DO( pthread_mutex_unlock(&peer->p_state_mtx), );
-			peer->p_flags.pf_localterm = 0;
-			CHECK_FCT_DO( ret = fd_psm_begin(peer), goto out );
-		}
 	}
 	
 	/* Send the new connection event to the PSM */

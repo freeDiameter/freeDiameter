@@ -345,7 +345,11 @@ struct peer_hdr {
 
 /* the global list of peers. 
   Since we are not expecting so many connections, we don't use a hash, but it might be changed.
-  The list items are peer_hdr structures (actually, fd_peer, but the cast is OK) */
+  The list items are peer_hdr structures (actually, fd_peer, but the cast is OK).
+
+  There can by multiple peers with the same Diameter-Id on this list, but at most one of these
+  peers can be non-zombie peers (i.e. if there are multiple peers with the same Diameter-Id,
+  all but one of them (or all of them) should be in STATE_ZOMBIE). */
 extern struct fd_list fd_g_peers;
 extern pthread_rwlock_t fd_g_peers_rw; /* protect the list */
 
@@ -408,7 +412,10 @@ int fd_peer_remove ( DiamId_t diamid, size_t diamidlen );
  *  peer	: The peer is stored here if it exists.
  *
  * DESCRIPTION: 
- *   Search a peer by its Diameter-Id.
+ *   Search for a peer in fd_g_peers by its Diameter-Id. If there are multiple
+ *   such peers, prefer a non-zombie peer. There should be at most one
+ *   non-zombie peer. All zombie peers (with the given Diameter-Id) are treated
+ *   equally.
  *
  * RETURN VALUE:
  *  0   : *peer has been updated (to NULL if the peer is not found).
