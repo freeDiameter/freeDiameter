@@ -8,10 +8,11 @@ freediameter (1.2.1) UNRELEASED; urgency=low
   * Simplified log output. Old output can be recovered with DEBUG_WITH_META build option.
   * Updated the internal counters for finer control on the load.
   * Fixes in message expiry mechanism.
-  * Bug fixes in error messages generation.
+  * Bug fixes in error messages generation and various parts.
   * Improvements on shutdown sequence handling.
   * Improvements to the dict_dcca_* extensions.
   * Improved default CMake configuration.
+  * Improved build for MacOSX
   * Fixes for a few newer operating systems compatibility.
   * Fixed default secure Diameter port number 5868 instead of5658 (errata of RFC 6733)
 
