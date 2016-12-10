@@ -261,7 +261,7 @@ static void init_object( struct dict_object * obj, enum dict_object_type type )
 }
 
 /* Initialize the "data" part of an object */
-static int init_object_data(struct dict_object * dest, void * source, enum dict_object_type type)
+static int init_object_data(struct dict_object * dest, void * source, enum dict_object_type type, int dupos)
 {
 	TRACE_ENTRY("%p %p %d", dest, source, type);
 	CHECK_PARAMS( dest && source && CHECK_TYPE(type) );
@@ -286,6 +286,13 @@ static int init_object_data(struct dict_object * dest, void * source, enum dict_
 			
 		case DICT_ENUMVAL:
 			DUP_string_len( dest->data.enumval.enum_name, &dest->datastr_len );
+			if (dupos) {
+				// we also need to duplicate the octetstring constant value since it is a pointer.
+				dest->data.enumval.enum_value.os.data = os0dup( 
+						((struct dict_enumval_data *)source)->enum_value.os.data, 
+						((struct dict_enumval_data *)source)->enum_value.os.len
+					);
+			}
 			break;
 
 		case DICT_AVP:
@@ -1604,6 +1611,7 @@ int fd_dict_getval ( struct dict_object * object, void * val)
 int fd_dict_new ( struct dictionary * dict, enum dict_object_type type, void * data, struct dict_object * parent, struct dict_object **ref )
 {
 	int ret = 0;
+	int dupos = 0;
 	struct dict_object * new = NULL;
 	struct dict_object * vendor = NULL;
 	struct dict_object * locref = NULL;
@@ -1654,6 +1662,12 @@ int fd_dict_new ( struct dictionary * dict, enum dict_object_type type, void * d
 	if (type == DICT_COMMAND) {
 		CHECK_PARAMS_DO( ((struct dict_cmd_data *)data)->cmd_flag_mask & CMD_FLAG_REQUEST, goto error_param   );
 	}
+
+	/* For ENUMVAL object, check if the parent type is an OctetString */
+	if (type == DICT_ENUMVAL) {
+		if (parent->data.type.type_base == AVP_TYPE_OCTETSTRING)
+			dupos = 1;
+	}
 	
 	/* We have to check that the new values are not equal to the sentinels */
 	if (type == DICT_VENDOR) {
@@ -1668,7 +1682,7 @@ int fd_dict_new ( struct dictionary * dict, enum dict_object_type type, void * d
 	
 	/* Initialize the data of the new object */
 	init_object(new, type);
-	init_object_data(new, data, type);
+	init_object_data(new, data, type, dupos);
 	new->dico = dict;
 	new->parent = parent;
 	
