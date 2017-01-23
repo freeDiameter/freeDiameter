@@ -809,7 +809,7 @@ int fd_dict_base_protocol(struct dictionary * dict)
 			 */
 			
 			struct dict_object 	* 	type;
-			struct dict_type_data	 	tdata = { AVP_TYPE_UNSIGNED32,	"Enumerated*(Inband-Security-Id)"	, NULL, NULL, NULL };
+			struct dict_type_data	 	tdata = { AVP_TYPE_UNSIGNED32,	"Enumerated(Inband-Security-Id)"	, NULL, NULL, NULL };
 			struct dict_enumval_data 	t_0 = { "NO_INBAND_SECURITY", 		{ .u32 = ACV_ISI_NO_INBAND_SECURITY }};
 			struct dict_enumval_data 	t_1 = { "TLS", 			{ .u32 = ACV_ISI_TLS }};
 			struct dict_avp_data 		data = { 
@@ -1104,7 +1104,7 @@ int fd_dict_base_protocol(struct dictionary * dict)
 			 * This is the reason for the "*" in the type name
 			 */
 			struct dict_object * 	type;
-			struct dict_type_data 	tdata = { AVP_TYPE_UNSIGNED32,	"Enumerated*(Result-Code)"	, NULL, NULL, NULL };
+			struct dict_type_data 	tdata = { AVP_TYPE_UNSIGNED32,	"Enumerated(Result-Code)"	, NULL, NULL, NULL };
 			struct dict_avp_data 	data = { 
 					268, 					/* Code */
 					#if AC_RESULT_CODE != 268
@@ -1630,7 +1630,7 @@ int fd_dict_base_protocol(struct dictionary * dict)
 			 * This is the reason for the "*" in the type name. Vendors will have to define their values.
 			 */
 			struct dict_object * 	type;
-			struct dict_type_data 	tdata = { AVP_TYPE_UNSIGNED32,	"Enumerated*(Experimental-Result-Code)"	, NULL, NULL, NULL };
+			struct dict_type_data 	tdata = { AVP_TYPE_UNSIGNED32,	"Enumerated(Experimental-Result-Code)"	, NULL, NULL, NULL };
 			struct dict_avp_data 	data = { 
 					298, 					/* Code */
 					0, 					/* Vendor */
@@ -2101,7 +2101,7 @@ int fd_dict_base_protocol(struct dictionary * dict)
 			 */
 			
 			struct dict_object 	* 	type;
-			struct dict_type_data	 	tdata = { AVP_TYPE_UNSIGNED32,	"Enumerated*(Session-Binding)"	, NULL, NULL, NULL };
+			struct dict_type_data	 	tdata = { AVP_TYPE_UNSIGNED32,	"Enumerated(Session-Binding)"	, NULL, NULL, NULL };
 			struct dict_enumval_data 	t_1 = { "RE_AUTH", 		{ .u32 = 1 }};
 			struct dict_enumval_data 	t_2 = { "STR", 			{ .u32 = 2 }};
 			struct dict_enumval_data 	t_4 = { "ACCOUNTING", 		{ .u32 = 4 }};
