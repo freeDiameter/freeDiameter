@@ -467,7 +467,7 @@ static int dnr_entry(char * conffile)
 
 			*/
 			struct dict_object 	*type;
-			struct dict_type_data 	 tdata = { AVP_TYPE_OCTETSTRING,	"Enumerated*(Originating-Line-Info)"	, NULL, NULL};
+			struct dict_type_data 	 tdata = { AVP_TYPE_OCTETSTRING,	"Enumerated(Originating-Line-Info)"	, NULL, NULL};
 			struct dict_enumval_data tvals[] = {
 				enumval_def_os( 2, "00", "Plain Old Telephone Service (POTS)"),
 				enumval_def_os( 2, "01", "Multiparty Line (more than 2)"),

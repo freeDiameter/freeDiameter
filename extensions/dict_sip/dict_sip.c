@@ -1438,7 +1438,7 @@ int ds_dict_init(char * conffile)
 		/* Complement of Result-Code AVP values */
 		{
 			struct dict_object * resultcode_data_type;
-			CHECK_dict_search(DICT_TYPE,TYPE_BY_NAME,"Enumerated*(Result-Code)",&resultcode_data_type);
+			CHECK_dict_search(DICT_TYPE,TYPE_BY_NAME,"Enumerated(Result-Code)",&resultcode_data_type);
 		
 
 			{

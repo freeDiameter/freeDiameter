@@ -1479,7 +1479,7 @@ static int avp_to_fD(struct t_avp * a, struct dictionary * fD_dict, struct dict_
 				struct dict_type_data 	tdata;
 				
 enumerated:
-				snprintf(typename, sizeof(typename), "Enumerated*(%s)", ad.avp_name);
+				snprintf(typename, sizeof(typename), "Enumerated(%s)", ad.avp_name);
 				memset(&tdata, 0, sizeof(tdata));
 				tdata.type_base = AVP_TYPE_INTEGER32;
 				tdata.type_name = &typename[0];

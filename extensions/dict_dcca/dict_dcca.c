@@ -79,7 +79,7 @@ static int dict_dcca_entry(char * conffile)
     /* Result codes */
     {
         struct dict_object *ResultCodeType;
-        CHECK_dict_search(DICT_TYPE, TYPE_BY_NAME, "Enumerated*(Result-Code)", &ResultCodeType);
+        CHECK_dict_search(DICT_TYPE, TYPE_BY_NAME, "Enumerated(Result-Code)", &ResultCodeType);
 
         {
             struct dict_enumval_data error_code = {"END_USER_SERVICE_DENIED",
