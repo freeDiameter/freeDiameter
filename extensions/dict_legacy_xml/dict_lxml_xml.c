@@ -1313,7 +1313,7 @@ static int resolve_base_type(struct dictionary * fD_dict, uint8_t * type_name, e
 	PREDEF_TYPES( "Integer32",   AVP_TYPE_INTEGER32   );
 	PREDEF_TYPES( "Integer64",   AVP_TYPE_INTEGER64   );
 	PREDEF_TYPES( "Unsigned32",  AVP_TYPE_UNSIGNED32  );
-	PREDEF_TYPES( "Enumerated",  AVP_TYPE_UNSIGNED32  );
+	PREDEF_TYPES( "Enumerated",  AVP_TYPE_INTEGER32  );
 	PREDEF_TYPES( "Unsigned64",  AVP_TYPE_UNSIGNED64  );
 	PREDEF_TYPES( "Float32",     AVP_TYPE_FLOAT32     );
 	PREDEF_TYPES( "Float64",     AVP_TYPE_FLOAT64     );
@@ -1453,8 +1453,8 @@ static int avp_to_fD(struct t_avp * a, struct dictionary * fD_dict, struct dict_
 		/* special exception: we use per-AVP enumerated types in fD */
 		if (!strcasecmp("Enumerated", (char *)((struct t_avptype *)a->type.next)->type_name))
 			goto enumerated;
-		/* Let's allow "Unsigned32" instead of "Enumerated" also... */
-		if ((!FD_IS_LIST_EMPTY(&a->enums)) && (!strcasecmp("Unsigned32", (char *)((struct t_avptype *)a->type.next)->type_name)))
+		/* Let's allow "Integer32" instead of "Enumerated" also... */
+		if ((!FD_IS_LIST_EMPTY(&a->enums)) && (!strcasecmp("Integer32", (char *)((struct t_avptype *)a->type.next)->type_name)))
 			goto enumerated;
 		
 		/* The type was explicitly specified, resolve it */
@@ -1481,13 +1481,13 @@ static int avp_to_fD(struct t_avp * a, struct dictionary * fD_dict, struct dict_
 enumerated:
 				snprintf(typename, sizeof(typename), "Enumerated*(%s)", ad.avp_name);
 				memset(&tdata, 0, sizeof(tdata));
-				tdata.type_base = AVP_TYPE_UNSIGNED32;
+				tdata.type_base = AVP_TYPE_INTEGER32;
 				tdata.type_name = &typename[0];
 				CHECK_FCT( fd_dict_new ( fD_dict, DICT_TYPE, &tdata, fd_appl, &type ) );
 				if (nb_added)
 					*nb_added += 1;
 				
-				ad.avp_basetype = AVP_TYPE_UNSIGNED32;
+				ad.avp_basetype = AVP_TYPE_INTEGER32;
 			}
 		}
 	}
