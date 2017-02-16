@@ -885,9 +885,9 @@ psm_reset:
 	goto psm_loop;
 	
 psm_end:
-	LOG_N("%s: Going to ZOMBIE state (no more activity)", peer->p_hdr.info.pi_diamid);
+	LOG_E("%s: Going to ZOMBIE state (no more activity)", peer->p_hdr.info.pi_diamid);
 	fd_psm_cleanup(peer, 1);
-	TRACE_DEBUG(INFO, "'%s'\t-> STATE_ZOMBIE (terminated)\t'%s'",
+	TRACE_DEBUG(INFO, "'%s'\t-> 'STATE_ZOMBIE' (terminated)\t'%s'",
 			STATE_STR(fd_peer_getstate(peer)),
 			peer->p_hdr.info.pi_diamid);
 	pthread_cleanup_pop(1); /* set STATE_ZOMBIE */
