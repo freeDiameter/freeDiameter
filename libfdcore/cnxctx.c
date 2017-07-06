@@ -298,7 +298,7 @@ struct cnxctx * fd_cnx_cli_connect_tcp(sSA * sa /* contains the port already */,
 	{
 		int ret = fd_tcp_client( &sock, sa, addrlen );
 		if (ret != 0) {
-			LOG_D("TCP connection to %s failed: %s", sa_buf, strerror(ret));
+			LOG_E("TCP connection to %s failed: %s", sa_buf, strerror(ret));
 			return NULL;
 		}
 	}
