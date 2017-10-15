@@ -885,7 +885,12 @@ psm_reset:
 	goto psm_loop;
 	
 psm_end:
-	LOG_E("%s: Going to ZOMBIE state (no more activity)", peer->p_hdr.info.pi_diamid);
+	cur_state = fd_peer_getstate(peer);
+	if ((cur_state == STATE_CLOSING) || (cur_state == STATE_CLOSING_GRACE)) {
+		LOG_N("%s: Going to ZOMBIE state (no more activity) after normal shutdown", peer->p_hdr.info.pi_diamid);
+	} else {
+		LOG_E("%s: Going to ZOMBIE state (no more activity) after abnormal shutdown", peer->p_hdr.info.pi_diamid);
+	}
 	fd_psm_cleanup(peer, 1);
 	TRACE_DEBUG(INFO, "'%s'\t-> 'STATE_ZOMBIE' (terminated)\t'%s'",
 			STATE_STR(fd_peer_getstate(peer)),
