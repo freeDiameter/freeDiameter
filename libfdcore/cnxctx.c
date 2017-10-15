@@ -1051,13 +1051,14 @@ end:
 	   messages. */
 int fd_tls_rcvthr_core(struct cnxctx * conn, gnutls_session_t session)
 {
+	ssize_t ret = 0;
 	/* No guarantee that GnuTLS preserves the message boundaries, so we re-build it as in TCP. */
 	do {
 		uint8_t header[4];
 		struct fd_cnx_rcvdata rcv_data;
 		struct fd_msg_pmdl *pmdl=NULL;
-		ssize_t ret = 0;
 		size_t	received = 0;
+		ret = 0;
 
 		do {
 			ret = fd_tls_recv_handle_error(conn, session, &header[received], sizeof(header) - received);
@@ -1108,7 +1109,7 @@ int fd_tls_rcvthr_core(struct cnxctx * conn, gnutls_session_t session)
 	} while (1);
 	
 out:
-	return ENOTCONN;
+	return (ret == 0) ? 0 : ENOTCONN;
 }
 
 /* Receiver thread (TLS & 1 stream SCTP or TCP)  */
