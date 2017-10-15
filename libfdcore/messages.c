@@ -287,6 +287,9 @@ int fd_msg_rescode_set( struct msg * msg, char * rescode, char * errormsg, struc
 			
 		case 4: /* Transcient Failure */
 		case 5: /* Permanent Failure */
+			if (rc_val == 5017) /* DIAMETER_NO_COMMON_SECURITY */ {
+				set_e_bit = 1;
+			}
 		default:
 			std_err_msg = 1;
 			break;
