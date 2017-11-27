@@ -281,7 +281,7 @@ int fd_psm_change_state(struct fd_peer * peer, int new_state)
 	if (old == new_state)
 		return 0;
 	
-	LOG(((old == STATE_OPEN) || (new_state == STATE_OPEN)) ? FD_LOG_NOTICE : FD_LOG_DEBUG, "'%s'\t-> '%s'\t'%s'",
+	LOG(((old == STATE_OPEN) || (new_state == STATE_OPEN)) ? ((new_state == STATE_SUSPECT || new_state == STATE_CLOSED) ? FD_LOG_ERROR : FD_LOG_NOTICE ): FD_LOG_DEBUG, "'%s'\t-> '%s'\t'%s'",
 			STATE_STR(old),
 			STATE_STR(new_state),
 			peer->p_hdr.info.pi_diamid);
