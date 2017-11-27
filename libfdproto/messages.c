@@ -1260,6 +1260,7 @@ int fd_msg_anscb_associate( struct msg * msg, void ( *anscb)(void *, struct msg 
 	}
 	if (expirecb) {
 		msg->msg_cb.expirecb = expirecb;
+		msg->msg_cb.data = data;
 		if (timeout) {
 			memcpy(&msg->msg_cb.timeout, timeout, sizeof(struct timespec));
 		}
