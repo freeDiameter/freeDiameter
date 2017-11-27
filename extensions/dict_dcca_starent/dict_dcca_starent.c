@@ -169,7 +169,7 @@ static int dict_dcca_starent_entry(char * conffile)
 			AVP_TYPE_INTEGER32	/* base type of data */
 		};
 		struct dict_object		*type;
-		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "Starent/Enumerated(SN-Bandwidth-Control)", NULL, NULL, NULL };
+		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "Enumerated(Starent/SN-Bandwidth-Control)", NULL, NULL, NULL };
 		CHECK_dict_new(DICT_TYPE, &tdata, NULL, &type);
 		CHECK_dict_new(DICT_AVP, &data, type, NULL);
 	};
@@ -263,7 +263,7 @@ static int dict_dcca_starent_entry(char * conffile)
 			AVP_TYPE_INTEGER32	/* base type of data */
 		};
 		struct dict_object		*type;
-		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "Starent/Enumerated(SN-Service-Flow-Detection)", NULL, NULL, NULL };
+		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "Enumerated(Starent/SN-Service-Flow-Detection)", NULL, NULL, NULL };
 		CHECK_dict_new(DICT_TYPE, &tdata, NULL, &type);
 		CHECK_dict_new(DICT_AVP, &data, type, NULL);
 	};
@@ -279,7 +279,7 @@ static int dict_dcca_starent_entry(char * conffile)
 			AVP_TYPE_INTEGER32	/* base type of data */
 		};
 		struct dict_object		*type;
-		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "Starent/Enumerated(SN-Usage-Monitoring)", NULL, NULL, NULL };
+		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "Enumerated(Starent/SN-Usage-Monitoring)", NULL, NULL, NULL };
 		CHECK_dict_new(DICT_TYPE, &tdata, NULL, &type);
 		CHECK_dict_new(DICT_AVP, &data, type, NULL);
 	};

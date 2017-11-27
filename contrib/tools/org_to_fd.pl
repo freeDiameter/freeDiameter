@@ -40,7 +40,7 @@ sub print_insert($$) {
         $avp_type = "NULL";
     } elsif ($type =~ m/Enumerated/) {
         print "\t\tstruct dict_object		*type;\n";
-        print "\t\tstruct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, \"" . ($vendor_name ? "$vendor_name/" : "") ."Enumerated($name)\", NULL, NULL, NULL };\n";
+        print "\t\tstruct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, \"Enumerated(" . ($vendor_name ? "$vendor_name/" : "") ."$name)\", NULL, NULL, NULL };\n";
         # XXX: add enumerated values
         print "\t\tCHECK_dict_new(DICT_TYPE, &tdata, NULL, &type);\n";
         $avp_type = "type";
