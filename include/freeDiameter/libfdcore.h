@@ -1154,6 +1154,10 @@ int fd_hook_unregister( struct fd_hook_hdl * handler );
 /* Use the following function to retrieve any pmd structure associated with a request matching the current answer. Returns NULL in case of error / no such structure */
 struct fd_hook_permsgdata * fd_hook_get_request_pmd(struct fd_hook_data_hdl *data_hdl, struct msg * answer);
 
+/* Use the following function to retrieve any pmd structure associated with a request. Returns NULL in case of error */
+struct fd_hook_permsgdata * fd_hook_get_pmd(struct fd_hook_data_hdl *data_hdl, struct msg * msg);
+
+
 /* The following is used by HOOK_MASK macro */
 uint32_t fd_hook_mask_helper(int dummy, ...);
 

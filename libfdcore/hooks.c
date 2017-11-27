@@ -195,7 +195,7 @@ void   fd_hook_associate(struct msg * msg, struct fd_msg_pmdl * pmdl)
 }
 
 /* Return the location of the permsgdata area corresponding to this handle, after eventually having created it. Return NULL in case of failure */
-static struct fd_hook_permsgdata * get_or_create_pmd(struct fd_msg_pmdl *pmdl, struct fd_hook_hdl * h) 
+static struct fd_hook_permsgdata * get_or_create_pmd(struct fd_msg_pmdl *pmdl, struct fd_hook_data_hdl * h)
 {
 	struct fd_hook_permsgdata * ret = NULL;
 	struct fd_list * li;
@@ -209,22 +209,22 @@ static struct fd_hook_permsgdata * get_or_create_pmd(struct fd_msg_pmdl *pmdl, s
 	/* Search in the list for an item with the same handle. The list is ordered by this handle */
 	for (li=pmdl->sentinel.next; li != &pmdl->sentinel; li = li->next) {
 		struct pmd_list_item * pli = (struct pmd_list_item *) li;
-		if (pli->hdl == h->data_hdl)
+		if (pli->hdl == h)
 			ret = &pli->pmd;
-		if (pli->hdl >= h->data_hdl)
+		if (pli->hdl >= h)
 			break;
 	}
 	if (!ret) {
 		/* we need to create a new one and insert before li */
 		struct pmd_list_item * pli;
-		CHECK_MALLOC_DO( pli = malloc(sizeof_pmd(h->data_hdl)), );
+		CHECK_MALLOC_DO( pli = malloc(sizeof_pmd(h)), );
 		if (pli) {
-			memset(pli, 0, sizeof_pmd(h->data_hdl));
+			memset(pli, 0, sizeof_pmd(h));
 			fd_list_init(&pli->chain, pli);
-			pli->hdl = h->data_hdl;
+			pli->hdl = h;
 			ret = &pli->pmd;
-			if (h->data_hdl->pmd_init_cb) {
-				(*h->data_hdl->pmd_init_cb)(ret);
+			if (h->pmd_init_cb) {
+				(*h->pmd_init_cb)(ret);
 			}
 			fd_list_insert_before(li, &pli->chain);
 		}
@@ -232,6 +232,11 @@ static struct fd_hook_permsgdata * get_or_create_pmd(struct fd_msg_pmdl *pmdl, s
 	
 	CHECK_POSIX_DO( pthread_mutex_unlock(&pmdl->lock), );
 	return ret;
+}
+
+struct fd_hook_permsgdata * fd_hook_get_pmd(struct fd_hook_data_hdl *data_hdl, struct msg * msg)
+{
+    return get_or_create_pmd(fd_msg_pmdl_get(msg), data_hdl);
 }
 
 struct fd_hook_permsgdata * fd_hook_get_request_pmd(struct fd_hook_data_hdl *data_hdl, struct msg * answer)
@@ -306,7 +311,7 @@ void   fd_hook_call(enum fd_hook_type type, struct msg * msg, struct fd_peer * p
 
 			/* do we need to handle pmd ? */
 			if (h->data_hdl && pmdl) {
-				pmd = get_or_create_pmd(pmdl, h);
+				pmd = get_or_create_pmd(pmdl, h->data_hdl);
 			}
 
 			/* Now, call this callback */
