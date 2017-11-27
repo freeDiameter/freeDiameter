@@ -67,6 +67,7 @@ int fd_conf_init()
 	#endif /* DISABLE_SCTP */
 	
 	fd_g_config->cnf_orstateid = (uint32_t) time(NULL);
+	fd_g_config->cnf_rr_in_answers = 1;
 	
 	CHECK_FCT( fd_dict_init(&fd_g_config->cnf_dict) );
 	CHECK_FCT( fd_fifo_new(&fd_g_config->cnf_main_ev, 0) );

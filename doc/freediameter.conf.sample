@@ -250,3 +250,9 @@ TLS_Cred = "/etc/ssl/certs/freeDiameter.pem", "/etc/ssl/private/freeDiameter.key
 
 
 ##############################################################
+## General settings
+
+# If Route-Record AVPs should be added in Answers.
+# Possible values: Always, Never
+# Default: Always
+#RouteRecordInAnswers = Never;

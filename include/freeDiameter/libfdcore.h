@@ -134,6 +134,7 @@ struct fd_config {
 	int		 cnf_thr_srv;	/* Number of threads per servers handling the connection state machines */
 	struct fd_list	 cnf_apps;	/* Applications locally supported (except relay, see flags). Use fd_disp_app_support to add one. list of struct fd_app. */
 	uint16_t	 cnf_dispthr;	/* Number of dispatch threads to create */
+	uint16_t	 cnf_rr_in_answers;	/* include Route-Record AVP in answers */
 	struct {
 		unsigned no_fwd : 1;	/* the peer does not relay messages (0xffffff app id) */
 		unsigned no_ip4 : 1;	/* disable IP */

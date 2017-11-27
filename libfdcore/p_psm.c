@@ -552,7 +552,9 @@ psm_loop:
 					CHECK_FCT_DO( fd_p_expi_update(peer), goto psm_end );
 
 					/* Set the message source and add the Route-Record */
-					CHECK_FCT_DO( fd_msg_source_setrr( msg, peer->p_hdr.info.pi_diamid, peer->p_hdr.info.pi_diamidlen, fd_g_config->cnf_dict ), goto psm_end);
+					if (fd_g_config->cnf_rr_in_answers || (hdr->msg_flags & CMD_FLAG_REQUEST)) {
+						CHECK_FCT_DO( fd_msg_source_setrr( msg, peer->p_hdr.info.pi_diamid, peer->p_hdr.info.pi_diamidlen, fd_g_config->cnf_dict ), goto psm_end);
+					}
 
 					if ((hdr->msg_flags & CMD_FLAG_REQUEST)) {
 						/* Mark the incoming request so that we know we have pending answers for this peer */

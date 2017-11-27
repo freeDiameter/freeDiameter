@@ -121,6 +121,9 @@ struct peer_info fddpi;
 %token		TLS_PRIO
 %token		TLS_DH_BITS
 %token		TLS_DH_FILE
+%token		RR_IN_ANSWERS
+%token		ALWAYS
+%token		NEVER
 
 
 /* -------------------------------------- */
@@ -153,6 +156,7 @@ conffile:		/* Empty is OK -- for simplicity here, we reject in daemon later */
 			| conffile tls_crl
 			| conffile tls_prio
 			| conffile tls_dh
+			| conffile rr_in_answers
 			| conffile errors
 			{
 				yyerror(&yylloc, conf, "An error occurred while parsing the configuration file");
@@ -664,4 +668,17 @@ tls_dh:			TLS_DH_BITS '=' INTEGER ';'
 				}
 				fclose(fd);
 			}
+			;
+
+rr_values:		ALWAYS
+			{
+				conf->cnf_rr_in_answers = 1;
+			}
+			| NEVER
+			{
+				conf->cnf_rr_in_answers = 0;
+			}
+			;
+
+rr_in_answers:		RR_IN_ANSWERS '=' rr_values ';'
 			;
