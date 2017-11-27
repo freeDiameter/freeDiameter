@@ -1074,20 +1074,6 @@ static void * process_thr(void * arg, int (*action_cb)(struct msg * msg), struct
 	do {
 		struct msg * msg;
 	
-		/* Test the current order */
-		{
-			int must_stop;
-			CHECK_POSIX_DO( pthread_mutex_lock(&order_state_lock), { ASSERT(0); } ); /* we lock to flush the caches */
-			must_stop = (order_val == STOP);
-			CHECK_POSIX_DO( pthread_mutex_unlock(&order_state_lock), { ASSERT(0); } );
-			if (must_stop)
-				goto end;
-			
-			pthread_testcancel();
-		}
-		
-		/* Ok, we are allowed to run */
-		
 		/* Get the next message from the queue */
 		{
 			int ret;
@@ -1097,9 +1083,21 @@ static void * process_thr(void * arg, int (*action_cb)(struct msg * msg), struct
 			ts.tv_sec += 1;
 			
 			ret = fd_fifo_timedget ( queue, &msg, &ts );
-			if (ret == ETIMEDOUT)
-				/* loop, check if the thread must stop now */
+			if (ret == ETIMEDOUT) {
+				/* Test the current order */
+				{
+					int must_stop;
+					CHECK_POSIX_DO( pthread_mutex_lock(&order_state_lock), { ASSERT(0); } ); /* we lock to flush the caches */
+					must_stop = (order_val == STOP);
+					CHECK_POSIX_DO( pthread_mutex_unlock(&order_state_lock), { ASSERT(0); } );
+					if (must_stop)
+						goto end;
+
+					pthread_testcancel();
+				}
+				/* Ok, we are allowed to continue */
 				continue;
+			}
 			if (ret == EPIPE)
 				/* The queue was destroyed, we are probably exiting */
 				goto end;
