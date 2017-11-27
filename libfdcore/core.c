@@ -326,7 +326,7 @@ int fd_core_shutdown(void)
 {
 	enum core_state cur_state = core_state_get();
 	
-	LOG_F("Initiating freeDiameter shutdown sequence (%d)", cur_state);
+	LOG_N("Initiating freeDiameter shutdown sequence (%d)", cur_state);
 		
 	if (cur_state < CORE_RUNNING) {
 		/* Calling application must make sure the initialization is not ongoing in a separate thread... */
