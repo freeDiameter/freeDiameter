@@ -2,7 +2,7 @@ Unless specified otherwise, this software package is copyrighted under the terms
 
 Software License Agreement (BSD License)
 
-Copyright (c) 2008-2011, WIDE Project and NICT
+Copyright (c) 2008-2018, WIDE Project and NICT
 All rights reserved.
 
 Redistribution and use of this software in source and binary forms, with or without modification, are 
@@ -49,3 +49,9 @@ The following authors have contributed the following files. See source files for
   extensions/dict_mip6i/*
   extensions/dict_nas_mipv6/*
   extensions/dict_rfc5777/*
+
+ * Thomas Klausner:
+  several extensions and numerous fixes / improvements.
+  
+  
+ 
