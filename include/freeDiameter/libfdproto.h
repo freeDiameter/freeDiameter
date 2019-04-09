@@ -800,7 +800,7 @@ int fd_os_cmp_int(os0_t os1, size_t os1sz, os0_t os2, size_t os2sz);
 #define fd_os_cmp(_o1, _l1, _o2, _l2)  fd_os_cmp_int((os0_t)(_o1), _l1, (os0_t)(_o2), _l2)
 
 /* A roughly case-insensitive variant, which actually only compares ASCII chars (0-127) in a case-insentitive maneer 
-  -- it does not support locales where a lowercase letter uses more space than upper case, such as ß -> ss
+  -- it does not support locales where a lowercase letter uses more space than upper case, such as ÃŸ -> ss
  It is slower than fd_os_cmp.
  Note that the result is NOT the same as strcasecmp !!!
  
