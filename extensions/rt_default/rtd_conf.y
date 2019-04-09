@@ -54,6 +54,7 @@
 
 /* Forward declaration */
 int yyparse(char * conffile);
+void rtd_confrestart(FILE *input_file);
 
 static int rules_added = 0;
 
@@ -65,25 +66,27 @@ int rtd_conf_handle(char * conffile)
 	
 	TRACE_ENTRY("%p", conffile);
 	
-	TRACE_DEBUG (FULL, "Parsing configuration file: %s...", conffile);
-	
+	TRACE_DEBUG (FULL, "rt_default: Parsing configuration file: %s...", conffile);
+
+	rules_added = 0;
 	rtd_confin = fopen(conffile, "r");
 	if (rtd_confin == NULL) {
 		ret = errno;
 		fd_log_debug("Unable to open extension configuration file %s for reading: %s", conffile, strerror(ret));
-		TRACE_DEBUG (INFO, "Error occurred, message logged -- configuration file.");
+		TRACE_DEBUG (INFO, "rt_default: Error occurred, message logged -- configuration file.");
 		return ret;
 	}
 
+	rtd_confrestart(rtd_confin);
 	ret = yyparse(conffile);
 
 	fclose(rtd_confin);
 
 	if (ret != 0) {
-		TRACE_DEBUG (INFO, "Unable to parse the configuration file.");
+		TRACE_DEBUG (INFO, "rt_default: Unable to parse the configuration file.");
 		return EINVAL;
 	} else {
-		TRACE_DEBUG(FULL, "Added %d RULES routing entries successfully.", rules_added);
+		TRACE_DEBUG(INFO, "rt_default: Added %d RULES routing entries successfully.", rules_added);
 	}
 	
 	return 0;
@@ -95,7 +98,7 @@ int rtd_conflex(YYSTYPE *lvalp, YYLTYPE *llocp);
 /* Function to report the errors */
 void yyerror (YYLTYPE *ploc, char * conffile, char const *s)
 {
-	TRACE_DEBUG(INFO, "Error in configuration parsing");
+	TRACE_DEBUG(INFO, "rt_default: Error in configuration parsing");
 	
 	if (ploc->first_line != ploc->last_line)
 		fd_log_debug("%s:%d.%d-%d.%d : %s", conffile, ploc->first_line, ploc->first_column, ploc->last_line, ploc->last_column, s);

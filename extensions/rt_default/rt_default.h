@@ -82,5 +82,8 @@ int rtd_add(enum rtd_crit_type ct, char * criteria, enum rtd_targ_type tt, char 
 /* Process a message & peer list through the rules repository, updating the scores */
 int rtd_process( struct msg * msg, struct fd_list * candidates );
 
+/* Reload the config file */
+void rtd_conf_reload(char *config_file);
+
 /* For debug: dump the rule repository */
 void rtd_dump(void);

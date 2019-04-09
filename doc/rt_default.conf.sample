@@ -2,6 +2,10 @@
 #
 # This extension provides configurable routing properties for freeDiameter.
 
+# This extension supports configuration reload at runtime. Send
+# signal SIGUSR1 to the process to cause the process to reload its
+# config.
+
 # Lines starting with a # are comments and ignored.
 
 ##############################################################################

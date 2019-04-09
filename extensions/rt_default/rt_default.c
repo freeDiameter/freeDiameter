@@ -37,38 +37,101 @@
  * Configurable routing of messages for freeDiameter.
  */
 
+#include <signal.h>
+
 #include "rt_default.h"
+
+#define MODULE_NAME "rt_default"
+
+#include <pthread.h>
+
+static pthread_rwlock_t rtd_lock;
+
+static char *rtd_config_file;
 
 /* The callback called on new messages */
 static int rtd_out(void * cbdata, struct msg ** pmsg, struct fd_list * candidates)
 {
 	struct msg * msg = *pmsg;
 	TRACE_ENTRY("%p %p %p", cbdata, msg, candidates);
+	int ret;
 	
 	CHECK_PARAMS(msg && candidates);
-	
+
+	if (pthread_rwlock_rdlock(&rtd_lock) != 0) {
+		fd_log_notice("%s: read-lock failed, skipping handler", MODULE_NAME);
+		return 0;
+	}
 	/* Simply pass it to the appropriate function */
 	if (FD_IS_LIST_EMPTY(candidates)) {
-		return 0;
+		ret = 0;
 	} else {
-		return rtd_process( msg, candidates );
+		ret = rtd_process( msg, candidates );
 	}
+	if (pthread_rwlock_unlock(&rtd_lock) != 0) {
+		fd_log_notice("%s: read-unlock failed after rtd_out, exiting", MODULE_NAME);
+		exit(1);
+	}
+	return ret;
 }
 
 /* handler */
 static struct fd_rt_out_hdl * rtd_hdl = NULL;
 
+static volatile int in_signal_handler = 0;
+
+/* signal handler */
+static void sig_hdlr(void)
+{
+	if (in_signal_handler) {
+		fd_log_error("%s: already handling a signal, ignoring new one", MODULE_NAME);
+		return;
+	}
+	in_signal_handler = 1;
+
+	if (pthread_rwlock_wrlock(&rtd_lock) != 0) {
+		fd_log_error("%s: locking failed, aborting config reload", MODULE_NAME);
+		return;
+	}
+	rtd_conf_reload(rtd_config_file);
+	if (pthread_rwlock_unlock(&rtd_lock) != 0) {
+		fd_log_error("%s: unlocking failed after config reload, exiting", MODULE_NAME);
+		exit(1);
+	}		
+
+	fd_log_notice("%s: reloaded configuration", MODULE_NAME);
+
+	in_signal_handler = 0;
+}
+
+
 /* entry point */
 static int rtd_entry(char * conffile)
 {
 	TRACE_ENTRY("%p", conffile);
-	
+
+	rtd_config_file = conffile;
+	pthread_rwlock_init(&rtd_lock, NULL);
+
+	if (pthread_rwlock_wrlock(&rtd_lock) != 0) {
+		fd_log_notice("%s: write-lock failed, aborting", MODULE_NAME);
+		return EDEADLK;
+	}
+
 	/* Initialize the repo */
 	CHECK_FCT( rtd_init() );
 	
 	/* Parse the configuration file */
 	CHECK_FCT( rtd_conf_handle(conffile) );
-	
+
+	if (pthread_rwlock_unlock(&rtd_lock) != 0) {
+		fd_log_notice("%s: write-unlock failed, aborting", MODULE_NAME);
+		return EDEADLK;
+	}
+
+	/* Register reload callback */
+	CHECK_FCT(fd_event_trig_regcb(SIGUSR1, MODULE_NAME, sig_hdlr));
+
 #if 0
 	/* Dump the rules */
 	rtd_dump();
@@ -91,9 +154,11 @@ void fd_ext_fini(void)
 	
 	/* Destroy the data */
 	rtd_fini();
-	
+
+	pthread_rwlock_destroy(&rtd_lock);
+
 	/* Done */
 	return ;
 }
 
-EXTENSION_ENTRY("rt_default", rtd_entry);
+EXTENSION_ENTRY(MODULE_NAME, rtd_entry);

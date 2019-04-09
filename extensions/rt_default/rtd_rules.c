@@ -46,7 +46,7 @@
  *
  *  Under each TARGET element, we have the list of RULES that are defined for this target, ordered by CRITERIA type, then is_regex, then string value.
  *
- * Note: Except during configuration parsing and module termination, the lists are only ever accessed read-only, so we do not need a lock.
+ * Note: Access these only when holding rtd_lock; config reload may change the underlying data.
  */
 
 /* Structure to hold the data that is used for matching. */
@@ -389,19 +389,23 @@ int rtd_init(void)
 	return 0;
 }
 
-/* Destroy the module's data */
-void rtd_fini(void)
+static void free_targets(void)
 {
 	int i;
-	
-	TRACE_ENTRY();
 
 	for (i = 0; i < RTD_TAR_MAX; i++) {
 		while (!FD_IS_LIST_EMPTY(&TARGETS[i])) {
 			del_target((struct target *) TARGETS[i].next);
 		}
 	}
-	
+}
+
+/* Destroy the module's data */
+void rtd_fini(void)
+{
+	TRACE_ENTRY();
+
+	free_targets();
 }
 
 /* Add a new rule in the repository. this is called when the configuration file is being parsed */
@@ -492,6 +496,40 @@ int rtd_add(enum rtd_crit_type ct, char * criteria, enum rtd_targ_type tt, char 
 	}
 	
 	return 0;
+}
+
+void rtd_conf_reload(char *config_file)
+{
+	/* save old config in case reload goes wrong */
+	struct fd_list old_config[RTD_TAR_MAX];
+	int i;
+
+	for (i = 0; i < RTD_TAR_MAX; i++) {
+		old_config[i] = TARGETS[i];
+	}
+	memset(TARGETS, 0, sizeof(*TARGETS) * RTD_TAR_MAX);
+	for (i = 0; i < RTD_TAR_MAX; i++) {
+		fd_list_init(&TARGETS[i], NULL);
+	}
+
+	if (rtd_conf_handle(config_file) != 0) {
+		fd_log_notice("rt_default: error reloading configuration, restoring previous configuration");
+		free_targets();
+		for (i = 0; i < RTD_TAR_MAX; i++) {
+			TARGETS[i] = old_config[i];
+		}
+	} else {
+		/* this has to be done in this weird way because the items contain back pointers referencing TARGETS */
+		struct fd_list save_config[RTD_TAR_MAX];
+		for (i = 0; i < RTD_TAR_MAX; i++) {
+			save_config[i] = TARGETS[i];
+			TARGETS[i] = old_config[i];
+		}
+		free_targets();
+		for (i = 0; i < RTD_TAR_MAX; i++) {
+			TARGETS[i] = save_config[i];
+		}
+	}
 }
 
 /* Check if a message and list of eligible candidate match any of our rules, and update its score according to it. */
