@@ -400,7 +400,7 @@ static int fd_setsockopt_prebind(int sk)
 			fd_log_debug( "       	     sctp_peer_error_event       : %hhu", event.sctp_peer_error_event);
 			fd_log_debug( "       	     sctp_shutdown_event	 : %hhu", event.sctp_shutdown_event);
 			fd_log_debug( "       	     sctp_partial_delivery_event : %hhu", event.sctp_partial_delivery_event);
-			fd_log_debug( "       	     sctp_adaptation_layer_event : %hhu", event.sctp_adaptation_layer_event);
+			// fd_log_debug( "       	     sctp_adaptation_layer_event : %hhu", event.sctp_adaptation_layer_event);
 			// fd_log_debug( "             sctp_authentication_event    : %hhu", event.sctp_authentication_event);
 		}
 	}
