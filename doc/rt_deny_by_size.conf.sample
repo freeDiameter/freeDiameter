@@ -1,0 +1,11 @@
+# This file contains information for configuring the rt_deny_by_size extension.
+#
+# The rt_deny_by_size extension returns errors for messages above a particular size.
+#
+# This extension supports configuration reload at runtime. Send
+# signal SIGUSR1 to the process to cause the process to reload its
+# config.
+#
+# Configure the maximum allowed message size to still pass through;
+# defaults to 4096, if config file is empty
+#MaximumSize=4096;

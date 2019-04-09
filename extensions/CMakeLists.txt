@@ -70,6 +70,7 @@ FD_EXTENSION_SUBDIR(app_redirect "Diameter Redirect server: send configurable Re
 
 FD_EXTENSION_SUBDIR(rt_busypeers    "Handling of Diameter TOO_BUSY messages and relay timeouts"	ON)
 FD_EXTENSION_SUBDIR(rt_default      "Configurable routing rules for freeDiameter" 		     	ON)
+FD_EXTENSION_SUBDIR(rt_deny_by_size "Deny messages that are larger than a configured size" 		     	ON)
 FD_EXTENSION_SUBDIR(rt_ereg         "Configurable routing based on regexp matching of AVP values" OFF)
 FD_EXTENSION_SUBDIR(rt_ignore_dh    "Stow Destination-Host in Proxy-Info, restore to Origin-Host for answers"	ON)
 FD_EXTENSION_SUBDIR(rt_load_balance "Balance load over multiple equal hosts, based on outstanding requests"	ON)
