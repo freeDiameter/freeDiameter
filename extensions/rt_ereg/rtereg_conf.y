@@ -120,7 +120,7 @@ int avp_add(const char *name)
 	}
 	rtereg_conf[rtereg_conf_size-1].avps = ret;
 
-	CHECK_FCT_DO( fd_dict_search ( fd_g_config->cnf_dict, DICT_AVP, AVP_BY_NAME, name, &rtereg_conf[rtereg_conf_size-1].avps[level-1], ENOENT ),
+	CHECK_FCT_DO( fd_dict_search ( fd_g_config->cnf_dict, DICT_AVP, AVP_BY_NAME_ALL_VENDORS, name, &rtereg_conf[rtereg_conf_size-1].avps[level-1], ENOENT ),
 		      {
 			      TRACE_DEBUG(INFO, "rt_ereg: Unable to find '%s' AVP in the loaded dictionaries.", name);
 			      return -1;
