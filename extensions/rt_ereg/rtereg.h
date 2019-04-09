@@ -57,8 +57,11 @@ struct rtereg_rule {
 extern struct rtereg_conf {
 	int			rules_nb; /* Number of rules in the configuration */
 	struct rtereg_rule 	*rules;   /* The array of rules */
-	
-	struct dict_object * avp; /* cache the dictionary object that we are searching */
-	
-} rtereg_conf;
 
+	int                     level;    /* how many levels of AVPs we have to dig down into */
+	int			finished; /* AVP fully configured, for configuration file reading */
+	struct dict_object      **avps;   /* cache the dictionary objects that we are searching */
+	
+} *rtereg_conf;
+
+extern int rtereg_conf_size;

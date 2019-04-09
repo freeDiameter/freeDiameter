@@ -37,14 +37,14 @@
  */
 
 /* For development only : */
-%debug 
+%debug
 %error-verbose
 
 /* The parser receives the configuration file filename as parameter */
 %parse-param {char * conffile}
 
 /* Keep track of location */
-%locations 
+%locations
 %pure-parser
 
 %{
@@ -53,36 +53,91 @@
 
 /* Forward declaration */
 int yyparse(char * conffile);
+void rtereg_confrestart(FILE *input_file);
 
 /* Parse the configuration file */
 int rtereg_conf_handle(char * conffile)
 {
 	extern FILE * rtereg_confin;
 	int ret;
-	
+
 	TRACE_ENTRY("%p", conffile);
-	
+
 	TRACE_DEBUG (FULL, "Parsing configuration file: %s...", conffile);
-	
+
 	rtereg_confin = fopen(conffile, "r");
 	if (rtereg_confin == NULL) {
 		ret = errno;
 		fd_log_debug("Unable to open extension configuration file %s for reading: %s", conffile, strerror(ret));
-		TRACE_DEBUG (INFO, "Error occurred, message logged -- configuration file.");
+		TRACE_DEBUG (INFO, "rt_ereg: error occurred, message logged -- configuration file.");
 		return ret;
 	}
 
+	rtereg_confrestart(rtereg_confin);
 	ret = yyparse(conffile);
 
 	fclose(rtereg_confin);
 
+	if (rtereg_conf[rtereg_conf_size-1].finished == 0) {
+		TRACE_DEBUG(INFO, "rt_ereg: configuration invalid, AVP ended without OCTETSTRING AVP");
+		return EINVAL;
+	}
+
 	if (ret != 0) {
-		TRACE_DEBUG (INFO, "Unable to parse the configuration file.");
+		TRACE_DEBUG(INFO, "rt_ereg: unable to parse the configuration file.");
 		return EINVAL;
 	} else {
-		TRACE_DEBUG(FULL, "[rt-ereg] Added %d rules successfully.", rtereg_conf.rules_nb);
+		int i, sum = 0;
+		for (i=0; i<rtereg_conf_size; i++) {
+			sum += rtereg_conf[i].rules_nb;
+		}
+		TRACE_DEBUG(FULL, "[rt-ereg] Added %d rules successfully.", sum);
 	}
-	
+
+	return 0;
+}
+
+int avp_add(const char *name)
+{
+	void *ret;
+	int level;
+
+	if (rtereg_conf[rtereg_conf_size-1].finished) {
+		if ((ret = realloc(rtereg_conf, sizeof(*rtereg_conf)*(rtereg_conf_size+1))) == NULL) {
+			TRACE_DEBUG(INFO, "rt_ereg: realloc failed");
+			return -1;
+		}
+		rtereg_conf_size++;
+		rtereg_conf = ret;
+		memset(&rtereg_conf[rtereg_conf_size-1], 0, sizeof(*rtereg_conf));
+		TRACE_DEBUG(INFO, "rt_ereg: New AVP group found starting with %s", name);
+	}
+	level = rtereg_conf[rtereg_conf_size-1].level + 1;
+
+	if ((ret = realloc(rtereg_conf[rtereg_conf_size-1].avps, sizeof(*rtereg_conf[rtereg_conf_size-1].avps)*level)) == NULL) {
+		TRACE_DEBUG(INFO, "rt_ereg: realloc failed");
+		return -1;
+	}
+	rtereg_conf[rtereg_conf_size-1].avps = ret;
+
+	CHECK_FCT_DO( fd_dict_search ( fd_g_config->cnf_dict, DICT_AVP, AVP_BY_NAME, name, &rtereg_conf[rtereg_conf_size-1].avps[level-1], ENOENT ),
+		      {
+			      TRACE_DEBUG(INFO, "rt_ereg: Unable to find '%s' AVP in the loaded dictionaries.", name);
+			      return -1;
+		      } );
+
+	/* Now check the type */
+	{
+		struct dict_avp_data data;
+		CHECK_FCT( fd_dict_getval( rtereg_conf[rtereg_conf_size-1].avps[level-1], &data) );
+		if (data.avp_basetype == AVP_TYPE_OCTETSTRING) {
+			rtereg_conf[rtereg_conf_size-1].finished = 1;
+		} else if (data.avp_basetype != AVP_TYPE_GROUPED) {
+			TRACE_DEBUG(INFO, "rt_ereg: '%s' AVP is not an OCTETSTRING nor GROUPED AVP (%d).", name, data.avp_basetype);
+			return -1;
+		}
+	}
+	rtereg_conf[rtereg_conf_size-1].level = level;
 	return 0;
 }
 
@@ -92,8 +147,8 @@ int rtereg_conflex(YYSTYPE *lvalp, YYLTYPE *llocp);
 /* Function to report the errors */
 void yyerror (YYLTYPE *ploc, char * conffile, char const *s)
 {
-	TRACE_DEBUG(INFO, "Error in configuration parsing");
-	
+	TRACE_DEBUG(INFO, "rt_ereg: error in configuration parsing");
+
 	if (ploc->first_line != ploc->last_line)
 		fd_log_debug("%s:%d.%d-%d.%d : %s", conffile, ploc->first_line, ploc->first_column, ploc->last_line, ploc->last_column, s);
 	else if (ploc->first_column != ploc->last_column)
@@ -125,61 +180,41 @@ void yyerror (YYLTYPE *ploc, char * conffile, char const *s)
 %%
 
 	/* The grammar definition */
-conffile:		rules avp rules
+conffile:		avp rules
+			| conffile avp rules
 			;
-			
+
 	/* a server entry */
-avp:			AVP '=' QSTRING ';'
-			{
-				if (rtereg_conf.avp != NULL) {
-					yyerror(&yylloc, conffile, "Only one AVP can be specified");
-					YYERROR;
-				}
-				
-				CHECK_FCT_DO( fd_dict_search ( fd_g_config->cnf_dict, DICT_AVP, AVP_BY_NAME, $3, &rtereg_conf.avp, ENOENT ),
-					{
-						TRACE_DEBUG(INFO, "Unable to find '%s' AVP in the loaded dictionaries.", $3);
-						yyerror (&yylloc, conffile, "Invalid AVP value.");
-						YYERROR;
-					} );
-				
-				/* Now check the type */
-				{
-					struct dict_avp_data data;
-					CHECK_FCT( fd_dict_getval( rtereg_conf.avp, &data) );
-					CHECK_PARAMS_DO (data.avp_basetype == AVP_TYPE_OCTETSTRING, 
-						{
-							TRACE_DEBUG(INFO, "'%s' AVP in not an OCTETSTRING AVP (%d).", $3, data.avp_basetype);
-							yyerror (&yylloc, conffile, "AVP in not an OCTETSTRING type.");
-							YYERROR;
-						} );
-				}
-			}
+avp:			AVP '=' avp_part ';'
 			;
-			
+
+avp_part: 		avp_part ':' QSTRING { if (avp_add($3) < 0) { YYERROR; } }
+			| QSTRING { if (avp_add($1) < 0) { YYERROR; } }
+			;
+
 rules:			/* empty OK */
 			| rules rule
 			;
-			
+
 rule:			QSTRING ':' QSTRING '+' '=' INTEGER ';'
 			{
 				struct rtereg_rule * new;
 				int err;
-				
+
 				/* Add new rule in the array */
-				rtereg_conf.rules_nb += 1;
-				CHECK_MALLOC_DO(rtereg_conf.rules = realloc(rtereg_conf.rules, rtereg_conf.rules_nb * sizeof(struct rtereg_rule)),
+				rtereg_conf[rtereg_conf_size-1].rules_nb += 1;
+				CHECK_MALLOC_DO(rtereg_conf[rtereg_conf_size-1].rules = realloc(rtereg_conf[rtereg_conf_size-1].rules, rtereg_conf[rtereg_conf_size-1].rules_nb * sizeof(struct rtereg_rule)),
 					{
 						yyerror (&yylloc, conffile, "Not enough memory to store the configuration...");
 						YYERROR;
 					} );
-				
-				new = &rtereg_conf.rules[rtereg_conf.rules_nb - 1];
-				
+
+				new = &rtereg_conf[rtereg_conf_size-1].rules[rtereg_conf[rtereg_conf_size-1].rules_nb - 1];
+
 				new->pattern = $1;
 				new->server  = $3;
 				new->score   = $6;
-				
+
 				/* Attempt to compile the regex */
 				CHECK_FCT_DO( err=regcomp(&new->preg, new->pattern, REG_EXTENDED | REG_NOSUB),
 					{
@@ -187,7 +222,7 @@ rule:			QSTRING ':' QSTRING '+' '=' INTEGER ';'
 						size_t bl;
 
 						/* Error while compiling the regex */
-						TRACE_DEBUG(INFO, "Error while compiling the regular expression '%s':", new->pattern);
+						TRACE_DEBUG(INFO, "rt_ereg: error while compiling the regular expression '%s':", new->pattern);
 
 						/* Get the error message size */
 						bl = regerror(err, &new->preg, NULL, 0);
@@ -198,10 +233,10 @@ rule:			QSTRING ':' QSTRING '+' '=' INTEGER ';'
 						/* Get the error message content */
 						regerror(err, &new->preg, buf, bl);
 						TRACE_DEBUG(INFO, "\t%s", buf);
-						
+
 						/* Free the buffer, return the error */
 						free(buf);
-						
+
 						yyerror (&yylloc, conffile, "Invalid regular expression.");
 						YYERROR;
 					} );

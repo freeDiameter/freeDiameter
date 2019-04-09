@@ -3,9 +3,15 @@
 #
 # The rt_ereg extension allows creation of routing rules based on AVP value matching regular expressions.
 
+# This extension supports configuration reload at runtime. Send
+# signal SIGUSR1 to the process to cause the process to reload its
+# config.
+
 # First, one must indicate which AVP should be used for matching. 
 # At the moment, only AVP with OCTETSTRING types are valid.
 #  AVP = "User-Name";
+# It is possible to specify AVPs below GROUPED AVPs with the by separating AVPs with a colon (':'):
+#  AVP = "Grouped-AVP1" : "Grouped-AVP2" : "Octetstring-AVP";
 # This parameter is mandatory. There is no default value.
 
 # Then a list of rules follow. A rule has this format:
@@ -19,3 +25,7 @@
 #    means that if the AVP value is only numeric, the ServerA will have its score decreased by 3 points.
 #    (reminder: the server with the peer with the highest score gets the message)
 # Note that all rules are tested for each message that contain the AVP, not only the first match.
+
+# There can be multiple blocks of AVPs and rules; just start the next one with another AVP line:
+#  AVP = "Other-AVP";
+# and continue with rules as above.

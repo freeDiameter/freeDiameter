@@ -33,16 +33,26 @@
 * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.								 *
 *********************************************************************************************************/
 
-/* 
+/*
  * This extension allows to perform some pattern-matching on an AVP
  * and send the message to a server accordingly.
  * See rt_ereg.conf.sample file for the format of the configuration file.
  */
 
+#include <pthread.h>
+#include <signal.h>
+
 #include "rtereg.h"
 
+static pthread_rwlock_t rte_lock;
+
+#define MODULE_NAME "rt_ereg"
+
+static char *rt_ereg_config_file;
+
 /* The configuration structure */
-struct rtereg_conf rtereg_conf;
+struct rtereg_conf *rtereg_conf;
+int rtereg_conf_size;
 
 #ifndef HAVE_REG_STARTEND
 static char * buf = NULL;
@@ -50,18 +60,41 @@ static size_t bufsz;
 static pthread_mutex_t mtx = PTHREAD_MUTEX_INITIALIZER;
 #endif /* HAVE_REG_STARTEND */
 
-static int proceed(char * value, size_t len, struct fd_list * candidates)
+static int rtereg_init(void);
+static int rtereg_init_config(void);
+static void rtereg_fini(void);
+
+void rtereg_conf_free(struct rtereg_conf *config_struct, int config_size)
+{
+	int i, j;
+
+    	/* Destroy the data */
+	for (j=0; j<config_size; j++) {
+		if (config_struct[j].rules) {
+			for (i = 0; i < config_struct[j].rules_nb; i++) {
+				free(config_struct[j].rules[i].pattern);
+				free(config_struct[j].rules[i].server);
+				regfree(&config_struct[j].rules[i].preg);
+			}
+		}
+		free(config_struct[j].avps);
+		free(config_struct[j].rules);
+	}
+	free(config_struct);
+}
+
+static int proceed(char * value, size_t len, struct fd_list * candidates, int conf)
 {
 	int i;
-	
-	for (i = 0; i < rtereg_conf.rules_nb; i++) {
+
+	for (i = 0; i < rtereg_conf[conf].rules_nb; i++) {
 		/* Does this pattern match the value? */
-		struct rtereg_rule * r = &rtereg_conf.rules[i];
+		struct rtereg_rule * r = &rtereg_conf[conf].rules[i];
 		int err = 0;
 		struct fd_list * c;
-		
+
 		TRACE_DEBUG(ANNOYING, "Attempt pattern matching of '%.*s' with rule '%s'", (int)len, value, r->pattern);
-		
+
 		#ifdef HAVE_REG_STARTEND
 		{
 			regmatch_t pmatch[1];
@@ -76,10 +109,10 @@ static int proceed(char * value, size_t len, struct fd_list * candidates)
 			err = regexec(&r->preg, value, 0, NULL, 0);
 		}
 		#endif /* HAVE_REG_STARTEND */
-		
+
 		if (err == REG_NOMATCH)
 			continue;
-			
+
 		if (err != 0) {
 			char * errstr;
 			size_t bl;
@@ -99,10 +132,10 @@ static int proceed(char * value, size_t len, struct fd_list * candidates)
 
 			/* Free the buffer, return the error */
 			free(errstr);
-			
+
 			return (err == REG_ESPACE) ? ENOMEM : EINVAL;
 		}
-		
+
 		/* From this point, the expression matched the AVP value */
 		TRACE_DEBUG(FULL, "[rt_ereg] Match: '%s' to value '%.*s' => '%s' += %d",
 					r->pattern,
@@ -110,7 +143,7 @@ static int proceed(char * value, size_t len, struct fd_list * candidates)
 					value,
 					r->server,
 					r->score);
-		
+
 		for (c = candidates->next; c != candidates; c = c->next) {
 			struct rtd_candidate * cand = (struct rtd_candidate *)c;
 
@@ -120,106 +153,240 @@ static int proceed(char * value, size_t len, struct fd_list * candidates)
 			}
 		}
 	};
-	
+
+	return 0;
+}
+
+static int find_avp(msg_or_avp *where, int conf_index, int level, struct fd_list * candidates)
+{
+	struct dict_object *what;
+	struct dict_avp_data dictdata;
+	struct avp *nextavp = NULL;
+	struct avp_hdr *avp_hdr = NULL;
+
+	/* iterate over all AVPs and try to find a match */
+//	for (i = 0; i<rtereg_conf[j].level; i++) {
+	if (level > rtereg_conf[conf_index].level) {
+		TRACE_DEBUG(INFO, "internal error, dug too deep");
+		return 1;
+	}
+	what = rtereg_conf[conf_index].avps[level];
+
+	CHECK_FCT(fd_dict_getval(what, &dictdata));
+	CHECK_FCT(fd_msg_browse(where, MSG_BRW_FIRST_CHILD, (void *)&nextavp, NULL));
+	while (nextavp) {
+		CHECK_FCT(fd_msg_avp_hdr(nextavp, &avp_hdr));
+		if ((avp_hdr->avp_code == dictdata.avp_code) && (avp_hdr->avp_vendor == dictdata.avp_vendor)) {
+			if (level != rtereg_conf[conf_index].level - 1) {
+				TRACE_DEBUG(INFO, "[rt_ereg] found grouped AVP %d (vendor %d), digging deeper", avp_hdr->avp_code, avp_hdr->avp_vendor);
+				CHECK_FCT(find_avp(nextavp, conf_index, level+1, candidates));
+			} else {
+				TRACE_DEBUG(INFO, "[rt_ereg] found AVP %d (vendor %d)", avp_hdr->avp_code, avp_hdr->avp_vendor);
+				if (avp_hdr->avp_value != NULL) {
+#ifndef HAVE_REG_STARTEND
+					int ret;
+
+					/* Lock the buffer */
+					CHECK_POSIX( pthread_mutex_lock(&mtx) );
+
+					/* Augment the buffer if needed */
+					if (avp_hdr->avp_value->os.len >= bufsz) {
+						CHECK_MALLOC_DO( buf = realloc(buf, avp_hdr->avp_value->os.len + 1),
+							{ pthread_mutex_unlock(&mtx); return ENOMEM; } );
+					}
+
+					/* Copy the AVP value */
+					memcpy(buf, avp_hdr->avp_value->os.data, avp_hdr->avp_value->os.len);
+					buf[avp_hdr->avp_value->os.len] = '\0';
+
+					/* Now apply the rules */
+					ret = proceed(buf, avp_hdr->avp_value->os.len, candidates, conf_index);
+
+					CHECK_POSIX(pthread_mutex_unlock(&mtx));
+
+					CHECK_FCT(ret);
+#else /* HAVE_REG_STARTEND */
+					CHECK_FCT( proceed((char *) avp_hdr->avp_value->os.data, avp_hdr->avp_value->os.len, candidates, conf_index) );
+#endif /* HAVE_REG_STARTEND */
+				}
+			}
+		}
+		CHECK_FCT(fd_msg_browse(nextavp, MSG_BRW_NEXT, (void *)&nextavp, NULL));
+	}
+
 	return 0;
 }
 
 /* The callback called on new messages */
 static int rtereg_out(void * cbdata, struct msg ** pmsg, struct fd_list * candidates)
 {
-	struct msg * msg = *pmsg;
-	struct avp * avp = NULL;
-	
-	TRACE_ENTRY("%p %p %p", cbdata, msg, candidates);
-	
-	CHECK_PARAMS(msg && candidates);
-	
-	/* Check if it is worth processing the message */
-	if (FD_IS_LIST_EMPTY(candidates)) {
+	msg_or_avp *where;
+	int j, ret;
+
+	TRACE_ENTRY("%p %p %p", cbdata, *pmsg, candidates);
+
+	CHECK_PARAMS(pmsg && *pmsg && candidates);
+
+	if (pthread_rwlock_rdlock(&rte_lock) != 0) {
+		fd_log_notice("%s: read-lock failed, skipping handler", MODULE_NAME);
 		return 0;
 	}
-	
-	/* Now search the AVP in the message */
-	CHECK_FCT( fd_msg_search_avp ( msg, rtereg_conf.avp, &avp ) );
-	if (avp != NULL) {
-		struct avp_hdr * ahdr = NULL;
-		CHECK_FCT( fd_msg_avp_hdr ( avp, &ahdr ) );
-		if (ahdr->avp_value != NULL) {
-#ifndef HAVE_REG_STARTEND
-			int ret;
-		
-			/* Lock the buffer */
-			CHECK_POSIX( pthread_mutex_lock(&mtx) );
-			
-			/* Augment the buffer if needed */
-			if (ahdr->avp_value->os.len >= bufsz) {
-				CHECK_MALLOC_DO( buf = realloc(buf, ahdr->avp_value->os.len + 1), 
-					{ pthread_mutex_unlock(&mtx); return ENOMEM; } );
+	ret = 0;
+	/* Check if it is worth processing the message */
+	if (!FD_IS_LIST_EMPTY(candidates)) {
+		/* Now search the AVPs in the message */
+
+		for (j=0; j<rtereg_conf_size; j++) {
+			where = *pmsg;
+			TRACE_DEBUG(INFO, "[rt_ereg] iterating over AVP group %d", j);
+			if ((ret=find_avp(where, j, 0, candidates)) != 0) {
+				break;
 			}
-			
-			/* Copy the AVP value */
-			memcpy(buf, ahdr->avp_value->os.data, ahdr->avp_value->os.len);
-			buf[ahdr->avp_value->os.len] = '\0';
-			
-			/* Now apply the rules */
-			ret = proceed(buf, ahdr->avp_value->os.len, candidates);
-			
-			CHECK_POSIX(pthread_mutex_unlock(&mtx));
-			
-			CHECK_FCT(ret);
-#else /* HAVE_REG_STARTEND */
-			CHECK_FCT( proceed((char *) ahdr->avp_value->os.data, ahdr->avp_value->os.len, candidates) );
-#endif /* HAVE_REG_STARTEND */
 		}
 	}
-	
-	return 0;
+	if (pthread_rwlock_unlock(&rte_lock) != 0) {
+		fd_log_notice("%s: read-unlock failed after rtereg_out, exiting", MODULE_NAME);
+		exit(1);
+	}
+
+	return ret;
 }
 
 /* handler */
 static struct fd_rt_out_hdl * rtereg_hdl = NULL;
 
+static volatile int in_signal_handler = 0;
+
+/* signal handler */
+static void sig_hdlr(void)
+{
+	struct rtereg_conf *old_config;
+	int old_config_size;
+
+	if (in_signal_handler) {
+		fd_log_error("%s: already handling a signal, ignoring new one", MODULE_NAME);
+		return;
+	}
+	in_signal_handler = 1;
+
+	if (pthread_rwlock_wrlock(&rte_lock) != 0) {
+		fd_log_error("%s: locking failed, aborting config reload", MODULE_NAME);
+		return;
+	}
+
+	/* save old config in case reload goes wrong */
+	old_config = rtereg_conf;
+	old_config_size = rtereg_conf_size;
+	rtereg_conf = NULL;
+	rtereg_conf_size = 0;
+
+	if (rtereg_init_config() != 0) {
+		fd_log_notice("%s: error reloading configuration, restoring previous configuration", MODULE_NAME);
+		rtereg_conf = old_config;
+		rtereg_conf_size = old_config_size;
+	} else {
+		rtereg_conf_free(old_config, old_config_size);
+	}
+
+	if (pthread_rwlock_unlock(&rte_lock) != 0) {
+		fd_log_error("%s: unlocking failed after config reload, exiting", MODULE_NAME);
+		exit(1);
+	}
+
+	fd_log_notice("%s: reloaded configuration, %d AVP group%s defined", MODULE_NAME, rtereg_conf_size, rtereg_conf_size != 1 ? "s" : "");
+
+	in_signal_handler = 0;
+}
+
 /* entry point */
 static int rtereg_entry(char * conffile)
 {
 	TRACE_ENTRY("%p", conffile);
-	
+
+	rt_ereg_config_file = conffile;
+
+	if (rtereg_init() != 0) {
+	    return 1;
+	}
+
+	/* Register reload callback */
+	CHECK_FCT(fd_event_trig_regcb(SIGUSR1, MODULE_NAME, sig_hdlr));
+
+	fd_log_notice("%s: configured, %d AVP group%s defined", MODULE_NAME, rtereg_conf_size, rtereg_conf_size != 1 ? "s" : "");
+
+	return 0;
+}
+
+static int rtereg_init_config(void)
+{
 	/* Initialize the configuration */
-	memset(&rtereg_conf, 0, sizeof(rtereg_conf));
-	
+	if ((rtereg_conf=malloc(sizeof(*rtereg_conf))) == NULL) {
+	    TRACE_DEBUG(INFO, "malloc failured");
+	    return 1;
+	}
+	rtereg_conf_size = 1;
+	memset(rtereg_conf, 0, sizeof(*rtereg_conf));
+
 	/* Parse the configuration file */
-	CHECK_FCT( rtereg_conf_handle(conffile) );
-	
+	CHECK_FCT( rtereg_conf_handle(rt_ereg_config_file) );
+
+	return 0;
+}
+
+
+/* Load */
+static int rtereg_init(void)
+{
+	int ret;
+
+	pthread_rwlock_init(&rte_lock, NULL);
+
+	if (pthread_rwlock_wrlock(&rte_lock) != 0) {
+		fd_log_notice("%s: write-lock failed, aborting", MODULE_NAME);
+		return EDEADLK;
+	}
+
+	if ((ret=rtereg_init_config()) != 0) {
+		pthread_rwlock_unlock(&rte_lock);
+		return ret;
+	}
+
+	if (pthread_rwlock_unlock(&rte_lock) != 0) {
+		fd_log_notice("%s: write-unlock failed, aborting", MODULE_NAME);
+		return EDEADLK;
+	}
+
 	/* Register the callback */
 	CHECK_FCT( fd_rt_out_register( rtereg_out, NULL, 1, &rtereg_hdl ) );
-	
+
 	/* We're done */
 	return 0;
 }
 
 /* Unload */
-void fd_ext_fini(void)
+static void rtereg_fini(void)
 {
-	int i;
 	TRACE_ENTRY();
-	
+
 	/* Unregister the cb */
 	CHECK_FCT_DO( fd_rt_out_unregister ( rtereg_hdl, NULL ), /* continue */ );
-	
+
 	/* Destroy the data */
-	if (rtereg_conf.rules) 
-		for (i = 0; i < rtereg_conf.rules_nb; i++) {
-			free(rtereg_conf.rules[i].pattern);
-			free(rtereg_conf.rules[i].server);
-			regfree(&rtereg_conf.rules[i].preg);
-		}
-	free(rtereg_conf.rules);
+	rtereg_conf_free(rtereg_conf, rtereg_conf_size);
+	rtereg_conf = NULL;
+	rtereg_conf_size = 0;
 #ifndef HAVE_REG_STARTEND
 	free(buf);
+	buf = NULL;
 #endif /* HAVE_REG_STARTEND */
-	
+
 	/* Done */
 	return ;
 }
 
-EXTENSION_ENTRY("rt_ereg", rtereg_entry);
+void fd_ext_fini(void)
+{
+	rtereg_fini();
+}
+
+EXTENSION_ENTRY(MODULE_NAME, rtereg_entry);
