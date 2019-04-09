@@ -1,0 +1,23 @@
+# This file contains information for configuring the rt_rewrite extension
+# To find how to have freeDiameter load this extension, please refer to the freeDiameter documentation.
+#
+# The rt_rewrite extension allows moving data from one AVP into another one, or dropping AVPs altogether.
+
+# This extension supports configuration reload at runtime. Send
+# signal SIGUSR1 to the process to cause the process to reload its
+# config.
+
+# The config consists of MAP for AVP pairs of source/target, or DROP for a source.
+#
+#  MAP = "Source-AVP" > "Destination-AVP";
+#
+# It is possible to specify AVPs below GROUPED AVPs with the by separating AVPs with a colon (':'):
+#  MAP = "Grouped-AVP1" : "Octetstring-AVP1" > "Grouped-AVP2" : "Grouped-AVP3" : "Octetstring-AVP2";
+# Intermediate destination grouped AVPs will be created automatically.
+#
+# NOTE: you can not move grouped AVPs as a unit, you have to move each separate AVP.
+# i.e., this will not work:
+#  MAP = "Grouped-AVP1" > "Grouped-AVP2";
+#
+# For removing AVPs, use DROP:
+#  DROP = "Grouped-AVP1" : "Octetstring-AVP1";

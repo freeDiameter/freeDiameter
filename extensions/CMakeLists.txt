@@ -76,6 +76,7 @@ FD_EXTENSION_SUBDIR(rt_ignore_dh    "Stow Destination-Host in Proxy-Info, restor
 FD_EXTENSION_SUBDIR(rt_load_balance "Balance load over multiple equal hosts, based on outstanding requests"	ON)
 FD_EXTENSION_SUBDIR(rt_randomize    "Randomly choose one of the highest scored hosts and increase its score by one"	ON)
 FD_EXTENSION_SUBDIR(rt_redirect     "Handling of Diameter Redirect messages" 			ON)
+FD_EXTENSION_SUBDIR(rt_rewrite      "Convert/remove AVP data in messages" 			ON)
 
 
 ####
