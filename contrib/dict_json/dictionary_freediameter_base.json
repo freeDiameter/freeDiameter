@@ -1,0 +1,1632 @@
+{
+   "AVPRules" : [
+      {
+         "AVP" : "Vendor-Specific-Application-Id",
+         "Content" : [
+            {
+               "AVP" : "Auth-Application-Id",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Acct-Application-Id",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Vendor-Id"
+            }
+         ]
+      },
+      {
+         "AVP" : "Proxy-Info",
+         "Content" : [
+            {
+               "AVP" : "Proxy-State",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Proxy-Host",
+               "Max" : 1
+            }
+         ]
+      }
+   ],
+   "AVPs" : [
+      {
+         "Code" : 1,
+         "Flags" : {
+            "Must" : "M",
+            "MustNot" : "V"
+         },
+         "Name" : "User-Name",
+         "Type" : "UTF8String"
+      },
+      {
+         "Code" : 25,
+         "Flags" : {
+            "Must" : "M",
+            "MustNot" : "V"
+         },
+         "Name" : "Class",
+         "Type" : "OctetString"
+      },
+      {
+         "Code" : 27,
+         "Flags" : {
+            "Must" : "M",
+            "MustNot" : "V"
+         },
+         "Name" : "Session-Timeout",
+         "Type" : "Unsigned32"
+      },
+      {
+         "Code" : 33,
+         "Flags" : {
+            "Must" : "M",
+            "MustNot" : "V"
+         },
+         "Name" : "Proxy-State",
+         "Type" : "OctetString"
+      },
+      {
+         "Code" : 44,
+         "Flags" : {
+            "Must" : "M",
+            "MustNot" : "V"
+         },
+         "Name" : "Acct-Session-Id",
+         "Type" : "OctetString"
+      },
+      {
+         "Code" : 50,
+         "Flags" : {
+            "Must" : "M",
+            "MustNot" : "V"
+         },
+         "Name" : "Acct-Multi-Session-Id",
+         "Type" : "UTF8String"
+      },
+      {
+         "Code" : 55,
+         "Flags" : {
+            "Must" : "M",
+            "MustNot" : "V"
+         },
+         "Name" : "Event-Timestamp",
+         "Type" : "Time"
+      },
+      {
+         "Code" : 85,
+         "Flags" : {
+            "Must" : "M",
+            "MustNot" : "V"
+         },
+         "Name" : "Acct-Interim-Interval",
+         "Type" : "Unsigned32"
+      },
+      {
+         "Code" : 257,
+         "Flags" : {
+            "Must" : "M",
+            "MustNot" : "V"
+         },
+         "Name" : "Host-IP-Address",
+         "Type" : "Address"
+      },
+      {
+         "Code" : 258,
+         "Flags" : {
+            "Must" : "M",
+            "MustNot" : "V"
+         },
+         "Name" : "Auth-Application-Id",
+         "Type" : "Unsigned32"
+      },
+      {
+         "Code" : 259,
+         "Flags" : {
+            "Must" : "M",
+            "MustNot" : "V"
+         },
+         "Name" : "Acct-Application-Id",
+         "Type" : "Unsigned32"
+      },
+      {
+         "Code" : 260,
+         "Flags" : {
+            "Must" : "M",
+            "MustNot" : "V"
+         },
+         "Name" : "Vendor-Specific-Application-Id",
+         "Type" : "Grouped"
+      },
+      {
+         "Code" : 261,
+         "EnumValues" : [
+            {
+               "Code" : 5,
+               "Name" : "ALL_HOST"
+            },
+            {
+               "Code" : 6,
+               "Name" : "ALL_USER"
+            },
+            {
+               "Code" : 2,
+               "Name" : "ALL_REALM"
+            },
+            {
+               "Code" : 0,
+               "Name" : "DONT_CACHE"
+            },
+            {
+               "Code" : 1,
+               "Name" : "ALL_SESSION"
+            },
+            {
+               "Code" : 4,
+               "Name" : "ALL_APPLICATION"
+            },
+            {
+               "Code" : 3,
+               "Name" : "REALM_AND_APPLICATION"
+            }
+         ],
+         "Flags" : {
+            "Must" : "M",
+            "MustNot" : "V"
+         },
+         "Name" : "Redirect-Host-Usage",
+         "Type" : "Enumerated"
+      },
+      {
+         "Code" : 262,
+         "Flags" : {
+            "Must" : "M",
+            "MustNot" : "V"
+         },
+         "Name" : "Redirect-Max-Cache-Time",
+         "Type" : "Unsigned32"
+      },
+      {
+         "Code" : 263,
+         "Flags" : {
+            "Must" : "M",
+            "MustNot" : "V"
+         },
+         "Name" : "Session-Id",
+         "Type" : "UTF8String"
+      },
+      {
+         "Code" : 264,
+         "Flags" : {
+            "Must" : "M",
+            "MustNot" : "V"
+         },
+         "Name" : "Origin-Host",
+         "Type" : "DiameterIdentity"
+      },
+      {
+         "Code" : 265,
+         "Flags" : {
+            "Must" : "M",
+            "MustNot" : "V"
+         },
+         "Name" : "Supported-Vendor-Id",
+         "Type" : "Unsigned32"
+      },
+      {
+         "Code" : 266,
+         "Flags" : {
+            "Must" : "M",
+            "MustNot" : "V"
+         },
+         "Name" : "Vendor-Id",
+         "Type" : "Unsigned32"
+      },
+      {
+         "Code" : 267,
+         "Flags" : {
+            "Must" : "",
+            "MustNot" : "VM"
+         },
+         "Name" : "Firmware-Revision",
+         "Type" : "Unsigned32"
+      },
+      {
+         "Code" : 268,
+         "EnumValues" : [
+            {
+               "Code" : 4003,
+               "Name" : "ELECTION_LOST"
+            },
+            {
+               "Code" : 2001,
+               "Name" : "DIAMETER_SUCCESS"
+            },
+            {
+               "Code" : 3004,
+               "Name" : "DIAMETER_TOO_BUSY"
+            },
+            {
+               "Code" : 5005,
+               "Name" : "DIAMETER_MISSING_AVP"
+            },
+            {
+               "Code" : 4002,
+               "Name" : "DIAMETER_OUT_OF_SPACE"
+            },
+            {
+               "Code" : 3010,
+               "Name" : "DIAMETER_UNKNOWN_PEER"
+            },
+            {
+               "Code" : 3005,
+               "Name" : "DIAMETER_LOOP_DETECTED"
+            },
+            {
+               "Code" : 5008,
+               "Name" : "DIAMETER_AVP_NOT_ALLOWED"
+            },
+            {
+               "Code" : 5001,
+               "Name" : "DIAMETER_AVP_UNSUPPORTED"
+            },
+            {
+               "Code" : 2002,
+               "Name" : "DIAMETER_LIMITED_SUCCESS"
+            },
+            {
+               "Code" : 3009,
+               "Name" : "DIAMETER_INVALID_AVP_BITS"
+            },
+            {
+               "Code" : 3008,
+               "Name" : "DIAMETER_INVALID_HDR_BITS"
+            },
+            {
+               "Code" : 1001,
+               "Name" : "DIAMETER_MULTI_ROUND_AUTH"
+            },
+            {
+               "Code" : 3003,
+               "Name" : "DIAMETER_REALM_NOT_SERVED"
+            },
+            {
+               "Code" : 5012,
+               "Name" : "DIAMETER_UNABLE_TO_COMPLY"
+            },
+            {
+               "Code" : 5004,
+               "Name" : "DIAMETER_INVALID_AVP_VALUE"
+            },
+            {
+               "Code" : 3002,
+               "Name" : "DIAMETER_UNABLE_TO_DELIVER"
+            },
+            {
+               "Code" : 5007,
+               "Name" : "DIAMETER_CONTRADICTING_AVPS"
+            },
+            {
+               "Code" : 5014,
+               "Name" : "DIAMETER_INVALID_AVP_LENGTH"
+            },
+            {
+               "Code" : 5017,
+               "Name" : "DIAMETER_NO_COMMON_SECURITY"
+            },
+            {
+               "Code" : 5006,
+               "Name" : "DIAMETER_RESOURCES_EXCEEDED"
+            },
+            {
+               "Code" : 5002,
+               "Name" : "DIAMETER_UNKNOWN_SESSION_ID"
+            },
+            {
+               "Code" : 3001,
+               "Name" : "DIAMETER_COMMAND_UNSUPPORTED"
+            },
+            {
+               "Code" : 3006,
+               "Name" : "DIAMETER_REDIRECT_INDICATION"
+            },
+            {
+               "Code" : 5011,
+               "Name" : "DIAMETER_UNSUPPORTED_VERSION"
+            },
+            {
+               "Code" : 5016,
+               "Name" : "DIAMETER_INVALID_AVP_BIT_COMBO"
+            },
+            {
+               "Code" : 5013,
+               "Name" : "DIAMETER_INVALID_BIT_IN_HEADER"
+            },
+            {
+               "Code" : 5010,
+               "Name" : "DIAMETER_NO_COMMON_APPLICATION"
+            },
+            {
+               "Code" : 5003,
+               "Name" : "DIAMETER_AUTHORIZATION_REJECTED"
+            },
+            {
+               "Code" : 5015,
+               "Name" : "DIAMETER_INVALID_MESSAGE_LENGTH"
+            },
+            {
+               "Code" : 3007,
+               "Name" : "DIAMETER_APPLICATION_UNSUPPORTED"
+            },
+            {
+               "Code" : 4001,
+               "Name" : "DIAMETER_AUTHENTICATION_REJECTED"
+            },
+            {
+               "Code" : 5009,
+               "Name" : "DIAMETER_AVP_OCCURS_TOO_MANY_TIMES"
+            }
+         ],
+         "Flags" : {
+            "Must" : "M",
+            "MustNot" : "V"
+         },
+         "Name" : "Result-Code",
+         "Type" : "Unsigned32"
+      },
+      {
+         "Code" : 269,
+         "Flags" : {
+            "Must" : "",
+            "MustNot" : "VM"
+         },
+         "Name" : "Product-Name",
+         "Type" : "UTF8String"
+      },
+      {
+         "Code" : 270,
+         "EnumValues" : [
+            {
+               "Code" : 2,
+               "Name" : "STR"
+            },
+            {
+               "Code" : 1,
+               "Name" : "RE_AUTH"
+            },
+            {
+               "Code" : 4,
+               "Name" : "ACCOUNTING"
+            }
+         ],
+         "Flags" : {
+            "Must" : "M",
+            "MustNot" : "V"
+         },
+         "Name" : "Session-Binding",
+         "Type" : "Unsigned32"
+      },
+      {
+         "Code" : 271,
+         "EnumValues" : [
+            {
+               "Code" : 1,
+               "Name" : "TRY_AGAIN"
+            },
+            {
+               "Code" : 2,
+               "Name" : "ALLOW_SERVICE"
+            },
+            {
+               "Code" : 0,
+               "Name" : "REFUSE_SERVICE"
+            },
+            {
+               "Code" : 3,
+               "Name" : "TRY_AGAIN_ALLOW_SERVICE"
+            }
+         ],
+         "Flags" : {
+            "Must" : "M",
+            "MustNot" : "V"
+         },
+         "Name" : "Session-Server-Failover",
+         "Type" : "Enumerated"
+      },
+      {
+         "Code" : 272,
+         "Flags" : {
+            "Must" : "M",
+            "MustNot" : "V"
+         },
+         "Name" : "Multi-Round-Time-Out",
+         "Type" : "Unsigned32"
+      },
+      {
+         "Code" : 273,
+         "EnumValues" : [
+            {
+               "Code" : 1,
+               "Name" : "BUSY"
+            },
+            {
+               "Code" : 0,
+               "Name" : "REBOOTING"
+            },
+            {
+               "Code" : 2,
+               "Name" : "DO_NOT_WANT_TO_TALK_TO_YOU"
+            }
+         ],
+         "Flags" : {
+            "Must" : "M",
+            "MustNot" : "V"
+         },
+         "Name" : "Disconnect-Cause",
+         "Type" : "Enumerated"
+      },
+      {
+         "Code" : 274,
+         "EnumValues" : [
+            {
+               "Code" : 2,
+               "Name" : "AUTHORIZE_ONLY"
+            },
+            {
+               "Code" : 1,
+               "Name" : "AUTHENTICATE_ONLY"
+            },
+            {
+               "Code" : 3,
+               "Name" : "AUTHORIZE_AUTHENTICATE"
+            }
+         ],
+         "Flags" : {
+            "Must" : "M",
+            "MustNot" : "V"
+         },
+         "Name" : "Auth-Request-Type",
+         "Type" : "Enumerated"
+      },
+      {
+         "Code" : 276,
+         "Flags" : {
+            "Must" : "M",
+            "MustNot" : "V"
+         },
+         "Name" : "Auth-Grace-Period",
+         "Type" : "Unsigned32"
+      },
+      {
+         "Code" : 277,
+         "EnumValues" : [
+            {
+               "Code" : 0,
+               "Name" : "STATE_MAINTAINED"
+            },
+            {
+               "Code" : 1,
+               "Name" : "NO_STATE_MAINTAINED"
+            }
+         ],
+         "Flags" : {
+            "Must" : "M",
+            "MustNot" : "V"
+         },
+         "Name" : "Auth-Session-State",
+         "Type" : "Enumerated"
+      },
+      {
+         "Code" : 278,
+         "Flags" : {
+            "Must" : "M",
+            "MustNot" : "V"
+         },
+         "Name" : "Origin-State-Id",
+         "Type" : "Unsigned32"
+      },
+      {
+         "Code" : 279,
+         "Flags" : {
+            "Must" : "M",
+            "MustNot" : "V"
+         },
+         "Name" : "Failed-AVP",
+         "Type" : "Grouped"
+      },
+      {
+         "Code" : 280,
+         "Flags" : {
+            "Must" : "M",
+            "MustNot" : "V"
+         },
+         "Name" : "Proxy-Host",
+         "Type" : "DiameterIdentity"
+      },
+      {
+         "Code" : 281,
+         "Flags" : {
+            "Must" : "",
+            "MustNot" : "VM"
+         },
+         "Name" : "Error-Message",
+         "Type" : "UTF8String"
+      },
+      {
+         "Code" : 282,
+         "Flags" : {
+            "Must" : "M",
+            "MustNot" : "V"
+         },
+         "Name" : "Route-Record",
+         "Type" : "DiameterIdentity"
+      },
+      {
+         "Code" : 283,
+         "Flags" : {
+            "Must" : "M",
+            "MustNot" : "V"
+         },
+         "Name" : "Destination-Realm",
+         "Type" : "DiameterIdentity"
+      },
+      {
+         "Code" : 284,
+         "Flags" : {
+            "Must" : "M",
+            "MustNot" : "V"
+         },
+         "Name" : "Proxy-Info",
+         "Type" : "Grouped"
+      },
+      {
+         "Code" : 285,
+         "EnumValues" : [
+            {
+               "Code" : 0,
+               "Name" : "AUTHORIZE_ONLY"
+            },
+            {
+               "Code" : 1,
+               "Name" : "AUTHORIZE_AUTHENTICATE"
+            }
+         ],
+         "Flags" : {
+            "Must" : "M",
+            "MustNot" : "V"
+         },
+         "Name" : "Re-Auth-Request-Type",
+         "Type" : "Enumerated"
+      },
+      {
+         "Code" : 287,
+         "Flags" : {
+            "Must" : "M",
+            "MustNot" : "V"
+         },
+         "Name" : "Accounting-Sub-Session-Id",
+         "Type" : "Unsigned64"
+      },
+      {
+         "Code" : 291,
+         "Flags" : {
+            "Must" : "M",
+            "MustNot" : "V"
+         },
+         "Name" : "Authorization-Lifetime",
+         "Type" : "Unsigned32"
+      },
+      {
+         "Code" : 292,
+         "Flags" : {
+            "Must" : "M",
+            "MustNot" : "V"
+         },
+         "Name" : "Redirect-Host",
+         "Type" : "DiameterURI"
+      },
+      {
+         "Code" : 293,
+         "Flags" : {
+            "Must" : "M",
+            "MustNot" : "V"
+         },
+         "Name" : "Destination-Host",
+         "Type" : "DiameterIdentity"
+      },
+      {
+         "Code" : 294,
+         "Flags" : {
+            "Must" : "",
+            "MustNot" : "VM"
+         },
+         "Name" : "Error-Reporting-Host",
+         "Type" : "DiameterIdentity"
+      },
+      {
+         "Code" : 295,
+         "EnumValues" : [
+            {
+               "Code" : 1,
+               "Name" : "DIAMETER_LOGOUT"
+            },
+            {
+               "Code" : 3,
+               "Name" : "DIAMETER_BAD_ANSWER"
+            },
+            {
+               "Code" : 7,
+               "Name" : "DIAMETER_USER_MOVED"
+            },
+            {
+               "Code" : 5,
+               "Name" : "DIAMETER_LINK_BROKEN"
+            },
+            {
+               "Code" : 6,
+               "Name" : "DIAMETER_AUTH_EXPIRED"
+            },
+            {
+               "Code" : 4,
+               "Name" : "DIAMETER_ADMINISTRATIVE"
+            },
+            {
+               "Code" : 8,
+               "Name" : "DIAMETER_SESSION_TIMEOUT"
+            },
+            {
+               "Code" : 2,
+               "Name" : "DIAMETER_SERVICE_NOT_PROVIDED"
+            }
+         ],
+         "Flags" : {
+            "Must" : "M",
+            "MustNot" : "V"
+         },
+         "Name" : "Termination-Cause",
+         "Type" : "Enumerated"
+      },
+      {
+         "Code" : 296,
+         "Flags" : {
+            "Must" : "M",
+            "MustNot" : "V"
+         },
+         "Name" : "Origin-Realm",
+         "Type" : "DiameterIdentity"
+      },
+      {
+         "Code" : 297,
+         "Flags" : {
+            "Must" : "M",
+            "MustNot" : "V"
+         },
+         "Name" : "Experimental-Result",
+         "Type" : "Grouped"
+      },
+      {
+         "Code" : 298,
+         "Flags" : {
+            "Must" : "M",
+            "MustNot" : "V"
+         },
+         "Name" : "Experimental-Result-Code",
+         "Type" : "Unsigned32"
+      },
+      {
+         "Code" : 299,
+         "EnumValues" : [
+            {
+               "Code" : 1,
+               "Name" : "TLS"
+            },
+            {
+               "Code" : 0,
+               "Name" : "NO_INBAND_SECURITY"
+            }
+         ],
+         "Flags" : {
+            "Must" : "M",
+            "MustNot" : "V"
+         },
+         "Name" : "Inband-Security-Id",
+         "Type" : "Unsigned32"
+      },
+      {
+         "Code" : 480,
+         "EnumValues" : [
+            {
+               "Code" : 4,
+               "Name" : "STOP_RECORD"
+            },
+            {
+               "Code" : 1,
+               "Name" : "EVENT_RECORD"
+            },
+            {
+               "Code" : 2,
+               "Name" : "START_RECORD"
+            },
+            {
+               "Code" : 3,
+               "Name" : "INTERIM_RECORD"
+            }
+         ],
+         "Flags" : {
+            "Must" : "M",
+            "MustNot" : "V"
+         },
+         "Name" : "Accounting-Record-Type",
+         "Type" : "Enumerated"
+      },
+      {
+         "Code" : 483,
+         "EnumValues" : [
+            {
+               "Code" : 3,
+               "Name" : "GRANT_AND_LOSE"
+            },
+            {
+               "Code" : 2,
+               "Name" : "GRANT_AND_STORE"
+            },
+            {
+               "Code" : 1,
+               "Name" : "DELIVER_AND_GRANT"
+            }
+         ],
+         "Flags" : {
+            "Must" : "M",
+            "MustNot" : "V"
+         },
+         "Name" : "Accounting-Realtime-Required",
+         "Type" : "Enumerated"
+      },
+      {
+         "Code" : 485,
+         "Flags" : {
+            "Must" : "M",
+            "MustNot" : "V"
+         },
+         "Name" : "Accounting-Record-Number",
+         "Type" : "Unsigned32"
+      }
+   ],
+   "Applications" : [
+      {
+         "Code" : 0,
+         "Name" : "Diameter Common Messages"
+      },
+      {
+         "Code" : 3,
+         "Name" : "Diameter Base Accounting"
+      },
+      {
+         "Code" : 4294967295,
+         "Name" : "Relay"
+      }
+   ],
+   "CommandRules" : [
+      {
+         "Command" : "Capabilities-Exchange-Request",
+         "Content" : [
+            {
+               "AVP" : "Host-IP-Address"
+            },
+            {
+               "AVP" : "Auth-Application-Id"
+            },
+            {
+               "AVP" : "Acct-Application-Id"
+            },
+            {
+               "AVP" : "Vendor-Specific-Application-Id"
+            },
+            {
+               "AVP" : "Origin-Host",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Supported-Vendor-Id"
+            },
+            {
+               "AVP" : "Vendor-Id",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Firmware-Revision",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Product-Name",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Origin-State-Id",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Origin-Realm",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Inband-Security-Id"
+            }
+         ]
+      },
+      {
+         "Command" : "Capabilities-Exchange-Answer",
+         "Content" : [
+            {
+               "AVP" : "Host-IP-Address"
+            },
+            {
+               "AVP" : "Auth-Application-Id"
+            },
+            {
+               "AVP" : "Acct-Application-Id"
+            },
+            {
+               "AVP" : "Vendor-Specific-Application-Id"
+            },
+            {
+               "AVP" : "Origin-Host",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Supported-Vendor-Id"
+            },
+            {
+               "AVP" : "Vendor-Id",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Firmware-Revision",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Result-Code",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Product-Name",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Origin-State-Id",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Failed-AVP",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Error-Message",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Origin-Realm",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Inband-Security-Id"
+            }
+         ]
+      },
+      {
+         "Command" : "Re-Auth-Request",
+         "Content" : [
+            {
+               "AVP" : "User-Name",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Auth-Application-Id",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Session-Id",
+               "First" : true,
+               "Max" : 1
+            },
+            {
+               "AVP" : "Origin-Host",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Origin-State-Id",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Route-Record"
+            },
+            {
+               "AVP" : "Destination-Realm",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Proxy-Info"
+            },
+            {
+               "AVP" : "Re-Auth-Request-Type",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Destination-Host",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Origin-Realm",
+               "Max" : 1
+            }
+         ]
+      },
+      {
+         "Command" : "Re-Auth-Answer",
+         "Content" : [
+            {
+               "AVP" : "User-Name",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Redirect-Host-Usage",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Redirect-Max-Cache-Time",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Session-Id",
+               "First" : true,
+               "Max" : 1
+            },
+            {
+               "AVP" : "Origin-Host",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Result-Code",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Origin-State-Id",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Failed-AVP",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Error-Message",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Proxy-Info"
+            },
+            {
+               "AVP" : "Redirect-Host"
+            },
+            {
+               "AVP" : "Error-Reporting-Host",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Origin-Realm",
+               "Max" : 1
+            }
+         ]
+      },
+      {
+         "Command" : "Accounting-Request",
+         "Content" : [
+            {
+               "AVP" : "User-Name",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Acct-Session-Id",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Acct-Multi-Session-Id",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Event-Timestamp",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Acct-Interim-Interval",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Acct-Application-Id",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Vendor-Specific-Application-Id",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Session-Id",
+               "First" : true,
+               "Max" : 1
+            },
+            {
+               "AVP" : "Origin-Host",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Origin-State-Id",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Route-Record"
+            },
+            {
+               "AVP" : "Destination-Realm",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Proxy-Info"
+            },
+            {
+               "AVP" : "Accounting-Sub-Session-Id",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Destination-Host",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Origin-Realm",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Accounting-Record-Type",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Accounting-Realtime-Required",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Accounting-Record-Number",
+               "Max" : 1
+            }
+         ]
+      },
+      {
+         "Command" : "Accounting-Answer",
+         "Content" : [
+            {
+               "AVP" : "User-Name",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Acct-Session-Id",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Acct-Multi-Session-Id",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Event-Timestamp",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Acct-Interim-Interval",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Acct-Application-Id",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Vendor-Specific-Application-Id",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Session-Id",
+               "First" : true,
+               "Max" : 1
+            },
+            {
+               "AVP" : "Origin-Host",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Result-Code",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Origin-State-Id",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Failed-AVP",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Error-Message",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Proxy-Info"
+            },
+            {
+               "AVP" : "Accounting-Sub-Session-Id",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Error-Reporting-Host",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Origin-Realm",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Accounting-Record-Type",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Accounting-Realtime-Required",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Accounting-Record-Number",
+               "Max" : 1
+            }
+         ]
+      },
+      {
+         "Command" : "Abort-Session-Request",
+         "Content" : [
+            {
+               "AVP" : "User-Name",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Auth-Application-Id",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Session-Id",
+               "First" : true,
+               "Max" : 1
+            },
+            {
+               "AVP" : "Origin-Host",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Origin-State-Id",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Route-Record"
+            },
+            {
+               "AVP" : "Destination-Realm",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Proxy-Info"
+            },
+            {
+               "AVP" : "Destination-Host",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Origin-Realm",
+               "Max" : 1
+            }
+         ]
+      },
+      {
+         "Command" : "Abort-Session-Answer",
+         "Content" : [
+            {
+               "AVP" : "User-Name",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Redirect-Host-Usage",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Redirect-Max-Cache-Time",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Session-Id",
+               "First" : true,
+               "Max" : 1
+            },
+            {
+               "AVP" : "Origin-Host",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Result-Code",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Origin-State-Id",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Failed-AVP",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Error-Message",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Proxy-Info"
+            },
+            {
+               "AVP" : "Redirect-Host"
+            },
+            {
+               "AVP" : "Error-Reporting-Host",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Origin-Realm",
+               "Max" : 1
+            }
+         ]
+      },
+      {
+         "Command" : "Session-Termination-Request",
+         "Content" : [
+            {
+               "AVP" : "User-Name",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Class"
+            },
+            {
+               "AVP" : "Auth-Application-Id",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Session-Id",
+               "First" : true,
+               "Max" : 1
+            },
+            {
+               "AVP" : "Origin-Host",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Origin-State-Id",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Route-Record"
+            },
+            {
+               "AVP" : "Destination-Realm",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Proxy-Info"
+            },
+            {
+               "AVP" : "Destination-Host",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Termination-Cause",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Origin-Realm",
+               "Max" : 1
+            }
+         ]
+      },
+      {
+         "Command" : "Session-Termination-Answer",
+         "Content" : [
+            {
+               "AVP" : "User-Name",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Class"
+            },
+            {
+               "AVP" : "Redirect-Host-Usage",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Redirect-Max-Cache-Time",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Session-Id",
+               "First" : true,
+               "Max" : 1
+            },
+            {
+               "AVP" : "Origin-Host",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Result-Code",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Origin-State-Id",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Failed-AVP",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Error-Message",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Proxy-Info"
+            },
+            {
+               "AVP" : "Redirect-Host"
+            },
+            {
+               "AVP" : "Error-Reporting-Host",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Origin-Realm",
+               "Max" : 1
+            }
+         ]
+      },
+      {
+         "Command" : "Device-Watchdog-Request",
+         "Content" : [
+            {
+               "AVP" : "Origin-Host",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Origin-State-Id",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Origin-Realm",
+               "Max" : 1
+            }
+         ]
+      },
+      {
+         "Command" : "Device-Watchdog-Answer",
+         "Content" : [
+            {
+               "AVP" : "Origin-Host",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Result-Code",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Origin-State-Id",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Failed-AVP",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Error-Message",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Origin-Realm",
+               "Max" : 1
+            }
+         ]
+      },
+      {
+         "Command" : "Disconnect-Peer-Request",
+         "Content" : [
+            {
+               "AVP" : "Origin-Host",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Disconnect-Cause",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Origin-Realm",
+               "Max" : 1
+            }
+         ]
+      },
+      {
+         "Command" : "Disconnect-Peer-Answer",
+         "Content" : [
+            {
+               "AVP" : "Origin-Host",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Result-Code",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Failed-AVP",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Error-Message",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Origin-Realm",
+               "Max" : 1
+            }
+         ]
+      }
+   ],
+   "Commands" : [
+      {
+         "Code" : 257,
+         "Flags" : {
+            "Must" : "R",
+            "MustNot" : "PET"
+         },
+         "Name" : "Capabilities-Exchange-Request"
+      },
+      {
+         "Code" : 257,
+         "Flags" : {
+            "Must" : "",
+            "MustNot" : "RPT"
+         },
+         "Name" : "Capabilities-Exchange-Answer"
+      },
+      {
+         "Code" : 258,
+         "Flags" : {
+            "Must" : "RP",
+            "MustNot" : "E"
+         },
+         "Name" : "Re-Auth-Request"
+      },
+      {
+         "Code" : 258,
+         "Flags" : {
+            "Must" : "P",
+            "MustNot" : "R"
+         },
+         "Name" : "Re-Auth-Answer"
+      },
+      {
+         "Code" : 271,
+         "Flags" : {
+            "Must" : "RP",
+            "MustNot" : "E"
+         },
+         "Name" : "Accounting-Request"
+      },
+      {
+         "Code" : 271,
+         "Flags" : {
+            "Must" : "P",
+            "MustNot" : "R"
+         },
+         "Name" : "Accounting-Answer"
+      },
+      {
+         "Code" : 274,
+         "Flags" : {
+            "Must" : "RP",
+            "MustNot" : "E"
+         },
+         "Name" : "Abort-Session-Request"
+      },
+      {
+         "Code" : 274,
+         "Flags" : {
+            "Must" : "P",
+            "MustNot" : "R"
+         },
+         "Name" : "Abort-Session-Answer"
+      },
+      {
+         "Code" : 275,
+         "Flags" : {
+            "Must" : "RP",
+            "MustNot" : "E"
+         },
+         "Name" : "Session-Termination-Request"
+      },
+      {
+         "Code" : 275,
+         "Flags" : {
+            "Must" : "P",
+            "MustNot" : "R"
+         },
+         "Name" : "Session-Termination-Answer"
+      },
+      {
+         "Code" : 280,
+         "Flags" : {
+            "Must" : "R",
+            "MustNot" : "PET"
+         },
+         "Name" : "Device-Watchdog-Request"
+      },
+      {
+         "Code" : 280,
+         "Flags" : {
+            "Must" : "",
+            "MustNot" : "RPT"
+         },
+         "Name" : "Device-Watchdog-Answer"
+      },
+      {
+         "Code" : 282,
+         "Flags" : {
+            "Must" : "R",
+            "MustNot" : "PET"
+         },
+         "Name" : "Disconnect-Peer-Request"
+      },
+      {
+         "Code" : 282,
+         "Flags" : {
+            "Must" : "",
+            "MustNot" : "RPT"
+         },
+         "Name" : "Disconnect-Peer-Answer"
+      }
+   ],
+   "Types" : [
+      {
+         "Base" : "OctetString",
+         "Name" : "Address"
+      },
+      {
+         "Base" : "OctetString",
+         "Name" : "DiameterIdentity"
+      },
+      {
+         "Base" : "OctetString",
+         "Name" : "DiameterURI"
+      },
+      {
+         "Base" : "OctetString",
+         "Name" : "IPFilterRule"
+      },
+      {
+         "Base" : "OctetString",
+         "Name" : "Time"
+      },
+      {
+         "Base" : "OctetString",
+         "Name" : "UTF8String"
+      }
+   ],
+   "Vendors" : [
+      {
+         "Code" : 0,
+         "Name" : "(no vendor)"
+      }
+   ]
+}
+

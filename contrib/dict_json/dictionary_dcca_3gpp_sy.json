@@ -1,0 +1,377 @@
+{
+   "AVPRules" : [
+      {
+         "AVP" : "Policy-Counter-Status-Report",
+         "Content" : [
+            {
+               "AVP" : "Policy-Counter-Identifier",
+               "Vendor" : 10415
+            },
+            {
+               "AVP" : "Policy-Counter-Status",
+               "Vendor" : 10415
+            }
+         ],
+         "Vendor" : 10415
+      }
+   ],
+   "AVPs" : [
+      {
+         "Code" : 2901,
+         "Flags" : {
+            "Must" : "VM",
+            "MustNot" : ""
+         },
+         "Name" : "Policy-Counter-Identifier",
+         "Type" : "UTF8String",
+         "Vendor" : 10415
+      },
+      {
+         "Code" : 2902,
+         "Flags" : {
+            "Must" : "VM",
+            "MustNot" : ""
+         },
+         "Name" : "Policy-Counter-Status",
+         "Type" : "UTF8String",
+         "Vendor" : 10415
+      },
+      {
+         "Code" : 2903,
+         "Flags" : {
+            "Must" : "VM",
+            "MustNot" : ""
+         },
+         "Name" : "Policy-Counter-Status-Report",
+         "Type" : "Grouped",
+         "Vendor" : 10415
+      },
+      {
+         "Code" : 2904,
+         "EnumValues" : [
+            {
+               "Code" : 0,
+               "Name" : "INITIAL_REQUEST"
+            },
+            {
+               "Code" : 1,
+               "Name" : "INTERMEDIATE_REQUEST"
+            }
+         ],
+         "Flags" : {
+            "Must" : "VM",
+            "MustNot" : ""
+         },
+         "Name" : "SL-Request-Type",
+         "Type" : "Enumerated",
+         "Vendor" : 10415
+      }
+   ],
+   "Applications" : [
+      {
+         "Code" : 16777302,
+         "Name" : "Sy"
+      }
+   ],
+   "CommandRules" : [
+      {
+         "Command" : "Spending-Limit-Request",
+         "Content" : [
+            {
+               "AVP" : "Auth-Application-Id",
+               "Max" : 1,
+               "Min" : 1
+            },
+            {
+               "AVP" : "Session-Id",
+               "First" : true,
+               "Max" : 1,
+               "Min" : 1
+            },
+            {
+               "AVP" : "Origin-Host",
+               "Max" : 1,
+               "Min" : 1
+            },
+            {
+               "AVP" : "Origin-State-Id",
+               "Max" : 1,
+               "Min" : 0
+            },
+            {
+               "AVP" : "Route-Record",
+               "Min" : 0
+            },
+            {
+               "AVP" : "Destination-Realm",
+               "Max" : 1,
+               "Min" : 1
+            },
+            {
+               "AVP" : "Proxy-Info",
+               "Min" : 0
+            },
+            {
+               "AVP" : "Destination-Host",
+               "Max" : 1,
+               "Min" : 0
+            },
+            {
+               "AVP" : "Origin-Realm",
+               "Max" : 1,
+               "Min" : 1
+            },
+            {
+               "AVP" : "Subscription-Id",
+               "Min" : 0
+            },
+            {
+               "AVP" : "Policy-Counter-Identifier",
+               "Min" : 0,
+               "Vendor" : 10415
+            },
+            {
+               "AVP" : "SL-Request-Type",
+               "Max" : 1,
+               "Min" : 1,
+               "Vendor" : 10415
+            }
+         ]
+      },
+      {
+         "Command" : "Spending-Limit-Answer",
+         "Content" : [
+            {
+               "AVP" : "Auth-Application-Id",
+               "Max" : 1,
+               "Min" : 1
+            },
+            {
+               "AVP" : "Redirect-Host-Usage",
+               "Max" : 1,
+               "Min" : 0
+            },
+            {
+               "AVP" : "Redirect-Max-Cache-Time",
+               "Max" : 1,
+               "Min" : 0
+            },
+            {
+               "AVP" : "Session-Id",
+               "First" : true,
+               "Max" : 1,
+               "Min" : 1
+            },
+            {
+               "AVP" : "Origin-Host",
+               "Max" : 1,
+               "Min" : 1
+            },
+            {
+               "AVP" : "Result-Code",
+               "Max" : 1,
+               "Min" : 0
+            },
+            {
+               "AVP" : "Origin-State-Id",
+               "Max" : 1,
+               "Min" : 0
+            },
+            {
+               "AVP" : "Failed-AVP",
+               "Min" : 0
+            },
+            {
+               "AVP" : "Error-Message",
+               "Max" : 1,
+               "Min" : 0
+            },
+            {
+               "AVP" : "Proxy-Info",
+               "Min" : 0
+            },
+            {
+               "AVP" : "Redirect-Host",
+               "Min" : 0
+            },
+            {
+               "AVP" : "Error-Reporting-Host",
+               "Max" : 1,
+               "Min" : 0
+            },
+            {
+               "AVP" : "Origin-Realm",
+               "Max" : 1,
+               "Min" : 1
+            },
+            {
+               "AVP" : "Experimental-Result",
+               "Max" : 1,
+               "Min" : 0
+            },
+            {
+               "AVP" : "Policy-Counter-Status-Report",
+               "Min" : 0,
+               "Vendor" : 10415
+            }
+         ]
+      },
+      {
+         "Command" : "Spending-Status-Notification-Request",
+         "Content" : [
+            {
+               "AVP" : "Auth-Application-Id",
+               "Max" : 1,
+               "Min" : 1
+            },
+            {
+               "AVP" : "Session-Id",
+               "First" : true,
+               "Max" : 1,
+               "Min" : 1
+            },
+            {
+               "AVP" : "Origin-Host",
+               "Max" : 1,
+               "Min" : 1
+            },
+            {
+               "AVP" : "Origin-State-Id",
+               "Max" : 1,
+               "Min" : 0
+            },
+            {
+               "AVP" : "Route-Record",
+               "Min" : 0
+            },
+            {
+               "AVP" : "Destination-Realm",
+               "Max" : 1,
+               "Min" : 1
+            },
+            {
+               "AVP" : "Proxy-Info",
+               "Min" : 0
+            },
+            {
+               "AVP" : "Destination-Host",
+               "Max" : 1,
+               "Min" : 0
+            },
+            {
+               "AVP" : "Origin-Realm",
+               "Max" : 1,
+               "Min" : 1
+            },
+            {
+               "AVP" : "Policy-Counter-Status-Report",
+               "Min" : 0,
+               "Vendor" : 10415
+            }
+         ]
+      },
+      {
+         "Command" : "Spending-Status-Notification-Answer",
+         "Content" : [
+            {
+               "AVP" : "Redirect-Host-Usage",
+               "Max" : 1,
+               "Min" : 0
+            },
+            {
+               "AVP" : "Redirect-Max-Cache-Time",
+               "Max" : 1,
+               "Min" : 0
+            },
+            {
+               "AVP" : "Session-Id",
+               "First" : true,
+               "Max" : 1,
+               "Min" : 1
+            },
+            {
+               "AVP" : "Origin-Host",
+               "Max" : 1,
+               "Min" : 1
+            },
+            {
+               "AVP" : "Result-Code",
+               "Max" : 1,
+               "Min" : 0
+            },
+            {
+               "AVP" : "Origin-State-Id",
+               "Max" : 1,
+               "Min" : 0
+            },
+            {
+               "AVP" : "Failed-AVP",
+               "Min" : 0
+            },
+            {
+               "AVP" : "Error-Message",
+               "Max" : 1,
+               "Min" : 0
+            },
+            {
+               "AVP" : "Proxy-Info",
+               "Min" : 0
+            },
+            {
+               "AVP" : "Redirect-Host",
+               "Min" : 0
+            },
+            {
+               "AVP" : "Error-Reporting-Host",
+               "Max" : 1,
+               "Min" : 0
+            },
+            {
+               "AVP" : "Origin-Realm",
+               "Max" : 1,
+               "Min" : 1
+            },
+            {
+               "AVP" : "Experimental-Result",
+               "Max" : 1,
+               "Min" : 0
+            }
+         ]
+      }
+   ],
+   "Commands" : [
+      {
+         "Code" : 8388635,
+         "Flags" : {
+            "Must" : "R",
+            "MustNot" : ""
+         },
+         "Name" : "Spending-Limit-Request"
+      },
+      {
+         "Code" : 8388635,
+         "Flags" : {
+            "Must" : "",
+            "MustNot" : "R"
+         },
+         "Name" : "Spending-Limit-Answer"
+      },
+      {
+         "Code" : 8388636,
+         "Flags" : {
+            "Must" : "R",
+            "MustNot" : ""
+         },
+         "Name" : "Spending-Status-Notification-Request"
+      },
+      {
+         "Code" : 8388636,
+         "Flags" : {
+            "Must" : "",
+            "MustNot" : "R"
+         },
+         "Name" : "Spending-Status-Notification-Answer"
+      }
+   ]
+}
+

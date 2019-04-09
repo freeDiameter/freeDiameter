@@ -1,0 +1,17 @@
+# Configuration for the JSON dictionary extension (no config file needed)
+#
+# This extension allows configuration of diameter dictionaries
+# in JSON format.
+#
+# To load the JSON dictionaries, list their paths, separated with a semicolon (';')
+# as argument when loading the extension in the freeDiameter config file, i.e.:
+#
+# LoadExtension = "dict_json.so":"/path/to/dictionary.json;/path/to/another/dictionary_2.json";
+#
+# Relative paths work but are hard to get right because they are
+# relative to where you started the freeDiameter daemon.
+#
+# The dictionaries must conform to the JSON schema in
+# extensions/dict_json/dict_json_dict_schema.json
+#
+# Example dictionaries are in contrib/dict_json.

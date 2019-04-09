@@ -1,0 +1,162 @@
+{
+    "definitions": {
+        "content": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [ "AVP" ],
+                "properties": {
+                    "AVP": { "type": "string" },
+                    "Vendor": { "$ref": "#/definitions/unsigned-integer" },
+                    "First": { "type": "boolean" },
+                    "Min": { "$ref": "#/definitions/unsigned-integer" },
+                    "Max": { "anyOf": [ { "type": "integer" }, { "enum": [ "unbounded" ] } ] }
+                }
+            }
+        },
+
+        "identifier": { "type": "string", "pattern": "^[[:print:]]+$" },
+        "type": {
+            "enum": [
+                "Address",
+                "DiameterIdentity",
+                "DiameterURI",
+                "Enumerated",
+                "Float32",
+                "Float64",
+                "Grouped",
+                "Integer32",
+                "Integer64",
+                "IPFilterRule",
+                "OctetString",
+                "Time",
+                "Unsigned32",
+                "Unsigned64",
+                "UTF8String"
+            ]
+        },
+        "unsigned-integer": { "type": "integer", "minimum": 0 }
+    },
+    
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+        "Vendors": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [ "Code", "Name" ],
+                "properties": {
+                    "Code": { "$ref": "#/definitions/unsigned-integer" },
+                    "Name": { "$ref": "#/definitions/identifier" }
+                }
+            }
+        },
+        "Types": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [ "Name", "Base" ],
+                "properties": {
+                    "Name": { "type": "string" },
+                    "Base": { "type": "string" }
+                }
+            }
+        },
+        "AVPs": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [ "Code", "Name", "Type" ],
+                "properties": {
+                    "Code": { "$ref": "#/definitions/unsigned-integer" },
+                    "Vendor": { "$ref": "#/definitions/unsigned-integer" },
+                    "Name": { "$ref": "#/definitions/identifier" },
+                    "Flags": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "properties": {
+                            "Must": { "type": "string", "pattern": "^[VMP]*$" },
+                            "MustNot": { "type": "string", "pattern": "^[VMP]*$" }
+                        }
+                    },
+                    "Type": { "$ref": "#/definitions/identifier" },
+                    "EnumValues": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [ "Code", "Name" ],
+                            "properties": {
+                                "Code": { "anyOf": [ { "type": "integer" }, { "type": "number" }, { "type": "string" } ] },
+                                "Name": { "type": "string", "pattern": "^[[:print:]]*$" }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "Applications": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [ "Code", "Name" ],
+                "properties": {
+                    "Code": { "$ref": "#/definitions/unsigned-integer" },
+                    "Name": { "$ref": "#/definitions/identifier" }
+                }
+            }
+        },
+        "Commands": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [ "Code", "Name" ],
+                "properties": {
+                    "Code": { "$ref": "#/definitions/unsigned-integer" },
+                    "Name": { "$ref": "#/definitions/identifier" },
+                    "Application": { "$ref": "#/definitions/identifier" },
+                    "Flags": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "properties": {
+                            "Must": { "type": "string", "pattern": "^[RPE]*$" },
+                            "MustNot": { "type": "string", "pattern": "^[RPET]*$" }
+                        }
+                    }
+                }
+            }
+        },
+        "CommandRules": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [ "Command", "Content" ],
+                "properties": {
+                    "Command": { "type": "string", "minimum": 0 },
+                    "Content": { "$ref": "#/definitions/content" }
+                }
+            }
+        },
+        "AVPRules": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [ "AVP", "Content" ],
+                "properties": {
+                    "AVP": { "type": "string" },
+                    "Vendor": { "type": "integer", "minimum" : 0 },
+                    "Content": { "$ref": "#/definitions/content" }
+                }
+            }
+        }
+    }
+}

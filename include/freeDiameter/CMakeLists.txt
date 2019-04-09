@@ -17,7 +17,7 @@ OPTION(ERRORS_ON_TODO "(development) Generate compilation errors on TODO items ?
 
 # In DEBUG mode, each log can contain pid, calling function and file for easy debug. Set to ON to display this information.
 OPTION(DEBUG_WITH_META "Show calling location in logs?" OFF)
-	
+
 # Create the absolute path for searching extensions
 SET(DEFAULT_EXTENSIONS_PATH ${CMAKE_INSTALL_PREFIX}/${INSTALL_EXTENSIONS_SUFFIX})
 
@@ -31,8 +31,8 @@ ENDIF (NOT DIAMID_IDNA_IGNORE)
 # Note: if someone needs, we could also make the delay configurable here...
 OPTION(DISABLE_PEER_EXPIRY "Disable RFC3539 Peers Connections Expiration after inactivity?" OFF)
 
-# The following workaround increases compatibility with some implementations without breaking anything in freeDiameter, 
-# so it can be enabled without risk. We keep it disabled by default anyway for those people who use freeDiameter to check the 
+# The following workaround increases compatibility with some implementations without breaking anything in freeDiameter,
+# so it can be enabled without risk. We keep it disabled by default anyway for those people who use freeDiameter to check the
 # compliancy of their implementation with the Diameter RFC...
 OPTION(WORKAROUND_ACCEPT_INVALID_VSAI "Do not reject a CER/CEA with a Vendor-Specific-Application-Id AVP containing both Auth- and Acct- application AVPs?" OFF)
 
@@ -44,7 +44,7 @@ MARK_AS_ADVANCED(DISABLE_SCTP DEBUG_SCTP SCTP_USE_MAPPED_ADDRESSES ERRORS_ON_TOD
 INCLUDE (CheckLibraryExists)
 INCLUDE (CheckFunctionExists)
 INCLUDE (CheckIncludeFiles)
-INCLUDE (CheckSymbolExists) 
+INCLUDE (CheckSymbolExists)
 INCLUDE (CheckCSourceCompiles)
 INCLUDE (TestBigEndian)
 
@@ -133,7 +133,7 @@ SET(SCTP_INCLUDE_DIR ${SCTP_INCLUDE_DIR} PARENT_SCOPE)
 SET(SCTP_LIBRARIES ${SCTP_LIBRARIES} PARENT_SCOPE)
 
 # IDNA process: we use libidn from GNU (unless the function & header files are included in libc)
-IF(NOT DIAMID_IDNA_IGNORE  AND NOT DIAMID_IDNA_REJECT)
+IF(NOT DIAMID_IDNA_IGNORE AND NOT DIAMID_IDNA_REJECT)
 	FIND_PACKAGE(IDNA)
    	SET(CHECK_IDNA_SOURCE_CODE "
 		#include <idna.h>
@@ -159,20 +159,20 @@ FIND_PACKAGE(GnuTLS REQUIRED)
 SET(GNUTLS_INCLUDE_DIR ${GNUTLS_INCLUDE_DIR} PARENT_SCOPE)
 SET(GNUTLS_LIBRARIES ${GNUTLS_LIBRARIES} PARENT_SCOPE)
 
-find_path(GCRYPT_INCLUDE_DIR NAMES gcrypt.h)
-If ( NOT GCRYPT_INCLUDE_DIR )
+FIND_PATH(GCRYPT_INCLUDE_DIR NAMES gcrypt.h)
+IF(NOT GCRYPT_INCLUDE_DIR)
 	MESSAGE(SEND_ERROR "Unable to find gcrypt.h, please install libgcrypt-dev or equivalent")
-Endif ( NOT GCRYPT_INCLUDE_DIR )
+ENDIF(NOT GCRYPT_INCLUDE_DIR)
 MARK_AS_ADVANCED(GCRYPT_INCLUDE_DIR)
 SET(GCRYPT_INCLUDE_DIR ${GCRYPT_INCLUDE_DIR} PARENT_SCOPE)
 
 # Also we need libgcrypt to... display its version :(
-find_library(GCRYPT_LIBRARY 
+FIND_LIBRARY(GCRYPT_LIBRARY
   NAMES gcrypt
 )
-If ( NOT GCRYPT_LIBRARY )
+IF(NOT GCRYPT_LIBRARY)
 	MESSAGE(SEND_ERROR "Unable to find libgcrypt, please install libgcrypt or equivalent")
-Endif ( NOT GCRYPT_LIBRARY )
+ENDIF(NOT GCRYPT_LIBRARY)
 SET(GCRYPT_LIBRARY ${GCRYPT_LIBRARY} PARENT_SCOPE)
 
 
@@ -228,7 +228,7 @@ SET(LFDCORE_LIBS ${CLOCK_GETTIME_LIBS} ${CMAKE_DL_LIBS} ${SCTP_LIBRARIES} ${GCRY
 # And includes paths
 SET(LFDCORE_INCLUDES ${SCTP_INCLUDE_DIR} ${GNUTLS_INCLUDE_DIR} ${GCRYPT_INCLUDE_DIR} PARENT_SCOPE)
 # And dependencies
-SET(LFDCORE_LINK_INTERFACES "" PARENT_SCOPE) 
+SET(LFDCORE_LINK_INTERFACES "" PARENT_SCOPE)
 		# We don't force other libraries, the programs will link with what it needs
                 # (such as libgnutls if it uses GNUTLS_DEBUG() macro
 		# or libfdproto if it uses some of its interfaces directly)

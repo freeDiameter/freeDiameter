@@ -1,0 +1,2522 @@
+{
+   "AVPRules" : [
+      {
+         "AVP" : "Tunneling",
+         "Content" : [
+            {
+               "AVP" : "Tunnel-Type",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Tunnel-Medium-Type",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Tunnel-Client-Endpoint",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Tunnel-Server-Endpoint",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Tunnel-Password",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Tunnel-Private-Group-Id",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Tunnel-Assignment-Id",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Tunnel-Preference",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Tunnel-Client-Auth-Id",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Tunnel-Server-Auth-Id",
+               "Max" : 1
+            }
+         ]
+      },
+      {
+         "AVP" : "CHAP-Auth",
+         "Content" : [
+            {
+               "AVP" : "CHAP-Algorithm",
+               "Max" : 1
+            },
+            {
+               "AVP" : "CHAP-Ident",
+               "Max" : 1
+            },
+            {
+               "AVP" : "CHAP-Response",
+               "Max" : 1
+            }
+         ]
+      }
+   ],
+   "AVPs" : [
+      {
+         "Code" : 2,
+         "Flags" : {
+            "Must" : "M",
+            "MustNot" : "V"
+         },
+         "Name" : "User-Password",
+         "Type" : "OctetString"
+      },
+      {
+         "Code" : 4,
+         "Flags" : {
+            "Must" : "M",
+            "MustNot" : "V"
+         },
+         "Name" : "NAS-IP-Address",
+         "Type" : "OctetString"
+      },
+      {
+         "Code" : 5,
+         "Flags" : {
+            "Must" : "M",
+            "MustNot" : "V"
+         },
+         "Name" : "NAS-Port",
+         "Type" : "Unsigned32"
+      },
+      {
+         "Code" : 6,
+         "EnumValues" : [
+            {
+               "Code" : 1,
+               "Name" : "Login"
+            },
+            {
+               "Code" : 2,
+               "Name" : "Framed"
+            },
+            {
+               "Code" : 5,
+               "Name" : "Outbound"
+            },
+            {
+               "Code" : 10,
+               "Name" : "Call Check"
+            },
+            {
+               "Code" : 7,
+               "Name" : "NAS Prompt"
+            },
+            {
+               "Code" : 13,
+               "Name" : "Fax [Chiba]"
+            },
+            {
+               "Code" : 12,
+               "Name" : "Voice [Chiba]"
+            },
+            {
+               "Code" : 6,
+               "Name" : "Administrative"
+            },
+            {
+               "Code" : 3,
+               "Name" : "Callback Login"
+            },
+            {
+               "Code" : 4,
+               "Name" : "Callback Framed"
+            },
+            {
+               "Code" : 8,
+               "Name" : "Authenticate Only"
+            },
+            {
+               "Code" : 9,
+               "Name" : "Callback NAS Prompt"
+            },
+            {
+               "Code" : 14,
+               "Name" : "Modem Relay [Chiba]"
+            },
+            {
+               "Code" : 11,
+               "Name" : "Callback Administrative"
+            },
+            {
+               "Code" : 17,
+               "Name" : "Authorize Only [RFC3576]"
+            },
+            {
+               "Code" : 16,
+               "Name" : "IAPP-AP-Check [IEEE 802.11f][Kerry]"
+            },
+            {
+               "Code" : 15,
+               "Name" : "IAPP-Register [IEEE 802.11f][Kerry]"
+            }
+         ],
+         "Flags" : {
+            "Must" : "M",
+            "MustNot" : "V"
+         },
+         "Name" : "Service-Type",
+         "Type" : "Unsigned32"
+      },
+      {
+         "Code" : 7,
+         "EnumValues" : [
+            {
+               "Code" : 1,
+               "Name" : "PPP"
+            },
+            {
+               "Code" : 2,
+               "Name" : "SLIP"
+            },
+            {
+               "Code" : 6,
+               "Name" : "X.75 Synchronous"
+            },
+            {
+               "Code" : 7,
+               "Name" : "GPRS PDP Context [Moore]"
+            },
+            {
+               "Code" : 5,
+               "Name" : "Xylogics proprietary IPX/SLIP"
+            },
+            {
+               "Code" : 3,
+               "Name" : "AppleTalk Remote Access Protocol (ARAP)"
+            },
+            {
+               "Code" : 4,
+               "Name" : "Gandalf proprietary SingleLink/MultiLink protocol"
+            }
+         ],
+         "Flags" : {
+            "Must" : "M",
+            "MustNot" : "V"
+         },
+         "Name" : "Framed-Protocol",
+         "Type" : "Unsigned32"
+      },
+      {
+         "Code" : 8,
+         "Flags" : {
+            "Must" : "M",
+            "MustNot" : "V"
+         },
+         "Name" : "Framed-IP-Address",
+         "Type" : "OctetString"
+      },
+      {
+         "Code" : 9,
+         "Flags" : {
+            "Must" : "M",
+            "MustNot" : "V"
+         },
+         "Name" : "Framed-IP-Netmask",
+         "Type" : "OctetString"
+      },
+      {
+         "Code" : 10,
+         "EnumValues" : [
+            {
+               "Code" : 0,
+               "Name" : "None"
+            },
+            {
+               "Code" : 3,
+               "Name" : "Send and Listen"
+            },
+            {
+               "Code" : 1,
+               "Name" : "Send routing packets"
+            },
+            {
+               "Code" : 2,
+               "Name" : "Listen for routing packets"
+            }
+         ],
+         "Flags" : {
+            "Must" : "M",
+            "MustNot" : "V"
+         },
+         "Name" : "Framed-Routing",
+         "Type" : "Unsigned32"
+      },
+      {
+         "Code" : 11,
+         "Flags" : {
+            "Must" : "M",
+            "MustNot" : "V"
+         },
+         "Name" : "Filter-Id",
+         "Type" : "UTF8String"
+      },
+      {
+         "Code" : 12,
+         "Flags" : {
+            "Must" : "M",
+            "MustNot" : "V"
+         },
+         "Name" : "Framed-MTU",
+         "Type" : "Unsigned32"
+      },
+      {
+         "Code" : 13,
+         "EnumValues" : [
+            {
+               "Code" : 0,
+               "Name" : "None"
+            },
+            {
+               "Code" : 3,
+               "Name" : "Stac-LZS compression"
+            },
+            {
+               "Code" : 2,
+               "Name" : "IPX header compression"
+            },
+            {
+               "Code" : 1,
+               "Name" : "VJ TCP/IP header compression"
+            }
+         ],
+         "Flags" : {
+            "Must" : "M",
+            "MustNot" : "V"
+         },
+         "Name" : "Framed-Compression",
+         "Type" : "Unsigned32"
+      },
+      {
+         "Code" : 14,
+         "EnumValues" : [
+            {
+               "Code" : "<00000000>",
+               "Name" : "(0) NAS selects the host"
+            },
+            {
+               "Code" : "<ffffffff>",
+               "Name" : "(1) User selects the address"
+            }
+         ],
+         "Flags" : {
+            "Must" : "M",
+            "MustNot" : "V"
+         },
+         "Name" : "Login-IP-Host",
+         "Type" : "OctetString"
+      },
+      {
+         "Code" : 15,
+         "EnumValues" : [
+            {
+               "Code" : 4,
+               "Name" : "LAT"
+            },
+            {
+               "Code" : 1,
+               "Name" : "Rlogin"
+            },
+            {
+               "Code" : 0,
+               "Name" : "Telnet"
+            },
+            {
+               "Code" : 5,
+               "Name" : "X25-PAD"
+            },
+            {
+               "Code" : 2,
+               "Name" : "TCP Clear"
+            },
+            {
+               "Code" : 6,
+               "Name" : "X25-T3POS"
+            },
+            {
+               "Code" : 3,
+               "Name" : "PortMaster (proprietary)"
+            },
+            {
+               "Code" : 8,
+               "Name" : "TCP Clear Quiet (suppresses any NAS-generated connect string)"
+            }
+         ],
+         "Flags" : {
+            "Must" : "M",
+            "MustNot" : "V"
+         },
+         "Name" : "Login-Service",
+         "Type" : "Unsigned32"
+      },
+      {
+         "Code" : 16,
+         "Flags" : {
+            "Must" : "M",
+            "MustNot" : "V"
+         },
+         "Name" : "Login-TCP-Port",
+         "Type" : "Unsigned32"
+      },
+      {
+         "Code" : 18,
+         "Flags" : {
+            "Must" : "M",
+            "MustNot" : "V"
+         },
+         "Name" : "Reply-Message",
+         "Type" : "UTF8String"
+      },
+      {
+         "Code" : 19,
+         "Flags" : {
+            "Must" : "M",
+            "MustNot" : "V"
+         },
+         "Name" : "Callback-Number",
+         "Type" : "UTF8String"
+      },
+      {
+         "Code" : 20,
+         "Flags" : {
+            "Must" : "M",
+            "MustNot" : "V"
+         },
+         "Name" : "Callback-Id",
+         "Type" : "UTF8String"
+      },
+      {
+         "Code" : 22,
+         "Flags" : {
+            "Must" : "M",
+            "MustNot" : "V"
+         },
+         "Name" : "Framed-Route",
+         "Type" : "UTF8String"
+      },
+      {
+         "Code" : 23,
+         "Flags" : {
+            "Must" : "M",
+            "MustNot" : "V"
+         },
+         "Name" : "Framed-IPX-Network",
+         "Type" : "Unsigned32"
+      },
+      {
+         "Code" : 24,
+         "Flags" : {
+            "Must" : "M",
+            "MustNot" : "V"
+         },
+         "Name" : "State",
+         "Type" : "OctetString"
+      },
+      {
+         "Code" : 28,
+         "Flags" : {
+            "Must" : "M",
+            "MustNot" : "V"
+         },
+         "Name" : "Idle-Timeout",
+         "Type" : "Unsigned32"
+      },
+      {
+         "Code" : 30,
+         "Flags" : {
+            "Must" : "M",
+            "MustNot" : "V"
+         },
+         "Name" : "Called-Station-Id",
+         "Type" : "UTF8String"
+      },
+      {
+         "Code" : 31,
+         "Flags" : {
+            "Must" : "M",
+            "MustNot" : "V"
+         },
+         "Name" : "Calling-Station-Id",
+         "Type" : "UTF8String"
+      },
+      {
+         "Code" : 32,
+         "Flags" : {
+            "Must" : "M",
+            "MustNot" : "V"
+         },
+         "Name" : "NAS-Identifier",
+         "Type" : "UTF8String"
+      },
+      {
+         "Code" : 34,
+         "Flags" : {
+            "Must" : "M",
+            "MustNot" : "V"
+         },
+         "Name" : "Login-LAT-Service",
+         "Type" : "OctetString"
+      },
+      {
+         "Code" : 35,
+         "Flags" : {
+            "Must" : "M",
+            "MustNot" : "V"
+         },
+         "Name" : "Login-LAT-Node",
+         "Type" : "OctetString"
+      },
+      {
+         "Code" : 36,
+         "Flags" : {
+            "Must" : "M",
+            "MustNot" : "V"
+         },
+         "Name" : "Login-LAT-Group",
+         "Type" : "OctetString"
+      },
+      {
+         "Code" : 37,
+         "Flags" : {
+            "Must" : "M",
+            "MustNot" : "V"
+         },
+         "Name" : "Framed-AppleTalk-Link",
+         "Type" : "Unsigned32"
+      },
+      {
+         "Code" : 38,
+         "Flags" : {
+            "Must" : "M",
+            "MustNot" : "V"
+         },
+         "Name" : "Framed-AppleTalk-Network",
+         "Type" : "Unsigned32"
+      },
+      {
+         "Code" : 39,
+         "Flags" : {
+            "Must" : "M",
+            "MustNot" : "V"
+         },
+         "Name" : "Framed-AppleTalk-Zone",
+         "Type" : "OctetString"
+      },
+      {
+         "Code" : 41,
+         "Flags" : {
+            "Must" : "M",
+            "MustNot" : "V"
+         },
+         "Name" : "Acct-Delay-Time",
+         "Type" : "Unsigned32"
+      },
+      {
+         "Code" : 45,
+         "EnumValues" : [
+            {
+               "Code" : 2,
+               "Name" : "Local"
+            },
+            {
+               "Code" : 1,
+               "Name" : "RADIUS"
+            },
+            {
+               "Code" : 3,
+               "Name" : "Remote"
+            },
+            {
+               "Code" : 4,
+               "Name" : "Diameter"
+            }
+         ],
+         "Flags" : {
+            "Must" : "M",
+            "MustNot" : "V"
+         },
+         "Name" : "Acct-Authentic",
+         "Type" : "Unsigned32"
+      },
+      {
+         "Code" : 46,
+         "Flags" : {
+            "Must" : "M",
+            "MustNot" : "V"
+         },
+         "Name" : "Acct-Session-Time",
+         "Type" : "Unsigned32"
+      },
+      {
+         "Code" : 51,
+         "Flags" : {
+            "Must" : "M",
+            "MustNot" : "V"
+         },
+         "Name" : "Acct-Link-Count",
+         "Type" : "Unsigned32"
+      },
+      {
+         "Code" : 60,
+         "Flags" : {
+            "Must" : "M",
+            "MustNot" : "V"
+         },
+         "Name" : "CHAP-Challenge",
+         "Type" : "OctetString"
+      },
+      {
+         "Code" : 61,
+         "EnumValues" : [
+            {
+               "Code" : 21,
+               "Name" : "FDDI [RFC3580]"
+            },
+            {
+               "Code" : 1,
+               "Name" : "Sync [RFC2865]"
+            },
+            {
+               "Code" : 8,
+               "Name" : "X.25 [RFC2865]"
+            },
+            {
+               "Code" : 9,
+               "Name" : "X.75 [RFC2865]"
+            },
+            {
+               "Code" : 0,
+               "Name" : "Async [RFC2865]"
+            },
+            {
+               "Code" : 17,
+               "Name" : "Cable [RFC2865]"
+            },
+            {
+               "Code" : 6,
+               "Name" : "PIAFS [RFC2865]"
+            },
+            {
+               "Code" : 10,
+               "Name" : "G.3 Fax [RFC2865]"
+            },
+            {
+               "Code" : 5,
+               "Name" : "Virtual [RFC2865]"
+            },
+            {
+               "Code" : 15,
+               "Name" : "Ethernet [RFC2865]"
+            },
+            {
+               "Code" : 2,
+               "Name" : "ISDN Sync [RFC2865]"
+            },
+            {
+               "Code" : 20,
+               "Name" : "Token-Ring [RFC3580]"
+            },
+            {
+               "Code" : 23,
+               "Name" : "Wireless - UMTS [McCann]"
+            },
+            {
+               "Code" : 24,
+               "Name" : "Wireless - 1X-EV [McCann]"
+            },
+            {
+               "Code" : 25,
+               "Name" : "IAPP [IEEE 802.11F][Kerry]"
+            },
+            {
+               "Code" : 4,
+               "Name" : "ISDN Async V.110 [RFC2865]"
+            },
+            {
+               "Code" : 3,
+               "Name" : "ISDN Async V.120 [RFC2865]"
+            },
+            {
+               "Code" : 18,
+               "Name" : "Wireless - Other [RFC2865]"
+            },
+            {
+               "Code" : 7,
+               "Name" : "HDLC Clear Channel [RFC2865]"
+            },
+            {
+               "Code" : 22,
+               "Name" : "Wireless - CDMA2000 [McCann]"
+            },
+            {
+               "Code" : 30,
+               "Name" : "PPPoA - PPP over ATM [RFC4603]"
+            },
+            {
+               "Code" : 11,
+               "Name" : "SDSL - Symmetric DSL [RFC2865]"
+            },
+            {
+               "Code" : 19,
+               "Name" : "Wireless - IEEE 802.11 [RFC2865]"
+            },
+            {
+               "Code" : 26,
+               "Name" : "FTTP - Fiber to the Premises [Nyce]"
+            },
+            {
+               "Code" : 27,
+               "Name" : "Wireless - IEEE 802.16 [IEEE 802.16]"
+            },
+            {
+               "Code" : 28,
+               "Name" : "Wireless - IEEE 802.20 [IEEE 802.20]"
+            },
+            {
+               "Code" : 29,
+               "Name" : "Wireless - IEEE 802.22 [IEEE 802.22]"
+            },
+            {
+               "Code" : 35,
+               "Name" : "xPON - Passive Optical Network [Hublet][Yan]"
+            },
+            {
+               "Code" : 14,
+               "Name" : "IDSL - ISDN Digital Subscriber Line [RFC2865]"
+            },
+            {
+               "Code" : 31,
+               "Name" : "PPPoEoA - PPP over Ethernet over ATM [RFC4603]"
+            },
+            {
+               "Code" : 33,
+               "Name" : "PPPoEoVLAN - PPP over Ethernet over VLAN [RFC4603]"
+            },
+            {
+               "Code" : 32,
+               "Name" : "PPPoEoE - PPP over Ethernet over Ethernet [RFC4603]"
+            },
+            {
+               "Code" : 13,
+               "Name" : "ADSL-DMT - Asymmetric DSL, Discrete Multi-Tone [RFC2865]"
+            },
+            {
+               "Code" : 16,
+               "Name" : "xDSL - Digital Subscriber Line of unknown type [RFC2865]"
+            },
+            {
+               "Code" : 34,
+               "Name" : "PPPoEoQinQ - PPP over Ethernet over IEEE 802.1QinQ [RFC4603]"
+            },
+            {
+               "Code" : 12,
+               "Name" : "ADSL-CAP - Asymmetric DSL, Carrierless Amplitude Phase Modulation [RFC2865]"
+            }
+         ],
+         "Flags" : {
+            "Must" : "M",
+            "MustNot" : "V"
+         },
+         "Name" : "NAS-Port-Type",
+         "Type" : "Unsigned32"
+      },
+      {
+         "Code" : 62,
+         "Flags" : {
+            "Must" : "M",
+            "MustNot" : "V"
+         },
+         "Name" : "Port-Limit",
+         "Type" : "Unsigned32"
+      },
+      {
+         "Code" : 63,
+         "Flags" : {
+            "Must" : "M",
+            "MustNot" : "V"
+         },
+         "Name" : "Login-LAT-Port",
+         "Type" : "OctetString"
+      },
+      {
+         "Code" : 64,
+         "EnumValues" : [
+            {
+               "Code" : 12,
+               "Name" : "IP-in-IP Tunneling [RFC2868]"
+            },
+            {
+               "Code" : 13,
+               "Name" : "Virtual LANs (VLAN) [RFC3580]"
+            },
+            {
+               "Code" : 2,
+               "Name" : "Layer Two Forwarding (L2F) [RFC2868]"
+            },
+            {
+               "Code" : 7,
+               "Name" : "IP-in-IP Encapsulation (IP-IP) [RFC2868]"
+            },
+            {
+               "Code" : 11,
+               "Name" : "Bay Dial Virtual Services (DVS) [RFC2868]"
+            },
+            {
+               "Code" : 5,
+               "Name" : "Virtual Tunneling Protocol (VTP) [RFC2868]"
+            },
+            {
+               "Code" : 10,
+               "Name" : "Generic Route Encapsulation (GRE) [RFC2868]"
+            },
+            {
+               "Code" : 3,
+               "Name" : "Layer Two Tunneling Protocol (L2TP) [RFC2868]"
+            },
+            {
+               "Code" : 4,
+               "Name" : "Ascend Tunnel Management Protocol (ATMP) [RFC2868]"
+            },
+            {
+               "Code" : 1,
+               "Name" : "Point-to-Point Tunneling Protocol (PPTP) [RFC2868]"
+            },
+            {
+               "Code" : 8,
+               "Name" : "Minimal IP-in-IP Encapsulation (MIN-IP-IP) [RFC2868]"
+            },
+            {
+               "Code" : 6,
+               "Name" : "IP Authentication Header in the Tunnel-mode (AH) [RFC2868]"
+            },
+            {
+               "Code" : 9,
+               "Name" : "IP Encapsulating Security Payload in the Tunnel-mode (ESP) [RFC2868]"
+            }
+         ],
+         "Flags" : {
+            "Must" : "M",
+            "MustNot" : "V"
+         },
+         "Name" : "Tunnel-Type",
+         "Type" : "Unsigned32"
+      },
+      {
+         "Code" : 65,
+         "EnumValues" : [
+            {
+               "Code" : 11,
+               "Name" : "IPX [RFC2868]"
+            },
+            {
+               "Code" : 3,
+               "Name" : "NSAP [RFC2868]"
+            },
+            {
+               "Code" : 5,
+               "Name" : "BBN 1822 [RFC2868]"
+            },
+            {
+               "Code" : 12,
+               "Name" : "Appletalk [RFC2868]"
+            },
+            {
+               "Code" : 13,
+               "Name" : "Decnet IV [RFC2868]"
+            },
+            {
+               "Code" : 14,
+               "Name" : "Banyan Vines [RFC2868]"
+            },
+            {
+               "Code" : 7,
+               "Name" : "E.163 (POTS) [RFC2868]"
+            },
+            {
+               "Code" : 9,
+               "Name" : "F.69 (Telex) [RFC2868]"
+            },
+            {
+               "Code" : 1,
+               "Name" : "IPv4 (IP version 4) [RFC2868]"
+            },
+            {
+               "Code" : 2,
+               "Name" : "IPv6 (IP version 6) [RFC2868]"
+            },
+            {
+               "Code" : 4,
+               "Name" : "HDLC (8-bit multidrop) [RFC2868]"
+            },
+            {
+               "Code" : 10,
+               "Name" : "X.121 (X.25, Frame Relay) [RFC2868]"
+            },
+            {
+               "Code" : 8,
+               "Name" : "E.164 (SMDS, Frame Relay, ATM) [RFC2868]"
+            },
+            {
+               "Code" : 15,
+               "Name" : "E.164 with NSAP format subaddress [RFC2868]"
+            },
+            {
+               "Code" : 6,
+               "Name" : "802 (includes all 802 media plus Ethernet \"canonical format\") [RFC2868]"
+            }
+         ],
+         "Flags" : {
+            "Must" : "M",
+            "MustNot" : "V"
+         },
+         "Name" : "Tunnel-Medium-Type",
+         "Type" : "Unsigned32"
+      },
+      {
+         "Code" : 66,
+         "Flags" : {
+            "Must" : "M",
+            "MustNot" : "V"
+         },
+         "Name" : "Tunnel-Client-Endpoint",
+         "Type" : "UTF8String"
+      },
+      {
+         "Code" : 67,
+         "Flags" : {
+            "Must" : "M",
+            "MustNot" : "V"
+         },
+         "Name" : "Tunnel-Server-Endpoint",
+         "Type" : "UTF8String"
+      },
+      {
+         "Code" : 68,
+         "Flags" : {
+            "Must" : "M",
+            "MustNot" : "V"
+         },
+         "Name" : "Acct-Tunnel-Connection",
+         "Type" : "OctetString"
+      },
+      {
+         "Code" : 69,
+         "Flags" : {
+            "Must" : "M",
+            "MustNot" : "V"
+         },
+         "Name" : "Tunnel-Password",
+         "Type" : "OctetString"
+      },
+      {
+         "Code" : 70,
+         "Flags" : {
+            "Must" : "M",
+            "MustNot" : "V"
+         },
+         "Name" : "ARAP-Password",
+         "Type" : "OctetString"
+      },
+      {
+         "Code" : 71,
+         "Flags" : {
+            "Must" : "M",
+            "MustNot" : "V"
+         },
+         "Name" : "ARAP-Features",
+         "Type" : "OctetString"
+      },
+      {
+         "Code" : 72,
+         "EnumValues" : [
+            {
+               "Code" : 3,
+               "Name" : "Not used [RFC2869]"
+            },
+            {
+               "Code" : 4,
+               "Name" : "Use zone filter exclusively [RFC2869]"
+            },
+            {
+               "Code" : 2,
+               "Name" : "Use zone filter inclusively [RFC2869]"
+            },
+            {
+               "Code" : 1,
+               "Name" : "Only allow access to default zone [RFC2869]"
+            }
+         ],
+         "Flags" : {
+            "Must" : "M",
+            "MustNot" : "V"
+         },
+         "Name" : "ARAP-Zone-Access",
+         "Type" : "Unsigned32"
+      },
+      {
+         "Code" : 73,
+         "Flags" : {
+            "Must" : "M",
+            "MustNot" : "V"
+         },
+         "Name" : "ARAP-Security",
+         "Type" : "Unsigned32"
+      },
+      {
+         "Code" : 74,
+         "Flags" : {
+            "Must" : "M",
+            "MustNot" : "V"
+         },
+         "Name" : "ARAP-Security-Data",
+         "Type" : "OctetString"
+      },
+      {
+         "Code" : 75,
+         "Flags" : {
+            "Must" : "M",
+            "MustNot" : "V"
+         },
+         "Name" : "Password-Retry",
+         "Type" : "Unsigned32"
+      },
+      {
+         "Code" : 76,
+         "EnumValues" : [
+            {
+               "Code" : 1,
+               "Name" : "Echo [RFC2869]"
+            },
+            {
+               "Code" : 0,
+               "Name" : "No Echo [RFC2869]"
+            }
+         ],
+         "Flags" : {
+            "Must" : "M",
+            "MustNot" : "V"
+         },
+         "Name" : "Prompt",
+         "Type" : "Unsigned32"
+      },
+      {
+         "Code" : 77,
+         "Flags" : {
+            "Must" : "M",
+            "MustNot" : "V"
+         },
+         "Name" : "Connect-Info",
+         "Type" : "UTF8String"
+      },
+      {
+         "Code" : 78,
+         "Flags" : {
+            "Must" : "M",
+            "MustNot" : "V"
+         },
+         "Name" : "Configuration-Token",
+         "Type" : "OctetString"
+      },
+      {
+         "Code" : 81,
+         "Flags" : {
+            "Must" : "M",
+            "MustNot" : "V"
+         },
+         "Name" : "Tunnel-Private-Group-Id",
+         "Type" : "OctetString"
+      },
+      {
+         "Code" : 82,
+         "Flags" : {
+            "Must" : "M",
+            "MustNot" : "V"
+         },
+         "Name" : "Tunnel-Assignment-Id",
+         "Type" : "OctetString"
+      },
+      {
+         "Code" : 83,
+         "Flags" : {
+            "Must" : "M",
+            "MustNot" : "V"
+         },
+         "Name" : "Tunnel-Preference",
+         "Type" : "Unsigned32"
+      },
+      {
+         "Code" : 84,
+         "Flags" : {
+            "Must" : "M",
+            "MustNot" : "V"
+         },
+         "Name" : "ARAP-Challenge-Response",
+         "Type" : "OctetString"
+      },
+      {
+         "Code" : 86,
+         "Flags" : {
+            "Must" : "M",
+            "MustNot" : "V"
+         },
+         "Name" : "Acct-Tunnel-Packets-Lost",
+         "Type" : "Unsigned32"
+      },
+      {
+         "Code" : 87,
+         "Flags" : {
+            "Must" : "M",
+            "MustNot" : "V"
+         },
+         "Name" : "NAS-Port-Id",
+         "Type" : "UTF8String"
+      },
+      {
+         "Code" : 88,
+         "Flags" : {
+            "Must" : "M",
+            "MustNot" : "V"
+         },
+         "Name" : "Framed-Pool",
+         "Type" : "OctetString"
+      },
+      {
+         "Code" : 90,
+         "Flags" : {
+            "Must" : "M",
+            "MustNot" : "V"
+         },
+         "Name" : "Tunnel-Client-Auth-Id",
+         "Type" : "UTF8String"
+      },
+      {
+         "Code" : 91,
+         "Flags" : {
+            "Must" : "M",
+            "MustNot" : "V"
+         },
+         "Name" : "Tunnel-Server-Auth-Id",
+         "Type" : "UTF8String"
+      },
+      {
+         "Code" : 94,
+         "EnumValues" : [
+            {
+               "Code" : "02",
+               "Name" : "ANI Failure"
+            },
+            {
+               "Code" : "66",
+               "Name" : "TRS (Hotel)"
+            },
+            {
+               "Code" : "23",
+               "Name" : "Coin or Non-Coin"
+            },
+            {
+               "Code" : "67",
+               "Name" : "TRS (Restricted)"
+            },
+            {
+               "Code" : "30",
+               "Name" : "Intercept (Blank)"
+            },
+            {
+               "Code" : "32",
+               "Name" : "Intercept (Regular)"
+            },
+            {
+               "Code" : "31",
+               "Name" : "Intercept (Trouble)"
+            },
+            {
+               "Code" : "06",
+               "Name" : "Station Level Rating"
+            },
+            {
+               "Code" : "29",
+               "Name" : "Prison/Inmate Service"
+            },
+            {
+               "Code" : "34",
+               "Name" : "Telco Operator Handled Call"
+            },
+            {
+               "Code" : "70",
+               "Name" : "Pay Station, No Coin Control"
+            },
+            {
+               "Code" : "01",
+               "Name" : "Multiparty Line (more than 2)"
+            },
+            {
+               "Code" : "61",
+               "Name" : "Cellular/Wireless PCS (Type 1)"
+            },
+            {
+               "Code" : "62",
+               "Name" : "Cellular/Wireless PCS (Type 2)"
+            },
+            {
+               "Code" : "63",
+               "Name" : "Cellular/Wireless PCS (Roaming)"
+            },
+            {
+               "Code" : "00",
+               "Name" : "Plain Old Telephone Service (POTS)"
+            },
+            {
+               "Code" : "07",
+               "Name" : "Special Operator Handling Required"
+            },
+            {
+               "Code" : "25",
+               "Name" : "Toll Free Service (Pay Origination)"
+            },
+            {
+               "Code" : "24",
+               "Name" : "Toll Free Service (Non-Pay Origination)"
+            },
+            {
+               "Code" : "93",
+               "Name" : "Access for Private Virtual Network Service"
+            },
+            {
+               "Code" : "20",
+               "Name" : "Automatic Identified Outward Dialing (AIOD)"
+            },
+            {
+               "Code" : "27",
+               "Name" : "Toll Free Service (Coin Control Origination)"
+            },
+            {
+               "Code" : "60",
+               "Name" : "Telecommunications Relay Service (TRS)(Unrestricted)"
+            },
+            {
+               "Code" : "52",
+               "Name" : "Outward Wide Area Telecommunications Service (OUTWATS)"
+            }
+         ],
+         "Flags" : {
+            "Must" : "",
+            "MustNot" : "V"
+         },
+         "Name" : "Originating-Line-Info",
+         "Type" : "OctetString"
+      },
+      {
+         "Code" : 95,
+         "Flags" : {
+            "Must" : "M",
+            "MustNot" : "V"
+         },
+         "Name" : "NAS-IPv6-Address",
+         "Type" : "OctetString"
+      },
+      {
+         "Code" : 96,
+         "Flags" : {
+            "Must" : "M",
+            "MustNot" : "V"
+         },
+         "Name" : "Framed-Interface-Id",
+         "Type" : "Unsigned64"
+      },
+      {
+         "Code" : 97,
+         "Flags" : {
+            "Must" : "M",
+            "MustNot" : "V"
+         },
+         "Name" : "Framed-IPv6-Prefix",
+         "Type" : "OctetString"
+      },
+      {
+         "Code" : 98,
+         "EnumValues" : [
+            {
+               "Code" : "<00000000000000000000000000000000>",
+               "Name" : "(0) NAS selects the host"
+            },
+            {
+               "Code" : "<ffffffffffffffffffffffffffffffff>",
+               "Name" : "(1) User selects the address"
+            }
+         ],
+         "Flags" : {
+            "Must" : "M",
+            "MustNot" : "V"
+         },
+         "Name" : "Login-IPv6-Host",
+         "Type" : "OctetString"
+      },
+      {
+         "Code" : 99,
+         "Flags" : {
+            "Must" : "M",
+            "MustNot" : "V"
+         },
+         "Name" : "Framed-IPv6-Route",
+         "Type" : "UTF8String"
+      },
+      {
+         "Code" : 100,
+         "Flags" : {
+            "Must" : "M",
+            "MustNot" : "V"
+         },
+         "Name" : "Framed-IPv6-Pool",
+         "Type" : "OctetString"
+      },
+      {
+         "Code" : 295,
+         "EnumValues" : [
+            {
+               "Code" : 26,
+               "Name" : "[RADIUS] Callback"
+            },
+            {
+               "Code" : 19,
+               "Name" : "[RADIUS] NAS Error"
+            },
+            {
+               "Code" : 21,
+               "Name" : "[RADIUS] NAS Reboot"
+            },
+            {
+               "Code" : 18,
+               "Name" : "[RADIUS] Port Error"
+            },
+            {
+               "Code" : 27,
+               "Name" : "[RADIUS] User Error"
+            },
+            {
+               "Code" : 16,
+               "Name" : "[RADIUS] Admin Reset"
+            },
+            {
+               "Code" : 20,
+               "Name" : "[RADIUS] NAS Request"
+            },
+            {
+               "Code" : 31,
+               "Name" : "[RADIUS] Port Reinit"
+            },
+            {
+               "Code" : 17,
+               "Name" : "[RADIUS] Admin Reboot"
+            },
+            {
+               "Code" : 28,
+               "Name" : "[RADIUS] Host Request"
+            },
+            {
+               "Code" : 14,
+               "Name" : "[RADIUS] Idle Timeout"
+            },
+            {
+               "Code" : 12,
+               "Name" : "[RADIUS] Lost Carrier"
+            },
+            {
+               "Code" : 13,
+               "Name" : "[RADIUS] Lost Service"
+            },
+            {
+               "Code" : 11,
+               "Name" : "[RADIUS] User Request"
+            },
+            {
+               "Code" : 32,
+               "Name" : "[RADIUS] Port Disabled"
+            },
+            {
+               "Code" : 22,
+               "Name" : "[RADIUS] Port Unneeded"
+            },
+            {
+               "Code" : 23,
+               "Name" : "[RADIUS] Port Preempted"
+            },
+            {
+               "Code" : 24,
+               "Name" : "[RADIUS] Port Suspended"
+            },
+            {
+               "Code" : 15,
+               "Name" : "[RADIUS] Session Timeout"
+            },
+            {
+               "Code" : 29,
+               "Name" : "[RADIUS] Supplicant Restart"
+            },
+            {
+               "Code" : 25,
+               "Name" : "[RADIUS] Service Unavailable"
+            },
+            {
+               "Code" : 30,
+               "Name" : "[RADIUS] Reauthentication Failure"
+            }
+         ],
+         "Name" : "Termination-Cause",
+         "Type" : "Enumerated"
+      },
+      {
+         "Code" : 363,
+         "Flags" : {
+            "Must" : "M",
+            "MustNot" : "V"
+         },
+         "Name" : "Accounting-Input-Octets",
+         "Type" : "Unsigned64"
+      },
+      {
+         "Code" : 364,
+         "Flags" : {
+            "Must" : "M",
+            "MustNot" : "V"
+         },
+         "Name" : "Accounting-Output-Octets",
+         "Type" : "Unsigned64"
+      },
+      {
+         "Code" : 365,
+         "Flags" : {
+            "Must" : "M",
+            "MustNot" : "V"
+         },
+         "Name" : "Accounting-Input-Packets",
+         "Type" : "Unsigned64"
+      },
+      {
+         "Code" : 366,
+         "Flags" : {
+            "Must" : "M",
+            "MustNot" : "V"
+         },
+         "Name" : "Accounting-Output-Packets",
+         "Type" : "Unsigned64"
+      },
+      {
+         "Code" : 400,
+         "Flags" : {
+            "Must" : "M",
+            "MustNot" : "V"
+         },
+         "Name" : "NAS-Filter-Rule",
+         "Type" : "IPFilterRule"
+      },
+      {
+         "Code" : 401,
+         "Flags" : {
+            "Must" : "M",
+            "MustNot" : "V"
+         },
+         "Name" : "Tunneling",
+         "Type" : "Grouped"
+      },
+      {
+         "Code" : 402,
+         "Flags" : {
+            "Must" : "M",
+            "MustNot" : "V"
+         },
+         "Name" : "CHAP-Auth",
+         "Type" : "Grouped"
+      },
+      {
+         "Code" : 403,
+         "EnumValues" : [
+            {
+               "Code" : 5,
+               "Name" : "CHAP with MD5"
+            }
+         ],
+         "Flags" : {
+            "Must" : "M",
+            "MustNot" : "V"
+         },
+         "Name" : "CHAP-Algorithm",
+         "Type" : "Unsigned32"
+      },
+      {
+         "Code" : 404,
+         "Flags" : {
+            "Must" : "M",
+            "MustNot" : "V"
+         },
+         "Name" : "CHAP-Ident",
+         "Type" : "OctetString"
+      },
+      {
+         "Code" : 405,
+         "Flags" : {
+            "Must" : "M",
+            "MustNot" : "V"
+         },
+         "Name" : "CHAP-Response",
+         "Type" : "OctetString"
+      },
+      {
+         "Code" : 406,
+         "EnumValues" : [
+            {
+               "Code" : 5,
+               "Name" : "EAP"
+            },
+            {
+               "Code" : 1,
+               "Name" : "PAP"
+            },
+            {
+               "Code" : 2,
+               "Name" : "CHAP"
+            },
+            {
+               "Code" : 7,
+               "Name" : "None"
+            },
+            {
+               "Code" : 3,
+               "Name" : "MS-CHAP-1"
+            },
+            {
+               "Code" : 4,
+               "Name" : "MS-CHAP-2"
+            }
+         ],
+         "Flags" : {
+            "Must" : "M",
+            "MustNot" : "V"
+         },
+         "Name" : "Accounting-Auth-Method",
+         "Type" : "Unsigned32"
+      },
+      {
+         "Code" : 407,
+         "Flags" : {
+            "Must" : "M",
+            "MustNot" : "V"
+         },
+         "Name" : "QoS-Filter-Rule",
+         "Type" : "QoSFilterRule"
+      },
+      {
+         "Code" : 408,
+         "EnumValues" : [
+            {
+               "Code" : 1,
+               "Name" : "RADIUS"
+            }
+         ],
+         "Flags" : {
+            "Must" : "M",
+            "MustNot" : "V"
+         },
+         "Name" : "Origin-AAA-Protocol",
+         "Type" : "Unsigned32"
+      }
+   ],
+   "Applications" : [
+      {
+         "Code" : 1,
+         "Name" : "Diameter Network Access Server Application"
+      }
+   ],
+   "CommandRules" : [
+      {
+         "Command" : "Re-Auth-Request",
+         "Content" : [
+            {
+               "AVP" : "NAS-IP-Address",
+               "Max" : 1
+            },
+            {
+               "AVP" : "NAS-Port",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Service-Type",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Framed-IP-Address",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Reply-Message"
+            },
+            {
+               "AVP" : "State",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Class"
+            },
+            {
+               "AVP" : "Called-Station-Id",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Calling-Station-Id",
+               "Max" : 1
+            },
+            {
+               "AVP" : "NAS-Identifier",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Acct-Session-Id",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Acct-Multi-Session-Id",
+               "Max" : 1
+            },
+            {
+               "AVP" : "NAS-Port-Type",
+               "Max" : 1
+            },
+            {
+               "AVP" : "NAS-Port-Id",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Originating-Line-Info",
+               "Max" : 1
+            },
+            {
+               "AVP" : "NAS-IPv6-Address",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Framed-Interface-Id",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Framed-IPv6-Prefix",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Origin-AAA-Protocol",
+               "Max" : 1
+            }
+         ]
+      },
+      {
+         "Command" : "Re-Auth-Answer",
+         "Content" : [
+            {
+               "AVP" : "Service-Type",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Reply-Message"
+            },
+            {
+               "AVP" : "State",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Class"
+            },
+            {
+               "AVP" : "Idle-Timeout",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Prompt",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Configuration-Token"
+            },
+            {
+               "AVP" : "Auth-Grace-Period",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Re-Auth-Request-Type",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Authorization-Lifetime",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Origin-AAA-Protocol",
+               "Max" : 1
+            }
+         ]
+      },
+      {
+         "Command" : "AA-Request",
+         "Content" : [
+            {
+               "AVP" : "User-Name",
+               "Max" : 1
+            },
+            {
+               "AVP" : "User-Password",
+               "Max" : 1
+            },
+            {
+               "AVP" : "NAS-IP-Address",
+               "Max" : 1
+            },
+            {
+               "AVP" : "NAS-Port",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Service-Type",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Framed-Protocol",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Framed-IP-Address",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Framed-IP-Netmask",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Framed-MTU",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Framed-Compression"
+            },
+            {
+               "AVP" : "Login-IP-Host"
+            },
+            {
+               "AVP" : "Callback-Number",
+               "Max" : 1
+            },
+            {
+               "AVP" : "State",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Called-Station-Id",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Calling-Station-Id",
+               "Max" : 1
+            },
+            {
+               "AVP" : "NAS-Identifier",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Login-LAT-Service",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Login-LAT-Node",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Login-LAT-Group",
+               "Max" : 1
+            },
+            {
+               "AVP" : "CHAP-Challenge",
+               "Max" : 1
+            },
+            {
+               "AVP" : "NAS-Port-Type",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Port-Limit",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Login-LAT-Port",
+               "Max" : 1
+            },
+            {
+               "AVP" : "ARAP-Password",
+               "Max" : 1
+            },
+            {
+               "AVP" : "ARAP-Security",
+               "Max" : 1
+            },
+            {
+               "AVP" : "ARAP-Security-Data"
+            },
+            {
+               "AVP" : "Connect-Info",
+               "Max" : 1
+            },
+            {
+               "AVP" : "NAS-Port-Id",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Originating-Line-Info",
+               "Max" : 1
+            },
+            {
+               "AVP" : "NAS-IPv6-Address",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Framed-Interface-Id",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Framed-IPv6-Prefix"
+            },
+            {
+               "AVP" : "Login-IPv6-Host"
+            },
+            {
+               "AVP" : "Auth-Application-Id",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Session-Id",
+               "First" : true,
+               "Max" : 1
+            },
+            {
+               "AVP" : "Origin-Host",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Auth-Request-Type",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Auth-Grace-Period",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Auth-Session-State",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Origin-State-Id",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Route-Record"
+            },
+            {
+               "AVP" : "Destination-Realm",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Proxy-Info"
+            },
+            {
+               "AVP" : "Authorization-Lifetime",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Destination-Host",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Origin-Realm",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Tunneling"
+            },
+            {
+               "AVP" : "CHAP-Auth",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Origin-AAA-Protocol",
+               "Max" : 1
+            }
+         ]
+      },
+      {
+         "Command" : "AA-Answer",
+         "Content" : [
+            {
+               "AVP" : "User-Name",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Service-Type",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Framed-Protocol",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Framed-IP-Address",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Framed-IP-Netmask"
+            },
+            {
+               "AVP" : "Framed-Routing",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Filter-Id"
+            },
+            {
+               "AVP" : "Framed-MTU",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Framed-Compression"
+            },
+            {
+               "AVP" : "Login-IP-Host"
+            },
+            {
+               "AVP" : "Login-Service",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Login-TCP-Port",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Reply-Message"
+            },
+            {
+               "AVP" : "Callback-Number",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Callback-Id",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Framed-Route"
+            },
+            {
+               "AVP" : "Framed-IPX-Network",
+               "Max" : 1
+            },
+            {
+               "AVP" : "State",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Class"
+            },
+            {
+               "AVP" : "Session-Timeout",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Idle-Timeout",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Login-LAT-Service",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Login-LAT-Node",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Login-LAT-Group",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Framed-AppleTalk-Link",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Framed-AppleTalk-Network"
+            },
+            {
+               "AVP" : "Framed-AppleTalk-Zone",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Port-Limit",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Login-LAT-Port",
+               "Max" : 1
+            },
+            {
+               "AVP" : "ARAP-Features",
+               "Max" : 1
+            },
+            {
+               "AVP" : "ARAP-Zone-Access",
+               "Max" : 1
+            },
+            {
+               "AVP" : "ARAP-Security",
+               "Max" : 1
+            },
+            {
+               "AVP" : "ARAP-Security-Data"
+            },
+            {
+               "AVP" : "Password-Retry",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Prompt",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Configuration-Token"
+            },
+            {
+               "AVP" : "ARAP-Challenge-Response",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Acct-Interim-Interval",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Framed-Pool",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Framed-Interface-Id"
+            },
+            {
+               "AVP" : "Framed-IPv6-Prefix"
+            },
+            {
+               "AVP" : "Login-IPv6-Host"
+            },
+            {
+               "AVP" : "Framed-IPv6-Route"
+            },
+            {
+               "AVP" : "Framed-IPv6-Pool",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Auth-Application-Id",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Redirect-Host-Usage",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Redirect-Max-Cache-Time",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Session-Id",
+               "First" : true,
+               "Max" : 1
+            },
+            {
+               "AVP" : "Origin-Host",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Result-Code",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Multi-Round-Time-Out",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Auth-Request-Type",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Auth-Grace-Period",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Auth-Session-State",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Origin-State-Id",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Failed-AVP"
+            },
+            {
+               "AVP" : "Error-Message",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Proxy-Info"
+            },
+            {
+               "AVP" : "Re-Auth-Request-Type",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Authorization-Lifetime",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Redirect-Host"
+            },
+            {
+               "AVP" : "Error-Reporting-Host",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Origin-Realm",
+               "Max" : 1
+            },
+            {
+               "AVP" : "NAS-Filter-Rule"
+            },
+            {
+               "AVP" : "Tunneling"
+            },
+            {
+               "AVP" : "QoS-Filter-Rule"
+            },
+            {
+               "AVP" : "Origin-AAA-Protocol",
+               "Max" : 1
+            }
+         ]
+      },
+      {
+         "Command" : "Accounting-Request",
+         "Content" : [
+            {
+               "AVP" : "NAS-IP-Address",
+               "Max" : 1
+            },
+            {
+               "AVP" : "NAS-Port",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Service-Type",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Framed-Protocol",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Framed-IP-Address",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Framed-IP-Netmask",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Framed-Routing",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Filter-Id"
+            },
+            {
+               "AVP" : "Framed-MTU",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Framed-Compression",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Login-IP-Host"
+            },
+            {
+               "AVP" : "Login-Service",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Login-TCP-Port",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Callback-Number",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Callback-Id",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Framed-Route"
+            },
+            {
+               "AVP" : "Framed-IPX-Network",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Class"
+            },
+            {
+               "AVP" : "Session-Timeout",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Idle-Timeout",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Called-Station-Id",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Calling-Station-Id",
+               "Max" : 1
+            },
+            {
+               "AVP" : "NAS-Identifier",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Login-LAT-Service",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Login-LAT-Node",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Login-LAT-Group",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Framed-AppleTalk-Link",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Framed-AppleTalk-Network",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Framed-AppleTalk-Zone",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Acct-Delay-Time",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Acct-Authentic",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Acct-Session-Time",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Acct-Link-Count",
+               "Max" : 1
+            },
+            {
+               "AVP" : "NAS-Port-Type",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Port-Limit",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Login-LAT-Port",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Acct-Tunnel-Connection",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Connect-Info"
+            },
+            {
+               "AVP" : "Acct-Tunnel-Packets-Lost",
+               "Max" : 1
+            },
+            {
+               "AVP" : "NAS-Port-Id",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Framed-Pool",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Originating-Line-Info",
+               "Max" : 1
+            },
+            {
+               "AVP" : "NAS-IPv6-Address",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Framed-Interface-Id",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Framed-IPv6-Prefix"
+            },
+            {
+               "AVP" : "Login-IPv6-Host"
+            },
+            {
+               "AVP" : "Framed-IPv6-Route"
+            },
+            {
+               "AVP" : "Framed-IPv6-Pool",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Authorization-Lifetime",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Termination-Cause",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Accounting-Input-Octets",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Accounting-Output-Octets",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Accounting-Input-Packets",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Accounting-Output-Packets",
+               "Max" : 1
+            },
+            {
+               "AVP" : "NAS-Filter-Rule"
+            },
+            {
+               "AVP" : "Tunneling"
+            },
+            {
+               "AVP" : "Accounting-Auth-Method",
+               "Max" : 1
+            },
+            {
+               "AVP" : "QoS-Filter-Rule"
+            },
+            {
+               "AVP" : "Origin-AAA-Protocol",
+               "Max" : 1
+            }
+         ]
+      },
+      {
+         "Command" : "Accounting-Answer",
+         "Content" : [
+            {
+               "AVP" : "NAS-IP-Address",
+               "Max" : 1
+            },
+            {
+               "AVP" : "NAS-Port",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Service-Type",
+               "Max" : 1
+            },
+            {
+               "AVP" : "NAS-Identifier",
+               "Max" : 1
+            },
+            {
+               "AVP" : "NAS-Port-Type",
+               "Max" : 1
+            },
+            {
+               "AVP" : "NAS-Port-Id",
+               "Max" : 1
+            },
+            {
+               "AVP" : "NAS-IPv6-Address",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Termination-Cause",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Origin-AAA-Protocol",
+               "Max" : 1
+            }
+         ]
+      },
+      {
+         "Command" : "Abort-Session-Request",
+         "Content" : [
+            {
+               "AVP" : "NAS-IP-Address",
+               "Max" : 1
+            },
+            {
+               "AVP" : "NAS-Port",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Service-Type",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Framed-IP-Address",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Reply-Message"
+            },
+            {
+               "AVP" : "State",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Class"
+            },
+            {
+               "AVP" : "Called-Station-Id",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Calling-Station-Id",
+               "Max" : 1
+            },
+            {
+               "AVP" : "NAS-Identifier",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Acct-Session-Id",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Acct-Multi-Session-Id",
+               "Max" : 1
+            },
+            {
+               "AVP" : "NAS-Port-Type",
+               "Max" : 1
+            },
+            {
+               "AVP" : "NAS-Port-Id",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Originating-Line-Info",
+               "Max" : 1
+            },
+            {
+               "AVP" : "NAS-IPv6-Address",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Framed-Interface-Id",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Framed-IPv6-Prefix",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Origin-AAA-Protocol",
+               "Max" : 1
+            }
+         ]
+      },
+      {
+         "Command" : "Abort-Session-Answer",
+         "Content" : [
+            {
+               "AVP" : "State",
+               "Max" : 1
+            },
+            {
+               "AVP" : "Origin-AAA-Protocol",
+               "Max" : 1
+            }
+         ]
+      },
+      {
+         "Command" : "Session-Termination-Request",
+         "Content" : [
+            {
+               "AVP" : "Origin-AAA-Protocol",
+               "Max" : 1
+            }
+         ]
+      },
+      {
+         "Command" : "Session-Termination-Answer",
+         "Content" : [
+            {
+               "AVP" : "Origin-AAA-Protocol",
+               "Max" : 1
+            }
+         ]
+      }
+   ],
+   "Commands" : [
+      {
+         "Code" : 265,
+         "Flags" : {
+            "Must" : "RP",
+            "MustNot" : "E"
+         },
+         "Name" : "AA-Request"
+      },
+      {
+         "Code" : 265,
+         "Flags" : {
+            "Must" : "P",
+            "MustNot" : "R"
+         },
+         "Name" : "AA-Answer"
+      }
+   ],
+   "Types" : [
+      {
+         "Base" : "OctetString",
+         "Name" : "QoSFilterRule"
+      }
+   ]
+}
+
