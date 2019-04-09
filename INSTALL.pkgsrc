@@ -11,11 +11,7 @@ you'll need to install:
 	pkg_add bison pkg-config libidn gnutls libgcrypt mercurial
 and follow the usual installation note.
 
-NetBSD does not support SCTP, so you have to add
-	-DDISABLE_SCTP:BOOL=ON
-to the cmake command line.
-
 For the optional extensions, you need mysql*-client, postgres*-client,
-libxml2.  For the debugging extensions, you also need swig and a
-python -- install as usual.
+libxml2, jsoncpp, and json-schema.  For the debugging extensions,
+you also need swig and a python -- install as usual.
 
