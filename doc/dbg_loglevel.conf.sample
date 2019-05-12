@@ -1,0 +1,13 @@
+# This file contains information for configuring the dbg_loglevel extension.
+#
+# The dbg_loglevel extension allows changing the logging level at startup,
+# and then changing it at runtime.
+#
+# This extension supports configuration reload at runtime. Send
+# signal SIGUSR1 to the process to cause the process to reload its
+# config.
+#
+# 3 is the default log level (FD_LOG_NOTICE)
+# smaller values increase the logging
+# bigger values reduce the logging
+LogLevel=3;
