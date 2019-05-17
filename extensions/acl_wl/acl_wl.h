@@ -43,6 +43,8 @@
  
 #include <freeDiameter/extension.h>
 
+extern struct fd_list tree_root;
+
 /* Parse the configuration file */
 int aw_conf_handle(char * conffile);
 

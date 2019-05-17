@@ -57,6 +57,7 @@
 
 /* Forward declaration */
 int yyparse(char * conffile);
+void aw_confrestart(FILE *input_file);
 
 static int fqdn_added = 0;
 
@@ -74,19 +75,20 @@ int aw_conf_handle(char * conffile)
 	if (aw_confin == NULL) {
 		ret = errno;
 		fd_log_debug("Unable to open extension configuration file %s for reading: %s", conffile, strerror(ret));
-		TRACE_DEBUG (INFO, "Error occurred, message logged -- configuration file.");
+		TRACE_DEBUG (INFO, "acl_wl: Error occurred, message logged -- configuration file.");
 		return ret;
 	}
 
+	aw_confrestart(aw_confin);
 	ret = yyparse(conffile);
 
 	fclose(aw_confin);
 
 	if (ret != 0) {
-		TRACE_DEBUG (INFO, "Unable to parse the configuration file.");
+		TRACE_DEBUG (INFO, "acl_wl: Unable to parse the configuration file.");
 		return EINVAL;
 	} else {
-		TRACE_DEBUG(FULL, "Read %d FQDN entries successfully.", fqdn_added);
+		TRACE_DEBUG(FULL, "acl_wl: Read %d FQDN entries successfully.", fqdn_added);
 	}
 	
 	return 0;
@@ -98,7 +100,7 @@ int aw_conflex(YYSTYPE *lvalp, YYLTYPE *llocp);
 /* Function to report the errors */
 void yyerror (YYLTYPE *ploc, char * conffile, char const *s)
 {
-	TRACE_DEBUG(INFO, "Error in configuration parsing");
+	TRACE_DEBUG(INFO, "acl_wl: Error in configuration parsing");
 	
 	if (ploc->first_line != ploc->last_line)
 		fd_log_debug("%s:%d.%d-%d.%d : %s", conffile, ploc->first_line, ploc->first_column, ploc->last_line, ploc->last_column, s);
@@ -130,11 +132,11 @@ conffile:		/* empty grammar is OK */
 			| conffile FQDN
 			{
 				fqdn_added++;
-				TRACE_DEBUG(FULL, "Added FQDN: %s", $2);
+				TRACE_DEBUG(FULL, "acl_wl: Added FQDN: %s", $2);
 			}
 			| conffile LEX_ERROR
 			{
-				yyerror(&yylloc, conffile, "An error occurred while parsing the configuration file");
+				yyerror(&yylloc, conffile, "acl_wl: An error occurred while parsing the configuration file");
 				return EINVAL;
 			}
 			;

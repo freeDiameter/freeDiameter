@@ -69,9 +69,9 @@ struct tree_item {
 };
 
 /* The root of the tree */
-static struct fd_list tree_root = FD_LIST_INITIALIZER(tree_root);
+struct fd_list tree_root = FD_LIST_INITIALIZER(tree_root);
 
-/* Note: we don't need to lock, since we add only when parsing the conf, and then read only */
+/* Note: we lock accesses to the tree with acl_wl_lock because of config reload */
 
 
 /* The parsed name */
