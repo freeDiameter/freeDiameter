@@ -1546,11 +1546,6 @@ int fd_tls_verify_credentials_2(gnutls_session_t session)
 		tmp = gnutls_certificate_type_get_name (gnutls_certificate_type_get (session));
 		LOG_D("\t - Certificate Type: %s", tmp);
 
-		/* print the compression algorithm (if any)
-		*/
-		tmp = gnutls_compression_get_name (gnutls_compression_get (session));
-		LOG_D("\t - Compression: %s", tmp);
-
 		/* print the name of the cipher used.
 		* ie 3DES.
 		*/
