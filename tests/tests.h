@@ -131,7 +131,9 @@ static void * signal_catch(void * arg)
 }
 	
 
+#ifndef GNUTLS_VERSION_210
 GCRY_THREAD_OPTION_PTHREAD_IMPL;
+#endif /* GNUTLS_VERSION_210 */
 
 /* gnutls debug. */
 static void fd_gnutls_debug(int level, const char * str) {
@@ -213,8 +215,10 @@ static inline void test_init(int argc, char * argv[], char *fname)
 	parse_cmdline(argc, argv);
 	
 	/* Initialize gcrypt and gnutls */
+#ifndef GNUTLS_VERSION_210
 	(void) gcry_control (GCRYCTL_SET_THREAD_CBS, &gcry_threads_pthread);
 	(void) gcry_control (GCRYCTL_ENABLE_QUICK_RANDOM, 0);
+#endif /* GNUTLS_VERSION_210 */
 	CHECK( 0, gnutls_global_init());
 	/* Set gnutls debug level ? */
 	if (gnutls_debug) {
