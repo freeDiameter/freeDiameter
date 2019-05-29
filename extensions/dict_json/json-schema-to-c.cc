@@ -37,6 +37,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
+#include <unistd.h>
 
 #include <json/SchemaValidator.h>
 
@@ -91,13 +92,13 @@ char *read_full_file (const char *filename, off_t max_size, off_t* size_ret, con
     }
     off_t n = stat_buf.st_size;
     if (max_size > 0 && n > max_size) {
-        fprintf (stderr, "%s file [%s] is larger than %" PRIi64 " bytes\n", desc, filename, (int64_t)max_size);
+        fprintf (stderr, "%s file [%s] is larger than %lld bytes\n", desc, filename, (long long)max_size);
         fclose (fp);
         return NULL;
     }
     char *buf;
     if ((buf = (char *) malloc ((size_t)n+1)) == NULL) {
-        fprintf (stderr, "error allocating %" PRIi64 " bytes for read of %s file [%s]\n", (int64_t)n, desc, filename);
+        fprintf (stderr, "error allocating %lld bytes for read of %s file [%s]\n", (long long)n, desc, filename);
         fclose (fp);
         return NULL;
     }
@@ -180,7 +181,7 @@ int main (int argc, char **argv) {
 
     Json::Value json;
     if (!reader.parse(str, json)) {
-	fprintf(stderr, "%s: parse error: %s\n", input, reader.getFormattedErrorMessages());
+	fprintf(stderr, "%s: parse error: %s\n", input, reader.getFormattedErrorMessages().c_str());
         exit(1);
     }
 
