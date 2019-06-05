@@ -83,7 +83,7 @@ int rt_deny_by_size_conf_handle(char * conffile)
 		TRACE_ERROR( "Unable to parse the configuration file %s.", conffile);
 		return EINVAL;
 	} else {
-		TRACE_DEBUG(FULL, "[rt__deny_by_size] MaximumSize: %d.", rt_deny_by_size_conf.maximum_size);
+		TRACE_DEBUG(FULL, "[rt_deny_by_size] MaximumSize: %d.", rt_deny_by_size_conf.maximum_size);
 	}
 
 	return 0;
