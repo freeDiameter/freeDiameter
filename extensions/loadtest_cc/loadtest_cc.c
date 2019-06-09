@@ -41,43 +41,96 @@
 #define MODULE_NAME "loadtest_cc"
 
 static pthread_t gen_thr  = (pthread_t)NULL;
-struct disp_hdl *ccr_handler_hdl;
+struct disp_hdl *ccr_local_hdl;
+struct fd_rt_fwd_hdl *ccr_fwd_hdl;
 volatile int do_generate = 0;
 
 const char *target = NULL;
 
 struct dict_object * aai_avp_do; /* cache the Auth-Application-Id dictionary object */
+struct dict_object * crn_avp_do; /* cache the CC-Request-Number dictionary object */
+struct dict_object * crt_avp_do; /* cache the CC-Request-Type dictionary object */
 struct dict_object * dh_avp_do; /* cache the Destination-Host dictionary object */
 struct dict_object * dr_avp_do; /* cache the Destination-Realm dictionary object */
 struct dict_object * rc_avp_do; /* cache the Result-Code dictionary object */
+struct dict_object * sci_avp_do; /* cache the Service-Context-Id dictionary object */
 struct dict_object * si_avp_do; /* cache the Session-Id dictionary object */
 struct dict_object * pi_avp_do; /* cache the Proxy-Info dictionary object */
 struct dict_object * ph_avp_do; /* cache the Proxy-Host dictionary object */
 struct dict_object * ps_avp_do; /* cache the Proxy-State dictionary object */
 
+struct statistics {
+	uint64_t sent;
+	uint64_t success;
+	uint64_t error;
+	time_t first;
+	time_t last;
+} statistics;
 
-static int ccr_handler(struct msg ** msg, struct avp * avp, struct session * sess, void * data, enum disp_action * act)
-{
+static int handle_message(struct msg **msg) {
 	struct msg_hdr *hdr = NULL;
+	struct avp_hdr *ahdr = NULL;
+	struct avp *rc;
 
-	TRACE_ENTRY("%p %p %p %p", msg, avp, sess, act);
-
-	if (msg == NULL)
-		return EINVAL;
+	if (msg == NULL) {
+		fd_log_error("[%s] NULL CCA message", MODULE_NAME);
+		return -1;
+	}
 
 	CHECK_FCT(fd_msg_hdr(*msg, &hdr));
-	if (hdr->msg_flags & CMD_FLAG_REQUEST) {
-		fd_log_error("received Credit-Control-Request, dropping it");
+	/* handle CCAs only */
+	if ((hdr->msg_code != 272) || (hdr->msg_flags & CMD_FLAG_REQUEST)) {
+		fd_log_error("[%s] invalid message type (type %d, flags 0x%x)", MODULE_NAME, hdr->msg_code, hdr->msg_flags);
+		return -1;
+	}
+
+	/* Answer received, check it */
+	if (fd_msg_search_avp(*msg, rc_avp_do, &rc) < 0 || rc == NULL) {
+		fd_log_error("[%s] Result-Code not found in CCA", MODULE_NAME);
+		return -1;
+	}
+
+	if (fd_msg_avp_hdr(rc, &ahdr) < 0) {
+		fd_log_error("[%s] error parsing Result-Code in CCA", MODULE_NAME);
+		return -1;
+	}
+	fd_log_debug("Credit-Control-Answer with Result-Code %d received", ahdr->avp_value->i32);
+	switch (ahdr->avp_value->i32/1000) {
+	case 2:
+		statistics.success++;
+		break;
+	default:
+		statistics.error++;
+		break;
+	}
+
+	return 0;
+}
+
+static int ccr_local_handler(struct msg ** msg, struct avp * avp, struct session * sess, void * data, enum disp_action * act)
+{
+	fd_log_debug("[%s] CCR local handler called", MODULE_NAME);
+
+	if (handle_message(msg) < 0) {
+		fd_log_error("dropping message");
 		CHECK_FCT(fd_msg_free(*msg));
 		*msg = NULL;
 		return 0;
 	}
 
-	/* Answer received, check it */
-	fd_log_notice("Credit-Control-Answer received, this code should do something about it but doesn't yet");
-	/* TODO */
 	CHECK_FCT(fd_msg_free(*msg));
 	*msg = NULL;
+	return 0;
+}
+
+static int ccr_fwd_handler(void *cb_data, struct msg **msg)
+{
+	fd_log_debug("[%s] CCR FWD handler called", MODULE_NAME);
+
+	if (handle_message(msg) < 0) {
+		return 0;
+	}
+
 	return 0;
 }
 
@@ -91,6 +144,7 @@ struct msg *create_message(const char *destination)
 	struct msg_hdr *msg_hdr;
 	const char *realm;
 	const char *session_id = "fixed-session-id-for-now";
+	const char *service_context_id = "version2.clci.ipc@vodafone.com";
 	const char *proxy_host = "Dummy-Proxy-Host-to-Increase-Package-Size";
 	const char *proxy_state = "This is just date to increase the package size\nXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX";
 
@@ -117,6 +171,7 @@ struct msg *create_message(const char *destination)
 		fd_msg_free(msg);
 		return NULL;
 	}
+
 	/* Destination-Host */
 	fd_msg_avp_new(dh_avp_do, 0, &avp);
 	memset(&val, 0, sizeof(val));
@@ -147,6 +202,7 @@ struct msg *create_message(const char *destination)
 		return NULL;
 	}
 	fd_msg_avp_add(msg, MSG_BRW_LAST_CHILD, avp);
+
 	/* Session-Id */
 	fd_msg_avp_new(si_avp_do, 0, &avp);
 	memset(&val, 0, sizeof(val));
@@ -158,6 +214,7 @@ struct msg *create_message(const char *destination)
 		return NULL;
 	}
 	fd_msg_avp_add(msg, MSG_BRW_FIRST_CHILD, avp);
+
 	/* Auth-Application-Id */
 	fd_msg_avp_new(aai_avp_do, 0, &avp);
 	memset(&val, 0, sizeof(val));
@@ -165,6 +222,40 @@ struct msg *create_message(const char *destination)
 	if (fd_msg_avp_setvalue(avp, &val) != 0) {
 		fd_msg_free(msg);
 		fd_log_error("can't set value for 'Auth-Application-Id' for 'Credit-Control-Request' message");
+		return NULL;
+	}
+	fd_msg_avp_add(msg, MSG_BRW_LAST_CHILD, avp);
+
+	/* Service-Context-Id */
+	fd_msg_avp_new(sci_avp_do, 0, &avp);
+	memset(&val, 0, sizeof(val));
+	val.os.data = (uint8_t *)service_context_id;
+	val.os.len = strlen(service_context_id);
+	if (fd_msg_avp_setvalue(avp, &val) != 0) {
+		fd_msg_free(msg);
+		fd_log_error("can't set value for 'Service-Context-Id' for 'Credit-Control-Request' message");
+		return NULL;
+	}
+	fd_msg_avp_add(msg, MSG_BRW_LAST_CHILD, avp);
+
+	/* CC-Request-Type */
+	fd_msg_avp_new(crt_avp_do, 0, &avp);
+	memset(&val, 0, sizeof(val));
+	val.i32 = 1; /* Initial */
+	if (fd_msg_avp_setvalue(avp, &val) != 0) {
+		fd_msg_free(msg);
+		fd_log_error("can't set value for 'CC-Request-Type' for 'Credit-Control-Request' message");
+		return NULL;
+	}
+	fd_msg_avp_add(msg, MSG_BRW_LAST_CHILD, avp);
+
+	/* CC-Request-Number */
+	fd_msg_avp_new(crn_avp_do, 0, &avp);
+	memset(&val, 0, sizeof(val));
+	val.i32 = 1;
+	if (fd_msg_avp_setvalue(avp, &val) != 0) {
+		fd_msg_free(msg);
+		fd_log_error("can't set value for 'CC-Request-Number' for 'Credit-Control-Request' message");
 		return NULL;
 	}
 	fd_msg_avp_add(msg, MSG_BRW_LAST_CHILD, avp);
@@ -206,9 +297,14 @@ void * gen_thr_fct(void * arg)
 
 	do {
 		if (do_generate) {
+			if (statistics.first == 0) {
+				statistics.first = time(NULL);
+			}
+			msg = create_message(target);
 			fd_msg_send(&msg, NULL, NULL);
-			fd_log_notice("sent message");
-			sleep(1);
+			fd_log_debug("[%s] sent message", MODULE_NAME);
+			statistics.last = time(NULL);
+			statistics.sent++;
 		} else {
 			sleep(1);
 		}
@@ -242,12 +338,22 @@ static int cc_entry(char * conffile)
         CHECK_FCT( fd_dict_search( fd_g_config->cnf_dict, DICT_APPLICATION, APPLICATION_BY_NAME, "Diameter Credit Control Application", &data.app, ENOENT) );
         CHECK_FCT( fd_disp_app_support ( data.app, NULL, 1, 0 ) );
 
-        /* register handler for CCR */
-        CHECK_FCT( fd_dict_search( fd_g_config->cnf_dict, DICT_COMMAND, CMD_BY_NAME, "Credit-Control-Request", &data.command, ENOENT) );
-        CHECK_FCT( fd_disp_register( ccr_handler, DISP_HOW_CC, &data, NULL, &ccr_handler_hdl ) );
+	/* the handling of requests is different if it might be locally handled or not */
+	/* for possibly locally handled requests, fd_rt_fwd_register is not called, so we need to add handlers for both cases */
+	/* register forward handler for CCR -- needs to look at all requests */
+	CHECK_FCT(fd_rt_fwd_register(ccr_fwd_handler, NULL, RT_FWD_REQ, &ccr_fwd_hdl));
+	/* register local handler for CCR - if not Destination-Host is set, or the local host is used */
+	memset(&data, 0, sizeof(data));
+	CHECK_FCT(fd_dict_search(fd_g_config->cnf_dict, DICT_COMMAND, CMD_BY_NAME, "Credit-Control-Answer", &data.command, ENOENT));
+	CHECK_FCT(fd_disp_register(ccr_local_handler, DISP_HOW_CC, &data, NULL, &ccr_local_hdl));
 
 	CHECK_FCT_DO(fd_dict_search(fd_g_config->cnf_dict, DICT_AVP, AVP_BY_NAME, "Auth-Application-Id", &aai_avp_do, ENOENT),
 		     { LOG_E("Unable to find 'Auth-Application-Id' AVP in the loaded dictionaries."); });
+	CHECK_FCT_DO(fd_dict_search(fd_g_config->cnf_dict, DICT_AVP, AVP_BY_NAME, "CC-Request-Number", &crn_avp_do, ENOENT),
+		     { LOG_E("Unable to find 'CC-Request-Number' AVP in the loaded dictionaries."); });
+	CHECK_FCT_DO(fd_dict_search(fd_g_config->cnf_dict, DICT_AVP, AVP_BY_NAME, "CC-Request-Type", &crt_avp_do, ENOENT),
+
+		     { LOG_E("Unable to find 'CC-Request-Type' AVP in the loaded dictionaries."); });
 	CHECK_FCT_DO(fd_dict_search(fd_g_config->cnf_dict, DICT_AVP, AVP_BY_NAME, "Destination-Host", &dh_avp_do, ENOENT),
 		     { LOG_E("Unable to find 'Destination-Host' AVP in the loaded dictionaries."); });
 	CHECK_FCT_DO(fd_dict_search(fd_g_config->cnf_dict, DICT_AVP, AVP_BY_NAME, "Destination-Realm", &dr_avp_do, ENOENT),
@@ -256,6 +362,8 @@ static int cc_entry(char * conffile)
 		     { LOG_E("Unable to find 'Result-Code' AVP in the loaded dictionaries."); });
 	CHECK_FCT_DO(fd_dict_search(fd_g_config->cnf_dict, DICT_AVP, AVP_BY_NAME, "Session-Id", &si_avp_do, ENOENT),
 		     { LOG_E("Unable to find 'Session-Id' AVP in the loaded dictionaries."); });
+	CHECK_FCT_DO(fd_dict_search(fd_g_config->cnf_dict, DICT_AVP, AVP_BY_NAME, "Service-Context-Id", &sci_avp_do, ENOENT),
+		     { LOG_E("Unable to find 'Service-Context-Id' AVP in the loaded dictionaries."); });
 	CHECK_FCT_DO(fd_dict_search(fd_g_config->cnf_dict, DICT_AVP, AVP_BY_NAME, "Proxy-Info", &pi_avp_do, ENOENT),
 		     { LOG_E("Unable to find 'Proxy-Info' AVP in the loaded dictionaries."); });
 	CHECK_FCT_DO(fd_dict_search(fd_g_config->cnf_dict, DICT_AVP, AVP_BY_NAME, "Proxy-Host", &ph_avp_do, ENOENT),
@@ -275,6 +383,7 @@ static int cc_entry(char * conffile)
 /* And terminate it */
 void fd_ext_fini(void)
 {
+	uint64_t missing;
 	/* stop sending */
 	do_generate = 0;
 
@@ -282,10 +391,18 @@ void fd_ext_fini(void)
 	CHECK_FCT_DO( fd_thr_term(&gen_thr), );
 
 	/* Unregister the callbacks */
-	if (ccr_handler_hdl) {
-		CHECK_FCT_DO( fd_disp_unregister(&ccr_handler_hdl, NULL), );
-		ccr_handler_hdl = NULL;
+	if (ccr_local_hdl) {
+		CHECK_FCT_DO( fd_disp_unregister(&ccr_local_hdl, NULL), );
+		ccr_local_hdl = NULL;
 	}
+
+	missing = statistics.sent - statistics.error - statistics.success;
+
+	fd_log_error("%lld messages sent in %llds (%.2f messages/second), %lld success (%.2f%%), %lld errors (%.2f%%), %lld missing (%.2f%%)",
+		     (long long)statistics.sent, (long long)(statistics.last-statistics.first), (float)statistics.sent / (statistics.last-statistics.first),
+		     (long long)statistics.success,
+		     100*(float)statistics.success/statistics.sent, (long long)statistics.error, 100*(float)statistics.error/statistics.sent,
+		     missing, 100*(float)missing/statistics.sent);
 
 	return;
 }
