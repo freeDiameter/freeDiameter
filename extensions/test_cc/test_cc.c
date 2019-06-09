@@ -35,6 +35,12 @@
 
 struct disp_hdl *ccr_handler_hdl;
 
+struct dict_object * aai_avp_do; /* cache the Auth-Application-Id dictionary object */
+struct dict_object * crn_avp_do; /* cache the CC-Request-Number dictionary object */
+struct dict_object * crt_avp_do; /* cache the CC-Request-Type dictionary object */
+
+#define MODULE_NAME "test_cc"
+
 static int ccr_handler(struct msg ** msg, struct avp * avp, struct session * sess, void * data, enum disp_action * act)
 {
 	struct msg_hdr *hdr = NULL;
@@ -50,24 +56,84 @@ static int ccr_handler(struct msg ** msg, struct avp * avp, struct session * ses
 		struct msg *answer;
 		os0_t s;
 		size_t sl;
+		struct avp *avp;
+		union avp_value val;
+		struct avp *avp_data;
+		struct avp_hdr *ahdr;
+		uint32_t crt, crn;
+
+		/* get some necessary information from request */
+		if (fd_msg_search_avp(*msg, crt_avp_do, &avp_data) < 0 || avp_data == NULL) {
+			fd_log_error("[%s] CC-Request-Type not found in CCR", MODULE_NAME);
+			return 0;
+		}
+		if (fd_msg_avp_hdr(avp_data, &ahdr) < 0) {
+			fd_log_error("[%s] error parsing CC-Request-Type in CCR", MODULE_NAME);
+			return 0;
+		}
+		crt = ahdr->avp_value->i32;
+		if (fd_msg_search_avp(*msg, crn_avp_do, &avp_data) < 0 || avp_data == NULL) {
+			fd_log_error("[%s] CC-Request-Number not found in CCR", MODULE_NAME);
+			return 0;
+		}
+		if (fd_msg_avp_hdr(avp_data, &ahdr) < 0) {
+			fd_log_error("[%s] error parsing CC-Request-Type in CCR", MODULE_NAME);
+			return 0;
+		}
+		crn = ahdr->avp_value->i32;
 
 		/* Create the answer message */
 		CHECK_FCT(fd_msg_new_answer_from_req(fd_g_config->cnf_dict, msg, 0));
 		answer = *msg;
-		/* TODO copy/fill in AVPs in the answer */
+
+		/* TODO copy/fill in more AVPs in the answer */
+
+		/* Auth-Application-Id */
+		fd_msg_avp_new(aai_avp_do, 0, &avp);
+		memset(&val, 0, sizeof(val));
+		val.i32 = 4;
+		if (fd_msg_avp_setvalue(avp, &val) != 0) {
+			fd_msg_free(answer);
+			fd_log_error("can't set value for 'Auth-Application-Id' for 'Credit-Control-Request' message");
+			return 0;
+		}
+		fd_msg_avp_add(answer, MSG_BRW_LAST_CHILD, avp);
+
+		/* CC-Request-Type */
+		fd_msg_avp_new(crt_avp_do, 0, &avp);
+		memset(&val, 0, sizeof(val));
+		val.i32 = crt;
+		if (fd_msg_avp_setvalue(avp, &val) != 0) {
+			fd_msg_free(answer);
+			fd_log_error("can't set value for 'CC-Request-Type' for 'Credit-Control-Request' message");
+			return 0;
+		}
+		fd_msg_avp_add(answer, MSG_BRW_LAST_CHILD, avp);
+
+		/* CC-Request-Number */
+		fd_msg_avp_new(crn_avp_do, 0, &avp);
+		memset(&val, 0, sizeof(val));
+		val.i32 = crn;
+		if (fd_msg_avp_setvalue(avp, &val) != 0) {
+			fd_msg_free(answer);
+			fd_log_error("can't set value for 'CC-Request-Number' for 'Credit-Control-Request' message");
+			return 0;
+		}
+		fd_msg_avp_add(answer, MSG_BRW_LAST_CHILD, avp);
+
 		/* TODO make result configurable (depending on an AVP?) */
 		CHECK_FCT(fd_msg_rescode_set(answer, "DIAMETER_SUCCESS", NULL, NULL, 1));
 
-		fd_log_notice("--------------Received the following Credit Control Request:--------------");
+		fd_log_debug("--------------Received the following Credit Control Request:--------------");
 
 		CHECK_FCT(fd_sess_getsid(sess, &s, &sl));
-		fd_log_notice("Session: %.*s",(int)sl, s);
+		fd_log_debug("Session: %.*s",(int)sl, s);
 
-		fd_log_notice("----------------------------------------------------------------------");
+		fd_log_debug("----------------------------------------------------------------------");
 
 		/* Send the answer */
 		CHECK_FCT(fd_msg_send(msg, NULL, NULL));
-
+		fd_log_debug("reply sent");
 	} else {
 		/* We received an answer message, just discard it */
 		CHECK_FCT(fd_msg_free(*msg));
@@ -84,6 +150,13 @@ static int cc_entry(char * conffile)
 
 	TRACE_ENTRY("%p", conffile);
 
+	CHECK_FCT_DO(fd_dict_search(fd_g_config->cnf_dict, DICT_AVP, AVP_BY_NAME, "Auth-Application-Id", &aai_avp_do, ENOENT),
+		     { LOG_E("Unable to find 'Auth-Application-Id' AVP in the loaded dictionaries."); });
+	CHECK_FCT_DO(fd_dict_search(fd_g_config->cnf_dict, DICT_AVP, AVP_BY_NAME, "CC-Request-Number", &crn_avp_do, ENOENT),
+		     { LOG_E("Unable to find 'CC-Request-Number' AVP in the loaded dictionaries."); });
+	CHECK_FCT_DO(fd_dict_search(fd_g_config->cnf_dict, DICT_AVP, AVP_BY_NAME, "CC-Request-Type", &crt_avp_do, ENOENT),
+		     { LOG_E("Unable to find 'CC-Request-Type' AVP in the loaded dictionaries."); });
+
 	memset(&data, 0, sizeof(data));
 
         /* Advertise the support for the Diameter Credit Control application in the peer */
@@ -97,4 +170,4 @@ static int cc_entry(char * conffile)
 	return 0;
 }
 
-EXTENSION_ENTRY("test_cc", cc_entry);
+EXTENSION_ENTRY(MODULE_NAME, cc_entry);
