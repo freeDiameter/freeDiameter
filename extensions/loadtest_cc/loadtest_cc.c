@@ -67,6 +67,23 @@ struct statistics {
 	time_t last;
 } statistics;
 
+void print_statistics(void) {
+	uint64_t missing;
+
+	if (statistics.first == 0 || statistics.last == 0 || statistics.last == statistics.first) {
+		return;
+	}
+
+	missing = statistics.sent - statistics.error - statistics.success;
+
+	fd_log_error("%s: %lld CCR messages sent in %llds (%.2f messages/second), %lld success (%.2f%%), %lld errors (%.2f%%), %lld missing (%.2f%%)",
+		     fd_g_config->cnf_diamid,
+		     (long long)statistics.sent, (long long)(statistics.last-statistics.first), (float)statistics.sent / (statistics.last-statistics.first),
+		     (long long)statistics.success,
+		     100*(float)statistics.success/statistics.sent, (long long)statistics.error, 100*(float)statistics.error/statistics.sent,
+		     missing, 100*(float)missing/statistics.sent);
+}
+
 static int handle_message(struct msg **msg) {
 	struct msg_hdr *hdr = NULL;
 	struct avp_hdr *ahdr = NULL;
@@ -298,12 +315,17 @@ void * gen_thr_fct(void * arg)
 
 	do {
 		if (do_generate) {
+			time_t now;
 			if (statistics.first == 0) {
 				statistics.first = time(NULL);
 			}
 			msg = create_message(target);
 			fd_msg_send(&msg, NULL, NULL);
 			fd_log_debug("[%s] sent message", MODULE_NAME);
+			now = time(NULL);
+			if (statistics.last != now) {
+				print_statistics();
+			}
 			statistics.last = time(NULL);
 			statistics.sent++;
 		} else {
@@ -386,7 +408,6 @@ static int cc_entry(char * conffile)
 /* And terminate it */
 void fd_ext_fini(void)
 {
-	uint64_t missing;
 	/* stop sending */
 	do_generate = 0;
 
@@ -399,13 +420,7 @@ void fd_ext_fini(void)
 		ccr_local_hdl = NULL;
 	}
 
-	missing = statistics.sent - statistics.error - statistics.success;
-
-	fd_log_error("%lld messages sent in %llds (%.2f messages/second), %lld success (%.2f%%), %lld errors (%.2f%%), %lld missing (%.2f%%)",
-		     (long long)statistics.sent, (long long)(statistics.last-statistics.first), (float)statistics.sent / (statistics.last-statistics.first),
-		     (long long)statistics.success,
-		     100*(float)statistics.success/statistics.sent, (long long)statistics.error, 100*(float)statistics.error/statistics.sent,
-		     missing, 100*(float)missing/statistics.sent);
+	print_statistics();
 
 	return;
 }

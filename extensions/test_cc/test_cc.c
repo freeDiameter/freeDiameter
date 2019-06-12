@@ -41,9 +41,25 @@ struct dict_object * crt_avp_do; /* cache the CC-Request-Type dictionary object 
 
 #define MODULE_NAME "test_cc"
 
+struct statistics {
+        uint64_t sent;
+        time_t first;
+        time_t last;
+} statistics;
+
+void print_statistics(void) {
+        if (statistics.first == 0 || statistics.last == 0 || statistics.last == statistics.first) {
+                return;
+        }
+
+        fd_log_error("%s: %lld CCA messages sent in %llds (%.2f messages/second)", fd_g_config->cnf_diamid,
+                     (long long)statistics.sent, (long long)(statistics.last-statistics.first), (float)statistics.sent / (statistics.last-statistics.first));
+}
+
 static int ccr_handler(struct msg ** msg, struct avp * avp, struct session * sess, void * data, enum disp_action * act)
 {
 	struct msg_hdr *hdr = NULL;
+	time_t now;
 
 	TRACE_ENTRY("%p %p %p %p", msg, avp, sess, act);
 
@@ -133,6 +149,15 @@ static int ccr_handler(struct msg ** msg, struct avp * avp, struct session * ses
 
 		/* Send the answer */
 		CHECK_FCT(fd_msg_send(msg, NULL, NULL));
+		now = time(NULL);
+		if (!statistics.first) {
+			statistics.first = now;
+		}
+		if (statistics.last != now) {
+			print_statistics();
+		}
+		statistics.last = now;
+		statistics.sent++;
 		fd_log_debug("reply sent");
 	} else {
 		/* We received an answer message, just discard it */
@@ -169,5 +194,20 @@ static int cc_entry(char * conffile)
 
 	return 0;
 }
+
+/* And terminate it */
+void fd_ext_fini(void)
+{
+        /* Unregister the callbacks */
+        if (ccr_handler_hdl) {
+                CHECK_FCT_DO( fd_disp_unregister(&ccr_handler_hdl, NULL), );
+                ccr_handler_hdl = NULL;
+        }
+
+	print_statistics();
+
+        return;
+}
+
 
 EXTENSION_ENTRY(MODULE_NAME, cc_entry);
