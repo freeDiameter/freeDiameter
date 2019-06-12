@@ -222,10 +222,6 @@ again:
 
 	} while (1);
 
-	if (errno == EINVAL) {
-		/* assume thread was cancelled in pthread_cond_timedwait */
-		pthread_exit(0);
-	}
 	TRACE_DEBUG(INFO, "A system error occurred in session module! Expiry thread is terminating...");
 	ASSERT(0);
 	return NULL;
