@@ -1,6 +1,6 @@
 freediameter (1.3.2) RELEASED; urgency=low
 
-  * loadtest_cc: new extension: generates random
+  * test_ccload: new extension: generates random
     Credit-Control-Requests and counts how many are answered/give an
     error/get no answer. Start it with SIGUSR2, stop it with a second
     SIGUSR2. Statistics are printed on exit.

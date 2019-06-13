@@ -38,7 +38,7 @@
 #include <pthread.h>
 #include <signal.h>
 
-#define MODULE_NAME "loadtest_cc"
+#define MODULE_NAME "test_ccload"
 
 static pthread_t gen_thr  = (pthread_t)NULL;
 struct disp_hdl *ccr_local_hdl;
