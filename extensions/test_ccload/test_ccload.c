@@ -59,6 +59,8 @@ struct dict_object * pi_avp_do; /* cache the Proxy-Info dictionary object */
 struct dict_object * ph_avp_do; /* cache the Proxy-Host dictionary object */
 struct dict_object * ps_avp_do; /* cache the Proxy-State dictionary object */
 
+struct dict_object * ccr_do; /* cache the Credit-Control-Request command dictionary object */
+
 struct statistics {
 	uint64_t sent;
 	uint64_t success;
@@ -154,7 +156,6 @@ static int ccr_fwd_handler(void *cb_data, struct msg **msg)
 /* create message to send */
 struct msg *create_message(const char *destination)
 {
-	struct dict_object *command;
 	struct msg *msg;
 	struct avp *avp, *avp1;
 	union avp_value val;
@@ -165,12 +166,7 @@ struct msg *create_message(const char *destination)
 	const char *proxy_host = "Dummy-Proxy-Host-to-Increase-Package-Size";
 	const char *proxy_state = "This is just data to increase the package size\nXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX";
 
-	if (fd_dict_search(fd_g_config->cnf_dict, DICT_COMMAND, CMD_BY_NAME, "Credit-Control-Request", &command, ENOENT) != 0) {
-		fd_log_error("can't find template for 'Credit-Control-Request'");
-		return NULL;
-	}
-
-	if (fd_msg_new(command, MSGFL_ALLOC_ETEID, &msg) != 0) {
+	if (fd_msg_new(ccr_do, MSGFL_ALLOC_ETEID, &msg) != 0) {
 		fd_log_error("can't create new 'Credit-Control-Request' message");
 		return NULL;
 	}
@@ -395,6 +391,8 @@ static int cc_entry(char * conffile)
 		     { LOG_E("Unable to find 'Proxy-Host' AVP in the loaded dictionaries."); });
 	CHECK_FCT_DO(fd_dict_search(fd_g_config->cnf_dict, DICT_AVP, AVP_BY_NAME, "Proxy-State", &ps_avp_do, ENOENT),
 		     { LOG_E("Unable to find 'Proxy-State' AVP in the loaded dictionaries."); });
+	CHECK_FCT_DO(fd_dict_search(fd_g_config->cnf_dict, DICT_COMMAND, CMD_BY_NAME, "Credit-Control-Request", &ccr_do, ENOENT),
+		     { LOG_E("Unable to find 'Credit-Control-Request' command in the loaded dictionaries."); });
 
 	/* Start the generator thread */
 	CHECK_POSIX( pthread_create( &gen_thr, NULL, gen_thr_fct, NULL ) );
