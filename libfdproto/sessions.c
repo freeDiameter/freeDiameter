@@ -206,12 +206,27 @@ again:
 
 		/* If first session is not expired, we just wait until it happens */
 		if ( TS_IS_INFERIOR( &now, &first->timeout ) ) {
-			CHECK_POSIX_DO2(  pthread_cond_timedwait( &exp_cond, &exp_lock, &first->timeout ),
-					ETIMEDOUT, /* ETIMEDOUT is a normal error, continue */,
-					/* on other error, */ break );
+			int ret;
 
-			/* on wakeup, loop */
-			goto again;
+			ret = pthread_cond_timedwait(&exp_cond, &exp_lock, &first->timeout);
+			switch (ret) {
+			case 0:
+			case ETIMEDOUT:
+				/* on wakeup or time-out, loop */
+				goto again;
+			case EINVAL:
+				if (clock_gettime(CLOCK_REALTIME, &now) < 0) {
+					break;
+				}
+				if (TS_IS_INFERIOR(&now, &first->timeout)) {
+					TRACE_DEBUG(FULL, "'pthread_cond_timedwait(&exp_cond, &exp_lock, &first->timeout)' : timer expired before loop could start");
+					goto again;
+				}
+				/* FALLTHROUGH */
+			default:
+				TRACE_ERROR("ERROR: in 'pthread_cond_timedwait(&exp_cond, &exp_lock, &first->timeout)' :\t%s", strerror(ret));
+				break;
+			}
 		}
 
 		/* Now, the first session in the list is expired; destroy it */
