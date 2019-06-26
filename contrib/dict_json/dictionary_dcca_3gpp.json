@@ -33,21 +33,21 @@
           "Max": 1
         },
         {
-          "AVP": "Used-Service-Unit",
+          "AVP": "Used-Service-Unit"
         },
         {
           "AVP": "Tariff-Change-Usage",
           "Max": 1
         },
         {
-          "AVP": "Service-Identifier",
+          "AVP": "Service-Identifier"
         },
         {
           "AVP": "Rating-Group",
           "Max": 1
         },
         {
-          "AVP": "G-S-U-Pool-Reference",
+          "AVP": "G-S-U-Pool-Reference"
         },
         {
           "AVP": "Validity-Time",
@@ -12588,7 +12588,7 @@
         },
         {
           "AVP": "Event-Trigger",
-          "Vendor": 10415,
+          "Vendor": 10415
         },
         {
           "AVP": "Event-Report-Indication",
@@ -12686,7 +12686,7 @@
           "Vendor": 10415
         },
         {
-          "AVP": "Subscription-Id",
+          "AVP": "Subscription-Id"
         },
         {
           "AVP": "Abort-Cause",
@@ -12753,7 +12753,7 @@
           "Max": 1
         },
         {
-          "AVP": "Class",
+          "AVP": "Class"
         }
       ]
     },
@@ -12848,11 +12848,11 @@
           "Max": 1
         },
         {
-          "AVP": "Class",
-        },
+          "AVP": "Class"
+        }
 
       ]
-    },
+    }
   ],
   "Vendors": [
     {
