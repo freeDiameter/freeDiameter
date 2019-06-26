@@ -66,21 +66,25 @@ struct statistics {
 	uint64_t success;
 	uint64_t error;
 	time_t first;
+	time_t first_reply;
 	time_t last;
+	time_t last_reply;
 } statistics;
 
 void print_statistics(void) {
-	uint64_t missing;
+	uint64_t missing, received;
 
 	if (statistics.first == 0 || statistics.last == 0 || statistics.last == statistics.first) {
 		return;
 	}
 
-	missing = statistics.sent - statistics.error - statistics.success;
+	received = statistics.error + statistics.success;
+	missing = statistics.sent - received;
 
-	fd_log_error("%s: %lld CCR messages sent in %llds (%.2f messages/second), %lld success (%.2f%%), %lld errors (%.2f%%), %lld missing (%.2f%%)",
+	fd_log_error("%s: %lld CCR messages sent in %llds (%.2f messages/second), %lld CCA messages received in %llds (%.2f messages/second), %lld success (%.2f%%), %lld errors (%.2f%%), %lld missing (%.2f%%)",
 		     fd_g_config->cnf_diamid,
 		     (long long)statistics.sent, (long long)(statistics.last-statistics.first), (float)statistics.sent / (statistics.last-statistics.first),
+		     (long long)received, (long long)(statistics.last_reply-statistics.first_reply), (float)received / (statistics.last_reply-statistics.first_reply),
 		     (long long)statistics.success,
 		     100*(float)statistics.success/statistics.sent, (long long)statistics.error, 100*(float)statistics.error/statistics.sent,
 		     missing, 100*(float)missing/statistics.sent);
@@ -103,6 +107,9 @@ static int handle_message(struct msg **msg) {
 		return -1;
 	}
 
+	if (statistics.first_reply == 0) {
+		statistics.first_reply = time(NULL);
+	}
 	/* Answer received, check it */
 	if (fd_msg_search_avp(*msg, rc_avp_do, &rc) < 0 || rc == NULL) {
 		fd_log_error("[%s] Result-Code not found in CCA", MODULE_NAME);
@@ -113,6 +120,7 @@ static int handle_message(struct msg **msg) {
 		fd_log_error("[%s] error parsing Result-Code in CCA", MODULE_NAME);
 		return -1;
 	}
+	statistics.last_reply = time(NULL);
 	fd_log_debug("Credit-Control-Answer with Result-Code %d received", ahdr->avp_value->i32);
 	switch (ahdr->avp_value->i32/1000) {
 	case 2:
@@ -121,6 +129,9 @@ static int handle_message(struct msg **msg) {
 	default:
 		statistics.error++;
 		break;
+	}
+	if (statistics.sent - statistics.error - statistics.success == 0) {
+		print_statistics();
 	}
 
 	return 0;
