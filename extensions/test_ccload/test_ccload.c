@@ -31,7 +31,9 @@
 
 /* This extension waits for a signal (SIGUSR2). When it gets it, it
  * generates messages as quickly as possible to the configured target
- * host; a second SIGUSR2 signal will stop this */
+ * host; a second SIGUSR2 signal will stop this.
+ * If the target host starts with "REALM:", send to that Destination-Realm instead
+ * of a particular host. */
 
 #include <freeDiameter/extension.h>
 
@@ -196,25 +198,29 @@ struct msg *create_message(const char *destination)
 		return NULL;
 	}
 
-	/* Destination-Host */
-	fd_msg_avp_new(dh_avp_do, 0, &avp);
-	memset(&val, 0, sizeof(val));
-	val.os.data = (uint8_t *)target;
-	val.os.len = strlen(target);
-	if (fd_msg_avp_setvalue(avp, &val) != 0) {
-		fd_msg_free(msg);
-		fd_log_error("can't set value for 'Destination-Host' for 'Credit-Control-Request' message");
-		return NULL;
-	}
-	fd_msg_avp_add(msg, MSG_BRW_LAST_CHILD, avp);
+	if (strncmp("REALM:", target, 6) != 0) {
+		/* Destination-Host */
+		fd_msg_avp_new(dh_avp_do, 0, &avp);
+		memset(&val, 0, sizeof(val));
+		val.os.data = (uint8_t *)target;
+		val.os.len = strlen(target);
+		if (fd_msg_avp_setvalue(avp, &val) != 0) {
+			fd_msg_free(msg);
+			fd_log_error("can't set value for 'Destination-Host' for 'Credit-Control-Request' message");
+			return NULL;
+		}
+		fd_msg_avp_add(msg, MSG_BRW_LAST_CHILD, avp);
 
-	if ((realm = strchr(target, '.')) == NULL) {
-		fd_msg_free(msg);
-		fd_log_error("can't extract realm from host '%s'", target);
-		return NULL;
+		if ((realm = strchr(target, '.')) == NULL) {
+			fd_msg_free(msg);
+			fd_log_error("can't extract realm from host '%s'", target);
+			return NULL;
+		}
+		/* skip dot */
+		realm++;
+	} else {
+		realm = target + 6; /* skip "REALM:" */
 	}
-	/* skip dot */
-	realm++;
 	/* Destination-Realm */
 	fd_msg_avp_new(dr_avp_do, 0, &avp);
 	memset(&val, 0, sizeof(val));
