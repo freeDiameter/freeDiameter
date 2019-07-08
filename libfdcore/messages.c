@@ -52,25 +52,25 @@ struct dict_object * fd_dict_cmd_DPR = NULL; /* Disconnect-Peer-Request */
 int fd_msg_init(void)
 {
 	TRACE_ENTRY("");
-	
+
 	/* Initialize the dictionary objects that we may use frequently */
 	CHECK_FCT(  fd_dict_search( fd_g_config->cnf_dict, DICT_AVP, AVP_BY_NAME, "Session-Id", 	&dict_avp_SI , ENOENT)  );
 	CHECK_FCT(  fd_dict_search( fd_g_config->cnf_dict, DICT_AVP, AVP_BY_NAME, "Origin-Host",     	&dict_avp_OH  , ENOENT)  );
 	CHECK_FCT(  fd_dict_search( fd_g_config->cnf_dict, DICT_AVP, AVP_BY_NAME, "Origin-Realm",    	&dict_avp_OR  , ENOENT)  );
 	CHECK_FCT(  fd_dict_search( fd_g_config->cnf_dict, DICT_AVP, AVP_BY_NAME, "Origin-State-Id", 	&fd_dict_avp_OSI , ENOENT)  );
-	
+
 	CHECK_FCT(  fd_dict_search( fd_g_config->cnf_dict, DICT_AVP, AVP_BY_NAME, "Result-Code",     	&dict_avp_RC  , ENOENT)  );
 	CHECK_FCT(  fd_dict_search( fd_g_config->cnf_dict, DICT_AVP, AVP_BY_NAME, "Error-Message",   	&dict_avp_EM  , ENOENT)  );
 	CHECK_FCT(  fd_dict_search( fd_g_config->cnf_dict, DICT_AVP, AVP_BY_NAME, "Error-Reporting-Host", &dict_avp_ERH , ENOENT)  );
 	CHECK_FCT(  fd_dict_search( fd_g_config->cnf_dict, DICT_AVP, AVP_BY_NAME, "Failed-AVP",      	&dict_avp_FAVP, ENOENT)  );
-	
+
 	CHECK_FCT(  fd_dict_search( fd_g_config->cnf_dict, DICT_AVP, AVP_BY_NAME, "Disconnect-Cause", 	&fd_dict_avp_DC , ENOENT)  );
-	
+
 	CHECK_FCT( fd_dict_search ( fd_g_config->cnf_dict, DICT_COMMAND, CMD_BY_NAME, "Capabilities-Exchange-Request", &fd_dict_cmd_CER, ENOENT ) );
 	CHECK_FCT( fd_dict_search ( fd_g_config->cnf_dict, DICT_COMMAND, CMD_BY_NAME, "Device-Watchdog-Request", &fd_dict_cmd_DWR, ENOENT ) );
 	CHECK_FCT( fd_dict_search ( fd_g_config->cnf_dict, DICT_COMMAND, CMD_BY_NAME, "Disconnect-Peer-Request", &fd_dict_cmd_DPR, ENOENT ) );
-	
-	
+
+
 	return 0;
 }
 
@@ -81,35 +81,35 @@ int fd_msg_add_origin ( struct msg * msg, int osi )
 	struct avp * avp_OH  = NULL;
 	struct avp * avp_OR  = NULL;
 	struct avp * avp_OSI = NULL;
-	
+
 	TRACE_ENTRY("%p", msg);
 	CHECK_PARAMS(  msg  );
-	
+
 	/* Create the Origin-Host AVP */
 	CHECK_FCT( fd_msg_avp_new( dict_avp_OH, 0, &avp_OH ) );
-	
+
 	/* Set its value */
 	memset(&val, 0, sizeof(val));
 	val.os.data = (os0_t)fd_g_config->cnf_diamid;
 	val.os.len  = fd_g_config->cnf_diamid_len;
 	CHECK_FCT( fd_msg_avp_setvalue( avp_OH, &val ) );
-	
+
 	/* Add it to the message */
 	CHECK_FCT( fd_msg_avp_add( msg, MSG_BRW_LAST_CHILD, avp_OH ) );
-	
-	
+
+
 	/* Create the Origin-Realm AVP */
 	CHECK_FCT( fd_msg_avp_new( dict_avp_OR, 0, &avp_OR ) );
-	
+
 	/* Set its value */
 	memset(&val, 0, sizeof(val));
 	val.os.data = (os0_t)fd_g_config->cnf_diamrlm;
 	val.os.len  = fd_g_config->cnf_diamrlm_len;
 	CHECK_FCT( fd_msg_avp_setvalue( avp_OR, &val ) );
-	
+
 	/* Add it to the message */
 	CHECK_FCT( fd_msg_avp_add( msg, MSG_BRW_LAST_CHILD, avp_OR ) );
-	
+
 	if (osi) {
 		/* Create the Origin-State-Id AVP */
 		CHECK_FCT( fd_msg_avp_new( fd_dict_avp_OSI, 0, &avp_OSI ) );
@@ -122,7 +122,7 @@ int fd_msg_add_origin ( struct msg * msg, int osi )
 		/* Add it to the message */
 		CHECK_FCT( fd_msg_avp_add( msg, MSG_BRW_LAST_CHILD, avp_OSI ) );
 	}
-	
+
 	return 0;
 }
 
@@ -134,33 +134,33 @@ int fd_msg_new_session( struct msg * msg, os0_t opt, size_t optlen )
 	struct session * sess = NULL;
 	os0_t sid;
 	size_t sidlen;
-	
+
 	TRACE_ENTRY("%p %p %zd", msg, opt, optlen);
 	CHECK_PARAMS(  msg  );
-	
+
 	/* Check there is not already a session in the message */
 	CHECK_FCT( fd_msg_sess_get(fd_g_config->cnf_dict, msg, &sess, NULL) );
 	CHECK_PARAMS( sess == NULL );
-	
+
 	/* Ok, now create the session */
 	CHECK_FCT( fd_sess_new ( &sess, fd_g_config->cnf_diamid, fd_g_config->cnf_diamid_len, opt, optlen ) );
 	CHECK_FCT( fd_sess_getsid( sess, &sid, &sidlen) );
-	
+
 	/* Create an AVP to hold it */
 	CHECK_FCT( fd_msg_avp_new( dict_avp_SI, 0, &avp ) );
-	
+
 	/* Set its value */
 	memset(&val, 0, sizeof(val));
 	val.os.data = sid;
 	val.os.len  = sidlen;
 	CHECK_FCT( fd_msg_avp_setvalue( avp, &val ) );
-	
+
 	/* Add it to the message */
 	CHECK_FCT( fd_msg_avp_add( msg, MSG_BRW_FIRST_CHILD, avp ) );
-	
+
 	/* Save the session associated with the message */
 	CHECK_FCT( fd_msg_sess_set( msg, sess) );
-	
+
 	/* Done! */
 	return 0;
 }
@@ -177,50 +177,50 @@ int fd_msg_rescode_set( struct msg * msg, char * rescode, char * errormsg, struc
 	uint32_t rc_val = 0;
 	int set_e_bit=0;
 	int std_err_msg=0;
-	
+
 	TRACE_ENTRY("%p %s %p %p %d", msg, rescode, errormsg, optavp, type_id);
-		
+
 	CHECK_PARAMS(  msg && rescode  );
-	
+
 	/* Find the enum value corresponding to the rescode string, this will give the class of error */
 	{
 		struct dict_object * enum_obj = NULL;
 		struct dict_enumval_request req;
 		memset(&req, 0, sizeof(struct dict_enumval_request));
-		
+
 		/* First, get the enumerated type of the Result-Code AVP (this is fast, no need to cache the object) */
 		CHECK_FCT(  fd_dict_search( fd_g_config->cnf_dict, DICT_TYPE, TYPE_OF_AVP, dict_avp_RC, &(req.type_obj), ENOENT  )  );
-		
+
 		/* Now search for the value given as parameter */
 		req.search.enum_name = rescode;
 		CHECK_FCT(  fd_dict_search( fd_g_config->cnf_dict, DICT_ENUMVAL, ENUMVAL_BY_STRUCT, &req, &enum_obj, ENOTSUP)  );
-		
+
 		/* finally retrieve its data */
 		CHECK_FCT_DO(  fd_dict_getval( enum_obj, &(req.search) ), return EINVAL );
-		
+
 		/* copy the found value, we're done */
 		rc_val = req.search.enum_value.u32;
 	}
-	
+
 	if (type_id == 1) {
 		/* Add the Origin-Host and Origin-Realm AVP */
 		CHECK_FCT( fd_msg_add_origin ( msg, 0 ) );
 	}
-	
+
 	/* Create the Result-Code AVP */
 	CHECK_FCT( fd_msg_avp_new( dict_avp_RC, 0, &avp_RC ) );
-	
+
 	/* Set its value */
 	memset(&val, 0, sizeof(val));
 	val.u32  = rc_val;
 	CHECK_FCT( fd_msg_avp_setvalue( avp_RC, &val ) );
-	
+
 	/* Add it to the message */
 	CHECK_FCT( fd_msg_avp_add( msg, MSG_BRW_LAST_CHILD, avp_RC ) );
-	
+
 	if (type_id == 2) {
 		/* Add the Error-Reporting-Host AVP */
-		
+
 		CHECK_FCT( fd_msg_avp_new( dict_avp_ERH, 0, &avp_ERH ) );
 
 		/* Set its value */
@@ -231,60 +231,60 @@ int fd_msg_rescode_set( struct msg * msg, char * rescode, char * errormsg, struc
 
 		/* Add it to the message */
 		CHECK_FCT( fd_msg_avp_add( msg, MSG_BRW_LAST_CHILD, avp_ERH ) );
-	
+
 	}
-	
+
 	/* Now add the optavp in a FailedAVP if provided */
 	if (optavp) {
 		struct avp * optavp_cpy = NULL;
 		struct avp_hdr *opt_hdr, *optcpy_hdr;
 		struct dict_object * opt_model = NULL;
 		int is_grouped = 0;
-		
+
 		/* Create the Failed-AVP AVP */
 		CHECK_FCT( fd_msg_avp_new( dict_avp_FAVP, 0, &avp_FAVP ) );
-		
+
 		/* Was this AVP a grouped one? Best effort only here */
 		if (!fd_msg_model ( optavp, &opt_model ) && (opt_model != NULL)) {
 			struct dict_avp_data  dictdata;
 			CHECK_FCT(  fd_dict_getval(opt_model, &dictdata)  );
-			if (dictdata.avp_basetype == AVP_TYPE_GROUPED) 
+			if (dictdata.avp_basetype == AVP_TYPE_GROUPED)
 				is_grouped = 1;
 		}
-		
+
 		/* Create a new AVP with a copy of the data of the invalid or missing AVP */
 		optavp_cpy = optavp;
-		
+
 		if (is_grouped) {
 			CHECK_FCT( fd_msg_avp_new( opt_model, 0, &optavp_cpy) );
 		} else {
 			CHECK_FCT( fd_msg_avp_new( NULL, AVPFL_SET_BLANK_VALUE | AVPFL_SET_RAWDATA_FROM_AVP, &optavp_cpy) );
-		
+
 			CHECK_FCT( fd_msg_avp_hdr(optavp, &opt_hdr) );
 			CHECK_FCT( fd_msg_avp_hdr(optavp_cpy, &optcpy_hdr) );
 			memcpy(optcpy_hdr, opt_hdr, sizeof(struct avp_hdr));
 		}
-		
+
 		/* Add the passed AVP inside it */
 		CHECK_FCT( fd_msg_avp_add( avp_FAVP, MSG_BRW_LAST_CHILD, optavp_cpy ) );
-		
+
 		/* And add to the message */
 		CHECK_FCT( fd_msg_avp_add( msg, MSG_BRW_LAST_CHILD, avp_FAVP ) );
 	}
-	
-	
+
+
 	/* Deal with the 'E' bit and the error message */
 	switch (rc_val / 1000) {
 		case 1:	/* Informational */
 		case 2: /* Success */
 			/* Nothing special here: no E bit, no error message unless one is specified */
 			break;
-			
+
 		case 3: /* Protocol Errors */
 			set_e_bit = 1;
 			std_err_msg = 1;
 			break;
-			
+
 		case 4: /* Transcient Failure */
 		case 5: /* Permanent Failure */
 			if (rc_val == 5017) /* DIAMETER_NO_COMMON_SECURITY */ {
@@ -293,28 +293,28 @@ int fd_msg_rescode_set( struct msg * msg, char * rescode, char * errormsg, struc
 		default:
 			std_err_msg = 1;
 			break;
-			
+
 	}
-	
+
 	{
 		struct msg_hdr * hdr = NULL;
-		
+
 		CHECK_FCT(  fd_msg_hdr( msg, &hdr )  );
-		
+
 		if (set_e_bit)
 			hdr->msg_flags |= CMD_FLAG_ERROR;
 		else
 			hdr->msg_flags &= ~ CMD_FLAG_ERROR;
 	}
-	
+
 	if (std_err_msg || errormsg) {
 		/* Add the Error-Message AVP */
-		
+
 		CHECK_FCT( fd_msg_avp_new( dict_avp_EM, 0, &avp_EM ) );
 
 		/* Set its value */
 		memset(&val, 0, sizeof(val));
-		
+
 		if (errormsg) {
 			val.os.data = (uint8_t *)errormsg;
 			val.os.len  = strlen(errormsg);
@@ -327,7 +327,7 @@ int fd_msg_rescode_set( struct msg * msg, char * rescode, char * errormsg, struc
 		/* Add it to the message */
 		CHECK_FCT( fd_msg_avp_add( msg, MSG_BRW_LAST_CHILD, avp_EM ) );
 	}
-	
+
 	return 0;
 }
 
@@ -335,10 +335,10 @@ static int fd_msg_send_int( struct msg ** pmsg, void (*anscb)(void *, struct msg
 {
 	struct msg_hdr *hdr;
 	DiamId_t diamid;
-	
+
 	/* Save the callback in the message, with the timeout */
 	CHECK_FCT(  fd_msg_anscb_associate( *pmsg, anscb, data, expirecb, timeout )  );
-	
+
 	/* If this is a new request, call the HOOK_MESSAGE_LOCAL hook */
 	if ( (fd_msg_hdr(*pmsg, &hdr) == 0)
 	 &&  (hdr->msg_flags & CMD_FLAG_REQUEST)
@@ -346,10 +346,10 @@ static int fd_msg_send_int( struct msg ** pmsg, void (*anscb)(void *, struct msg
 	 &&  (diamid == NULL)) {
 		fd_hook_call(HOOK_MESSAGE_LOCAL, *pmsg, NULL, NULL, fd_msg_pmdl_get(*pmsg));
 	}
-		
+
 	/* Post the message in the outgoing queue */
 	CHECK_FCT( fd_fifo_post(fd_g_outgoing, pmsg) );
-	
+
 	return 0;
 }
 
@@ -358,7 +358,7 @@ int fd_msg_send ( struct msg ** pmsg, void (*anscb)(void *, struct msg **), void
 {
 	TRACE_ENTRY("%p %p %p", pmsg, anscb, data);
 	CHECK_PARAMS( pmsg );
-	
+
 	return fd_msg_send_int(pmsg, anscb, data, NULL, NULL);
 }
 
@@ -367,7 +367,7 @@ int fd_msg_send_timeout ( struct msg ** pmsg, void (*anscb)(void *, struct msg *
 {
 	TRACE_ENTRY("%p %p %p %p %p", pmsg, anscb, data, expirecb, timeout);
 	CHECK_PARAMS( pmsg && expirecb && timeout );
-	
+
 	return fd_msg_send_int(pmsg, anscb, data, expirecb, timeout);
 }
 
@@ -379,70 +379,78 @@ int fd_msg_parse_or_error( struct msg ** msg, struct msg **error)
 	struct msg * m;
 	struct msg_hdr * hdr = NULL;
 	struct fd_pei	pei;
-	
+
 	TRACE_ENTRY("%p", msg);
-	
+
 	CHECK_PARAMS(msg && *msg && error);
 	m = *msg;
 	*error = NULL;
-	
+
 	/* Parse the message against our dictionary */
 	ret = fd_msg_parse_rules ( m, fd_g_config->cnf_dict, &pei);
 	if 	((ret != EBADMSG) 	/* Parsing grouped AVP failed / Conflicting rule found */
 		&& (ret != ENOTSUP))	/* Command is not supported / Mandatory AVP is not supported */
 		return ret; /* 0 or another error */
-	
+
 	/* Log */
 	fd_hook_call(HOOK_MESSAGE_PARSING_ERROR, m, NULL, pei.pei_message ?: pei.pei_errcode, fd_msg_pmdl_get(m));
-	
+
 	CHECK_FCT( fd_msg_hdr(m, &hdr) );
-	
+
 	/* Now create an answer error if the message is a query */
 	if (hdr->msg_flags & CMD_FLAG_REQUEST) {
-		
+
 		/* Create the error message */
 		CHECK_FCT( fd_msg_new_answer_from_req ( fd_g_config->cnf_dict, &m, pei.pei_protoerr ? MSGFL_ANSW_ERROR : 0 ) );
-		
+
 		/* Set the error code */
 		CHECK_FCT( fd_msg_rescode_set(m, pei.pei_errcode, pei.pei_message, pei.pei_avp, 1 ) );
-		
+
 		/* free the pei AVP to avoid memory leak */
 		if (pei.pei_avp_free) {
 			fd_msg_free(pei.pei_avp);
 		}
-		
+
 		*msg = NULL;
 		*error = m;
-		
+
 	} else {
 		do { /* Rescue error messages */
 			struct avp * avp;
 			union avp_value * rc = NULL;
-			
+
 			/* Search the Result-Code AVP */
 			CHECK_FCT_DO(  fd_msg_browse(*msg, MSG_BRW_FIRST_CHILD, &avp, NULL), break  );
 			while (avp) {
 				struct avp_hdr * ahdr;
 				CHECK_FCT_DO(  fd_msg_avp_hdr( avp, &ahdr ), break  );
-				
+
 				if ((ahdr->avp_code == AC_RESULT_CODE) && (! (ahdr->avp_flags & AVP_FLAG_VENDOR)) ) {
 					/* Parse this AVP */
-					ASSERT( ahdr->avp_value );
+					if (fd_msg_parse_dict(avp, fd_g_config->cnf_dict, &pei) < 0) {
+						TRACE_DEBUG(INFO, "error parsing Result-Code AVP");
+						rc = NULL;
+						break;
+					}
 					rc = ahdr->avp_value;
+					if (rc == NULL) {
+						TRACE_DEBUG(INFO, "invalid Result-Code AVP");
+						break;
+					}
 					break;
 				}
-				
+
 				/* Go to next AVP */
 				CHECK_FCT_DO(  fd_msg_browse(avp, MSG_BRW_NEXT, &avp, NULL), break  );
 			}
-			
+
 			if (rc) {
 				switch (rc->u32 / 1000) {
 					case 1:	/* 1xxx : Informational */
 					case 2:	/* 2xxx : Sucess */
 						/* In these cases, we want the message to validate the ABNF, so we will discard the bad message */
 						break;
-						
+
 					default: /* Other errors */
 						/* We let the application decide what to do with the message, we rescue it */
 						*error = m;
@@ -450,6 +458,6 @@ int fd_msg_parse_or_error( struct msg ** msg, struct msg **error)
 			}
 		} while (0);
 	}
-	
+
 	return EBADMSG; /* We convert ENOTSUP to EBADMSG as well */
 }
