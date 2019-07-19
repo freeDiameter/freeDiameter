@@ -194,7 +194,7 @@ int fd_fifo_del ( struct fifo  ** queue )
 		usleep(1000);
 
 		CHECK_POSIX(  pthread_mutex_lock( &q->mtx )  );
-		ASSERT( ++loops < 20 ); /* detect infinite loops */
+		ASSERT( ++loops < 200 ); /* detect infinite loops */
 	}
 
 	/* sanity check */
