@@ -293,6 +293,11 @@ int fd_fifo_getstats( struct fifo * queue, int * current_count, int * limit_coun
 {
 	TRACE_ENTRY( "%p %p %p %p %p %p %p %p", queue, current_count, limit_count, highest_count, total_count, total, blocking, last);
 
+	if (queue == NULL) {
+		/* It is not an error if the queue is not available; happens e.g. when peers disappear */
+		return 0;
+	}
+
 	/* Check the parameters */
 	CHECK_PARAMS( CHECK_FIFO( queue ) );
 
