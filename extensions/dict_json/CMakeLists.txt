@@ -5,6 +5,7 @@ INCLUDE(FindPkgConfig)
 
 # We use JSONCPP and JSON-Schema to parse and validate JSON files
 PKG_CHECK_MODULES(JSONCPP REQUIRED jsoncpp)
+# https://github.com/nfotex/json-schema/
 PKG_CHECK_MODULES(JSON_SCHEMA REQUIRED json-schema)
 PKG_CHECK_MODULES(PCRECPP REQUIRED libpcrecpp)
 
