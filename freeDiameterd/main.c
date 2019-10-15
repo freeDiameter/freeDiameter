@@ -45,6 +45,8 @@
 #include <locale.h>
 #include <syslog.h>
 #include <stdarg.h>
+#include <stdlib.h>
+#include <unistd.h>
 
 /* forward declarations */
 static int main_cmdline(int argc, char *argv[]);
@@ -52,6 +54,7 @@ static void * catch_signals(void * arg);
 static pthread_t signals_thr;
 
 static char *conffile = NULL;
+static int daemon_mode = 0;
 static int gnutls_debug = 0;
 
 /* gnutls debug */
@@ -105,6 +108,11 @@ int main(int argc, char * argv[])
 	ret = main_cmdline(argc, argv);
 	if (ret != 0) {
 		return ret;
+	}
+
+	if (daemon_mode) {
+		TRACE_DEBUG(INFO, "entering background mode");
+		CHECK_POSIX_DO( daemon(1, 0), goto error );
 	}
 
 	/* Initialize the core library */
@@ -169,19 +177,20 @@ static void main_help( void )
 	printf(	"  This daemon is an implementation of the Diameter protocol\n"
 		"  used for Authentication, Authorization, and Accounting (AAA).\n");
 	printf("\nUsage:  " FD_PROJECT_BINARY " [OPTIONS]...\n");
-	printf( "  -h, --help             Print help and exit\n"
-  		"  -V, --version          Print version and exit\n"
-  		"  -c, --config=filename  Read configuration from this file instead of the \n"
-		"                           default location (" DEFAULT_CONF_PATH "/" FD_DEFAULT_CONF_FILENAME ").\n"
+	printf( "  -h, --help              Print help and exit\n"
+  		"  -V, --version           Print version and exit\n"
+  		"  -c, --config=filename   Read configuration from this file instead of the \n"
+		"                          default location (" DEFAULT_CONF_PATH "/" FD_DEFAULT_CONF_FILENAME ")\n"
+		"  -D, --daemon            Start program in background\n"
 		"  -s, --syslog            Write log output to syslog (instead of stdout)\n");
  	printf( "\nDebug:\n"
   		"  These options are mostly useful for developers\n"
-  		"  -l, --dbglocale         Set the locale for error messages\n"
   		"  -d, --debug             Increase verbosity of debug messages if default logger is used\n"
-  		"  -q, --quiet             Decrease verbosity if default logger is used\n"
+  		"  --dbg_gnutls <int>      Enable GNU TLS debug at level <int>\n"
   		"  -f, --dbg_func <func>   Enable all traces within the function <func>\n"
   		"  -F, --dbg_file <file.c> Enable all traces within the file <file.c> (basename match)\n"
-  		"  --dbg_gnutls <int>      Enable GNU TLS debug at level <int>\n"
+  		"  -l, --dbglocale         Set the locale for error messages\n"
+  		"  -q, --quiet             Decrease verbosity if default logger is used\n"
 	);
 }
 
@@ -197,6 +206,7 @@ static int main_cmdline(int argc, char *argv[])
 		{ "version",	no_argument, 		NULL, 'V' },
 		{ "config",	required_argument, 	NULL, 'c' },
 		{ "syslog",     no_argument,            NULL, 's' },
+		{ "daemon",	no_argument, 		NULL, 'D' },
 		{ "debug",	no_argument, 		NULL, 'd' },
 		{ "quiet",	no_argument, 		NULL, 'q' },
 		{ "dbglocale",	optional_argument, 	NULL, 'l' },
@@ -208,7 +218,7 @@ static int main_cmdline(int argc, char *argv[])
 
 	/* Loop on arguments */
 	while (1) {
-		c = getopt_long (argc, argv, "hVc:dql:f:F:g:s", long_options, &option_index);
+		c = getopt_long (argc, argv, "hVc:Ddql:f:F:g:s", long_options, &option_index);
 		if (c == -1)
 			break;	/* Exit from the loop.  */
 
@@ -227,6 +237,10 @@ static int main_cmdline(int argc, char *argv[])
 					return EINVAL;
 				}
 				conffile = optarg;
+				break;
+
+			case 'D':
+				daemon_mode = 1;
 				break;
 
 			case 'l':	/* Change the locale.  */
