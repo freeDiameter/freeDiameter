@@ -93,7 +93,7 @@ static int proceed(char * value, size_t len, struct fd_list * candidates, int co
 		int err = 0;
 		struct fd_list * c;
 
-		TRACE_DEBUG(ANNOYING, "Attempt pattern matching of '%.*s' with rule '%s'", (int)len, value, r->pattern);
+		LOG_D("[rt_ereg] attempting pattern matching of '%.*s' with rule '%s'", (int)len, value, r->pattern);
 
 		#ifdef HAVE_REG_STARTEND
 		{
@@ -118,7 +118,7 @@ static int proceed(char * value, size_t len, struct fd_list * candidates, int co
 			size_t bl;
 
 			/* Error while compiling the regex */
-			TRACE_DEBUG(INFO, "Error while executing the regular expression '%s':", r->pattern);
+			LOG_E("[rt_ereg] error while executing the regular expression '%s':", r->pattern);
 
 			/* Get the error message size */
 			bl = regerror(err, &r->preg, NULL, 0);
@@ -128,7 +128,7 @@ static int proceed(char * value, size_t len, struct fd_list * candidates, int co
 
 			/* Get the error message content */
 			regerror(err, &r->preg, errstr, bl);
-			TRACE_DEBUG(INFO, "\t%s", errstr);
+			LOG_E("\t%s", errstr);
 
 			/* Free the buffer, return the error */
 			free(errstr);
@@ -137,12 +137,7 @@ static int proceed(char * value, size_t len, struct fd_list * candidates, int co
 		}
 
 		/* From this point, the expression matched the AVP value */
-		TRACE_DEBUG(FULL, "[rt_ereg] Match: '%s' to value '%.*s' => '%s' += %d",
-					r->pattern,
-					(int)len,
-					value,
-					r->server,
-					r->score);
+		LOG_D("[rt_ereg] Match: '%s' to value '%.*s' => '%s' += %d", r->pattern, (int)len, value, r->server, r->score);
 
 		for (c = candidates->next; c != candidates; c = c->next) {
 			struct rtd_candidate * cand = (struct rtd_candidate *)c;
@@ -167,7 +162,7 @@ static int find_avp(msg_or_avp *where, int conf_index, int level, struct fd_list
 	/* iterate over all AVPs and try to find a match */
 //	for (i = 0; i<rtereg_conf[j].level; i++) {
 	if (level > rtereg_conf[conf_index].level) {
-		TRACE_DEBUG(INFO, "internal error, dug too deep");
+		LOG_E("internal error, dug too deep");
 		return 1;
 	}
 	what = rtereg_conf[conf_index].avps[level];
@@ -178,11 +173,15 @@ static int find_avp(msg_or_avp *where, int conf_index, int level, struct fd_list
 		CHECK_FCT(fd_msg_avp_hdr(nextavp, &avp_hdr));
 		if ((avp_hdr->avp_code == dictdata.avp_code) && (avp_hdr->avp_vendor == dictdata.avp_vendor)) {
 			if (level != rtereg_conf[conf_index].level - 1) {
-				TRACE_DEBUG(INFO, "[rt_ereg] found grouped AVP %d (vendor %d), digging deeper", avp_hdr->avp_code, avp_hdr->avp_vendor);
+				LOG_D("[rt_ereg] found grouped AVP %d (vendor %d), digging deeper", avp_hdr->avp_code, avp_hdr->avp_vendor);
 				CHECK_FCT(find_avp(nextavp, conf_index, level+1, candidates));
 			} else {
-				TRACE_DEBUG(INFO, "[rt_ereg] found AVP %d (vendor %d)", avp_hdr->avp_code, avp_hdr->avp_vendor);
+				struct dictionary * dict;
+				LOG_D("[rt_ereg] found AVP %d (vendor %d)", avp_hdr->avp_code, avp_hdr->avp_vendor);
+				CHECK_FCT(fd_dict_getdict(what, &dict));
+				CHECK_FCT_DO(fd_msg_parse_dict(nextavp, dict, NULL), /* nothing */);
 				if (avp_hdr->avp_value != NULL) {
+					LOG_A("avp_hdr->avp_value NOT NULL, matching");
 #ifndef HAVE_REG_STARTEND
 					int ret;
 
@@ -223,7 +222,7 @@ static int rtereg_out(void * cbdata, struct msg ** pmsg, struct fd_list * candid
 	msg_or_avp *where;
 	int j, ret;
 
-	TRACE_ENTRY("%p %p %p", cbdata, *pmsg, candidates);
+	LOG_A("[rt_ereg] rtereg_out arguments: %p %p %p", cbdata, *pmsg, candidates);
 
 	CHECK_PARAMS(pmsg && *pmsg && candidates);
 
@@ -238,7 +237,7 @@ static int rtereg_out(void * cbdata, struct msg ** pmsg, struct fd_list * candid
 
 		for (j=0; j<rtereg_conf_size; j++) {
 			where = *pmsg;
-			TRACE_DEBUG(INFO, "[rt_ereg] iterating over AVP group %d", j);
+			LOG_D("[rt_ereg] iterating over AVP group %d", j);
 			if ((ret=find_avp(where, j, 0, candidates)) != 0) {
 				break;
 			}
@@ -301,12 +300,12 @@ static void sig_hdlr(void)
 /* entry point */
 static int rtereg_entry(char * conffile)
 {
-	TRACE_ENTRY("%p", conffile);
+	LOG_A("[rt_ereg] started with conffile '%p'", conffile);
 
 	rt_ereg_config_file = conffile;
 
 	if (rtereg_init() != 0) {
-	    return 1;
+		return 1;
 	}
 
 	/* Register reload callback */
@@ -321,8 +320,8 @@ static int rtereg_init_config(void)
 {
 	/* Initialize the configuration */
 	if ((rtereg_conf=malloc(sizeof(*rtereg_conf))) == NULL) {
-	    TRACE_DEBUG(INFO, "malloc failured");
-	    return 1;
+		LOG_E("[rt_ereg] malloc failured");
+		return 1;
 	}
 	rtereg_conf_size = 1;
 	memset(rtereg_conf, 0, sizeof(*rtereg_conf));
@@ -366,19 +365,27 @@ static int rtereg_init(void)
 /* Unload */
 static void rtereg_fini(void)
 {
-	TRACE_ENTRY();
-
 	/* Unregister the cb */
 	CHECK_FCT_DO( fd_rt_out_unregister ( rtereg_hdl, NULL ), /* continue */ );
 
-	/* Destroy the data */
-	rtereg_conf_free(rtereg_conf, rtereg_conf_size);
-	rtereg_conf = NULL;
-	rtereg_conf_size = 0;
 #ifndef HAVE_REG_STARTEND
 	free(buf);
 	buf = NULL;
 #endif /* HAVE_REG_STARTEND */
+
+	if (pthread_rwlock_wrlock(&rte_lock) != 0) {
+		fd_log_error("%s: write-locking failed in fini, giving up", MODULE_NAME);
+		return;
+	}
+	/* Destroy the data */
+	rtereg_conf_free(rtereg_conf, rtereg_conf_size);
+	rtereg_conf = NULL;
+	rtereg_conf_size = 0;
+
+	if (pthread_rwlock_unlock(&rte_lock) != 0) {
+		fd_log_error("%s: write-unlocking failed in fini", MODULE_NAME);
+		return;
+	}
 
 	/* Done */
 	return ;

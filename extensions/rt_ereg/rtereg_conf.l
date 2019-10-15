@@ -80,7 +80,7 @@ qstring		\"[^\"\n]*\"
 				/* Match a quoted string. */
 				CHECK_MALLOC_DO( yylval->string = strdup(yytext+1), 
 				{
-					TRACE_DEBUG(INFO, "Unable to copy the string '%s': %s", yytext, strerror(errno));
+					LOG_E("[rt_ereg] unable to copy the string '%s': %s", yytext, strerror(errno));
 					return LEX_ERROR; /* trig an error in yacc parser */
 				} );
 				yylval->string[strlen(yytext) - 2] = '\0';

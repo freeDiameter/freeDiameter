@@ -61,15 +61,13 @@ int rtereg_conf_handle(char * conffile)
 	extern FILE * rtereg_confin;
 	int ret;
 
-	TRACE_ENTRY("%p", conffile);
-
-	TRACE_DEBUG (FULL, "Parsing configuration file: %s...", conffile);
+	LOG_D("[rt_ereg] parsing configuration file '%s'", conffile);
 
 	rtereg_confin = fopen(conffile, "r");
 	if (rtereg_confin == NULL) {
 		ret = errno;
 		fd_log_debug("Unable to open extension configuration file %s for reading: %s", conffile, strerror(ret));
-		TRACE_DEBUG (INFO, "rt_ereg: error occurred, message logged -- configuration file.");
+		LOG_E("[rt_ereg] error occurred, message logged -- configuration file.");
 		return ret;
 	}
 
@@ -79,19 +77,19 @@ int rtereg_conf_handle(char * conffile)
 	fclose(rtereg_confin);
 
 	if (rtereg_conf[rtereg_conf_size-1].finished == 0) {
-		TRACE_DEBUG(INFO, "rt_ereg: configuration invalid, AVP ended without OCTETSTRING AVP");
+		LOG_E("[rt_ereg] configuration invalid, AVP ended without OCTETSTRING AVP");
 		return EINVAL;
 	}
 
 	if (ret != 0) {
-		TRACE_DEBUG(INFO, "rt_ereg: unable to parse the configuration file.");
+		LOG_E("[rt_ereg] unable to parse the configuration file.");
 		return EINVAL;
 	} else {
 		int i, sum = 0;
 		for (i=0; i<rtereg_conf_size; i++) {
 			sum += rtereg_conf[i].rules_nb;
 		}
-		TRACE_DEBUG(FULL, "[rt-ereg] Added %d rules successfully.", sum);
+		LOG_D("[rt-ereg] Added %d rules successfully.", sum);
 	}
 
 	return 0;
@@ -104,25 +102,25 @@ int avp_add(const char *name)
 
 	if (rtereg_conf[rtereg_conf_size-1].finished) {
 		if ((ret = realloc(rtereg_conf, sizeof(*rtereg_conf)*(rtereg_conf_size+1))) == NULL) {
-			TRACE_DEBUG(INFO, "rt_ereg: realloc failed");
+			LOG_E("[rt_ereg] realloc failed");
 			return -1;
 		}
 		rtereg_conf_size++;
 		rtereg_conf = ret;
 		memset(&rtereg_conf[rtereg_conf_size-1], 0, sizeof(*rtereg_conf));
-		TRACE_DEBUG(INFO, "rt_ereg: New AVP group found starting with %s", name);
+		LOG_D("[rt_ereg] New AVP group found starting with %s", name);
 	}
 	level = rtereg_conf[rtereg_conf_size-1].level + 1;
 
 	if ((ret = realloc(rtereg_conf[rtereg_conf_size-1].avps, sizeof(*rtereg_conf[rtereg_conf_size-1].avps)*level)) == NULL) {
-		TRACE_DEBUG(INFO, "rt_ereg: realloc failed");
+		LOG_E("[rt_ereg] realloc failed");
 		return -1;
 	}
 	rtereg_conf[rtereg_conf_size-1].avps = ret;
 
 	CHECK_FCT_DO( fd_dict_search ( fd_g_config->cnf_dict, DICT_AVP, AVP_BY_NAME_ALL_VENDORS, name, &rtereg_conf[rtereg_conf_size-1].avps[level-1], ENOENT ),
 		      {
-			      TRACE_DEBUG(INFO, "rt_ereg: Unable to find '%s' AVP in the loaded dictionaries.", name);
+			      LOG_E("[rt_ereg] Unable to find '%s' AVP in the loaded dictionaries.", name);
 			      return -1;
 		      } );
 
@@ -133,7 +131,7 @@ int avp_add(const char *name)
 		if (data.avp_basetype == AVP_TYPE_OCTETSTRING) {
 			rtereg_conf[rtereg_conf_size-1].finished = 1;
 		} else if (data.avp_basetype != AVP_TYPE_GROUPED) {
-			TRACE_DEBUG(INFO, "rt_ereg: '%s' AVP is not an OCTETSTRING nor GROUPED AVP (%d).", name, data.avp_basetype);
+			LOG_E("[rt_ereg] '%s' AVP is not an OCTETSTRING nor GROUPED AVP (%d).", name, data.avp_basetype);
 			return -1;
 		}
 	}
@@ -147,7 +145,7 @@ int rtereg_conflex(YYSTYPE *lvalp, YYLTYPE *llocp);
 /* Function to report the errors */
 void yyerror (YYLTYPE *ploc, char * conffile, char const *s)
 {
-	TRACE_DEBUG(INFO, "rt_ereg: error in configuration parsing");
+	LOG_E("[rt_ereg] error in configuration parsing");
 
 	if (ploc->first_line != ploc->last_line)
 		fd_log_debug("%s:%d.%d-%d.%d : %s", conffile, ploc->first_line, ploc->first_column, ploc->last_line, ploc->last_column, s);
@@ -222,7 +220,7 @@ rule:			QSTRING ':' QSTRING '+' '=' INTEGER ';'
 						size_t bl;
 
 						/* Error while compiling the regex */
-						TRACE_DEBUG(INFO, "rt_ereg: error while compiling the regular expression '%s':", new->pattern);
+						LOG_E("[rt_ereg] error while compiling the regular expression '%s':", new->pattern);
 
 						/* Get the error message size */
 						bl = regerror(err, &new->preg, NULL, 0);
@@ -232,7 +230,7 @@ rule:			QSTRING ':' QSTRING '+' '=' INTEGER ';'
 
 						/* Get the error message content */
 						regerror(err, &new->preg, buf, bl);
-						TRACE_DEBUG(INFO, "\t%s", buf);
+						LOG_E("\t%s", buf);
 
 						/* Free the buffer, return the error */
 						free(buf);
