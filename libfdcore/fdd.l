@@ -241,34 +241,34 @@ nomatch:
 			}
 				
 	/* Full words tokens (keywords) */
-(?i:"Identity")		{ return IDENTITY;	}
-(?i:"Realm")		{ return REALM;   	}
-(?i:"Port")		{ return PORT;    	}
-(?i:"SecPort")		{ return SECPORT;  	}
-	/* (?i:"SctpSec3436")	{ return SEC3436;  	} */
-(?i:"No_IPv6")		{ return NOIP6;		}
-(?i:"No_IP")		{ return NOIP;		}
-(?i:"No_TCP")		{ return NOTCP;		}
-(?i:"No_SCTP")		{ return NOSCTP;	}
-(?i:"Prefer_TCP")	{ return PREFERTCP;	}
-(?i:"TLS_old_method")	{ return OLDTLS;	}
-(?i:"SCTP_streams")	{ return SCTPSTREAMS;	}
-(?i:"AppServThreads")	{ return APPSERVTHREADS;}
-(?i:"ListenOn")		{ return LISTENON;	}
-(?i:"ThreadsPerServer")	{ return THRPERSRV;	}
-(?i:"TcTimer")		{ return TCTIMER;	}
-(?i:"TwTimer")		{ return TWTIMER;	}
-(?i:"NoRelay")		{ return NORELAY;	}
-(?i:"LoadExtension")	{ return LOADEXT;	}
-(?i:"ConnectPeer")	{ return CONNPEER;	}
-(?i:"ConnectTo")	{ return CONNTO;	}
-(?i:"No_TLS")		{ return NOTLS;		}
-(?i:"TLS_Cred")		{ return TLS_CRED;	}
-(?i:"TLS_CA")		{ return TLS_CA;	}
-(?i:"TLS_CRL")		{ return TLS_CRL;	}
-(?i:"TLS_Prio")		{ return TLS_PRIO;	}
-(?i:"TLS_DH_bits")	{ return TLS_DH_BITS;	}
-(?i:"TLS_DH_file")	{ return TLS_DH_FILE;	}
+(?i:"Identity")		{ return IDENTITY; }
+(?i:"Realm")		{ return REALM; }
+(?i:"Port")		{ return PORT; }
+(?i:"SecPort")		{ return SECPORT; }
+	/* (?i:"SctpSec3436")	{ return SEC3436; } */
+(?i:"No_IPv6")		{ return NOIP6; }
+(?i:"No_IP")		{ return NOIP; }
+(?i:"No_TCP")		{ return NOTCP; }
+(?i:"No_SCTP")		{ return NOSCTP; }
+(?i:"Prefer_TCP")	{ return PREFERTCP; }
+(?i:"TLS_old_method")	{ return OLDTLS; }
+(?i:"SCTP_streams")	{ return SCTPSTREAMS; }
+(?i:"AppServThreads")	{ return APPSERVTHREADS; }
+(?i:"ListenOn")		{ return LISTENON; }
+(?i:"ThreadsPerServer")	{ return THRPERSRV; }
+(?i:"TcTimer")		{ return TCTIMER; }
+(?i:"TwTimer")		{ return TWTIMER; }
+(?i:"NoRelay")		{ return NORELAY; }
+(?i:"LoadExtension")	{ return LOADEXT; }
+(?i:"ConnectPeer")	{ return CONNPEER; }
+(?i:"ConnectTo")	{ return CONNTO; }
+(?i:"No_TLS")		{ return NOTLS; }
+(?i:"TLS_Cred")		{ return TLS_CRED; }
+(?i:"TLS_CA")		{ return TLS_CA; }
+(?i:"TLS_CRL")		{ return TLS_CRL; }
+(?i:"TLS_Prio")		{ return TLS_PRIO; }
+(?i:"TLS_DH_bits")	{ return TLS_DH_BITS; }
+(?i:"TLS_DH_file")	{ return TLS_DH_FILE; }
 
 
 	/* Valid single characters for yyparse */
