@@ -88,6 +88,19 @@
 # Default: 5 unidentified clients in paralel.
 #ThreadsPerServer = 5;
 
+# If this host is used as relay or proxy, it can be useful to limit
+# connections from "outside" until enough processing nodes are available.
+# This parameter defines a regex pattern for recognizing such nodes;
+# Default: NO DEFAULT
+#ProcessingPeersPattern = "worker[0-9]*.example.com";
+
+# This next parameter defines how many of these processing peers
+# must be connected before CERs from other hosts are accepted.
+# If this is set, ProcessingPeersPattern must also be defined.
+# If unset or less than 1, ProcessingPeersPattern and this variable do nothing.
+# Default: 0
+#ProcessingPeersMinimum = 0;
+
 ##############################################################
 ##  TLS Configuration
 

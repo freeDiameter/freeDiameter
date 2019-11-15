@@ -44,6 +44,7 @@ extern "C" {
 #include <freeDiameter/libfdproto.h>
 #include <gnutls/gnutls.h>
 #include <gnutls/x509.h>
+#include <regex.h>
 
 /* GNUTLS version */
 #ifndef GNUTLS_VERSION
@@ -132,6 +133,8 @@ struct fd_config {
 	uint16_t	 cnf_sctp_str;	/* default max number of streams for SCTP associations (def: 30) */
 	struct fd_list	 cnf_endpoints;	/* the local endpoints to bind the server to. list of struct fd_endpoint. default is empty (bind all). After servers are started, this is the actual list of endpoints including port information. */
 	int		 cnf_thr_srv;	/* Number of threads per servers handling the connection state machines */
+	int		 cnf_processing_peers_minimum;	/* Number of processing peers that must be connected before other peers may connect */
+	regex_t		 cnf_processing_peers_pattern_regex;	/* Regex pattern for identifying processing peers */
 	struct fd_list	 cnf_apps;	/* Applications locally supported (except relay, see flags). Use fd_disp_app_support to add one. list of struct fd_app. */
 	uint16_t	 cnf_dispthr;	/* Number of dispatch threads to create */
 	uint16_t	 cnf_rr_in_answers;	/* include Route-Record AVP in answers */

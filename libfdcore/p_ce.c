@@ -833,6 +833,26 @@ cleanup:
 	return 0;
 }
 
+/* Check if enough processing peers are connected to allow connections by other peers */
+static int sufficient_processing_peers(void) {
+	int processing_peers_count = 0;
+	struct fd_list * li;
+
+	CHECK_FCT( pthread_rwlock_rdlock(&fd_g_activ_peers_rw) );
+	for (li = fd_g_activ_peers.next; li != &fd_g_activ_peers; li = li->next) {
+		struct fd_peer * p = (struct fd_peer *)li->o;
+
+		TRACE_DEBUG(FULL, "comparing '%s' against processing peers pattern", p->p_hdr.info.pi_diamid);
+		if (regexec(&fd_g_config->cnf_processing_peers_pattern_regex, p->p_hdr.info.pi_diamid, 0, NULL, 0) == 0) {
+			processing_peers_count++;
+		}
+	}
+	CHECK_FCT( pthread_rwlock_unlock(&fd_g_activ_peers_rw) );
+
+	TRACE_DEBUG(FULL, "%d processing peers found", processing_peers_count);
+	return (processing_peers_count >= fd_g_config->cnf_processing_peers_minimum);
+}
+
 /* Handle the receiver side to go to OPEN or OPEN_NEW state (any election is resolved) */
 int fd_p_ce_process_receiver(struct fd_peer * peer)
 {
@@ -883,6 +903,26 @@ int fd_p_ce_process_receiver(struct fd_peer * peer)
 		CHECK_FCT( res );
 	}
 	
+	/* Check peer type and if enough processing peers are already connected */
+	if (fd_g_config->cnf_processing_peers_minimum > 0) {
+		if (regexec(&fd_g_config->cnf_processing_peers_pattern_regex, peer->p_hdr.info.pi_diamid, 0, NULL, 0) != 0) {
+			/* peer is not a processing peer */
+			if (!sufficient_processing_peers()) {
+				pei.pei_errcode = "DIAMETER_TOO_BUSY";
+				goto error_abort;
+			}
+		}
+	}
+
+	if (peer->p_flags.pf_responder) {
+		int res = fd_peer_validate( peer );
+		if (res < 0) {
+			TRACE_DEBUG(INFO, "Rejected CER from peer '%s', validation failed (returning DIAMETER_UNKNOWN_PEER).", peer->p_hdr.info.pi_diamid);
+			pei.pei_errcode = "DIAMETER_UNKNOWN_PEER";
+			goto error_abort;
+		}
+		CHECK_FCT( res );
+	}
 	/* Check if we have common applications */
 	if ( fd_g_config->cnf_flags.no_fwd && (! peer->p_hdr.info.runtime.pir_relay) ) {
 		int got_common;
