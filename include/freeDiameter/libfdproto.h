@@ -138,7 +138,7 @@ extern const char fd_libproto_version[];
  *  format 	: Same format string as in the printf function
  *  ...		: Same list as printf
  *
- * DESCRIPTION: 
+ * DESCRIPTION:
  * Write information to log.
  * The format and arguments may contain UTF-8 encoded data. The
  * output medium is expected to support this encoding.
@@ -151,7 +151,7 @@ void fd_log ( int, const char *, ... ) _ATTRIBUTE_PRINTFLIKE_(2,3);
 void fd_log_va( int, const char *, va_list);
 #endif /* SWIG */
 
-/* these are internal objects of the debug facility, 
+/* these are internal objects of the debug facility,
 might be useful to control the behavior from outside */
 extern pthread_mutex_t	fd_log_lock;
 extern char * fd_debug_one_function;
@@ -163,7 +163,7 @@ extern char * fd_debug_one_file;
  * PARAMETERS:
  *  name 	: \0-terminated string containing a name to identify the current thread.
  *
- * DESCRIPTION: 
+ * DESCRIPTION:
  *  Name the current thread, useful for debugging multi-threaded problems.
  *
  * This function assumes that a global thread-specific key called "fd_log_thname" exists
@@ -185,8 +185,8 @@ extern pthread_key_t	fd_log_thname;
  *  incl_date   : The day of year is included in the output
  *  incl_ms     : millisecond value is included in the output
  *
- * DESCRIPTION: 
- *  Writes the timestamp (in human readable format) in a buffer. 
+ * DESCRIPTION:
+ *  Writes the timestamp (in human readable format) in a buffer.
  *
  * RETURN VALUE:
  *  pointer to buf.
@@ -245,7 +245,7 @@ int fd_log_handler_unregister ( void );
 #define DECLARE_FD_DUMP_PROTOTYPE_simple( function_name )	\
 	char * function_name(char ** buf, size_t *len, size_t *offset)
 #endif /* SWIG */
-	
+
 
 /* Helper functions for the *dump functions that add into a buffer */
 DECLARE_FD_DUMP_PROTOTYPE( fd_dump_extend, const char * format, ... ) _ATTRIBUTE_PRINTFLIKE_(4,5);
@@ -312,7 +312,7 @@ static char * file_bname_init(char * full) { file_bname = basename(full); return
 	fd_log((printlevel), STD_TRACE_FMT_STRING format STD_TRACE_FMT_ARGS, ## args)
 
 /*
- * Use the following macros in the code to get traces with location & pid in debug mode: 
+ * Use the following macros in the code to get traces with location & pid in debug mode:
  */
 #ifdef DEBUG
 # define LOG_A(format,args... ) \
@@ -402,12 +402,12 @@ int fd_breakhere(void);
  *
  * The name "__ret__" is always available in the __fallback__ parameter and contains the error code.
  */
- 
+
 #define CHECK_PRELUDE(__call__) 			\
 		int __ret__; 				\
 		TRACE_CALL("Check: %s", #__call__ );	\
 		__ret__ = (__call__)
-	
+
 #define DEFAULT_FB	return __ret__;
 
 /* System check: error case if < 0, error value in errno */
@@ -491,7 +491,7 @@ static __inline__ int old_TRACE_BOOL( enum old_levels level, const char * file, 
 
 #ifndef SWIG
 static __inline__ void fd_log_deprecated( int level, const char *format, ... ) MARK_DEPRECATED
-{ 
+{
 	va_list ap;
 	va_start(ap, format);
 	fd_log_va(level, format, ap);
@@ -557,7 +557,7 @@ static __inline__ void replace_me() MARK_DEPRECATED { }
 
 # define CHECK_POSIX( __call__ )	\
 		CHECK_POSIX_DO( (__call__), return __ret__ )
-		
+
 # define CHECK_MALLOC_DO( __call__, __fallback__ ) { 				   		       \
 	       void *  __ptr__; 								       \
 	       TRACE_CALL("Check: %s", #__call__ );						       \
@@ -571,7 +571,7 @@ static __inline__ void replace_me() MARK_DEPRECATED { }
 
 # define CHECK_MALLOC( __call__ )	\
 		CHECK_MALLOC_DO( (__call__), return __ret__ )
-	
+
 # define CHECK_PARAMS_DO( __bool__, __fallback__ ) {					       	       \
 	       TRACE_CALL("Check: %s", #__bool__ );						       \
 	       if ( ! (__bool__) ) {								       \
@@ -588,7 +588,7 @@ static __inline__ void replace_me() MARK_DEPRECATED { }
 # define CHECK_FCT	CHECK_POSIX
 
 #endif /* EXCLUDE_DEPRECATED */
-	       
+
 
 /*============================================================*/
 /*	Optimized code: remove all debugging code	      */
@@ -660,7 +660,7 @@ void fd_sa_sdump_numeric(char * buf /* must be at least sSA_DUMP_STRLEN */, sSA 
 #endif /* DISABLE_SCTP */
 
 /* Define the value of IP loopback address */
-#ifndef INADDR_LOOPBACK 
+#ifndef INADDR_LOOPBACK
 #define INADDR_LOOPBACK	inet_addr("127.0.0.1")
 #endif /* INADDR_LOOPBACK */
 
@@ -701,8 +701,8 @@ void fd_sa_sdump_numeric(char * buf /* must be at least sSA_DUMP_STRLEN */, sSA 
 #   define htonll(x) (x)
 # else /* HOST_BIG_ENDIAN */
     /* For these systems, we must reverse the bytes. Use ntohl and htonl on sub-32 blocs, and inverse these blocs. */
-#   define ntohll(x) (typeof (x))( (((uint64_t)ntohl( (uint32_t)(x))) << 32 ) | ((uint64_t) ntohl( ((uint64_t)(x)) >> 32 ))) 
-#   define htonll(x) (typeof (x))( (((uint64_t)htonl( (uint32_t)(x))) << 32 ) | ((uint64_t) htonl( ((uint64_t)(x)) >> 32 ))) 
+#   define ntohll(x) (typeof (x))( (((uint64_t)ntohl( (uint32_t)(x))) << 32 ) | ((uint64_t) ntohl( ((uint64_t)(x)) >> 32 )))
+#   define htonll(x) (typeof (x))( (((uint64_t)htonl( (uint32_t)(x))) << 32 ) | ((uint64_t) htonl( ((uint64_t)(x)) >> 32 )))
 # endif /* HOST_BIG_ENDIAN */
 #endif /* HAVE_NTOHLL */
 
@@ -726,7 +726,7 @@ void fd_sa_sdump_numeric(char * buf /* must be at least sSA_DUMP_STRLEN */, sSA 
 		(tsdiff)->tv_sec  = (tsend)->tv_sec  - (tsstart)->tv_sec;		\
 		(tsdiff)->tv_nsec = (tsend)->tv_nsec - (tsstart)->tv_nsec;		\
 	}}
-		
+
 
 /* This gives a good size for buffered reads */
 #ifndef BUFSIZ
@@ -755,12 +755,12 @@ char * strndup (char *str, size_t len);
 /*                         BINARY STRINGS                     */
 /*============================================================*/
 
-/* Compute a hash value of a binary string. 
+/* Compute a hash value of a binary string.
 The hash must remain local to this machine, there is no guarantee that same input
 will give same output on a different system (endianness) */
 uint32_t fd_os_hash ( uint8_t * string, size_t len );
 
-/* This type used for binary strings that contain no \0 except as their last character. 
+/* This type used for binary strings that contain no \0 except as their last character.
 It means some string operations can be used on it. */
 typedef uint8_t * os0_t;
 
@@ -786,24 +786,24 @@ typedef char * DiamId_t;
   rfc3588 states explicitely that such a Diameter Identity consists only of ASCII characters. */
 int fd_os_is_valid_DiameterIdentity(uint8_t * os, size_t ossz);
 
-/* The following function validates a string as a Diameter Identity or applies the IDNA transformation on it 
+/* The following function validates a string as a Diameter Identity or applies the IDNA transformation on it
  if *inoutsz is != 0 on entry, *id may not be \0-terminated.
  memory has the following meaning: 0: *id can be realloc'd. 1: *id must be malloc'd on output (was static)
 */
 int fd_os_validate_DiameterIdentity(char ** id, size_t * inoutsz, int memory);
 
-/* Create an order relationship for binary strings (not needed to be \0 terminated). 
+/* Create an order relationship for binary strings (not needed to be \0 terminated).
    It does NOT mimic strings relationships so that it is more efficient. It is case sensitive.
    (the strings are actually first ordered by their lengh, then by their bytes contents)
    returns: -1 if os1 < os2;  +1 if os1 > os2;  0 if they are equal */
 int fd_os_cmp_int(os0_t os1, size_t os1sz, os0_t os2, size_t os2sz);
 #define fd_os_cmp(_o1, _l1, _o2, _l2)  fd_os_cmp_int((os0_t)(_o1), _l1, (os0_t)(_o2), _l2)
 
-/* A roughly case-insensitive variant, which actually only compares ASCII chars (0-127) in a case-insentitive maneer 
+/* A roughly case-insensitive variant, which actually only compares ASCII chars (0-127) in a case-insentitive maneer
   -- it does not support locales where a lowercase letter uses more space than upper case, such as ß -> ss
  It is slower than fd_os_cmp.
  Note that the result is NOT the same as strcasecmp !!!
- 
+
  This function gives the same order as fd_os_cmp, except when it finds 2 strings to be equal.
  However this is not always sufficient:
  	for example fd_os_cmp gives: "Ac" < "aB" < "aa"
@@ -816,8 +816,8 @@ int fd_os_cmp_int(os0_t os1, size_t os1sz, os0_t os2, size_t os2sz);
 int fd_os_almostcasesrch_int(uint8_t * os1, size_t os1sz, uint8_t * os2, size_t os2sz, int * maybefurther);
 #define fd_os_almostcasesrch(_o1, _l1, _o2, _l2, _mb)  fd_os_almostcasesrch_int((os0_t)(_o1), _l1, (os0_t)(_o2), _l2, _mb)
 
-/* Analyze a DiameterURI and return its components. 
-  Return EINVAL if the URI is not valid. 
+/* Analyze a DiameterURI and return its components.
+  Return EINVAL if the URI is not valid.
   *diamid is malloc'd on function return and must be freed (it is processed by fd_os_validate_DiameterIdentity).
   *secure is 0 (no security) or 1 (security enabled) on return.
   *port is 0 (default) or a value in host byte order on return.
@@ -834,40 +834,40 @@ int fd_os_parse_DiameterURI(uint8_t * uri, size_t urisz, DiamId_t * diamid, size
 static __inline__ int fd_thr_term(pthread_t * th)
 {
 	void * th_ret = NULL;
-	
+
 	CHECK_PARAMS(th);
-	
+
 	/* Test if it was already terminated */
 	if (*th == (pthread_t)NULL)
 		return 0;
-	
+
 	/* Cancel the thread if it is still running - ignore error if it was already terminated */
 	(void) pthread_cancel(*th);
-	
+
 	/* Then join the thread */
 	CHECK_POSIX( pthread_join(*th, &th_ret) );
-	
+
 	if (th_ret == PTHREAD_CANCELED) {
 		TRACE_DEBUG(ANNOYING, "The thread %p was canceled", (void *)*th);
 	} else {
 		TRACE_DEBUG(CALL, "The thread %p returned %p", (void *)*th, th_ret);
 	}
-	
+
 	/* Clean the location */
 	*th = (pthread_t)NULL;
-	
+
 	return 0;
 }
 
 
 /*************
- Cancelation cleanup handlers for common objects 
+ Cancelation cleanup handlers for common objects
  *************/
 static __inline__ void fd_cleanup_mutex( void * mutex )
 {
 	CHECK_POSIX_DO( pthread_mutex_unlock((pthread_mutex_t *)mutex), /* */);
 }
-		
+
 static __inline__ void fd_cleanup_rwlock( void * rwlock )
 {
 	CHECK_POSIX_DO( pthread_rwlock_unlock((pthread_rwlock_t *)rwlock), /* */);
@@ -945,7 +945,7 @@ enum dict_object_type {
 	DICT_RULE		/* a Rule for AVP in command or grouped AVP */
 #define DICT_TYPE_MAX	DICT_RULE
 };
-	
+
 /* Initialize a dictionary */
 int fd_dict_init(struct dictionary ** dict);
 /* Destroy a dictionary */
@@ -957,19 +957,19 @@ int fd_dict_fini(struct dictionary ** dict);
  * PARAMETERS:
  *  dict	: Pointer to the dictionnary where the object is created
  *  type 	: What kind of object must be created
- *  data 	: pointer to the data for the object. 
+ *  data 	: pointer to the data for the object.
  *          	 type parameter is used to determine the type of data (see below for detail).
  *  parent 	: a reference to a parent object, if needed.
  *  ref 	: upon successful creation, reference to new object is stored here if !null.
  *
- * DESCRIPTION: 
- *  Create a new object in the dictionary. 
+ * DESCRIPTION:
+ *  Create a new object in the dictionary.
  *  See following object sections in this header file for more information on data and parent parameters format.
  *
  * RETURN VALUE:
  *  0      	: The object is created in the dictionary.
  *  EINVAL 	: A parameter is invalid.
- *  EEXIST 	: This object is already defined in the dictionary (with conflicting data). 
+ *  EEXIST 	: This object is already defined in the dictionary (with conflicting data).
  *                If "ref" is not NULL, it points to the existing element on return.
  *  (other standard errors may be returned, too, with their standard meaning. Example:
  *    ENOMEM 	: Memory allocation for the new object element failed.)
@@ -987,8 +987,8 @@ int fd_dict_new ( struct dictionary * dict, enum dict_object_type type, void * d
  *  result 	: On successful return, pointer to the object is stored here.
  *  retval	: this value is returned if the object is not found and result is not NULL.
  *
- * DESCRIPTION: 
- *   Perform a search in the dictionary. 
+ * DESCRIPTION:
+ *   Perform a search in the dictionary.
  *   See the object-specific sections below to find how to look for each objects.
  *   If the "result" parameter is NULL, the function is used to check if an object is in the dictionary.
  *   Otherwise, a reference to the object is stored in result if found.
@@ -1012,7 +1012,7 @@ int fd_dict_get_error_cmd(struct dictionary * dict, struct dict_object ** obj);
  *  data 	: pointer to a structure to hold the data for the object.
  *          	  The type is the same as "data" parameter in fd_dict_new function.
  *
- * DESCRIPTION: 
+ * DESCRIPTION:
  *  Retrieve content of a dictionary object.
  *  See following object sections in this header file for more information on data and parent parameters format.
  *
@@ -1039,7 +1039,7 @@ int fd_dict_delete(struct dict_object * obj);
 /*
  ***************************************************************************
  *
- * Vendor object 
+ * Vendor object
  *
  * These types are used to manage vendors in the dictionary
  *
@@ -1069,9 +1069,9 @@ enum {
 Note: the value of "vendor_name" is copied when the object is created, and the string may be disposed afterwards.
 On the other side, when value is retrieved with dict_getval, the string is not copied and MUST NOT be freed. It will
 be freed automatically along with the object itself with call to dict_fini later.
- 
+
 - fd_dict_new:
- The "parent" parameter is not used for vendors. 
+ The "parent" parameter is not used for vendors.
  Sample code to create a vendor:
  {
 	 int ret;
@@ -1090,7 +1090,7 @@ be freed automatically along with the object itself with call to dict_fini later
 	 - or -
 	 ret = fd_dict_search ( dict, DICT_VENDOR, VENDOR_BY_NAME, "my vendor name", &vendor_found, ENOENT);
  }
- 
+
  - fd_dict_getval:
  Sample code to retrieve the data from a vendor object:
  {
@@ -1101,16 +1101,16 @@ be freed automatically along with the object itself with call to dict_fini later
 	 ret = fd_dict_getval ( myvendor, &myvendordata );
 	 printf("my vendor id: %d\n", myvendordata.vendor_id );
  }
-		 
+
 */
-		
+
 /* Special function: */
 uint32_t * fd_dict_get_vendorid_list(struct dictionary * dict);
-	 
+
 /*
  ***************************************************************************
  *
- * Application object 
+ * Application object
  *
  * These types are used to manage Diameter applications in the dictionary
  *
@@ -1155,7 +1155,7 @@ The vendor associated to an application is retrieved with VENDOR_OF_APPLICATION 
 		 9789,
 		 "my vendor's application"
 	 };
-	
+
 	 ret = fd_dict_new ( dict, DICT_VENDOR, &vendor_data, NULL, &vendor );
 	 ret = fd_dict_new ( dict, DICT_APPLICATION, &app_data, vendor, &appl );
  }
@@ -1165,11 +1165,11 @@ The vendor associated to an application is retrieved with VENDOR_OF_APPLICATION 
  {
 	 int ret;
 	 struct dict_object * vendor, * appli;
-	 
+
 	 ret = fd_dict_search ( dict, DICT_APPLICATION, APPLICATION_BY_NAME, "my vendor's application", &appli, ENOENT);
 	 ret = fd_dict_search ( dict, DICT_VENDOR, VENDOR_OF_APPLICATION, appli, &vendor, ENOENT);
  }
- 
+
  - fd_dict_getval:
  Sample code to retrieve the data from an application object:
  {
@@ -1186,14 +1186,14 @@ The vendor associated to an application is retrieved with VENDOR_OF_APPLICATION 
 /*
  ***************************************************************************
  *
- * Type object 
+ * Type object
  *
  * These types are used to manage AVP data types in the dictionary
  *
  ***************************************************************************
  */
 
-/* Type to store any AVP value */ 
+/* Type to store any AVP value */
 union avp_value {
 	struct {
 		uint8_t *data;	/* bytes buffer */
@@ -1228,7 +1228,7 @@ enum dict_avp_basetype {
  *   val         : Pointer to the AVP value that must be interpreted.
  *   interpreted : The result of interpretation is stored here. The format and meaning depends on each type.
  *
- * DESCRIPTION: 
+ * DESCRIPTION:
  *   This callback can be provided with a derived type in order to facilitate the interpretation of formated data.
  *  For example, when an AVP of type "Address" is received, it can be used to convert the octetstring into a struct sockaddr.
  *  This callback is not called directly, but through the message's API msg_avp_value_interpret function.
@@ -1245,11 +1245,11 @@ typedef int (*dict_avpdata_interpret) (union avp_value * value, void * interpret
  *   data	: The formated data that must be stored in the AVP value.
  *   val	: Pointer to the AVP value storage area where the data must be stored.
  *
- * DESCRIPTION: 
+ * DESCRIPTION:
  *   This callback can be provided with a derived type in order to facilitate the encoding of formated data.
  *  For example, it can be used to convert a struct sockaddr in an AVP value of type Address.
  *  This callback is not called directly, but through the message's API msg_avp_value_encode function.
- *  If the callback is defined for an OctetString based type, the created string must be malloc'd. free will be called 
+ *  If the callback is defined for an OctetString based type, the created string must be malloc'd. free will be called
  *  automatically later.
  *
  * RETURN VALUE:
@@ -1264,12 +1264,12 @@ typedef int (*dict_avpdata_encode) (void * data, union avp_value * val);
  * PARAMETERS:
  *   val	: Pointer to the AVP value that was received and needs to be sanity checked.
  *   data      : a parameter stored in the type structure (to enable more generic check functions)
- *   error_msg: upon erroneous value, a string describing the error can be returned here (it will be strcpy by caller). This description will be returned in the error message, if any. 
+ *   error_msg: upon erroneous value, a string describing the error can be returned here (it will be strcpy by caller). This description will be returned in the error message, if any.
  *
- * DESCRIPTION: 
+ * DESCRIPTION:
  *   This callback can be provided with a derived type in order to improve the operation of the
  *  fd_msg_parse_dict function. When this callback is present, the value of the AVP that has
- * been parsed is passed to this function for finer granularity check. For example for some 
+ * been parsed is passed to this function for finer granularity check. For example for some
  * speccific AVP, the format of an OCTETSTRING value can be further checked, or the
  * interger value can be verified.
  *
@@ -1300,7 +1300,7 @@ enum {
 };
 
 /****
- Callbacks defined in libfdproto/dictionary_functions.c file -- see that file for usage. 
+ Callbacks defined in libfdproto/dictionary_functions.c file -- see that file for usage.
  */
 
 /* Convert an Address type AVP into a struct sockaddr_storage */
@@ -1327,14 +1327,14 @@ int fd_dictfct_CharInOS_check(void * data, union avp_value * val, char ** error_
  *  API usage :
 
 - fd_dict_new:
- The "parent" parameter may point to an application object, when a type is defined by a Diameter application. 
- 
+ The "parent" parameter may point to an application object, when a type is defined by a Diameter application.
+
  Sample code:
  {
 	 int ret;
 	 struct dict_object * mytype;
-	 struct dict_type_data mytypedata = 
-		{ 
+	 struct dict_type_data mytypedata =
+		{
 		 AVP_TYPE_OCTETSTRING,
 		 "Address",
 		 NULL,
@@ -1350,13 +1350,13 @@ int fd_dictfct_CharInOS_check(void * data, union avp_value * val, char ** error_
 	 struct dict_object * address_type;
 	 ret = fd_dict_search ( dict, DICT_TYPE, TYPE_BY_NAME, "Address", &address_type, ENOENT);
  }
- 
+
 */
 
 /*
  ***************************************************************************
  *
- * Enumerated values object 
+ * Enumerated values object
  *
  * These types are used to manage named constants of some AVP,
  * for enumerated types. freeDiameter allows constants for types others than Unsigned32
@@ -1381,7 +1381,7 @@ struct dict_enumval_request {
 	/* Identifier of the parent type, one of the following must not be NULL */
 	struct dict_object	*type_obj;
 	char *			 type_name;
-	
+
 	/* Search criteria for the constant */
 	struct dict_enumval_data search; /* search.enum_value is used only if search.enum_name == NULL */
 };
@@ -1390,13 +1390,13 @@ struct dict_enumval_request {
  *  API usage :
 
 - fd_dict_new:
- The "parent" parameter must point to a derived type object. 
+ The "parent" parameter must point to a derived type object.
  Sample code to create a type "Boolean" with two constants "True" and "False":
  {
 	 int ret;
 	 struct dict_object * type_boolean;
-	 struct dict_type_data type_boolean_data = 
-		{ 
+	 struct dict_type_data type_boolean_data =
+		{
 		 AVP_TYPE_INTEGER32,
 		 "Boolean",
 		 NULL,
@@ -1415,7 +1415,7 @@ struct dict_enumval_request {
 	 ret = fd_dict_new ( dict, DICT_TYPE, &type_boolean_data, NULL, &type_boolean );
 	 ret = fd_dict_new ( dict, DICT_ENUMVAL, &boolean_false, type_boolean, NULL );
 	 ret = fd_dict_new ( dict, DICT_ENUMVAL, &boolean_true , type_boolean, NULL );
-	 
+
  }
 
 - fd_dict_search:
@@ -1429,10 +1429,10 @@ struct dict_enumval_request {
 		 .search.enum_name=NULL,
 		 .search.enum_value.i32 = -1
 	 	};
-	 
+
 	 ret = fd_dict_search ( dict, DICT_ENUMVAL, ENUMVAL_BY_STRUCT, &boolean_by_value, &value_found, ENOENT);
  }
- 
+
  - fd_dict_getval:
  Sample code to retrieve the data from a constant object:
  {
@@ -1445,17 +1445,17 @@ struct dict_enumval_request {
 		 .search.enum_name=NULL,
 		 .search.enum_value.i32 = 0
 	 	};
-	 
+
 	 ret = fd_dict_search ( dict, DICT_ENUMVAL, ENUMVAL_BY_STRUCT, &boolean_by_value, &value_found, ENOENT);
 	 ret = fd_dict_getval ( value_found, &boolean_data );
 	 printf(" Boolean with value 0: %s", boolean_data.enum_name );
  }
 */
-	 
+
 /*
  ***************************************************************************
  *
- * AVP object 
+ * AVP object
  *
  * These objects are used to manage AVP definitions in the dictionary
  *
@@ -1497,7 +1497,7 @@ enum {
 	AVP_BY_NAME,		/* "what" points to a char *, vendor is always 0 */
 	AVP_BY_NAME_ALL_VENDORS,/* "what" points to a string. Might be quite slow... */
 	AVP_BY_STRUCT,		/* "what" points to a struct dict_avp_request_ex (see below) */
-			
+
 	/* kept for backward compatibility, better use AVP_BY_STRUCT above instead */
 	AVP_BY_CODE_AND_VENDOR,	/* "what" points to a struct dict_avp_request (see below), where avp_vendor and avp_code are set */
 	AVP_BY_NAME_AND_VENDOR	/* "what" points to a struct dict_avp_request (see below), where avp_vendor and avp_name are set */
@@ -1511,7 +1511,7 @@ struct dict_avp_request_ex {
 		vendor_id_t	 	vendor_id; 	/* set to 0 to ignore -- prefer AVP_BY_CODE or AVP_BY_NAME for vendor 0 */
 		const char *			vendor_name;	/* set to NULL to ignore */
 	} avp_vendor;
-	
+
 	struct {
 		/* Only one of the following fields must be set */
 		avp_code_t	 avp_code; /* set to 0 to ignore */
@@ -1530,8 +1530,8 @@ struct dict_avp_request {
 /***
  *  API usage :
 
-If "parent" parameter is not NULL during AVP creation, it must point to a DICT_TYPE object. 
-The extended type is then attached to the AVP. In case where it is an enumerated type, the value of 
+If "parent" parameter is not NULL during AVP creation, it must point to a DICT_TYPE object.
+The extended type is then attached to the AVP. In case where it is an enumerated type, the value of
 AVP is automatically interpreted in debug messages, and in message checks.
 The derived type of an AVP can be retrieved with: dict_search ( DICT_TYPE, TYPE_OF_AVP, avp, ... )
 
@@ -1560,14 +1560,14 @@ To create the rules (ABNF) for children of Grouped AVP, see the DICT_RULE relate
 		 AVP_FLAG_VENDOR,
 		 AVP_TYPE_INTEGER32			// This MUST be the same as parent type's
 	 };
-	
+
  	 -- Create an AVP with a base type --
 	 ret = fd_dict_new ( dict, DICT_AVP, &user_name_data, NULL, &user_name_avp );
-	 
+
 	 -- Create an AVP with a derived type --
 	 ret = fd_dict_search ( dict, DICT_TYPE, TYPE_BY_NAME, "Boolean", &boolean_type, ENOENT);
 	 ret = fd_dict_new ( dict, DICT_AVP, &sample_boolean_data , boolean_type, &sample_boolean_avp );
-	 
+
  }
 
 - fd_dict_search:
@@ -1581,16 +1581,16 @@ To create the rules (ABNF) for children of Grouped AVP, see the DICT_RULE relate
 		 .avp_vendor = 23455,
 		 .avp_name   = "Sample-Boolean"
 	 	};
-	 
+
 	 ret = fd_dict_search ( dict, DICT_AVP, AVP_BY_NAME, "User-Name", &avp_username, ENOENT);
-	 
+
 	 ret = fd_dict_search ( dict, DICT_AVP, AVP_BY_NAME_AND_VENDOR, &avpvendorboolean, &avp_sampleboolean, ENOENT);
 
 	 -- this would also work, but be slower, because it has to search all vendor dictionaries --
 	 ret = fd_dict_search ( dict, DICT_AVP, AVP_BY_NAME_ALL_VENDORS, "Sample-Boolean", &avp_sampleboolean, ENOENT);
-	 
+
  }
- 
+
  - fd_dict_getval:
  Sample code to retrieve the data from an AVP object:
  {
@@ -1607,7 +1607,7 @@ To create the rules (ABNF) for children of Grouped AVP, see the DICT_RULE relate
 /*
  ***************************************************************************
  *
- * Command object 
+ * Command object
  *
  * These types are used to manage commands objects in the dictionary
  *
@@ -1671,9 +1671,9 @@ Note that the "Request" and "Answer" commands are two independant objects. This 
 		 CMD_FLAG_REQUEST,			// mask
 		 CMD_FLAG_REQUEST			// value. Only the "R" flag is constrained here, set.
 	 };
-	
+
 	 ret = fd_dict_new (dict,  DICT_COMMAND, &ce_data, NULL, &cer );
-	 
+
 	 ce_data.cmd_name = "Capabilities-Exchange-Answer";
 	 ce_data.cmd_flag_val = 0;			// Same constraint on "R" flag, but this time it must be cleared.
 
@@ -1689,7 +1689,7 @@ Note that the "Request" and "Answer" commands are two independant objects. This 
 	 ret = fd_dict_search ( dict, DICT_COMMAND, CMD_BY_NAME, "Capabilities-Exchange-Request", &cer, ENOENT);
 	 ret = fd_dict_search ( dict, DICT_COMMAND, CMD_BY_CODE_R, &code, &cer, ENOENT);
  }
- 
+
  - fd_dict_getval:
  Sample code to retrieve the data from a command object:
  {
@@ -1763,25 +1763,25 @@ The "parent" parameter can not be NULL. It points to the object (grouped avp or 
 	struct dict_avp_data proxy_info_data = { 284, 0, "Proxy-Info", AVP_FLAG_VENDOR | AVP_FLAG_MANDATORY, AVP_FLAG_MANDATORY, AVP_TYPE_GROUPED };
 	struct dict_avp_data proxy_host_data = { 280, 0, "Proxy-Host", AVP_FLAG_VENDOR | AVP_FLAG_MANDATORY, AVP_FLAG_MANDATORY, AVP_TYPE_OCTETSTRING };
 	struct dict_avp_data proxy_state_data = { 33, 0, "Proxy-State",AVP_FLAG_VENDOR | AVP_FLAG_MANDATORY, AVP_FLAG_MANDATORY, AVP_TYPE_OCTETSTRING };
-	
+
 	-- Create the parent AVP
 	ret = fd_dict_new ( dict, DICT_AVP, &proxy_info_data, NULL, &proxy_info_avp );
-	
+
 	-- Create the first child AVP.
 	ret = fd_dict_new ( dict, DICT_TYPE, &di_type_data, NULL, &diameteridentity_type );
 	ret = fd_dict_new ( dict, DICT_AVP, &proxy_host_data, diameteridentity_type, &proxy_host_avp );
-	
+
 	-- Create the other child AVP
 	ret = fd_dict_new ( dict, DICT_AVP, &proxy_state_data, NULL, &proxy_state_avp );
-	
+
 	-- Now we can create the rules. Both children AVP are mandatory.
 	rule_data.rule_position = RULE_REQUIRED;
 	rule_data.rule_min = -1;
 	rule_data.rule_max = -1;
-	
+
 	rule_data.rule_avp = proxy_host_avp;
 	ret = fd_dict_new ( dict, DICT_RULE, &rule_data, proxy_info_avp, NULL );
-	
+
 	rule_data.rule_avp = proxy_state_avp;
 	ret = fd_dict_new ( dict, DICT_RULE, &rule_data, proxy_info_avp, NULL );
 }
@@ -1789,7 +1789,7 @@ The "parent" parameter can not be NULL. It points to the object (grouped avp or 
 - fd_dict_search and fd_dict_getval are similar to previous examples.
 
 */
-		
+
 /* Define some hard-coded values */
 /* Application */
 #define AI_RELAY			0xffffffff
@@ -1840,7 +1840,7 @@ The "parent" parameter can not be NULL. It points to the object (grouped avp or 
 
 /* Error codes from Base protocol
 (reference: http://www.iana.org/assignments/aaa-parameters/aaa-parameters.xml#aaa-parameters-4)
-Note that currently, rfc3588bis-26 has some different values for some of these 
+Note that currently, rfc3588bis-26 has some different values for some of these
 */
 #define ER_DIAMETER_MULTI_ROUND_AUTH			1001
 
@@ -1908,7 +1908,7 @@ int fd_sess_start(void);
  *  dumper      : if not NULL, will be called during fd_sess_dump to display the data associated with a session. NULL otherwise.
  *  opaque      : A pointer that is passed to the cleanup callback -- the content is never examined by the framework.
  *
- * DESCRIPTION: 
+ * DESCRIPTION:
  *  Create a new session handler. This is needed by a module to associate a state with a session object.
  * The cleanup handler is called when the session timeout expires, or fd_sess_destroy is called. It must free
  * the state associated with the session, and eventually trig other actions (send a STR, ...).
@@ -1920,7 +1920,7 @@ int fd_sess_start(void);
  */
 int fd_sess_handler_create ( struct session_handler ** handler, void (*cleanup)(struct sess_state * state, os0_t sid, void * opaque), session_state_dump dumper, void * opaque );
 
-	
+
 /*
  * FUNCTION:	fd_sess_handler_destroy
  *
@@ -1928,7 +1928,7 @@ int fd_sess_handler_create ( struct session_handler ** handler, void (*cleanup)(
  *  handler	: location of an handler created by fd_sess_handler_create.
  *  opaque      : the opaque pointer registered with the callback is restored here (if ! NULL).
  *
- * DESCRIPTION: 
+ * DESCRIPTION:
  *  This destroys a session handler (typically called when an application is shutting down).
  * If sessions states are registered with this handler, the cleanup callback is called on them.
  *
@@ -1951,7 +1951,7 @@ int fd_sess_handler_destroy ( struct session_handler ** handler, void **opaque )
  *  opt           : Additional string, or NULL. Usage is described below.
  *  optlen	  : if opt is \0-terminated, this can be 0. Otherwise, the length of opt.
  *
- * DESCRIPTION: 
+ * DESCRIPTION:
  *   Create a new session object. The Session-Id string associated with this session is generated as follow:
  *  If diamId parameter is provided, the string is created according to the RFC: <diamId>;<high32>;<low32>[;opt] where
  *    diamId is a Diameter Identity.
@@ -1976,8 +1976,8 @@ int fd_sess_new ( struct session ** session, DiamId_t diamid, size_t diamidlen, 
  *  session	: On success, pointer to the session object created / retrieved.
  *  isnew	: if not NULL, set to 1 on return if the session object has been created, 0 if it was simply retrieved.
  *
- * DESCRIPTION: 
- *   Retrieve a session object from a Session-Id string. In case no session object was previously existing with this 
+ * DESCRIPTION:
+ *   Retrieve a session object from a Session-Id string. In case no session object was previously existing with this
  *  id, a new object is silently created (equivalent to fd_sess_new with flag SESSION_NEW_FULL).
  *
  * RETURN VALUE:
@@ -1988,7 +1988,7 @@ int fd_sess_new ( struct session ** session, DiamId_t diamid, size_t diamidlen, 
 int fd_sess_fromsid ( uint8_t * sid, size_t len, struct session ** session, int * isnew);
 
 /* only use the following in specific situations, e.g. app_radgw extension. They are normally handled by the framework only */
-int fd_sess_fromsid_msg ( uint8_t * sid, size_t len, struct session ** session, int * isnew); 
+int fd_sess_fromsid_msg ( uint8_t * sid, size_t len, struct session ** session, int * isnew);
 int fd_sess_ref_msg ( struct session * session );
 
 /*
@@ -1998,7 +1998,7 @@ int fd_sess_ref_msg ( struct session * session );
  *  session	: Pointer to a session object.
  *  sid	  	: On success, the location of the sid is stored here.
  *
- * DESCRIPTION: 
+ * DESCRIPTION:
  *   Retrieve the session identifier (Session-Id) corresponding to a session object.
  *  The returned sid is a \0-terminated binary string which might be UTF-8 (but there is no guarantee in the framework).
  *  It may be used for example to set the value of an AVP.
@@ -2017,15 +2017,15 @@ int fd_sess_getsid ( struct session * session, os0_t * sid, size_t * sidlen );
  *  session	: The session for which to set the timeout.
  *  timeout	: The date when the session times out.
  *
- * DESCRIPTION: 
- *   Set the lifetime for a given session object. This function may be 
+ * DESCRIPTION:
+ *   Set the lifetime for a given session object. This function may be
  * called several times on the same object to update the timeout value.
- *   When the timeout date is reached, the cleanup handler of each 
- * module that registered data with this session is called, then the 
+ *   When the timeout date is reached, the cleanup handler of each
+ * module that registered data with this session is called, then the
  * session is cleared.
  *
  *   There is a possible race condition between cleanup of the session
- * and use of its data; applications should ensure that they are not 
+ * and use of its data; applications should ensure that they are not
  * using data from a session that is about to expire / expired.
  *
  * RETURN VALUE:
@@ -2040,10 +2040,10 @@ int fd_sess_settimeout( struct session * session, const struct timespec * timeou
  * PARAMETERS:
  *  session	: Pointer to a session object.
  *
- * DESCRIPTION: 
+ * DESCRIPTION:
  *   Destroys all associated states of a session, if any.
  * Equivalent to a session timeout expired, but the effect is immediate.
- * The session itself is marked as deleted, and will be freed when it is not referenced 
+ * The session itself is marked as deleted, and will be freed when it is not referenced
  * by any message anymore.
  *
  * RETURN VALUE:
@@ -2058,7 +2058,7 @@ int fd_sess_destroy ( struct session ** session );
  * PARAMETERS:
  *  session	: Pointer to a session object.
  *
- * DESCRIPTION: 
+ * DESCRIPTION:
  *   Equivalent to fd_sess_destroy, only if no session_state is associated with the session.
  *  Otherwise, this function has no effect (except that it sets *session to NULL).
  *
@@ -2079,7 +2079,7 @@ int fd_sess_reclaim ( struct session ** session );
  *  session	: The session object with which the state is registered.
  *  state	: An application state (opaque data) to store with the session.
  *
- * DESCRIPTION: 
+ * DESCRIPTION:
  *  Stores an application state with a session. This state can later be retrieved
  * with fd_sess_state_retrieve, or implicitly in the cleanup handler when the session
  * is destroyed.
@@ -2100,9 +2100,9 @@ int fd_sess_state_store ( struct session_handler * handler, struct session * ses
  *  session	: The session object with which the state was registered.
  *  state	: Location where the state must be saved if it is found.
  *
- * DESCRIPTION: 
+ * DESCRIPTION:
  *  Retrieves a state saved by fd_sess_state_store.
- * After this function has been called, the state is no longer associated with 
+ * After this function has been called, the state is no longer associated with
  * the session. A new call to fd_sess_state_store must be performed in order to
  * store again the data with the session.
  *
@@ -2110,7 +2110,7 @@ int fd_sess_state_store ( struct session_handler * handler, struct session * ses
  *  0      	: *state is updated (NULL or points to the state if it was found).
  *  EINVAL 	: A parameter is invalid.
  */
-int fd_sess_state_retrieve ( struct session_handler * handler, struct session * session, struct sess_state ** state ); 
+int fd_sess_state_retrieve ( struct session_handler * handler, struct session * session, struct sess_state ** state );
 
 
 /* For debug */
@@ -2124,7 +2124,7 @@ int fd_sess_getcount(uint32_t *cnt);
 /*                         ROUTING                            */
 /*============================================================*/
 
-/* The following functions are helpers for the routing module. 
+/* The following functions are helpers for the routing module.
   The routing data is stored in the message itself. */
 
 /* Structure that contains the routing data for a message */
@@ -2195,7 +2195,7 @@ typedef void msg_or_avp;
 /* The Diameter protocol version */
 #define DIAMETER_VERSION	1
 
-/* In the two following types, some fields are marked (READONLY). 
+/* In the two following types, some fields are marked (READONLY).
  * This means that the content of these fields will be overwritten by the daemon so modifying it is useless.
  */
 
@@ -2238,7 +2238,7 @@ enum msg_brw_dir {
 #define AVPFL_SET_BLANK_VALUE	   0x01	/* When creating an AVP, initialize its value to a blank area */
 #define AVPFL_SET_RAWDATA_FROM_AVP 0x02 /* When creating an AVP, initialize its rawdata area from an existing AVP -- it is only blank padding (for error reporting) */
 #define AVPFL_MAX		   AVPFL_SET_RAWDATA_FROM_AVP	/* The biggest valid flag value */
-	
+
 #define MSGFL_ALLOC_ETEID	0x01	/* When creating a message, a new end-to-end ID is allocated and set in the message */
 #define MSGFL_ANSW_ERROR	0x02	/* When creating an answer message, set the 'E' bit and use the generic error ABNF instead of command-specific ABNF */
 #define MSGFL_ANSW_NOSID	0x04	/* When creating an answer message, do not add the Session-Id even if present in request */
@@ -2256,7 +2256,7 @@ enum msg_brw_dir {
  *  flags	: Flags to use in creation (AVPFL_*, see above).
  *  avp 	: Upon success, pointer to the new avp is stored here. It points to reference AVP upon function call when flags are used.
  *
- * DESCRIPTION: 
+ * DESCRIPTION:
  *   Create a new AVP instance.
  *
  * RETURN VALUE:
@@ -2275,8 +2275,8 @@ int fd_msg_avp_new ( struct dict_object * model, int flags, struct avp ** avp );
  *  flags	: combination of MSGFL_* flags.
  *  msg 	: Upon success, pointer to the new message is stored here.
  *
- * DESCRIPTION: 
- *   Create a new empty Diameter message. 
+ * DESCRIPTION:
+ *   Create a new empty Diameter message.
  *
  * RETURN VALUE:
  *  0      	: The message is created.
@@ -2295,7 +2295,7 @@ int fd_msg_new ( struct dict_object * model, int flags, struct msg ** msg );
  *  flag        : Pass MSGFL_ANSW_ERROR to indicate if the answer is an error message (will set the 'E' bit)
  *              : See other MSGFL_ANSW_* definition above for other flags.
  *
- * DESCRIPTION: 
+ * DESCRIPTION:
  *   This function creates the empty answer message corresponding to a request.
  *  The header is set properly (R flag, ccode, appid, hbhid, eteid)
  *  The Session-Id AVP is copied if present.
@@ -2317,7 +2317,7 @@ int fd_msg_new_answer_from_req ( struct dictionary * dict, struct msg ** msg, in
  *  found       : If not NULL, updated with the element that has been found, if any, or NULL if no element was found / an error occurred.
  *  depth	: If not NULL, points to an integer representing the "depth" of this object in the tree. This is a relative value, updated on return.
  *
- * DESCRIPTION: 
+ * DESCRIPTION:
  *   Explore the content of a message object (hierarchy). If "found" is null, only error checking is performed.
  *  If "depth" is provided, it is updated as follow on successful function return:
  *   - not modified for MSG_BRW_NEXT and MSG_BRW_PREV.
@@ -2328,7 +2328,7 @@ int fd_msg_new_answer_from_req ( struct dictionary * dict, struct msg ** msg, in
  * RETURN VALUE:
  *  0      	: found has been updated (if non NULL).
  *  EINVAL 	: A parameter is invalid.
- *  ENOENT	: No element has been found where requested, and "found" was NULL (otherwise, *found is set to NULL and 0 is returned). 
+ *  ENOENT	: No element has been found where requested, and "found" was NULL (otherwise, *found is set to NULL and 0 is returned).
  */
 int fd_msg_browse_internal ( msg_or_avp * reference, enum msg_brw_dir dir, msg_or_avp ** found, int * depth );
 /* Macro to avoid having to cast the third parameter everywhere */
@@ -2344,9 +2344,9 @@ int fd_msg_browse_internal ( msg_or_avp * reference, enum msg_brw_dir dir, msg_o
  *  dir         : location where the new AVP should be inserted, relative to the reference. MSG_BRW_PARENT and MSG_BRW_WALK are not valid.
  *  avp         : pointer to the AVP object that must be inserted.
  *
- * DESCRIPTION: 
+ * DESCRIPTION:
  *   Adds an AVP into an object that can contain it: grouped AVP or message.
- * Note that the added AVP will be freed at the same time as the object it is added to, 
+ * Note that the added AVP will be freed at the same time as the object it is added to,
  * so it should not be freed after the call to this function.
  *
  * RETURN VALUE:
@@ -2363,7 +2363,7 @@ int fd_msg_avp_add ( msg_or_avp * reference, enum msg_brw_dir dir, struct avp *a
  *  what 	: The dictionary model of the AVP to search.
  *  avp		: location where the AVP reference is stored if found.
  *
- * DESCRIPTION: 
+ * DESCRIPTION:
  *   Search the first top-level AVP of a given model inside a message.
  * Note: only the first instance of the AVP is returned by this function.
  * Note: only top-level AVPs are searched, not inside grouped AVPs.
@@ -2382,7 +2382,7 @@ int fd_msg_search_avp ( struct msg * msg, struct dict_object * what, struct avp 
  * PARAMETERS:
  *  object      : pointer to the message or AVP object that must be unlinked and freed.
  *
- * DESCRIPTION: 
+ * DESCRIPTION:
  *   Unlink and free a message or AVP object and its children.
  *  If the object is an AVP linked into a message, the AVP is removed before being freed.
  *
@@ -2406,7 +2406,7 @@ int fd_msg_free ( msg_or_avp * object );
  *                 use !0 to force parsing. If parsing fails, the hexa dump is still provided.
  *  recurse      : allow the function to go through the children objects if any to dump more information. might require parsing.
  *
- * DESCRIPTION: 
+ * DESCRIPTION:
  *   These functions dump the content of a message or avp into a buffer
  * either recursively or only the object itself.
  *
@@ -2431,7 +2431,7 @@ DECLARE_FD_DUMP_PROTOTYPE( fd_msg_dump_treeview, msg_or_avp *obj, struct diction
  *  reference 	: Pointer to a valid msg or avp.
  *  model       : on success, pointer to the dictionary model of this command or AVP. NULL if the model is unknown.
  *
- * DESCRIPTION: 
+ * DESCRIPTION:
  *   Retrieve the dictionary object describing this message or avp. If the object is unknown or the fd_msg_parse_dict has not been called,
  *  *model is set to NULL.
  *
@@ -2448,8 +2448,8 @@ int fd_msg_model ( msg_or_avp * reference, struct dict_object ** model );
  *  msg 	: Pointer to a valid message object.
  *  pdata 	: Upon success, pointer to the msg_hdr structure of this message. The fields may be modified.
  *
- * DESCRIPTION: 
- *   Retrieve location of modifiable section of a message. 
+ * DESCRIPTION:
+ *   Retrieve location of modifiable section of a message.
  *
  * RETURN VALUE:
  *  0      	: The location has been written.
@@ -2464,8 +2464,8 @@ int fd_msg_hdr ( struct msg *msg, struct msg_hdr ** pdata );
  *  avp 	: Pointer to a valid avp object.
  *  pdata 	: Upon success, pointer to the avp_hdr structure of this avp. The fields may be modified.
  *
- * DESCRIPTION: 
- *   Retrieve location of modifiable data of an avp. 
+ * DESCRIPTION:
+ *   Retrieve location of modifiable data of an avp.
  *
  * RETURN VALUE:
  *  0      	: The location has been written.
@@ -2481,7 +2481,7 @@ int fd_msg_avp_hdr ( struct avp *avp, struct avp_hdr ** pdata );
  *  query	: the corresponding query that had been sent
  *
  * DESCRIPTION:
- *  fd_msg_answ_associate associates a query msg with the received answer. 
+ *  fd_msg_answ_associate associates a query msg with the received answer.
  * Query is retrieved with fd_msg_answ_getq.
  * If answer message is freed, the query is also freed.
  * If the msg_answ_detach function is called, the association is removed.
@@ -2542,8 +2542,8 @@ int fd_msg_rt_get      ( struct msg * msg, struct rt_data ** rtd );
  * PARAMETERS:
  *  msg		: A msg object.
  *
- * DESCRIPTION: 
- *   This function returns a boolean telling if a given message is routable in the Diameter network, 
+ * DESCRIPTION:
+ *   This function returns a boolean telling if a given message is routable in the Diameter network,
  *  or if it is a local link message only (ex: CER/CEA, DWR/DWA, ...).
  *
  * RETURN VALUE:
@@ -2560,7 +2560,7 @@ int fd_msg_is_routable ( struct msg * msg );
  *  diamid,len	: The diameter id of the peer from which this message was received.
  *  dict	: a dictionary with definition of Route-Record AVP (for fd_msg_source_setrr)
  *
- * DESCRIPTION: 
+ * DESCRIPTION:
  *   Store or retrieve the diameted id of the peer from which this message was received.
  * Will be used for example by the routing module to add the Route-Record AVP in forwarded requests,
  * or to direct answers to the appropriate peer.
@@ -2579,7 +2579,7 @@ int fd_msg_source_get( struct msg * msg, DiamId_t *diamid, size_t * diamidlen );
  * PARAMETERS:
  *  -
  *
- * DESCRIPTION: 
+ * DESCRIPTION:
  *   Get a new unique end-to-end id value for the local peer.
  *
  * RETURN VALUE:
@@ -2629,11 +2629,11 @@ struct fd_msg_pmdl * fd_msg_pmdl_get(struct msg * msg);
  *
  * PARAMETERS:
  *  avp 	: Pointer to a valid avp object with a NULL avp_value pointer. The model must be known.
- *  value 	: pointer to an avp_value. The content will be COPIED into the internal storage area. 
+ *  value 	: pointer to an avp_value. The content will be COPIED into the internal storage area.
  *		 If data type is an octetstring, the data is also copied.
  * 		 If value is a NULL pointer, the previous data is erased and value is unset in the AVP.
  *
- * DESCRIPTION: 
+ * DESCRIPTION:
  *   Initialize the avp_value field of an AVP header.
  *
  * RETURN VALUE:
@@ -2650,7 +2650,7 @@ int fd_msg_avp_setvalue ( struct avp *avp, union avp_value *value );
  *  data 	: Pointer to the data that must be encoded as AVP value and stored in the AVP.
  *		 This is only valid for AVPs of derived type for which type_data_encode callback is set. (ex: Address type)
  *
- * DESCRIPTION: 
+ * DESCRIPTION:
  *   Initialize the avp_value field of an AVP object from formatted data, using the AVP's type "type_data_encode" callback.
  *
  * RETURN VALUE:
@@ -2666,9 +2666,9 @@ int fd_msg_avp_value_encode ( void *data, struct avp *avp );
  *  avp 	: Pointer to a valid avp object with a non-NULL avp_value value.
  *  data 	: Upon success, formatted interpretation of the AVP value is stored here.
  *
- * DESCRIPTION: 
+ * DESCRIPTION:
  *   Interpret the content of an AVP of Derived type and store the result in data pointer. The structure
- * of the data pointer is dependent on the AVP type. This function calls the "type_data_interpret" callback 
+ * of the data pointer is dependent on the AVP type. This function calls the "type_data_interpret" callback
  * of the type.
  *
  * RETURN VALUE:
@@ -2687,12 +2687,12 @@ int fd_msg_avp_value_interpret ( struct avp *avp, void *data );
  * FUNCTION:	fd_msg_bufferize
  *
  * PARAMETERS:
- *  msg		: A valid msg object. All AVPs must have a value set. 
- *  buffer 	: Upon success, this points to a buffer (malloc'd) containing the message ready for network transmission (or security transformations). 
+ *  msg		: A valid msg object. All AVPs must have a value set.
+ *  buffer 	: Upon success, this points to a buffer (malloc'd) containing the message ready for network transmission (or security transformations).
  *		 The buffer may be freed after use.
  *  len		: if not NULL, the size of the buffer is written here. In any case, this size is updated in the msg header.
  *
- * DESCRIPTION: 
+ * DESCRIPTION:
  *   Renders a message in memory as a buffer that can be sent over the network to the next peer.
  *
  * RETURN VALUE:
@@ -2706,11 +2706,11 @@ int fd_msg_bufferize ( struct msg * msg, uint8_t ** buffer, size_t * len );
  * FUNCTION:	fd_msg_parse_buffer
  *
  * PARAMETERS:
- *  buffer 	: Pointer to a buffer containing a message received from the network. 
+ *  buffer 	: Pointer to a buffer containing a message received from the network.
  *  buflen	: the size in bytes of the buffer.
  *  msg		: Upon success, this points to a valid msg object. No AVP value is resolved in this object, nor grouped AVP.
  *
- * DESCRIPTION: 
+ * DESCRIPTION:
  *   This function parses a buffer an creates a msg object to represent the structure of the message.
  *  Since no dictionary lookup is performed, the values of the AVPs are not interpreted. To interpret the values,
  *  the returned message object must be passed to fd_msg_parse_dict function.
@@ -2741,12 +2741,12 @@ struct fd_pei {
  *  dict	: the dictionary containing the objects definitions to use for resolving all AVPs.
  *  error_info	: If not NULL, will contain the detail about error upon return. May be used to generate an error reply.
  *
- * DESCRIPTION: 
+ * DESCRIPTION:
  *   This function looks up for the command and each children AVP definitions in the dictionary.
  *  If the dictionary definition is found, avp_model is set and the value of the AVP is interpreted accordingly and:
  *   - for grouped AVPs, the children AVP are created and interpreted also.
  *   - for numerical AVPs, the value is converted to host byte order and saved in the avp_value field.
- *   - for octetstring AVPs, the string is copied into a new buffer and its address is saved in avp_value. 
+ *   - for octetstring AVPs, the string is copied into a new buffer and its address is saved in avp_value.
  *  If the dictionary definition is not found, avp_model is set to NULL and
  *  the content of the AVP is saved as an octetstring in an internal structure. avp_value is NULL.
  *  As a result, after this function has been called, there is no more dependency of the msg object to the message buffer, that is freed.
@@ -2767,7 +2767,7 @@ int fd_msg_parse_dict ( msg_or_avp * object, struct dictionary * dict, struct fd
  *  dict	: The dictionary containing the rules definitions.
  *  error_info	: If not NULL, the first problem information will be saved here.
  *
- * DESCRIPTION: 
+ * DESCRIPTION:
  *   Check that the children of the object do not conflict with the dictionary rules (ABNF compliance).
  *
  * RETURN VALUE:
@@ -2784,9 +2784,9 @@ int fd_msg_parse_rules ( msg_or_avp * object, struct dictionary * dict, struct f
  * FUNCTION:	fd_msg_update_length
  *
  * PARAMETERS:
- *  object 	: Pointer to a valid msg or avp. 
+ *  object 	: Pointer to a valid msg or avp.
  *
- * DESCRIPTION: 
+ * DESCRIPTION:
  *   Update the length field of the object passed as parameter.
  * As a side effect, all children objects are also updated. Therefore, all avp_value fields of
  * the children AVPs must be set, or an error will occur.
@@ -2888,7 +2888,7 @@ struct disp_when {
  *
  * DISP_HOW_AVP_ENUMVAL.
  *  All fields have the same constraints and meaning as in DISP_REG_AVP. In addition, the "value" field must be set
- *  and points to a valid DICT_ENUMVAL object. 
+ *  and points to a valid DICT_ENUMVAL object.
  *
  * Here is a sumary of the fields: ( M : must be set; m : may be set; 0 : ignored )
  *  field:     app_id    command     avp    value
@@ -2915,14 +2915,14 @@ enum disp_action {
  *  opaque      : An opaque pointer that is registered along the session handler.
  *  action	: upon return, this tells the daemon what to do next.
  *
- * DESCRIPTION: 
+ * DESCRIPTION:
  *   Called when a received message matchs the condition for which the callback was registered.
  * This callback may do any kind of processing on the message, including:
  *  - create an answer for a request.
  *  - proxy a request or message, add / remove the Proxy-Info AVP, then forward the message.
  *  - update a routing table or start a connection with a new peer, then forward the message.
  *  - ...
- * 
+ *
  * When *action == DISP_ACT_SEND on callback return, the msg pointed by *msg is passed to the routing module for sending.
  * When *action == DISP_ACT_CONT, the next registered callback is called.
  *  When the last callback gives also DISP_ACT_CONT action value, a default handler is called. It's behavior is as follow:
@@ -2945,10 +2945,10 @@ struct disp_hdl;
  *  how	  	  : How the callback must be registered.
  *  when          : Values that must match, depending on the how argument.
  *  opaque        : A pointer that is passed back to the handler. The content is not interpreted by the framework.
- *  handle        : On success, a handler to the registered callback is stored here if not NULL. 
+ *  handle        : On success, a handler to the registered callback is stored here if not NULL.
  *		   This handler can be used to unregister the cb.
  *
- * DESCRIPTION: 
+ * DESCRIPTION:
  *   Register a new callback to handle messages delivered locally.
  *
  * RETURN VALUE:
@@ -2956,7 +2956,7 @@ struct disp_hdl;
  *  EINVAL 	: A parameter is invalid.
  *  ENOMEM	: Not enough memory to complete the operation
  */
-int fd_disp_register ( int (*cb)( struct msg **, struct avp *, struct session *, void *, enum disp_action *), 
+int fd_disp_register ( int (*cb)( struct msg **, struct avp *, struct session *, void *, enum disp_action *),
 			enum disp_how how, struct disp_when * when, void * opaque, struct disp_hdl ** handle );
 
 /*
@@ -2966,7 +2966,7 @@ int fd_disp_register ( int (*cb)( struct msg **, struct avp *, struct session *,
  *  handle       : Location of the handle of the callback that must be unregistered.
  *  opaque       : If not NULL, the opaque data that was registered is restored here.
  *
- * DESCRIPTION: 
+ * DESCRIPTION:
  *   Removes a callback previously registered by fd_disp_register.
  *
  * RETURN VALUE:
@@ -2989,7 +2989,7 @@ void fd_disp_unregister_all ( void );
  *  drop_reason : if set on return, the message must be freed for this reason.
  *  drop_msg    : if drop_reason is set, this points to the message to be freed while *msg is NULL.
  *
- * DESCRIPTION: 
+ * DESCRIPTION:
  *   Call all handlers registered for a given message.
  *  The session must have already been resolved on entry.
  *  The msg pointed may be updated during this process.
@@ -3021,13 +3021,13 @@ struct fifo;
  *  max		: max number of items in the queue. Above this number, adding a new item becomes a
  *		  blocking operation. Use 0 to disable this maximum.
  *
- * DESCRIPTION: 
+ * DESCRIPTION:
  *  Create a new empty queue.
  *
  * RETURN VALUE :
  *  0		: The queue has been initialized successfully.
  *  EINVAL 	: The parameter is invalid.
- *  ENOMEM	: Not enough memory to complete the creation.  
+ *  ENOMEM	: Not enough memory to complete the creation.
  */
 int fd_fifo_new ( struct fifo ** queue, int max );
 
@@ -3037,7 +3037,7 @@ int fd_fifo_new ( struct fifo ** queue, int max );
  * PARAMETERS:
  *  queue	: Pointer to an empty queue to delete.
  *
- * DESCRIPTION: 
+ * DESCRIPTION:
  *  Destroys a queue. This is only possible if no thread is waiting for an element,
  * and the queue is empty.
  *
@@ -3055,7 +3055,7 @@ int fd_fifo_del ( struct fifo  ** queue );
  *  newq	: A FIFO that will receive the old data.
  *  loc_update	: if non NULL, a place to store the pointer to new FIFO atomically with the move.
  *
- * DESCRIPTION: 
+ * DESCRIPTION:
  *  Empties a queue and move its content to another one atomically.
  *
  * RETURN VALUE:
@@ -3076,15 +3076,15 @@ int fd_fifo_move ( struct fifo * oldq, struct fifo * newq, struct fifo ** loc_up
  *  total	  : Cumulated time all items spent in this queue, including blocking time (always growing, use deltas for monitoring)
  *  blocking      : Cumulated time threads trying to post new items were blocked (queue full).
  *  last          : For the last element retrieved from the queue, how long it take between posting (including blocking) and poping
- *  
- * DESCRIPTION: 
+ *
+ * DESCRIPTION:
  *  Retrieve the timing information associated with a queue, for monitoring purpose.
  *
  * RETURN VALUE:
  *  0		: The statistics have been updated.
  *  EINVAL 	: A parameter is invalid.
  */
-int fd_fifo_getstats( struct fifo * queue, int * current_count, int * limit_count, int * highest_count, long long * total_count, 
+int fd_fifo_getstats( struct fifo * queue, int * current_count, int * limit_count, int * highest_count, long long * total_count,
 				           struct timespec * total, struct timespec * blocking, struct timespec * last);
 
 /*
@@ -3093,7 +3093,7 @@ int fd_fifo_getstats( struct fifo * queue, int * current_count, int * limit_coun
  * PARAMETERS:
  *  queue	: The queue from which to retrieve the number of elements.
  *
- * DESCRIPTION: 
+ * DESCRIPTION:
  *  Retrieve the number of elements in a queue, without error checking.
  *
  * RETURN VALUE:
@@ -3112,7 +3112,7 @@ int fd_fifo_length ( struct fifo * queue );
  *  low         : The low-level threshold. Must be < high.
  *  l_cb        : If the number of elements decrease to low, this callback is called.
  *
- * DESCRIPTION: 
+ * DESCRIPTION:
  *  This function allows to adjust the number of producer / consumer threads of a queue.
  * If the consumer are slower than the producers, the number of elements in the queue increase.
  * By setting a "high" value, we allow a callback to be called when this number is too high.
@@ -3141,7 +3141,7 @@ int fd_fifo_setthrhd ( struct fifo * queue, void * data, uint16_t high, void (*h
  *  queue	: The queue in which the element must be posted.
  *  item	: The element that is put in the queue.
  *
- * DESCRIPTION: 
+ * DESCRIPTION:
  *  An element is added in a queue. Elements are retrieved from the queue in FIFO order
  *  with the fd_fifo_get, fd_fifo_tryget, or fd_fifo_timedget functions.
  *
@@ -3165,9 +3165,9 @@ int fd_fifo_post_noblock( struct fifo * queue, void ** item );
  *  queue	: The queue from which the first element must be retrieved.
  *  item	: On return, the first element of the queue is stored here.
  *
- * DESCRIPTION: 
- *  This function retrieves the first element from a queue. If the queue is empty, the function will block the 
- * thread until a new element is posted to the queue, or until the thread is canceled (in which case the 
+ * DESCRIPTION:
+ *  This function retrieves the first element from a queue. If the queue is empty, the function will block the
+ * thread until a new element is posted to the queue, or until the thread is canceled (in which case the
  * function does not return).
  *
  * RETURN VALUE:
@@ -3185,8 +3185,8 @@ int fd_fifo_get_int ( struct fifo * queue, void ** item );
  *  queue	: The queue from which the element must be retrieved.
  *  item	: On return, the first element of the queue is stored here.
  *
- * DESCRIPTION: 
- *  This function is similar to fd_fifo_get, except that it will not block if 
+ * DESCRIPTION:
+ *  This function is similar to fd_fifo_get, except that it will not block if
  * the queue is empty, but return EWOULDBLOCK instead.
  *
  * RETURN VALUE:
@@ -3206,8 +3206,8 @@ int fd_fifo_tryget_int ( struct fifo * queue, void ** item );
  *  item	: On return, the element is stored here.
  *  abstime	: the absolute time until which we allow waiting for an item.
  *
- * DESCRIPTION: 
- *  This function is similar to fd_fifo_get, except that it will block if the queue is empty 
+ * DESCRIPTION:
+ *  This function is similar to fd_fifo_get, except that it will block if the queue is empty
  * only until the absolute time abstime (see pthread_cond_timedwait for + info).
  * If the queue is still empty when the time expires, the function returns ETIMEDOUT
  *
@@ -3228,7 +3228,7 @@ int fd_fifo_timedget_int ( struct fifo * queue, void ** item, const struct times
  *  queue	: The queue to test.
  *  abstime	: the absolute time until which we can block waiting for an item. If NULL, the function returns immediatly.
  *
- * DESCRIPTION: 
+ * DESCRIPTION:
  *  This function is similar to select(), it waits for data to be available in the queue
  * until the abstime is expired.
  * Upon function entry, even if abstime is already expired the data availability is tested.
