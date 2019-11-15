@@ -30,9 +30,22 @@
 *********************************************************************************************************/
 
 #include <freeDiameter/extension.h>
+#include <limits.h>
+#include <time.h>
+
+struct best_candidate_entry {
+    long load;
+    struct rtd_candidate *cand;
+};
+
+static unsigned int seed;
+
+#define MODULE_NAME "rt_load_balance"
 
 /*
- * Load balancing extension. Send request to least-loaded node.
+ * Load balancing extension. Send request to least-loaded node: Add a
+ * score of 1 to the least loaded candidates among those with highest
+ * score.
  */
 
 /* The callback for load balancing the requests across the peers */
@@ -40,37 +53,82 @@ static int rt_load_balancing(void * cbdata, struct msg ** pmsg, struct fd_list *
 {
 	struct fd_list *lic;
 	struct msg * msg = *pmsg;
-	
+	int max_score = -1;
+	int max_score_count = 0;
+
 	TRACE_ENTRY("%p %p %p", cbdata, msg, candidates);
-	
+
 	CHECK_PARAMS(msg && candidates);
-	
+
+
 	/* Check if it is worth processing the message */
 	if (FD_IS_LIST_EMPTY(candidates))
 		return 0;
 
-	/* load balancing */
+	/* find out maximal score and how many candidates have it */
 	for (lic = candidates->next; lic != candidates; lic = lic->next) {
 		struct rtd_candidate * cand = (struct rtd_candidate *) lic;
-		struct peer_hdr *peer;
-		long to_receive, to_send, load;
-		int score;
-		CHECK_FCT(fd_peer_getbyid(cand->diamid, cand->diamidlen, 0, &peer));
-		CHECK_FCT(fd_peer_get_load_pending(peer, &to_receive, &to_send));
-                load = to_receive + to_send;
-		/* other routing mechanisms need to add to the
-		 * appropriate entries so their base value is high
-		 * enough that they are considered */
+		if (max_score < cand->score) {
+			max_score = cand->score;
+			max_score_count = 1;
+		}
+		else if (cand->score == max_score) {
+			max_score_count++;
+		}
+	}
 
-		/* logarithmic scaling */
-                int load_log = 0;
-                while (load > 0) {
-                    load_log++;
-                    load /= 2;
-                }
-		score = cand->score;
-		cand->score -= load_log;
-		TRACE_DEBUG(FULL, "evaluated peer `%.*s', score was %d, now %d", (int)cand->diamidlen, cand->diamid, score, cand->score);
+	if (max_score_count > 0) {
+		/* find out minimum load among those with maximal
+		 * score, and how many candidates have it */
+		struct best_candidate_entry best_candidates[max_score_count];
+		long min_load = LONG_MAX;
+		int min_load_count = 0;
+		int j;
+
+		for (j = 0, lic = candidates->next; lic != candidates; lic = lic->next) {
+			struct rtd_candidate * cand = (struct rtd_candidate *) lic;
+			if (cand->score == max_score) {
+				long to_receive, to_send, load;
+				struct peer_hdr *peer;
+				CHECK_FCT(fd_peer_getbyid(cand->diamid, cand->diamidlen, 0, &peer));
+				CHECK_FCT(fd_peer_get_load_pending(peer, &to_receive, &to_send));
+				load = to_receive + to_send;
+
+				best_candidates[j].cand = cand;
+				best_candidates[j].load = load;
+				j++;
+
+				if (min_load > load) {
+					min_load = load;
+					min_load_count = 1;
+				} else if (min_load == load) {
+					min_load_count++;
+				}
+			}
+		}
+
+		/* increase score by 1 for all entries with minimum
+		 * load, and further increase by 1 for one randomly
+		 * chosen candidate */
+		if (min_load_count > 0) {
+			int lucky_candidate = rand_r(&seed) % min_load_count;
+			int i;
+			for (j = 0, i = 0; j < max_score_count; j++) {
+				struct best_candidate_entry *entry = best_candidates+j;
+				if (entry->load == min_load) {
+					struct rtd_candidate *cand = entry->cand;
+					long old_score = cand->score;
+					cand->score++;
+					TRACE_DEBUG(FULL, "%s: boosting peer `%.*s', score was %d, now %d; load was %ld", MODULE_NAME, (int)cand->diamidlen, cand->diamid, old_score, cand->score, entry->load);
+
+					if (i == lucky_candidate) {
+						cand->score++;
+						TRACE_DEBUG(FULL, "%s: boosting lucky peer `%.*s', score was %d, now %d; load was %ld", MODULE_NAME, (int)cand->diamidlen, cand->diamid, old_score, cand->score, entry->load);
+					}
+					i++;
+				}
+			}
+		}
 	}
 
 	return 0;
@@ -85,6 +143,8 @@ static int rt_load_balance_entry(char * conffile)
 	/* Register the callback */
 	CHECK_FCT(fd_rt_out_register(rt_load_balancing, NULL, 10, &rt_load_balancing_hdl));
 
+	seed = (unsigned int)time(NULL);
+
 	TRACE_DEBUG(INFO, "Extension 'Load Balancing' initialized");
 	return 0;
 }
@@ -97,4 +157,4 @@ void fd_ext_fini(void)
 	return ;
 }
 
-EXTENSION_ENTRY("rt_load_balance", rt_load_balance_entry);
+EXTENSION_ENTRY(MODULE_NAME, rt_load_balance_entry);
