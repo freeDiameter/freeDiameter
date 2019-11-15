@@ -254,6 +254,11 @@ nomatch:
 (?i:"TLS_old_method")	{ return OLDTLS; }
 (?i:"SCTP_streams")	{ return SCTPSTREAMS; }
 (?i:"AppServThreads")	{ return APPSERVTHREADS; }
+(?i:"RoutingInThreads")	{ return ROUTINGINTHREADS; }
+(?i:"RoutingOutThreads")	{ return ROUTINGOUTTHREADS; }
+(?i:"IncomingQueueLimit")	{ return QINLIMIT; }
+(?i:"OutgoingQueueLimit")	{ return QOUTLIMIT; }
+(?i:"LocalQueueLimit")	{ return QLOCALLIMIT; }
 (?i:"ListenOn")		{ return LISTENON; }
 (?i:"ThreadsPerServer")	{ return THRPERSRV; }
 (?i:"ProcessingPeersPattern")	{ return PROCESSINGPEERSPATTERN; }
@@ -271,6 +276,9 @@ nomatch:
 (?i:"TLS_Prio")		{ return TLS_PRIO; }
 (?i:"TLS_DH_bits")	{ return TLS_DH_BITS; }
 (?i:"TLS_DH_file")	{ return TLS_DH_FILE; }
+(?i:"RouteRecordInAnswers")	{ return RR_IN_ANSWERS;	}
+(?i:"Never")		{ return NEVER;	}
+(?i:"Always")		{ return ALWAYS; }
 
 
 	/* Valid single characters for yyparse */

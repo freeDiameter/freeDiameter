@@ -137,7 +137,12 @@ struct fd_config {
 	regex_t		 cnf_processing_peers_pattern_regex;	/* Regex pattern for identifying processing peers */
 	struct fd_list	 cnf_apps;	/* Applications locally supported (except relay, see flags). Use fd_disp_app_support to add one. list of struct fd_app. */
 	uint16_t	 cnf_dispthr;	/* Number of dispatch threads to create */
+	uint16_t     cnf_rtinthr;  /* Number of routing in threads to create */
+	uint16_t     cnf_rtoutthr;  /* Number of routing out threads to create */
 	uint16_t	 cnf_rr_in_answers;	/* include Route-Record AVP in answers */
+	int		 cnf_qin_limit;	/* limit for incoming queue*/
+	int		 cnf_qout_limit;	/* limit for outgoing queue */
+	int		 cnf_qlocal_limit;	/* limit for local queue */
 	struct {
 		unsigned no_fwd : 1;	/* the peer does not relay messages (0xffffff app id) */
 		unsigned no_ip4 : 1;	/* disable IP */

@@ -44,9 +44,19 @@ struct fifo * fd_g_local = NULL;
 int fd_queues_init(void)
 {
 	TRACE_ENTRY();
-	CHECK_FCT( fd_fifo_new ( &fd_g_incoming, 20 ) );
-	CHECK_FCT( fd_fifo_new ( &fd_g_outgoing, 30 ) );
-	CHECK_FCT( fd_fifo_new ( &fd_g_local, 25 ) );
+	CHECK_FCT( fd_fifo_new ( &fd_g_incoming, fd_g_config->cnf_qin_limit ) );
+	CHECK_FCT( fd_fifo_new ( &fd_g_outgoing, fd_g_config->cnf_qout_limit ) );
+	CHECK_FCT( fd_fifo_new ( &fd_g_local,    fd_g_config->cnf_qlocal_limit ) );
+	return 0;
+}
+
+/* Resize according to values given in configuration file */
+int fd_queues_init_after_conf(void)
+{
+	TRACE_ENTRY();
+	CHECK_FCT( fd_fifo_set_max ( fd_g_incoming, fd_g_config->cnf_qin_limit ) );
+	CHECK_FCT( fd_fifo_set_max ( fd_g_outgoing, fd_g_config->cnf_qout_limit ) );
+	CHECK_FCT( fd_fifo_set_max ( fd_g_local,    fd_g_config->cnf_qlocal_limit ) );
 	return 0;
 }
 

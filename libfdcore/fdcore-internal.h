@@ -109,6 +109,7 @@ extern struct fifo * fd_g_outgoing; /* messages to be sent to other peers on the
 extern struct fifo * fd_g_local; /* messages to be handled to local extensions */
 /* Message queues */
 int fd_queues_init(void);
+int fd_queues_init_after_conf(void);
 int fd_queues_fini(struct fifo ** queue);
 
 /* Trigged events */

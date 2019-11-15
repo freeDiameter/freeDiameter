@@ -315,6 +315,8 @@ static int fd_core_start_int(void)
 int fd_core_start(void)
 {
 	int ret;
+	CHECK_FCT( fd_queues_init_after_conf() );
+
 	CHECK_POSIX( pthread_mutex_lock(&core_lock) );
 	ret = fd_core_start_int();
 	CHECK_POSIX( pthread_mutex_unlock(&core_lock) );

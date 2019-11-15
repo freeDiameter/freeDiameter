@@ -61,6 +61,11 @@ int fd_conf_init()
 	fd_g_config->cnf_thr_srv  = 5;
 	fd_g_config->cnf_processing_peers_minimum = 0;
 	fd_g_config->cnf_dispthr  = 4;
+	fd_g_config->cnf_rtinthr = 1;
+	fd_g_config->cnf_rtoutthr = 1;
+	fd_g_config->cnf_qin_limit = 20;
+	fd_g_config->cnf_qout_limit = 30;
+	fd_g_config->cnf_qlocal_limit = 25;
 	fd_list_init(&fd_g_config->cnf_endpoints, NULL);
 	fd_list_init(&fd_g_config->cnf_apps, NULL);
 	#ifdef DISABLE_SCTP
@@ -103,6 +108,11 @@ DECLARE_FD_DUMP_PROTOTYPE(fd_conf_dump)
 	CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "  Number of clients thr .. : %d\n", fd_g_config->cnf_thr_srv), return NULL);
 	CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "  Number of app threads .. : %hu\n", fd_g_config->cnf_dispthr), return NULL);
 	CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "  Minimal processing peers : %hu\n", fd_g_config->cnf_processing_peers_minimum), return NULL);
+	CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "  Number of rtin threads . : %hu\n", fd_g_config->cnf_rtinthr), return NULL);
+	CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "  Number of rtout threads  : %hu\n", fd_g_config->cnf_rtoutthr), return NULL);
+	CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "  Incoming queue limit     : %hu\n", fd_g_config->cnf_qin_limit), return NULL);
+	CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "  Outgoing queue limit     : %hu\n", fd_g_config->cnf_qout_limit), return NULL);
+	CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "  Local queue limit        : %hu\n", fd_g_config->cnf_qlocal_limit), return NULL);
 	if (FD_IS_LIST_EMPTY(&fd_g_config->cnf_endpoints)) {
 		CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "  Local endpoints ........ : Default (use all available)\n"), return NULL);
 	} else {

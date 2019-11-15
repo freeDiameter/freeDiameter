@@ -35,6 +35,13 @@
 
 #include "fdcore-internal.h"
 
+#ifdef linux
+/* This needs -D_USE_GNU, and since I have no idea what else that does, let's simply copy the declaration. */
+
+/* Set thread name visible in the kernel and its interfaces.  */
+extern int pthread_setname_np (pthread_t __target_thread, const char *__name);
+#endif
+
 /********************************************************************************/
 /*              First part : handling the extensions callbacks                  */
 /********************************************************************************/
@@ -1152,28 +1159,44 @@ static void * routing_out_thr(void * arg)
 static pthread_t * dispatch = NULL;
 static enum thread_state * disp_state = NULL;
 
-/* Later: make this more dynamic */
-static pthread_t rt_out = (pthread_t)NULL;
-static enum thread_state out_state = NOTRUNNING;
+static pthread_t * rt_out = NULL;
+static enum thread_state * out_state = NULL;
 
-static pthread_t rt_in  = (pthread_t)NULL;
-static enum thread_state in_state = NOTRUNNING;
+static pthread_t * rt_in  = NULL;
+static enum thread_state * in_state = NULL;
 
 /* Initialize the routing and dispatch threads */
 int fd_rtdisp_init(void)
 {
 	int i;
 	
-	/* Prepare the array for dispatch */
+	/* Prepare the array for threads */
 	CHECK_MALLOC( disp_state = calloc(fd_g_config->cnf_dispthr, sizeof(enum thread_state)) );
 	CHECK_MALLOC( dispatch = calloc(fd_g_config->cnf_dispthr, sizeof(pthread_t)) );
+	CHECK_MALLOC( out_state = calloc(fd_g_config->cnf_rtoutthr, sizeof(enum thread_state)) );
+	CHECK_MALLOC( rt_out = calloc(fd_g_config->cnf_rtoutthr, sizeof(pthread_t)) );
+	CHECK_MALLOC( in_state = calloc(fd_g_config->cnf_rtinthr, sizeof(enum thread_state)) );
+	CHECK_MALLOC( rt_in = calloc(fd_g_config->cnf_rtinthr, sizeof(pthread_t)) );
 	
 	/* Create the threads */
 	for (i=0; i < fd_g_config->cnf_dispthr; i++) {
 		CHECK_POSIX( pthread_create( &dispatch[i], NULL, dispatch_thr, &disp_state[i] ) );
+#ifdef linux
+		pthread_setname_np(dispatch[i], "fd-dispatch");
+#endif
 	}
-	CHECK_POSIX( pthread_create( &rt_out, NULL, routing_out_thr, &out_state) );
-	CHECK_POSIX( pthread_create( &rt_in,  NULL, routing_in_thr,  &in_state) );
+	for (i=0; i < fd_g_config->cnf_rtoutthr; i++) {
+		CHECK_POSIX( pthread_create( &rt_out[i], NULL, routing_out_thr, &out_state[i] ) );
+#ifdef linux
+		pthread_setname_np(rt_out[i], "fd-routing-out");
+#endif
+	}
+	for (i=0; i < fd_g_config->cnf_rtinthr; i++) {
+		CHECK_POSIX( pthread_create( &rt_in[i], NULL, routing_in_thr, &in_state[i] ) );
+#ifdef linux
+		pthread_setname_np(rt_in[i], "fd-routing-in");
+#endif
+	}
 	
 	/* Later: TODO("Set the thresholds for the queues to create more threads as needed"); */
 	
@@ -1244,13 +1267,33 @@ int fd_rtdisp_fini(void)
 	CHECK_FCT_DO( fd_queues_fini(&fd_g_incoming), /* ignore */);
 	
 	/* Stop the routing IN thread */
-	stop_thread_delayed(&in_state, &rt_in, "IN routing");
+	if (rt_in != NULL) {
+		for (i=0; i < fd_g_config->cnf_rtinthr; i++) {
+			stop_thread_delayed(&in_state[i], &rt_in[i], "IN routing");
+		}
+		free(rt_in);
+		rt_in = NULL;
+	}
+	if (in_state != NULL) {
+		free(in_state);
+		in_state = NULL;
+	}
 	
 	/* Destroy the outgoing queue */
 	CHECK_FCT_DO( fd_queues_fini(&fd_g_outgoing), /* ignore */);
 	
 	/* Stop the routing OUT thread */
-	stop_thread_delayed(&out_state, &rt_out, "OUT routing");
+	if (rt_out != NULL) {
+		for (i=0; i < fd_g_config->cnf_rtinthr; i++) {
+			stop_thread_delayed(&out_state[i], &rt_out[i], "OUT routing");
+		}
+		free(rt_out);
+		rt_out = NULL;
+	}
+	if (out_state != NULL) {
+		free(out_state);
+		out_state = NULL;
+	}
 	
 	/* Destroy the local queue */
 	CHECK_FCT_DO( fd_queues_fini(&fd_g_local), /* ignore */);

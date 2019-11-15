@@ -188,6 +188,14 @@ TLS_Cred = "/etc/ssl/certs/freeDiameter.pem", "/etc/ssl/private/freeDiameter.key
 # Default: 4
 #AppServThreads = 4;
 
+# Number of server threads that can handle incoming message routing at the same time.
+# Default: 1
+#RoutingInThreads = 1;
+
+# Number of server threads that can handle outgoing message routing at the same time.
+# Default: 1
+#RoutingOutThreads= 1;
+
 # Other applications are configured by loaded extensions.
 
 ##############################################################

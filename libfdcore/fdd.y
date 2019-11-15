@@ -107,6 +107,11 @@ struct peer_info fddpi;
 %token		NOTLS
 %token		SCTPSTREAMS
 %token		APPSERVTHREADS
+%token		ROUTINGINTHREADS
+%token		ROUTINGOUTTHREADS
+%token		QINLIMIT
+%token		QOUTLIMIT
+%token		QLOCALLIMIT
 %token		LISTENON
 %token		THRPERSRV
 %token		PROCESSINGPEERSPATTERN
@@ -147,6 +152,11 @@ conffile:		/* Empty is OK -- for simplicity here, we reject in daemon later */
 			| conffile processingpeersminimum
 			| conffile norelay
 			| conffile appservthreads
+			| conffile routinginthreads
+			| conffile routingoutthreads
+			| conffile qinlimit
+			| conffile qoutlimit
+			| conffile qlocallimit
 			| conffile noip
 			| conffile noip6
 			| conffile notcp
@@ -306,6 +316,46 @@ appservthreads:		APPSERVTHREADS '=' INTEGER ';'
 				CHECK_PARAMS_DO( ($3 > 0) && ($3 < 256),
 					{ yyerror (&yylloc, conf, "Invalid value"); YYERROR; } );
 				conf->cnf_dispthr = (uint16_t)$3;
+			}
+			;
+
+routinginthreads:		ROUTINGINTHREADS '=' INTEGER ';'
+			{
+				CHECK_PARAMS_DO( ($3 > 0) && ($3 < 256),
+					{ yyerror (&yylloc, conf, "Invalid value"); YYERROR; } );
+				conf->cnf_rtinthr = (uint16_t)$3;
+			}
+			;
+
+routingoutthreads:		ROUTINGOUTTHREADS '=' INTEGER ';'
+			{
+				CHECK_PARAMS_DO( ($3 > 0) && ($3 < 256),
+					{ yyerror (&yylloc, conf, "Invalid value"); YYERROR; } );
+				conf->cnf_rtoutthr = (uint16_t)$3;
+			}
+			;
+
+qinlimit:		QINLIMIT '=' INTEGER ';'
+			{
+				CHECK_PARAMS_DO( ($3 >= 0),
+					{ yyerror (&yylloc, conf, "Invalid value"); YYERROR; } );
+				conf->cnf_qin_limit = $3;
+			}
+			;
+
+qoutlimit:		QOUTLIMIT '=' INTEGER ';'
+			{
+				CHECK_PARAMS_DO( ($3 >= 0),
+					{ yyerror (&yylloc, conf, "Invalid value"); YYERROR; } );
+				conf->cnf_qout_limit = $3;
+			}
+			;
+
+qlocallimit:		QLOCALLIMIT '=' INTEGER ';'
+			{
+				CHECK_PARAMS_DO( ($3 >= 0),
+					{ yyerror (&yylloc, conf, "Invalid value"); YYERROR; } );
+				conf->cnf_qlocal_limit = $3;
 			}
 			;
 
