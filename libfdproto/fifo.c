@@ -117,6 +117,13 @@ int fd_fifo_new ( struct fifo ** queue, int max )
 	return 0;
 }
 
+int fd_fifo_set_max (struct fifo * queue, int max)
+{
+    queue->max = max;
+    return 0;
+}
+
+
 /* Dump the content of a queue */
 DECLARE_FD_DUMP_PROTOTYPE(fd_fifo_dump, char * name, struct fifo * queue, fd_fifo_dump_item_cb dump_item)
 {

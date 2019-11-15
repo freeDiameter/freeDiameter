@@ -3032,6 +3032,21 @@ struct fifo;
 int fd_fifo_new ( struct fifo ** queue, int max );
 
 /*
+ * FUNCTION:	fd_fifo_set_max
+ *
+ * PARAMETERS:
+ *  queue       : The queue for which to set the maximum value
+ *  max		: max number of items in the queue.
+ *
+ * DESCRIPTION:
+ *  Modify the maximum number of entries in a queue
+ *
+ * RETURN VALUE :
+ *   0         : Success
+ */
+int fd_fifo_set_max ( struct fifo * queue, int max );
+
+/*
  * FUNCTION:	fd_fifo_del
  *
  * PARAMETERS:
