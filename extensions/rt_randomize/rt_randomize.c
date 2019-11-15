@@ -46,11 +46,11 @@ static int rt_randomizing(void * cbdata, struct msg ** pmsg, struct fd_list * ca
 	struct msg * msg = *pmsg;
 	int max_score = -1;
 	int max_score_count = 0;
-	
+
 	TRACE_ENTRY("%p %p %p", cbdata, msg, candidates);
-	
+
 	CHECK_PARAMS(msg && candidates);
-	
+
 	/* Check if it is worth processing the message */
 	if (FD_IS_LIST_EMPTY(candidates))
 		return 0;
