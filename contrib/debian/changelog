@@ -1,5 +1,13 @@
-freediameter (1.3.2) RELEASED; urgency=low
+freediameter (1.4.0) RELEASED; urgency=low
 
+  * New API: fd_fifo_set_max to change the capacity of a queue.
+  * New configuration stanza for Relays: ProcessingPeersPattern and ProcessingPeersMinimum
+  * New configuration stanza for scalability: RoutingInThreads and RoutingOutThreads
+  * some coding style cleanups
+  * Improvements on rt_load_balance algorithm
+  * Improvements on logging & locking behaviors
+  * More tolerant to invalid messages and answers.
+  * Improvements on shutdown behaviors.
   * test_ccload: new extension: generates random
     Credit-Control-Requests and counts how many are answered/give an
     error/get no answer. Start it with SIGUSR2, stop it with a second
@@ -7,13 +15,14 @@ freediameter (1.3.2) RELEASED; urgency=low
   * test_cc: new extension. Automatically replies to
     Credit-Control-Requests. Copies minimally necessary data from
     the Request.
+  * Fixed testcnx failing due to expired CA certificate
 
-freediameter (1.3.1) RELEASED; urgency=low
+freediameter (1.3.2) RELEASED; urgency=low
 
   * acl_wl: add configuration reload support (using SIGUSR1).
   * Reduce deprecation warnings.
 
-freediameter (1.3.0) RELEASED; urgency=low
+freediameter (1.3.1) RELEASED; urgency=low
 
   * test_as: new extension. Automatically replies to Abort-Session-Requests
     with a diameter success message.
