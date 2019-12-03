@@ -117,7 +117,7 @@ static int rt_load_balancing(void * cbdata, struct msg ** pmsg, struct fd_list *
 				struct best_candidate_entry *entry = best_candidates+j;
 				if (entry->load == min_load) {
 					struct rtd_candidate *cand = entry->cand;
-					long old_score = cand->score;
+					int old_score = cand->score;
 					cand->score++;
 					TRACE_DEBUG(FULL, "%s: boosting peer `%.*s', score was %d, now %d; load was %ld", MODULE_NAME, (int)cand->diamidlen, cand->diamid, old_score, cand->score, entry->load);
 
