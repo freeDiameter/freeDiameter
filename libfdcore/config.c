@@ -118,6 +118,7 @@ DECLARE_FD_DUMP_PROTOTYPE(fd_conf_dump)
 	} else {
 		CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "  Local endpoints ........ : "), return NULL);
 		CHECK_MALLOC_DO( fd_ep_dump( FD_DUMP_STD_PARAMS, 0, 0, &fd_g_config->cnf_endpoints ), return NULL);
+		CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "\n"), return NULL);
 	}
 	if (FD_IS_LIST_EMPTY(&fd_g_config->cnf_apps)) {
 		CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "  Local applications ..... : (none)"), return NULL);
