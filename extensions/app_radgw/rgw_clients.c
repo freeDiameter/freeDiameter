@@ -548,7 +548,7 @@ int rgw_clients_create_origin(struct rgw_radius_msg_meta *msg, struct rgw_client
 	int idx;
 	int valid_nas_info = 0;
 	struct radius_attr_hdr *nas_ip = NULL, *nas_ip6 = NULL, *nas_id = NULL;
-	size_t nas_id_len;
+	size_t nas_id_len = 0;
 	char * oh_str = NULL; size_t oh_strlen = 0; int oh_free = 0;
 	char * or_str = NULL; size_t or_strlen = 0;
 	char * rr_str = NULL; size_t rr_strlen = 0;

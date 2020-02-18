@@ -75,7 +75,9 @@ static void display_info(char * queue_desc, char * peer, int current_count, int 
 static pthread_t thr;
 static void * mn_thr(void * arg)
 {
+#ifdef DEBUG
 	int i = 0;
+#endif
 	fd_log_threadname("Monitor thread");
 	char * buf = NULL;
 	size_t len;

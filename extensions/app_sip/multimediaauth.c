@@ -50,7 +50,7 @@ int app_sip_MAR_cb( struct msg ** msg, struct avp * paramavp, struct session * s
 	union avp_value val;
 	int found_cnonce=0;
 	struct avp * tempavp=NULL,*sipAuthentication=NULL,*sipAuthenticate=NULL;
-	char * result;
+	char * result = NULL;
 	char password[51];
 	int idx=0, number_of_auth_items=0,i=0, ret=0;
 	//Flags and variables for Database

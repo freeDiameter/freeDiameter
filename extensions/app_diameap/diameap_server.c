@@ -3064,7 +3064,7 @@ static int diameap_server_callback(struct msg ** rmsg, struct avp * ravp,
 	struct sess_state * diameap_sess_data = NULL;
 	struct diameap_state_machine * diameap_sm = NULL;
 	struct diameap_eap_interface eap_i;
-	struct msg *req, *ans;
+	struct msg *req, *ans = NULL;
 	boolean non_fatal_error = FALSE;
 
 	if (rmsg == NULL)

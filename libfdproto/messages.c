@@ -2284,7 +2284,9 @@ static int parsedict_do_msg(struct dictionary * dict, struct msg * msg, int only
 	/* First, check if we already have a model. */
 	if (msg->msg_model != NULL) {
 		/* Check if this model is still valid for the message data */
+#ifdef DEBUG
 		enum dict_object_type 	 dicttype;
+#endif
 		struct dict_cmd_data     data;
 		ASSERT(((fd_dict_gettype(msg->msg_model, &dicttype) == 0) && (dicttype == DICT_COMMAND)));
 		(void)fd_dict_getval( msg->msg_model, &data);

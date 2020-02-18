@@ -339,7 +339,7 @@ int aw_tree_lookup(char * name, int * result)
 {
 	struct split_name sn;
 	int lbl, found;
-	struct tree_item * ti;
+	struct tree_item * ti = NULL;
 	struct fd_list * senti, *li;
 	
 	TRACE_ENTRY("%p %p", name, result);

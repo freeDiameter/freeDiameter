@@ -704,7 +704,7 @@ int fd_p_ce_handle_newcnx(struct fd_peer * peer, struct cnxctx * initiator)
 int fd_p_ce_msgrcv(struct msg ** msg, int req, struct fd_peer * peer)
 {
 	uint32_t rc = 0;
-	int st;
+	int st = STATE_NEW;
 	struct fd_pei pei;
 	
 	TRACE_ENTRY("%p %p", msg, peer);

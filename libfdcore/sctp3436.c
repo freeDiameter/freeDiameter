@@ -137,7 +137,7 @@ fatal:
 static void * decipher(void * arg)
 {
 	struct sctp3436_ctx * ctx = arg;
-	struct cnxctx 	 *cnx;
+	struct cnxctx 	 *cnx = NULL;
 
 	TRACE_ENTRY("%p", arg);
 	CHECK_PARAMS_DO(ctx && ctx->raw_recv && ctx->parent, goto error);
