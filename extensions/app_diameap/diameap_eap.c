@@ -59,7 +59,7 @@ static void diameap_ba_policyupdate(struct eap_state_machine * eap_sm,
 		struct eap_packet *eapPacket)
 {
 	TRACE_ENTRY("%p %p",eap_sm, eapPacket);
-	if ((eap_sm->respMethod == TYPE_NAK))
+	if (eap_sm->respMethod == TYPE_NAK)
 	{
 		int id;
 		eap_sm->user.pmethods = 0;
@@ -100,7 +100,7 @@ static int diameap_ba_policygetnextmethod(struct eap_state_machine * eap_sm,
 
 	if (eap_sm->user.userid == NULL)
 	{
-		if ((eap_sm->currentMethod == TYPE_NONE))
+		if (eap_sm->currentMethod == TYPE_NONE)
 		{
 			*vendor = VENDOR_IETF;
 			*eaptype = TYPE_IDENTITY;

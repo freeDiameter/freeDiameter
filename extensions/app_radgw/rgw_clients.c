@@ -710,7 +710,7 @@ int rgw_clients_create_origin(struct rgw_radius_msg_meta *msg, struct rgw_client
 	ASSERT(nas_id);
 	
 	{
-		int found, ret;
+		int found = 0, ret;
 		struct addrinfo hint, *res, *ptr;
 		
 		/*

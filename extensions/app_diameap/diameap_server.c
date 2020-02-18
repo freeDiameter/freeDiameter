@@ -1674,6 +1674,7 @@ union avp_value diameap_get_num(char * num, enum dict_avp_basetype datatype)
 		break;
 	default:
 		TRACE_DEBUG(INFO, "%sUnknown AVP Base Type.",DIAMEAP_EXTENSION)
+		memset(&val, 0, sizeof(val));
 		;
 	}
 	return val;
