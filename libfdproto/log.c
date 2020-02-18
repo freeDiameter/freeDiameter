@@ -112,6 +112,7 @@ static void fd_internal_logger( int printlevel, const char *format, va_list ap )
     switch(printlevel) {
 	    case FD_LOG_ANNOYING:  printf("%s	A   ", (use_colors == 1) ? "\e[0;37m" : ""); break;
 	    case FD_LOG_DEBUG:     printf("%s DBG   ", (use_colors == 1) ? "\e[0;37m" : ""); break;
+	    case FD_LOG_INFO:      printf("%sINFO   ", (use_colors == 1) ? "\e[1;37m" : ""); break;
 	    case FD_LOG_NOTICE:    printf("%sNOTI   ", (use_colors == 1) ? "\e[1;37m" : ""); break;
 	    case FD_LOG_ERROR:     printf("%sERROR  ", (use_colors == 1) ? "\e[0;31m" : ""); break;
 	    case FD_LOG_FATAL:     printf("%sFATAL! ", (use_colors == 1) ? "\e[0;31m" : ""); break;

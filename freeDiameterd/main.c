@@ -68,6 +68,9 @@ static void syslog_logger(int loglevel, const char * format, va_list args)
 	int level;
 
 	switch (loglevel) {
+	case FD_LOG_INFO:
+		level = LOG_INFO;
+		break;
 	case FD_LOG_NOTICE:
 		level = LOG_NOTICE;
 		break;

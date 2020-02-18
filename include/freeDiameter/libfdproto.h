@@ -270,6 +270,7 @@ DECLARE_FD_DUMP_PROTOTYPE( fd_dump_extend_hexdump, uint8_t *data, size_t datalen
 /* log levels definitions, that are passed to the logger */
 #define FD_LOG_ANNOYING  0  /* very verbose loops and such "overkill" traces. Only active when the framework is compiled in DEBUG mode. */
 #define FD_LOG_DEBUG     1  /* Get a detailed sense of what is going on in the framework. Use this level for normal debug */
+#define FD_LOG_INFO      2  /* Informational execution states */
 #define FD_LOG_NOTICE    3  /* Normal execution states worth noting */
 #define FD_LOG_ERROR     5  /* Recoverable or expected error conditions */
 #define FD_LOG_FATAL     6  /* Unrecoverable error, e.g. malloc fail, etc. that requires the framework to shutdown */
@@ -329,6 +330,10 @@ static char * file_bname_init(char * full) { file_bname = basename(full); return
 /* Debug information useful to follow in detail what is going on */
 #define LOG_D(format,args... ) \
 		LOG(FD_LOG_DEBUG, format, ##args)
+
+/* Report an info message */
+#define LOG_I(format,args... ) \
+		LOG(FD_LOG_INFO, format,##args)
 
 /* Report a normal message that is useful for normal admin monitoring */
 #define LOG_N(format,args... ) \
@@ -516,7 +521,7 @@ static __inline__ void replace_me() MARK_DEPRECATED { }
 		int __l__;								\
 		if ((__l__ = TRACE_BOOL(oldlevel))) {					\
 			if      (oldlevel <= NONE) { LOG_E(format,##args); }		\
-			else if (oldlevel <= INFO) { LOG_N(format,##args); }		\
+			else if (oldlevel <= INFO) { LOG_I(format,##args); }		\
 			else if (__l__ == 2)       { LOG_N(format,##args); }		\
 			else if (oldlevel <= FULL) { LOG_D(format,##args); }		\
 			else                       { LOG_A(format,##args); }		\
@@ -595,12 +600,14 @@ static __inline__ void replace_me() MARK_DEPRECATED { }
 /*============================================================*/
 #ifdef STRIP_DEBUG_CODE
 #undef LOG_D
+#undef LOG_I
 #undef LOG_N
 #undef LOG_E
 #undef LOG_F
 #undef LOG_BUFFER
 
 #define LOG_D(format,args... ) /* noop */
+#define LOG_I(format,args...) fd_log(FD_LOG_INFO, format, ## args)
 #define LOG_N(format,args...) fd_log(FD_LOG_NOTICE, format, ## args)
 #define LOG_E(format,args...) fd_log(FD_LOG_ERROR, format, ## args)
 #define LOG_F(format,args...) fd_log(FD_LOG_FATAL, format, ## args)
