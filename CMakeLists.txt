@@ -74,6 +74,7 @@ ENDIF (CMAKE_BUILD_TYPE MATCHES "Debug|Profiling|DebugValgrind")
 # Build with fatal warnings?
 IF (ERRORS_ON_WARNINGS)
   SET(CMAKE_C_FLAGS "-Wall -Werror ${CMAKE_C_FLAGS}")
+  SET(CMAKE_REQUIRED_FLAGS "-Wno-error ${CMAKE_REQUIRED_FLAGS}")
 ENDIF (ERRORS_ON_WARNINGS)
 
 # some subfolders use yacc and lex parsers
