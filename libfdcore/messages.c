@@ -42,6 +42,9 @@ static struct dict_object * dict_avp_EM  = NULL; /* Error-Message */
 static struct dict_object * dict_avp_ERH = NULL; /* Error-Reporting-Host */
 static struct dict_object * dict_avp_FAVP= NULL; /* Failed-AVP */
 static struct dict_object * dict_avp_RC  = NULL; /* Result-Code */
+static struct dict_object * dict_avp_ER  = NULL; /* Experimental-Result */
+static struct dict_object * dict_avp_VI  = NULL; /* Vendor-Id */
+static struct dict_object * dict_avp_ERC = NULL; /* Experimental-Result-Code */
 struct dict_object * fd_dict_avp_OSI = NULL; /* Origin-State-Id */
 struct dict_object * fd_dict_cmd_CER = NULL; /* Capabilities-Exchange-Request */
 struct dict_object * fd_dict_cmd_DWR = NULL; /* Device-Watchdog-Request */
@@ -63,6 +66,9 @@ int fd_msg_init(void)
 	CHECK_FCT(  fd_dict_search( fd_g_config->cnf_dict, DICT_AVP, AVP_BY_NAME, "Error-Message",   	&dict_avp_EM  , ENOENT)  );
 	CHECK_FCT(  fd_dict_search( fd_g_config->cnf_dict, DICT_AVP, AVP_BY_NAME, "Error-Reporting-Host", &dict_avp_ERH , ENOENT)  );
 	CHECK_FCT(  fd_dict_search( fd_g_config->cnf_dict, DICT_AVP, AVP_BY_NAME, "Failed-AVP",      	&dict_avp_FAVP, ENOENT)  );
+	CHECK_FCT(  fd_dict_search( fd_g_config->cnf_dict, DICT_AVP, AVP_BY_NAME, "Experimental-Result", &dict_avp_ER, ENOENT)  );
+	CHECK_FCT(  fd_dict_search( fd_g_config->cnf_dict, DICT_AVP, AVP_BY_NAME, "Vendor-Id",		&dict_avp_VI, ENOENT)  );
+	CHECK_FCT(  fd_dict_search( fd_g_config->cnf_dict, DICT_AVP, AVP_BY_NAME, "Experimental-Result-Code", &dict_avp_ERC, ENOENT)  );
 
 	CHECK_FCT(  fd_dict_search( fd_g_config->cnf_dict, DICT_AVP, AVP_BY_NAME, "Disconnect-Cause", 	&fd_dict_avp_DC , ENOENT)  );
 
@@ -166,30 +172,26 @@ int fd_msg_new_session( struct msg * msg, os0_t opt, size_t optlen )
 }
 
 
-/* Add Result-Code and eventually Failed-AVP, Error-Message and Error-Reporting-Host AVPs */
-int fd_msg_rescode_set( struct msg * msg, char * rescode, char * errormsg, struct avp * optavp, int type_id )
+/* Add Result-Code or Experimental-Result, and eventually Failed-AVP, Error-Message and Error-Reporting-Host AVPs */
+int fd_msg_add_result( struct msg * msg, vendor_id_t vendor, struct dict_object * restype, char * rescode, char * errormsg, struct avp * optavp, int type_id )
 {
 	union avp_value val;
-	struct avp * avp_RC  = NULL;
-	struct avp * avp_EM  = NULL;
-	struct avp * avp_ERH = NULL;
-	struct avp * avp_FAVP= NULL;
 	uint32_t rc_val = 0;
 	int set_e_bit=0;
 	int std_err_msg=0;
 
-	TRACE_ENTRY("%p %s %p %p %d", msg, rescode, errormsg, optavp, type_id);
+	TRACE_ENTRY("%p %d %p %s %p %p %d", msg, vendor, restype, rescode, errormsg, optavp, type_id);
 
-	CHECK_PARAMS(  msg && rescode  );
+	CHECK_PARAMS(  msg && restype && rescode  );
 
 	/* Find the enum value corresponding to the rescode string, this will give the class of error */
 	{
 		struct dict_object * enum_obj = NULL;
+
+		/* Search in the restype */
 		struct dict_enumval_request req;
 		memset(&req, 0, sizeof(struct dict_enumval_request));
-
-		/* First, get the enumerated type of the Result-Code AVP (this is fast, no need to cache the object) */
-		CHECK_FCT(  fd_dict_search( fd_g_config->cnf_dict, DICT_TYPE, TYPE_OF_AVP, dict_avp_RC, &(req.type_obj), ENOENT  )  );
+		req.type_obj = restype;
 
 		/* Now search for the value given as parameter */
 		req.search.enum_name = rescode;
@@ -207,20 +209,58 @@ int fd_msg_rescode_set( struct msg * msg, char * rescode, char * errormsg, struc
 		CHECK_FCT( fd_msg_add_origin ( msg, 0 ) );
 	}
 
-	/* Create the Result-Code AVP */
-	CHECK_FCT( fd_msg_avp_new( dict_avp_RC, 0, &avp_RC ) );
+	if (vendor == 0) {
+		/* Vendor 0; create the Result-Code AVP */
+		struct avp * avp_RC  = NULL;
+		CHECK_FCT( fd_msg_avp_new( dict_avp_RC, 0, &avp_RC ) );
 
-	/* Set its value */
-	memset(&val, 0, sizeof(val));
-	val.u32  = rc_val;
-	CHECK_FCT( fd_msg_avp_setvalue( avp_RC, &val ) );
+		/* Set its value */
+		memset(&val, 0, sizeof(val));
+		val.u32  = rc_val;
+		CHECK_FCT( fd_msg_avp_setvalue( avp_RC, &val ) );
 
-	/* Add it to the message */
-	CHECK_FCT( fd_msg_avp_add( msg, MSG_BRW_LAST_CHILD, avp_RC ) );
+		/* Add it to the message */
+		CHECK_FCT( fd_msg_avp_add( msg, MSG_BRW_LAST_CHILD, avp_RC ) );
+	} else {
+		/* Vendor !0; create the Experimental-Result AVP */
+		struct avp * avp_ER  = NULL;
+		CHECK_FCT( fd_msg_avp_new( dict_avp_ER, 0, &avp_ER ) );
+
+		/* Create the Vendor-Id AVP and add to Experimental-Result */
+		{
+			struct avp * avp_VI  = NULL;
+			CHECK_FCT( fd_msg_avp_new( dict_avp_VI, 0, &avp_VI ) );
+
+			/* Set Vendor-Id value to vendor */
+			memset(&val, 0, sizeof(val));
+			val.u32  = vendor;
+			CHECK_FCT( fd_msg_avp_setvalue( avp_VI, &val ) );
+
+			/* Add it to Experimental-Result */
+			CHECK_FCT( fd_msg_avp_add( avp_ER, MSG_BRW_LAST_CHILD, avp_VI ) );
+		}
+
+		/* Create the Experimental-Result-Code AVP and add to Experimental-Result */
+		{
+			struct avp * avp_ERC  = NULL;
+			CHECK_FCT( fd_msg_avp_new( dict_avp_ERC, 0, &avp_ERC ) );
+
+			/* Set Experimental-Result-Code value to rc_val */
+			memset(&val, 0, sizeof(val));
+			val.u32  = rc_val;
+			CHECK_FCT( fd_msg_avp_setvalue( avp_ERC, &val ) );
+
+			/* Add it to Experimental-Result */
+			CHECK_FCT( fd_msg_avp_add( avp_ER, MSG_BRW_LAST_CHILD, avp_ERC ) );
+		}
+
+		/* Add it to the message */
+		CHECK_FCT( fd_msg_avp_add( msg, MSG_BRW_LAST_CHILD, avp_ER ) );
+	}
 
 	if (type_id == 2) {
 		/* Add the Error-Reporting-Host AVP */
-
+		struct avp * avp_ERH = NULL;
 		CHECK_FCT( fd_msg_avp_new( dict_avp_ERH, 0, &avp_ERH ) );
 
 		/* Set its value */
@@ -231,11 +271,11 @@ int fd_msg_rescode_set( struct msg * msg, char * rescode, char * errormsg, struc
 
 		/* Add it to the message */
 		CHECK_FCT( fd_msg_avp_add( msg, MSG_BRW_LAST_CHILD, avp_ERH ) );
-
 	}
 
-	/* Now add the optavp in a FailedAVP if provided */
+	/* Now add the optavp in a Failed-AVP if provided */
 	if (optavp) {
+		struct avp * avp_FAVP= NULL;
 		struct avp * optavp_cpy = NULL;
 		struct avp_hdr *opt_hdr, *optcpy_hdr;
 		struct dict_object * opt_model = NULL;
@@ -309,7 +349,7 @@ int fd_msg_rescode_set( struct msg * msg, char * rescode, char * errormsg, struc
 
 	if (std_err_msg || errormsg) {
 		/* Add the Error-Message AVP */
-
+		struct avp * avp_EM  = NULL;
 		CHECK_FCT( fd_msg_avp_new( dict_avp_EM, 0, &avp_EM ) );
 
 		/* Set its value */
@@ -329,6 +369,13 @@ int fd_msg_rescode_set( struct msg * msg, char * rescode, char * errormsg, struc
 	}
 
 	return 0;
+}
+
+int fd_msg_rescode_set( struct msg * msg, char * rescode, char * errormsg, struct avp * optavp, int type_id )
+{
+	struct dict_object * restype = NULL;
+	CHECK_FCT( fd_dict_search( fd_g_config->cnf_dict, DICT_TYPE, TYPE_OF_AVP, dict_avp_RC, &restype, ENOENT ) );
+	return fd_msg_add_result(msg, 0, restype, rescode, errormsg, optavp, type_id);
 }
 
 static int fd_msg_send_int( struct msg ** pmsg, void (*anscb)(void *, struct msg **), void * data, void (*expirecb)(void *, DiamId_t, size_t, struct msg **), const struct timespec *timeout )

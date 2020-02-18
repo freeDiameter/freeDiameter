@@ -552,6 +552,30 @@ int fd_msg_send ( struct msg ** pmsg, void (*anscb)(void *, struct msg **), void
 int fd_msg_send_timeout ( struct msg ** pmsg, void (*anscb)(void *, struct msg **), void * data, void (*expirecb)(void *, DiamId_t, size_t, struct msg **), const struct timespec *timeout );
 
 /*
+ * FUNCTION:	fd_msg_add_result
+ *
+ * PARAMETERS:
+ *  msg		: A msg object -- it must be an answer.
+ *  vendor	: Vendor. If 0, add Result-Code else add Experimental-Result.
+ *  restype	: DICT_TYPE containing rescode (ex: from TYPE_BY_NAME "Enumerated(Result-Code)").
+ *  rescode	: The name of the returned error code (ex: "DIAMETER_INVALID_AVP").
+ *  errormsg	: (optional) human-readable error message to put in Error-Message AVP.
+ *  optavp	: (optional) If provided, the content will be put inside a Failed-AVP.
+ *  type_id	: 0 => nothing; 1 => adds Origin-Host and Origin-Realm with local info. 2=> adds Error-Reporting-Host.
+ *
+ * DESCRIPTION:
+ *  This function adds a Result-Code AVP (if vendor is 0) or Experimental-Result AVP (vendor is not 0)
+ *  to a message, and optionally
+ *  - sets the 'E' error flag in the header,
+ *  - adds Error-Message, Error-Reporting-Host and Failed-AVP AVPs.
+ *
+ * RETURN VALUE:
+ *  0		: Operation complete.
+ *  !0		: an error occurred.
+ */
+int fd_msg_add_result( struct msg * msg, vendor_id_t vendor, struct dict_object * restype, char * rescode, char * errormsg, struct avp * optavp, int type_id );
+
+/*
  * FUNCTION:	fd_msg_rescode_set
  *
  * PARAMETERS:
@@ -561,14 +585,15 @@ int fd_msg_send_timeout ( struct msg ** pmsg, void (*anscb)(void *, struct msg *
  *  optavp	: (optional) If provided, the content will be put inside a Failed-AVP
  *  type_id	: 0 => nothing; 1 => adds Origin-Host and Origin-Realm with local info. 2=> adds Error-Reporting-Host.
  *
- * DESCRIPTION: 
- *   This function adds a Result-Code AVP to a message, and optionally
+ * DESCRIPTION:
+ *  This function adds a Result-Code AVP to a message, and optionally
  *  - sets the 'E' error flag in the header,
  *  - adds Error-Message, Error-Reporting-Host and Failed-AVP AVPs.
+ *  Uses fd_msg_add_result with vendor 0 and restype for Enumerated(Result-Code).
  *
  * RETURN VALUE:
- *  0      	: Operation complete.
- *  !0      	: an error occurred.
+ *  0		: Operation complete.
+ *  !0		: an error occurred.
  */
 int fd_msg_rescode_set( struct msg * msg, char * rescode, char * errormsg, struct avp * optavp, int type_id );
 

@@ -282,6 +282,11 @@ int main(int argc, char *argv[])
 			
 			CHECK( 0, fd_dict_search ( fd_g_config->cnf_dict, DICT_APPLICATION, APPLICATION_BY_NAME, "Application test", &application, ENOENT ) );
 			CHECK( 0, fd_dict_new ( fd_g_config->cnf_dict, DICT_COMMAND, &cmd_data , application, &command ) );
+			ADD_RULE(command, 0, "Session-Id",			RULE_FIXED_HEAD, 1, 1, 1);
+			ADD_RULE(command, 0, "Result-Code",			RULE_OPTIONAL,   0, 1, 0);
+			ADD_RULE(command, 0, "Experimental-Result",		RULE_OPTIONAL,   0, 1, 0);
+			ADD_RULE(command, 0, "Origin-Host",			RULE_REQUIRED,   1, 1, 0);
+			ADD_RULE(command, 0, "Origin-Realm",			RULE_REQUIRED,   1, 1, 0);
 		}
 		
 		{
@@ -316,7 +321,19 @@ int main(int argc, char *argv[])
 			CHECK( 0, fd_dict_new ( fd_g_config->cnf_dict, DICT_TYPE, &type_data , NULL, &type ) );
 			CHECK( 0, fd_dict_new ( fd_g_config->cnf_dict, DICT_AVP, &avp_data , type, NULL ) );
 		}
-		
+
+		{
+			struct dict_object     * type = NULL;
+			struct dict_type_data    type_data = { AVP_TYPE_UNSIGNED32, "Enumerated(73565/Experimental-Result-Code)" };
+			struct dict_avp_data     avp_data = { 73576, 73565, "Experimental-Result-Code", AVP_FLAG_VENDOR, AVP_FLAG_VENDOR, AVP_TYPE_UNSIGNED32 };
+			struct dict_enumval_data val1 = { "DIAMETER_TEST_RESULT_1000", { .u32 = 1000 } };
+			struct dict_enumval_data val2 = { "DIAMETER_TEST_RESULT_5000", { .u32 = 5000 } };
+			CHECK( 0, fd_dict_new ( fd_g_config->cnf_dict, DICT_TYPE, &type_data , NULL, &type ) );
+			CHECK( 0, fd_dict_new ( fd_g_config->cnf_dict, DICT_AVP, &avp_data , type, NULL ) );
+			CHECK( 0, fd_dict_new ( fd_g_config->cnf_dict, DICT_ENUMVAL, &val1 , type, NULL ) );
+			CHECK( 0, fd_dict_new ( fd_g_config->cnf_dict, DICT_ENUMVAL, &val2 , type, NULL ) );
+		}
+
 		#if 0
 		{
 			fd_log_debug("%s", fd_dict_dump_object(FD_DUMP_TEST_PARAMS, vendor));
@@ -1475,6 +1492,97 @@ int main(int argc, char *argv[])
 			
 			CHECK( 0, fd_msg_free( msg ) );
 		}
+	}
+
+	/* Test the fd_msg_add_result function for Result-Code */
+	{
+		struct msg		* msg = NULL;
+		struct dict_object	* avp_model = NULL;
+		struct avp		* rc = NULL;
+		struct avp_hdr		* avpdata = NULL;
+
+		{
+			struct dict_object * cmd_model = NULL;
+			CHECK( 0, fd_dict_search ( fd_g_config->cnf_dict, DICT_COMMAND, CMD_BY_NAME, "Test-Command-Answer", &cmd_model, ENOENT ) );
+
+			/* Create a message */
+			CHECK( 0, fd_msg_new ( cmd_model, 0, &msg ) );
+
+			/* Add a session id */
+			CHECK( 0, fd_msg_new_session( msg, (os0_t)"tm2", strlen("tm2") ) );
+
+			/* Find the DICT_TYPE Enumerated(Result-Code) */
+			struct dict_object * restype = NULL;
+			CHECK_FCT( fd_dict_search( fd_g_config->cnf_dict, DICT_TYPE, TYPE_BY_NAME, "Enumerated(Result-Code)", &restype, ENOENT ) );
+
+			/* Now test the behavior of fd_msg_add_result for Result-Code AVP */
+			CHECK( 0, fd_msg_add_result(msg, 0, restype, "DIAMETER_SUCCESS", NULL, NULL, 1) );
+
+			LOG_D("%s", fd_msg_dump_treeview(FD_DUMP_TEST_PARAMS, msg, fd_g_config->cnf_dict, 0, 1));
+		}
+
+		/* Ensure Result-Code is present */
+		CHECK( 0, fd_dict_search ( fd_g_config->cnf_dict, DICT_AVP, AVP_BY_NAME, "Result-Code", &avp_model, ENOENT ) );
+		CHECK( 0, fd_msg_search_avp( msg, avp_model, &rc ) );
+
+		/* Check the Result-Code AVP value is DIAMETER_SUCCESS */
+		CHECK( 0, fd_msg_avp_hdr ( rc, &avpdata ) );
+		CHECK( ER_DIAMETER_SUCCESS, avpdata->avp_value->u32 );
+
+		/* Ensure Experimental-Result is missing */
+		CHECK( 0, fd_dict_search ( fd_g_config->cnf_dict, DICT_AVP, AVP_BY_NAME, "Experimental-Result", &avp_model, ENOENT ) );
+		CHECK( ENOENT, fd_msg_search_avp( msg, avp_model, NULL ) );
+
+		/* Free msg */
+		CHECK( 0, fd_msg_free( msg ) );
+	}
+
+	/* Test the fd_msg_add_result function for Experimental-Result */
+	{
+		struct msg		* msg = NULL;
+		struct dict_object	* avp_model = NULL;
+		struct avp		* er = NULL;
+		struct avp		* erc = NULL;
+		struct avp_hdr		* avpdata = NULL;
+
+		{
+			struct dict_object * cmd_model = NULL;
+			CHECK( 0, fd_dict_search ( fd_g_config->cnf_dict, DICT_COMMAND, CMD_BY_NAME, "Test-Command-Answer", &cmd_model, ENOENT ) );
+
+			/* Create a message */
+			CHECK( 0, fd_msg_new ( cmd_model, 0, &msg ) );
+
+			/* Add a session id */
+			CHECK( 0, fd_msg_new_session( msg, (os0_t)"tm2", strlen("tm2") ) );
+
+			/* Find the DICT_TYPE Enumerated(73565/Experimental-Result-Code) */
+			struct dict_object * restype = NULL;
+			CHECK_FCT( fd_dict_search( fd_g_config->cnf_dict, DICT_TYPE, TYPE_BY_NAME, "Enumerated(73565/Experimental-Result-Code)", &restype, ENOENT ) );
+
+			/* Now test the behavior of fd_msg_add_result for Experimental-Result AVP */
+			CHECK( 0, fd_msg_add_result(msg, 73565, restype, "DIAMETER_TEST_RESULT_5000", NULL, NULL, 1) );
+
+			LOG_D("%s", fd_msg_dump_treeview(FD_DUMP_TEST_PARAMS, msg, fd_g_config->cnf_dict, 0, 1));
+		}
+
+		/* Ensure Result-Code is missing */
+		CHECK( 0, fd_dict_search ( fd_g_config->cnf_dict, DICT_AVP, AVP_BY_NAME, "Result-Code", &avp_model, ENOENT ) );
+		CHECK( ENOENT, fd_msg_search_avp( msg, avp_model, NULL ) );
+
+		/* Ensure Experimental-Result is present */
+		CHECK( 0, fd_dict_search ( fd_g_config->cnf_dict, DICT_AVP, AVP_BY_NAME, "Experimental-Result", &avp_model, ENOENT ) );
+		CHECK( 0, fd_msg_search_avp( msg, avp_model, &er ) );
+
+		/* Ensure Experimental-Result-Code is present */
+		CHECK( 0, fd_dict_search ( fd_g_config->cnf_dict, DICT_AVP, AVP_BY_NAME, "Experimental-Result-Code", &avp_model, ENOENT ) );
+		CHECK( 0, fd_msg_search_avp( er, avp_model, &erc ) );
+
+		/* Check the Experimental-Result-Code AVP value is 5000 */
+		CHECK( 0, fd_msg_avp_hdr ( erc, &avpdata ) );
+		CHECK( 5000, avpdata->avp_value->u32 );
+
+		/* Free msg */
+		CHECK( 0, fd_msg_free( msg ) );
 	}
 
 	/* Check IPv4 -> IPv6 and IPv6->IPv4 mapping */
