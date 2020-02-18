@@ -114,7 +114,7 @@ int app_sip_RTR_cb(struct rtrsipaor *structure)
 		}
 	}
 	
-	if(structure->strreason!='\0')
+	if(structure->strreason[0]!='\0')
 		got_streason=1;
 	
 	
