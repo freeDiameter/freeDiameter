@@ -45,7 +45,9 @@
 #include <locale.h>
 #include <syslog.h>
 #include <stdarg.h>
+#include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <unistd.h>
 
 /* forward declarations */
@@ -56,10 +58,52 @@ static pthread_t signals_thr;
 static char *conffile = NULL;
 static int daemon_mode = 0;
 static int gnutls_debug = 0;
+static char *pidfile = NULL;
 
 /* gnutls debug */
 static void fd_gnutls_debug(int level, const char * str) {
 	fd_log_debug(" [gnutls:%d] %s", level, str);
+}
+
+static void pidfile_cleanup(void)
+{
+	if (pidfile != NULL) {
+		LOG_I("Removing pidfile '%s'", pidfile);
+		CHECK_SYS_DO( unlink(pidfile), /* ignore */ );
+		pidfile = NULL;
+	}
+}
+
+static int pidfile_create(void)
+{
+	if (pidfile == NULL) {
+		return 0;
+	}
+
+	/* Create pidfile */
+	FILE * fp = fopen(pidfile, "w");
+	if (fp == NULL) {
+		int ret = errno;
+		LOG_F("Unable to write pidfile '%s'; Error: %s",
+			pidfile, strerror(ret));
+		pidfile = NULL;	/* disable pidfile_cleanup() */
+		return ret;
+	}
+
+	/* Cleaup pidfile on exit */
+	if (atexit(pidfile_cleanup) != 0) {
+		LOG_F("Unable to setup pidfile cleanup");
+		CHECK_SYS( fclose(fp) );
+		pidfile_cleanup();
+		return EINVAL;
+	}
+
+	/* Write the pid and close pidfile */
+	fprintf(fp, "%d\n", getpid());
+	CHECK_SYS_DO( fclose(fp), { pidfile_cleanup(); return __ret__; } );
+
+	LOG_I("Created pidfile '%s'", pidfile);
+	return 0;
 }
 
 
@@ -117,6 +161,8 @@ int main(int argc, char * argv[])
 		TRACE_DEBUG(INFO, "entering background mode");
 		CHECK_POSIX_DO( daemon(1, 0), goto error );
 	}
+
+	CHECK_FCT( pidfile_create() );
 
 	/* Initialize the core library */
 	ret = fd_core_initialize();
@@ -185,6 +231,7 @@ static void main_help( void )
   		"  -c, --config=filename   Read configuration from this file instead of the \n"
 		"                          default location (" DEFAULT_CONF_PATH "/" FD_DEFAULT_CONF_FILENAME ")\n"
 		"  -D, --daemon            Start program in background\n"
+		"  -p, --pidfile=filename  Write PID to filename\n"
 		"  -s, --syslog            Write log output to syslog (instead of stdout)\n");
  	printf( "\nDebug:\n"
   		"  These options are mostly useful for developers\n"
@@ -210,6 +257,7 @@ static int main_cmdline(int argc, char *argv[])
 		{ "config",	required_argument, 	NULL, 'c' },
 		{ "syslog",     no_argument,            NULL, 's' },
 		{ "daemon",	no_argument, 		NULL, 'D' },
+		{ "pidfile",	required_argument,	NULL, 'p' },
 		{ "debug",	no_argument, 		NULL, 'd' },
 		{ "quiet",	no_argument, 		NULL, 'q' },
 		{ "dbglocale",	optional_argument, 	NULL, 'l' },
@@ -221,7 +269,7 @@ static int main_cmdline(int argc, char *argv[])
 
 	/* Loop on arguments */
 	while (1) {
-		c = getopt_long (argc, argv, "hVc:Ddql:f:F:g:s", long_options, &option_index);
+		c = getopt_long (argc, argv, "hVc:Dp:dql:f:F:g:s", long_options, &option_index);
 		if (c == -1)
 			break;	/* Exit from the loop.  */
 
@@ -244,6 +292,14 @@ static int main_cmdline(int argc, char *argv[])
 
 			case 'D':
 				daemon_mode = 1;
+				break;
+
+			case 'p':	/* Write pidfile */
+				if (optarg == NULL ) {
+					fprintf(stderr, "Missing argument with --pidfile directive\n");
+					return EINVAL;
+				}
+				pidfile = optarg;
 				break;
 
 			case 'l':	/* Change the locale.  */
