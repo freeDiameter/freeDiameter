@@ -154,21 +154,21 @@ int main(int argc, char * argv[])
 	/* Parse the command-line */
 	ret = main_cmdline(argc, argv);
 	if (ret != 0) {
-		return ret;
+		return EXIT_FAILURE;
 	}
 
 	if (daemon_mode) {
 		TRACE_DEBUG(INFO, "entering background mode");
-		CHECK_SYS( daemon(1, 0) );
+		CHECK_SYS_DO( daemon(1, 0), return EXIT_FAILURE );
 	}
 
-	CHECK_FCT( pidfile_create() );
+	CHECK_FCT_DO( pidfile_create(), return EXIT_FAILURE );
 
 	/* Initialize the core library */
 	ret = fd_core_initialize();
 	if (ret != 0) {
 		fprintf(stderr, "An error occurred during freeDiameter core library initialization.\n");
-		return ret;
+		return EXIT_FAILURE;
 	}
 
 	/* Set gnutls debug level ? */
@@ -190,17 +190,17 @@ int main(int argc, char * argv[])
 	TRACE_DEBUG(INFO, FD_PROJECT_BINARY " daemon initialized.");
 
 	/* Now, just wait for termination */
-	CHECK_FCT( fd_core_wait_shutdown_complete() );
+	CHECK_FCT_DO( fd_core_wait_shutdown_complete(), return EXIT_FAILURE );
 
 	/* Just in case it was not the result of a signal, we cancel signals_thr */
 	fd_thr_term(&signals_thr);
 
-	return 0;
+	return EXIT_SUCCESS;
 error:
 	CHECK_FCT_DO( fd_core_shutdown(),  );
-	CHECK_FCT( fd_core_wait_shutdown_complete() );
+	CHECK_FCT_DO( fd_core_wait_shutdown_complete(), return EXIT_FAILURE );
 	fd_thr_term(&signals_thr);
-	return -1;
+	return EXIT_FAILURE;
 }
 
 
@@ -276,11 +276,11 @@ static int main_cmdline(int argc, char *argv[])
 		switch (c) {
 			case 'h':	/* Print help and exit.  */
 				main_help();
-				exit(0);
+				exit(EXIT_SUCCESS);
 
 			case 'V':	/* Print version and exit.  */
 				main_version();
-				exit(0);
+				exit(EXIT_SUCCESS);
 
 			case 'c':	/* Read configuration from this file instead of the default location..  */
 				if (optarg == NULL ) {
