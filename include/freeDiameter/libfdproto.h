@@ -29,7 +29,7 @@
 * ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT 	 *
 * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS 	 *
 * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR *
-* TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY S_OUT OF THE USE OF THIS SOFTWARE, EVEN IF   *
+* TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY S_OUT OF THE USE OF THIS SOFTWARE, EVEN IF *
 * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.								 *
 *********************************************************************************************************/
 
@@ -962,7 +962,7 @@ int fd_dict_fini(struct dictionary ** dict);
  * FUNCTION:	fd_dict_new
  *
  * PARAMETERS:
- *  dict	: Pointer to the dictionnary where the object is created
+ *  dict	: Pointer to the dictionary where the object is created
  *  type 	: What kind of object must be created
  *  data 	: pointer to the data for the object.
  *          	 type parameter is used to determine the type of data (see below for detail).
@@ -987,7 +987,7 @@ int fd_dict_new ( struct dictionary * dict, enum dict_object_type type, void * d
  * FUNCTION: 	fd_dict_search
  *
  * PARAMETERS:
- *  dict	: Pointer to the dictionnary where the object is searched
+ *  dict	: Pointer to the dictionary where the object is searched
  *  type 	: type of object that is being searched
  *  criteria 	: how the object must be searched. See object-related sections below for more information.
  *  what 	: depending on criteria, the data that must be searched.
@@ -1380,8 +1380,8 @@ struct dict_enumval_data {
 /* The criteria for searching a constant in the dictionary */
 enum {
 	ENUMVAL_BY_STRUCT = 40,	/* "what" points to a struct dict_enumval_request as defined below */
-	ENUMVAL_BY_NAME,	/* This cannot be used for researches */
-	ENUMVAL_BY_VALUE	/* This cannot be used for researches */
+	ENUMVAL_BY_NAME,	/* This cannot be used for searches */
+	ENUMVAL_BY_VALUE	/* This cannot be used for searches */
 };
 
 struct dict_enumval_request {
@@ -1510,7 +1510,7 @@ enum {
 	AVP_BY_NAME_AND_VENDOR	/* "what" points to a struct dict_avp_request (see below), where avp_vendor and avp_name are set */
 };
 
-/* Struct used for some researchs */
+/* Struct used for some searches */
 struct dict_avp_request_ex {
 	struct {
 		/* Only one of the following fields must be set. */
@@ -2374,7 +2374,7 @@ int fd_msg_avp_add ( msg_or_avp * reference, enum msg_brw_dir dir, struct avp *a
  *   Search the first top-level AVP of a given model inside a message.
  * Note: only the first instance of the AVP is returned by this function.
  * Note: only top-level AVPs are searched, not inside grouped AVPs.
- * Use msg_browse if you need more advanced research features.
+ * Use msg_browse if you need more advanced search features.
  *
  * RETURN VALUE:
  *  0      	: The AVP has been found.
