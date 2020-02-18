@@ -159,7 +159,7 @@ int main(int argc, char * argv[])
 
 	if (daemon_mode) {
 		TRACE_DEBUG(INFO, "entering background mode");
-		CHECK_POSIX_DO( daemon(1, 0), goto error );
+		CHECK_SYS( daemon(1, 0) );
 	}
 
 	CHECK_FCT( pidfile_create() );
