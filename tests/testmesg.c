@@ -680,6 +680,7 @@ int main(int argc, char *argv[])
 		{
 			struct dict_object * avp_model;
 			struct avp 	   * found;
+			struct avp 	   * grouped = NULL;
 			struct avp_hdr     * avpdata = NULL;
 			
 			/* Now find the ACR dictionary object */
@@ -687,14 +688,41 @@ int main(int argc, char *argv[])
 			
 			CPYBUF();
 			CHECK( 0, fd_msg_parse_buffer( &buf_cpy, 344, &msg) );
-			
+			CHECK( 0, fd_msg_parse_dict( msg, fd_g_config->cnf_dict, NULL ) );
+#if 0
+			LOG_D("msg: %s", fd_msg_dump_treeview(FD_DUMP_TEST_PARAMS, msg, fd_g_config->cnf_dict, 0, 1));
+#endif
+
 			/* Search this AVP instance in the msg */
 			CHECK( 0, fd_msg_search_avp( msg, avp_model, &found ) );
 			
 			/* Check the AVP value is 3.1415 */
 			CHECK( 0, fd_msg_avp_hdr ( found, &avpdata ) );
 			CHECK( 3.1415F, avpdata->avp_value->f32 );
-			
+
+			/* Search for the first grouped message */
+			{
+			struct dict_avp_request grouped_req = { 73565, 0, "AVP Test - grouped"};
+			CHECK( 0, fd_dict_search ( fd_g_config->cnf_dict, DICT_AVP, AVP_BY_NAME_AND_VENDOR, &grouped_req, &avp_model, ENOENT ) );
+			}
+			CHECK( 0, fd_msg_search_avp( msg, avp_model, &grouped ) );
+#if 0
+			LOG_D("grouped: %s", fd_msg_dump_treeview(FD_DUMP_TEST_PARAMS, grouped, fd_g_config->cnf_dict, 0, 1));
+#endif
+
+			/* Find the first item in the grouped */
+			{
+			struct dict_avp_request avp_req = { 73565, 0, "AVP Test - os"};
+			CHECK( 0, fd_dict_search ( fd_g_config->cnf_dict, DICT_AVP, AVP_BY_NAME_AND_VENDOR, &avp_req, &avp_model, ENOENT ) );
+			}
+
+			CHECK( 0, fd_msg_search_avp( grouped, avp_model, &found ) );
+
+			/* Check the AVP value is "1" */
+			CHECK( 0, fd_msg_avp_hdr ( found, &avpdata ) );
+			CHECK( 8, avpdata->avp_value->os.len );
+			CHECK( 0, memcmp(avpdata->avp_value->os.data, "12345678", 8));
+
 			/* reinit the msg */
 			CHECK( 0, fd_msg_free ( msg ) );
 				

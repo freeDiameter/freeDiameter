@@ -2366,12 +2366,12 @@ int fd_msg_avp_add ( msg_or_avp * reference, enum msg_brw_dir dir, struct avp *a
  * FUNCTION:	fd_msg_search_avp
  *
  * PARAMETERS:
- *  msg 	: The message structure in which to search the AVP.
+ *  reference 	: Pointer to a valid msg or avp in which to search the AVP.
  *  what 	: The dictionary model of the AVP to search.
  *  avp		: location where the AVP reference is stored if found.
  *
  * DESCRIPTION:
- *   Search the first top-level AVP of a given model inside a message.
+ *   Search for the first top-level AVP of a given model inside a message or AVP.
  * Note: only the first instance of the AVP is returned by this function.
  * Note: only top-level AVPs are searched, not inside grouped AVPs.
  * Use msg_browse if you need more advanced search features.
@@ -2381,7 +2381,7 @@ int fd_msg_avp_add ( msg_or_avp * reference, enum msg_brw_dir dir, struct avp *a
  *  EINVAL 	: A parameter is invalid.
  *  ENOENT	: No AVP has been found, and "avp" was NULL (otherwise, *avp is set to NULL and 0 returned).
  */
-int fd_msg_search_avp ( struct msg * msg, struct dict_object * what, struct avp ** avp );
+int fd_msg_search_avp ( msg_or_avp * reference, struct dict_object * what, struct avp ** avp );
 
 /*
  * FUNCTION:	fd_msg_free
