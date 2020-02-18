@@ -1448,6 +1448,29 @@ int main(int argc, char *argv[])
 			CHECK( 0, fd_msg_free( msg ) );
 		}
 	}
+
+	/* Check IPv4 -> IPv6 and IPv6->IPv4 mapping */
+	{
+		struct in_addr i4;
+		memset(&i4, 0xff, sizeof(i4));
+		CHECK( 1, inet_pton( AF_INET, TEST_IP4, &i4 ) );
+
+		#define TEST_IP6MAP "::ffff:" TEST_IP4
+
+		struct in6_addr i6;
+		memset(&i6, 0xff, sizeof(i6));
+		IN6_ADDR_V4MAP(&i6.s6_addr, i4.s_addr);
+		char buf6[INET6_ADDRSTRLEN];
+		CHECK( 0, (inet_ntop( AF_INET6, &i6, buf6, sizeof(buf6) ) == NULL) ? errno : 0 );
+		LOG_D("buf6='%s'", buf6);
+		CHECK( 0, strcasecmp( buf6, TEST_IP6MAP ) );
+
+		struct in_addr o4;
+		o4.s_addr = IN6_ADDR_V4UNMAP(&i6);
+		char buf4[INET_ADDRSTRLEN];
+		CHECK( 0, (inet_ntop( AF_INET, &o4.s_addr, buf4, sizeof(buf4) ) == NULL) ? errno : 0 );
+		CHECK( 0, strcmp( buf4, TEST_IP4 ) );
+	}
 	
 	/* That's all for the tests yet */
 	PASSTEST();

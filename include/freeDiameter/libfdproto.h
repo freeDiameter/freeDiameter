@@ -689,10 +689,10 @@ void fd_sa_sdump_numeric(char * buf /* must be at least sSA_DUMP_STRLEN */, sSA 
 
 /* create a V4MAPPED address */
 #define IN6_ADDR_V4MAP( a6, a4 ) {			\
-	((uint32_t *)(a6))[0] = 0;			\
-	((uint32_t *)(a6))[1] = 0;			\
-	((uint32_t *)(a6))[2] = htonl(0xffff);		\
-	((uint32_t *)(a6))[3] = (uint32_t)(a4);		\
+	memset(&(*a6)[0], 0, 10);			\
+	(*a6)[10] = 0xff;				\
+	(*a6)[11] = 0xff;				\
+	memcpy(&(*a6)[12], &a4, 4);			\
 }
 
 /* Retrieve a v4 value from V4MAPPED address ( takes a s6_addr as param) */
