@@ -45,12 +45,12 @@
 struct cnxctx {
 	char		cc_id[60];	/* The name of this connection. the first 5 chars are reserved for flags display (cc_state). */
 	char		cc_remid[60];	/* Id of remote peer */
-	
+
 	int 		cc_socket;	/* The socket object of the connection -- <=0 if no socket is created */
 
 	int 		cc_family;	/* AF_INET or AF_INET6 (mixed) */
 	int 		cc_proto;	/* IPPROTO_TCP or IPPROTO_SCTP */
-	
+
 	uint32_t	cc_state;	/* True if the object is being destroyed: we don't send events anymore. access with fd_cnx_getstate() */
 	#define 	CC_STATUS_CLOSING	1
 	#define 	CC_STATUS_ERROR		2
@@ -59,7 +59,7 @@ struct cnxctx {
 
 	pthread_t	cc_rcvthr;	/* thread for receiving messages on the connection */
 	int		cc_loop;	/* tell the thread if it loops or stops after the first message is received */
-	
+
 	struct fifo *	cc_incoming;	/* FIFO queue of events received on the connection, FDEVP_CNX_* */
 	struct fifo *	cc_alt;		/* alternate fifo to send FDEVP_CNX_* events to. */
 
