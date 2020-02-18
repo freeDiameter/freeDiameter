@@ -86,6 +86,7 @@ static void store_free(struct store *store)
 	return;
 }
 
+/* TODO: convert to fd_msg_search_avp ? */
 static int fd_avp_search_avp(msg_or_avp *where, struct dict_object *what, struct avp **avp)
 {
 	struct avp *nextavp;

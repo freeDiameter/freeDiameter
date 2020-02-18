@@ -335,7 +335,7 @@ int test_sip_MAA_cb( struct msg ** msg, struct avp * paramavp, struct session * 
 							//CHECK_FCT(fd_msg_browse ( avp, MSG_BRW_WALK, &avp, NULL) );
 							
 							
-							CHECK_FCT(fd_avp_search_avp (avp, sip_dict.Digest_CNonce, &a2 ));
+							CHECK_FCT(fd_msg_search_avp (avp, sip_dict.Digest_CNonce, &a2 ));
 							
 							if(a2!=NULL)
 								found_cnonce=1;
@@ -472,7 +472,7 @@ int test_sip_MAA_cb( struct msg ** msg, struct avp * paramavp, struct session * 
 									char * digest_username=NULL, *digest_uri=NULL, *digest_response=NULL, *digest_realm=NULL, *digest_nonce=NULL, *digest_method=NULL, *digest_qop=NULL, *digest_algorithm=NULL, *digest_cnonce=NULL, *digest_noncecount=NULL;
 									
 									
-									CHECK_FCT(fd_avp_search_avp (avp, sip_dict.Digest_Nonce, &a2 ));
+									CHECK_FCT(fd_msg_search_avp (avp, sip_dict.Digest_Nonce, &a2 ));
 									if(a2!=NULL)
 									{
 										CHECK_FCT( fd_msg_avp_hdr( a2, &digestheader )  );
@@ -501,7 +501,7 @@ int test_sip_MAA_cb( struct msg ** msg, struct avp * paramavp, struct session * 
 										}
 											
 									}
-									CHECK_FCT(fd_avp_search_avp (avp, sip_dict.Digest_Response, &a2 ));
+									CHECK_FCT(fd_msg_search_avp (avp, sip_dict.Digest_Response, &a2 ));
 									if(a2!=NULL)
 									{
 										CHECK_FCT( fd_msg_avp_hdr( a2, &digestheader )  );
@@ -515,7 +515,7 @@ int test_sip_MAA_cb( struct msg ** msg, struct avp * paramavp, struct session * 
 										}
 										
 									}
-									CHECK_FCT(fd_avp_search_avp (avp, sip_dict.Digest_Realm, &a2 ));
+									CHECK_FCT(fd_msg_search_avp (avp, sip_dict.Digest_Realm, &a2 ));
 									if(a2!=NULL)
 									{
 										CHECK_FCT( fd_msg_avp_hdr( a2, &digestheader )  );
@@ -529,7 +529,7 @@ int test_sip_MAA_cb( struct msg ** msg, struct avp * paramavp, struct session * 
 										}
 									}
 									
-									CHECK_FCT(fd_avp_search_avp (avp, sip_dict.Digest_Method, &a2 ));
+									CHECK_FCT(fd_msg_search_avp (avp, sip_dict.Digest_Method, &a2 ));
 									if(a2!=NULL)
 									{
 										CHECK_FCT( fd_msg_avp_hdr( a2, &digestheader )  );
@@ -545,7 +545,7 @@ int test_sip_MAA_cb( struct msg ** msg, struct avp * paramavp, struct session * 
 									else
 										digest_method="";
 									
-									CHECK_FCT(fd_avp_search_avp (avp, sip_dict.Digest_URI, &a2 ));
+									CHECK_FCT(fd_msg_search_avp (avp, sip_dict.Digest_URI, &a2 ));
 									if(a2!=NULL)
 									{
 										CHECK_FCT( fd_msg_avp_hdr( a2, &digestheader )  );
@@ -559,7 +559,7 @@ int test_sip_MAA_cb( struct msg ** msg, struct avp * paramavp, struct session * 
 										}
 									}
 									
-									CHECK_FCT(fd_avp_search_avp (avp, sip_dict.Digest_QOP, &a2 ));
+									CHECK_FCT(fd_msg_search_avp (avp, sip_dict.Digest_QOP, &a2 ));
 									if(a2!=NULL)
 									{
 										CHECK_FCT( fd_msg_avp_hdr( a2, &digestheader )  );
@@ -574,7 +574,7 @@ int test_sip_MAA_cb( struct msg ** msg, struct avp * paramavp, struct session * 
 									}
 									else
 										digest_qop=NULL;
-									CHECK_FCT(fd_avp_search_avp (avp, sip_dict.Digest_Algorithm, &a2 ));
+									CHECK_FCT(fd_msg_search_avp (avp, sip_dict.Digest_Algorithm, &a2 ));
 									if(a2!=NULL)
 									{
 										CHECK_FCT( fd_msg_avp_hdr( a2, &digestheader )  );
@@ -589,7 +589,7 @@ int test_sip_MAA_cb( struct msg ** msg, struct avp * paramavp, struct session * 
 									}
 									else
 										digest_algorithm=NULL;
-									CHECK_FCT(fd_avp_search_avp (avp, sip_dict.Digest_CNonce, &a2 ));
+									CHECK_FCT(fd_msg_search_avp (avp, sip_dict.Digest_CNonce, &a2 ));
 									if(a2!=NULL)
 									{
 										CHECK_FCT( fd_msg_avp_hdr( a2, &digestheader )  );
@@ -604,7 +604,7 @@ int test_sip_MAA_cb( struct msg ** msg, struct avp * paramavp, struct session * 
 									}
 									else
 										digest_cnonce="";
-									CHECK_FCT(fd_avp_search_avp (avp, sip_dict.Digest_Nonce_Count, &a2 ));
+									CHECK_FCT(fd_msg_search_avp (avp, sip_dict.Digest_Nonce_Count, &a2 ));
 									if(a2!=NULL)
 									{
 										CHECK_FCT( fd_msg_avp_hdr( a2, &digestheader )  );
@@ -619,7 +619,7 @@ int test_sip_MAA_cb( struct msg ** msg, struct avp * paramavp, struct session * 
 									}
 									else
 										digest_noncecount="";
-									CHECK_FCT(fd_avp_search_avp (avp, sip_dict.Digest_Username, &a2 ));
+									CHECK_FCT(fd_msg_search_avp (avp, sip_dict.Digest_Username, &a2 ));
 									if(a2!=NULL)
 									{
 										CHECK_FCT( fd_msg_avp_hdr( a2, &digestheader )  );

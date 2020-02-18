@@ -110,8 +110,6 @@ void DigestCalcHA1(char * pszAlg,char * pszUserName,char * pszRealm,char * pszPa
 void DigestCalcResponse(HASHHEX HA1,char * pszNonce,char * pszNonceCount,char * pszCNonce,char * pszQop,char * pszMethod,char * pszDigestUri,HASHHEX HEntity,HASHHEX Response);
 void DigestCalcResponseAuth(HASHHEX HA1,char * pszNonce,char * pszNonceCount,char * pszCNonce,char * pszQop,char * pszMethod,char * pszDigestUri,HASHHEX HEntity,HASHHEX Response);
 
-int fd_avp_search_avp ( struct avp * groupedavp, struct dict_object * what, struct avp ** avp );
-
 //thread procedure
 void *rtr_socket(void *);
 void *ppr_socket(void *);

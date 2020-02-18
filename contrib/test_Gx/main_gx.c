@@ -700,53 +700,6 @@ out:
 
 
 }
-/* Search a given AVP model in an AVP (extracted from libfreediameter/message.c ) */
-int fd_avp_search_avp ( struct avp * groupedavp, struct dict_object * what, struct avp ** avp )
-{
-       struct avp * nextavp;
-       struct avp_hdr * nextavphdr;
-       struct dict_avp_data    dictdata;
-       
-       
-       TRACE_ENTRY("%p %p %p", groupedavp, what, avp);
-       
-       CHECK_FCT(  fd_dict_getval(what, &dictdata)  );
-       
-       // Loop only in the group AVP 
-       CHECK_FCT(  fd_msg_browse(groupedavp, MSG_BRW_FIRST_CHILD, (void *)&nextavp, NULL)  );
-       CHECK_FCT( fd_msg_avp_hdr( nextavp, &nextavphdr )  );
-       
-       while (nextavphdr) {
-	       
-	       if ( (nextavphdr->avp_code   == dictdata.avp_code) && (nextavphdr->avp_vendor == dictdata.avp_vendor) ) // always 0 if no Vendor flag
-	       {
-		       break;
-	       }
-	       
-	       // Otherwise move to next AVP in the grouped AVP 
-	       CHECK_FCT( fd_msg_browse(nextavp, MSG_BRW_NEXT, (void *)&nextavp, NULL) );
-	       
-	       if(nextavp!=NULL)
-	       {
-		       CHECK_FCT( fd_msg_avp_hdr( nextavp, &nextavphdr )  );
-	       }
-	       else
-		       nextavphdr=NULL;
-       }
-       if (avp)
-	       *avp = nextavp;
-       
-       if (avp && nextavp) {
-	       struct dictionary * dict;
-	       CHECK_FCT( fd_dict_getdict( what, &dict) );
-	       CHECK_FCT_DO( fd_msg_parse_dict( nextavp, dict, NULL ),  );
-       }
-       
-       if (avp || nextavp)
-	       return 0;
-       else
-	       return ENOENT;
-}
 
 static int cca_cb( struct msg ** msg, 
 		   struct avp * t_avp , 
@@ -784,7 +737,7 @@ static int cca_cb( struct msg ** msg,
 
 
 	CHECK_FCT(fd_msg_search_avp ( *msg, chrg_rule_grp, &g_avp ));
-	CHECK_FCT(fd_avp_search_avp(g_avp, chrg_rule_name, &avp));
+	CHECK_FCT(fd_msg_search_avp(g_avp, chrg_rule_name, &avp));
 
 	if(avp) {
 	       CHECK_FCT(fd_msg_avp_hdr(avp, &avpdata));
