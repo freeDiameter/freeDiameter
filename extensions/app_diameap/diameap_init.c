@@ -38,6 +38,11 @@
 
 #include "diameap_common.h"
 
+#ifndef HAVE_MYSQL_MY_BOOL
+#include <stdbool.h>
+typedef bool my_bool;
+#endif /* HAVE_MYSQL_MY_BOOL */
+
 /* Dictionary Object templates */
 struct dict_object * dataobj_diameap_cmd = NULL; /* Diameter-EAP-Request Command Code */
 struct dict_object * dataobj_diameap_app = NULL; /* Diameter EAP Application object */

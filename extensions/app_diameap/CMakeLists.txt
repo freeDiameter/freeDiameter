@@ -1,10 +1,25 @@
 # The Diameter EAP Application extension
 PROJECT("Diameter EAP Application extension" C)
 
+INCLUDE (CheckCSourceCompiles)
+
 # Find MySQL 
 FIND_PACKAGE(MySQL REQUIRED)
 FIND_PACKAGE(Gcrypt REQUIRED)
 INCLUDE_DIRECTORIES(${MySQL_INCLUDE_DIR})
+
+# Check for my_bool, deprecated in MySQL 8.0
+SET(CHECK_MYSQL_MY_BOOL "
+#include <mysql.h>
+int main() {
+my_bool f;
+}")
+SET(CMAKE_REQUIRED_INCLUDES ${MySQL_INCLUDE_DIR})
+SET(CMAKE_REQUIRED_LIBRARIES ${MySQL_LIBRARY})
+CHECK_C_SOURCE_COMPILES("${CHECK_MYSQL_MY_BOOL}" HAVE_MYSQL_MY_BOOL)
+IF (HAVE_MYSQL_MY_BOOL)
+  ADD_DEFINITIONS(-DHAVE_MYSQL_MY_BOOL)
+ENDIF()
 
 # Parse plugins
 ADD_SUBDIRECTORY(plugins)
