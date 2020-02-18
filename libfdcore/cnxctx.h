@@ -43,7 +43,7 @@
 
 /* The connection context structure */
 struct cnxctx {
-	char		cc_id[60];	/* The name of this connection. the first 5 chars are reserved for flags display (cc_state). */
+	char		cc_id[100];	/* The name of this connection. the first 5 chars are reserved for flags display (cc_state). */
 	char		cc_remid[60];	/* Id of remote peer */
 
 	int 		cc_socket;	/* The socket object of the connection -- <=0 if no socket is created */
