@@ -189,9 +189,9 @@ static void main_help( void )
  	printf( "\nDebug:\n"
   		"  These options are mostly useful for developers\n"
   		"  -d, --debug             Increase verbosity of debug messages if default logger is used\n"
-  		"  --dbg_gnutls <int>      Enable GNU TLS debug at level <int>\n"
   		"  -f, --dbg_func <func>   Enable all traces within the function <func>\n"
   		"  -F, --dbg_file <file.c> Enable all traces within the file <file.c> (basename match)\n"
+		"  -g, --dbg_gnutls <int>  Enable GNU TLS debug at level <int>\n"
   		"  -l, --dbglocale         Set the locale for error messages\n"
   		"  -q, --quiet             Decrease verbosity if default logger is used\n"
 	);
