@@ -65,6 +65,10 @@ static void fd_gnutls_debug(int level, const char * str) {
 
 static void syslog_logger(int loglevel, const char * format, va_list args)
 {
+	if (loglevel < fd_g_debug_lvl) {
+		return;
+	}
+
 	int level;
 
 	switch (loglevel) {
@@ -82,17 +86,13 @@ static void syslog_logger(int loglevel, const char * format, va_list args)
 		break;
 	default:
 		/* fallthrough */
+	case FD_LOG_ANNOYING:
 	case FD_LOG_DEBUG:
-		/* some systems log LOG_DEBUG to a file; but
-		 * freeDiameter debug output is too verbose */
-		return;
-#if 0
 		level = LOG_DEBUG;
 		break;
-#endif
 	}
 
-	vsyslog(level, format, args);
+	vsyslog(level | LOG_DAEMON, format, args);
 }
 
 
@@ -188,12 +188,12 @@ static void main_help( void )
 		"  -s, --syslog            Write log output to syslog (instead of stdout)\n");
  	printf( "\nDebug:\n"
   		"  These options are mostly useful for developers\n"
-  		"  -d, --debug             Increase verbosity of debug messages if default logger is used\n"
+		"  -d, --debug             Increase verbosity of log messages\n"
   		"  -f, --dbg_func <func>   Enable all traces within the function <func>\n"
   		"  -F, --dbg_file <file.c> Enable all traces within the file <file.c> (basename match)\n"
 		"  -g, --dbg_gnutls <int>  Enable GNU TLS debug at level <int>\n"
   		"  -l, --dbglocale         Set the locale for error messages\n"
-  		"  -q, --quiet             Decrease verbosity if default logger is used\n"
+		"  -q, --quiet             Decrease verbosity of log messages\n"
 	);
 }
 
