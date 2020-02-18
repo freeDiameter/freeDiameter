@@ -15,6 +15,9 @@ ENDIF (NOT DISABLE_SCTP)
 # Find TODO items in the code easily ?
 OPTION(ERRORS_ON_TODO "(development) Generate compilation errors on TODO items ?" OFF)
 
+# Compiler warnings are fatal?
+OPTION(ERRORS_ON_WARNINGS "(development) Compiler warnings cause compilation errors ?" OFF)
+
 # In DEBUG mode, each log can contain pid, calling function and file for easy debug. Set to ON to display this information.
 OPTION(DEBUG_WITH_META "Show calling location in logs?" OFF)
 

@@ -71,6 +71,11 @@ IF (CMAKE_BUILD_TYPE MATCHES "Debug|Profiling|DebugValgrind")
   SET(DEBUG 1)
 ENDIF (CMAKE_BUILD_TYPE MATCHES "Debug|Profiling|DebugValgrind")
 
+# Build with fatal warnings?
+IF (ERRORS_ON_WARNINGS)
+  SET(CMAKE_C_FLAGS "-Wall -Werror ${CMAKE_C_FLAGS}")
+ENDIF (ERRORS_ON_WARNINGS)
+
 # some subfolders use yacc and lex parsers
 SET(BISON_GENERATE_DEFINES TRUE)
 SET(BISON_PREFIX_OUTPUTS TRUE)
@@ -109,4 +114,3 @@ SUBDIRS(extensions)
 IF ( BUILD_TESTING )
 	SUBDIRS(tests)
 ENDIF ( BUILD_TESTING )
-
