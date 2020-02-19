@@ -84,16 +84,22 @@ static int dict_dcca_starent_entry(char * conffile)
 	CHECK_dict_search( DICT_TYPE, TYPE_BY_NAME, "Time", &Time_type);                                
 	CHECK_dict_search( DICT_TYPE, TYPE_BY_NAME, "UTF8String", &UTF8String_type);
 
-	/* The following is created automatically. Do not modify. */
-	/* Changes will be lost during the next update. Modify the source org file instead. */
+	/*==================================================================*/
+	/* Start of generated data.                                         */
+	/*                                                                  */
+	/* The following is created automatically with:                     */
+	/*     org_to_fd.pl -V 'Starent' -v 8164                            */
+	/* Changes will be lost during the next update.                     */
+	/* Do not modify; modify the source .org file instead.              */
+	/*==================================================================*/
 
-	/* Cisco ASR 5000 Series AAA Interface                                              */
-	/* Administration and Reference                                                     */
-	/* Release 8.x and 9.0                                                              */
-	/* Last Updated June 30, 2010                                                       */
-	/* updated using v15 docs from Jan 2014                                             */
-	/* www.cisco.com/c/dam/en/us/td/docs/wireless/asr_5000/15-0/15-0-AAA-Reference.pdf  */
-	/* SN-Volume-Quota-Threshold */
+	/* Cisco ASR 5000 Series AAA Interface                              */
+	/* Administration and Reference                                     */
+	/* Release 8.x and 9.0                                              */
+	/* Last Updated June 30, 2010                                       */
+	/* updated using v15 docs from Jan 2014                             */
+	/* www.cisco.com/c/dam/en/us/td/docs/wireless/asr_5000/15-0/15-0-AAA-Reference.pdf */
+	/* SN-Volume-Quota-Threshold, Unsigned32, code 501                  */
 	{
 		struct dict_avp_data data = {
 			501,	/* Code */
@@ -106,7 +112,7 @@ static int dict_dcca_starent_entry(char * conffile)
 		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
 	};
 
-	/* SN-Unit-Quota-Threshold */
+	/* SN-Unit-Quota-Threshold, Unsigned32, code 502                    */
 	{
 		struct dict_avp_data data = {
 			502,	/* Code */
@@ -119,7 +125,7 @@ static int dict_dcca_starent_entry(char * conffile)
 		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
 	};
 
-	/* SN-Time-Quota-Threshold */
+	/* SN-Time-Quota-Threshold, Unsigned32, code 503                    */
 	{
 		struct dict_avp_data data = {
 			503,	/* Code */
@@ -132,7 +138,7 @@ static int dict_dcca_starent_entry(char * conffile)
 		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
 	};
 
-	/* SN-Total-Used-Service-Unit */
+	/* SN-Total-Used-Service-Unit, Grouped, code 504                    */
 	{
 		struct dict_avp_data data = {
 			504,	/* Code */
@@ -145,7 +151,7 @@ static int dict_dcca_starent_entry(char * conffile)
 		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
 	};
 
-	/* SN-Absolute-Validity-Time */
+	/* SN-Absolute-Validity-Time, Time, code 505                        */
 	{
 		struct dict_avp_data data = {
 			505,	/* Code */
@@ -158,7 +164,7 @@ static int dict_dcca_starent_entry(char * conffile)
 		CHECK_dict_new(DICT_AVP, &data, Time_type, NULL);
 	};
 
-	/* SN-Bandwidth-Control */
+	/* SN-Bandwidth-Control, Enumerated, code 512                       */
 	{
 		struct dict_avp_data data = {
 			512,	/* Code */
@@ -168,13 +174,13 @@ static int dict_dcca_starent_entry(char * conffile)
 			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flag values */
 			AVP_TYPE_INTEGER32	/* base type of data */
 		};
-		struct dict_object		*type;
+		struct dict_object	*type;
 		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "Enumerated(Starent/SN-Bandwidth-Control)", NULL, NULL, NULL };
 		CHECK_dict_new(DICT_TYPE, &tdata, NULL, &type);
 		CHECK_dict_new(DICT_AVP, &data, type, NULL);
 	};
 
-	/* SN-Transparent-Data */
+	/* SN-Transparent-Data, OctetString, code 513                       */
 	{
 		struct dict_avp_data data = {
 			513,	/* Code */
@@ -187,7 +193,7 @@ static int dict_dcca_starent_entry(char * conffile)
 		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
 	};
 
-	/* SN-Traffic-Policy */
+	/* SN-Traffic-Policy, UTF8String, code 514                          */
 	{
 		struct dict_avp_data data = {
 			514,	/* Code */
@@ -200,7 +206,7 @@ static int dict_dcca_starent_entry(char * conffile)
 		CHECK_dict_new(DICT_AVP, &data, UTF8String_type, NULL);
 	};
 
-	/* SN-Firewall-Policy */
+	/* SN-Firewall-Policy, UTF8String, code 515                         */
 	{
 		struct dict_avp_data data = {
 			515,	/* Code */
@@ -213,7 +219,7 @@ static int dict_dcca_starent_entry(char * conffile)
 		CHECK_dict_new(DICT_AVP, &data, UTF8String_type, NULL);
 	};
 
-	/* SN-Usage-Monitoring-Control */
+	/* SN-Usage-Monitoring-Control, Grouped, code 517                   */
 	{
 		struct dict_avp_data data = {
 			517,	/* Code */
@@ -226,7 +232,7 @@ static int dict_dcca_starent_entry(char * conffile)
 		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
 	};
 
-	/* SN-Monitoring-Key */
+	/* SN-Monitoring-Key, Unsigned32, code 518                          */
 	{
 		struct dict_avp_data data = {
 			518,	/* Code */
@@ -239,7 +245,7 @@ static int dict_dcca_starent_entry(char * conffile)
 		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
 	};
 
-	/* SN-Usage-Volume */
+	/* SN-Usage-Volume, Unsigned64, code 519                            */
 	{
 		struct dict_avp_data data = {
 			519,	/* Code */
@@ -252,7 +258,7 @@ static int dict_dcca_starent_entry(char * conffile)
 		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
 	};
 
-	/* SN-Service-Flow-Detection */
+	/* SN-Service-Flow-Detection, Enumerated, code 520                  */
 	{
 		struct dict_avp_data data = {
 			520,	/* Code */
@@ -262,13 +268,13 @@ static int dict_dcca_starent_entry(char * conffile)
 			AVP_FLAG_VENDOR,	/* Fixed flag values */
 			AVP_TYPE_INTEGER32	/* base type of data */
 		};
-		struct dict_object		*type;
+		struct dict_object	*type;
 		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "Enumerated(Starent/SN-Service-Flow-Detection)", NULL, NULL, NULL };
 		CHECK_dict_new(DICT_TYPE, &tdata, NULL, &type);
 		CHECK_dict_new(DICT_AVP, &data, type, NULL);
 	};
 
-	/* SN-Usage-Monitoring */
+	/* SN-Usage-Monitoring, Enumerated, code 521                        */
 	{
 		struct dict_avp_data data = {
 			521,	/* Code */
@@ -278,13 +284,13 @@ static int dict_dcca_starent_entry(char * conffile)
 			AVP_FLAG_VENDOR,	/* Fixed flag values */
 			AVP_TYPE_INTEGER32	/* base type of data */
 		};
-		struct dict_object		*type;
+		struct dict_object	*type;
 		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "Enumerated(Starent/SN-Usage-Monitoring)", NULL, NULL, NULL };
 		CHECK_dict_new(DICT_TYPE, &tdata, NULL, &type);
 		CHECK_dict_new(DICT_AVP, &data, type, NULL);
 	};
 
-	/* SN-Session-Start-Indicator */
+	/* SN-Session-Start-Indicator, OctetString, code 522                */
 	{
 		struct dict_avp_data data = {
 			522,	/* Code */
@@ -297,7 +303,7 @@ static int dict_dcca_starent_entry(char * conffile)
 		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
 	};
 
-	/* SN-Phase0-PSAPName */
+	/* SN-Phase0-PSAPName, UTF8String, code 523                         */
 	{
 		struct dict_avp_data data = {
 			523,	/* Code */
@@ -310,7 +316,7 @@ static int dict_dcca_starent_entry(char * conffile)
 		CHECK_dict_new(DICT_AVP, &data, UTF8String_type, NULL);
 	};
 
-	/* SN-Charging-Id */
+	/* SN-Charging-Id, OctetString, code 525                            */
 	{
 		struct dict_avp_data data = {
 			525,	/* Code */
@@ -323,7 +329,7 @@ static int dict_dcca_starent_entry(char * conffile)
 		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
 	};
 
-	/* SN-Remaining-Service-Unit */
+	/* SN-Remaining-Service-Unit, Grouped, code 526                     */
 	{
 		struct dict_avp_data data = {
 			526,	/* Code */
@@ -336,7 +342,7 @@ static int dict_dcca_starent_entry(char * conffile)
 		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
 	};
 
-	/* SN-Service-Start-Timestamp */
+	/* SN-Service-Start-Timestamp, Time, code 527                       */
 	{
 		struct dict_avp_data data = {
 			527,	/* Code */
@@ -349,7 +355,7 @@ static int dict_dcca_starent_entry(char * conffile)
 		CHECK_dict_new(DICT_AVP, &data, Time_type, NULL);
 	};
 
-	/* SN-Rulebase-Id */
+	/* SN-Rulebase-Id, UTF8String, code 528                             */
 	{
 		struct dict_avp_data data = {
 			528,	/* Code */
@@ -362,7 +368,7 @@ static int dict_dcca_starent_entry(char * conffile)
 		CHECK_dict_new(DICT_AVP, &data, UTF8String_type, NULL);
 	};
 
-	/* SN-CF-Policy-ID */
+	/* SN-CF-Policy-ID, Unsigned32, code 529                            */
 	{
 		struct dict_avp_data data = {
 			529,	/* Code */
@@ -375,7 +381,7 @@ static int dict_dcca_starent_entry(char * conffile)
 		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
 	};
 
-	/* SN-Charging-Collection-Function-Name */
+	/* SN-Charging-Collection-Function-Name, UTF8String, code 530       */
 	{
 		struct dict_avp_data data = {
 			530,	/* Code */
@@ -388,7 +394,7 @@ static int dict_dcca_starent_entry(char * conffile)
 		CHECK_dict_new(DICT_AVP, &data, UTF8String_type, NULL);
 	};
 
-	/* SN-Fast-Reauth-Username */
+	/* SN-Fast-Reauth-Username, OctetString, code 11010                 */
 	{
 		struct dict_avp_data data = {
 			11010,	/* Code */
@@ -401,7 +407,7 @@ static int dict_dcca_starent_entry(char * conffile)
 		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
 	};
 
-	/* SN-Pseudonym-Username */
+	/* SN-Pseudonym-Username, OctetString, code 11011                   */
 	{
 		struct dict_avp_data data = {
 			11011,	/* Code */
@@ -414,7 +420,9 @@ static int dict_dcca_starent_entry(char * conffile)
 		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
 	};
 
-
+	/*==================================================================*/
+	/* End of generated data.                                           */
+	/*==================================================================*/
 
 	/* Rules section */
 
