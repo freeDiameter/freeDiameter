@@ -322,7 +322,7 @@
 | ULA-Flags                                                     | 1406 |           7.3.8 | Unsigned32       | M,V  |     |          |          | N    |
 | Visited-PLMN-Id                                               | 1407 |           7.3.9 | OctetString      | M,V  |     |          |          | N    |
 | Requested-EUTRAN-Authentication-Info                          | 1408 |          7.3.11 | Grouped          | M,V  |     |          |          | N    |
-| Requested-UTRAN- GERAN-Authentication-Info                    | 1409 |          7.3.12 | Grouped          | M,V  |     |          |          | N    |
+| Requested-UTRAN-GERAN-Authentication-Info                     | 1409 |          7.3.12 | Grouped          | M,V  |     |          |          | N    |
 | Number-Of-Requested-Vectors                                   | 1410 |          7.3.14 | Unsigned32       | M,V  |     |          |          | N    |
 | Re-Synchronization-Info                                       | 1411 |          7.3.15 | OctetString      | M,V  |     |          |          | N    |
 | Immediate-Response-Preferred                                  | 1412 |          7.3.16 | Unsigned32       | M,V  |     |          |          | N    |
