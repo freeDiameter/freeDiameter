@@ -174,7 +174,6 @@ static int dict_dcca_3gpp_entry(char * conffile)
 	CHECK_dict_search( DICT_TYPE, TYPE_BY_NAME, "IPFilterRule", &IPFilterRule_type);
 	CHECK_dict_search( DICT_TYPE, TYPE_BY_NAME, "Time", &Time_type);
 	CHECK_dict_search( DICT_TYPE, TYPE_BY_NAME, "UTF8String", &UTF8String_type);
-	
 
 	/* The following is created automatically. Do not modify. */
 	/* Changes will be lost during the next update. Modify the source org file instead. */
@@ -5280,12 +5279,15 @@ static int dict_dcca_3gpp_entry(char * conffile)
 		CHECK_dict_new(DICT_AVP, &data, type, NULL);
 	};
 
-	/* MME-LocationInformation */
+	/* 3GPP TS 29.272 table 7.3.1/1 incorrectly has a space         */
+	/* instead of hyphen in the row for MME-Location-Information.   */
+	/* Generated name renamed from MME-LocationInformation.         */
+	/* MME-Location-Information */
 	{
 		struct dict_avp_data data = {
 			1600,	/* Code */
 			10415,	/* Vendor */
-			"MME-LocationInformation",	/* Name */
+			"MME-Location-Information",	/* Name */
 			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
 			AVP_FLAG_VENDOR,	/* Fixed flag values */
 			AVP_TYPE_GROUPED	/* base type of data */
@@ -10254,8 +10256,6 @@ static int dict_dcca_3gpp_entry(char * conffile)
 	/* end of generated data, rules below added manually */
 	/*****************************************************/
 
-
-	
 	/* 3GPP2-BSID */
 	{
 		struct dict_avp_data data = {

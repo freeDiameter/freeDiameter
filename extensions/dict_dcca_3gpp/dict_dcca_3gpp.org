@@ -414,7 +414,10 @@
 | MME-User-State                                                | 1497 |         7.3.112 | Grouped          | V    |     |          | M        | N    |
 | SGSN-User-State                                               | 1498 |         7.3.113 | Grouped          | V    |     |          | M        | N    |
 | User-State                                                    | 1499 |         7.3.114 | Enumerated       | V    |     |          | M        | N    |
-| MME-Location Information                                      | 1600 |         7.3.115 | Grouped          | V    |     |          | M        | N    |
+| # 3GPP TS 29.272 table 7.3.1/1 incorrectly has a space        |      |                 |                  |      |     |          |          |      |
+| # instead of hyphen in the row for MME-Location-Information.  |      |                 |                  |      |     |          |          |      |
+| # Generated name renamed from MME-LocationInformation.        |      |                 |                  |      |     |          |          |      |
+| MME-Location-Information                                      | 1600 |         7.3.115 | Grouped          | V    |     |          | M        | N    |
 | SGSN-Location-Information                                     | 1601 |         7.3.116 | Grouped          | V    |     |          | M        | N    |
 | E-UTRAN-Cell-Global-Identity                                  | 1602 |         7.3.117 | OctetString      | V    |     |          | M        | N    |
 | Tracking-Area-Identity                                        | 1603 |         7.3.118 | OctetString      | V    |     |          | M        | N    |

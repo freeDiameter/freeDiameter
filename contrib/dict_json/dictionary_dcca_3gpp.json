@@ -8435,7 +8435,7 @@
         "Must": "V",
         "MustNot": "M"
       },
-      "Name": "MME-LocationInformation",
+      "Name": "MME-Location-Information",
       "Type": "Grouped",
       "Vendor": 10415
     },
