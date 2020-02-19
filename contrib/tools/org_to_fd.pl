@@ -70,18 +70,17 @@ print "\t/* The following is created automatically. Do not modify. */\n";
 print "\t/* Changes will be lost during the next update. Modify the source org file instead. */\n\n";
 
 while (<>) {
-    my ($dummy, $name, $code, $section, $type, $must, $may, $shouldnot, $mustnot, $encr) = split /\|/;
+    my ($dummy, $name, $code, $section, $type, $must, $may, $shouldnot, $mustnot, $encr) = split /\s*\|\s*/;
 
     next if ($name =~ m/Attribute Name/);
-    if ($name =~ m/ # (.*)/) {
-        print "\t/* $1 */\n";
+    if ($name =~ m/# (.*)/) {
+        printf "\t/* %-60s */\n", $1;
         next;
     }
-        
 
-    $name =~ s/ *//g;
-    $code =~ s/ *//g;
-    $type =~ s/ *//g;
+    if ($name =~ m/\s/) {
+	die(sprintf("name '%s' contains space", $name));
+    }
 
     print "\t/* $name */\n\t{\n\t\tstruct dict_avp_data data = {\n";
     print "\t\t\t$code,\t/* Code */\n";
