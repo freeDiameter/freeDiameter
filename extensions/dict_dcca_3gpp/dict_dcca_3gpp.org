@@ -312,7 +312,7 @@
 | User-Data-Already-Available                                   |  624 |          6.3.26 | Enumerated       | M,V  |     |          |          | N    |
 | Visited-Network-Identifier                                    |  600 |           6.3.1 | OctetString      | M,V  |     |          |          | N    |
 | Wildcarded-Public-Identity                                    |  634 |          6.3.35 | UTF8String       | V    |     |          | M        | N    |
-| # 3GPP 29.272-c00 (12.0.0 2013.03.13)                         |      |                 |                  |      |     |          |          |      |
+| # 3GPP 29.272-c50 (12.5.0 2014-06)                            |      |                 |                  |      |     |          |          |      |
 | Subscription-Data                                             | 1400 |           7.3.2 | Grouped          | M,V  |     |          |          | N    |
 | Terminal-Information                                          | 1401 |           7.3.3 | Grouped          | M,V  |     |          |          | N    |
 | IMEI                                                          | 1402 |           7.3.4 | UTF8String       | M,V  |     |          |          | N    |
@@ -386,7 +386,10 @@
 | GMLC-Number                                                   | 1474 |          7.3.85 | OctetString      | M,V  |     |          |          | N    |
 | LCS-PrivacyException                                          | 1475 |          7.3.86 | Grouped          | M,V  |     |          |          | N    |
 | SS-Code                                                       | 1476 |          7.3.87 | OctetString      | M,V  |     |          |          | N    |
-| SS-Status                                                     | 1477 |          7.3.88 | Grouped          | M,V  |     |          |          | N    |
+| # 3GPP TS 29.272 V12.5.0 (2014-06) corrected table 7.3.1/1    |      |                 |                  |      |     |          |          |      |
+| # row SS-Status to be OctetString instead of Grouped.         |      |                 |                  |      |     |          |          |      |
+| # Clause 7.3.88 already described SS-Status as OctetString.   |      |                 |                  |      |     |          |          |      |
+| SS-Status                                                     | 1477 |          7.3.88 | OctetString      | M,V  |     |          |          | N    |
 | Notification-To-UE-User                                       | 1478 |          7.3.89 | Enumerated       | M,V  |     |          |          | N    |
 | External-Client                                               | 1479 |          7.3.90 | Grouped          | M,V  |     |          |          | N    |
 | Client-Identity                                               | 1480 |          7.3.91 | OctetString      | M,V  |     |          |          | N    |

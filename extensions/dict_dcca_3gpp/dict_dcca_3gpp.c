@@ -3969,7 +3969,7 @@ static int dict_dcca_3gpp_entry(char * conffile)
 		CHECK_dict_new(DICT_AVP, &data, UTF8String_type, NULL);
 	};
 
-	/* 3GPP 29.272-c00 (12.0.0 2013.03.13)                          */
+	/* 3GPP 29.272-c50 (12.5.0 2014-06)                             */
 	/* Subscription-Data */
 	{
 		struct dict_avp_data data = {
@@ -4955,6 +4955,9 @@ static int dict_dcca_3gpp_entry(char * conffile)
 		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
 	};
 
+	/* 3GPP TS 29.272 V12.5.0 (2014-06) corrected table 7.3.1/1     */
+	/* row SS-Status to be OctetString instead of Grouped.          */
+	/* Clause 7.3.88 already described SS-Status as OctetString.    */
 	/* SS-Status */
 	{
 		struct dict_avp_data data = {
@@ -4963,7 +4966,7 @@ static int dict_dcca_3gpp_entry(char * conffile)
 			"SS-Status",	/* Name */
 			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
 			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flag values */
-			AVP_TYPE_GROUPED	/* base type of data */
+			AVP_TYPE_OCTETSTRING	/* base type of data */
 		};
 		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
 	};
