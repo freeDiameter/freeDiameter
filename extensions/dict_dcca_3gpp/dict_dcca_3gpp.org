@@ -400,7 +400,9 @@
 | MO-LR                                                         | 1485 |          7.3.96 | Grouped          | M,V  |     |          |          | N    |
 | Teleservice-List                                              | 1486 |          7.3.99 | Grouped          | M,V  |     |          |          | N    |
 | TS-Code                                                       | 1487 |         7.3.100 | OctetString      | M,V  |     |          |          | N    |
-| Call-Barring-Infor-List                                       | 1488 |         7.3.101 | Grouped          | M,V  |     |          |          | N    |
+| # 3GPP TS 29.272 V12.4.0 (2014-03) renamed                    |      |                 |                  |      |     |          |          |      |
+| # Call-Barring-Infor-List to Call-Barring-Info.               |      |                 |                  |      |     |          |          |      |
+| Call-Barring-Info                                             | 1488 |         7.3.101 | Grouped          | M,V  |     |          |          | N    |
 | SGSN-Number                                                   | 1489 |         7.3.102 | OctetString      | M,V  |     |          |          | N    |
 | IDR-Flags                                                     | 1490 |         7.3.103 | Unsigned32       | M,V  |     |          |          | N    |
 | ICS-Indicator                                                 | 1491 |         7.3.104 | Enumerated       | V    |     |          | M        | N    |

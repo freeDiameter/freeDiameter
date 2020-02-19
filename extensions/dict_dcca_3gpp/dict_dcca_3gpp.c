@@ -5110,12 +5110,14 @@ static int dict_dcca_3gpp_entry(char * conffile)
 		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
 	};
 
-	/* Call-Barring-Infor-List */
+	/* 3GPP TS 29.272 V12.4.0 (2014-03) renamed                     */
+	/* Call-Barring-Infor-List to Call-Barring-Info.                */
+	/* Call-Barring-Info */
 	{
 		struct dict_avp_data data = {
 			1488,	/* Code */
 			10415,	/* Vendor */
-			"Call-Barring-Infor-List",	/* Name */
+			"Call-Barring-Info",	/* Name */
 			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
 			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flag values */
 			AVP_TYPE_GROUPED	/* base type of data */
