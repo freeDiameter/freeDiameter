@@ -506,7 +506,7 @@
 | Repository-Data-ID                                            |  715 |          6.3.24 | Grouped          | V    |     |          | M        | N    |
 | Sequence-Number                                               |  716 |          6.3.25 | Unsigned32       | V    |     |          | M        | N    |
 | UDR-Flags                                                     |  719 |          6.3.28 | Unsigned32       | V    |     |          | M        | N    |
-| # 3GPP 32.299-b60 (11.6.0 2012.12.21)                         |      |                 |                  |      |     |          |          |      |
+| # 3GPP 32.299-b80 (11.8.0 2013-07)                            |      |                 |                  |      |     |          |          |      |
 | AF-Correlation-Information                                    | 1276 |                 | Grouped          | M,V  | P   |          |          | N    |
 | Access-Network-Information                                    | 1263 |                 | OctetString      | M,V  | P   |          |          | N    |
 | Access-Transfer-Information                                   | 2709 |                 | Grouped          | M,V  | P   |          |          | N    |
@@ -615,7 +615,10 @@
 | Location-Type                                                 | 1244 |                 | Grouped          | M,V  | P   |          |          | N    |
 | Low-Balance-Indication                                        | 2020 |                 | Enumerated       | M,V  | P   |          |          | N    |
 | Low-Priority-Indicator                                        | 2602 |                 | Enumerated       | M,V  | P   |          |          | N    |
-| MBMS GW-Address                                               | 2307 |                 | Address          | M,V  | P   |          |          | N    |
+| # 3GPP TS 32.299 V11.8.0 (2013-07) corrected table 7.2        |      |                 |                  |      |     |          |          |      |
+| # to have a hyphen instead of space in the name.              |      |                 |                  |      |     |          |          |      |
+| # Generated name renamed from MBMSGW-Address.                 |      |                 |                  |      |     |          |          |      |
+| MBMS-GW-Address                                               | 2307 |                 | Address          | M,V  | P   |          |          | N    |
 | MBMS-Information                                              |  880 |                 | Grouped          | M,V  | P   |          |          | N    |
 | MBMS-User-Service-Type                                        | 1225 |                 | Enumerated       | M,V  | P   |          |          | Y    |
 | MM-Content-Type                                               | 1203 |                 | Grouped          | M,V  | P   |          |          | N    |

@@ -6367,7 +6367,7 @@ static int dict_dcca_3gpp_entry(char * conffile)
 		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
 	};
 
-	/* 3GPP 32.299-b60 (11.6.0 2012.12.21)                          */
+	/* 3GPP 32.299-b80 (11.8.0 2013-07)                             */
 	/* AF-Correlation-Information */
 	{
 		struct dict_avp_data data = {
@@ -7862,12 +7862,15 @@ static int dict_dcca_3gpp_entry(char * conffile)
 		CHECK_dict_new(DICT_AVP, &data, type, NULL);
 	};
 
-	/* MBMSGW-Address */
+	/* 3GPP TS 32.299 V11.8.0 (2013-07) corrected table 7.2         */
+	/* to have a hyphen instead of space in the name.               */
+	/* Generated name renamed from MBMSGW-Address.                  */
+	/* MBMS-GW-Address */
 	{
 		struct dict_avp_data data = {
 			2307,	/* Code */
 			10415,	/* Vendor */
-			"MBMSGW-Address",	/* Name */
+			"MBMS-GW-Address",	/* Name */
 			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
 			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flag values */
 			AVP_TYPE_OCTETSTRING	/* base type of data */
