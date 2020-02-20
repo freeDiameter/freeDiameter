@@ -99,6 +99,10 @@ while (<>) {
         print_comment($1);
         next;
     }
+    if ($name =~ m/#/) {
+        print("\n");
+        next;
+    }
 
     if ($name =~ m/\s/) {
         die(sprintf("name '%s' contains space", $name));
