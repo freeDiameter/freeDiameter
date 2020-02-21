@@ -164,6 +164,8 @@ int main(int argc, char *argv[])
 
 		/* Create the instance, using the templates */
 		CHECK( 0, fd_msg_new ( acr_model, 0, &acr ) );
+
+/* TODO: Do we need this recreated? acr is not used again . */
 	}
 	
 	/* Now let's create some additional Dictionary objects for the test */
@@ -700,7 +702,7 @@ int main(int argc, char *argv[])
 			struct avp 	   * grouped = NULL;
 			struct avp_hdr     * avpdata = NULL;
 			
-			/* Now find the ACR dictionary object */
+			/* Now find the Test f32 AVP dictionary object */
 			CHECK( 0, fd_dict_search ( fd_g_config->cnf_dict, DICT_AVP, AVP_BY_NAME, "AVP Test - no vendor - f32", &avp_model, ENOENT ) );
 			
 			CPYBUF();
@@ -1115,6 +1117,8 @@ int main(int argc, char *argv[])
 				fd_log_debug("%s", fd_msg_dump_treeview(FD_DUMP_TEST_PARAMS, msg, fd_g_config->cnf_dict, 0, 1));
 				
 				TODO("Check the Failed-AVP is as expected");
+
+				CHECK( 0, fd_msg_free( msg ) );
 			}
 			
 		}
@@ -1509,7 +1513,7 @@ int main(int argc, char *argv[])
 			CHECK( 0, fd_msg_new ( cmd_model, 0, &msg ) );
 
 			/* Add a session id */
-			CHECK( 0, fd_msg_new_session( msg, (os0_t)"tm2", strlen("tm2") ) );
+			CHECK( 0, fd_msg_new_session( msg, (os0_t)"testmsg", strlen("testmsg") ) );
 
 			/* Find the DICT_TYPE Enumerated(Result-Code) */
 			struct dict_object * restype = NULL;
@@ -1553,7 +1557,7 @@ int main(int argc, char *argv[])
 			CHECK( 0, fd_msg_new ( cmd_model, 0, &msg ) );
 
 			/* Add a session id */
-			CHECK( 0, fd_msg_new_session( msg, (os0_t)"tm2", strlen("tm2") ) );
+			CHECK( 0, fd_msg_new_session( msg, (os0_t)"testmsg", strlen("testmsg") ) );
 
 			/* Find the DICT_TYPE Enumerated(73565/Experimental-Result-Code) */
 			struct dict_object * restype = NULL;
