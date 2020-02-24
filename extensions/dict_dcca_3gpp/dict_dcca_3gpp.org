@@ -227,7 +227,10 @@
 | # S15-specific                                                |      |                 |                  |      |     |          |          |      |
 | CS-Service-Qos-Request-Identifier                             | 2807 |         E.6.3.2 | OctetString      | M,V  | P   |          |          | Y    |
 | CS-Service-QoS-Request-Operation                              | 2808 |         E.6.3.3 | Enumerated       | M,V  | P   |          |          | Y    |
-| # 3GPP 29.214-b80 (11.8.0 2013.03.15)                         |      |                 |                  |      |     |          |          |      |
+| #                                                             |      |                 |                  |      |     |          |          |      |
+| # 3GPP TS 29.214 V15.7.0 (2019-09)                            |      |                 |                  |      |     |          |          |      |
+| # From 3GPP 29214-f70.doc                                     |      |                 |                  |      |     |          |          |      |
+| #                                                             |      |                 |                  |      |     |          |          |      |
 | Abort-Cause                                                   |  500 |           5.3.1 | Enumerated       | M,V  | P   |          |          | Y    |
 | Access-Network-Charging-Address                               |  501 |           5.3.2 | Address          | M,V  | P   |          |          | Y    |
 | Access-Network-Charging-Identifier                            |  502 |           5.3.3 | Grouped          | M,V  | P   |          |          | Y    |
@@ -235,34 +238,65 @@
 | Acceptable-Service-Info                                       |  526 |          5.3.24 | Grouped          | M,V  | P   |          |          | Y    |
 | AF-Application-Identifier                                     |  504 |           5.3.5 | OctetString      | M,V  | P   |          |          | Y    |
 | AF-Charging-Identifier                                        |  505 |           5.3.6 | OctetString      | M,V  | P   |          |          | Y    |
+| AF-Requested-Data                                             |  551 |          5.3.50 | Unsigned32       | V    | P   |          | M        | Y    |
+| AF-Signalling-Protocol                                        |  529 |          5.3.26 | Enumerated       | V    | P   |          | M        | Y    |
 | Application-Service-Provider-Identity                         |  532 |          5.3.29 | UTF8String       | V    | P   |          | M        | Y    |
 | Codec-Data                                                    |  524 |           5.3.7 | OctetString      | M,V  | P   |          |          | Y    |
+| Content-Version                                               |  552 |          5.3.49 | Unsigned64       | V    | P   |          | M        | Y    |
+| Extended-Max-Requested-BW-DL                                  |  554 |          5.3.52 | Unsigned32       | V    | P   |          | M        | Y    |
+| Extended-Max-Requested-BW-UL                                  |  555 |          5.3.53 | Unsigned32       | V    | P   |          | M        | Y    |
+| Extended-Max-Supported-BW-DL                                  |  556 |          5.3.54 | Unsigned32       | V    | P   |          | M        | Y    |
+| Extended-Max-Supported-BW-UL                                  |  557 |          5.3.55 | Unsigned32       | V    | P   |          | M        | Y    |
+| Extended-Min-Desired-BW-DL                                    |  558 |          5.3.56 | Unsigned32       | V    | P   |          | M        | Y    |
+| Extended-Min-Desired-BW-UL                                    |  559 |          5.3.57 | Unsigned32       | V    | P   |          | M        | Y    |
+| Extended-Min-Requested-BW-DL                                  |  560 |          5.3.58 | Unsigned32       | V    | P   |          | M        | Y    |
+| Extended-Min-Requested-BW-UL                                  |  561 |          5.3.59 | Unsigned32       | V    | P   |          | M        | Y    |
 | Flow-Description                                              |  507 |           5.3.8 | IPFilterRule     | M,V  | P   |          |          | Y    |
 | Flow-Number                                                   |  509 |           5.3.9 | Unsigned32       | M,V  | P   |          |          | Y    |
 | Flows                                                         |  510 |          5.3.10 | Grouped          | M,V  | P   |          |          | Y    |
 | Flow-Status                                                   |  511 |          5.3.11 | Enumerated       | M,V  | P   |          |          | Y    |
 | Flow-Usage                                                    |  512 |          5.3.12 | Enumerated       | M,V  | P   |          |          | Y    |
-| Service-URN                                                   |  525 |          5.3.23 | OctetString      | M,V  | P   |          |          | Y    |
-| Specific-Action                                               |  513 |          5.3.13 | Enumerated       | M,V  | P   |          |          | Y    |
+| GCS-Identifier                                                |  538 |          5.3.36 | OctetString      | V    | P   |          | M        | Y    |
+| # 3GPP TS 29.214 table 5.3.0.1 row IMS-Content-Identifier     |      |                 |                  |      |     |          |          |      |
+| # missing M, assume MUST NOT.                                 |      |                 |                  |      |     |          |          |      |
+| IMS-Content-Identifier                                        |  563 |          5.3.60 | OctetString      | V    | P   |          | M        | Y    |
+| # 3GPP TS 29.214 table 5.3.0.1 row IMS-Content                |      |                 |                  |      |     |          |          |      |
+| # missing M, assume MUST NOT.                                 |      |                 |                  |      |     |          |          |      |
+| IMS-Content-Type                                              |  564 |          5.3.61 | Enumerated       | V    | P   |          | M        | Y    |
+| IP-Domain-Id                                                  |  537 |          5.3.35 | OctetString      | V    | P   |          | M        | Y    |
 | Max-Requested-Bandwidth-DL                                    |  515 |          5.3.14 | Unsigned32       | M,V  | P   |          |          | Y    |
 | Max-Requested-Bandwidth-UL                                    |  516 |          5.3.15 | Unsigned32       | M,V  | P   |          |          | Y    |
+| Max-Supported-Bandwidth-DL                                    |  543 |          5.3.41 | Unsigned32       | V    | P   |          | M        | Y    |
+| Max-Supported-Bandwidth-UL                                    |  544 |          5.3.42 | Unsigned32       | V    | P   |          | M        | Y    |
+| MCPTT-Identifier                                              |  547 |          5.3.45 | OctetString      | V    | P   |          | M        | Y    |
+| MCVideo-Identifier                                            |  562 |         5.3.45a | OctetString      | V    | P   |          | M        | Y    |
 | Media-Component-Description                                   |  517 |          5.3.16 | Grouped          | M,V  | P   |          |          | Y    |
 | Media-Component-Number                                        |  518 |          5.3.17 | Unsigned32       | M,V  | P   |          |          | Y    |
+| Media-Component-Status                                        |  549 |          5.3.48 | Unsigned32       | V    | P   |          | M        | Y    |
 | Media-Sub-Component                                           |  519 |          5.3.18 | Grouped          | M,V  | P   |          |          | Y    |
 | Media-Type                                                    |  520 |          5.3.19 | Enumerated       | M,V  | P   |          |          | Y    |
 | MPS-Identifier                                                |  528 |          5.3.30 | OctetString      | V    | P   |          | M        | Y    |
+| Min-Desired-Bandwidth-DL                                      |  545 |          5.3.43 | Unsigned32       | V    | P   |          | M        |      |
+| Min-Desired-Bandwidth-UL                                      |  546 |          5.3.44 | Unsigned32       | V    | P   |          | M        |      |
 | Min-Requested-Bandwidth-DL                                    |  534 |          5.3.32 | Unsigned32       | V    | P   |          | M        | Y    |
 | Min-Requested-Bandwidth-UL                                    |  535 |          5.3.33 | Unsigned32       | V    | P   |          | M        | Y    |
+| Priority-Sharing-Indicator                                    |  550 |          5.3.47 | Enumerated       | V    | P   |          | M        | Y    |
+| Pre-emption-Control-Info                                      |  553 |          5.3.51 | Unsigned32       | V    | P   |          | M        | Y    |
+| Required-Access-Info                                          |  536 |          5.3.34 | Enumerated       | V    | P   |          | M        | Y    |
+| Retry-Interval                                                |  541 |          5.3.39 | Unsigned32       | V    | P   |          | M        | Y    |
+| Rx-Request-Type                                               |  533 |          5.3.31 | Enumerated       | V    | P   |          | M        | Y    |
 | RR-Bandwidth                                                  |  521 |          5.3.20 | Unsigned32       | M,V  | P   |          |          | Y    |
 | RS-Bandwidth                                                  |  522 |          5.3.21 | Unsigned32       | M,V  | P   |          |          | Y    |
+| Service-Authorization-Info                                    |  548 |          5.3.46 | Unsigned32       | V    | P   |          | M        | Y    |
+| Service-URN                                                   |  525 |          5.3.23 | OctetString      | M,V  | P   |          |          | Y    |
 | Service-Info-Status                                           |  527 |          5.3.25 | Enumerated       | M,V  | P   |          |          | Y    |
+| Sharing-Key-DL                                                |  539 |          5.3.37 | Unsigned32       | V    | P   |          | M        | Y    |
+| Sharing-Key-UL                                                |  540 |          5.3.38 | Unsigned32       | V    | P   |          | M        | Y    |
+| Specific-Action                                               |  513 |          5.3.13 | Enumerated       | M,V  | P   |          |          | Y    |
 | SIP-Forking-Indication                                        |  523 |          5.3.22 | Enumerated       | M,V  | P   |          |          | Y    |
 | Sponsor-Identity                                              |  531 |          5.3.28 | UTF8String       | V    | P   |          | M        | Y    |
 | Sponsored-Connectivity-Data                                   |  530 |          5.3.27 | Grouped          | V    | P   |          | M        | Y    |
-| AF-Signalling-Protocol                                        |  529 |          5.3.26 | Enumerated       | V    | P   |          | M        | Y    |
-| Required-Access-Info                                          |  536 |          5.3.34 | Enumerated       | V    | P   |          | M        | Y    |
-| Rx-Request-Type                                               |  533 |          5.3.31 | Enumerated       | V    | P   |          | M        | Y    |
-| IP-Domain-Id                                                  |  537 |          5.3.35 | OctetString      | V    | P   |          | M        | Y    |
+| Sponsoring-Action                                             |  542 |          5.3.40 | Enumerated       | V    | P   |          | M        | Y    |
 | # 3GPP 29.229-b20 (11.2.0 2012.12.21)                         |      |                 |                  |      |     |          |          |      |
 | Associated-Identities                                         |  632 |          6.3.33 | Grouped          | V    |     |          | M        | N    |
 | Associated-Registered-Identities                              |  647 |          6.3.50 | Grouped          | V    |     |          | M        | N    |
