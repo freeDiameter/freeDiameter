@@ -1166,7 +1166,10 @@ static int dict_dcca_3gpp_entry(char * conffile)
 		CHECK_dict_new(DICT_AVP, &data, type, NULL);
 	};
 
-	/* 3GPP 29.173-c00 (12.0.0 2013.03.13)                              */
+
+	/* 3GPP TS 29.173 V15.0.0 (2018-06)                                 */
+	/* From 3GPP 29173-f00.doc                                          */
+
 	/* LMSI, OctetString, code 2400, section 6.4.2                      */
 	{
 		struct dict_avp_data data = {
@@ -1308,6 +1311,19 @@ static int dict_dcca_3gpp_entry(char * conffile)
 			AVP_TYPE_OCTETSTRING	/* base type of data */
 		};
 		CHECK_dict_new(DICT_AVP, &data, DiameterIdentity_type, NULL);
+	};
+
+	/* RIA-Flags, Unsigned32, code 2411, section 6.4.15                 */
+	{
+		struct dict_avp_data data = {
+			2411,	/* Code */
+			10415,	/* Vendor */
+			"RIA-Flags",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR,	/* Fixed flag values */
+			AVP_TYPE_UNSIGNED32	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
 	};
 
 	/* 3GPP 29.210-670 (6.7.0 2006-12-18)                               */
