@@ -1582,38 +1582,7 @@ int fd_dict_base_protocol(struct dictionary * dict)
 					};
 			CHECK_dict_new( DICT_AVP, &data , NULL, NULL);
 		}
-		
-		/* Experimental-Result */
-		{
-			/*
-				The Experimental-Result AVP (AVP Code 297) is of type Grouped, and
-				indicates whether a particular vendor-specific request was completed
-				successfully or whether an error occurred.  Its Data field has the
-				following ABNF grammar:
 
-				AVP Format
-
-				 Experimental-Result ::= < AVP Header: 297 >
-                        				 { Vendor-Id }
-                        				 { Experimental-Result-Code }
-
-				The Vendor-Id AVP (see Section 5.3.3) in this grouped AVP identifies
-				the vendor responsible for the assignment of the result code which
-				follows.  All Diameter answer messages defined in vendor-specific
-				applications MUST include either one Result-Code AVP or one
-				Experimental-Result AVP.
-			*/
-			struct dict_avp_data data = { 
-					297, 					/* Code */
-					0, 					/* Vendor */
-					"Experimental-Result", 			/* Name */
-					AVP_FLAG_VENDOR | AVP_FLAG_MANDATORY, 	/* Fixed flags */
-					AVP_FLAG_MANDATORY,			/* Fixed flag values */
-					AVP_TYPE_GROUPED 			/* base type of data */
-					};
-			CHECK_dict_new( DICT_AVP, &data , NULL, NULL);
-		}
-		
 		/* Experimental-Result-Code */
 		{
 			/*
@@ -1629,21 +1598,58 @@ int fd_dict_base_protocol(struct dictionary * dict)
 			/* Although the RFC does not specify an "Enumerated" type here, we go forward and create one.
 			 * This is the reason for the "*" in the type name. Vendors will have to define their values.
 			 */
-			struct dict_object * 	type;
-			struct dict_type_data 	tdata = { AVP_TYPE_UNSIGNED32,	"Enumerated(Experimental-Result-Code)"	, NULL, NULL, NULL };
-			struct dict_avp_data 	data = { 
-					298, 					/* Code */
-					0, 					/* Vendor */
-					"Experimental-Result-Code", 		/* Name */
-					AVP_FLAG_VENDOR | AVP_FLAG_MANDATORY, 	/* Fixed flags */
+			struct dict_object *	type;
+			struct dict_type_data	tdata = { AVP_TYPE_UNSIGNED32,	"Enumerated(Experimental-Result-Code)"	, NULL, NULL, NULL };
+			struct dict_avp_data	data = {
+					298,					/* Code */
+					0,					/* Vendor */
+					"Experimental-Result-Code",		/* Name */
+					AVP_FLAG_VENDOR | AVP_FLAG_MANDATORY,	/* Fixed flags */
 					AVP_FLAG_MANDATORY,			/* Fixed flag values */
-					AVP_TYPE_UNSIGNED32 			/* base type of data */
+					AVP_TYPE_UNSIGNED32			/* base type of data */
 					};
-			
+
 			CHECK_dict_new( DICT_TYPE, &tdata , NULL, &type);
 			CHECK_dict_new( DICT_AVP, &data , type, NULL);
 		}
-		
+
+		/* Experimental-Result */
+		{
+			/*
+				The Experimental-Result AVP (AVP Code 297) is of type Grouped, and
+				indicates whether a particular vendor-specific request was completed
+				successfully or whether an error occurred.  Its Data field has the
+				following ABNF grammar:
+
+				AVP Format
+
+				 Experimental-Result ::= < AVP Header: 297 >
+							{ Vendor-Id }
+							{ Experimental-Result-Code }
+
+				The Vendor-Id AVP (see Section 5.3.3) in this grouped AVP identifies
+				the vendor responsible for the assignment of the result code which
+				follows.  All Diameter answer messages defined in vendor-specific
+				applications MUST include either one Result-Code AVP or one
+				Experimental-Result AVP.
+			*/
+			struct dict_object *	avp = NULL;
+			struct dict_avp_data	data = {
+					297,					/* Code */
+					0,					/* Vendor */
+					"Experimental-Result",			/* Name */
+					AVP_FLAG_VENDOR | AVP_FLAG_MANDATORY,	/* Fixed flags */
+					AVP_FLAG_MANDATORY,			/* Fixed flag values */
+					AVP_TYPE_GROUPED			/* base type of data */
+					};
+			struct local_rules_definition rules[] = {
+				{ "Vendor-Id",			RULE_REQUIRED, -1, 1 },
+				{ "Experimental-Result-Code",	RULE_REQUIRED, -1, 1 },
+				};
+			CHECK_dict_new( DICT_AVP, &data , NULL, &avp);
+			PARSE_loc_rules( rules, avp );
+		}
+
 		/* Auth-Request-Type */
 		{
 			/*
