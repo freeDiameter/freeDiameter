@@ -49,6 +49,10 @@ TODO List
 * add mutex on mysql writing
 * check multithreading of mysql!
 * get destination host in database for RTR and PPR
+* libapp_sip.c: fix username_pure memory leaks
+* app_sip_MAR_cb:
+  - too much mysql_real_escape_string() use, both within the function and functions it calls
+  - on error, leaks allocated: sipuri, username, query.
 
 
 

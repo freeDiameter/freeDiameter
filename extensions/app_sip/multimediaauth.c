@@ -148,7 +148,7 @@ int app_sip_MAR_cb( struct msg ** msg, struct avp * paramavp, struct session * s
 				
 				if(not_found)
 				{
-					TRACE_DEBUG(FULL,"The user %s doesn't exist!",username);
+					TRACE_DEBUG(FULL,"The user %s doesn't exist!", avphdr->avp_value->os.data);
 					result="DIAMETER_ERROR_USER_UNKNOWN";
 					free(username);	
 					goto out;
