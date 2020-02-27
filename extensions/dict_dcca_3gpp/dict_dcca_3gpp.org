@@ -548,8 +548,12 @@
 | Local-Time-Zone                                               | 1649 |         7.3.156 | Grouped          | V    |     |          | M        | N    |
 | Daylight-Saving-Time                                          | 1650 |         7.3.164 | Enumerated       | V    |     |          | M        | N    |
 | Subscription-Data-Flags                                       | 1654 |         7.3.165 | Unsigned32       | V    |     |          | M        | N    |
-| Measurement-Period-UMTS                                       | 1655 |         7.3.166 | Enumerated       | V    |     |          | M        | N    |
-| Measurement-Period-LTE                                        | 1656 |         7.3.167 | Enumerated       | V    |     |          | M        | N    |
+| # 3GPP TS 29.272 V12.9.0 (2015-12) changed AVP code of        |      |                 |                  |      |     |          |          |      |
+| # Measurement-Period-LTE from 1656 to 1655.                   |      |                 |                  |      |     |          |          |      |
+| Measurement-Period-LTE                                        | 1655 |         7.3.166 | Enumerated       | V    |     |          | M        | N    |
+| # 3GPP TS 29.272 V12.9.0 (2015-12) changed AVP code of        |      |                 |                  |      |     |          |          |      |
+| # Measurement-Period-UMTS from 1655 to 1656.                  |      |                 |                  |      |     |          |          |      |
+| Measurement-Period-UMTS                                       | 1656 |         7.3.167 | Enumerated       | V    |     |          | M        | N    |
 | Collection-Period-RRM-LTE                                     | 1657 |         7.3.168 | Enumerated       | V    |     |          | M        | N    |
 | Collection-Period-RRM-UMTS                                    | 1658 |         7.3.169 | Enumerated       | V    |     |          | M        | N    |
 | Positioning-Method                                            | 1659 |         7.3.170 | OctetString      | V    |     |          | M        | N    |

@@ -6884,26 +6884,12 @@ static int dict_dcca_3gpp_entry(char * conffile)
 		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
 	};
 
-	/* Measurement-Period-UMTS, Enumerated, code 1655, section 7.3.166  */
+	/* 3GPP TS 29.272 V12.9.0 (2015-12) changed AVP code of             */
+	/* Measurement-Period-LTE from 1656 to 1655.                        */
+	/* Measurement-Period-LTE, Enumerated, code 1655, section 7.3.166   */
 	{
 		struct dict_avp_data data = {
 			1655,	/* Code */
-			10415,	/* Vendor */
-			"Measurement-Period-UMTS",	/* Name */
-			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
-			AVP_FLAG_VENDOR,	/* Fixed flag values */
-			AVP_TYPE_INTEGER32	/* base type of data */
-		};
-		struct dict_object	*type;
-		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "Enumerated(3GPP/Measurement-Period-UMTS)", NULL, NULL, NULL };
-		CHECK_dict_new(DICT_TYPE, &tdata, NULL, &type);
-		CHECK_dict_new(DICT_AVP, &data, type, NULL);
-	};
-
-	/* Measurement-Period-LTE, Enumerated, code 1656, section 7.3.167   */
-	{
-		struct dict_avp_data data = {
-			1656,	/* Code */
 			10415,	/* Vendor */
 			"Measurement-Period-LTE",	/* Name */
 			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
@@ -6912,6 +6898,24 @@ static int dict_dcca_3gpp_entry(char * conffile)
 		};
 		struct dict_object	*type;
 		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "Enumerated(3GPP/Measurement-Period-LTE)", NULL, NULL, NULL };
+		CHECK_dict_new(DICT_TYPE, &tdata, NULL, &type);
+		CHECK_dict_new(DICT_AVP, &data, type, NULL);
+	};
+
+	/* 3GPP TS 29.272 V12.9.0 (2015-12) changed AVP code of             */
+	/* Measurement-Period-UMTS from 1655 to 1656.                       */
+	/* Measurement-Period-UMTS, Enumerated, code 1656, section 7.3.167  */
+	{
+		struct dict_avp_data data = {
+			1656,	/* Code */
+			10415,	/* Vendor */
+			"Measurement-Period-UMTS",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR,	/* Fixed flag values */
+			AVP_TYPE_INTEGER32	/* base type of data */
+		};
+		struct dict_object	*type;
+		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "Enumerated(3GPP/Measurement-Period-UMTS)", NULL, NULL, NULL };
 		CHECK_dict_new(DICT_TYPE, &tdata, NULL, &type);
 		CHECK_dict_new(DICT_AVP, &data, type, NULL);
 	};
