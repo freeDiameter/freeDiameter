@@ -393,7 +393,8 @@
 | Visited-Network-Identifier                                    |  600 |           6.3.1 | OctetString      | M,V  |     |          |          | N    |
 | Wildcarded-Public-Identity                                    |  634 |          6.3.35 | UTF8String       | V    |     |          | M        | N    |
 | #                                                             |      |                 |                  |      |     |          |          |      |
-| # 3GPP 29.272-c50 (12.5.0 2014-06)                            |      |                 |                  |      |     |          |          |      |
+| # 3GPP TS 29.272 V15.10.0 (2019-12)                           |      |                 |                  |      |     |          |          |      |
+| # From 3GPP 29272-fa0.docx                                    |      |                 |                  |      |     |          |          |      |
 | #                                                             |      |                 |                  |      |     |          |          |      |
 | Subscription-Data                                             | 1400 |           7.3.2 | Grouped          | M,V  |     |          |          | N    |
 | Terminal-Information                                          | 1401 |           7.3.3 | Grouped          | M,V  |     |          |          | N    |
@@ -560,6 +561,53 @@
 | Measurement-Quantity                                          | 1660 |         7.3.171 | OctetString      | V    |     |          | M        | N    |
 | Event-Threshold-Event-1F                                      | 1661 |         7.3.172 | Integer32        | V    |     |          | M        | N    |
 | Event-Threshold-Event-1I                                      | 1662 |         7.3.173 | Integer32        | V    |     |          | M        | N    |
+| Restoration-Priority                                          | 1663 |         7.3.174 | Unsigned32       | V    |     |          | M        | N    |
+| SGs-MME-Identity                                              | 1664 |         7.3.175 | UTF8String       | V    |     |          | M        | N    |
+| SIPTO-Local-Network-Permission                                | 1665 |         7.3.176 | Unsigned32       | V    |     |          | M        | N    |
+| Coupled-Node-Diameter-ID                                      | 1666 |         7.3.177 | DiameterIdentity | V    |     |          | M        | N    |
+| WLAN-offloadability                                           | 1667 |         7.3.181 | Grouped          | V    |     |          | M        | N    |
+| WLAN-offloadability-EUTRAN                                    | 1668 |         7.3.182 | Unsigned32       | V    |     |          | M        | N    |
+| WLAN-offloadability-UTRAN                                     | 1669 |         7.3.183 | Unsigned32       | V    |     |          | M        | N    |
+| Reset-ID                                                      | 1670 |         7.3.184 | OctetString      | V    |     |          | M        | N    |
+| MDT-Allowed-PLMN-Id                                           | 1671 |         7.3.185 | OctetString      | V    |     |          | M        | N    |
+| Adjacent-PLMNs                                                | 1672 |         7.3.186 | Grouped          | V    |     |          | M        | N    |
+| Adjacent-Access-Restriction-Data                              | 1673 |         7.3.187 | Grouped          | V    |     |          | M        | N    |
+| DL-Buffering-Suggested-Packet-Count                           | 1674 |         7.3.188 | Integer32        | V    |     |          | M        | N    |
+| IMSI-Group-Id                                                 | 1675 |         7.3.189 | Grouped          | V    |     |          | M        | N    |
+| Group-Service-Id                                              | 1676 |         7.3.190 | Unsigned32       | V    |     |          | M        | N    |
+| Group-PLMN-Id                                                 | 1677 |         7.3.191 | OctetString      | V    |     |          | M        | N    |
+| Local-Group-Id                                                | 1678 |         7.3.192 | OctetString      | V    |     |          | M        | N    |
+| AIR-Flags                                                     | 1679 |         7.3.201 | Unsigned32       | V    |     |          | M        | N    |
+| UE-Usage-Type                                                 | 1680 |         7.3.202 | Unsigned32       | V    |     |          | M        | N    |
+| Non-IP-PDN-Type-Indicator                                     | 1681 |         7.3.204 | Enumerated       | V    |     |          | M        | N    |
+| Non-IP-Data-Delivery-Mechanism                                | 1682 |         7.3.205 | Unsigned32       | V    |     |          | M        | N    |
+| Additional-Context-ID                                         | 1683 |         7.3.206 | Unsigned32       | V    |     |          | M        | N    |
+| SCEF-Realm                                                    | 1684 |         7.3.207 | DiameterIdentity | V    |     |          | M        | N    |
+| Subscription-Data-Deletion                                    | 1685 |         7.3.208 | Grouped          | V    |     |          | M        | N    |
+| # 3GPP TS 29.272 table 7.3.1/1 row Preferred-Data-Mode        |      |                 |                  |      |     |          |          |      |
+| # incorrectly has value type Grouped instead of Unsigned32,   |      |                 |                  |      |     |          |          |      |
+| # conflicting with clause 7.3.209.                            |      |                 |                  |      |     |          |          |      |
+| Preferred-Data-Mode                                           | 1686 |         7.3.209 | Unsigned32       | V    |     |          | M        | N    |
+| Emergency-Info                                                | 1687 |         7.3.210 | Grouped          | V    |     |          | M        | N    |
+| V2X-Subscription-Data                                         | 1688 |         7.3.212 | Grouped          | V    |     |          | M        | N    |
+| V2X-Permission                                                | 1689 |         7.3.213 | Unsigned32       | V    |     |          | M        | N    |
+| PDN-Connection-Continuity                                     | 1690 |         7.3.214 | Unsigned32       | V    |     |          | M        | N    |
+| eDRX-Cycle-Length                                             | 1691 |         7.3.215 | Grouped          | V    |     |          | M        | N    |
+| eDRX-Cycle-Length-Value                                       | 1692 |         7.3.216 | OctetString      | V    |     |          | M        | N    |
+| UE-PC5-AMBR                                                   | 1693 |         7.3.217 | Unsigned32       | V    |     |          | M        | N    |
+| MBSFN-Area                                                    | 1694 |         7.3.219 | Grouped          | V    |     |          | M        | N    |
+| MBSFN-Area-ID                                                 | 1695 |         7.3.220 | Unsigned32       | V    |     |          | M        | N    |
+| Carrier-Frequency                                             | 1696 |         7.3.221 | Unsigned32       | V    |     |          | M        | N    |
+| RDS-Indicator                                                 | 1697 |         7.3.222 | Enumerated       | V    |     |          | M        | N    |
+| Service-Gap-Time                                              | 1698 |         7.3.223 | Unsigned32       | V    |     |          | M        | N    |
+| Aerial-UE-Subscription-Information                            | 1699 |         7.3.224 | Unsigned32       | V    |     |          | M        | N    |
+| Broadcast-Location-Assistance-Data-Types                      | 1700 |         7.3.225 | Unsigned64       | V    |     |          | M        | N    |
+| Paging-Time-Window                                            | 1701 |         7.3.226 | Grouped          | V    |     |          | M        | N    |
+| Operation-Mode                                                | 1702 |         7.3.227 | Unsigned32       | V    |     |          | M        | N    |
+| Paging-Time-Window-Length                                     | 1703 |         7.3.228 | OctetString      | V    |     |          | M        | N    |
+| Core-Network-Restrictions                                     | 1704 |         7.3.230 | Unsigned32       | V    |     |          | M        | N    |
+| eDRX-Related-RAT                                              | 1705 |         7.3.229 | Grouped          | V    |     |          | M        | N    |
+| Interworking-5GS-Indicator                                    | 1706 |         7.3.231 | Enumerated       | V    |     |          | M        | N    |
 | #                                                             |      |                 |                  |      |     |          |          |      |
 | # 3GPP 29.329-b50 (11.5.0 2012.12.21)                         |      |                 |                  |      |     |          |          |      |
 | #                                                             |      |                 |                  |      |     |          |          |      |

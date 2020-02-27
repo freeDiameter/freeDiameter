@@ -4884,7 +4884,8 @@ static int dict_dcca_3gpp_entry(char * conffile)
 	};
 
 
-	/* 3GPP 29.272-c50 (12.5.0 2014-06)                                 */
+	/* 3GPP TS 29.272 V15.10.0 (2019-12)                                */
+	/* From 3GPP 29272-fa0.docx                                         */
 
 	/* Subscription-Data, Grouped, code 1400, section 7.3.2             */
 	{
@@ -7002,6 +7003,590 @@ static int dict_dcca_3gpp_entry(char * conffile)
 			AVP_TYPE_INTEGER32	/* base type of data */
 		};
 		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+	};
+
+	/* Restoration-Priority, Unsigned32, code 1663, section 7.3.174     */
+	{
+		struct dict_avp_data data = {
+			1663,	/* Code */
+			10415,	/* Vendor */
+			"Restoration-Priority",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR,	/* Fixed flag values */
+			AVP_TYPE_UNSIGNED32	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+	};
+
+	/* SGs-MME-Identity, UTF8String, code 1664, section 7.3.175         */
+	{
+		struct dict_avp_data data = {
+			1664,	/* Code */
+			10415,	/* Vendor */
+			"SGs-MME-Identity",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR,	/* Fixed flag values */
+			AVP_TYPE_OCTETSTRING	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, UTF8String_type, NULL);
+	};
+
+	/* SIPTO-Local-Network-Permission, Unsigned32, code 1665, section 7.3.176 */
+	{
+		struct dict_avp_data data = {
+			1665,	/* Code */
+			10415,	/* Vendor */
+			"SIPTO-Local-Network-Permission",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR,	/* Fixed flag values */
+			AVP_TYPE_UNSIGNED32	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+	};
+
+	/* Coupled-Node-Diameter-ID, DiameterIdentity, code 1666, section 7.3.177 */
+	{
+		struct dict_avp_data data = {
+			1666,	/* Code */
+			10415,	/* Vendor */
+			"Coupled-Node-Diameter-ID",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR,	/* Fixed flag values */
+			AVP_TYPE_OCTETSTRING	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, DiameterIdentity_type, NULL);
+	};
+
+	/* WLAN-offloadability, Grouped, code 1667, section 7.3.181         */
+	{
+		struct dict_avp_data data = {
+			1667,	/* Code */
+			10415,	/* Vendor */
+			"WLAN-offloadability",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR,	/* Fixed flag values */
+			AVP_TYPE_GROUPED	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+	};
+
+	/* WLAN-offloadability-EUTRAN, Unsigned32, code 1668, section 7.3.182 */
+	{
+		struct dict_avp_data data = {
+			1668,	/* Code */
+			10415,	/* Vendor */
+			"WLAN-offloadability-EUTRAN",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR,	/* Fixed flag values */
+			AVP_TYPE_UNSIGNED32	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+	};
+
+	/* WLAN-offloadability-UTRAN, Unsigned32, code 1669, section 7.3.183 */
+	{
+		struct dict_avp_data data = {
+			1669,	/* Code */
+			10415,	/* Vendor */
+			"WLAN-offloadability-UTRAN",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR,	/* Fixed flag values */
+			AVP_TYPE_UNSIGNED32	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+	};
+
+	/* Reset-ID, OctetString, code 1670, section 7.3.184                */
+	{
+		struct dict_avp_data data = {
+			1670,	/* Code */
+			10415,	/* Vendor */
+			"Reset-ID",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR,	/* Fixed flag values */
+			AVP_TYPE_OCTETSTRING	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+	};
+
+	/* MDT-Allowed-PLMN-Id, OctetString, code 1671, section 7.3.185     */
+	{
+		struct dict_avp_data data = {
+			1671,	/* Code */
+			10415,	/* Vendor */
+			"MDT-Allowed-PLMN-Id",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR,	/* Fixed flag values */
+			AVP_TYPE_OCTETSTRING	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+	};
+
+	/* Adjacent-PLMNs, Grouped, code 1672, section 7.3.186              */
+	{
+		struct dict_avp_data data = {
+			1672,	/* Code */
+			10415,	/* Vendor */
+			"Adjacent-PLMNs",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR,	/* Fixed flag values */
+			AVP_TYPE_GROUPED	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+	};
+
+	/* Adjacent-Access-Restriction-Data, Grouped, code 1673, section 7.3.187 */
+	{
+		struct dict_avp_data data = {
+			1673,	/* Code */
+			10415,	/* Vendor */
+			"Adjacent-Access-Restriction-Data",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR,	/* Fixed flag values */
+			AVP_TYPE_GROUPED	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+	};
+
+	/* DL-Buffering-Suggested-Packet-Count, Integer32, code 1674, section 7.3.188 */
+	{
+		struct dict_avp_data data = {
+			1674,	/* Code */
+			10415,	/* Vendor */
+			"DL-Buffering-Suggested-Packet-Count",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR,	/* Fixed flag values */
+			AVP_TYPE_INTEGER32	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+	};
+
+	/* IMSI-Group-Id, Grouped, code 1675, section 7.3.189               */
+	{
+		struct dict_avp_data data = {
+			1675,	/* Code */
+			10415,	/* Vendor */
+			"IMSI-Group-Id",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR,	/* Fixed flag values */
+			AVP_TYPE_GROUPED	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+	};
+
+	/* Group-Service-Id, Unsigned32, code 1676, section 7.3.190         */
+	{
+		struct dict_avp_data data = {
+			1676,	/* Code */
+			10415,	/* Vendor */
+			"Group-Service-Id",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR,	/* Fixed flag values */
+			AVP_TYPE_UNSIGNED32	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+	};
+
+	/* Group-PLMN-Id, OctetString, code 1677, section 7.3.191           */
+	{
+		struct dict_avp_data data = {
+			1677,	/* Code */
+			10415,	/* Vendor */
+			"Group-PLMN-Id",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR,	/* Fixed flag values */
+			AVP_TYPE_OCTETSTRING	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+	};
+
+	/* Local-Group-Id, OctetString, code 1678, section 7.3.192          */
+	{
+		struct dict_avp_data data = {
+			1678,	/* Code */
+			10415,	/* Vendor */
+			"Local-Group-Id",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR,	/* Fixed flag values */
+			AVP_TYPE_OCTETSTRING	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+	};
+
+	/* AIR-Flags, Unsigned32, code 1679, section 7.3.201                */
+	{
+		struct dict_avp_data data = {
+			1679,	/* Code */
+			10415,	/* Vendor */
+			"AIR-Flags",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR,	/* Fixed flag values */
+			AVP_TYPE_UNSIGNED32	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+	};
+
+	/* UE-Usage-Type, Unsigned32, code 1680, section 7.3.202            */
+	{
+		struct dict_avp_data data = {
+			1680,	/* Code */
+			10415,	/* Vendor */
+			"UE-Usage-Type",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR,	/* Fixed flag values */
+			AVP_TYPE_UNSIGNED32	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+	};
+
+	/* Non-IP-PDN-Type-Indicator, Enumerated, code 1681, section 7.3.204 */
+	{
+		struct dict_avp_data data = {
+			1681,	/* Code */
+			10415,	/* Vendor */
+			"Non-IP-PDN-Type-Indicator",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR,	/* Fixed flag values */
+			AVP_TYPE_INTEGER32	/* base type of data */
+		};
+		struct dict_object	*type;
+		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "Enumerated(3GPP/Non-IP-PDN-Type-Indicator)", NULL, NULL, NULL };
+		CHECK_dict_new(DICT_TYPE, &tdata, NULL, &type);
+		CHECK_dict_new(DICT_AVP, &data, type, NULL);
+	};
+
+	/* Non-IP-Data-Delivery-Mechanism, Unsigned32, code 1682, section 7.3.205 */
+	{
+		struct dict_avp_data data = {
+			1682,	/* Code */
+			10415,	/* Vendor */
+			"Non-IP-Data-Delivery-Mechanism",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR,	/* Fixed flag values */
+			AVP_TYPE_UNSIGNED32	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+	};
+
+	/* Additional-Context-ID, Unsigned32, code 1683, section 7.3.206    */
+	{
+		struct dict_avp_data data = {
+			1683,	/* Code */
+			10415,	/* Vendor */
+			"Additional-Context-ID",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR,	/* Fixed flag values */
+			AVP_TYPE_UNSIGNED32	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+	};
+
+	/* SCEF-Realm, DiameterIdentity, code 1684, section 7.3.207         */
+	{
+		struct dict_avp_data data = {
+			1684,	/* Code */
+			10415,	/* Vendor */
+			"SCEF-Realm",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR,	/* Fixed flag values */
+			AVP_TYPE_OCTETSTRING	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, DiameterIdentity_type, NULL);
+	};
+
+	/* Subscription-Data-Deletion, Grouped, code 1685, section 7.3.208  */
+	{
+		struct dict_avp_data data = {
+			1685,	/* Code */
+			10415,	/* Vendor */
+			"Subscription-Data-Deletion",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR,	/* Fixed flag values */
+			AVP_TYPE_GROUPED	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+	};
+
+	/* 3GPP TS 29.272 table 7.3.1/1 row Preferred-Data-Mode             */
+	/* incorrectly has value type Grouped instead of Unsigned32,        */
+	/* conflicting with clause 7.3.209.                                 */
+	/* Preferred-Data-Mode, Unsigned32, code 1686, section 7.3.209      */
+	{
+		struct dict_avp_data data = {
+			1686,	/* Code */
+			10415,	/* Vendor */
+			"Preferred-Data-Mode",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR,	/* Fixed flag values */
+			AVP_TYPE_UNSIGNED32	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+	};
+
+	/* Emergency-Info, Grouped, code 1687, section 7.3.210              */
+	{
+		struct dict_avp_data data = {
+			1687,	/* Code */
+			10415,	/* Vendor */
+			"Emergency-Info",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR,	/* Fixed flag values */
+			AVP_TYPE_GROUPED	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+	};
+
+	/* V2X-Subscription-Data, Grouped, code 1688, section 7.3.212       */
+	{
+		struct dict_avp_data data = {
+			1688,	/* Code */
+			10415,	/* Vendor */
+			"V2X-Subscription-Data",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR,	/* Fixed flag values */
+			AVP_TYPE_GROUPED	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+	};
+
+	/* V2X-Permission, Unsigned32, code 1689, section 7.3.213           */
+	{
+		struct dict_avp_data data = {
+			1689,	/* Code */
+			10415,	/* Vendor */
+			"V2X-Permission",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR,	/* Fixed flag values */
+			AVP_TYPE_UNSIGNED32	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+	};
+
+	/* PDN-Connection-Continuity, Unsigned32, code 1690, section 7.3.214 */
+	{
+		struct dict_avp_data data = {
+			1690,	/* Code */
+			10415,	/* Vendor */
+			"PDN-Connection-Continuity",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR,	/* Fixed flag values */
+			AVP_TYPE_UNSIGNED32	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+	};
+
+	/* eDRX-Cycle-Length, Grouped, code 1691, section 7.3.215           */
+	{
+		struct dict_avp_data data = {
+			1691,	/* Code */
+			10415,	/* Vendor */
+			"eDRX-Cycle-Length",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR,	/* Fixed flag values */
+			AVP_TYPE_GROUPED	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+	};
+
+	/* eDRX-Cycle-Length-Value, OctetString, code 1692, section 7.3.216 */
+	{
+		struct dict_avp_data data = {
+			1692,	/* Code */
+			10415,	/* Vendor */
+			"eDRX-Cycle-Length-Value",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR,	/* Fixed flag values */
+			AVP_TYPE_OCTETSTRING	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+	};
+
+	/* UE-PC5-AMBR, Unsigned32, code 1693, section 7.3.217              */
+	{
+		struct dict_avp_data data = {
+			1693,	/* Code */
+			10415,	/* Vendor */
+			"UE-PC5-AMBR",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR,	/* Fixed flag values */
+			AVP_TYPE_UNSIGNED32	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+	};
+
+	/* MBSFN-Area, Grouped, code 1694, section 7.3.219                  */
+	{
+		struct dict_avp_data data = {
+			1694,	/* Code */
+			10415,	/* Vendor */
+			"MBSFN-Area",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR,	/* Fixed flag values */
+			AVP_TYPE_GROUPED	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+	};
+
+	/* MBSFN-Area-ID, Unsigned32, code 1695, section 7.3.220            */
+	{
+		struct dict_avp_data data = {
+			1695,	/* Code */
+			10415,	/* Vendor */
+			"MBSFN-Area-ID",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR,	/* Fixed flag values */
+			AVP_TYPE_UNSIGNED32	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+	};
+
+	/* Carrier-Frequency, Unsigned32, code 1696, section 7.3.221        */
+	{
+		struct dict_avp_data data = {
+			1696,	/* Code */
+			10415,	/* Vendor */
+			"Carrier-Frequency",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR,	/* Fixed flag values */
+			AVP_TYPE_UNSIGNED32	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+	};
+
+	/* RDS-Indicator, Enumerated, code 1697, section 7.3.222            */
+	{
+		struct dict_avp_data data = {
+			1697,	/* Code */
+			10415,	/* Vendor */
+			"RDS-Indicator",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR,	/* Fixed flag values */
+			AVP_TYPE_INTEGER32	/* base type of data */
+		};
+		struct dict_object	*type;
+		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "Enumerated(3GPP/RDS-Indicator)", NULL, NULL, NULL };
+		CHECK_dict_new(DICT_TYPE, &tdata, NULL, &type);
+		CHECK_dict_new(DICT_AVP, &data, type, NULL);
+	};
+
+	/* Service-Gap-Time, Unsigned32, code 1698, section 7.3.223         */
+	{
+		struct dict_avp_data data = {
+			1698,	/* Code */
+			10415,	/* Vendor */
+			"Service-Gap-Time",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR,	/* Fixed flag values */
+			AVP_TYPE_UNSIGNED32	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+	};
+
+	/* Aerial-UE-Subscription-Information, Unsigned32, code 1699, section 7.3.224 */
+	{
+		struct dict_avp_data data = {
+			1699,	/* Code */
+			10415,	/* Vendor */
+			"Aerial-UE-Subscription-Information",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR,	/* Fixed flag values */
+			AVP_TYPE_UNSIGNED32	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+	};
+
+	/* Broadcast-Location-Assistance-Data-Types, Unsigned64, code 1700, section 7.3.225 */
+	{
+		struct dict_avp_data data = {
+			1700,	/* Code */
+			10415,	/* Vendor */
+			"Broadcast-Location-Assistance-Data-Types",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR,	/* Fixed flag values */
+			AVP_TYPE_UNSIGNED64	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+	};
+
+	/* Paging-Time-Window, Grouped, code 1701, section 7.3.226          */
+	{
+		struct dict_avp_data data = {
+			1701,	/* Code */
+			10415,	/* Vendor */
+			"Paging-Time-Window",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR,	/* Fixed flag values */
+			AVP_TYPE_GROUPED	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+	};
+
+	/* Operation-Mode, Unsigned32, code 1702, section 7.3.227           */
+	{
+		struct dict_avp_data data = {
+			1702,	/* Code */
+			10415,	/* Vendor */
+			"Operation-Mode",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR,	/* Fixed flag values */
+			AVP_TYPE_UNSIGNED32	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+	};
+
+	/* Paging-Time-Window-Length, OctetString, code 1703, section 7.3.228 */
+	{
+		struct dict_avp_data data = {
+			1703,	/* Code */
+			10415,	/* Vendor */
+			"Paging-Time-Window-Length",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR,	/* Fixed flag values */
+			AVP_TYPE_OCTETSTRING	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+	};
+
+	/* Core-Network-Restrictions, Unsigned32, code 1704, section 7.3.230 */
+	{
+		struct dict_avp_data data = {
+			1704,	/* Code */
+			10415,	/* Vendor */
+			"Core-Network-Restrictions",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR,	/* Fixed flag values */
+			AVP_TYPE_UNSIGNED32	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+	};
+
+	/* eDRX-Related-RAT, Grouped, code 1705, section 7.3.229            */
+	{
+		struct dict_avp_data data = {
+			1705,	/* Code */
+			10415,	/* Vendor */
+			"eDRX-Related-RAT",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR,	/* Fixed flag values */
+			AVP_TYPE_GROUPED	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+	};
+
+	/* Interworking-5GS-Indicator, Enumerated, code 1706, section 7.3.231 */
+	{
+		struct dict_avp_data data = {
+			1706,	/* Code */
+			10415,	/* Vendor */
+			"Interworking-5GS-Indicator",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR,	/* Fixed flag values */
+			AVP_TYPE_INTEGER32	/* base type of data */
+		};
+		struct dict_object	*type;
+		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "Enumerated(3GPP/Interworking-5GS-Indicator)", NULL, NULL, NULL };
+		CHECK_dict_new(DICT_TYPE, &tdata, NULL, &type);
+		CHECK_dict_new(DICT_AVP, &data, type, NULL);
 	};
 
 
