@@ -104,7 +104,7 @@ dump_enumval(dict_object *self, struct dict_enumval_data *data, struct dict_obje
                 break;
 
         case AVP_TYPE_INTEGER64:
-                enumval["Code"] = Json::Value(data->enum_value.i64);
+                enumval["Code"] = Json::Value(static_cast<Json::Int64>(data->enum_value.i64));
                 break;
 
         case AVP_TYPE_UNSIGNED32:
@@ -112,7 +112,7 @@ dump_enumval(dict_object *self, struct dict_enumval_data *data, struct dict_obje
                 break;
 
         case AVP_TYPE_UNSIGNED64:
-                enumval["Code"] = Json::Value(data->enum_value.u64);
+                enumval["Code"] = Json::Value(static_cast<Json::UInt64>(data->enum_value.u64));
                 break;
 
         case AVP_TYPE_FLOAT32:
@@ -413,7 +413,7 @@ dbg_dict_dump_json_entry(char * conffile)
         /* remove enumerated types before dumping, they are in AVPs */
         /* convert remaining ones to array */
         Json::Value::Members members = main["Types"].getMemberNames();
-        for (auto it = members.begin() ; it != members.end(); ++it) {
+        for (Json::Value::Members::const_iterator it = members.begin() ; it != members.end(); ++it) {
                 if (strncmp("Enumerated", main["Types"][*it]["Name"].asCString(), strlen("Enumerated")) == 0) {
                         main["Types"].removeMember(*it);
                 } else {
