@@ -90,7 +90,7 @@ static int pidfile_create(void)
 		return ret;
 	}
 
-	/* Cleaup pidfile on exit */
+	/* Cleanup pidfile on exit */
 	if (atexit(pidfile_cleanup) != 0) {
 		LOG_F("Unable to setup pidfile cleanup");
 		CHECK_SYS( fclose(fp) );
