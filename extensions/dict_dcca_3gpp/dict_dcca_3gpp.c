@@ -144,7 +144,10 @@ struct local_rules_definition {
 
 static int dict_dcca_3gpp_entry(char * conffile)
 {
-	/* Applications section */
+	/*==================================================================*/
+	/* Applications section                                             */
+	/*==================================================================*/
+
 	{		
                 /* Create the vendors */
                 {
@@ -159,6 +162,10 @@ static int dict_dcca_3gpp_entry(char * conffile)
 	}
 	
 
+	/*==================================================================*/
+	/* Types section                                                    */
+	/*==================================================================*/
+
 	struct dict_object * Address_type;
 	struct dict_object * DiameterIdentity_type;
 	struct dict_object * DiameterURI_type;
@@ -172,6 +179,186 @@ static int dict_dcca_3gpp_entry(char * conffile)
 	CHECK_dict_search( DICT_TYPE, TYPE_BY_NAME, "IPFilterRule", &IPFilterRule_type);
 	CHECK_dict_search( DICT_TYPE, TYPE_BY_NAME, "Time", &Time_type);
 	CHECK_dict_search( DICT_TYPE, TYPE_BY_NAME, "UTF8String", &UTF8String_type);
+
+
+	/*==================================================================*/
+	/* AVPs section                                                     */
+	/*==================================================================*/
+
+
+	/* 3GPP Experimental-Result-Code ENUMVAL Unsigned32                 */
+	/* 3GPP TS 29.230 V15.7.0 (2019-12) section 8.1                     */
+	{
+		struct dict_object 	*type;
+		struct dict_type_data 	 tdata = { AVP_TYPE_UNSIGNED32,	"Enumerated(3GPP/Experimental-Result-Code)", NULL, NULL};
+		struct dict_enumval_data tvals[] = {
+			enumval_def_u32(2001,	"DIAMETER_FIRST_REGISTRATION"),
+			enumval_def_u32(2002,	"DIAMETER_SUBSEQUENT_REGISTRATION"),
+			enumval_def_u32(2003,	"DIAMETER_UNREGISTERED_SERVICE"),
+			/*
+			 * 3GPP TS 29.229 V5.3.0 (2003-03) renamed 2004 from DIAMETER_SUCCESS_NOT SUPPORTED_USER_DATA.
+			 */
+			enumval_def_u32(2004,	"DIAMETER_SUCCESS_SERVER_NAME_NOT_STORED"),
+			/*
+			 * 3GPP TS 29.229 V5.3.0 (2003-03) renamed 2005 from DIAMETER_SUCCESS_SERVER_NAME_NOT_STORED.
+			 * 3GPP TS 29.229 V7.2.0 (2006-06) deprecated 2005 DIAMETER_SERVER_SELECTION.
+			 */
+			enumval_def_u32(2005,	"DIAMETER_SERVER_SELECTION"),
+			enumval_def_u32(2021,	"DIAMETER_PDP_CONTEXT_DELETION_INDICATION"),
+			enumval_def_u32(2421,	"DIAMETER_QOS_FLOW_DELETION_INDICATION"),
+			enumval_def_u32(4100,	"DIAMETER_USER_DATA_NOT_AVAILABLE"),
+			enumval_def_u32(4101,	"DIAMETER_PRIOR_UPDATE_IN_PROGRESS"),
+			enumval_def_u32(4121,	"DIAMETER_ERROR_OUT_OF_RESOURCES"),
+			enumval_def_u32(4141,	"DIAMETER_PCC_BEARER_EVENT"),
+			enumval_def_u32(4142,	"DIAMETER_BEARER_EVENT"),
+			enumval_def_u32(4143,	"DIAMETER_AN_GW_FAILED"),
+			enumval_def_u32(4144,	"DIAMETER_PENDING_TRANSACTION"),
+			enumval_def_u32(4145,	"DIAMETER_UE_STATUS_SUSPEND"),
+			enumval_def_u32(4181,	"DIAMETER_AUTHENTICATION_DATA_UNAVAILABLE"),
+			enumval_def_u32(4182,	"DIAMETER_ERROR_CAMEL_SUBSCRIPTION_PRESENT"),
+			/*
+			 * DIAMETER_ERROR_ABSENT_USER name conflict between:
+			 * - 3GPP TS 29.173 § 6.3.4.1 DIAMETER_ERROR_ABSENT_USER (4201). (For SLh).
+			 * - 3GPP TS 29.338 § 7.3.3 DIAMETER_ERROR_ABSENT_USER (5550). (For S6c, SGd).
+			 * Rename 4201 from 3GPP TS 29.173 to DIAMETER_ERROR_ABSENT_USER-29.173.
+			 */
+			enumval_def_u32(4201,	"DIAMETER_ERROR_ABSENT_USER-29.173"),
+			enumval_def_u32(4221,	"DIAMETER_ERROR_UNREACHABLE_USER"),
+			enumval_def_u32(4222,	"DIAMETER_ERROR_SUSPENDED_USER"),
+			enumval_def_u32(4223,	"DIAMETER_ERROR_DETACHED_USER"),
+			enumval_def_u32(4224,	"DIAMETER_ERROR_POSITIONING_DENIED"),
+			enumval_def_u32(4225,	"DIAMETER_ERROR_POSITIONING_FAILED"),
+			enumval_def_u32(4226,	"DIAMETER_ERROR_UNKNOWN_UNREACHABLE LCS_CLIENT"),
+			enumval_def_u32(4241,	"DIAMETER_ERROR_NO_AVAILABLE_POLICY_COUNTERS"),
+			enumval_def_u32(4261,	"REQUESTED_SERVICE_TEMPORARILY_NOT_AUTHORIZED"),
+			enumval_def_u32(5001,	"DIAMETER_ERROR_USER_UNKNOWN"),
+			enumval_def_u32(5002,	"DIAMETER_ERROR_IDENTITIES_DONT_MATCH"),
+			enumval_def_u32(5003,	"DIAMETER_ERROR_IDENTITY_NOT_REGISTERED"),
+			enumval_def_u32(5004,	"DIAMETER_ERROR_ROAMING_NOT_ALLOWED"),
+			enumval_def_u32(5005,	"DIAMETER_ERROR_IDENTITY_ALREADY_REGISTERED"),
+			enumval_def_u32(5006,	"DIAMETER_ERROR_AUTH_SCHEME_NOT_SUPPORTED"),
+			enumval_def_u32(5007,	"DIAMETER_ERROR_IN_ASSIGNMENT_TYPE"),
+			enumval_def_u32(5008,	"DIAMETER_ERROR_TOO_MUCH_DATA"),
+			enumval_def_u32(5009,	"DIAMETER_ERROR_NOT_SUPPORTED_USER_DATA"),
+			enumval_def_u32(5011,	"DIAMETER_ERROR_FEATURE_UNSUPPORTED"),
+			enumval_def_u32(5012,	"DIAMETER_ERROR_SERVING_NODE_FEATURE_UNSUPPORTED"),
+			enumval_def_u32(5041,	"DIAMETER_ERROR_USER_NO_WLAN_SUBSCRIPTION"),
+			enumval_def_u32(5042,	"DIAMETER_ERROR_W-APN_UNUSED_BY_USER"),
+			enumval_def_u32(5043,	"DIAMETER_ERROR_NO_ACCESS_INDEPENDENT_SUBSCRIPTION"),
+			enumval_def_u32(5044,	"DIAMETER_ERROR_USER_NO_W-APN_SUBSCRIPTION"),
+			enumval_def_u32(5045,	"DIAMETER_ERROR_UNSUITABLE_NETWORK"),
+			enumval_def_u32(5061,	"INVALID_SERVICE_INFORMATION"),
+			enumval_def_u32(5062,	"FILTER_RESTRICTIONS"),
+			enumval_def_u32(5063,	"REQUESTED_SERVICE_NOT_AUTHORIZED"),
+			enumval_def_u32(5064,	"DUPLICATED_AF_SESSION"),
+			enumval_def_u32(5065,	"IP-CAN_SESSION_NOT_AVAILABLE"),
+			enumval_def_u32(5066,	"UNAUTHORIZED_NON_EMERGENCY_SESSION"),
+			enumval_def_u32(5067,	"UNAUTHORIZED_SPONSORED_DATA_CONNECTIVITY"),
+			enumval_def_u32(5068,	"TEMPORARY_NETWORK_FAILURE"),
+			enumval_def_u32(5100,	"DIAMETER_ERROR_USER_DATA_NOT_RECOGNIZED"),
+			enumval_def_u32(5101,	"DIAMETER_ERROR_OPERATION_NOT_ALLOWED"),
+			enumval_def_u32(5102,	"DIAMETER_ERROR_USER_DATA_CANNOT_BE_READ"),
+			enumval_def_u32(5103,	"DIAMETER_ERROR_USER_DATA_CANNOT_BE_MODIFIED"),
+			enumval_def_u32(5104,	"DIAMETER_ERROR_USER_DATA_CANNOT_BE_NOTIFIED"),
+			enumval_def_u32(5105,	"DIAMETER_ERROR_TRANSPARENT_DATA OUT_OF_SYNC"),
+			enumval_def_u32(5106,	"DIAMETER_ERROR_SUBS_DATA_ABSENT"),
+			enumval_def_u32(5107,	"DIAMETER_ERROR_NO_SUBSCRIPTION_TO_DATA"),
+			enumval_def_u32(5108,	"DIAMETER_ERROR_DSAI_NOT_AVAILABLE"),
+			enumval_def_u32(5120,	"DIAMETER_ERROR_START_INDICATION"),
+			enumval_def_u32(5121,	"DIAMETER_ERROR_STOP_INDICATION"),
+			enumval_def_u32(5122,	"DIAMETER_ERROR_UNKNOWN_MBMS_BEARER_SERVICE"),
+			enumval_def_u32(5123,	"DIAMETER_ERROR_SERVICE_AREA"),
+			enumval_def_u32(5140,	"DIAMETER_ERROR_INITIAL_PARAMETERS"),
+			enumval_def_u32(5141,	"DIAMETER_ERROR_TRIGGER_EVENT"),
+			enumval_def_u32(5142,	"DIAMETER_PCC_RULE_EVENT"),
+			enumval_def_u32(5143,	"DIAMETER_ERROR_BEARER_NOT_AUTHORIZED"),
+			enumval_def_u32(5144,	"DIAMETER_ERROR_TRAFFIC_MAPPING_INFO_REJECTED"),
+			enumval_def_u32(5145,	"DIAMETER_QOS_RULE_EVENT"),
+			enumval_def_u32(5147,	"DIAMETER_ERROR_CONFLICTING_REQUEST"),
+			enumval_def_u32(5148,	"DIAMETER_ADC_RULE_EVENT"),
+			enumval_def_u32(5149,	"DIAMETER_ERROR_NBIFOM_NOT_AUTHORIZED"),
+			enumval_def_u32(5401,	"DIAMETER_ERROR_IMPI_UNKNOWN"),
+			enumval_def_u32(5402,	"DIAMETER_ERROR_NOT_AUTHORIZED"),
+			enumval_def_u32(5403,	"DIAMETER_ERROR_TRANSACTION_IDENTIFIER_INVALID"),
+			enumval_def_u32(5420,	"DIAMETER_ERROR_UNKNOWN_EPS_SUBSCRIPTION"),
+			enumval_def_u32(5421,	"DIAMETER_ERROR_RAT_NOT_ALLOWED"),
+			enumval_def_u32(5422,	"DIAMETER_ERROR_EQUIPMENT_UNKNOWN"),
+			enumval_def_u32(5423,	"DIAMETER_ERROR_UNKNOWN_SERVING_NODE"),
+			enumval_def_u32(5450,	"DIAMETER_ERROR_USER_NO_NON_3GPP_SUBSCRIPTION"),
+			enumval_def_u32(5451,	"DIAMETER_ERROR_USER_NO_APN_SUBSCRIPTION"),
+			enumval_def_u32(5452,	"DIAMETER_ERROR_RAT_TYPE_NOT_ALLOWED"),
+			enumval_def_u32(5453,	"DIAMETER_ERROR_LATE_OVERLAPPING_REQUEST"),
+			enumval_def_u32(5454,	"DIAMETER_ERROR_TIMED_OUT_REQUEST"),
+			enumval_def_u32(5470,	"DIAMETER_ERROR_SUBSESSION"),
+			enumval_def_u32(5471,	"DIAMETER_ERROR_ONGOING_SESSION_ESTABLISHMENT"),
+			enumval_def_u32(5490,	"DIAMETER_ERROR_UNAUTHORIZED_REQUESTING_NETWORK"),
+			enumval_def_u32(5510,	"DIAMETER_ERROR_UNAUTHORIZED_REQUESTING_ENTITY"),
+			enumval_def_u32(5511,	"DIAMETER_ERROR_UNAUTHORIZED_SERVICE"),
+			enumval_def_u32(5512,	"DIAMETER_ERROR_REQUESTED_RANGE_IS_NOT ALLOWED"),
+			enumval_def_u32(5513,	"DIAMETER_ERROR_CONFIGURATION_EVENT_STORAGE_NOT_SUCCESSFUL"),
+			enumval_def_u32(5514,	"DIAMETER_ERROR_CONFIGURATION_EVENT_NON_EXISTANT"),
+			enumval_def_u32(5515,	"DIAMETER_ERROR_SCEF_REFERENCE_ID_UNKNOWN"),
+			enumval_def_u32(5530,	"DIAMETER_ERROR_INVALID_SME_ADDRESS"),
+			enumval_def_u32(5531,	"DIAMETER_ERROR_SC_CONGESTION"),
+			enumval_def_u32(5532,	"DIAMETER_ERROR_SM_PROTOCOL"),
+			enumval_def_u32(5533,	"DIAMETER_ERROR_TRIGGER_REPLACE_FAILURE"),
+			enumval_def_u32(5534,	"DIAMETER_ERROR_TRIGGER_RECALL_FAILURE"),
+			enumval_def_u32(5535,	"DIAMETER_ERROR_ORIGINAL_MESSAGE_NOT_PENDING"),
+			enumval_def_u32(5550,	"DIAMETER_ERROR_ABSENT_USER"),
+			enumval_def_u32(5551,	"DIAMETER_ERROR_USER_BUSY_FOR_MT_SMS"),
+			enumval_def_u32(5552,	"DIAMETER_ERROR_FACILITY_NOT_SUPPORTED"),
+			enumval_def_u32(5553,	"DIAMETER_ERROR_ILLEGAL_USER"),
+			enumval_def_u32(5554,	"DIAMETER_ERROR_ILLEGAL_EQUIPMENT"),
+			enumval_def_u32(5555,	"DIAMETER_ERROR_SM_DELIVERY_FAILURE"),
+			enumval_def_u32(5556,	"DIAMETER_ERROR_SERVICE_NOT_SUBSCRIBED"),
+			enumval_def_u32(5557,	"DIAMETER_ERROR_SERVICE_BARRED"),
+			enumval_def_u32(5558,	"DIAMETER_ERROR_MWD_LIST_FULL"),
+			enumval_def_u32(5570,	"DIAMETER_ERROR_UNKNOWN_POLICY_COUNTERS"),
+			enumval_def_u32(5590,	"DIAMETER_ERROR_ORIGIN_ALUID_UNKNOWN"),
+			enumval_def_u32(5591,	"DIAMETER_ERROR_TARGET_ALUID_UNKNOWN"),
+			enumval_def_u32(5592,	"DIAMETER_ERROR_PFID_UNKNOWN"),
+			enumval_def_u32(5593,	"DIAMETER_ERROR_APP_REGISTER_REJECT"),
+			enumval_def_u32(5594,	"DIAMETER_ERROR_PROSE_MAP_REQUEST_DISALLOWED"),
+			enumval_def_u32(5595,	"DIAMETER_ERROR_MAP_REQUEST_REJECT"),
+			enumval_def_u32(5596,	"DIAMETER_ERROR_REQUESTING_RPAUID_UNKNOWN"),
+			enumval_def_u32(5597,	"DIAMETER_ERROR_UNKNOWN_OR_INVALID_TARGET_SET"),
+			enumval_def_u32(5598,	"DIAMETER_ERROR_MISSING_APPLICATION_DATA"),
+			enumval_def_u32(5599,	"DIAMETER_ERROR_AUTHORIZATION_REJECT"),
+			enumval_def_u32(5600,	"DIAMETER_ERROR_DISCOVERY_NOT_PERMITTED"),
+			enumval_def_u32(5601,	"DIAMETER_ERROR_TARGET_RPAUID_UNKNOWN"),
+			enumval_def_u32(5602,	"DIAMETER_ERROR_INVALID_APPLICATION_DATA"),
+			enumval_def_u32(5610,	"DIAMETER_ERROR_UNKNOWN_PROSE_SUBSCRIPTION"),
+			enumval_def_u32(5611,	"DIAMETER_ERROR_PROSE_NOT_ALLOWED"),
+			enumval_def_u32(5612,	"DIAMETER_ERROR_UE_LOCATION_UNKNOWN"),
+			enumval_def_u32(5630,	"DIAMETER_ERROR_NO_ASSOCIATED_DISCOVERY_FILTER"),
+			enumval_def_u32(5631,	"DIAMETER_ERROR_ANNOUNCING_UNAUTHORIZED_IN_PLMN"),
+			enumval_def_u32(5632,	"DIAMETER_ERROR_INVALID_APPLICATION_CODE"),
+			enumval_def_u32(5633,	"DIAMETER_ERROR_PROXIMITY_UNAUTHORIZED"),
+			enumval_def_u32(5634,	"DIAMETER_ERROR_PROXIMITY_REJECTED"),
+			enumval_def_u32(5635,	"DIAMETER_ERROR_NO_PROXIMITY_REQUEST"),
+			enumval_def_u32(5636,	"DIAMETER_ERROR_UNAUTHORIZED_SERVICE_IN_THIS_PLMN"),
+			enumval_def_u32(5637,	"DIAMETER_ERROR_PROXIMITY_CANCELLED"),
+			enumval_def_u32(5638,	"DIAMETER_ERROR_INVALID_TARGET_PDUID"),
+			enumval_def_u32(5639,	"DIAMETER_ERROR_INVALID_TARGET_RPAUID"),
+			enumval_def_u32(5640,	"DIAMETER_ERROR_NO_ASSOCIATED_RESTRICTED_CODE"),
+			enumval_def_u32(5641,	"DIAMETER_ERROR_INVALID_DISCOVERY_TYPE"),
+			enumval_def_u32(5650,	"DIAMETER_ERROR_REQUESTED_LOCATION_NOT_SERVED"),
+			enumval_def_u32(5651,	"DIAMETER_ERROR_INVALID_EPS_BEARER"),
+			enumval_def_u32(5652,	"DIAMETER_ERROR_NIDD_CONFIGURATION_NOT_AVAILABLE"),
+			enumval_def_u32(5653,	"DIAMETER_ERROR_USER_TEMPORARILY_UNREACHABLE"),
+			enumval_def_u32(5670,	"DIAMETER_ERROR_UNKNKOWN_DATA"),
+			enumval_def_u32(5671,	"DIAMETER_ERROR_REQUIRED_KEY_NOT_PROVIDED"),
+			enumval_def_u32(5690,	"DIAMETER_ERROR_UNKNOWN_V2X_SUBSCRIPTION"),
+			enumval_def_u32(5691,	"DIAMETER_ERROR_V2X_NOT_ALLOWED"),
+		};
+		int i;
+		/* Create the Enumerated type and enumerated values */
+		CHECK_dict_new( DICT_TYPE, &tdata , NULL, &type);
+		for (i = 0; i < sizeof(tvals) / sizeof(tvals[0]); i++) {
+			CHECK_dict_new( DICT_ENUMVAL, &tvals[i], type, NULL);
+		}
+	}
+
 
 	/*==================================================================*/
 	/* Start of generated data.                                         */
@@ -10658,6 +10845,11 @@ static int dict_dcca_3gpp_entry(char * conffile)
 		};
 		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
 	};
+
+
+	/*==================================================================*/
+	/* Rules section                                                    */
+	/*==================================================================*/
 
 	/* 29.212 */
 	
