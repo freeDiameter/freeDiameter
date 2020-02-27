@@ -1,0 +1,10 @@
+#!/bin/sh
+
+# Grep stdin for the output of fd_dict_dump() and reformat to remove
+# pointer addresses.  Use to post-process the output of dict_dump.fdx
+# into a format that's diff-able between freeDiameter invocations.
+
+egrep '^ *{dict|VENDOR|APPLICATION|TYPE|ENUMVAL|AVP|COMMAND|RULE' \
+	| sed \
+	-e 's/{dict.*}(@0x[^ ]*): //' \
+	-e 's/p:[^ ]* //'
