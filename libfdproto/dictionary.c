@@ -1348,27 +1348,27 @@ DECLARE_FD_DUMP_PROTOTYPE(fd_dict_dump, struct dictionary * dict)
 	
 	CHECK_POSIX_DO(  pthread_rwlock_rdlock( &dict->dict_lock ), /* ignore */  );
 	
-	CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "\n {dict(%p) : VENDORS / AVP / RULES}\n", dict), goto error);
+	CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "\n {dict}(@%p): VENDORS / AVP / RULES\n", dict), goto error);
 	CHECK_MALLOC_DO( dump_object (FD_DUMP_STD_PARAMS, &dict->dict_vendors, 0, 3, 3 ), goto error);
 	for (li = dict->dict_vendors.list[0].next; li != &dict->dict_vendors.list[0]; li = li->next) {
 		CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "\n"), return NULL);
 		CHECK_MALLOC_DO( dump_object (FD_DUMP_STD_PARAMS, li->o, 0, 3, 3 ), goto error);
 	}
 	
-	CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "\n {dict(%p) : APPLICATIONS}\n", dict), goto error);
+	CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "\n {dict}(@%p): APPLICATIONS\n", dict), goto error);
 	CHECK_MALLOC_DO( dump_object (FD_DUMP_STD_PARAMS, &dict->dict_applications, 0, 1, 3 ), goto error);
 	for (li = dict->dict_applications.list[0].next; li != &dict->dict_applications.list[0]; li = li->next) {
 		CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "\n"), return NULL);
 		CHECK_MALLOC_DO( dump_object (FD_DUMP_STD_PARAMS, li->o, 0, 1, 3 ), goto error);
 	}
 	
-	CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "\n {dict(%p) : TYPES / ENUMVAL}", dict), goto error);
+	CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "\n {dict}(@%p): TYPES / ENUMVAL", dict), goto error);
 	CHECK_MALLOC_DO( dump_list(FD_DUMP_STD_PARAMS, &dict->dict_types, 0, 2, 3 ), goto error);
 	
-	CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "\n {dict(%p) : COMMANDS / RULES}", dict), goto error);
+	CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "\n {dict}(@%p): COMMANDS / RULES", dict), goto error);
 	CHECK_MALLOC_DO( dump_list(FD_DUMP_STD_PARAMS, &dict->dict_cmd_code, 0, 0, 3 ), goto error);
 	
-	CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "\n {dict(%p) : statistics}", dict), goto error);
+	CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "\n {dict}(@%p): statistics", dict), goto error);
 	for (i=1; i<=DICT_TYPE_MAX; i++)
 		CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "\n   %5d: %s",  dict->dict_count[i], dict_obj_info[i].name), goto error);
 	
