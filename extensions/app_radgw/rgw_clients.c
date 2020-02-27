@@ -763,7 +763,7 @@ int rgw_clients_create_origin(struct rgw_radius_msg_meta *msg, struct rgw_client
 		hint.ai_flags  = AI_CANONNAME;
 		ret = getaddrinfo(buf, NULL, &hint, &res);
 		if (ret == 0) {
-			strncpy(buf, res->ai_canonname, sizeof(buf));
+			snprintf(buf, sizeof(buf), "%s", res->ai_canonname);
 			/* The name was resolved correctly, does it match the IP of the client? */
 			for (ptr = res; ptr != NULL; ptr = ptr->ai_next) {
 				if (cli->sa->sa_family != ptr->ai_family)

@@ -2234,7 +2234,7 @@ static int parsedict_do_avp(struct dictionary * dict, struct avp * avp, int mand
 				if (error_info) {				
 						error_info->pei_errcode = "DIAMETER_INVALID_AVP_VALUE";
 						error_info->pei_avp = avp;
-						strncpy(error_message, err, sizeof(error_message));
+						snprintf(error_message, sizeof(error_message), "%s", err);
 						error_info->pei_message = error_message;
 				} else {
 					char * buf = NULL;

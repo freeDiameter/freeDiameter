@@ -1960,22 +1960,16 @@ char * diameap_attribute_operator(char * op, int * toadd, boolean *isrule)
 	switch (*toadd)
 	{
 	case 1:
-		attribute_op = malloc(strlen(op));
-		memset(attribute_op, 0, strlen(op));
-		strncpy(attribute_op, op + 1, strlen(op) - 1);
-		attribute_op[strlen(op)] = '\0';
+		attribute_op = calloc(strlen(op), sizeof(char *));
+		memcpy(attribute_op, op + 1, strlen(op) - 1);
 		break;
 	case 2:
-		attribute_op = malloc(strlen(op));
-		memset(attribute_op, 0, strlen(op));
-		strncpy(attribute_op, op, strlen(op) - 1);
-		attribute_op[strlen(op)] = '\0';
+		attribute_op = calloc(strlen(op), sizeof(char *));
+		memcpy(attribute_op, op, strlen(op) - 1);
 		break;
 	default:
-		attribute_op = malloc(strlen(op) + 1);
-		memset(attribute_op, 0, strlen(op) + 1);
-		strcpy(attribute_op, op);
-		attribute_op[strlen(op) + 1] = '\0';
+		attribute_op = calloc(strlen(op) + 1, sizeof(char *));
+		memcpy(attribute_op, op, strlen(op));
 	}
 	if (strcmp(attribute_op, "=") == 0)
 	{
