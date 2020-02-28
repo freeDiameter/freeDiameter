@@ -32,8 +32,6 @@
 
 /*
  * Dump Diameter dictionary to JSON file.
- *
- * TODO: find out reason for many warnings in log
  */
 
 #include <freeDiameter/extension.h>
@@ -161,8 +159,12 @@ dump_avp(dict_object *self, struct dict_avp_data *data, struct dict_object *pare
         Json::Value avp;
         char flags[10];
 
-        fd_dict_search(fd_g_config->cnf_dict, DICT_TYPE, TYPE_OF_AVP, self, &type, ENOENT);
-        if (fd_dict_getval(type, &type_data) != 0) {
+        if (fd_dict_search(fd_g_config->cnf_dict, DICT_TYPE, TYPE_OF_AVP, self, &type, 0) != 0) {
+                /* TODO: fd_dict_search error */
+                return;
+	}
+
+        if ((type == NULL) || (fd_dict_getval(type, &type_data) != 0)) {
                 avp["Type"] = Json::Value(type_base_name[data->avp_basetype]);
         } else {
                 if (strstr(type_data.type_name, "Enumerated") != 0) {
