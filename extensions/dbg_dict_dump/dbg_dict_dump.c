@@ -33,7 +33,12 @@
 * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.								 *
 *********************************************************************************************************/
 
-/* This extension logs a dump of the global dictionary */
+/*
+ * Dump Diameter dictionary (using fd_dict_dump()) to a file or the log.
+ *
+ * If conffile is provided, write the dump to that file,
+ * otherwise write to log.
+ */
 
 #include <freeDiameter/extension.h>
 
@@ -41,13 +46,33 @@ static int dbg_dict_dump_entry(char * conffile)
 {
 	TRACE_ENTRY("%p", conffile);
 
+	FILE * out = NULL;
+	if (conffile) {
+		LOG_N("Dictionary dump to file '%s'", conffile);
+		out = fopen(conffile, "w");
+		if (NULL == out) {
+			LOG_E("Cannot open output file '%s' for writing", conffile);
+			return EINVAL;
+		}
+	} else {
+		LOG_N("Dictionary dump to log");
+	}
+
 	char * tbuf = NULL; size_t tbuflen = 0;
-	LOG_N("Dumping dictionary information");
-	LOG_N("%s", fd_dict_dump(&tbuf, &tbuflen, NULL, fd_g_config->cnf_dict));
+	if (NULL == fd_dict_dump(&tbuf, &tbuflen, NULL, fd_g_config->cnf_dict)) {
+		LOG_E("Cannot dump dictionary");
+	} else if (out) {
+		fprintf(out, "%s\n", tbuf);
+	} else {
+		LOG_N("%s", fd_dict_dump(&tbuf, &tbuflen, NULL, fd_g_config->cnf_dict));
+	}
 	free(tbuf);
+	if (out) {
+		fclose(out);
+		out = NULL;
+	}
 
-	LOG_N("Dictionary dumped");
-
+	LOG_N("Dictionary dump completed");
 	return 0;
 }
 
