@@ -3295,7 +3295,7 @@ static int dict_dcca_3gpp_entry(char * conffile)
 	};
 
 	/* S15-specific                                                     */
-	/* CS-Service-Qos-Request-Identifier, OctetString, code 2807        */
+	/* CS-Service-Qos-Request-Identifier, OctetString, code 2807, section E.6.3.2 */
 	{
 		struct dict_avp_data data = {
 			2807,	/* Code */
@@ -3308,7 +3308,7 @@ static int dict_dcca_3gpp_entry(char * conffile)
 		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
 	};
 
-	/* CS-Service-QoS-Request-Operation, Enumerated, code 2808          */
+	/* CS-Service-QoS-Request-Operation, Enumerated, code 2808, section E.6.3.3 */
 	{
 		struct dict_avp_data data = {
 			2808,	/* Code */
