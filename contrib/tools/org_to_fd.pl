@@ -111,7 +111,7 @@ while (<>) {
     my ($desc) = $name;
     $desc .= ", " . $type;
     $desc .= ", code " . $code;
-    $desc .= ", section " . $section if $section != "";
+    $desc .= ", section " . $section if $section ne "";
     print_comment($desc);
     print "\t{\n";
     print "\t\tstruct dict_avp_data data = {\n";
