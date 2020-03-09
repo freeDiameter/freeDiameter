@@ -24,7 +24,7 @@ sub base_type($) {
     my ($type) = @_;
 
     return "AVP_TYPE_GROUPED" if ($type =~ m/Grouped/);
-    return "AVP_TYPE_OCTETSTRING" if ($type =~ m/(Address|DiameterIdentity|DiameterURI|OctetString|IPFilterRule|Time|UTF8String)/);
+    return "AVP_TYPE_OCTETSTRING" if ($type =~ m/(Address|DiameterIdentity|DiameterURI|OctetString|IPFilterRule|Time|UTF8String|QoSFilterRule)/);
     return "AVP_TYPE_INTEGER32" if ($type =~ m/Enumerated|Integer32/);
     return "AVP_TYPE_INTEGER64" if ($type =~ m/Integer64/);
     return "AVP_TYPE_UNSIGNED32" if ($type =~ m/Unsigned32/);
@@ -32,7 +32,7 @@ sub base_type($) {
     return "AVP_TYPE_FLOAT32" if ($type =~ m/Float32/);
     return "AVP_TYPE_FLOAT64" if ($type =~ m/Float64/);
 
-    return "UNKNOWN TYPE: $type";
+    die("unknown type '$type'");
 }
 
 
@@ -67,8 +67,8 @@ sub print_insert($$) {
 }
 
 sub usage($) {
-    die(sprintf("usage: %s [-V vendor_name] [-v vendor_code] [file ...]\n", $progname));
-    exit(@_);
+    print STDERR "usage: $progname [-V vendor_name] [-v vendor_code] [file ...]\n";
+    exit(1);
 }
 
 getopts("V:v:") || usage(1);
@@ -85,7 +85,7 @@ print_header();
 print_comment("Start of generated data.");
 print_comment("");
 print_comment("The following is created automatically with:");
-print_comment(sprintf("    org_to_fd.pl -V '%s' -v %s", $vendor_name, $vendor));
+print_comment("    org_to_fd.pl -V '$vendor_name' -v $vendor");
 print_comment("Changes will be lost during the next update.");
 print_comment("Do not modify; modify the source .org file instead.");
 print_header();
@@ -105,7 +105,7 @@ while (<>) {
     }
 
     if ($name =~ m/\s/) {
-        die(sprintf("name '%s' contains space", $name));
+        die("name '$name' contains space");
     }
 
     my ($desc) = $name;
