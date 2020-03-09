@@ -93,7 +93,7 @@ class Avp(object):
 
     def __init__(self, name, code, section, datatype,
                  must, may, shouldnot, mustnot, encrypt,
-                 filename=None, linenum=0, standard=None, vendor=0):
+                 filename='', linenum=0, standard='', vendor=0):
         # Members from CSV row
         self.name = name
         self.code = int(code)
@@ -223,7 +223,7 @@ class FdcProcessor(Processor):
 
     def avp(self, avp):
         comment = '{name}, {datatype}, code {code}'.format(**vars(avp))
-        if '' != avp.section:
+        if avp.section != '':
             comment += ', section {}'.format(avp.section)
         self.add_comment(comment)
         self.add('\t{')
@@ -241,7 +241,7 @@ class FdcProcessor(Processor):
             DERIVED_TO_BASE.get(avp.datatype, avp.datatype).upper()))
         self.add('\t\t};')
         avp_type = 'NULL'
-        if 'Enumerated' == avp.datatype:
+        if avp.datatype == 'Enumerated':
             self.add('\t\tstruct dict_object\t*type;')
             vendor_prefix = ''
             if avp.vendor != 0:
@@ -262,9 +262,9 @@ class FdcProcessor(Processor):
         self.add('')
 
     def comment(self, comment, filename, linenum):
-        if '' == comment:
+        if comment == '':
             self.add('')
-        elif '=' == comment:
+        elif comment == '=':
             self.add_header()
         elif comment.startswith(' '):
             self.add_comment(comment[1:])
@@ -428,9 +428,9 @@ into various formats using the specified processor PROCESSOR.
                         value = row['code']
                         if False:
                             pass
-                        elif 'standard' == parameter:
+                        elif parameter == 'standard':
                             standard = value
-                        elif 'vendor' == parameter:
+                        elif parameter == 'vendor':
                             vendor = int(value)
                         else:
                             raise ValueError('Unknown parameter "{}"'.format(
@@ -459,7 +459,7 @@ into various formats using the specified processor PROCESSOR.
     avpproc.generate()
 
 
-if '__main__' == __name__:
+if __name__ == '__main__':
     main()
 
 # vim: set et sw=4 sts=4 :
