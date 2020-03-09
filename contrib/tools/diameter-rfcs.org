@@ -15,12 +15,12 @@
 | Auth-Session-State               |  277 |    8.11 | Enumerated  | M    | P   |          | V        | N    |
 | Re-Auth-Request-Type             |  285 |    8.12 | Enumerated  | M    | P   |          | V        | N    |
 | Class                            |   25 |    8.20 | OctetString | M    | P   |          | V        | Y    |
-| Destination-Host                 |  293 |     6.5 | DiamIdent   | M    | P   |          | V        | N    |
-| Destination-Realm                |  283 |     6.6 | DiamIdent   | M    | P   |          | V        | N    |
+| Destination-Host                 |  293 |     6.5 | DiameterIdentity   | M    | P   |          | V        | N    |
+| Destination-Realm                |  283 |     6.6 | DiameterIdentity   | M    | P   |          | V        | N    |
 | Disconnect-Cause                 |  273 |   5.4.3 | Enumerated  | M    | P   |          | V        | N    |
 | E2E-Sequence-AVP                 |  300 |    6.15 | Grouped     | M    | P   |          | V        | Y    |
 | Error-Message                    |  281 |     7.3 | UTF8String  |      | P   |          | V,M      | N    |
-| Error-Reporting-Host             |  294 |     7.4 | DiamIdent   |      | P   |          | V,M      | N    |
+| Error-Reporting-Host             |  294 |     7.4 | DiameterIdentity   |      | P   |          | V,M      | N    |
 | Event-Timestamp                  |   55 |    8.21 | Time        | M    | P   |          | V        | N    |
 | Experimental-Result              |  297 |     7.6 | Grouped     | M    | P   |          | V        | N    |
 | Experimental-Result-Code         |  298 |     7.7 | Unsigned32  | M    | P   |          | V        | N    |
@@ -29,18 +29,18 @@
 | Host-IP-Address                  |  257 |   5.3.5 | Address     | M    | P   |          | V        | N    |
 | Inband-Security-Id               |  299 |    6.10 | Unsigned32  | M    | P   |          | V        | N    |
 | Multi-Round-Time-Out             |  272 |    8.19 | Unsigned32  | M    | P   |          | V        | Y    |
-| Origin-Host                      |  264 |     6.3 | DiamIdent   | M    | P   |          | V        | N    |
-| Origin-Realm                     |  296 |     6.4 | DiamIdent   | M    | P   |          | V        | N    |
+| Origin-Host                      |  264 |     6.3 | DiameterIdentity   | M    | P   |          | V        | N    |
+| Origin-Realm                     |  296 |     6.4 | DiameterIdentity   | M    | P   |          | V        | N    |
 | Origin-State-Id                  |  278 |    8.16 | Unsigned32  | M    | P   |          | V        | N    |
 | Product-Name                     |  269 |   5.3.7 | UTF8String  |      |     |          | P,V,M    | N    |
-| Proxy-Host                       |  280 |   6.7.3 | DiamIdent   | M    |     |          | P,V      | N    |
+| Proxy-Host                       |  280 |   6.7.3 | DiameterIdentity   | M    |     |          | P,V      | N    |
 | Proxy-Info                       |  284 |   6.7.2 | Grouped     | M    |     |          | P,V      | N    |
 | Proxy-State                      |   33 |   6.7.4 | OctetString | M    |     |          | P,V      | N    |
-| Redirect-Host                    |  292 |    6.12 | DiamURI     | M    | P   |          | V        | N    |
+| Redirect-Host                    |  292 |    6.12 | DiameterURI     | M    | P   |          | V        | N    |
 | Redirect-Host-Usage              |  261 |    6.13 | Enumerated  | M    | P   |          | V        | N    |
 | Redirect-Max-Cache-Time          |  262 |    6.14 | Unsigned32  | M    | P   |          | V        | N    |
 | Result-Code                      |  268 |     7.1 | Unsigned32  | M    | P   |          | V        | N    |
-| Route-Record                     |  282 |   6.7.1 | DiamIdent   | M    |     |          | P,V      | N    |
+| Route-Record                     |  282 |   6.7.1 | DiameterIdentity   | M    |     |          | P,V      | N    |
 | Session-Id                       |  263 |     8.8 | UTF8String  | M    | P   |          | V        | Y    |
 | Session-Timeout                  |   27 |    8.13 | Unsigned32  | M    | P   |          | V        | N    |
 | Session-Binding                  |  270 |    8.17 | Unsigned32  | M    | P   |          | V        | Y    |
@@ -76,10 +76,10 @@
 | Callback-Id                      |   20 |     6.3 | UTF8String  | M    | P   |          | V        | Y    |
 | Idle-Timeout                     |   28 |     6.4 | Unsigned32  | M    | P   |          | V        | Y    |
 | Port-Limit                       |   62 |     6.5 | Unsigned32  | M    | P   |          | V        | Y    |
-| NAS-Filter-Rule                  |  400 |     6.6 | IPFltrRule  | M    | P   |          | V        | Y    |
+| NAS-Filter-Rule                  |  400 |     6.6 | IPFilterRule  | M    | P   |          | V        | Y    |
 | Filter-Id                        |   11 |     6.7 | UTF8String  | M    | P   |          | V        | Y    |
 | Configuration-Token              |   78 |     6.8 | OctetString | M    |     |          | P,V      |      |
-| QoS-Filter-Rule                  |  407 |     6.9 | QoSFltrRule |      |     |          |          |      |
+| QoS-Filter-Rule                  |  407 |     6.9 | QoSFilterRule |      |     |          |          |      |
 | Framed-Protocol                  |    7 |  6.10.1 | Enumerated  | M    | P   |          | V        | Y    |
 | Framed-Routing                   |   10 |  6.10.2 | Enumerated  | M    | P   |          | V        | Y    |
 | Framed-MTU                       |   12 |  6.10.3 | Unsigned32  | M    | P   |          | V        | Y    |
@@ -132,7 +132,8 @@
 | NAS-IP-Address                   |    4 |   9.3.2 | OctetString | M    | P   |          | V        | Y    |
 | NAS-IPv6-Address                 |   95 |   9.3.3 | OctetString | M    | P   |          | V        | Y    |
 | State                            |   24 |   9.3.4 | OctetString | M    | P   |          | V        | Y    |
-| Termination-Cause                |  295 |   9.3.5 | Enumerated  | M    | P   |          | V        | Y    |
+| # Termination-Cause already in RFC 3588  |  295 |   9.3.5 | Enumerated  | M    | P   |          | V        | Y    |
+| #                                |      |         |             |      |     |          |          |      |
 | Origin-AAA-Protocol              |  408 |   9.3.6 | Enumerated  | M    | P   |          | V        | Y    |
 | # RFC 4006 - DCCA #              |      |         |             |      |     |          |          |      |
 | CC-Correlation-Id                |  411 |     8.1 | OctetString |      | P,M |          | V        | Y    |
@@ -168,7 +169,7 @@
 | Redirect-Server-Address          |  435 |    8.39 | UTF8String  | M    | P   |          | V        | Y    |
 | Requested-Action                 |  436 |    8.41 | Enumerated  | M    | P   |          | V        | Y    |
 | Requested-Service-Unit           |  437 |    8.18 | Grouped     | M    | P   |          | V        | Y    |
-| Restriction-Filter-Rule          |  438 |    8.36 | IPFiltrRule | M    | P   |          | V        | Y    |
+| Restriction-Filter-Rule          |  438 |    8.36 | IPFilterRule | M    | P   |          | V        | Y    |
 | Service-Context-Id               |  461 |    8.42 | UTF8String  | M    | P   |          | V        | Y    |
 | Service-Identifier               |  439 |    8.28 | Unsigned32  | M    | P   |          | V        | Y    |
 | Service-Parameter-Info           |  440 |    8.43 | Grouped     |      | P,M |          | V        | Y    |
