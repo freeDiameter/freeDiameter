@@ -1,0 +1,19 @@
+#!/usr/bin/env python
+
+"""
+Convert |-separated 11-column .org files to CSV,
+with first and last empty columns ignored.
+"""
+
+import csv
+import fileinput
+import re
+import sys
+
+csvout = csv.writer(sys.stdout)
+for line in fileinput.input():
+    row = re.split(r'\s*\|\s*', line)
+    row.extend([''] * (10 - len(row)))
+    csvout.writerow(row[1:10])
+
+# vim: set et sw=4 sts=4 :

@@ -1,2 +1,11 @@
+csv_to_fd converts CSV files containing RADIUS or Diameter AVP tables
+into various formats, including freeDiameter C code and JSON documents.
+
+grep_fd_dict_dump processes stdin for the output of fd_dict_dump()
+or dbg_dict_dump.fdx and reformats to remove pointer addresses,
+to allow diff of output between freeDiameter invocations.
+
+org_to_csv converts org files into CSV files, suitable for csv_to_fd.
+
 org_to_fd.pl converts org files like diameter-rfcs.org to C fragments
 that can be included in freeDiameter code.
