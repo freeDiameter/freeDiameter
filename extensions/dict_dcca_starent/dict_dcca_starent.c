@@ -88,17 +88,20 @@ static int dict_dcca_starent_entry(char * conffile)
 	/* Start of generated data.                                         */
 	/*                                                                  */
 	/* The following is created automatically with:                     */
-	/*     org_to_fd.pl -V 'Starent' -v 8164                            */
+	/*     csv_to_fd -p fdc dict_dcca_starent.csv                       */
 	/* Changes will be lost during the next update.                     */
-	/* Do not modify; modify the source .org file instead.              */
+	/* Do not modify; modify the source .csv file instead.              */
 	/*==================================================================*/
 
+	/*==================================================================*/
 	/* Cisco ASR 5000 Series AAA Interface                              */
 	/* Administration and Reference                                     */
 	/* Release 8.x and 9.0                                              */
 	/* Last Updated June 30, 2010                                       */
 	/* updated using v15 docs from Jan 2014                             */
 	/* www.cisco.com/c/dam/en/us/td/docs/wireless/asr_5000/15-0/15-0-AAA-Reference.pdf */
+	/*==================================================================*/
+
 	/* SN-Volume-Quota-Threshold, Unsigned32, code 501                  */
 	{
 		struct dict_avp_data data = {

@@ -363,15 +363,16 @@ static int dict_dcca_3gpp_entry(char * conffile)
 	/* Start of generated data.                                         */
 	/*                                                                  */
 	/* The following is created automatically with:                     */
-	/*     org_to_fd.pl -V '3GPP' -v 10415                              */
+	/*     csv_to_fd -p fdc dict_dcca_3gpp.csv                          */
 	/* Changes will be lost during the next update.                     */
-	/* Do not modify; modify the source .org file instead.              */
+	/* Do not modify; modify the source .csv file instead.              */
 	/*==================================================================*/
 
-
+	/*==================================================================*/
 	/* 3GPP 29.061-c00 (12.0.0 2012.12.20)                              */
 	/* 3GPP 29.061 is not very clear and self-inconsistent about M      */
 	/* for this reason, other sources are assumed more trustworthy      */
+	/*==================================================================*/
 
 	/* M inconsistently specified                                       */
 	/* 3GPP-IMSI, UTF8String, code 1, section 16.4.7                    */
@@ -1070,9 +1071,10 @@ static int dict_dcca_3gpp_entry(char * conffile)
 		CHECK_dict_new(DICT_AVP, &data, type, NULL);
 	};
 
-
+	/*==================================================================*/
 	/* 3GPP TS 29.128 V15.6.0 (2019-09)                                 */
 	/* From 3GPP 29128-f60.docx                                         */
+	/*==================================================================*/
 
 	/* Communication-Failure-Information, Grouped, code 4300, section 6.4.4 */
 	{
@@ -1401,8 +1403,9 @@ static int dict_dcca_3gpp_entry(char * conffile)
 		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
 	};
 
-
+	/*==================================================================*/
 	/* 3GPP 29.140-700 (7.0.0 2007.07.05)                               */
+	/*==================================================================*/
 
 	/* Served-User-Identity, Grouped, code 1100, section 6.3.1          */
 	{
@@ -1687,9 +1690,10 @@ static int dict_dcca_3gpp_entry(char * conffile)
 		CHECK_dict_new(DICT_AVP, &data, type, NULL);
 	};
 
-
+	/*==================================================================*/
 	/* 3GPP TS 29.173 V15.0.0 (2018-06)                                 */
 	/* From 3GPP 29173-f00.doc                                          */
+	/*==================================================================*/
 
 	/* LMSI, OctetString, code 2400, section 6.4.2                      */
 	{
@@ -1847,8 +1851,9 @@ static int dict_dcca_3gpp_entry(char * conffile)
 		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
 	};
 
-
+	/*==================================================================*/
 	/* 3GPP 29.210-670 (6.7.0 2006-12-18)                               */
+	/*==================================================================*/
 
 	/* PDP-Session-Operation, Enumerated, code 1015, section 5.2.21     */
 	{
@@ -1866,8 +1871,9 @@ static int dict_dcca_3gpp_entry(char * conffile)
 		CHECK_dict_new(DICT_AVP, &data, type, NULL);
 	};
 
-
+	/*==================================================================*/
 	/* 3GPP 29.212-c00 (12.0.0 2013.03.15)                              */
+	/*==================================================================*/
 
 	/* Gx-specific                                                      */
 
@@ -3324,9 +3330,10 @@ static int dict_dcca_3gpp_entry(char * conffile)
 		CHECK_dict_new(DICT_AVP, &data, type, NULL);
 	};
 
-
+	/*==================================================================*/
 	/* 3GPP TS 29.214 V15.7.0 (2019-09)                                 */
 	/* From 3GPP 29214-f70.doc                                          */
+	/*==================================================================*/
 
 	/* Abort-Cause, Enumerated, code 500, section 5.3.1                 */
 	{
@@ -4177,8 +4184,9 @@ static int dict_dcca_3gpp_entry(char * conffile)
 		CHECK_dict_new(DICT_AVP, &data, type, NULL);
 	};
 
-
+	/*==================================================================*/
 	/* 3GPP 29.229-b20 (11.2.0 2012.12.21)                              */
+	/*==================================================================*/
 
 	/* Associated-Identities, Grouped, code 632, section 6.3.33         */
 	{
@@ -4883,9 +4891,10 @@ static int dict_dcca_3gpp_entry(char * conffile)
 		CHECK_dict_new(DICT_AVP, &data, UTF8String_type, NULL);
 	};
 
-
+	/*==================================================================*/
 	/* 3GPP TS 29.272 V15.10.0 (2019-12)                                */
 	/* From 3GPP 29272-fa0.docx                                         */
+	/*==================================================================*/
 
 	/* Subscription-Data, Grouped, code 1400, section 7.3.2             */
 	{
@@ -7589,8 +7598,9 @@ static int dict_dcca_3gpp_entry(char * conffile)
 		CHECK_dict_new(DICT_AVP, &data, type, NULL);
 	};
 
-
+	/*==================================================================*/
 	/* 3GPP 29.329-b50 (11.5.0 2012.12.21)                              */
+	/*==================================================================*/
 
 	/* User-Identity, Grouped, code 700, section 6.3.1                  */
 	{
@@ -7875,8 +7885,9 @@ static int dict_dcca_3gpp_entry(char * conffile)
 		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
 	};
 
-
+	/*==================================================================*/
 	/* 3GPP 32.299-b80 (11.8.0 2013-07)                                 */
+	/*==================================================================*/
 
 	/* AF-Correlation-Information, Grouped, code 1276                   */
 	{
@@ -11595,8 +11606,9 @@ static int dict_dcca_3gpp_entry(char * conffile)
 		CHECK_dict_new(DICT_AVP, &data, Address_type, NULL);
 	};
 
-
+	/*==================================================================*/
 	/* OMA DDS Charging_Data V1.0 20110201-A                            */
+	/*==================================================================*/
 
 	/* Application-Server-Id, UTF8String, code 2101, section 8.4        */
 	{
