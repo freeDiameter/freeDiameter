@@ -6,7 +6,7 @@ into various formats.
 
 Format of the CSV files is one of:
 - Row per 3GPP AVP tables:
-    Name, Code, Section, DataType, Must, May, ShouldNot, MustNot [, ...]
+    Name, Code, Section, DataType, Must, May, ShouldNot, MustNot [, extra]
     - Name:
         AVP Name. String, validated as ALPHA *(ALPHA / DIGIT / "-")
         per RFC 6733 section 3.2.
@@ -44,6 +44,7 @@ import collections
 import json
 import re
 import optparse
+import os
 import sys
 
 CSV_COLUMN_NAMES = [
@@ -55,7 +56,6 @@ CSV_COLUMN_NAMES = [
     'may',
     'shouldnot',
     'mustnot',
-    'encrypt',
 ]
 
 DERIVED_TO_BASE = {
@@ -88,11 +88,14 @@ class Avp(object):
 # TODO: if starts with digit, ensure contains a letter somewhere?
     _name_re = re.compile(r'^[a-zA-Z0-9][a-zA-Z0-9-\.]*$')
 
+    # Regex to validate flags: M, P, V, comma, space
+    _flags_re = re.compile(r'^[MPV, ]*$')
+
     __slots__ = CSV_COLUMN_NAMES + [
         'filename', 'linenum', 'standard', 'vendor', ]
 
     def __init__(self, name, code, section, datatype,
-                 must, may, shouldnot, mustnot, encrypt,
+                 must, may, shouldnot, mustnot, extra_cells,
                  filename='', linenum=0, standard='', vendor=0):
         # Members from CSV row
         self.name = name
@@ -103,7 +106,6 @@ class Avp(object):
         self.may = may
         self.shouldnot = shouldnot
         self.mustnot = mustnot
-        self.encrypt = encrypt
         # Members from file state
         self.filename = filename
         self.linenum = linenum
@@ -120,7 +122,14 @@ class Avp(object):
                 and self.datatype not in DERIVED_TO_BASE):
             raise ValueError('Invalid AVP data type "{}"'.format(
                 self.datatype))
-# TODO: validate must, may, shouldnot, mustnot
+        for val, desc in [
+                (self.must, 'Must'),
+                (self.may, 'May'),
+                (self.shouldnot, 'Should Not'),
+                (self.mustnot, 'Must Not'),
+                ]:
+            if not self._flags_re.match(val):
+                raise ValueError('Invalid AVP Flags {} "{}"'.format(desc, val))
 
     @property
     def __dict__(self):
@@ -216,10 +225,11 @@ class FdcProcessor(Processor):
     COMMENT_WIDTH = 64
 
     def __init__(self):
+        self.filenames = []
         self.lines = []
 
     def next_file(self, filename):
-        print('/* CSV file: {} */'.format(filename))
+        self.filenames.append(os.path.basename(filename))
 
     def avp(self, avp):
         comment = '{name}, {datatype}, code {code}'.format(**vars(avp))
@@ -276,7 +286,8 @@ class FdcProcessor(Processor):
         self.print_comment('Start of generated data.')
         self.print_comment('')
         self.print_comment('The following is created automatically with:')
-        self.print_comment('    csv_to_fd -p {}'.format(self.cls_name()))
+        self.print_comment('    csv_to_fd -p {} {}'.format(
+            self.cls_name(), ' '.join(self.filenames)))
         self.print_comment('Changes will be lost during the next update.')
         self.print_comment('Do not modify;'
                            ' modify the source .csv file instead.')
@@ -411,7 +422,8 @@ into various formats using the specified processor PROCESSOR.
     for filename in args:
         avpproc.next_file(filename)
         with open(filename, 'r') as csvfile:
-            csvdata = csv.DictReader(csvfile, CSV_COLUMN_NAMES)
+            csvdata = csv.DictReader(csvfile, CSV_COLUMN_NAMES,
+                                     restkey='extra_cells')
             linenum = 0
             standard = ''
             vendor = 0
