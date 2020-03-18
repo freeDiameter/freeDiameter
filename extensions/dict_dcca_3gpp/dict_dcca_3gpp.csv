@@ -1,11 +1,12 @@
 Attribute Name,Code,Section defined,Value Type,MUST,MAY,SHOULD NOT,MUST NOT,Encr
 @vendor,10415,,,,,,,
-#,,,,,,,,
+@standard,3GPP TS 29.061,,,,,,,
+#=,,,,,,,,
 # 3GPP 29.061-c00 (12.0.0 2012.12.20),,,,,,,,
 # 3GPP 29.061 is not very clear and self-inconsistent about M,,,,,,,,
 "# for this reason, other sources are assumed more trustworthy",,,,,,,,
+#=,,,,,,,,
 #,,,,,,,,
-@standard,3GPP TS 29.061,,,,,,,
 # M inconsistently specified,,,,,,,,
 3GPP-IMSI,1,16.4.7,UTF8String,"M,V",P,,,
 # 29.061 says OctetString; dumps say UInt32; manually changed,,,,,,,,
@@ -79,11 +80,12 @@ MBMS-BMSC-SSM-IPv6-Address,919,17.07.22,OctetString,"M,V",P,,,
 MBMS-Flow-Identifier,920,17.7.23,OctetString,"M,V",P,,,
 CN-IP-Multicast-Distribution,921,17.7.24,Enumerated,"M,V",P,,,
 MBMS-HC-Indicator,922,17.7.25,Enumerated,"M,V",P,,,
-#,,,,,,,,
+@standard,3GPP TS 29.129,,,,,,,
+#=,,,,,,,,
 # 3GPP TS 29.128 V15.6.0 (2019-09),,,,,,,,
 # From 3GPP 29128-f60.docx,,,,,,,,
+#=,,,,,,,,
 #,,,,,,,,
-@standard,3GPP TS 29.129,,,,,,,
 Communication-Failure-Information,4300,6.4.4,Grouped,"M,V",,,,No
 Cause-Type,4301,6.4.5,Unsigned32,"M,V",,,,No
 S1AP-Cause,4302,6.4.6,Unsigned32,"M,V",,,,No
@@ -111,10 +113,11 @@ TDA-Flags,4321,6.4.31,Unsigned32,V,,,M,No
 Idle-Status-Indication,4322,6.4.32,Grouped,V,,,M,No
 Idle-Status-Timestamp,4323,6.4.33,Time,V,,,M,No
 Active-Time,4324,6.4.34,Unsigned32,V,,,M,No
-#,,,,,,,,
-# 3GPP 29.140-700 (7.0.0 2007.07.05),,,,,,,,
-#,,,,,,,,
 @standard,3GPP TS 29.140,,,,,,,
+#=,,,,,,,,
+# 3GPP 29.140-700 (7.0.0 2007.07.05),,,,,,,,
+#=,,,,,,,,
+#,,,,,,,,
 Served-User-Identity,1100,6.3.1,Grouped,"M,V",,,,N
 # reuses: MSISDN,701,6.3.2,OctetString,"M,V",,,,N
 VASP-ID,1101,6.3.3,UTF8String,"M,V",,,,N
@@ -140,11 +143,12 @@ Status-29.140,1116,6.3.19,Grouped,"M,V",,,,N
 Status-Code,1117,6.3.20,UTF8String,"M,V",,,,N
 Status-Text,1118,6.3.21,UTF8String,"M,V",,,,N
 Routeing-Address-Resolution,1119,6.3.22,Enumerated,"M,V",,,,N
-#,,,,,,,,
+@standard,3GPP TS 29.173,,,,,,,
+#=,,,,,,,,
 # 3GPP TS 29.173 V15.0.0 (2018-06),,,,,,,,
 # From 3GPP 29173-f00.doc,,,,,,,,
+#=,,,,,,,,
 #,,,,,,,,
-@standard,3GPP TS 29.173,,,,,,,
 LMSI,2400,6.4.2,OctetString,"M,V",,,,N
 Serving-Node,2401,6.4.3,Grouped,"M,V",,,,N
 MME-Name,2402,6.4.4,DiameterIdentity,"M,V",,,,N
@@ -157,17 +161,19 @@ MME-Realm,2408,6.4.12,DiameterIdentity,V,,,M,N
 SGSN-Name,2409,6.4.13,DiameterIdentity,V,,,M,N
 SGSN-Realm,2410,6.4.14,DiameterIdentity,V,,,M,N
 RIA-Flags,2411,6.4.15,Unsigned32,V,,,M,N
-#,,,,,,,,
-# 3GPP 29.210-670 (6.7.0 2006-12-18),,,,,,,,
-#,,,,,,,,
 @standard,3GPP TS 29.210,,,,,,,
-PDP-Session-Operation,1015,5.2.21,Enumerated,"M,V",P,,,Y
+#=,,,,,,,,
+# 3GPP 29.210-670 (6.7.0 2006-12-18),,,,,,,,
+#=,,,,,,,,
 #,,,,,,,,
+PDP-Session-Operation,1015,5.2.21,Enumerated,"M,V",P,,,Y
+@standard,3GPP TS 29.212,,,,,,,
+#=,,,,,,,,
 # 3GPP 29.212-c00 (12.0.0 2013.03.15),,,,,,,,
+#=,,,,,,,,
 #,,,,,,,,
 # Gx-specific,,,,,,,,
 #,,,,,,,,
-@standard,3GPP TS 29.212,,,,,,,
 ADC-Revalidation-Time,2801,5.3.93,Time,V,P,,M,Y
 ADC-Rule-Install,1092,5.3.85,Grouped,V,P,,M,Y
 ADC-Rule-Remove,1093,5.3.86,Grouped,V,P,,M,Y
@@ -274,11 +280,12 @@ Session-Linking-Indicator,1064,5a.3.6,Enumerated,"M,V",P,,,Y
 # S15-specific,,,,,,,,
 CS-Service-Qos-Request-Identifier,2807,E.6.3.2,OctetString,"M,V",P,,,Y
 CS-Service-QoS-Request-Operation,2808,E.6.3.3,Enumerated,"M,V",P,,,Y
-#,,,,,,,,
+@standard,3GPP TS 29.214,,,,,,,
+#=,,,,,,,,
 # 3GPP TS 29.214 V15.7.0 (2019-09),,,,,,,,
 # From 3GPP 29214-f70.doc,,,,,,,,
+#=,,,,,,,,
 #,,,,,,,,
-@standard,3GPP TS 29.214,,,,,,,
 Abort-Cause,500,5.3.1,Enumerated,"M,V",P,,,Y
 Access-Network-Charging-Address,501,5.3.2,Address,"M,V",P,,,Y
 Access-Network-Charging-Identifier,502,5.3.3,Grouped,"M,V",P,,,Y
@@ -345,10 +352,11 @@ SIP-Forking-Indication,523,5.3.22,Enumerated,"M,V",P,,,Y
 Sponsor-Identity,531,5.3.28,UTF8String,V,P,,M,Y
 Sponsored-Connectivity-Data,530,5.3.27,Grouped,V,P,,M,Y
 Sponsoring-Action,542,5.3.40,Enumerated,V,P,,M,Y
-#,,,,,,,,
-# 3GPP 29.229-b20 (11.2.0 2012.12.21),,,,,,,,
-#,,,,,,,,
 @standard,3GPP TS 29.229,,,,,,,
+#=,,,,,,,,
+# 3GPP 29.229-b20 (11.2.0 2012.12.21),,,,,,,,
+#=,,,,,,,,
+#,,,,,,,,
 Associated-Identities,632,6.3.33,Grouped,V,,,M,N
 Associated-Registered-Identities,647,6.3.50,Grouped,V,,,M,N
 Call-ID-SIP-Header,643,6.3.49.1,OctetString,V,,,M,N
@@ -401,11 +409,12 @@ User-Data,606,6.3.7,OctetString,"M,V",,,,N
 User-Data-Already-Available,624,6.3.26,Enumerated,"M,V",,,,N
 Visited-Network-Identifier,600,6.3.1,OctetString,"M,V",,,,N
 Wildcarded-Public-Identity,634,6.3.35,UTF8String,V,,,M,N
-#,,,,,,,,
+@standard,3GPP TS 29.272,,,,,,,
+#=,,,,,,,,
 # 3GPP TS 29.272 V15.10.0 (2019-12),,,,,,,,
 # From 3GPP 29272-fa0.docx,,,,,,,,
+#=,,,,,,,,
 #,,,,,,,,
-@standard,3GPP TS 29.272,,,,,,,
 Subscription-Data,1400,7.3.2,Grouped,"M,V",,,,N
 Terminal-Information,1401,7.3.3,Grouped,"M,V",,,,N
 IMEI,1402,7.3.4,UTF8String,"M,V",,,,N
@@ -618,10 +627,11 @@ Paging-Time-Window-Length,1703,7.3.228,OctetString,V,,,M,N
 Core-Network-Restrictions,1704,7.3.230,Unsigned32,V,,,M,N
 eDRX-Related-RAT,1705,7.3.229,Grouped,V,,,M,N
 Interworking-5GS-Indicator,1706,7.3.231,Enumerated,V,,,M,N
-#,,,,,,,,
-# 3GPP 29.329-b50 (11.5.0 2012.12.21),,,,,,,,
-#,,,,,,,,
 @standard,3GPP TS 29.329,,,,,,,
+#=,,,,,,,,
+# 3GPP 29.329-b50 (11.5.0 2012.12.21),,,,,,,,
+#=,,,,,,,,
+#,,,,,,,,
 User-Identity,700,6.3.1,Grouped,"M,V",,,,N
 MSISDN,701,6.3.2,OctetString,"M,V",,,,N
 "# Name conflict with 29.229 User-Data (606), renamed",,,,,,,,
@@ -653,10 +663,11 @@ Serving-Node-Indication,714,6.3.23,Enumerated,V,,,M,N
 Repository-Data-ID,715,6.3.24,Grouped,V,,,M,N
 Sequence-Number,716,6.3.25,Unsigned32,V,,,M,N
 UDR-Flags,719,6.3.28,Unsigned32,V,,,M,N
-#,,,,,,,,
-# 3GPP 32.299-b80 (11.8.0 2013-07),,,,,,,,
-#,,,,,,,,
 @standard,3GPP TS 32.299,,,,,,,
+#=,,,,,,,,
+# 3GPP 32.299-b80 (11.8.0 2013-07),,,,,,,,
+#=,,,,,,,,
+#,,,,,,,,
 AF-Correlation-Information,1276,,Grouped,"M,V",P,,,N
 Access-Network-Information,1263,,OctetString,"M,V",P,,,N
 Access-Transfer-Information,2709,,Grouped,"M,V",P,,,N
@@ -930,10 +941,11 @@ WLAN-Radio-Container,892,,Grouped,"M,V",P,,,N
 WLAN-Session-Id,1246,,UTF8String,"M,V",P,,,N
 WLAN-Technology,893,,Unsigned32,"M,V",P,,,N
 WLAN-UE-Local-IPAddress,894,,Address,"M,V",P,,,N
-#,,,,,,,,
-# OMA DDS Charging_Data V1.0 20110201-A,,,,,,,,
-#,,,,,,,,
 @standard,OMA DDS Charging Data,,,,,,,
+#=,,,,,,,,
+# OMA DDS Charging_Data V1.0 20110201-A,,,,,,,,
+#=,,,,,,,,
+#,,,,,,,,
 Application-Server-Id,2101,8.4,UTF8String,"M,V",,,,Y
 Application-Service-Type,2102,8.4,UTF8String,"M,V",,,,Y
 Application-Session-Id,2103,8.4,UTF8String,"M,V",,,,Y

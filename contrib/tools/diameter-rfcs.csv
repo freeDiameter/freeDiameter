@@ -1,7 +1,10 @@
 Attribute Name,Code,Section defined,Value Type,MUST,MAY,SHOULD NOT,MUST NOT,Encr
 @vendor,0,,,,,,,
-# RFC 3588 - Diameter #,,,,,,,,
 @standard,RFC 3588,,,,,,,
+#=,,,,,,,,
+# RFC 3588 - Diameter #,,,,,,,,
+#=,,,,,,,,
+#,,,,,,,,
 Acct-Interim-Interval,85,9.8.2,Unsigned32,M,P,,V,Y
 Accounting-Realtime-Required,483,9.8.7,Enumerated,M,P,,V,Y
 Acct-Multi-Session-Id,50,9.8.5,UTF8String,M,P,,V,Y
@@ -52,8 +55,11 @@ Termination-Cause,295,8.15,Enumerated,M,P,,V,N
 User-Name,1,8.14,UTF8String,M,P,,V,Y
 Vendor-Id,266,5.3.3,Unsigned32,M,P,,V,N
 Vendor-Specific-Application-Id,260,6.11,Grouped,M,P,,V,N
-# RFC 4005 - NAS #,,,,,,,,
 @standard,RFC 4005,,,,,,,
+#=,,,,,,,,
+# RFC 4005 - NAS #,,,,,,,,
+#=,,,,,,,,
+#,,,,,,,,
 NAS-Port,5,4.2,Unsigned32,M,P,,V,Y
 NAS-Port-Id,87,4.3,UTF8String,M,P,,V,Y
 NAS-Port-Type,61,4.4,Enumerated,M,P,,V,Y
@@ -138,8 +144,11 @@ State,24,9.3.4,OctetString,M,P,,V,Y
 # Termination-Cause already in RFC 3588,295,9.3.5,Enumerated,M,P,,V,Y
 #,,,,,,,,
 Origin-AAA-Protocol,408,9.3.6,Enumerated,M,P,,V,Y
-# RFC 4006 - DCCA #,,,,,,,,
 @standard,RFC 4006,,,,,,,
+#=,,,,,,,,
+# RFC 4006 - DCCA #,,,,,,,,
+#=,,,,,,,,
+#,,,,,,,,
 CC-Correlation-Id,411,8.1,OctetString,,"P,M",,V,Y
 CC-Input-Octets,412,8.24,Unsigned64,M,P,,V,Y
 CC-Money,413,8.22,Grouped,M,P,,V,Y
