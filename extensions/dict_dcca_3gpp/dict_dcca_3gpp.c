@@ -1883,11 +1883,15 @@ static int dict_dcca_3gpp_entry(char * conffile)
 	};
 
 	/*==================================================================*/
-	/* 3GPP 29.212-c00 (12.0.0 2013.03.15)                              */
+	/* 3GPP TS 29.212 V15.9.0 (2019-12)                                 */
+	/* From 3GPP 29212-f90.doc                                          */
 	/*==================================================================*/
 
-	/* Gx-specific                                                      */
+	/*==================================================================*/
+	/* 3GPP TS 29.212 Table 5.3.0.1: Gx specific Diameter AVPs          */
+	/*==================================================================*/
 
+	/* 3GPP TS 29.212 V12.1.0 (2013-06) removed ADC-Revalidation-Time.  */
 	/* ADC-Revalidation-Time, Time, code 2801, section 5.3.93           */
 	{
 		struct dict_avp_data data = {
@@ -1901,93 +1905,31 @@ static int dict_dcca_3gpp_entry(char * conffile)
 		CHECK_dict_new(DICT_AVP, &data, Time_type, NULL);
 	};
 
-	/* ADC-Rule-Install, Grouped, code 1092, section 5.3.85             */
+	/* 3GPP-PS-Data-Off-Status, Enumerated, code 2847, section 5.3.133  */
 	{
 		struct dict_avp_data data = {
-			1092,	/* Code */
+			2847,	/* Code */
 			10415,	/* Vendor */
-			"ADC-Rule-Install",	/* Name */
+			"3GPP-PS-Data-Off-Status",	/* Name */
 			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
 			AVP_FLAG_VENDOR,	/* Fixed flag values */
-			AVP_TYPE_GROUPED	/* base type of data */
+			AVP_TYPE_INTEGER32	/* base type of data */
 		};
-		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+		struct dict_object	*type;
+		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "Enumerated(3GPP/3GPP-PS-Data-Off-Status)", NULL, NULL, NULL };
+		CHECK_dict_new(DICT_TYPE, &tdata, NULL, &type);
+		CHECK_dict_new(DICT_AVP, &data, type, NULL);
 	};
 
-	/* ADC-Rule-Remove, Grouped, code 1093, section 5.3.86              */
+	/* Access-Availability-Change-Reason, Unsigned32, code 2833, section 5.3.121 */
 	{
 		struct dict_avp_data data = {
-			1093,	/* Code */
+			2833,	/* Code */
 			10415,	/* Vendor */
-			"ADC-Rule-Remove",	/* Name */
+			"Access-Availability-Change-Reason",	/* Name */
 			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
 			AVP_FLAG_VENDOR,	/* Fixed flag values */
-			AVP_TYPE_GROUPED	/* base type of data */
-		};
-		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
-	};
-
-	/* ADC-Rule-Definition, Grouped, code 1094, section 5.3.87          */
-	{
-		struct dict_avp_data data = {
-			1094,	/* Code */
-			10415,	/* Vendor */
-			"ADC-Rule-Definition",	/* Name */
-			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
-			AVP_FLAG_VENDOR,	/* Fixed flag values */
-			AVP_TYPE_GROUPED	/* base type of data */
-		};
-		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
-	};
-
-	/* ADC-Rule-Base-Name, UTF8String, code 1095, section 5.3.88        */
-	{
-		struct dict_avp_data data = {
-			1095,	/* Code */
-			10415,	/* Vendor */
-			"ADC-Rule-Base-Name",	/* Name */
-			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
-			AVP_FLAG_VENDOR,	/* Fixed flag values */
-			AVP_TYPE_OCTETSTRING	/* base type of data */
-		};
-		CHECK_dict_new(DICT_AVP, &data, UTF8String_type, NULL);
-	};
-
-	/* ADC-Rule-Name, OctetString, code 1096, section 5.3.89            */
-	{
-		struct dict_avp_data data = {
-			1096,	/* Code */
-			10415,	/* Vendor */
-			"ADC-Rule-Name",	/* Name */
-			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
-			AVP_FLAG_VENDOR,	/* Fixed flag values */
-			AVP_TYPE_OCTETSTRING	/* base type of data */
-		};
-		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
-	};
-
-	/* ADC-Rule-Report, Grouped, code 1097, section 5.3.90              */
-	{
-		struct dict_avp_data data = {
-			1097,	/* Code */
-			10415,	/* Vendor */
-			"ADC-Rule-Report",	/* Name */
-			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
-			AVP_FLAG_VENDOR,	/* Fixed flag values */
-			AVP_TYPE_GROUPED	/* base type of data */
-		};
-		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
-	};
-
-	/* Application-Detection-Information, Grouped, code 1098, section 5.3.91 */
-	{
-		struct dict_avp_data data = {
-			1098,	/* Code */
-			10415,	/* Vendor */
-			"Application-Detection-Information",	/* Name */
-			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
-			AVP_FLAG_VENDOR,	/* Fixed flag values */
-			AVP_TYPE_GROUPED	/* base type of data */
+			AVP_TYPE_UNSIGNED32	/* base type of data */
 		};
 		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
 	};
@@ -2031,6 +1973,22 @@ static int dict_dcca_3gpp_entry(char * conffile)
 		CHECK_dict_new(DICT_AVP, &data, Address_type, NULL);
 	};
 
+	/* AN-GW-Status, Enumerated, code 2811, section 5.3.100             */
+	{
+		struct dict_avp_data data = {
+			2811,	/* Code */
+			10415,	/* Vendor */
+			"AN-GW-Status",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR,	/* Fixed flag values */
+			AVP_TYPE_INTEGER32	/* base type of data */
+		};
+		struct dict_object	*type;
+		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "Enumerated(3GPP/AN-GW-Status)", NULL, NULL, NULL };
+		CHECK_dict_new(DICT_TYPE, &tdata, NULL, &type);
+		CHECK_dict_new(DICT_AVP, &data, type, NULL);
+	};
+
 	/* APN-Aggregate-Max-Bitrate-DL, Unsigned32, code 1040, section 5.3.39 */
 	{
 		struct dict_avp_data data = {
@@ -2053,6 +2011,19 @@ static int dict_dcca_3gpp_entry(char * conffile)
 			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
 			AVP_FLAG_VENDOR,	/* Fixed flag values */
 			AVP_TYPE_UNSIGNED32	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+	};
+
+	/* Application-Detection-Information, Grouped, code 1098, section 5.3.91 */
+	{
+		struct dict_avp_data data = {
+			1098,	/* Code */
+			10415,	/* Vendor */
+			"Application-Detection-Information",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR,	/* Fixed flag values */
+			AVP_TYPE_GROUPED	/* base type of data */
 		};
 		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
 	};
@@ -2118,6 +2089,48 @@ static int dict_dcca_3gpp_entry(char * conffile)
 		CHECK_dict_new(DICT_AVP, &data, type, NULL);
 	};
 
+	/* Charging-Correlation-Indicator, Enumerated, code 1073, section 5.3.67 */
+	{
+		struct dict_avp_data data = {
+			1073,	/* Code */
+			10415,	/* Vendor */
+			"Charging-Correlation-Indicator",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR,	/* Fixed flag values */
+			AVP_TYPE_INTEGER32	/* base type of data */
+		};
+		struct dict_object	*type;
+		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "Enumerated(3GPP/Charging-Correlation-Indicator)", NULL, NULL, NULL };
+		CHECK_dict_new(DICT_TYPE, &tdata, NULL, &type);
+		CHECK_dict_new(DICT_AVP, &data, type, NULL);
+	};
+
+	/* Charging-Rule-Base-Name, UTF8String, code 1004, section 5.3.5    */
+	{
+		struct dict_avp_data data = {
+			1004,	/* Code */
+			10415,	/* Vendor */
+			"Charging-Rule-Base-Name",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flag values */
+			AVP_TYPE_OCTETSTRING	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, UTF8String_type, NULL);
+	};
+
+	/* Charging-Rule-Definition, Grouped, code 1003, section 5.3.4      */
+	{
+		struct dict_avp_data data = {
+			1003,	/* Code */
+			10415,	/* Vendor */
+			"Charging-Rule-Definition",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flag values */
+			AVP_TYPE_GROUPED	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+	};
+
 	/* Charging-Rule-Install, Grouped, code 1001, section 5.3.2         */
 	{
 		struct dict_avp_data data = {
@@ -2127,6 +2140,19 @@ static int dict_dcca_3gpp_entry(char * conffile)
 			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
 			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flag values */
 			AVP_TYPE_GROUPED	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+	};
+
+	/* Charging-Rule-Name, OctetString, code 1005, section 5.3.6        */
+	{
+		struct dict_avp_data data = {
+			1005,	/* Code */
+			10415,	/* Vendor */
+			"Charging-Rule-Name",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flag values */
+			AVP_TYPE_OCTETSTRING	/* base type of data */
 		};
 		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
 	};
@@ -2144,45 +2170,6 @@ static int dict_dcca_3gpp_entry(char * conffile)
 		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
 	};
 
-	/* Charging-Rule-Definition, Grouped, code 1003, section 5.3.4      */
-	{
-		struct dict_avp_data data = {
-			1003,	/* Code */
-			10415,	/* Vendor */
-			"Charging-Rule-Definition",	/* Name */
-			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
-			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flag values */
-			AVP_TYPE_GROUPED	/* base type of data */
-		};
-		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
-	};
-
-	/* Charging-Rule-Base-Name, UTF8String, code 1004, section 5.3.5    */
-	{
-		struct dict_avp_data data = {
-			1004,	/* Code */
-			10415,	/* Vendor */
-			"Charging-Rule-Base-Name",	/* Name */
-			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
-			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flag values */
-			AVP_TYPE_OCTETSTRING	/* base type of data */
-		};
-		CHECK_dict_new(DICT_AVP, &data, UTF8String_type, NULL);
-	};
-
-	/* Charging-Rule-Name, OctetString, code 1005, section 5.3.6        */
-	{
-		struct dict_avp_data data = {
-			1005,	/* Code */
-			10415,	/* Vendor */
-			"Charging-Rule-Name",	/* Name */
-			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
-			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flag values */
-			AVP_TYPE_OCTETSTRING	/* base type of data */
-		};
-		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
-	};
-
 	/* Charging-Rule-Report, Grouped, code 1018, section 5.3.18         */
 	{
 		struct dict_avp_data data = {
@@ -2196,20 +2183,17 @@ static int dict_dcca_3gpp_entry(char * conffile)
 		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
 	};
 
-	/* Charging-Correlation-Indicator, Enumerated, code 1073, section 5.3.67 */
+	/* CoA-Information, Grouped, code 1039, section 5.3.37              */
 	{
 		struct dict_avp_data data = {
-			1073,	/* Code */
+			1039,	/* Code */
 			10415,	/* Vendor */
-			"Charging-Correlation-Indicator",	/* Name */
+			"CoA-Information",	/* Name */
 			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
 			AVP_FLAG_VENDOR,	/* Fixed flag values */
-			AVP_TYPE_INTEGER32	/* base type of data */
+			AVP_TYPE_GROUPED	/* base type of data */
 		};
-		struct dict_object	*type;
-		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "Enumerated(3GPP/Charging-Correlation-Indicator)", NULL, NULL, NULL };
-		CHECK_dict_new(DICT_TYPE, &tdata, NULL, &type);
-		CHECK_dict_new(DICT_AVP, &data, type, NULL);
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
 	};
 
 	/* CoA-IP-Address, Address, code 1035, section 5.3.33               */
@@ -2225,15 +2209,41 @@ static int dict_dcca_3gpp_entry(char * conffile)
 		CHECK_dict_new(DICT_AVP, &data, Address_type, NULL);
 	};
 
-	/* CoA-Information, Grouped, code 1039, section 5.3.37              */
+	/* Conditional-APN-Aggregate-Max-Bitrate, Grouped, code 2818, section 5.3.105 */
 	{
 		struct dict_avp_data data = {
-			1039,	/* Code */
+			2818,	/* Code */
 			10415,	/* Vendor */
-			"CoA-Information",	/* Name */
+			"Conditional-APN-Aggregate-Max-Bitrate",	/* Name */
 			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
 			AVP_FLAG_VENDOR,	/* Fixed flag values */
 			AVP_TYPE_GROUPED	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+	};
+
+	/* Conditional-Policy-Information, Grouped, code 2840, section 5.3.128 */
+	{
+		struct dict_avp_data data = {
+			2840,	/* Code */
+			10415,	/* Vendor */
+			"Conditional-Policy-Information",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR,	/* Fixed flag values */
+			AVP_TYPE_GROUPED	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+	};
+
+	/* Credit-Management-Status, Unsigned32, code 1082, section 5.3.102 */
+	{
+		struct dict_avp_data data = {
+			1082,	/* Code */
+			10415,	/* Vendor */
+			"Credit-Management-Status",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR,	/* Fixed flag values */
+			AVP_TYPE_UNSIGNED32	/* base type of data */
 		};
 		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
 	};
@@ -2254,6 +2264,38 @@ static int dict_dcca_3gpp_entry(char * conffile)
 		CHECK_dict_new(DICT_AVP, &data, type, NULL);
 	};
 
+	/* Default-Access, Enumerated, code 2829, section 5.3.120           */
+	{
+		struct dict_avp_data data = {
+			2829,	/* Code */
+			10415,	/* Vendor */
+			"Default-Access",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR,	/* Fixed flag values */
+			AVP_TYPE_INTEGER32	/* base type of data */
+		};
+		struct dict_object	*type;
+		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "Enumerated(3GPP/Default-Access)", NULL, NULL, NULL };
+		CHECK_dict_new(DICT_TYPE, &tdata, NULL, &type);
+		CHECK_dict_new(DICT_AVP, &data, type, NULL);
+	};
+
+	/* Default-Bearer-Indication, Enumerated, code 2844, section 5.3.132 */
+	{
+		struct dict_avp_data data = {
+			2844,	/* Code */
+			10415,	/* Vendor */
+			"Default-Bearer-Indication",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR,	/* Fixed flag values */
+			AVP_TYPE_INTEGER32	/* base type of data */
+		};
+		struct dict_object	*type;
+		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "Enumerated(3GPP/Default-Bearer-Indication)", NULL, NULL, NULL };
+		CHECK_dict_new(DICT_TYPE, &tdata, NULL, &type);
+		CHECK_dict_new(DICT_AVP, &data, type, NULL);
+	};
+
 	/* Default-EPS-Bearer-QoS, Grouped, code 1049, section 5.3.48       */
 	{
 		struct dict_avp_data data = {
@@ -2265,6 +2307,32 @@ static int dict_dcca_3gpp_entry(char * conffile)
 			AVP_TYPE_GROUPED	/* base type of data */
 		};
 		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+	};
+
+	/* Default-QoS-Information, Grouped, code 2816, section 5.3.103     */
+	{
+		struct dict_avp_data data = {
+			2816,	/* Code */
+			10415,	/* Vendor */
+			"Default-QoS-Information",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR,	/* Fixed flag values */
+			AVP_TYPE_GROUPED	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+	};
+
+	/* Default-QoS-Name, UTF8String, code 2817, section 5.3.104         */
+	{
+		struct dict_avp_data data = {
+			2817,	/* Code */
+			10415,	/* Vendor */
+			"Default-QoS-Name",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR,	/* Fixed flag values */
+			AVP_TYPE_OCTETSTRING	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, UTF8String_type, NULL);
 	};
 
 	/* Event-Report-Indication, Grouped, code 1033, section 5.3.30      */
@@ -2294,6 +2362,71 @@ static int dict_dcca_3gpp_entry(char * conffile)
 		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "Enumerated(3GPP/Event-Trigger)", NULL, NULL, NULL };
 		CHECK_dict_new(DICT_TYPE, &tdata, NULL, &type);
 		CHECK_dict_new(DICT_AVP, &data, type, NULL);
+	};
+
+	/* Execution-Time, Time, code 2839, section 5.3.127                 */
+	{
+		struct dict_avp_data data = {
+			2839,	/* Code */
+			10415,	/* Vendor */
+			"Execution-Time",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR,	/* Fixed flag values */
+			AVP_TYPE_OCTETSTRING	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, Time_type, NULL);
+	};
+
+	/* Extended-APN-AMBR-DL, Unsigned32, code 2848, section 5.3.134     */
+	{
+		struct dict_avp_data data = {
+			2848,	/* Code */
+			10415,	/* Vendor */
+			"Extended-APN-AMBR-DL",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR,	/* Fixed flag values */
+			AVP_TYPE_UNSIGNED32	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+	};
+
+	/* Extended-APN-AMBR-UL, Unsigned32, code 2849, section 5.3.135     */
+	{
+		struct dict_avp_data data = {
+			2849,	/* Code */
+			10415,	/* Vendor */
+			"Extended-APN-AMBR-UL",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR,	/* Fixed flag values */
+			AVP_TYPE_UNSIGNED32	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+	};
+
+	/* Extended-GBR-DL, Unsigned32, code 2850, section 5.3.136          */
+	{
+		struct dict_avp_data data = {
+			2850,	/* Code */
+			10415,	/* Vendor */
+			"Extended-GBR-DL",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR,	/* Fixed flag values */
+			AVP_TYPE_UNSIGNED32	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+	};
+
+	/* Extended-GBR-UL, Unsigned32, code 2851, section 5.3.137          */
+	{
+		struct dict_avp_data data = {
+			2851,	/* Code */
+			10415,	/* Vendor */
+			"Extended-GBR-UL",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR,	/* Fixed flag values */
+			AVP_TYPE_UNSIGNED32	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
 	};
 
 	/* Flow-Direction, Enumerated, code 1080, section 5.3.65            */
@@ -2338,20 +2471,17 @@ static int dict_dcca_3gpp_entry(char * conffile)
 		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
 	};
 
-	/* IP-CAN-Type, Enumerated, code 1027, section 5.3.27               */
+	/* Fixed-User-Location-Info, Grouped, code 2825, section 5.3.112    */
 	{
 		struct dict_avp_data data = {
-			1027,	/* Code */
+			2825,	/* Code */
 			10415,	/* Vendor */
-			"IP-CAN-Type",	/* Name */
+			"Fixed-User-Location-Info",	/* Name */
 			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
-			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flag values */
-			AVP_TYPE_INTEGER32	/* base type of data */
+			AVP_FLAG_VENDOR,	/* Fixed flag values */
+			AVP_TYPE_GROUPED	/* base type of data */
 		};
-		struct dict_object	*type;
-		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "Enumerated(3GPP/IP-CAN-Type)", NULL, NULL, NULL };
-		CHECK_dict_new(DICT_TYPE, &tdata, NULL, &type);
-		CHECK_dict_new(DICT_AVP, &data, type, NULL);
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
 	};
 
 	/* Guaranteed-Bitrate-DL, Unsigned32, code 1025, section 5.3.25     */
@@ -2380,6 +2510,20 @@ static int dict_dcca_3gpp_entry(char * conffile)
 		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
 	};
 
+	/* 3GPP TS 29.212 V11.8.0 (2013-03) removed HeNB-BBF-FQDN.          */
+	/* HeNB-BBF-FQDN, UTF8String, code 2803, section 5.3.94             */
+	{
+		struct dict_avp_data data = {
+			2803,	/* Code */
+			10415,	/* Vendor */
+			"HeNB-BBF-FQDN",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR,	/* Fixed flag values */
+			AVP_TYPE_OCTETSTRING	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, UTF8String_type, NULL);
+	};
+
 	/* HeNB-Local-IP-Address, Address, code 2804, section 5.3.95        */
 	{
 		struct dict_avp_data data = {
@@ -2391,6 +2535,64 @@ static int dict_dcca_3gpp_entry(char * conffile)
 			AVP_TYPE_OCTETSTRING	/* base type of data */
 		};
 		CHECK_dict_new(DICT_AVP, &data, Address_type, NULL);
+	};
+
+	/* IP-CAN-Session-Charging-Scope, Enumerated, code 2827, section 5.3.114 */
+	{
+		struct dict_avp_data data = {
+			2827,	/* Code */
+			10415,	/* Vendor */
+			"IP-CAN-Session-Charging-Scope",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR,	/* Fixed flag values */
+			AVP_TYPE_INTEGER32	/* base type of data */
+		};
+		struct dict_object	*type;
+		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "Enumerated(3GPP/IP-CAN-Session-Charging-Scope)", NULL, NULL, NULL };
+		CHECK_dict_new(DICT_TYPE, &tdata, NULL, &type);
+		CHECK_dict_new(DICT_AVP, &data, type, NULL);
+	};
+
+	/* IP-CAN-Type, Enumerated, code 1027, section 5.3.27               */
+	{
+		struct dict_avp_data data = {
+			1027,	/* Code */
+			10415,	/* Vendor */
+			"IP-CAN-Type",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flag values */
+			AVP_TYPE_INTEGER32	/* base type of data */
+		};
+		struct dict_object	*type;
+		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "Enumerated(3GPP/IP-CAN-Type)", NULL, NULL, NULL };
+		CHECK_dict_new(DICT_TYPE, &tdata, NULL, &type);
+		CHECK_dict_new(DICT_AVP, &data, type, NULL);
+	};
+
+	/* Max-PLR-DL, Float32, code 2852, section 5.3.138                  */
+	{
+		struct dict_avp_data data = {
+			2852,	/* Code */
+			10415,	/* Vendor */
+			"Max-PLR-DL",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR,	/* Fixed flag values */
+			AVP_TYPE_FLOAT32	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+	};
+
+	/* Max-PLR-UL, Float32, code 2853, section 5.3.139                  */
+	{
+		struct dict_avp_data data = {
+			2853,	/* Code */
+			10415,	/* Vendor */
+			"Max-PLR-UL",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR,	/* Fixed flag values */
+			AVP_TYPE_FLOAT32	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
 	};
 
 	/* Metering-Method, Enumerated, code 1007, section 5.3.8            */
@@ -2407,6 +2609,19 @@ static int dict_dcca_3gpp_entry(char * conffile)
 		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "Enumerated(3GPP/Metering-Method)", NULL, NULL, NULL };
 		CHECK_dict_new(DICT_TYPE, &tdata, NULL, &type);
 		CHECK_dict_new(DICT_AVP, &data, type, NULL);
+	};
+
+	/* Monitoring-Flags, Unsigned32, code 2828, section 5.3.115         */
+	{
+		struct dict_avp_data data = {
+			2828,	/* Code */
+			10415,	/* Vendor */
+			"Monitoring-Flags",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR,	/* Fixed flag values */
+			AVP_TYPE_UNSIGNED32	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
 	};
 
 	/* Monitoring-Key, OctetString, code 1066, section 5.3.59           */
@@ -2449,6 +2664,51 @@ static int dict_dcca_3gpp_entry(char * conffile)
 			AVP_TYPE_OCTETSTRING	/* base type of data */
 		};
 		CHECK_dict_new(DICT_AVP, &data, Time_type, NULL);
+	};
+
+	/* NBIFOM-Mode, Enumerated, code 2830, section 5.3.117              */
+	{
+		struct dict_avp_data data = {
+			2830,	/* Code */
+			10415,	/* Vendor */
+			"NBIFOM-Mode",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR,	/* Fixed flag values */
+			AVP_TYPE_INTEGER32	/* base type of data */
+		};
+		struct dict_object	*type;
+		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "Enumerated(3GPP/NBIFOM-Mode)", NULL, NULL, NULL };
+		CHECK_dict_new(DICT_TYPE, &tdata, NULL, &type);
+		CHECK_dict_new(DICT_AVP, &data, type, NULL);
+	};
+
+	/* NBIFOM-Support, Enumerated, code 2831, section 5.3.116           */
+	{
+		struct dict_avp_data data = {
+			2831,	/* Code */
+			10415,	/* Vendor */
+			"NBIFOM-Support",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR,	/* Fixed flag values */
+			AVP_TYPE_INTEGER32	/* base type of data */
+		};
+		struct dict_object	*type;
+		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "Enumerated(3GPP/NBIFOM-Support)", NULL, NULL, NULL };
+		CHECK_dict_new(DICT_TYPE, &tdata, NULL, &type);
+		CHECK_dict_new(DICT_AVP, &data, type, NULL);
+	};
+
+	/* NetLoc-Access-Support, Unsigned32, code 2824, section 5.3.111    */
+	{
+		struct dict_avp_data data = {
+			2824,	/* Code */
+			10415,	/* Vendor */
+			"NetLoc-Access-Support",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR,	/* Fixed flag values */
+			AVP_TYPE_UNSIGNED32	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
 	};
 
 	/* Network-Request-Support, Enumerated, code 1024, section 5.3.24   */
@@ -2570,6 +2830,22 @@ static int dict_dcca_3gpp_entry(char * conffile)
 		CHECK_dict_new(DICT_AVP, &data, type, NULL);
 	};
 
+	/* PCC-Rule-Status, Enumerated, code 1019, section 5.3.19           */
+	{
+		struct dict_avp_data data = {
+			1019,	/* Code */
+			10415,	/* Vendor */
+			"PCC-Rule-Status",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flag values */
+			AVP_TYPE_INTEGER32	/* base type of data */
+		};
+		struct dict_object	*type;
+		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "Enumerated(3GPP/PCC-Rule-Status)", NULL, NULL, NULL };
+		CHECK_dict_new(DICT_TYPE, &tdata, NULL, &type);
+		CHECK_dict_new(DICT_AVP, &data, type, NULL);
+	};
+
 	/* PDN-Connection-ID, OctetString, code 1065, section 5.3.58        */
 	{
 		struct dict_avp_data data = {
@@ -2579,6 +2855,32 @@ static int dict_dcca_3gpp_entry(char * conffile)
 			AVP_FLAG_VENDOR,	/* Fixed flags */
 			AVP_FLAG_VENDOR,	/* Fixed flag values */
 			AVP_TYPE_OCTETSTRING	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+	};
+
+	/* PRA-Install, Grouped, code 2845, section 5.3.130                 */
+	{
+		struct dict_avp_data data = {
+			2845,	/* Code */
+			10415,	/* Vendor */
+			"PRA-Install",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR,	/* Fixed flag values */
+			AVP_TYPE_GROUPED	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+	};
+
+	/* PRA-Remove, Grouped, code 2846, section 5.3.131                  */
+	{
+		struct dict_avp_data data = {
+			2846,	/* Code */
+			10415,	/* Vendor */
+			"PRA-Remove",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR,	/* Fixed flag values */
+			AVP_TYPE_GROUPED	/* base type of data */
 		};
 		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
 	};
@@ -2628,6 +2930,71 @@ static int dict_dcca_3gpp_entry(char * conffile)
 		CHECK_dict_new(DICT_AVP, &data, type, NULL);
 	};
 
+	/* Presence-Reporting-Area-Elements-List, OctetString, code 2820, section 5.3.107 */
+	{
+		struct dict_avp_data data = {
+			2820,	/* Code */
+			10415,	/* Vendor */
+			"Presence-Reporting-Area-Elements-List",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR,	/* Fixed flag values */
+			AVP_TYPE_OCTETSTRING	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+	};
+
+	/* Presence-Reporting-Area-Identifier, OctetString, code 2821, section 5.3.108 */
+	{
+		struct dict_avp_data data = {
+			2821,	/* Code */
+			10415,	/* Vendor */
+			"Presence-Reporting-Area-Identifier",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR,	/* Fixed flag values */
+			AVP_TYPE_OCTETSTRING	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+	};
+
+	/* Presence-Reporting-Area-Information, Grouped, code 2822, section 5.3.109 */
+	{
+		struct dict_avp_data data = {
+			2822,	/* Code */
+			10415,	/* Vendor */
+			"Presence-Reporting-Area-Information",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR,	/* Fixed flag values */
+			AVP_TYPE_GROUPED	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+	};
+
+	/* Presence-Reporting-Area-Node, Unsigned32, code 2855, section 5.3.141 */
+	{
+		struct dict_avp_data data = {
+			2855,	/* Code */
+			10415,	/* Vendor */
+			"Presence-Reporting-Area-Node",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR,	/* Fixed flag values */
+			AVP_TYPE_UNSIGNED32	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+	};
+
+	/* Presence-Reporting-Area-Status, Unsigned32, code 2823, section 5.3.110 */
+	{
+		struct dict_avp_data data = {
+			2823,	/* Code */
+			10415,	/* Vendor */
+			"Presence-Reporting-Area-Status",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR,	/* Fixed flag values */
+			AVP_TYPE_UNSIGNED32	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+	};
+
 	/* Priority-Level, Unsigned32, code 1046, section 5.3.45            */
 	{
 		struct dict_avp_data data = {
@@ -2639,6 +3006,125 @@ static int dict_dcca_3gpp_entry(char * conffile)
 			AVP_TYPE_UNSIGNED32	/* base type of data */
 		};
 		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+	};
+
+	/* PS-to-CS-Session-Continuity, Enumerated, code 1099, section 5.3.84 */
+	{
+		struct dict_avp_data data = {
+			1099,	/* Code */
+			10415,	/* Vendor */
+			"PS-to-CS-Session-Continuity",	/* Name */
+			AVP_FLAG_VENDOR,	/* Fixed flags */
+			AVP_FLAG_VENDOR,	/* Fixed flag values */
+			AVP_TYPE_INTEGER32	/* base type of data */
+		};
+		struct dict_object	*type;
+		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "Enumerated(3GPP/PS-to-CS-Session-Continuity)", NULL, NULL, NULL };
+		CHECK_dict_new(DICT_TYPE, &tdata, NULL, &type);
+		CHECK_dict_new(DICT_AVP, &data, type, NULL);
+	};
+
+	/* QoS-Class-Identifier, Enumerated, code 1028, section 5.3.17      */
+	{
+		struct dict_avp_data data = {
+			1028,	/* Code */
+			10415,	/* Vendor */
+			"QoS-Class-Identifier",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flag values */
+			AVP_TYPE_INTEGER32	/* base type of data */
+		};
+		struct dict_object	*type;
+		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "Enumerated(3GPP/QoS-Class-Identifier)", NULL, NULL, NULL };
+		CHECK_dict_new(DICT_TYPE, &tdata, NULL, &type);
+		CHECK_dict_new(DICT_AVP, &data, type, NULL);
+	};
+
+	/* QoS-Information, Grouped, code 1016, section 5.3.16              */
+	{
+		struct dict_avp_data data = {
+			1016,	/* Code */
+			10415,	/* Vendor */
+			"QoS-Information",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flag values */
+			AVP_TYPE_GROUPED	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+	};
+
+	/* QoS-Negotiation, Enumerated, code 1029, section 5.3.28           */
+	{
+		struct dict_avp_data data = {
+			1029,	/* Code */
+			10415,	/* Vendor */
+			"QoS-Negotiation",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flag values */
+			AVP_TYPE_INTEGER32	/* base type of data */
+		};
+		struct dict_object	*type;
+		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "Enumerated(3GPP/QoS-Negotiation)", NULL, NULL, NULL };
+		CHECK_dict_new(DICT_TYPE, &tdata, NULL, &type);
+		CHECK_dict_new(DICT_AVP, &data, type, NULL);
+	};
+
+	/* QoS-Upgrade, Enumerated, code 1030, section 5.3.29               */
+	{
+		struct dict_avp_data data = {
+			1030,	/* Code */
+			10415,	/* Vendor */
+			"QoS-Upgrade",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flag values */
+			AVP_TYPE_INTEGER32	/* base type of data */
+		};
+		struct dict_object	*type;
+		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "Enumerated(3GPP/QoS-Upgrade)", NULL, NULL, NULL };
+		CHECK_dict_new(DICT_TYPE, &tdata, NULL, &type);
+		CHECK_dict_new(DICT_AVP, &data, type, NULL);
+	};
+
+	/* RAN-NAS-Release-Cause, OctetString, code 2819, section 5.3.106   */
+	{
+		struct dict_avp_data data = {
+			2819,	/* Code */
+			10415,	/* Vendor */
+			"RAN-NAS-Release-Cause",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR,	/* Fixed flag values */
+			AVP_TYPE_OCTETSTRING	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+	};
+
+	/* RAN-Rule-Support, Unsigned32, code 2832, section 5.3.122         */
+	{
+		struct dict_avp_data data = {
+			2832,	/* Code */
+			10415,	/* Vendor */
+			"RAN-Rule-Support",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR,	/* Fixed flag values */
+			AVP_TYPE_UNSIGNED32	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+	};
+
+	/* RAT-Type, Enumerated, code 1032, section 5.3.31                  */
+	{
+		struct dict_avp_data data = {
+			1032,	/* Code */
+			10415,	/* Vendor */
+			"RAT-Type",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR,	/* Fixed flag values */
+			AVP_TYPE_INTEGER32	/* base type of data */
+		};
+		struct dict_object	*type;
+		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "Enumerated(3GPP/RAT-Type)", NULL, NULL, NULL };
+		CHECK_dict_new(DICT_TYPE, &tdata, NULL, &type);
+		CHECK_dict_new(DICT_AVP, &data, type, NULL);
 	};
 
 	/* Redirect-Information, Grouped, code 1085, section 5.3.82         */
@@ -2670,6 +3156,22 @@ static int dict_dcca_3gpp_entry(char * conffile)
 		CHECK_dict_new(DICT_AVP, &data, type, NULL);
 	};
 
+	/* Removal-Of-Access, Enumerated, code 2842, section 5.3.126        */
+	{
+		struct dict_avp_data data = {
+			2842,	/* Code */
+			10415,	/* Vendor */
+			"Removal-Of-Access",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR,	/* Fixed flag values */
+			AVP_TYPE_INTEGER32	/* base type of data */
+		};
+		struct dict_object	*type;
+		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "Enumerated(3GPP/Removal-Of-Access)", NULL, NULL, NULL };
+		CHECK_dict_new(DICT_TYPE, &tdata, NULL, &type);
+		CHECK_dict_new(DICT_AVP, &data, type, NULL);
+	};
+
 	/* Reporting-Level, Enumerated, code 1011, section 5.3.12           */
 	{
 		struct dict_avp_data data = {
@@ -2684,6 +3186,51 @@ static int dict_dcca_3gpp_entry(char * conffile)
 		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "Enumerated(3GPP/Reporting-Level)", NULL, NULL, NULL };
 		CHECK_dict_new(DICT_TYPE, &tdata, NULL, &type);
 		CHECK_dict_new(DICT_AVP, &data, type, NULL);
+	};
+
+	/* Resource-Allocation-Notification, Enumerated, code 1063, section 5.3.50 */
+	{
+		struct dict_avp_data data = {
+			1063,	/* Code */
+			10415,	/* Vendor */
+			"Resource-Allocation-Notification",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR,	/* Fixed flag values */
+			AVP_TYPE_INTEGER32	/* base type of data */
+		};
+		struct dict_object	*type;
+		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "Enumerated(3GPP/Resource-Allocation-Notification)", NULL, NULL, NULL };
+		CHECK_dict_new(DICT_TYPE, &tdata, NULL, &type);
+		CHECK_dict_new(DICT_AVP, &data, type, NULL);
+	};
+
+	/* Resource-Release-Notification, Enumerated, code 2841, section 5.3.125 */
+	{
+		struct dict_avp_data data = {
+			2841,	/* Code */
+			10415,	/* Vendor */
+			"Resource-Release-Notification",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR,	/* Fixed flag values */
+			AVP_TYPE_INTEGER32	/* base type of data */
+		};
+		struct dict_object	*type;
+		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "Enumerated(3GPP/Resource-Release-Notification)", NULL, NULL, NULL };
+		CHECK_dict_new(DICT_TYPE, &tdata, NULL, &type);
+		CHECK_dict_new(DICT_AVP, &data, type, NULL);
+	};
+
+	/* Revalidation-Time, Time, code 1042, section 5.3.41               */
+	{
+		struct dict_avp_data data = {
+			1042,	/* Code */
+			10415,	/* Vendor */
+			"Revalidation-Time",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flag values */
+			AVP_TYPE_OCTETSTRING	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, Time_type, NULL);
 	};
 
 	/* Routing-Filter, Grouped, code 1078, section 5.3.72               */
@@ -2764,20 +3311,85 @@ static int dict_dcca_3gpp_entry(char * conffile)
 		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
 	};
 
-	/* PCC-Rule-Status, Enumerated, code 1019, section 5.3.19           */
+	/* Routing-Rule-Failure-Code, Unsigned32, code 2834, section 5.3.119 */
 	{
 		struct dict_avp_data data = {
-			1019,	/* Code */
+			2834,	/* Code */
 			10415,	/* Vendor */
-			"PCC-Rule-Status",	/* Name */
+			"Routing-Rule-Failure-Code",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR,	/* Fixed flag values */
+			AVP_TYPE_UNSIGNED32	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+	};
+
+	/* Routing-Rule-Report, Grouped, code 2835, section 5.3.118         */
+	{
+		struct dict_avp_data data = {
+			2835,	/* Code */
+			10415,	/* Vendor */
+			"Routing-Rule-Report",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR,	/* Fixed flag values */
+			AVP_TYPE_GROUPED	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+	};
+
+	/* Rule-Activation-Time, Time, code 1043, section 5.3.42            */
+	{
+		struct dict_avp_data data = {
+			1043,	/* Code */
+			10415,	/* Vendor */
+			"Rule-Activation-Time",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flag values */
+			AVP_TYPE_OCTETSTRING	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, Time_type, NULL);
+	};
+
+	/* Rule-Deactivation-Time, Time, code 1044, section 5.3.43          */
+	{
+		struct dict_avp_data data = {
+			1044,	/* Code */
+			10415,	/* Vendor */
+			"Rule-Deactivation-Time",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flag values */
+			AVP_TYPE_OCTETSTRING	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, Time_type, NULL);
+	};
+
+	/* Rule-Failure-Code, Enumerated, code 1031, section 5.3.38         */
+	{
+		struct dict_avp_data data = {
+			1031,	/* Code */
+			10415,	/* Vendor */
+			"Rule-Failure-Code",	/* Name */
 			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
 			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flag values */
 			AVP_TYPE_INTEGER32	/* base type of data */
 		};
 		struct dict_object	*type;
-		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "Enumerated(3GPP/PCC-Rule-Status)", NULL, NULL, NULL };
+		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "Enumerated(3GPP/Rule-Failure-Code)", NULL, NULL, NULL };
 		CHECK_dict_new(DICT_TYPE, &tdata, NULL, &type);
 		CHECK_dict_new(DICT_AVP, &data, type, NULL);
+	};
+
+	/* Security-Parameter-Index, OctetString, code 1056, section 5.3.51 */
+	{
+		struct dict_avp_data data = {
+			1056,	/* Code */
+			10415,	/* Vendor */
+			"Security-Parameter-Index",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR,	/* Fixed flag values */
+			AVP_TYPE_OCTETSTRING	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
 	};
 
 	/* Session-Release-Cause, Enumerated, code 1045, section 5.3.44     */
@@ -2794,6 +3406,19 @@ static int dict_dcca_3gpp_entry(char * conffile)
 		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "Enumerated(3GPP/Session-Release-Cause)", NULL, NULL, NULL };
 		CHECK_dict_new(DICT_TYPE, &tdata, NULL, &type);
 		CHECK_dict_new(DICT_AVP, &data, type, NULL);
+	};
+
+	/* TCP-Source-Port, Unsigned32, code 2843, section 5.3.129          */
+	{
+		struct dict_avp_data data = {
+			2843,	/* Code */
+			10415,	/* Vendor */
+			"TCP-Source-Port",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR,	/* Fixed flag values */
+			AVP_TYPE_UNSIGNED32	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
 	};
 
 	/* TDF-Information, Grouped, code 1087, section 5.3.78              */
@@ -2874,128 +3499,6 @@ static int dict_dcca_3gpp_entry(char * conffile)
 		CHECK_dict_new(DICT_AVP, &data, Address_type, NULL);
 	};
 
-	/* QoS-Class-Identifier, Enumerated, code 1028, section 5.3.17      */
-	{
-		struct dict_avp_data data = {
-			1028,	/* Code */
-			10415,	/* Vendor */
-			"QoS-Class-Identifier",	/* Name */
-			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
-			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flag values */
-			AVP_TYPE_INTEGER32	/* base type of data */
-		};
-		struct dict_object	*type;
-		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "Enumerated(3GPP/QoS-Class-Identifier)", NULL, NULL, NULL };
-		CHECK_dict_new(DICT_TYPE, &tdata, NULL, &type);
-		CHECK_dict_new(DICT_AVP, &data, type, NULL);
-	};
-
-	/* QoS-Information, Grouped, code 1016, section 5.3.16              */
-	{
-		struct dict_avp_data data = {
-			1016,	/* Code */
-			10415,	/* Vendor */
-			"QoS-Information",	/* Name */
-			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
-			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flag values */
-			AVP_TYPE_GROUPED	/* base type of data */
-		};
-		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
-	};
-
-	/* QoS-Negotiation, Enumerated, code 1029, section 5.3.28           */
-	{
-		struct dict_avp_data data = {
-			1029,	/* Code */
-			10415,	/* Vendor */
-			"QoS-Negotiation",	/* Name */
-			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
-			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flag values */
-			AVP_TYPE_INTEGER32	/* base type of data */
-		};
-		struct dict_object	*type;
-		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "Enumerated(3GPP/QoS-Negotiation)", NULL, NULL, NULL };
-		CHECK_dict_new(DICT_TYPE, &tdata, NULL, &type);
-		CHECK_dict_new(DICT_AVP, &data, type, NULL);
-	};
-
-	/* QoS-Upgrade, Enumerated, code 1030, section 5.3.29               */
-	{
-		struct dict_avp_data data = {
-			1030,	/* Code */
-			10415,	/* Vendor */
-			"QoS-Upgrade",	/* Name */
-			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
-			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flag values */
-			AVP_TYPE_INTEGER32	/* base type of data */
-		};
-		struct dict_object	*type;
-		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "Enumerated(3GPP/QoS-Upgrade)", NULL, NULL, NULL };
-		CHECK_dict_new(DICT_TYPE, &tdata, NULL, &type);
-		CHECK_dict_new(DICT_AVP, &data, type, NULL);
-	};
-
-	/* PS-to-CS-Session-Continuity, Enumerated, code 1099, section 5.3.84 */
-	{
-		struct dict_avp_data data = {
-			1099,	/* Code */
-			10415,	/* Vendor */
-			"PS-to-CS-Session-Continuity",	/* Name */
-			AVP_FLAG_VENDOR,	/* Fixed flags */
-			AVP_FLAG_VENDOR,	/* Fixed flag values */
-			AVP_TYPE_INTEGER32	/* base type of data */
-		};
-		struct dict_object	*type;
-		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "Enumerated(3GPP/PS-to-CS-Session-Continuity)", NULL, NULL, NULL };
-		CHECK_dict_new(DICT_TYPE, &tdata, NULL, &type);
-		CHECK_dict_new(DICT_AVP, &data, type, NULL);
-	};
-
-	/* Resource-Allocation-Notification, Enumerated, code 1063, section 5.3.50 */
-	{
-		struct dict_avp_data data = {
-			1063,	/* Code */
-			10415,	/* Vendor */
-			"Resource-Allocation-Notification",	/* Name */
-			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
-			AVP_FLAG_VENDOR,	/* Fixed flag values */
-			AVP_TYPE_INTEGER32	/* base type of data */
-		};
-		struct dict_object	*type;
-		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "Enumerated(3GPP/Resource-Allocation-Notification)", NULL, NULL, NULL };
-		CHECK_dict_new(DICT_TYPE, &tdata, NULL, &type);
-		CHECK_dict_new(DICT_AVP, &data, type, NULL);
-	};
-
-	/* Rule-Failure-Code, Enumerated, code 1031, section 5.3.38         */
-	{
-		struct dict_avp_data data = {
-			1031,	/* Code */
-			10415,	/* Vendor */
-			"Rule-Failure-Code",	/* Name */
-			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
-			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flag values */
-			AVP_TYPE_INTEGER32	/* base type of data */
-		};
-		struct dict_object	*type;
-		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "Enumerated(3GPP/Rule-Failure-Code)", NULL, NULL, NULL };
-		CHECK_dict_new(DICT_TYPE, &tdata, NULL, &type);
-		CHECK_dict_new(DICT_AVP, &data, type, NULL);
-	};
-
-	/* Security-Parameter-Index, OctetString, code 1056, section 5.3.51 */
-	{
-		struct dict_avp_data data = {
-			1056,	/* Code */
-			10415,	/* Vendor */
-			"Security-Parameter-Index",	/* Name */
-			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
-			AVP_FLAG_VENDOR,	/* Fixed flag values */
-			AVP_TYPE_OCTETSTRING	/* base type of data */
-		};
-		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
-	};
-
 	/* TFT-Filter, IPFilterRule, code 1012, section 5.3.13              */
 	{
 		struct dict_avp_data data = {
@@ -3018,6 +3521,32 @@ static int dict_dcca_3gpp_entry(char * conffile)
 			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
 			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flag values */
 			AVP_TYPE_GROUPED	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+	};
+
+	/* Traffic-Steering-Policy-Identifier-DL, OctetString, code 2836, section 5.3.123 */
+	{
+		struct dict_avp_data data = {
+			2836,	/* Code */
+			10415,	/* Vendor */
+			"Traffic-Steering-Policy-Identifier-DL",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR,	/* Fixed flag values */
+			AVP_TYPE_OCTETSTRING	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+	};
+
+	/* Traffic-Steering-Policy-Identifier-UL, OctetString, code 2837, section 5.3.124 */
+	{
+		struct dict_avp_data data = {
+			2837,	/* Code */
+			10415,	/* Vendor */
+			"Traffic-Steering-Policy-Identifier-UL",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR,	/* Fixed flag values */
+			AVP_TYPE_OCTETSTRING	/* base type of data */
 		};
 		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
 	};
@@ -3074,48 +3603,6 @@ static int dict_dcca_3gpp_entry(char * conffile)
 		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
 	};
 
-	/* RAT-Type, Enumerated, code 1032, section 5.3.31                  */
-	{
-		struct dict_avp_data data = {
-			1032,	/* Code */
-			10415,	/* Vendor */
-			"RAT-Type",	/* Name */
-			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
-			AVP_FLAG_VENDOR,	/* Fixed flag values */
-			AVP_TYPE_INTEGER32	/* base type of data */
-		};
-		struct dict_object	*type;
-		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "Enumerated(3GPP/RAT-Type)", NULL, NULL, NULL };
-		CHECK_dict_new(DICT_TYPE, &tdata, NULL, &type);
-		CHECK_dict_new(DICT_AVP, &data, type, NULL);
-	};
-
-	/* Revalidation-Time, Time, code 1042, section 5.3.41               */
-	{
-		struct dict_avp_data data = {
-			1042,	/* Code */
-			10415,	/* Vendor */
-			"Revalidation-Time",	/* Name */
-			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
-			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flag values */
-			AVP_TYPE_OCTETSTRING	/* base type of data */
-		};
-		CHECK_dict_new(DICT_AVP, &data, Time_type, NULL);
-	};
-
-	/* Rule-Activation-Time, Time, code 1043, section 5.3.42            */
-	{
-		struct dict_avp_data data = {
-			1043,	/* Code */
-			10415,	/* Vendor */
-			"Rule-Activation-Time",	/* Name */
-			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
-			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flag values */
-			AVP_TYPE_OCTETSTRING	/* base type of data */
-		};
-		CHECK_dict_new(DICT_AVP, &data, Time_type, NULL);
-	};
-
 	/* UDP-Source-Port, Unsigned32, code 2806, section 5.3.97           */
 	{
 		struct dict_avp_data data = {
@@ -3142,6 +3629,19 @@ static int dict_dcca_3gpp_entry(char * conffile)
 		CHECK_dict_new(DICT_AVP, &data, Address_type, NULL);
 	};
 
+	/* UE-Status, Unsigned32, code 2854, section 5.3.140                */
+	{
+		struct dict_avp_data data = {
+			2854,	/* Code */
+			10415,	/* Vendor */
+			"UE-Status",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR,	/* Fixed flag values */
+			AVP_TYPE_UNSIGNED32	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+	};
+
 	/* Usage-Monitoring-Information, Grouped, code 1067, section 5.3.60 */
 	{
 		struct dict_avp_data data = {
@@ -3153,19 +3653,6 @@ static int dict_dcca_3gpp_entry(char * conffile)
 			AVP_TYPE_GROUPED	/* base type of data */
 		};
 		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
-	};
-
-	/* Rule-Deactivation-Time, Time, code 1044, section 5.3.43          */
-	{
-		struct dict_avp_data data = {
-			1044,	/* Code */
-			10415,	/* Vendor */
-			"Rule-Deactivation-Time",	/* Name */
-			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
-			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flag values */
-			AVP_TYPE_OCTETSTRING	/* base type of data */
-		};
-		CHECK_dict_new(DICT_AVP, &data, Time_type, NULL);
 	};
 
 	/* Usage-Monitoring-Level, Enumerated, code 1068, section 5.3.61    */
@@ -3216,7 +3703,36 @@ static int dict_dcca_3gpp_entry(char * conffile)
 		CHECK_dict_new(DICT_AVP, &data, type, NULL);
 	};
 
-	/* Gxx-specific                                                     */
+	/* User-Location-Info-Time, Time, code 2812, section 5.3.101        */
+	{
+		struct dict_avp_data data = {
+			2812,	/* Code */
+			10415,	/* Vendor */
+			"User-Location-Info-Time",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR,	/* Fixed flag values */
+			AVP_TYPE_OCTETSTRING	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, Time_type, NULL);
+	};
+
+	/* PCSCF-Restoration-Indication, Unsigned32, code 2826, section 5.3.113 */
+	{
+		struct dict_avp_data data = {
+			2826,	/* Code */
+			10415,	/* Vendor */
+			"PCSCF-Restoration-Indication",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR,	/* Fixed flag values */
+			AVP_TYPE_UNSIGNED32	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+	};
+
+	/*==================================================================*/
+	/* 3GPP TS 29.212 Table 5a.3.0.1: Gxx specific Diameter AVPs        */
+	/*==================================================================*/
+
 	/* QoS-Rule-Install, Grouped, code 1051, section 5a.3.1             */
 	{
 		struct dict_avp_data data = {
@@ -3311,7 +3827,109 @@ static int dict_dcca_3gpp_entry(char * conffile)
 		CHECK_dict_new(DICT_AVP, &data, type, NULL);
 	};
 
-	/* S15-specific                                                     */
+	/*==================================================================*/
+	/* 3GPP TS 29.212 Table 5b.3.0.1: Sd specific Diameter AVPs         */
+	/*==================================================================*/
+
+	/* ADC-Rule-Base-Name, UTF8String, code 1095, section 5b.3.4        */
+	{
+		struct dict_avp_data data = {
+			1095,	/* Code */
+			10415,	/* Vendor */
+			"ADC-Rule-Base-Name",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flag values */
+			AVP_TYPE_OCTETSTRING	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, UTF8String_type, NULL);
+	};
+
+	/* ADC-Rule-Definition, Grouped, code 1094, section 5b.3.3          */
+	{
+		struct dict_avp_data data = {
+			1094,	/* Code */
+			10415,	/* Vendor */
+			"ADC-Rule-Definition",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flag values */
+			AVP_TYPE_GROUPED	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+	};
+
+	/* ADC-Rule-Install, Grouped, code 1092, section 5b.3.1             */
+	{
+		struct dict_avp_data data = {
+			1092,	/* Code */
+			10415,	/* Vendor */
+			"ADC-Rule-Install",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flag values */
+			AVP_TYPE_GROUPED	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+	};
+
+	/* ADC-Rule-Name, OctetString, code 1096, section 5b.3.5            */
+	{
+		struct dict_avp_data data = {
+			1096,	/* Code */
+			10415,	/* Vendor */
+			"ADC-Rule-Name",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flag values */
+			AVP_TYPE_OCTETSTRING	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+	};
+
+	/* ADC-Rule-Remove, Grouped, code 1093, section 5b.3.2              */
+	{
+		struct dict_avp_data data = {
+			1093,	/* Code */
+			10415,	/* Vendor */
+			"ADC-Rule-Remove",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flag values */
+			AVP_TYPE_GROUPED	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+	};
+
+	/* ADC-Rule-Report, Grouped, code 1097, section 5b.3.6              */
+	{
+		struct dict_avp_data data = {
+			1097,	/* Code */
+			10415,	/* Vendor */
+			"ADC-Rule-Report",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flag values */
+			AVP_TYPE_GROUPED	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+	};
+
+	/*==================================================================*/
+	/* 3GPP TS 29.212 Table 5c.3.1.1: St specific Diameter AVPs         */
+	/*==================================================================*/
+
+	/* Request-Type, Unsigned32, code 2838, section 5c.3.2              */
+	{
+		struct dict_avp_data data = {
+			2838,	/* Code */
+			10415,	/* Vendor */
+			"Request-Type",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flag values */
+			AVP_TYPE_UNSIGNED32	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+	};
+
+	/*==================================================================*/
+	/* 3GPP TS 29.212 Table E.6.3.1.1: S15 specific Diameter AVPs       */
+	/*==================================================================*/
+
 	/* CS-Service-Qos-Request-Identifier, OctetString, code 2807, section E.6.3.2 */
 	{
 		struct dict_avp_data data = {
@@ -3337,6 +3955,51 @@ static int dict_dcca_3gpp_entry(char * conffile)
 		};
 		struct dict_object	*type;
 		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "Enumerated(3GPP/CS-Service-QoS-Request-Operation)", NULL, NULL, NULL };
+		CHECK_dict_new(DICT_TYPE, &tdata, NULL, &type);
+		CHECK_dict_new(DICT_AVP, &data, type, NULL);
+	};
+
+	/* CS-Service-Resource-Report, Grouped, code 2813, section E.6.3.6  */
+	{
+		struct dict_avp_data data = {
+			2813,	/* Code */
+			10415,	/* Vendor */
+			"CS-Service-Resource-Report",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flag values */
+			AVP_TYPE_GROUPED	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+	};
+
+	/* CS-Service-Resource-Failure-Cause, Enumerated, code 2814, section E.6.3.5 */
+	{
+		struct dict_avp_data data = {
+			2814,	/* Code */
+			10415,	/* Vendor */
+			"CS-Service-Resource-Failure-Cause",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flag values */
+			AVP_TYPE_INTEGER32	/* base type of data */
+		};
+		struct dict_object	*type;
+		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "Enumerated(3GPP/CS-Service-Resource-Failure-Cause)", NULL, NULL, NULL };
+		CHECK_dict_new(DICT_TYPE, &tdata, NULL, &type);
+		CHECK_dict_new(DICT_AVP, &data, type, NULL);
+	};
+
+	/* CS-Service-Resource-Result-Operation, Enumerated, code 2815, section E.6.3.4 */
+	{
+		struct dict_avp_data data = {
+			2815,	/* Code */
+			10415,	/* Vendor */
+			"CS-Service-Resource-Result-Operation",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flag values */
+			AVP_TYPE_INTEGER32	/* base type of data */
+		};
+		struct dict_object	*type;
+		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "Enumerated(3GPP/CS-Service-Resource-Result-Operation)", NULL, NULL, NULL };
 		CHECK_dict_new(DICT_TYPE, &tdata, NULL, &type);
 		CHECK_dict_new(DICT_AVP, &data, type, NULL);
 	};

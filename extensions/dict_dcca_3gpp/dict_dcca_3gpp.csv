@@ -186,52 +186,75 @@ PDP-Session-Operation,1015,5.2.21,Enumerated,"M,V",P,,,Y
 ,,,,,,,,
 @standard,3GPP TS 29.212,,,,,,,
 #=,,,,,,,,
-# 3GPP 29.212-c00 (12.0.0 2013.03.15),,,,,,,,
+# 3GPP TS 29.212 V15.9.0 (2019-12),,,,,,,,
+# From 3GPP 29212-f90.doc,,,,,,,,
 #=,,,,,,,,
 #,,,,,,,,
-# Gx-specific,,,,,,,,
+#=,,,,,,,,
+# 3GPP TS 29.212 Table 5.3.0.1: Gx specific Diameter AVPs,,,,,,,,
+#=,,,,,,,,
 #,,,,,,,,
+# 3GPP TS 29.212 V12.1.0 (2013-06) removed ADC-Revalidation-Time.,,,,,,,,
 ADC-Revalidation-Time,2801,5.3.93,Time,V,P,,M,Y
-ADC-Rule-Install,1092,5.3.85,Grouped,V,P,,M,Y
-ADC-Rule-Remove,1093,5.3.86,Grouped,V,P,,M,Y
-ADC-Rule-Definition,1094,5.3.87,Grouped,V,P,,M,Y
-ADC-Rule-Base-Name,1095,5.3.88,UTF8String,V,P,,M,Y
-ADC-Rule-Name,1096,5.3.89,OctetString,V,P,,M,Y
-ADC-Rule-Report,1097,5.3.90,Grouped,V,P,,M,Y
-Application-Detection-Information,1098,5.3.91,Grouped,V,P,,M,Y
+3GPP-PS-Data-Off-Status,2847,5.3.133,Enumerated,V,P,,M,Y
+Access-Availability-Change-Reason,2833,5.3.121,Unsigned32,V,P,,M,Y
 Access-Network-Charging-Identifier-Gx,1022,5.3.22,Grouped,"M,V",P,,,Y
 Allocation-Retention-Priority,1034,5.3.32,Grouped,V,P,,M,Y
 AN-GW-Address,1050,5.3.49,Address,V,P,,M,Y
+AN-GW-Status,2811,5.3.100,Enumerated,V,P,,M,Y
 APN-Aggregate-Max-Bitrate-DL,1040,5.3.39,Unsigned32,V,P,,M,Y
 APN-Aggregate-Max-Bitrate-UL,1041,5.3.40,Unsigned32,V,P,,M,Y
+Application-Detection-Information,1098,5.3.91,Grouped,V,P,,M,Y
 Bearer-Control-Mode,1023,5.3.23,Enumerated,"M,V",P,,,Y
 Bearer-Identifier,1020,5.3.20,OctetString,"M,V",P,,,Y
 Bearer-Operation,1021,5.3.21,Enumerated,"M,V",P,,,Y
 Bearer-Usage,1000,5.3.1,Enumerated,"M,V",P,,,Y
-Charging-Rule-Install,1001,5.3.2,Grouped,"M,V",P,,,Y
-Charging-Rule-Remove,1002,5.3.3,Grouped,"M,V",P,,,Y
-Charging-Rule-Definition,1003,5.3.4,Grouped,"M,V",P,,,Y
-Charging-Rule-Base-Name,1004,5.3.5,UTF8String,"M,V",P,,,Y
-Charging-Rule-Name,1005,5.3.6,OctetString,"M,V",P,,,Y
-Charging-Rule-Report,1018,5.3.18,Grouped,"M,V",P,,,Y
 Charging-Correlation-Indicator,1073,5.3.67,Enumerated,V,P,,M,Y
-CoA-IP-Address,1035,5.3.33,Address,V,P,,M,Y
+Charging-Rule-Base-Name,1004,5.3.5,UTF8String,"M,V",P,,,Y
+Charging-Rule-Definition,1003,5.3.4,Grouped,"M,V",P,,,Y
+Charging-Rule-Install,1001,5.3.2,Grouped,"M,V",P,,,Y
+Charging-Rule-Name,1005,5.3.6,OctetString,"M,V",P,,,Y
+Charging-Rule-Remove,1002,5.3.3,Grouped,"M,V",P,,,Y
+Charging-Rule-Report,1018,5.3.18,Grouped,"M,V",P,,,Y
 CoA-Information,1039,5.3.37,Grouped,V,P,,M,Y
+CoA-IP-Address,1035,5.3.33,Address,V,P,,M,Y
+Conditional-APN-Aggregate-Max-Bitrate,2818,5.3.105,Grouped,V,P,,M,Y
+Conditional-Policy-Information,2840,5.3.128,Grouped,V,P,,M,Y
+Credit-Management-Status,1082,5.3.102,Unsigned32,V,P,,M,Y
 CSG-Information-Reporting,1071,5.3.64,Enumerated,V,P,,M,Y
+Default-Access,2829,5.3.120,Enumerated,V,P,,M,Y
+Default-Bearer-Indication,2844,5.3.132,Enumerated,V,P,,M,Y
 Default-EPS-Bearer-QoS,1049,5.3.48,Grouped,V,P,,M,Y
+Default-QoS-Information,2816,5.3.103,Grouped,V,P,,M,Y
+Default-QoS-Name,2817,5.3.104,UTF8String,V,P,,M,Y
 Event-Report-Indication,1033,5.3.30,Grouped,V,P,,M,Y
 Event-Trigger,1006,5.3.7,Enumerated,"M,V",P,,,Y
+Execution-Time,2839,5.3.127,Time,V,P,,M,Y
+Extended-APN-AMBR-DL,2848,5.3.134,Unsigned32,V,P,,M,Y
+Extended-APN-AMBR-UL,2849,5.3.135,Unsigned32,V,P,,M,Y
+Extended-GBR-DL,2850,5.3.136,Unsigned32,V,P,,M,Y
+Extended-GBR-UL,2851,5.3.137,Unsigned32,V,P,,M,Y
 Flow-Direction,1080,5.3.65,Enumerated,V,P,,M,Y
 Flow-Information,1058,5.3.53,Grouped,V,P,,M,Y
 Flow-Label,1057,5.3.52,OctetString,V,P,,M,Y
-IP-CAN-Type,1027,5.3.27,Enumerated,"M,V",P,,,Y
+Fixed-User-Location-Info,2825,5.3.112,Grouped,V,P,,M,Y
 Guaranteed-Bitrate-DL,1025,5.3.25,Unsigned32,"M,V",P,,,Y
 Guaranteed-Bitrate-UL,1026,5.3.26,Unsigned32,"M,V",P,,,Y
+# 3GPP TS 29.212 V11.8.0 (2013-03) removed HeNB-BBF-FQDN.,,,,,,,,
+HeNB-BBF-FQDN,2803,5.3.94,UTF8String,V,P,,M,Y
 HeNB-Local-IP-Address,2804,5.3.95,Address,V,P,,M,Y
+IP-CAN-Session-Charging-Scope,2827,5.3.114,Enumerated,V,P,,M,Y
+IP-CAN-Type,1027,5.3.27,Enumerated,"M,V",P,,,Y
+Max-PLR-DL,2852,5.3.138,Float32,V,P,,M,Y
+Max-PLR-UL,2853,5.3.139,Float32,V,P,,M,Y
 Metering-Method,1007,5.3.8,Enumerated,"M,V",P,,,Y
+Monitoring-Flags,2828,5.3.115,Unsigned32,V,,,M,Y
 Monitoring-Key,1066,5.3.59,OctetString,V,P,,M,Y
 Mute-Notification,2809,5.3.98,Enumerated,V,P,,M,Y
 Monitoring-Time,2810,5.3.99,Time,V,P,,M,Y
+NBIFOM-Mode,2830,5.3.117,Enumerated,V,P,,M,Y
+NBIFOM-Support,2831,5.3.116,Enumerated,V,P,,M,Y
+NetLoc-Access-Support,2824,5.3.111,Unsigned32,V,P,,M,Y
 Network-Request-Support,1024,5.3.24,Enumerated,"M,V",P,,,Y
 Offline,1008,5.3.9,Enumerated,"M,V",P,,,Y
 Online,1009,5.3.10,Enumerated,"M,V",P,,,Y
@@ -240,53 +263,75 @@ Packet-Filter-Identifier,1060,5.3.55,OctetString,V,P,,M,Y
 Packet-Filter-Information,1061,5.3.56,Grouped,V,P,,M,Y
 Packet-Filter-Operation,1062,5.3.57,Enumerated,V,P,,M,Y
 Packet-Filter-Usage,1072,5.3.66,Enumerated,V,P,,M,Y
+PCC-Rule-Status,1019,5.3.19,Enumerated,"M,V",P,,,Y
 PDN-Connection-ID,1065,5.3.58,OctetString,V,P,,,Y
+PRA-Install,2845,5.3.130,Grouped,V,P,,M,
+PRA-Remove,2846,5.3.131,Grouped,V,P,,M,
 Precedence,1010,5.3.11,Unsigned32,"M,V",P,,,Y
 Pre-emption-Capability,1047,5.3.46,Enumerated,V,P,,M,Y
 Pre-emption-Vulnerability,1048,5.3.47,Enumerated,V,P,,M,Y
+Presence-Reporting-Area-Elements-List,2820,5.3.107,OctetString,V,P,,M,Y
+Presence-Reporting-Area-Identifier,2821,5.3.108,OctetString,V,P,,M,Y
+Presence-Reporting-Area-Information,2822,5.3.109,Grouped,V,P,,M,Y
+Presence-Reporting-Area-Node,2855,5.3.141,Unsigned32,V,P,,M,Y
+Presence-Reporting-Area-Status,2823,5.3.110,Unsigned32,V,P,,M,Y
 Priority-Level,1046,5.3.45,Unsigned32,V,P,,M,Y
+PS-to-CS-Session-Continuity,1099,5.3.84,Enumerated,V,P,,,Y
+QoS-Class-Identifier,1028,5.3.17,Enumerated,"M,V",P,,,Y
+QoS-Information,1016,5.3.16,Grouped,"M,V",P,,,Y
+QoS-Negotiation,1029,5.3.28,Enumerated,"M,V",P,,,Y
+QoS-Upgrade,1030,5.3.29,Enumerated,"M,V",P,,,Y
+RAN-NAS-Release-Cause,2819,5.3.106,OctetString,V,P,,M,Y
+RAN-Rule-Support,2832,5.3.122,Unsigned32,V,P,,M,Y
+RAT-Type,1032,5.3.31,Enumerated,V,P,,M,Y
 Redirect-Information,1085,5.3.82,Grouped,V,P,,M,Y
 Redirect-Support,1086,5.3.83,Enumerated,V,P,,M,Y
+Removal-Of-Access,2842,5.3.126,Enumerated,V,P,,M,Y
 Reporting-Level,1011,5.3.12,Enumerated,"M,V",P,,,Y
+Resource-Allocation-Notification,1063,5.3.50,Enumerated,V,P,,M,Y
+Resource-Release-Notification,2841,5.3.125,Enumerated,V,P,,M,Y
+Revalidation-Time,1042,5.3.41,Time,"M,V",P,,,Y
 Routing-Filter,1078,5.3.72,Grouped,V,P,,M,Y
 Routing-IP-Address,1079,5.3.73,Address,V,P,,M,Y
 Routing-Rule-Definition,1076,5.3.70,Grouped,V,P,,M,Y
 Routing-Rule-Identifier,1077,5.3.71,OctetString,V,P,,M,Y
 Routing-Rule-Install,1081,5.3.68,Grouped,V,P,,M,Y
 Routing-Rule-Remove,1075,5.3.69,Grouped,V,P,,M,Y
-PCC-Rule-Status,1019,5.3.19,Enumerated,"M,V",P,,,Y
+Routing-Rule-Failure-Code,2834,5.3.119,Unsigned32,V,P,,M,Y
+Routing-Rule-Report,2835,5.3.118,Grouped,V,P,,M,Y
+Rule-Activation-Time,1043,5.3.42,Time,"M,V",P,,,Y
+Rule-Deactivation-Time,1044,5.3.43,Time,"M,V",P,,,Y
+Rule-Failure-Code,1031,5.3.38,Enumerated,"M,V",P,,,Y
+Security-Parameter-Index,1056,5.3.51,OctetString,V,P,,M,Y
 Session-Release-Cause,1045,5.3.44,Enumerated,"M,V",P,,,Y
+TCP-Source-Port,2843,5.3.129,Unsigned32,V,P,,M,Y
 TDF-Information,1087,5.3.78,Grouped,V,P,,M,Y
 TDF-Application-Identifier,1088,5.3.77,OctetString,V,P,,M,Y
 TDF-Application-Instance-Identifier,2802,5.3.92,OctetString,V,P,,M,Y
 TDF-Destination-Host,1089,5.3.80,DiameterIdentity,V,P,,M,Y
 TDF-Destination-Realm,1090,5.3.79,DiameterIdentity,V,P,,M,Y
 TDF-IP-Address,1091,5.3.81,Address,V,P,,M,Y
-QoS-Class-Identifier,1028,5.3.17,Enumerated,"M,V",P,,,Y
-QoS-Information,1016,5.3.16,Grouped,"M,V",P,,,Y
-QoS-Negotiation,1029,5.3.28,Enumerated,"M,V",P,,,Y
-QoS-Upgrade,1030,5.3.29,Enumerated,"M,V",P,,,Y
-PS-to-CS-Session-Continuity,1099,5.3.84,Enumerated,V,P,,,Y
-Resource-Allocation-Notification,1063,5.3.50,Enumerated,V,P,,M,Y
-Rule-Failure-Code,1031,5.3.38,Enumerated,"M,V",P,,,Y
-Security-Parameter-Index,1056,5.3.51,OctetString,V,P,,M,Y
 TFT-Filter,1012,5.3.13,IPFilterRule,"M,V",P,,,Y
 TFT-Packet-Filter-Information,1013,5.3.14,Grouped,"M,V",P,,,Y
+Traffic-Steering-Policy-Identifier-DL,2836,5.3.123,OctetString,V,P,,M,Y
+Traffic-Steering-Policy-Identifier-UL,2837,5.3.124,OctetString,V,P,,M,Y
 ToS-Traffic-Class,1014,5.3.15,OctetString,"M,V",P,,,Y
 Tunnel-Header-Filter,1036,5.3.34,IPFilterRule,V,P,,M,Y
 Tunnel-Header-Length,1037,5.3.35,Unsigned32,V,P,,M,Y
 Tunnel-Information,1038,5.3.36,Grouped,V,P,,M,Y
-RAT-Type,1032,5.3.31,Enumerated,V,P,,M,Y
-Revalidation-Time,1042,5.3.41,Time,"M,V",P,,,Y
-Rule-Activation-Time,1043,5.3.42,Time,"M,V",P,,,Y
 UDP-Source-Port,2806,5.3.97,Unsigned32,V,P,,M,Y
 UE-Local-IP-Address,2805,5.3.96,Address,V,P,,M,Y
+UE-Status,2854,5.3.140,Unsigned32,V,P,,M,Y
 Usage-Monitoring-Information,1067,5.3.60,Grouped,V,P,,M,Y
-Rule-Deactivation-Time,1044,5.3.43,Time,"M,V",P,,,Y
 Usage-Monitoring-Level,1068,5.3.61,Enumerated,V,P,,M,Y
 Usage-Monitoring-Report,1069,5.3.62,Enumerated,V,P,,M,Y
 Usage-Monitoring-Support,1070,5.3.63,Enumerated,V,P,,M,Y
-# Gxx-specific,,,,,,,,
+User-Location-Info-Time,2812,5.3.101,Time,V,P,,M,Y
+PCSCF-Restoration-Indication,2826,5.3.113,Unsigned32,V,P,,M,Y
+#=,,,,,,,,
+# 3GPP TS 29.212 Table 5a.3.0.1: Gxx specific Diameter AVPs,,,,,,,,
+#=,,,,,,,,
+#,,,,,,,,
 QoS-Rule-Install,1051,5a.3.1,Grouped,"M,V",P,,,Y
 QoS-Rule-Remove,1052,5a.3.2,Grouped,"M,V",P,,,Y
 QoS-Rule-Definition,1053,5a.3.3,Grouped,"M,V",P,,,Y
@@ -294,9 +339,30 @@ QoS-Rule-Name,1054,5a.3.4,OctetString,"M,V",P,,,Y
 QoS-Rule-Base-Name,1074,5a.3.7,UTF8String,V,P,,M,Y
 QoS-Rule-Report,1055,5a.3.5,Grouped,"M,V",P,,,Y
 Session-Linking-Indicator,1064,5a.3.6,Enumerated,"M,V",P,,,Y
-# S15-specific,,,,,,,,
-CS-Service-Qos-Request-Identifier,2807,E.6.3.2,OctetString,"M,V",P,,,Y
-CS-Service-QoS-Request-Operation,2808,E.6.3.3,Enumerated,"M,V",P,,,Y
+#=,,,,,,,,
+# 3GPP TS 29.212 Table 5b.3.0.1: Sd specific Diameter AVPs,,,,,,,,
+#=,,,,,,,,
+#,,,,,,,,
+ADC-Rule-Base-Name,1095,5b.3.4,UTF8String,"M,V",P,,,Y
+ADC-Rule-Definition,1094,5b.3.3,Grouped,"M,V",P,,,Y
+ADC-Rule-Install,1092,5b.3.1,Grouped,"M,V",P,,,Y
+ADC-Rule-Name,1096,5b.3.5,OctetString,"M,V",P,,,Y
+ADC-Rule-Remove,1093,5b.3.2,Grouped,"M,V",P,,,Y
+ADC-Rule-Report,1097,5b.3.6,Grouped,"M,V",P,,,Y
+#=,,,,,,,,
+# 3GPP TS 29.212 Table 5c.3.1.1: St specific Diameter AVPs,,,,,,,,
+#=,,,,,,,,
+#,,,,,,,,
+Request-Type,2838,5c.3.2,Unsigned32,"M,V",P,,,Y
+#=,,,,,,,,
+# 3GPP TS 29.212 Table E.6.3.1.1: S15 specific Diameter AVPs,,,,,,,,
+#=,,,,,,,,
+#,,,,,,,,
+CS-Service-Qos-Request-Identifier,2807,E.6.3.2,OctetString,"M, V",P,,,Y
+CS-Service-QoS-Request-Operation,2808,E.6.3.3,Enumerated,"M, V",P,,,Y
+CS-Service-Resource-Report,2813,E.6.3.6,Grouped,"M, V",P,,,Y
+CS-Service-Resource-Failure-Cause,2814,E.6.3.5,Enumerated,"M, V",P,,,Y
+CS-Service-Resource-Result-Operation,2815,E.6.3.4,Enumerated,"M, V",P,,,Y
 ,,,,,,,,
 @standard,3GPP TS 29.214,,,,,,,
 #=,,,,,,,,
