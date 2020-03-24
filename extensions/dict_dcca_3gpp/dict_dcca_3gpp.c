@@ -1223,7 +1223,7 @@ static int dict_dcca_3gpp_entry(char * conffile)
 		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
 	};
 
-	/* 3GPP TS 29.128 table 6.4.1-1 row Non-IP-Data                     */
+	/* Note: 3GPP TS 29.128 table 6.4.1-1 row Non-IP-Data               */
 	/* has type "Octetstring" instead of "OctetString".                 */
 	/* Non-IP-Data, OctetString, code 4315, section 6.4.19              */
 	{
@@ -1408,7 +1408,12 @@ static int dict_dcca_3gpp_entry(char * conffile)
 	};
 
 	/*==================================================================*/
-	/* 3GPP 29.140-700 (7.0.0 2007.07.05)                               */
+	/* 3GPP TS 29.140 V7.0.0 (2007-06)                                  */
+	/* From 3GPP 29140-700.doc                                          */
+	/*==================================================================*/
+
+	/*==================================================================*/
+	/* 3GPP TS 29.140 Table 6.3.1: Diameter MM10 Application AVPs       */
 	/*==================================================================*/
 
 	/* Served-User-Identity, Grouped, code 1100, section 6.3.1          */
@@ -1424,7 +1429,8 @@ static int dict_dcca_3gpp_entry(char * conffile)
 		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
 	};
 
-	/* reuses: MSISDN                                                   */
+	/* Note: Uses 3GPP TS 29.329 MSISDN.                                */
+
 	/* VASP-ID, UTF8String, code 1101, section 6.3.3                    */
 	{
 		struct dict_avp_data data = {
@@ -1467,7 +1473,8 @@ static int dict_dcca_3gpp_entry(char * conffile)
 		CHECK_dict_new(DICT_AVP, &data, type, NULL);
 	};
 
-	/* reuses: 3GPP-IMSI                                                */
+	/* Note: Uses 3GPP TS 29.061 3GPP-IMSI.                             */
+
 	/* Sender-Address, UTF8String, code 1104, section 6.3.7             */
 	{
 		struct dict_avp_data data = {
@@ -1507,7 +1514,7 @@ static int dict_dcca_3gpp_entry(char * conffile)
 		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
 	};
 
-	/* conflicts with one in (more common) 32.329                       */
+	/* Note: Name conflict with 3GPP TS 32.329 Sequence-Number (716).   */
 	/* Sequence-Number-29.140, Unsigned32, code 1107, section 6.3.10    */
 	{
 		struct dict_avp_data data = {
@@ -1521,7 +1528,7 @@ static int dict_dcca_3gpp_entry(char * conffile)
 		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
 	};
 
-	/* conflicts with one in (more common) 32.299                       */
+	/* Note: Name conflict with 3GPP TS 32.299 Recipient-Address (1201). */
 	/* Recipient-Address-29.140, UTF8String, code 1108, section 6.3.11  */
 	{
 		struct dict_avp_data data = {
@@ -1638,7 +1645,7 @@ static int dict_dcca_3gpp_entry(char * conffile)
 		CHECK_dict_new(DICT_AVP, &data, UTF8String_type, NULL);
 	};
 
-	/* conflicts with one in (more common) 32.299                       */
+	/* Note: Name conflict with 3GPP TS 32.299 Status (2702).           */
 	/* Status-29.140, Grouped, code 1116, section 6.3.19                */
 	{
 		struct dict_avp_data data = {
@@ -1866,6 +1873,11 @@ static int dict_dcca_3gpp_entry(char * conffile)
 	/* Replaced by 3GPP TS 29.212.                                      */
 	/*==================================================================*/
 
+	/*==================================================================*/
+	/* 3GPP TS 29.210 Table 5.2: Gx specific Diameter AVPs              */
+	/* AVPs not provided by 3GPP TS 29.212.                             */
+	/*==================================================================*/
+
 	/* PDP-Session-Operation, Enumerated, code 1015, section 5.2.21     */
 	{
 		struct dict_avp_data data = {
@@ -1891,7 +1903,7 @@ static int dict_dcca_3gpp_entry(char * conffile)
 	/* 3GPP TS 29.212 Table 5.3.0.1: Gx specific Diameter AVPs          */
 	/*==================================================================*/
 
-	/* 3GPP TS 29.212 V12.1.0 (2013-06) removed ADC-Revalidation-Time.  */
+	/* Note: 3GPP TS 29.212 V12.1.0 (2013-06) removed ADC-Revalidation-Time. */
 	/* ADC-Revalidation-Time, Time, code 2801, section 5.3.93           */
 	{
 		struct dict_avp_data data = {
@@ -2510,7 +2522,7 @@ static int dict_dcca_3gpp_entry(char * conffile)
 		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
 	};
 
-	/* 3GPP TS 29.212 V11.8.0 (2013-03) removed HeNB-BBF-FQDN.          */
+	/* Note: 3GPP TS 29.212 V11.8.0 (2013-03) removed HeNB-BBF-FQDN.    */
 	/* HeNB-BBF-FQDN, UTF8String, code 2803, section 5.3.94             */
 	{
 		struct dict_avp_data data = {
@@ -2846,6 +2858,8 @@ static int dict_dcca_3gpp_entry(char * conffile)
 		CHECK_dict_new(DICT_AVP, &data, type, NULL);
 	};
 
+	/* Note: 3GPP TS 29.212 table 5.3.0.1 row PDN-Connection-ID         */
+	/* missing M.                                                       */
 	/* PDN-Connection-ID, OctetString, code 1065, section 5.3.58        */
 	{
 		struct dict_avp_data data = {
@@ -3008,6 +3022,8 @@ static int dict_dcca_3gpp_entry(char * conffile)
 		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
 	};
 
+	/* Note: 3GPP TS 29.212 table 5.3.0.1 row PS-to-CS-Session-Continuity */
+	/* missing M.                                                       */
 	/* PS-to-CS-Session-Continuity, Enumerated, code 1099, section 5.3.84 */
 	{
 		struct dict_avp_data data = {
@@ -4363,7 +4379,7 @@ static int dict_dcca_3gpp_entry(char * conffile)
 		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
 	};
 
-	/* 3GPP TS 29.214 table 5.3.0.1 row IMS-Content-Identifier          */
+	/* Note: 3GPP TS 29.214 table 5.3.0.1 row IMS-Content-Identifier    */
 	/* missing M, assume MUST NOT.                                      */
 	/* IMS-Content-Identifier, OctetString, code 563, section 5.3.60    */
 	{
@@ -4378,7 +4394,7 @@ static int dict_dcca_3gpp_entry(char * conffile)
 		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
 	};
 
-	/* 3GPP TS 29.214 table 5.3.0.1 row IMS-Content                     */
+	/* Note: 3GPP TS 29.214 table 5.3.0.1 row IMS-Content               */
 	/* missing M, assume MUST NOT.                                      */
 	/* IMS-Content-Type, Enumerated, code 564, section 5.3.61           */
 	{
@@ -5575,7 +5591,7 @@ static int dict_dcca_3gpp_entry(char * conffile)
 	/*==================================================================*/
 
 	/*==================================================================*/
-	/* 3GPP TS 29.272 Table 7.3.1/1: S6a/S6d                            */
+	/* 3GPP TS 29.272 Table 7.3.1/1: S6a/S6d, S7a/S7d and S13/S13' specific DiameterAVPs */
 	/*==================================================================*/
 
 	/* Subscription-Data, Grouped, code 1400, section 7.3.2             */
@@ -6563,7 +6579,7 @@ static int dict_dcca_3gpp_entry(char * conffile)
 		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
 	};
 
-	/* 3GPP TS 29.272 V12.5.0 (2014-06) corrected table 7.3.1/1         */
+	/* Note: 3GPP TS 29.272 V12.5.0 (2014-06) corrected table 7.3.1/1   */
 	/* row SS-Status to be OctetString instead of Grouped.              */
 	/* Clause 7.3.88 already described SS-Status as OctetString.        */
 	/* SS-Status, OctetString, code 1477, section 7.3.88                */
@@ -6718,7 +6734,7 @@ static int dict_dcca_3gpp_entry(char * conffile)
 		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
 	};
 
-	/* 3GPP TS 29.272 V12.4.0 (2014-03) renamed                         */
+	/* Note: 3GPP TS 29.272 V12.4.0 (2014-03) renamed                   */
 	/* Call-Barring-Infor-List to Call-Barring-Info.                    */
 	/* Call-Barring-Info, Grouped, code 1488, section 7.3.101           */
 	{
@@ -6888,7 +6904,7 @@ static int dict_dcca_3gpp_entry(char * conffile)
 		CHECK_dict_new(DICT_AVP, &data, type, NULL);
 	};
 
-	/* 3GPP TS 29.272 table 7.3.1/1 incorrectly has a space             */
+	/* Note: 3GPP TS 29.272 table 7.3.1/1 incorrectly has a space       */
 	/* instead of hyphen in the row for MME-Location-Information.       */
 	/* Generated name renamed from MME-LocationInformation.             */
 	/* MME-Location-Information, Grouped, code 1600, section 7.3.115    */
@@ -7576,7 +7592,7 @@ static int dict_dcca_3gpp_entry(char * conffile)
 		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
 	};
 
-	/* 3GPP TS 29.272 V12.9.0 (2015-12) changed AVP code of             */
+	/* Note: 3GPP TS 29.272 V12.9.0 (2015-12) changed AVP code of       */
 	/* Measurement-Period-LTE from 1656 to 1655.                        */
 	/* Measurement-Period-LTE, Enumerated, code 1655, section 7.3.166   */
 	{
@@ -7594,7 +7610,7 @@ static int dict_dcca_3gpp_entry(char * conffile)
 		CHECK_dict_new(DICT_AVP, &data, type, NULL);
 	};
 
-	/* 3GPP TS 29.272 V12.9.0 (2015-12) changed AVP code of             */
+	/* Note: 3GPP TS 29.272 V12.9.0 (2015-12) changed AVP code of       */
 	/* Measurement-Period-UMTS from 1655 to 1656.                       */
 	/* Measurement-Period-UMTS, Enumerated, code 1656, section 7.3.167  */
 	{
@@ -7998,7 +8014,7 @@ static int dict_dcca_3gpp_entry(char * conffile)
 		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
 	};
 
-	/* 3GPP TS 29.272 table 7.3.1/1 row Preferred-Data-Mode             */
+	/* Note: 3GPP TS 29.272 table 7.3.1/1 row Preferred-Data-Mode       */
 	/* incorrectly has value type Grouped instead of Unsigned32,        */
 	/* conflicting with clause 7.3.209.                                 */
 	/* Preferred-Data-Mode, Unsigned32, code 1686, section 7.3.209      */
@@ -8310,7 +8326,7 @@ static int dict_dcca_3gpp_entry(char * conffile)
 		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
 	};
 
-	/* Name conflict with 29.229 User-Data (606), renamed               */
+	/* Note: Name conflict with 3GPP TS 29.229 User-Data (606).         */
 	/* User-Data-29.329, OctetString, code 702, section 6.3.3           */
 	{
 		struct dict_avp_data data = {
@@ -10065,7 +10081,7 @@ static int dict_dcca_3gpp_entry(char * conffile)
 		CHECK_dict_new(DICT_AVP, &data, type, NULL);
 	};
 
-	/* 3GPP TS 32.299 V11.8.0 (2013-07) corrected table 7.2             */
+	/* Note: 3GPP TS 32.299 V11.8.0 (2013-07) corrected table 7.2       */
 	/* to have a hyphen instead of space in the name.                   */
 	/* Generated name renamed from MBMSGW-Address.                      */
 	/* MBMS-GW-Address, Address, code 2307                              */
