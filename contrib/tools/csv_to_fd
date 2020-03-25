@@ -23,8 +23,8 @@ Format of the CSV files is one of:
         Flags, possibly comma or space separated: M, V
 
 - Comment row. First cell:
-    # Comment text      Comment text
-    #=                  Header row of ====
+    # Comment text      'Comment text'
+    #=                  '/*========*/'
     #                   Blank line
 
 - Parameter row:
@@ -92,11 +92,11 @@ class Avp(object):
     _flags_re = re.compile(r'^[MPV, ]*$')
 
     __slots__ = CSV_COLUMN_NAMES + [
-        'filename', 'linenum', 'standard', 'vendor', ]
+        'filename', 'line_num', 'standard', 'vendor', ]
 
     def __init__(self, name, code, section, datatype,
-                 must, may, shouldnot, mustnot, extra_cells,
-                 filename='', linenum=0, standard='', vendor=0):
+                 must, may, shouldnot, mustnot, extra_cells=[],
+                 filename='', line_num=0, standard='', vendor=0):
         # Members from CSV row
         self.name = name
         self.code = int(code)
@@ -108,20 +108,23 @@ class Avp(object):
         self.mustnot = mustnot
         # Members from file state
         self.filename = filename
-        self.linenum = linenum
+        self.line_num = line_num
         self.standard = standard
         self.vendor = vendor
         # Validate CSV fields
         if not self._name_re.match(self.name):
             raise ValueError('Invalid AVP name "{}"'.format(self.name))
         if (self.code < 0 or self.code > 4294967295):
-            raise ValueError('Invalid AVP code {}'.format(self.code))
+            raise ValueError('AVP "{}" invalid code {}'.format(
+                self.name, self.code))
         if (self.datatype not in (
                 'OctetString', 'Integer32', 'Integer64', 'Unsigned32',
                 'Unsigned64', 'Float32', 'Float64', 'Grouped')
                 and self.datatype not in DERIVED_TO_BASE):
-            raise ValueError('Invalid AVP data type "{}"'.format(
-                self.datatype))
+            raise ValueError('AVP "{}" invalid data type "{}"'.format(
+                self.name, self.datatype))
+        # Validate flags
+        flags = collections.Counter()
         for val, desc in [
                 (self.must, 'Must'),
                 (self.may, 'May'),
@@ -129,7 +132,28 @@ class Avp(object):
                 (self.mustnot, 'Must Not'),
                 ]:
             if not self._flags_re.match(val):
-                raise ValueError('Invalid AVP Flags {} "{}"'.format(desc, val))
+                raise ValueError('AVP "{}" invalid {} Flags "{}"'.format(
+                    self.name, desc, val))
+            flags.update(val)
+        # Check occurrence of M,V in Must,May,ShouldNot,MustNot
+        for flag in 'MV':
+            # TODO: can AVP flags not appear at all?
+            # if flags[flag] == 0:
+            #     raise ValueError('AVP "{}" Flag "{}" not set'.format(
+            #         self.name, flag))
+            if flags[flag] > 1:
+                raise ValueError('AVP "{}" Flag "{}" set {} times'.format(
+                    self.name, flag, flags[flag]))
+        # Compare V presence against vendor
+        if 'V' in self.must:
+            if self.vendor == 0:
+                raise ValueError('AVP "{}" Flag "V" set for vendor 0'.format(
+                    self.name))
+        else:
+            if self.vendor != 0:
+                raise ValueError(
+                    'AVP "{}" Flag "V" not set for vendor {}'.format(
+                        self.name, self.vendor))
 
     @property
     def __dict__(self):
@@ -168,7 +192,7 @@ class Processor(object):
         pass
 
     @abc.abstractmethod
-    def comment(self, comment, filename, linenum):
+    def comment(self, comment, filename, line_num):
         """Process a comment row:
             #comment,
         """
@@ -190,7 +214,7 @@ class DebugProcessor(Processor):
         avpdict = vars(avp)
         print('AVP: {name}, {code}, {datatype}'.format(**avpdict))
 
-    def comment(self, comment, filename, linenum):
+    def comment(self, comment, filename, line_num):
         print('Comment: {}'.format(comment))
 
     def generate(self):
@@ -206,7 +230,7 @@ class NoopProcessor(Processor):
     def avp(self, avp):
         pass
 
-    def comment(self, comment, filename, linenum):
+    def comment(self, comment, filename, line_num):
         pass
 
     def generate(self):
@@ -271,7 +295,7 @@ class FdcProcessor(Processor):
         self.add('\t};')
         self.add('')
 
-    def comment(self, comment, filename, linenum):
+    def comment(self, comment, filename, line_num):
         if comment == '':
             self.add('')
         elif comment == '=':
@@ -352,7 +376,7 @@ class JsonProcessor(Processor):
         ])
         self.avps.append(row)
 
-    def comment(self, comment, filename, linenum):
+    def comment(self, comment, filename, line_num):
         pass
 
     def generate(self):
@@ -418,23 +442,24 @@ into various formats using the specified processor PROCESSOR.
     # dict of [vendor][code] : Avp
     avp_codes = collections.defaultdict(dict)
 
+    # dict of [vendor][name] : Avp
+    avp_names = collections.defaultdict(dict)
+
     # Process files
     for filename in args:
         avpproc.next_file(filename)
         with open(filename, 'r') as csvfile:
             csvdata = csv.DictReader(csvfile, CSV_COLUMN_NAMES,
                                      restkey='extra_cells')
-            linenum = 0
             standard = ''
             vendor = 0
             for row in csvdata:
-                linenum += 1
                 try:
                     if row['name'] in (None, '', 'Attribute Name'):
                         continue
                     elif row['name'].startswith('#'):
                         comment = row['name'][1:]
-                        avpproc.comment(comment, filename, linenum)
+                        avpproc.comment(comment, filename, csvdata.line_num)
                     elif row['name'].startswith('@'):
                         parameter = row['name'][1:]
                         value = row['code']
@@ -448,7 +473,7 @@ into various formats using the specified processor PROCESSOR.
                             raise ValueError('Unknown parameter "{}"'.format(
                                 parameter))
                     else:
-                        avp = Avp(filename=filename, linenum=linenum,
+                        avp = Avp(filename=filename, line_num=csvdata.line_num,
                                   standard=standard, vendor=vendor,
                                   **row)
                         # Ensure AVP vendor/code not already defined
@@ -458,13 +483,22 @@ into various formats using the specified processor PROCESSOR.
                                 'AVP vendor {} code {} already present'
                                 ' in file "{}" line {}'.format(
                                     avp.vendor, avp.code,
-                                    conflict.filename, conflict.linenum))
+                                    conflict.filename, conflict.line_num))
                         avp_codes[avp.vendor][avp.code] = avp
+                        # Ensure AVP vendor/name not already defined
+                        if avp.name in avp_names[avp.vendor]:
+                            conflict = avp_names[avp.vendor][avp.name]
+                            raise ValueError(
+                                'AVP vendor {} name "{}" already present'
+                                ' in file "{}" line {}'.format(
+                                    avp.vendor, avp.name,
+                                    conflict.filename, conflict.line_num))
+                        avp_names[avp.vendor][avp.name] = avp
                         # Process AVP
                         avpproc.avp(avp)
                 except ValueError as e:
-                    sys.stderr.write('CSV file "{}" line {}: {}: {}\n'.format(
-                        filename, linenum, e.__class__.__name__, e))
+                    sys.stderr.write('CSV file "{}" line {}: {}\n'.format(
+                        filename, csvdata.line_num, e))
                     sys.exit(1)
 
     # Generate result
