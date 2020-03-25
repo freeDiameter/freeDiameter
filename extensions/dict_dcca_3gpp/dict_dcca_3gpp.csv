@@ -459,61 +459,86 @@ Sponsoring-Action,542,5.3.40,Enumerated,V,P,,M,Y
 ,,,,,,,,
 @standard,3GPP TS 29.229,,,,,,,
 #=,,,,,,,,
-# 3GPP 29.229-b20 (11.2.0 2012.12.21),,,,,,,,
+# 3GPP TS 29.229 V15.2.0 (2019-09),,,,,,,,
+# From 3GPP 29229-f20.doc,,,,,,,,
 #=,,,,,,,,
 #,,,,,,,,
-Associated-Identities,632,6.3.33,Grouped,V,,,M,N
-Associated-Registered-Identities,647,6.3.50,Grouped,V,,,M,N
-Call-ID-SIP-Header,643,6.3.49.1,OctetString,V,,,M,N
-Charging-Information,618,6.3.19,Grouped,"M,V",,,,N
-Confidentiality-Key,625,6.3.27,OctetString,"M,V",,,,N
-Contact,641,6.3.48,OctetString,V,,,M,N
-Deregistration-Reason,615,6.3.16,Grouped,"M,V",,,,N
-Feature-List,630,6.3.31,Unsigned32,V,,,M,N
-Feature-List-ID,629,6.3.30,Unsigned32,V,,,M,N
-From-SIP-Header,644,6.3.49.2,OctetString,V,,,M,N
-Identity-with-Emergency-Registration,651,6.3.57,Grouped,V,,,M,N
-Integrity-Key,626,6.3.28,OctetString,"M,V",,,,N
-LIA-Flags,653,6.3.59,Unsigned32,V,,,M,N
-Loose-Route-Indication,638,6.3.45,Enumerated,V,,,M,N
-Mandatory-Capability,604,6.3.5,Unsigned32,"M,V",,,,N
-Multiple-Registration-Indication,648,6.3.51,Enumerated,V,,,M,N
-Optional-Capability,605,6.3.6,Unsigned32,"M,V",,,,N
-Originating-Request,633,6.3.34,Enumerated,"M,V",,,,N
-Path,640,6.3.47,OctetString,V,,,M,N
-Primary-Charging-Collection-Function-Name,621,6.3.22,DiameterURI,"M,V",,,,N
-Primary-Event-Charging-Function-Name,619,6.3.20,DiameterURI,"M,V",,,,N
-Priviledged-Sender-Indication,652,6.3.58,Enumerated,V,,,M,N
-Public-Identity,601,6.3.2,UTF8String,"M,V",,,,N
-Reason-Code,616,6.3.17,Enumerated,"M,V",,,,N
-Reason-Info,617,6.3.18,UTF8String,"M,V",,,,N
-Record-Route,646,6.3.49.4,OctetString,V,,,M,N
-Restoration-Info,649,6.3.52,Grouped,V,,,M,N
-SCSCF-Restoration-Info,639,6.3.46,Grouped,V,,,M,N
-SIP-Auth-Data-Item,612,6.3.13,Grouped,"M,V",,,,N
-SIP-Authenticate,609,6.3.10,OctetString,"M,V",,,,N
-SIP-Authentication-Context,611,6.3.12,OctetString,"M,V",,,,N
-SIP-Authentication-Scheme,608,6.3.9,UTF8String,"M,V",,,,N
-SIP-Authorization,610,6.3.11,OctetString,"M,V",,,,N
-SIP-Digest-Authenticate,635,6.3.36,Grouped,V,,,M,N
-SIP-Item-Number,613,6.3.14,Unsigned32,"M,V",,,,N
-SIP-Number-Auth-Items,607,6.3.8,Unsigned32,"M,V",,,,N
-Secondary-Charging-Collection-Function-Name,622,6.3.23,DiameterURI,"M,V",,,,N
-Secondary-Event-Charging-Function-Name,620,6.3.21,DiameterURI,"M,V",,,,N
-Server-Assignment-Type,614,6.3.15,Enumerated,"M,V",,,,N
-Server-Capabilities,603,6.3.4,Grouped,"M,V",,,,N
-Server-Name,602,6.3.3,UTF8String,"M,V",,,,N
-Session-Priority,650,6.3.56,Enumerated,V,,,M,N
-Subscription-Info,642,6.3.49,Grouped,V,,,M,N
-Supported-Applications,631,6.3.32,Grouped,V,,,M,N
-Supported-Features,628,6.3.29,Grouped,V,M,,,N
-To-SIP-Header,645,6.3.49.3,OctetString,V,,,M,N
-UAR-Flags,637,6.3.44,Unsigned32,V,,,M,N
-User-Authorization-Type,623,6.3.24,Enumerated,"M,V",,,,N
-User-Data,606,6.3.7,OctetString,"M,V",,,,N
-User-Data-Already-Available,624,6.3.26,Enumerated,"M,V",,,,N
-Visited-Network-Identifier,600,6.3.1,OctetString,"M,V",,,,N
-Wildcarded-Public-Identity,634,6.3.35,UTF8String,V,,,M,N
+#=,,,,,,,,
+# 3GPP TS 29.229 Table 6.3.1: Diameter Multimedia Application AVPs,,,,,,,,
+#=,,,,,,,,
+#,,,,,,,,
+Visited-Network-Identifier,600,6.3.1,OctetString,"M, V",,,,No
+Public-Identity,601,6.3.2,UTF8String,"M, V",,,,No
+Server-Name,602,6.3.3,UTF8String,"M, V",,,,No
+Server-Capabilities,603,6.3.4,Grouped,"M, V",,,,No
+Mandatory-Capability,604,6.3.5,Unsigned32,"M, V",,,,No
+Optional-Capability,605,6.3.6,Unsigned32,"M, V",,,,No
+User-Data,606,6.3.7,OctetString,"M, V",,,,No
+SIP-Number-Auth-Items,607,6.3.8,Unsigned32,"M, V",,,,No
+SIP-Authentication-Scheme,608,6.3.9,UTF8String,"M, V",,,,No
+SIP-Authenticate,609,6.3.10,OctetString,"M, V",,,,No
+SIP-Authorization,610,6.3.11,OctetString,"M, V",,,,No
+SIP-Authentication-Context,611,6.3.12,OctetString,"M, V",,,,No
+SIP-Auth-Data-Item,612,6.3.13,Grouped,"M, V",,,,No
+SIP-Item-Number,613,6.3.14,Unsigned32,"M, V",,,,No
+Server-Assignment-Type,614,6.3.15,Enumerated,"M, V",,,,No
+Deregistration-Reason,615,6.3.16,Grouped,"M, V",,,,No
+Reason-Code,616,6.3.17,Enumerated,"M, V",,,,No
+Reason-Info,617,6.3.18,UTF8String,"M, V",,,,No
+Charging-Information,618,6.3.19,Grouped,"M, V",,,,No
+Primary-Event-Charging-Function-Name,619,6.3.20,DiameterURI,"M, V",,,,No
+Secondary-Event-Charging-Function-Name,620,6.3.21,DiameterURI,"M, V",,,,No
+Primary-Charging-Collection-Function-Name,621,6.3.22,DiameterURI,"M, V",,,,No
+Secondary-Charging-Collection-Function-Name,622,6.3.23,DiameterURI,"M, V",,,,No
+User-Authorization-Type,623,6.3.24,Enumerated,"M, V",,,,No
+User-Data-Already-Available,624,6.3.26,Enumerated,"M, V",,,,No
+Confidentiality-Key,625,6.3.27,OctetString,"M, V",,,,No
+Integrity-Key,626,6.3.28,OctetString,"M, V",,,,No
+# Note: 3GPP TS 29.229 V6.5.0 (2005-06) removed User-Data-Request-Type.,,,,,,,,
+User-Data-Request-Type,627,6.3.25,Enumerated,"M, V",,,,No
+Supported-Features,628,6.3.29,Grouped,V,M,,,No
+Feature-List-ID,629,6.3.30,Unsigned32,V,,,M,No
+Feature-List,630,6.3.31,Unsigned32,V,,,M,No
+Supported-Applications,631,6.3.32,Grouped,V,,,M,No
+Associated-Identities,632,6.3.33,Grouped,V,,,M,No
+Originating-Request,633,6.3.34,Enumerated,"M,V",,,,No
+Wildcarded-Public-Identity,634,6.3.35,UTF8String,V,,,M,No
+SIP-Digest-Authenticate,635,6.3.36,Grouped,V,,,M,No
+Wildcarded-IMPU,636,6.3.43,UTF8String,V,,,M,N
+# Note: Uses RFC 4590 Digest-Realm.,104,6.3.37,UTF8String,M,,,V,No
+# Note: Uses RFC 4590 Digest-Algorithm.,111,6.3.39,UTF8String,M,,,V,No
+# Note: Uses RFC 4590 Digest-QoP.,110,6.3.40,UTF8String,M,,,V,No
+# Note: Uses RFC 4590 Digest-HA1.,121,6.3.41,UTF8String,M,,,V,No
+#,,,,,,,,
+UAR-Flags,637,6.3.44,Unsigned32,V,,,M,No
+Loose-Route-Indication,638,6.3.45,Enumerated,V,,,M,No
+SCSCF-Restoration-Info,639,6.3.46,Grouped,V,,,M,No
+Path,640,6.3.47,OctetString,V,,,M,No
+Contact,641,6.3.48,OctetString,V,,,M,No
+Subscription-Info,642,6.3.49,Grouped,V,,,M,No
+Call-ID-SIP-Header,643,6.3.49.1,OctetString,V,,,M,No
+From-SIP-Header,644,6.3.49.2,OctetString,V,,,M,No
+To-SIP-Header,645,6.3.49.3,OctetString,V,,,M,No
+Record-Route,646,6.3.49.4,OctetString,V,,,M,No
+Associated-Registered-Identities,647,6.3.50,Grouped,V,,,M,No
+Multiple-Registration-Indication,648,6.3.51,Enumerated,V,,,M,No
+Restoration-Info,649,6.3.52,Grouped,V,,,M,No
+Session-Priority,650,6.3.56,Enumerated,V,,,M,No
+Identity-with-Emergency-Registration,651,6.3.57,Grouped,V,,,M,No
+Priviledged-Sender-Indication,652,6.3.58,Enumerated,V,,,M,No
+LIA-Flags,653,6.3.59,Unsigned32,V,,,M,No
+# Note: Uses RFC 7683 OC-Supported-Features.,621,6.3.60,Grouped,,,,"M, V",No
+# Note: Uses RFC 7683 OC-OLR.,623,6.3.61,Grouped,,,,"M, V",No
+#,,,,,,,,
+Initial-CSeq-Sequence-Number,654,6.3.62,Unsigned32,V,,,M,No
+SAR-Flags,655,6.3.63,Unsigned32,V,,,M,No
+Allowed-WAF-WWSF-Identities,656,6.3.64,Grouped,V,,,M,No
+WebRTC-Authentication-Function-Name,657,6.3.65,UTF8String,V,,,M,No
+WebRTC-Web-Server-Function-Name,658,6.3.66,UTF8String,V,,,M,No
+# Note: Uses RFC 7944 DRMP.,301,6.3.67,Enumerated,,,,"M, V",No
+# Note: Uses RFC 8583 Load.,,6.3.68,Grouped,,,,"M, V",No
+#,,,,,,,,
+RTR-Flags,659,6.3.69,Unsigned32,V,,,M,No
 ,,,,,,,,
 @standard,3GPP TS 29.272,,,,,,,
 #=,,,,,,,,
@@ -765,7 +790,8 @@ Send-Data-Indication,710,6.3.17,Enumerated,V,,,M,N
 DSAI-Tag,711,6.3.18,OctetString,"M,V",,,,N
 # in 29.229,,,,,,,,
 # Wildcarded-Public-Identity,634,6.3.19,UTF8String,V,,,M,N
-Wildcarded-IMPU,636,6.3.20,UTF8String,V,,,M,N
+# in 29.229,,,,,,,,
+# Wildcarded-IMPU,636,6.3.20,UTF8String,V,,,M,N
 # in 29.229,,,,,,,,
 # Session-Priority,650,6.3.21,Enumerated,V,,,M,N
 One-Time-Notification,712,6.3.22,Enumerated,V,,,M,N
