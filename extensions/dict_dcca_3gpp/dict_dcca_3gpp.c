@@ -8421,7 +8421,12 @@ static int dict_dcca_3gpp_entry(char * conffile)
 	};
 
 	/*==================================================================*/
-	/* 3GPP 29.329-b50 (11.5.0 2012.12.21)                              */
+	/* 3GPP TS 29.329 V15.2.0 (2019-09)                                 */
+	/* From 3GPP 29329-f20.doc                                          */
+	/*==================================================================*/
+
+	/*==================================================================*/
+	/* 3GPP TS 29.329 Table 6.3.1: Table 6.3.1: Diameter Multimedia Application AVPs */
 	/*==================================================================*/
 
 	/* User-Identity, Grouped, code 700, section 6.3.1                  */
@@ -8586,13 +8591,13 @@ static int dict_dcca_3gpp_entry(char * conffile)
 		CHECK_dict_new(DICT_AVP, &data, type, NULL);
 	};
 
-	/* in 29.229                                                        */
-	/* Server-Name                                                      */
-	/* Supported-Features                                               */
-	/* Feature-List-ID                                                  */
-	/* Feature-List                                                     */
-	/* Supported-Applications                                           */
-	/* Public-Identity                                                  */
+	/* Note: Uses 3GPP TS 29.229 Server-Name.                           */
+	/* Note: Uses 3GPP TS 29.229 Supported-Features.                    */
+	/* Note: Uses 3GPP TS 29.229 Feature-List-ID.                       */
+	/* Note: Uses 3GPP TS 29.229 Feature-List.                          */
+	/* Note: Uses 3GPP TS 29.229 Supported-Applications.                */
+	/* Note: Uses 3GPP TS 29.229 Public-Identity.                       */
+
 	/* DSAI-Tag, OctetString, code 711, section 6.3.18                  */
 	{
 		struct dict_avp_data data = {
@@ -8606,12 +8611,10 @@ static int dict_dcca_3gpp_entry(char * conffile)
 		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
 	};
 
-	/* in 29.229                                                        */
-	/* Wildcarded-Public-Identity                                       */
-	/* in 29.229                                                        */
-	/* Wildcarded-IMPU                                                  */
-	/* in 29.229                                                        */
-	/* Session-Priority                                                 */
+	/* Note: Uses 3GPP TS 29.229 Wildcarded-Public-Identity.            */
+	/* Note: Uses 3GPP TS 29.229 Wildcarded-IMPU.                       */
+	/* Note: Uses 3GPP TS 29.229 Session-Priority.                      */
+
 	/* One-Time-Notification, Enumerated, code 712, section 6.3.22      */
 	{
 		struct dict_avp_data data = {
@@ -8683,6 +8686,38 @@ static int dict_dcca_3gpp_entry(char * conffile)
 		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
 	};
 
+	/* Pre-paging-Supported, Enumerated, code 717, section 6.3.26       */
+	{
+		struct dict_avp_data data = {
+			717,	/* Code */
+			10415,	/* Vendor */
+			"Pre-paging-Supported",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR,	/* Fixed flag values */
+			AVP_TYPE_INTEGER32	/* base type of data */
+		};
+		struct dict_object	*type;
+		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "Enumerated(3GPP/Pre-paging-Supported)", NULL, NULL, NULL };
+		CHECK_dict_new(DICT_TYPE, &tdata, NULL, &type);
+		CHECK_dict_new(DICT_AVP, &data, type, NULL);
+	};
+
+	/* Local-Time-Zone-Indication, Enumerated, code 718, section 6.3.27 */
+	{
+		struct dict_avp_data data = {
+			718,	/* Code */
+			10415,	/* Vendor */
+			"Local-Time-Zone-Indication",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR,	/* Fixed flag values */
+			AVP_TYPE_INTEGER32	/* base type of data */
+		};
+		struct dict_object	*type;
+		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "Enumerated(3GPP/Local-Time-Zone-Indication)", NULL, NULL, NULL };
+		CHECK_dict_new(DICT_TYPE, &tdata, NULL, &type);
+		CHECK_dict_new(DICT_AVP, &data, type, NULL);
+	};
+
 	/* UDR-Flags, Unsigned32, code 719, section 6.3.28                  */
 	{
 		struct dict_avp_data data = {
@@ -8692,6 +8727,45 @@ static int dict_dcca_3gpp_entry(char * conffile)
 			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
 			AVP_FLAG_VENDOR,	/* Fixed flag values */
 			AVP_TYPE_UNSIGNED32	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+	};
+
+	/* Call-Reference-Info, Grouped, code 720, section 6.3.29           */
+	{
+		struct dict_avp_data data = {
+			720,	/* Code */
+			10415,	/* Vendor */
+			"Call-Reference-Info",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR,	/* Fixed flag values */
+			AVP_TYPE_GROUPED	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+	};
+
+	/* Call-Reference-Number, OctetString, code 721, section 6.3.30     */
+	{
+		struct dict_avp_data data = {
+			721,	/* Code */
+			10415,	/* Vendor */
+			"Call-Reference-Number",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR,	/* Fixed flag values */
+			AVP_TYPE_OCTETSTRING	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+	};
+
+	/* AS-Number, OctetString, code 722, section 6.3.31                 */
+	{
+		struct dict_avp_data data = {
+			722,	/* Code */
+			10415,	/* Vendor */
+			"AS-Number",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR,	/* Fixed flag values */
+			AVP_TYPE_OCTETSTRING	/* base type of data */
 		};
 		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
 	};

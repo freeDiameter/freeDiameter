@@ -765,41 +765,49 @@ Interworking-5GS-Indicator,1706,7.3.231,Enumerated,V,,,M,N
 ,,,,,,,,
 @standard,3GPP TS 29.329,,,,,,,
 #=,,,,,,,,
-# 3GPP 29.329-b50 (11.5.0 2012.12.21),,,,,,,,
+# 3GPP TS 29.329 V15.2.0 (2019-09),,,,,,,,
+# From 3GPP 29329-f20.doc,,,,,,,,
 #=,,,,,,,,
 #,,,,,,,,
-User-Identity,700,6.3.1,Grouped,"M,V",,,,N
-MSISDN,701,6.3.2,OctetString,"M,V",,,,N
+#=,,,,,,,,
+# 3GPP TS 29.329 Table 6.3.1: Table 6.3.1: Diameter Multimedia Application AVPs,,,,,,,,
+#=,,,,,,,,
+#,,,,,,,,
+User-Identity,700,6.3.1,Grouped,"M, V",,,,No
+MSISDN,701,6.3.2,OctetString,"M, V",,,,No
 # Note: Name conflict with 3GPP TS 29.229 User-Data (606).,,,,,,,,
-User-Data-29.329,702,6.3.3,OctetString,"M,V",,,,N
-Data-Reference,703,6.3.4,Enumerated,"M,V",,,,N
-Service-Indication,704,6.3.5,OctetString,"M,V",,,,N
-Subs-Req-Type,705,6.3.6,Enumerated,"M,V",,,,N
-Requested-Domain,706,6.3.7,Enumerated,"M,V",,,,N
-Current-Location,707,6.3.8,Enumerated,"M,V",,,,N
-Identity-Set,708,6.3.10,Enumerated,V,,,M,N
-Expiry-Time,709,6.3.16,Time,V,,,M,N
-Send-Data-Indication,710,6.3.17,Enumerated,V,,,M,N
-# in 29.229,,,,,,,,
-# Server-Name,602,6.3.9,UTF8String,"M,V",,,,N
-# Supported-Features,628,6.3.11,Grouped,V,M,,,N
-# Feature-List-ID,629,6.3.12,Unsigned32,V,,,M,N
-# Feature-List,630,6.3.13,Unsigned32,V,,,M,N
-# Supported-Applications,631,6.3.14,Grouped,V,,,M,N
-# Public-Identity,601,6.3.15,UTF8String,"M,V",,,,N
-DSAI-Tag,711,6.3.18,OctetString,"M,V",,,,N
-# in 29.229,,,,,,,,
-# Wildcarded-Public-Identity,634,6.3.19,UTF8String,V,,,M,N
-# in 29.229,,,,,,,,
-# Wildcarded-IMPU,636,6.3.20,UTF8String,V,,,M,N
-# in 29.229,,,,,,,,
-# Session-Priority,650,6.3.21,Enumerated,V,,,M,N
-One-Time-Notification,712,6.3.22,Enumerated,V,,,M,N
-Requested-Nodes,713,6.3.7A,Unsigned32,V,,,M,N
-Serving-Node-Indication,714,6.3.23,Enumerated,V,,,M,N
-Repository-Data-ID,715,6.3.24,Grouped,V,,,M,N
-Sequence-Number,716,6.3.25,Unsigned32,V,,,M,N
-UDR-Flags,719,6.3.28,Unsigned32,V,,,M,N
+User-Data-29.329,702,6.3.3,OctetString,"M, V",,,,No
+Data-Reference,703,6.3.4,Enumerated,"M, V",,,,No
+Service-Indication,704,6.3.5,OctetString,"M, V",,,,No
+Subs-Req-Type,705,6.3.6,Enumerated,"M, V",,,,No
+Requested-Domain,706,6.3.7,Enumerated,"M, V",,,,No
+Current-Location,707,6.3.8,Enumerated,"M, V",,,,No
+Identity-Set,708,6.3.10,Enumerated,V,,,M,No
+Expiry-Time,709,6.3.16,Time,V,,,M,No
+Send-Data-Indication,710,6.3.17,Enumerated,V,,,M,No
+# Note: Uses 3GPP TS 29.229 Server-Name.,602,6.3.9,UTF8String,"M, V",,,,No
+# Note: Uses 3GPP TS 29.229 Supported-Features.,628,6.3.11,Grouped,V,M,,,No
+# Note: Uses 3GPP TS 29.229 Feature-List-ID.,629,6.3.12,Unsigned32,V,,,M,No
+# Note: Uses 3GPP TS 29.229 Feature-List.,630,6.3.13,Unsigned32,V,,,M,No
+# Note: Uses 3GPP TS 29.229 Supported-Applications.,631,6.3.14,Grouped,V,,,M,No
+# Note: Uses 3GPP TS 29.229 Public-Identity.,601,6.3.15,UTF8String,"M, V",,,,No
+#,,,,,,,,
+DSAI-Tag,711,6.3.18,OctetString,"M, V",,,,No
+# Note: Uses 3GPP TS 29.229 Wildcarded-Public-Identity.,634,6.3.19,UTF8String,V,,,M,No
+# Note: Uses 3GPP TS 29.229 Wildcarded-IMPU.,636,6.3.20,UTF8String,V,,,M,No
+# Note: Uses 3GPP TS 29.229 Session-Priority.,650,6.3.21,Enumerated,V,,,M,No
+#,,,,,,,,
+One-Time-Notification,712,6.3.22,Enumerated,V,,,M,No
+Requested-Nodes,713,6.3.7A,Unsigned32,V,,,M,No
+Serving-Node-Indication,714,6.3.23,Enumerated,V,,,M,No
+Repository-Data-ID,715,6.3.24,Grouped,V,,,M,No
+Sequence-Number,716,6.3.25,Unsigned32,V,,,M,No
+Pre-paging-Supported,717,6.3.26,Enumerated,V,,,M,No
+Local-Time-Zone-Indication,718,6.3.27,Enumerated,V,,,M,No
+UDR-Flags,719,6.3.28,Unsigned32,V,,,M,No
+Call-Reference-Info,720,6.3.29,Grouped,V,,,M,No
+Call-Reference-Number,721,6.3.30,OctetString,V,,,M,No
+AS-Number,722,6.3.31,OctetString,V,,,M,No
 ,,,,,,,,
 @standard,3GPP TS 32.299,,,,,,,
 #=,,,,,,,,
