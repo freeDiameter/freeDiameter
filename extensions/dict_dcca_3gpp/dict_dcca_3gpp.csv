@@ -134,22 +134,22 @@ Active-Time,4324,6.4.34,Unsigned32,V,,,M,No
 #,,,,,,,,
 #=,,,,,,,,
 # 3GPP TS 29.140 Table 6.3.1: Diameter MM10 Application AVPs,,,,,,,,
+# ,,,,,,,,
+# Note: AVPs referenced from other sources are not added here.,,,,,,,,
 #=,,,,,,,,
 #,,,,,,,,
 Served-User-Identity,1100,6.3.1,Grouped,"M,V",,,,N
-# Note: Uses 3GPP TS 29.329 MSISDN (701).,701,6.3.2,OctetString,"M,V",,,,N
-#,,,,,,,,
 VASP-ID,1101,6.3.3,UTF8String,"M,V",,,,N
 VAS-ID,1102,6.3.4,UTF8String,"M,V",,,,N
 Trigger-Event,1103,6.3.5,Enumerated,"M,V",,,,N
-# Note: Uses 3GPP TS 29.061 3GPP-IMSI (1).,1,6.3.6,UTF8String,"M,V",,,,N
-#,,,,,,,,
 Sender-Address,1104,6.3.7,UTF8String,"M,V",,,,N
 Initial-Recipient-Address,1105,6.3.8,Grouped,"M,V",,,,N
 Result-Recipient-Address,1106,6.3.9,Grouped,"M,V",,,,N
 # Note: Name conflict with 3GPP TS 32.329 Sequence-Number (716).,,,,,,,,
+# Sequence-Number (1107) renamed to Sequence-Number-29.140 (1107).,,,,,,,,
 Sequence-Number-29.140,1107,6.3.10,Unsigned32,"M,V",,,,N
 # Note: Name conflict with 3GPP TS 32.299 Recipient-Address (1201).,,,,,,,,
+# Recipient-Address (1108) renamed to Recipient-Address-29.140 (1108).,,,,,,,,
 Recipient-Address-29.140,1108,6.3.11,UTF8String,"M,V",,,,N
 Routeing-Address,1109,6.3.12,UTF8String,"M,V",,,,N
 Originating-Interface,1110,6.3.13,Enumerated,"M,V",,,,N
@@ -159,6 +159,7 @@ Sender-Visibility,1113,6.3.16,Enumerated,"M,V",,,,N
 Service-Key,1114,6.3.17,UTF8String,"M,V",,,,N
 Billing-Information,1115,6.3.18,UTF8String,"M,V",,,,N
 # Note: Name conflict with 3GPP TS 32.299 Status (2702).,,,,,,,,
+# Status (1116) renamed to Status-29.140 (1116).,,,,,,,,
 Status-29.140,1116,6.3.19,Grouped,"M,V",,,,N
 Status-Code,1117,6.3.20,UTF8String,"M,V",,,,N
 Status-Text,1118,6.3.21,UTF8String,"M,V",,,,N
@@ -283,7 +284,7 @@ Packet-Filter-Operation,1062,5.3.57,Enumerated,V,P,,M,Y
 Packet-Filter-Usage,1072,5.3.66,Enumerated,V,P,,M,Y
 PCC-Rule-Status,1019,5.3.19,Enumerated,"M,V",P,,,Y
 # Note: 3GPP TS 29.212 table 5.3.0.1 row PDN-Connection-ID (1065),,,,,,,,
-"# missing M.",,,,,,,,
+# missing M.,,,,,,,,
 PDN-Connection-ID,1065,5.3.58,OctetString,V,P,,,Y
 PRA-Install,2845,5.3.130,Grouped,V,P,,M,
 PRA-Remove,2846,5.3.131,Grouped,V,P,,M,
@@ -297,7 +298,7 @@ Presence-Reporting-Area-Node,2855,5.3.141,Unsigned32,V,P,,M,Y
 Presence-Reporting-Area-Status,2823,5.3.110,Unsigned32,V,P,,M,Y
 Priority-Level,1046,5.3.45,Unsigned32,V,P,,M,Y
 # Note: 3GPP TS 29.212 table 5.3.0.1 row PS-to-CS-Session-Continuity (1099),,,,,,,,
-"# missing M.",,,,,,,,
+# missing M.,,,,,,,,
 PS-to-CS-Session-Continuity,1099,5.3.84,Enumerated,V,P,,,Y
 QoS-Class-Identifier,1028,5.3.17,Enumerated,"M,V",P,,,Y
 QoS-Information,1016,5.3.16,Grouped,"M,V",P,,,Y
@@ -471,6 +472,8 @@ Sponsoring-Action,542,5.3.40,Enumerated,V,P,,M,Y
 #,,,,,,,,
 #=,,,,,,,,
 # 3GPP TS 29.229 Table 6.3.1: Diameter Multimedia Application AVPs,,,,,,,,
+# ,,,,,,,,
+# Note: AVPs referenced from other sources are not added here.,,,,,,,,
 #=,,,,,,,,
 #,,,,,,,,
 Visited-Network-Identifier,600,6.3.1,OctetString,"M, V",,,,No
@@ -511,11 +514,6 @@ Originating-Request,633,6.3.34,Enumerated,"M,V",,,,No
 Wildcarded-Public-Identity,634,6.3.35,UTF8String,V,,,M,No
 SIP-Digest-Authenticate,635,6.3.36,Grouped,V,,,M,No
 Wildcarded-IMPU,636,6.3.43,UTF8String,V,,,M,N
-# Note: Uses RFC 4590 Digest-Realm (104).,104,6.3.37,UTF8String,M,,,V,No
-# Note: Uses RFC 4590 Digest-Algorithm (111).,111,6.3.39,UTF8String,M,,,V,No
-# Note: Uses RFC 4590 Digest-QoP (110).,110,6.3.40,UTF8String,M,,,V,No
-# Note: Uses RFC 4590 Digest-HA1 (121).,121,6.3.41,UTF8String,M,,,V,No
-#,,,,,,,,
 UAR-Flags,637,6.3.44,Unsigned32,V,,,M,No
 Loose-Route-Indication,638,6.3.45,Enumerated,V,,,M,No
 SCSCF-Restoration-Info,639,6.3.46,Grouped,V,,,M,No
@@ -533,17 +531,11 @@ Session-Priority,650,6.3.56,Enumerated,V,,,M,No
 Identity-with-Emergency-Registration,651,6.3.57,Grouped,V,,,M,No
 Priviledged-Sender-Indication,652,6.3.58,Enumerated,V,,,M,No
 LIA-Flags,653,6.3.59,Unsigned32,V,,,M,No
-# Note: Uses RFC 7683 OC-Supported-Features (621).,621,6.3.60,Grouped,,,,"M, V",No
-# Note: Uses RFC 7683 OC-OLR (623).,623,6.3.61,Grouped,,,,"M, V",No
-#,,,,,,,,
 Initial-CSeq-Sequence-Number,654,6.3.62,Unsigned32,V,,,M,No
 SAR-Flags,655,6.3.63,Unsigned32,V,,,M,No
 Allowed-WAF-WWSF-Identities,656,6.3.64,Grouped,V,,,M,No
 WebRTC-Authentication-Function-Name,657,6.3.65,UTF8String,V,,,M,No
 WebRTC-Web-Server-Function-Name,658,6.3.66,UTF8String,V,,,M,No
-# Note: Uses RFC 7944 DRMP (301).,301,6.3.67,Enumerated,,,,"M, V",No
-# Note: Uses RFC 8583 Load (650).,,6.3.68,Grouped,,,,"M, V",No
-#,,,,,,,,
 RTR-Flags,659,6.3.69,Unsigned32,V,,,M,No
 ,,,,,,,,
 @standard,3GPP TS 29.272,,,,,,,
@@ -631,7 +623,7 @@ LCS-PrivacyException,1475,7.3.86,Grouped,"M,V",,,,N
 SS-Code,1476,7.3.87,OctetString,"M,V",,,,N
 # Note: 3GPP TS 29.272 V12.5.0 (2014-06) table 7.3.1/1,,,,,,,,
 # changed row SS-Status (1477) to be OctetString instead of Grouped.,,,,,,,,
-# Clause 7.3.88 already described SS-Status as OctetString.,,,,,,,,
+# Clause 7.3.88 already described SS-Status (1147) as OctetString.,,,,,,,,
 SS-Status,1477,7.3.88,OctetString,"M,V",,,,N
 Notification-To-UE-User,1478,7.3.89,Enumerated,"M,V",,,,N
 External-Client,1479,7.3.90,Grouped,"M,V",,,,N
@@ -777,11 +769,14 @@ Interworking-5GS-Indicator,1706,7.3.231,Enumerated,V,,,M,N
 #,,,,,,,,
 #=,,,,,,,,
 # 3GPP TS 29.329 Table 6.3.1: Table 6.3.1: Diameter Multimedia Application AVPs,,,,,,,,
+# ,,,,,,,,
+# Note: AVPs referenced from other sources are not added here.,,,,,,,,
 #=,,,,,,,,
 #,,,,,,,,
 User-Identity,700,6.3.1,Grouped,"M, V",,,,No
 MSISDN,701,6.3.2,OctetString,"M, V",,,,No
 # Note: Name conflict with 3GPP TS 29.229 User-Data (606).,,,,,,,,
+# User-Data (702) renamed to User-Data-29.329 (702).,,,,,,,,
 User-Data-29.329,702,6.3.3,OctetString,"M, V",,,,No
 Data-Reference,703,6.3.4,Enumerated,"M, V",,,,No
 Service-Indication,704,6.3.5,OctetString,"M, V",,,,No
@@ -791,18 +786,7 @@ Current-Location,707,6.3.8,Enumerated,"M, V",,,,No
 Identity-Set,708,6.3.10,Enumerated,V,,,M,No
 Expiry-Time,709,6.3.16,Time,V,,,M,No
 Send-Data-Indication,710,6.3.17,Enumerated,V,,,M,No
-# Note: Uses 3GPP TS 29.229 Server-Name (602).,602,6.3.9,UTF8String,"M, V",,,,No
-# Note: Uses 3GPP TS 29.229 Supported-Features (628).,628,6.3.11,Grouped,V,M,,,No
-# Note: Uses 3GPP TS 29.229 Feature-List-ID (629).,629,6.3.12,Unsigned32,V,,,M,No
-# Note: Uses 3GPP TS 29.229 Feature-List (630).,630,6.3.13,Unsigned32,V,,,M,No
-# Note: Uses 3GPP TS 29.229 Supported-Applications (631).,631,6.3.14,Grouped,V,,,M,No
-# Note: Uses 3GPP TS 29.229 Public-Identity (601).,601,6.3.15,UTF8String,"M, V",,,,No
-#,,,,,,,,
 DSAI-Tag,711,6.3.18,OctetString,"M, V",,,,No
-# Note: Uses 3GPP TS 29.229 Wildcarded-Public-Identity (634).,634,6.3.19,UTF8String,V,,,M,No
-# Note: Uses 3GPP TS 29.229 Wildcarded-IMPU (636).,636,6.3.20,UTF8String,V,,,M,No
-# Note: Uses 3GPP TS 29.229 Session-Priority (650).,650,6.3.21,Enumerated,V,,,M,No
-#,,,,,,,,
 One-Time-Notification,712,6.3.22,Enumerated,V,,,M,No
 Requested-Nodes,713,6.3.7A,Unsigned32,V,,,M,No
 Serving-Node-Indication,714,6.3.23,Enumerated,V,,,M,No
@@ -843,6 +827,7 @@ External-Identifier,3111,6.4.11,UTF8String,"M,V",,,,No
 3GPP-OC-Rating-Group,1321,,Unsigned32,V,,,M
 3GPP-OC-Request-Type,1322,,Enumerated,V,,,M
 # Note: Name conflict with 3GPP TS 29.212 3GPP-PS-Data-Off-Status (2847).,,,,,,,,
+# 3GPP-PS-Data-Off-Status (4406) renamed to 3GPP-PS-Data-Off-Status-32.299 (4406).,,,,,,,,
 3GPP-PS-Data-Off-Status-32.299,4406,,Enumerated,"V,M",,,
 Access-Network-Info-Change,4401,,Grouped,"V,M",,,
 Access-Network-Information,1263,,OctetString,"V,M",,,

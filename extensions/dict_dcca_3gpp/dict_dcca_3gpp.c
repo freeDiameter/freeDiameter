@@ -1407,6 +1407,8 @@ static int dict_dcca_3gpp_entry(char * conffile)
 
 	/*==================================================================*/
 	/* 3GPP TS 29.140 Table 6.3.1: Diameter MM10 Application AVPs       */
+	/*                                                                  */
+	/* Note: AVPs referenced from other sources are not added here.     */
 	/*==================================================================*/
 
 	/* Served-User-Identity, Grouped, code 1100, section 6.3.1          */
@@ -1421,8 +1423,6 @@ static int dict_dcca_3gpp_entry(char * conffile)
 		};
 		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
 	};
-
-	/* Note: Uses 3GPP TS 29.329 MSISDN (701).                          */
 
 	/* VASP-ID, UTF8String, code 1101, section 6.3.3                    */
 	{
@@ -1466,8 +1466,6 @@ static int dict_dcca_3gpp_entry(char * conffile)
 		CHECK_dict_new(DICT_AVP, &data, type, NULL);
 	};
 
-	/* Note: Uses 3GPP TS 29.061 3GPP-IMSI (1).                         */
-
 	/* Sender-Address, UTF8String, code 1104, section 6.3.7             */
 	{
 		struct dict_avp_data data = {
@@ -1508,6 +1506,7 @@ static int dict_dcca_3gpp_entry(char * conffile)
 	};
 
 	/* Note: Name conflict with 3GPP TS 32.329 Sequence-Number (716).   */
+	/* Sequence-Number (1107) renamed to Sequence-Number-29.140 (1107). */
 	/* Sequence-Number-29.140, Unsigned32, code 1107, section 6.3.10    */
 	{
 		struct dict_avp_data data = {
@@ -1522,6 +1521,7 @@ static int dict_dcca_3gpp_entry(char * conffile)
 	};
 
 	/* Note: Name conflict with 3GPP TS 32.299 Recipient-Address (1201). */
+	/* Recipient-Address (1108) renamed to Recipient-Address-29.140 (1108). */
 	/* Recipient-Address-29.140, UTF8String, code 1108, section 6.3.11  */
 	{
 		struct dict_avp_data data = {
