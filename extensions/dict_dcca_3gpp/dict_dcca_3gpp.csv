@@ -103,7 +103,7 @@ Number-Of-UE-Per-Location-Configuration,4306,6.4.11,Grouped,"M,V",,,,No
 Number-Of-UE-Per-Location-Report,4307,6.4.12,Grouped,"M,V",,,,No
 UE-Count,4308,6.4.13,Unsigned32,"M,V",,,,No
 Connection-Action,4314,6.4.18,Unsigned32,"M,V",,,,No
-# Note: 3GPP TS 29.128 table 6.4.1-1 row Non-IP-Data,,,,,,,,
+# Note: 3GPP TS 29.128 table 6.4.1-1 row Non-IP-Data (4315),,,,,,,,
 "# has type ""Octetstring"" instead of ""OctetString"".",,,,,,,,
 Non-IP-Data,4315,6.4.19,OctetString,"M,V",,,,No
 Serving-PLMN-Rate-Control,4310,6.4.21,Grouped,"M,V",,,,No
@@ -131,12 +131,12 @@ Active-Time,4324,6.4.34,Unsigned32,V,,,M,No
 #=,,,,,,,,
 #,,,,,,,,
 Served-User-Identity,1100,6.3.1,Grouped,"M,V",,,,N
-# Note: Uses 3GPP TS 29.329 MSISDN.,701,6.3.2,OctetString,"M,V",,,,N
+# Note: Uses 3GPP TS 29.329 MSISDN (701).,701,6.3.2,OctetString,"M,V",,,,N
 #,,,,,,,,
 VASP-ID,1101,6.3.3,UTF8String,"M,V",,,,N
 VAS-ID,1102,6.3.4,UTF8String,"M,V",,,,N
 Trigger-Event,1103,6.3.5,Enumerated,"M,V",,,,N
-# Note: Uses 3GPP TS 29.061 3GPP-IMSI.,1,6.3.6,UTF8String,"M,V",,,,N
+# Note: Uses 3GPP TS 29.061 3GPP-IMSI (1).,1,6.3.6,UTF8String,"M,V",,,,N
 #,,,,,,,,
 Sender-Address,1104,6.3.7,UTF8String,"M,V",,,,N
 Initial-Recipient-Address,1105,6.3.8,Grouped,"M,V",,,,N
@@ -206,7 +206,7 @@ PDP-Session-Operation,1015,5.2.21,Enumerated,"M,V",P,,,Y
 # 3GPP TS 29.212 Table 5.3.0.1: Gx specific Diameter AVPs,,,,,,,,
 #=,,,,,,,,
 #,,,,,,,,
-# Note: 3GPP TS 29.212 V12.1.0 (2013-06) removed ADC-Revalidation-Time.,,,,,,,,
+# Note: 3GPP TS 29.212 V12.1.0 (2013-06) removed ADC-Revalidation-Time (2801).,,,,,,,,
 ADC-Revalidation-Time,2801,5.3.93,Time,V,P,,M,Y
 3GPP-PS-Data-Off-Status,2847,5.3.133,Enumerated,V,P,,M,Y
 Access-Availability-Change-Reason,2833,5.3.121,Unsigned32,V,P,,M,Y
@@ -252,7 +252,7 @@ Flow-Label,1057,5.3.52,OctetString,V,P,,M,Y
 Fixed-User-Location-Info,2825,5.3.112,Grouped,V,P,,M,Y
 Guaranteed-Bitrate-DL,1025,5.3.25,Unsigned32,"M,V",P,,,Y
 Guaranteed-Bitrate-UL,1026,5.3.26,Unsigned32,"M,V",P,,,Y
-# Note: 3GPP TS 29.212 V11.8.0 (2013-03) removed HeNB-BBF-FQDN.,,,,,,,,
+# Note: 3GPP TS 29.212 V11.8.0 (2013-03) removed HeNB-BBF-FQDN (2803).,,,,,,,,
 HeNB-BBF-FQDN,2803,5.3.94,UTF8String,V,P,,M,Y
 HeNB-Local-IP-Address,2804,5.3.95,Address,V,P,,M,Y
 IP-CAN-Session-Charging-Scope,2827,5.3.114,Enumerated,V,P,,M,Y
@@ -276,7 +276,7 @@ Packet-Filter-Information,1061,5.3.56,Grouped,V,P,,M,Y
 Packet-Filter-Operation,1062,5.3.57,Enumerated,V,P,,M,Y
 Packet-Filter-Usage,1072,5.3.66,Enumerated,V,P,,M,Y
 PCC-Rule-Status,1019,5.3.19,Enumerated,"M,V",P,,,Y
-# Note: 3GPP TS 29.212 table 5.3.0.1 row PDN-Connection-ID,,,,,,,,
+# Note: 3GPP TS 29.212 table 5.3.0.1 row PDN-Connection-ID (1065),,,,,,,,
 "# missing M.",,,,,,,,
 PDN-Connection-ID,1065,5.3.58,OctetString,V,P,,,Y
 PRA-Install,2845,5.3.130,Grouped,V,P,,M,
@@ -290,7 +290,7 @@ Presence-Reporting-Area-Information,2822,5.3.109,Grouped,V,P,,M,Y
 Presence-Reporting-Area-Node,2855,5.3.141,Unsigned32,V,P,,M,Y
 Presence-Reporting-Area-Status,2823,5.3.110,Unsigned32,V,P,,M,Y
 Priority-Level,1046,5.3.45,Unsigned32,V,P,,M,Y
-# Note: 3GPP TS 29.212 table 5.3.0.1 row PS-to-CS-Session-Continuity,,,,,,,,
+# Note: 3GPP TS 29.212 table 5.3.0.1 row PS-to-CS-Session-Continuity (1099),,,,,,,,
 "# missing M.",,,,,,,,
 PS-to-CS-Session-Continuity,1099,5.3.84,Enumerated,V,P,,,Y
 QoS-Class-Identifier,1028,5.3.17,Enumerated,"M,V",P,,,Y
@@ -416,10 +416,10 @@ Flows,510,5.3.10,Grouped,"M,V",P,,,Y
 Flow-Status,511,5.3.11,Enumerated,"M,V",P,,,Y
 Flow-Usage,512,5.3.12,Enumerated,"M,V",P,,,Y
 GCS-Identifier,538,5.3.36,OctetString,V,P,,M,Y
-# Note: 3GPP TS 29.214 table 5.3.0.1 row IMS-Content-Identifier,,,,,,,,
+# Note: 3GPP TS 29.214 table 5.3.0.1 row IMS-Content-Identifier (563),,,,,,,,
 "# missing M, assume MUST NOT.",,,,,,,,
 IMS-Content-Identifier,563,5.3.60,OctetString,V,P,,M,Y
-# Note: 3GPP TS 29.214 table 5.3.0.1 row IMS-Content,,,,,,,,
+# Note: 3GPP TS 29.214 table 5.3.0.1 row IMS-Content (564),,,,,,,,
 "# missing M, assume MUST NOT.",,,,,,,,
 IMS-Content-Type,564,5.3.61,Enumerated,V,P,,M,Y
 IP-Domain-Id,537,5.3.35,OctetString,V,P,,M,Y
@@ -494,7 +494,7 @@ User-Authorization-Type,623,6.3.24,Enumerated,"M, V",,,,No
 User-Data-Already-Available,624,6.3.26,Enumerated,"M, V",,,,No
 Confidentiality-Key,625,6.3.27,OctetString,"M, V",,,,No
 Integrity-Key,626,6.3.28,OctetString,"M, V",,,,No
-# Note: 3GPP TS 29.229 V6.5.0 (2005-06) removed User-Data-Request-Type.,,,,,,,,
+# Note: 3GPP TS 29.229 V6.5.0 (2005-06) removed User-Data-Request-Type (627).,,,,,,,,
 User-Data-Request-Type,627,6.3.25,Enumerated,"M, V",,,,No
 Supported-Features,628,6.3.29,Grouped,V,M,,,No
 Feature-List-ID,629,6.3.30,Unsigned32,V,,,M,No
@@ -505,10 +505,10 @@ Originating-Request,633,6.3.34,Enumerated,"M,V",,,,No
 Wildcarded-Public-Identity,634,6.3.35,UTF8String,V,,,M,No
 SIP-Digest-Authenticate,635,6.3.36,Grouped,V,,,M,No
 Wildcarded-IMPU,636,6.3.43,UTF8String,V,,,M,N
-# Note: Uses RFC 4590 Digest-Realm.,104,6.3.37,UTF8String,M,,,V,No
-# Note: Uses RFC 4590 Digest-Algorithm.,111,6.3.39,UTF8String,M,,,V,No
-# Note: Uses RFC 4590 Digest-QoP.,110,6.3.40,UTF8String,M,,,V,No
-# Note: Uses RFC 4590 Digest-HA1.,121,6.3.41,UTF8String,M,,,V,No
+# Note: Uses RFC 4590 Digest-Realm (104).,104,6.3.37,UTF8String,M,,,V,No
+# Note: Uses RFC 4590 Digest-Algorithm (111).,111,6.3.39,UTF8String,M,,,V,No
+# Note: Uses RFC 4590 Digest-QoP (110).,110,6.3.40,UTF8String,M,,,V,No
+# Note: Uses RFC 4590 Digest-HA1 (121).,121,6.3.41,UTF8String,M,,,V,No
 #,,,,,,,,
 UAR-Flags,637,6.3.44,Unsigned32,V,,,M,No
 Loose-Route-Indication,638,6.3.45,Enumerated,V,,,M,No
@@ -527,16 +527,16 @@ Session-Priority,650,6.3.56,Enumerated,V,,,M,No
 Identity-with-Emergency-Registration,651,6.3.57,Grouped,V,,,M,No
 Priviledged-Sender-Indication,652,6.3.58,Enumerated,V,,,M,No
 LIA-Flags,653,6.3.59,Unsigned32,V,,,M,No
-# Note: Uses RFC 7683 OC-Supported-Features.,621,6.3.60,Grouped,,,,"M, V",No
-# Note: Uses RFC 7683 OC-OLR.,623,6.3.61,Grouped,,,,"M, V",No
+# Note: Uses RFC 7683 OC-Supported-Features (621).,621,6.3.60,Grouped,,,,"M, V",No
+# Note: Uses RFC 7683 OC-OLR (623).,623,6.3.61,Grouped,,,,"M, V",No
 #,,,,,,,,
 Initial-CSeq-Sequence-Number,654,6.3.62,Unsigned32,V,,,M,No
 SAR-Flags,655,6.3.63,Unsigned32,V,,,M,No
 Allowed-WAF-WWSF-Identities,656,6.3.64,Grouped,V,,,M,No
 WebRTC-Authentication-Function-Name,657,6.3.65,UTF8String,V,,,M,No
 WebRTC-Web-Server-Function-Name,658,6.3.66,UTF8String,V,,,M,No
-# Note: Uses RFC 7944 DRMP.,301,6.3.67,Enumerated,,,,"M, V",No
-# Note: Uses RFC 8583 Load.,,6.3.68,Grouped,,,,"M, V",No
+# Note: Uses RFC 7944 DRMP (301).,301,6.3.67,Enumerated,,,,"M, V",No
+# Note: Uses RFC 8583 Load (650).,,6.3.68,Grouped,,,,"M, V",No
 #,,,,,,,,
 RTR-Flags,659,6.3.69,Unsigned32,V,,,M,No
 ,,,,,,,,
@@ -623,8 +623,8 @@ LCS-Info,1473,7.3.84,Grouped,"M,V",,,,N
 GMLC-Number,1474,7.3.85,OctetString,"M,V",,,,N
 LCS-PrivacyException,1475,7.3.86,Grouped,"M,V",,,,N
 SS-Code,1476,7.3.87,OctetString,"M,V",,,,N
-# Note: 3GPP TS 29.272 V12.5.0 (2014-06) corrected table 7.3.1/1,,,,,,,,
-# row SS-Status to be OctetString instead of Grouped.,,,,,,,,
+# Note: 3GPP TS 29.272 V12.5.0 (2014-06) table 7.3.1/1,,,,,,,,
+# changed row SS-Status (1477) to be OctetString instead of Grouped.,,,,,,,,
 # Clause 7.3.88 already described SS-Status as OctetString.,,,,,,,,
 SS-Status,1477,7.3.88,OctetString,"M,V",,,,N
 Notification-To-UE-User,1478,7.3.89,Enumerated,"M,V",,,,N
@@ -638,7 +638,7 @@ MO-LR,1485,7.3.96,Grouped,"M,V",,,,N
 Teleservice-List,1486,7.3.99,Grouped,"M,V",,,,N
 TS-Code,1487,7.3.100,OctetString,"M,V",,,,N
 # Note: 3GPP TS 29.272 V12.4.0 (2014-03) renamed,,,,,,,,
-# Call-Barring-Infor-List to Call-Barring-Info.,,,,,,,,
+# Call-Barring-Infor-List (1488) to Call-Barring-Info (1488).,,,,,,,,
 Call-Barring-Info,1488,7.3.101,Grouped,"M,V",,,,N
 SGSN-Number,1489,7.3.102,OctetString,"M,V",,,,N
 IDR-Flags,1490,7.3.103,Unsigned32,"M,V",,,,N
@@ -651,9 +651,9 @@ EPS-Location-Information,1496,7.3.111,Grouped,V,,,M,N
 MME-User-State,1497,7.3.112,Grouped,V,,,M,N
 SGSN-User-State,1498,7.3.113,Grouped,V,,,M,N
 User-State,1499,7.3.114,Enumerated,V,,,M,N
-# Note: 3GPP TS 29.272 table 7.3.1/1 incorrectly has a space,,,,,,,,
-# instead of hyphen in the row for MME-Location-Information.,,,,,,,,
-# Generated name renamed from MME-LocationInformation.,,,,,,,,
+# Note: 3GPP TS 29.272 table 7.3.1/1 row MME-Location-Information (1600),,,,,,,,
+# incorrectly has a space instead of hyphen in the name.,,,,,,,,
+# Generated name renamed from MME-LocationInformation (1600).,,,,,,,,
 MME-Location-Information,1600,7.3.115,Grouped,V,,,M,N
 SGSN-Location-Information,1601,7.3.116,Grouped,V,,,M,N
 E-UTRAN-Cell-Global-Identity,1602,7.3.117,OctetString,V,,,M,N
@@ -704,10 +704,10 @@ Local-Time-Zone,1649,7.3.156,Grouped,V,,,M,N
 Daylight-Saving-Time,1650,7.3.164,Enumerated,V,,,M,N
 Subscription-Data-Flags,1654,7.3.165,Unsigned32,V,,,M,N
 # Note: 3GPP TS 29.272 V12.9.0 (2015-12) changed AVP code of,,,,,,,,
-# Measurement-Period-LTE from 1656 to 1655.,,,,,,,,
+# Measurement-Period-LTE (1655) from 1656.,,,,,,,,
 Measurement-Period-LTE,1655,7.3.166,Enumerated,V,,,M,N
 # Note: 3GPP TS 29.272 V12.9.0 (2015-12) changed AVP code of,,,,,,,,
-# Measurement-Period-UMTS from 1655 to 1656.,,,,,,,,
+# Measurement-Period-UMTS (1656) from 1655.,,,,,,,,
 Measurement-Period-UMTS,1656,7.3.167,Enumerated,V,,,M,N
 Collection-Period-RRM-LTE,1657,7.3.168,Enumerated,V,,,M,N
 Collection-Period-RRM-UMTS,1658,7.3.169,Enumerated,V,,,M,N
@@ -738,7 +738,7 @@ Non-IP-Data-Delivery-Mechanism,1682,7.3.205,Unsigned32,V,,,M,N
 Additional-Context-ID,1683,7.3.206,Unsigned32,V,,,M,N
 SCEF-Realm,1684,7.3.207,DiameterIdentity,V,,,M,N
 Subscription-Data-Deletion,1685,7.3.208,Grouped,V,,,M,N
-# Note: 3GPP TS 29.272 table 7.3.1/1 row Preferred-Data-Mode,,,,,,,,
+# Note: 3GPP TS 29.272 table 7.3.1/1 row Preferred-Data-Mode (1686),,,,,,,,
 "# incorrectly has value type Grouped instead of Unsigned32,",,,,,,,,
 # conflicting with clause 7.3.209.,,,,,,,,
 Preferred-Data-Mode,1686,7.3.209,Unsigned32,V,,,M,N
@@ -785,17 +785,17 @@ Current-Location,707,6.3.8,Enumerated,"M, V",,,,No
 Identity-Set,708,6.3.10,Enumerated,V,,,M,No
 Expiry-Time,709,6.3.16,Time,V,,,M,No
 Send-Data-Indication,710,6.3.17,Enumerated,V,,,M,No
-# Note: Uses 3GPP TS 29.229 Server-Name.,602,6.3.9,UTF8String,"M, V",,,,No
-# Note: Uses 3GPP TS 29.229 Supported-Features.,628,6.3.11,Grouped,V,M,,,No
-# Note: Uses 3GPP TS 29.229 Feature-List-ID.,629,6.3.12,Unsigned32,V,,,M,No
-# Note: Uses 3GPP TS 29.229 Feature-List.,630,6.3.13,Unsigned32,V,,,M,No
-# Note: Uses 3GPP TS 29.229 Supported-Applications.,631,6.3.14,Grouped,V,,,M,No
-# Note: Uses 3GPP TS 29.229 Public-Identity.,601,6.3.15,UTF8String,"M, V",,,,No
+# Note: Uses 3GPP TS 29.229 Server-Name (602).,602,6.3.9,UTF8String,"M, V",,,,No
+# Note: Uses 3GPP TS 29.229 Supported-Features (628).,628,6.3.11,Grouped,V,M,,,No
+# Note: Uses 3GPP TS 29.229 Feature-List-ID (629).,629,6.3.12,Unsigned32,V,,,M,No
+# Note: Uses 3GPP TS 29.229 Feature-List (630).,630,6.3.13,Unsigned32,V,,,M,No
+# Note: Uses 3GPP TS 29.229 Supported-Applications (631).,631,6.3.14,Grouped,V,,,M,No
+# Note: Uses 3GPP TS 29.229 Public-Identity (601).,601,6.3.15,UTF8String,"M, V",,,,No
 #,,,,,,,,
 DSAI-Tag,711,6.3.18,OctetString,"M, V",,,,No
-# Note: Uses 3GPP TS 29.229 Wildcarded-Public-Identity.,634,6.3.19,UTF8String,V,,,M,No
-# Note: Uses 3GPP TS 29.229 Wildcarded-IMPU.,636,6.3.20,UTF8String,V,,,M,No
-# Note: Uses 3GPP TS 29.229 Session-Priority.,650,6.3.21,Enumerated,V,,,M,No
+# Note: Uses 3GPP TS 29.229 Wildcarded-Public-Identity (634).,634,6.3.19,UTF8String,V,,,M,No
+# Note: Uses 3GPP TS 29.229 Wildcarded-IMPU (636).,636,6.3.20,UTF8String,V,,,M,No
+# Note: Uses 3GPP TS 29.229 Session-Priority (650).,650,6.3.21,Enumerated,V,,,M,No
 #,,,,,,,,
 One-Time-Notification,712,6.3.22,Enumerated,V,,,M,No
 Requested-Nodes,713,6.3.7A,Unsigned32,V,,,M,No
@@ -922,9 +922,9 @@ Location-Estimate-Type,1243,,Enumerated,"M,V",P,,,N
 Location-Type,1244,,Grouped,"M,V",P,,,N
 Low-Balance-Indication,2020,,Enumerated,"M,V",P,,,N
 Low-Priority-Indicator,2602,,Enumerated,"M,V",P,,,N
-# Note: 3GPP TS 32.299 V11.8.0 (2013-07) corrected table 7.2,,,,,,,,
-# to have a hyphen instead of space in the name.,,,,,,,,
-# Generated name renamed from MBMSGW-Address.,,,,,,,,
+# Note: 3GPP TS 32.299 V11.8.0 (2013-07) table 7.2 changed,,,,,,,,
+# row MBMS-GW-Address (2307) to have a hyphen instead of space.,,,,,,,,
+# Generated name renamed from MBMSGW-Address (2307).,,,,,,,,
 MBMS-GW-Address,2307,,Address,"M,V",P,,,N
 MBMS-Information,880,,Grouped,"M,V",P,,,N
 MBMS-User-Service-Type,1225,,Enumerated,"M,V",P,,,Y
