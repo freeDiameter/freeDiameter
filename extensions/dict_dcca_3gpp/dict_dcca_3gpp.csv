@@ -3,59 +3,77 @@ Attribute Name,AVP Code,Section defined,Value Type,Must,May,Should not,Must not,
 ,,,,,,,,
 @standard,3GPP TS 29.061,,,,,,,
 #=,,,,,,,,
-# 3GPP 29.061-c00 (12.0.0 2012.12.20),,,,,,,,
-# 3GPP 29.061 is not very clear and self-inconsistent about M,,,,,,,,
-"# for this reason, other sources are assumed more trustworthy",,,,,,,,
+# 3GPP TS 29.061 V15.5.0 (2018-12),,,,,,,,
+# From 3GPP 29061-f50.doc,,,,,,,,
 #=,,,,,,,,
 #,,,,,,,,
-# M inconsistently specified,,,,,,,,
-3GPP-IMSI,1,16.4.7,UTF8String,"M,V",P,,,
-# 29.061 says OctetString; dumps say UInt32; manually changed,,,,,,,,
-# 29.061 says MUST NOT M; dumps say MUST,,,,,,,,
-3GPP-Charging-Id,2,16.4.7,Unsigned32,"M,V",P,,,
-# 29.061 says MUST NOT M; dumps say MUST,,,,,,,,
-3GPP-PDP-Type,3,16.4.7,Enumerated,"M,V",P,,,
-3GPP-CG-Address,4,16.4.7,OctetString,V,P,,M,
-# 29.061 says MUST NOT M; old contrib/3gpp says MUST,,,,,,,,
-3GPP-GPRS-Negotiated-QoS-Profile,5,16.4.7,UTF8String,"M,V",P,,,
-# M inconsistently specified; old contrib/3gg says MUST NOT,,,,,,,,
-3GPP-SGSN-Address,6,16.4.7,OctetString,V,P,,M,
-3GPP-GGSN-Address,7,16.4.7,OctetString,V,P,,M,
-# 29.061 says MUST NOT M; dumps say MUST,,,,,,,,
-3GPP-IMSI-MCC-MNC,8,16.4.7,UTF8String,"M,V",P,,,
-# 29.061 says MUST NOT M; old contrib/3gpp says MUST,,,,,,,,
-3GPP-GGSN-MCC-MNC,9,16.4.7,UTF8String,"M,V",P,,,
-# 29.061 says MUST NOT M; old contrib/3gpp says MUST,,,,,,,,
-3GPP-NSAPI,10,16.4.7,OctetString,"M,V",P,,,
-"# added manually, missing in AVP table",,,,,,,,
+#=,,,,,,,,
+# 3GPP TS 29.061 Table 9a: Gi/Sgi specific AVPs,,,,,,,,
+#,,,,,,,,
+# Note: 3GPP TS 29.061 is unclear and inconsistent about M.,,,,,,,,
+"# For this reason, other sources are assumed more trustworthy.",,,,,,,,
+#=,,,,,,,,
+#,,,,,,,,
+# Note: 3GPP-IMSI (1) changed to Must M.,,,,,,,,
+3GPP-IMSI,1,16.4.7,UTF8String,"M,V",P,,,Y
+"# Note: 3GPP-Charging-Id (2) type changed from OctetString to Unsigned32,",,,,,,,,
+# per 3GPP TS 29.061 clause 16.4.7.2/2 and packet dumps.,,,,,,,,
+3GPP-Charging-Id,2,16.4.7,Unsigned32,"M,V",P,,,Y
+# Note: 3GPP-PDP-Type (3) changed to Must M.,,,,,,,,
+3GPP-PDP-Type,3,16.4.7,Enumerated,"M,V",P,,,Y
+3GPP-CG-Address,4,16.4.7,OctetString,V,P,,M,Y
+# Note: 3GPP-GPRS-Negotiated-QoS-Profile (5) changed to Must M per contrib/3gpp.,,,,,,,,
+3GPP-GPRS-Negotiated-QoS-Profile,5,16.4.7,UTF8String,"M,V",P,,,Y
+3GPP-SGSN-Address,6,16.4.7,OctetString,V,P,,M,Y
+3GPP-GGSN-Address,7,16.4.7,OctetString,V,P,,M,Y
+# Note: 3GPP-IMSI-MCC-MNC (8) changed to Must M per packet dumps.,,,,,,,,
+3GPP-IMSI-MCC-MNC,8,16.4.7,UTF8String,"M,V",P,,,Y
+# Note: 3GPP-GGSN-MCC-MNC (9) changed to Must M per contrib/3gpp.,,,,,,,,
+3GPP-GGSN-MCC-MNC,9,16.4.7,UTF8String,"M,V",P,,,Y
+# Note: 3GPP-NSAPI (10) changed to Must M per contrib/3gpp.,,,,,,,,
+3GPP-NSAPI,10,16.4.7,OctetString,"M,V",P,,,Y
+# Note: 3GPP TS 29.061 table 9a does not define,,,,,,,,
+# 3GPP-Session-Stop-Indicator (11) even when it is referenced,,,,,,,,
+# by other 3GPP Diameter AVPs including PS-Information (874).,,,,,,,,
 3GPP-Session-Stop-Indicator,11,16.4.7,OctetString,V,P,,M,
-# 29.061 says MUST NOT M; old contrib/3gpp says MUST,,,,,,,,
-3GPP-Selection-Mode,12,16.4.7,UTF8String,"M,V",P,,,
-# 29.061 says MUST NOT M; old contrib/3gpp says MUST,,,,,,,,
-3GPP-Charging-Characteristics,13,16.4.7,UTF8String,"M,V",P,,,
-# 29.061 says MUST NOT M; old contrib/3gpp says MUST,,,,,,,,
-3GPP-CG-IPv6-Address,14,16.4.7,OctetString,"M,V",P,,,
-# M inconsistently specified,,,,,,,,
-# 29.061 says MUST NOT M; old contrib/3gpp says MUST,,,,,,,,
-3GPP-SGSN-IPv6-Address,15,16.4.7,OctetString,"M,V",P,,,
-# 29.061 says MUST NOT M; old contrib/3gpp says MUST,,,,,,,,
-3GPP-GGSN-IPv6-Address,16,16.4.7,OctetString,"M,V",P,,,
-# 29.061 says MUST NOT M; old contrib/3gpp says MUST,,,,,,,,
-3GPP-IPv6-DNS-Servers,17,16.4.7,OctetString,"M,V",P,,,
-# 29.061 says MUST NOT M; old contrib/3gpp says MUST,,,,,,,,
-3GPP-SGSN-MCC-MNC,18,16.4.7,UTF8String,"M,V",P,,,
-# M inconsistently specified,,,,,,,,
-3GPP-IMEISV,20,16.4.7,OctetString,"M,V",P,,,
-# M inconsistently specified,,,,,,,,
-3GPP-RAT-Type,21,16.4.7,OctetString,"M,V",P,,,
-# M inconsistently specified,,,,,,,,
-3GPP-User-Location-Info,22,16.4.7,OctetString,"M,V",P,,,
-# M inconsistently specified,,,,,,,,
-3GPP-MS-TimeZone,23,16.4.7,OctetString,"M,V",P,,,
-3GPP-CAMEL-Charging-Info,24,16.4.7,OctetString,V,P,,M,
-3GPP-Packet-Filter,25,16.4.7,OctetString,V,P,,M,
-3GPP-Negotiated-DSCP,26,16.4.7,OctetString,V,P,,M,
-3GPP-Allocate-IP-Type,27,16.4.7,OctetString,V,P,,M,
+# Note: 3GPP-Selection-Mode (12) changed to Must M per contrib/3gpp.,,,,,,,,
+3GPP-Selection-Mode,12,16.4.7,UTF8String,"M,V",P,,,Y
+# Note: 3GPP-Charging-Characteristics (13) changed to Must M per contrib/3gpp.,,,,,,,,
+3GPP-Charging-Characteristics,13,16.4.7,UTF8String,"M,V",P,,,Y
+# Note: 3GPP TS 29.061 V12.6.0 (2014-06) renamed,,,,,,,,
+# 3GPP-CG-IPv6-Address (14) to 3GPP-CG-Ipv6-Address.,,,,,,,,
+# This rename was not applied.,,,,,,,,
+# 3GPP-CG-IPv6-Address (14) changed to Must M per contrib/3gpp.,,,,,,,,
+3GPP-CG-IPv6-Address,14,16.4.7,OctetString,"M,V",P,,,Y
+# Note: 3GPP TS 29.061 V12.6.0 (2014-06) renamed,,,,,,,,
+# 3GPP-SGSN-IPv6-Address (15) to 3GPP-SGSN-Ipv6-Address.,,,,,,,,
+# This rename was not applied.,,,,,,,,
+# 3GPP-SGSN-IPv6-Address (15) changed to Must M per contrib/3gpp.,,,,,,,,
+3GPP-SGSN-IPv6-Address,15,16.4.7,OctetString,"M,V",P,,,Y
+# Note: 3GPP TS 29.061 V12.6.0 (2014-06) renamed,,,,,,,,
+# 3GPP-GGSN-IPv6-Address (16) to 3GPP-GGSN-Ipv6-Address.,,,,,,,,
+# This rename was not applied.,,,,,,,,
+# 3GPP-GGSN-IPv6-Address (16) changed to Must M per contrib/3gpp.,,,,,,,,
+3GPP-GGSN-IPv6-Address,16,16.4.7,OctetString,"M,V",P,,,Y
+# Note: 3GPP TS 29.061 V12.6.0 (2014-06) renamed,,,,,,,,
+# 3GPP-IPv6-DNS-Servers (17) to 3GPP-Ipv6-DNS-Servers.,,,,,,,,
+# This rename was not applied.,,,,,,,,
+# 3GPP-IPv6-DNS-Servers (17) changed to Must M per contrib/3gpp.,,,,,,,,
+3GPP-IPv6-DNS-Servers,17,16.4.7,OctetString,"M,V",P,,,Y
+# Note: 3GPP-SGSN-MCC-MNC (18) changed to Must M per contrib/3gpp.,,,,,,,,
+3GPP-SGSN-MCC-MNC,18,16.4.7,UTF8String,"M,V",P,,,Y
+# Note: 3GPP-IMEISV (20) changed to Must M.,,,,,,,,
+3GPP-IMEISV,20,16.4.7,OctetString,"M,V",P,,,Y
+# Note: 3GPP-RAT-Type (21) changed to Must M.,,,,,,,,
+3GPP-RAT-Type,21,16.4.7,OctetString,"M,V",P,,,Y
+# Note: 3GPP-User-Location-Info (22) changed to Must M.,,,,,,,,
+3GPP-User-Location-Info,22,16.4.7,OctetString,"M,V",P,,,Y
+# Note: 3GPP-MS-TimeZone (23) changed to Must M.,,,,,,,,
+3GPP-MS-TimeZone,23,16.4.7,OctetString,"M,V",P,,,Y
+3GPP-CAMEL-Charging-Info,24,16.4.7,OctetString,V,P,,M,Y
+3GPP-Packet-Filter,25,16.4.7,OctetString,V,P,,M,Y
+3GPP-Negotiated-DSCP,26,16.4.7,OctetString,V,P,,M,Y
+3GPP-Allocate-IP-Type,27,16.4.7,OctetString,V,P,,M,Y
 # Note: 3GPP TS 29.061 table 9a does not define,,,,,,,,
 # External-Identifier (28) for Diameter.,,,,,,,,
 # 3GPP TS 29.061 table 9b refers to 3GPP TS 29.336,,,,,,,,
@@ -64,29 +82,63 @@ Attribute Name,AVP Code,Section defined,Value Type,Must,May,Should not,Must not,
 # External-Identifier (28) OctetString replaced by,,,,,,,,
 # External-Identifier (3111) UTF8String.,,,,,,,,
 #,,,,,,,,
-TMGI,900,17.07.02,OctetString,"M,V",P,,,
-Required-MBMS-Bearer-Capabilities,901,17.07.03,UTF8String,"M,V",P,,,
-MBMS-StartStop-Indication,902,17.07.05,Enumerated,"M,V",P,,,
-MBMS-Service-Area,903,17.07.06,OctetString,"M,V",P,,,
-MBMS-Session-Duration,904,17.07.07,OctetString,"M,V",P,,,
-Alternative-APN,905,17.07.08,UTF8String,"M,V",P,,,
-MBMS-Service-Type,906,17.07.09,Enumerated,"M,V",P,,,
-MBMS-2G-3G-Indicator,907,17.07.10,Enumerated,"M,V",P,,,
-MBMS-Session-Identity,908,17.07.11,OctetString,"M,V",P,,,
-RAI,909,17.07.12,UTF8String,"M,V",P,,,
-Additional-MBMS-Trace-Info,910,17.07.13,OctetString,"M,V",P,,,
-MBMS-Time-To-Data-Transfer,911,17.07.14,OctetString,"M,V",P,,,
-MBMS-Session-Repetition-Number,912,17.07.15,OctetString,"M,V",P,,,
-MBMS-Required-QoS,913,17.07.16,UTF8String,"M,V",P,,,
-MBMS-Counting-Information,914,17.07.17,Enumerated,"M,V",P,,,
-MBMS-User-Data-Mode-Indication,915,17.07.18,Enumerated,"M,V",P,,,
-MBMS-GGSN-Address,916,17.07.19,OctetString,"M,V",P,,,
-MBMS-GGSN-IPv6-Address,917,17.07.20,OctetString,"M,V",P,,,
-MBMS-BMSC-SSM-IP-Address,918,17.07.21,OctetString,"M,V",P,,,
-MBMS-BMSC-SSM-IPv6-Address,919,17.07.22,OctetString,"M,V",P,,,
-MBMS-Flow-Identifier,920,17.7.23,OctetString,"M,V",P,,,
-CN-IP-Multicast-Distribution,921,17.7.24,Enumerated,"M,V",P,,,
-MBMS-HC-Indicator,922,17.7.25,Enumerated,"M,V",P,,,
+#,,,,,,,,
+TWAN-Identifier,29,16.4.7,OctetString,V,P,,M,Y
+3GPP-User-Location-Info-Time,30,16.4.7,OctetString,V,P,,M,Y
+3GPP-Secondary-RAT-Usage,31,16.4.7,OctetString,V,P,,M,Y
+#=,,,,,,,,
+# 3GPP TS 29.061 Table 10: Gmb specific AVPs,,,,,,,,
+#=,,,,,,,,
+#,,,,,,,,
+TMGI,900,17.7.2,OctetString,"M,V",P,,,Y
+Required-MBMS-Bearer-Capabilities,901,17.7.3,UTF8String,"M,V",P,,,Y
+MBMS-StartStop-Indication,902,17.7.5,Enumerated,"M,V",P,,,Y
+MBMS-Service-Area,903,17.7.6,OctetString,"M,V",P,,,Y
+MBMS-Session-Duration,904,17.7.7,OctetString,"M,V",P,,,Y
+Alternative-APN,905,17.7.8,UTF8String,"M,V",P,,,Y
+MBMS-Service-Type,906,17.7.9,Enumerated,"M,V",P,,,Y
+MBMS-2G-3G-Indicator,907,17.7.10,Enumerated,"M, V",P,,,Y
+MBMS-Session-Identity,908,17.7.11,OctetString,"M,V",P,,,Y
+RAI,909,17.7.12,UTF8String,"M, V",P,,,Y
+Additional-MBMS-Trace-Info,910,17.7.13,OctetString,"M,V",P,,,Y
+MBMS-Time-To-Data-Transfer,911,17.7.14,OctetString,"M,V",P,,,Y
+MBMS-Session-Repetition-Number,912,17.7.15,OctetString,"M,V",P,,,Y
+MBMS-Required-QoS,913,17.7.16,UTF8String,"M,V",P,,,Y
+MBMS-Counting-Information,914,17.7.17,Enumerated,"M,V",P,,,Y
+MBMS-User-Data-Mode-Indication,915,17.7.18,Enumerated,"M,V",P,,,Y
+MBMS-GGSN-Address,916,17.7.19,OctetString,"M,V",P,,,Y
+# Note: 3GPP TS 29.061 V12.6.0 (2014-06) renamed,,,,,,,,
+# MBMS-GGSN-IPv6-Address (917) to MBMS-GGSN-Ipv6-Address.,,,,,,,,
+# This rename was not applied.,,,,,,,,
+MBMS-GGSN-IPv6-Address,917,17.7.20,OctetString,"M,V",P,,,Y
+MBMS-BMSC-SSM-IP-Address,918,17.7.21,OctetString,"M,V",P,,,Y
+# Note: 3GPP TS 29.061 V12.6.0 (2014-06) renamed,,,,,,,,
+# MBMS-BMSC-SSM-IPv6-Address (919) to MBMS-BMSC-SSM-Ipv6-Address.,,,,,,,,
+# This rename was not applied.,,,,,,,,
+MBMS-BMSC-SSM-IPv6-Address,919,17.7.22,OctetString,"M,V",P,,,Y
+MBMS-Flow-Identifier,920,17.7.23,OctetString,"M,V",P,,,Y
+CN-IP-Multicast-Distribution,921,17.7.24,Enumerated,"M,V",P,,,Y
+MBMS-HC-Indicator,922,17.7.25,Enumerated,"M,V",P,,,Y
+,,,,,,,,
+#=,,,,,,,,
+# 3GPP TS 29.061 Table 20.5a.1: SGmb specific AVPs,,,,,,,,
+#=,,,,,,,,
+#,,,,,,,,
+MBMS-Access-Indicator,923,20.5a.1,Enumerated,"M,V",P,,,Y
+MBMS-GW-SSM-IP-Address,924,20.5a.2,OctetString,V,P,,M,Y
+# Note: 3GPP TS 29.061 V12.6.0 (2014-06) renamed,,,,,,,,
+# MBMS-GW-SSM-IPv6-Address (925) to MBMS-GW-SSM-Ipv6-Address.,,,,,,,,
+# This rename was not applied.,,,,,,,,
+MBMS-GW-SSM-IPv6-Address,925,20.5a.3,OctetString,V,P,,M,Y
+MBMS-BMSC-SSM-UDP-Port,926,20.5a.4,OctetString,V,P,,M,Y
+MBMS-GW-UDP-Port,927,20.5a.5,OctetString,V,P,,M,Y
+MBMS-GW-UDP-Port-Indicator,928,20.5a.6,Enumerated,V,P,,M,Y
+MBMS-Data-Transfer-Start,929,20.5a.7,Unsigned64,V,P,,M,Y
+MBMS-Data-Transfer-Stop,930,20.5a.8,Unsigned64,V,P,,M,Y
+MBMS-Flag,931,20.5a.9,Unsigned32,V,P,,M,Y
+Restart-Counter,932,20.5a.10,Unsigned32,V,P,,M,Y
+Diagnostic-Info,933,20.5a.11,Unsigned32,V,P,,M,Y
+MBMS-Cell-List,934,20.5a.12,OctetString,V,P,,M,Y
 ,,,,,,,,
 @standard,3GPP TS 29.129,,,,,,,
 #=,,,,,,,,

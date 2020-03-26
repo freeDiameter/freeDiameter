@@ -368,12 +368,18 @@ static int dict_dcca_3gpp_entry(char * conffile)
 	/*==================================================================*/
 
 	/*==================================================================*/
-	/* 3GPP 29.061-c00 (12.0.0 2012.12.20)                              */
-	/* 3GPP 29.061 is not very clear and self-inconsistent about M      */
-	/* for this reason, other sources are assumed more trustworthy      */
+	/* 3GPP TS 29.061 V15.5.0 (2018-12)                                 */
+	/* From 3GPP 29061-f50.doc                                          */
 	/*==================================================================*/
 
-	/* M inconsistently specified                                       */
+	/*==================================================================*/
+	/* 3GPP TS 29.061 Table 9a: Gi/Sgi specific AVPs                    */
+
+	/* Note: 3GPP TS 29.061 is unclear and inconsistent about M.        */
+	/* For this reason, other sources are assumed more trustworthy.     */
+	/*==================================================================*/
+
+	/* Note: 3GPP-IMSI (1) changed to Must M.                           */
 	/* 3GPP-IMSI, UTF8String, code 1, section 16.4.7                    */
 	{
 		struct dict_avp_data data = {
@@ -387,8 +393,8 @@ static int dict_dcca_3gpp_entry(char * conffile)
 		CHECK_dict_new(DICT_AVP, &data, UTF8String_type, NULL);
 	};
 
-	/* 29.061 says OctetString; dumps say UInt32; manually changed      */
-	/* 29.061 says MUST NOT M; dumps say MUST                           */
+	/* Note: 3GPP-Charging-Id (2) type changed from OctetString to Unsigned32, */
+	/* per 3GPP TS 29.061 clause 16.4.7.2/2 and packet dumps.           */
 	/* 3GPP-Charging-Id, Unsigned32, code 2, section 16.4.7             */
 	{
 		struct dict_avp_data data = {
@@ -402,7 +408,7 @@ static int dict_dcca_3gpp_entry(char * conffile)
 		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
 	};
 
-	/* 29.061 says MUST NOT M; dumps say MUST                           */
+	/* Note: 3GPP-PDP-Type (3) changed to Must M.                       */
 	/* 3GPP-PDP-Type, Enumerated, code 3, section 16.4.7                */
 	{
 		struct dict_avp_data data = {
@@ -432,7 +438,7 @@ static int dict_dcca_3gpp_entry(char * conffile)
 		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
 	};
 
-	/* 29.061 says MUST NOT M; old contrib/3gpp says MUST               */
+	/* Note: 3GPP-GPRS-Negotiated-QoS-Profile (5) changed to Must M per contrib/3gpp. */
 	/* 3GPP-GPRS-Negotiated-QoS-Profile, UTF8String, code 5, section 16.4.7 */
 	{
 		struct dict_avp_data data = {
@@ -446,7 +452,6 @@ static int dict_dcca_3gpp_entry(char * conffile)
 		CHECK_dict_new(DICT_AVP, &data, UTF8String_type, NULL);
 	};
 
-	/* M inconsistently specified; old contrib/3gg says MUST NOT        */
 	/* 3GPP-SGSN-Address, OctetString, code 6, section 16.4.7           */
 	{
 		struct dict_avp_data data = {
@@ -473,7 +478,7 @@ static int dict_dcca_3gpp_entry(char * conffile)
 		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
 	};
 
-	/* 29.061 says MUST NOT M; dumps say MUST                           */
+	/* Note: 3GPP-IMSI-MCC-MNC (8) changed to Must M per packet dumps.  */
 	/* 3GPP-IMSI-MCC-MNC, UTF8String, code 8, section 16.4.7            */
 	{
 		struct dict_avp_data data = {
@@ -487,7 +492,7 @@ static int dict_dcca_3gpp_entry(char * conffile)
 		CHECK_dict_new(DICT_AVP, &data, UTF8String_type, NULL);
 	};
 
-	/* 29.061 says MUST NOT M; old contrib/3gpp says MUST               */
+	/* Note: 3GPP-GGSN-MCC-MNC (9) changed to Must M per contrib/3gpp.  */
 	/* 3GPP-GGSN-MCC-MNC, UTF8String, code 9, section 16.4.7            */
 	{
 		struct dict_avp_data data = {
@@ -501,7 +506,7 @@ static int dict_dcca_3gpp_entry(char * conffile)
 		CHECK_dict_new(DICT_AVP, &data, UTF8String_type, NULL);
 	};
 
-	/* 29.061 says MUST NOT M; old contrib/3gpp says MUST               */
+	/* Note: 3GPP-NSAPI (10) changed to Must M per contrib/3gpp.        */
 	/* 3GPP-NSAPI, OctetString, code 10, section 16.4.7                 */
 	{
 		struct dict_avp_data data = {
@@ -515,7 +520,9 @@ static int dict_dcca_3gpp_entry(char * conffile)
 		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
 	};
 
-	/* added manually, missing in AVP table                             */
+	/* Note: 3GPP TS 29.061 table 9a does not define                    */
+	/* 3GPP-Session-Stop-Indicator (11) even when it is referenced      */
+	/* by other 3GPP Diameter AVPs including PS-Information (874).      */
 	/* 3GPP-Session-Stop-Indicator, OctetString, code 11, section 16.4.7 */
 	{
 		struct dict_avp_data data = {
@@ -529,7 +536,7 @@ static int dict_dcca_3gpp_entry(char * conffile)
 		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
 	};
 
-	/* 29.061 says MUST NOT M; old contrib/3gpp says MUST               */
+	/* Note: 3GPP-Selection-Mode (12) changed to Must M per contrib/3gpp. */
 	/* 3GPP-Selection-Mode, UTF8String, code 12, section 16.4.7         */
 	{
 		struct dict_avp_data data = {
@@ -543,7 +550,7 @@ static int dict_dcca_3gpp_entry(char * conffile)
 		CHECK_dict_new(DICT_AVP, &data, UTF8String_type, NULL);
 	};
 
-	/* 29.061 says MUST NOT M; old contrib/3gpp says MUST               */
+	/* Note: 3GPP-Charging-Characteristics (13) changed to Must M per contrib/3gpp. */
 	/* 3GPP-Charging-Characteristics, UTF8String, code 13, section 16.4.7 */
 	{
 		struct dict_avp_data data = {
@@ -557,7 +564,10 @@ static int dict_dcca_3gpp_entry(char * conffile)
 		CHECK_dict_new(DICT_AVP, &data, UTF8String_type, NULL);
 	};
 
-	/* 29.061 says MUST NOT M; old contrib/3gpp says MUST               */
+	/* Note: 3GPP TS 29.061 V12.6.0 (2014-06) renamed                   */
+	/* 3GPP-CG-IPv6-Address (14) to 3GPP-CG-Ipv6-Address.               */
+	/* This rename was not applied.                                     */
+	/* 3GPP-CG-IPv6-Address (14) changed to Must M per contrib/3gpp.    */
 	/* 3GPP-CG-IPv6-Address, OctetString, code 14, section 16.4.7       */
 	{
 		struct dict_avp_data data = {
@@ -571,8 +581,10 @@ static int dict_dcca_3gpp_entry(char * conffile)
 		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
 	};
 
-	/* M inconsistently specified                                       */
-	/* 29.061 says MUST NOT M; old contrib/3gpp says MUST               */
+	/* Note: 3GPP TS 29.061 V12.6.0 (2014-06) renamed                   */
+	/* 3GPP-SGSN-IPv6-Address (15) to 3GPP-SGSN-Ipv6-Address.           */
+	/* This rename was not applied.                                     */
+	/* 3GPP-SGSN-IPv6-Address (15) changed to Must M per contrib/3gpp.  */
 	/* 3GPP-SGSN-IPv6-Address, OctetString, code 15, section 16.4.7     */
 	{
 		struct dict_avp_data data = {
@@ -586,7 +598,10 @@ static int dict_dcca_3gpp_entry(char * conffile)
 		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
 	};
 
-	/* 29.061 says MUST NOT M; old contrib/3gpp says MUST               */
+	/* Note: 3GPP TS 29.061 V12.6.0 (2014-06) renamed                   */
+	/* 3GPP-GGSN-IPv6-Address (16) to 3GPP-GGSN-Ipv6-Address.           */
+	/* This rename was not applied.                                     */
+	/* 3GPP-GGSN-IPv6-Address (16) changed to Must M per contrib/3gpp.  */
 	/* 3GPP-GGSN-IPv6-Address, OctetString, code 16, section 16.4.7     */
 	{
 		struct dict_avp_data data = {
@@ -600,7 +615,10 @@ static int dict_dcca_3gpp_entry(char * conffile)
 		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
 	};
 
-	/* 29.061 says MUST NOT M; old contrib/3gpp says MUST               */
+	/* Note: 3GPP TS 29.061 V12.6.0 (2014-06) renamed                   */
+	/* 3GPP-IPv6-DNS-Servers (17) to 3GPP-Ipv6-DNS-Servers.             */
+	/* This rename was not applied.                                     */
+	/* 3GPP-IPv6-DNS-Servers (17) changed to Must M per contrib/3gpp.   */
 	/* 3GPP-IPv6-DNS-Servers, OctetString, code 17, section 16.4.7      */
 	{
 		struct dict_avp_data data = {
@@ -614,7 +632,7 @@ static int dict_dcca_3gpp_entry(char * conffile)
 		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
 	};
 
-	/* 29.061 says MUST NOT M; old contrib/3gpp says MUST               */
+	/* Note: 3GPP-SGSN-MCC-MNC (18) changed to Must M per contrib/3gpp. */
 	/* 3GPP-SGSN-MCC-MNC, UTF8String, code 18, section 16.4.7           */
 	{
 		struct dict_avp_data data = {
@@ -628,7 +646,7 @@ static int dict_dcca_3gpp_entry(char * conffile)
 		CHECK_dict_new(DICT_AVP, &data, UTF8String_type, NULL);
 	};
 
-	/* M inconsistently specified                                       */
+	/* Note: 3GPP-IMEISV (20) changed to Must M.                        */
 	/* 3GPP-IMEISV, OctetString, code 20, section 16.4.7                */
 	{
 		struct dict_avp_data data = {
@@ -642,7 +660,7 @@ static int dict_dcca_3gpp_entry(char * conffile)
 		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
 	};
 
-	/* M inconsistently specified                                       */
+	/* Note: 3GPP-RAT-Type (21) changed to Must M.                      */
 	/* 3GPP-RAT-Type, OctetString, code 21, section 16.4.7              */
 	{
 		struct dict_avp_data data = {
@@ -656,7 +674,7 @@ static int dict_dcca_3gpp_entry(char * conffile)
 		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
 	};
 
-	/* M inconsistently specified                                       */
+	/* Note: 3GPP-User-Location-Info (22) changed to Must M.            */
 	/* 3GPP-User-Location-Info, OctetString, code 22, section 16.4.7    */
 	{
 		struct dict_avp_data data = {
@@ -670,7 +688,7 @@ static int dict_dcca_3gpp_entry(char * conffile)
 		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
 	};
 
-	/* M inconsistently specified                                       */
+	/* Note: 3GPP-MS-TimeZone (23) changed to Must M.                   */
 	/* 3GPP-MS-TimeZone, OctetString, code 23, section 16.4.7           */
 	{
 		struct dict_avp_data data = {
@@ -744,7 +762,51 @@ static int dict_dcca_3gpp_entry(char * conffile)
 	/* External-Identifier (28) OctetString replaced by                 */
 	/* External-Identifier (3111) UTF8String.                           */
 
-	/* TMGI, OctetString, code 900, section 17.07.02                    */
+
+	/* TWAN-Identifier, OctetString, code 29, section 16.4.7            */
+	{
+		struct dict_avp_data data = {
+			29,	/* Code */
+			10415,	/* Vendor */
+			"TWAN-Identifier",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR,	/* Fixed flag values */
+			AVP_TYPE_OCTETSTRING	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+	};
+
+	/* 3GPP-User-Location-Info-Time, OctetString, code 30, section 16.4.7 */
+	{
+		struct dict_avp_data data = {
+			30,	/* Code */
+			10415,	/* Vendor */
+			"3GPP-User-Location-Info-Time",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR,	/* Fixed flag values */
+			AVP_TYPE_OCTETSTRING	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+	};
+
+	/* 3GPP-Secondary-RAT-Usage, OctetString, code 31, section 16.4.7   */
+	{
+		struct dict_avp_data data = {
+			31,	/* Code */
+			10415,	/* Vendor */
+			"3GPP-Secondary-RAT-Usage",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR,	/* Fixed flag values */
+			AVP_TYPE_OCTETSTRING	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+	};
+
+	/*==================================================================*/
+	/* 3GPP TS 29.061 Table 10: Gmb specific AVPs                       */
+	/*==================================================================*/
+
+	/* TMGI, OctetString, code 900, section 17.7.2                      */
 	{
 		struct dict_avp_data data = {
 			900,	/* Code */
@@ -757,7 +819,7 @@ static int dict_dcca_3gpp_entry(char * conffile)
 		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
 	};
 
-	/* Required-MBMS-Bearer-Capabilities, UTF8String, code 901, section 17.07.03 */
+	/* Required-MBMS-Bearer-Capabilities, UTF8String, code 901, section 17.7.3 */
 	{
 		struct dict_avp_data data = {
 			901,	/* Code */
@@ -770,7 +832,7 @@ static int dict_dcca_3gpp_entry(char * conffile)
 		CHECK_dict_new(DICT_AVP, &data, UTF8String_type, NULL);
 	};
 
-	/* MBMS-StartStop-Indication, Enumerated, code 902, section 17.07.05 */
+	/* MBMS-StartStop-Indication, Enumerated, code 902, section 17.7.5  */
 	{
 		struct dict_avp_data data = {
 			902,	/* Code */
@@ -786,7 +848,7 @@ static int dict_dcca_3gpp_entry(char * conffile)
 		CHECK_dict_new(DICT_AVP, &data, type, NULL);
 	};
 
-	/* MBMS-Service-Area, OctetString, code 903, section 17.07.06       */
+	/* MBMS-Service-Area, OctetString, code 903, section 17.7.6         */
 	{
 		struct dict_avp_data data = {
 			903,	/* Code */
@@ -799,7 +861,7 @@ static int dict_dcca_3gpp_entry(char * conffile)
 		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
 	};
 
-	/* MBMS-Session-Duration, OctetString, code 904, section 17.07.07   */
+	/* MBMS-Session-Duration, OctetString, code 904, section 17.7.7     */
 	{
 		struct dict_avp_data data = {
 			904,	/* Code */
@@ -812,7 +874,7 @@ static int dict_dcca_3gpp_entry(char * conffile)
 		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
 	};
 
-	/* Alternative-APN, UTF8String, code 905, section 17.07.08          */
+	/* Alternative-APN, UTF8String, code 905, section 17.7.8            */
 	{
 		struct dict_avp_data data = {
 			905,	/* Code */
@@ -825,7 +887,7 @@ static int dict_dcca_3gpp_entry(char * conffile)
 		CHECK_dict_new(DICT_AVP, &data, UTF8String_type, NULL);
 	};
 
-	/* MBMS-Service-Type, Enumerated, code 906, section 17.07.09        */
+	/* MBMS-Service-Type, Enumerated, code 906, section 17.7.9          */
 	{
 		struct dict_avp_data data = {
 			906,	/* Code */
@@ -841,7 +903,7 @@ static int dict_dcca_3gpp_entry(char * conffile)
 		CHECK_dict_new(DICT_AVP, &data, type, NULL);
 	};
 
-	/* MBMS-2G-3G-Indicator, Enumerated, code 907, section 17.07.10     */
+	/* MBMS-2G-3G-Indicator, Enumerated, code 907, section 17.7.10      */
 	{
 		struct dict_avp_data data = {
 			907,	/* Code */
@@ -857,7 +919,7 @@ static int dict_dcca_3gpp_entry(char * conffile)
 		CHECK_dict_new(DICT_AVP, &data, type, NULL);
 	};
 
-	/* MBMS-Session-Identity, OctetString, code 908, section 17.07.11   */
+	/* MBMS-Session-Identity, OctetString, code 908, section 17.7.11    */
 	{
 		struct dict_avp_data data = {
 			908,	/* Code */
@@ -870,7 +932,7 @@ static int dict_dcca_3gpp_entry(char * conffile)
 		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
 	};
 
-	/* RAI, UTF8String, code 909, section 17.07.12                      */
+	/* RAI, UTF8String, code 909, section 17.7.12                       */
 	{
 		struct dict_avp_data data = {
 			909,	/* Code */
@@ -883,7 +945,7 @@ static int dict_dcca_3gpp_entry(char * conffile)
 		CHECK_dict_new(DICT_AVP, &data, UTF8String_type, NULL);
 	};
 
-	/* Additional-MBMS-Trace-Info, OctetString, code 910, section 17.07.13 */
+	/* Additional-MBMS-Trace-Info, OctetString, code 910, section 17.7.13 */
 	{
 		struct dict_avp_data data = {
 			910,	/* Code */
@@ -896,7 +958,7 @@ static int dict_dcca_3gpp_entry(char * conffile)
 		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
 	};
 
-	/* MBMS-Time-To-Data-Transfer, OctetString, code 911, section 17.07.14 */
+	/* MBMS-Time-To-Data-Transfer, OctetString, code 911, section 17.7.14 */
 	{
 		struct dict_avp_data data = {
 			911,	/* Code */
@@ -909,7 +971,7 @@ static int dict_dcca_3gpp_entry(char * conffile)
 		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
 	};
 
-	/* MBMS-Session-Repetition-Number, OctetString, code 912, section 17.07.15 */
+	/* MBMS-Session-Repetition-Number, OctetString, code 912, section 17.7.15 */
 	{
 		struct dict_avp_data data = {
 			912,	/* Code */
@@ -922,7 +984,7 @@ static int dict_dcca_3gpp_entry(char * conffile)
 		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
 	};
 
-	/* MBMS-Required-QoS, UTF8String, code 913, section 17.07.16        */
+	/* MBMS-Required-QoS, UTF8String, code 913, section 17.7.16         */
 	{
 		struct dict_avp_data data = {
 			913,	/* Code */
@@ -935,7 +997,7 @@ static int dict_dcca_3gpp_entry(char * conffile)
 		CHECK_dict_new(DICT_AVP, &data, UTF8String_type, NULL);
 	};
 
-	/* MBMS-Counting-Information, Enumerated, code 914, section 17.07.17 */
+	/* MBMS-Counting-Information, Enumerated, code 914, section 17.7.17 */
 	{
 		struct dict_avp_data data = {
 			914,	/* Code */
@@ -951,7 +1013,7 @@ static int dict_dcca_3gpp_entry(char * conffile)
 		CHECK_dict_new(DICT_AVP, &data, type, NULL);
 	};
 
-	/* MBMS-User-Data-Mode-Indication, Enumerated, code 915, section 17.07.18 */
+	/* MBMS-User-Data-Mode-Indication, Enumerated, code 915, section 17.7.18 */
 	{
 		struct dict_avp_data data = {
 			915,	/* Code */
@@ -967,7 +1029,7 @@ static int dict_dcca_3gpp_entry(char * conffile)
 		CHECK_dict_new(DICT_AVP, &data, type, NULL);
 	};
 
-	/* MBMS-GGSN-Address, OctetString, code 916, section 17.07.19       */
+	/* MBMS-GGSN-Address, OctetString, code 916, section 17.7.19        */
 	{
 		struct dict_avp_data data = {
 			916,	/* Code */
@@ -980,7 +1042,10 @@ static int dict_dcca_3gpp_entry(char * conffile)
 		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
 	};
 
-	/* MBMS-GGSN-IPv6-Address, OctetString, code 917, section 17.07.20  */
+	/* Note: 3GPP TS 29.061 V12.6.0 (2014-06) renamed                   */
+	/* MBMS-GGSN-IPv6-Address (917) to MBMS-GGSN-Ipv6-Address.          */
+	/* This rename was not applied.                                     */
+	/* MBMS-GGSN-IPv6-Address, OctetString, code 917, section 17.7.20   */
 	{
 		struct dict_avp_data data = {
 			917,	/* Code */
@@ -993,7 +1058,7 @@ static int dict_dcca_3gpp_entry(char * conffile)
 		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
 	};
 
-	/* MBMS-BMSC-SSM-IP-Address, OctetString, code 918, section 17.07.21 */
+	/* MBMS-BMSC-SSM-IP-Address, OctetString, code 918, section 17.7.21 */
 	{
 		struct dict_avp_data data = {
 			918,	/* Code */
@@ -1006,7 +1071,10 @@ static int dict_dcca_3gpp_entry(char * conffile)
 		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
 	};
 
-	/* MBMS-BMSC-SSM-IPv6-Address, OctetString, code 919, section 17.07.22 */
+	/* Note: 3GPP TS 29.061 V12.6.0 (2014-06) renamed                   */
+	/* MBMS-BMSC-SSM-IPv6-Address (919) to MBMS-BMSC-SSM-Ipv6-Address.  */
+	/* This rename was not applied.                                     */
+	/* MBMS-BMSC-SSM-IPv6-Address, OctetString, code 919, section 17.7.22 */
 	{
 		struct dict_avp_data data = {
 			919,	/* Code */
@@ -1062,6 +1130,175 @@ static int dict_dcca_3gpp_entry(char * conffile)
 		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "Enumerated(3GPP/MBMS-HC-Indicator)", NULL, NULL, NULL };
 		CHECK_dict_new(DICT_TYPE, &tdata, NULL, &type);
 		CHECK_dict_new(DICT_AVP, &data, type, NULL);
+	};
+
+	/*==================================================================*/
+	/* 3GPP TS 29.061 Table 20.5a.1: SGmb specific AVPs                 */
+	/*==================================================================*/
+
+	/* MBMS-Access-Indicator, Enumerated, code 923, section 20.5a.1     */
+	{
+		struct dict_avp_data data = {
+			923,	/* Code */
+			10415,	/* Vendor */
+			"MBMS-Access-Indicator",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flag values */
+			AVP_TYPE_INTEGER32	/* base type of data */
+		};
+		struct dict_object	*type;
+		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "Enumerated(3GPP/MBMS-Access-Indicator)", NULL, NULL, NULL };
+		CHECK_dict_new(DICT_TYPE, &tdata, NULL, &type);
+		CHECK_dict_new(DICT_AVP, &data, type, NULL);
+	};
+
+	/* MBMS-GW-SSM-IP-Address, OctetString, code 924, section 20.5a.2   */
+	{
+		struct dict_avp_data data = {
+			924,	/* Code */
+			10415,	/* Vendor */
+			"MBMS-GW-SSM-IP-Address",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR,	/* Fixed flag values */
+			AVP_TYPE_OCTETSTRING	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+	};
+
+	/* Note: 3GPP TS 29.061 V12.6.0 (2014-06) renamed                   */
+	/* MBMS-GW-SSM-IPv6-Address (925) to MBMS-GW-SSM-Ipv6-Address.      */
+	/* This rename was not applied.                                     */
+	/* MBMS-GW-SSM-IPv6-Address, OctetString, code 925, section 20.5a.3 */
+	{
+		struct dict_avp_data data = {
+			925,	/* Code */
+			10415,	/* Vendor */
+			"MBMS-GW-SSM-IPv6-Address",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR,	/* Fixed flag values */
+			AVP_TYPE_OCTETSTRING	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+	};
+
+	/* MBMS-BMSC-SSM-UDP-Port, OctetString, code 926, section 20.5a.4   */
+	{
+		struct dict_avp_data data = {
+			926,	/* Code */
+			10415,	/* Vendor */
+			"MBMS-BMSC-SSM-UDP-Port",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR,	/* Fixed flag values */
+			AVP_TYPE_OCTETSTRING	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+	};
+
+	/* MBMS-GW-UDP-Port, OctetString, code 927, section 20.5a.5         */
+	{
+		struct dict_avp_data data = {
+			927,	/* Code */
+			10415,	/* Vendor */
+			"MBMS-GW-UDP-Port",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR,	/* Fixed flag values */
+			AVP_TYPE_OCTETSTRING	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+	};
+
+	/* MBMS-GW-UDP-Port-Indicator, Enumerated, code 928, section 20.5a.6 */
+	{
+		struct dict_avp_data data = {
+			928,	/* Code */
+			10415,	/* Vendor */
+			"MBMS-GW-UDP-Port-Indicator",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR,	/* Fixed flag values */
+			AVP_TYPE_INTEGER32	/* base type of data */
+		};
+		struct dict_object	*type;
+		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "Enumerated(3GPP/MBMS-GW-UDP-Port-Indicator)", NULL, NULL, NULL };
+		CHECK_dict_new(DICT_TYPE, &tdata, NULL, &type);
+		CHECK_dict_new(DICT_AVP, &data, type, NULL);
+	};
+
+	/* MBMS-Data-Transfer-Start, Unsigned64, code 929, section 20.5a.7  */
+	{
+		struct dict_avp_data data = {
+			929,	/* Code */
+			10415,	/* Vendor */
+			"MBMS-Data-Transfer-Start",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR,	/* Fixed flag values */
+			AVP_TYPE_UNSIGNED64	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+	};
+
+	/* MBMS-Data-Transfer-Stop, Unsigned64, code 930, section 20.5a.8   */
+	{
+		struct dict_avp_data data = {
+			930,	/* Code */
+			10415,	/* Vendor */
+			"MBMS-Data-Transfer-Stop",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR,	/* Fixed flag values */
+			AVP_TYPE_UNSIGNED64	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+	};
+
+	/* MBMS-Flag, Unsigned32, code 931, section 20.5a.9                 */
+	{
+		struct dict_avp_data data = {
+			931,	/* Code */
+			10415,	/* Vendor */
+			"MBMS-Flag",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR,	/* Fixed flag values */
+			AVP_TYPE_UNSIGNED32	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+	};
+
+	/* Restart-Counter, Unsigned32, code 932, section 20.5a.10          */
+	{
+		struct dict_avp_data data = {
+			932,	/* Code */
+			10415,	/* Vendor */
+			"Restart-Counter",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR,	/* Fixed flag values */
+			AVP_TYPE_UNSIGNED32	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+	};
+
+	/* Diagnostic-Info, Unsigned32, code 933, section 20.5a.11          */
+	{
+		struct dict_avp_data data = {
+			933,	/* Code */
+			10415,	/* Vendor */
+			"Diagnostic-Info",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR,	/* Fixed flag values */
+			AVP_TYPE_UNSIGNED32	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+	};
+
+	/* MBMS-Cell-List, OctetString, code 934, section 20.5a.12          */
+	{
+		struct dict_avp_data data = {
+			934,	/* Code */
+			10415,	/* Vendor */
+			"MBMS-Cell-List",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR,	/* Fixed flag values */
+			AVP_TYPE_OCTETSTRING	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
 	};
 
 	/*==================================================================*/
@@ -1639,6 +1876,7 @@ static int dict_dcca_3gpp_entry(char * conffile)
 	};
 
 	/* Note: Name conflict with 3GPP TS 32.299 Status (2702).           */
+	/* Status (1116) renamed to Status-29.140 (1116).                   */
 	/* Status-29.140, Grouped, code 1116, section 6.3.19                */
 	{
 		struct dict_avp_data data = {
@@ -4878,6 +5116,8 @@ static int dict_dcca_3gpp_entry(char * conffile)
 
 	/*==================================================================*/
 	/* 3GPP TS 29.229 Table 6.3.1: Diameter Multimedia Application AVPs */
+	/*                                                                  */
+	/* Note: AVPs referenced from other sources are not added here.     */
 	/*==================================================================*/
 
 	/* Visited-Network-Identifier, OctetString, code 600, section 6.3.1 */
@@ -5380,11 +5620,6 @@ static int dict_dcca_3gpp_entry(char * conffile)
 		CHECK_dict_new(DICT_AVP, &data, UTF8String_type, NULL);
 	};
 
-	/* Note: Uses RFC 4590 Digest-Realm (104).                          */
-	/* Note: Uses RFC 4590 Digest-Algorithm (111).                      */
-	/* Note: Uses RFC 4590 Digest-QoP (110).                            */
-	/* Note: Uses RFC 4590 Digest-HA1 (121).                            */
-
 	/* UAR-Flags, Unsigned32, code 637, section 6.3.44                  */
 	{
 		struct dict_avp_data data = {
@@ -5618,9 +5853,6 @@ static int dict_dcca_3gpp_entry(char * conffile)
 		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
 	};
 
-	/* Note: Uses RFC 7683 OC-Supported-Features (621).                 */
-	/* Note: Uses RFC 7683 OC-OLR (623).                                */
-
 	/* Initial-CSeq-Sequence-Number, Unsigned32, code 654, section 6.3.62 */
 	{
 		struct dict_avp_data data = {
@@ -5685,9 +5917,6 @@ static int dict_dcca_3gpp_entry(char * conffile)
 		};
 		CHECK_dict_new(DICT_AVP, &data, UTF8String_type, NULL);
 	};
-
-	/* Note: Uses RFC 7944 DRMP (301).                                  */
-	/* Note: Uses RFC 8583 Load (650).                                  */
 
 	/* RTR-Flags, Unsigned32, code 659, section 6.3.69                  */
 	{
@@ -6698,7 +6927,7 @@ static int dict_dcca_3gpp_entry(char * conffile)
 
 	/* Note: 3GPP TS 29.272 V12.5.0 (2014-06) table 7.3.1/1             */
 	/* changed row SS-Status (1477) to be OctetString instead of Grouped. */
-	/* Clause 7.3.88 already described SS-Status as OctetString.        */
+	/* Clause 7.3.88 already described SS-Status (1147) as OctetString. */
 	/* SS-Status, OctetString, code 1477, section 7.3.88                */
 	{
 		struct dict_avp_data data = {
@@ -8420,6 +8649,8 @@ static int dict_dcca_3gpp_entry(char * conffile)
 
 	/*==================================================================*/
 	/* 3GPP TS 29.329 Table 6.3.1: Table 6.3.1: Diameter Multimedia Application AVPs */
+	/*                                                                  */
+	/* Note: AVPs referenced from other sources are not added here.     */
 	/*==================================================================*/
 
 	/* User-Identity, Grouped, code 700, section 6.3.1                  */
@@ -8449,6 +8680,7 @@ static int dict_dcca_3gpp_entry(char * conffile)
 	};
 
 	/* Note: Name conflict with 3GPP TS 29.229 User-Data (606).         */
+	/* User-Data (702) renamed to User-Data-29.329 (702).               */
 	/* User-Data-29.329, OctetString, code 702, section 6.3.3           */
 	{
 		struct dict_avp_data data = {
@@ -8584,13 +8816,6 @@ static int dict_dcca_3gpp_entry(char * conffile)
 		CHECK_dict_new(DICT_AVP, &data, type, NULL);
 	};
 
-	/* Note: Uses 3GPP TS 29.229 Server-Name (602).                     */
-	/* Note: Uses 3GPP TS 29.229 Supported-Features (628).              */
-	/* Note: Uses 3GPP TS 29.229 Feature-List-ID (629).                 */
-	/* Note: Uses 3GPP TS 29.229 Feature-List (630).                    */
-	/* Note: Uses 3GPP TS 29.229 Supported-Applications (631).          */
-	/* Note: Uses 3GPP TS 29.229 Public-Identity (601).                 */
-
 	/* DSAI-Tag, OctetString, code 711, section 6.3.18                  */
 	{
 		struct dict_avp_data data = {
@@ -8603,10 +8828,6 @@ static int dict_dcca_3gpp_entry(char * conffile)
 		};
 		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
 	};
-
-	/* Note: Uses 3GPP TS 29.229 Wildcarded-Public-Identity (634).      */
-	/* Note: Uses 3GPP TS 29.229 Wildcarded-IMPU (636).                 */
-	/* Note: Uses 3GPP TS 29.229 Session-Priority (650).                */
 
 	/* One-Time-Notification, Enumerated, code 712, section 6.3.22      */
 	{
@@ -8839,6 +9060,7 @@ static int dict_dcca_3gpp_entry(char * conffile)
 	};
 
 	/* Note: Name conflict with 3GPP TS 29.212 3GPP-PS-Data-Off-Status (2847). */
+	/* 3GPP-PS-Data-Off-Status (4406) renamed to 3GPP-PS-Data-Off-Status-32.299 (4406). */
 	/* 3GPP-PS-Data-Off-Status-32.299, Enumerated, code 4406            */
 	{
 		struct dict_avp_data data = {
