@@ -1270,11 +1270,14 @@ WLAN-UE-Local-IPAddress,894,,Address,"M,V",P,,,N
 @standard,OMA DDS Charging Data,,,,,,,
 #=,,,,,,,,
 # OMA DDS Charging_Data V1.0 20110201-A,,,,,,,,
+# From OMA OMA-DDS-Charging_Data-V1_0-20110201-A.pdf,,,,,,,,
 #=,,,,,,,,
 #,,,,,,,,
 Application-Server-Id,2101,8.4,UTF8String,"M,V",,,,Y
-Application-Service-Type,2102,8.4,UTF8String,"M,V",,,,Y
-Application-Session-Id,2103,8.4,UTF8String,"M,V",,,,Y
+# Note: Application-Service-Type (2102) corrected from UTF8String to Enumerated.,,,,,,,,
+Application-Service-Type,2102,8.4,Enumerated,"M,V",,,,Y
+# Note: Application–Session–Id (2103) corrected from UTF8String to Unsigned32.,,,,,,,,
+Application-Session-Id,2103,8.4,Unsigned32,"M,V",,,,Y
 Content-ID,2116,8.4,UTF8String,"M,V",,,,Y
 Content-provider-ID,2117,8.4,UTF8String,"M,V",,,,Y
 DCD-Information,2115,8.5.5,Grouped,"M,V",,,,Y

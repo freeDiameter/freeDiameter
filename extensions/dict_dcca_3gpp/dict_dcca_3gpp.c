@@ -14604,6 +14604,7 @@ static int dict_dcca_3gpp_entry(char * conffile)
 
 	/*==================================================================*/
 	/* OMA DDS Charging_Data V1.0 20110201-A                            */
+	/* From OMA OMA-DDS-Charging_Data-V1_0-20110201-A.pdf               */
 	/*==================================================================*/
 
 	/* Application-Server-Id, UTF8String, code 2101, section 8.4        */
@@ -14619,7 +14620,8 @@ static int dict_dcca_3gpp_entry(char * conffile)
 		CHECK_dict_new(DICT_AVP, &data, UTF8String_type, NULL);
 	};
 
-	/* Application-Service-Type, UTF8String, code 2102, section 8.4     */
+	/* Note: Application-Service-Type (2102) corrected from UTF8String to Enumerated. */
+	/* Application-Service-Type, Enumerated, code 2102, section 8.4     */
 	{
 		struct dict_avp_data data = {
 			2102,	/* Code */
@@ -14627,12 +14629,16 @@ static int dict_dcca_3gpp_entry(char * conffile)
 			"Application-Service-Type",	/* Name */
 			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
 			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flag values */
-			AVP_TYPE_OCTETSTRING	/* base type of data */
+			AVP_TYPE_INTEGER32	/* base type of data */
 		};
-		CHECK_dict_new(DICT_AVP, &data, UTF8String_type, NULL);
+		struct dict_object	*type;
+		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "Enumerated(3GPP/Application-Service-Type)", NULL, NULL, NULL };
+		CHECK_dict_new(DICT_TYPE, &tdata, NULL, &type);
+		CHECK_dict_new(DICT_AVP, &data, type, NULL);
 	};
 
-	/* Application-Session-Id, UTF8String, code 2103, section 8.4       */
+	/* Note: Application–Session–Id (2103) corrected from UTF8String to Unsigned32. */
+	/* Application-Session-Id, Unsigned32, code 2103, section 8.4       */
 	{
 		struct dict_avp_data data = {
 			2103,	/* Code */
@@ -14640,9 +14646,9 @@ static int dict_dcca_3gpp_entry(char * conffile)
 			"Application-Session-Id",	/* Name */
 			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
 			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flag values */
-			AVP_TYPE_OCTETSTRING	/* base type of data */
+			AVP_TYPE_UNSIGNED32	/* base type of data */
 		};
-		CHECK_dict_new(DICT_AVP, &data, UTF8String_type, NULL);
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
 	};
 
 	/* Content-ID, UTF8String, code 2116, section 8.4                   */
