@@ -14782,22 +14782,27 @@ static int dict_dcca_3gpp_entry(char * conffile)
 	};
 
 	/*==================================================================*/
-	/* End of generated data.                                           */
+	/* 3GPP2 X.S0057-0 v2.0                                             */
+	/* From 3GPP2 X.S0057-0_v2.0_091215.pdf                             */
 	/*==================================================================*/
 
-	/* 3GPP2-BSID */
+	/* Note: 3GPP2-BSID (9010) corrected from OctetString to UTF8String. */
+	/* 3GPP2-BSID, UTF8String, code 9010, section 5.6.2.1.1             */
 	{
 		struct dict_avp_data data = {
 			9010,	/* Code */
 			5535,	/* Vendor */
 			"3GPP2-BSID",	/* Name */
 			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
-			AVP_FLAG_VENDOR,	/* Fixed flag values */
-			AVP_TYPE_OCTETSTRING	/* base type of data */ /* XXX: guessed */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flag values */
+			AVP_TYPE_OCTETSTRING	/* base type of data */
 		};
-		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+		CHECK_dict_new(DICT_AVP, &data, UTF8String_type, NULL);
 	};
 
+	/*==================================================================*/
+	/* End of generated data.                                           */
+	/*==================================================================*/
 
 	/*==================================================================*/
 	/* Rules section                                                    */

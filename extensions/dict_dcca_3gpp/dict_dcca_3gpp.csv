@@ -1,4 +1,4 @@
-Attribute Name,AVP Code,Section defined,Value Type,Must,May,Should not,Must not,May Encrypt
+Attribute Name,AVP Code,Section defined,Value Type,Must,May,Should not,Must not,extra rows
 @vendor,10415,,,,,,,
 ,,,,,,,,
 @standard,3GPP TS 29.061,,,,,,,
@@ -1288,3 +1288,15 @@ Number-Of-Messages-Successfully-Sent,2112,8.4,Unsigned32,"M,V",,,,Y
 Service-Generic-Information,1256,8.5.10,Grouped,"M,V",,,,Y
 Total-Number-Of-Messages-Exploded,2113,8.4,Unsigned32,"M,V",,,,Y
 Total-Number-Of-Messages-Sent,2114,8.4,Unsigned32,"M,V",,,,Y
+,,,,,,,,
+,,,,,,,,
+@vendor,5535,,,,,,,
+,,,,,,,,
+@standard,X.S0057-0,,,,,,,
+#=,,,,,,,,
+# 3GPP2 X.S0057-0 v2.0,,,,,,,,
+# From 3GPP2 X.S0057-0_v2.0_091215.pdf,,,,,,,,
+#=,,,,,,,,
+#,,,,,,,,
+# Note: 3GPP2-BSID (9010) corrected from OctetString to UTF8String.,,,,,,,,
+3GPP2-BSID,9010,5.6.2.1.1,UTF8String,"M,V",P,,,No
