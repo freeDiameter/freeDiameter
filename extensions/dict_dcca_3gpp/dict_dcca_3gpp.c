@@ -72,10 +72,9 @@
  * 1. It would be good if 29.061 was reviewed to check for each AVP if
  * it is Mandatory or not. The data currently in the document does not
  * match what was in the previous version of the freeDiameter
- * extension (the one that existedbefore I rewrote it) or what I saw
+ * extension (the one that existed before I rewrote it) or what I saw
  * so far. IIRC, even the table and the document contradict each
- * other. The AVP table is also missing an entry for
- * "External-Identifier", 28.
+ * other.
  *
  * 2. 29.140 has conflicting AVP names with other documents:
  *   - Sequence-Number is also in 32.329
@@ -737,19 +736,13 @@ static int dict_dcca_3gpp_entry(char * conffile)
 		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
 	};
 
-	/* added manually, missing in AVP table                             */
-	/* External-Identifier, OctetString, code 28, section 16.4.7        */
-	{
-		struct dict_avp_data data = {
-			28,	/* Code */
-			10415,	/* Vendor */
-			"External-Identifier",	/* Name */
-			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
-			AVP_FLAG_VENDOR,	/* Fixed flag values */
-			AVP_TYPE_OCTETSTRING	/* base type of data */
-		};
-		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
-	};
+	/* Note: 3GPP TS 29.061 table 9a does not define                    */
+	/* External-Identifier (28) for Diameter.                           */
+	/* 3GPP TS 29.061 table 9b refers to 3GPP TS 29.336                 */
+	/* for External-Identifier (3111).                                  */
+	/*                                                                  */
+	/* External-Identifier (28) OctetString replaced by                 */
+	/* External-Identifier (3111) UTF8String.                           */
 
 	/* TMGI, OctetString, code 900, section 17.07.02                    */
 	{
@@ -8768,6 +8761,30 @@ static int dict_dcca_3gpp_entry(char * conffile)
 			AVP_TYPE_OCTETSTRING	/* base type of data */
 		};
 		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+	};
+
+	/*==================================================================*/
+	/* 3GPP TS 29.336 V15.7.0 (2019-09)                                 */
+	/* From 3GPP 29336-f70.docx                                         */
+	/*==================================================================*/
+
+	/*==================================================================*/
+	/* 3GPP TS 29.336 Table 6.4.1/1: S6m/S6n specific Diameter AVPs     */
+	/*                                                                  */
+	/* Note: This is incomplete.                                        */
+	/*==================================================================*/
+
+	/* External-Identifier, UTF8String, code 3111, section 6.4.11       */
+	{
+		struct dict_avp_data data = {
+			3111,	/* Code */
+			10415,	/* Vendor */
+			"External-Identifier",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flag values */
+			AVP_TYPE_OCTETSTRING	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, UTF8String_type, NULL);
 	};
 
 	/*==================================================================*/

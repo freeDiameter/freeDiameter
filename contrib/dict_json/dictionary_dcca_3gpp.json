@@ -2930,16 +2930,6 @@
       "Vendor": 10415
     },
     {
-      "Code": 28,
-      "Flags": {
-        "Must": "V",
-        "MustNot": "M"
-      },
-      "Name": "External-Identifier",
-      "Type": "OctetString",
-      "Vendor": 10415
-    },
-    {
       "Code": 124,
       "Flags": {
         "Must": "M",
@@ -10847,6 +10837,16 @@
       },
       "Name": "Extended-GBR-UL",
       "Type": "Unsigned32",
+      "Vendor": 10415
+    },
+    {
+      "Code": 3111,
+      "Flags": {
+        "Must": "V",
+        "MustNot": "M"
+      },
+      "Name": "External-Identifier",
+      "Type": "UTF8String",
       "Vendor": 10415
     },
     {
