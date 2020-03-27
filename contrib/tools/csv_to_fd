@@ -121,8 +121,8 @@ class Avp(object):
                 'OctetString', 'Integer32', 'Integer64', 'Unsigned32',
                 'Unsigned64', 'Float32', 'Float64', 'Grouped')
                 and self.datatype not in DERIVED_TO_BASE):
-            raise ValueError('AVP "{}" invalid data type "{}"'.format(
-                self.name, self.datatype))
+            raise ValueError('{} invalid data type "{}"'.format(
+                self.description(), self.datatype))
         # Validate flags
         flags = collections.Counter()
         for val, desc in [
@@ -132,32 +132,53 @@ class Avp(object):
                 (self.mustnot, 'Must Not'),
                 ]:
             if not self._flags_re.match(val):
-                raise ValueError('AVP "{}" invalid {} Flags "{}"'.format(
-                    self.name, desc, val))
+                raise ValueError('{} invalid {} Flags "{}"'.format(
+                    self.description(), desc, val))
             flags.update(val)
         # Check occurrence of M,V in Must,May,ShouldNot,MustNot
         for flag in 'MV':
             # TODO: can AVP flags not appear at all?
             # if flags[flag] == 0:
-            #     raise ValueError('AVP "{}" Flag "{}" not set'.format(
-            #         self.name, flag))
+            #     raise ValueError('{} Flag "{}" not set'.format(
+            #         self.description(), flag))
             if flags[flag] > 1:
-                raise ValueError('AVP "{}" Flag "{}" set {} times'.format(
-                    self.name, flag, flags[flag]))
+                raise ValueError('{} Flag "{}" set {} times'.format(
+                    self.description(), flag, flags[flag]))
         # Compare V presence against vendor
         if 'V' in self.must:
             if self.vendor == 0:
-                raise ValueError('AVP "{}" Flag "V" set for vendor 0'.format(
-                    self.name))
+                raise ValueError('{} Flag "V" set for vendor 0'.format(
+                    self.description()))
         else:
             if self.vendor != 0:
-                raise ValueError(
-                    'AVP "{}" Flag "V" not set for vendor {}'.format(
-                        self.name, self.vendor))
+                raise ValueError('{} Flag "V" not set for vendor {}'.format(
+                    self.description(), self.vendor))
 
     @property
     def __dict__(self):
         return {s: getattr(self, s) for s in self.__slots__}
+
+    def __eq__(self, other):
+        """Equality comparison of Avp instances.
+        Considered equal if name, vendor, code, datatype, and flags are equal.
+        """
+        if other is self:
+            return True
+        if type(other) is not type(self):
+            return NotImplemented
+        return (
+            other.name, other.vendor, other.code, other.datatype,
+            other.must, other.may, other.shouldnot, other.mustnot,
+            ) == (
+            self.name, self.vendor, self.code, self.datatype,
+            self.must, self.may, self.shouldnot, self.mustnot,
+            )
+
+    def __ne__(self, other):
+        return not self == other
+
+    def description(self):
+        return 'AVP "{}" ({})'.format(self.name, self.code)
 
 
 class Processor(object):
@@ -392,7 +413,27 @@ class JsonProcessor(Processor):
         return ''.join(result)
 
 
+def avp_conflict(description, avp, conflict):
+    """Raise error for duplicate or conflicting AVPs.
+    """
+    if avp == conflict:
+        raise ValueError(
+            '{} {} duplicated in'
+            ' file "{}" line {}'.format(
+                avp.description(), description,
+                conflict.filename, conflict.line_num))
+    else:
+        raise ValueError(
+            '{} {} conflicts with {}'
+            ' in file "{}" line {}'.format(
+                avp.description(), description,
+                conflict.description(),
+                conflict.filename, conflict.line_num))
+
+
 def main():
+    """Main application entry.
+    """
 
     # Build dict of name: NameProcessor
     processors = {
@@ -453,6 +494,7 @@ into various formats using the specified processor PROCESSOR.
                                      restkey='extra_cells')
             standard = ''
             vendor = 0
+            errors = []
             for row in csvdata:
                 try:
                     if row['name'] in (None, '', 'Attribute Name'):
@@ -479,27 +521,21 @@ into various formats using the specified processor PROCESSOR.
                         # Ensure AVP vendor/code not already defined
                         if avp.code in avp_codes[avp.vendor]:
                             conflict = avp_codes[avp.vendor][avp.code]
-                            raise ValueError(
-                                'AVP vendor {} code {} already present'
-                                ' in file "{}" line {}'.format(
-                                    avp.vendor, avp.code,
-                                    conflict.filename, conflict.line_num))
+                            avp_conflict('Code', avp, conflict)
                         avp_codes[avp.vendor][avp.code] = avp
                         # Ensure AVP vendor/name not already defined
                         if avp.name in avp_names[avp.vendor]:
                             conflict = avp_names[avp.vendor][avp.name]
-                            raise ValueError(
-                                'AVP vendor {} name "{}" already present'
-                                ' in file "{}" line {}'.format(
-                                    avp.vendor, avp.name,
-                                    conflict.filename, conflict.line_num))
+                            avp_conflict('Name', avp, conflict)
                         avp_names[avp.vendor][avp.name] = avp
                         # Process AVP
                         avpproc.avp(avp)
                 except ValueError as e:
-                    sys.stderr.write('CSV file "{}" line {}: {}\n'.format(
+                    errors.append('CSV file "{}" line {}: {}\n'.format(
                         filename, csvdata.line_num, e))
-                    sys.exit(1)
+            if errors:
+                sys.stderr.write(''.join(errors))
+                sys.exit(1)
 
     # Generate result
     avpproc.generate()
