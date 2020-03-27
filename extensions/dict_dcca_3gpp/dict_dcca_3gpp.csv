@@ -813,6 +813,103 @@ Core-Network-Restrictions,1704,7.3.230,Unsigned32,V,,,M,N
 eDRX-Related-RAT,1705,7.3.229,Grouped,V,,,M,N
 Interworking-5GS-Indicator,1706,7.3.231,Enumerated,V,,,M,N
 ,,,,,,,,
+@standard,3GPP TS 29.273,,,,,,
+#=,,,,,,,
+# 3GPP TS 29.273 V15.4.0 (2019-09),,,,,,,
+#=,,,,,,,
+#,,,,,,,
+#=,,,,,,,
+# 3GPP TS 29.273 Table 5.2.3.1/1: Diameter STa AVPs,,,,,,,
+# ,,,,,,,
+# Note: AVPs referenced from other sources are not added here.,,,,,,,
+#=,,,,,,,
+#,,,,,,,
+ANID,1504,5.2.3.7,UTF8String,"M,V",,,P
+AN-Trusted,1503,5.2.3.9,Enumerated,"M,V",,,P
+MIP-FA-RK,1506,5.2.3.12,OctetString,"M,V",,,P
+MIP-FA-RK-SPI,1507,5.2.3.13,Unsigned32,"M,V",,,P
+Full-Network-Name,1516,5.2.3.14,OctetString,V,,,"M,P"
+Short-Network-Name,1517,5.2.3.15,OctetString,V,,,"M,P"
+WLAN-Identifier,1509,5.2.3.18,Grouped,V,,,"M,P"
+AAA-Failure-Indication,1518,8.2.3.21,Unsigned32,V,,,"M,P"
+Transport-Access-Type,1519,5.2.3.19,Enumerated,V,,,"M,P"
+DER-Flags,1520,5.2.3.20,Unsigned32,V,,,"M,P"
+DEA-Flags,1521,5.2.3.21,Unsigned32,V,,,"M,P"
+SSID,1524,5.2.3.22,UTF8String,V,,,"M,P"
+HESSID,1525,5.2.3.23,UTF8String,V,,,"M,P"
+Access-Network-Info,1526,5.2.3.24,Grouped,V,,,"M,P"
+TWAN-Connection-Mode,1527,5.2.3.25,Unsigned32,V,,,"M,P"
+TWAN-Connectivity-Parameters,1528,5.2.3.26,Grouped,V,,,"M,P"
+Connectivity-Flags,1529,5.2.3.27,Unsigned32,V,,,"M,P"
+TWAN-PCO,1530,5.2.3.28,OctetString,V,,,"M,P"
+TWAG-CP-Address,1531,5.2.3.29,Address,V,,,"M,P"
+TWAG-UP-Address,1532,5.2.3.30,UTF8String,V,,,"M,P"
+TWAN-S2a-Failure-Cause,1533,5.2.3.31,Unsigned32,V,,,"M,P"
+SM-Back-Off-Timer,1534,5.2.3.32,Unsigned32,V,,,"M,P"
+WLCP-Key,1535,5.2.3.33,OctetString,V,,,"M,P"
+Emergency-Services,1538,7.2.3.4,Unsigned32,V,,,"M,P"
+IMEI-Check-In-VPLMN-Result,1540,5.2.3.35,Unsigned32,V,,,"M,P"
+#,,,,,,,
+#=,,,,,,,
+# 3GPP TS 29.273 Table 6.2.3.1/1: Diameter SWd AVPs,,,,,,,
+# ,,,,,,,
+# Note: No AVPs are first defined in this table.,,,,,,,
+#=,,,,,,,
+#,,,,,,,
+#=,,,,,,,
+# 3GPP TS 29.273 Table 7.2.3.1/1: Diameter SWm AVPs,,,,,,,
+# ,,,,,,,
+# Note: AVPs referenced from other sources are not added here.,,,,,,,
+#=,,,,,,,
+#,,,,,,,
+Trace-Info,1505,8.2.3.1.3,Grouped,V,,,"M,P"
+AAR-Flags,1539,7.2.3.5,Unsigned32,V,,,"M,P"
+#,,,,,,,
+#=,,,,,,,
+# 3GPP TS 29.273 Table 8.2.3.0/1: Diameter SWx AVPs,,,,,,,
+# ,,,,,,,
+# Note: AVPs referenced from other sources are not added here.,,,,,,,
+#=,,,,,,,
+#,,,,,,,
+Non-3GPP-User-Data,1500,8.2.3.1,Grouped,"M,V",,,P
+Non-3GPP-IP-Access,1501,8.2.3.3,Enumerated,"M,V",,,P
+Non-3GPP-IP-Access-APN,1502,8.2.3.4,Enumerated,"M,V",,,P
+PPR-Flags,1508,8.2.3.17,Unsigned32,V,,,"M,P"
+TWAN-Default-APN-Context-Id,1512,8.2.3.18,Unsigned32,V,,,"M,P"
+TWAN-Access-Info,1510,8.2.3.19,Grouped,V,,,"M,P"
+Access-Authorization-Flags,1511,8.2.3.20,Unsigned32,V,,,"M,P"
+3GPP-AAA-Server-Name,318,8.2.3.24,DiameterIdentity,"M, V",,,P
+ERP-Authorization,1541,8.2.3.27,Unsigned32,V,,,"M,P"
+#,,,,,,,
+#=,,,,,,,
+# 3GPP TS 29.273 Table 9.2.3.1.1/1: Diameter S6b AVPs for DSMIPv6,,,,,,,
+# ,,,,,,,
+# Note: AVPs referenced from other sources are not added here.,,,,,,,
+#=,,,,,,,
+#,,,,,,,
+RAR-Flags,1522,9.2.3.1.5,Unsigned32,V,,,"M,P"
+# Note: Trust-Relationship-Update (1515) only present in,,,,,,,
+# 3GPP TS 29.273 V11.3.0 (2012-09) before being deprecated.,,,,,,,
+# Trust-Relationship-Update (1515) not provided.,,,,,,,
+#,,,,,,,
+DER-S6b-Flags,1523,9.2.3.7,Unsigned32,V,,,"M,P"
+#,,,,,,,
+#=,,,,,,,
+# 3GPP TS 29.273 Table 9.2.3.2.1/1: Diameter S6b AVPs for PMIPv6 or GTPv2,,,,,,,
+# ,,,,,,,
+# Note: AVPs referenced from other sources are not added here.,,,,,,,
+#=,,,,,,,
+#,,,,,,,
+Origination-Time-Stamp,1536,9.2.3.2.6,Unsigned64,V,,,"M,P"
+Maximum-Wait-Time,1537,9.2.3.2.7,Unsigned32,V,,,"M,P"
+#,,,,,,,
+#=,,,,,,,
+# 3GPP TS 29.273 Table 9.2.3.6.1/1: Diameter S6b AVPs for MIPv4 FACoA,,,,,,,
+# ,,,,,,,
+# Note: No AVPs are first defined in this table.,,,,,,,
+#=,,,,,,,
+#,,,,,,,
+,,,,,,,,
 @standard,3GPP TS 29.329,,,,,,,
 #=,,,,,,,,
 # 3GPP TS 29.329 V15.2.0 (2019-09),,,,,,,,
