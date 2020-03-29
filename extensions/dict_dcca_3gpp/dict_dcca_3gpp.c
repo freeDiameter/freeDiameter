@@ -10883,6 +10883,106 @@ static int dict_dcca_3gpp_entry(char * conffile)
 	};
 
 	/*==================================================================*/
+	/* 3GPP TS 29.344 V15.1.0 (2019-09)                                 */
+	/* From 3GPP 29344-f10.doc                                          */
+	/*==================================================================*/
+
+	/*==================================================================*/
+	/* 3GPP TS 29.344 Table 6.3.1-1: PC4a specific Diameter AVPs        */
+	/*==================================================================*/
+
+	/* ProSe-Subscription-Data, Grouped, code 3701, section 6.3.2       */
+	{
+		struct dict_avp_data data = {
+			3701,	/* Code */
+			10415,	/* Vendor */
+			"ProSe-Subscription-Data",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flag values */
+			AVP_TYPE_GROUPED	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+	};
+
+	/* ProSe-Permission, Unsigned32, code 3702, section 6.3.3           */
+	{
+		struct dict_avp_data data = {
+			3702,	/* Code */
+			10415,	/* Vendor */
+			"ProSe-Permission",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flag values */
+			AVP_TYPE_UNSIGNED32	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+	};
+
+	/* ProSe-Allowed-PLMN, Grouped, code 3703, section 6.3.4            */
+	{
+		struct dict_avp_data data = {
+			3703,	/* Code */
+			10415,	/* Vendor */
+			"ProSe-Allowed-PLMN",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flag values */
+			AVP_TYPE_GROUPED	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+	};
+
+	/* ProSe-Direct-Allowed, Unsigned32, code 3704, section 6.3.5       */
+	{
+		struct dict_avp_data data = {
+			3704,	/* Code */
+			10415,	/* Vendor */
+			"ProSe-Direct-Allowed",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flag values */
+			AVP_TYPE_UNSIGNED32	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+	};
+
+	/* UPR-Flags, Unsigned32, code 3705, section 6.3.6                  */
+	{
+		struct dict_avp_data data = {
+			3705,	/* Code */
+			10415,	/* Vendor */
+			"UPR-Flags",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flag values */
+			AVP_TYPE_UNSIGNED32	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+	};
+
+	/* PNR-Flags, Unsigned32, code 3706, section 6.3.7                  */
+	{
+		struct dict_avp_data data = {
+			3706,	/* Code */
+			10415,	/* Vendor */
+			"PNR-Flags",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flag values */
+			AVP_TYPE_UNSIGNED32	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+	};
+
+	/* ProSe-Initial-Location-Information, Grouped, code 3707, section 6.3.9 */
+	{
+		struct dict_avp_data data = {
+			3707,	/* Code */
+			10415,	/* Vendor */
+			"ProSe-Initial-Location-Information",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flag values */
+			AVP_TYPE_GROUPED	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+	};
+
+	/*==================================================================*/
 	/* 3GPP TS 32.299 V15.7.0 (2019-06)                                 */
 	/* From 3GPP 32299-f70.doc                                          */
 	/*==================================================================*/

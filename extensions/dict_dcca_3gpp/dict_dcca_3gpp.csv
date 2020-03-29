@@ -1072,6 +1072,24 @@ RDR-Flags,3323,5.3.3.21,Unsigned32,V,,,M,No
 Maximum-UE-Availability-Time,3329,5.3.3.22,Time,V,,,M,No
 SMS-GMSC-Alert-Event,3333,5.3.3.23,Unsigned32,V,,,M,No
 ,,,,,,,,
+@standard,3GPP TS 29.344,,,,,,,
+#=,,,,,,,,
+# 3GPP TS 29.344 V15.1.0 (2019-09),,,,,,,,
+# From 3GPP 29344-f10.doc,,,,,,,,
+#=,,,,,,,,
+#,,,,,,,,
+#=,,,,,,,,
+# 3GPP TS 29.344 Table 6.3.1-1: PC4a specific Diameter AVPs,,,,,,,,
+#=,,,,,,,,
+#,,,,,,,,
+ProSe-Subscription-Data,3701,6.3.2,Grouped,"M,V",,,,No
+ProSe-Permission,3702,6.3.3,Unsigned32,"M,V",,,,No
+ProSe-Allowed-PLMN,3703,6.3.4,Grouped,"M,V",,,,No
+ProSe-Direct-Allowed,3704,6.3.5,Unsigned32,"M,V",,,,No
+UPR-Flags,3705,6.3.6,Unsigned32,"M,V",,,,No
+PNR-Flags,3706,6.3.7,Unsigned32,"M,V",,,,No
+ProSe-Initial-Location-Information,3707,6.3.9,Grouped,"M,V",,,,No
+,,,,,,,,
 @standard,3GPP TS 32.299,,,,,,,
 #=,,,,,,,,
 # 3GPP TS 32.299 V15.7.0 (2019-06),,,,,,,,
