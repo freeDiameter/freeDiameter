@@ -10631,6 +10631,258 @@ static int dict_dcca_3gpp_entry(char * conffile)
 	};
 
 	/*==================================================================*/
+	/* 3GPP TS 29.338 V15.1.0 (2018-12)                                 */
+	/* From 3GPP 29338-f10.docx                                         */
+	/*==================================================================*/
+
+	/*==================================================================*/
+	/* 3GPP TS 29.338 Table 5.3.3.1/1: S6c specific Diameter AVPs       */
+	/*==================================================================*/
+
+	/* SM-RP-MTI, Enumerated, code 3308, section 5.3.3.2                */
+	{
+		struct dict_avp_data data = {
+			3308,	/* Code */
+			10415,	/* Vendor */
+			"SM-RP-MTI",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flag values */
+			AVP_TYPE_INTEGER32	/* base type of data */
+		};
+		struct dict_object	*type;
+		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "Enumerated(3GPP/SM-RP-MTI)", NULL, NULL, NULL };
+		CHECK_dict_new(DICT_TYPE, &tdata, NULL, &type);
+		CHECK_dict_new(DICT_AVP, &data, type, NULL);
+	};
+
+	/* SM-RP-SMEA, OctetString, code 3309, section 5.3.3.3              */
+	{
+		struct dict_avp_data data = {
+			3309,	/* Code */
+			10415,	/* Vendor */
+			"SM-RP-SMEA",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flag values */
+			AVP_TYPE_OCTETSTRING	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+	};
+
+	/* SRR-Flags, Unsigned32, code 3310, section 5.3.3.4                */
+	{
+		struct dict_avp_data data = {
+			3310,	/* Code */
+			10415,	/* Vendor */
+			"SRR-Flags",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flag values */
+			AVP_TYPE_UNSIGNED32	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+	};
+
+	/* SM-Delivery-Not-Intended, Enumerated, code 3311, section 5.3.3.5 */
+	{
+		struct dict_avp_data data = {
+			3311,	/* Code */
+			10415,	/* Vendor */
+			"SM-Delivery-Not-Intended",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flag values */
+			AVP_TYPE_INTEGER32	/* base type of data */
+		};
+		struct dict_object	*type;
+		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "Enumerated(3GPP/SM-Delivery-Not-Intended)", NULL, NULL, NULL };
+		CHECK_dict_new(DICT_TYPE, &tdata, NULL, &type);
+		CHECK_dict_new(DICT_AVP, &data, type, NULL);
+	};
+
+	/* MWD-Status, Unsigned32, code 3312, section 5.3.3.8               */
+	{
+		struct dict_avp_data data = {
+			3312,	/* Code */
+			10415,	/* Vendor */
+			"MWD-Status",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flag values */
+			AVP_TYPE_UNSIGNED32	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+	};
+
+	/* MME-Absent-User-Diagnostic-SM, Unsigned32, code 3313, section 5.3.3.9 */
+	{
+		struct dict_avp_data data = {
+			3313,	/* Code */
+			10415,	/* Vendor */
+			"MME-Absent-User-Diagnostic-SM",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flag values */
+			AVP_TYPE_UNSIGNED32	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+	};
+
+	/* MSC-Absent-User-Diagnostic-SM, Unsigned32, code 3314, section 5.3.3.10 */
+	{
+		struct dict_avp_data data = {
+			3314,	/* Code */
+			10415,	/* Vendor */
+			"MSC-Absent-User-Diagnostic-SM",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flag values */
+			AVP_TYPE_UNSIGNED32	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+	};
+
+	/* SGSN-Absent-User-Diagnostic-SM, Unsigned32, code 3315, section 5.3.3.11 */
+	{
+		struct dict_avp_data data = {
+			3315,	/* Code */
+			10415,	/* Vendor */
+			"SGSN-Absent-User-Diagnostic-SM",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flag values */
+			AVP_TYPE_UNSIGNED32	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+	};
+
+	/* SM-Delivery-Outcome, Grouped, code 3316, section 5.3.3.14        */
+	{
+		struct dict_avp_data data = {
+			3316,	/* Code */
+			10415,	/* Vendor */
+			"SM-Delivery-Outcome",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flag values */
+			AVP_TYPE_GROUPED	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+	};
+
+	/* MME-SM-Delivery-Outcome, Grouped, code 3317, section 5.3.3.15    */
+	{
+		struct dict_avp_data data = {
+			3317,	/* Code */
+			10415,	/* Vendor */
+			"MME-SM-Delivery-Outcome",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flag values */
+			AVP_TYPE_GROUPED	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+	};
+
+	/* MSC-SM-Delivery-Outcome, Grouped, code 3318, section 5.3.3.16    */
+	{
+		struct dict_avp_data data = {
+			3318,	/* Code */
+			10415,	/* Vendor */
+			"MSC-SM-Delivery-Outcome",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flag values */
+			AVP_TYPE_GROUPED	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+	};
+
+	/* SGSN-SM-Delivery-Outcome, Grouped, code 3319, section 5.3.3.17   */
+	{
+		struct dict_avp_data data = {
+			3319,	/* Code */
+			10415,	/* Vendor */
+			"SGSN-SM-Delivery-Outcome",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flag values */
+			AVP_TYPE_GROUPED	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+	};
+
+	/* IP-SM-GW-SM-Delivery-Outcome, Grouped, code 3320, section 5.3.3.18 */
+	{
+		struct dict_avp_data data = {
+			3320,	/* Code */
+			10415,	/* Vendor */
+			"IP-SM-GW-SM-Delivery-Outcome",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flag values */
+			AVP_TYPE_GROUPED	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+	};
+
+	/* SM-Delivery-Cause, Enumerated, code 3321, section 5.3.3.19       */
+	{
+		struct dict_avp_data data = {
+			3321,	/* Code */
+			10415,	/* Vendor */
+			"SM-Delivery-Cause",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flag values */
+			AVP_TYPE_INTEGER32	/* base type of data */
+		};
+		struct dict_object	*type;
+		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "Enumerated(3GPP/SM-Delivery-Cause)", NULL, NULL, NULL };
+		CHECK_dict_new(DICT_TYPE, &tdata, NULL, &type);
+		CHECK_dict_new(DICT_AVP, &data, type, NULL);
+	};
+
+	/* Absent-User-Diagnostic-SM, Unsigned32, code 3322, section 5.3.3.20 */
+	{
+		struct dict_avp_data data = {
+			3322,	/* Code */
+			10415,	/* Vendor */
+			"Absent-User-Diagnostic-SM",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flag values */
+			AVP_TYPE_UNSIGNED32	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+	};
+
+	/* RDR-Flags, Unsigned32, code 3323, section 5.3.3.21               */
+	{
+		struct dict_avp_data data = {
+			3323,	/* Code */
+			10415,	/* Vendor */
+			"RDR-Flags",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR,	/* Fixed flag values */
+			AVP_TYPE_UNSIGNED32	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+	};
+
+	/* Maximum-UE-Availability-Time, Time, code 3329, section 5.3.3.22  */
+	{
+		struct dict_avp_data data = {
+			3329,	/* Code */
+			10415,	/* Vendor */
+			"Maximum-UE-Availability-Time",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR,	/* Fixed flag values */
+			AVP_TYPE_OCTETSTRING	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, Time_type, NULL);
+	};
+
+	/* SMS-GMSC-Alert-Event, Unsigned32, code 3333, section 5.3.3.23    */
+	{
+		struct dict_avp_data data = {
+			3333,	/* Code */
+			10415,	/* Vendor */
+			"SMS-GMSC-Alert-Event",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR,	/* Fixed flag values */
+			AVP_TYPE_UNSIGNED32	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+	};
+
+	/*==================================================================*/
 	/* 3GPP TS 32.299 V15.7.0 (2019-06)                                 */
 	/* From 3GPP 32299-f70.doc                                          */
 	/*==================================================================*/

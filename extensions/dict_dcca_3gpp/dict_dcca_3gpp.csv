@@ -1043,6 +1043,35 @@ Group-User-Identifier,3177,8.4.73,Grouped,V,,,M,No
 MTC-Provider-Info,3178,8.4.74,Grouped,V,,,M,No
 MTC-Provider-ID,3179,8.4.75,UTF8String,V,,,M,No
 ,,,,,,,,
+@standard,3GPP TS 29.338,,,,,,,
+#=,,,,,,,,
+# 3GPP TS 29.338 V15.1.0 (2018-12),,,,,,,,
+# From 3GPP 29338-f10.docx,,,,,,,,
+#=,,,,,,,,
+#,,,,,,,,
+#=,,,,,,,,
+# 3GPP TS 29.338 Table 5.3.3.1/1: S6c specific Diameter AVPs,,,,,,,,
+#=,,,,,,,,
+#,,,,,,,,
+SM-RP-MTI,3308,5.3.3.2,Enumerated,"M, V",,,,No
+SM-RP-SMEA,3309,5.3.3.3 ,OctetString,"M, V",,,,No
+SRR-Flags,3310,5.3.3.4,Unsigned32,"M, V",,,,No
+SM-Delivery-Not-Intended,3311,5.3.3.5,Enumerated,"M, V",,,,No
+MWD-Status,3312,5.3.3.8,Unsigned32,"M, V",,,,No
+MME-Absent-User-Diagnostic-SM,3313,5.3.3.9,Unsigned32,"M, V",,,,No
+MSC-Absent-User-Diagnostic-SM,3314,5.3.3.10,Unsigned32,"M, V",,,,No
+SGSN-Absent-User-Diagnostic-SM,3315,5.3.3.11,Unsigned32,"M, V",,,,No
+SM-Delivery-Outcome,3316,5.3.3.14,Grouped,"M, V",,,,No
+MME-SM-Delivery-Outcome,3317,5.3.3.15,Grouped,"M, V",,,,No
+MSC-SM-Delivery-Outcome,3318,5.3.3.16,Grouped,"M, V",,,,No
+SGSN-SM-Delivery-Outcome,3319,5.3.3.17,Grouped,"M, V",,,,No
+IP-SM-GW-SM-Delivery-Outcome,3320,5.3.3.18,Grouped,"M, V",,,,No
+SM-Delivery-Cause,3321,5.3.3.19,Enumerated,"M, V",,,,No
+Absent-User-Diagnostic-SM,3322,5.3.3.20,Unsigned32,"M, V",,,,No
+RDR-Flags,3323,5.3.3.21,Unsigned32,V,,,M,No
+Maximum-UE-Availability-Time,3329,5.3.3.22,Time,V,,,M,No
+SMS-GMSC-Alert-Event,3333,5.3.3.23,Unsigned32,V,,,M,No
+,,,,,,,,
 @standard,3GPP TS 32.299,,,,,,,
 #=,,,,,,,,
 # 3GPP TS 32.299 V15.7.0 (2019-06),,,,,,,,
