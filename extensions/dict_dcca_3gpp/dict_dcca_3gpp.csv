@@ -140,7 +140,7 @@ Restart-Counter,932,20.5a.10,Unsigned32,V,P,,M,Y
 Diagnostic-Info,933,20.5a.11,Unsigned32,V,P,,M,Y
 MBMS-Cell-List,934,20.5a.12,OctetString,V,P,,M,Y
 ,,,,,,,,
-@standard,3GPP TS 29.129,,,,,,,
+@standard,3GPP TS 29.128,,,,,,,
 #=,,,,,,,,
 # 3GPP TS 29.128 V15.6.0 (2019-09),,,,,,,,
 # From 3GPP 29128-f60.docx,,,,,,,,
@@ -216,6 +216,83 @@ Status-29.140,1116,6.3.19,Grouped,"M,V",,,,N
 Status-Code,1117,6.3.20,UTF8String,"M,V",,,,N
 Status-Text,1118,6.3.21,UTF8String,"M,V",,,,N
 Routeing-Address-Resolution,1119,6.3.22,Enumerated,"M,V",,,,N
+,,,,,,,,
+@standard,3GPP TS 29.172,,,,,,,
+#=,,,,,,,,
+# 3GPP TS 29.172 V15.2.0 (2019-12),,,,,,,,
+# From 3GPP 29172-f20.docx,,,,,,,,
+#=,,,,,,,,
+#,,,,,,,,
+#=,,,,,,,,
+# 3GPP TS 29.172 Table 7.4.1-1: Diameter ELP Application AVPs,,,,,,,,
+#=,,,,,,,,
+#,,,,,,,,
+SLg-Location-Type,2500,7.4.2,Enumerated,"M, V",,,,No
+LCS-EPS-Client-Name,2501,7.4.3,Grouped,"M, V",,,,No
+LCS-Requestor-Name,2502,7.4.4,Grouped,"M, V",,,,No
+LCS-Priority,2503,7.4.5,Unsigned32,"M, V",,,,No
+LCS-QoS,2504,7.4.6,Grouped,"M, V",,,,No
+Horizontal-Accuracy,2505,7.4.7,Unsigned32,"M, V",,,,No
+Vertical-Accuracy,2506,7.4.8,Unsigned32,"M, V",,,,No
+Vertical-Requested,2507,7.4.9,Enumerated,"M, V",,,,No
+Velocity-Requested,2508,7.4.10,Enumerated,"M, V",,,,No
+Response-Time,2509,7.4.11,Enumerated,"M, V",,,,No
+Supported-GAD-Shapes,2510,7.4.12,Unsigned32,"M, V",,,,No
+LCS-Codeword,2511,7.4.13,UTF8String,"M, V",,,,No
+LCS-Privacy-Check,2512,7.4.14,Enumerated,"M, V",,,,No
+Accuracy-Fulfilment-Indicator,2513,7.4.15,Enumerated,"M, V",,,,No
+Age-Of-Location-Estimate,2514,7.4.16,Unsigned32,"M, V",,,,No
+Velocity-Estimate,2515,7.4.17,OctetString,"M, V",,,,No
+EUTRAN-Positioning-Data,2516,7.4.18,OctetString,"M, V",,,,No
+ECGI,2517,7.4.19,OctetString,"M, V",,,,No
+Location-Event,2518,7.4.20,Enumerated,"M, V",,,,No
+Pseudonym-Indicator,2519,7.4.21,Enumerated,"M, V",,,,No
+LCS-Service-Type-ID,2520,7.4.22,Unsigned32,"M, V",,,,No
+LCS-Privacy-Check-Non-Session,2521,7.4.23,Grouped,"M, V",,,,No
+LCS-Privacy-Check-Session,2522,7.4.24,Grouped,"M, V",,,,No
+LCS-QoS-Class,2523,7.4.27,Enumerated,"M, V",,,,No
+GERAN-Positioning-Info,2524,7.4.29,Grouped,V,,,M,No
+GERAN-Positioning-Data,2525,7.4.30,OctetString,V,,,M,No
+GERAN-GANSS-Positioning-Data,2526,7.4.31,OctetString,V,,,M,No
+UTRAN-Positioning-Info,2527,7.4.32,Grouped,V,,,M,No
+UTRAN-Positioning-Data,2528,7.4.33,OctetString,V,,,M,No
+UTRAN-GANSS-Positioning-Data,2529,7.4.34,OctetString,V,,,M,No
+LRR-Flags,2530,7.4.35,Unsigned32,V,,,M,No
+LCS-Reference-Number,2531,7.4.37,OctetString,V,,,M,No
+Deferred-Location-Type,2532,7.4.36,Unsigned32,V,,,M,No
+Area-Event-Info,2533,7.4.38,Grouped,V,,,M,No
+Area-Definition,2534,7.4.39,Grouped,V,,,M,No
+Area,2535,7.4.40,Grouped,V,,,M,No
+Area-Type,2536,7.4.41,Unsigned32,V,,,M,No
+Area-Identification,2537,7.4.42,Grouped,V,,,M,No
+Occurrence-Info,2538,7.4.43,Enumerated,V,,,M,No
+Interval-Time,2539,7.4.44,Unsigned32,V,,,M,No
+Periodic-LDR-Information,2540,7.4.45,Grouped,V,,,M,No
+Reporting-Amount,2541,7.4.46,Unsigned32,V,,,M,No
+Reporting-Interval,2542,7.4.47,Unsigned32,V,,,M,No
+Reporting-PLMN-List,2543,7.4.48,Grouped,V,,,M,No
+PLMN-ID-List,2544,7.4.49,Grouped,V,,,M,No
+PLR-Flags,2545,7.4.52,Unsigned32,V,,,M,No
+PLA-Flags,2546,7.4.53,Unsigned32,V,,,M,No
+Deferred-MT-LR-Data,2547,7.4.54,Grouped,V,,,M,No
+Termination-Cause,2548,7.4.55,Unsigned32,V,,,M,No
+LRA-Flags,2549,7.4.56,Unsigned32,V,,,M,No
+Periodic-Location-Support-Indicator,2550,7.4.50,Enumerated,V,,,M,No
+Prioritized-List-Indicator,2551,7.4.51,Enumerated,V,,,M,No
+ESMLC-Cell-Info,2552,7.4.57,Grouped,V,,,M,No
+Cell-Portion-ID,2553,7.4.58,Unsigned32,V,,,M,No
+1xRTT-RCID,2554,7.4.59,OctetString,V,,,M,No
+Delayed-Location-Reporting-Data,2555,7.4.60,Grouped,V,,,M,No
+Civic-Address,2556,7.4.61,UTF8String,V,,,M,No
+Barometric-Pressure,2557,7.4.62,Unsigned32,V,,,M,No
+UTRAN-Additional-Positioning-Data,2558,7.4.63,OctetString,V,,,M,No
+Motion-Event-Info,2559,7.4.64,Grouped,V,,,M,No
+Linear-Distance,2560,7.4.65,Unsigned32,V,,,M,No
+Maximum-Interval,2561,7.4.66,Unsigned32,V,,,M,No
+Sampling-Interval,2562,7.4.67,Unsigned32,V,,,M,No
+Reporting-Duration,2563,7.4.68,Unsigned32,V,,,M,No
+Reporting-Location-Requirements,2564,7.4.69,Unsigned32,V,,,M,No
+Additional-Area,2565,7.4.70,Grouped,V,,,M,No
 ,,,,,,,,
 @standard,3GPP TS 29.173,,,,,,,
 #=,,,,,,,,
