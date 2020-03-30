@@ -10,6 +10,7 @@ Format of the CSV files is one of:
     - Name:
         AVP Name. String, validated as ALPHA *(ALPHA / DIGIT / "-")
         per RFC 6733 section 3.2.
+        May start with a DIGIT (e.g., "3GPP-IMSI").
     - Code:
         AVP Code. Integer, 0..4294967295.
     - Section:
@@ -20,7 +21,7 @@ Format of the CSV files is one of:
             - RFC 6733 section 4.3
             - RFC 7155 section 4.1
     - Must, May, ShouldNot, MustNot:
-        Flags, possibly comma or space separated: M, V
+        Flags, possibly comma or space separated: M, P, V
 
 - Comment row. First cell:
     # Comment text      'Comment text'
@@ -182,7 +183,7 @@ class Avp(object):
 
 
 class Processor(object):
-    """Interface for processor of Avp"""
+    """Interface for processor of Avp."""
 
     __metaclass__ = abc.ABCMeta
 
@@ -226,7 +227,7 @@ class Processor(object):
 
 
 class DebugProcessor(Processor):
-    """Display the CSV parsing"""
+    """Display the CSV parsing."""
 
     def next_file(self, filename):
         print('File: {}'.format(filename))
@@ -243,7 +244,7 @@ class DebugProcessor(Processor):
 
 
 class NoopProcessor(Processor):
-    """Validate the CSV; no other output"""
+    """Validate the CSV; no other output."""
 
     def next_file(self, filename):
         pass
@@ -259,7 +260,7 @@ class NoopProcessor(Processor):
 
 
 class FdcProcessor(Processor):
-    """Generate freeDiameter C code
+    """Generate freeDiameter C code.
 
     Comment cells are parsed as:
         # text comment  /* text comment */
@@ -374,7 +375,7 @@ class FdcProcessor(Processor):
 
 
 class JsonProcessor(Processor):
-    """Generate freeDiameter JSON object
+    """Generate freeDiameter JSON object.
     """
 
     def __init__(self):
@@ -460,8 +461,9 @@ Supported PROCESSOR options:
 
     # Parse options
     parser = MyParser(
+        usage='%prog [-h] [-p PROCESSOR] FILE ...',
         description="""\
-Convert CSV files containing RADIUS or Diameter AVP tables
+Convert CSV files FILE ... containing RADIUS or Diameter AVP tables
 into various formats using the specified processor PROCESSOR.
 """)
 
@@ -472,13 +474,13 @@ into various formats using the specified processor PROCESSOR.
              ', '.join(processors.keys())))
     (opts, args) = parser.parse_args()
     if len(args) < 1:
-        parser.error('Incorrect number of arguments')
+        parser.error('Incorrect number of arguments. Use -h for help.')
 
     # Find processor
     try:
         avpproc = processors[opts.processor]()
     except KeyError as e:
-        parser.error('Unknown processor "{}"'.format(opts.processor))
+        parser.error('Unknown processor "{}".'.format(opts.processor))
 
     # dict of [vendor][code] : Avp
     avp_codes = collections.defaultdict(dict)
