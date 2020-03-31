@@ -1271,10 +1271,12 @@ again:
 				break;
 				
 #ifndef OLD_SCTP_SOCKET_API
+#ifdef SCTP_NOTIFICATIONS_STOPPED_EVENT
 			case SCTP_NOTIFICATIONS_STOPPED_EVENT:
 				TRACE_DEBUG(INFO, "Received SCTP_NOTIFICATIONS_STOPPED_EVENT notification, marking the association in error state");
 				*event = FDEVP_CNX_ERROR;
 				break;
+#endif	/*  SCTP_NOTIFICATIONS_STOPPED_EVENT  */
 #endif	/*  OLD_SCTP_SOCKET_API */		
 			
 			default:	
