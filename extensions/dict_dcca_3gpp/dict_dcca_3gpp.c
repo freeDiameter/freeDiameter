@@ -9547,6 +9547,7 @@ static int dict_dcca_3gpp_entry(char * conffile)
 
 	/*==================================================================*/
 	/* 3GPP TS 29.273 V15.4.0 (2019-09)                                 */
+	/* From 3GPP 29273-f40.docx                                         */
 	/*==================================================================*/
 
 	/*==================================================================*/
@@ -11781,6 +11782,221 @@ static int dict_dcca_3gpp_entry(char * conffile)
 			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
 			AVP_FLAG_VENDOR,	/* Fixed flag values */
 			AVP_TYPE_UNSIGNED32	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+	};
+
+	/*==================================================================*/
+	/* 3GPP TS 29.338 Table 6.3.3.1/1: SGd/Gdd specific Diameter AVPs   */
+	/*==================================================================*/
+
+	/* SC-Address, OctetString, code 3300, section 6.3.3.2              */
+	{
+		struct dict_avp_data data = {
+			3300,	/* Code */
+			10415,	/* Vendor */
+			"SC-Address",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flag values */
+			AVP_TYPE_OCTETSTRING	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+	};
+
+	/* SM-RP-UI, OctetString, code 3301, section 6.3.3.3                */
+	{
+		struct dict_avp_data data = {
+			3301,	/* Code */
+			10415,	/* Vendor */
+			"SM-RP-UI",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flag values */
+			AVP_TYPE_OCTETSTRING	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+	};
+
+	/* TFR-Flags, Unsigned32, code 3302, section 6.3.3.4                */
+	{
+		struct dict_avp_data data = {
+			3302,	/* Code */
+			10415,	/* Vendor */
+			"TFR-Flags",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flag values */
+			AVP_TYPE_UNSIGNED32	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+	};
+
+	/* SM-Delivery-Failure-Cause, Grouped, code 3303, section 6.3.3.5   */
+	{
+		struct dict_avp_data data = {
+			3303,	/* Code */
+			10415,	/* Vendor */
+			"SM-Delivery-Failure-Cause",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flag values */
+			AVP_TYPE_GROUPED	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+	};
+
+	/* SM-Enumerated-Delivery-Failure-Cause, Enumerated, code 3304, section 6.3.3.6 */
+	{
+		struct dict_avp_data data = {
+			3304,	/* Code */
+			10415,	/* Vendor */
+			"SM-Enumerated-Delivery-Failure-Cause",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flag values */
+			AVP_TYPE_INTEGER32	/* base type of data */
+		};
+		struct dict_object	*type;
+		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "Enumerated(3GPP/SM-Enumerated-Delivery-Failure-Cause)", NULL, NULL, NULL };
+		CHECK_dict_new(DICT_TYPE, &tdata, NULL, &type);
+		CHECK_dict_new(DICT_AVP, &data, type, NULL);
+	};
+
+	/* SM-Diagnostic-Info, OctetString, code 3305, section 6.3.3.7      */
+	{
+		struct dict_avp_data data = {
+			3305,	/* Code */
+			10415,	/* Vendor */
+			"SM-Diagnostic-Info",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flag values */
+			AVP_TYPE_OCTETSTRING	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+	};
+
+	/* SM-Delivery-Timer, Unsigned32, code 3306, section 6.3.3.10       */
+	{
+		struct dict_avp_data data = {
+			3306,	/* Code */
+			10415,	/* Vendor */
+			"SM-Delivery-Timer",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flag values */
+			AVP_TYPE_UNSIGNED32	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+	};
+
+	/* SM-Delivery-Start-Time, Time, code 3307, section 6.3.3.11        */
+	{
+		struct dict_avp_data data = {
+			3307,	/* Code */
+			10415,	/* Vendor */
+			"SM-Delivery-Start-Time",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flag values */
+			AVP_TYPE_OCTETSTRING	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, Time_type, NULL);
+	};
+
+	/* SMSMI-Correlation-ID, Grouped, code 3324, section 6.3.3.13       */
+	{
+		struct dict_avp_data data = {
+			3324,	/* Code */
+			10415,	/* Vendor */
+			"SMSMI-Correlation-ID",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR,	/* Fixed flag values */
+			AVP_TYPE_GROUPED	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+	};
+
+	/* HSS-ID, OctetString, code 3325, section 6.3.3.14                 */
+	{
+		struct dict_avp_data data = {
+			3325,	/* Code */
+			10415,	/* Vendor */
+			"HSS-ID",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR,	/* Fixed flag values */
+			AVP_TYPE_OCTETSTRING	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+	};
+
+	/* Originating-SIP-URI, UTF8String, code 3326, section 6.3.3.15     */
+	{
+		struct dict_avp_data data = {
+			3326,	/* Code */
+			10415,	/* Vendor */
+			"Originating-SIP-URI",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR,	/* Fixed flag values */
+			AVP_TYPE_OCTETSTRING	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, UTF8String_type, NULL);
+	};
+
+	/* Destination-SIP-URI, UTF8String, code 3327, section 6.3.3.16     */
+	{
+		struct dict_avp_data data = {
+			3327,	/* Code */
+			10415,	/* Vendor */
+			"Destination-SIP-URI",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR,	/* Fixed flag values */
+			AVP_TYPE_OCTETSTRING	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, UTF8String_type, NULL);
+	};
+
+	/* OFR-Flags, Unsigned32, code 3328, section 6.3.3.12               */
+	{
+		struct dict_avp_data data = {
+			3328,	/* Code */
+			10415,	/* Vendor */
+			"OFR-Flags",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR,	/* Fixed flag values */
+			AVP_TYPE_UNSIGNED32	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+	};
+
+	/* Maximum-Retransmission-Time, Time, code 3330, section 6.3.3.17   */
+	{
+		struct dict_avp_data data = {
+			3330,	/* Code */
+			10415,	/* Vendor */
+			"Maximum-Retransmission-Time",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR,	/* Fixed flag values */
+			AVP_TYPE_OCTETSTRING	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, Time_type, NULL);
+	};
+
+	/* Requested-Retransmission-Time, Time, code 3331, section 6.3.3.18 */
+	{
+		struct dict_avp_data data = {
+			3331,	/* Code */
+			10415,	/* Vendor */
+			"Requested-Retransmission-Time",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR,	/* Fixed flag values */
+			AVP_TYPE_OCTETSTRING	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, Time_type, NULL);
+	};
+
+	/* SMS-GMSC-Address, OctetString, code 3332, section 6.3.3.19       */
+	{
+		struct dict_avp_data data = {
+			3332,	/* Code */
+			10415,	/* Vendor */
+			"SMS-GMSC-Address",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR,	/* Fixed flag values */
+			AVP_TYPE_OCTETSTRING	/* base type of data */
 		};
 		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
 	};

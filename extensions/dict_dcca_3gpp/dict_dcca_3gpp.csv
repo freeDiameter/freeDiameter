@@ -893,6 +893,7 @@ Interworking-5GS-Indicator,1706,7.3.231,Enumerated,V,,,M,N
 @standard,3GPP TS 29.273,,,,,,
 #=,,,,,,,
 # 3GPP TS 29.273 V15.4.0 (2019-09),,,,,,,
+# From 3GPP 29273-f40.docx,,,,,,,,
 #=,,,,,,,
 #,,,,,,,
 #=,,,,,,,
@@ -1148,6 +1149,26 @@ Absent-User-Diagnostic-SM,3322,5.3.3.20,Unsigned32,"M, V",,,,No
 RDR-Flags,3323,5.3.3.21,Unsigned32,V,,,M,No
 Maximum-UE-Availability-Time,3329,5.3.3.22,Time,V,,,M,No
 SMS-GMSC-Alert-Event,3333,5.3.3.23,Unsigned32,V,,,M,No
+#=,,,,,,,,
+# 3GPP TS 29.338 Table 6.3.3.1/1: SGd/Gdd specific Diameter AVPs,,,,,,,,
+#=,,,,,,,,
+#,,,,,,,,
+SC-Address,3300,6.3.3.2,OctetString,"M, V",,,,No
+SM-RP-UI,3301,6.3.3.3,OctetString,"M, V",,,,No
+TFR-Flags,3302,6.3.3.4,Unsigned32,"M, V",,,,No
+SM-Delivery-Failure-Cause,3303,6.3.3.5,Grouped,"M, V",,,,No
+SM-Enumerated-Delivery-Failure-Cause,3304,6.3.3.6,Enumerated,"M, V",,,,No
+SM-Diagnostic-Info,3305,6.3.3.7,OctetString,"M, V",,,,No
+SM-Delivery-Timer,3306,6.3.3.10,Unsigned32,"M, V",,,,No
+SM-Delivery-Start-Time,3307,6.3.3.11,Time,"M, V",,,,No
+SMSMI-Correlation-ID,3324,6.3.3.13,Grouped,V,,,M,No
+HSS-ID,3325,6.3.3.14,OctetString,V,,,M,No
+Originating-SIP-URI,3326,6.3.3.15,UTF8String,V,,,M,No
+Destination-SIP-URI,3327,6.3.3.16,UTF8String,V,,,M,No
+OFR-Flags,3328,6.3.3.12,Unsigned32,V,,,M,No
+Maximum-Retransmission-Time,3330,6.3.3.17,Time,V,,,M,No
+Requested-Retransmission-Time,3331,6.3.3.18,Time,V,,,M,No
+SMS-GMSC-Address,3332,6.3.3.19,OctetString,V,,,M,No
 ,,,,,,,,
 @standard,3GPP TS 29.344,,,,,,,
 #=,,,,,,,,
