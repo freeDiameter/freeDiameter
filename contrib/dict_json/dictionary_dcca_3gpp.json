@@ -2930,26 +2930,6 @@
       "Vendor": 10415
     },
     {
-      "Code": 124,
-      "Flags": {
-        "Must": "M",
-        "MustNot": "VP"
-      },
-      "Name": "MIP6-Feature-Vector",
-      "Type": "Unsigned64",
-      "Vendor": 10415
-    },
-    {
-      "Code": 493,
-      "Flags": {
-        "Must": "M",
-        "MustNot": "VP"
-      },
-      "Name": "Service-Selection",
-      "Type": "UTF8String",
-      "Vendor": 10415
-    },
-    {
       "Code": 500,
       "Flags": {
         "Must": "VM",
@@ -3007,16 +2987,6 @@
       },
       "Name": "AF-Charging-Identifier",
       "Type": "OctetString",
-      "Vendor": 10415
-    },
-    {
-      "Code": 506,
-      "Flags": {
-        "Must": "M",
-        "MustNot": "VP"
-      },
-      "Name": "Mobile-Node-Identifier",
-      "Type": "UTF8String",
       "Vendor": 10415
     },
     {
@@ -3547,16 +3517,6 @@
       },
       "Name": "Extended-Min-Requested-BW-UL",
       "Type": "Unsigned32",
-      "Vendor": 10415
-    },
-    {
-      "Code": 578,
-      "Flags": {
-        "Must": "M",
-        "MustNot": "VP"
-      },
-      "Name": "QoS-Capability",
-      "Type": "Grouped",
       "Vendor": 10415
     },
     {
