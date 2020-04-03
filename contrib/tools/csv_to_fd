@@ -204,7 +204,7 @@ class Processor(object):
         return cls.__doc__.split('\n')[0]
 
     @abc.abstractmethod
-    def next_file(self, filename):
+    def filename(self, filename):
         """Called when a file is opened."""
         pass
 
@@ -225,11 +225,18 @@ class Processor(object):
         """Invoked after all rows processed."""
         pass
 
+    @abc.abstractmethod
+    def parameter(self, name, value):
+        """Process a parameter row:
+            @name,value.
+        """
+        pass
+
 
 class DebugProcessor(Processor):
     """Display the CSV parsing."""
 
-    def next_file(self, filename):
+    def filename(self, filename):
         print('File: {}'.format(filename))
 
     def avp(self, avp):
@@ -242,11 +249,14 @@ class DebugProcessor(Processor):
     def generate(self):
         print('Generate')
 
+    def parameter(self, name, value):
+        print('Parameter: {} {}'.format(name, value))
+
 
 class NoopProcessor(Processor):
     """Validate the CSV; no other output."""
 
-    def next_file(self, filename):
+    def filename(self, filename):
         pass
 
     def avp(self, avp):
@@ -256,6 +266,9 @@ class NoopProcessor(Processor):
         pass
 
     def generate(self):
+        pass
+
+    def parameter(self, name, value):
         pass
 
 
@@ -270,12 +283,46 @@ class FdcProcessor(Processor):
 
     COMMENT_WIDTH = 64
 
-    def __init__(self):
-        self.filenames = []
-        self.lines = []
+    class AvpFunction(object):
+        """Maintain per-function state to create DICT_AVP entries.
+        """
 
-    def next_file(self, filename):
-        self.filenames.append(os.path.basename(filename))
+        def __init__(self, name):
+            self.__name = name
+            self.__lines = []
+            self.__derived = set()
+
+        @property
+        def name(self):
+            """Return name."""
+            return self.__name
+
+        @property
+        def lines(self):
+            """Return all lines."""
+            return self.__lines
+
+        @lines.setter
+        def lines(self, value):
+            """Set to append a line."""
+            self.__lines.append(value)
+
+        @property
+        def derived(self):
+            """Return list of all derived values."""
+            return list(self.__derived)
+
+        @derived.setter
+        def derived(self, value):
+            """Set to store a derived type."""
+            self.__derived.add(value)
+
+    def __init__(self):
+        self._filenames = []
+        self._functions = collections.OrderedDict()
+
+    def filename(self, filename):
+        self._filenames.append(os.path.basename(filename))
 
     def avp(self, avp):
         comment = '{name}, {datatype}, code {code}'.format(**vars(avp))
@@ -311,6 +358,7 @@ class FdcProcessor(Processor):
             avp_type = "type"
         elif avp.datatype in DERIVED_TO_BASE:
             avp_type = '{}_type'.format(avp.datatype)
+            self.derived(avp.datatype)
         self.add('\t\tCHECK_dict_new(DICT_AVP, &data, {}, NULL);'.format(
             avp_type))
 # TODO: remove ; on scope brace
@@ -328,21 +376,36 @@ class FdcProcessor(Processor):
             raise ValueError('Unsupported comment "{}"'.format(comment))
 
     def generate(self):
-        self.print_header()
-        self.print_comment('Start of generated data.')
-        self.print_comment('')
-        self.print_comment('The following is created automatically with:')
-        self.print_comment('    csv_to_fd -p {} {}'.format(
-            self.cls_name(), ' '.join(self.filenames)))
-        self.print_comment('Changes will be lost during the next update.')
-        self.print_comment('Do not modify;'
-                           ' modify the source .csv file instead.')
-        self.print_header()
-        print('')
-        print('\n'.join(self.lines))
-        self.print_header()
-        self.print_comment('End of generated data.')
-        self.print_header()
+        fp = sys.stdout
+        self.write_introduction(fp)
+        for func in self._functions:
+            self.write_function(fp, self._functions[func])
+
+    def parameter(self, name, value):
+        pass
+
+    # internal methods
+
+    def current_avpfunction(self):
+        """Return current AvpFunction to update.
+
+        Note: allows for easier future enhancement to generate separate
+        C functions per AVP groups such as: by csv file, standard, or vendor.
+        """
+        name = 'add_avps'
+        if name not in self._functions:
+            self._functions[name] = self.AvpFunction(name)
+        return self._functions[name]
+
+    def add(self, line):
+        self.current_avpfunction().lines = line
+
+    def derived(self, value):
+        self.current_avpfunction().derived = value
+
+    def build_c_token(self, value):
+        """Convert a string into a valid C token."""
+        return re.sub(r'[^\w]', '_', value)
 
     def build_flags(self, flags):
         result = []
@@ -352,14 +415,11 @@ class FdcProcessor(Processor):
             result.append('AVP_FLAG_MANDATORY')
         return ' |'.join(result)
 
-    def add(self, line):
-        self.lines.append(line)
-
     def add_comment(self, comment):
-        self.lines.append(self.format_comment(comment))
+        self.add(self.format_comment(comment))
 
     def add_header(self):
-        self.lines.append(self.format_header())
+        self.add(self.format_header())
 
     def format_comment(self, comment):
         return '\t/* {:<{width}} */'.format(comment, width=self.COMMENT_WIDTH)
@@ -367,11 +427,56 @@ class FdcProcessor(Processor):
     def format_header(self):
         return '\t/*={:=<{width}}=*/'.format('', width=self.COMMENT_WIDTH)
 
-    def print_comment(self, comment):
-        print(self.format_comment(comment))
+    def write_introduction(self, fp):
+        """Write the introduction to the generated file."""
+        fp.write('''\
+/*
+Generated by:
+\tcsv_to_fd -p {processor} {files}
 
-    def print_header(self):
-        print(self.format_header())
+Do not modify; modify the source .csv files instead.
+*/
+
+#include <freeDiameter/extension.h>
+
+#define CHECK_dict_new( _type, _data, _parent, _ref ) \\
+\tCHECK_FCT(  fd_dict_new( fd_g_config->cnf_dict, \
+(_type), (_data), (_parent), (_ref))  );
+
+#define CHECK_dict_search( _type, _criteria, _what, _result ) \\
+\tCHECK_FCT( fd_dict_search( fd_g_config->cnf_dict, \
+(_type), (_criteria), (_what), (_result), ENOENT) );
+'''.format(
+            processor=self.cls_name(),
+            files=' '.join(self._filenames)))
+
+    def write_function(self, fp, avpfunction):
+        """Generate a function from AvpFunction."""
+        function = self.build_c_token(avpfunction.name)
+        # Function start
+        fp.write('''\
+
+int {}()
+{{
+'''.format(function))
+
+        # Create variables used by derived type validation
+        for derived in avpfunction.derived:
+            fp.write('''\
+\tstruct dict_object * {name}_type = NULL;
+\tCHECK_dict_search(DICT_TYPE, TYPE_BY_NAME, "{name}", &{name}_type);
+
+'''.format(name=derived))
+
+        # Write generated DICT_AVP creation
+        fp.write('\n'.join(avpfunction.lines))
+
+        # Write function end
+        fp.write('''\
+
+\treturn 0;
+}} /* {}() */
+'''.format(function))
 
 
 class JsonProcessor(Processor):
@@ -381,7 +486,7 @@ class JsonProcessor(Processor):
     def __init__(self):
         self.avps = []
 
-    def next_file(self, filename):
+    def filename(self, filename):
         pass
 
     def avp(self, avp):
@@ -404,6 +509,9 @@ class JsonProcessor(Processor):
     def generate(self):
         doc = {"AVPs": self.avps}
         print(json.dumps(doc, indent=2))
+
+    def parameter(self, name, value):
+        pass
 
     def build_flags(self, flags):
         result = []
@@ -466,7 +574,6 @@ Supported PROCESSOR options:
 Convert CSV files FILE ... containing RADIUS or Diameter AVP tables
 into various formats using the specified processor PROCESSOR.
 """)
-
     parser.add_option(
         '-p', '--processor',
         default='noop',
@@ -490,7 +597,7 @@ into various formats using the specified processor PROCESSOR.
 
     # Process files
     for filename in args:
-        avpproc.next_file(filename)
+        avpproc.filename(filename)
         with open(filename, 'r') as csvfile:
             csvdata = csv.DictReader(csvfile, CSV_COLUMN_NAMES,
                                      restkey='extra_cells')
@@ -516,6 +623,7 @@ into various formats using the specified processor PROCESSOR.
                         else:
                             raise ValueError('Unknown parameter "{}"'.format(
                                 parameter))
+                        avpproc.parameter(parameter, value)
                     else:
                         avp = Avp(filename=filename, line_num=csvdata.line_num,
                                   standard=standard, vendor=vendor,
