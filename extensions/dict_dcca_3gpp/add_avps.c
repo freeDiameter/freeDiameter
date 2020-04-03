@@ -2911,6 +2911,46 @@ int add_avps()
 	};
 
 	/*==================================================================*/
+	/* 3GPP TS 29.209 V6.8.0 (2011-09)                                  */
+	/* Policy control over Gq interface                                 */
+	/*                                                                  */
+	/* From 3GPP 29209-680.doc                                          */
+	/*                                                                  */
+	/* Replaced by 3GPP TS 29.214.                                      */
+	/*==================================================================*/
+
+	/*==================================================================*/
+	/* 3GPP TS 29.209 Table 6.5.1: Gq specific Diameter AVPs            */
+	/* Note: Only AVPs not provided by 3GPP TS 29.214.                  */
+	/*==================================================================*/
+
+	/* Authorization-Token, OctetString, code 506, section 6.5.7        */
+	{
+		struct dict_avp_data data = {
+			506,	/* Code */
+			10415,	/* Vendor */
+			"Authorization-Token",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flag values */
+			AVP_TYPE_OCTETSTRING	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+	};
+
+	/* Flow-Grouping, Grouped, code 508, section 6.5.9                  */
+	{
+		struct dict_avp_data data = {
+			508,	/* Code */
+			10415,	/* Vendor */
+			"Flow-Grouping",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flag values */
+			AVP_TYPE_GROUPED	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+	};
+
+	/*==================================================================*/
 	/* 3GPP TS 29.210 V6.7.0 (2006-12)                                  */
 	/* Charging rule provisioning over Gx interface                     */
 	/*                                                                  */
@@ -2921,7 +2961,7 @@ int add_avps()
 
 	/*==================================================================*/
 	/* 3GPP TS 29.210 Table 5.2: Gx specific Diameter AVPs              */
-	/* AVPs not provided by 3GPP TS 29.212.                             */
+	/* Note: Only AVPs not provided by 3GPP TS 29.212.                  */
 	/*==================================================================*/
 
 	/* PDP-Session-Operation, Enumerated, code 1015, section 5.2.21     */
