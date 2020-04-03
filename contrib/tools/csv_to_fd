@@ -1,12 +1,12 @@
 #!/usr/bin/env python
 
 """
-Convert CSV files containing RADIUS or Diameter AVP tables
+Convert 8 column CSV files containing RADIUS or Diameter AVP tables
 into various formats.
 
 Format of the CSV files is one of:
 - Row per 3GPP AVP tables:
-    Name, Code, Section, DataType, Must, May, ShouldNot, MustNot [, extra]
+    Name, Code, Section, DataType, Must, May, ShouldNot, MustNot
     - Name:
         AVP Name. String, validated as ALPHA *(ALPHA / DIGIT / "-")
         per RFC 6733 section 3.2.
@@ -600,12 +600,15 @@ into various formats using the specified processor PROCESSOR.
         avpproc.filename(filename)
         with open(filename, 'r') as csvfile:
             csvdata = csv.DictReader(csvfile, CSV_COLUMN_NAMES,
-                                     restkey='extra_cells')
+                                     restkey='extra_cells', restval='')
             standard = ''
             vendor = 0
             errors = []
             for row in csvdata:
                 try:
+                    if csvdata.restkey in row:
+                        raise ValueError('Extra cells: {}'.format(
+                            ','.join(row[csvdata.restkey])))
                     if row['name'] in (None, '', 'Attribute Name'):
                         continue
                     elif row['name'].startswith('#'):
@@ -640,7 +643,7 @@ into various formats using the specified processor PROCESSOR.
                         avp_names[avp.vendor][avp.name] = avp
                         # Process AVP
                         avpproc.avp(avp)
-                except ValueError as e:
+                except (TypeError, ValueError) as e:
                     errors.append('CSV file "{}" line {}: {}\n'.format(
                         filename, csvdata.line_num, e))
             if errors:
