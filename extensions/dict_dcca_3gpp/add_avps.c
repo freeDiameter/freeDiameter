@@ -11850,6 +11850,76 @@ int add_avps()
 	};
 
 	/*==================================================================*/
+	/* 3GPP TS 29.337 V15.0.0 (2018-06)                                 */
+	/* Diameter-based T4 interface for communications with packet       */
+	/* data networks and applications                                   */
+	/*                                                                  */
+	/* From 3GPP 29337-f00.doc                                          */
+	/*==================================================================*/
+
+	/*==================================================================*/
+	/* 3GPP TS 29.337 Table 6.3.1/1: T4 specific Diameter AVPs          */
+	/*==================================================================*/
+
+	/* SM-Delivery-Outcome-T4, Enumerated, code 3200, section 6.3.1     */
+	{
+		struct dict_avp_data data = {
+			3200,	/* Code */
+			10415,	/* Vendor */
+			"SM-Delivery-Outcome-T4",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flag values */
+			AVP_TYPE_INTEGER32	/* base type of data */
+		};
+		struct dict_object	*type;
+		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "Enumerated(3GPP/SM-Delivery-Outcome-T4)", NULL, NULL, NULL };
+		CHECK_dict_new(DICT_TYPE, &tdata, NULL, &type);
+		CHECK_dict_new(DICT_AVP, &data, type, NULL);
+	};
+
+	/* Absent-Subscriber-Diagnostic-T4, Enumerated, code 3201, section 6.3.2 */
+	{
+		struct dict_avp_data data = {
+			3201,	/* Code */
+			10415,	/* Vendor */
+			"Absent-Subscriber-Diagnostic-T4",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flag values */
+			AVP_TYPE_INTEGER32	/* base type of data */
+		};
+		struct dict_object	*type;
+		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "Enumerated(3GPP/Absent-Subscriber-Diagnostic-T4)", NULL, NULL, NULL };
+		CHECK_dict_new(DICT_TYPE, &tdata, NULL, &type);
+		CHECK_dict_new(DICT_AVP, &data, type, NULL);
+	};
+
+	/* Trigger-Action, Unsigned32, code 3202, section 6.3.6             */
+	{
+		struct dict_avp_data data = {
+			3202,	/* Code */
+			10415,	/* Vendor */
+			"Trigger-Action",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR,	/* Fixed flag values */
+			AVP_TYPE_UNSIGNED32	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+	};
+
+	/* MTC-Error-Diagnostic, Unsigned32, code 3203, section 6.3.7       */
+	{
+		struct dict_avp_data data = {
+			3203,	/* Code */
+			10415,	/* Vendor */
+			"MTC-Error-Diagnostic",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR,	/* Fixed flag values */
+			AVP_TYPE_UNSIGNED32	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+	};
+
+	/*==================================================================*/
 	/* 3GPP TS 29.338 V15.1.0 (2018-12)                                 */
 	/* Diameter based protocols to support                              */
 	/* Short Message Service (SMS) capable                              */
