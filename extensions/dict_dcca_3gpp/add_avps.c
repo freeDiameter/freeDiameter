@@ -5969,6 +5969,155 @@ int add_avps()
 	};
 
 	/*==================================================================*/
+	/* 3GPP TS 29.215 V15.2.0 (2019-09)                                 */
+	/* Policy and Charging Control (PCC) over S9 reference point;       */
+	/* Stage 3                                                          */
+	/*                                                                  */
+	/* From 3GPP 29215-f20.doc                                          */
+	/*==================================================================*/
+
+	/*==================================================================*/
+	/* 3GPP TS 29.215 Table 5.3.0.1: S9 specific Diameter AVPs          */
+	/*==================================================================*/
+
+	/* DRA-Deployment, Enumerated, code 2206, section 5.3.7             */
+	{
+		struct dict_avp_data data = {
+			2206,	/* Code */
+			10415,	/* Vendor */
+			"DRA-Deployment",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR,	/* Fixed flag values */
+			AVP_TYPE_INTEGER32	/* base type of data */
+		};
+		struct dict_object	*type;
+		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "Enumerated(3GPP/DRA-Deployment)", NULL, NULL, NULL };
+		CHECK_dict_new(DICT_TYPE, &tdata, NULL, &type);
+		CHECK_dict_new(DICT_AVP, &data, type, NULL);
+	};
+
+	/* Multiple-BBERF-Action, Enumerated, code 2204, section 5.3.6      */
+	{
+		struct dict_avp_data data = {
+			2204,	/* Code */
+			10415,	/* Vendor */
+			"Multiple-BBERF-Action",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flag values */
+			AVP_TYPE_INTEGER32	/* base type of data */
+		};
+		struct dict_object	*type;
+		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "Enumerated(3GPP/Multiple-BBERF-Action)", NULL, NULL, NULL };
+		CHECK_dict_new(DICT_TYPE, &tdata, NULL, &type);
+		CHECK_dict_new(DICT_AVP, &data, type, NULL);
+	};
+
+	/* Subsession-Decision-Info, Grouped, code 2200, section 5.3.1      */
+	{
+		struct dict_avp_data data = {
+			2200,	/* Code */
+			10415,	/* Vendor */
+			"Subsession-Decision-Info",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flag values */
+			AVP_TYPE_GROUPED	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+	};
+
+	/* Subsession-Enforcement-Info, Grouped, code 2201, section 5.3.2   */
+	{
+		struct dict_avp_data data = {
+			2201,	/* Code */
+			10415,	/* Vendor */
+			"Subsession-Enforcement-Info",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flag values */
+			AVP_TYPE_GROUPED	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+	};
+
+	/* Subsession-Id, Unsigned32, code 2202, section 5.3.3              */
+	{
+		struct dict_avp_data data = {
+			2202,	/* Code */
+			10415,	/* Vendor */
+			"Subsession-Id",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flag values */
+			AVP_TYPE_UNSIGNED32	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+	};
+
+	/* Subsession-Operation, Enumerated, code 2203, section 5.3.4       */
+	{
+		struct dict_avp_data data = {
+			2203,	/* Code */
+			10415,	/* Vendor */
+			"Subsession-Operation",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flag values */
+			AVP_TYPE_INTEGER32	/* base type of data */
+		};
+		struct dict_object	*type;
+		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "Enumerated(3GPP/Subsession-Operation)", NULL, NULL, NULL };
+		CHECK_dict_new(DICT_TYPE, &tdata, NULL, &type);
+		CHECK_dict_new(DICT_AVP, &data, type, NULL);
+	};
+
+	/* DRA-Binding, Enumerated, code 2208, section 5.3.x                */
+	{
+		struct dict_avp_data data = {
+			2208,	/* Code */
+			10415,	/* Vendor */
+			"DRA-Binding",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR,	/* Fixed flag values */
+			AVP_TYPE_INTEGER32	/* base type of data */
+		};
+		struct dict_object	*type;
+		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "Enumerated(3GPP/DRA-Binding)", NULL, NULL, NULL };
+		CHECK_dict_new(DICT_TYPE, &tdata, NULL, &type);
+		CHECK_dict_new(DICT_AVP, &data, type, NULL);
+	};
+
+	/*==================================================================*/
+	/* Table A.7.3.1.1: S9a specific Diameter AVPs                      */
+	/*==================================================================*/
+
+	/* PCRF-Address, DiameterIdentity, code 2207, section A.7.3.1.1     */
+	{
+		struct dict_avp_data data = {
+			2207,	/* Code */
+			10415,	/* Vendor */
+			"PCRF-Address",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flag values */
+			AVP_TYPE_OCTETSTRING	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, DiameterIdentity_type, NULL);
+	};
+
+	/*==================================================================*/
+	/* Table A.8.3.1.1: S9a* specific Diameter AVPs                     */
+	/*==================================================================*/
+
+	/* UE-Local-IPv6-Prefix, OctetString, code 2205, section A.8.3.1    */
+	{
+		struct dict_avp_data data = {
+			2205,	/* Code */
+			10415,	/* Vendor */
+			"UE-Local-IPv6-Prefix",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flag values */
+			AVP_TYPE_OCTETSTRING	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+	};
+
+	/*==================================================================*/
 	/* 3GPP TS 29.229 V15.2.0 (2019-09)                                 */
 	/* Cx and Dx interfaces based on the Diameter protocol;             */
 	/* Protocol details                                                 */
