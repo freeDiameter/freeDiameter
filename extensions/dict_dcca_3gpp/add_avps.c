@@ -35,6 +35,10 @@ int add_avps()
 
 	/*==================================================================*/
 	/* 3GPP TS 29.061 V15.5.0 (2018-12)                                 */
+	/* Interworking between the Public Land Mobile Network (PLMN)       */
+	/* supporting packet based services and                             */
+	/* Packet Data Networks (PDN)                                       */
+	/*                                                                  */
 	/* From 3GPP 29061-f50.doc                                          */
 	/*==================================================================*/
 
@@ -969,6 +973,10 @@ int add_avps()
 
 	/*==================================================================*/
 	/* 3GPP TS 29.128 V15.6.0 (2019-09)                                 */
+	/* Mobility Management Entity (MME) and Serving GPRS Support        */
+	/* Node (SGSN) interfaces for interworking with packet data         */
+	/* networks and applications                                        */
+	/*                                                                  */
 	/* From 3GPP 29128-f60.docx                                         */
 	/*==================================================================*/
 
@@ -1305,6 +1313,9 @@ int add_avps()
 
 	/*==================================================================*/
 	/* 3GPP TS 29.140 V7.0.0 (2007-06)                                  */
+	/* MM10 interface based on Diameter protocol;                       */
+	/* Stage 3                                                          */
+	/*                                                                  */
 	/* From 3GPP 29140-700.doc                                          */
 	/*==================================================================*/
 
@@ -1600,6 +1611,12 @@ int add_avps()
 
 	/*==================================================================*/
 	/* 3GPP TS 29.172 V15.2.0 (2019-12)                                 */
+	/* Location Services (LCS);                                         */
+	/* Evolved Packet Core (EPC) LCS Protocol (ELP) between the         */
+	/* Gateway Mobile Location Centre (GMLC) and the                    */
+	/* Mobile Management Entity (MME);                                  */
+	/* SLg interface                                                    */
+	/*                                                                  */
 	/* From 3GPP 29172-f20.docx                                         */
 	/*==================================================================*/
 
@@ -2503,6 +2520,9 @@ int add_avps()
 
 	/*==================================================================*/
 	/* 3GPP TS 29.173 V15.0.0 (2018-06)                                 */
+	/* Location Services (LCS);                                         */
+	/* Diameter-based SLh interface for Control Plane LCS               */
+	/*                                                                  */
 	/* From 3GPP 29173-f00.doc                                          */
 	/*==================================================================*/
 
@@ -2668,6 +2688,8 @@ int add_avps()
 
 	/*==================================================================*/
 	/* 3GPP TS 29.210 V6.7.0 (2006-12)                                  */
+	/* Charging rule provisioning over Gx interface                     */
+	/*                                                                  */
 	/* From 3GPP 29210-670.doc                                          */
 	/*                                                                  */
 	/* Replaced by 3GPP TS 29.212.                                      */
@@ -2696,6 +2718,8 @@ int add_avps()
 
 	/*==================================================================*/
 	/* 3GPP TS 29.212 V15.9.0 (2019-12)                                 */
+	/* Policy and Charging Control (PCC); Reference points              */
+	/*                                                                  */
 	/* From 3GPP 29212-f90.doc                                          */
 	/*==================================================================*/
 
@@ -4822,6 +4846,8 @@ int add_avps()
 
 	/*==================================================================*/
 	/* 3GPP TS 29.214 V15.7.0 (2019-09)                                 */
+	/* Policy and Charging Control over Rx reference point              */
+	/*                                                                  */
 	/* From 3GPP 29214-f70.doc                                          */
 	/*==================================================================*/
 
@@ -5680,6 +5706,9 @@ int add_avps()
 
 	/*==================================================================*/
 	/* 3GPP TS 29.229 V15.2.0 (2019-09)                                 */
+	/* Cx and Dx interfaces based on the Diameter protocol;             */
+	/* Protocol details                                                 */
+	/*                                                                  */
 	/* From 3GPP 29229-f20.doc                                          */
 	/*==================================================================*/
 
@@ -6502,6 +6531,10 @@ int add_avps()
 
 	/*==================================================================*/
 	/* 3GPP TS 29.272 V15.10.0 (2019-12)                                */
+	/* Mobility Management Entity (MME)                                 */
+	/* and Serving GPRS Support Node (SGSN) related interfaces          */
+	/* based on Diameter protocol                                       */
+	/*                                                                  */
 	/* From 3GPP 29272-fa0.docx                                         */
 	/*==================================================================*/
 
@@ -9213,6 +9246,9 @@ int add_avps()
 
 	/*==================================================================*/
 	/* 3GPP TS 29.273 V15.4.0 (2019-09)                                 */
+	/* Evolved Packet System (EPS);                                     */
+	/* 3GPP EPS AAA interfaces                                          */
+	/*                                                                  */
 	/* From 3GPP 29273-f40.docx                                         */
 	/*==================================================================*/
 
@@ -9801,6 +9837,9 @@ int add_avps()
 
 	/*==================================================================*/
 	/* 3GPP TS 29.329 V15.2.0 (2019-09)                                 */
+	/* Sh Interface based on the Diameter protocol;                     */
+	/* Protocol details                                                 */
+	/*                                                                  */
 	/* From 3GPP 29329-f20.doc                                          */
 	/*==================================================================*/
 
@@ -10143,6 +10182,9 @@ int add_avps()
 
 	/*==================================================================*/
 	/* 3GPP TS 29.336 V15.7.0 (2019-09)                                 */
+	/* Home Subscriber Server (HSS) diameter interfaces for             */
+	/* interworking with packet data networks and applications          */
+	/*                                                                  */
 	/* From 3GPP 29336-f70.docx                                         */
 	/*==================================================================*/
 
@@ -11202,7 +11244,11 @@ int add_avps()
 
 	/*==================================================================*/
 	/* 3GPP TS 29.338 V15.1.0 (2018-12)                                 */
-	/* From 3GPP 29338-f10.docx                                         */
+	/* Diameter based protocols to support                              */
+	/* Short Message Service (SMS) capable                              */
+	/* Mobile Management Entities (MMEs)                                */
+	/*                                                                  */
+	/* From 3GPP 29338-f10.doc                                          */
 	/*==================================================================*/
 
 	/*==================================================================*/
@@ -11669,6 +11715,10 @@ int add_avps()
 
 	/*==================================================================*/
 	/* 3GPP TS 29.344 V15.1.0 (2019-09)                                 */
+	/* Proximity-services (ProSe) Function to Home Subscriber           */
+	/* Server (HSS) aspects;                                            */
+	/* Stage 3                                                          */
+	/*                                                                  */
 	/* From 3GPP 29344-f10.doc                                          */
 	/*==================================================================*/
 
@@ -11769,6 +11819,9 @@ int add_avps()
 
 	/*==================================================================*/
 	/* 3GPP TS 32.299 V15.7.0 (2019-06)                                 */
+	/* Charging management;                                             */
+	/* Diameter charging applications                                   */
+	/*                                                                  */
 	/* From 3GPP 32299-f70.doc                                          */
 	/*==================================================================*/
 
@@ -17602,6 +17655,8 @@ int add_avps()
 
 	/*==================================================================*/
 	/* OMA DDS Charging_Data V1.0 20110201-A                            */
+	/* Charging Data                                                    */
+	/*                                                                  */
 	/* From OMA OMA-DDS-Charging_Data-V1_0-20110201-A.pdf               */
 	/*==================================================================*/
 
@@ -17781,6 +17836,9 @@ int add_avps()
 
 	/*==================================================================*/
 	/* 3GPP2 X.S0057-0 v2.0                                             */
+	/* E-UTRAN - eHRPD Connectivity and Interworking:                   */
+	/* Core Network Aspects                                             */
+	/*                                                                  */
 	/* From 3GPP2 X.S0057-0_v2.0_091215.pdf                             */
 	/*==================================================================*/
 
