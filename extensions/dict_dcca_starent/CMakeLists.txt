@@ -2,7 +2,7 @@
 PROJECT("Diameter DCCA (Diameter Credit Control Application) Starent dictionary definitions " C)
 
 # Compile as a module
-FD_ADD_EXTENSION(dict_dcca_starent dict_dcca_starent.c)
+FD_ADD_EXTENSION(dict_dcca_starent dict_dcca_starent.c add_avps.c)
 
 
 ####

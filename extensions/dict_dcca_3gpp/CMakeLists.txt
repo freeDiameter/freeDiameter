@@ -2,7 +2,7 @@
 PROJECT("Diameter DCCA (Diameter Credit Control Application) 3GPP dictionary definitions" C)
 
 # Compile as a module
-FD_ADD_EXTENSION(dict_dcca_3gpp dict_dcca_3gpp.c)
+FD_ADD_EXTENSION(dict_dcca_3gpp dict_dcca_3gpp.c add_avps.c)
 
 
 ####
