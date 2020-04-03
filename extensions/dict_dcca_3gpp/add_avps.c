@@ -6118,6 +6118,200 @@ int add_avps()
 	};
 
 	/*==================================================================*/
+	/* 3GPP TS 29.217 V15.1.0 (2019-09)                                 */
+	/* Policy and Charging Control (PCC);                               */
+	/* Congestion reporting over Np reference point                     */
+	/*                                                                  */
+	/* From 3GPP 29217-f10.doc                                          */
+	/*==================================================================*/
+
+	/*==================================================================*/
+	/* 3GPP TS 29.217 Table 5.3.1.1: Np specific Diameter AVPs          */
+	/*==================================================================*/
+
+	/* Aggregated-Congestion-Info, Grouped, code 4000, section 5.3.2    */
+	{
+		struct dict_avp_data data = {
+			4000,	/* Code */
+			10415,	/* Vendor */
+			"Aggregated-Congestion-Info",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flag values */
+			AVP_TYPE_GROUPED	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+	};
+
+	/* Aggregated-RUCI-Report, Grouped, code 4001, section 5.3.3        */
+	{
+		struct dict_avp_data data = {
+			4001,	/* Code */
+			10415,	/* Vendor */
+			"Aggregated-RUCI-Report",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flag values */
+			AVP_TYPE_GROUPED	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+	};
+
+	/* Congestion-Level-Definition, Grouped, code 4002, section 5.3.4   */
+	{
+		struct dict_avp_data data = {
+			4002,	/* Code */
+			10415,	/* Vendor */
+			"Congestion-Level-Definition",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR,	/* Fixed flag values */
+			AVP_TYPE_GROUPED	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+	};
+
+	/* Congestion-Level-Range, Unsigned32, code 4003, section 5.3.5     */
+	{
+		struct dict_avp_data data = {
+			4003,	/* Code */
+			10415,	/* Vendor */
+			"Congestion-Level-Range",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR,	/* Fixed flag values */
+			AVP_TYPE_UNSIGNED32	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+	};
+
+	/* Congestion-Level-Set-Id, Unsigned32, code 4004, section 5.3.6    */
+	{
+		struct dict_avp_data data = {
+			4004,	/* Code */
+			10415,	/* Vendor */
+			"Congestion-Level-Set-Id",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR,	/* Fixed flag values */
+			AVP_TYPE_UNSIGNED32	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+	};
+
+	/* Congestion-Level-Value, Unsigned32, code 4005, section 5.3.7     */
+	{
+		struct dict_avp_data data = {
+			4005,	/* Code */
+			10415,	/* Vendor */
+			"Congestion-Level-Value",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flag values */
+			AVP_TYPE_UNSIGNED32	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+	};
+
+	/* Congestion-Location-Id, Grouped, code 4006, section 5.3.8        */
+	{
+		struct dict_avp_data data = {
+			4006,	/* Code */
+			10415,	/* Vendor */
+			"Congestion-Location-Id",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR,	/* Fixed flag values */
+			AVP_TYPE_GROUPED	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+	};
+
+	/* Conditional-Restriction, Unsigned32, code 4007, section 5.3.9    */
+	{
+		struct dict_avp_data data = {
+			4007,	/* Code */
+			10415,	/* Vendor */
+			"Conditional-Restriction",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR,	/* Fixed flag values */
+			AVP_TYPE_UNSIGNED32	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+	};
+
+	/* eNodeB-Id, OctetString, code 4008, section 5.3.10                */
+	{
+		struct dict_avp_data data = {
+			4008,	/* Code */
+			10415,	/* Vendor */
+			"eNodeB-Id",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flag values */
+			AVP_TYPE_OCTETSTRING	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+	};
+
+	/* IMSI-List, OctetString, code 4009, section 5.3.11                */
+	{
+		struct dict_avp_data data = {
+			4009,	/* Code */
+			10415,	/* Vendor */
+			"IMSI-List",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flag values */
+			AVP_TYPE_OCTETSTRING	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+	};
+
+	/* RCAF-Id, DiameterIdentity, code 4010, section 5.3.12             */
+	{
+		struct dict_avp_data data = {
+			4010,	/* Code */
+			10415,	/* Vendor */
+			"RCAF-Id",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flag values */
+			AVP_TYPE_OCTETSTRING	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, DiameterIdentity_type, NULL);
+	};
+
+	/* Reporting-Restriction, Unsigned32, code 4011, section 5.3.13     */
+	{
+		struct dict_avp_data data = {
+			4011,	/* Code */
+			10415,	/* Vendor */
+			"Reporting-Restriction",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR,	/* Fixed flag values */
+			AVP_TYPE_UNSIGNED32	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+	};
+
+	/* RUCI-Action, Unsigned32, code 4012, section 5.3.14               */
+	{
+		struct dict_avp_data data = {
+			4012,	/* Code */
+			10415,	/* Vendor */
+			"RUCI-Action",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR,	/* Fixed flag values */
+			AVP_TYPE_UNSIGNED32	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+	};
+
+	/* Extended-eNodeB-Id, OctetString, code 4013, section 5.3.15       */
+	{
+		struct dict_avp_data data = {
+			4013,	/* Code */
+			10415,	/* Vendor */
+			"Extended-eNodeB-Id",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR,	/* Fixed flag values */
+			AVP_TYPE_OCTETSTRING	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+	};
+
+	/*==================================================================*/
 	/* 3GPP TS 29.229 V15.2.0 (2019-09)                                 */
 	/* Cx and Dx interfaces based on the Diameter protocol;             */
 	/* Protocol details                                                 */

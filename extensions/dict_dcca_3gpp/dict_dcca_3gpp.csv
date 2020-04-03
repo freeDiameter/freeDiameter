@@ -701,6 +701,34 @@ PCRF-Address,2207,A.7.3.1.1,DiameterIdentity,"V,M",P,,
 #,,,,,,,
 UE-Local-IPv6-Prefix,2205,A.8.3.1,OctetString,"V,M",P,,
 ,,,,,,,
+@standard,3GPP TS 29.217,,,,,,
+#=,,,,,,,
+# 3GPP TS 29.217 V15.1.0 (2019-09),,,,,,,
+# Policy and Charging Control (PCC);,,,,,,,
+# Congestion reporting over Np reference point,,,,,,,
+# ,,,,,,,
+# From 3GPP 29217-f10.doc,,,,,,,
+#=,,,,,,,
+#,,,,,,,
+#=,,,,,,,
+# 3GPP TS 29.217 Table 5.3.1.1: Np specific Diameter AVPs ,,,,,,,
+#=,,,,,,,
+#,,,,,,,
+Aggregated-Congestion-Info,4000,5.3.2,Grouped,"V, M",P,,
+Aggregated-RUCI-Report,4001,5.3.3,Grouped,"V, M",P,,
+Congestion-Level-Definition,4002,5.3.4,Grouped,V,P,,M
+Congestion-Level-Range,4003,5.3.5,Unsigned32,V,P,,M
+Congestion-Level-Set-Id,4004,5.3.6,Unsigned32,V,P,,M
+Congestion-Level-Value,4005,5.3.7,Unsigned32,"V, M",P,,
+Congestion-Location-Id,4006,5.3.8,Grouped,V,P,,M
+Conditional-Restriction,4007,5.3.9,Unsigned32,V,P,,M
+eNodeB-Id,4008,5.3.10,OctetString,"V, M",P,,
+IMSI-List,4009,5.3.11,OctetString,"V, M",P,,
+RCAF-Id,4010,5.3.12,DiameterIdentity,"V, M",P,,
+Reporting-Restriction,4011,5.3.13,Unsigned32,V,P,,M
+RUCI-Action,4012,5.3.14,Unsigned32,V,P,,M
+Extended-eNodeB-Id,4013,5.3.15,OctetString,"V, ",P,,M
+,,,,,,,
 @standard,3GPP TS 29.229,,,,,,
 #=,,,,,,,
 # 3GPP TS 29.229 V15.2.0 (2019-09),,,,,,,
