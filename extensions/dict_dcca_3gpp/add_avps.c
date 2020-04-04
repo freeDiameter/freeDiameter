@@ -1673,12 +1673,16 @@ int add_avps()
 		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
 	};
 
-	/* Time-Window, Grouped, code 4204, section 5.3.5                   */
+	/* Note: Name conflict with 3GPP TS 29.345 Time-Window (3818).      */
+	/* Time-Window (3818) in 3GPP TS 29.345 V12.1.0 (2014-12) predates  */
+	/* Time-Window (4204) in 3GPP TS 29.154 V13.1.0 (2016-03).          */
+	/* Time-Window (4204) renamed to Time-Window-29.154 (4204).         */
+	/* Time-Window-29.154, Grouped, code 4204, section 5.3.5            */
 	{
 		struct dict_avp_data data = {
 			4204,	/* Code */
 			10415,	/* Vendor */
-			"Time-Window",	/* Name */
+			"Time-Window-29.154",	/* Name */
 			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
 			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flag values */
 			AVP_TYPE_GROUPED	/* base type of data */
