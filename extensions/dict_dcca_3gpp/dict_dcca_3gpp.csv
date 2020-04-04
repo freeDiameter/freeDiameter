@@ -1344,6 +1344,34 @@ Maximum-Retransmission-Time,3330,6.3.3.17,Time,V,,,M
 Requested-Retransmission-Time,3331,6.3.3.18,Time,V,,,M
 SMS-GMSC-Address,3332,6.3.3.19,OctetString,V,,,M
 ,,,,,,,
+@standard,3GPP TS 29.343,,,,,,
+#=,,,,,,,
+# 3GPP TS 29.343 V15.1.0 (2019-09),,,,,,,
+# Proximity-services (ProSe) function to,,,,,,,
+# ProSe application server aspects (PC2);,,,,,,,
+# Stage 3,,,,,,,
+# ,,,,,,,
+# From 29343-f10.doc,,,,,,,
+#=,,,,,,,
+#,,,,,,,
+#=,,,,,,,
+# 3GPP TS 29.343 Table 6.4.1-1: PC2 specific Diameter AVPs,,,,,,,
+#=,,,,,,,
+#,,,,,,,
+Origin-App-Layer-User-Id,3600,6.4.2,UTF8String,"M,V",P,,
+Target-App-Layer-User-Id,3601,6.4.3,UTF8String,"M,V",P,,
+ProSe-Function-ID,3602,6.4.4,OctetString,"M,V",P,,
+ProSe-Request-Type,3603,6.4.5,Unsigned32,"M,V",P,,
+PDUID,3604,6.4.6,OctetString,V,P,,M
+Application-Data,3605,6.4.7,UTF8String,V,P,,M
+Allowed-Suffixes-Number,3606,6.4.8,Unsigned32,V,P,,M
+Monitor-Target,3607,6.4.9,Grouped,V,P,,M
+ProSe-Code-Suffix-Mask,3608,6.4.10,Grouped,V,P,,M
+Suffix-Code,3609,6.4.11,OctetString,V,P,,M
+Suffix-Mask,3610,6.4.12,OctetString,V,P,,M
+Banned-User-Target,3611,6.4.17,Grouped,V,P,,M
+Metadata-Indicator,3612,6.4.18,Unsigned32,V,P,,M
+,,,,,,,
 @standard,3GPP TS 29.344,,,,,,
 #=,,,,,,,
 # 3GPP TS 29.344 V15.1.0 (2019-09),,,,,,,

@@ -12391,6 +12391,188 @@ int add_avps()
 	};
 
 	/*==================================================================*/
+	/* 3GPP TS 29.343 V15.1.0 (2019-09)                                 */
+	/* Proximity-services (ProSe) function to                           */
+	/* ProSe application server aspects (PC2);                          */
+	/* Stage 3                                                          */
+	/*                                                                  */
+	/* From 29343-f10.doc                                               */
+	/*==================================================================*/
+
+	/*==================================================================*/
+	/* 3GPP TS 29.343 Table 6.4.1-1: PC2 specific Diameter AVPs         */
+	/*==================================================================*/
+
+	/* Origin-App-Layer-User-Id, UTF8String, code 3600, section 6.4.2   */
+	{
+		struct dict_avp_data data = {
+			3600,	/* Code */
+			10415,	/* Vendor */
+			"Origin-App-Layer-User-Id",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flag values */
+			AVP_TYPE_OCTETSTRING	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, UTF8String_type, NULL);
+	};
+
+	/* Target-App-Layer-User-Id, UTF8String, code 3601, section 6.4.3   */
+	{
+		struct dict_avp_data data = {
+			3601,	/* Code */
+			10415,	/* Vendor */
+			"Target-App-Layer-User-Id",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flag values */
+			AVP_TYPE_OCTETSTRING	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, UTF8String_type, NULL);
+	};
+
+	/* ProSe-Function-ID, OctetString, code 3602, section 6.4.4         */
+	{
+		struct dict_avp_data data = {
+			3602,	/* Code */
+			10415,	/* Vendor */
+			"ProSe-Function-ID",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flag values */
+			AVP_TYPE_OCTETSTRING	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+	};
+
+	/* ProSe-Request-Type, Unsigned32, code 3603, section 6.4.5         */
+	{
+		struct dict_avp_data data = {
+			3603,	/* Code */
+			10415,	/* Vendor */
+			"ProSe-Request-Type",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flag values */
+			AVP_TYPE_UNSIGNED32	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+	};
+
+	/* PDUID, OctetString, code 3604, section 6.4.6                     */
+	{
+		struct dict_avp_data data = {
+			3604,	/* Code */
+			10415,	/* Vendor */
+			"PDUID",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR,	/* Fixed flag values */
+			AVP_TYPE_OCTETSTRING	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+	};
+
+	/* Application-Data, UTF8String, code 3605, section 6.4.7           */
+	{
+		struct dict_avp_data data = {
+			3605,	/* Code */
+			10415,	/* Vendor */
+			"Application-Data",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR,	/* Fixed flag values */
+			AVP_TYPE_OCTETSTRING	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, UTF8String_type, NULL);
+	};
+
+	/* Allowed-Suffixes-Number, Unsigned32, code 3606, section 6.4.8    */
+	{
+		struct dict_avp_data data = {
+			3606,	/* Code */
+			10415,	/* Vendor */
+			"Allowed-Suffixes-Number",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR,	/* Fixed flag values */
+			AVP_TYPE_UNSIGNED32	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+	};
+
+	/* Monitor-Target, Grouped, code 3607, section 6.4.9                */
+	{
+		struct dict_avp_data data = {
+			3607,	/* Code */
+			10415,	/* Vendor */
+			"Monitor-Target",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR,	/* Fixed flag values */
+			AVP_TYPE_GROUPED	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+	};
+
+	/* ProSe-Code-Suffix-Mask, Grouped, code 3608, section 6.4.10       */
+	{
+		struct dict_avp_data data = {
+			3608,	/* Code */
+			10415,	/* Vendor */
+			"ProSe-Code-Suffix-Mask",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR,	/* Fixed flag values */
+			AVP_TYPE_GROUPED	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+	};
+
+	/* Suffix-Code, OctetString, code 3609, section 6.4.11              */
+	{
+		struct dict_avp_data data = {
+			3609,	/* Code */
+			10415,	/* Vendor */
+			"Suffix-Code",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR,	/* Fixed flag values */
+			AVP_TYPE_OCTETSTRING	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+	};
+
+	/* Suffix-Mask, OctetString, code 3610, section 6.4.12              */
+	{
+		struct dict_avp_data data = {
+			3610,	/* Code */
+			10415,	/* Vendor */
+			"Suffix-Mask",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR,	/* Fixed flag values */
+			AVP_TYPE_OCTETSTRING	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+	};
+
+	/* Banned-User-Target, Grouped, code 3611, section 6.4.17           */
+	{
+		struct dict_avp_data data = {
+			3611,	/* Code */
+			10415,	/* Vendor */
+			"Banned-User-Target",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR,	/* Fixed flag values */
+			AVP_TYPE_GROUPED	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+	};
+
+	/* Metadata-Indicator, Unsigned32, code 3612, section 6.4.18        */
+	{
+		struct dict_avp_data data = {
+			3612,	/* Code */
+			10415,	/* Vendor */
+			"Metadata-Indicator",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR,	/* Fixed flag values */
+			AVP_TYPE_UNSIGNED32	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+	};
+
+	/*==================================================================*/
 	/* 3GPP TS 29.344 V15.1.0 (2019-09)                                 */
 	/* Proximity-services (ProSe) Function to Home Subscriber           */
 	/* Server (HSS) aspects;                                            */
