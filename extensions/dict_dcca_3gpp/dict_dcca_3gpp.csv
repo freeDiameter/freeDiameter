@@ -1398,6 +1398,91 @@ UPR-Flags,3705,6.3.6,Unsigned32,"M,V",,,
 PNR-Flags,3706,6.3.7,Unsigned32,"M,V",,,
 ProSe-Initial-Location-Information,3707,6.3.9,Grouped,"M,V",,,
 ,,,,,,,
+@standard,3GPP TS 29.345,,,,,,
+#=,,,,,,,
+# 3GPP TS 29.345 V15.1.0 (2019-09),,,,,,,
+# Inter-Proximity-services (ProSe) Function signalling aspects;,,,,,,,
+# Stage 3,,,,,,,
+# ,,,,,,,
+# From 29345-f10.doc,,,,,,,
+#=,,,,,,,
+#,,,,,,,
+#=,,,,,,,
+# 3GPP TS 29.345 Table 6.3.1-1: PC6/PC7 specific Diameter AVPs,,,,,,,
+#=,,,,,,,
+#,,,,,,,
+App-Layer-User-Id,3801,6.3.2,UTF8String,"M, V",,,
+Assistance-info,3802,6.3.3,Grouped,"M, V",,,
+Assistance-Info-Validity-Timer,3803,6.3.4,Unsigned32,"M, V",,,
+Discovery-Type,3804,6.3.5,Unsigned32,"M, V",,,
+Filter-Id,3805,6.3.9,OctetString,"M, V",,,
+MAC-Address,3806,6.3.11,UTF8String,"M, V",,,
+Match-Report,3807,6.3.12,Grouped,"M, V",,,
+Operating-Channel,3808,6.3.14,Unsigned32,"M, V",,,
+P2P-Features,3809,6.3.15,Unsigned32,"M, V",,,
+ProSe-App-Code,3810,6.3.16,OctetString,"M, V",,,
+ProSe-App-Id,3811,6.3.17,UTF8String,"M, V",,,
+ProSe-App-Mask,3812,6.3.18,OctetString,"M, V",,,
+ProSe-Discovery-Filter,3813,6.3.20,Grouped,"M, V",,,
+PRR-Flags,3814,6.3.21,Unsigned32,"M, V",,,
+ProSe-Validity-Timer,3815,6.3.22,Unsigned32,"M, V",,,
+Requesting-EPUID,3816,6.3.23,UTF8String,"M, V",,,
+Targeted-EPUID,3817,6.3.26,UTF8String,"M, V",,,
+# Note: Name conflict with 3GPP TS 29.154 Time-Window (4204).,,,,,,,
+# Time-Window (3818) in 3GPP TS 29.345 V12.1.0 (2014-12) predates,,,,,,,
+# Time-Window (4204) in 3GPP TS 29.154 V13.1.0 (2016-03).,,,,,,,
+Time-Window,3818,6.3.27,Unsigned32,"M, V",,,
+WiFi-P2P-Assistance-Info,3819,6.3.30,Grouped,"M, V",,,
+WLAN-Assistance-Info,3820,6.3.31,Grouped,"M, V",,,
+WLAN-Link-Layer-Id,3821,6.3.32,OctetString,"M, V",,,
+WLAN-Link-Layer-Id-List,3822,6.3.33,Grouped,"M, V",,,
+Location-Update-Trigger,3823,6.3.42,Grouped,"M,V",,,
+Location-Update-Event-Type,3824,6.3.43,Unsigned32,"M,V",,,
+Change-Of-Area-Type,3825,6.3.44,Grouped,"M,V",,,
+Location-Update-Event-Trigger,3826,6.3.45,Unsigned32,"M,V",,,
+Report-Cardinality,3827,6.3.46,Enumerated,"M,V",,,
+Minimum-Interval-Time,3828,6.3.47,Unsigned32,"M,V",,,
+Periodic-Location-Type,3829,6.3.48,Grouped,"M,V",,,
+Location-Report-Interval-Time,3830,6.3.49,Unsigned32,"M,V",,,
+Total-Number-Of-Reports,3831,6.3.50,Unsigned32,"M,V",,,
+Validity-Time-Announce,3832,6.3.36,Unsigned32,"M, V",,,
+Validity-Time-Monitor,3833,6.3.37,Unsigned32,"M, V",,,
+Validity-Time-Communication,3834,6.3.38,Unsigned32,"M, V",,,
+ProSe-App-Code-Info,3835,6.3.39,Grouped,"M, V",,,
+MIC,3836,6.3.40,OctetString,"M, V",,,
+UTC-based-Counter,3837,6.3.41,Unsigned32,"M, V",,,
+ProSe-Match-Refresh-Timer,3838,6.3.52,Unsigned32,"M, V",,,
+ProSe-Metadata-Index-Mask,3839,6.3.60,OctetString,V,,,M
+App-Identifier,3840,6.3.61,Grouped,V,,,M
+OS-ID,3841,6.3.62,OctetString,V,,,M
+OS-App-ID,3842,6.3.63,UTF8String,V,,,M
+Requesting-RPAUID,3843,6.3.64,UTF8String,V,,,M
+Target-RPAUID,3844,6.3.65,UTF8String,V,,,M
+Target-PDUID,3845,6.3.66,OctetString,V,,,M
+ProSe-Restricted-Code,3846,6.3.67,OctetString,V,,,M
+ProSe-Restricted-Code-Suffix-Range,3847,6.3.68,OctetString,V,,,M
+Beginning-Suffix,3848,6.3.69,OctetString,V,,,M
+Ending-Suffix,3849,6.3.70,OctetString,V,,,M
+Discovery-Entry-ID,3850,6.3.59,Unsigned32,V,,,M
+Match-Timestamp,3851,6.3.71,Time,V,,,M
+PMR-Flags,3852,6.3.57,Unsigned32,"M,V",,,
+ProSe-Application-Metadata,3853,6.3.58,UTF8String,"M,V",,,
+Discovery-Auth-Request,3854,6.3.53,Grouped,"M, V",,,
+Discovery-Auth-Response,3855,6.3.54,Grouped,"M, V",,,
+Match-Request,3856,6.3.55,Grouped,"M, V",,,
+Match-Report-Info,3857,6.3.56,Grouped,"M, V",,,
+Banned-RPAUID,3858,6.3.73,UTF8String,V,,,M
+Banned-PDUID,3859,6.3.74,OctetString,V,,,M
+Code-Receiving-Security-Material,3860,6.3.75,Grouped,V,,,M
+Code-Sending-Security-Material,3861,6.3.76,Grouped,V,,,M
+DUSK,3862,6.3.77,OctetString,V,,,M
+DUIK,3863,6.3.78,OctetString,V,,,M
+DUCK,3864,6.3.79,OctetString,V,,,M
+MIC-Check-indicator,3865,6.3.80,Unsigned32,V,,,M
+Encrypted-Bitmask,3866,6.3.81,OctetString,V,,,M
+ProSe-App-Code-Suffix-Range,3867,6.3.82,OctetString,V,,,M
+PC5-tech,3868,6.3.84,OctetString,V,,,M
+,,,,,,,
 @standard,3GPP TS 32.299,,,,,,
 #=,,,,,,,
 # 3GPP TS 32.299 V15.7.0 (2019-06),,,,,,,
