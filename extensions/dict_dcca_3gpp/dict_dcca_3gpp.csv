@@ -127,10 +127,16 @@ MBMS-HC-Indicator,922,17.7.25,Enumerated,"M,V",P,,
 #=,,,,,,,
 #,,,,,,,
 MBMS-Access-Indicator,923,20.5a.1,Enumerated,"M,V",P,,
+# Note: Name conflict with 3GPP TS 29.061 MBMS-GW-SSM-IP-Address (3522).,,,,,,,
+# 3GPP TS 29.061 V10.4.0 (2011-09) CR 0355 added MBMS-GW-SSM-IP-Address (924).,,,,,,,
+# 3GPP TS 29.468 V14.0.0 (2016-12) CR 0021 added MBMS-GW-SSM-IP-Address (3522).,,,,,,,
 MBMS-GW-SSM-IP-Address,924,20.5a.2,OctetString,V,P,,M
 # Note: 3GPP TS 29.061 V12.6.0 (2014-06) renamed,,,,,,,
 # MBMS-GW-SSM-IPv6-Address (925) to MBMS-GW-SSM-Ipv6-Address;,,,,,,,
 # this rename was not applied.,,,,,,,
+# Note: Name conflict with 3GPP TS 29.061 MBMS-GW-SSM-IPv6-Address (3523).,,,,,,,
+# 3GPP TS 29.061 V10.4.0 (2011-09) CR 0355 added MBMS-GW-SSM-IPv6-Address (925).,,,,,,,
+# 3GPP TS 29.468 V14.0.0 (2016-12) CR 0021 added MBMS-GW-SSM-IPv6-Address (3523).,,,,,,,
 MBMS-GW-SSM-IPv6-Address,925,20.5a.3,OctetString,V,P,,M
 MBMS-BMSC-SSM-UDP-Port,926,20.5a.4,OctetString,V,P,,M
 MBMS-GW-UDP-Port,927,20.5a.5,OctetString,V,P,,M
@@ -1551,6 +1557,67 @@ Application-Port-Identifier,3010,6.4.11,Unsigned32,"M,V",P,,
 Old-Reference-Number,3011,6.4.12,Unsigned32,V,P,,M
 Feature-Supported-In-Final-Target,3012,6.4.13,Unsigned32,V,P,,M
 ,,,,,,,
+@standard,3GPP TS 29.468,,,,,,
+#=,,,,,,,
+# 3GPP TS 29.468 V15.8.0 (2019-12),,,,,,,
+# Group Communication System Enablers for LTE (GCSE_LTE);,,,,,,,
+# MB2 Reference Point;,,,,,,,
+# Stage 3,,,,,,,
+#=,,,,,,,
+#,,,,,,,
+#=,,,,,,,
+# 3GPP TS 29.468 Table 6.4.1 1: MB2 C specific Diameter AVPs,,,,,,,
+#=,,,,,,,
+#,,,,,,,
+BMSC-Address,3500,6.4.2,Address,"M,V",P,,
+BMSC-Port,3501,6.4.3,Unsigned32,"M,V",P,,
+Common-Tunnel-Endpoint-Identifier,3524,6.4.26,OctetString,V,P,,M
+FEC-Request,3525,6.4.27,OctetString,V,P,,M
+FEC-Result,3531,6.4.33,Unsigned32,V,P,,M
+Local-M1-Information,3518,6.4.20,Grouped,V,P,,M
+Local-MB2-U-Information,3519,6.4.21,Grouped,V,P,,M
+MB2U-Security,3517,6.4.19,Unsigned32,"M,V",P,,
+MBMS-Bearer-Event,3502,6.4.4,Unsigned32,"M,V",P,,
+MBMS-Bearer-Event-Notification,3503,6.4.5,Grouped,"M,V",P,,
+MBMS-Bearer-Request,3504,6.4.6,Grouped,"M,V",P,,
+MBMS-Bearer-Response,3505,6.4.7,Grouped,"M,V",P,,
+MBMS-Bearer-Result,3506,6.4.8,Unsigned32,"M,V",P,,
+MBMS-eNB-IP-Multicast-Address,3520,6.4.22,Address,V,P,,M
+MBMS-eNB-IPv6-Multicast-Address,3521,6.4.23,Address,V,P,,M
+# Note: Name conflict with 3GPP TS 29.061 MBMS-GW-SSM-IP-Address (924).,,,,,,,
+# 3GPP TS 29.061 V10.4.0 (2011-09) CR 0355 added MBMS-GW-SSM-IP-Address (924).,,,,,,,
+# 3GPP TS 29.468 V14.0.0 (2016-12) CR 0021 added MBMS-GW-SSM-IP-Address (3522).,,,,,,,
+# ,,,,,,,
+# Fix: MBMS-GW-SSM-IP-Address (3522) renamed to MBMS-GW-SSM-IP-Address-29.468 (3522).,,,,,,,
+MBMS-GW-SSM-IP-Address-29.468,3522,6.4.24,Address,V,P,,M
+# Note: Name conflict with 3GPP TS 29.061 MBMS-GW-SSM-IPv6-Address (925).,,,,,,,
+# 3GPP TS 29.061 V10.4.0 (2011-09) CR 0355 added MBMS-GW-SSM-IPv6-Address (925).,,,,,,,
+# 3GPP TS 29.468 V14.0.0 (2016-12) CR 0021 added MBMS-GW-SSM-IPv6-Address (3523).,,,,,,,
+# ,,,,,,,
+# Fix: MBMS-GW-SSM-IPv6-Address (3523) renamed to MBMS-GW-SSM-IPv6-Address-29.468 (3523).,,,,,,,
+MBMS-GW-SSM-IPv6-Address-29.468,3523,6.4.25,Address,V,P,,M
+MBMS-Start-Time,3507,6.4.9,Time,"M,V",P,,
+# Note: Name conflict with 3GPP TS 32.299 Radio-Frequency (3462).,,,,,,,
+# 3GPP TS 29.468 V12.0.0 (2014-09) added Radio-Frequency (3508).,,,,,,,
+# 3GPP TS 32.299 V13.1.0 (2015-06) CR 0638 added Radio-Frequency (3462).,,,,,,,
+# ,,,,,,,
+# Fix: Radio-Frequency (3508) renamed to Radio-Frequency-29.468 (3508).,,,,,,,
+Radio-Frequency-29.468,3508,6.4.10,Unsigned32,"M,V",P,,
+ROHC-Full-Header-Periodicity,3527,6.4.29,Float32,V,P,,M
+ROHC-Max-CID,3532,6.4.34,Unsigned32,V,P,,M
+ROHC-Profile,3528,6.4.30,Unsigned32,V,P,,M
+ROHC-Request,3526,6.4.28,Grouped,V,P,,M
+ROHC-Result,3530,6.4.32,Unsigned32,V,P,,M
+TMGI-Allocation-Request,3509,6.4.11,Grouped,"M,V",P,,
+TMGI-Allocation-Response,3510,6.4.12,Grouped,"M,V",P,,
+TMGI-Allocation-Result,3511,6.4.13,Unsigned32,"M,V",P,,
+TMGI-Deallocation-Request,3512,6.4.14,Grouped,"M,V",P,,
+TMGI-Deallocation-Response,3513,6.4.15,Grouped,"M,V",P,,
+TMGI-Deallocation-Result,3514,6.4.16,Unsigned32,"M,V",P,,
+TMGI-Expiry,3515,6.4.17,Grouped,"M,V",P,,
+TMGI-Number,3516,6.4.18,Unsigned32,"M,V",P,,
+Userplane-Protocol-Result,3529,6.4.31,Grouped,V,P,,M
+,,,,,,,
 @standard,3GPP TS 32.299,,,,,,
 #=,,,,,,,
 # 3GPP TS 32.299 V15.7.0 (2019-06),,,,,,,
@@ -1866,6 +1933,9 @@ PS-Information,874,,Grouped,"V,M",,,
 Quota-Consumption-Time,881,,Unsigned32,"V,M",,,
 Quota-Holding-Time,871,,Unsigned32,"V,M",,,
 Quota-Indicator,3912,,Enumerated,"V,M",,,
+# Note: Name conflict with 3GPP TS 32.299 Radio-Frequency (3508),,,,,,,
+# 3GPP TS 29.468 V12.0.0 (2014-09) added Radio-Frequency (3508).,,,,,,,
+# 3GPP TS 32.299 V13.1.0 (2015-06) CR 0638 added Radio-Frequency (3462).,,,,,,,
 Radio-Frequency,3462,,OctetString,"V,M",,,
 Radio-Parameter-Set-Info,3463,,Grouped,"V,M",,,
 Radio-Parameter-Set-Values,3464,,OctetString,"V,M",,,

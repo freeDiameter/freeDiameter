@@ -821,6 +821,9 @@ int add_avps()
 		CHECK_dict_new(DICT_AVP, &data, type, NULL);
 	};
 
+	/* Note: Name conflict with 3GPP TS 29.061 MBMS-GW-SSM-IP-Address (3522). */
+	/* 3GPP TS 29.061 V10.4.0 (2011-09) CR 0355 added MBMS-GW-SSM-IP-Address (924). */
+	/* 3GPP TS 29.468 V14.0.0 (2016-12) CR 0021 added MBMS-GW-SSM-IP-Address (3522). */
 	/* MBMS-GW-SSM-IP-Address, OctetString, code 924, section 20.5a.2   */
 	{
 		struct dict_avp_data data = {
@@ -837,6 +840,9 @@ int add_avps()
 	/* Note: 3GPP TS 29.061 V12.6.0 (2014-06) renamed                   */
 	/* MBMS-GW-SSM-IPv6-Address (925) to MBMS-GW-SSM-Ipv6-Address;      */
 	/* this rename was not applied.                                     */
+	/* Note: Name conflict with 3GPP TS 29.061 MBMS-GW-SSM-IPv6-Address (3523). */
+	/* 3GPP TS 29.061 V10.4.0 (2011-09) CR 0355 added MBMS-GW-SSM-IPv6-Address (925). */
+	/* 3GPP TS 29.468 V14.0.0 (2016-12) CR 0021 added MBMS-GW-SSM-IPv6-Address (3523). */
 	/* MBMS-GW-SSM-IPv6-Address, OctetString, code 925, section 20.5a.3 */
 	{
 		struct dict_avp_data data = {
@@ -13805,6 +13811,461 @@ int add_avps()
 	};
 
 	/*==================================================================*/
+	/* 3GPP TS 29.468 V15.8.0 (2019-12)                                 */
+	/* Group Communication System Enablers for LTE (GCSE_LTE);          */
+	/* MB2 Reference Point;                                             */
+	/* Stage 3                                                          */
+	/*==================================================================*/
+
+	/*==================================================================*/
+	/* 3GPP TS 29.468 Table 6.4.1 1: MB2 C specific Diameter AVPs       */
+	/*==================================================================*/
+
+	/* BMSC-Address, Address, code 3500, section 6.4.2                  */
+	{
+		struct dict_avp_data data = {
+			3500,	/* Code */
+			10415,	/* Vendor */
+			"BMSC-Address",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flag values */
+			AVP_TYPE_OCTETSTRING	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, Address_type, NULL);
+	};
+
+	/* BMSC-Port, Unsigned32, code 3501, section 6.4.3                  */
+	{
+		struct dict_avp_data data = {
+			3501,	/* Code */
+			10415,	/* Vendor */
+			"BMSC-Port",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flag values */
+			AVP_TYPE_UNSIGNED32	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+	};
+
+	/* Common-Tunnel-Endpoint-Identifier, OctetString, code 3524, section 6.4.26 */
+	{
+		struct dict_avp_data data = {
+			3524,	/* Code */
+			10415,	/* Vendor */
+			"Common-Tunnel-Endpoint-Identifier",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR,	/* Fixed flag values */
+			AVP_TYPE_OCTETSTRING	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+	};
+
+	/* FEC-Request, OctetString, code 3525, section 6.4.27              */
+	{
+		struct dict_avp_data data = {
+			3525,	/* Code */
+			10415,	/* Vendor */
+			"FEC-Request",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR,	/* Fixed flag values */
+			AVP_TYPE_OCTETSTRING	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+	};
+
+	/* FEC-Result, Unsigned32, code 3531, section 6.4.33                */
+	{
+		struct dict_avp_data data = {
+			3531,	/* Code */
+			10415,	/* Vendor */
+			"FEC-Result",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR,	/* Fixed flag values */
+			AVP_TYPE_UNSIGNED32	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+	};
+
+	/* Local-M1-Information, Grouped, code 3518, section 6.4.20         */
+	{
+		struct dict_avp_data data = {
+			3518,	/* Code */
+			10415,	/* Vendor */
+			"Local-M1-Information",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR,	/* Fixed flag values */
+			AVP_TYPE_GROUPED	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+	};
+
+	/* Local-MB2-U-Information, Grouped, code 3519, section 6.4.21      */
+	{
+		struct dict_avp_data data = {
+			3519,	/* Code */
+			10415,	/* Vendor */
+			"Local-MB2-U-Information",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR,	/* Fixed flag values */
+			AVP_TYPE_GROUPED	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+	};
+
+	/* MB2U-Security, Unsigned32, code 3517, section 6.4.19             */
+	{
+		struct dict_avp_data data = {
+			3517,	/* Code */
+			10415,	/* Vendor */
+			"MB2U-Security",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flag values */
+			AVP_TYPE_UNSIGNED32	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+	};
+
+	/* MBMS-Bearer-Event, Unsigned32, code 3502, section 6.4.4          */
+	{
+		struct dict_avp_data data = {
+			3502,	/* Code */
+			10415,	/* Vendor */
+			"MBMS-Bearer-Event",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flag values */
+			AVP_TYPE_UNSIGNED32	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+	};
+
+	/* MBMS-Bearer-Event-Notification, Grouped, code 3503, section 6.4.5 */
+	{
+		struct dict_avp_data data = {
+			3503,	/* Code */
+			10415,	/* Vendor */
+			"MBMS-Bearer-Event-Notification",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flag values */
+			AVP_TYPE_GROUPED	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+	};
+
+	/* MBMS-Bearer-Request, Grouped, code 3504, section 6.4.6           */
+	{
+		struct dict_avp_data data = {
+			3504,	/* Code */
+			10415,	/* Vendor */
+			"MBMS-Bearer-Request",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flag values */
+			AVP_TYPE_GROUPED	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+	};
+
+	/* MBMS-Bearer-Response, Grouped, code 3505, section 6.4.7          */
+	{
+		struct dict_avp_data data = {
+			3505,	/* Code */
+			10415,	/* Vendor */
+			"MBMS-Bearer-Response",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flag values */
+			AVP_TYPE_GROUPED	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+	};
+
+	/* MBMS-Bearer-Result, Unsigned32, code 3506, section 6.4.8         */
+	{
+		struct dict_avp_data data = {
+			3506,	/* Code */
+			10415,	/* Vendor */
+			"MBMS-Bearer-Result",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flag values */
+			AVP_TYPE_UNSIGNED32	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+	};
+
+	/* MBMS-eNB-IP-Multicast-Address, Address, code 3520, section 6.4.22 */
+	{
+		struct dict_avp_data data = {
+			3520,	/* Code */
+			10415,	/* Vendor */
+			"MBMS-eNB-IP-Multicast-Address",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR,	/* Fixed flag values */
+			AVP_TYPE_OCTETSTRING	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, Address_type, NULL);
+	};
+
+	/* MBMS-eNB-IPv6-Multicast-Address, Address, code 3521, section 6.4.23 */
+	{
+		struct dict_avp_data data = {
+			3521,	/* Code */
+			10415,	/* Vendor */
+			"MBMS-eNB-IPv6-Multicast-Address",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR,	/* Fixed flag values */
+			AVP_TYPE_OCTETSTRING	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, Address_type, NULL);
+	};
+
+	/* Note: Name conflict with 3GPP TS 29.061 MBMS-GW-SSM-IP-Address (924). */
+	/* 3GPP TS 29.061 V10.4.0 (2011-09) CR 0355 added MBMS-GW-SSM-IP-Address (924). */
+	/* 3GPP TS 29.468 V14.0.0 (2016-12) CR 0021 added MBMS-GW-SSM-IP-Address (3522). */
+	/*                                                                  */
+	/* Fix: MBMS-GW-SSM-IP-Address (3522) renamed to MBMS-GW-SSM-IP-Address-29.468 (3522). */
+	/* MBMS-GW-SSM-IP-Address-29.468, Address, code 3522, section 6.4.24 */
+	{
+		struct dict_avp_data data = {
+			3522,	/* Code */
+			10415,	/* Vendor */
+			"MBMS-GW-SSM-IP-Address-29.468",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR,	/* Fixed flag values */
+			AVP_TYPE_OCTETSTRING	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, Address_type, NULL);
+	};
+
+	/* Note: Name conflict with 3GPP TS 29.061 MBMS-GW-SSM-IPv6-Address (925). */
+	/* 3GPP TS 29.061 V10.4.0 (2011-09) CR 0355 added MBMS-GW-SSM-IPv6-Address (925). */
+	/* 3GPP TS 29.468 V14.0.0 (2016-12) CR 0021 added MBMS-GW-SSM-IPv6-Address (3523). */
+	/*                                                                  */
+	/* Fix: MBMS-GW-SSM-IPv6-Address (3523) renamed to MBMS-GW-SSM-IPv6-Address-29.468 (3523). */
+	/* MBMS-GW-SSM-IPv6-Address-29.468, Address, code 3523, section 6.4.25 */
+	{
+		struct dict_avp_data data = {
+			3523,	/* Code */
+			10415,	/* Vendor */
+			"MBMS-GW-SSM-IPv6-Address-29.468",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR,	/* Fixed flag values */
+			AVP_TYPE_OCTETSTRING	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, Address_type, NULL);
+	};
+
+	/* MBMS-Start-Time, Time, code 3507, section 6.4.9                  */
+	{
+		struct dict_avp_data data = {
+			3507,	/* Code */
+			10415,	/* Vendor */
+			"MBMS-Start-Time",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flag values */
+			AVP_TYPE_OCTETSTRING	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, Time_type, NULL);
+	};
+
+	/* Note: Name conflict with 3GPP TS 32.299 Radio-Frequency (3462).  */
+	/* 3GPP TS 29.468 V12.0.0 (2014-09) added Radio-Frequency (3508).   */
+	/* 3GPP TS 32.299 V13.1.0 (2015-06) CR 0638 added Radio-Frequency (3462). */
+	/*                                                                  */
+	/* Fix: Radio-Frequency (3508) renamed to Radio-Frequency-29.468 (3508). */
+	/* Radio-Frequency-29.468, Unsigned32, code 3508, section 6.4.10    */
+	{
+		struct dict_avp_data data = {
+			3508,	/* Code */
+			10415,	/* Vendor */
+			"Radio-Frequency-29.468",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flag values */
+			AVP_TYPE_UNSIGNED32	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+	};
+
+	/* ROHC-Full-Header-Periodicity, Float32, code 3527, section 6.4.29 */
+	{
+		struct dict_avp_data data = {
+			3527,	/* Code */
+			10415,	/* Vendor */
+			"ROHC-Full-Header-Periodicity",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR,	/* Fixed flag values */
+			AVP_TYPE_FLOAT32	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+	};
+
+	/* ROHC-Max-CID, Unsigned32, code 3532, section 6.4.34              */
+	{
+		struct dict_avp_data data = {
+			3532,	/* Code */
+			10415,	/* Vendor */
+			"ROHC-Max-CID",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR,	/* Fixed flag values */
+			AVP_TYPE_UNSIGNED32	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+	};
+
+	/* ROHC-Profile, Unsigned32, code 3528, section 6.4.30              */
+	{
+		struct dict_avp_data data = {
+			3528,	/* Code */
+			10415,	/* Vendor */
+			"ROHC-Profile",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR,	/* Fixed flag values */
+			AVP_TYPE_UNSIGNED32	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+	};
+
+	/* ROHC-Request, Grouped, code 3526, section 6.4.28                 */
+	{
+		struct dict_avp_data data = {
+			3526,	/* Code */
+			10415,	/* Vendor */
+			"ROHC-Request",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR,	/* Fixed flag values */
+			AVP_TYPE_GROUPED	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+	};
+
+	/* ROHC-Result, Unsigned32, code 3530, section 6.4.32               */
+	{
+		struct dict_avp_data data = {
+			3530,	/* Code */
+			10415,	/* Vendor */
+			"ROHC-Result",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR,	/* Fixed flag values */
+			AVP_TYPE_UNSIGNED32	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+	};
+
+	/* TMGI-Allocation-Request, Grouped, code 3509, section 6.4.11      */
+	{
+		struct dict_avp_data data = {
+			3509,	/* Code */
+			10415,	/* Vendor */
+			"TMGI-Allocation-Request",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flag values */
+			AVP_TYPE_GROUPED	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+	};
+
+	/* TMGI-Allocation-Response, Grouped, code 3510, section 6.4.12     */
+	{
+		struct dict_avp_data data = {
+			3510,	/* Code */
+			10415,	/* Vendor */
+			"TMGI-Allocation-Response",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flag values */
+			AVP_TYPE_GROUPED	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+	};
+
+	/* TMGI-Allocation-Result, Unsigned32, code 3511, section 6.4.13    */
+	{
+		struct dict_avp_data data = {
+			3511,	/* Code */
+			10415,	/* Vendor */
+			"TMGI-Allocation-Result",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flag values */
+			AVP_TYPE_UNSIGNED32	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+	};
+
+	/* TMGI-Deallocation-Request, Grouped, code 3512, section 6.4.14    */
+	{
+		struct dict_avp_data data = {
+			3512,	/* Code */
+			10415,	/* Vendor */
+			"TMGI-Deallocation-Request",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flag values */
+			AVP_TYPE_GROUPED	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+	};
+
+	/* TMGI-Deallocation-Response, Grouped, code 3513, section 6.4.15   */
+	{
+		struct dict_avp_data data = {
+			3513,	/* Code */
+			10415,	/* Vendor */
+			"TMGI-Deallocation-Response",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flag values */
+			AVP_TYPE_GROUPED	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+	};
+
+	/* TMGI-Deallocation-Result, Unsigned32, code 3514, section 6.4.16  */
+	{
+		struct dict_avp_data data = {
+			3514,	/* Code */
+			10415,	/* Vendor */
+			"TMGI-Deallocation-Result",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flag values */
+			AVP_TYPE_UNSIGNED32	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+	};
+
+	/* TMGI-Expiry, Grouped, code 3515, section 6.4.17                  */
+	{
+		struct dict_avp_data data = {
+			3515,	/* Code */
+			10415,	/* Vendor */
+			"TMGI-Expiry",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flag values */
+			AVP_TYPE_GROUPED	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+	};
+
+	/* TMGI-Number, Unsigned32, code 3516, section 6.4.18               */
+	{
+		struct dict_avp_data data = {
+			3516,	/* Code */
+			10415,	/* Vendor */
+			"TMGI-Number",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flag values */
+			AVP_TYPE_UNSIGNED32	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+	};
+
+	/* Userplane-Protocol-Result, Grouped, code 3529, section 6.4.31    */
+	{
+		struct dict_avp_data data = {
+			3529,	/* Code */
+			10415,	/* Vendor */
+			"Userplane-Protocol-Result",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR,	/* Fixed flag values */
+			AVP_TYPE_GROUPED	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+	};
+
+	/*==================================================================*/
 	/* 3GPP TS 32.299 V15.7.0 (2019-06)                                 */
 	/* Charging management;                                             */
 	/* Diameter charging applications                                   */
@@ -17634,6 +18095,9 @@ int add_avps()
 		CHECK_dict_new(DICT_AVP, &data, type, NULL);
 	};
 
+	/* Note: Name conflict with 3GPP TS 32.299 Radio-Frequency (3508)   */
+	/* 3GPP TS 29.468 V12.0.0 (2014-09) added Radio-Frequency (3508).   */
+	/* 3GPP TS 32.299 V13.1.0 (2015-06) CR 0638 added Radio-Frequency (3462). */
 	/* Radio-Frequency, OctetString, code 3462                          */
 	{
 		struct dict_avp_data data = {
