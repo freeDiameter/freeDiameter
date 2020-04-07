@@ -63,7 +63,7 @@ int add_avps()
 		CHECK_dict_new(DICT_AVP, &data, UTF8String_type, NULL);
 	};
 
-	/* Note: 3GPP-Charging-Id (2) type changed from OctetString to Unsigned32, */
+	/* Fix: 3GPP-Charging-Id (2) type changed from OctetString to Unsigned32, */
 	/* per 3GPP TS 29.061 clause 16.4.7.2/2 and packet dumps.           */
 	/* 3GPP-Charging-Id, Unsigned32, code 2, section 16.4.7             */
 	{
@@ -235,8 +235,8 @@ int add_avps()
 	};
 
 	/* Note: 3GPP TS 29.061 V12.6.0 (2014-06) renamed                   */
-	/* 3GPP-CG-IPv6-Address (14) to 3GPP-CG-Ipv6-Address.               */
-	/* This rename was not applied.                                     */
+	/* 3GPP-CG-IPv6-Address (14) to 3GPP-CG-Ipv6-Address;               */
+	/* this rename was not applied.                                     */
 	/* 3GPP-CG-IPv6-Address (14) changed to Must M per contrib/3gpp.    */
 	/* 3GPP-CG-IPv6-Address, OctetString, code 14, section 16.4.7       */
 	{
@@ -252,8 +252,8 @@ int add_avps()
 	};
 
 	/* Note: 3GPP TS 29.061 V12.6.0 (2014-06) renamed                   */
-	/* 3GPP-SGSN-IPv6-Address (15) to 3GPP-SGSN-Ipv6-Address.           */
-	/* This rename was not applied.                                     */
+	/* 3GPP-SGSN-IPv6-Address (15) to 3GPP-SGSN-Ipv6-Address;           */
+	/* this rename was not applied.                                     */
 	/* 3GPP-SGSN-IPv6-Address (15) changed to Must M per contrib/3gpp.  */
 	/* 3GPP-SGSN-IPv6-Address, OctetString, code 15, section 16.4.7     */
 	{
@@ -269,8 +269,8 @@ int add_avps()
 	};
 
 	/* Note: 3GPP TS 29.061 V12.6.0 (2014-06) renamed                   */
-	/* 3GPP-GGSN-IPv6-Address (16) to 3GPP-GGSN-Ipv6-Address.           */
-	/* This rename was not applied.                                     */
+	/* 3GPP-GGSN-IPv6-Address (16) to 3GPP-GGSN-Ipv6-Address;           */
+	/* this rename was not applied.                                     */
 	/* 3GPP-GGSN-IPv6-Address (16) changed to Must M per contrib/3gpp.  */
 	/* 3GPP-GGSN-IPv6-Address, OctetString, code 16, section 16.4.7     */
 	{
@@ -286,8 +286,8 @@ int add_avps()
 	};
 
 	/* Note: 3GPP TS 29.061 V12.6.0 (2014-06) renamed                   */
-	/* 3GPP-IPv6-DNS-Servers (17) to 3GPP-Ipv6-DNS-Servers.             */
-	/* This rename was not applied.                                     */
+	/* 3GPP-IPv6-DNS-Servers (17) to 3GPP-Ipv6-DNS-Servers;             */
+	/* this rename was not applied.                                     */
 	/* 3GPP-IPv6-DNS-Servers (17) changed to Must M per contrib/3gpp.   */
 	/* 3GPP-IPv6-DNS-Servers, OctetString, code 17, section 16.4.7      */
 	{
@@ -425,13 +425,12 @@ int add_avps()
 	};
 
 	/* Note: 3GPP TS 29.061 table 9a does not define                    */
-	/* External-Identifier (28) for Diameter.                           */
+	/* External-Identifier (28) for Diameter; it is RADIUS only.        */
 	/* 3GPP TS 29.061 table 9b refers to 3GPP TS 29.336                 */
 	/* for External-Identifier (3111).                                  */
 	/*                                                                  */
-	/* External-Identifier (28) OctetString replaced by                 */
-	/* External-Identifier (3111) UTF8String.                           */
-
+	/* Change since freeDiameter 1.4.0.                                 */
+	/* Fix: Remove External-Identifier (28) OctetString.                */
 
 	/* TWAN-Identifier, OctetString, code 29, section 16.4.7            */
 	{
@@ -713,8 +712,8 @@ int add_avps()
 	};
 
 	/* Note: 3GPP TS 29.061 V12.6.0 (2014-06) renamed                   */
-	/* MBMS-GGSN-IPv6-Address (917) to MBMS-GGSN-Ipv6-Address.          */
-	/* This rename was not applied.                                     */
+	/* MBMS-GGSN-IPv6-Address (917) to MBMS-GGSN-Ipv6-Address;          */
+	/* this rename was not applied.                                     */
 	/* MBMS-GGSN-IPv6-Address, OctetString, code 917, section 17.7.20   */
 	{
 		struct dict_avp_data data = {
@@ -742,8 +741,8 @@ int add_avps()
 	};
 
 	/* Note: 3GPP TS 29.061 V12.6.0 (2014-06) renamed                   */
-	/* MBMS-BMSC-SSM-IPv6-Address (919) to MBMS-BMSC-SSM-Ipv6-Address.  */
-	/* This rename was not applied.                                     */
+	/* MBMS-BMSC-SSM-IPv6-Address (919) to MBMS-BMSC-SSM-Ipv6-Address;  */
+	/* this rename was not applied.                                     */
 	/* MBMS-BMSC-SSM-IPv6-Address, OctetString, code 919, section 17.7.22 */
 	{
 		struct dict_avp_data data = {
@@ -836,8 +835,8 @@ int add_avps()
 	};
 
 	/* Note: 3GPP TS 29.061 V12.6.0 (2014-06) renamed                   */
-	/* MBMS-GW-SSM-IPv6-Address (925) to MBMS-GW-SSM-Ipv6-Address.      */
-	/* This rename was not applied.                                     */
+	/* MBMS-GW-SSM-IPv6-Address (925) to MBMS-GW-SSM-Ipv6-Address;      */
+	/* this rename was not applied.                                     */
 	/* MBMS-GW-SSM-IPv6-Address, OctetString, code 925, section 20.5a.3 */
 	{
 		struct dict_avp_data data = {
@@ -1127,8 +1126,6 @@ int add_avps()
 		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
 	};
 
-	/* Note: 3GPP TS 29.128 table 6.4.1-1 row Non-IP-Data (4315)        */
-	/* has type "Octetstring" instead of "OctetString".                 */
 	/* Non-IP-Data, OctetString, code 4315, section 6.4.19              */
 	{
 		struct dict_avp_data data = {
@@ -1419,8 +1416,11 @@ int add_avps()
 		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
 	};
 
-	/* Note: Name conflict with 3GPP TS 32.329 Sequence-Number (716).   */
-	/* Sequence-Number (1107) renamed to Sequence-Number-29.140 (1107). */
+	/* Note: Name conflict with 3GPP TS 29.329 Sequence-Number (716).   */
+	/* 3GPP TS 29.140 V6.1.0 (2005-06) allocated Sequence-Number (1107). */
+	/* 3GPP TS 29.329 V10.0.0 (2010-09) CR 0163 added Sequence-Number (716). */
+	/*                                                                  */
+	/* Fix: Sequence-Number (1107) renamed to Sequence-Number-29.140 (1107). */
 	/* Sequence-Number-29.140, Unsigned32, code 1107, section 6.3.10    */
 	{
 		struct dict_avp_data data = {
@@ -1434,8 +1434,11 @@ int add_avps()
 		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
 	};
 
-	/* Note: Name conflict with 3GPP TS 32.299 Recipient-Address (1201). */
-	/* Recipient-Address (1108) renamed to Recipient-Address-29.140 (1108). */
+	/* Note: Name conflict with 3GPP TS 32.299 Recipient-Address (1201); */
+	/* 3GPP TS 29.140 V6.1.0 (2005-06) allocated Recipient-Address (1108). */
+	/* 3GPP TS 32.299 V6.4.0 (2005-09) CR 0028 added Recipient-Address (1201). */
+	/*                                                                  */
+	/* Fix: Recipient-Address (1108) renamed to Recipient-Address-29.140 (1108). */
 	/* Recipient-Address-29.140, UTF8String, code 1108, section 6.3.11  */
 	{
 		struct dict_avp_data data = {
@@ -1552,8 +1555,14 @@ int add_avps()
 		CHECK_dict_new(DICT_AVP, &data, UTF8String_type, NULL);
 	};
 
-	/* Note: Name conflict with 3GPP TS 32.299 Status (2702).           */
-	/* Status (1116) renamed to Status-29.140 (1116).                   */
+	/* Note: Name conflict with 3GPP TS 32.299 V11.6.0 Status (2702).   */
+	/* 3GPP TS 32.299 V11.10.0 (2013-12) CR 0566 renamed                */
+	/* Status (2702) to Status-Code (2702).                             */
+	/* 3GPP TS 32.299 V11.14.0 (2014-12) CR 0617 renamed                */
+	/* Status-Code (2702) to Status-AS-Code (2702).                     */
+	/*                                                                  */
+	/* TODO: rename back to Status ?                                    */
+	/* Fix: Status (1116) renamed to Status-29.140 (1116).              */
 	/* Status-29.140, Grouped, code 1116, section 6.3.19                */
 	{
 		struct dict_avp_data data = {
@@ -1676,7 +1685,8 @@ int add_avps()
 	/* Note: Name conflict with 3GPP TS 29.345 Time-Window (3818).      */
 	/* Time-Window (3818) in 3GPP TS 29.345 V12.1.0 (2014-12) predates  */
 	/* Time-Window (4204) in 3GPP TS 29.154 V13.1.0 (2016-03).          */
-	/* Time-Window (4204) renamed to Time-Window-29.154 (4204).         */
+	/*                                                                  */
+	/* Fix: Time-Window (4204) renamed to Time-Window-29.154 (4204).    */
 	/* Time-Window-29.154, Grouped, code 4204, section 5.3.5            */
 	{
 		struct dict_avp_data data = {
@@ -3009,6 +3019,9 @@ int add_avps()
 		CHECK_dict_new(DICT_AVP, &data, Time_type, NULL);
 	};
 
+	/* Note: Name conflict with 3GPP TS 32.299 3GPP-PS-Data-Off-Status (4406). */
+	/* 3GPP TS 29.212 V14.3.0 (2017-03) CR 1559 added 3GPP-PS-Data-Off-Status (2847). */
+	/* 3GPP TS 32.299 V14.3.0 (2017-03) CR 0760 added 3GPP-PS-Data-Off-Status (4406). */
 	/* 3GPP-PS-Data-Off-Status, Enumerated, code 2847, section 5.3.133  */
 	{
 		struct dict_avp_data data = {
@@ -5475,6 +5488,8 @@ int add_avps()
 
 	/* Note: 3GPP TS 29.214 table 5.3.0.1 row IMS-Content-Identifier (563) */
 	/* missing M, assume MUST NOT.                                      */
+	/*                                                                  */
+	/* Fix: IMS-Content-Identifier (563) flag M MUST NOT.               */
 	/* IMS-Content-Identifier, OctetString, code 563, section 5.3.60    */
 	{
 		struct dict_avp_data data = {
@@ -5490,6 +5505,8 @@ int add_avps()
 
 	/* Note: 3GPP TS 29.214 table 5.3.0.1 row IMS-Content (564)         */
 	/* missing M, assume MUST NOT.                                      */
+	/*                                                                  */
+	/* Fix: IMS-Content (564) flag M MUST NOT.                          */
 	/* IMS-Content-Type, Enumerated, code 564, section 5.3.61           */
 	{
 		struct dict_avp_data data = {
@@ -6407,6 +6424,9 @@ int add_avps()
 		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
 	};
 
+	/* Note: Name conflict with 3GPP TS 29.329 User-Data (702).         */
+	/* 3GPP TS 29.229 V6.2.0 (2004-09) allocated User-Data (606).       */
+	/* 3GPP TS 29.329 V6.2.0 (2004-09) allocated User-Data (702).       */
 	/* User-Data, OctetString, code 606, section 6.3.7                  */
 	{
 		struct dict_avp_data data = {
@@ -8141,6 +8161,9 @@ int add_avps()
 	/* Note: 3GPP TS 29.272 V12.5.0 (2014-06) table 7.3.1/1             */
 	/* changed row SS-Status (1477) to be OctetString instead of Grouped. */
 	/* Clause 7.3.88 already described SS-Status (1147) as OctetString. */
+	/*                                                                  */
+	/* Change since freeDiameter 1.4.0.                                 */
+	/* Fix: SS-Status (1477) type changed from Grouped to OctetString.  */
 	/* SS-Status, OctetString, code 1477, section 7.3.88                */
 	{
 		struct dict_avp_data data = {
@@ -8295,6 +8318,9 @@ int add_avps()
 
 	/* Note: 3GPP TS 29.272 V12.4.0 (2014-03) renamed                   */
 	/* Call-Barring-Infor-List (1488) to Call-Barring-Info (1488).      */
+	/*                                                                  */
+	/* Change since freeDiameter 1.4.0.                                 */
+	/* Fix: Call-Barring-Infor-List (1488) renamed to Call-Barring-Info (1488). */
 	/* Call-Barring-Info, Grouped, code 1488, section 7.3.101           */
 	{
 		struct dict_avp_data data = {
@@ -8465,7 +8491,9 @@ int add_avps()
 
 	/* Note: 3GPP TS 29.272 table 7.3.1/1 row MME-Location-Information (1600) */
 	/* incorrectly has a space instead of hyphen in the name.           */
-	/* Generated name renamed from MME-LocationInformation (1600).      */
+	/*                                                                  */
+	/* Change since freeDiameter 1.4.0.                                 */
+	/* Fix: MME-LocationInformation (1600) renamed to MME-Location-Information(1600). */
 	/* MME-Location-Information, Grouped, code 1600, section 7.3.115    */
 	{
 		struct dict_avp_data data = {
@@ -9153,6 +9181,9 @@ int add_avps()
 
 	/* Note: 3GPP TS 29.272 V12.9.0 (2015-12) changed AVP code of       */
 	/* Measurement-Period-LTE (1655) from 1656.                         */
+	/*                                                                  */
+	/* Change since freeDiameter 1.4.0.                                 */
+	/* Fix: Measurement-Period-LTE (1656) code changed from 1656.       */
 	/* Measurement-Period-LTE, Enumerated, code 1655, section 7.3.166   */
 	{
 		struct dict_avp_data data = {
@@ -9171,6 +9202,9 @@ int add_avps()
 
 	/* Note: 3GPP TS 29.272 V12.9.0 (2015-12) changed AVP code of       */
 	/* Measurement-Period-UMTS (1656) from 1655.                        */
+	/*                                                                  */
+	/* Change since freeDiameter 1.4.0.                                 */
+	/* Fix: Measurement-Period-UMTS (1656) code changed from 1655.      */
 	/* Measurement-Period-UMTS, Enumerated, code 1656, section 7.3.167  */
 	{
 		struct dict_avp_data data = {
@@ -10487,7 +10521,10 @@ int add_avps()
 	};
 
 	/* Note: Name conflict with 3GPP TS 29.229 User-Data (606).         */
-	/* User-Data (702) renamed to User-Data-29.329 (702).               */
+	/* 3GPP TS 29.229 V6.2.0 (2004-09) allocated User-Data (606).       */
+	/* 3GPP TS 29.329 V6.2.0 (2004-09) allocated User-Data (702).       */
+	/*                                                                  */
+	/* Fix: User-Data (702) renamed to User-Data-29.329 (702).          */
 	/* User-Data-29.329, OctetString, code 702, section 6.3.3           */
 	{
 		struct dict_avp_data data = {
@@ -10694,6 +10731,9 @@ int add_avps()
 		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
 	};
 
+	/* Note: Name conflict with 3GPP TS 29.140 Sequence-Number (1107).  */
+	/* 3GPP TS 29.140 V6.1.0 (2005-06) allocated Sequence-Number (1107). */
+	/* 3GPP TS 29.329 V10.0.0 (2010-09) CR 0163 added Sequence-Number (716). */
 	/* Sequence-Number, Unsigned32, code 716, section 6.3.25            */
 	{
 		struct dict_avp_data data = {
@@ -10949,6 +10989,8 @@ int add_avps()
 		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
 	};
 
+	/* Note: 3GPP TS 29.061 External-Identifier (28) OctetString replaced by */
+	/* 3GPP TS 29.336 External-Identifier (3111) UTF8String.            */
 	/* External-Identifier, UTF8String, code 3111, section 6.4.11       */
 	{
 		struct dict_avp_data data = {
@@ -13637,7 +13679,10 @@ int add_avps()
 	};
 
 	/* Note: Name conflict with 3GPP TS 29.212 3GPP-PS-Data-Off-Status (2847). */
-	/* 3GPP-PS-Data-Off-Status (4406) renamed to 3GPP-PS-Data-Off-Status-32.299 (4406). */
+	/* 3GPP TS 29.212 V14.3.0 (2017-03) CR 1559 added 3GPP-PS-Data-Off-Status (2847). */
+	/* 3GPP TS 32.299 V14.3.0 (2017-03) CR 0760 added 3GPP-PS-Data-Off-Status (4406). */
+	/*                                                                  */
+	/* Fix: 3GPP-PS-Data-Off-Status (4406) renamed to 3GPP-PS-Data-Off-Status-32.299 (4406). */
 	/* 3GPP-PS-Data-Off-Status-32.299, Enumerated, code 4406            */
 	{
 		struct dict_avp_data data = {
@@ -15724,6 +15769,9 @@ int add_avps()
 
 	/* Note: 3GPP TS 32.299 V11.8.0 (2013-07) renamed                   */
 	/* LCS-Requestor-Id (1239) to LCS-Requestor-ID (1239).              */
+	/*                                                                  */
+	/* Change since freeDiameter 1.4.0.                                 */
+	/* Fix: LCS-Requestor-Id (1239) renamed to LCS-Requestor-ID (1239). */
 	/* LCS-Requestor-ID, Grouped, code 1239                             */
 	{
 		struct dict_avp_data data = {
@@ -15739,6 +15787,9 @@ int add_avps()
 
 	/* Note: 3GPP TS 32.299 V11.8.0 (2013-07) renamed                   */
 	/* LCS-Requestor-Id-String (1240) to LCS-Requestor-ID-String (1240). */
+	/*                                                                  */
+	/* Change since freeDiameter 1.4.0.                                 */
+	/* Fix: LCS-Requestor-Id-String (1240) renamed to LCS-Requestor-ID-String (1240). */
 	/* LCS-Requestor-ID-String, UTF8String, code 1240                   */
 	{
 		struct dict_avp_data data = {
@@ -15886,7 +15937,9 @@ int add_avps()
 
 	/* Note: 3GPP TS 32.299 V11.8.0 (2013-07) table 7.2 changed         */
 	/* row MBMS-GW-Address (2307) to have a hyphen instead of space.    */
-	/* Generated name renamed from MBMSGW-Address (2307).               */
+	/*                                                                  */
+	/* Change since freeDiameter 1.4.0.                                 */
+	/* Fix: MBMSGW-Address (2307) renamed to MBMS-GW-Address (2307).    */
 	/* MBMS-GW-Address, Address, code 2307                              */
 	{
 		struct dict_avp_data data = {
@@ -16933,6 +16986,9 @@ int add_avps()
 
 	/* Note: 3GPP TS 32.299 V13.1.0 (2015-06) renamed                   */
 	/* PoC-User-Role-info-Units (1254) to PoC-User-Role-Info-Units (1254). */
+	/*                                                                  */
+	/* Change since freeDiameter 1.4.0.                                 */
+	/* Fix: PoC-User-Role-info-Units (1254) renamed to PoC-User-Role-Info-Units (1254). */
 	/* PoC-User-Role-Info-Units, Enumerated, code 1254                  */
 	{
 		struct dict_avp_data data = {
@@ -17609,6 +17665,9 @@ int add_avps()
 		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
 	};
 
+	/* Note: Name conflict with 3GPP TS 32.299 Recipient-Address (1201); */
+	/* 3GPP TS 29.140 V6.1.0 (2005-06) allocated Recipient-Address (1108). */
+	/* 3GPP TS 32.299 V6.4.0 (2005-09) CR 0028 added Recipient-Address (1201). */
 	/* Recipient-Address, Grouped, code 1201                            */
 	{
 		struct dict_avp_data data = {
@@ -18574,10 +18633,13 @@ int add_avps()
 		CHECK_dict_new(DICT_AVP, &data, Time_type, NULL);
 	};
 
-	/* Note: 3GPP TS 32.299 V11.10.0 (2013-12) renamed                  */
-	/* Status (2702) to Status-Code (2702), and then                    */
-	/* 3GPP TS 32.299 V11.14.0 (2014-12) renamed                        */
+	/* Note: 3GPP TS 32.299 V11.10.0 (2013-12) CR 0566 renamed          */
+	/* Status (2702) to Status-Code (2702).                             */
+	/* 3GPP TS 32.299 V11.14.0 (2014-12) CR 0617 renamed                */
 	/* Status-Code (2702) to Status-AS-Code (2702).                     */
+	/*                                                                  */
+	/* Change since freeDiameter 1.4.0.                                 */
+	/* Fix: Status (2702) renamed to Status-AS-Code (2702).             */
 	/* Status-AS-Code, Enumerated, code 2702                            */
 	{
 		struct dict_avp_data data = {
@@ -19438,7 +19500,8 @@ int add_avps()
 		CHECK_dict_new(DICT_AVP, &data, UTF8String_type, NULL);
 	};
 
-	/* Note: Application-Service-Type (2102) corrected from UTF8String to Enumerated. */
+	/* Change since freeDiameter 1.4.0.                                 */
+	/* Fix: Application-Service-Type (2102) type changed from UTF8String to Enumerated. */
 	/* Application-Service-Type, Enumerated, code 2102, section 8.4     */
 	{
 		struct dict_avp_data data = {
@@ -19455,7 +19518,8 @@ int add_avps()
 		CHECK_dict_new(DICT_AVP, &data, type, NULL);
 	};
 
-	/* Note: Application–Session–Id (2103) corrected from UTF8String to Unsigned32. */
+	/* Change since freeDiameter 1.4.0.                                 */
+	/* Fix: Application–Session–Id (2103) type changed from UTF8String to Unsigned32. */
 	/* Application-Session-Id, Unsigned32, code 2103, section 8.4       */
 	{
 		struct dict_avp_data data = {
@@ -19607,7 +19671,9 @@ int add_avps()
 	/* From 3GPP2 X.S0057-0_v2.0_091215.pdf                             */
 	/*==================================================================*/
 
-	/* Note: 3GPP2-BSID (9010) corrected from OctetString to UTF8String. */
+	/*                                                                  */
+	/* Change since freeDiameter 1.4.0.                                 */
+	/* Fix: 3GPP2-BSID (9010) type changed from OctetString to UTF8String. */
 	/* 3GPP2-BSID, UTF8String, code 9010, section 5.6.2.1.1             */
 	{
 		struct dict_avp_data data = {
