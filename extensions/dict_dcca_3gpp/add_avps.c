@@ -13625,6 +13625,186 @@ int add_avps()
 	};
 
 	/*==================================================================*/
+	/* 3GPP TS 29.368 V15.1.0 (2019-09)                                 */
+	/* Tsp interface protocol between the MTC Interworking Function     */
+	/* (MTC-IWF) and Service Capability Server (SCS)                    */
+	/*                                                                  */
+	/* From 3GPP 29368-f10.doc                                          */
+	/*==================================================================*/
+
+	/*==================================================================*/
+	/* 3GPP TS 29.368 Table 6.4.1.1: Tsp specific Diameter AVPs         */
+	/*==================================================================*/
+
+	/* Device-Action, Grouped, code 3001, section 6. 4.2                */
+	{
+		struct dict_avp_data data = {
+			3001,	/* Code */
+			10415,	/* Vendor */
+			"Device-Action",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flag values */
+			AVP_TYPE_GROUPED	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+	};
+
+	/* Device-Notification, Grouped, code 3002, section 6.4.3           */
+	{
+		struct dict_avp_data data = {
+			3002,	/* Code */
+			10415,	/* Vendor */
+			"Device-Notification",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flag values */
+			AVP_TYPE_GROUPED	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+	};
+
+	/* Trigger-Data, Grouped, code 3003, section 6.4.4                  */
+	{
+		struct dict_avp_data data = {
+			3003,	/* Code */
+			10415,	/* Vendor */
+			"Trigger-Data",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flag values */
+			AVP_TYPE_GROUPED	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+	};
+
+	/* Payload, OctetString, code 3004, section 6.4.5                   */
+	{
+		struct dict_avp_data data = {
+			3004,	/* Code */
+			10415,	/* Vendor */
+			"Payload",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flag values */
+			AVP_TYPE_OCTETSTRING	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+	};
+
+	/* Action-Type, Enumerated, code 3005, section 6.4.6                */
+	{
+		struct dict_avp_data data = {
+			3005,	/* Code */
+			10415,	/* Vendor */
+			"Action-Type",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flag values */
+			AVP_TYPE_INTEGER32	/* base type of data */
+		};
+		struct dict_object	*type;
+		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "Enumerated(3GPP/Action-Type)", NULL, NULL, NULL };
+		CHECK_dict_new(DICT_TYPE, &tdata, NULL, &type);
+		CHECK_dict_new(DICT_AVP, &data, type, NULL);
+	};
+
+	/* Priority-Indication, Enumerated, code 3006, section 6.4.7        */
+	{
+		struct dict_avp_data data = {
+			3006,	/* Code */
+			10415,	/* Vendor */
+			"Priority-Indication",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flag values */
+			AVP_TYPE_INTEGER32	/* base type of data */
+		};
+		struct dict_object	*type;
+		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "Enumerated(3GPP/Priority-Indication)", NULL, NULL, NULL };
+		CHECK_dict_new(DICT_TYPE, &tdata, NULL, &type);
+		CHECK_dict_new(DICT_AVP, &data, type, NULL);
+	};
+
+	/* Reference-Number, Unsigned32, code 3007, section 6.4.8           */
+	{
+		struct dict_avp_data data = {
+			3007,	/* Code */
+			10415,	/* Vendor */
+			"Reference-Number",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flag values */
+			AVP_TYPE_UNSIGNED32	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+	};
+
+	/* Request-Status, Enumerated, code 3008, section 6.4.9             */
+	{
+		struct dict_avp_data data = {
+			3008,	/* Code */
+			10415,	/* Vendor */
+			"Request-Status",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flag values */
+			AVP_TYPE_INTEGER32	/* base type of data */
+		};
+		struct dict_object	*type;
+		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "Enumerated(3GPP/Request-Status)", NULL, NULL, NULL };
+		CHECK_dict_new(DICT_TYPE, &tdata, NULL, &type);
+		CHECK_dict_new(DICT_AVP, &data, type, NULL);
+	};
+
+	/* Delivery-Outcome, Enumerated, code 3009, section 6.4.10          */
+	{
+		struct dict_avp_data data = {
+			3009,	/* Code */
+			10415,	/* Vendor */
+			"Delivery-Outcome",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flag values */
+			AVP_TYPE_INTEGER32	/* base type of data */
+		};
+		struct dict_object	*type;
+		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "Enumerated(3GPP/Delivery-Outcome)", NULL, NULL, NULL };
+		CHECK_dict_new(DICT_TYPE, &tdata, NULL, &type);
+		CHECK_dict_new(DICT_AVP, &data, type, NULL);
+	};
+
+	/* Application-Port-Identifier, Unsigned32, code 3010, section 6.4.11 */
+	{
+		struct dict_avp_data data = {
+			3010,	/* Code */
+			10415,	/* Vendor */
+			"Application-Port-Identifier",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flag values */
+			AVP_TYPE_UNSIGNED32	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+	};
+
+	/* Old-Reference-Number, Unsigned32, code 3011, section 6.4.12      */
+	{
+		struct dict_avp_data data = {
+			3011,	/* Code */
+			10415,	/* Vendor */
+			"Old-Reference-Number",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR,	/* Fixed flag values */
+			AVP_TYPE_UNSIGNED32	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+	};
+
+	/* Feature-Supported-In-Final-Target, Unsigned32, code 3012, section 6.4.13 */
+	{
+		struct dict_avp_data data = {
+			3012,	/* Code */
+			10415,	/* Vendor */
+			"Feature-Supported-In-Final-Target",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR,	/* Fixed flag values */
+			AVP_TYPE_UNSIGNED32	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+	};
+
+	/*==================================================================*/
 	/* 3GPP TS 32.299 V15.7.0 (2019-06)                                 */
 	/* Charging management;                                             */
 	/* Diameter charging applications                                   */
