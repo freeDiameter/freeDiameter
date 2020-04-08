@@ -7167,6 +7167,290 @@ int add_avps()
 	};
 
 	/*==================================================================*/
+	/* 3GPP TS 29.234 V11.2.0 (2013-06)                                 */
+	/* 3GPP system to Wireless Local Area Network (WLAN)                */
+	/* interworking;                                                    */
+	/* Stage 3                                                          */
+	/*                                                                  */
+	/* From 3GPP 29234-b20.doc                                          */
+	/*==================================================================*/
+
+	/*==================================================================*/
+	/* 3GPP TS 29.234 Table 10.1.1: Diameter Multimedia Application AVPs */
+	/*==================================================================*/
+
+	/* 3GPP-WLAN-APN-Id, OctetString, code 100, section 10.1.15         */
+	{
+		struct dict_avp_data data = {
+			100,	/* Code */
+			10415,	/* Vendor */
+			"3GPP-WLAN-APN-Id",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flag values */
+			AVP_TYPE_OCTETSTRING	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+	};
+
+	/* Authentication-Method, Enumerated, code 300, section 10.1.5      */
+	{
+		struct dict_avp_data data = {
+			300,	/* Code */
+			10415,	/* Vendor */
+			"Authentication-Method",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flag values */
+			AVP_TYPE_INTEGER32	/* base type of data */
+		};
+		struct dict_object	*type;
+		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "Enumerated(3GPP/Authentication-Method)", NULL, NULL, NULL };
+		CHECK_dict_new(DICT_TYPE, &tdata, NULL, &type);
+		CHECK_dict_new(DICT_AVP, &data, type, NULL);
+	};
+
+	/* Authentication-Information-SIM, OctetString, code 301, section 10.1.6 */
+	{
+		struct dict_avp_data data = {
+			301,	/* Code */
+			10415,	/* Vendor */
+			"Authentication-Information-SIM",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flag values */
+			AVP_TYPE_OCTETSTRING	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+	};
+
+	/* Authorization-Information-SIM, OctetString, code 302, section 10.1.7 */
+	{
+		struct dict_avp_data data = {
+			302,	/* Code */
+			10415,	/* Vendor */
+			"Authorization-Information-SIM",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flag values */
+			AVP_TYPE_OCTETSTRING	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+	};
+
+	/* WLAN-User-Data, Grouped, code 303, section 10.1.8                */
+	{
+		struct dict_avp_data data = {
+			303,	/* Code */
+			10415,	/* Vendor */
+			"WLAN-User-Data",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flag values */
+			AVP_TYPE_GROUPED	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+	};
+
+	/* Charging-Data, Grouped, code 304, section 10.1.10                */
+	{
+		struct dict_avp_data data = {
+			304,	/* Code */
+			10415,	/* Vendor */
+			"Charging-Data",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flag values */
+			AVP_TYPE_GROUPED	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+	};
+
+	/* WLAN-Access, Enumerated, code 305, section 10.1.11               */
+	{
+		struct dict_avp_data data = {
+			305,	/* Code */
+			10415,	/* Vendor */
+			"WLAN-Access",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flag values */
+			AVP_TYPE_INTEGER32	/* base type of data */
+		};
+		struct dict_object	*type;
+		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "Enumerated(3GPP/WLAN-Access)", NULL, NULL, NULL };
+		CHECK_dict_new(DICT_TYPE, &tdata, NULL, &type);
+		CHECK_dict_new(DICT_AVP, &data, type, NULL);
+	};
+
+	/* WLAN-3GPP-IP-Access, Enumerated, code 306, section 10.1.12       */
+	{
+		struct dict_avp_data data = {
+			306,	/* Code */
+			10415,	/* Vendor */
+			"WLAN-3GPP-IP-Access",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flag values */
+			AVP_TYPE_INTEGER32	/* base type of data */
+		};
+		struct dict_object	*type;
+		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "Enumerated(3GPP/WLAN-3GPP-IP-Access)", NULL, NULL, NULL };
+		CHECK_dict_new(DICT_TYPE, &tdata, NULL, &type);
+		CHECK_dict_new(DICT_AVP, &data, type, NULL);
+	};
+
+	/* APN-Authorized, Grouped, code 307, section 10.1.14               */
+	{
+		struct dict_avp_data data = {
+			307,	/* Code */
+			10415,	/* Vendor */
+			"APN-Authorized",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flag values */
+			AVP_TYPE_GROUPED	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+	};
+
+	/* Note: APN-Id (308) OctetString only present from                 */
+	/* 3GPP TS 29.234 V6.2.0 (2005-03) to 3GPP TS 29.234 V6.4.0 (2005-09) */
+	/* before being deprecated in 3GPP TS 29.234 V6.5.0 (2005-12).      */
+
+	/* APN-Barring-Type, Enumerated, code 309, section 10.1.16          */
+	{
+		struct dict_avp_data data = {
+			309,	/* Code */
+			10415,	/* Vendor */
+			"APN-Barring-Type",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flag values */
+			AVP_TYPE_INTEGER32	/* base type of data */
+		};
+		struct dict_object	*type;
+		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "Enumerated(3GPP/APN-Barring-Type)", NULL, NULL, NULL };
+		CHECK_dict_new(DICT_TYPE, &tdata, NULL, &type);
+		CHECK_dict_new(DICT_AVP, &data, type, NULL);
+	};
+
+	/* WLAN-Direct-IP-Access, Enumerated, code 310, section 10.1.17     */
+	{
+		struct dict_avp_data data = {
+			310,	/* Code */
+			10415,	/* Vendor */
+			"WLAN-Direct-IP-Access",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flag values */
+			AVP_TYPE_INTEGER32	/* base type of data */
+		};
+		struct dict_object	*type;
+		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "Enumerated(3GPP/WLAN-Direct-IP-Access)", NULL, NULL, NULL };
+		CHECK_dict_new(DICT_TYPE, &tdata, NULL, &type);
+		CHECK_dict_new(DICT_AVP, &data, type, NULL);
+	};
+
+	/* Session-Request-Type, Enumerated, code 311, section 10.1.23      */
+	{
+		struct dict_avp_data data = {
+			311,	/* Code */
+			10415,	/* Vendor */
+			"Session-Request-Type",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flag values */
+			AVP_TYPE_INTEGER32	/* base type of data */
+		};
+		struct dict_object	*type;
+		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "Enumerated(3GPP/Session-Request-Type)", NULL, NULL, NULL };
+		CHECK_dict_new(DICT_TYPE, &tdata, NULL, &type);
+		CHECK_dict_new(DICT_AVP, &data, type, NULL);
+	};
+
+	/* Routing-Policy, IPFilterRule, code 312, section 10.1.24          */
+	{
+		struct dict_avp_data data = {
+			312,	/* Code */
+			10415,	/* Vendor */
+			"Routing-Policy",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flag values */
+			AVP_TYPE_OCTETSTRING	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, IPFilterRule_type, NULL);
+	};
+
+	/* Max-Requested-Bandwidth, OctetString, code 313, section 10.1.26  */
+	{
+		struct dict_avp_data data = {
+			313,	/* Code */
+			10415,	/* Vendor */
+			"Max-Requested-Bandwidth",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flag values */
+			AVP_TYPE_OCTETSTRING	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+	};
+
+	/* Charging-Characteristics, Integer32, code 314, section 10.1.27   */
+	{
+		struct dict_avp_data data = {
+			314,	/* Code */
+			10415,	/* Vendor */
+			"Charging-Characteristics",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flag values */
+			AVP_TYPE_INTEGER32	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+	};
+
+	/* Charging-Nodes, Grouped, code 315, section 10.1.28               */
+	{
+		struct dict_avp_data data = {
+			315,	/* Code */
+			10415,	/* Vendor */
+			"Charging-Nodes",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flag values */
+			AVP_TYPE_GROUPED	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+	};
+
+	/* Primary-OCS-Charging-Function-Name, DiameterIdentity, code 316, section 10.1.29 */
+	{
+		struct dict_avp_data data = {
+			316,	/* Code */
+			10415,	/* Vendor */
+			"Primary-OCS-Charging-Function-Name",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flag values */
+			AVP_TYPE_OCTETSTRING	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, DiameterIdentity_type, NULL);
+	};
+
+	/* Secondary-OCS-Charging-Function-Name, DiameterIdentity, code 317, section 10.1.30 */
+	{
+		struct dict_avp_data data = {
+			317,	/* Code */
+			10415,	/* Vendor */
+			"Secondary-OCS-Charging-Function-Name",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flag values */
+			AVP_TYPE_OCTETSTRING	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, DiameterIdentity_type, NULL);
+	};
+
+	/* Note: 3GPP TS 29.273 from Release 12 now defines 3GPP-AAA-Server-Name (318). */
+	/*                                                                  */
+	/* Maximum-Number-Accesses, Unsigned32, code 319, section 10.1.38   */
+	{
+		struct dict_avp_data data = {
+			319,	/* Code */
+			10415,	/* Vendor */
+			"Maximum-Number-Accesses",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flag values */
+			AVP_TYPE_UNSIGNED32	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+	};
+
+	/*==================================================================*/
 	/* 3GPP TS 29.272 V15.10.0 (2019-12)                                */
 	/* Mobility Management Entity (MME)                                 */
 	/* and Serving GPRS Support Node (SGSN) related interfaces          */
@@ -10429,9 +10713,8 @@ int add_avps()
 		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
 	};
 
-	/* Note: Trust-Relationship-Update (1515) only present in           */
-	/* 3GPP TS 29.273 V11.3.0 (2012-09) before being deprecated.        */
-	/* Trust-Relationship-Update (1515) not provided.                   */
+	/* Note: Trust-Relationship-Update (1515) Enumerated only present   */
+	/* in 3GPP TS 29.273 V11.3.0 (2012-09) before being deprecated.     */
 
 	/* DER-S6b-Flags, Unsigned32, code 1523, section 9.2.3.7            */
 	{
