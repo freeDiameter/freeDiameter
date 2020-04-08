@@ -6644,6 +6644,112 @@ int add_avps()
 	};
 
 	/*==================================================================*/
+	/* 3GPP TS 29.219 V15.3.0 (2019-09)                                 */
+	/* Policy and Charging Control: Spending Limit Reporting over       */
+	/* Sy reference point                                               */
+	/*                                                                  */
+	/* From 3GPP 29219-f30.doc                                          */
+	/*==================================================================*/
+
+	/*==================================================================*/
+	/* 3GPP TS 29.219 Table 5.3.0.1: Sy specific Diameter AVPs          */
+	/*==================================================================*/
+
+	/* Pending-Policy-Counter-Information, Grouped, code 2905, section 5.3.5 */
+	{
+		struct dict_avp_data data = {
+			2905,	/* Code */
+			10415,	/* Vendor */
+			"Pending-Policy-Counter-Information",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flag values */
+			AVP_TYPE_GROUPED	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+	};
+
+	/* Pending-Policy-Counter-Change-Time, Time, code 2906, section 5.3.6 */
+	{
+		struct dict_avp_data data = {
+			2906,	/* Code */
+			10415,	/* Vendor */
+			"Pending-Policy-Counter-Change-Time",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flag values */
+			AVP_TYPE_OCTETSTRING	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, Time_type, NULL);
+	};
+
+	/* Policy-Counter-Identifier, UTF8String, code 2901, section 5.3.1  */
+	{
+		struct dict_avp_data data = {
+			2901,	/* Code */
+			10415,	/* Vendor */
+			"Policy-Counter-Identifier",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flag values */
+			AVP_TYPE_OCTETSTRING	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, UTF8String_type, NULL);
+	};
+
+	/* Policy-Counter-Status, UTF8String, code 2902, section 5.3.2      */
+	{
+		struct dict_avp_data data = {
+			2902,	/* Code */
+			10415,	/* Vendor */
+			"Policy-Counter-Status",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flag values */
+			AVP_TYPE_OCTETSTRING	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, UTF8String_type, NULL);
+	};
+
+	/* Policy-Counter-Status-Report, Grouped, code 2903, section 5.3.3  */
+	{
+		struct dict_avp_data data = {
+			2903,	/* Code */
+			10415,	/* Vendor */
+			"Policy-Counter-Status-Report",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flag values */
+			AVP_TYPE_GROUPED	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+	};
+
+	/* SL-Request-Type, Enumerated, code 2904, section 5.3.4            */
+	{
+		struct dict_avp_data data = {
+			2904,	/* Code */
+			10415,	/* Vendor */
+			"SL-Request-Type",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flag values */
+			AVP_TYPE_INTEGER32	/* base type of data */
+		};
+		struct dict_object	*type;
+		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "Enumerated(3GPP/SL-Request-Type)", NULL, NULL, NULL };
+		CHECK_dict_new(DICT_TYPE, &tdata, NULL, &type);
+		CHECK_dict_new(DICT_AVP, &data, type, NULL);
+	};
+
+	/* SN-Request-Type, Unsigned32, code 2907, section 5.3.7            */
+	{
+		struct dict_avp_data data = {
+			2907,	/* Code */
+			10415,	/* Vendor */
+			"SN-Request-Type",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR,	/* Fixed flag values */
+			AVP_TYPE_UNSIGNED32	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+	};
+
+	/*==================================================================*/
 	/* 3GPP TS 29.229 V15.2.0 (2019-09)                                 */
 	/* Cx and Dx interfaces based on the Diameter protocol;             */
 	/* Protocol details                                                 */
