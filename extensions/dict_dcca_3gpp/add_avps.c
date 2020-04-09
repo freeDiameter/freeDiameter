@@ -1727,9 +1727,11 @@ int add_avps()
 		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
 	};
 
-	/* Note: Name conflict with 3GPP TS 29.329 Sequence-Number (716).   */
+	/* Note: Name conflict with 3GPP TS 29.329 Sequence-Number (716)    */
+	/* and 3GPP TS 29.283 Sequence-Number (4512).                       */
 	/* 3GPP TS 29.140 V6.1.0 (2005-06) allocated Sequence-Number (1107). */
 	/* 3GPP TS 29.329 V10.0.0 (2010-09) CR 0163 added Sequence-Number (716). */
+	/* 3GPP TS 29.283 V13.1.0 (2016-06) allocated Sequence-Number (4512). */
 	/*                                                                  */
 	/* Fix: Sequence-Number (1107) renamed to Sequence-Number-29.140 (1107). */
 	/* Sequence-Number-29.140, Unsigned32, code 1107, section 6.3.10    */
@@ -11181,6 +11183,232 @@ int add_avps()
 	/*==================================================================*/
 
 	/*==================================================================*/
+	/* 3GPP TS 29.283 V15.1.0 (2019-09)                                 */
+	/* Diameter Data Management Applications                            */
+	/*                                                                  */
+	/* From 3GPP 29283-f10.doc                                          */
+	/*==================================================================*/
+
+	/*==================================================================*/
+	/* 3GPP TS 29.283 Table 7.3.1-1: MCPTT-2, MCVideo-2, MCData-2 and CSC-13 specific Diameter AVPs */
+	/*==================================================================*/
+
+	/* MCPTT-ID, UTF8String, code 4500, section 7.3.2                   */
+	{
+		struct dict_avp_data data = {
+			4500,	/* Code */
+			10415,	/* Vendor */
+			"MCPTT-ID",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flag values */
+			AVP_TYPE_OCTETSTRING	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, UTF8String_type, NULL);
+	};
+
+	/* Data-Identification, Grouped, code 4501, section 7.3.3           */
+	{
+		struct dict_avp_data data = {
+			4501,	/* Code */
+			10415,	/* Vendor */
+			"Data-Identification",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flag values */
+			AVP_TYPE_GROUPED	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+	};
+
+	/* Data-Identification-Prefix, Unsigned32, code 4502, section 7.3.11 */
+	{
+		struct dict_avp_data data = {
+			4502,	/* Code */
+			10415,	/* Vendor */
+			"Data-Identification-Prefix",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flag values */
+			AVP_TYPE_UNSIGNED32	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+	};
+
+	/* Data-Identification-Flags, Unsigned64, code 4503, section 7.3.12 */
+	{
+		struct dict_avp_data data = {
+			4503,	/* Code */
+			10415,	/* Vendor */
+			"Data-Identification-Flags",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flag values */
+			AVP_TYPE_UNSIGNED64	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+	};
+
+	/* DPR-Flags, Unsigned32, code 4504, section 7.3.13                 */
+	{
+		struct dict_avp_data data = {
+			4504,	/* Code */
+			10415,	/* Vendor */
+			"DPR-Flags",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flag values */
+			AVP_TYPE_UNSIGNED32	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+	};
+
+	/* DPA-Flags, Unsigned32, code 4505, section 7.3.14                 */
+	{
+		struct dict_avp_data data = {
+			4505,	/* Code */
+			10415,	/* Vendor */
+			"DPA-Flags",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flag values */
+			AVP_TYPE_UNSIGNED32	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+	};
+
+	/* DUR-Flags, Unsigned32, code 4506, section 7.3.15                 */
+	{
+		struct dict_avp_data data = {
+			4506,	/* Code */
+			10415,	/* Vendor */
+			"DUR-Flags",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flag values */
+			AVP_TYPE_UNSIGNED32	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+	};
+
+	/* DUA-Flags, Unsigned32, code 4507, section 7.3.16                 */
+	{
+		struct dict_avp_data data = {
+			4507,	/* Code */
+			10415,	/* Vendor */
+			"DUA-Flags",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flag values */
+			AVP_TYPE_UNSIGNED32	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+	};
+
+	/* NDR-Flags, Unsigned32, code 4508, section 7.3.17                 */
+	{
+		struct dict_avp_data data = {
+			4508,	/* Code */
+			10415,	/* Vendor */
+			"NDR-Flags",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flag values */
+			AVP_TYPE_UNSIGNED32	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+	};
+
+	/* NDA-Flags, Unsigned32, code 4509, section 7.3.18                 */
+	{
+		struct dict_avp_data data = {
+			4509,	/* Code */
+			10415,	/* Vendor */
+			"NDA-Flags",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flag values */
+			AVP_TYPE_UNSIGNED32	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+	};
+
+	/* User-Data-Id, Unsigned32, code 4510, section 7.3.19              */
+	{
+		struct dict_avp_data data = {
+			4510,	/* Code */
+			10415,	/* Vendor */
+			"User-Data-Id",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flag values */
+			AVP_TYPE_UNSIGNED32	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+	};
+
+	/* MC-Service-User-Profile-Data, Grouped, code 4511, section 7.3.20 */
+	{
+		struct dict_avp_data data = {
+			4511,	/* Code */
+			10415,	/* Vendor */
+			"MC-Service-User-Profile-Data",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flag values */
+			AVP_TYPE_GROUPED	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+	};
+
+	/* Note: Name conflict with 3GPP TS 29.140 Sequence-Number (1107).  */
+	/* and 3GPP TS 29.329 Sequence-Number (716).                        */
+	/* 3GPP TS 29.140 V6.1.0 (2005-06) allocated Sequence-Number (1107). */
+	/* 3GPP TS 29.329 V10.0.0 (2010-09) CR 0163 added Sequence-Number (716). */
+	/* 3GPP TS 29.283 V13.1.0 (2016-06) allocated Sequence-Number (4512). */
+	/*                                                                  */
+	/* Fix: Sequence-Number (4512) renamed to Sequence-Number-29.283 (4512). */
+	/* Sequence-Number-29.283, Unsigned32, code 4512, section 7.3.21    */
+	{
+		struct dict_avp_data data = {
+			4512,	/* Code */
+			10415,	/* Vendor */
+			"Sequence-Number-29.283",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flag values */
+			AVP_TYPE_UNSIGNED32	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+	};
+
+	/* Data, Grouped, code 4513, section 7.3.22                         */
+	{
+		struct dict_avp_data data = {
+			4513,	/* Code */
+			10415,	/* Vendor */
+			"Data",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flag values */
+			AVP_TYPE_GROUPED	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+	};
+
+	/* MCVideo-ID, UTF8String, code 4514, section 7.3.24                */
+	{
+		struct dict_avp_data data = {
+			4514,	/* Code */
+			10415,	/* Vendor */
+			"MCVideo-ID",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR,	/* Fixed flag values */
+			AVP_TYPE_OCTETSTRING	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, UTF8String_type, NULL);
+	};
+
+	/* MCData-ID, UTF8String, code 4515, section 7.3.25                 */
+	{
+		struct dict_avp_data data = {
+			4515,	/* Code */
+			10415,	/* Vendor */
+			"MCData-ID",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR,	/* Fixed flag values */
+			AVP_TYPE_OCTETSTRING	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, UTF8String_type, NULL);
+	};
+
+	/*==================================================================*/
 	/* 3GPP TS 29.329 V15.2.0 (2019-09)                                 */
 	/* Sh Interface based on the Diameter protocol;                     */
 	/* Protocol details                                                 */
@@ -11431,9 +11659,11 @@ int add_avps()
 		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
 	};
 
-	/* Note: Name conflict with 3GPP TS 29.140 Sequence-Number (1107).  */
+	/* Note: Name conflict with 3GPP TS 29.140 Sequence-Number (1107)   */
+	/* and 3GPP TS 29.283 Sequence-Number (4512).                       */
 	/* 3GPP TS 29.140 V6.1.0 (2005-06) allocated Sequence-Number (1107). */
 	/* 3GPP TS 29.329 V10.0.0 (2010-09) CR 0163 added Sequence-Number (716). */
+	/* 3GPP TS 29.283 V13.1.0 (2016-06) allocated Sequence-Number (4512). */
 	/* Sequence-Number, Unsigned32, code 716, section 6.3.25            */
 	{
 		struct dict_avp_data data = {
