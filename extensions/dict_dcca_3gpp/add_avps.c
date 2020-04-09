@@ -13372,7 +13372,7 @@ int add_avps()
 	/* ProSe application server aspects (PC2);                          */
 	/* Stage 3                                                          */
 	/*                                                                  */
-	/* From 29343-f10.doc                                               */
+	/* From 3GPP 29343-f10.doc                                          */
 	/*==================================================================*/
 
 	/*==================================================================*/
@@ -13657,7 +13657,7 @@ int add_avps()
 	/* Inter-Proximity-services (ProSe) Function signalling aspects;    */
 	/* Stage 3                                                          */
 	/*                                                                  */
-	/* From 29345-f10.doc                                               */
+	/* From 3GPP 29345-f10.doc                                          */
 	/*==================================================================*/
 
 	/*==================================================================*/
@@ -14729,6 +14729,59 @@ int add_avps()
 			"Feature-Supported-In-Final-Target",	/* Name */
 			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
 			AVP_FLAG_VENDOR,	/* Fixed flag values */
+			AVP_TYPE_UNSIGNED32	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+	};
+
+	/*==================================================================*/
+	/* 3GPP TS 29.388 V15.1.0 (2019-09)                                 */
+	/* V2X Control Function to Home Subscriber Server (HSS)             */
+	/* aspects (V4);                                                    */
+	/* Stage 3                                                          */
+	/*                                                                  */
+	/* From 3GPP 29388-f10.doc                                          */
+	/*                                                                  */
+	/*==================================================================*/
+
+	/*==================================================================*/
+	/* 3GPP TS 29.388 Table 6.3.1-1: V4 specific Diameter AVPs          */
+	/*==================================================================*/
+
+	/* V2X-PC5-Allowed-PLMN, Grouped, code 4600, section 6.3.3          */
+	{
+		struct dict_avp_data data = {
+			4600,	/* Code */
+			10415,	/* Vendor */
+			"V2X-PC5-Allowed-PLMN",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flag values */
+			AVP_TYPE_GROUPED	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+	};
+
+	/* V2X-Update-Flags, Unsigned32, code 4601, section 6.3.4           */
+	{
+		struct dict_avp_data data = {
+			4601,	/* Code */
+			10415,	/* Vendor */
+			"V2X-Update-Flags",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flag values */
+			AVP_TYPE_UNSIGNED32	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+	};
+
+	/* V2X-Notify-Flags, Unsigned32, code 4602, section 6.3.5           */
+	{
+		struct dict_avp_data data = {
+			4602,	/* Code */
+			10415,	/* Vendor */
+			"V2X-Notify-Flags",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flag values */
 			AVP_TYPE_UNSIGNED32	/* base type of data */
 		};
 		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
