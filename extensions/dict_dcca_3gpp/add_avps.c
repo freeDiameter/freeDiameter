@@ -6418,7 +6418,7 @@ int add_avps()
 	};
 
 	/*==================================================================*/
-	/* Table A.7.3.1.1: S9a specific Diameter AVPs                      */
+	/* 3GPP TS 29.215 Table A.7.3.1.1: S9a specific Diameter AVPs       */
 	/*==================================================================*/
 
 	/* PCRF-Address, DiameterIdentity, code 2207, section A.7.3.1.1     */
@@ -6435,7 +6435,7 @@ int add_avps()
 	};
 
 	/*==================================================================*/
-	/* Table A.8.3.1.1: S9a* specific Diameter AVPs                     */
+	/* 3GPP TS 29.215 Table A.8.3.1.1: S9a* specific Diameter AVPs      */
 	/*==================================================================*/
 
 	/* UE-Local-IPv6-Prefix, OctetString, code 2205, section A.8.3.1    */
@@ -14783,6 +14783,59 @@ int add_avps()
 			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
 			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flag values */
 			AVP_TYPE_UNSIGNED32	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+	};
+
+	/*==================================================================*/
+	/* 3GPP TS 29.389 V15.1.0 (2019-09)                                 */
+	/* Inter-V2X Control Function Signalling aspects (V6);              */
+	/* Stage 3                                                          */
+	/*                                                                  */
+	/* From 3GPP 29389-f10.doc                                          */
+	/*==================================================================*/
+
+	/*==================================================================*/
+	/* 3GPP TS 29.389 Table 6.3.1-1: V6 specific Diameter AVPs          */
+	/*                                                                  */
+	/* Fix: All AVPs were missing M and V; assume MUST for both.        */
+	/*==================================================================*/
+
+	/* V2X-Authorization-Data, Grouped, code 4700, section 6.3.2        */
+	{
+		struct dict_avp_data data = {
+			4700,	/* Code */
+			10415,	/* Vendor */
+			"V2X-Authorization-Data",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flag values */
+			AVP_TYPE_GROUPED	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+	};
+
+	/* V2X-Permission-in-VPLMN, Unsigned32, code 4701, section 6.3.3    */
+	{
+		struct dict_avp_data data = {
+			4701,	/* Code */
+			10415,	/* Vendor */
+			"V2X-Permission-in-VPLMN",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flag values */
+			AVP_TYPE_UNSIGNED32	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+	};
+
+	/* V2X-Application-Server, Grouped, code 4702, section 6.3.4        */
+	{
+		struct dict_avp_data data = {
+			4702,	/* Code */
+			10415,	/* Vendor */
+			"V2X-Application-Server",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flag values */
+			AVP_TYPE_GROUPED	/* base type of data */
 		};
 		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
 	};
