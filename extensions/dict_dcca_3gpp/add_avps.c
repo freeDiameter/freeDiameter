@@ -14741,7 +14741,6 @@ int add_avps()
 	/* Stage 3                                                          */
 	/*                                                                  */
 	/* From 3GPP 29388-f10.doc                                          */
-	/*                                                                  */
 	/*==================================================================*/
 
 	/*==================================================================*/
@@ -14845,6 +14844,8 @@ int add_avps()
 	/* Group Communication System Enablers for LTE (GCSE_LTE);          */
 	/* MB2 Reference Point;                                             */
 	/* Stage 3                                                          */
+	/*                                                                  */
+	/* From 3GPP 29468-f80.doc                                          */
 	/*==================================================================*/
 
 	/*==================================================================*/
@@ -15293,6 +15294,142 @@ int add_avps()
 			AVP_TYPE_GROUPED	/* base type of data */
 		};
 		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+	};
+
+	/*==================================================================*/
+	/* 3GPP TS 29.561 V16.3.0 (2020-03)                                 */
+	/* 5G System; Interworking between 5G Network and external          */
+	/* Data Networks;                                                   */
+	/* Stage 3                                                          */
+	/*                                                                  */
+	/* From 3GPP 29561-g30.doc                                          */
+	/*==================================================================*/
+
+	/*==================================================================*/
+	/* Table 12.4-1: N6 re-used Diameter AVPs                           */
+
+	/* Note: Only AVPs defined in 3GPP TS 29.561.                       */
+	/*==================================================================*/
+
+	/* 3GPP-Notification, OctetString, code 110, section 11.3.1         */
+	{
+		struct dict_avp_data data = {
+			110,	/* Code */
+			10415,	/* Vendor */
+			"3GPP-Notification",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR,	/* Fixed flag values */
+			AVP_TYPE_OCTETSTRING	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+	};
+
+	/* 3GPP-UE-MAC-Address, OctetString, code 111, section 11.3.1       */
+	{
+		struct dict_avp_data data = {
+			111,	/* Code */
+			10415,	/* Vendor */
+			"3GPP-UE-MAC-Address",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR,	/* Fixed flag values */
+			AVP_TYPE_OCTETSTRING	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+	};
+
+	/* 3GPP-Authorization-Reference, OctetString, code 112, section 11.3.1 */
+	{
+		struct dict_avp_data data = {
+			112,	/* Code */
+			10415,	/* Vendor */
+			"3GPP-Authorization-Reference",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR,	/* Fixed flag values */
+			AVP_TYPE_OCTETSTRING	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+	};
+
+	/* 3GPP-Policy-Reference, OctetString, code 113, section 11.3.1     */
+	{
+		struct dict_avp_data data = {
+			113,	/* Code */
+			10415,	/* Vendor */
+			"3GPP-Policy-Reference",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR,	/* Fixed flag values */
+			AVP_TYPE_OCTETSTRING	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+	};
+
+	/* 3GPP-Session-AMBR, OctetString, code 114, section 11.3.1         */
+	{
+		struct dict_avp_data data = {
+			114,	/* Code */
+			10415,	/* Vendor */
+			"3GPP-Session-AMBR",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR,	/* Fixed flag values */
+			AVP_TYPE_OCTETSTRING	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+	};
+
+	/* 3GPP-NAI, OctetString, code 115, section 11.3.1                  */
+	{
+		struct dict_avp_data data = {
+			115,	/* Code */
+			10415,	/* Vendor */
+			"3GPP-NAI",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR,	/* Fixed flag values */
+			AVP_TYPE_OCTETSTRING	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+	};
+
+	/* 3GPP-Session-AMBR-v2, OctetString, code 116, section 11.3.1      */
+	{
+		struct dict_avp_data data = {
+			116,	/* Code */
+			10415,	/* Vendor */
+			"3GPP-Session-AMBR-v2",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR,	/* Fixed flag values */
+			AVP_TYPE_OCTETSTRING	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+	};
+
+	/* 3GPP-IP-Address-Pool-Id, OctetString, code 118, section 11.3.1   */
+	{
+		struct dict_avp_data data = {
+			118,	/* Code */
+			10415,	/* Vendor */
+			"3GPP-IP-Address-Pool-Id",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR,	/* Fixed flag values */
+			AVP_TYPE_OCTETSTRING	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+	};
+
+	/*==================================================================*/
+	/* Table 17.4-1: Additional information needed for network slice specific authentication */
+	/*==================================================================*/
+
+	/* 3GPP-S-NSSAI, UTF8String, code 200, section 16.3.1               */
+	{
+		struct dict_avp_data data = {
+			200,	/* Code */
+			10415,	/* Vendor */
+			"3GPP-S-NSSAI",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR,	/* Fixed flag values */
+			AVP_TYPE_OCTETSTRING	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, UTF8String_type, NULL);
 	};
 
 	/*==================================================================*/

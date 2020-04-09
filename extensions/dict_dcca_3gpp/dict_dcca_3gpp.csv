@@ -1705,7 +1705,6 @@ Feature-Supported-In-Final-Target,3012,6.4.13,Unsigned32,V,P,,M
 # Stage 3,,,,,,,
 # ,,,,,,,
 # From 3GPP 29388-f10.doc,,,,,,,
-# ,,,,,,,
 #=,,,,,,,
 #,,,,,,,
 #=,,,,,,,
@@ -1741,6 +1740,8 @@ V2X-Application-Server,4702,6.3.4,Grouped,"M,V",,,
 # Group Communication System Enablers for LTE (GCSE_LTE);,,,,,,,
 # MB2 Reference Point;,,,,,,,
 # Stage 3,,,,,,,
+# ,,,,,,,
+# From 3GPP 29468-f80.doc,,,,,,,
 #=,,,,,,,
 #,,,,,,,
 #=,,,,,,,
@@ -1795,6 +1796,36 @@ TMGI-Deallocation-Result,3514,6.4.16,Unsigned32,"M,V",P,,
 TMGI-Expiry,3515,6.4.17,Grouped,"M,V",P,,
 TMGI-Number,3516,6.4.18,Unsigned32,"M,V",P,,
 Userplane-Protocol-Result,3529,6.4.31,Grouped,V,P,,M
+,,,,,,,
+@standard,3GPP TS 29.561,,,,,,
+#=,,,,,,,
+# 3GPP TS 29.561 V16.3.0 (2020-03),,,,,,,
+# 5G System; Interworking between 5G Network and external,,,,,,,
+# Data Networks;,,,,,,,
+# Stage 3,,,,,,,
+# ,,,,,,,
+# From 3GPP 29561-g30.doc,,,,,,,
+#=,,,,,,,
+#,,,,,,,
+#=,,,,,,,
+# Table 12.4-1: N6 re-used Diameter AVPs,,,,,,,
+#,,,,,,,
+# Note: Only AVPs defined in 3GPP TS 29.561.,,,,,,,
+#=,,,,,,,
+#,,,,,,,
+3GPP-Notification,110,11.3.1,OctetString,V,P,,M
+3GPP-UE-MAC-Address,111,11.3.1,OctetString,V,P,,M
+3GPP-Authorization-Reference,112,11.3.1,OctetString,V,P,,M
+3GPP-Policy-Reference,113,11.3.1,OctetString,V,P,,M
+3GPP-Session-AMBR,114,11.3.1,OctetString,V,P,,M
+3GPP-NAI,115,11.3.1,OctetString,V,P,,M
+3GPP-Session-AMBR-v2,116,11.3.1,OctetString,V,P,,M
+3GPP-IP-Address-Pool-Id,118,11.3.1,OctetString,V,P,,M
+#=,,,,,,,
+# Table 17.4-1: Additional information needed for network slice specific authentication,,,,,,,
+#=,,,,,,,
+#,,,,,,,
+3GPP-S-NSSAI,200,16.3.1,UTF8String,V,P,,M
 ,,,,,,,
 @standard,3GPP TS 32.299,,,,,,
 #=,,,,,,,
