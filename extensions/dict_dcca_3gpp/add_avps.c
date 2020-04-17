@@ -924,12 +924,16 @@ int add_avps()
 		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
 	};
 
-	/* MBMS-Flag, Unsigned32, code 931, section 20.5a.9                 */
+	/* Note: 3GPP TS 29.061 table 20.5a.1 row MBMS-Flag (931) has       */
+	/* incorrect name and should be "MBMS-Flags" per clause 20.5a.9.    */
+	/*                                                                  */
+	/* Fix: MBMS-Flag (931) renamed to MBMS-Flags (931).                */
+	/* MBMS-Flags, Unsigned32, code 931, section 20.5a.9                */
 	{
 		struct dict_avp_data data = {
 			931,	/* Code */
 			10415,	/* Vendor */
-			"MBMS-Flag",	/* Name */
+			"MBMS-Flags",	/* Name */
 			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
 			AVP_FLAG_VENDOR,	/* Fixed flag values */
 			AVP_TYPE_UNSIGNED32	/* base type of data */

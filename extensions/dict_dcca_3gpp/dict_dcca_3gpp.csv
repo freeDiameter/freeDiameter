@@ -143,7 +143,11 @@ MBMS-GW-UDP-Port,927,20.5a.5,OctetString,V,P,,M
 MBMS-GW-UDP-Port-Indicator,928,20.5a.6,Enumerated,V,P,,M
 MBMS-Data-Transfer-Start,929,20.5a.7,Unsigned64,V,P,,M
 MBMS-Data-Transfer-Stop,930,20.5a.8,Unsigned64,V,P,,M
-MBMS-Flag,931,20.5a.9,Unsigned32,V,P,,M
+# Note: 3GPP TS 29.061 table 20.5a.1 row MBMS-Flag (931) has,,,,,,,
+"# incorrect name and should be ""MBMS-Flags"" per clause 20.5a.9.",,,,,,,
+# ,,,,,,,
+# Fix: MBMS-Flag (931) renamed to MBMS-Flags (931).,,,,,,,
+MBMS-Flags,931,20.5a.9,Unsigned32,V,P,,M
 Restart-Counter,932,20.5a.10,Unsigned32,V,P,,M
 Diagnostic-Info,933,20.5a.11,Unsigned32,V,P,,M
 MBMS-Cell-List,934,20.5a.12,OctetString,V,P,,M
