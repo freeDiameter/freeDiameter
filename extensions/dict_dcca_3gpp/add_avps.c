@@ -10275,12 +10275,16 @@ int add_avps()
 		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
 	};
 
-	/* Additional-Context-ID, Unsigned32, code 1683, section 7.3.206    */
+	/* Note: 3GPP TS 29.272 table 7.3.1/1 row Additional-Context-ID (1683) has */
+	/* incorrect name and should be "Additional-Context-Identifier" per clause 7.3.206. */
+	/*                                                                  */
+	/* Fix: Additional-Context-ID (1683) renamed to Additional-Context-Identifier (1683). */
+	/* Additional-Context-Identifier, Unsigned32, code 1683, section 7.3.206 */
 	{
 		struct dict_avp_data data = {
 			1683,	/* Code */
 			10415,	/* Vendor */
-			"Additional-Context-ID",	/* Name */
+			"Additional-Context-Identifier",	/* Name */
 			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
 			AVP_FLAG_VENDOR,	/* Fixed flag values */
 			AVP_TYPE_UNSIGNED32	/* base type of data */

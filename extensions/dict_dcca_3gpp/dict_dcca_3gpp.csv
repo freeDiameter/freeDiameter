@@ -1156,7 +1156,11 @@ AIR-Flags,1679,7.3.201,Unsigned32,V,,,M
 UE-Usage-Type,1680,7.3.202,Unsigned32,V,,,M
 Non-IP-PDN-Type-Indicator,1681,7.3.204,Enumerated,V,,,M
 Non-IP-Data-Delivery-Mechanism,1682,7.3.205,Unsigned32,V,,,M
-Additional-Context-ID,1683,7.3.206,Unsigned32,V,,,M
+# Note: 3GPP TS 29.272 table 7.3.1/1 row Additional-Context-ID (1683) has,,,,,,,
+"# incorrect name and should be ""Additional-Context-Identifier"" per clause 7.3.206.",,,,,,,
+# ,,,,,,,
+# Fix: Additional-Context-ID (1683) renamed to Additional-Context-Identifier (1683).,,,,,,,
+Additional-Context-Identifier,1683,7.3.206,Unsigned32,V,,,M
 SCEF-Realm,1684,7.3.207,DiameterIdentity,V,,,M
 Subscription-Data-Deletion,1685,7.3.208,Grouped,V,,,M
 # Note: 3GPP TS 29.272 table 7.3.1/1 row Preferred-Data-Mode (1686),,,,,,,
