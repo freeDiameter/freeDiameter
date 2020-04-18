@@ -13293,7 +13293,12 @@ int add_avps()
 		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
 	};
 
-	/* HSS-ID, OctetString, code 3325, section 6.3.3.14                 */
+	/* Note: 3GPP TS 29.338 table 6.3.3.1/1 row HSS-ID (3325)           */
+	/* incorrectly lists type as OctetString instead of UTF8String.     */
+	/* 3GPP TS 29.338 clause 6.3.3.14 uses UTF8String.                  */
+	/*                                                                  */
+	/* Fix: HSS-ID (3325) type changed from OctetString to UTF8String.  */
+	/* HSS-ID, UTF8String, code 3325, section 6.3.3.14                  */
 	{
 		struct dict_avp_data data = {
 			3325,	/* Code */
@@ -13303,7 +13308,7 @@ int add_avps()
 			AVP_FLAG_VENDOR,	/* Fixed flag values */
 			AVP_TYPE_OCTETSTRING	/* base type of data */
 		};
-		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+		CHECK_dict_new(DICT_AVP, &data, UTF8String_type, NULL);
 	};
 
 	/* Originating-SIP-URI, UTF8String, code 3326, section 6.3.3.15     */

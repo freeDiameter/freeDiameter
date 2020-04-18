@@ -1546,7 +1546,12 @@ SM-Diagnostic-Info,3305,6.3.3.7,OctetString,"M, V",,,
 SM-Delivery-Timer,3306,6.3.3.10,Unsigned32,"M, V",,,
 SM-Delivery-Start-Time,3307,6.3.3.11,Time,"M, V",,,
 SMSMI-Correlation-ID,3324,6.3.3.13,Grouped,V,,,M
-HSS-ID,3325,6.3.3.14,OctetString,V,,,M
+# Note: 3GPP TS 29.338 table 6.3.3.1/1 row HSS-ID (3325),,,,,,,
+# incorrectly lists type as OctetString instead of UTF8String.,,,,,,,
+# 3GPP TS 29.338 clause 6.3.3.14 uses UTF8String.,,,,,,,
+# ,,,,,,,
+# Fix: HSS-ID (3325) type changed from OctetString to UTF8String.,,,,,,,
+HSS-ID,3325,6.3.3.14,UTF8String,V,,,M
 Originating-SIP-URI,3326,6.3.3.15,UTF8String,V,,,M
 Destination-SIP-URI,3327,6.3.3.16,UTF8String,V,,,M
 OFR-Flags,3328,6.3.3.12,Unsigned32,V,,,M
