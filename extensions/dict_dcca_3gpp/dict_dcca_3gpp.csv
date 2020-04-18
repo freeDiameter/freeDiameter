@@ -537,8 +537,18 @@ HeNB-BBF-FQDN,2803,5.3.94,UTF8String,V,P,,M
 HeNB-Local-IP-Address,2804,5.3.95,Address,V,P,,M
 IP-CAN-Session-Charging-Scope,2827,5.3.114,Enumerated,V,P,,M
 IP-CAN-Type,1027,5.3.27,Enumerated,"M,V",P,,
-Max-PLR-DL,2852,5.3.138,Float32,V,P,,M
-Max-PLR-UL,2853,5.3.139,Float32,V,P,,M
+# Note: 3GPP TS 29.212 table 5.3.0.1 row Max-PLR-DL (2852),,,,,,,
+# incorrectly lists type as Unsigned32 instead of Float32.,,,,,,,
+# 3GPP TS 29.212 clause 5.3.138 uses Float32.,,,,,,,
+# ,,,,,,,
+# Fix: Max-PLR-DL (2852) type changed from Float32 to Unsigned32.,,,,,,,
+Max-PLR-DL,2852,5.3.138,Unsigned32,V,P,,M
+# Note: 3GPP TS 29.212 table 5.3.0.1 row Max-PLR-UL (2853),,,,,,,
+# incorrectly lists type as Unsigned32 instead of Float32.,,,,,,,
+# 3GPP TS 29.212 clause 5.3.139 uses Float32.,,,,,,,
+# ,,,,,,,
+# Fix: Max-PLR-UL (2853) type changed from Float32 to Unsigned32.,,,,,,,
+Max-PLR-UL,2853,5.3.139,Unsigned32,V,P,,M
 Metering-Method,1007,5.3.8,Enumerated,"M,V",P,,
 Monitoring-Flags,2828,5.3.115,Unsigned32,V,,,M
 Monitoring-Key,1066,5.3.59,OctetString,V,P,,M

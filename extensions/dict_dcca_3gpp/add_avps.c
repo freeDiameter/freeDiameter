@@ -4003,7 +4003,12 @@ int add_avps()
 		CHECK_dict_new(DICT_AVP, &data, type, NULL);
 	};
 
-	/* Max-PLR-DL, Float32, code 2852, section 5.3.138                  */
+	/* Note: 3GPP TS 29.212 table 5.3.0.1 row Max-PLR-DL (2852)         */
+	/* incorrectly lists type as Unsigned32 instead of Float32.         */
+	/* 3GPP TS 29.212 clause 5.3.138 uses Float32.                      */
+	/*                                                                  */
+	/* Fix: Max-PLR-DL (2852) type changed from Float32 to Unsigned32.  */
+	/* Max-PLR-DL, Unsigned32, code 2852, section 5.3.138               */
 	{
 		struct dict_avp_data data = {
 			2852,	/* Code */
@@ -4011,12 +4016,17 @@ int add_avps()
 			"Max-PLR-DL",	/* Name */
 			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
 			AVP_FLAG_VENDOR,	/* Fixed flag values */
-			AVP_TYPE_FLOAT32	/* base type of data */
+			AVP_TYPE_UNSIGNED32	/* base type of data */
 		};
 		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
 	};
 
-	/* Max-PLR-UL, Float32, code 2853, section 5.3.139                  */
+	/* Note: 3GPP TS 29.212 table 5.3.0.1 row Max-PLR-UL (2853)         */
+	/* incorrectly lists type as Unsigned32 instead of Float32.         */
+	/* 3GPP TS 29.212 clause 5.3.139 uses Float32.                      */
+	/*                                                                  */
+	/* Fix: Max-PLR-UL (2853) type changed from Float32 to Unsigned32.  */
+	/* Max-PLR-UL, Unsigned32, code 2853, section 5.3.139               */
 	{
 		struct dict_avp_data data = {
 			2853,	/* Code */
@@ -4024,7 +4034,7 @@ int add_avps()
 			"Max-PLR-UL",	/* Name */
 			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
 			AVP_FLAG_VENDOR,	/* Fixed flag values */
-			AVP_TYPE_FLOAT32	/* base type of data */
+			AVP_TYPE_UNSIGNED32	/* base type of data */
 		};
 		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
 	};
