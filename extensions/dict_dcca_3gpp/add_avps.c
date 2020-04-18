@@ -13759,12 +13759,16 @@ int add_avps()
 		CHECK_dict_new(DICT_AVP, &data, UTF8String_type, NULL);
 	};
 
-	/* Assistance-info, Grouped, code 3802, section 6.3.3               */
+	/* Note: 3GPP TS 29.345 Table 6.3.1-1 row Assistance-info (3802) has */
+	/* incorrect name and should be "Assistance-Info" per clause 6.3.3. */
+	/*                                                                  */
+	/* Fix: Assistance-info (3802) renamed to Assistance-Info (3802).   */
+	/* Assistance-Info, Grouped, code 3802, section 6.3.3               */
 	{
 		struct dict_avp_data data = {
 			3802,	/* Code */
 			10415,	/* Vendor */
-			"Assistance-info",	/* Name */
+			"Assistance-Info",	/* Name */
 			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
 			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flag values */
 			AVP_TYPE_GROUPED	/* base type of data */
@@ -14584,12 +14588,16 @@ int add_avps()
 		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
 	};
 
-	/* MIC-Check-indicator, Unsigned32, code 3865, section 6.3.80       */
+	/* Note: 3GPP TS 29.345 Table 6.3.1-1 row MIC-Check-indicator (3865) has */
+	/* incorrect name and should be "MIC-Check-Indicator" per clause 6.3.80. */
+	/*                                                                  */
+	/* Fix: MIC-Check-indicator (3865) renamed to MIC-Check-Indicator (3865). */
+	/* MIC-Check-Indicator, Unsigned32, code 3865, section 6.3.80       */
 	{
 		struct dict_avp_data data = {
 			3865,	/* Code */
 			10415,	/* Vendor */
-			"MIC-Check-indicator",	/* Name */
+			"MIC-Check-Indicator",	/* Name */
 			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
 			AVP_FLAG_VENDOR,	/* Fixed flag values */
 			AVP_TYPE_UNSIGNED32	/* base type of data */

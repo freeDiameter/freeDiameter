@@ -1648,7 +1648,11 @@ Authorized-Discovery-Range,3708,6.3.13,Unsigned32,V,,,M
 #=,,,,,,,
 #,,,,,,,
 App-Layer-User-Id,3801,6.3.2,UTF8String,"M, V",,,
-Assistance-info,3802,6.3.3,Grouped,"M, V",,,
+# Note: 3GPP TS 29.345 Table 6.3.1-1 row Assistance-info (3802) has,,,,,,,
+"# incorrect name and should be ""Assistance-Info"" per clause 6.3.3.",,,,,,,
+# ,,,,,,,
+# Fix: Assistance-info (3802) renamed to Assistance-Info (3802).,,,,,,,
+Assistance-Info,3802,6.3.3,Grouped,"M, V",,,
 Assistance-Info-Validity-Timer,3803,6.3.4,Unsigned32,"M, V",,,
 Discovery-Type,3804,6.3.5,Unsigned32,"M, V",,,
 Filter-Id,3805,6.3.9,OctetString,"M, V",,,
@@ -1714,7 +1718,11 @@ Code-Sending-Security-Material,3861,6.3.76,Grouped,V,,,M
 DUSK,3862,6.3.77,OctetString,V,,,M
 DUIK,3863,6.3.78,OctetString,V,,,M
 DUCK,3864,6.3.79,OctetString,V,,,M
-MIC-Check-indicator,3865,6.3.80,Unsigned32,V,,,M
+# Note: 3GPP TS 29.345 Table 6.3.1-1 row MIC-Check-indicator (3865) has,,,,,,,
+"# incorrect name and should be ""MIC-Check-Indicator"" per clause 6.3.80.",,,,,,,
+# ,,,,,,,
+# Fix: MIC-Check-indicator (3865) renamed to MIC-Check-Indicator (3865).,,,,,,,
+MIC-Check-Indicator,3865,6.3.80,Unsigned32,V,,,M
 Encrypted-Bitmask,3866,6.3.81,OctetString,V,,,M
 ProSe-App-Code-Suffix-Range,3867,6.3.82,OctetString,V,,,M
 PC5-tech,3868,6.3.84,OctetString,V,,,M
