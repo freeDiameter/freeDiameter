@@ -49,7 +49,7 @@ int add_avps()
 	/* For this reason, other sources are assumed more trustworthy.     */
 	/*==================================================================*/
 
-	/* Note: 3GPP-IMSI (1) changed to Must M.                           */
+	/* Fix: 3GPP-IMSI (1) changed to Must M.                            */
 	/* 3GPP-IMSI, UTF8String, code 1, section 16.4.7                    */
 	{
 		struct dict_avp_data data = {
@@ -78,7 +78,7 @@ int add_avps()
 		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
 	};
 
-	/* Note: 3GPP-PDP-Type (3) changed to Must M.                       */
+	/* Fix: 3GPP-PDP-Type (3) changed to Must M.                        */
 	/* 3GPP-PDP-Type, Enumerated, code 3, section 16.4.7                */
 	{
 		struct dict_avp_data data = {
@@ -108,7 +108,7 @@ int add_avps()
 		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
 	};
 
-	/* Note: 3GPP-GPRS-Negotiated-QoS-Profile (5) changed to Must M per contrib/3gpp. */
+	/* Fix: 3GPP-GPRS-Negotiated-QoS-Profile (5) changed to Must M per contrib/3gpp. */
 	/* 3GPP-GPRS-Negotiated-QoS-Profile, UTF8String, code 5, section 16.4.7 */
 	{
 		struct dict_avp_data data = {
@@ -148,7 +148,7 @@ int add_avps()
 		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
 	};
 
-	/* Note: 3GPP-IMSI-MCC-MNC (8) changed to Must M per packet dumps.  */
+	/* Fix: 3GPP-IMSI-MCC-MNC (8) changed to Must M per packet dumps.   */
 	/* 3GPP-IMSI-MCC-MNC, UTF8String, code 8, section 16.4.7            */
 	{
 		struct dict_avp_data data = {
@@ -162,7 +162,7 @@ int add_avps()
 		CHECK_dict_new(DICT_AVP, &data, UTF8String_type, NULL);
 	};
 
-	/* Note: 3GPP-GGSN-MCC-MNC (9) changed to Must M per contrib/3gpp.  */
+	/* Fix: 3GPP-GGSN-MCC-MNC (9) changed to Must M per contrib/3gpp.   */
 	/* 3GPP-GGSN-MCC-MNC, UTF8String, code 9, section 16.4.7            */
 	{
 		struct dict_avp_data data = {
@@ -176,7 +176,7 @@ int add_avps()
 		CHECK_dict_new(DICT_AVP, &data, UTF8String_type, NULL);
 	};
 
-	/* Note: 3GPP-NSAPI (10) changed to Must M per contrib/3gpp.        */
+	/* Fix: 3GPP-NSAPI (10) changed to Must M per contrib/3gpp.         */
 	/* 3GPP-NSAPI, OctetString, code 10, section 16.4.7                 */
 	{
 		struct dict_avp_data data = {
@@ -190,9 +190,11 @@ int add_avps()
 		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
 	};
 
-	/* Note: 3GPP TS 29.061 table 9a does not define                    */
+	/* Note: 3GPP TS 29.061 Table 9a does not define                    */
 	/* 3GPP-Session-Stop-Indicator (11) even when it is referenced      */
 	/* by other 3GPP Diameter AVPs including PS-Information (874).      */
+	/*                                                                  */
+	/* Fix: Add 3GPP-Session-Stop-Indicator (11) OctetString.           */
 	/* 3GPP-Session-Stop-Indicator, OctetString, code 11, section 16.4.7 */
 	{
 		struct dict_avp_data data = {
@@ -206,7 +208,7 @@ int add_avps()
 		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
 	};
 
-	/* Note: 3GPP-Selection-Mode (12) changed to Must M per contrib/3gpp. */
+	/* Fix: 3GPP-Selection-Mode (12) changed to Must M per contrib/3gpp. */
 	/* 3GPP-Selection-Mode, UTF8String, code 12, section 16.4.7         */
 	{
 		struct dict_avp_data data = {
@@ -220,7 +222,7 @@ int add_avps()
 		CHECK_dict_new(DICT_AVP, &data, UTF8String_type, NULL);
 	};
 
-	/* Note: 3GPP-Charging-Characteristics (13) changed to Must M per contrib/3gpp. */
+	/* Fix: 3GPP-Charging-Characteristics (13) changed to Must M per contrib/3gpp. */
 	/* 3GPP-Charging-Characteristics, UTF8String, code 13, section 16.4.7 */
 	{
 		struct dict_avp_data data = {
@@ -237,7 +239,8 @@ int add_avps()
 	/* Note: 3GPP TS 29.061 V12.6.0 (2014-06) renamed                   */
 	/* 3GPP-CG-IPv6-Address (14) to 3GPP-CG-Ipv6-Address;               */
 	/* this rename was not applied.                                     */
-	/* 3GPP-CG-IPv6-Address (14) changed to Must M per contrib/3gpp.    */
+	/*                                                                  */
+	/* Fix: 3GPP-CG-IPv6-Address (14) changed to Must M per contrib/3gpp. */
 	/* 3GPP-CG-IPv6-Address, OctetString, code 14, section 16.4.7       */
 	{
 		struct dict_avp_data data = {
@@ -254,7 +257,8 @@ int add_avps()
 	/* Note: 3GPP TS 29.061 V12.6.0 (2014-06) renamed                   */
 	/* 3GPP-SGSN-IPv6-Address (15) to 3GPP-SGSN-Ipv6-Address;           */
 	/* this rename was not applied.                                     */
-	/* 3GPP-SGSN-IPv6-Address (15) changed to Must M per contrib/3gpp.  */
+	/*                                                                  */
+	/* Fix: 3GPP-SGSN-IPv6-Address (15) changed to Must M per contrib/3gpp. */
 	/* 3GPP-SGSN-IPv6-Address, OctetString, code 15, section 16.4.7     */
 	{
 		struct dict_avp_data data = {
@@ -271,7 +275,8 @@ int add_avps()
 	/* Note: 3GPP TS 29.061 V12.6.0 (2014-06) renamed                   */
 	/* 3GPP-GGSN-IPv6-Address (16) to 3GPP-GGSN-Ipv6-Address;           */
 	/* this rename was not applied.                                     */
-	/* 3GPP-GGSN-IPv6-Address (16) changed to Must M per contrib/3gpp.  */
+	/*                                                                  */
+	/* Fix: 3GPP-GGSN-IPv6-Address (16) changed to Must M per contrib/3gpp. */
 	/* 3GPP-GGSN-IPv6-Address, OctetString, code 16, section 16.4.7     */
 	{
 		struct dict_avp_data data = {
@@ -288,7 +293,8 @@ int add_avps()
 	/* Note: 3GPP TS 29.061 V12.6.0 (2014-06) renamed                   */
 	/* 3GPP-IPv6-DNS-Servers (17) to 3GPP-Ipv6-DNS-Servers;             */
 	/* this rename was not applied.                                     */
-	/* 3GPP-IPv6-DNS-Servers (17) changed to Must M per contrib/3gpp.   */
+	/*                                                                  */
+	/* Fix: 3GPP-IPv6-DNS-Servers (17) changed to Must M per contrib/3gpp. */
 	/* 3GPP-IPv6-DNS-Servers, OctetString, code 17, section 16.4.7      */
 	{
 		struct dict_avp_data data = {
@@ -302,7 +308,7 @@ int add_avps()
 		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
 	};
 
-	/* Note: 3GPP-SGSN-MCC-MNC (18) changed to Must M per contrib/3gpp. */
+	/* Fix: 3GPP-SGSN-MCC-MNC (18) changed to Must M per contrib/3gpp.  */
 	/* 3GPP-SGSN-MCC-MNC, UTF8String, code 18, section 16.4.7           */
 	{
 		struct dict_avp_data data = {
@@ -316,7 +322,7 @@ int add_avps()
 		CHECK_dict_new(DICT_AVP, &data, UTF8String_type, NULL);
 	};
 
-	/* Note: 3GPP-IMEISV (20) changed to Must M.                        */
+	/* Fix: 3GPP-IMEISV (20) changed to Must M.                         */
 	/* 3GPP-IMEISV, OctetString, code 20, section 16.4.7                */
 	{
 		struct dict_avp_data data = {
@@ -330,7 +336,7 @@ int add_avps()
 		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
 	};
 
-	/* Note: 3GPP-RAT-Type (21) changed to Must M.                      */
+	/* Fix: 3GPP-RAT-Type (21) changed to Must M.                       */
 	/* 3GPP-RAT-Type, OctetString, code 21, section 16.4.7              */
 	{
 		struct dict_avp_data data = {
@@ -344,7 +350,7 @@ int add_avps()
 		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
 	};
 
-	/* Note: 3GPP-User-Location-Info (22) changed to Must M.            */
+	/* Fix: 3GPP-User-Location-Info (22) changed to Must M.             */
 	/* 3GPP-User-Location-Info, OctetString, code 22, section 16.4.7    */
 	{
 		struct dict_avp_data data = {
@@ -358,7 +364,7 @@ int add_avps()
 		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
 	};
 
-	/* Note: 3GPP-MS-TimeZone (23) changed to Must M.                   */
+	/* Fix: 3GPP-MS-TimeZone (23) changed to Must M.                    */
 	/* 3GPP-MS-TimeZone, OctetString, code 23, section 16.4.7           */
 	{
 		struct dict_avp_data data = {
@@ -424,9 +430,9 @@ int add_avps()
 		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
 	};
 
-	/* Note: 3GPP TS 29.061 table 9a does not define                    */
+	/* Note: 3GPP TS 29.061 Table 9a does not define                    */
 	/* External-Identifier (28) for Diameter; it is RADIUS only.        */
-	/* 3GPP TS 29.061 table 9b refers to 3GPP TS 29.336                 */
+	/* 3GPP TS 29.061 Table 9b refers to 3GPP TS 29.336                 */
 	/* for External-Identifier (3111).                                  */
 	/*                                                                  */
 	/* Change since freeDiameter 1.4.0.                                 */
@@ -924,7 +930,7 @@ int add_avps()
 		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
 	};
 
-	/* Note: 3GPP TS 29.061 table 20.5a.1 row MBMS-Flag (931) has       */
+	/* Note: 3GPP TS 29.061 Table 20.5a.1 row MBMS-Flag (931) has       */
 	/* incorrect name and should be "MBMS-Flags" per clause 20.5a.9.    */
 	/*                                                                  */
 	/* Fix: MBMS-Flag (931) renamed to MBMS-Flags (931).                */
@@ -1084,7 +1090,7 @@ int add_avps()
 		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
 	};
 
-	/* Note: 3GPP TS 29.109 table 6.1 row GBA_U-Awareness-Indicator (407) */
+	/* Note: 3GPP TS 29.109 Table 6.1 row GBA_U-Awareness-Indicator (407) */
 	/* has an underscore in the name (contrary to RFC 6733 section 4.1). */
 	/*                                                                  */
 	/* Fix: GBA_U-Awareness-Indicator (407) renamed to GBA-U-Awareness-Indicator (407). */
@@ -4041,7 +4047,7 @@ int add_avps()
 		CHECK_dict_new(DICT_AVP, &data, type, NULL);
 	};
 
-	/* Note: 3GPP TS 29.212 table 5.3.0.1 row Max-PLR-DL (2852)         */
+	/* Note: 3GPP TS 29.212 Table 5.3.0.1 row Max-PLR-DL (2852)         */
 	/* incorrectly lists type as Unsigned32 instead of Float32.         */
 	/* 3GPP TS 29.212 clause 5.3.138 uses Float32.                      */
 	/*                                                                  */
@@ -4059,7 +4065,7 @@ int add_avps()
 		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
 	};
 
-	/* Note: 3GPP TS 29.212 table 5.3.0.1 row Max-PLR-UL (2853)         */
+	/* Note: 3GPP TS 29.212 Table 5.3.0.1 row Max-PLR-UL (2853)         */
 	/* incorrectly lists type as Unsigned32 instead of Float32.         */
 	/* 3GPP TS 29.212 clause 5.3.139 uses Float32.                      */
 	/*                                                                  */
@@ -4328,15 +4334,17 @@ int add_avps()
 		CHECK_dict_new(DICT_AVP, &data, type, NULL);
 	};
 
-	/* Note: 3GPP TS 29.212 table 5.3.0.1 row PDN-Connection-ID (1065)  */
-	/* missing M.                                                       */
+	/* Note: 3GPP TS 29.212 Table 5.3.0.1 row PDN-Connection-ID (1065)  */
+	/* missing M, assume MUST NOT.                                      */
+	/*                                                                  */
+	/* Fix: PDN-Connection-ID (1065) flag M MUST NOT.                   */
 	/* PDN-Connection-ID, OctetString, code 1065, section 5.3.58        */
 	{
 		struct dict_avp_data data = {
 			1065,	/* Code */
 			10415,	/* Vendor */
 			"PDN-Connection-ID",	/* Name */
-			AVP_FLAG_VENDOR,	/* Fixed flags */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
 			AVP_FLAG_VENDOR,	/* Fixed flag values */
 			AVP_TYPE_OCTETSTRING	/* base type of data */
 		};
@@ -4492,15 +4500,17 @@ int add_avps()
 		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
 	};
 
-	/* Note: 3GPP TS 29.212 table 5.3.0.1 row PS-to-CS-Session-Continuity (1099) */
-	/* missing M.                                                       */
+	/* Note: 3GPP TS 29.212 Table 5.3.0.1 row PS-to-CS-Session-Continuity (1099) */
+	/* missing M, assume MUST NOT.                                      */
+	/*                                                                  */
+	/* Fix: PS-to-CS-Session-Continuity (1099) flag M MUST NOT.         */
 	/* PS-to-CS-Session-Continuity, Enumerated, code 1099, section 5.3.84 */
 	{
 		struct dict_avp_data data = {
 			1099,	/* Code */
 			10415,	/* Vendor */
 			"PS-to-CS-Session-Continuity",	/* Name */
-			AVP_FLAG_VENDOR,	/* Fixed flags */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
 			AVP_FLAG_VENDOR,	/* Fixed flag values */
 			AVP_TYPE_INTEGER32	/* base type of data */
 		};
@@ -5851,7 +5861,7 @@ int add_avps()
 		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
 	};
 
-	/* Note: 3GPP TS 29.214 table 5.3.0.1 row IMS-Content-Identifier (563) */
+	/* Note: 3GPP TS 29.214 Table 5.3.0.1 row IMS-Content-Identifier (563) */
 	/* missing M, assume MUST NOT.                                      */
 	/*                                                                  */
 	/* Fix: IMS-Content-Identifier (563) flag M MUST NOT.               */
@@ -5868,7 +5878,7 @@ int add_avps()
 		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
 	};
 
-	/* Note: 3GPP TS 29.214 table 5.3.0.1 row IMS-Content (564)         */
+	/* Note: 3GPP TS 29.214 Table 5.3.0.1 row IMS-Content (564)         */
 	/* missing M, assume MUST NOT.                                      */
 	/*                                                                  */
 	/* Fix: IMS-Content (564) flag M MUST NOT.                          */
@@ -8913,7 +8923,7 @@ int add_avps()
 		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
 	};
 
-	/* Note: 3GPP TS 29.272 V12.5.0 (2014-06) table 7.3.1/1             */
+	/* Note: 3GPP TS 29.272 V12.5.0 (2014-06) Table 7.3.1/1             */
 	/* changed row SS-Status (1477) to be OctetString instead of Grouped. */
 	/* Clause 7.3.88 already described SS-Status (1147) as OctetString. */
 	/*                                                                  */
@@ -9244,7 +9254,7 @@ int add_avps()
 		CHECK_dict_new(DICT_AVP, &data, type, NULL);
 	};
 
-	/* Note: 3GPP TS 29.272 table 7.3.1/1 row MME-Location-Information (1600) */
+	/* Note: 3GPP TS 29.272 Table 7.3.1/1 row MME-Location-Information (1600) */
 	/* incorrectly has a space instead of hyphen in the name.           */
 	/*                                                                  */
 	/* Change since freeDiameter 1.4.0.                                 */
@@ -10323,7 +10333,7 @@ int add_avps()
 		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
 	};
 
-	/* Note: 3GPP TS 29.272 table 7.3.1/1 row Additional-Context-ID (1683) has */
+	/* Note: 3GPP TS 29.272 Table 7.3.1/1 row Additional-Context-ID (1683) has */
 	/* incorrect name and should be "Additional-Context-Identifier" per clause 7.3.206. */
 	/*                                                                  */
 	/* Fix: Additional-Context-ID (1683) renamed to Additional-Context-Identifier (1683). */
@@ -10366,9 +10376,11 @@ int add_avps()
 		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
 	};
 
-	/* Note: 3GPP TS 29.272 table 7.3.1/1 row Preferred-Data-Mode (1686) */
+	/* Note: 3GPP TS 29.272 Table 7.3.1/1 row Preferred-Data-Mode (1686) */
 	/* incorrectly has value type Grouped instead of Unsigned32,        */
 	/* conflicting with clause 7.3.209.                                 */
+	/*                                                                  */
+	/* Fix: Preferred-Data-Mode (1686) type changed from Grouped to Unsigned32. */
 	/* Preferred-Data-Mode, Unsigned32, code 1686, section 7.3.209      */
 	{
 		struct dict_avp_data data = {
@@ -13335,7 +13347,7 @@ int add_avps()
 		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
 	};
 
-	/* Note: 3GPP TS 29.338 table 6.3.3.1/1 row HSS-ID (3325)           */
+	/* Note: 3GPP TS 29.338 Table 6.3.3.1/1 row HSS-ID (3325)           */
 	/* incorrectly lists type as OctetString instead of UTF8String.     */
 	/* 3GPP TS 29.338 clause 6.3.3.14 uses UTF8String.                  */
 	/*                                                                  */
@@ -13717,9 +13729,9 @@ int add_avps()
 		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
 	};
 
-	/* Note: 3GPP TS 29.344 table 6.3.1-1 missing Authorized-Discovery-Range. */
+	/* Note: 3GPP TS 29.344 Table 6.3.1-1 missing Authorized-Discovery-Range. */
 	/* Present in 3GPP TS 29.344 clause 6.3.13 and 3GPP TS 29.230 Table 7.1. */
-
+	/*                                                                  */
 	/* Fix: Add Authorized-Discovery-Range (3708) Unsigned32.           */
 	/* Authorized-Discovery-Range, Unsigned32, code 3708, section 6.3.13 */
 	{
@@ -17833,7 +17845,7 @@ int add_avps()
 		CHECK_dict_new(DICT_AVP, &data, type, NULL);
 	};
 
-	/* Note: 3GPP TS 32.299 V11.8.0 (2013-07) table 7.2 changed         */
+	/* Note: 3GPP TS 32.299 V11.8.0 (2013-07) Table 7.2 changed         */
 	/* row MBMS-GW-Address (2307) to have a hyphen instead of space.    */
 	/*                                                                  */
 	/* Change since freeDiameter 1.4.0.                                 */
