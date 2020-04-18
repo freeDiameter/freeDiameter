@@ -12059,12 +12059,16 @@ int add_avps()
 		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
 	};
 
-	/* Periodic-time, Unsigned32, code 3117, section 8.4.29             */
+	/* Note: 3GPP TS 29.336 Table 8.4.1-1 row Periodic-time (3117) has  */
+	/* incorrect name and should be "Periodic-Time" per majority use.   */
+	/*                                                                  */
+	/* Fix: Periodic-time (3117) renamed to Periodic-Time (931).        */
+	/* Periodic-Time, Unsigned32, code 3117, section 8.4.29             */
 	{
 		struct dict_avp_data data = {
 			3117,	/* Code */
 			10415,	/* Vendor */
-			"Periodic-time",	/* Name */
+			"Periodic-Time",	/* Name */
 			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
 			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flag values */
 			AVP_TYPE_UNSIGNED32	/* base type of data */
