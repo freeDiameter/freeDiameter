@@ -1936,6 +1936,44 @@ int add_avps()
 	};
 
 	/*==================================================================*/
+	/* 3GPP TS 29.153 V15.1.0 (2019-09)                                 */
+	/* Service capability exposure functionality over Ns                */
+	/* reference point                                                  */
+	/*                                                                  */
+	/* From 3GPP 29153-f10.doc                                          */
+	/*==================================================================*/
+
+	/*==================================================================*/
+	/* 3GPP TS 29.153 Table 5.3.1.1: Ns specific Diameter AVPs          */
+	/*==================================================================*/
+
+	/* Network-Congestion-Area-Report, Grouped, code 4101, section 5.3.2 */
+	{
+		struct dict_avp_data data = {
+			4101,	/* Code */
+			10415,	/* Vendor */
+			"Network-Congestion-Area-Report",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flag values */
+			AVP_TYPE_GROUPED	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+	};
+
+	/* Ns-Request-Type, Unsigned32, code 4102, section 5.3.3            */
+	{
+		struct dict_avp_data data = {
+			4102,	/* Code */
+			10415,	/* Vendor */
+			"Ns-Request-Type",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flag values */
+			AVP_TYPE_UNSIGNED32	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+	};
+
+	/*==================================================================*/
 	/* 3GPP TS 29.154 V15.3.0 (2019-09)                                 */
 	/* Service capability exposure functionality over                   */
 	/* Nt reference point                                               */
