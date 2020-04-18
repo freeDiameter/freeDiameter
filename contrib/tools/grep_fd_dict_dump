@@ -7,4 +7,5 @@
 egrep '^ *{dict|VENDOR|APPLICATION|TYPE|ENUMVAL|AVP|COMMAND|RULE' \
 	| sed \
 	-e 's/{dict.*}(@0x[^ ]*): //' \
+	-e 's/{dict(0x[^ ]*) : \(.*\)}/\1/' \
 	-e 's/p:[^ ]* //'
