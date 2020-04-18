@@ -13675,6 +13675,23 @@ int add_avps()
 		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
 	};
 
+	/* Note: 3GPP TS 29.344 table 6.3.1-1 missing Authorized-Discovery-Range. */
+	/* Present in 3GPP TS 29.344 clause 6.3.13 and 3GPP TS 29.230 Table 7.1. */
+
+	/* Fix: Add Authorized-Discovery-Range (3708) Unsigned32.           */
+	/* Authorized-Discovery-Range, Unsigned32, code 3708, section 6.3.13 */
+	{
+		struct dict_avp_data data = {
+			3708,	/* Code */
+			10415,	/* Vendor */
+			"Authorized-Discovery-Range",	/* Name */
+			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
+			AVP_FLAG_VENDOR,	/* Fixed flag values */
+			AVP_TYPE_UNSIGNED32	/* base type of data */
+		};
+		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+	};
+
 	/*==================================================================*/
 	/* 3GPP TS 29.345 V15.1.0 (2019-09)                                 */
 	/* Inter-Proximity-services (ProSe) Function signalling aspects;    */
