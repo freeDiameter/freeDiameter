@@ -435,8 +435,7 @@ int add_avps()
 	/* 3GPP TS 29.061 Table 9b refers to 3GPP TS 29.336                 */
 	/* for External-Identifier (3111).                                  */
 	/*                                                                  */
-	/* Change since freeDiameter 1.4.0.                                 */
-	/* Fix: Remove External-Identifier (28) OctetString.                */
+	/* Change-1.4.0: Remove External-Identifier (28) OctetString.       */
 
 	/* TWAN-Identifier, OctetString, code 29, section 16.4.7            */
 	{
@@ -4337,7 +4336,7 @@ int add_avps()
 	/* Note: 3GPP TS 29.212 Table 5.3.0.1 row PDN-Connection-ID (1065)  */
 	/* missing M, assume MUST NOT.                                      */
 	/*                                                                  */
-	/* Fix: PDN-Connection-ID (1065) flag M MUST NOT.                   */
+	/* Change-1.4.0: PDN-Connection-ID (1065) flag M MUST NOT.          */
 	/* PDN-Connection-ID, OctetString, code 1065, section 5.3.58        */
 	{
 		struct dict_avp_data data = {
@@ -4503,7 +4502,7 @@ int add_avps()
 	/* Note: 3GPP TS 29.212 Table 5.3.0.1 row PS-to-CS-Session-Continuity (1099) */
 	/* missing M, assume MUST NOT.                                      */
 	/*                                                                  */
-	/* Fix: PS-to-CS-Session-Continuity (1099) flag M MUST NOT.         */
+	/* Change-1.4.0: PS-to-CS-Session-Continuity (1099) flag M MUST NOT. */
 	/* PS-to-CS-Session-Continuity, Enumerated, code 1099, section 5.3.84 */
 	{
 		struct dict_avp_data data = {
@@ -5327,6 +5326,7 @@ int add_avps()
 	/* 3GPP TS 29.212 Table 5b.3.0.1: Sd specific Diameter AVPs         */
 	/*==================================================================*/
 
+	/* Change-1.4.0: ADC-Rule-Base-Name (1095) flag M MUST.             */
 	/* ADC-Rule-Base-Name, UTF8String, code 1095, section 5b.3.4        */
 	{
 		struct dict_avp_data data = {
@@ -5340,6 +5340,7 @@ int add_avps()
 		CHECK_dict_new(DICT_AVP, &data, UTF8String_type, NULL);
 	};
 
+	/* Change-1.4.0: ADC-Rule-Definition (1094) flag M MUST.            */
 	/* ADC-Rule-Definition, Grouped, code 1094, section 5b.3.3          */
 	{
 		struct dict_avp_data data = {
@@ -5353,6 +5354,7 @@ int add_avps()
 		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
 	};
 
+	/* Change-1.4.0: ADC-Rule-Install (1092) flag M MUST.               */
 	/* ADC-Rule-Install, Grouped, code 1092, section 5b.3.1             */
 	{
 		struct dict_avp_data data = {
@@ -5366,6 +5368,7 @@ int add_avps()
 		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
 	};
 
+	/* Change-1.4.0: ADC-Rule-Name (1096) flag M MUST.                  */
 	/* ADC-Rule-Name, OctetString, code 1096, section 5b.3.5            */
 	{
 		struct dict_avp_data data = {
@@ -5379,6 +5382,7 @@ int add_avps()
 		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
 	};
 
+	/* Change-1.4.0: ADC-Rule-Remove (1093) flag M MUST.                */
 	/* ADC-Rule-Remove, Grouped, code 1093, section 5b.3.2              */
 	{
 		struct dict_avp_data data = {
@@ -5392,6 +5396,7 @@ int add_avps()
 		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
 	};
 
+	/* Change-1.4.0: ADC-Rule-Report (1097) flag M MUST.                */
 	/* ADC-Rule-Report, Grouped, code 1097, section 5b.3.6              */
 	{
 		struct dict_avp_data data = {
@@ -8927,8 +8932,7 @@ int add_avps()
 	/* changed row SS-Status (1477) to be OctetString instead of Grouped. */
 	/* Clause 7.3.88 already described SS-Status (1147) as OctetString. */
 	/*                                                                  */
-	/* Change since freeDiameter 1.4.0.                                 */
-	/* Fix: SS-Status (1477) type changed from Grouped to OctetString.  */
+	/* Change-1.4.0: SS-Status (1477) type changed from Grouped to OctetString. */
 	/* SS-Status, OctetString, code 1477, section 7.3.88                */
 	{
 		struct dict_avp_data data = {
@@ -9084,8 +9088,7 @@ int add_avps()
 	/* Note: 3GPP TS 29.272 V12.4.0 (2014-03) renamed                   */
 	/* Call-Barring-Infor-List (1488) to Call-Barring-Info (1488).      */
 	/*                                                                  */
-	/* Change since freeDiameter 1.4.0.                                 */
-	/* Fix: Call-Barring-Infor-List (1488) renamed to Call-Barring-Info (1488). */
+	/* Change-1.4.0: Call-Barring-Infor-List (1488) renamed to Call-Barring-Info (1488). */
 	/* Call-Barring-Info, Grouped, code 1488, section 7.3.101           */
 	{
 		struct dict_avp_data data = {
@@ -9257,8 +9260,7 @@ int add_avps()
 	/* Note: 3GPP TS 29.272 Table 7.3.1/1 row MME-Location-Information (1600) */
 	/* incorrectly has a space instead of hyphen in the name.           */
 	/*                                                                  */
-	/* Change since freeDiameter 1.4.0.                                 */
-	/* Fix: MME-LocationInformation (1600) renamed to MME-Location-Information(1600). */
+	/* Change-1.4.0: MME-LocationInformation (1600) renamed to MME-Location-Information(1600). */
 	/* MME-Location-Information, Grouped, code 1600, section 7.3.115    */
 	{
 		struct dict_avp_data data = {
@@ -9947,8 +9949,7 @@ int add_avps()
 	/* Note: 3GPP TS 29.272 V12.9.0 (2015-12) changed AVP code of       */
 	/* Measurement-Period-LTE (1655) from 1656.                         */
 	/*                                                                  */
-	/* Change since freeDiameter 1.4.0.                                 */
-	/* Fix: Measurement-Period-LTE (1656) code changed from 1656.       */
+	/* Change-1.4.0: Measurement-Period-LTE (1656) code changed from 1656. */
 	/* Measurement-Period-LTE, Enumerated, code 1655, section 7.3.166   */
 	{
 		struct dict_avp_data data = {
@@ -9968,8 +9969,7 @@ int add_avps()
 	/* Note: 3GPP TS 29.272 V12.9.0 (2015-12) changed AVP code of       */
 	/* Measurement-Period-UMTS (1656) from 1655.                        */
 	/*                                                                  */
-	/* Change since freeDiameter 1.4.0.                                 */
-	/* Fix: Measurement-Period-UMTS (1656) code changed from 1655.      */
+	/* Change-1.4.0: Measurement-Period-UMTS (1656) code changed from 1655. */
 	/* Measurement-Period-UMTS, Enumerated, code 1656, section 7.3.167  */
 	{
 		struct dict_avp_data data = {
@@ -17680,8 +17680,7 @@ int add_avps()
 	/* Note: 3GPP TS 32.299 V11.8.0 (2013-07) renamed                   */
 	/* LCS-Requestor-Id (1239) to LCS-Requestor-ID (1239).              */
 	/*                                                                  */
-	/* Change since freeDiameter 1.4.0.                                 */
-	/* Fix: LCS-Requestor-Id (1239) renamed to LCS-Requestor-ID (1239). */
+	/* Change-1.4.0: LCS-Requestor-Id (1239) renamed to LCS-Requestor-ID (1239). */
 	/* LCS-Requestor-ID, Grouped, code 1239                             */
 	{
 		struct dict_avp_data data = {
@@ -17698,8 +17697,7 @@ int add_avps()
 	/* Note: 3GPP TS 32.299 V11.8.0 (2013-07) renamed                   */
 	/* LCS-Requestor-Id-String (1240) to LCS-Requestor-ID-String (1240). */
 	/*                                                                  */
-	/* Change since freeDiameter 1.4.0.                                 */
-	/* Fix: LCS-Requestor-Id-String (1240) renamed to LCS-Requestor-ID-String (1240). */
+	/* Change-1.4.0: LCS-Requestor-Id-String (1240) renamed to LCS-Requestor-ID-String (1240). */
 	/* LCS-Requestor-ID-String, UTF8String, code 1240                   */
 	{
 		struct dict_avp_data data = {
@@ -17848,8 +17846,7 @@ int add_avps()
 	/* Note: 3GPP TS 32.299 V11.8.0 (2013-07) Table 7.2 changed         */
 	/* row MBMS-GW-Address (2307) to have a hyphen instead of space.    */
 	/*                                                                  */
-	/* Change since freeDiameter 1.4.0.                                 */
-	/* Fix: MBMSGW-Address (2307) renamed to MBMS-GW-Address (2307).    */
+	/* Change-1.4.0: MBMSGW-Address (2307) renamed to MBMS-GW-Address (2307). */
 	/* MBMS-GW-Address, Address, code 2307                              */
 	{
 		struct dict_avp_data data = {
@@ -18897,8 +18894,7 @@ int add_avps()
 	/* Note: 3GPP TS 32.299 V13.1.0 (2015-06) renamed                   */
 	/* PoC-User-Role-info-Units (1254) to PoC-User-Role-Info-Units (1254). */
 	/*                                                                  */
-	/* Change since freeDiameter 1.4.0.                                 */
-	/* Fix: PoC-User-Role-info-Units (1254) renamed to PoC-User-Role-Info-Units (1254). */
+	/* Change-1.4.0: PoC-User-Role-info-Units (1254) renamed to PoC-User-Role-Info-Units (1254). */
 	/* PoC-User-Role-Info-Units, Enumerated, code 1254                  */
 	{
 		struct dict_avp_data data = {
@@ -20551,8 +20547,7 @@ int add_avps()
 	/* 3GPP TS 32.299 V11.14.0 (2014-12) CR 0617 renamed                */
 	/* Status-Code (2702) to Status-AS-Code (2702).                     */
 	/*                                                                  */
-	/* Change since freeDiameter 1.4.0.                                 */
-	/* Fix: Status (2702) renamed to Status-AS-Code (2702).             */
+	/* Change-1.4.0: Status (2702) renamed to Status-AS-Code (2702).    */
 	/* Status-AS-Code, Enumerated, code 2702                            */
 	{
 		struct dict_avp_data data = {
@@ -21413,8 +21408,7 @@ int add_avps()
 		CHECK_dict_new(DICT_AVP, &data, UTF8String_type, NULL);
 	};
 
-	/* Change since freeDiameter 1.4.0.                                 */
-	/* Fix: Application-Service-Type (2102) type changed from UTF8String to Enumerated. */
+	/* Change-1.4.0: Application-Service-Type (2102) type changed from UTF8String to Enumerated. */
 	/* Application-Service-Type, Enumerated, code 2102, section 8.4     */
 	{
 		struct dict_avp_data data = {
@@ -21431,8 +21425,7 @@ int add_avps()
 		CHECK_dict_new(DICT_AVP, &data, type, NULL);
 	};
 
-	/* Change since freeDiameter 1.4.0.                                 */
-	/* Fix: Application–Session–Id (2103) type changed from UTF8String to Unsigned32. */
+	/* Change-1.4.0: Application–Session–Id (2103) type changed from UTF8String to Unsigned32. */
 	/* Application-Session-Id, Unsigned32, code 2103, section 8.4       */
 	{
 		struct dict_avp_data data = {
@@ -21585,8 +21578,8 @@ int add_avps()
 	/*==================================================================*/
 
 	/*                                                                  */
-	/* Change since freeDiameter 1.4.0.                                 */
-	/* Fix: 3GPP2-BSID (9010) type changed from OctetString to UTF8String. */
+	/* Change-1.4.0: 3GPP2-BSID (9010) type changed from OctetString to UTF8String. */
+	/* Change-1.4.0: 3GPP2-BSID (9010) flag M MUST.                     */
 	/* 3GPP2-BSID, UTF8String, code 9010, section 5.6.2.1.1             */
 	{
 		struct dict_avp_data data = {
