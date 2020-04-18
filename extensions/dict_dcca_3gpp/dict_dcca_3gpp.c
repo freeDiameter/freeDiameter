@@ -835,7 +835,6 @@ static int dict_dcca_3gpp_entry(char * conffile)
 				{ { .avp_vendor = 0,     .avp_name = "Subscription-Id" }, RULE_OPTIONAL, -1, -1 },
 				{ { .avp_vendor = 10415, .avp_name = "AoC-Information" }, RULE_OPTIONAL, -1, 1 },
 				{ { .avp_vendor = 10415, .avp_name = "PS-Information" }, RULE_OPTIONAL, -1, 1 },
-				{ { .avp_vendor = 10415, .avp_name = "WLAN-Information" }, RULE_OPTIONAL, -1, 1 },
 				{ { .avp_vendor = 10415, .avp_name = "IMS-Information" }, RULE_OPTIONAL, -1, 1 },
 				{ { .avp_vendor = 10415, .avp_name = "MMS-Information" }, RULE_OPTIONAL, -1, 1 },
 				{ { .avp_vendor = 10415, .avp_name = "LCS-Information" }, RULE_OPTIONAL, -1, 1 },

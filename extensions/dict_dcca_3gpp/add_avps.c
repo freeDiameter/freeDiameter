@@ -435,7 +435,7 @@ int add_avps()
 	/* 3GPP TS 29.061 Table 9b refers to 3GPP TS 29.336                 */
 	/* for External-Identifier (3111).                                  */
 	/*                                                                  */
-	/* Change-1.4.0: Remove External-Identifier (28) OctetString.       */
+	/* Change-1.4.0: External-Identifier (28) OctetString removed.      */
 
 	/* TWAN-Identifier, OctetString, code 29, section 16.4.7            */
 	{
@@ -3365,19 +3365,7 @@ int add_avps()
 	/* 3GPP TS 29.212 Table 5.3.0.1: Gx specific Diameter AVPs          */
 	/*==================================================================*/
 
-	/* Note: 3GPP TS 29.212 V12.1.0 (2013-06) removed ADC-Revalidation-Time (2801). */
-	/* ADC-Revalidation-Time, Time, code 2801, section 5.3.93           */
-	{
-		struct dict_avp_data data = {
-			2801,	/* Code */
-			10415,	/* Vendor */
-			"ADC-Revalidation-Time",	/* Name */
-			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
-			AVP_FLAG_VENDOR,	/* Fixed flag values */
-			AVP_TYPE_OCTETSTRING	/* base type of data */
-		};
-		CHECK_dict_new(DICT_AVP, &data, Time_type, NULL);
-	};
+	/* Change-1.4.0: ADC-Revalidation-Time (2801) Time removed in 3GPP TS 29.212 V12.1.0 (2013-06). */
 
 	/* Note: Name conflict with 3GPP TS 32.299 3GPP-PS-Data-Off-Status (4406). */
 	/* 3GPP TS 29.212 V14.3.0 (2017-03) CR 1559 added 3GPP-PS-Data-Off-Status (2847). */
@@ -3987,19 +3975,7 @@ int add_avps()
 		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
 	};
 
-	/* Note: 3GPP TS 29.212 V11.8.0 (2013-03) removed HeNB-BBF-FQDN (2803). */
-	/* HeNB-BBF-FQDN, UTF8String, code 2803, section 5.3.94             */
-	{
-		struct dict_avp_data data = {
-			2803,	/* Code */
-			10415,	/* Vendor */
-			"HeNB-BBF-FQDN",	/* Name */
-			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
-			AVP_FLAG_VENDOR,	/* Fixed flag values */
-			AVP_TYPE_OCTETSTRING	/* base type of data */
-		};
-		CHECK_dict_new(DICT_AVP, &data, UTF8String_type, NULL);
-	};
+	/* Note: HeNB-BBF-FQDN (2803) UTF8String removed in 3GPP TS 29.212 V11.8.0 (2013-03). */
 
 	/* HeNB-Local-IP-Address, Address, code 2804, section 5.3.95        */
 	{
@@ -7198,22 +7174,7 @@ int add_avps()
 		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
 	};
 
-	/* Note: 3GPP TS 29.229 V6.5.0 (2005-06) removed User-Data-Request-Type (627). */
-	/* User-Data-Request-Type, Enumerated, code 627, section 6.3.25     */
-	{
-		struct dict_avp_data data = {
-			627,	/* Code */
-			10415,	/* Vendor */
-			"User-Data-Request-Type",	/* Name */
-			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
-			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flag values */
-			AVP_TYPE_INTEGER32	/* base type of data */
-		};
-		struct dict_object	*type;
-		struct dict_type_data	 tdata = { AVP_TYPE_INTEGER32, "Enumerated(3GPP/User-Data-Request-Type)", NULL, NULL, NULL };
-		CHECK_dict_new(DICT_TYPE, &tdata, NULL, &type);
-		CHECK_dict_new(DICT_AVP, &data, type, NULL);
-	};
+	/* Note: User-Data-Request-Type (627) removed in 3GPP TS 29.229 V6.5.0 (2005-06). */
 
 	/* Supported-Features, Grouped, code 628, section 6.3.29            */
 	{
@@ -7785,9 +7746,7 @@ int add_avps()
 		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
 	};
 
-	/* Note: APN-Id (308) OctetString only present from                 */
-	/* 3GPP TS 29.234 V6.2.0 (2005-03) to 3GPP TS 29.234 V6.4.0 (2005-09) */
-	/* before being deprecated in 3GPP TS 29.234 V6.5.0 (2005-12).      */
+	/* Note: APN-Id (308) OctetString removed in 3GPP TS 29.234 V6.5.0 (2005-12). */
 
 	/* APN-Barring-Type, Enumerated, code 309, section 10.1.16          */
 	{
@@ -9949,7 +9908,7 @@ int add_avps()
 	/* Note: 3GPP TS 29.272 V12.9.0 (2015-12) changed AVP code of       */
 	/* Measurement-Period-LTE (1655) from 1656.                         */
 	/*                                                                  */
-	/* Change-1.4.0: Measurement-Period-LTE (1656) code changed from 1656. */
+	/* Change-1.4.0: Measurement-Period-LTE (1656) code changed to Measurement-Period-LTE (1655). */
 	/* Measurement-Period-LTE, Enumerated, code 1655, section 7.3.166   */
 	{
 		struct dict_avp_data data = {
@@ -9969,7 +9928,7 @@ int add_avps()
 	/* Note: 3GPP TS 29.272 V12.9.0 (2015-12) changed AVP code of       */
 	/* Measurement-Period-UMTS (1656) from 1655.                        */
 	/*                                                                  */
-	/* Change-1.4.0: Measurement-Period-UMTS (1656) code changed from 1655. */
+	/* Change-1.4.0: Measurement-Period-UMTS (1655) code changed to Measurement-Period-UMTS (1656). */
 	/* Measurement-Period-UMTS, Enumerated, code 1656, section 7.3.167  */
 	{
 		struct dict_avp_data data = {
@@ -11194,8 +11153,7 @@ int add_avps()
 		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
 	};
 
-	/* Note: Trust-Relationship-Update (1515) Enumerated only present   */
-	/* in 3GPP TS 29.273 V11.3.0 (2012-09) before being deprecated.     */
+	/* Note: Trust-Relationship-Update (1515) Enumerated removed in 3GPP TS 29.273 V11.4.0 (2012-12). */
 
 	/* DER-S6b-Flags, Unsigned32, code 1523, section 9.2.3.7            */
 	{
@@ -18676,33 +18634,9 @@ int add_avps()
 		CHECK_dict_new(DICT_AVP, &data, type, NULL);
 	};
 
-	/* Note: 3GPP TS 32.299 V12.6.0 (2014-09) removed PDG-Address (895). */
-	/* PDG-Address, Address, code 895                                   */
-	{
-		struct dict_avp_data data = {
-			895,	/* Code */
-			10415,	/* Vendor */
-			"PDG-Address",	/* Name */
-			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
-			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flag values */
-			AVP_TYPE_OCTETSTRING	/* base type of data */
-		};
-		CHECK_dict_new(DICT_AVP, &data, Address_type, NULL);
-	};
+	/* Change-1.4.0: PDG-Address (895) Address removed in 3GPP TS 32.299 V12.6.0 (2014-09). */
 
-	/* Note: 3GPP TS 32.299 V12.6.0 (2014-09) removed PDG-Charging-Id (896). */
-	/* PDG-Charging-Id, Unsigned32, code 896                            */
-	{
-		struct dict_avp_data data = {
-			896,	/* Code */
-			10415,	/* Vendor */
-			"PDG-Charging-Id",	/* Name */
-			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
-			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flag values */
-			AVP_TYPE_UNSIGNED32	/* base type of data */
-		};
-		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
-	};
+	/* Change-1.4.0: PDG-Charging-Id (896) Unsigned32 removed in 3GPP TS 32.299 V12.6.0 (2014-09). */
 
 	/* Play-Alternative, Enumerated, code 3913                          */
 	{
@@ -21251,47 +21185,11 @@ int add_avps()
 		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
 	};
 
-	/* Note: 3GPP TS 32.299 V12.6.0 (2014-09) removed WAG-Address (890). */
-	/* WAG-Address, Address, code 890                                   */
-	{
-		struct dict_avp_data data = {
-			890,	/* Code */
-			10415,	/* Vendor */
-			"WAG-Address",	/* Name */
-			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
-			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flag values */
-			AVP_TYPE_OCTETSTRING	/* base type of data */
-		};
-		CHECK_dict_new(DICT_AVP, &data, Address_type, NULL);
-	};
+	/* Change-1.4.0: WAG-Address (890) Address removed in 3GPP TS 32.299 V12.6.0 (2014-09). */
 
-	/* Note: 3GPP TS 32.299 V12.6.0 (2014-09) removed WAG-PLMN-Id (891). */
-	/* WAG-PLMN-Id, OctetString, code 891                               */
-	{
-		struct dict_avp_data data = {
-			891,	/* Code */
-			10415,	/* Vendor */
-			"WAG-PLMN-Id",	/* Name */
-			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
-			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flag values */
-			AVP_TYPE_OCTETSTRING	/* base type of data */
-		};
-		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
-	};
+	/* Change-1.4.0: WAG-PLMN-Id (891) OctetString removed in 3GPP TS 32.299 V12.6.0 (2014-09). */
 
-	/* Note: 3GPP TS 32.299 V12.6.0 (2014-09) removed WLAN-Information (875). */
-	/* WLAN-Information, Grouped, code 875                              */
-	{
-		struct dict_avp_data data = {
-			875,	/* Code */
-			10415,	/* Vendor */
-			"WLAN-Information",	/* Name */
-			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
-			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flag values */
-			AVP_TYPE_GROUPED	/* base type of data */
-		};
-		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
-	};
+	/* Change-1.4.0: WLAN-Information (875) Grouped removed in 3GPP TS 32.299 V12.6.0 (2014-09). */
 
 	/* WLAN-Operator-Id, Grouped, code 1306                             */
 	{
@@ -21332,61 +21230,13 @@ int add_avps()
 		CHECK_dict_new(DICT_AVP, &data, UTF8String_type, NULL);
 	};
 
-	/* Note: 3GPP TS 32.299 V12.6.0 (2014-09) removed WLAN-Radio-Container (892). */
-	/* WLAN-Radio-Container, Grouped, code 892                          */
-	{
-		struct dict_avp_data data = {
-			892,	/* Code */
-			10415,	/* Vendor */
-			"WLAN-Radio-Container",	/* Name */
-			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
-			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flag values */
-			AVP_TYPE_GROUPED	/* base type of data */
-		};
-		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
-	};
+	/* Change-1.4.0: WLAN-Radio-Container (892) Grouped removed in 3GPP TS 32.299 V12.6.0 (2014-09). */
 
-	/* Note: 3GPP TS 32.299 V12.6.0 (2014-09) removed WLAN-Session-Id (1246). */
-	/* WLAN-Session-Id, UTF8String, code 1246                           */
-	{
-		struct dict_avp_data data = {
-			1246,	/* Code */
-			10415,	/* Vendor */
-			"WLAN-Session-Id",	/* Name */
-			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
-			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flag values */
-			AVP_TYPE_OCTETSTRING	/* base type of data */
-		};
-		CHECK_dict_new(DICT_AVP, &data, UTF8String_type, NULL);
-	};
+	/* Change-1.4.0: WLAN-Session-Id (1246) UTF8String removed in 3GPP TS 32.299 V12.6.0 (2014-09). */
 
-	/* Note: 3GPP TS 32.299 V12.6.0 (2014-09) removed WLAN-Technology (893). */
-	/* WLAN-Technology, Unsigned32, code 893                            */
-	{
-		struct dict_avp_data data = {
-			893,	/* Code */
-			10415,	/* Vendor */
-			"WLAN-Technology",	/* Name */
-			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
-			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flag values */
-			AVP_TYPE_UNSIGNED32	/* base type of data */
-		};
-		CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
-	};
+	/* Change-1.4.0: WLAN-Technology (893) Unsigned32 removed in 3GPP TS 32.299 V12.6.0 (2014-09). */
 
-	/* Note: 3GPP TS 32.299 V12.6.0 (2014-09) removed WLAN-UE-Local-IPAddress (894). */
-	/* WLAN-UE-Local-IPAddress, Address, code 894                       */
-	{
-		struct dict_avp_data data = {
-			894,	/* Code */
-			10415,	/* Vendor */
-			"WLAN-UE-Local-IPAddress",	/* Name */
-			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
-			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flag values */
-			AVP_TYPE_OCTETSTRING	/* base type of data */
-		};
-		CHECK_dict_new(DICT_AVP, &data, Address_type, NULL);
-	};
+	/* Change-1.4.0: WLAN-UE-Local-IPAddress (894) Address removed in 3GPP TS 32.299 V12.6.0 (2014-09). */
 
 	/*==================================================================*/
 	/* OMA DDS Charging_Data V1.0 20110201-A                            */
