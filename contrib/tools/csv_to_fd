@@ -413,6 +413,8 @@ class FdcProcessor(Processor):
             result.append('AVP_FLAG_VENDOR')
         if 'M' in flags:
             result.append('AVP_FLAG_MANDATORY')
+        if not result:
+            return '0';
         return ' |'.join(result)
 
     def add_comment(self, comment):
