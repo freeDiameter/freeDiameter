@@ -97,7 +97,8 @@
 	CHECK_FCT(  fd_dict_search( fd_g_config->cnf_dict, (_type), (_criteria), (_what), (_result), ENOENT) );
 
 struct local_rules_definition {
-	struct dict_avp_request avp_vendor_plus_name;
+	vendor_id_t		vendor;
+	char *			name;
 	enum rule_position	position;
 	int 			min;
 	int			max;
@@ -109,6 +110,10 @@ struct local_rules_definition {
 #define PARSE_loc_rules( _rulearray, _parent) {								\
 	int __ar;											\
 	for (__ar=0; __ar < sizeof(_rulearray) / sizeof((_rulearray)[0]); __ar++) {			\
+		struct dict_avp_request __avp = {							\
+			.avp_vendor = (_rulearray)[__ar].vendor,					\
+			.avp_name = (_rulearray)[__ar].name,						\
+		};											\
 		struct dict_rule_data __data = { NULL, 							\
 			(_rulearray)[__ar].position,							\
 			0, 										\
@@ -119,16 +124,15 @@ struct local_rules_definition {
 			fd_g_config->cnf_dict,								\
 			DICT_AVP, 									\
 			AVP_BY_NAME_AND_VENDOR, 							\
-			&(_rulearray)[__ar].avp_vendor_plus_name,					\
+			&__avp,										\
 			&__data.rule_avp, 0 ) );							\
 		if ( !__data.rule_avp ) {								\
-			LOG_E( "AVP Not found: '%s'", (_rulearray)[__ar].avp_vendor_plus_name.avp_name);		\
+			LOG_E( "AVP Not found: '%s'", __avp.avp_name);					\
 			return ENOENT;									\
 		}											\
 		CHECK_FCT_DO( fd_dict_new( fd_g_config->cnf_dict, DICT_RULE, &__data, _parent, NULL),	\
 			{							        		\
-				LOG_E( "Error on rule with AVP '%s'",      			\
-					    (_rulearray)[__ar].avp_vendor_plus_name.avp_name);		\
+				LOG_E( "Error on rule with AVP '%s'", __avp.avp_name);			\
 				return EINVAL;					      			\
 			} );							      			\
 	}									      			\
@@ -359,9 +363,9 @@ static int dict_dcca_3gpp_entry(char * conffile)
 		CHECK_dict_search(DICT_AVP, AVP_BY_NAME_AND_VENDOR, &vpa, &rule_avp);
 		struct local_rules_definition rules[] =
 			{
-				{ { .avp_vendor = 10415, .avp_name = "Priority-Level" }, RULE_REQUIRED, -1, 1 },
-				{ { .avp_vendor = 10415, .avp_name = "Pre-emption-Capability" }, RULE_OPTIONAL, -1, 1 },
-				{ { .avp_vendor = 10415, .avp_name = "Pre-emption-Vulnerability" }, RULE_OPTIONAL, -1, 1 },
+				{ 10415, "Priority-Level",		RULE_REQUIRED, -1, 1 },
+				{ 10415, "Pre-emption-Capability",	RULE_OPTIONAL, -1, 1 },
+				{ 10415, "Pre-emption-Vulnerability",	RULE_OPTIONAL, -1, 1 },
 			};
 			PARSE_loc_rules(rules, rule_avp);
         }
@@ -374,15 +378,15 @@ static int dict_dcca_3gpp_entry(char * conffile)
 		CHECK_dict_search(DICT_AVP, AVP_BY_NAME_AND_VENDOR, &vpa, &rule_avp);
 		struct local_rules_definition rules[] =
 			{
-				{ { .avp_vendor = 10415, .avp_name = "QoS-Class-Identifier" }, RULE_OPTIONAL, -1, 1 },
-				{ { .avp_vendor = 10415, .avp_name = "Max-Requested-Bandwidth-UL" }, RULE_OPTIONAL, -1, 1 },
-				{ { .avp_vendor = 10415, .avp_name = "Max-Requested-Bandwidth-DL" }, RULE_OPTIONAL, -1, 1 },
-				{ { .avp_vendor = 10415, .avp_name = "Guaranteed-Bitrate-UL" }, RULE_OPTIONAL, -1, 1 },
-				{ { .avp_vendor = 10415, .avp_name = "Guaranteed-Bitrate-DL" }, RULE_OPTIONAL, -1, 1 },
-				{ { .avp_vendor = 10415, .avp_name = "Bearer-Identifier" }, RULE_OPTIONAL, -1, 1 },
-				{ { .avp_vendor = 10415, .avp_name = "Allocation-Retention-Priority" }, RULE_OPTIONAL, -1, 1 },
-				{ { .avp_vendor = 10415, .avp_name = "APN-Aggregate-Max-Bitrate-UL" }, RULE_OPTIONAL, -1, 1 },
-				{ { .avp_vendor = 10415, .avp_name = "APN-Aggregate-Max-Bitrate-DL" }, RULE_OPTIONAL, -1, 1 },
+				{ 10415, "QoS-Class-Identifier",		RULE_OPTIONAL, -1, 1 },
+				{ 10415, "Max-Requested-Bandwidth-UL",		RULE_OPTIONAL, -1, 1 },
+				{ 10415, "Max-Requested-Bandwidth-DL",		RULE_OPTIONAL, -1, 1 },
+				{ 10415, "Guaranteed-Bitrate-UL",		RULE_OPTIONAL, -1, 1 },
+				{ 10415, "Guaranteed-Bitrate-DL",		RULE_OPTIONAL, -1, 1 },
+				{ 10415, "Bearer-Identifier",			RULE_OPTIONAL, -1, 1 },
+				{ 10415, "Allocation-Retention-Priority",	RULE_OPTIONAL, -1, 1 },
+				{ 10415, "APN-Aggregate-Max-Bitrate-UL",	RULE_OPTIONAL, -1, 1 },
+				{ 10415, "APN-Aggregate-Max-Bitrate-DL",	RULE_OPTIONAL, -1, 1 },
 			};
 			PARSE_loc_rules(rules, rule_avp);
         }
@@ -395,8 +399,8 @@ static int dict_dcca_3gpp_entry(char * conffile)
 		CHECK_dict_search(DICT_COMMAND, CMD_BY_NAME, "Credit-Control-Request", &ccr);
 		struct local_rules_definition rules[] = 
 			{
-				{ { .avp_vendor = 10415, .avp_name = "AoC-Request-Type"}, RULE_OPTIONAL, -1, 1 },
-				{ { .avp_vendor = 10415, .avp_name = "Service-Information"}, RULE_OPTIONAL, -1, 1 },
+				{ 10415, "AoC-Request-Type",		RULE_OPTIONAL, -1, 1 },
+				{ 10415, "Service-Information",		RULE_OPTIONAL, -1, 1 },
 			};
 		PARSE_loc_rules(rules, ccr);
         }
@@ -407,9 +411,9 @@ static int dict_dcca_3gpp_entry(char * conffile)
 		CHECK_dict_search(DICT_COMMAND, CMD_BY_NAME, "Credit-Control-Answer", &ccr);
 		struct local_rules_definition rules[] = 
 			{
-				{ { .avp_vendor = 10415, .avp_name = "Low-Balance-Indication"}, RULE_OPTIONAL, -1, 1 },
-				{ { .avp_vendor = 10415, .avp_name = "Remaining-Balance"}, RULE_OPTIONAL, -1, 1 },
-				{ { .avp_vendor = 10415, .avp_name = "Service-Information"}, RULE_OPTIONAL, -1, 1 },
+				{ 10415, "Low-Balance-Indication",	RULE_OPTIONAL, -1, 1 },
+				{ 10415, "Remaining-Balance",		RULE_OPTIONAL, -1, 1 },
+				{ 10415, "Service-Information",		RULE_OPTIONAL, -1, 1 },
 			};
 		PARSE_loc_rules(rules, ccr);
         }
@@ -422,8 +426,8 @@ static int dict_dcca_3gpp_entry(char * conffile)
 		CHECK_dict_search(DICT_AVP, AVP_BY_NAME_AND_VENDOR, &vpa, &rule_avp);
 		struct local_rules_definition rules[] =
 			{
-				{ { .avp_vendor = 10415, .avp_name = "Domain-Name" }, RULE_OPTIONAL, -1, 1 },
-				{ { .avp_vendor = 10415, .avp_name = "3GPP-IMSI-MCC-MNC" }, RULE_OPTIONAL, -1, 1 },
+				{ 10415, "Domain-Name",			RULE_OPTIONAL, -1, 1 },
+				{ 10415, "3GPP-IMSI-MCC-MNC",		RULE_OPTIONAL, -1, 1 },
 			};
 			PARSE_loc_rules(rules, rule_avp);
         }
@@ -436,8 +440,8 @@ static int dict_dcca_3gpp_entry(char * conffile)
 		CHECK_dict_search(DICT_AVP, AVP_BY_NAME_AND_VENDOR, &vpa, &rule_avp);
 		struct local_rules_definition rules[] =
 			{
-				{ { .avp_vendor = 10415, .avp_name = "Application-Server" }, RULE_REQUIRED, -1, 1 },
-				{ { .avp_vendor = 10415, .avp_name = "Application-Provided-Called-Party-Address" }, RULE_OPTIONAL, -1, -1 },
+				{ 10415, "Application-Server",				RULE_REQUIRED, -1, 1 },
+				{ 10415, "Application-Provided-Called-Party-Address",	RULE_OPTIONAL, -1, -1 },
 			};
 			PARSE_loc_rules(rules, rule_avp);
         }
@@ -450,10 +454,10 @@ static int dict_dcca_3gpp_entry(char * conffile)
 		CHECK_dict_search(DICT_AVP, AVP_BY_NAME_AND_VENDOR, &vpa, &rule_avp);
 		struct local_rules_definition rules[] =
 			{
-				{ { .avp_vendor = 10415, .avp_name = "Interface-Id" }, RULE_OPTIONAL, -1, 1 },
-				{ { .avp_vendor = 10415, .avp_name = "Interface-Text" }, RULE_OPTIONAL, -1, 1 },
-				{ { .avp_vendor = 10415, .avp_name = "Interface-Port" }, RULE_OPTIONAL, -1, 1 },
-				{ { .avp_vendor = 10415, .avp_name = "Interface-Type" }, RULE_OPTIONAL, -1, 1 },
+				{ 10415, "Interface-Id",		RULE_OPTIONAL, -1, 1 },
+				{ 10415, "Interface-Text",		RULE_OPTIONAL, -1, 1 },
+				{ 10415, "Interface-Port",		RULE_OPTIONAL, -1, 1 },
+				{ 10415, "Interface-Type",		RULE_OPTIONAL, -1, 1 },
 			};
 			PARSE_loc_rules(rules, rule_avp);
         }
@@ -466,12 +470,12 @@ static int dict_dcca_3gpp_entry(char * conffile)
 		CHECK_dict_search(DICT_AVP, AVP_BY_NAME_AND_VENDOR, &vpa, &rule_avp);
 		struct local_rules_definition rules[] =
 			{
-				{ { .avp_vendor = 10415, .avp_name = "Envelope-Start-Time" }, RULE_REQUIRED, -1, 1 },
-				{ { .avp_vendor = 10415, .avp_name = "Envelope-End-Time" }, RULE_OPTIONAL, -1, 1 },
-				{ { .avp_vendor = 0,     .avp_name = "CC-Total-Octets" }, RULE_REQUIRED, -1, 1 },
-				{ { .avp_vendor = 0,     .avp_name = "CC-Input-Octets" }, RULE_OPTIONAL, -1, 1 },
-				{ { .avp_vendor = 0,     .avp_name = "CC-Output-Octets" }, RULE_OPTIONAL, -1, 1 },
-				{ { .avp_vendor = 0,     .avp_name = "CC-Service-Specific-Units" }, RULE_OPTIONAL, -1, 1 },
+				{ 10415, "Envelope-Start-Time",		RULE_REQUIRED, -1, 1 },
+				{ 10415, "Envelope-End-Time",		RULE_OPTIONAL, -1, 1 },
+				{ 0,     "CC-Total-Octets",		RULE_REQUIRED, -1, 1 },
+				{ 0,     "CC-Input-Octets",		RULE_OPTIONAL, -1, 1 },
+				{ 0,     "CC-Output-Octets",		RULE_OPTIONAL, -1, 1 },
+				{ 0,     "CC-Service-Specific-Units",	RULE_OPTIONAL, -1, 1 },
 			};
 			PARSE_loc_rules(rules, rule_avp);
         }
@@ -484,9 +488,9 @@ static int dict_dcca_3gpp_entry(char * conffile)
 		CHECK_dict_search(DICT_AVP, AVP_BY_NAME_AND_VENDOR, &vpa, &rule_avp);
 		struct local_rules_definition rules[] =
 			{
-				{ { .avp_vendor = 10415, .avp_name = "SIP-Method" }, RULE_OPTIONAL, -1, 1 },
-				{ { .avp_vendor = 10415, .avp_name = "Event" }, RULE_OPTIONAL, -1, 1 },
-				{ { .avp_vendor = 10415, .avp_name = "Expires" }, RULE_OPTIONAL, -1, 1 },
+				{ 10415, "SIP-Method",		RULE_OPTIONAL, -1, 1 },
+				{ 10415, "Event",		RULE_OPTIONAL, -1, 1 },
+				{ 10415, "Expires",		RULE_OPTIONAL, -1, 1 },
 			};
 			PARSE_loc_rules(rules, rule_avp);
         }
@@ -499,47 +503,47 @@ static int dict_dcca_3gpp_entry(char * conffile)
 		CHECK_dict_search(DICT_AVP, AVP_BY_NAME_AND_VENDOR, &vpa, &rule_avp);
 		struct local_rules_definition rules[] =
 			{
-				{ { .avp_vendor = 10415, .avp_name = "Event-Type" }, RULE_OPTIONAL, -1, 1 },
-				{ { .avp_vendor = 10415, .avp_name = "Role-Of-Node" }, RULE_OPTIONAL, -1, 1 },
-				{ { .avp_vendor = 10415, .avp_name = "Node-Functionality" }, RULE_REQUIRED, -1, 1 },
-				{ { .avp_vendor = 10415, .avp_name = "User-Session-Id" }, RULE_OPTIONAL, -1, 1 },
-				{ { .avp_vendor = 10415, .avp_name = "Outgoing-Session-Id" }, RULE_OPTIONAL, -1, 1 },
-				{ { .avp_vendor = 10415, .avp_name = "Session-Priority" }, RULE_OPTIONAL, -1, 1 },
-				{ { .avp_vendor = 10415, .avp_name = "Calling-Party-Address" }, RULE_OPTIONAL, -1, -1 },
-				{ { .avp_vendor = 10415, .avp_name = "Called-Party-Address" }, RULE_OPTIONAL, -1, 1 },
-				{ { .avp_vendor = 10415, .avp_name = "Called-Asserted-Identity" }, RULE_OPTIONAL, -1, -1 },
-				{ { .avp_vendor = 10415, .avp_name = "Number-Portability-Routing-Information" }, RULE_OPTIONAL, -1, 1 },
-				{ { .avp_vendor = 10415, .avp_name = "Carrier-Select-Routing-Information" }, RULE_OPTIONAL, -1, 1 },
-				{ { .avp_vendor = 10415, .avp_name = "Alternate-Charged-Party-Address" }, RULE_OPTIONAL, -1, 1 },
-				{ { .avp_vendor = 10415, .avp_name = "Requested-Party-Address" }, RULE_OPTIONAL, -1, -1 },
-				{ { .avp_vendor = 10415, .avp_name = "Associated-URI" }, RULE_OPTIONAL, -1, -1 },
-				{ { .avp_vendor = 10415, .avp_name = "Time-Stamps" }, RULE_OPTIONAL, -1, 1 },
-				{ { .avp_vendor = 10415, .avp_name = "Application-Server-Information" }, RULE_OPTIONAL, -1, -1 },
-				{ { .avp_vendor = 10415, .avp_name = "Inter-Operator-Identifier" }, RULE_OPTIONAL, -1, -1 },
-				{ { .avp_vendor = 10415, .avp_name = "Transit-IOI-List" }, RULE_OPTIONAL, -1, 1 },
-				{ { .avp_vendor = 10415, .avp_name = "IMS-Charging-Identifier" }, RULE_OPTIONAL, -1, 1 },
-				{ { .avp_vendor = 10415, .avp_name = "SDP-Session-Description" }, RULE_OPTIONAL, -1, -1 },
-				{ { .avp_vendor = 10415, .avp_name = "SDP-Media-Component" }, RULE_OPTIONAL, -1, -1 },
-				{ { .avp_vendor = 10415, .avp_name = "Served-Party-IP-Address" }, RULE_OPTIONAL, -1, 1 },
-				{ { .avp_vendor = 10415, .avp_name = "Server-Capabilities" }, RULE_OPTIONAL, -1, 1 },
-				{ { .avp_vendor = 10415, .avp_name = "Trunk-Group-Id" }, RULE_OPTIONAL, -1, 1 },
-				{ { .avp_vendor = 10415, .avp_name = "Bearer-Service" }, RULE_OPTIONAL, -1, 1 },
-				{ { .avp_vendor = 10415, .avp_name = "Service-Id" }, RULE_OPTIONAL, -1, 1 },
-				{ { .avp_vendor = 10415, .avp_name = "Service-Specific-Info" }, RULE_OPTIONAL, -1, -1 },
-				{ { .avp_vendor = 10415, .avp_name = "Message-Body" }, RULE_OPTIONAL, -1, -1 },
-				{ { .avp_vendor = 10415, .avp_name = "Cause-Code" }, RULE_OPTIONAL, -1, 1 },
-				{ { .avp_vendor = 10415, .avp_name = "Access-Network-Information" }, RULE_OPTIONAL, -1, 1 },
-				{ { .avp_vendor = 10415, .avp_name = "Early-Media-Description" }, RULE_OPTIONAL, -1, -1 },
-				{ { .avp_vendor = 10415, .avp_name = "IMS-Communication-Service-Identifier" }, RULE_OPTIONAL, -1, 1 },
-				{ { .avp_vendor = 10415, .avp_name = "IMS-Application-Reference-Identifier" }, RULE_OPTIONAL, -1, 1 },
-				{ { .avp_vendor = 10415, .avp_name = "Online-Charging-Flag" }, RULE_OPTIONAL, -1, 1 },
-				{ { .avp_vendor = 10415, .avp_name = "Real-Time-Tariff-Information" }, RULE_OPTIONAL, -1, 1 },
-				{ { .avp_vendor = 10415, .avp_name = "Account-Expiration" }, RULE_OPTIONAL, -1, 1 },
-				{ { .avp_vendor = 10415, .avp_name = "Initial-IMS-Charging-Identifier" }, RULE_OPTIONAL, -1, 1 },
-				{ { .avp_vendor = 10415, .avp_name = "NNI-Information" }, RULE_OPTIONAL, -1, -1 },
-				{ { .avp_vendor = 10415, .avp_name = "From-Address" }, RULE_OPTIONAL, -1, 1 },
-				{ { .avp_vendor = 10415, .avp_name = "IMS-Emergency-Indicator" }, RULE_OPTIONAL, -1, 1 },
-				{ { .avp_vendor = 10415, .avp_name = "Access-Transfer-Information" }, RULE_OPTIONAL, -1, -1 },
+				{ 10415, "Event-Type",				RULE_OPTIONAL, -1, 1 },
+				{ 10415, "Role-Of-Node",			RULE_OPTIONAL, -1, 1 },
+				{ 10415, "Node-Functionality",			RULE_REQUIRED, -1, 1 },
+				{ 10415, "User-Session-Id",			RULE_OPTIONAL, -1, 1 },
+				{ 10415, "Outgoing-Session-Id",			RULE_OPTIONAL, -1, 1 },
+				{ 10415, "Session-Priority",			RULE_OPTIONAL, -1, 1 },
+				{ 10415, "Calling-Party-Address",		RULE_OPTIONAL, -1, -1 },
+				{ 10415, "Called-Party-Address",		RULE_OPTIONAL, -1, 1 },
+				{ 10415, "Called-Asserted-Identity",		RULE_OPTIONAL, -1, -1 },
+				{ 10415, "Number-Portability-Routing-Information",	RULE_OPTIONAL, -1, 1 },
+				{ 10415, "Carrier-Select-Routing-Information",	RULE_OPTIONAL, -1, 1 },
+				{ 10415, "Alternate-Charged-Party-Address",	RULE_OPTIONAL, -1, 1 },
+				{ 10415, "Requested-Party-Address",		RULE_OPTIONAL, -1, -1 },
+				{ 10415, "Associated-URI",			RULE_OPTIONAL, -1, -1 },
+				{ 10415, "Time-Stamps",				RULE_OPTIONAL, -1, 1 },
+				{ 10415, "Application-Server-Information",	RULE_OPTIONAL, -1, -1 },
+				{ 10415, "Inter-Operator-Identifier",		RULE_OPTIONAL, -1, -1 },
+				{ 10415, "Transit-IOI-List",			RULE_OPTIONAL, -1, 1 },
+				{ 10415, "IMS-Charging-Identifier",		RULE_OPTIONAL, -1, 1 },
+				{ 10415, "SDP-Session-Description",		RULE_OPTIONAL, -1, -1 },
+				{ 10415, "SDP-Media-Component",			RULE_OPTIONAL, -1, -1 },
+				{ 10415, "Served-Party-IP-Address",		RULE_OPTIONAL, -1, 1 },
+				{ 10415, "Server-Capabilities",			RULE_OPTIONAL, -1, 1 },
+				{ 10415, "Trunk-Group-Id",			RULE_OPTIONAL, -1, 1 },
+				{ 10415, "Bearer-Service",			RULE_OPTIONAL, -1, 1 },
+				{ 10415, "Service-Id",				RULE_OPTIONAL, -1, 1 },
+				{ 10415, "Service-Specific-Info",		RULE_OPTIONAL, -1, -1 },
+				{ 10415, "Message-Body",			RULE_OPTIONAL, -1, -1 },
+				{ 10415, "Cause-Code",				RULE_OPTIONAL, -1, 1 },
+				{ 10415, "Access-Network-Information",		RULE_OPTIONAL, -1, 1 },
+				{ 10415, "Early-Media-Description",		RULE_OPTIONAL, -1, -1 },
+				{ 10415, "IMS-Communication-Service-Identifier",RULE_OPTIONAL, -1, 1 },
+				{ 10415, "IMS-Application-Reference-Identifier",RULE_OPTIONAL, -1, 1 },
+				{ 10415, "Online-Charging-Flag",		RULE_OPTIONAL, -1, 1 },
+				{ 10415, "Real-Time-Tariff-Information",	RULE_OPTIONAL, -1, 1 },
+				{ 10415, "Account-Expiration",			RULE_OPTIONAL, -1, 1 },
+				{ 10415, "Initial-IMS-Charging-Identifier",	RULE_OPTIONAL, -1, 1 },
+				{ 10415, "NNI-Information",			RULE_OPTIONAL, -1, -1 },
+				{ 10415, "From-Address",			RULE_OPTIONAL, -1, 1 },
+				{ 10415, "IMS-Emergency-Indicator",		RULE_OPTIONAL, -1, 1 },
+				{ 10415, "Access-Transfer-Information",		RULE_OPTIONAL, -1, -1 },
 			};
 			PARSE_loc_rules(rules, rule_avp);
         }
@@ -552,8 +556,8 @@ static int dict_dcca_3gpp_entry(char * conffile)
 		CHECK_dict_search(DICT_AVP, AVP_BY_NAME_AND_VENDOR, &vpa, &rule_avp);
 		struct local_rules_definition rules[] =
 			{
-				{ { .avp_vendor = 10415, .avp_name = "Class-Identifier" }, RULE_OPTIONAL, -1, 1 },
-				{ { .avp_vendor = 10415, .avp_name = "Token-Text" }, RULE_OPTIONAL, -1, 1 },
+				{ 10415, "Class-Identifier",	RULE_OPTIONAL, -1, 1 },
+				{ 10415, "Token-Text",		RULE_OPTIONAL, -1, 1 },
 			};
 			PARSE_loc_rules(rules, rule_avp);
         }
@@ -566,26 +570,26 @@ static int dict_dcca_3gpp_entry(char * conffile)
 		CHECK_dict_search(DICT_AVP, AVP_BY_NAME_AND_VENDOR, &vpa, &rule_avp);
 		struct local_rules_definition rules[] =
 			{
-				{ { .avp_vendor = 10415, .avp_name = "Originator-Address" }, RULE_OPTIONAL, -1, 1 },
-				{ { .avp_vendor = 10415, .avp_name = "Recipient-Address" }, RULE_OPTIONAL, -1, -1 },
-				{ { .avp_vendor = 10415, .avp_name = "Submission-Time" }, RULE_OPTIONAL, -1, 1 },
-				{ { .avp_vendor = 10415, .avp_name = "MM-Content-Type" }, RULE_OPTIONAL, -1, 1 },
-				{ { .avp_vendor = 10415, .avp_name = "Priority" }, RULE_OPTIONAL, -1, -1 },
-				{ { .avp_vendor = 10415, .avp_name = "Message-ID" }, RULE_OPTIONAL, -1, 1 },
-				{ { .avp_vendor = 10415, .avp_name = "Message-Type" }, RULE_OPTIONAL, -1, 1 },
-				{ { .avp_vendor = 10415, .avp_name = "Message-Size" }, RULE_OPTIONAL, -1, 1 },
-				{ { .avp_vendor = 10415, .avp_name = "Message-Class" }, RULE_OPTIONAL, -1, 1 },
-				{ { .avp_vendor = 10415, .avp_name = "Delivery-Report-Requested" }, RULE_OPTIONAL, -1, 1 },
-				{ { .avp_vendor = 10415, .avp_name = "Read-Reply-Report-Requested" }, RULE_OPTIONAL, -1, 1 },
-				{ { .avp_vendor = 10415, .avp_name = "MMBox-Storage-Requested" }, RULE_OPTIONAL, -1, 1 },
-				{ { .avp_vendor = 10415, .avp_name = "Applic-ID" }, RULE_OPTIONAL, -1, 1 },
-				{ { .avp_vendor = 10415, .avp_name = "Reply-Applic-ID" }, RULE_OPTIONAL, -1, 1 },
-				{ { .avp_vendor = 10415, .avp_name = "Aux-Applic-Info" }, RULE_OPTIONAL, -1, 1 },
-				{ { .avp_vendor = 10415, .avp_name = "Content-Class" }, RULE_OPTIONAL, -1, 1 },
-				{ { .avp_vendor = 10415, .avp_name = "DRM-Content" }, RULE_OPTIONAL, -1, 1 },
-				{ { .avp_vendor = 10415, .avp_name = "Adaptations" }, RULE_OPTIONAL, -1, 1 },
-				{ { .avp_vendor = 10415, .avp_name = "VASP-ID" }, RULE_OPTIONAL, -1, 1 },
-				{ { .avp_vendor = 10415, .avp_name = "VAS-ID" }, RULE_OPTIONAL, -1, 1 },
+				{ 10415, "Originator-Address",		RULE_OPTIONAL, -1, 1 },
+				{ 10415, "Recipient-Address",		RULE_OPTIONAL, -1, -1 },
+				{ 10415, "Submission-Time",		RULE_OPTIONAL, -1, 1 },
+				{ 10415, "MM-Content-Type",		RULE_OPTIONAL, -1, 1 },
+				{ 10415, "Priority",			RULE_OPTIONAL, -1, -1 },
+				{ 10415, "Message-ID",			RULE_OPTIONAL, -1, 1 },
+				{ 10415, "Message-Type",		RULE_OPTIONAL, -1, 1 },
+				{ 10415, "Message-Size",		RULE_OPTIONAL, -1, 1 },
+				{ 10415, "Message-Class",		RULE_OPTIONAL, -1, 1 },
+				{ 10415, "Delivery-Report-Requested",	RULE_OPTIONAL, -1, 1 },
+				{ 10415, "Read-Reply-Report-Requested",	RULE_OPTIONAL, -1, 1 },
+				{ 10415, "MMBox-Storage-Requested",	RULE_OPTIONAL, -1, 1 },
+				{ 10415, "Applic-ID",			RULE_OPTIONAL, -1, 1 },
+				{ 10415, "Reply-Applic-ID",		RULE_OPTIONAL, -1, 1 },
+				{ 10415, "Aux-Applic-Info",		RULE_OPTIONAL, -1, 1 },
+				{ 10415, "Content-Class",		RULE_OPTIONAL, -1, 1 },
+				{ 10415, "DRM-Content",			RULE_OPTIONAL, -1, 1 },
+				{ 10415, "Adaptations",			RULE_OPTIONAL, -1, 1 },
+				{ 10415, "VASP-ID",			RULE_OPTIONAL, -1, 1 },
+				{ 10415, "VAS-ID",			RULE_OPTIONAL, -1, 1 },
 			};
 			PARSE_loc_rules(rules, rule_avp);
         }
@@ -600,21 +604,21 @@ static int dict_dcca_3gpp_entry(char * conffile)
 		CHECK_dict_search(DICT_AVP, AVP_BY_NAME_AND_VENDOR, &vpa, &rule_avp);
 		struct local_rules_definition rules[] =
 			{
-				{ { .avp_vendor = 10415, .avp_name = "Time-Quota-Threshold" }, RULE_OPTIONAL, -1, 1 },
-				{ { .avp_vendor = 10415, .avp_name = "Volume-Quota-Threshold" }, RULE_OPTIONAL, -1, 1 },
-				{ { .avp_vendor = 10415, .avp_name = "Unit-Quota-Threshold" }, RULE_OPTIONAL, -1, 1 },
-				{ { .avp_vendor = 10415, .avp_name = "Quota-Holding-Time" }, RULE_OPTIONAL, -1, 1 },
-				{ { .avp_vendor = 10415, .avp_name = "Quota-Consumption-Time" }, RULE_OPTIONAL, -1, 1 },
-				{ { .avp_vendor = 10415, .avp_name = "Reporting-Reason" }, RULE_OPTIONAL, -1, -1 },
-				{ { .avp_vendor = 10415, .avp_name = "Trigger" }, RULE_OPTIONAL, -1, 1 },
-				{ { .avp_vendor = 10415, .avp_name = "PS-Furnish-Charging-Information" }, RULE_OPTIONAL, -1, 1 },
-				{ { .avp_vendor = 10415, .avp_name = "Refund-Information" }, RULE_OPTIONAL, -1, 1 },
-				{ { .avp_vendor = 10415, .avp_name = "AF-Correlation-Information" }, RULE_OPTIONAL, -1, -1 },
-				{ { .avp_vendor = 10415, .avp_name = "Envelope" }, RULE_OPTIONAL, -1, -1 },
-				{ { .avp_vendor = 10415, .avp_name = "Envelope-Reporting" }, RULE_OPTIONAL, -1, 1 },
-				{ { .avp_vendor = 10415, .avp_name = "Time-Quota-Mechanism" }, RULE_OPTIONAL, -1, 1 },
-				{ { .avp_vendor = 10415, .avp_name = "Service-Specific-Info" }, RULE_OPTIONAL, -1, -1 },
-				{ { .avp_vendor = 10415, .avp_name = "QoS-Information" }, RULE_OPTIONAL, -1, 1 },
+				{ 10415, "Time-Quota-Threshold",		RULE_OPTIONAL, -1, 1 },
+				{ 10415, "Volume-Quota-Threshold",		RULE_OPTIONAL, -1, 1 },
+				{ 10415, "Unit-Quota-Threshold",		RULE_OPTIONAL, -1, 1 },
+				{ 10415, "Quota-Holding-Time",			RULE_OPTIONAL, -1, 1 },
+				{ 10415, "Quota-Consumption-Time",		RULE_OPTIONAL, -1, 1 },
+				{ 10415, "Reporting-Reason",			RULE_OPTIONAL, -1, -1 },
+				{ 10415, "Trigger",				RULE_OPTIONAL, -1, 1 },
+				{ 10415, "PS-Furnish-Charging-Information",	RULE_OPTIONAL, -1, 1 },
+				{ 10415, "Refund-Information",			RULE_OPTIONAL, -1, 1 },
+				{ 10415, "AF-Correlation-Information",		RULE_OPTIONAL, -1, -1 },
+				{ 10415, "Envelope",				RULE_OPTIONAL, -1, -1 },
+				{ 10415, "Envelope-Reporting",			RULE_OPTIONAL, -1, 1 },
+				{ 10415, "Time-Quota-Mechanism",		RULE_OPTIONAL, -1, 1 },
+				{ 10415, "Service-Specific-Info",		RULE_OPTIONAL, -1, -1 },
+				{ 10415, "QoS-Information",			RULE_OPTIONAL, -1, 1 },
 			};
 		PARSE_loc_rules(rules, rule_avp);
         }
@@ -627,10 +631,10 @@ static int dict_dcca_3gpp_entry(char * conffile)
 		CHECK_dict_search(DICT_AVP, AVP_BY_NAME_AND_VENDOR, &vpa, &rule_avp);
 		struct local_rules_definition rules[] =
 			{
-				{ { .avp_vendor = 10415, .avp_name = "Quota-Consumption-Time" }, RULE_OPTIONAL, -1, 1 },
-				{ { .avp_vendor = 10415, .avp_name = "Time-Quota-Mechanism" }, RULE_OPTIONAL, -1, 1 },
-				{ { .avp_vendor = 10415, .avp_name = "Envelope-Reporting" }, RULE_OPTIONAL, -1, 1 },
-				{ { .avp_vendor = 0,     .avp_name = "Multiple-Services-Credit-Control" }, RULE_OPTIONAL, -1, -1 },
+				{ 10415, "Quota-Consumption-Time",		RULE_OPTIONAL, -1, 1 },
+				{ 10415, "Time-Quota-Mechanism",		RULE_OPTIONAL, -1, 1 },
+				{ 10415, "Envelope-Reporting",			RULE_OPTIONAL, -1, 1 },
+				{ 0,     "Multiple-Services-Credit-Control",	RULE_OPTIONAL, -1, -1 },
 			};
 			PARSE_loc_rules(rules, rule_avp);
         }
@@ -643,9 +647,9 @@ static int dict_dcca_3gpp_entry(char * conffile)
 		CHECK_dict_search(DICT_AVP, AVP_BY_NAME_AND_VENDOR, &vpa, &rule_avp);
 		struct local_rules_definition rules[] =
 			{
-				{ { .avp_vendor = 10415, .avp_name = "Address-Type" }, RULE_OPTIONAL, -1, 1 },
-				{ { .avp_vendor = 10415, .avp_name = "Address-Data" }, RULE_OPTIONAL, -1, 1 },
-				{ { .avp_vendor = 10415, .avp_name = "Address-Domain" }, RULE_OPTIONAL, -1, 1 },
+				{ 10415, "Address-Type",		RULE_OPTIONAL, -1, 1 },
+				{ 10415, "Address-Data",		RULE_OPTIONAL, -1, 1 },
+				{ 10415, "Address-Domain",		RULE_OPTIONAL, -1, 1 },
 			};
 			PARSE_loc_rules(rules, rule_avp);
         }
@@ -658,10 +662,10 @@ static int dict_dcca_3gpp_entry(char * conffile)
 		CHECK_dict_search(DICT_AVP, AVP_BY_NAME_AND_VENDOR, &vpa, &rule_avp);
 		struct local_rules_definition rules[] =
 			{
-				{ { .avp_vendor = 10415, .avp_name = "Interface-Id" }, RULE_OPTIONAL, -1, 1 },
-				{ { .avp_vendor = 10415, .avp_name = "Interface-Text" }, RULE_OPTIONAL, -1, 1 },
-				{ { .avp_vendor = 10415, .avp_name = "Interface-Port" }, RULE_OPTIONAL, -1, 1 },
-				{ { .avp_vendor = 10415, .avp_name = "Interface-Type" }, RULE_OPTIONAL, -1, 1 },
+				{ 10415, "Interface-Id",		RULE_OPTIONAL, -1, 1 },
+				{ 10415, "Interface-Text",		RULE_OPTIONAL, -1, 1 },
+				{ 10415, "Interface-Port",		RULE_OPTIONAL, -1, 1 },
+				{ 10415, "Interface-Type",		RULE_OPTIONAL, -1, 1 },
 			};
 			PARSE_loc_rules(rules, rule_avp);
         }
@@ -674,9 +678,9 @@ static int dict_dcca_3gpp_entry(char * conffile)
 		CHECK_dict_search(DICT_AVP, AVP_BY_NAME_AND_VENDOR, &vpa, &rule_avp);
 		struct local_rules_definition rules[] =
 			{
-				{ { .avp_vendor = 10415, .avp_name = "Address-Type" }, RULE_OPTIONAL, -1, 1 },
-				{ { .avp_vendor = 10415, .avp_name = "Address-Data" }, RULE_OPTIONAL, -1, 1 },
-				{ { .avp_vendor = 10415, .avp_name = "Address-Domain" }, RULE_OPTIONAL, -1, 1 },
+				{ 10415, "Address-Type",		RULE_OPTIONAL, -1, 1 },
+				{ 10415, "Address-Data",		RULE_OPTIONAL, -1, 1 },
+				{ 10415, "Address-Domain",		RULE_OPTIONAL, -1, 1 },
 			};
 			PARSE_loc_rules(rules, rule_avp);
         }
@@ -689,9 +693,9 @@ static int dict_dcca_3gpp_entry(char * conffile)
 		CHECK_dict_search(DICT_AVP, AVP_BY_NAME_AND_VENDOR, &vpa, &rule_avp);
 		struct local_rules_definition rules[] =
 			{
-				{ { .avp_vendor = 10415, .avp_name = "3GPP-Charging-Id" }, RULE_REQUIRED, -1, 1 },
-				{ { .avp_vendor = 10415, .avp_name = "PS-Free-Format-Data" }, RULE_REQUIRED, -1, 1 },
-				{ { .avp_vendor = 10415, .avp_name = "PS-Append-Free-Format-Data" }, RULE_OPTIONAL, -1, 1 },
+				{ 10415, "3GPP-Charging-Id",		RULE_REQUIRED, -1, 1 },
+				{ 10415, "PS-Free-Format-Data",		RULE_REQUIRED, -1, 1 },
+				{ 10415, "PS-Append-Free-Format-Data",	RULE_OPTIONAL, -1, 1 },
 			};
 			PARSE_loc_rules(rules, rule_avp);
         }
@@ -704,52 +708,52 @@ static int dict_dcca_3gpp_entry(char * conffile)
 		CHECK_dict_search(DICT_AVP, AVP_BY_NAME_AND_VENDOR, &vpa, &rule_avp);
 		struct local_rules_definition rules[] =
 			{
-				{ { .avp_vendor = 10415, .avp_name = "3GPP-Charging-Id" }, RULE_OPTIONAL, -1, 1 },
-				{ { .avp_vendor = 10415, .avp_name = "PDN-Connection-Charging-ID" }, RULE_OPTIONAL, -1, 1 },
-				{ { .avp_vendor = 10415, .avp_name = "Node-Id" }, RULE_OPTIONAL, -1, 1 },
-				{ { .avp_vendor = 10415, .avp_name = "3GPP-PDP-Type" }, RULE_OPTIONAL, -1, 1 },
-				{ { .avp_vendor = 10415, .avp_name = "PDP-Address" }, RULE_OPTIONAL, -1, -1 },
-				{ { .avp_vendor = 10415, .avp_name = "PDP-Address-Prefix-Length" }, RULE_OPTIONAL, -1, 1 },
-				{ { .avp_vendor = 10415, .avp_name = "Dynamic-Address-Flag" }, RULE_OPTIONAL, -1, 1 },
-				{ { .avp_vendor = 10415, .avp_name = "Dynamic-Address-Flag-Extension" }, RULE_OPTIONAL, -1, 1 },
-				{ { .avp_vendor = 10415, .avp_name = "QoS-Information" }, RULE_OPTIONAL, -1, 1 },
-				{ { .avp_vendor = 10415, .avp_name = "SGSN-Address" }, RULE_OPTIONAL, -1, -1 },
-				{ { .avp_vendor = 10415, .avp_name = "GGSN-Address" }, RULE_OPTIONAL, -1, -1 },
-				{ { .avp_vendor = 10415, .avp_name = "SGW-Address" }, RULE_OPTIONAL, -1, -1 },
-				{ { .avp_vendor = 10415, .avp_name = "CG-Address" }, RULE_OPTIONAL, -1, 1 },
-				{ { .avp_vendor = 10415, .avp_name = "Serving-Node-Type" }, RULE_OPTIONAL, -1, 1 },
-				{ { .avp_vendor = 10415, .avp_name = "SGW-Change" }, RULE_OPTIONAL, -1, 1 },
-				{ { .avp_vendor = 10415, .avp_name = "3GPP-IMSI-MCC-MNC" }, RULE_OPTIONAL, -1, 1 },
-				{ { .avp_vendor = 10415, .avp_name = "IMSI-Unauthenticated-Flag" }, RULE_OPTIONAL, -1, 1 },
-				{ { .avp_vendor = 10415, .avp_name = "3GPP-GGSN-MCC-MNC" }, RULE_OPTIONAL, -1, 1 },
-				{ { .avp_vendor = 10415, .avp_name = "3GPP-NSAPI" }, RULE_OPTIONAL, -1, 1 },
-				{ { .avp_vendor = 0,     .avp_name = "Called-Station-Id" }, RULE_OPTIONAL, -1, 1 },
-				{ { .avp_vendor = 10415, .avp_name = "3GPP-Session-Stop-Indicator" }, RULE_OPTIONAL, -1, 1 },
-				{ { .avp_vendor = 10415, .avp_name = "3GPP-Selection-Mode" }, RULE_OPTIONAL, -1, 1 },
-				{ { .avp_vendor = 10415, .avp_name = "3GPP-Charging-Characteristics" }, RULE_OPTIONAL, -1, 1 },
-				{ { .avp_vendor = 10415, .avp_name = "Charging-Characteristics-Selection-Mode" }, RULE_OPTIONAL, -1, 1 },
-				{ { .avp_vendor = 10415, .avp_name = "3GPP-SGSN-MCC-MNC" }, RULE_OPTIONAL, -1, 1 },
-				{ { .avp_vendor = 10415, .avp_name = "3GPP-MS-TimeZone" }, RULE_OPTIONAL, -1, 1 },
-				{ { .avp_vendor = 10415, .avp_name = "Charging-Rule-Base-Name" }, RULE_OPTIONAL, -1, 1 },
-				{ { .avp_vendor = 10415, .avp_name = "3GPP-User-Location-Info" }, RULE_OPTIONAL, -1, 1 },
-				{ { .avp_vendor = 10415, .avp_name = "User-CSG-Information" }, RULE_OPTIONAL, -1, 1 },
-				{ { .avp_vendor = 5535,  .avp_name = "3GPP2-BSID" }, RULE_OPTIONAL, -1, 1 },
-				{ { .avp_vendor = 10415, .avp_name = "3GPP-RAT-Type" }, RULE_OPTIONAL, -1, 1 },
-				{ { .avp_vendor = 10415, .avp_name = "PS-Furnish-Charging-Information" }, RULE_OPTIONAL, -1, 1 },
-				{ { .avp_vendor = 10415, .avp_name = "PDP-Context-Type" }, RULE_OPTIONAL, -1, 1 },
-				{ { .avp_vendor = 10415, .avp_name = "Offline-Charging" }, RULE_OPTIONAL, -1, 1 },
-				{ { .avp_vendor = 10415, .avp_name = "Traffic-Data-Volumes" }, RULE_OPTIONAL, -1, -1 },
-				{ { .avp_vendor = 10415, .avp_name = "Service-Data-Container" }, RULE_OPTIONAL, -1, -1 },
-				{ { .avp_vendor = 0,     .avp_name = "User-Equipment-Info" }, RULE_OPTIONAL, -1, 1 },
-				{ { .avp_vendor = 10415, .avp_name = "Terminal-Information" }, RULE_OPTIONAL, -1, 1 },
-				{ { .avp_vendor = 10415, .avp_name = "Start-Time" }, RULE_OPTIONAL, -1, 1 },
-				{ { .avp_vendor = 10415, .avp_name = "Stop-Time" }, RULE_OPTIONAL, -1, 1 },
-				{ { .avp_vendor = 10415, .avp_name = "Change-Condition" }, RULE_OPTIONAL, -1, 1 },
-				{ { .avp_vendor = 10415, .avp_name = "Diagnostics" }, RULE_OPTIONAL, -1, 1 },
-				{ { .avp_vendor = 10415, .avp_name = "Low-Priority-Indicator" }, RULE_OPTIONAL, -1, 1 },
-				{ { .avp_vendor = 10415, .avp_name = "MME-Number-for-MT-SMS" }, RULE_OPTIONAL, -1, 1 },
-				{ { .avp_vendor = 10415, .avp_name = "MME-Name" }, RULE_OPTIONAL, -1, 1 },
-				{ { .avp_vendor = 10415, .avp_name = "MME-Realm" }, RULE_OPTIONAL, -1, 1 },
+				{ 10415, "3GPP-Charging-Id",			RULE_OPTIONAL, -1, 1 },
+				{ 10415, "PDN-Connection-Charging-ID",		RULE_OPTIONAL, -1, 1 },
+				{ 10415, "Node-Id",				RULE_OPTIONAL, -1, 1 },
+				{ 10415, "3GPP-PDP-Type",			RULE_OPTIONAL, -1, 1 },
+				{ 10415, "PDP-Address",				RULE_OPTIONAL, -1, -1 },
+				{ 10415, "PDP-Address-Prefix-Length",		RULE_OPTIONAL, -1, 1 },
+				{ 10415, "Dynamic-Address-Flag",		RULE_OPTIONAL, -1, 1 },
+				{ 10415, "Dynamic-Address-Flag-Extension",	RULE_OPTIONAL, -1, 1 },
+				{ 10415, "QoS-Information",			RULE_OPTIONAL, -1, 1 },
+				{ 10415, "SGSN-Address",			RULE_OPTIONAL, -1, -1 },
+				{ 10415, "GGSN-Address",			RULE_OPTIONAL, -1, -1 },
+				{ 10415, "SGW-Address",				RULE_OPTIONAL, -1, -1 },
+				{ 10415, "CG-Address",				RULE_OPTIONAL, -1, 1 },
+				{ 10415, "Serving-Node-Type",			RULE_OPTIONAL, -1, 1 },
+				{ 10415, "SGW-Change",				RULE_OPTIONAL, -1, 1 },
+				{ 10415, "3GPP-IMSI-MCC-MNC",			RULE_OPTIONAL, -1, 1 },
+				{ 10415, "IMSI-Unauthenticated-Flag",		RULE_OPTIONAL, -1, 1 },
+				{ 10415, "3GPP-GGSN-MCC-MNC",			RULE_OPTIONAL, -1, 1 },
+				{ 10415, "3GPP-NSAPI",				RULE_OPTIONAL, -1, 1 },
+				{ 0,     "Called-Station-Id",			RULE_OPTIONAL, -1, 1 },
+				{ 10415, "3GPP-Session-Stop-Indicator",		RULE_OPTIONAL, -1, 1 },
+				{ 10415, "3GPP-Selection-Mode",			RULE_OPTIONAL, -1, 1 },
+				{ 10415, "3GPP-Charging-Characteristics",	RULE_OPTIONAL, -1, 1 },
+				{ 10415, "Charging-Characteristics-Selection-Mode",	RULE_OPTIONAL, -1, 1 },
+				{ 10415, "3GPP-SGSN-MCC-MNC",			RULE_OPTIONAL, -1, 1 },
+				{ 10415, "3GPP-MS-TimeZone",			RULE_OPTIONAL, -1, 1 },
+				{ 10415, "Charging-Rule-Base-Name",		RULE_OPTIONAL, -1, 1 },
+				{ 10415, "3GPP-User-Location-Info",		RULE_OPTIONAL, -1, 1 },
+				{ 10415, "User-CSG-Information",		RULE_OPTIONAL, -1, 1 },
+				{ 5535,  "3GPP2-BSID",				RULE_OPTIONAL, -1, 1 },
+				{ 10415, "3GPP-RAT-Type",			RULE_OPTIONAL, -1, 1 },
+				{ 10415, "PS-Furnish-Charging-Information",	RULE_OPTIONAL, -1, 1 },
+				{ 10415, "PDP-Context-Type",			RULE_OPTIONAL, -1, 1 },
+				{ 10415, "Offline-Charging",			RULE_OPTIONAL, -1, 1 },
+				{ 10415, "Traffic-Data-Volumes",		RULE_OPTIONAL, -1, -1 },
+				{ 10415, "Service-Data-Container",		RULE_OPTIONAL, -1, -1 },
+				{ 0,     "User-Equipment-Info",			RULE_OPTIONAL, -1, 1 },
+				{ 10415, "Terminal-Information",		RULE_OPTIONAL, -1, 1 },
+				{ 10415, "Start-Time",				RULE_OPTIONAL, -1, 1 },
+				{ 10415, "Stop-Time",				RULE_OPTIONAL, -1, 1 },
+				{ 10415, "Change-Condition",			RULE_OPTIONAL, -1, 1 },
+				{ 10415, "Diagnostics",				RULE_OPTIONAL, -1, 1 },
+				{ 10415, "Low-Priority-Indicator",		RULE_OPTIONAL, -1, 1 },
+				{ 10415, "MME-Number-for-MT-SMS",		RULE_OPTIONAL, -1, 1 },
+				{ 10415, "MME-Name",				RULE_OPTIONAL, -1, 1 },
+				{ 10415, "MME-Realm",				RULE_OPTIONAL, -1, 1 },
 			};
 			PARSE_loc_rules(rules, rule_avp);
         }
@@ -762,10 +766,10 @@ static int dict_dcca_3gpp_entry(char * conffile)
 		CHECK_dict_search(DICT_AVP, AVP_BY_NAME_AND_VENDOR, &vpa, &rule_avp);
 		struct local_rules_definition rules[] =
 			{
-				{ { .avp_vendor = 10415, .avp_name = "Address-Type" }, RULE_OPTIONAL, -1, 1 },
-				{ { .avp_vendor = 10415, .avp_name = "Address-Data" }, RULE_OPTIONAL, -1, 1 },
-				{ { .avp_vendor = 10415, .avp_name = "Address-Domain" }, RULE_OPTIONAL, -1, 1 },
-				{ { .avp_vendor = 10415, .avp_name = "Addressee-Type" }, RULE_OPTIONAL, -1, 1 },
+				{ 10415, "Address-Type",		RULE_OPTIONAL, -1, 1 },
+				{ 10415, "Address-Data",		RULE_OPTIONAL, -1, 1 },
+				{ 10415, "Address-Domain",		RULE_OPTIONAL, -1, 1 },
+				{ 10415, "Addressee-Type",		RULE_OPTIONAL, -1, 1 },
 			};
 			PARSE_loc_rules(rules, rule_avp);
         }
@@ -778,11 +782,11 @@ static int dict_dcca_3gpp_entry(char * conffile)
 		CHECK_dict_search(DICT_AVP, AVP_BY_NAME_AND_VENDOR, &vpa, &rule_avp);
 		struct local_rules_definition rules[] =
 			{
-				{ { .avp_vendor = 10415, .avp_name = "Destination-Interface" }, RULE_OPTIONAL, -1, 1 },
-				{ { .avp_vendor = 10415, .avp_name = "Recipient-Address" }, RULE_OPTIONAL, -1, -1 },
-				{ { .avp_vendor = 10415, .avp_name = "Recipient-Received-Address" }, RULE_OPTIONAL, -1, -1 },
-				{ { .avp_vendor = 10415, .avp_name = "Recipient-SCCP-Address" }, RULE_OPTIONAL, -1, 1 },
-				{ { .avp_vendor = 10415, .avp_name = "SM-Protocol-ID" }, RULE_OPTIONAL, -1, 1 },
+				{ 10415, "Destination-Interface",	RULE_OPTIONAL, -1, 1 },
+				{ 10415, "Recipient-Address",		RULE_OPTIONAL, -1, -1 },
+				{ 10415, "Recipient-Received-Address",	RULE_OPTIONAL, -1, -1 },
+				{ 10415, "Recipient-SCCP-Address",	RULE_OPTIONAL, -1, 1 },
+				{ 10415, "SM-Protocol-ID",		RULE_OPTIONAL, -1, 1 },
 			};
 			PARSE_loc_rules(rules, rule_avp);
         }
@@ -795,9 +799,9 @@ static int dict_dcca_3gpp_entry(char * conffile)
 		CHECK_dict_search(DICT_AVP, AVP_BY_NAME_AND_VENDOR, &vpa, &rule_avp);
 		struct local_rules_definition rules[] =
 			{
-				{ { .avp_vendor = 10415, .avp_name = "Address-Type" }, RULE_OPTIONAL, -1, 1 },
-				{ { .avp_vendor = 10415, .avp_name = "Address-Data" }, RULE_OPTIONAL, -1, 1 },
-				{ { .avp_vendor = 10415, .avp_name = "Address-Domain" }, RULE_OPTIONAL, -1, 1 },
+				{ 10415, "Address-Type",		RULE_OPTIONAL, -1, 1 },
+				{ 10415, "Address-Data",		RULE_OPTIONAL, -1, 1 },
+				{ 10415, "Address-Domain",		RULE_OPTIONAL, -1, 1 },
 			};
 			PARSE_loc_rules(rules, rule_avp);
         }
@@ -810,16 +814,16 @@ static int dict_dcca_3gpp_entry(char * conffile)
 		CHECK_dict_search(DICT_AVP, AVP_BY_NAME_AND_VENDOR, &vpa, &rule_avp);
 		struct local_rules_definition rules[] =
 			{
-				{ { .avp_vendor = 10415, .avp_name = "SDP-Media-Name" }, RULE_OPTIONAL, -1, 1 },
-				{ { .avp_vendor = 10415, .avp_name = "SDP-Media-Description" }, RULE_OPTIONAL, -1, -1 },
-				{ { .avp_vendor = 10415, .avp_name = "Local-GW-Inserted-Indication" }, RULE_OPTIONAL, -1, 1 },
-				{ { .avp_vendor = 10415, .avp_name = "IP-Realm-Default-Indication" }, RULE_OPTIONAL, -1, 1 },
-				{ { .avp_vendor = 10415, .avp_name = "Transcoder-Inserted-Indication" }, RULE_OPTIONAL, -1, 1 },
-				{ { .avp_vendor = 10415, .avp_name = "Media-Initiator-Flag" }, RULE_OPTIONAL, -1, 1 },
-				{ { .avp_vendor = 10415, .avp_name = "Media-Initiator-Party" }, RULE_OPTIONAL, -1, 1 },
-				{ { .avp_vendor = 10415, .avp_name = "3GPP-Charging-Id" }, RULE_OPTIONAL, -1, 1 },
-				{ { .avp_vendor = 10415, .avp_name = "Access-Network-Charging-Identifier-Value" }, RULE_OPTIONAL, -1, 1 },
-				{ { .avp_vendor = 10415, .avp_name = "SDP-Type" }, RULE_OPTIONAL, -1, 1 },
+				{ 10415, "SDP-Media-Name",			RULE_OPTIONAL, -1, 1 },
+				{ 10415, "SDP-Media-Description",		RULE_OPTIONAL, -1, -1 },
+				{ 10415, "Local-GW-Inserted-Indication",	RULE_OPTIONAL, -1, 1 },
+				{ 10415, "IP-Realm-Default-Indication",		RULE_OPTIONAL, -1, 1 },
+				{ 10415, "Transcoder-Inserted-Indication",	RULE_OPTIONAL, -1, 1 },
+				{ 10415, "Media-Initiator-Flag",		RULE_OPTIONAL, -1, 1 },
+				{ 10415, "Media-Initiator-Party",		RULE_OPTIONAL, -1, 1 },
+				{ 10415, "3GPP-Charging-Id",			RULE_OPTIONAL, -1, 1 },
+				{ 10415, "Access-Network-Charging-Identifier-Value",	RULE_OPTIONAL, -1, 1 },
+				{ 10415, "SDP-Type",				RULE_OPTIONAL, -1, 1 },
 			};
 			PARSE_loc_rules(rules, rule_avp);
         }
@@ -832,19 +836,19 @@ static int dict_dcca_3gpp_entry(char * conffile)
 		CHECK_dict_search(DICT_AVP, AVP_BY_NAME_AND_VENDOR, &vpa, &rule_avp);
 		struct local_rules_definition rules[] =
 			{
-				{ { .avp_vendor = 0,     .avp_name = "Subscription-Id" }, RULE_OPTIONAL, -1, -1 },
-				{ { .avp_vendor = 10415, .avp_name = "AoC-Information" }, RULE_OPTIONAL, -1, 1 },
-				{ { .avp_vendor = 10415, .avp_name = "PS-Information" }, RULE_OPTIONAL, -1, 1 },
-				{ { .avp_vendor = 10415, .avp_name = "IMS-Information" }, RULE_OPTIONAL, -1, 1 },
-				{ { .avp_vendor = 10415, .avp_name = "MMS-Information" }, RULE_OPTIONAL, -1, 1 },
-				{ { .avp_vendor = 10415, .avp_name = "LCS-Information" }, RULE_OPTIONAL, -1, 1 },
-				{ { .avp_vendor = 10415, .avp_name = "PoC-Information" }, RULE_OPTIONAL, -1, 1 },
-				{ { .avp_vendor = 10415, .avp_name = "MBMS-Information" }, RULE_OPTIONAL, -1, 1 },
-				{ { .avp_vendor = 10415, .avp_name = "SMS-Information" }, RULE_OPTIONAL, -1, 1 },
-				{ { .avp_vendor = 10415, .avp_name = "MMTel-Information" }, RULE_OPTIONAL, -1, 1 },
-				{ { .avp_vendor = 10415, .avp_name = "Service-Generic-Information" }, RULE_OPTIONAL, -1, 1 },
-				{ { .avp_vendor = 10415, .avp_name = "IM-Information" }, RULE_OPTIONAL, -1, 1 },
-				{ { .avp_vendor = 10415, .avp_name = "DCD-Information" }, RULE_OPTIONAL, -1, 1 },
+				{ 0,     "Subscription-Id",		RULE_OPTIONAL, -1, -1 },
+				{ 10415, "AoC-Information",		RULE_OPTIONAL, -1, 1 },
+				{ 10415, "PS-Information",		RULE_OPTIONAL, -1, 1 },
+				{ 10415, "IMS-Information",		RULE_OPTIONAL, -1, 1 },
+				{ 10415, "MMS-Information",		RULE_OPTIONAL, -1, 1 },
+				{ 10415, "LCS-Information",		RULE_OPTIONAL, -1, 1 },
+				{ 10415, "PoC-Information",		RULE_OPTIONAL, -1, 1 },
+				{ 10415, "MBMS-Information",		RULE_OPTIONAL, -1, 1 },
+				{ 10415, "SMS-Information",		RULE_OPTIONAL, -1, 1 },
+				{ 10415, "MMTel-Information",		RULE_OPTIONAL, -1, 1 },
+				{ 10415, "Service-Generic-Information",	RULE_OPTIONAL, -1, 1 },
+				{ 10415, "IM-Information",		RULE_OPTIONAL, -1, 1 },
+				{ 10415, "DCD-Information",		RULE_OPTIONAL, -1, 1 },
 			};
 			PARSE_loc_rules(rules, rule_avp);
         }
@@ -857,22 +861,22 @@ static int dict_dcca_3gpp_entry(char * conffile)
 		CHECK_dict_search(DICT_AVP, AVP_BY_NAME_AND_VENDOR, &vpa, &rule_avp);
 		struct local_rules_definition rules[] =
 			{
-				{ { .avp_vendor = 10415, .avp_name = "SMS-Node" }, RULE_OPTIONAL, -1, 1 },
-				{ { .avp_vendor = 10415, .avp_name = "Client-Address" }, RULE_OPTIONAL, -1, 1 },
-				{ { .avp_vendor = 10415, .avp_name = "Originator-SCCP-Address" }, RULE_OPTIONAL, -1, 1 },
-				{ { .avp_vendor = 10415, .avp_name = "SMSC-Address" }, RULE_OPTIONAL, -1, 1 },
-				{ { .avp_vendor = 10415, .avp_name = "Data-Coding-Scheme" }, RULE_OPTIONAL, -1, 1 },
-				{ { .avp_vendor = 10415, .avp_name = "SM-Discharge-Time" }, RULE_OPTIONAL, -1, 1 },
-				{ { .avp_vendor = 10415, .avp_name = "SM-Message-Type" }, RULE_OPTIONAL, -1, 1 },
-				{ { .avp_vendor = 10415, .avp_name = "Originator-Interface" }, RULE_OPTIONAL, -1, 1 },
-				{ { .avp_vendor = 10415, .avp_name = "SM-Protocol-ID" }, RULE_OPTIONAL, -1, 1 },
-				{ { .avp_vendor = 10415, .avp_name = "Reply-Path-Requested" }, RULE_OPTIONAL, -1, 1 },
-				{ { .avp_vendor = 10415, .avp_name = "SM-Status" }, RULE_OPTIONAL, -1, 1 },
-				{ { .avp_vendor = 10415, .avp_name = "SM-User-Data-Header" }, RULE_OPTIONAL, -1, 1 },
-				{ { .avp_vendor = 10415, .avp_name = "Number-Of-Messages-Sent" }, RULE_OPTIONAL, -1, 1 },
-				{ { .avp_vendor = 10415, .avp_name = "Recipient-Info" }, RULE_OPTIONAL, -1, -1 },
-				{ { .avp_vendor = 10415, .avp_name = "Originator-Received-Address" }, RULE_OPTIONAL, -1, 1 },
-				{ { .avp_vendor = 10415, .avp_name = "SM-Service-Type" }, RULE_OPTIONAL, -1, 1 },
+				{ 10415, "SMS-Node",			RULE_OPTIONAL, -1, 1 },
+				{ 10415, "Client-Address",		RULE_OPTIONAL, -1, 1 },
+				{ 10415, "Originator-SCCP-Address",	RULE_OPTIONAL, -1, 1 },
+				{ 10415, "SMSC-Address",		RULE_OPTIONAL, -1, 1 },
+				{ 10415, "Data-Coding-Scheme",		RULE_OPTIONAL, -1, 1 },
+				{ 10415, "SM-Discharge-Time",		RULE_OPTIONAL, -1, 1 },
+				{ 10415, "SM-Message-Type",		RULE_OPTIONAL, -1, 1 },
+				{ 10415, "Originator-Interface",	RULE_OPTIONAL, -1, 1 },
+				{ 10415, "SM-Protocol-ID",		RULE_OPTIONAL, -1, 1 },
+				{ 10415, "Reply-Path-Requested",	RULE_OPTIONAL, -1, 1 },
+				{ 10415, "SM-Status",			RULE_OPTIONAL, -1, 1 },
+				{ 10415, "SM-User-Data-Header",		RULE_OPTIONAL, -1, 1 },
+				{ 10415, "Number-Of-Messages-Sent",	RULE_OPTIONAL, -1, 1 },
+				{ 10415, "Recipient-Info",		RULE_OPTIONAL, -1, -1 },
+				{ 10415, "Originator-Received-Address",	RULE_OPTIONAL, -1, 1 },
+				{ 10415, "SM-Service-Type",		RULE_OPTIONAL, -1, 1 },
 			};
 			PARSE_loc_rules(rules, rule_avp);
         }
@@ -885,8 +889,8 @@ static int dict_dcca_3gpp_entry(char * conffile)
 		CHECK_dict_search(DICT_AVP, AVP_BY_NAME_AND_VENDOR, &vpa, &rule_avp);
 		struct local_rules_definition rules[] =
 			{
-				{ { .avp_vendor = 10415, .avp_name = "Time-Quota-Type" }, RULE_REQUIRED, -1, 1 },
-				{ { .avp_vendor = 10415, .avp_name = "Base-Time-Interval" }, RULE_REQUIRED, -1, 1 },
+				{ 10415, "Time-Quota-Type",		RULE_REQUIRED, -1, 1 },
+				{ 10415, "Base-Time-Interval",		RULE_REQUIRED, -1, 1 },
 			};
 			PARSE_loc_rules(rules, rule_avp);
         }
@@ -899,10 +903,10 @@ static int dict_dcca_3gpp_entry(char * conffile)
 		CHECK_dict_search(DICT_AVP, AVP_BY_NAME_AND_VENDOR, &vpa, &rule_avp);
 		struct local_rules_definition rules[] =
 			{
-				{ { .avp_vendor = 10415, .avp_name = "SIP-Request-Timestamp" }, RULE_OPTIONAL, -1, 1 },
-				{ { .avp_vendor = 10415, .avp_name = "SIP-Response-Timestamp" }, RULE_OPTIONAL, -1, 1 },
-				{ { .avp_vendor = 10415, .avp_name = "SIP-Request-Timestamp-Fraction" }, RULE_OPTIONAL, -1, 1 },
-				{ { .avp_vendor = 10415, .avp_name = "SIP-Response-Timestamp-Fraction" }, RULE_OPTIONAL, -1, 1 },
+				{ 10415, "SIP-Request-Timestamp",		RULE_OPTIONAL, -1, 1 },
+				{ 10415, "SIP-Response-Timestamp",		RULE_OPTIONAL, -1, 1 },
+				{ 10415, "SIP-Request-Timestamp-Fraction",	RULE_OPTIONAL, -1, 1 },
+				{ 10415, "SIP-Response-Timestamp-Fraction",	RULE_OPTIONAL, -1, 1 },
 			};
 			PARSE_loc_rules(rules, rule_avp);
         }
@@ -917,8 +921,8 @@ static int dict_dcca_3gpp_entry(char * conffile)
 		CHECK_dict_search(DICT_AVP, AVP_BY_NAME_AND_VENDOR, &vpa, &rule_avp);
 		struct local_rules_definition rules[] =
 			{
-				{ { .avp_vendor = 10415, .avp_name = "Reporting-Reason" }, RULE_OPTIONAL, -1, 1 },
-				{ { .avp_vendor = 10415, .avp_name = "Event-Charging-TimeStamp" }, RULE_OPTIONAL, -1, -1 },
+				{ 10415, "Reporting-Reason",		RULE_OPTIONAL, -1, 1 },
+				{ 10415, "Event-Charging-TimeStamp",	RULE_OPTIONAL, -1, -1 },
 			};
 		PARSE_loc_rules(rules, rule_avp);
         }
@@ -932,8 +936,8 @@ static int dict_dcca_3gpp_entry(char * conffile)
 		CHECK_dict_search(DICT_AVP, AVP_BY_NAME_AND_VENDOR, &vpa, &rule_avp);
 		struct local_rules_definition rules[] =
 			{
-				{ { .avp_vendor = 10415, .avp_name = "Content-ID" }, RULE_OPTIONAL, -1, 1 },
-				{ { .avp_vendor = 10415, .avp_name = "Content-provider-ID" }, RULE_OPTIONAL, -1, 1 },
+				{ 10415, "Content-ID",			RULE_OPTIONAL, -1, 1 },
+				{ 10415, "Content-provider-ID",		RULE_OPTIONAL, -1, 1 },
 			};
 			PARSE_loc_rules(rules, rule_avp);
         }
@@ -945,10 +949,10 @@ static int dict_dcca_3gpp_entry(char * conffile)
 		CHECK_dict_search(DICT_AVP, AVP_BY_NAME_AND_VENDOR, &vpa, &rule_avp);
 		struct local_rules_definition rules[] =
 			{
-				{ { .avp_vendor = 10415, .avp_name = "Total-Number-Of-Messages-Sent" }, RULE_OPTIONAL, -1, 1 },
-				{ { .avp_vendor = 10415, .avp_name = "Total-Number-Of-Messages-Exploded" }, RULE_OPTIONAL, -1, 1 },
-				{ { .avp_vendor = 10415, .avp_name = "Number-Of-Messages-Successfully-Sent" }, RULE_OPTIONAL, -1, 1 },
-				{ { .avp_vendor = 10415, .avp_name = "Number-Of-Messages-Successfully-Exploded" }, RULE_OPTIONAL, -1, 1 },
+				{ 10415, "Total-Number-Of-Messages-Sent",		RULE_OPTIONAL, -1, 1 },
+				{ 10415, "Total-Number-Of-Messages-Exploded",		RULE_OPTIONAL, -1, 1 },
+				{ 10415, "Number-Of-Messages-Successfully-Sent",	RULE_OPTIONAL, -1, 1 },
+				{ 10415, "Number-Of-Messages-Successfully-Exploded",	RULE_OPTIONAL, -1, 1 },
 			};
 			PARSE_loc_rules(rules, rule_avp);
         }
@@ -960,10 +964,10 @@ static int dict_dcca_3gpp_entry(char * conffile)
 		CHECK_dict_search(DICT_AVP, AVP_BY_NAME_AND_VENDOR, &vpa, &rule_avp);
 		struct local_rules_definition rules[] =
 			{
-				{ { .avp_vendor = 10415, .avp_name = "Application-Server-Id" }, RULE_OPTIONAL, -1, 1 },
-				{ { .avp_vendor = 10415, .avp_name = "Application-Service-Type" }, RULE_OPTIONAL, -1, 1 },
-				{ { .avp_vendor = 10415, .avp_name = "Application-Session-Id" }, RULE_OPTIONAL, -1, 1 },
-				{ { .avp_vendor = 10415, .avp_name = "Delivery-Status" }, RULE_OPTIONAL, -1, 1 },
+				{ 10415, "Application-Server-Id",	RULE_OPTIONAL, -1, 1 },
+				{ 10415, "Application-Service-Type",	RULE_OPTIONAL, -1, 1 },
+				{ 10415, "Application-Session-Id",	RULE_OPTIONAL, -1, 1 },
+				{ 10415, "Delivery-Status",		RULE_OPTIONAL, -1, 1 },
 			};
 			PARSE_loc_rules(rules, rule_avp);
         }
