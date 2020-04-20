@@ -435,7 +435,7 @@ int add_avps()
 	/* 3GPP TS 29.061 Table 9b refers to 3GPP TS 29.336                 */
 	/* for External-Identifier (3111).                                  */
 	/*                                                                  */
-	/* Change-1.4.0: External-Identifier (28) OctetString removed.      */
+	/* Change-1.4.0: External-Identifier (28) OctetString replaced by External-Identifier (3111) UTF8String. */
 
 	/* TWAN-Identifier, OctetString, code 29, section 16.4.7            */
 	{
@@ -11950,6 +11950,8 @@ int add_avps()
 
 	/* Note: 3GPP TS 29.061 External-Identifier (28) OctetString replaced by */
 	/* 3GPP TS 29.336 External-Identifier (3111) UTF8String.            */
+	/*                                                                  */
+	/* Change-1.4.0: External-Identifier (28) OctetString replaced by External-Identifier (3111) UTF8String. */
 	/* External-Identifier, UTF8String, code 3111, section 6.4.11       */
 	{
 		struct dict_avp_data data = {

@@ -89,7 +89,7 @@ Attribute Name,AVP Code,Section defined,Value Type,MUST,MAY,SHOULD NOT,MUST NOT
 # 3GPP TS 29.061 Table 9b refers to 3GPP TS 29.336,,,,,,,
 # for External-Identifier (3111).,,,,,,,
 # ,,,,,,,
-# Change-1.4.0: External-Identifier (28) OctetString removed.,,,,,,,
+# Change-1.4.0: External-Identifier (28) OctetString replaced by External-Identifier (3111) UTF8String.,,,,,,,
 #,,,,,,,
 TWAN-Identifier,29,16.4.7,OctetString,V,P,,M
 3GPP-User-Location-Info-Time,30,16.4.7,OctetString,V,P,,M
@@ -1437,6 +1437,8 @@ HSS-Cause,3109,6.4.9,Unsigned32,"M,V",,,
 SIR-Flags,3110,6.4.10,Unsigned32,"M,V",,,
 # Note: 3GPP TS 29.061 External-Identifier (28) OctetString replaced by,,,,,,,
 # 3GPP TS 29.336 External-Identifier (3111) UTF8String.,,,,,,,
+# ,,,,,,,
+# Change-1.4.0: External-Identifier (28) OctetString replaced by External-Identifier (3111) UTF8String.,,,,,,,
 External-Identifier,3111,6.4.11,UTF8String,"M,V",,,
 IP-SM-GW-Realm,3112,6.4.18,DiameterIdentity,"M,V",,,
 #=,,,,,,,
