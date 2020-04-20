@@ -237,16 +237,16 @@ int add_avps()
 	};
 
 	/* Note: 3GPP TS 29.061 V12.6.0 (2014-06) renamed                   */
-	/* 3GPP-CG-IPv6-Address (14) to 3GPP-CG-Ipv6-Address;               */
-	/* this rename was not applied.                                     */
+	/* 3GPP-CG-IPv6-Address (14) to 3GPP-CG-Ipv6-Address.               */
 	/*                                                                  */
-	/* Fix: 3GPP-CG-IPv6-Address (14) changed to Must M per contrib/3gpp. */
-	/* 3GPP-CG-IPv6-Address, OctetString, code 14, section 16.4.7       */
+	/* Fix: 3GPP-CG-Ipv6-Address (14) changed to Must M per contrib/3gpp. */
+	/* Change-1.4.0: 3GPP-CG-IPv6-Address (14) renamed to 3GPP-CG-Ipv6-Address (14). */
+	/* 3GPP-CG-Ipv6-Address, OctetString, code 14, section 16.4.7       */
 	{
 		struct dict_avp_data data = {
 			14,	/* Code */
 			10415,	/* Vendor */
-			"3GPP-CG-IPv6-Address",	/* Name */
+			"3GPP-CG-Ipv6-Address",	/* Name */
 			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
 			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flag values */
 			AVP_TYPE_OCTETSTRING	/* base type of data */
@@ -255,16 +255,16 @@ int add_avps()
 	};
 
 	/* Note: 3GPP TS 29.061 V12.6.0 (2014-06) renamed                   */
-	/* 3GPP-SGSN-IPv6-Address (15) to 3GPP-SGSN-Ipv6-Address;           */
-	/* this rename was not applied.                                     */
+	/* 3GPP-SGSN-IPv6-Address (15) to 3GPP-SGSN-Ipv6-Address.           */
 	/*                                                                  */
-	/* Fix: 3GPP-SGSN-IPv6-Address (15) changed to Must M per contrib/3gpp. */
-	/* 3GPP-SGSN-IPv6-Address, OctetString, code 15, section 16.4.7     */
+	/* Fix: 3GPP-SGSN-Ipv6-Address (15) changed to Must M per contrib/3gpp. */
+	/* Change-1.4.0: 3GPP-SGSN-IPv6-Address (15) renamed to 3GPP-SGSN-Ipv6-Address (15). */
+	/* 3GPP-SGSN-Ipv6-Address, OctetString, code 15, section 16.4.7     */
 	{
 		struct dict_avp_data data = {
 			15,	/* Code */
 			10415,	/* Vendor */
-			"3GPP-SGSN-IPv6-Address",	/* Name */
+			"3GPP-SGSN-Ipv6-Address",	/* Name */
 			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
 			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flag values */
 			AVP_TYPE_OCTETSTRING	/* base type of data */
@@ -273,16 +273,16 @@ int add_avps()
 	};
 
 	/* Note: 3GPP TS 29.061 V12.6.0 (2014-06) renamed                   */
-	/* 3GPP-GGSN-IPv6-Address (16) to 3GPP-GGSN-Ipv6-Address;           */
-	/* this rename was not applied.                                     */
+	/* 3GPP-GGSN-IPv6-Address (16) to 3GPP-GGSN-Ipv6-Address.           */
 	/*                                                                  */
-	/* Fix: 3GPP-GGSN-IPv6-Address (16) changed to Must M per contrib/3gpp. */
-	/* 3GPP-GGSN-IPv6-Address, OctetString, code 16, section 16.4.7     */
+	/* Fix: 3GPP-GGSN-Ipv6-Address (16) changed to Must M per contrib/3gpp. */
+	/* Change-1.4.0: 3GPP-GGSN-IPv6-Address (16) renamed to 3GPP-GGSN-Ipv6-Address (16). */
+	/* 3GPP-GGSN-Ipv6-Address, OctetString, code 16, section 16.4.7     */
 	{
 		struct dict_avp_data data = {
 			16,	/* Code */
 			10415,	/* Vendor */
-			"3GPP-GGSN-IPv6-Address",	/* Name */
+			"3GPP-GGSN-Ipv6-Address",	/* Name */
 			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
 			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flag values */
 			AVP_TYPE_OCTETSTRING	/* base type of data */
@@ -291,16 +291,16 @@ int add_avps()
 	};
 
 	/* Note: 3GPP TS 29.061 V12.6.0 (2014-06) renamed                   */
-	/* 3GPP-IPv6-DNS-Servers (17) to 3GPP-Ipv6-DNS-Servers;             */
-	/* this rename was not applied.                                     */
+	/* 3GPP-IPv6-DNS-Servers (17) to 3GPP-Ipv6-DNS-Servers.             */
 	/*                                                                  */
-	/* Fix: 3GPP-IPv6-DNS-Servers (17) changed to Must M per contrib/3gpp. */
-	/* 3GPP-IPv6-DNS-Servers, OctetString, code 17, section 16.4.7      */
+	/* Fix: 3GPP-Ipv6-DNS-Servers (17) changed to Must M per contrib/3gpp. */
+	/* Change-1.4.0: 3GPP-IPv6-DNS-Servers (17) renamed to 3GPP-Ipv6-DNS-Servers (17). */
+	/* 3GPP-Ipv6-DNS-Servers, OctetString, code 17, section 16.4.7      */
 	{
 		struct dict_avp_data data = {
 			17,	/* Code */
 			10415,	/* Vendor */
-			"3GPP-IPv6-DNS-Servers",	/* Name */
+			"3GPP-Ipv6-DNS-Servers",	/* Name */
 			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
 			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flag values */
 			AVP_TYPE_OCTETSTRING	/* base type of data */
@@ -717,14 +717,15 @@ int add_avps()
 	};
 
 	/* Note: 3GPP TS 29.061 V12.6.0 (2014-06) renamed                   */
-	/* MBMS-GGSN-IPv6-Address (917) to MBMS-GGSN-Ipv6-Address;          */
-	/* this rename was not applied.                                     */
-	/* MBMS-GGSN-IPv6-Address, OctetString, code 917, section 17.7.20   */
+	/* MBMS-GGSN-IPv6-Address (917) to MBMS-GGSN-Ipv6-Address.          */
+	/*                                                                  */
+	/* Change-1.4.0: MBMS-GGSN-IPv6-Address (917) renamed to MBMS-GGSN-Ipv6-Address (917). */
+	/* MBMS-GGSN-Ipv6-Address, OctetString, code 917, section 17.7.20   */
 	{
 		struct dict_avp_data data = {
 			917,	/* Code */
 			10415,	/* Vendor */
-			"MBMS-GGSN-IPv6-Address",	/* Name */
+			"MBMS-GGSN-Ipv6-Address",	/* Name */
 			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
 			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flag values */
 			AVP_TYPE_OCTETSTRING	/* base type of data */
@@ -746,14 +747,15 @@ int add_avps()
 	};
 
 	/* Note: 3GPP TS 29.061 V12.6.0 (2014-06) renamed                   */
-	/* MBMS-BMSC-SSM-IPv6-Address (919) to MBMS-BMSC-SSM-Ipv6-Address;  */
-	/* this rename was not applied.                                     */
-	/* MBMS-BMSC-SSM-IPv6-Address, OctetString, code 919, section 17.7.22 */
+	/* MBMS-BMSC-SSM-IPv6-Address (919) to MBMS-BMSC-SSM-Ipv6-Address.  */
+	/*                                                                  */
+	/* Change-1.4.0: MBMS-BMSC-SSM-IPv6-Address (919) renamed to MBMS-BMSC-SSM-Ipv6-Address (919). */
+	/* MBMS-BMSC-SSM-Ipv6-Address, OctetString, code 919, section 17.7.22 */
 	{
 		struct dict_avp_data data = {
 			919,	/* Code */
 			10415,	/* Vendor */
-			"MBMS-BMSC-SSM-IPv6-Address",	/* Name */
+			"MBMS-BMSC-SSM-Ipv6-Address",	/* Name */
 			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flags */
 			AVP_FLAG_VENDOR |AVP_FLAG_MANDATORY,	/* Fixed flag values */
 			AVP_TYPE_OCTETSTRING	/* base type of data */
@@ -843,10 +845,11 @@ int add_avps()
 	};
 
 	/* Note: 3GPP TS 29.061 V12.6.0 (2014-06) renamed                   */
-	/* MBMS-GW-SSM-IPv6-Address (925) to MBMS-GW-SSM-Ipv6-Address;      */
-	/* this rename was not applied.                                     */
+	/* MBMS-GW-SSM-IPv6-Address (925) to MBMS-GW-SSM-Ipv6-Address.      */
 	/* Note: Name conflict with 3GPP TS 29.061 MBMS-GW-SSM-IPv6-Address (3523). */
 	/* 3GPP TS 29.061 V10.4.0 (2011-09) CR 0355 added MBMS-GW-SSM-IPv6-Address (925). */
+	/* 3GPP TS 29.061 V12.6.0 (2014-06) renamed                         */
+	/* MBMS-GW-SSM-IPv6-Address (925) to MBMS-GW-SSM-Ipv6-Address.      */
 	/* 3GPP TS 29.468 V14.0.0 (2016-12) CR 0021 added MBMS-GW-SSM-IPv6-Address (3523). */
 	/* MBMS-GW-SSM-IPv6-Address, OctetString, code 925, section 20.5a.3 */
 	{
@@ -15127,6 +15130,8 @@ int add_avps()
 
 	/* Note: Name conflict with 3GPP TS 29.061 MBMS-GW-SSM-IPv6-Address (925). */
 	/* 3GPP TS 29.061 V10.4.0 (2011-09) CR 0355 added MBMS-GW-SSM-IPv6-Address (925). */
+	/* 3GPP TS 29.061 V12.6.0 (2014-06) renamed                         */
+	/* MBMS-GW-SSM-IPv6-Address (925) to MBMS-GW-SSM-Ipv6-Address.      */
 	/* 3GPP TS 29.468 V14.0.0 (2016-12) CR 0021 added MBMS-GW-SSM-IPv6-Address (3523). */
 	/*                                                                  */
 	/* Fix: MBMS-GW-SSM-IPv6-Address (3523) renamed to MBMS-GW-SSM-IPv6-Address-29.468 (3523). */
