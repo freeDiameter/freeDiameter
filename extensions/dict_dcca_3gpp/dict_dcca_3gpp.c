@@ -353,7 +353,9 @@ static int dict_dcca_3gpp_entry(char * conffile)
 	/* Rules section                                                    */
 	/*==================================================================*/
 
-	/* 29.212 */
+	/*==================================================================*/
+	/* 3GPP TS 29.212 V15.9.0 (2019-12)                                 */
+	/*==================================================================*/
 	
 	{
 		struct dict_object *rule_avp;
@@ -381,17 +383,26 @@ static int dict_dcca_3gpp_entry(char * conffile)
 				{ 10415, "QoS-Class-Identifier",		RULE_OPTIONAL, -1, 1 },
 				{ 10415, "Max-Requested-Bandwidth-UL",		RULE_OPTIONAL, -1, 1 },
 				{ 10415, "Max-Requested-Bandwidth-DL",		RULE_OPTIONAL, -1, 1 },
+				{ 10415, "Extended-Max-Requested-BW-UL",	RULE_OPTIONAL, -1, 1 },
+				{ 10415, "Extended-Max-Requested-BW-DL",	RULE_OPTIONAL, -1, 1 },
 				{ 10415, "Guaranteed-Bitrate-UL",		RULE_OPTIONAL, -1, 1 },
 				{ 10415, "Guaranteed-Bitrate-DL",		RULE_OPTIONAL, -1, 1 },
+				{ 10415, "Extended-GBR-UL",			RULE_OPTIONAL, -1, 1 },
+				{ 10415, "Extended-GBR-DL",			RULE_OPTIONAL, -1, 1 },
 				{ 10415, "Bearer-Identifier",			RULE_OPTIONAL, -1, 1 },
 				{ 10415, "Allocation-Retention-Priority",	RULE_OPTIONAL, -1, 1 },
 				{ 10415, "APN-Aggregate-Max-Bitrate-UL",	RULE_OPTIONAL, -1, 1 },
 				{ 10415, "APN-Aggregate-Max-Bitrate-DL",	RULE_OPTIONAL, -1, 1 },
+				{ 10415, "Extended-APN-AMBR-UL",		RULE_OPTIONAL, -1, 1 },
+				{ 10415, "Extended-APN-AMBR-DL",		RULE_OPTIONAL, -1, 1 },
+				{ 10415, "Conditional-APN-Aggregate-Max-Bitrate",	RULE_OPTIONAL, -1, -1 },
 			};
 			PARSE_loc_rules(rules, rule_avp);
         }
 
-	/* 32.299 */
+	/*==================================================================*/
+	/* 3GPP TS 32.299 V15.7.0 (2019-06)                                 */
+	/*==================================================================*/
 
 	{
 		/* additional allowed AVPs */
@@ -440,8 +451,9 @@ static int dict_dcca_3gpp_entry(char * conffile)
 		CHECK_dict_search(DICT_AVP, AVP_BY_NAME_AND_VENDOR, &vpa, &rule_avp);
 		struct local_rules_definition rules[] =
 			{
-				{ 10415, "Application-Server",				RULE_REQUIRED, -1, 1 },
+				{ 10415, "Application-Server",				RULE_OPTIONAL, -1, 1 },
 				{ 10415, "Application-Provided-Called-Party-Address",	RULE_OPTIONAL, -1, -1 },
+				{ 10415, "Status-AS-Code",				RULE_OPTIONAL, -1, 1 },
 			};
 			PARSE_loc_rules(rules, rule_avp);
         }
@@ -532,7 +544,9 @@ static int dict_dcca_3gpp_entry(char * conffile)
 				{ 10415, "Service-Specific-Info",		RULE_OPTIONAL, -1, -1 },
 				{ 10415, "Message-Body",			RULE_OPTIONAL, -1, -1 },
 				{ 10415, "Cause-Code",				RULE_OPTIONAL, -1, 1 },
-				{ 10415, "Access-Network-Information",		RULE_OPTIONAL, -1, 1 },
+				{ 10415, "Reason-Header",			RULE_OPTIONAL, -1, -1 },
+				{ 10415, "Access-Network-Information",		RULE_OPTIONAL, -1, -1 },
+				{ 10415, "Cellular-Network-Information",	RULE_OPTIONAL, -1, 1 },
 				{ 10415, "Early-Media-Description",		RULE_OPTIONAL, -1, -1 },
 				{ 10415, "IMS-Communication-Service-Identifier",RULE_OPTIONAL, -1, 1 },
 				{ 10415, "IMS-Application-Reference-Identifier",RULE_OPTIONAL, -1, 1 },
@@ -543,7 +557,16 @@ static int dict_dcca_3gpp_entry(char * conffile)
 				{ 10415, "NNI-Information",			RULE_OPTIONAL, -1, -1 },
 				{ 10415, "From-Address",			RULE_OPTIONAL, -1, 1 },
 				{ 10415, "IMS-Emergency-Indicator",		RULE_OPTIONAL, -1, 1 },
+				{ 10415, "IMS-Visited-Network-Identifier",	RULE_OPTIONAL, -1, 1 },
+				{ 10415, "Access-Network-Info-Change",		RULE_OPTIONAL, -1, -1 },
 				{ 10415, "Access-Transfer-Information",		RULE_OPTIONAL, -1, -1 },
+				{ 10415, "Related-IMS-Charging-Identifier",	RULE_OPTIONAL, -1, 1 },
+				{ 10415, "Related-IMS-Charging-Identifier-Node",RULE_OPTIONAL, -1, 1 },
+				{ 10415, "Route-Header-Received",		RULE_OPTIONAL, -1, 1 },
+				{ 10415, "Route-Header-Transmitted",		RULE_OPTIONAL, -1, 1 },
+				{ 10415, "Instance-Id",				RULE_OPTIONAL, -1, 1 },
+				{ 10415, "TAD-Identifier",			RULE_OPTIONAL, -1, 1 },
+				{ 10415, "FE-Identifier-List",			RULE_OPTIONAL, -1, 1 },
 			};
 			PARSE_loc_rules(rules, rule_avp);
         }
@@ -574,7 +597,7 @@ static int dict_dcca_3gpp_entry(char * conffile)
 				{ 10415, "Recipient-Address",		RULE_OPTIONAL, -1, -1 },
 				{ 10415, "Submission-Time",		RULE_OPTIONAL, -1, 1 },
 				{ 10415, "MM-Content-Type",		RULE_OPTIONAL, -1, 1 },
-				{ 10415, "Priority",			RULE_OPTIONAL, -1, -1 },
+				{ 10415, "Priority",			RULE_OPTIONAL, -1, 1 },
 				{ 10415, "Message-ID",			RULE_OPTIONAL, -1, 1 },
 				{ 10415, "Message-Type",		RULE_OPTIONAL, -1, 1 },
 				{ 10415, "Message-Size",		RULE_OPTIONAL, -1, 1 },
@@ -708,6 +731,7 @@ static int dict_dcca_3gpp_entry(char * conffile)
 		CHECK_dict_search(DICT_AVP, AVP_BY_NAME_AND_VENDOR, &vpa, &rule_avp);
 		struct local_rules_definition rules[] =
 			{
+				{ 10415, "Supported-Features",			RULE_OPTIONAL, -1, -1 },
 				{ 10415, "3GPP-Charging-Id",			RULE_OPTIONAL, -1, 1 },
 				{ 10415, "PDN-Connection-Charging-ID",		RULE_OPTIONAL, -1, 1 },
 				{ 10415, "Node-Id",				RULE_OPTIONAL, -1, 1 },
@@ -719,7 +743,9 @@ static int dict_dcca_3gpp_entry(char * conffile)
 				{ 10415, "QoS-Information",			RULE_OPTIONAL, -1, 1 },
 				{ 10415, "SGSN-Address",			RULE_OPTIONAL, -1, -1 },
 				{ 10415, "GGSN-Address",			RULE_OPTIONAL, -1, -1 },
+				{ 10415, "TDF-IP-Address",			RULE_OPTIONAL, -1, -1 },
 				{ 10415, "SGW-Address",				RULE_OPTIONAL, -1, -1 },
+				{ 10415, "EPDG-Address",			RULE_OPTIONAL, -1, -1 },
 				{ 10415, "CG-Address",				RULE_OPTIONAL, -1, 1 },
 				{ 10415, "Serving-Node-Type",			RULE_OPTIONAL, -1, 1 },
 				{ 10415, "SGW-Change",				RULE_OPTIONAL, -1, 1 },
@@ -735,9 +761,14 @@ static int dict_dcca_3gpp_entry(char * conffile)
 				{ 10415, "3GPP-SGSN-MCC-MNC",			RULE_OPTIONAL, -1, 1 },
 				{ 10415, "3GPP-MS-TimeZone",			RULE_OPTIONAL, -1, 1 },
 				{ 10415, "Charging-Rule-Base-Name",		RULE_OPTIONAL, -1, 1 },
+				{ 10415, "ADC-Rule-Base-Name",			RULE_OPTIONAL, -1, 1 },
 				{ 10415, "3GPP-User-Location-Info",		RULE_OPTIONAL, -1, 1 },
+				{ 10415, "User-Location-Info-Time",		RULE_OPTIONAL, -1, 1 },
 				{ 10415, "User-CSG-Information",		RULE_OPTIONAL, -1, 1 },
+				{ 10415, "Presence-Reporting-Area-Information",	RULE_OPTIONAL, -1, -1 },
 				{ 5535,  "3GPP2-BSID",				RULE_OPTIONAL, -1, 1 },
+				{ 10415, "TWAN-User-Location-Info",		RULE_OPTIONAL, -1, 1 },
+				{ 10415, "UWAN-User-Location-Info",		RULE_OPTIONAL, -1, 1 },
 				{ 10415, "3GPP-RAT-Type",			RULE_OPTIONAL, -1, 1 },
 				{ 10415, "PS-Furnish-Charging-Information",	RULE_OPTIONAL, -1, 1 },
 				{ 10415, "PDP-Context-Type",			RULE_OPTIONAL, -1, 1 },
@@ -751,9 +782,29 @@ static int dict_dcca_3gpp_entry(char * conffile)
 				{ 10415, "Change-Condition",			RULE_OPTIONAL, -1, 1 },
 				{ 10415, "Diagnostics",				RULE_OPTIONAL, -1, 1 },
 				{ 10415, "Low-Priority-Indicator",		RULE_OPTIONAL, -1, 1 },
+				{ 10415, "NBIFOM-Mode",				RULE_OPTIONAL, -1, 1 },
+				{ 10415, "NBIFOM-Support",			RULE_OPTIONAL, -1, 1 },
 				{ 10415, "MME-Number-for-MT-SMS",		RULE_OPTIONAL, -1, 1 },
 				{ 10415, "MME-Name",				RULE_OPTIONAL, -1, 1 },
 				{ 10415, "MME-Realm",				RULE_OPTIONAL, -1, 1 },
+#if 0 /* TODO: ETSI ES 283 034 */
+				{ 13019, "Logical-Access-ID",			RULE_OPTIONAL, -1, 1 },
+				{ 13019, "Physical-Access-ID",			RULE_OPTIONAL, -1, 1 },
+#endif
+				{ 10415, "Fixed-User-Location-Info",		RULE_OPTIONAL, -1, 1 },
+				{ 10415, "CN-Operator-Selection-Entity",	RULE_OPTIONAL, -1, 1 },
+				{ 10415, "Enhanced-Diagnostics",		RULE_OPTIONAL, -1, 1 },
+				{ 10415, "SGi-PtP-Tunnelling-Method",		RULE_OPTIONAL, -1, 1 },
+				{ 10415, "CP-CIoT-EPS-Optimisation-Indicator",	RULE_OPTIONAL, -1, 1 },
+				{ 10415, "UNI-PDU-CP-Only-Flag",		RULE_OPTIONAL, -1, 1 },
+				{ 10415, "Serving-PLMN-Rate-Control",		RULE_OPTIONAL, -1, 1 },
+				{ 10415, "APN-Rate-Control",			RULE_OPTIONAL, -1, 1 },
+				{ 10415, "Charging-Per-IP-CAN-Session-Indicator",	RULE_OPTIONAL, -1, 1 },
+				{ 10415, "RRC-Cause-Counter",			RULE_OPTIONAL, -1, 1 },
+				{ 10415, "3GPP-PS-Data-Off-Status",		RULE_OPTIONAL, -1, 1 },
+				{ 10415, "SCS-AS-Address",			RULE_OPTIONAL, -1, 1 },
+				{ 10415, "Unused-Quota-Timer",			RULE_OPTIONAL, -1, 1 },
+				{ 10415, "RAN-Secondary-RAT-Usage-Report",	RULE_OPTIONAL, -1, -1 },
 			};
 			PARSE_loc_rules(rules, rule_avp);
         }
@@ -845,10 +896,16 @@ static int dict_dcca_3gpp_entry(char * conffile)
 				{ 10415, "PoC-Information",		RULE_OPTIONAL, -1, 1 },
 				{ 10415, "MBMS-Information",		RULE_OPTIONAL, -1, 1 },
 				{ 10415, "SMS-Information",		RULE_OPTIONAL, -1, 1 },
+				{ 10415, "VCS-Information",		RULE_OPTIONAL, -1, 1 },
 				{ 10415, "MMTel-Information",		RULE_OPTIONAL, -1, 1 },
+				{ 10415, "ProSe-Information",		RULE_OPTIONAL, -1, 1 },
 				{ 10415, "Service-Generic-Information",	RULE_OPTIONAL, -1, 1 },
 				{ 10415, "IM-Information",		RULE_OPTIONAL, -1, 1 },
 				{ 10415, "DCD-Information",		RULE_OPTIONAL, -1, 1 },
+#if 0 /* TODO: oneM2M TS-0004 */
+				{ 45687, "M2M-Information",		RULE_OPTIONAL, -1, 1 },
+#endif
+				{ 10415, "CPDT-Information",		RULE_OPTIONAL, -1, 1 },
 			};
 			PARSE_loc_rules(rules, rule_avp);
         }
@@ -877,6 +934,11 @@ static int dict_dcca_3gpp_entry(char * conffile)
 				{ 10415, "Recipient-Info",		RULE_OPTIONAL, -1, -1 },
 				{ 10415, "Originator-Received-Address",	RULE_OPTIONAL, -1, 1 },
 				{ 10415, "SM-Service-Type",		RULE_OPTIONAL, -1, 1 },
+				{ 10415, "SMS-Result",			RULE_OPTIONAL, -1, 1 },
+				{ 10415, "SM-Device-Trigger-Indicator",	RULE_OPTIONAL, -1, 1 },
+				{ 10415, "MTC-IWF-Address",		RULE_OPTIONAL, -1, 1 },
+				{ 10415, "Application-Port-Identifier",	RULE_OPTIONAL, -1, 1 },
+				{ 10415, "External-Identifier",		RULE_OPTIONAL, -1, 1 },
 			};
 			PARSE_loc_rules(rules, rule_avp);
         }
@@ -927,7 +989,10 @@ static int dict_dcca_3gpp_entry(char * conffile)
 		PARSE_loc_rules(rules, rule_avp);
         }
 
-	/* OMA */
+	/*==================================================================*/
+	/* OMA DDS Charging_Data V1.0 20110201-A                            */
+	/*==================================================================*/
+
 	{
 		struct dict_object *rule_avp;
 		struct dict_avp_request vpa;
