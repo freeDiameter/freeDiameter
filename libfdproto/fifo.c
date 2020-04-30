@@ -170,7 +170,7 @@ error:
 int fd_fifo_del ( struct fifo  ** queue )
 {
 	struct fifo * q;
-#ifdef DEBUG
+#ifndef NDEBUG
 	int loops = 0;
 #endif
 
@@ -227,7 +227,7 @@ int fd_fifo_del ( struct fifo  ** queue )
 /* Move the content of old into new, and update loc_update atomically. We leave the old queue empty but valid */
 int fd_fifo_move ( struct fifo * old, struct fifo * new, struct fifo ** loc_update )
 {
-#ifdef DEBUG
+#ifndef NDEBUG
 	int loops = 0;
 #endif
 
@@ -420,7 +420,7 @@ int fd_fifo_post_internal ( struct fifo * queue, void ** item, int skip_max )
 			pthread_cleanup_pop(0);
 			queue->thrs_push-- ;
 
-#ifndef DEBUG
+#ifdef NDEBUG
 			(void)ret;
 #endif
 			ASSERT( ret == 0 );
