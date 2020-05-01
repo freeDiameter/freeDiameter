@@ -58,6 +58,34 @@
 #define ADJUST_RTX_PARAMS
 #endif /* USE_DEFAULT_SCTP_RTX_PARAMS */
 
+
+DECLARE_FD_DUMP_PROTOTYPE(fd_sa_dump_array, sSA * saddrs, int saddrs_count)
+{
+	union {
+		sSA	*sa;
+		uint8_t *buf;
+	} ptr;
+	int i;
+	int salen;
+
+	FD_DUMP_HANDLE_OFFSET();
+
+	ptr.sa = saddrs;
+	for (i = 0; i < saddrs_count; i++) {
+		salen = sSAlen(ptr.sa);
+		if (salen == 0) {
+			LOG_E("fd_sa_dump_array: Unknown sockaddr family");
+			break;
+		}
+		if (i > 0) {
+			CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, " "), return NULL);
+		}
+		CHECK_MALLOC_DO( fd_sa_dump( FD_DUMP_STD_PARAMS, ptr.sa, NI_NUMERICHOST | NI_NUMERICSERV), return NULL);
+		ptr.buf += salen;
+	}
+	return *buf;
+}
+
 /* Pre-binding socket options -- # streams read in config */
 static int fd_setsockopt_prebind(int sk)
 {
@@ -814,21 +842,16 @@ redo:
 			bind_default = 1;
 			goto redo;
 		}
-		
-		#if 0
-			union {
-				sSA	*sa;
-				uint8_t *buf;
-			} ptr;
-			int i;
-			ptr.sa = sar;
-			fd_log_debug("Calling sctp_bindx with the following address array:");
-			for (i = 0; i < count; i++) {
-				TRACE_sSA(FD_LOG_DEBUG, FULL, "    - ", ptr.sa, NI_NUMERICHOST | NI_NUMERICSERV, "" );
-				ptr.buf += (ptr.sa->sa_family == AF_INET) ? sizeof(sSA4) : sizeof(sSA6) ;
-			}
-		#endif
-		
+
+		/* Debug: show bound addresses */
+		{
+			char * buf = NULL;
+			size_t len = 0;
+			CHECK_MALLOC_DO( fd_sa_dump_array( &buf, &len, 0, sar, count), );
+			LOG_D("SCTP server binding local addresses: %s", buf);
+			free(buf);
+		}
+
 		/* Bind to this array */
 		CHECK_SYS(  sctp_bindx(*sock, sar, count, SCTP_BINDX_ADD_ADDR)  );
 		
@@ -840,22 +863,19 @@ redo:
 	CHECK_FCT( fd_setsockopt_postbind(*sock, bind_default) );
 	
 	/* Debug: show all local listening addresses */
-	#if 0
-		sSA *sar;
-		union {
-			sSA	*sa;
-			uint8_t *buf;
-		} ptr;
-		int sz;
-		
+	{
+		sSA *sar = NULL;
+		int sz = 0;
+		char * buf = NULL;
+		size_t len = 0;
+
 		CHECK_SYS(  sz = sctp_getladdrs(*sock, 0, &sar)  );
-		
-		fd_log_debug("SCTP server bound on :");
-		for (ptr.sa = sar; sz-- > 0; ptr.buf += (ptr.sa->sa_family == AF_INET) ? sizeof(sSA4) : sizeof(sSA6)) {
-			TRACE_sSA(FD_LOG_DEBUG, FULL, "    - ", ptr.sa, NI_NUMERICHOST | NI_NUMERICSERV, "" );
-		}
+
+		CHECK_MALLOC_DO( fd_sa_dump_array( &buf, &len, 0, sar, sz), );
+		LOG_D("SCTP server locally bound addresses: %s", buf);
 		sctp_freeladdrs(sar);
-	#endif
+		free(buf);
+	}
 
 	return 0;
 }
@@ -912,7 +932,11 @@ int fd_sctp_client( int *sock, int no_ip6, uint16_t port, struct fd_list * list,
 		CHECK_FCT_DO( ret = add_addresses_from_list_mask((void *)&bindsar, &sz, &sarcount, family, 0, src_list, EP_FL_CONF, EP_FL_CONF), goto out );
 
 		if (sarcount) {
-			LOG_A("Bind to local SCTP endpoints (%d addresses attempted) ", sarcount);
+			char * buf = NULL;
+			size_t len = 0;
+			CHECK_MALLOC_DO( fd_sa_dump_array( &buf, &len, 0, bindsar, sarcount), goto out );
+			LOG_A("SCTP client binding local addresses: %s", buf);
+			free(buf);
 
 			CHECK_SYS_DO( ret = sctp_bindx(*sock, bindsar, sarcount, SCTP_BINDX_ADD_ADDR), goto out );
 		}
@@ -930,24 +954,14 @@ int fd_sctp_client( int *sock, int no_ip6, uint16_t port, struct fd_list * list,
 	CHECK_FCT_DO( ret = add_addresses_from_list_mask(&sar.buf, &size, &count, family, htons(port), list, EP_FL_CONF | EP_FL_DISC, 0		), goto out );
 	
 	/* Try connecting */
-	LOG_A("Attempting SCTP connection (%d addresses attempted) ", count);
-		
-#if 0
-		/* Dump the SAs */
-		union {
-			uint8_t *buf;
-			sSA	*sa;
-			sSA4	*sin;
-			sSA6	*sin6;
-		} ptr;
-		int i;
-		ptr.buf = sar.buf;
-		for (i=0; i< count; i++) {
-			TRACE_sSA(FD_LOG_DEBUG, FULL, "  - ", ptr.sa, NI_NUMERICHOST | NI_NUMERICSERV, "" );
-			ptr.buf += (ptr.sa->sa_family == AF_INET) ? sizeof(sSA4) : sizeof(sSA6);
-		}
-#endif
-	
+	{
+		char * buf = NULL;
+		size_t len = 0;
+		CHECK_MALLOC_DO( fd_sa_dump_array( &buf, &len, 0, sar.sa, count), goto out );
+		LOG_A("SCTP client connecting to addresses: %s", buf);
+		free(buf);
+	}
+
 	/* Bug in some Linux kernel, the sctp_connectx is not a cancellation point. To avoid blocking freeDiameter, we allow async cancel here */
 	pthread_setcanceltype(PTHREAD_CANCEL_ASYNCHRONOUS, NULL);
 #ifdef SCTP_CONNECTX_4_ARGS
@@ -1006,7 +1020,7 @@ int fd_sctp_get_str_info( int sock, uint16_t *in, uint16_t *out, sSS *primary )
 	}
 #if 0
 		char sa_buf[sSA_DUMP_STRLEN];
-		fd_sa_sdump_numeric(sa_buf, &status.sstat_primary.spinfo_address);
+		fd_sa_sdump_numeric(sa_buf, (sSA *)&status.sstat_primary.spinfo_address);
 		fd_log_debug( "SCTP_STATUS : sstat_state                  : %i" , status.sstat_state);
 		fd_log_debug( "              sstat_rwnd  	          : %u" , status.sstat_rwnd);
 		fd_log_debug( "		     sstat_unackdata	          : %hu", status.sstat_unackdata);
@@ -1242,6 +1256,7 @@ again:
 	/* Handle the case where the data received is a notification */
 	if (mhdr.msg_flags & MSG_NOTIFICATION) {
 		union sctp_notification * notif = (union sctp_notification *) data;
+		char sa_buf[sSA_DUMP_STRLEN];
 		
 		TRACE_DEBUG(FULL, "Received %zdb data of notification on socket %d", datasize, conn->cc_socket);
 	
@@ -1259,7 +1274,8 @@ again:
 	
 			case SCTP_PEER_ADDR_CHANGE:
 				TRACE_DEBUG(FULL, "Received SCTP_PEER_ADDR_CHANGE notification");
-				/* TRACE_sSA(FD_LOG_DEBUG, ANNOYING, "    intf_change : ", &(notif->sn_paddr_change.spc_aaddr), NI_NUMERICHOST | NI_NUMERICSERV, "" ); */
+				fd_sa_sdump_numeric(sa_buf, (sSA *)&(notif->sn_paddr_change.spc_aaddr));
+				TRACE_DEBUG(ANNOYING, "    intf_change : %s", sa_buf);
 				TRACE_DEBUG(ANNOYING, "          state : %d", notif->sn_paddr_change.spc_state);
 				TRACE_DEBUG(ANNOYING, "          error : %d", notif->sn_paddr_change.spc_error);
 				
