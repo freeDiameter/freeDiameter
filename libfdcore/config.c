@@ -147,6 +147,7 @@ DECLARE_FD_DUMP_PROTOTYPE(fd_conf_dump)
 	#endif /* DISABLE_SCTP */
 	CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "          - Pref. proto .. : %s\n", fd_g_config->cnf_flags.pr_tcp ? "TCP" : "SCTP"), return NULL);
 	CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "          - TLS method ... : %s\n", fd_g_config->cnf_flags.tls_alg ? "INBAND" : "Separate port"), return NULL);
+	CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "          - Client bind .. : %s\n", fd_g_config->cnf_flags.no_bind ? "DISABLED" : "Enabled"), return NULL);
 	
 	CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "  TLS :   - Certificate .. : %s\n", fd_g_config->cnf_sec_data.cert_file ?: "(NONE)"), return NULL);
 	CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "          - Private key .. : %s\n", fd_g_config->cnf_sec_data.key_file ?: "(NONE)"), return NULL);
@@ -351,7 +352,8 @@ int fd_conf_parse()
 	}
 	
 	/* Validate local endpoints */
-	if ((!FD_IS_LIST_EMPTY(&fd_g_config->cnf_endpoints)) && (fd_g_config->cnf_flags.no_ip4 || fd_g_config->cnf_flags.no_ip6)) {
+	fd_g_config->cnf_flags.no_bind = FD_IS_LIST_EMPTY(&fd_g_config->cnf_endpoints);
+	if ((!fd_g_config->cnf_flags.no_bind) && (fd_g_config->cnf_flags.no_ip4 || fd_g_config->cnf_flags.no_ip6)) {
 		struct fd_list * li;
 		for ( li = fd_g_config->cnf_endpoints.next; li != &fd_g_config->cnf_endpoints; li = li->next) {
 			struct fd_endpoint * ep = (struct fd_endpoint *)li;

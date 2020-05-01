@@ -869,7 +869,7 @@ int fd_sctp_listen( int sock )
 }
 
 /* Create a client socket and connect to remote server */
-int fd_sctp_client( int *sock, int no_ip6, uint16_t port, struct fd_list * list )
+int fd_sctp_client( int *sock, int no_ip6, uint16_t port, struct fd_list * list, struct fd_list * src_list )
 {
 	int family;
 	union {
@@ -879,11 +879,13 @@ int fd_sctp_client( int *sock, int no_ip6, uint16_t port, struct fd_list * list 
 	size_t size = 0;
 	int count = 0;
 	int ret;
+	int bind_default = 1;	/* enable ASCONF in postbind */
 	
 	sar.buf = NULL;
 	
-	TRACE_ENTRY("%p %i %hu %p", sock, no_ip6, port, list);
+	TRACE_ENTRY("%p %i %hu %p %p", sock, no_ip6, port, list, src_list);
 	CHECK_PARAMS( sock && list && (!FD_IS_LIST_EMPTY(list)) );
+	CHECK_PARAMS( !src_list || (src_list && (!FD_IS_LIST_EMPTY(src_list))) );
 	
 	if (no_ip6) {
 		family = AF_INET;
@@ -899,7 +901,29 @@ int fd_sctp_client( int *sock, int no_ip6, uint16_t port, struct fd_list * list 
 	
 	/* Set the socket options */
 	CHECK_FCT_DO( ret = fd_setsockopt_prebind(*sock), goto out );
-	
+
+	/* Bind to explicit source addresses if requested */
+	if (src_list && !FD_IS_LIST_EMPTY(src_list)) {
+		sSA * bindsar = NULL; /* array of addresses */
+		size_t sz = 0; /* size of the array */
+		int sarcount = 0; /* number of sock addr in the array */
+
+		/* Create the array of configured addresses */
+		CHECK_FCT_DO( ret = add_addresses_from_list_mask((void *)&bindsar, &sz, &sarcount, family, 0, src_list, EP_FL_CONF, EP_FL_CONF), goto out );
+
+		if (sarcount) {
+			LOG_A("Bind to local SCTP endpoints (%d addresses attempted) ", sarcount);
+
+			CHECK_SYS_DO( ret = sctp_bindx(*sock, bindsar, sarcount, SCTP_BINDX_ADD_ADDR), goto out );
+		}
+
+		/* Disable ASCONF option in postbind */
+		bind_default = 0;
+
+		/* We don't need bindsar anymore */
+		free(bindsar);
+	}
+
 	/* Create the array of addresses, add first the configured addresses, then the discovered, then the other ones */
 	CHECK_FCT_DO( ret = add_addresses_from_list_mask(&sar.buf, &size, &count, family, htons(port), list, EP_FL_CONF,              EP_FL_CONF	), goto out );
 	CHECK_FCT_DO( ret = add_addresses_from_list_mask(&sar.buf, &size, &count, family, htons(port), list, EP_FL_CONF | EP_FL_DISC, EP_FL_DISC	), goto out );
@@ -944,7 +968,7 @@ int fd_sctp_client( int *sock, int no_ip6, uint16_t port, struct fd_list * list 
 	free(sar.buf); sar.buf = NULL;
 	
 	/* Set the remaining sockopts */
-	CHECK_FCT_DO( ret = fd_setsockopt_postbind(*sock, 1), 
+	CHECK_FCT_DO( ret = fd_setsockopt_postbind(*sock, bind_default),
 		{ 
 			CHECK_SYS_DO( shutdown(*sock, SHUT_RDWR), /* continue */ );
 		} );
