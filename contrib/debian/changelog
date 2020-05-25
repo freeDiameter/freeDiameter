@@ -1,3 +1,126 @@
+freediameter (UNRELEASED) UNRELEASED; urgency=low
+
+  * freeDiameter:
+    - Add -g to help
+    - Change -d and -q to control syslog level, as per stdout logging.
+    - Syslog to LOG_DAEMON.
+    - Actually syslog to LOG_DEBUG, now that -d/-q are used.
+    - Add -p pidfile
+    - SCTP client: bind to local endpoints configured with ListenOn so
+      that the SCTP INIT only contains those local endpoint addresses,
+      matching what is advertised in the CER.
+  * Base dictionary: Add rules for Experimental-Result.
+  * All extensions: Hide symbols except for fd_ext_init() and fd_ext_fini().
+  * dbg_dict_dump.fdx: add extension to write the dictionary
+    to the given file or to the log.
+  * dbg_dict_dump_json.fdx: add extension to write the dictionary as JSON
+    to the given file or stdout.
+  * dict_dcca_3gpp.fdx: Update to 3GPP Release 15, adding many standards.
+    This adds 96 TYPEs, 145 ENUMVALs, 791 AVPs, 52 RULEs.
+    There are various breaking changes (documented below).
+  * contrib/dictionary_dcca_3gpp.json: Remove non-3GPP AVPs that are
+    actually from base IETF RFCs:
+      - MIP6-Feature-Vector (124). IETF RFC 5447
+      - Service-Selection (493). IETF RFC 5778
+      - Mobile-Node-Identifier (506). IETF RFC 5779
+      - QoS-Capability (578). IETF RFC 5777.
+  * New API: fd_msg_add_result(): set Result-Code or Experimental-Result.
+  * New API: log level FD_LOG_INFO.
+  * fd_conf_dump(): fix formatting of local endpoints.
+  * fd_msg_search_avp(): support searching avp as well as msg.
+  * Fix compiler warnings.
+  * Add ERRORS_ON_WARNINGS cmake boolean to enable fatal compiler warnings.
+  * New tool: grep_fd_dict_dump: cleanup fd_dict_dump() output in logs.
+  * New tool: csv_to_fd: convert .csv with AVP tables to freeDiameter C or JSON.
+  * New tool: org_to_csv: convert .org files into .csv files.
+
+  * dict_dcca_3gpp.fdx changes per update to 3GPP Release 15 as at 2019-12:
+    - AVP changes:
+      - 3GPP-CG-IPv6-Address (14) renamed to 3GPP-CG-Ipv6-Address (14).
+      - 3GPP-GGSN-IPv6-Address (16) renamed to 3GPP-GGSN-Ipv6-Address (16).
+      - 3GPP-IPv6-DNS-Servers (17) renamed to 3GPP-Ipv6-DNS-Servers (17).
+      - 3GPP-SGSN-IPv6-Address (15) renamed to 3GPP-SGSN-Ipv6-Address (15).
+      - 3GPP2-BSID (9010) flag M MUST.
+      - 3GPP2-BSID (9010) type changed from OctetString to UTF8String.
+      - ADC-Revalidation-Time (2801) Time removed in 3GPP TS 29.212 V12.1.0 (2013-06).
+      - ADC-Rule-Base-Name (1095) flag M MUST.
+      - ADC-Rule-Definition (1094) flag M MUST.
+      - ADC-Rule-Install (1092) flag M MUST.
+      - ADC-Rule-Name (1096) flag M MUST.
+      - ADC-Rule-Remove (1093) flag M MUST.
+      - ADC-Rule-Report (1097) flag M MUST.
+      - Application-Service-Type (2102) type changed from UTF8String to Enumerated.
+      - Application–Session–Id (2103) type changed from UTF8String to Unsigned32.
+      - Call-Barring-Infor-List (1488) renamed to Call-Barring-Info (1488).
+      - External-Identifier (28) OctetString replaced by External-Identifier (3111) UTF8String.
+      - LCS-Requestor-Id (1239) renamed to LCS-Requestor-ID (1239).
+      - LCS-Requestor-Id-String (1240) renamed to LCS-Requestor-ID-String (1240).
+      - MBMS-BMSC-SSM-IPv6-Address (919) renamed to MBMS-BMSC-SSM-Ipv6-Address (919).
+      - MBMS-GGSN-IPv6-Address (917) renamed to MBMS-GGSN-Ipv6-Address (917).
+      - MBMSGW-Address (2307) renamed to MBMS-GW-Address (2307).
+      - Measurement-Period-LTE (1656) code changed to Measurement-Period-LTE (1655).
+      - Measurement-Period-UMTS (1655) code changed to Measurement-Period-UMTS (1656).
+      - MME-LocationInformation (1600) renamed to MME-Location-Information(1600).
+      - PDG-Address (895) Address removed in 3GPP TS 32.299 V12.6.0 (2014-09).
+      - PDG-Charging-Id (896) Unsigned32 removed in 3GPP TS 32.299 V12.6.0 (2014-09).
+      - PDN-Connection-ID (1065) flag M MUST NOT.
+      - PoC-User-Role-info-Units (1254) renamed to PoC-User-Role-Info-Units (1254).
+      - PS-to-CS-Session-Continuity (1099) flag M MUST NOT.
+      - SS-Status (1477) type changed from Grouped to OctetString.
+      - Status (2702) renamed to Status-AS-Code (2702).
+      - WAG-Address (890) Address removed in 3GPP TS 32.299 V12.6.0 (2014-09).
+      - WAG-PLMN-Id (891) OctetString removed in 3GPP TS 32.299 V12.6.0 (2014-09).
+      - WLAN-Information (875) Grouped removed in 3GPP TS 32.299 V12.6.0 (2014-09).
+      - WLAN-Radio-Container (892) Grouped removed in 3GPP TS 32.299 V12.6.0 (2014-09).
+      - WLAN-Session-Id (1246) UTF8String removed in 3GPP TS 32.299 V12.6.0 (2014-09).
+      - WLAN-Technology (893) Unsigned32 removed in 3GPP TS 32.299 V12.6.0 (2014-09).
+      - WLAN-UE-Local-IPAddress (894) Address removed in 3GPP TS 32.299 V12.6.0 (2014-09).
+    - AVP renames:
+      - Rename Call-Barring-Infor-List (1488) to Call-Barring-Info (1488).
+      - Rename LCS-Requestor-Id (1239) to LCS-Requestor-ID (1239).
+      - Rename LCS-Requestor-Id-String (1240) to LCS-Requestor-ID-String (1240).
+      - Rename MBMSGW-Address (2307) to MBMS-GW-Address (2307).
+      - Rename MME-LocationInformation (1600) to MME-Location-Information(1600).
+      - Rename PoC-User-Role-info-Units (1254) to PoC-User-Role-Info-Units (1254).
+      - Rename Status (2702) to Status-AS-Code (2702).
+    - AVP name conflicts:
+      - Time-Window (3818) in 3GPP TS 29.345 V12.1.0 (2014-12) predates
+        Time-Window-29.154 (4204) in 3GPP TS 29.154 V13.1.0 (2016-03).
+    - Add Enumerated(3GPP/Experimental-Result-Code). 145 values.
+    - Update standards:
+      - 3GPP TS 29.061 V15.5.0 (2018-12). 15 AVPs.
+      - 3GPP TS 29.173 V15.0.0 (2018-06). 1 AVP.
+      - 3GPP TS 29.212 V15.9.0 (2019-12). 46 AVPs.
+      - 3GPP TS 29.214 V15.7.0 (2019-09). 27 AVPs.
+      - 3GPP TS 29.229 V15.2.0 (2019-09). 8 AVPs.
+      - 3GPP TS 29.272 V15.10.0 (2019-12). 44 AVPs.
+      - 3GPP TS 29.329 V15.2.0 (2019-09). 5 AVPs.
+      - 3GPP TS 32.299 V15.7.0 (2019-06). 154 AVPs.
+    - Add standards:
+      - 3GPP TS 29.109 V15.0.0 (2017-06). 21 AVPs.
+      - 3GPP TS 29.128 V15.6.0 (2019-09). 25 AVPs.
+      - 3GPP TS 29.153 V15.1.0 (2019-09). 2 AVPs.
+      - 3GPP TS 29.154 V15.3.0 (2019-09). 16 AVPs.
+      - 3GPP TS 29.172 V15.2.0 (2019-12). 66 AVPs.
+      - 3GPP TS 29.209 V6.8.0 (2011-09). 2 AVPs.
+      - 3GPP TS 29.215 V15.2.0 (2019-09). 9 AVPs.
+      - 3GPP TS 29.217 V15.1.0 (2019-09). 14 AVPs.
+      - 3GPP TS 29.219 V15.3.0 (2019-09). 7 AVPs.
+      - 3GPP TS 29.234 V11.2.0 (2013-06). 19 AVPs.
+      - 3GPP TS 29.273 V15.4.0 (2019-09). 40 AVPs.
+      - 3GPP TS 29.283 V15.1.0 (2019-09). 16 AVPs.
+      - 3GPP TS 29.336 V15.7.0 (2019-09). 79 AVPs.
+      - 3GPP TS 29.337 V15.0.0 (2018-06). 4 AVPs.
+      - 3GPP TS 29.338 V15.1.0 (2018-12). 34 AVPs.
+      - 3GPP TS 29.343 V15.1.0 (2019-09). 13 AVPs.
+      - 3GPP TS 29.344 V15.1.0 (2019-09). 7 AVPs.
+      - 3GPP TS 29.345 V15.1.0 (2019-09). 68 AVPs.
+      - 3GPP TS 29.368 V15.1.0 (2019-09). 12 AVPs.
+      - 3GPP TS 29.388 V15.1.0 (2019-09). 3 AVPs.
+      - 3GPP TS 29.389 V15.1.0 (2019-09). 3 AVPs.
+      - 3GPP TS 29.468 V15.8.0 (2019-12). 33 AVPs.
+      - 3GPP TS 29.561 V16.3.0 (2020-03). 9 AVPs.
+
 freediameter (1.4.0) RELEASED; urgency=low
 
   * New API: fd_fifo_set_max to change the capacity of a queue.

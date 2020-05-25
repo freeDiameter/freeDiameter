@@ -117,7 +117,7 @@ int fd_tcp_get_remote_ep(int sock, sSS * ss, socklen_t *sl);
 /* SCTP */
 int fd_sctp_create_bind_server( int * sock, int family, struct fd_list * list, uint16_t port );
 int fd_sctp_listen( int sock );
-int fd_sctp_client( int *sock, int no_ip6, uint16_t port, struct fd_list * list );
+int fd_sctp_client( int *sock, int no_ip6, uint16_t port, struct fd_list * list, struct fd_list * src_list );
 int fd_sctp_get_local_ep(int sock,  struct fd_list * list);
 int fd_sctp_get_remote_ep(int sock, struct fd_list * list);
 int fd_sctp_get_str_info( int sock, uint16_t *in, uint16_t *out, sSS *primary );

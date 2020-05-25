@@ -674,7 +674,7 @@ static void * connect_thr(void * arg)
 #ifndef DISABLE_SCTP
 		case IPPROTO_SCTP:
 			{
-				cnx = fd_cnx_cli_connect_sctp(0, TEST_PORT, &eps);
+				cnx = fd_cnx_cli_connect_sctp(0, TEST_PORT, &eps, NULL);
 				CHECK( 1, (cnx ? 1 : 0) ^ cf->expect_failure );
 			}
 			break;

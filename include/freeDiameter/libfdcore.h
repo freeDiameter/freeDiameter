@@ -151,6 +151,7 @@ struct fd_config {
 		unsigned no_sctp: 1;	/* disable the use of SCTP */
 		unsigned pr_tcp	: 1;	/* prefer TCP over SCTP */
 		unsigned tls_alg: 1;	/* TLS algorithm for initiated cnx. 0: separate port. 1: inband-security (old) */
+		unsigned no_bind: 1;	/* disable client bind to cnf_endpoints if non configured (bind all) */
 	} 		 cnf_flags;
 	
 	struct {
