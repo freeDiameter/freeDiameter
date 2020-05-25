@@ -82,7 +82,7 @@ static int fd_setsockopt_prebind(int sk)
 		if (TRACE_BOOL(ANNOYING)) {
 			sz = sizeof(rtoinfo);
 			/* Read socket defaults */
-			CHECK_SYS(  getsockopt(sk, IPPROTO_SCTP, SCTP_RTOINFO, &rtoinfo, &sz)  );
+			CHECK_SYS(  sctp_opt_info(sk, 0, SCTP_RTOINFO, &rtoinfo, &sz)  );
 			if (sz != sizeof(rtoinfo))
 			{
 				TRACE_DEBUG(INFO, "Invalid size of socket option: %d / %d", sz, (socklen_t)sizeof(rtoinfo));
@@ -102,7 +102,7 @@ static int fd_setsockopt_prebind(int sk)
 		
 		if (TRACE_BOOL(ANNOYING)) {
 			/* Check new values */
-			CHECK_SYS(  getsockopt(sk, IPPROTO_SCTP, SCTP_RTOINFO, &rtoinfo, &sz)  );
+			CHECK_SYS(  sctp_opt_info(sk, 0, SCTP_RTOINFO, &rtoinfo, &sz)  );
 			fd_log_debug( "New SCTP_RTOINFO : srto_initial : %u", rtoinfo.srto_initial);
 			fd_log_debug( "                   srto_max     : %u", rtoinfo.srto_max);
 			fd_log_debug( "                   srto_min     : %u", rtoinfo.srto_min);
@@ -121,7 +121,7 @@ static int fd_setsockopt_prebind(int sk)
 		if (TRACE_BOOL(ANNOYING)) {
 			sz = sizeof(assoc);
 			/* Read socket defaults */
-			CHECK_SYS(  getsockopt(sk, IPPROTO_SCTP, SCTP_ASSOCINFO, &assoc, &sz)  );
+			CHECK_SYS(  sctp_opt_info(sk, 0, SCTP_ASSOCINFO, &assoc, &sz)  );
 			if (sz != sizeof(assoc))
 			{
 				TRACE_DEBUG(INFO, "Invalid size of socket option: %d / %d", sz, (socklen_t)sizeof(assoc));
@@ -142,7 +142,7 @@ static int fd_setsockopt_prebind(int sk)
 		
 		if (TRACE_BOOL(ANNOYING)) {
 			/* Check new values */
-			CHECK_SYS(  getsockopt(sk, IPPROTO_SCTP, SCTP_ASSOCINFO, &assoc, &sz)  );
+			CHECK_SYS(  sctp_opt_info(sk, 0, SCTP_ASSOCINFO, &assoc, &sz)  );
 			fd_log_debug( "New SCTP_ASSOCINFO : sasoc_asocmaxrxt               : %hu", assoc.sasoc_asocmaxrxt);
 			fd_log_debug( "                     sasoc_number_peer_destinations : %hu", assoc.sasoc_number_peer_destinations);
 			fd_log_debug( "                     sasoc_peer_rwnd                : %u" , assoc.sasoc_peer_rwnd);
@@ -318,7 +318,7 @@ static int fd_setsockopt_prebind(int sk)
 			sz = sizeof(parms);
 
 			/* Read socket defaults */
-			CHECK_SYS(  getsockopt(sk, IPPROTO_SCTP, SCTP_PEER_ADDR_PARAMS, &parms, &sz)  );
+			CHECK_SYS(  sctp_opt_info(sk, 0, SCTP_PEER_ADDR_PARAMS, &parms, &sz)  );
 			if (sz != sizeof(parms))
 			{
 				TRACE_DEBUG(INFO, "Invalid size of socket option: %d / %d", sz, (socklen_t)sizeof(parms));
@@ -347,7 +347,7 @@ static int fd_setsockopt_prebind(int sk)
 		
 		if (TRACE_BOOL(ANNOYING)) {
 			/* Check new values */
-			CHECK_SYS(  getsockopt(sk, IPPROTO_SCTP, SCTP_PEER_ADDR_PARAMS, &parms, &sz)  );
+			CHECK_SYS(  sctp_opt_info(sk, 0, SCTP_PEER_ADDR_PARAMS, &parms, &sz)  );
 			fd_log_debug( "New SCTP_PEER_ADDR_PARAMS : spp_hbinterval    : %u",  parms.spp_hbinterval);
 			fd_log_debug( "                            spp_pathmaxrxt    : %hu", parms.spp_pathmaxrxt);
 			fd_log_debug( "                            spp_pathmtu       : %u",  parms.spp_pathmtu);
