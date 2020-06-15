@@ -107,7 +107,11 @@ static void compare_avp_type(const char *source, const char *dest)
 	fd_dict_getval(model_source, &dictdata_source);
 	fd_dict_getval(model_dest, &dictdata_dest);
 	if (dictdata_source.avp_basetype != dictdata_dest.avp_basetype) {
-		fd_log_notice("rt_rewrite: type mismatch: %s (type %s) mapped to %s (type %s) (continuing anyway)", source, type_base_name[dictdata_source.avp_basetype], dest, type_base_name[dictdata_dest.avp_basetype]);
+		if (dictdata_source.avp_basetype == AVP_TYPE_OCTETSTRING) {
+			fd_log_error("rt_rewrite: type mismatch: %s (type %s) mapped to %s (type %s): OctetString cannot be mapped to non-OctetString type", source, type_base_name[dictdata_source.avp_basetype], dest, type_base_name[dictdata_dest.avp_basetype]);
+			return;
+		}
+		fd_log_error("rt_rewrite: type mismatch: %s (type %s) mapped to %s (type %s) (continuing anyway)", source, type_base_name[dictdata_source.avp_basetype], dest, type_base_name[dictdata_dest.avp_basetype]);
 	}
 	return;
 }
