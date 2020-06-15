@@ -33,8 +33,8 @@
 * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.								 *
 *********************************************************************************************************/
 
-/* 
- * Debug-only extension for routing module; 
+/*
+ * Debug-only extension for routing module;
  * displays state information at the end of routing information process.
  */
 #include <freeDiameter/extension.h>
@@ -47,7 +47,7 @@ static int dbgrt_fwd_cb(void * cbdata, struct msg ** msg)
 {
 	char * buf = NULL; size_t buflen;
 	TRACE_ENTRY("%p %p", cbdata, msg);
-	
+
 	LOG_D("[dbg_rt] FWD routing message: %p", msg ? *msg : NULL);
 	if (msg) {
 		CHECK_MALLOC( fd_msg_dump_treeview(&buf, &buflen, NULL, *msg, NULL, 0, 1) );
@@ -63,19 +63,20 @@ static int dbgrt_out_cb(void * cbdata, struct msg ** pmsg, struct fd_list * cand
 	struct fd_list * li;
 	struct msg * msg = *pmsg;
 	char * buf = NULL; size_t buflen;
-	
+
 	TRACE_ENTRY("%p %p %p", cbdata, msg, candidates);
-	
+
 	LOG_D("[dbg_rt] OUT routing message: %p", msg);
 	CHECK_MALLOC( fd_msg_dump_treeview(&buf, &buflen, NULL, msg, NULL, 0, 1) );
 	LOG_D("%s", buf);
+	free(buf);
 	LOG_D("[dbg_rt] Current list of candidates (%p): (score - id)", msg);
-	
+
 	for (li = candidates->next; li != candidates; li = li->next) {
 		struct rtd_candidate *c = (struct rtd_candidate *) li;
 		LOG_D("[dbg_rt]   %d -\t%s", c->score, c->diamid);
 	}
-	
+
 	return 0;
 }
 
@@ -83,7 +84,7 @@ static int dbgrt_out_cb(void * cbdata, struct msg ** pmsg, struct fd_list * cand
 static int dbgrt_main(char * conffile)
 {
 	TRACE_ENTRY("%p", conffile);
-	
+
 	CHECK_FCT( fd_rt_fwd_register ( dbgrt_fwd_cb, NULL, RT_FWD_ALL, &fwd_hdl ) );
 	CHECK_FCT( fd_rt_out_register ( dbgrt_out_cb, NULL, -1 /* so that it is called late */, &out_hdl ) );
 
@@ -94,11 +95,11 @@ static int dbgrt_main(char * conffile)
 void fd_ext_fini(void)
 {
 	TRACE_ENTRY();
-	
+
 	/* Unregister the modules */
 	CHECK_FCT_DO( fd_rt_fwd_unregister ( fwd_hdl, NULL ), /* continue */ );
 	CHECK_FCT_DO( fd_rt_out_unregister ( out_hdl, NULL ), /* continue */ );
-	
+
 	return ;
 }
 
