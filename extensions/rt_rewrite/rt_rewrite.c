@@ -397,22 +397,20 @@ static int rt_rewrite(void * cbdata, struct msg **msg)
 		return errno;
 	}
 
-	if ((store=store_new()) == NULL) {
-		fd_log_error("%s: malloc failure");
-		pthread_rwlock_unlock(&rt_rewrite_lock);
-		return ENOMEM;
-	}
 	if ((ret = fd_msg_parse_dict(*msg, fd_g_config->cnf_dict, NULL)) != 0) {
 		fd_log_notice("%s: error parsing message", MODULE_NAME);
-		free(store);
 		pthread_rwlock_unlock(&rt_rewrite_lock);
 		return ret;
 	}
 	if ((ret=fd_msg_browse(*msg, MSG_BRW_FIRST_CHILD, &avp, NULL)) != 0) {
 		fd_log_notice("internal error: message has no child");
-		free(store);
 		pthread_rwlock_unlock(&rt_rewrite_lock);
 		return ret;
+	}
+	if ((store=store_new()) == NULL) {
+		fd_log_error("%s: malloc failure");
+		pthread_rwlock_unlock(&rt_rewrite_lock);
+		return ENOMEM;
 	}
 	if (replace_avps(*msg, avp, avp_match_start->children, store) != 0) {
 		fd_log_error("%s: replace AVP function failed", MODULE_NAME);
