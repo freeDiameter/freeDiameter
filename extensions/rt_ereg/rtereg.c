@@ -190,8 +190,12 @@ static int find_avp(msg_or_avp *where, int conf_index, int level, struct fd_list
 
 					/* Augment the buffer if needed */
 					if (avp_hdr->avp_value->os.len >= bufsz) {
-						CHECK_MALLOC_DO( buf = realloc(buf, avp_hdr->avp_value->os.len + 1),
+						char *newbuf;
+						CHECK_MALLOC_DO( newbuf = realloc(buf, avp_hdr->avp_value->os.len + 1),
 							{ pthread_mutex_unlock(&mtx); return ENOMEM; } );
+						/* Update buffer and buffer size */
+						buf = newbuf;
+						bufsz = avp_hdr->avp_value->os.len + 1;
 					}
 
 					/* Copy the AVP value */
@@ -319,12 +323,11 @@ static int rtereg_entry(char * conffile)
 static int rtereg_init_config(void)
 {
 	/* Initialize the configuration */
-	if ((rtereg_conf=malloc(sizeof(*rtereg_conf))) == NULL) {
+	if ((rtereg_conf=calloc(sizeof(*rtereg_conf), 1)) == NULL) {
 		LOG_E("[rt_ereg] malloc failured");
 		return 1;
 	}
 	rtereg_conf_size = 1;
-	memset(rtereg_conf, 0, sizeof(*rtereg_conf));
 
 	/* Parse the configuration file */
 	CHECK_FCT( rtereg_conf_handle(rt_ereg_config_file) );
@@ -371,6 +374,7 @@ static void rtereg_fini(void)
 #ifndef HAVE_REG_STARTEND
 	free(buf);
 	buf = NULL;
+	bufsz = 0;
 #endif /* HAVE_REG_STARTEND */
 
 	if (pthread_rwlock_wrlock(&rte_lock) != 0) {
