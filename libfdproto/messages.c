@@ -1946,6 +1946,14 @@ static int parsebuf_list(unsigned char * buf, size_t buflen, struct fd_list * he
 			offset += 4;
 		}
 		
+		/* Check the length is valid */
+		if ( avp->avp_public.avp_len < GETAVPHDRSZ(avp->avp_public.avp_flags) ) {
+			TRACE_DEBUG(INFO, "Invalid AVP size %d",
+					avp->avp_public.avp_len);
+			free(avp);
+			return EBADMSG;
+		}
+
 		/* Check there is enough remaining data in the buffer */
 		if ( (avp->avp_public.avp_len > GETAVPHDRSZ(avp->avp_public.avp_flags))
 		&& (buflen - offset < avp->avp_public.avp_len - GETAVPHDRSZ(avp->avp_public.avp_flags))) {
@@ -1991,6 +1999,10 @@ int fd_msg_parse_buffer ( unsigned char ** buffer, size_t buflen, struct msg ** 
 	if ( buflen < msglen ) {  
 		TRACE_DEBUG(INFO, "Truncated message (%zd / %d)", buflen, msglen );
 		return EBADMSG; 
+	}
+	if ( msglen < GETMSGHDRSZ() ) {
+		TRACE_DEBUG(INFO, "Invalid message length (%d)", msglen );
+		return EBADMSG;
 	}
 	
 	/* Create a new object */
