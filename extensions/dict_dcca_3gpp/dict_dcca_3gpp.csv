@@ -2390,7 +2390,7 @@ WLAN-PLMN-Id,1308,,UTF8String,V,,,M
 Application-Server-Id,2101,8.4,UTF8String,"M,V",,,
 # Change-1.4.0: Application-Service-Type (2102) type changed from UTF8String to Enumerated.,,,,,,,
 Application-Service-Type,2102,8.4,Enumerated,"M,V",,,
-# Change-1.4.0: Application–Session–Id (2103) type changed from UTF8String to Unsigned32.,,,,,,,
+# Change-1.4.0: Application-Session-Id (2103) type changed from UTF8String to Unsigned32.,,,,,,,
 Application-Session-Id,2103,8.4,Unsigned32,"M,V",,,
 Content-ID,2116,8.4,UTF8String,"M,V",,,
 Content-provider-ID,2117,8.4,UTF8String,"M,V",,,

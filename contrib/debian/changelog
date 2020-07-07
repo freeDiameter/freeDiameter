@@ -50,7 +50,7 @@ freediameter (UNRELEASED) UNRELEASED; urgency=low
       - ADC-Rule-Remove (1093) flag M MUST.
       - ADC-Rule-Report (1097) flag M MUST.
       - Application-Service-Type (2102) type changed from UTF8String to Enumerated.
-      - Application–Session–Id (2103) type changed from UTF8String to Unsigned32.
+      - Application-Session-Id (2103) type changed from UTF8String to Unsigned32.
       - Call-Barring-Infor-List (1488) renamed to Call-Barring-Info (1488).
       - External-Identifier (28) OctetString replaced by External-Identifier (3111) UTF8String.
       - LCS-Requestor-Id (1239) renamed to LCS-Requestor-ID (1239).

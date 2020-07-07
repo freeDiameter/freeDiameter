@@ -21282,7 +21282,7 @@ int add_avps()
 		CHECK_dict_new(DICT_AVP, &data, type, NULL);
 	};
 
-	/* Change-1.4.0: Application–Session–Id (2103) type changed from UTF8String to Unsigned32. */
+	/* Change-1.4.0: Application-Session-Id (2103) type changed from UTF8String to Unsigned32. */
 	/* Application-Session-Id, Unsigned32, code 2103, section 8.4       */
 	{
 		struct dict_avp_data data = {
