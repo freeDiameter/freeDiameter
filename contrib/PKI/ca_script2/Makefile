@@ -25,7 +25,7 @@ all:	help
 
 # Help message
 help:
-	@echo "\n\
+	@printf -- "\n\
 Available commands:\n\
    make init topca=name\n\
        Creates the initial top-level CA structure\n\
@@ -172,7 +172,7 @@ gencrl:
 	@if [ -z "$(ca)" ]; then echo "Missing parameter. Ex: make gencrl ca=ca.testbed.aaa"; exit 1; fi
 	# Create the CRL
 	@CA_ROOT_DIR=$(DATA_DIR)/$(ca) openssl ca $(CONFIG) -gencrl -out $(DATA_DIR)/$(ca)/public/crl/$(ca).pem
-	@ln -s crl/$(ca).pem $(DATA_DIR)/$(ca)/public/local.pem
-	@ln -s local.pem $(DATA_DIR)/$(ca)/public/`openssl crl -noout -hash < $(DATA_DIR)/$(ca)/public/crl/$(ca).pem`.r0
+	@ln -f -s crl/$(ca).pem $(DATA_DIR)/$(ca)/public/local.pem
+	@ln -f -s local.pem $(DATA_DIR)/$(ca)/public/`openssl crl -noout -hash < $(DATA_DIR)/$(ca)/public/crl/$(ca).pem`.r0
 
 # End of file...
