@@ -46,6 +46,7 @@ extern "C" {
 
 /* Macro that define the entry point of the extension */
 #define EXTENSION_ENTRY(_name, _function, _depends...)					\
+__attribute__((visibility("default")))							\
 const char *fd_ext_depends[] = { _name , ## _depends , NULL };				\
 static int extension_loaded = 0;							\
 											\
