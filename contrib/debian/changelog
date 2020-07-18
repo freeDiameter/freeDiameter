@@ -10,7 +10,8 @@ freediameter (UNRELEASED) UNRELEASED; urgency=low
       that the SCTP INIT only contains those local endpoint addresses,
       matching what is advertised in the CER.
   * Base dictionary: Add rules for Experimental-Result.
-  * All extensions: Hide symbols except for fd_ext_init() and fd_ext_fini().
+  * All extensions: Hide symbols except for fd_ext_init(), fd_ext_fini(),
+    and fd_ext_depends.
   * dbg_dict_dump.fdx: add extension to write the dictionary
     to the given file or to the log.
   * dbg_dict_dump_json.fdx: add extension to write the dictionary as JSON
