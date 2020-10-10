@@ -10,7 +10,7 @@ SET(FD_PROJECT_COPYRIGHT "Copyright (c) 2008-2015, WIDE Project (www.wide.ad.jp)
 
 # Version of the source code
 SET(FD_PROJECT_VERSION_MAJOR 1)
-SET(FD_PROJECT_VERSION_MINOR 4)
+SET(FD_PROJECT_VERSION_MINOR 5)
 SET(FD_PROJECT_VERSION_REV 0)
 
 # Version of the API with the library

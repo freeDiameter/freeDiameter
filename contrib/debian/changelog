@@ -1,5 +1,9 @@
 freediameter (UNRELEASED) UNRELEASED; urgency=low
 
+  *
+
+freediameter (1.5.0) RELEASED; urgency=low
+
   * freeDiameter:
     - Add -g to help
     - Change -d and -q to control syslog level, as per stdout logging.
