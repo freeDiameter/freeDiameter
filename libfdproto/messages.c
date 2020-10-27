@@ -1776,13 +1776,13 @@ static int bufferize_avp(unsigned char * buffer, size_t buflen, size_t * offset,
 	
 	if (avp->avp_model == NULL) {
 		/* In the case where we don't know the type of AVP, just copy the raw data or source */
-		CHECK_PARAMS( avp->avp_source || avp->avp_rawdata );
+		/* there might be no data if the AVP is empty */
 		
 		if ( avp->avp_rawdata != NULL ) {
 			/* the content was stored in rawdata */
 			memcpy(&buffer[*offset], avp->avp_rawdata, avp->avp_rawlen);
 			*offset += PAD4(avp->avp_rawlen);
-		} else {
+		} else if ( avp->avp_source != NULL ) {
 			/* the message was not parsed completely */
 			size_t datalen = avp->avp_public.avp_len - GETAVPHDRSZ(avp->avp_public.avp_flags);
 			memcpy(&buffer[*offset], avp->avp_source, datalen);
