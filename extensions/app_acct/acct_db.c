@@ -250,6 +250,7 @@ int acct_db_insert(struct acct_record_list * records)
 	if (PQstatus(conn) != CONNECTION_OK) {
 		/* Attempt a reset */
 		PQreset(conn);
+		new = 1;
 		if (PQstatus(conn) != CONNECTION_OK) {
 			TRACE_DEBUG(INFO, "Lost connection to the database server, and attempt to reestablish it failed");
 			TODO("Terminate the freeDiameter instance completely?");
