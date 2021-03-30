@@ -109,7 +109,7 @@ int acct_rec_map(struct acct_record_list * records, struct msg * msg)
 		}
 		
 		/* Go to next AVP in the message */
-		CHECK_FCT( fd_msg_browse(avp, MSG_BRW_NEXT, &avp, NULL) );
+		CHECK_FCT( fd_msg_browse(avp, MSG_BRW_WALK, &avp, NULL) );
 	}
 	
 	/* Done */
