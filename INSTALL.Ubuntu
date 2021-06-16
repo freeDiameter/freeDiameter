@@ -17,9 +17,9 @@ As a first step, you have to link this directory from your top-level dir:
 ============================================
 
 The following packages are required to compile freeDiameter from source:
- cmake make gcc g++ flex bison libsctp1 libsctp-dev libgnutls-dev libgcrypt-dev libidn11-dev
+ cmake make gcc g++ flex bison libsctp1 libsctp-dev libgnutls-dev libgcrypt-dev libidn2-dev
  
-(note that libidn and libsctp can be avoided by defining DISABLE_SCTP and DIAMID_IDNA_REJECT)
+(note that libidn2 and libsctp can be avoided by defining DISABLE_SCTP and DIAMID_IDNA_REJECT)
  
 Additionnaly, these ones may be useful:
  mercurial gdb
@@ -44,7 +44,7 @@ If your debhelper environment is recent (> 7.3.9 for cmake support),
 the following commands should generate the freeDiameter packages for you:
 
 # Install the dependencies for building the source:
-sudo apt-get -y install mercurial cmake make gcc g++ bison flex libsctp-dev libgnutls-dev libgcrypt-dev libidn11-dev ssl-cert debhelper fakeroot \
+sudo apt-get -y install mercurial cmake make gcc g++ bison flex libsctp-dev libgnutls-dev libgcrypt-dev libidn2-dev ssl-cert debhelper fakeroot \
    libpq-dev libmysqlclient-dev libxml2-dev swig python-dev
    
 # On latest Ubuntu you will need libgnutls28-dev instead of libgnutls-dev
@@ -84,7 +84,7 @@ The Debian package has been generated with success on Debian (>=Squeeze) and Ubu
 Step by step instructions without using the debhelper tools:
 
 1) Install all packages dependencies
-# sudo apt-get install mercurial cmake make gcc g++ bison flex libsctp-dev libgnutls-dev libgcrypt-dev libidn11-dev
+# sudo apt-get install mercurial cmake make gcc g++ bison flex libsctp-dev libgnutls-dev libgcrypt-dev libidn2-dev
 
 2) (OPTION) If you will compile modules that require postgresql, also install:
 # sudo apt-get install libpq-dev

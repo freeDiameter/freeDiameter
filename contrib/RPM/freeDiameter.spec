@@ -10,7 +10,7 @@ URL: http://www.freediameter.net
 Source0: http://www.freediameter.net/hg/freeDiameter/archive/1.1.6.tar.gz	
 
 BuildRequires: cmake make gcc gcc-c++ flex bison lksctp-tools-devel 
-BuildRequires: gnutls-devel libgcrypt-devel libidn-devel
+BuildRequires: gnutls-devel libgcrypt-devel libidn2-devel
 BuildRequires: mercurial	
 Requires: lksctp-tools	
 

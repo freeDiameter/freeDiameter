@@ -2,6 +2,8 @@
 
 Project("freeDiameter includes directory" C)
 
+INCLUDE(FindPkgConfig)
+
 ########################
 # Configurable parameters
 
@@ -135,26 +137,15 @@ ENDIF(NOT DISABLE_SCTP)
 SET(SCTP_INCLUDE_DIR ${SCTP_INCLUDE_DIR} PARENT_SCOPE)
 SET(SCTP_LIBRARIES ${SCTP_LIBRARIES} PARENT_SCOPE)
 
-# IDNA process: we use libidn from GNU (unless the function & header files are included in libc)
+# IDNA process: we use GNU libidn2
 IF(NOT DIAMID_IDNA_IGNORE AND NOT DIAMID_IDNA_REJECT)
-	FIND_PACKAGE(IDNA)
-   	SET(CHECK_IDNA_SOURCE_CODE "
-		#include <idna.h>
-		int main() {
-		   return idna_to_ascii_8z(NULL, NULL, 0);
-		}
-		")
-	SET(CMAKE_REQUIRED_INCLUDES ${IDNA_INCLUDE_DIR})
-	SET(CMAKE_REQUIRED_LIBRARIES ${IDNA_LIBRARIES})
-	CHECK_C_SOURCE_COMPILES("${CHECK_IDNA_SOURCE_CODE}" HAS_IDNA_SUPPORT)
-	IF(NOT HAS_IDNA_SUPPORT)
-		MESSAGE(SEND_ERROR "Unable to find idna.h header or idna_to_ascii_8z function, please install libidn-dev or equivalent, or set DIAMID_IDNA_IGNORE or DIAMID_IDNA_REJECT")
-	ENDIF(NOT HAS_IDNA_SUPPORT)
+	PKG_CHECK_MODULES(IDNA libidn2)
+	IF(NOT IDNA_FOUND)
+		MESSAGE(SEND_ERROR "Unable to find libidn2, please install libidn2-dev or equivalent, or set DIAMID_IDNA_IGNORE or DIAMID_IDNA_REJECT")
+	ENDIF()
 ELSE (NOT DIAMID_IDNA_IGNORE  AND NOT DIAMID_IDNA_REJECT)
 	MESSAGE(STATUS "Non-default Internationalized Domain Names (IDN) behavior selected (no stringprep).")
 ENDIF(NOT DIAMID_IDNA_IGNORE  AND NOT DIAMID_IDNA_REJECT)
-SET(IDNA_INCLUDE_DIR ${IDNA_INCLUDE_DIR} PARENT_SCOPE)
-SET(IDNA_LIBRARIES ${IDNA_LIBRARIES} PARENT_SCOPE)
 
 
 # Require GNU TLS for building the library
@@ -220,9 +211,9 @@ endif (EXISTS "${CMAKE_SOURCE_DIR}/.hg")
 ##########################
 
 # LFDPROTO_LIBS = libraries required by the libfdproto.
-SET(LFDPROTO_LIBS ${CLOCK_GETTIME_LIBS} ${CMAKE_THREAD_LIBS_INIT} ${IDNA_LIBRARIES} PARENT_SCOPE)
+SET(LFDPROTO_LIBS ${CLOCK_GETTIME_LIBS} ${CMAKE_THREAD_LIBS_INIT} ${IDNA_LINK_LIBRARIES} PARENT_SCOPE)
 # And includes paths
-SET(LFDPROTO_INCLUDES ${IDNA_INCLUDE_DIR} PARENT_SCOPE)
+SET(LFDPROTO_INCLUDES ${IDNA_INCLUDE_DIRS} PARENT_SCOPE)
 # Dependencies: the libraries required by any code linking to libfdproto.
 SET(LFDPROTO_LINK_INTERFACES ${CMAKE_THREAD_LIBS_INIT} PARENT_SCOPE)
 

@@ -27,11 +27,11 @@ SET(LFDPROTO_SRC
 # Save the list of files for testcases in the core's directory
 SET(LFDPROTO_SRC ${LFDPROTO_SRC} PARENT_SCOPE)
 
-# Include path
-INCLUDE_DIRECTORIES(${LFDPROTO_INCLUDES})
-
 # Build as a shared library
 ADD_LIBRARY(libfdproto SHARED ${LFDPROTO_SRC})
+
+# Include path
+TARGET_INCLUDE_DIRECTORIES(libfdproto PRIVATE /a/b/c ${LFDPROTO_INCLUDES})
 
 ADD_DEPENDENCIES(libfdproto version_information)
 
