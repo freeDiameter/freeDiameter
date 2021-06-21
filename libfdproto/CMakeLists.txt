@@ -2,10 +2,7 @@
 Project("libfdproto" C)
 
 # Configuration for newer cmake
-cmake_policy(VERSION 2.6)
-if (POLICY CMP0022)
-	cmake_policy(SET CMP0022 OLD)
-endif (POLICY CMP0022)
+cmake_policy(VERSION 2.8.12)
 
 # List of source files for the library
 SET(LFDPROTO_SRC
@@ -30,11 +27,11 @@ SET(LFDPROTO_SRC
 # Save the list of files for testcases in the core's directory
 SET(LFDPROTO_SRC ${LFDPROTO_SRC} PARENT_SCOPE)
 
-# Include path
-INCLUDE_DIRECTORIES(${LFDPROTO_INCLUDES})
-
 # Build as a shared library
 ADD_LIBRARY(libfdproto SHARED ${LFDPROTO_SRC})
+
+# Include path
+TARGET_INCLUDE_DIRECTORIES(libfdproto PRIVATE /a/b/c ${LFDPROTO_INCLUDES})
 
 ADD_DEPENDENCIES(libfdproto version_information)
 

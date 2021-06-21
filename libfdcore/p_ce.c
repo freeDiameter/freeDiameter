@@ -336,6 +336,14 @@ static int save_remote_CE_info(struct msg * msg, struct fd_peer * peer, struct f
 					return EINVAL;
 				}
 				
+				/* Origin-Realm is empty */
+				if (hdr->avp_value->os.len == 0) {
+					error->pei_errcode = "DIAMETER_INVALID_AVP_VALUE";
+					error->pei_message = "Your Origin-Realm is empty.";
+					error->pei_avp = avp;
+					return EINVAL;
+				}
+
 				/* Save the value */
 				CHECK_MALLOC(  peer->p_hdr.info.runtime.pir_realm = os0dup( hdr->avp_value->os.data, hdr->avp_value->os.len )  );
 				peer->p_hdr.info.runtime.pir_realmlen = hdr->avp_value->os.len;

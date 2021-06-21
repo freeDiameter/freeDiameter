@@ -36,8 +36,8 @@
 #include "fdproto-internal.h"
 
 #if (!defined(DIAMID_IDNA_IGNORE) && !defined(DIAMID_IDNA_REJECT))
-/* Process IDNA with stringprep -- See RFC5890 -- and libidn documentation... */
-#include <idna.h> /* idna_to_ascii_8z() */
+/* Process IDNA with stringprep -- See RFC5890 -- and libidn2 documentation... */
+#include <idn2.h> /* idn2_to_ascii_8z() */
 #endif /* !defined(DIAMID_IDNA_IGNORE) && !defined(DIAMID_IDNA_REJECT) */
 
 /* Similar to strdup with (must have been verified) os0_t */
@@ -226,8 +226,8 @@ int fd_os_validate_DiameterIdentity(char ** id, size_t * inoutsz, int memory)
 			}
 		}
 		
-		ret = idna_to_ascii_8z ( *id, &processed, IDNA_USE_STD3_ASCII_RULES );
-		if (ret == IDNA_SUCCESS) {
+		ret = idn2_to_ascii_8z ( *id, &processed, IDNA_USE_STD3_ASCII_RULES );
+		if (ret == IDN2_OK) {
 			TRACE_DEBUG(INFO, "The string '%s' is not a valid DiameterIdentity, it was changed to '%s'", *id, processed);
 			if (memory == 0)
 				free(*id);
@@ -235,7 +235,7 @@ int fd_os_validate_DiameterIdentity(char ** id, size_t * inoutsz, int memory)
 			*inoutsz = strlen(processed);
 			/* Done! */
 		} else {
-			TRACE_DEBUG(INFO, "The string '%s' is not a valid DiameterIdentity and cannot be sanitanized: %s", *id, idna_strerror (ret));
+			TRACE_DEBUG(INFO, "The string '%s' is not a valid DiameterIdentity and cannot be sanitized: %s", *id, idn2_strerror (ret));
 			return EINVAL;
 		}
 	

@@ -34,7 +34,7 @@ COMPLETE INSTRUCTIONS
 
 4) Install 'flex' and 'bison', same way.
 
-5) Install 'gnutls' and 'libidn', same way also.
+5) Install 'gnutls' and 'libidn2', same way also.
 
 6) Retrieve freeDiameter source code:
    # cd ~

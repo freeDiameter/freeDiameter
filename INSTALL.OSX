@@ -39,10 +39,10 @@ FROM SOURCES
    See QUICK INSTRUCTIONS Step #1 above.
 
 2) Install dependencies:
-    $ brew install mercurial cmake gnutls libgcrypt postgres mysql libidn
+    $ brew install mercurial cmake gnutls libgcrypt postgres mysql libidn2
 
    Notes:
-    * GNU IDN (libidn) is optional, see below
+    * GNU IDN (libidn2) is optional, see below
     * When libusrsctp package is available, you can use it as well.
         However, it requires some rework on the source code as libusrsctp is not fully
         compliant with the other SCTP stack.

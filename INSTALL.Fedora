@@ -3,7 +3,7 @@
 
 
 Dependencies on Fedora 13 (from minimal system):
-# yum install cmake make gcc gcc-c++ flex bison lksctp-tools-devel gnutls-devel libgcrypt-devel libidn-devel
+# yum install cmake make gcc gcc-c++ flex bison lksctp-tools-devel gnutls-devel libgcrypt-devel libidn2-devel
 
 In addition, if you have not already retrieved the latest source:
 # yum install mercurial
