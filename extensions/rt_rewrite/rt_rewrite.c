@@ -124,7 +124,7 @@ static int fd_avp_search_avp(msg_or_avp *where, struct dict_object *what, struct
 	if (avp)
 		*avp = nextavp;
 
-	if (*avp || nextavp) {
+	if (nextavp) {
 		return 0;
 	} else {
 		return ENOENT;
