@@ -141,12 +141,13 @@ awake:
 /* Allow the state machines to start */
 int fd_psm_start()
 {
+	int ret = 0;
 	TRACE_ENTRY("");
 	CHECK_POSIX( pthread_mutex_lock(&started_mtx) );
 	started = 1;
-	CHECK_POSIX( pthread_cond_broadcast(&started_cnd) );
+	ret = pthread_cond_broadcast(&started_cnd);
 	CHECK_POSIX( pthread_mutex_unlock(&started_mtx) );
-	return 0;
+	return ret;
 }
 
 
