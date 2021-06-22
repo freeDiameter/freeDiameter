@@ -225,7 +225,7 @@ int  fd_rtd_error_add(struct rt_data * rtd, DiamId_t sentto, size_t senttolen, u
 					goto after_origin;
 				}
 			}
-			CHECK_MALLOC( new->erh = (DiamId_t)os0dup(origin, originsz) );
+			CHECK_MALLOC_DO( new->erh = (DiamId_t)os0dup(origin, originsz), { free(new); return __ret__; });
 			new->erhlen = originsz;
 		}
 after_origin:
