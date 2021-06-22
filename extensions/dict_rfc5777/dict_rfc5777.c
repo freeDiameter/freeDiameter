@@ -325,12 +325,9 @@ int dict_rfc5777_init(char * conffile)
 					AVP_TYPE_GROUPED 			/* base type of data */
 					};
 
-			struct local_rules_definition rules[] =
-						{		//empty??
-						};
-
+			// the contents depend on the values of other AVPs and can not be defined
+			// in the general case, so do not assign rules
 			CHECK_dict_new( DICT_AVP, &data , NULL, &avp);
-			PARSE_loc_rules( rules, avp );
 		}
 
 		/* QoS-Profile-Template - RFC 5777 */
