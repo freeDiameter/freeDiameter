@@ -35,7 +35,7 @@
 
 #include "tests.h"
 
-#define TEST_STR (os0_t)"This is my test string (with extra unused data)"
+unsigned char TEST_STR[] = "This is my test string (with extra unused data)";
 
 /* The following string contains UTF-8 encoded characters (Chinese characters) */
 #define TEST_IDN_UTF8  "freeDiameter.中国"
