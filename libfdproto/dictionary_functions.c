@@ -314,7 +314,7 @@ static void _format_offs (long offset, char *buf) {
     int offs_hours, offs_minutes, sgn = 1;
     if (offset < 0) {
         offset = -offset;
-        sgn = 1;
+        sgn = -1;
     }
     offs_hours = (int)(offset/3600);
     offs_minutes = (offset%3600)/60;
