@@ -7,7 +7,7 @@ jobs:
     strategy:
       matrix:
 #        os: [macos-latest, ubuntu-latest, windows-latest]
-        os: [ubuntu-latest]
+        os: [macos-latest, ubuntu-latest]
     steps:
       - name: checkout
         uses: actions/checkout@v2
@@ -15,6 +15,11 @@ jobs:
         if: ${{ runner.os == 'Linux' }}
         run: |
           sudo apt-get install libsctp-dev libgnutls28-dev libgcrypt-dev libidn2-dev
+      - name: install dependencies (macOS)
+        if: ${{ runner.os == 'macOS' }}
+        run: |
+          brew update
+          brew install gnutls libgcrypt libidn2
 #      - name: install dependencies (Windows)
 #        if: ${{ runner.os == 'Windows' }}
 #        uses: lukka/run-vcpkg@v7
