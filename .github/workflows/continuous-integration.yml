@@ -31,11 +31,16 @@ jobs:
       - name: prepare build directory
         run: |
           cmake -E make_directory ${{runner.workspace}}/build
-      - name: configure (Unix)
-        if: ${{ runner.os != 'Windows' }}
+      - name: configure (Linux)
+        if: ${{ runner.os == 'Linux' }}
         working-directory: ${{runner.workspace}}/build
         run: |
           cmake ${{github.workspace}}
+      - name: configure (macOS)
+        if: ${{ runner.os == 'macOS' }}
+        working-directory: ${{runner.workspace}}/build
+        run: |
+          cmake -DDISABLE_SCTP:BOOL=ON ${{github.workspace}}
 #      - name: configure (Windows)
 #        if: ${{ runner.os == 'Windows' }}
 #        working-directory: ${{runner.workspace}}/build
