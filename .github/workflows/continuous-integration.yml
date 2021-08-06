@@ -14,7 +14,7 @@ jobs:
       - name: install dependencies (Linux)
         if: ${{ runner.os == 'Linux' }}
         run: |
-          sudo apt-get install libsctp-dev libgnutls-dev libgcrypt-dev libidn2-dev
+          sudo apt-get install libsctp-dev libgnutls28-dev libgcrypt-dev libidn2-dev
 #      - name: install dependencies (Windows)
 #        if: ${{ runner.os == 'Windows' }}
 #        uses: lukka/run-vcpkg@v7
