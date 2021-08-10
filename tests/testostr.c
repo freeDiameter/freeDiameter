@@ -49,7 +49,7 @@ int main(int argc, char *argv[])
 	
 	/* Check the hash function */
 	{
-		uint8_t buf[30];
+		uint8_t buf[5 + CONSTSTRLEN(TEST_STR)];
 		
 		uint32_t hash = fd_os_hash(TEST_STR, CONSTSTRLEN(TEST_STR)); /* reference value */
 		
