@@ -257,7 +257,7 @@ static void main_help( void )
 		"                          default location (" DEFAULT_CONF_PATH "/" FD_DEFAULT_CONF_FILENAME ")\n"
 		"  -D, --daemon            Start program in background\n"
 		"  -p, --pidfile=filename  Write PID to filename\n"
-		"  -s, --syslog            Write log output to syslog (instead of stdout)\n");
+		"  -s, --syslog            Write log output to syslog (instead of stdout)\n"
 		"  -t, --datelogger        Write log output to stdout prefixed with date\n");
 	printf( "\nDebug:\n"
 		"  These options are mostly useful for developers\n"
