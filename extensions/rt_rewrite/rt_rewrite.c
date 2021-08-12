@@ -154,6 +154,7 @@ static msg_or_avp *find_container(msg_or_avp *msg, struct avp_target *target)
 				return NULL;
 			}
 			if ((ret=fd_msg_avp_add(location, MSG_BRW_LAST_CHILD, avp)) != 0) {
+				/* TODO: free avp? */
 				fd_log_error("%s: cannot add AVP '%s' to message: %s", MODULE_NAME, target->name, strerror(ret));
 				return NULL;
 			}
