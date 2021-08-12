@@ -140,6 +140,31 @@ static void syslog_logger(int loglevel, const char * format, va_list args)
 }
 
 
+static void date_logger(int printlevel, const char *format, va_list ap)
+{
+    char buf[25];
+
+    /* Do we need to trace this ? */
+    if (printlevel < fd_g_debug_lvl)
+        return;
+
+    /* add timestamp */
+    printf("%s  ", fd_log_time(NULL, buf, sizeof(buf), 1, 1));
+
+    switch (printlevel) {
+    case FD_LOG_ANNOYING:  printf("   A   "); break;
+    case FD_LOG_DEBUG:     printf(" DBG   "); break;
+    case FD_LOG_INFO:      printf("INFO   "); break;
+    case FD_LOG_NOTICE:    printf("NOTI   "); break;
+    case FD_LOG_ERROR:     printf("ERROR  "); break;
+    case FD_LOG_FATAL:     printf("FATAL! "); break;
+    default:               printf(" ???   ");
+    }
+    vprintf(format, ap);
+    printf("\n");
+
+    fflush(stdout);
+}
 /* freeDiameter starting point */
 int main(int argc, char * argv[])
 {
@@ -233,14 +258,15 @@ static void main_help( void )
 		"  -D, --daemon            Start program in background\n"
 		"  -p, --pidfile=filename  Write PID to filename\n"
 		"  -s, --syslog            Write log output to syslog (instead of stdout)\n");
- 	printf( "\nDebug:\n"
-  		"  These options are mostly useful for developers\n"
-		"  -d, --debug             Increase verbosity of log messages\n"
-  		"  -f, --dbg_func <func>   Enable all traces within the function <func>\n"
-  		"  -F, --dbg_file <file.c> Enable all traces within the file <file.c> (basename match)\n"
+		"  -t, --datelogger        Write log output to stdout prefixed with date\n");
+	printf( "\nDebug:\n"
+		"  These options are mostly useful for developers\n"
+		"  -d, --debug             Increase verbosity of log messages if default logger is used\n"
+		"  -f, --dbg_func <func>   Enable all traces within the function <func>\n"
+		"  -F, --dbg_file <file.c> Enable all traces within the file <file.c> (basename match)\n"
 		"  -g, --dbg_gnutls <int>  Enable GNU TLS debug at level <int>\n"
-  		"  -l, --dbglocale         Set the locale for error messages\n"
-		"  -q, --quiet             Decrease verbosity of log messages\n"
+		"  -l, --dbglocale         Set the locale for error messages\n"
+		"  -q, --quiet             Decrease verbosity of log messages if default logger is used\n"
 	);
 }
 
@@ -250,11 +276,13 @@ static int main_cmdline(int argc, char *argv[])
 	int c;
 	int option_index = 0;
 	char * locale;
+	void (*logging_function)(int, const char *, va_list) = NULL;
 
       	struct option long_options[] = {
 		{ "help",	no_argument, 		NULL, 'h' },
 		{ "version",	no_argument, 		NULL, 'V' },
 		{ "config",	required_argument, 	NULL, 'c' },
+		{ "datelogger", no_argument,		NULL, 't' },
 		{ "syslog",     no_argument,            NULL, 's' },
 		{ "daemon",	no_argument, 		NULL, 'D' },
 		{ "pidfile",	required_argument,	NULL, 'p' },
@@ -269,7 +297,7 @@ static int main_cmdline(int argc, char *argv[])
 
 	/* Loop on arguments */
 	while (1) {
-		c = getopt_long (argc, argv, "hVc:Dp:dql:f:F:g:s", long_options, &option_index);
+		c = getopt_long (argc, argv, "hVc:Dp:dql:f:F:g:st", long_options, &option_index);
 		if (c == -1)
 			break;	/* Exit from the loop.  */
 
@@ -343,10 +371,11 @@ static int main_cmdline(int argc, char *argv[])
 				break;
 
 			case 's':	/* Write log data using syslog(3) */
-				if (fd_log_handler_register(syslog_logger) != 0) {
-					fprintf(stderr, "Cannot initialize syslog logger\n");
-					return EINVAL;
-				}
+				logging_function = syslog_logger;
+				break;
+
+			case 't':	/* Use standard logger but with date */
+				logging_function = date_logger;
 				break;
 
 			case '?':	/* Invalid option.  */
@@ -359,6 +388,11 @@ static int main_cmdline(int argc, char *argv[])
 				ASSERT(0);
 				return EINVAL;
 		}
+	}
+
+	if (logging_function && fd_log_handler_register(logging_function) != 0) {
+		fprintf(stderr, "Cannot initialize logging function\n");
+		return EINVAL;
 	}
 
 	return 0;
