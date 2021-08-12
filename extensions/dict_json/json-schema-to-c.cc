@@ -187,6 +187,7 @@ int main (int argc, char **argv) {
 
     free(str);
     str = NULL;
+
     if (validate) {
         std::string error_message;
         Json::SchemaValidator *validator;
@@ -194,7 +195,7 @@ int main (int argc, char **argv) {
         try {
             validator = Json::SchemaValidator::create_meta_validator();
         }
-        catch (Json::SchemaValidator::Exception e) {
+        catch (Json::SchemaValidator::Exception &e) {
             fprintf(stderr, "%s: can't create meta schema validator\n", argv[0]);
             exit(1);
         }
@@ -210,7 +211,7 @@ int main (int argc, char **argv) {
         try {
             Json::SchemaValidator v(json);
         }
-        catch (Json::SchemaValidator::Exception e) {
+        catch (Json::SchemaValidator::Exception &e) {
             fprintf(stderr, "%s: can't create schema validator: %s\n", argv[0], e.type_message().c_str());
             for (auto error : e.errors) {
                 fprintf(stderr, "%s:%s: %s\n", input, error.path.c_str(), error.message.c_str());
