@@ -4,8 +4,10 @@ syntax: glob
 *~
 *.log
 *.sum
+.cache/
 .hg
 build*
+compile_commands.json
 test.*
 GPATH
 GRTAGS
