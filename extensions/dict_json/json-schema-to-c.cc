@@ -185,6 +185,8 @@ int main (int argc, char **argv) {
         exit(1);
     }
 
+    free(str);
+    str = NULL;
     if (validate) {
         std::string error_message;
         Json::SchemaValidator *validator;
