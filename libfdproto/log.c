@@ -206,7 +206,7 @@ char * fd_log_time ( struct timespec * ts, char * buf, size_t len, int incl_date
 		ts = &tp;
 	}
 	
-	offset += strftime(buf + offset, len - offset, incl_date?"%D,%T":"%T", localtime_r( &ts->tv_sec , &tm ));
+	offset += strftime(buf + offset, len - offset, incl_date?"%F %T":"%T", localtime_r( &ts->tv_sec , &tm ));
 	if (incl_ms)
 		offset += snprintf(buf + offset, len - offset, ".%6.6ld", ts->tv_nsec / 1000);
 
