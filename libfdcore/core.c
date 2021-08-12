@@ -366,7 +366,7 @@ int fd_core_wait_shutdown_complete(void)
 	CHECK_POSIX(pthread_join(core_runner, &th_ret));
 
 	core_state_set(CORE_TERM);
-		
+	fd_log_threadname(NULL);
 	return 0;
 }
 
