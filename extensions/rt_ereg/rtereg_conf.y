@@ -186,8 +186,8 @@ conffile:		avp rules
 avp:			AVP '=' avp_part ';'
 			;
 
-avp_part: 		avp_part ':' QSTRING { if (avp_add($3) < 0) { YYERROR; } }
-			| QSTRING { if (avp_add($1) < 0) { YYERROR; } }
+avp_part: 		avp_part ':' QSTRING { int ret = avp_add($3); free($3); if (ret < 0) { YYERROR; } }
+			| QSTRING { int ret = avp_add($1); free($1); if (ret < 0) { YYERROR; } }
 			;
 
 rules:			/* empty OK */
