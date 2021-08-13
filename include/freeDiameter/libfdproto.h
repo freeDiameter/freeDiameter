@@ -2399,6 +2399,18 @@ int fd_msg_search_avp ( msg_or_avp * reference, struct dict_object * what, struc
  */
 int fd_msg_free ( msg_or_avp * object );
 
+/*
+ * FUNCTION:    fd_msg_unhook_avp
+ *
+ * PARAMETERS:
+ *  object      : pointer to the AVP object that must be unlinked.
+ *
+ * DESCRIPTION:
+ *   Unlink (but not free) an AVP object.
+ *
+ */
+void fd_msg_unhook_avp (msg_or_avp *msg);
+
 /***************************************/
 /*   Dump functions                    */
 /***************************************/

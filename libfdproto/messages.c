@@ -641,6 +641,12 @@ int fd_msg_search_avp ( msg_or_avp * reference, struct dict_object * what, struc
 /***************************************************************************************************************/
 /* Deleting objects */
 
+void fd_msg_unhook_avp (msg_or_avp *msg)
+{
+	/* Unlink this object if needed */
+	fd_list_unlink( &(_C(msg))->chaining );
+}
+
 /* Destroy and free an AVP or message */
 static int destroy_obj (struct msg_avp_chain * obj )
 {
@@ -1953,7 +1959,6 @@ static int parsebuf_list(unsigned char * buf, size_t buflen, struct fd_list * he
 			free(avp);
 			return EBADMSG;
 		}
-
 		/* Check there is enough remaining data in the buffer */
 		if ( (avp->avp_public.avp_len > GETAVPHDRSZ(avp->avp_public.avp_flags))
 		&& (buflen - offset < avp->avp_public.avp_len - GETAVPHDRSZ(avp->avp_public.avp_flags))) {
