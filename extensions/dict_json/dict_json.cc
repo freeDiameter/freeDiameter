@@ -793,24 +793,27 @@ dict_json_entry(char * conffile)
 
         TRACE_ENTRY("%p", conffile);
 
-        filename_base = strdup(conffile);
-        if (filename_base == NULL) {
-                LOG_E("error initialising JSON dictionary extension: %s", strerror(errno));
-                return 1;
-        }
-        filename = filename_base;
-        while ((p=strsep(&filename, ";")) != NULL) {
-                LOG_D("parsing dictionary '%s'", p);
-                if (!read_dictionary(p)) {
-                        LOG_E("error reading JSON dictionary '%s'", p);
-                        return EINVAL;
-                }
-                LOG_N("loaded JSON dictionary '%s'", p);
-                if (filename == NULL)
-                        break;
-        }
+	if (conffile != NULL) {
+		filename_base = strdup(conffile);
+		if (filename_base == NULL) {
+			LOG_E("error initialising JSON dictionary extension: %s", strerror(errno));
+			return 1;
+		}
+		filename = filename_base;
+		while ((p=strsep(&filename, ";")) != NULL) {
+			LOG_D("parsing dictionary '%s'", p);
+			if (!read_dictionary(p)) {
+				LOG_E("error reading JSON dictionary '%s'", p);
+				return EINVAL;
+			}
+			LOG_N("loaded JSON dictionary '%s'", p);
+			if (filename == NULL)
+				break;
+		}
 
-        free(filename_base);
+                free(filename_base);
+	}
+
         LOG_N("Extension 'Dictionary definitions from JSON dictionaries' initialized");
         return 0;
 }
