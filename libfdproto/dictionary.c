@@ -1861,7 +1861,9 @@ all_errors:
 	}
 error_free:
 	/* we can use destroy_object because this object is not part of the dictionary */
-	destroy_object_data(new);
+	if (new) {
+		destroy_object_data(new);
+	}
 	free(new);
 	return ret;
 }
