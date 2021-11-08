@@ -922,15 +922,6 @@ int fd_p_ce_process_receiver(struct fd_peer * peer)
 		}
 	}
 
-	if (peer->p_flags.pf_responder) {
-		int res = fd_peer_validate( peer );
-		if (res < 0) {
-			TRACE_DEBUG(INFO, "Rejected CER from peer '%s', validation failed (returning DIAMETER_UNKNOWN_PEER).", peer->p_hdr.info.pi_diamid);
-			pei.pei_errcode = "DIAMETER_UNKNOWN_PEER";
-			goto error_abort;
-		}
-		CHECK_FCT( res );
-	}
 	/* Check if we have common applications */
 	if ( fd_g_config->cnf_flags.no_fwd && (! peer->p_hdr.info.runtime.pir_relay) ) {
 		int got_common;
