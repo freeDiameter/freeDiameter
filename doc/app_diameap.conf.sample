@@ -24,7 +24,7 @@
 #
 # Example:
 # Load_plugin = "EAP MD5":4:0:"/extensions/eap_md5.emp":"";
-# Load_plugin = "EAP TLS":13:0;"/extensions/eap_tls.emp":"/doc/eap_tls_plugin.diameap.conf";
+# Load_plugin = "EAP TLS":13:0:"/extensions/eap_tls.emp":"/doc/eap_tls_plugin.diameap.conf";
 
 Load_plugin = "EAP Identity":1:0:"/extensions/eap_identity.emp":"";
 
