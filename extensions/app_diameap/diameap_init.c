@@ -309,8 +309,9 @@ static int diameap_parse_conffile(void)
 	diameapin = fopen(diameap_config->conffile, "r");
 	if (!diameapin)
 	{
-		TRACE_DEBUG(INFO,"%sUnable to open configuration file %s for reading: %s",DIAMEAP_EXTENSION, diameap_config->conffile, strerror(errno));
-		return errno;
+		int serr = errno;
+		TRACE_DEBUG(INFO,"%sUnable to open configuration file %s for reading: %s",DIAMEAP_EXTENSION, diameap_config->conffile, strerror(serr));
+		return serr;
 	}
 
 	/* call yacc parser */
@@ -360,8 +361,9 @@ int diameap_mysql_connect(void)
 			diameap_config->db.user, diameap_config->db.password,
 			diameap_config->db.database, 0, NULL, 0))
 	{
-		TRACE_DEBUG(INFO,"%sConnection to MySQL Database Server failed: %s",DIAMEAP_EXTENSION, mysql_error(db_conn));
-		return errno;
+		int serr = errno;
+		fd_log_error("%sConnection to MySQL Database Server failed: %s",DIAMEAP_EXTENSION, mysql_error(db_conn));
+		return serr;
 	}
 	return 0;
 }

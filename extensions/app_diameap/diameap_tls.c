@@ -37,64 +37,41 @@
 
 
 #include "diameap_tls.h"
+#include "libdiameap.h"
 
 //GCRY_THREAD_OPTION_PTHREAD_IMPL;
 
 int diameap_tls_init(struct tls_config * tls_conf)
 {
-	int ret;
-	ret = gnutls_global_init();
-	if (ret < 0)
-	{
-		gnutls_perror(ret);
-	}
+	CHECK_GNUTLS_DO( gnutls_global_init(), return EINVAL );
 
 	gnutls_global_set_log_function(diameap_tls_log);
 	//gnutls_global_set_log_level(9);
 
 
 	if(tls_conf->cafile ==NULL){
-		fprintf(stderr,"[DiamEAP extension] [EAP TLS] Missing certification authority (CA) certificates. Please provide CA configuration directive.\n"); 
+		fd_log_error("%s[EAP-TLS] Missing certification authority (CA) certificates. Please provide CA configuration directive.", DIAMEAP_EXTENSION);
 		return EINVAL;
 	}
 	if( !tls_conf->certfile || !tls_conf->keyfile){
-		fprintf(stderr,"[DiamEAP extension] [EAP TLS] Missing private Key. Please provide Cred configuration directive.\n"); 
+		fd_log_error("%s[EAP-TLS] Missing private Key. Please provide Cred configuration directive.", DIAMEAP_EXTENSION);
 		return EINVAL;
 	}
 
-	ret = gnutls_certificate_allocate_credentials(&tls_conf->cert_cred);
+	CHECK_GNUTLS_DO( gnutls_certificate_allocate_credentials(&tls_conf->cert_cred), return EINVAL );
 
-	if (ret < 0)
-	{
-		gnutls_perror(ret);
-		return ret;
-	}
+	CHECK_GNUTLS_DO( gnutls_certificate_set_x509_trust_file(tls_conf->cert_cred,
+			tls_conf->cafile, GNUTLS_X509_FMT_PEM), return EINVAL );
 
-	ret = gnutls_certificate_set_x509_trust_file(tls_conf->cert_cred,
-			tls_conf->cafile, GNUTLS_X509_FMT_PEM);
-	if (ret < 0)
-	{
-		gnutls_perror(ret);
-		return ret;
-	}
 	if (tls_conf->crlfile)
 	{
-		ret = gnutls_certificate_set_x509_crl_file(tls_conf->cert_cred,
-				tls_conf->crlfile, GNUTLS_X509_FMT_PEM);
-		if (ret < 0)
-		{
-			gnutls_perror(ret);
-			return ret;
-		}
+		CHECK_GNUTLS_DO( gnutls_certificate_set_x509_crl_file(tls_conf->cert_cred,
+				tls_conf->crlfile, GNUTLS_X509_FMT_PEM), return EINVAL );
 	}
 
-	ret = gnutls_certificate_set_x509_key_file(tls_conf->cert_cred,
-			tls_conf->certfile, tls_conf->keyfile, GNUTLS_X509_FMT_PEM);
-	if (ret < 0)
-	{
-		gnutls_perror(ret);
-		return ret;
-	}
+	CHECK_GNUTLS_DO( gnutls_certificate_set_x509_key_file(tls_conf->cert_cred,
+			tls_conf->certfile, tls_conf->keyfile, GNUTLS_X509_FMT_PEM), return EINVAL );
+
 	return 0;
 }
 
@@ -109,31 +86,19 @@ void diameap_tls_log(int lev, const char * text)
 	{
 	}
 	P8((msg+i),'\0');
-	fprintf(stderr, "[DiamEAP extension] [EAP TLS] GNUTLS log[%d] : %s\n", lev, msg);
+	fd_log_debug("%s[EAP-TLS] GNUTLS log[%d] : %s", DIAMEAP_EXTENSION, lev, msg);
 	free(msg);
 }
 
 int diameap_tls_init_session(struct tls_config * tls_conf,
 		struct tls_data * data)
 {
-	int ret;
-	ret = gnutls_init(&data->session, GNUTLS_SERVER);
-	if (ret < 0)
-	{
-		gnutls_perror(ret);
-	}
-	ret = gnutls_set_default_priority(data->session);
-	if (ret < 0)
-	{
-		gnutls_perror(ret);
-	}
+	CHECK_GNUTLS_DO( gnutls_init(&data->session, GNUTLS_SERVER), return EINVAL );
 
-	ret = gnutls_credentials_set(data->session, GNUTLS_CRD_CERTIFICATE,
-			tls_conf->cert_cred);
-	if (ret < 0)
-	{
-		gnutls_perror(ret);
-	}
+	CHECK_GNUTLS_DO( gnutls_set_default_priority(data->session), return EINVAL );
+
+	CHECK_GNUTLS_DO( gnutls_credentials_set(data->session, GNUTLS_CRD_CERTIFICATE,
+			tls_conf->cert_cred), return EINVAL);
 
 	/* request client certificate if any.
 	 */
@@ -146,7 +111,7 @@ int diameap_tls_init_session(struct tls_config * tls_conf,
 	/* starting version 2.12, this call is not needed */
 	//gnutls_transport_set_lowat(data->session, 0);
 	
-	return ret;
+	return 0;
 }
 
 ssize_t diameap_tls_receive(gnutls_transport_ptr_t ptr, void *buffer,
@@ -362,41 +327,48 @@ void diameap_tls_dump(struct tls_msg tlsmsg)
 	u32 len;
 	diameap_tls_get_data(tlsmsg, &data, &len);
 
-	fprintf(stderr, "-------------Dump EAP-TLS msg-------------\n");
+	char * buf = NULL;
+	size_t buflen = 0, bufoff = 0;
+
+	CHECK_MALLOC_DO( fd_dump_extend( &buf, &buflen, &bufoff, "-------------Dump EAP-TLS msg-------------\n"), );
+
 	u8 flags;
 	diameap_tls_get_flags(tlsmsg, &flags);
-	fprintf(stderr, "\t -flags       		: %02x ", flags);
+	CHECK_MALLOC_DO( fd_dump_extend( &buf, &buflen, &bufoff, "\t -flags       		: %02x ", flags), );
 	if (flags & TLS_FLAG_LENGTH)
-		fprintf(stderr, " TLS_FLAG_LENGTH ");
+		CHECK_MALLOC_DO( fd_dump_extend( &buf, &buflen, &bufoff, " TLS_FLAG_LENGTH "), );
 	if (flags & TLS_FLAG_MORE)
-		fprintf(stderr, " TLS_FLAG_MORE ");
+		CHECK_MALLOC_DO( fd_dump_extend( &buf, &buflen, &bufoff, " TLS_FLAG_MORE "), );
 	if (flags & TLS_FLAG_START)
-		fprintf(stderr, " TLS_FLAG_START ");
-	fprintf(stderr, "\n");
+		CHECK_MALLOC_DO( fd_dump_extend( &buf, &buflen, &bufoff, " TLS_FLAG_START "), );
+	CHECK_MALLOC_DO( fd_dump_extend( &buf, &buflen, &bufoff, "\n"), );
 	if ((tlsmsg.flags & TLS_FLAG_LENGTH) == TLS_FLAG_LENGTH)
 	{
 		u32 length;
 		diameap_tls_get_message_length(tlsmsg, &length);
-		fprintf(stderr, "\t -TLS msg length	: %u (0x%02x%02x%02x%02x)\n",
+		CHECK_MALLOC_DO( fd_dump_extend( &buf, &buflen, &bufoff, "\t -TLS msg length	: %u (0x%02x%02x%02x%02x)\n",
 				length, (length >> 24) & 0xffU, (length >> 16) & 0xffU, (length
-						>> 8) & 0xffU, length & 0xffU);
+						>> 8) & 0xffU, length & 0xffU), );
 	}
-	fprintf(stderr, "\t -data length		: %d \n", len);
+	CHECK_MALLOC_DO( fd_dump_extend( &buf, &buflen, &bufoff, "\t -data length		: %d \n", len), );
 	/*
 	if (len > 0)
 	{
 		int i;
-		fprintf(stderr, "\t -Data			: ");
+		CHECK_MALLOC_DO( fd_dump_extend( &buf, &buflen, &bufoff, "\t -Data			: "), );
 		for (i = 0; i < len; i++)
 		{
-			fprintf(stderr, "%02x ", G8(data + i));
+			CHECK_MALLOC_DO( fd_dump_extend( &buf, &buflen, &bufoff, "%02x ", G8(data + i)), );
 		}
-		fprintf(stderr, "\n");
+		CHECK_MALLOC_DO( fd_dump_extend( &buf, &buflen, &bufoff, "\n"), );
 	}
 	*/
-	fprintf(stderr, "-------------End Dump EAP-TLS msg-------------\n");
+	CHECK_MALLOC_DO( fd_dump_extend( &buf, &buflen, &bufoff, "-------------End Dump EAP-TLS msg-------------\n"), );
+
+	fd_log_debug("%s", buf ?: "Error dumping EAP-TLS msg");
 	
 	free(data);
+	free(buf);
 }
 
 int diameap_tls_initialize(struct tls_data * data)
@@ -467,20 +439,17 @@ int diameap_tls_process_receive(struct tls_data * data)
 		case GNUTLS_E_AGAIN:
 			break;
 		case GNUTLS_E_INTERRUPTED:
-			fprintf(stderr, "[DiamEAP extension] [EAP TLS] gnutls handshake : GNUTLS_E_INTERRUPTED");
+			fd_log_debug("%s[EAP-TLS] gnutls handshake : GNUTLS_E_INTERRUPTED: %s",
+				DIAMEAP_EXTENSION, gnutls_strerror(ret));
 			break;
 		case GNUTLS_E_GOT_APPLICATION_DATA:
-			fprintf(stderr,
-					"[DiamEAP extension] [EAP TLS] gnutls handshake : GNUTLS_E_GOT_APPLICATION_DATA");
+			fd_log_debug("%s[EAP-TLS] gnutls handshake : GNUTLS_E_GOT_APPLICATION_DATA: %s",
+				DIAMEAP_EXTENSION, gnutls_strerror(ret));
 			break;
 		case GNUTLS_E_WARNING_ALERT_RECEIVED:
-			fprintf(stderr,
-					"[DiamEAP extension] [EAP TLS] gnutls handshake : GNUTLS_E_WARNING_ALERT_RECEIVED");
+			fd_log_debug("%sEAP-TLS] gnutls handshake : GNUTLS_E_WARNING_ALERT_RECEIVED: %s",
+				DIAMEAP_EXTENSION, gnutls_strerror(ret));
 			break;
-		}
-		if (ret != GNUTLS_E_AGAIN)
-		{
-			gnutls_perror(ret);
 		}
 	}
 	if (ret == GNUTLS_E_SUCCESS)

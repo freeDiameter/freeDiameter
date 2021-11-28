@@ -107,12 +107,12 @@ CERTS_files :	CERTS '=' iSTRING ':' iSTRING ';'
 		certfile = $3;
 		keyfile = $5;
 		if(certfile == NULL){
-			TRACE_DEBUG(INFO,"%s[EAP TLS plugin] certificate file missing in configuration file",DIAMEAP_EXTENSION);
+			TRACE_DEBUG(INFO,"%s[EAP-TLS] certificate file missing in configuration file",DIAMEAP_EXTENSION);
 			yyerror (&yylloc, config, "cert file missing"); 
 			YYERROR;
 		}
 		if(keyfile == NULL){
-			TRACE_DEBUG(INFO,"%s[EAP TLS plugin] privateKey file missing in configuration file",DIAMEAP_EXTENSION);
+			TRACE_DEBUG(INFO,"%s[EAP-TLS] privateKey file missing in configuration file",DIAMEAP_EXTENSION);
 			yyerror (&yylloc, config, "privateKey file missing"); 
 			YYERROR;
 		}
@@ -128,7 +128,7 @@ CERTS_files :	CERTS '=' iSTRING ':' iSTRING ';'
 		}
 		if (fl == NULL) {
 			int ret = errno;
-			TRACE_DEBUG(INFO,"%s[EAP TLS plugin] Unable to open certificate file %s for reading: %s",DIAMEAP_EXTENSION,certfile,strerror(ret));
+			TRACE_DEBUG(INFO,"%s[EAP-TLS] Unable to open certificate file %s for reading: %s",DIAMEAP_EXTENSION,certfile,strerror(ret));
 			yyerror (&yylloc, config, "Error configuring certificate for EAP-TLS"); 
 			YYERROR;
 		}
@@ -145,7 +145,7 @@ CERTS_files :	CERTS '=' iSTRING ':' iSTRING ';'
 		}
 		if (fl == NULL) {
 			int ret = errno;
-			TRACE_DEBUG(INFO,"%s[EAP TLS plugin] Unable to open privateKey file %s for reading: %s",DIAMEAP_EXTENSION,keyfile,strerror(ret));
+			TRACE_DEBUG(INFO,"%s[EAP-TLS] Unable to open privateKey file %s for reading: %s",DIAMEAP_EXTENSION,keyfile,strerror(ret));
 			yyerror (&yylloc, config, "Error configuring privateKey for EAP-TLS"); 
 			YYERROR;
 		}
@@ -164,7 +164,7 @@ CA_file :	CAPATH '=' iSTRING ';'
 		cafile = $3;
 
 		if(cafile == NULL){
-			TRACE_DEBUG(INFO,"%s[EAP TLS plugin] CA file missing in configuration file",DIAMEAP_EXTENSION);
+			TRACE_DEBUG(INFO,"%s[EAP-TLS] CA file missing in configuration file",DIAMEAP_EXTENSION);
 			yyerror (&yylloc, config, "cert file missing"); 
 			YYERROR;
 		}
@@ -180,7 +180,7 @@ CA_file :	CAPATH '=' iSTRING ';'
 		}
 		if (fl == NULL) {
 			int ret = errno;
-			TRACE_DEBUG(INFO,"%s[EAP TLS plugin] Unable to open CA file %s for reading: %s",DIAMEAP_EXTENSION,cafile,strerror(ret));
+			TRACE_DEBUG(INFO,"%s[EAP-TLS] Unable to open CA file %s for reading: %s",DIAMEAP_EXTENSION,cafile,strerror(ret));
 			yyerror (&yylloc, config, "Error configuring CA file for EAP-TLS"); 
 			YYERROR;
 		}
@@ -197,7 +197,7 @@ CRL_file :	CRLPATH '=' iSTRING ';'
 		crlfile = $3;
 
 		if(crlfile == NULL){
-			TRACE_DEBUG(FULL+1,"%s[EAP TLS plugin] CRL file missing in configuration file",DIAMEAP_EXTENSION);
+			TRACE_DEBUG(FULL+1,"%s[EAP-TLS] CRL file missing in configuration file",DIAMEAP_EXTENSION);
 
 		}else{
 		
@@ -212,7 +212,7 @@ CRL_file :	CRLPATH '=' iSTRING ';'
 			}
 			if (fl == NULL) {
 				int ret = errno;
-				TRACE_DEBUG(INFO,"%s[EAP TLS plugin] Unable to open CRL file %s for reading: %s",DIAMEAP_EXTENSION,crlfile,strerror(ret));
+				TRACE_DEBUG(INFO,"%s[EAP-TLS] Unable to open CRL file %s for reading: %s",DIAMEAP_EXTENSION,crlfile,strerror(ret));
 				yyerror (&yylloc, config, "Error configuring CRL file for EAP-TLS"); 
 				YYERROR;
 			}
@@ -239,5 +239,6 @@ CHECK_CN_USERNAME_param :
 
 void yyerror(YYLTYPE *llocp, struct tls_config * config,const char *str)
 {
-         fprintf(stderr,"Error in %s ( on line %i column %i -> line %i column %i) : %s\n",config->conffile, llocp->first_line, llocp->first_column, llocp->last_line, llocp->last_column, str);
+         fd_log_error("%s[EAP-TLS] Error in %s ( on line %i column %i -> line %i column %i) : %s",
+		DIAMEAP_EXTENSION, config->conffile, llocp->first_line, llocp->first_column, llocp->last_line, llocp->last_column, str);
 }

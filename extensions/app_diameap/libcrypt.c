@@ -37,6 +37,7 @@
 
 
 #include "libcrypt.h"
+#include "libdiameap.h"
 
 int md5hash(void * buffer, int length, void * digest){
 
@@ -45,7 +46,7 @@ int md5hash(void * buffer, int length, void * digest){
 	gcry_md_open ( &md5_ctx, GCRY_MD_MD5, 0);
 
 	if(!gcry_md_is_enabled(md5_ctx, GCRY_MD_MD5)){
-		fprintf(stderr,"[libcrypt] unable to initiate MD5 hash algorithm.\n");
+		fd_log_debug("[libcrypt] unable to initiate MD5 hash algorithm.");
 	}
 
 	gcry_md_write(md5_ctx,buffer,length);

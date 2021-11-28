@@ -75,8 +75,9 @@ int eap_tls_configure(char * configfile)
 	eaptlsin = fopen(tls_global_conf.conffile, "r");
 	if (!eaptlsin)
 	{
-		TRACE_DEBUG(INFO,"%s[EAP TLS plugin] Unable to open configuration file %s for reading: %s",DIAMEAP_EXTENSION, tls_global_conf.conffile, strerror(errno));
-		return errno;
+		int serr = errno;
+		TRACE_DEBUG(INFO,"%s[EAP-TLS] Unable to open configuration file %s for reading: %s",DIAMEAP_EXTENSION, tls_global_conf.conffile, strerror(errno));
+		return serr;
 	}
 
 	/* call yacc parser */
@@ -159,7 +160,7 @@ boolean eap_tls_check(struct eap_state_machine *smd,
 		return TRUE;
 	}
 cf:
-	TRACE_DEBUG(INFO,"%s[EAP TLS plugin] EAP-TLS check failed: Received EAP packet with different EAP-Type (Type = %d)",DIAMEAP_EXTENSION, type);
+	TRACE_DEBUG(INFO,"%s[EAP-TLS] EAP-TLS check failed: Received EAP packet with different EAP-Type (Type = %d)",DIAMEAP_EXTENSION, type);
 	return FALSE;
 }
 
@@ -196,11 +197,11 @@ int eap_tls_process(struct eap_state_machine *smd,
 					gnutls_x509_crt_t cert;
 		
 					CHECK_GNUTLS_DO(gnutls_x509_crt_init(&cert),{
-						TRACE_DEBUG(NONE,"%s[EAP TLS plugin] [GnuTLS] error in initialization crt init",DIAMEAP_EXTENSION);
+						TRACE_DEBUG(NONE,"%s[EAP-TLS] [GnuTLS] error in initialization crt init",DIAMEAP_EXTENSION);
 						goto failure;});
 					
 					CHECK_GNUTLS_DO(gnutls_x509_crt_import(cert, &list[0], GNUTLS_X509_FMT_DER), {
-						TRACE_DEBUG(NONE,"%s[EAP TLS plugin] [GnuTLS] error parsing certificate",DIAMEAP_EXTENSION);
+						TRACE_DEBUG(NONE,"%s[EAP-TLS] [GnuTLS] error parsing certificate",DIAMEAP_EXTENSION);
 						goto failure;});
 
 					void * buff;
@@ -209,14 +210,14 @@ int eap_tls_process(struct eap_state_machine *smd,
 					ret = gnutls_x509_crt_get_dn_by_oid(cert,GNUTLS_OID_X520_COMMON_NAME,0,0,NULL,&size_buffer);
 					if( ret != GNUTLS_E_SHORT_MEMORY_BUFFER){
 						CHECK_GNUTLS_DO(ret,{
-							TRACE_DEBUG(NONE,"%s[EAP TLS plugin] [GnuTLS] error get dn by oid",DIAMEAP_EXTENSION);
+							TRACE_DEBUG(NONE,"%s[EAP-TLS] [GnuTLS] error get dn by oid",DIAMEAP_EXTENSION);
 							goto failure;});
 					}
 
 					CHECK_MALLOC_DO(buff=malloc(size_buffer), goto failure);
 
 					CHECK_GNUTLS_DO(gnutls_x509_crt_get_dn_by_oid(cert,GNUTLS_OID_X520_COMMON_NAME,0,0,buff,&size_buffer),{
-						TRACE_DEBUG(NONE,"%s[EAP TLS plugin] [GnuTLS] error get dn by oid",DIAMEAP_EXTENSION);
+						TRACE_DEBUG(NONE,"%s[EAP-TLS] [GnuTLS] error get dn by oid",DIAMEAP_EXTENSION);
 						goto failure;});
 
 					if(strncmp((char *)smd->user.userid,buff,smd->user.useridLength)!=0){
@@ -227,7 +228,7 @@ int eap_tls_process(struct eap_state_machine *smd,
 					goto next;
 
 					failure:
-					TRACE_DEBUG(NONE,"%s[EAP TLS plugin] Checking failed. certificate's CN does not match User_Name AVP value.",DIAMEAP_EXTENSION);
+					TRACE_DEBUG(NONE,"%s[EAP-TLS] Checking failed. certificate's CN does not match User_Name AVP value.",DIAMEAP_EXTENSION);
 					data->state = FAILURE;
 					smd->user.success = FALSE;
 					gnutls_x509_crt_deinit(cert);

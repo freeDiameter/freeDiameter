@@ -118,7 +118,7 @@
 	
 <*>[[:alnum:]]+	 |					 
 <*>.	{ 
-				fprintf(stderr,"Unrecognized input text '%s'( on line %i column %i )\n", yytext, yylloc->first_line, yylloc->first_column); 
+				fd_log_debug("%sUnrecognized input text '%s'( on line %i column %i )", DIAMEAP_EXTENSION, yytext, yylloc->first_line, yylloc->first_column);
 			 	return LEX_ERROR; 
 			}
 
