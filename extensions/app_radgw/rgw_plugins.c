@@ -187,7 +187,7 @@ int rgw_plg_add( char * plgfile, char * conffile, int type, unsigned char ** cod
 	new->dlo = dlopen(plgfile, RTLD_NOW | RTLD_GLOBAL);
 	if (new->dlo == NULL) {
 		/* An error occured */
-		fd_log_debug("Loading of plugin '%s' failed: %s", plgfile, dlerror());
+		fd_log_error("Loading of app_radgw plugin '%s' failed: %s", plgfile, dlerror());
 		goto error;
 	}
 	
@@ -195,7 +195,7 @@ int rgw_plg_add( char * plgfile, char * conffile, int type, unsigned char ** cod
 	new->descriptor = dlsym( new->dlo, "rgwp_descriptor" );
 	if (new->descriptor == NULL) {
 		/* An error occured */
-		fd_log_debug("Unable to resolve 'rgwp_descriptor' in plugin '%s': %s", plgfile, dlerror());
+		fd_log_error("Unable to resolve 'rgwp_descriptor' in app_radgw plugin '%s': %s", plgfile, dlerror());
 		goto error;
 	}
 	
@@ -205,7 +205,7 @@ int rgw_plg_add( char * plgfile, char * conffile, int type, unsigned char ** cod
 	if (new->descriptor->rgwp_conf_parse) {
 		CHECK_FCT_DO( (*(new->descriptor->rgwp_conf_parse))(conffile, &new->cs), 
 			{
-				fd_log_debug("An error occurred while parsing configuration file '%s' in plugin '%s', aborting...", conffile, plgfile);
+				fd_log_error("An error occurred while parsing configuration file '%s' in app_radgw plugin '%s', aborting...", conffile ? conffile : "", plgfile);
 				goto error;
 			} );
 	}
