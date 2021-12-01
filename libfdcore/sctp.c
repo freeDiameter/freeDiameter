@@ -1108,6 +1108,9 @@ stop:
 	return 0;
 }
 
+#define FD_SCTP_UNSECURED_DIAMETER_PPID 46
+#define FD_SCTP_SECURED_DIAMETER_PPID 47
+
 /* Send a vector over a specified stream */
 ssize_t fd_sctp_sendstrv(struct cnxctx * conn, uint16_t strid, const struct iovec *iov, int iovcnt)
 {
@@ -1138,10 +1141,18 @@ ssize_t fd_sctp_sendstrv(struct cnxctx * conn, uint16_t strid, const struct iove
 	hdr->cmsg_type  = SCTP_SNDRCV;
 	sndrcv = (struct sctp_sndrcvinfo *)CMSG_DATA(hdr);
 	sndrcv->sinfo_stream = strid;
+	if (!fd_cnx_teststate(conn, CC_STATUS_TLS))
+		sndrcv->sinfo_ppid = htonl(FD_SCTP_UNSECURED_DIAMETER_PPID);
+	else
+		sndrcv->sinfo_ppid = htonl(FD_SCTP_SECURED_DIAMETER_PPID);
 #else /* OLD_SCTP_SOCKET_API */
 	hdr->cmsg_type  = SCTP_SNDINFO;
 	sndinf = (struct sctp_sndinfo *)CMSG_DATA(hdr);
 	sndinf->snd_sid = strid;
+	if (!fd_cnx_teststate(conn, CC_STATUS_TLS))
+		sndinf->snd_ppid = htonl(FD_SCTP_UNSECURED_DIAMETER_PPID);
+	else
+		sndinf->snd_ppid = htonl(FD_SCTP_SECURED_DIAMETER_PPID);
 #endif /* OLD_SCTP_SOCKET_API */
 	/* note : we could store other data also, for example in .sinfo_ppid for remote peer or in .sinfo_context for errors. */
 	
