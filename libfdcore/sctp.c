@@ -1108,6 +1108,9 @@ stop:
 	return 0;
 }
 
+#define FD_SCTP_UNSECURED_DIAMETER_PPID 46
+#define FD_SCTP_SECURED_DIAMETER_PPID 47
+
 /* Send a vector over a specified stream */
 ssize_t fd_sctp_sendstrv(struct cnxctx * conn, uint16_t strid, const struct iovec *iov, int iovcnt)
 {
@@ -1134,8 +1137,6 @@ ssize_t fd_sctp_sendstrv(struct cnxctx * conn, uint16_t strid, const struct iove
 	hdr = (struct cmsghdr *)anci;
 	hdr->cmsg_len   = sizeof(anci);
 	hdr->cmsg_level = IPPROTO_SCTP;
-#define FD_SCTP_UNSECURED_DIAMETER_PPID 46
-#define FD_SCTP_SECURED_DIAMETER_PPID 47
 #ifdef OLD_SCTP_SOCKET_API
 	hdr->cmsg_type  = SCTP_SNDRCV;
 	sndrcv = (struct sctp_sndrcvinfo *)CMSG_DATA(hdr);
