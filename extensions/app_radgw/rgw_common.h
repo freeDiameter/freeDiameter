@@ -61,6 +61,8 @@ char * rgw_clients_id(struct rgw_client *cli);
 int    rgw_clients_get_origin(struct rgw_client *cli, DiamId_t *fqdn, size_t *fqdnlen, DiamId_t *realm, size_t *realmlen);
 
 /* Each plugin must provide the following structure. */
+
+__attribute__((visibility("default")))
 extern struct rgw_api {
 	/* The name of the plugin */
 	const char * rgwp_name;
