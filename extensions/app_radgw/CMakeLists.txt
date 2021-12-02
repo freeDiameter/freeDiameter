@@ -35,6 +35,10 @@ SET( RG_COMMON_HEADER
 # Compile these files as a freeDiameter extension.
 FD_ADD_EXTENSION(app_radgw ${RGW_DEFAULT_SRC} ${RG_COMMON_HEADER})
 
+# Expose all symbols for *.rgwx plugins.
+SET_TARGET_PROPERTIES(app_radgw PROPERTIES C_VISIBILITY_PRESET default)
+SET_TARGET_PROPERTIES(app_radgw PROPERTIES CXX_VISIBILITY_PRESET default)
+
 
 ########### RADIUS/Diameter translation agent plugins (support for RADIUS protocol) ############
 # Use the macro RGWX_ADD_PLUGIN(name files...) to create a plugin.
@@ -80,7 +84,7 @@ FD_OPTION_PLUGIN(RGWX_DEBUG "Build debug plugin? (display status of RADIUS and D
 ### Authentication, Authorization messages translation.
 FD_OPTION_PLUGIN(RGWX_AUTH "Build Authentication & Authorization RADIUS translation plugin? (RFC2865, RFC3579)" ON)
 	IF (RGWX_AUTH)
-	   RGWX_ADD_PLUGIN(auth ${RG_COMMON_HEADER} rgwx_auth.c radius.c md5.c rgw_msg_codes.c rgw_msg_attrtype.c rgw_clients.c rgw_plugins.c rgw_servers.c rgw_worker.c)
+ 	   RGWX_ADD_PLUGIN(auth ${RG_COMMON_HEADER} rgwx_auth.c)
 	ENDIF (RGWX_AUTH)
 
 ### SIP Authentication, Authorization messages translation.
@@ -94,7 +98,7 @@ FD_OPTION_PLUGIN(RGWX_SIP "Build SIP RADIUS translation plugin? (RFC4740 or RFC5
 ### Accounting messages translation.
 FD_OPTION_PLUGIN(RGWX_ACCT "Build Accounting RADIUS translation plugin? (RFC2866)" ON)
 	IF (RGWX_ACCT)
- 	   RGWX_ADD_PLUGIN(acct ${RG_COMMON_HEADER} rgwx_acct.c radius.c md5.c rgw_msg_codes.c rgw_msg_attrtype.c rgw_clients.c rgw_plugins.c rgw_servers.c rgw_worker.c)
+ 	   RGWX_ADD_PLUGIN(acct ${RG_COMMON_HEADER} rgwx_acct.c)
 	ENDIF (RGWX_ACCT)
 
 
@@ -104,7 +108,7 @@ FD_OPTION_PLUGIN(RGWX_ECHODROP "Build 'echo/drop' plugin? (drop specific RADIUS 
   	   BISON_FILE(rgwx_echodrop.y)
   	   FLEX_FILE(rgwx_echodrop.l)
   	   SET_SOURCE_FILES_PROPERTIES(lex.rgwx_echodrop.c rgwx_echodrop.tab.c PROPERTIES COMPILE_FLAGS "-I ${CMAKE_CURRENT_SOURCE_DIR}")
- 	   RGWX_ADD_PLUGIN(echodrop ${RG_COMMON_HEADER} rgwx_echodrop.h rgwx_echodrop.c lex.rgwx_echodrop.c rgwx_echodrop.tab.c rgwx_echodrop.tab.h radius.c md5.c rgw_msg_codes.c rgw_msg_attrtype.c)
+ 	   RGWX_ADD_PLUGIN(echodrop ${RG_COMMON_HEADER} rgwx_echodrop.h rgwx_echodrop.c lex.rgwx_echodrop.c rgwx_echodrop.tab.c rgwx_echodrop.tab.h )
   	ENDIF (RGWX_ECHODROP)
 	
 	
