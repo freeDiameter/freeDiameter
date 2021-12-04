@@ -123,7 +123,7 @@ EAPmethod :	EAPMETHOD '=' iSTRING ':' NUM ':' NUM ':' iSTRING ':' iSTRING ';'
 		}
 		if (fl == NULL) {
 			int ret = errno;
-			TRACE_DEBUG(INFO, "Unable to open %s plugin file %s for reading: %s", $3, infile, strerror(ret));
+			fd_log_error("Unable to open %s plugin file '%s' for reading: %s", $3, infile, strerror(ret));
 			yyerror (&yylloc, config, "Error adding EAP Plugin"); 
 			YYERROR;
 		}
