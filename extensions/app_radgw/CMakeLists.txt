@@ -73,20 +73,20 @@ FD_OPTION_PLUGIN(RGWX_SAMPLE "Build sample plugin? (for developers only)" OFF)
 # A plugin for debug: dumps RADIUS and Diameter messages state at the time the plugin is called.
 FD_OPTION_PLUGIN(RGWX_DEBUG "Build debug plugin? (display status of RADIUS and Diameter messages)" ON)
  	IF (RGWX_DEBUG)
- 	   RGWX_ADD_PLUGIN(debug ${RG_COMMON_HEADER} rgwx_debug.c)
+ 	   RGWX_ADD_PLUGIN(debug ${RG_COMMON_HEADER} rgwx_debug.c ${RGW_DEFAULT_SRC})
  	ENDIF (RGWX_DEBUG)
 
 
 ### Authentication, Authorization messages translation.
 FD_OPTION_PLUGIN(RGWX_AUTH "Build Authentication & Authorization RADIUS translation plugin? (RFC2865, RFC3579)" ON)
 	IF (RGWX_AUTH)
- 	   RGWX_ADD_PLUGIN(auth ${RG_COMMON_HEADER} rgwx_auth.c)
+ 	   RGWX_ADD_PLUGIN(auth ${RG_COMMON_HEADER} rgwx_auth.c ${RGW_DEFAULT_SRC})
 	ENDIF (RGWX_AUTH)
 
 ### SIP Authentication, Authorization messages translation.
 FD_OPTION_PLUGIN(RGWX_SIP "Build SIP RADIUS translation plugin? (RFC4740 or RFC5090)" OFF)
         IF (RGWX_SIP)
-           RGWX_ADD_PLUGIN(sip ${RG_COMMON_HEADER} rgwx_sip.c)
+           RGWX_ADD_PLUGIN(sip ${RG_COMMON_HEADER} rgwx_sip.c ${RGW_DEFAULT_SRC})
         ENDIF (RGWX_SIP)
 
 
@@ -94,7 +94,7 @@ FD_OPTION_PLUGIN(RGWX_SIP "Build SIP RADIUS translation plugin? (RFC4740 or RFC5
 ### Accounting messages translation.
 FD_OPTION_PLUGIN(RGWX_ACCT "Build Accounting RADIUS translation plugin? (RFC2866)" ON)
 	IF (RGWX_ACCT)
- 	   RGWX_ADD_PLUGIN(acct ${RG_COMMON_HEADER} rgwx_acct.c)
+ 	   RGWX_ADD_PLUGIN(acct ${RG_COMMON_HEADER} rgwx_acct.c ${RGW_DEFAULT_SRC})
 	ENDIF (RGWX_ACCT)
 
 
@@ -104,7 +104,7 @@ FD_OPTION_PLUGIN(RGWX_ECHODROP "Build 'echo/drop' plugin? (drop specific RADIUS 
   	   BISON_FILE(rgwx_echodrop.y)
   	   FLEX_FILE(rgwx_echodrop.l)
   	   SET_SOURCE_FILES_PROPERTIES(lex.rgwx_echodrop.c rgwx_echodrop.tab.c PROPERTIES COMPILE_FLAGS "-I ${CMAKE_CURRENT_SOURCE_DIR}")
- 	   RGWX_ADD_PLUGIN(echodrop ${RG_COMMON_HEADER} rgwx_echodrop.h rgwx_echodrop.c lex.rgwx_echodrop.c rgwx_echodrop.tab.c rgwx_echodrop.tab.h )
+ 	   RGWX_ADD_PLUGIN(echodrop ${RG_COMMON_HEADER} rgwx_echodrop.h rgwx_echodrop.c lex.rgwx_echodrop.c rgwx_echodrop.tab.c rgwx_echodrop.tab.h ${RGW_DEFAULT_SRC})
   	ENDIF (RGWX_ECHODROP)
 	
 	
