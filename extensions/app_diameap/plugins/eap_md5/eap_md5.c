@@ -83,6 +83,11 @@ int eap_md5_init(struct eap_state_machine *smd)
 	return 0;
 }
 
+int eap_md5_initPickUp(struct eap_state_machine *smd)
+{
+	return 0;
+}
+
 
 int eap_md5_buildReq(struct eap_state_machine *smd, u8 id,
 		struct eap_packet * eapPacket)

@@ -13,6 +13,8 @@ EAP_ADD_METHOD(eap_tls
     lex.eaptls.c
     eaptls.tab.c
     eaptls.tab.h
+    ../../diameap_tls.c
+    ../../diameap_tls.h
     )
 
 TARGET_LINK_LIBRARIES(eap_tls ${GNUTLS_LIBRARIES})

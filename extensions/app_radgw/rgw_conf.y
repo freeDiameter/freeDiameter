@@ -68,7 +68,7 @@ int rgw_conf_handle(char * conffile)
 	rgw_confin = fopen(conffile, "r");
 	if (rgw_confin == NULL) {
 		ret = errno;
-		fd_log_debug("Unable to open extension configuration file %s for reading: %s", conffile, strerror(ret));
+		fd_log_error("Unable to open app_radgw extension configuration file %s for reading: %s", conffile, strerror(ret));
 		return ret;
 	}
 
@@ -90,11 +90,11 @@ int rgw_conflex(YYSTYPE *lvalp, YYLTYPE *llocp);
 void yyerror (YYLTYPE *ploc, char * conffile, char const *s)
 {
 	if (ploc->first_line != ploc->last_line)
-		fd_log_debug("%s:%d.%d-%d.%d : %s", conffile, ploc->first_line, ploc->first_column, ploc->last_line, ploc->last_column, s);
+		fd_log_error("%s:%d.%d-%d.%d : %s", conffile, ploc->first_line, ploc->first_column, ploc->last_line, ploc->last_column, s);
 	else if (ploc->first_column != ploc->last_column)
-		fd_log_debug("%s:%d.%d-%d : %s", conffile, ploc->first_line, ploc->first_column, ploc->last_column, s);
+		fd_log_error("%s:%d.%d-%d : %s", conffile, ploc->first_line, ploc->first_column, ploc->last_column, s);
 	else
-		fd_log_debug("%s:%d.%d : %s", conffile, ploc->first_line, ploc->first_column, s);
+		fd_log_error("%s:%d.%d : %s", conffile, ploc->first_line, ploc->first_column, s);
 }
 
 /* Very simple byte stack management */
@@ -198,7 +198,7 @@ FINDFILEEXT:		QSTRING
 				if (fd == NULL) {
 					int ret = errno;
 					TRACE_DEBUG(INFO, "Unable to open file %s for reading: %s", fname, strerror(ret));
-					yyerror (&yylloc, conffile, "Error adding plugin"); 
+					yyerror (&yylloc, conffile, "Error adding app_radgw plugin");
 					YYERROR;
 				}
 				fclose(fd);
@@ -217,7 +217,7 @@ plugin:			{
 			{
 				/* Add this extension in the list */
 				if ( rgw_plg_add( $4, plgconffile, port, &buf, buf_sz ) ) {
-					yyerror (&yylloc, conffile, "Error parsing / adding extension !");
+					yyerror (&yylloc, conffile, "Error parsing / adding app_radgw plugin !");
 					YYERROR;
 				}
 				

@@ -530,6 +530,9 @@ int fd_cnx_getremoteeps(struct cnxctx * conn, struct fd_list * eps)
 	/* Check we have a full connection object, not a listening socket (with no remote) */
 	CHECK_PARAMS( conn->cc_incoming );
 
+	/* Delete any previous endpoint information discovered from link only */
+	CHECK_FCT_DO( fd_ep_filter( eps, EP_FL_CONF | EP_FL_DISC | EP_FL_ADV ), /* ignore the error */);
+
 	/* Retrieve the peer endpoint(s) of the connection */
 	switch (conn->cc_proto) {
 		case IPPROTO_TCP: {

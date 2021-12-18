@@ -123,7 +123,7 @@ EAPmethod :	EAPMETHOD '=' iSTRING ':' NUM ':' NUM ':' iSTRING ':' iSTRING ';'
 		}
 		if (fl == NULL) {
 			int ret = errno;
-			TRACE_DEBUG(INFO, "Unable to open %s plugin file %s for reading: %s", $3, infile, strerror(ret));
+			fd_log_error("Unable to open %s plugin file '%s' for reading: %s", $3, infile, strerror(ret));
 			yyerror (&yylloc, config, "Error adding EAP Plugin"); 
 			YYERROR;
 		}
@@ -190,5 +190,5 @@ Check_User_Identity: CHECK_USER_IDENTITY '=' NUM ';'
 
 void yyerror(YYLTYPE *llocp, struct diameap_conf * config,const char *str)
 {
-         fprintf(stderr,"Error in %s ( on line %i column %i -> line %i column %i) : %s\n",config->conffile, llocp->first_line, llocp->first_column, llocp->last_line, llocp->last_column, str);
+         fd_log_error("%sError in %s ( on line %i column %i -> line %i column %i) : %s", DIAMEAP_EXTENSION, config->conffile, llocp->first_line, llocp->first_column, llocp->last_line, llocp->last_column, str);
 }

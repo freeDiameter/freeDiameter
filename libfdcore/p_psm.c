@@ -358,6 +358,8 @@ void fd_psm_cleanup(struct fd_peer * peer, int terminate)
 		CHECK_FCT_DO( fd_psm_change_state(peer, STATE_CLOSED), /* continue */ );
 	}
 
+	fd_p_sr_on_disconnect(&peer->p_sr);
+
 	fd_p_cnx_abort(peer, terminate);
 
 	fd_p_ce_clear_cnx(peer, NULL);

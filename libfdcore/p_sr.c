@@ -348,3 +348,25 @@ void fd_p_sr_failover(struct sr_list * srlist)
 	CHECK_FCT_DO( fd_thr_term(&srlist->thr), /* ignore error */ );
 }
 
+
+/* free non-routable messages when connection is lost */
+void fd_p_sr_on_disconnect(struct sr_list * srlist)
+{
+	CHECK_POSIX_DO( pthread_mutex_lock(&srlist->mtx), /* continue anyway */ );
+	struct fd_list * l = &srlist->srs;
+	while (l->next != &srlist->srs) {
+		struct sentreq * n = (struct sentreq *)(l->next);
+		if (fd_msg_is_routable(n->req)) {
+			// avance
+			l = (struct fd_list*)n;
+			continue;
+		}
+		// unlink and free the next
+		fd_list_unlink(&n->chain);
+		srlist->cnt--;
+		fd_list_unlink(&n->expire);
+		CHECK_FCT_DO(fd_msg_free(n->req), /* Ignore */);
+		free(n);
+	}
+	CHECK_POSIX_DO( pthread_mutex_unlock(&srlist->mtx), /* continue anyway */ );
+}

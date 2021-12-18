@@ -118,7 +118,7 @@ int diameap_plugin_load(void)
 		plugin->handler = dlopen(plugin->pluginfile, RTLD_LAZY | RTLD_GLOBAL);
 		if (plugin->handler == NULL)
 		{
-			TRACE_DEBUG(INFO, "%sLoading of plugin %s failed: %s",DIAMEAP_EXTENSION,
+			fd_log_error("%sLoading of plugin %s failed: %s",DIAMEAP_EXTENSION,
 					plugin->methodname, dlerror());
 			return EINVAL;
 		}
@@ -128,16 +128,15 @@ int diameap_plugin_load(void)
 				"diameap_plugin_register");
 		if (!diameap_plugin_register)
 		{
-			TRACE_DEBUG(INFO,
-					"%s[%s plugin] Unable to register EAP method: %s.",DIAMEAP_EXTENSION,
+			fd_log_error("%s[%s plugin] Unable to register EAP method: %s.",DIAMEAP_EXTENSION,
 					plugin->methodname, dlerror());
 			return EINVAL;
 		}
 
 		if ((*diameap_plugin_register)() != 0)
 		{
-			TRACE_DEBUG(INFO,
-					"%s[%s plugin] Unable to register EAP method plugin",DIAMEAP_EXTENSION,plugin->methodname);
+			fd_log_error("%s[%s plugin] Unable to register EAP method plugin",DIAMEAP_EXTENSION,plugin->methodname);
+			return EINVAL;
 		}
 
 		int (*diameap_plugin_objects)(struct register_plugin **);
@@ -146,8 +145,7 @@ int diameap_plugin_load(void)
 				plugin->handler, "diameap_plugin_objects");
 		if (!diameap_plugin_objects)
 		{
-			TRACE_DEBUG(INFO,
-					"%s[%s plugin] Unable to resolve symbol of the plugin: %s",DIAMEAP_EXTENSION,
+			fd_log_error("%s[%s plugin] Unable to resolve symbol of the plugin: %s",DIAMEAP_EXTENSION,
 					plugin->methodname, dlerror());
 			return EINVAL;
 		}
@@ -155,30 +153,28 @@ int diameap_plugin_load(void)
 		if ((*diameap_plugin_objects)(&registerplugin) != 0)
 		{
 
-			TRACE_DEBUG(
-					INFO,
-					"%s[%s plugin] Unable to get objects description from the plug-in: %s",DIAMEAP_EXTENSION,
+			fd_log_error("%s[%s plugin] Unable to get objects description from the plug-in: %s",DIAMEAP_EXTENSION,
 					plugin->methodname, dlerror());
 			return EINVAL;
 		}
 
-		/* eap_method_configure method */
+		/* (Optional) eap_method_configure method */
 		if (registerplugin->configure)
 		{
 			plugin->eap_method_configure = (int(*)(char *)) dlsym(
 					plugin->handler, registerplugin->configure);
 			if (plugin->eap_method_configure == NULL)
 			{
-				TRACE_DEBUG(
-						INFO,
-						"%s[%s plugin] Unable to resolve symbol for 'eap_method_configure': %s",DIAMEAP_EXTENSION,
+				fd_log_error("%s[%s plugin] Unable to resolve symbol for 'eap_method_configure': %s",DIAMEAP_EXTENSION,
 						plugin->methodname, dlerror());
+				return EINVAL;
 			}
 		}
 		else
 		{
 			plugin->eap_method_configure = NULL;
 			TRACE_DEBUG(FULL+1,"%s[%s plugin] Unavailable function 'eap_method_configure'",DIAMEAP_EXTENSION, plugin->methodname);
+			/* eap_method_configure is optional - not fatal */
 		}
 
 		/* eap_method_init method */
@@ -189,9 +185,7 @@ int diameap_plugin_load(void)
 							plugin->handler, registerplugin->init);
 			if (plugin->eap_method_init == NULL)
 			{
-				TRACE_DEBUG(
-						INFO,
-						"%s[%s plugin] Unable to resolve symbol for 'eap_method_init': %s",DIAMEAP_EXTENSION,
+				fd_log_error("%s[%s plugin] Unable to resolve symbol for 'eap_method_init': %s",DIAMEAP_EXTENSION,
 						plugin->methodname, dlerror());
 				return EINVAL;
 			}
@@ -199,7 +193,7 @@ int diameap_plugin_load(void)
 		else
 		{
 			plugin->eap_method_init = NULL;
-			TRACE_DEBUG(INFO,"%s[%s plugin] Unavailable function 'eap_method_init'",DIAMEAP_EXTENSION, plugin->methodname);
+			fd_log_error("%s[%s plugin] Unavailable function 'eap_method_init'",DIAMEAP_EXTENSION, plugin->methodname);
 			return EINVAL;
 		}
 
@@ -209,11 +203,18 @@ int diameap_plugin_load(void)
 			plugin->eap_method_initPickUp
 					= (int(*)(struct eap_state_machine *)) dlsym(
 							plugin->handler, registerplugin->initPickUp);
+			if (plugin->eap_method_initPickUp == NULL)
+			{
+				fd_log_error("%s[%s plugin] Unable to resolve symbol for 'eap_method_initPickUp': %s",DIAMEAP_EXTENSION,
+						plugin->methodname, dlerror());
+				return EINVAL;
+			}
 		}
 		else
 		{
 			plugin->eap_method_initPickUp = NULL;
-			TRACE_DEBUG(FULL+1,"%s[%s plugin] Unavailable function 'eap_method_initPickUp'",DIAMEAP_EXTENSION, plugin->methodname);
+			fd_log_error("%s[%s plugin] Unavailable function 'eap_method_initPickUp'",DIAMEAP_EXTENSION, plugin->methodname);
+			return EINVAL;
 		}
 
 		/* eap_method_buildReq method */
@@ -224,9 +225,7 @@ int diameap_plugin_load(void)
 					registerplugin->buildReq);
 			if (plugin->eap_method_buildReq == NULL)
 			{
-				TRACE_DEBUG(
-						INFO,
-						"%s[%s plugin] Unable to resolve symbol for 'eap_method_buildReq': %s",DIAMEAP_EXTENSION,
+				fd_log_error("%s[%s plugin] Unable to resolve symbol for 'eap_method_buildReq': %s",DIAMEAP_EXTENSION,
 						plugin->methodname, dlerror());
 				return EINVAL;
 			}
@@ -234,20 +233,18 @@ int diameap_plugin_load(void)
 		else
 		{
 			plugin->eap_method_buildReq = NULL;
-			TRACE_DEBUG(INFO,"%s[%s plugin] Unavailable function 'eap_method_buildReq'",DIAMEAP_EXTENSION, plugin->methodname);
+			fd_log_error("%s[%s plugin] Unavailable function 'eap_method_buildReq'",DIAMEAP_EXTENSION, plugin->methodname);
 			return EINVAL;
 		}
 
-		/* eap_method_getTimeout method */
+		/* (Optional) eap_method_getTimeout method */
 		if (registerplugin->getTimeout)
 		{
 			plugin->eap_method_getTimeout = (int(*)(struct eap_state_machine *,
 					int *)) dlsym(plugin->handler, registerplugin->getTimeout);
 			if (plugin->eap_method_getTimeout == NULL)
 			{
-				TRACE_DEBUG(
-						INFO,
-						"%s[%s plugin] Unable to resolve symbol for 'eap_method_getTimeout': %s",DIAMEAP_EXTENSION,
+				fd_log_error("%s[%s plugin] Unable to resolve symbol for 'eap_method_getTimeout': %s",DIAMEAP_EXTENSION,
 						plugin->methodname, dlerror());
 				return EINVAL;
 			}
@@ -255,7 +252,8 @@ int diameap_plugin_load(void)
 		else
 		{
 			plugin->eap_method_getTimeout = NULL;
-			TRACE_DEBUG(FULL+1,"%s[%s plugin] Unavailable function  'eap_method_getTimeout'",DIAMEAP_EXTENSION, plugin->methodname);
+			TRACE_DEBUG(FULL+1,"%s[%s plugin] Unavailable function 'eap_method_getTimeout'",DIAMEAP_EXTENSION, plugin->methodname);
+			/* eap_method_getTimeout is optional - not fatal */
 		}
 
 		/* eap_method_check method */
@@ -266,9 +264,7 @@ int diameap_plugin_load(void)
 					registerplugin->check);
 			if (plugin->eap_method_check == NULL)
 			{
-				TRACE_DEBUG(
-						INFO,
-						"%s[%s plugin] Unable to resolve symbol for 'eap_method_check': %s",DIAMEAP_EXTENSION,
+				fd_log_error("%s[%s plugin] Unable to resolve symbol for 'eap_method_check': %s",DIAMEAP_EXTENSION,
 						plugin->methodname, dlerror());
 				return EINVAL;
 			}
@@ -276,7 +272,7 @@ int diameap_plugin_load(void)
 		else
 		{
 			plugin->eap_method_check = NULL;
-			TRACE_DEBUG(INFO,"%s[%s plugin] Unavailable function 'eap_method_check'",DIAMEAP_EXTENSION, plugin->methodname);
+			fd_log_error("%s[%s plugin] Unavailable function 'eap_method_check'",DIAMEAP_EXTENSION, plugin->methodname);
 			return EINVAL;
 		}
 
@@ -288,9 +284,7 @@ int diameap_plugin_load(void)
 					registerplugin->process);
 			if (plugin->eap_method_process == NULL)
 			{
-				TRACE_DEBUG(
-						INFO,
-						"%s[%s plugin] Unable to resolve symbol for 'eap_method_process': %s",DIAMEAP_EXTENSION,
+				fd_log_error("%s[%s plugin] Unable to resolve symbol for 'eap_method_process': %s",DIAMEAP_EXTENSION,
 						plugin->methodname, dlerror());
 				return EINVAL;
 			}
@@ -298,7 +292,7 @@ int diameap_plugin_load(void)
 		else
 		{
 			plugin->eap_method_process = NULL;
-			TRACE_DEBUG(INFO,"%s[%s plugin] Unavailable function 'eap_method_process'",DIAMEAP_EXTENSION, plugin->methodname);
+			fd_log_error("%s[%s plugin] Unavailable function 'eap_method_process'",DIAMEAP_EXTENSION, plugin->methodname);
 			return EINVAL;
 		}
 
@@ -310,9 +304,7 @@ int diameap_plugin_load(void)
 							plugin->handler, registerplugin->isDone);
 			if (plugin->eap_method_isDone == NULL)
 			{
-				TRACE_DEBUG(
-						INFO,
-						"%s[%s plugin] Unable to resolve symbol for 'eap_method_isDone': %s",DIAMEAP_EXTENSION,
+				fd_log_error("%s[%s plugin] Unable to resolve symbol for 'eap_method_isDone': %s",DIAMEAP_EXTENSION,
 						plugin->methodname, dlerror());
 				return EINVAL;
 			}
@@ -320,20 +312,18 @@ int diameap_plugin_load(void)
 		else
 		{
 			plugin->eap_method_isDone = NULL;
-			TRACE_DEBUG(INFO,"%s[%s plugin] Unavailable function 'eap_method_isDone'",DIAMEAP_EXTENSION, plugin->methodname);
+			fd_log_error("%s[%s plugin] Unavailable function 'eap_method_isDone'",DIAMEAP_EXTENSION, plugin->methodname);
 			return EINVAL;
 		}
 
-		/* eap_method_getKey method */
+		/* (Optional) eap_method_getKey method */
 		if (registerplugin->getKey)
 		{
 			plugin->eap_method_getKey = (int(*)(struct eap_state_machine *,
 					u8**, int*,u8**, int*)) dlsym(plugin->handler, registerplugin->getKey);
 			if (plugin->eap_method_getKey == NULL)
 			{
-				TRACE_DEBUG(
-						INFO,
-						"%s[%s plugin] Unable to resolve symbol for 'eap_method_getKey': %s",DIAMEAP_EXTENSION,
+				fd_log_error("%s[%s plugin] Unable to resolve symbol for 'eap_method_getKey': %s",DIAMEAP_EXTENSION,
 						plugin->methodname, dlerror());
 				return EINVAL;
 			}
@@ -342,18 +332,17 @@ int diameap_plugin_load(void)
 		{
 			plugin->eap_method_getKey = NULL;
 			TRACE_DEBUG(FULL+1,"%s[%s plugin] Unavailable function 'eap_method_getKey'",DIAMEAP_EXTENSION, plugin->methodname);
+			/* eap_method_getKey is optional - not fatal */
 		}
 
-		/* eap_method_unregister method */
+		/* (Optional) eap_method_unregister method */
 		if (registerplugin->unregister)
 		{
 			plugin->eap_method_unregister = (void(*)(void)) dlsym(
 					plugin->handler, registerplugin->unregister);
 			if (plugin->eap_method_unregister == NULL)
 			{
-				TRACE_DEBUG(
-						INFO,
-						"%s[%s plugin] Unable to resolve symbol for 'eap_method_unregister': %s",DIAMEAP_EXTENSION,
+				fd_log_error("%s[%s plugin] Unable to resolve symbol for 'eap_method_unregister': %s",DIAMEAP_EXTENSION,
 						plugin->methodname, dlerror());
 				return EINVAL;
 			}
@@ -362,18 +351,17 @@ int diameap_plugin_load(void)
 		{
 			plugin->eap_method_unregister = NULL;
 			TRACE_DEBUG(FULL+1,"%s[%s plugin] Unavailable function 'eap_method_unregister'",DIAMEAP_EXTENSION, plugin->methodname);
+			/* eap_method_unregister is optional - not fatal */
 		}
 
-		/* eap_method_datafree method */
+		/* (Optional) eap_method_free method */
 		if (registerplugin->datafree)
 		{
 			plugin->eap_method_free = (void(*)(void *)) dlsym(plugin->handler,
 					registerplugin->datafree);
 			if (plugin->eap_method_free == NULL)
 			{
-				TRACE_DEBUG(
-						INFO,
-						"%s[%s plugin] Unable to resolve symbol for 'eap_method_datafree': %s",DIAMEAP_EXTENSION,
+				fd_log_error("%s[%s plugin] Unable to resolve symbol for 'eap_method_free': %s",DIAMEAP_EXTENSION,
 						plugin->methodname, dlerror());
 				return EINVAL;
 			}
@@ -381,7 +369,8 @@ int diameap_plugin_load(void)
 		else
 		{
 			plugin->eap_method_free = NULL;
-			TRACE_DEBUG(FULL+1,"%s[%s plugin] Unavailable function 'eap_method_datafree'",DIAMEAP_EXTENSION, plugin->methodname);
+			TRACE_DEBUG(FULL+1,"%s[%s plugin] Unavailable function 'eap_method_free'",DIAMEAP_EXTENSION, plugin->methodname);
+			/* eap_method_free is optional - not fatal */
 		}
 
 		if (plugin->eap_method_configure != NULL)
@@ -390,9 +379,7 @@ int diameap_plugin_load(void)
 			ret = (*plugin->eap_method_configure)(plugin->conffile);
 			if (ret != 0)
 			{
-				TRACE_DEBUG(
-						INFO,
-						"%s[%s plugin] Unable to configure the plugin",DIAMEAP_EXTENSION,
+				fd_log_error("%s[%s plugin] Unable to configure the plugin",DIAMEAP_EXTENSION,
 						plugin->methodname);
 				return ret;
 			}

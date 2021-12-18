@@ -52,8 +52,11 @@ static int isregistered = 0;	\
 int diameap_plugin_register() {	\
 		if (!isregistered){	\
 			registerplugin = malloc (sizeof(struct register_plugin)); \
-			if(registerplugin==NULL) \
-				fprintf(stderr,"[DiamEAP extension] Error in registering plug-in\t%s\n",strerror(errno)); \
+			int serr=errno; \
+			if(registerplugin==NULL) {\
+				fd_log_error("%sError in registering plug-in\t%s", DIAMEAP_EXTENSION, strerror(serr)); \
+				return serr; \
+			} \
 			memset(registerplugin, 0, sizeof(struct register_plugin)); \
 			if(_configFunction) registerplugin->configure=_configFunction;	\
 			if(_initFunction) registerplugin->init=_initFunction;	\
@@ -68,7 +71,7 @@ int diameap_plugin_register() {	\
 			if(_datafreeFunction) registerplugin->datafree=_datafreeFunction;	\
 			isregistered++; \
 		}else{ \
-			 fprintf(stderr, "Cannot register the " _methodName " plugin twice\n");	\
+			fd_log_error("%s: Cannot register the " _methodName " plugin twice", DIAMEAP_EXTENSION);	\
 			return EINVAL; \
 		} \
 		return 0; \

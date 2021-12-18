@@ -52,8 +52,6 @@ set( diameapsrc
     diameap_eap.c
     diameap_mysql.h
     diameap_mysql.c
-    diameap_tls.h
-    diameap_tls.c
     libcrypt.h
     libcrypt.c
     diameap_user.c

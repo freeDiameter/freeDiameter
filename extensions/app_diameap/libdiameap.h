@@ -107,16 +107,16 @@ struct plugin
 	int (*eap_method_initPickUp)(struct eap_state_machine *smd); /* address of the eap_method_initPickUp method */
 	int (*eap_method_buildReq)(struct eap_state_machine *smd,
 			u8 identifier,struct eap_packet * eapPacket); /* address of the eap_method_buildReq method */
-	int (*eap_method_getTimeout)(struct eap_state_machine *smd, int * timeout); /* address of the eap_method_getTimeout method */
+	int (*eap_method_getTimeout)(struct eap_state_machine *smd, int * timeout); /* (Optional) address of the eap_method_getTimeout method */
 	boolean (*eap_method_check)(struct eap_state_machine *smd,
 			struct eap_packet * eapRespData); /* address of the eap_method_check method */
 	int (*eap_method_process)(struct eap_state_machine *smd,
 			struct eap_packet * eapRespData); /* address of the eap_method_process method */
 	boolean (*eap_method_isDone)(struct eap_state_machine *smd); /* address of the eap_method_isDone method */
 	int (*eap_method_getKey)(struct eap_state_machine *smd, u8 ** msk,int *msklength, 
-			u8 ** emsk,int *emsklength); /* address of the eap_method_getKey method */
+			u8 ** emsk,int *emsklength); /* (Optional) address of the eap_method_getKey method */
 	void (*eap_method_unregister)(void); /* (Optional) address of the eap_method_unregister method */
-	void (*eap_method_free)(void *); /* (Optional) address of the eap_method_datafree method */
+	void (*eap_method_free)(void *); /* (Optional) address of the eap_method_free method */
 
 };
 
