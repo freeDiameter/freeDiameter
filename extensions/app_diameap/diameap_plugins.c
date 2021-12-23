@@ -115,7 +115,7 @@ int diameap_plugin_load(void)
 		TRACE_DEBUG(FULL, "%sLoading EAP method plugin: %s",DIAMEAP_EXTENSION, plugin->methodname);
 
 		/* Load the method */
-		plugin->handler = dlopen(plugin->pluginfile, RTLD_LAZY | RTLD_GLOBAL);
+		plugin->handler = dlopen(plugin->pluginfile, RTLD_NOW | RTLD_GLOBAL);
 		if (plugin->handler == NULL)
 		{
 			fd_log_error("%sLoading of plugin %s failed: %s",DIAMEAP_EXTENSION,
