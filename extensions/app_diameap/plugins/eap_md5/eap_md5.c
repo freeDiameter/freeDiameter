@@ -52,14 +52,29 @@ struct eap_md5_data
 	u8 * challenge;
 };
 
+__attribute__((visibility("default")))
 int eap_md5_configure(char * configfile);
+
+__attribute__((visibility("default")))
 int eap_md5_init(struct eap_state_machine *smd);
+
+__attribute__((visibility("default")))
 int eap_md5_initPickUp(struct eap_state_machine *smd);
+
+__attribute__((visibility("default")))
 int eap_md5_buildReq(struct eap_state_machine *smd, u8 eap_md5,
 		struct eap_packet * eapPacket);
+
+__attribute__((visibility("default")))
 boolean eap_md5_check(struct eap_state_machine *smd, struct eap_packet *eapRespData);
+
+__attribute__((visibility("default")))
 int eap_md5_process(struct eap_state_machine *smd, struct eap_packet *eapRespData);
+
+__attribute__((visibility("default")))
 boolean eap_md5_isDone(struct eap_state_machine *smd);
+
+__attribute__((visibility("default")))
 void eap_md5_free(void * data);
 
 REGISTER_METHOD("eap_md5", "eap_md5_configure", "eap_md5_init", "eap_md5_initPickUp", "eap_md5_buildReq", NULL, "eap_md5_check", "eap_md5_process", "eap_md5_isDone", NULL, NULL, "eap_md5_free")

@@ -45,12 +45,25 @@ struct identity_data
 	} state;
 };
 
+__attribute__((visibility("default")))
 int identity_init(struct eap_state_machine *smd);
+
+__attribute__((visibility("default")))
 int identity_initPickUp(struct eap_state_machine *smd);
+
+__attribute__((visibility("default")))
 int identity_buildReq(struct eap_state_machine *smd, u8 identity, struct eap_packet * eapPacket);
+
+__attribute__((visibility("default")))
 boolean identity_check(struct eap_state_machine *smd, struct eap_packet *eapRespData);
+
+__attribute__((visibility("default")))
 int identity_process(struct eap_state_machine *smd, struct eap_packet *eapRespData);
+
+__attribute__((visibility("default")))
 boolean identity_isDone(struct eap_state_machine *smd);
+
+__attribute__((visibility("default")))
 void identity_free(void * data);
 
 REGISTER_METHOD("identity", NULL, "identity_init", "identity_initPickUp", "identity_buildReq", NULL, "identity_check", "identity_process", "identity_isDone", NULL, NULL, "identity_free");
