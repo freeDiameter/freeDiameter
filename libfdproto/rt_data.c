@@ -115,7 +115,7 @@ int  fd_rtd_candidate_add(struct rt_data * rtd, DiamId_t cfg_peerid, size_t cfg_
 	struct fd_list * prev;
 	struct rtd_candidate * new;
 	
-	TRACE_ENTRY("%p %p %zd %p %zd", rtd, cfg_peerid, cfded_peeridlen, peerid, peeridlen, realm, realmlen);
+	TRACE_ENTRY("%p %p %zd %p %zd", rtd, cfg_peerid, cfg_peeridlen, peerid, peeridlen, realm, realmlen);
 	CHECK_PARAMS(rtd && cfg_peerid && cfg_peeridlen && peerid && peeridlen);
 	
 	/* Since the peers are ordered when they are added (fd_g_activ_peers) we search for the position from the end -- this should be efficient */
