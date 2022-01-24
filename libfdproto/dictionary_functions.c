@@ -255,14 +255,16 @@ static int diameter_string_to_time_t(const char *str, size_t len, time_t *result
    
     time_stamp = (((unsigned long)(str[0]&0xff))<<24) + ((str[1]&0xff)<<16) + ((str[2]&0xff)<<8) + ((str[3]&0xff));
     time_stamp -= DIFF_EPOCH_TO_NTP;
-#ifdef FIX__NEEDED_FOR_YEAR_2036_AND_LATER
-/* NTP overflows in 2036; after that, values start at zero again */
+
+    /*
+     * SNTP (RFC 2030, Section 3) overflow workaround for
+     * year-2036-problem: interpret values before 1968 as after 2036
+     */
 #define NTP_OVERFLOW_CORRECTION (0x100000000ull)
-    /* XXX: debug and find correct conversion */
-    if (str[0] & 0x80 == 0x00) {
-        time_stamp += NTP_OVERFLOW_CORRECTION;
+    if ((str[0] & 0x80) == 0x00) {
+	    time_stamp += NTP_OVERFLOW_CORRECTION;
     }
-#endif
+
     *result = time_stamp;
     return 0;
 }
@@ -270,8 +272,12 @@ static int diameter_string_to_time_t(const char *str, size_t len, time_t *result
 static int time_t_to_diameter_string(time_t time_stamp, char **result) {
     uint64_t out = time_stamp;
     char *conv;
-    /* XXX: 2036 fix */
+    /* Year 2036 fix, see comment above in diameter_string_to_time_t() */
     out += DIFF_EPOCH_TO_NTP;
+    if (out >= NTP_OVERFLOW_CORRECTION) {
+	    out -= NTP_OVERFLOW_CORRECTION;
+	    out &= !0x80000000;
+    }
     CHECK_PARAMS( (out >> 32) == 0);
 
     CHECK_MALLOC(conv=(char *)malloc(5));
