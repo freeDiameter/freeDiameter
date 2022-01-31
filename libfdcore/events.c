@@ -40,11 +40,12 @@
 int fd_event_send(struct fifo *queue, int code, size_t datasz, void * data)
 {
 	struct fd_event * ev;
+	int ret = 0;
 	CHECK_MALLOC( ev = malloc(sizeof(struct fd_event)) );
 	ev->code = code;
 	ev->size = datasz;
 	ev->data = data;
-	CHECK_FCT( fd_fifo_post(queue, &ev) );
+	CHECK_FCT_DO( ret = fd_fifo_post(queue, &ev), { free(ev); return ret; } );
 	return 0;
 }
 
