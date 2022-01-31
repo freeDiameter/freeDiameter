@@ -38,19 +38,40 @@
 
 #include "eap_tls.h"
 
+__attribute__((visibility("default")))
 int eap_tls_configure(char * configfile);
+
+__attribute__((visibility("default")))
 int eap_tls_init(struct eap_state_machine *smd);
+
+__attribute__((visibility("default")))
 int eap_tls_initPickUp(struct eap_state_machine *smd);
+
+__attribute__((visibility("default")))
 int eap_tls_buildReq(struct eap_state_machine *smd, u8 eap_md5,
 		struct eap_packet * eapPacket);
+
+__attribute__((visibility("default")))
 int eap_tls_getTimeout(struct eap_state_machine *smd, int * timeout);
+
+__attribute__((visibility("default")))
 boolean eap_tls_check(struct eap_state_machine *smd,
 		struct eap_packet *eapRespData);
+
+__attribute__((visibility("default")))
 int eap_tls_process(struct eap_state_machine *smd,
 		struct eap_packet *eapRespData);
+
+__attribute__((visibility("default")))
 boolean eap_tls_isDone(struct eap_state_machine *smd);
+
+__attribute__((visibility("default")))
 int eap_tls_getKey(struct eap_state_machine *smd, u8** msk, int * msklen, u8** emsk, int * emsklen);
+
+__attribute__((visibility("default")))
 void eap_tls_unregister(void);
+
+__attribute__((visibility("default")))
 void eap_tls_free(void * data);
 
 REGISTER_METHOD("eap_tls", "eap_tls_configure", "eap_tls_init", "eap_tls_initPickUp", "eap_tls_buildReq", "eap_tls_getTimeout", "eap_tls_check", "eap_tls_process", "eap_tls_isDone", "eap_tls_getKey", "eap_tls_unregister", "eap_tls_free")

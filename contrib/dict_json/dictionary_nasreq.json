@@ -303,11 +303,11 @@
          "Code" : 14,
          "EnumValues" : [
             {
-               "Code" : "<00000000>",
+               "Code" : 0,
                "Name" : "(0) NAS selects the host"
             },
             {
-               "Code" : "<ffffffff>",
+               "Code" : 4294967295,
                "Name" : "(1) User selects the address"
             }
          ],
@@ -1114,99 +1114,99 @@
          "Code" : 94,
          "EnumValues" : [
             {
-               "Code" : "02",
+               "Code" : 2,
                "Name" : "ANI Failure"
             },
             {
-               "Code" : "66",
+               "Code" : 66,
                "Name" : "TRS (Hotel)"
             },
             {
-               "Code" : "23",
+               "Code" : 23,
                "Name" : "Coin or Non-Coin"
             },
             {
-               "Code" : "67",
+               "Code" : 67,
                "Name" : "TRS (Restricted)"
             },
             {
-               "Code" : "30",
+               "Code" : 30,
                "Name" : "Intercept (Blank)"
             },
             {
-               "Code" : "32",
+               "Code" : 32,
                "Name" : "Intercept (Regular)"
             },
             {
-               "Code" : "31",
+               "Code" : 31,
                "Name" : "Intercept (Trouble)"
             },
             {
-               "Code" : "06",
+               "Code" : 6,
                "Name" : "Station Level Rating"
             },
             {
-               "Code" : "29",
+               "Code" : 29,
                "Name" : "Prison/Inmate Service"
             },
             {
-               "Code" : "34",
+               "Code" : 34,
                "Name" : "Telco Operator Handled Call"
             },
             {
-               "Code" : "70",
+               "Code" : 70,
                "Name" : "Pay Station, No Coin Control"
             },
             {
-               "Code" : "01",
+               "Code" : 1,
                "Name" : "Multiparty Line (more than 2)"
             },
             {
-               "Code" : "61",
+               "Code" : 61,
                "Name" : "Cellular/Wireless PCS (Type 1)"
             },
             {
-               "Code" : "62",
+               "Code" : 62,
                "Name" : "Cellular/Wireless PCS (Type 2)"
             },
             {
-               "Code" : "63",
+               "Code" : 63,
                "Name" : "Cellular/Wireless PCS (Roaming)"
             },
             {
-               "Code" : "00",
+               "Code" : 0,
                "Name" : "Plain Old Telephone Service (POTS)"
             },
             {
-               "Code" : "07",
+               "Code" : 7,
                "Name" : "Special Operator Handling Required"
             },
             {
-               "Code" : "25",
+               "Code" : 25,
                "Name" : "Toll Free Service (Pay Origination)"
             },
             {
-               "Code" : "24",
+               "Code" : 24,
                "Name" : "Toll Free Service (Non-Pay Origination)"
             },
             {
-               "Code" : "93",
+               "Code" : 93,
                "Name" : "Access for Private Virtual Network Service"
             },
             {
-               "Code" : "20",
+               "Code" : 20,
                "Name" : "Automatic Identified Outward Dialing (AIOD)"
             },
             {
-               "Code" : "27",
+               "Code" : 27,
                "Name" : "Toll Free Service (Coin Control Origination)"
             },
             {
-               "Code" : "60",
+               "Code" : 60,
                "Name" : "Telecommunications Relay Service (TRS)(Unrestricted)"
             },
             {
-               "Code" : "52",
+               "Code" : 52,
                "Name" : "Outward Wide Area Telecommunications Service (OUTWATS)"
             }
          ],
@@ -1246,16 +1246,6 @@
       },
       {
          "Code" : 98,
-         "EnumValues" : [
-            {
-               "Code" : "<00000000000000000000000000000000>",
-               "Name" : "(0) NAS selects the host"
-            },
-            {
-               "Code" : "<ffffffffffffffffffffffffffffffff>",
-               "Name" : "(1) User selects the address"
-            }
-         ],
          "Flags" : {
             "Must" : "M",
             "MustNot" : "V"

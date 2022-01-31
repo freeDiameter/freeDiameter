@@ -52,12 +52,18 @@ set( diameapsrc
     diameap_eap.c
     diameap_mysql.h
     diameap_mysql.c
+    diameap_tls.h
+    diameap_tls.c
     libcrypt.h
     libcrypt.c
     diameap_user.c
 )
 
 FD_ADD_EXTENSION(app_diameap ${diameapsrc})
+
+# Expose all symbols for *.emp plugins.
+SET_TARGET_PROPERTIES(app_diameap PROPERTIES C_VISIBILITY_PRESET default)
+SET_TARGET_PROPERTIES(app_diameap PROPERTIES CXX_VISIBILITY_PRESET default)
 
 TARGET_LINK_LIBRARIES(app_diameap ${GCRYPT_LIBRARY} ${GNUTLS_LIBRARIES} ${MySQL_LIBRARY} )
 

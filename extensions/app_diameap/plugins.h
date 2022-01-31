@@ -49,6 +49,7 @@
 #define REGISTER_METHOD(_methodName, _configFunction, _initFunction, _initPickUpFunction, _buildReqFunction, _getTimeoutFunction, _checkFunction, _processFunction, _isDoneFunction, _getKeyFunction, _unregisterFunction, _datafreeFunction  ) \
 static struct register_plugin *registerplugin = NULL;	\
 static int isregistered = 0;	\
+__attribute__((visibility("default"))) \
 int diameap_plugin_register() {	\
 		if (!isregistered){	\
 			registerplugin = malloc (sizeof(struct register_plugin)); \
@@ -76,6 +77,7 @@ int diameap_plugin_register() {	\
 		} \
 		return 0; \
 	}	\
+__attribute__((visibility("default"))) \
 int diameap_plugin_objects(struct register_plugin ** rplugin){ \
 *rplugin=registerplugin; \
 return 0; \

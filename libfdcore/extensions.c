@@ -160,14 +160,10 @@ int fd_ext_load()
 		LOG_D( "Loading : %s", ext->filename);
 		
 		/* Load the extension */
-#ifndef DEBUG
-		ext->handler = dlopen(ext->filename, RTLD_LAZY | RTLD_GLOBAL);
-#else /* DEBUG */
 		/* We resolve symbols immediatly so it's easier to find problems in ABI */
 		ext->handler = dlopen(ext->filename, RTLD_NOW | RTLD_GLOBAL);
-#endif /* DEBUG */
 		if (ext->handler == NULL) {
-			/* An error occured */
+			/* An error occured; try loading with lazy resolution for more diagnostics */
 			LOG_F("Loading of extension %s failed: %s", ext->filename, dlerror());
 			ext->handler = dlopen(ext->filename, RTLD_LAZY | RTLD_GLOBAL);
 			if (ext->handler) {

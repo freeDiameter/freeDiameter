@@ -1517,8 +1517,8 @@ enumerated:
 inside:
 	/* Now, the inner elements, if any */
 	
-	if ( (!FD_IS_LIST_EMPTY(&a->enums)) && (ad.avp_basetype != AVP_TYPE_UNSIGNED32)) {
-		TRACE_DEBUG(INFO, "AVP '%s' type is not an Unsigned32 but it has enum values (invalid in this extension).", ad.avp_name);
+	if ( (!FD_IS_LIST_EMPTY(&a->enums)) && (ad.avp_basetype != AVP_TYPE_INTEGER32)) {
+		TRACE_DEBUG(INFO, "AVP '%s' type is not an Integer32 but it has enum values (invalid in this extension).", ad.avp_name);
 		return EINVAL;
 	}
 
