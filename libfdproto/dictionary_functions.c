@@ -276,7 +276,7 @@ static int time_t_to_diameter_string(time_t time_stamp, char **result) {
     out += DIFF_EPOCH_TO_NTP;
     if (out >= NTP_OVERFLOW_CORRECTION) {
 	    out -= NTP_OVERFLOW_CORRECTION;
-	    out &= !0x80000000;
+	    out &= ~0x80000000;
     }
     CHECK_PARAMS( (out >> 32) == 0);
 
