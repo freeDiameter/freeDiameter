@@ -443,6 +443,8 @@ static int msg_dispatch(struct msg * msg)
 	char * ec = NULL;
 	char * em = NULL;
 	struct msg *msgptr = msg, *error = NULL;
+	DiamId_t qry_src = NULL;
+	size_t qry_src_len = 0;
 
 	/* Read the message header */
 	CHECK_FCT( fd_msg_hdr(msg, &hdr) );
@@ -485,6 +487,9 @@ static int msg_dispatch(struct msg * msg)
 		/* Retrieve the corresponding query */
 		CHECK_FCT( fd_msg_answ_getq( msgptr, &qry ) );
 
+		/* Check where that qry was coming from */
+		CHECK_FCT( fd_msg_source_get( qry, &qry_src, &qry_src_len ) );
+
 		/* Retrieve any registered handler */
 		CHECK_FCT( fd_msg_anscb_get( qry, &anscb, NULL, &data ) );
 
@@ -514,7 +519,7 @@ static int msg_dispatch(struct msg * msg)
 		switch ( action ) {
 			case DISP_ACT_CONT:
 				/* No callback has handled the message, let's reply with a generic error or relay it */
-				if (!fd_g_config->cnf_flags.no_fwd) {
+				if ((!fd_g_config->cnf_flags.no_fwd) && (is_req || qry_src)) {
 					/* requeue to fd_g_outgoing */
 					fd_hook_call(HOOK_MESSAGE_ROUTING_FORWARD, msgptr, NULL, NULL, fd_msg_pmdl_get(msgptr));
 					CHECK_FCT( fd_fifo_post(fd_g_outgoing, &msgptr) );
