@@ -53,7 +53,9 @@ FD_EXTENSION_SUBDIR(dict_mip6i     "Diameter Mobile IPv6 IKE Dictionary definiti
 FD_EXTENSION_SUBDIR(dict_nas_mipv6 "Diameter NAS-to-HAAA Interaction Dictionary definitions"  ON)
 FD_EXTENSION_SUBDIR(dict_rfc5777   "Classification and QoS (RFC 5777) Dictionary definitions" ON)
 
+IF (NOT CMAKE_BUILD_TYPE MATCHES "DebianPackage")
 FD_EXTENSION_SUBDIR(dict_json       "Load Diameter dictionary definitions from JSON files."   OFF)
+ENDIF (NOT CMAKE_BUILD_TYPE MATCHES "DebianPackage")
 FD_EXTENSION_SUBDIR(dict_legacy_xml "Load Diameter dictionary definitions from XML files."    OFF)
 
 
@@ -103,7 +105,9 @@ FD_EXTENSION_SUBDIR(test_as     "Receive Abort-Session-Requests and display the 
 FD_EXTENSION_SUBDIR(test_cc     "Receive Credit-Control-Requests and display the data" ON)
 FD_EXTENSION_SUBDIR(test_ccload     "Generate Credit-Control-Requests and count replies" ON)
 FD_EXTENSION_SUBDIR(test_sip        "Testing application to simulate Diameter-SIP client (RFC4740)" OFF)
+IF (NOT CMAKE_BUILD_TYPE MATCHES "DebianPackage")
 FD_EXTENSION_SUBDIR(dbg_interactive "Python-interpreter based module"                OFF)
+ENDIF (NOT CMAKE_BUILD_TYPE MATCHES "DebianPackage")
 FD_EXTENSION_SUBDIR(test_netemul    "Simple Diameter network emulator proxy extension (latency, PDV, duplicates)" OFF)
 
 

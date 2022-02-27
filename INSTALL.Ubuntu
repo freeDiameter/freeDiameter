@@ -45,7 +45,7 @@ the following commands should generate the freeDiameter packages for you:
 
 # Install the dependencies for building the source:
 sudo apt-get -y install mercurial cmake make gcc g++ bison flex libsctp-dev libgnutls-dev libgcrypt-dev libidn2-dev ssl-cert debhelper fakeroot \
-   libpq-dev libmysqlclient-dev libxml2-dev swig python-dev
+   libpq-dev libmysqlclient-dev libxml2-dev swig python-dev libjsoncpp-dev
    
 # On latest Ubuntu you will need libgnutls28-dev instead of libgnutls-dev
 
