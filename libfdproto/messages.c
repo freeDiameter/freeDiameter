@@ -1647,7 +1647,7 @@ int fd_msg_avp_value_encode ( void *data, struct avp *avp )
 		
 		/* Then retrieve information about the parent's type (= derived type) */
 		CHECK_FCT(  fd_dict_getdict( avp->avp_model, &dict )  );
-		fd_dict_search( dict, DICT_TYPE, TYPE_OF_AVP, avp->avp_model, &parenttype, EINVAL);
+		CHECK_FCT(  fd_dict_search( dict, DICT_TYPE, TYPE_OF_AVP, avp->avp_model, &parenttype, 0)  );
 		if (parenttype != NULL) {
 			CHECK_FCT(  fd_dict_getval(parenttype, &type_data)  );
 		}
