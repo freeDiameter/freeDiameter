@@ -670,7 +670,7 @@ tls_ca:			TLS_CA '=' QSTRING ';'
 							{ yyerror (&yylloc, conf, "Error reading CA file."); YYERROR; } );
 							
 					CHECK_GNUTLS_DO( gnutls_x509_crt_list_import2(&calist, &cacount, &cafile, GNUTLS_X509_FMT_PEM, 
-										GNUTLS_X509_CRT_LIST_FAIL_IF_UNSORTED),
+										0),
 							{ yyerror (&yylloc, conf, "Error importing CA file."); YYERROR; } );
 					free(cafile.data);
 					
