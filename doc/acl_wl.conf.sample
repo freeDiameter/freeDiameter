@@ -12,7 +12,8 @@
 # separated by spaces or newlines. 
 #
 # The peer name must be a fqdn. We allow also a special "*" character as the
-# first label of the fqdn, to allow all fqdn with the same domain name.
+# first label of the fqdn, to allow all fqdn with the same domain name
+# and even a single star is acceptable.
 # Example: *.example.net will allow host1.example.net and host2.example.net
 #
 # At the beginning of a line, the following flags are allowed (case sensitive) -- either or both can appear:
