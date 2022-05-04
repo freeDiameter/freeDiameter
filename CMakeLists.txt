@@ -4,9 +4,10 @@
 PROJECT("freeDiameter")
 
 # Informations to display in daemon's help
-SET(FD_PROJECT_NAME freeDiameter)
+SET(FD_PROJECT_NAME freeDiameter CACHE STRING "Project name")
 SET(FD_PROJECT_BINARY freeDiameterd)
 SET(FD_PROJECT_COPYRIGHT "Copyright (c) 2008-2015, WIDE Project (www.wide.ad.jp) and NICT (www.nict.go.jp)")
+SET(FD_PROJECT_VENDOR_ID 0 CACHE STRING "Project vendor ID")
 
 # Version of the source code
 SET(FD_PROJECT_VERSION_MAJOR 1)
