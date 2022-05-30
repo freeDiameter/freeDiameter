@@ -107,6 +107,8 @@ int fd_core_shutdown(void);
 /* Wait for the shutdown to be complete -- this should always be called after fd_core_shutdown */
 int fd_core_wait_shutdown_complete(void);
 
+/* Forcibly shutdown any Diameter connections */
+int fd_connections_shutdown(void);
 
 /*============================================================*/
 /*                          CONFIG                            */
