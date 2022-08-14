@@ -24,15 +24,15 @@ static struct avp *getFirstAVP(msg_or_avp *msg);
 static struct avp_hdr *getAVP_Header(struct avp *avp);
 static struct dict_object *getAVP_Model(struct avp *avp);
 static int getTransformedDataValue(
-	struct msg_hdr * msgHeader,
+	struct msg_hdr *msgHeader,
 	struct avp_hdr const *const header,
 	char *transformedDataValue,
 	unsigned int maxTransformedDataValueSz);
 static int updateAVP_Value(
 	struct avp *avp,
 	char *transformedDataValue);
-static void transformAVP(struct msg_hdr * msgHeader, struct avp *avp);
-static void transformAVP_Chain(struct msg_hdr * msgHeader, struct avp *firstAVP);
+static void transformAVP(struct msg_hdr *msgHeader, struct avp *avp);
+static void transformAVP_Chain(struct msg_hdr *msgHeader, struct avp *firstAVP);
 
 /* Define the entry point function */
 EXTENSION_ENTRY("rt_pyform", rt_pyform_entry);
@@ -43,8 +43,8 @@ static int rt_pyform_entry(char *conffile)
 	TRACE_ENTRY("%p", conffile);
 	int ret = 0;
 	char directoryPath[MAX_DIRECTORY_PATH] = "";
-    char moduleName[MAX_MODULE_NAME] = "";
-    char functionName[MAX_FUNCTION_NAME] = "";
+	char moduleName[MAX_MODULE_NAME] = "";
+	char functionName[MAX_FUNCTION_NAME] = "";
 
 	pthread_rwlock_init(&rt_pyform_lock, NULL);
 	if (pthread_rwlock_wrlock(&rt_pyform_lock) != 0)
@@ -60,12 +60,11 @@ static int rt_pyform_entry(char *conffile)
 			"Config file should be 3 lines long and look like the following:\n"
 			"DirectoryPath = \".\"        # Look in current dir\n"
 			"ModuleName = \"script\"      # Note no .py extension\n"
-			"FunctionName = \"transform\" # Python function to call"
-		);
+			"FunctionName = \"transform\" # Python function to call");
 
 		return EINVAL;
 	}
-	
+
 	pyformerInitialise(&pyformerState, directoryPath, moduleName, functionName);
 
 	if (pthread_rwlock_unlock(&rt_pyform_lock) != 0)
@@ -161,7 +160,7 @@ static struct dict_object *getAVP_Model(struct avp *avp)
 }
 
 static int getTransformedDataValue(
-	struct msg_hdr * msgHeader,
+	struct msg_hdr *msgHeader,
 	struct avp_hdr const *const header,
 	char *transformedDataValue,
 	unsigned int maxTransformedDataValueSz)
@@ -169,22 +168,21 @@ static int getTransformedDataValue(
 	int isFailed = 1;
 
 	if ((NULL != msgHeader) &&
-	    (NULL != header->avp_value))
+		(NULL != header->avp_value))
 	{
-    	PyformerArgs args = 
-		{ 
-			.appID = msgHeader->msg_appl,
-			.flags = msgHeader->msg_flags,
-			.cmdCode = msgHeader->msg_code,
-			.HBH_ID = msgHeader->msg_hbhid,
-			.E2E_ID = msgHeader->msg_eteid,
-			.AVP_Code = header->avp_code,
-			.vendorID = header->avp_vendor,
-			.value = transformedDataValue,
-			.maxValueSz = maxTransformedDataValueSz
-		};
-		
-		strncpy(transformedDataValue, (char*)header->avp_value->os.data, maxTransformedDataValueSz);
+		PyformerArgs args =
+			{
+				.appID = msgHeader->msg_appl,
+				.flags = msgHeader->msg_flags,
+				.cmdCode = msgHeader->msg_code,
+				.HBH_ID = msgHeader->msg_hbhid,
+				.E2E_ID = msgHeader->msg_eteid,
+				.AVP_Code = header->avp_code,
+				.vendorID = header->avp_vendor,
+				.value = transformedDataValue,
+				.maxValueSz = maxTransformedDataValueSz};
+
+		strncpy(transformedDataValue, (char *)header->avp_value->os.data, maxTransformedDataValueSz);
 
 		isFailed = pyformerTransformValue(&pyformerState, args);
 	}
@@ -199,7 +197,7 @@ static int updateAVP_Value(
 	int retCode = 1;
 	union avp_value newAVP_Value = {0};
 
-	newAVP_Value.os.data = (uint8_t*)transformedDataValue;
+	newAVP_Value.os.data = (uint8_t *)transformedDataValue;
 	newAVP_Value.os.len = strlen(transformedDataValue);
 
 	retCode = fd_msg_avp_setvalue(avp, &newAVP_Value);
@@ -207,12 +205,12 @@ static int updateAVP_Value(
 	return retCode;
 }
 
-static void transformAVP(struct msg_hdr * msgHeader, struct avp *avp)
+static void transformAVP(struct msg_hdr *msgHeader, struct avp *avp)
 {
 	int retCode = 0;
 	struct dict_avp_data AVP_DictData = {0};
 	char transformedDataValue[MAX_STR_LEN] = "";
-	
+
 	fd_msg_parse_dict(avp, fd_g_config->cnf_dict, NULL);
 	struct avp_hdr *AVP_Header = getAVP_Header(avp);
 	struct dict_object *model = getAVP_Model(avp);
@@ -241,7 +239,7 @@ static void transformAVP(struct msg_hdr * msgHeader, struct avp *avp)
 		transformAVP_Chain(msgHeader, firstChildAVP);
 		return;
 	}
-	
+
 	if (AVP_TYPE_OCTETSTRING != AVP_DictData.avp_basetype)
 	{
 		fd_log_notice("AVP (%d, vendor %d) basetype not supported (i.e. not AVP_TYPE_OCTETSTRING), skipping", AVP_Header->avp_code, AVP_Header->avp_vendor);
@@ -263,7 +261,7 @@ static void transformAVP(struct msg_hdr * msgHeader, struct avp *avp)
 	}
 }
 
-static void transformAVP_Chain(struct msg_hdr * msgHeader, struct avp *firstAVP)
+static void transformAVP_Chain(struct msg_hdr *msgHeader, struct avp *firstAVP)
 {
 	for (struct avp *avp = firstAVP; NULL != avp; avp = getNextAVP(avp))
 	{

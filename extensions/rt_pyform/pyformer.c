@@ -3,10 +3,10 @@
 #include <string.h>
 
 static int pyformerSetContext(
-    PyformerState * const state,
-    char const * const directoryPath,
-    char const * const moduleName,
-    char const * const functionName);
+    PyformerState *const state,
+    char const *const directoryPath,
+    char const *const moduleName,
+    char const *const functionName);
 static PyObject *callPythonFunctionFromModule(
     char const *const moduleName,
     char const *const functionName,
@@ -24,10 +24,10 @@ static int updateValue(
     PyObject *pyResult);
 
 int pyformerInitialise(
-    PyformerState * const state,
-    char const * const directoryPath,
-    char const * const moduleName,
-    char const * const functionName)
+    PyformerState *const state,
+    char const *const directoryPath,
+    char const *const moduleName,
+    char const *const functionName)
 {
     int isFailed = 0;
 
@@ -46,7 +46,7 @@ int pyformerInitialise(
     return isFailed;
 }
 
-int pyformerFinalise(PyformerState * const state)
+int pyformerFinalise(PyformerState *const state)
 {
     int isFailed = 0;
 
@@ -66,7 +66,7 @@ int pyformerFinalise(PyformerState * const state)
     return isFailed;
 }
 
-int pyformerTransformValue(PyformerState const * const state, PyformerArgs args)
+int pyformerTransformValue(PyformerState const *const state, PyformerArgs args)
 {
     int isFailed = 1;
 
@@ -89,15 +89,15 @@ int pyformerTransformValue(PyformerState const * const state, PyformerArgs args)
 }
 
 static int pyformerSetContext(
-    PyformerState * const state,
-    char const * const directoryPath,
-    char const * const moduleName,
-    char const * const functionName)
+    PyformerState *const state,
+    char const *const directoryPath,
+    char const *const moduleName,
+    char const *const functionName)
 {
     int isFailed = 1;
 
     if ((NULL != directoryPath) &&
-        (NULL != moduleName)    &&
+        (NULL != moduleName) &&
         (NULL != functionName))
     {
         strncpy(state->directoryPath, directoryPath, MAX_DIRECTORY_PATH);

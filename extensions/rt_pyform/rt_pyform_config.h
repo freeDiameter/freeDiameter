@@ -5,9 +5,9 @@
 
 /* Returns number of errors encountered when parsing config */
 int parseConfig(
-    char const *const filename, 
-    char * const directoryPath,
-    char * const moduleName,
-    char * const functionName);
+    char const *const filename,
+    char *const directoryPath,
+    char *const moduleName,
+    char *const functionName);
 
 #endif /* RT_PYFORM_CONFIG */

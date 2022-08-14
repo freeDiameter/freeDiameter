@@ -4,20 +4,20 @@
 #include <string.h>
 
 static int parseConfigLine(
-	char * line,
-    char * const directoryPath,
-    char * const moduleName,
-    char * const functionName);
-static int getConfigValueFromLine(char * line, char * value, unsigned int maxValueSz);
+	char *line,
+	char *const directoryPath,
+	char *const moduleName,
+	char *const functionName);
+static int getConfigValueFromLine(char *line, char *value, unsigned int maxValueSz);
 
 int parseConfig(
-    char const *const filename, 
-    char * const directoryPath,
-    char * const moduleName,
-    char * const functionName)
+	char const *const filename,
+	char *const directoryPath,
+	char *const moduleName,
+	char *const functionName)
 {
-    int numErrors = 0;
-	FILE * fptr = NULL;
+	int numErrors = 0;
+	FILE *fptr = NULL;
 
 	if (NULL != filename)
 	{
@@ -26,7 +26,7 @@ int parseConfig(
 
 	if (NULL != fptr)
 	{
-		char * line = NULL;
+		char *line = NULL;
 		size_t len = 0;
 
 		while (-1 != getline(&line, &len, fptr))
@@ -36,21 +36,21 @@ int parseConfig(
 
 		fclose(fptr);
 	}
-    else 
-    {
-        ++numErrors;
-    }
+	else
+	{
+		++numErrors;
+	}
 
 	return numErrors;
 }
 
 static int parseConfigLine(
-	char * line,
-    char * const directoryPath,
-    char * const moduleName,
-    char * const functionName)
+	char *line,
+	char *const directoryPath,
+	char *const moduleName,
+	char *const functionName)
 {
-    int error = 0;
+	int error = 0;
 
 	if (NULL != strstr(line, "DirectoryPath"))
 	{
@@ -64,23 +64,23 @@ static int parseConfigLine(
 	{
 		error = getConfigValueFromLine(line, functionName, MAX_DIRECTORY_PATH);
 	}
-    else
-    {
-        error = 1;
-    }
+	else
+	{
+		error = 1;
+	}
 
-    return error;
+	return error;
 }
 
-static int getConfigValueFromLine(char * line, char * value, unsigned int maxValueSz)
+static int getConfigValueFromLine(char *line, char *value, unsigned int maxValueSz)
 {
 	int isFailed = 1;
 
-	char * valStart = strchr(line, '"');
-	char * valEnd = strrchr(line, '"');
+	char *valStart = strchr(line, '"');
+	char *valEnd = strrchr(line, '"');
 
 	if ((NULL != valStart) &&
-		(NULL != valEnd)   &&
+		(NULL != valEnd) &&
 		(valStart != valEnd))
 	{
 		/* Start is first char after " */

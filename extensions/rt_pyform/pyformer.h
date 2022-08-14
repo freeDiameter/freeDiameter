@@ -21,7 +21,7 @@ typedef struct
     char functionName[MAX_FUNCTION_NAME];
 } PyformerState;
 
-typedef struct 
+typedef struct
 {
     uint32_t appID;
     uint8_t flags;
@@ -35,11 +35,11 @@ typedef struct
 } PyformerArgs;
 
 int pyformerInitialise(
-    PyformerState * const state,
-    char const * const directoryPath,
-    char const * const moduleName,
-    char const * const functionName);
-int pyformerFinalise(PyformerState * const state);
-int pyformerTransformValue(PyformerState const * const state, PyformerArgs args);
+    PyformerState *const state,
+    char const *const directoryPath,
+    char const *const moduleName,
+    char const *const functionName);
+int pyformerFinalise(PyformerState *const state);
+int pyformerTransformValue(PyformerState const *const state, PyformerArgs args);
 
 #endif /* RT_PYFORMER_GUARD */
