@@ -376,7 +376,7 @@ struct cnxctx * fd_cnx_cli_connect_sctp(int no_ip6, uint16_t port, struct fd_lis
 			return NULL;
 		}
 	}
-
+	LOG_D("Connection started to SCTP %s:%hu...", sa_buf, port);
 	/* Once the socket is created successfuly, prepare the remaining of the cnx */
 	CHECK_MALLOC_DO( cnx = fd_cnx_init(1), { shutdown(sock, SHUT_RDWR); close(sock); return NULL; } );
 
@@ -386,6 +386,7 @@ struct cnxctx * fd_cnx_cli_connect_sctp(int no_ip6, uint16_t port, struct fd_lis
 
 	/* Set the timeout */
 	fd_cnx_s_setto(cnx->cc_socket);
+	LOG_D("Timeout set");
 
 	/* Retrieve the number of streams and primary address */
 	CHECK_FCT_DO( fd_sctp_get_str_info( sock, &cnx->cc_sctp_para.str_in, &cnx->cc_sctp_para.str_out, &primary ), goto error );
@@ -393,13 +394,14 @@ struct cnxctx * fd_cnx_cli_connect_sctp(int no_ip6, uint16_t port, struct fd_lis
 		cnx->cc_sctp_para.pairs = cnx->cc_sctp_para.str_out;
 	else
 		cnx->cc_sctp_para.pairs = cnx->cc_sctp_para.str_in;
+	LOG_D("Determined number of streams");
 
 	fd_sa_sdump_numeric(sa_buf, (sSA *)&primary);
 
 	/* Generate the names for the object */
 	{
 		int  rc;
-
+		LOG_D("Generating names");
 		snprintf(cnx->cc_id, sizeof(cnx->cc_id), CC_ID_HDR "SCTP,#%d->%s", cnx->cc_socket, sa_buf);
 
 		/* ...Name for log messages */
@@ -413,6 +415,7 @@ struct cnxctx * fd_cnx_cli_connect_sctp(int no_ip6, uint16_t port, struct fd_lis
 	return cnx;
 
 error:
+	LOG_A("Hit an error, distroying connection");
 	fd_cnx_destroy(cnx);
 	return NULL;
 #endif /* DISABLE_SCTP */
