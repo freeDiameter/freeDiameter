@@ -1048,6 +1048,7 @@ int fd_sctp_get_str_info( int sock, uint16_t *in, uint16_t *out, sSS *primary )
 /* Get the list of remote endpoints of the socket */
 int fd_sctp_get_remote_ep(int sock, struct fd_list * list)
 {
+	TRACE_DEBUG(FULL, "Called fd_sctp_get_remote_ep");
 	union {
 		sSA	*sa;
 		uint8_t	*buf;
@@ -1062,6 +1063,7 @@ int fd_sctp_get_remote_ep(int sock, struct fd_list * list)
 	/* Read the list on the socket */
 	CHECK_SYS( count = sctp_getpaddrs(sock, 0, &data)  );
 	ptr.sa = data;
+	TRACE_DEBUG(FULL, "Passed sctp_getpaddrs");
 	
 	while (count) {
 		socklen_t sl;
