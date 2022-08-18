@@ -673,14 +673,20 @@ destroy:
 int fd_p_ce_handle_newcnx(struct fd_peer * peer, struct cnxctx * initiator)
 {
 	struct msg * cer = NULL;
-	
+	LOG_D("Called fd_p_ce_handle_newcnx on our new connection to remote peer to trigger CER");
+
 	/* Send CER on the new connection */
+	LOG_D("Creating CER");
 	CHECK_FCT( create_CER(peer, initiator, &cer) );
+	LOG_D("Created CER");
 	CHECK_FCT( fd_out_send(&cer, initiator, peer, 0) );
-	
+	LOG_D("Sent CER to peer");
+
 	/* Are we doing an election ? */
 	if (fd_peer_getstate(peer) == STATE_WAITCNXACK_ELEC) {
+		LOG_D("Performing election");
 		if (election_result(peer)) {
+			LOG_D("Election lost for outgoing connection");
 			/* Close initiator connection */
 			fd_cnx_destroy(initiator);
 
@@ -702,6 +708,7 @@ int fd_p_ce_handle_newcnx(struct fd_peer * peer, struct cnxctx * initiator)
 		}
 	} else {
 		/* No election (yet) */
+		LOG_D("No election, waiting for CEA to come in");
 		CHECK_FCT( to_waitcea(peer, initiator) );
 	}
 	
