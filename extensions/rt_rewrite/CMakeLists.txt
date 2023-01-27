@@ -4,6 +4,7 @@ PROJECT("Routing extension that rewrites messages, replacing and removing AVPs" 
 # List of source files
 SET(RT_REWRITE_SRC
 	rt_rewrite.c
+	rt_rewrite_conf_support.c
 	lex.rt_rewrite_conf.c
 	rt_rewrite_conf.tab.c
 	rt_rewrite_conf.tab.h

@@ -2,7 +2,7 @@
  * Software License Agreement (BSD License)                                                               *
  * Author: Thomas Klausner <tk@giga.or.at>                                                                *
  *                                                                                                        *
- * Copyright (c) 2018, Thomas Klausner                                                                    *
+ * Copyright (c) 2018, 2023 Thomas Klausner                                                               *
  * All rights reserved.                                                                                   *
  *                                                                                                        *
  * Written under contract by Effortel Technologies SA, http://effortel.com/                               *
@@ -38,6 +38,7 @@
 /*
  * Replace AVPs: put their values into other AVPs
  * Remove AVPs: drop them from a message
+ * Add AVPs: add fixed-value AVPs to messages of particular type
  */
 
 /* handler */
@@ -45,18 +46,32 @@ static struct fd_rt_fwd_hdl * rt_rewrite_handle = NULL;
 
 static char *config_file;
 
+/* structure containing information about data to replace */
 struct avp_match *avp_match_start = NULL;
+
+/* structure containing information about AVPs to be added */
+struct avp_add *avp_add_start = NULL;
 
 static pthread_rwlock_t rt_rewrite_lock;
 
 #define MODULE_NAME "rt_rewrite"
 
+/*
+ * list of data from message that should be added to it after all
+ * matches are identified, to avoid replacement loops or similar
+ * issues.
+ */
 struct store {
+	/* AVP to add */
 	struct avp *avp;
+	/* path to AVP container where it should be added, not owned -
+	 * memory belong to config structure */
 	struct avp_target *target;
+	/* pointer to next store item */
 	struct store *next;
 };
 
+/* create new store item */
 static struct store *store_new(void) {
 	struct store *ret;
 
@@ -71,6 +86,7 @@ static struct store *store_new(void) {
 	return ret;
 }
 
+/* free store item */
 static void store_free(struct store *store)
 {
 	while (store) {
@@ -78,6 +94,7 @@ static void store_free(struct store *store)
 		if (store->avp) {
 			fd_msg_free((msg_or_avp *)store->avp);
 		}
+		/* target is not owned by us */
 		store->target = NULL;
 		next = store->next;
 		free(store);
@@ -87,6 +104,8 @@ static void store_free(struct store *store)
 }
 
 /* TODO: convert to fd_msg_search_avp ? */
+/* search in message 'where' for AVP 'what' and return result in 'avp'
+ * returns 0 on success, -1 otherwise. */
 static int fd_avp_search_avp(msg_or_avp *where, struct dict_object *what, struct avp **avp)
 {
 	struct avp *nextavp;
@@ -110,7 +129,7 @@ static int fd_avp_search_avp(msg_or_avp *where, struct dict_object *what, struct
 			return 0;
 		}
 		if (model == NULL) {
-			fd_log_notice("%s: unknown AVP (%d, vendor %d) (not in dictionary), skipping", MODULE_NAME, header->avp_code, header->avp_vendor);
+			fd_log_error("%s: unknown AVP (%d, vendor %d) (not in dictionary), skipping", MODULE_NAME, header->avp_code, header->avp_vendor);
 		} else {
 			if ((header->avp_code == dictdata.avp_code) && (header->avp_vendor == dictdata.avp_vendor)) {
 				break;
@@ -132,13 +151,15 @@ static int fd_avp_search_avp(msg_or_avp *where, struct dict_object *what, struct
 }
 
 
-
-static msg_or_avp *find_container(msg_or_avp *msg, struct avp_target *target)
+/* in message 'msg', go to the location specified by 'target' and
+ * return the last grouped AVP above it. Create any missing grouped
+ * AVPs on the way down. */
+static struct avp *find_container(msg_or_avp *msg, struct avp_target *target)
 {
 	msg_or_avp *location = msg;
 	while (target->child) {
 		struct dict_object *avp_do;
-		msg_or_avp *new_location = NULL;
+		struct avp *new_location = NULL;
 		int ret;
 
 		fd_log_debug("%s: looking for '%s'", MODULE_NAME, target->name);
@@ -171,10 +192,12 @@ static msg_or_avp *find_container(msg_or_avp *msg, struct avp_target *target)
 	return location;
 }
 
+/* apply 'store' to message 'msg' - find the appropriate location and
+ * add the AVP */
 static int store_apply(msg_or_avp *msg, struct store **store)
 {
 	while (*store) {
-		msg_or_avp *container;
+		struct avp *container;
 		struct store *next;
 		if ((*store)->avp) {
 			int ret;
@@ -195,6 +218,7 @@ static int store_apply(msg_or_avp *msg, struct store **store)
 	return 0;
 }
 
+/* add 'avp' as data for 'target' into the 'store' to later add it */
 static int schedule_for_adding(struct avp *avp, struct avp_target *target, struct store *store)
 {
 	if (store->avp) {
@@ -214,7 +238,8 @@ static int schedule_for_adding(struct avp *avp, struct avp_target *target, struc
 	return 0;
 }
 
-static void move_avp_to_target(union avp_value *avp_value, struct avp_target *target, struct store *store)
+/* create AVP for 'target' with value 'avp_value' and add it to the 'store' to later add it */
+static void set_target_to_avp_value(union avp_value *avp_value, struct avp_target *target, struct store *store)
 {
 	struct dict_object *avp_do;
 	struct avp *avp;
@@ -244,7 +269,36 @@ static void move_avp_to_target(union avp_value *avp_value, struct avp_target *ta
 	return;
 }
 
+/*
+ * Apply avp_add_list for 'msg', add changes to 'store'.
+ */
+static void add_avps(msg_or_avp *msg, struct store *store) {
+	struct avp_add *next = avp_add_start;
+	struct msg_hdr *hdr;
 
+	/* Read the message header */
+	if (fd_msg_hdr(msg, &hdr) != 0) {
+		return;
+	}
+	while (next) {
+		/*
+		struct dict_object *request_do;
+		struct dict_cmd_data request_data;
+		if ((fd_dict_search(fd_g_config->cnf_dict, DICT_COMMAND, CMD_BY_NAME, next->request_type, &request_do, ENOENT) == 0)
+		    && (fd_dict_getval(request_do, &request_data) == 0)
+		*/
+		if ((hdr->msg_code == next->request.cmd_code)
+		    && ((hdr->msg_flags & next->request.cmd_flag_mask) == next->request.cmd_flag_val)) {
+			set_target_to_avp_value(&next->value, next->target, store);
+		}
+		next = next->next;
+	}
+}
+
+/*
+ * look in 'subtree' at the current level for an AVP 'avp_name';
+ * return corresponding subtree, or NULL if none
+ */
 static struct avp_match *avp_to_be_replaced(const char *avp_name, struct avp_match *subtree)
 {
 	struct avp_match *ret;
@@ -257,11 +311,21 @@ static struct avp_match *avp_to_be_replaced(const char *avp_name, struct avp_mat
 }
 
 /*
- * msg: whole message
- * avp: current AVP in message
- * subtree: comparison subtree
+ * recursively called function to apply the replacements to the whole message
+ *
+ * 'avp' is the next avp to look at (usually the first one in the
+ * current grouped AVP or message)
+ *
+ * 'subtree' is the part of the avp_match structure corresponding to
+ * the current subtree
+ *
+ * 'store' is an output parameter containing the changes to apply
+ * after the recursion has finished
+ *
+ * returns 1 if AVP will be empty due to 'DROP's and 'MAP's, 0
+ * otherwise.
  */
-static int replace_avps(struct msg *msg, msg_or_avp *avp, struct avp_match *subtree, struct store *store)
+static int replace_avps(struct avp *avp, struct avp_match *subtree, struct store *store)
 {
 	int nothing_left = 1;
 	/* for each AVP in message */
@@ -269,7 +333,7 @@ static int replace_avps(struct msg *msg, msg_or_avp *avp, struct avp_match *subt
 		struct avp_hdr *header = NULL;
 		struct dict_object *model = NULL;
 		const char *avp_name = NULL;
-		msg_or_avp *next;
+		struct avp *next;
 		int delete = 0;
 
 		if (fd_msg_avp_hdr(avp, &header) != 0) {
@@ -281,7 +345,7 @@ static int replace_avps(struct msg *msg, msg_or_avp *avp, struct avp_match *subt
 			return 0;
 		}
 		if (model == NULL) {
-			fd_log_notice("unknown AVP (%d, vendor %d) (not in dictionary), skipping", header->avp_code, header->avp_vendor);
+			fd_log_error("unknown AVP (%d, vendor %d) (not in dictionary), skipping", header->avp_code, header->avp_vendor);
 
 		} else {
 			struct dict_avp_data dictdata;
@@ -294,8 +358,8 @@ static int replace_avps(struct msg *msg, msg_or_avp *avp, struct avp_match *subt
 			/* check if it exists in the subtree */
 			if ((subtree_match = avp_to_be_replaced(avp_name, subtree))) {
 				/* if this should be deleted, mark as such */
-				if (subtree_match->drop) {
-					fd_log_notice("%s: dropping AVP '%s'", MODULE_NAME, avp_name);
+				if (subtree_match->match_type == REWRITE_DROP) {
+					fd_log_debug("%s: dropping AVP '%s'", MODULE_NAME, avp_name);
 					delete = 1;
 				}
 				/* if grouped, dive down */
@@ -308,9 +372,9 @@ static int replace_avps(struct msg *msg, msg_or_avp *avp, struct avp_match *subt
 						return 0;
 					}
 
-					/* replace_avps returns if the AVP was emptied out */
-					if (replace_avps(msg, child, subtree_match->children, store)) {
-						fd_log_notice("%s: removing empty grouped AVP '%s'", MODULE_NAME, avp_name);
+					/* replace_avps returns 1 if the AVP was emptied out */
+					if (replace_avps(child, subtree_match->children, store)) {
+						fd_log_debug("%s: removing empty grouped AVP '%s'", MODULE_NAME, avp_name);
 						delete = 1;
 					}
 				}
@@ -321,8 +385,8 @@ static int replace_avps(struct msg *msg, msg_or_avp *avp, struct avp_match *subt
 						while (final->child) {
 							final = final->child;
 						}
-						fd_log_notice("%s: moving AVP '%s' to '%s'", MODULE_NAME, avp_name, final->name);
-						move_avp_to_target(header->avp_value, subtree_match->target, store);
+						fd_log_debug("%s: moving AVP '%s' to '%s'", MODULE_NAME, avp_name, final->name);
+						set_target_to_avp_value(header->avp_value, subtree_match->target, store);
 						delete = 1;
 					}
 				}
@@ -347,7 +411,8 @@ static volatile int in_signal_handler = 0;
 /* signal handler */
 static void sig_hdlr(void)
 {
-	struct avp_match *old_config;
+	struct avp_match *old_match;
+	struct avp_add *old_list;
 
 	if (in_signal_handler) {
 		fd_log_error("%s: already handling a signal, ignoring new one", MODULE_NAME);
@@ -361,15 +426,20 @@ static void sig_hdlr(void)
 	}
 
 	/* save old config in case reload goes wrong */
-	old_config = avp_match_start;
+	old_match = avp_match_start;
 	avp_match_start = NULL;
+	old_list = avp_add_start;
+	avp_add_start = NULL;
 
 	if (rt_rewrite_conf_handle(config_file) != 0) {
 		fd_log_notice("%s: error reloading configuration, restoring previous configuration", MODULE_NAME);
 		avp_match_free(avp_match_start);
-		avp_match_start = old_config;
+		avp_match_start = old_match;
+		avp_add_free(avp_add_start);
+		avp_add_start = old_list;
 	} else {
-		avp_match_free(old_config);
+		avp_match_free(old_match);
+		avp_add_free(old_list);
 	}
 
 	if (pthread_rwlock_unlock(&rt_rewrite_lock) != 0) {
@@ -377,7 +447,7 @@ static void sig_hdlr(void)
 		exit(1);
 	}
 
-	fd_log_notice("%s: reloaded configuration", MODULE_NAME);
+	fd_log_error("%s: reloaded configuration", MODULE_NAME);
 
 	in_signal_handler = 0;
 }
@@ -413,12 +483,13 @@ static int rt_rewrite(void * cbdata, struct msg **msg)
 		pthread_rwlock_unlock(&rt_rewrite_lock);
 		return ENOMEM;
 	}
-	if (replace_avps(*msg, avp, avp_match_start->children, store) != 0) {
+	if (replace_avps(avp, avp_match_start->children, store) != 0) {
 		fd_log_error("%s: replace AVP function failed", MODULE_NAME);
 		store_free(store);
 		pthread_rwlock_unlock(&rt_rewrite_lock);
 		return -1;
 	}
+	add_avps(*msg, store);
 	ret = store_apply(*msg, &store);
 
 	if (pthread_rwlock_unlock(&rt_rewrite_lock) != 0) {
@@ -462,7 +533,7 @@ static int rt_rewrite_entry(char * conffile)
 		return ret;
 	}
 
-	fd_log_notice("Extension 'Rewrite' initialized");
+	fd_log_error("Extension 'Rewrite' initialized");
 	return 0;
 }
 

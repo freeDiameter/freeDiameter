@@ -1,8 +1,8 @@
-/*********************************************************************************************************
+/**********************************************************************************************************
  * Software License Agreement (BSD License)                                                               *
  * Author: Thomas Klausner <tk@giga.or.at>                                                                *
  *                                                                                                        *
- * Copyright (c) 2018, Thomas Klausner                                                                    *
+ * Copyright (c) 2018, 2023 Thomas Klausner                                                               *
  * All rights reserved.                                                                                   *
  *                                                                                                        *
  * Written under contract by Effortel Technologies SA, http://effortel.com/                               *
@@ -29,73 +29,21 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.                                                             *
  *********************************************************************************************************/
 
-/* Tokenizer
- *
- */
+#include <stdio.h>
 
-%{
 #include "rt_rewrite.h"
-/* Include yacc tokens definitions */
-#include "rt_rewrite_conf.tab.h"
 
-/* Update the column information */
-#define YY_USER_ACTION { 						\
-	yylloc->first_column = yylloc->last_column + 1; 		\
-	yylloc->last_column = yylloc->first_column + yyleng - 1;	\
-}
+int add_finish(const char *value);
+void avp_add_free(struct avp_add *item);
+void avp_match_free(struct avp_match *match);
+struct avp_match *avp_match_new(char *name);
+int add_request(const char *request_name);
+void compare_avp_types(struct avp_match *start);
+int dest_add(char *name);
+void drop_finish(void);
+void dump_add_config(struct avp_add *start);
+void dump_config(struct avp_match *start, char *prefix);
+void map_finish(void);
+void rt_rewrite_confrestart(FILE *input_file);
+int source_add(char *name);
 
-/* Avoid warning with newer flex */
-#define YY_NO_INPUT
-
-%}
-
-qstring		\"[^\"\n]*\"
-
-
-%option bison-bridge bison-locations
-%option noyywrap
-%option nounput
-
-%%
-
-	/* Update the line count */
-\n			{
-				yylloc->first_line++;
-				yylloc->last_line++;
-				yylloc->last_column=0;
-			}
-
-	/* Eat all spaces but not new lines */
-([[:space:]]{-}[\n])+	;
-	/* Eat all comments */
-#.*$			;
-
-
-	/* Recognize quoted strings */
-{qstring}		{
-				/* Match a quoted string. */
-				CHECK_MALLOC_DO( yylval->string = strdup(yytext+1),
-				{
-					fd_log_error("Unable to copy the string '%s': %s", yytext, strerror(errno));
-					return LEX_ERROR; /* trig an error in yacc parser */
-				} );
-				yylval->string[strlen(yytext) - 2] = '\0';
-				return QSTRING;
-			}
-
-
-	/* The key words */
-(?i:ADD)	 	{	return ADD;	}
-(?i:DROP)	 	{	return DROP;	}
-(?i:MAP)	 	{	return MAP;	}
-
-	/* Valid single characters for yyparse */
-[=/:;>]			{ return yytext[0]; }
-
-	/* Unrecognized sequence, if it did not match any previous pattern */
-[^[:space:]\":=>;\n]+	{
-				fd_log_error("Unrecognized text on line %d col %d: '%s'.", yylloc->first_line, yylloc->first_column, yytext);
-			 	return LEX_ERROR;
-			}
-
-%%

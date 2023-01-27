@@ -2,7 +2,7 @@
  * Software License Agreement (BSD License)                                                               *
  * Author: Thomas Klausner <tk@giga.or.at>                                                                *
  *                                                                                                        *
- * Copyright (c) 2018, Thomas Klausner                                                                    *
+ * Copyright (c) 2018, 2023 Thomas Klausner                                                                    *
  * All rights reserved.                                                                                   *
  *                                                                                                        *
  * Written under contract by Effortel Technologies SA, http://effortel.com/                               *
@@ -35,23 +35,65 @@
 /* Parse the configuration file */
 int rt_rewrite_conf_handle(char * conffile);
 
+typedef enum { REWRITE_DROP, REWRITE_MAP } avp_rewrite_type;
+
+/* start of the list of rt_rewrite entries */
+
 extern struct avp_match *avp_match_start;
+extern struct avp_add *avp_add_start;
+
+/*
+ * The avp_match structure is used to build up a tree.
+ * 'name' contains the name of the current node, or "top" for the root of the tree.
+ * 'next' contains a link to the next node on the same level
+ * 'children' contains a link to the next node on the lower level
+ *
+ * The other data is for keeping information for ADD/DROP/MAP.
+ * 'match_type' determines which of the three types this is.
+ * MAP:
+ * 'target' determines where to put the value of this AVP
+ */
+
 struct avp_match {
 	char *name;
 
 	struct avp_match *next;
-
-	/* either avp_children_list OR avp_target can be used */
-	/* NULL avp_children_list AND NULL avp_target -> drop AVP */
 	struct avp_match *children;
-	struct avp_target *target;
-	int drop;
+
+	avp_rewrite_type match_type;
+	/* for MAP */
+        struct avp_target *target;
 };
 
+/*
+ * The avp_target structure is used for keeping a path to an AVP through grouped AVPs.
+ * 'name' contains the name of the AVP, and
+ * 'child' is a link to the next AVP on the level below, or NULL.
+ */
 struct avp_target {
 	char *name;
 
 	struct avp_target *child;
 };
 
+/*
+ * 'avp_add_list' is a list of entries to be added to messages.
+ *
+ * 'request_type' is the type of messages to which the AVP should be added.
+ * 'target' is the path to the AVP to be added.
+ * 'value' is the value to be set for this AVP.
+ *
+ * 'next' points to the next member of the list, if any.
+ */
+struct avp_add {
+	struct dict_cmd_data request;
+
+	struct avp_target *target;
+	union avp_value value;
+	int free_os_data;
+
+	struct avp_add *next;
+};
+
 void avp_match_free(struct avp_match *match);
+void avp_add_free(struct avp_add *item);
