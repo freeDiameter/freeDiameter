@@ -4611,6 +4611,30 @@
     },
     {
       "Code": 862,
+      "EnumValues": [
+        { "Code": 0, "Name": "S-CSCF"},
+        { "Code": 1, "Name": "P-CSCF"},
+        { "Code": 2, "Name": "I-CSCF"},
+        { "Code": 3, "Name": "MRFC"},
+        { "Code": 4, "Name": "MGCF"},
+        { "Code": 5, "Name": "BGCF"},
+        { "Code": 6, "Name": "AS"},
+        { "Code": 7, "Name": "IBCF"},
+        { "Code": 8, "Name": "S-GW"},
+        { "Code": 9, "Name": "P-GW"},
+        { "Code": 10, "Name": "HSGW"},
+        { "Code": 11, "Name": "E-CSCF"},
+        { "Code": 12, "Name": "MME"},
+        { "Code": 13, "Name": "TRF"},
+        { "Code": 14, "Name": "TF"},
+        { "Code": 15, "Name": "ATCF"},
+        { "Code": 16, "Name": "Proxy Function"},
+        { "Code": 17, "Name": "ePDG"},
+        { "Code": 18, "Name": "TDF"},
+        { "Code": 19, "Name": "TWAG"},
+        { "Code": 20, "Name": "SCEF"},
+        { "Code": 21, "Name": "IWK-SCEF"}
+      ],
       "Flags": {
         "Must": "VM",
         "MustNot": ""
