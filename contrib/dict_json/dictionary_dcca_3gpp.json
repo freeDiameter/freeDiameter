@@ -4291,6 +4291,11 @@
     },
     {
       "Code": 829,
+      "EnumValues": [
+        { "Code": 0, "Name": "ORIGINATING_ROLE" },
+        { "Code": 1, "Name": "TERMINATING_ROLE" },
+        { "Code": 2, "Name": "FORWARDING_ROLE" }
+      ],
       "Flags": {
         "Must": "VM",
         "MustNot": ""
