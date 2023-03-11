@@ -98,6 +98,7 @@ FD_EXTENSION_SUBDIR(dbg_dict_dump   "Log dictionary dump"                       
 FD_EXTENSION_SUBDIR(dbg_dict_dump_json   "Dump dictionary as JSON"                            OFF)
 FD_EXTENSION_SUBDIR(dbg_loglevel "Read loglevel from file -- allows runtime change"  ON)
 FD_EXTENSION_SUBDIR(dbg_monitor     "Outputs periodical status information"              ON)
+FD_EXTENSION_SUBDIR(dbg_peers     "Outputs periodical info about peers into file"              ON)
 FD_EXTENSION_SUBDIR(dbg_msg_timings "Show some timing information for messages"      ON)
 FD_EXTENSION_SUBDIR(dbg_msg_dumps   "Show human-readable content of the received & sent messages"      ON)
 FD_EXTENSION_SUBDIR(dbg_rt          "Routing extension for debugging the routing module" ON)
@@ -106,9 +107,7 @@ FD_EXTENSION_SUBDIR(test_as     "Receive Abort-Session-Requests and display the 
 FD_EXTENSION_SUBDIR(test_cc     "Receive Credit-Control-Requests and display the data" ON)
 FD_EXTENSION_SUBDIR(test_ccload     "Generate Credit-Control-Requests and count replies" ON)
 FD_EXTENSION_SUBDIR(test_sip        "Testing application to simulate Diameter-SIP client (RFC4740)" OFF)
-IF (NOT CMAKE_BUILD_TYPE MATCHES "DebianPackage")
-FD_EXTENSION_SUBDIR(dbg_interactive "Python-interpreter based module"                OFF)
-ENDIF (NOT CMAKE_BUILD_TYPE MATCHES "DebianPackage")
+FD_EXTENSION_SUBDIR(dbg_interactive "Python-interpreter based module"                ON)
 FD_EXTENSION_SUBDIR(test_netemul    "Simple Diameter network emulator proxy extension (latency, PDV, duplicates)" OFF)
 
 
