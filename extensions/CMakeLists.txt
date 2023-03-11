@@ -107,7 +107,9 @@ FD_EXTENSION_SUBDIR(test_as     "Receive Abort-Session-Requests and display the 
 FD_EXTENSION_SUBDIR(test_cc     "Receive Credit-Control-Requests and display the data" ON)
 FD_EXTENSION_SUBDIR(test_ccload     "Generate Credit-Control-Requests and count replies" ON)
 FD_EXTENSION_SUBDIR(test_sip        "Testing application to simulate Diameter-SIP client (RFC4740)" OFF)
-FD_EXTENSION_SUBDIR(dbg_interactive "Python-interpreter based module"                ON)
+IF (NOT CMAKE_BUILD_TYPE MATCHES "DebianPackage")
+FD_EXTENSION_SUBDIR(dbg_interactive "Python-interpreter based module"                OFF)
+ENDIF (NOT CMAKE_BUILD_TYPE MATCHES "DebianPackage")
 FD_EXTENSION_SUBDIR(test_netemul    "Simple Diameter network emulator proxy extension (latency, PDV, duplicates)" OFF)
 
 
