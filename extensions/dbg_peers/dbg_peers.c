@@ -61,17 +61,17 @@ static void * mn_thr(void * arg)
 		#else /* DEBUG */
 		sleep(3599); /* 1 hour */
 		#endif /* DEBUG */
-		TRACE_DEBUG(INFO, "[dbg_peers] Dumping peer statistics");
+		TRACE_DEBUG(INFO, "[dbg_peers] Dumping peer statistics to file");
 		
 		/* Log to file */
+		FILE * fptr;
 		fptr = fopen("/tmp/DiamPeers.txt","w");
 		if(fptr == NULL)
 		{
-			printf("Error loading file to write to");   
+			TRACE_DEBUG(INFO, "[dbg_peers] Error loading file to write to");
 			exit(1);             
 		}
-		fprintf("Hello");
-		fclose(fptr);
+		fprintf(fptr, "%s", "Start of File\n");
 
 		CHECK_FCT_DO( pthread_rwlock_rdlock(&fd_g_peers_rw), /* continue */ );
 
@@ -79,7 +79,7 @@ static void * mn_thr(void * arg)
 			struct peer_hdr * p = (struct peer_hdr *)li->o;
 			
 			TRACE_DEBUG(INFO, "%s", fd_peer_dump(&buf, &len, NULL, p, 1));
-			
+			fprintf(fptr, "%s %s", fd_peer_dump(&buf, &len, NULL, p, 1), "\n");
 			CHECK_FCT_DO( fd_stat_getstats(STAT_P_PSM, p, &current_count, &limit_count, &highest_count, &total_count, &total, &blocking, &last), );
 			display_info("Events, incl. recept", p->info.pi_diamid, current_count, limit_count, highest_count, total_count, &total, &blocking, &last);
 			
@@ -87,6 +87,9 @@ static void * mn_thr(void * arg)
 			display_info("Outgoing", p->info.pi_diamid, current_count, limit_count, highest_count, total_count, &total, &blocking, &last);
 			
 		}
+
+		fprintf(fptr, "%s", "End of File\n");
+		fclose(fptr);
 
 		CHECK_FCT_DO( pthread_rwlock_unlock(&fd_g_peers_rw), /* continue */ );
 
