@@ -50,7 +50,7 @@ static void * mn_thr(char * statefile)
 
 		CHECK_FCT_DO( pthread_rwlock_unlock(&fd_g_peers_rw), /* continue */ );
 
-		sleep(30); /* Sleep 30 Seconds */
+		sleep(10); /* Sleep 10 Seconds */
 	}
 	
 	free(buf);
