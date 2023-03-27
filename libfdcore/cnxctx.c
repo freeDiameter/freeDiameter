@@ -1286,8 +1286,8 @@ int fd_tls_verify_credentials(gnutls_session_t session, struct cnxctx * conn, in
 	#endif /* DEBUG */
 
 	/* First, use built-in verification */
-	CHECK_GNUTLS_DO( gnutls_certificate_verify_peers2 (session, &gtret), return EINVAL );
-	if (gtret) {
+	ret = gnutls_certificate_verify_peers2 (session, &gtret);
+	if (ret != 0) {
 		LOG_E("TLS: Remote certificate invalid on socket %d (Remote: '%s')(Connection: '%s') :", conn->cc_socket, conn->cc_remid, conn->cc_id);
 		if (gtret & GNUTLS_CERT_INVALID)
 			LOG_E(" - The certificate is not trusted (unknown CA? expired?)");
