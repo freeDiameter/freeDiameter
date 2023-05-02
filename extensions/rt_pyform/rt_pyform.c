@@ -55,7 +55,7 @@ static int rt_pyform_entry(char *conffile)
 
 	if (0 != parseConfig(conffile, directoryPath, moduleName, functionName))
 	{
-		fd_log_notice("%s: Encountered errors when parning config file", MODULE_NAME);
+		fd_log_notice("%s: Encountered errors when parsing config file", MODULE_NAME);
 		fd_log_error(
 			"Config file should be 3 lines long and look like the following:\n"
 			"DirectoryPath = \".\"        # Look in current dir\n"
