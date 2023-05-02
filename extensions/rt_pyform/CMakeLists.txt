@@ -11,3 +11,11 @@ SET(RT_PYFORM_SRC
 # Compile as a module
 FD_ADD_EXTENSION(rt_pyform ${RT_PYFORM_SRC} ${PY_LIB})
 TARGET_LINK_LIBRARIES(rt_pyform -lpython3.10)
+
+####
+## INSTALL section ##
+
+# We install with the daemon component because it is a base feature.
+INSTALL(TARGETS rt_pyform
+	LIBRARY DESTINATION ${INSTALL_EXTENSIONS_SUFFIX}
+	COMPONENT freeDiameter-daemon)
