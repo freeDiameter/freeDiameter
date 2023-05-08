@@ -5,7 +5,6 @@ PROJECT("Routing extension that transforms AVP values using a python script" C)
 SET(RT_PYFORM_SRC
 	rt_pyform.c
 	rt_pyform_config.c
-	pyformer.c
 )
 
 # Compile as a module

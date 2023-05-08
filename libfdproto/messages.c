@@ -908,6 +908,14 @@ static DECLARE_FD_DUMP_PROTOTYPE( avp_format_treeview, struct avp * avp, int lev
 		if (avp->avp_public.avp_value) {
 			CHECK_MALLOC_DO( fd_dict_dump_avp_value(FD_DUMP_STD_PARAMS, avp->avp_public.avp_value, avp->avp_model, 0, 0), return NULL);
 		} else if (avp->avp_rawdata) {
+			
+			/* this has the raw data!! */
+			// printf("\n\n");
+			// for (int i = 0; i < avp->avp_rawlen; ++i) {
+			// 	printf("%02X ", avp->avp_rawdata[i]);
+			// }
+			// printf("\n\n");
+
 			CHECK_MALLOC_DO( fd_dump_extend_hexdump(FD_DUMP_STD_PARAMS, avp->avp_rawdata, avp->avp_rawlen, 0, 0), return NULL);
 		} else {
 			CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "(not set)"), return NULL);
@@ -1205,6 +1213,37 @@ int fd_msg_avp_hdr ( struct avp *avp, struct avp_hdr **pdata )
 	TRACE_ENTRY("%p %p", avp, pdata);
 	CHECK_PARAMS(  CHECK_AVP(avp) && pdata  );
 	
+
+
+	
+	// printf("code: %li vendor: %li          :\n", (long)avp->avp_public.avp_code, (long)avp->avp_public.avp_vendor);
+	// printf("avp->avp_storage.os.len : %ld\n", avp->avp_storage.os.len);
+	// printf("avp->avp_storage.i32    : %i\n", avp->avp_storage.i32);
+	// printf("avp->avp_storage.i64    : %li\n", avp->avp_storage.i64);
+	// printf("avp->avp_storage.u32    : %u\n", avp->avp_storage.u32);
+	// printf("avp->avp_storage.u64    : %lu\n", avp->avp_storage.u64);
+	// printf("avp->avp_storage.f32    : %f\n", avp->avp_storage.f32);
+	// printf("avp->avp_storage.f64    : %f\n", avp->avp_storage.f64);
+
+
+
+
+	// printf("avp->avp_rawlen : %li\n", avp->avp_rawlen);
+	// printf("avp->avp_source : %p\n", avp->avp_source);
+	// 	printf("\n\n");
+	// for (int i = 0; i < avp->avp_rawlen; ++i) {
+	// 	printf("%02X ", avp->avp_rawdata[i]);
+	// }
+	// 	printf("\n\n");
+
+	// printf("\n\n");
+	// for (int i = 0; i < 10; ++i) {
+	// 	printf("%02X ", avp->avp_source[i]);
+	// }
+	// printf("\n\n");
+
+
+
 	*pdata = &avp->avp_public;
 	return 0;
 }

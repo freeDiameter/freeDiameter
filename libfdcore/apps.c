@@ -59,6 +59,12 @@ int fd_app_merge(struct fd_list * list, application_id_t aid, vendor_id_t vid, i
 			na->flags.acct = 1;
 		break;
 	}
+
+	// printf("skip : %i\n", skip);
+	// printf("aid  : %i\n", aid);
+	// printf("vid  : %i\n", vid);
+	// printf("auth : %i\n", auth);
+	// printf("acct : %i\n", acct);
 	
 	if (!skip) {			
 		struct fd_app  * new = NULL;

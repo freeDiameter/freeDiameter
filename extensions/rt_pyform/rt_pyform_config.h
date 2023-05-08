@@ -1,7 +1,12 @@
 #ifndef RT_PYFORM_CONFIG
 #define RT_PYFORM_CONFIG
 
-#include "pyformer.h"
+enum
+{
+    MAX_DIRECTORY_PATH = 32,
+    MAX_MODULE_NAME = 32,
+    MAX_FUNCTION_NAME = 32,
+};
 
 /* Returns number of errors encountered when parsing config */
 int parseConfig(
