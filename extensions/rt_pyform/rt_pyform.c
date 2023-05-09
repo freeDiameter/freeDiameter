@@ -118,6 +118,12 @@ void fd_ext_fini(void)
 // have the option to expose the raw data to python or we could use the dicts to correctly decode them
 
 void debug_print(struct avp *first_avp, int depth) {
+
+	if (NULL == first_avp) {
+		printf("first avp was null\n");
+		return;
+	}
+
 	for (struct avp *avp = first_avp; NULL != avp; avp = getNextAVP(avp))
 	{
 		struct avp_hdr *AVP_Header = getAVP_Header(avp);
@@ -578,53 +584,35 @@ static int addAvpsToMsg(PyObject* py_add_avps_list, /* struct avp *first_avp, */
 		    (NULL == py_avp_vendor) ||
 		    (NULL == py_avp_value)) {
 			printf("something went bad...\n");
+			errors += 1;
             continue; // for now only support addint top level avps
 		}
 
 		uint32_t avp_code = PyLong_AsUnsignedLong(py_avp_code);
 		uint32_t avp_vendor = PyLong_AsUnsignedLong(py_avp_vendor);
 
-        // struct avp* avp = findAvp(first_avp, avp_code, avp_vendor);
-		// if (NULL == avp) {
+        struct avp* avp = findAvp(first_avp, avp_code, avp_vendor);
 			
-		// }
+		/* If avp doesnt exist, make it exist */
+		if (NULL == avp) { 
+			avp = newAvpInstance(avp_code, avp_vendor);
+		}
 
-
-		// if 
-
-        // struct avp* avp = newAvpInstance(avp_code, avp_vendor);
-
-
-		// if grouped type and avp no exist
-		// 	make avp exist
-		//
-		// if groped
-		// 	call add avps to msg with this avp as the msg
-		// else set the avp value
-		//
-		// attach avp to msg-or-avp
-
-
-
-
-
-
-		/* If this is a dict then we are adding a new child */
+		/* If this is a list then we're adding children */
 		if (PyList_Check(py_avp_value)) {
-            continue; // for now only support addint top level avps
-			// errors += updateAvps(py_avp_value, getFirstAVP(current_avp));
+			errors += addAvpsToMsg(py_avp_value, avp);
 		} else {
-			// errors += updateAvpValue(py_avp_value, current_avp);
+			errors += updateAvpValue(py_avp_value, avp);
+		}
+
+		/* Finally we need to add the new avp to the parent msg or avp */
+		if (!addAvp(avp, msg_or_avp)) {
+			errors += 1;
 		}
 
         /* todo check above exist */
-        printf("\n\ntrying to add avp_code : %i, avp_vendor : %i\n", avp_code, avp_vendor);
+        printf("\n\ngot %i errors when trying to add the following avp : %i, avp_vendor : %i\n", errors, avp_code, avp_vendor);
 
-        struct avp* avp = newAvpInstance(avp_code, avp_vendor);
-        errors += updateAvpValue(py_avp_value, avp);
-        if (!addAvp(avp, msg_or_avp)) {
-            errors += 1;
-        }
 	}
 
     return errors;
@@ -740,6 +728,17 @@ static bool pyformerUpdate(PyObject* py_result_dict, struct msg *msg, struct fd_
 	PyObject* py_remove_avps_list = PyDict_GetItemString(py_result_dict, "remove_avps");
 	PyObject* py_update_peer_priority_dict = PyDict_GetItemString(py_result_dict, "update_peer_priority");
 
+
+	if (py_remove_avps_list) {
+		errors = 0;
+		errors += removeAvpsFromMsg(py_remove_avps_list, first_avp);
+		printf("got %i errors from remving avps\n", errors);
+		Py_DECREF(py_remove_avps_list);
+	}
+
+	struct avp* avp = getFirstAVP(msg);
+	debug_print(avp, 0);
+
 	if (py_update_avps_list) {
 		/* cant change value */
 		errors = 0;
@@ -748,6 +747,10 @@ static bool pyformerUpdate(PyObject* py_result_dict, struct msg *msg, struct fd_
 		Py_DECREF(py_update_avps_list);
 	}
 
+	avp = getFirstAVP(msg);
+	debug_print(avp, 0);
+
+
 	if (py_add_avps_list) {
 		errors = 0;
 		errors += addAvpsToMsg(py_add_avps_list, msg);
@@ -755,12 +758,8 @@ static bool pyformerUpdate(PyObject* py_result_dict, struct msg *msg, struct fd_
 		Py_DECREF(py_add_avps_list);
 	}
 
-	if (py_remove_avps_list) {
-		errors = 0;
-		errors += removeAvpsFromMsg(py_remove_avps_list, first_avp);
-		printf("got %i errors from remving avps\n", errors);
-		Py_DECREF(py_remove_avps_list);
-	}
+	avp = getFirstAVP(msg);
+	debug_print(avp, 0);
 
 	if (py_update_peer_priority_dict) {
 		errors = 0;
@@ -810,7 +809,7 @@ static int rt_pyform(void * cbdata, struct msg ** msg, struct fd_list * candidat
 		pyformerUpdate(py_result_dict, *msg, candidates);
 		Py_XDECREF(py_result_dict);
 	}
-	
+
 	// struct avp* avp = getFirstAVP(*msg);
 	// debug_print(avp, 0);
 
