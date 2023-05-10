@@ -9,38 +9,6 @@
 #define MODULE_NAME "rt_pyform"
 
 
-
-
-
-
-
-
-
-
-/* TODO
-	- [ ] go through the result and compare it with the original msg structure
-	- [ ] if there are any differences then change them
-	- [ ] also send in the diameter peers = somehow
-		- [ ] name
-		- [ ] realm
-		- [ ] supported applications
-		- [ ] priority
-
-	
-	
-	
-   Future
-	- [ ] if there are new values then add them?
-*/
-
-
-
-
-
-
-
-
-
 // /* Do not directly interact with the fields in this struct */
 typedef struct
 {
@@ -51,6 +19,7 @@ typedef struct
     char functionName[MAX_FUNCTION_NAME];
 } PyformerState;
 
+
 /* Static objects */
 static struct fd_rt_out_hdl *rt_pyform_handle = NULL;
 static pthread_rwlock_t rt_pyform_lock;
@@ -58,6 +27,8 @@ static PyformerState pyformerState = {0};
 
 
 /* Static function prototypes */
+static PyObject* getPeerSupportedApplicationsPyList(const char *diamid);
+static PyObject* getPeersPyDict(struct fd_list * candidates);
 static int pyformerInitialise(
     PyformerState *const state,
     char const *const directoryPath,
@@ -70,28 +41,34 @@ static int pyformerSetContext(
     char const *const moduleName,
     char const *const functionName);
 static int rt_pyform_entry(char *conffile);
-static int rt_pyform(void *cbdata, struct msg **msg, struct fd_list * candidates);
-// static int rt_pyform(void *cbdata, struct msg **msg);
+static int updateAvpValue(PyObject* py_avp_value, struct avp *avp);
+static int updateAvps(PyObject* py_update_avps_list, struct avp *first_avp);
+static int addAvpsToMsgOrAvp(PyObject* py_add_avps_list, msg_or_avp *msg_or_avp);
+static int removeAvpsFromMsg(PyObject* py_add_avps_list, struct avp *first_avp);
+static struct rtd_candidate * getCandidate(struct fd_list * candidates, const char* diamid);
+static int updatePriority(PyObject* py_update_peer_priority_dict, struct fd_list * candidates);
+static void pyformerUpdate(PyObject* py_result_dict, struct msg *msg, struct fd_list * candidates);
+static int rt_pyform(void * cbdata, struct msg ** msg, struct fd_list * candidates);
 static PyObject* msgToPyDict(struct msg *msg);
 static PyObject* avpChainToPyList(struct avp *first_avp);
 static PyObject* avpToPyDict(struct avp *avp);
 static PyObject* getPyAvpValue(struct avp *avp, enum dict_avp_basetype avp_type, union avp_value * avp_value);
 static PyObject* msgHeaderToPyDict(struct msg *msg);
 static PyObject * pyformerTransformValue(PyObject* py_msg_dict, PyObject* py_peers_dict);
-// static PyObject * pyformerTransformValue(PyObject* py_msg_dict);
 static PyObject * pyformerGetFunction(void);
 static PyObject *pyformerGetModule(void);
 static struct avp *getNextAVP(struct avp *avp);
 static struct avp *getFirstAVP(msg_or_avp *msg);
-static struct avp_hdr *getAVP_Header(struct avp *avp);
+static struct avp_hdr *getAvpHeader(struct avp *avp);
 static struct dict_object *getAVP_Model(struct avp *avp);
-static struct avp * findAvp(struct avp *first_avp, uint32_t avp_code, uint32_t avp_vendor);
-static struct avp * findAvp(struct avp *first_avp, uint32_t avp_code, uint32_t avp_vendor);
+static bool getAvpDictData(struct dict_object *model, struct dict_avp_data* avpDictData);
+static struct msg_hdr* getMsgHeader(struct msg *msg);
+static struct avp* findAvp(struct avp *first_avp, uint32_t avp_code, uint32_t avp_vendor);
 static struct avp* newAvpInstance(uint32_t avp_code, uint32_t avp_vendor);
 static bool setAvpValue(union avp_value* value, struct avp* avp);
-static bool addAvp(struct avp* avp, msg_or_avp* msg_or_avp);
-static bool getAvpDictData(struct dict_object *model, struct dict_avp_data* avpDictData);
 static bool removeAvp(struct avp* avp);
+static bool addAvp(struct avp* avp, msg_or_avp* msg_or_avp);
+static bool applyDictToMsgOrAvp(msg_or_avp* msg_or_avp);
 
 
 /* Define the entry point function */
@@ -115,10 +92,7 @@ void fd_ext_fini(void)
 	return ;
 }
 
-// have the option to expose the raw data to python or we could use the dicts to correctly decode them
-
 void debug_print(struct avp *first_avp, int depth) {
-
 	if (NULL == first_avp) {
 		printf("first avp was null\n");
 		return;
@@ -126,7 +100,7 @@ void debug_print(struct avp *first_avp, int depth) {
 
 	for (struct avp *avp = first_avp; NULL != avp; avp = getNextAVP(avp))
 	{
-		struct avp_hdr *AVP_Header = getAVP_Header(avp);
+		struct avp_hdr *AVP_Header = getAvpHeader(avp);
 
 		if (NULL == AVP_Header) {
 			printf("Error: AVP has no header\n");
@@ -139,6 +113,7 @@ void debug_print(struct avp *first_avp, int depth) {
 
 		printf("[debug_print] Code:%d, Vendor:%d\n", AVP_Header->avp_code, AVP_Header->avp_vendor);
 		struct dict_avp_data AVP_DictData = {0};
+		applyDictToMsgOrAvp(avp);
 		struct dict_object *model = getAVP_Model(avp);
 		if (getAvpDictData(model, &AVP_DictData)) {
 			if (AVP_TYPE_GROUPED == AVP_DictData.avp_basetype) {
@@ -148,100 +123,62 @@ void debug_print(struct avp *first_avp, int depth) {
 	}
 }
 
-
 static PyObject* getPeerSupportedApplicationsPyList(const char *diamid) {
-	struct fd_list * li;
-
+	struct fd_list * li_outer = NULL;
+	struct fd_list * li_inner = NULL;
 	PyObject* py_supported_applications_list = PyList_New(0);
 
-	for (li = fd_g_peers.next; li != &fd_g_peers; li = li->next) {
-		struct peer_hdr * p = (struct peer_hdr *)li->o;
+	/* For each peer */
+	for (li_outer = fd_g_peers.next; li_outer != &fd_g_peers; li_outer = li_outer->next) {
+		struct peer_hdr* p = (struct peer_hdr*)li_outer->o;
 
 		if (!strcmp(diamid, p->info.pi_diamid)) {
-			for (li = &p->info.runtime.pir_apps; li->next != &p->info.runtime.pir_apps; li = li->next) {
-				struct fd_app * na = (struct fd_app *)(li->next);
-				PyObject* py_app_id = PyLong_FromLong(na->appid);
+			/* For each supported app in peer */
+			for (li_inner = &p->info.runtime.pir_apps; li_inner->next != &p->info.runtime.pir_apps; li_inner = li_inner->next) {
+				struct fd_app* peer_app_item = (struct fd_app*)(li_inner->next);
+				PyObject* py_app_id = PyLong_FromLong(peer_app_item->appid);
+
 				PyList_Append(py_supported_applications_list, py_app_id);
+				Py_DECREF(py_app_id);
 			}
 			break;
 		}
-
 	}
 
 	return py_supported_applications_list;
-
-	// for (li = fd_g_peers.next; li != &fd_g_peers; li = li->next) {
-
-	// 	char * buf = NULL;
-	// 	size_t len;
-
-	// // for (li = fd_g_activ_peers.next; li != &fd_g_activ_peers; li = li->next) {
-	// 	struct peer_hdr * p = (struct peer_hdr*)li->o;
-	// 	printf("%s\n", fd_peer_dump(&buf, &len, NULL, p, 10));
-	// }
 }
 
 static PyObject* getPeersPyDict(struct fd_list * candidates) {
 	struct fd_list * li;
 
-	PyObject* py_peers_dict = PyDict_New();
+	PyObject* py_peers_dict_parent = PyDict_New();
 	for (li = candidates->next; li != candidates; li = li->next) {
 		struct rtd_candidate * cand = (struct rtd_candidate *)li;
-		printf("cand->diamid '%s', cand->realm '%s', score %i\n", cand->diamid, cand->realm, cand->score);
 
-		PyObject* py_peer_dict = PyDict_New();
-
+		PyObject* py_peers_dict_child = PyDict_New();
 		PyObject* py_realm = PyUnicode_FromString(cand->realm);
-		PyDict_SetItemString(py_peer_dict, "realm", py_realm);
-
 		PyObject* py_supported_applications_list = getPeerSupportedApplicationsPyList(cand->diamid);
-		PyDict_SetItemString(py_peer_dict, "supported_applications", py_supported_applications_list);
-
 		PyObject* py_priority = PyLong_FromLong(cand->score);
-		PyDict_SetItemString(py_peer_dict, "priority", py_priority);
 
-		PyDict_SetItemString(py_peers_dict, cand->diamid, py_peer_dict);
+		if ((NULL != py_peers_dict_child)            &&
+			(NULL != py_realm)                       &&
+			(NULL != py_supported_applications_list) &&
+			(NULL != py_priority)) {
+			PyDict_SetItemString(py_peers_dict_child, "realm", py_realm);
+			PyDict_SetItemString(py_peers_dict_child, "supported_applications", py_supported_applications_list);
+			PyDict_SetItemString(py_peers_dict_child, "priority", py_priority);
+			PyDict_SetItemString(py_peers_dict_parent, cand->diamid, py_peers_dict_child);
+		} else {
+			fd_log_error("getPeersPyDict: Failed to create peers PyObject\n");
+		}
+		
+		Py_XDECREF(py_peers_dict_child);
+		Py_XDECREF(py_realm);
+		Py_XDECREF(py_supported_applications_list);
+		Py_XDECREF(py_priority);
 	}
 
-
-	return py_peers_dict;
-// it lookks like the callback provides us with sommething we can cast to the libproto candiates,
-// lets loop through them and look into printing tge score and shit
-
-		// count++;
-		// printf("!peer count %i\n", count);
-
-		// printf("p->info.pi_diamid            : '%s'\n", p->info.pi_diamid);                        // name
-		// printf("p->info.runtime.pir_realm    : '%s'\n", p->info.runtime.pir_realm);				   // realm
-		
-		
-		// for (lj = &p->info.runtime.pir_apps; lj->next != &p->info.runtime.pir_apps; lj = lj->next) {
-		// 	struct fd_app * na = (struct fd_app *)(lj->next);
-		// 	printf("a : '%p'\n", na); // why null?
-		// 	printf("\tna->appid %i, na->vndid %i:\n", na->appid, na->vndid); // why null?
-		
-		// }
-		// // for (lj = p->info.runtime.pir_apps.next; lj != &p->info.runtime.pir_apps; lj = lj->next) { // supported_applications
-		// // 	// struct fd_app *a = (struct fd_app *)lj->o;
-		// // 	struct fd_app * na = (struct fd_app *)(li->next);
-
-		// // 	// printf("a->appid : '%d'\n", a->appid);
-		// // 	// printf("a->vndid : '%d'\n", a->vndid);
-		// // }
-
-		// /* priority? */
-		// printf("p->info.config.pic_priority  : '%s'\n", p->info.config.pic_priority); 
-		
-		// printf("p->info.runtime.pir_prodname : '%s'\n", p->info.runtime.pir_prodname);
-		// printf("p->info.config.pic_realm     : '%s'\n", p->info.config.pic_realm);
-
-		// printf("p->info.runtime.pir_apps.head : %p\n", p->info.runtime.pir_apps.head);
-		// printf("p->info.runtime.pir_apps.next : %p\n", p->info.runtime.pir_apps.next);
-		// printf("&p->info.runtime.pir_apps     : %p\n", &p->info.runtime.pir_apps);
-
-
-		// printf("%s\n", fd_peer_dump(&buf, &len, NULL, p, 10));
-	// }
+	return py_peers_dict_parent;
 }
 
 static int pyformerInitialise(
@@ -267,15 +204,14 @@ static int pyformerInitialise(
     return isFailed;
 }
 
-static int pyformerFinalise(PyformerState *const state)
-{
+static int pyformerFinalise(PyformerState *const state) {
     int isFailed = 0;
 
     if (NULL != state)
     {
         if (0 != Py_FinalizeEx())
         {
-            printf("Failed to finalise cpython\n");
+            fd_log_error("pyformerFinalise: Failed to finalise cpython");
         }
         else
         {
@@ -310,8 +246,7 @@ static int pyformerSetContext(
 }
 
 /* Entry point called when loading the module */
-static int rt_pyform_entry(char *conffile)
-{
+static int rt_pyform_entry(char *conffile) {
 	TRACE_ENTRY("%p", conffile);
 	int ret = 0;
 	char directoryPath[MAX_DIRECTORY_PATH] = "";
@@ -355,89 +290,34 @@ static int rt_pyform_entry(char *conffile)
 	return 0;
 }
 
-
-// static PyObject* findPyAvpValue(PyObject* py_avp_list, uint32_t target_avp_code, uint32_t target_avp_vendor) {
-// 	PyObject* py_avp_value = NULL;
-
-// 	Py_ssize_t size = PyList_Size(py_avp_list);
-// 	for (Py_ssize_t i = 0; i < size; i++) {
-// 		/* Assuming list has dicts */
-// 		PyObject* py_avp_dict = PyList_GetItem(py_avp_list, i);
-//     	PyObject* py_avp_code = PyDict_GetItemString(py_avp_dict, "code");
-//     	PyObject* py_avp_vendor = PyDict_GetItemString(py_avp_dict, "vendor");
-		
-// 		uint32_t avp_code = PyLong_AsUnsignedLong(py_avp_code);
-// 		uint32_t avp_vendor = PyLong_AsUnsignedLong(py_avp_vendor);
-
-//         // printf("avp_code   : %u == %u?\n", avp_code, target_avp_code);
-//         // printf("avp_vendor : %u == %u?\n", avp_vendor, target_avp_vendor);
-		
-// 		if ((target_avp_code == avp_code) &&
-// 		    (target_avp_vendor == avp_vendor)) {
-// 			py_avp_value = PyDict_GetItemString(py_avp_dict, "value");
-// 			// printf("found py_avp_value: %p!\n", py_avp_value);
-// 			break;
-// 		}
-// 	}
-
-// 	return py_avp_value;
-// }
-
-// static enum dict_avp_basetype getAvpBasetype(struct avp *avp) {
-// 	enum dict_avp_basetype basetype = -1;
-// 	struct dict_avp_data AVP_DictData = {0};
-// 	struct dict_object *model = getAVP_Model(avp);
-	
-// 	if ((NULL != model) &&
-// 		(0 == fd_dict_getval(model, &AVP_DictData))) {
-// 		basetype = AVP_DictData.avp_basetype;
-// 	}
-
-// 	return basetype;
-// }
-
 static int updateAvpValue(PyObject* py_avp_value, struct avp *avp) {
 	int errors = 0;
-	struct dict_avp_data AVP_DictData = {0};
-	fd_msg_parse_dict(avp, fd_g_config->cnf_dict, NULL);
-
-
+	struct dict_avp_data avp_dict_data = {0};
 	union avp_value avp_value = {0};
 
+	if ((NULL == py_avp_value) ||
+	    (NULL == avp)) {
+		fd_log_error("updateAvpValue: Invaid parameter");
+		return 1;
+	}
+
 	struct dict_object *model = getAVP_Model(avp);
-	struct avp_hdr *AVP_Header = getAVP_Header(avp);
 
-	if (NULL == py_avp_value) {
-		printf("could not get py_avp_value\n");
+	if (!getAvpDictData(model, &avp_dict_data)) {
+		fd_log_error("Error: Trying to pyform unknown AVP (not in dictionary)");
 		return 1;
 	}
 
-	if (NULL == avp) {
-		printf("could not get avp\n");
-		return 1;
-	}
-
-	if (NULL == AVP_Header) {
-		printf("could not get avp header\n");
-		return 1;
-	}
-
-	if (!getAvpDictData(model, &AVP_DictData)) {
-		printf("Error: Trying to pyform unknown AVP (not in dictionary)\n");
-		return 1;
-	}
-
-	switch (AVP_DictData.avp_basetype) {
+	switch (avp_dict_data.avp_basetype) {
 		case AVP_TYPE_GROUPED: 
 		{
 			/* Caller should be handling grouped */
-			printf("Error: Trying to pyform grouped AVP [Code:%d, Vendor:%d]\n", AVP_Header->avp_code, AVP_Header->avp_vendor);
+			fd_log_error("updateAvpValue: Error: Trying to pyform grouped AVP '%s'", avp_dict_data.avp_name);
 			errors += 1;
 			break;
 		}
 		case AVP_TYPE_OCTETSTRING:
 		{
-			// todo refactor
 			if (PyUnicode_Check(py_avp_value)) {
 				const char* data = PyUnicode_AsUTF8(py_avp_value);
 
@@ -446,7 +326,7 @@ static int updateAvpValue(PyObject* py_avp_value, struct avp *avp) {
 					avp_value.os.len = strlen(data);
 				}
 			} else {
-				printf("error expected integer value for AVP [Code: %i, Vendor: %i]\n", AVP_Header->avp_code, AVP_Header->avp_vendor);
+				fd_log_error("updateAvpValue: error expected sting value for AVP '%s'", avp_dict_data.avp_name);
 				errors += 1;
 			}
 			break;
@@ -456,7 +336,7 @@ static int updateAvpValue(PyObject* py_avp_value, struct avp *avp) {
 			if (PyLong_Check(py_avp_value)) {
 				avp_value.i32 = PyLong_AsLong(py_avp_value);
 			} else {
-				printf("error expected integer value for AVP [Code: %i, Vendor: %i]\n", AVP_Header->avp_code, AVP_Header->avp_vendor);
+				fd_log_error("updateAvpValue: error expected integer value for AVP '%s'", avp_dict_data.avp_name);
 				errors += 1;
 			}
 			break;
@@ -466,7 +346,7 @@ static int updateAvpValue(PyObject* py_avp_value, struct avp *avp) {
 			if (PyLong_Check(py_avp_value)) {
 				avp_value.i64 = PyLong_AsLongLong(py_avp_value);
 			} else {
-				printf("error expected integer value for AVP [Code: %i, Vendor: %i]\n", AVP_Header->avp_code, AVP_Header->avp_vendor);
+				fd_log_error("updateAvpValue: error expected integer value for AVP '%s'", avp_dict_data.avp_name);
 				errors += 1;
 			}
 			break;
@@ -476,7 +356,7 @@ static int updateAvpValue(PyObject* py_avp_value, struct avp *avp) {
 			if (PyLong_Check(py_avp_value)) {
 				avp_value.u32 = PyLong_AsUnsignedLong(py_avp_value);
 			} else {
-				printf("error expected integer value for AVP [Code: %i, Vendor: %i]\n", AVP_Header->avp_code, AVP_Header->avp_vendor);
+				fd_log_error("updateAvpValue: error expected integer value for AVP '%s'", avp_dict_data.avp_name);
 				errors += 1;
 			}
 			break;
@@ -486,7 +366,7 @@ static int updateAvpValue(PyObject* py_avp_value, struct avp *avp) {
 			if (PyLong_Check(py_avp_value)) {
 				avp_value.u64 = PyLong_AsUnsignedLongLong(py_avp_value);
 			} else {
-				printf("error expected integer value for AVP [Code: %i, Vendor: %i]\n", AVP_Header->avp_code, AVP_Header->avp_vendor);
+				fd_log_error("updateAvpValue: error expected integer value for AVP '%s'", avp_dict_data.avp_name);
 				errors += 1;
 			}
 			break;
@@ -496,7 +376,7 @@ static int updateAvpValue(PyObject* py_avp_value, struct avp *avp) {
 			if (PyFloat_Check(py_avp_value)) {
 				avp_value.f32 = (float)PyFloat_AsDouble(py_avp_value);
 			} else {
-				printf("error expected floating point value for AVP [Code: %i, Vendor: %i]\n", AVP_Header->avp_code, AVP_Header->avp_vendor);
+				fd_log_error("updateAvpValue: error expected floating point value for AVP '%s'", avp_dict_data.avp_name);
 				errors += 1;
 			}
 			break;
@@ -506,74 +386,93 @@ static int updateAvpValue(PyObject* py_avp_value, struct avp *avp) {
 			if (PyFloat_Check(py_avp_value)) {
 				avp_value.f64 = PyFloat_AsDouble(py_avp_value);
 			} else {
-				printf("error expected floating point value for AVP [Code: %i, Vendor: %i]\n", AVP_Header->avp_code, AVP_Header->avp_vendor);
+				fd_log_error("updateAvpValue: error expected floating point value for AVP '%s'", avp_dict_data.avp_name);
 				errors += 1;
 			}
 			break;
 		}
 		default:
 		{
-			printf("We just got a type error for Code: %i, Vendor: %i\n", AVP_Header->avp_code, AVP_Header->avp_vendor);
+			fd_log_error("updateAvpValue: Unknown AVP value for '%s', this should never be hit", avp_dict_data.avp_name);
 			errors += 1;
 			break;
 		}
 	}
 
 	if (!setAvpValue(&avp_value, avp)) {
-		printf("failed to set the vaac[av[avp]] %i\n", errors);
+		fd_log_error("updateAvpValue: Failed to set AVP value");
 		errors += 1;
 	}
 
-
-	printf("errorssss %i\n", errors);
-
 	return errors;
-
 }
 
 static int updateAvps(PyObject* py_update_avps_list, struct avp *first_avp) {
 	int errors = 0;
-	struct avp *current_avp = first_avp;
-	fd_msg_parse_dict(current_avp, fd_g_config->cnf_dict, NULL);
+	struct avp *current_avp = NULL;
+
+	if ((NULL == py_update_avps_list) || 
+	    (NULL == first_avp)) {
+		fd_log_error("updateAvps: Invaid parameter");
+		return 1;
+	}
+	current_avp = first_avp;
 
 	Py_ssize_t size = PyList_Size(py_update_avps_list);
 	for (Py_ssize_t i = 0; i < size; i++) {
-		/* Assuming list has dicts */
 		PyObject* py_avp_dict = PyList_GetItem(py_update_avps_list, i);
     	PyObject* py_avp_code = PyDict_GetItemString(py_avp_dict, "code");
     	PyObject* py_avp_vendor = PyDict_GetItemString(py_avp_dict, "vendor");
     	PyObject* py_avp_value = PyDict_GetItemString(py_avp_dict, "value");
-        /* todo check above exist */
+
+		if ((NULL == py_avp_dict)   ||  
+			(NULL == py_avp_code)   ||  
+			(NULL == py_avp_vendor) ||    
+			(NULL == py_avp_value)) {
+			/* Note this will also refer to a child index. 
+			 * E.g. If parent index is 2 and were at the 
+			 * child index of 1, then 1 will be printed. */
+			fd_log_error("updateAvps: Failed to get python AVP item from python dict at index %i", i);
+			errors += 1;
+            continue;
+		}
 
 		/* If this is a dict then we are changing the child */
 		if (PyList_Check(py_avp_value)) {
 			errors += updateAvps(py_avp_value, getFirstAVP(current_avp));
 		} else {
-			/* Search through avp chain until we find the one python referes tos */
+			/* Search through AVP chain until we find AVP to change */
 			uint32_t avp_code = PyLong_AsUnsignedLong(py_avp_code);
 			uint32_t avp_vendor = PyLong_AsUnsignedLong(py_avp_vendor);
 			current_avp = findAvp(first_avp, avp_code, avp_vendor);
 			if (NULL == current_avp) {
-				printf("Could not find avp for change... skipping C:%i V:%i\n", avp_code, avp_vendor);
+				fd_log_error("updateAvps: Could not find AVP for update [Code: %i, Vendor: %i]", avp_code, avp_vendor);
 				errors += 1;
 				continue;
+			} else {
+				errors += updateAvpValue(py_avp_value, current_avp);
 			}
-			errors += updateAvpValue(py_avp_value, current_avp);
 		}
 	}
 
 	return errors;
 }
 
-static int addAvpsToMsg(PyObject* py_add_avps_list, /* struct avp *first_avp, */msg_or_avp *msg_or_avp) {
+static int addAvpsToMsgOrAvp(PyObject* py_add_avps_list, msg_or_avp *msg_or_avp) {
 	int errors = 0;
+	Py_ssize_t size = 0; 
+	struct avp *first_avp = NULL;
+	
+	if ((NULL == py_add_avps_list) ||
+	    (NULL == msg_or_avp)) {
+		fd_log_error("addAvpsToMsgOrAvp: Invaid parameter");
+		return 1;
+	}
+	first_avp = getFirstAVP(msg_or_avp);
+	size = PyList_Size(py_add_avps_list);
 
-	struct avp *first_avp = getFirstAVP(msg_or_avp);
-	fd_msg_parse_dict(first_avp, fd_g_config->cnf_dict, NULL);
-
-	Py_ssize_t size = PyList_Size(py_add_avps_list);
+	/* Loop through the python dict */
 	for (Py_ssize_t i = 0; i < size; i++) {
-		/* Assuming list has dicts */
 		PyObject* py_avp_dict = PyList_GetItem(py_add_avps_list, i);
     	PyObject* py_avp_code = PyDict_GetItemString(py_avp_dict, "code");
     	PyObject* py_avp_vendor = PyDict_GetItemString(py_avp_dict, "vendor");
@@ -583,36 +482,42 @@ static int addAvpsToMsg(PyObject* py_add_avps_list, /* struct avp *first_avp, */
 		    (NULL == py_avp_code)   ||
 		    (NULL == py_avp_vendor) ||
 		    (NULL == py_avp_value)) {
-			printf("something went bad...\n");
+			/* Note this will also refer to a child index. 
+			 * E.g. If parent index is 2 and were at the 
+			 * child index of 1, then 1 will be printed. */
+			fd_log_error("addAvpsToMsgOrAvp: Failed to get python AVP item from python dict at index %i", i);
 			errors += 1;
-            continue; // for now only support addint top level avps
+            continue;
 		}
 
 		uint32_t avp_code = PyLong_AsUnsignedLong(py_avp_code);
 		uint32_t avp_vendor = PyLong_AsUnsignedLong(py_avp_vendor);
-
-        struct avp* avp = findAvp(first_avp, avp_code, avp_vendor);
-			
-		/* If avp doesnt exist, make it exist */
-		if (NULL == avp) { 
-			avp = newAvpInstance(avp_code, avp_vendor);
-		}
-
-		/* If this is a list then we're adding children */
-		if (PyList_Check(py_avp_value)) {
-			errors += addAvpsToMsg(py_avp_value, avp);
+        struct avp* existing_avp = findAvp(first_avp, avp_code, avp_vendor);
+        struct avp* current_avp = NULL;
+		
+		/* If AVP doesnt exist, make a new one */
+		if (NULL == existing_avp) { 
+			current_avp = newAvpInstance(avp_code, avp_vendor);
 		} else {
-			errors += updateAvpValue(py_avp_value, avp);
+			current_avp = existing_avp;
 		}
 
-		/* Finally we need to add the new avp to the parent msg or avp */
-		if (!addAvp(avp, msg_or_avp)) {
-			errors += 1;
+		/* If value is a list then we're adding children,
+		 * otherwise set the AVP value */
+		if (PyList_Check(py_avp_value)) {
+			errors += addAvpsToMsgOrAvp(py_avp_value, current_avp);
+		} else {
+			errors += updateAvpValue(py_avp_value, current_avp);
 		}
 
-        /* todo check above exist */
-        printf("\n\ngot %i errors when trying to add the following avp : %i, avp_vendor : %i\n", errors, avp_code, avp_vendor);
-
+		/* Finally, if we created a new AVP then we need to add it
+		 * to the parent msg or avp */
+		if (NULL == existing_avp) {
+			if (!addAvp(current_avp, msg_or_avp)) {
+				fd_log_error("addAvpsToMsgOrAvp: Failed to add AVP to msg or AVP for [C:%i, V:%i]", avp_code, avp_vendor);
+				errors += 1;
+			}
+		}
 	}
 
     return errors;
@@ -622,7 +527,6 @@ static int removeAvpsFromMsg(PyObject* py_add_avps_list, struct avp *first_avp) 
     int errors = 0;
 
 	Py_ssize_t size = PyList_Size(py_add_avps_list);
-	printf("Py_ssize_t size is %li \n", size);
 
 	for (Py_ssize_t i = 0; i < size; i++) {
 		/* Assuming list has dicts */
@@ -633,10 +537,13 @@ static int removeAvpsFromMsg(PyObject* py_add_avps_list, struct avp *first_avp) 
 
 		if ((NULL == py_avp_dict)   ||
 		    (NULL == py_avp_code)   ||
-		    (NULL == py_avp_vendor) ||
-		    (NULL == py_avp_value)) {
-			printf("something went bad...\n");
-            continue; // for now only support addint top level avps
+		    (NULL == py_avp_vendor)) {
+			/* Note this will also refer to a child index. 
+			 * E.g. If parent index is 2 and were at the 
+			 * child index of 1, then 1 will be printed. */
+			fd_log_error("removeAvpsFromMsg: Failed to get python AVP item from python dict at index %i", i);
+			errors += 1;
+            continue;
 		}
 
 		uint32_t avp_code = PyLong_AsUnsignedLong(py_avp_code);
@@ -644,19 +551,19 @@ static int removeAvpsFromMsg(PyObject* py_add_avps_list, struct avp *first_avp) 
 		struct avp * avp = findAvp(first_avp, avp_code, avp_vendor);
 
 		/* If this is a list with children then we are removing a child */
-		if ((PyList_Check(py_avp_value)) && 
+		if ((NULL != py_avp_value)       &&
+			(PyList_Check(py_avp_value)) && 
 		    (0 < PyList_Size(py_avp_value))) {
-			printf("trtying to remove avp with child c: %i, v: %i\n", avp_code, avp_vendor);
 			errors += removeAvpsFromMsg(py_avp_value, getFirstAVP(avp));
 		} else {
 			if (avp == first_avp) {
+				/* If we're removing the head avp then we 
+				 * need to have a reference to the new head */
 				first_avp = getNextAVP(first_avp);
 			}
 
 			if (!removeAvp(avp)) {
-				printf("failed to remove avp c: %i, v: %i\n", avp_code, avp_vendor);
-			} else {
-				printf("successful removal of avp c: %i, v: %i\n", avp_code, avp_vendor);
+				fd_log_error("removeAvpsFromMsg: Failed to remove AVP [Code: %i, Vendor: %i]", avp_code, avp_vendor);
 			}
 		}
 	}
@@ -666,8 +573,12 @@ static int removeAvpsFromMsg(PyObject* py_add_avps_list, struct avp *first_avp) 
 
 static struct rtd_candidate * getCandidate(struct fd_list * candidates, const char* diamid) {
 	struct rtd_candidate *found = NULL;
-
 	struct fd_list * li;
+
+	if ((NULL == candidates) ||
+	    (NULL == diamid)) {
+		return NULL;
+	}
 
 	for (li = candidates->next; li != candidates; li = li->next) {
 		struct rtd_candidate * cand = (struct rtd_candidate *)li;
@@ -684,43 +595,39 @@ static struct rtd_candidate * getCandidate(struct fd_list * candidates, const ch
 static int updatePriority(PyObject* py_update_peer_priority_dict, struct fd_list * candidates) {
 	int errors = 0;
 	Py_ssize_t pos = 0;
-    PyObject* key = NULL;
-	PyObject* value = NULL;
+    PyObject* py_key = NULL;
+	PyObject* py_value = NULL;
 
-    while (PyDict_Next(py_update_peer_priority_dict, &pos, &key, &value)) {
-        // Convert the key to a string and print it
-        PyObject* py_key_str = PyObject_Str(key);
-        printf("Key: %s\n", PyUnicode_AsUTF8(py_key_str));
+    while (PyDict_Next(py_update_peer_priority_dict, &pos, &py_key, &py_value)) {
+        PyObject* py_key_str = PyObject_Str(py_key);
+		const char* cand_str = PyUnicode_AsUTF8(py_key_str);
 
-		struct rtd_candidate * cand = getCandidate(candidates, PyUnicode_AsUTF8(py_key_str));
-		if (!cand) {
+		struct rtd_candidate* cand = getCandidate(candidates, cand_str);
+        Py_XDECREF(py_key_str);
+		
+		if (NULL == cand) {
+			fd_log_error("updatePriority: Failed to get candidate for '%s'", cand_str);
 			errors += 1;
 			continue;
 		}
-        Py_DECREF(py_key_str);
 
-        long val = PyLong_AsLong(value);
+        long val = PyLong_AsLong(py_value);
 		cand->score = (int)val;
-
-        // Convert the value to a long and print it 
-        printf("cand new score is: %i\n", cand->score);
     }
 
 	return errors;
 }
 
-static bool pyformerUpdate(PyObject* py_result_dict, struct msg *msg, struct fd_list * candidates) {
-	bool isSuccess = false;
+static void pyformerUpdate(PyObject* py_result_dict, struct msg *msg, struct fd_list * candidates) {
 	int errors = 0;
-	struct avp *first_avp = getFirstAVP(msg);
-	fd_msg_parse_dict(first_avp, fd_g_config->cnf_dict, NULL);
+	struct avp *first_avp = NULL;
 
 	if ((NULL == py_result_dict) ||
 	    (NULL == msg)            ||
-		(NULL == first_avp))
+		(NULL == candidates))
 	{
-		printf("Parameter error\n");
-		return false;
+		fd_log_notice("pyformerUpdate: Invaid parameter");
+		return;
 	}
 
 	PyObject* py_add_avps_list = PyDict_GetItemString(py_result_dict, "add_avps");
@@ -728,23 +635,27 @@ static bool pyformerUpdate(PyObject* py_result_dict, struct msg *msg, struct fd_
 	PyObject* py_remove_avps_list = PyDict_GetItemString(py_result_dict, "remove_avps");
 	PyObject* py_update_peer_priority_dict = PyDict_GetItemString(py_result_dict, "update_peer_priority");
 
-
 	if (py_remove_avps_list) {
 		errors = 0;
+ 		first_avp = getFirstAVP(msg);
 		errors += removeAvpsFromMsg(py_remove_avps_list, first_avp);
-		printf("got %i errors from remving avps\n", errors);
 		Py_DECREF(py_remove_avps_list);
+		if (0 < errors) {
+			fd_log_notice("pyformerUpdate: Got %i errors when removing AVPs from msg", errors);
+		}
 	}
 
 	struct avp* avp = getFirstAVP(msg);
 	debug_print(avp, 0);
 
 	if (py_update_avps_list) {
-		/* cant change value */
 		errors = 0;
+ 		first_avp = getFirstAVP(msg);
 		errors += updateAvps(py_update_avps_list, first_avp);
-		printf("got %i errors from updating avps\n", errors);
 		Py_DECREF(py_update_avps_list);
+		if (0 < errors) {
+			fd_log_error("pyformerUpdate: Got %i errors when updating AVPs from msg", errors);
+		}
 	}
 
 	avp = getFirstAVP(msg);
@@ -753,9 +664,11 @@ static bool pyformerUpdate(PyObject* py_result_dict, struct msg *msg, struct fd_
 
 	if (py_add_avps_list) {
 		errors = 0;
-		errors += addAvpsToMsg(py_add_avps_list, msg);
-		printf("got %i errors from adding avps\n", errors);
+		errors += addAvpsToMsgOrAvp(py_add_avps_list, msg);
 		Py_DECREF(py_add_avps_list);
+		if (0 < errors) {
+			fd_log_error("pyformerUpdate: Got %i errors when adding AVPs to msg", errors);
+		}
 	}
 
 	avp = getFirstAVP(msg);
@@ -764,28 +677,22 @@ static bool pyformerUpdate(PyObject* py_result_dict, struct msg *msg, struct fd_
 	if (py_update_peer_priority_dict) {
 		errors = 0;
 		errors += updatePriority(py_update_peer_priority_dict, candidates);
-		printf("got %i errors from updating priority\n", errors);
 		Py_DECREF(py_update_peer_priority_dict);
+		if (0 < errors) {
+			fd_log_error("pyformerUpdate: Got %i errors when updating peer priority", errors);
+		}
 	}
 
 	Py_DECREF(py_result_dict);
-
-	if (0 == errors) {
-		isSuccess = true;
-	}
-
-	return isSuccess;
 }
 
-static int rt_pyform(void * cbdata, struct msg ** msg, struct fd_list * candidates)
-// static int rt_pyform(void *cbdata, struct msg **msg)
-{
+static int rt_pyform(void * cbdata, struct msg ** msg, struct fd_list * candidates) {
 	PyObject* py_result_dict = NULL;
 	PyObject* py_msg_dict = NULL;
 	PyObject* py_peers_dict = NULL;
 
 	if (!pyformerState.initialised) {
-		fd_log_error("rt_pyform called with uninitialised state, returning error", MODULE_NAME);
+		fd_log_error("%s: rt_pyform called with uninitialised state, returning error", MODULE_NAME);
 		return errno;
 	}
 
@@ -802,16 +709,15 @@ static int rt_pyform(void * cbdata, struct msg ** msg, struct fd_list * candidat
 
 	if (py_msg_dict && py_peers_dict) {
 		py_result_dict = pyformerTransformValue(py_msg_dict, py_peers_dict);
-		Py_XDECREF(py_msg_dict);
 	}
 
 	if (py_result_dict) {
 		pyformerUpdate(py_result_dict, *msg, candidates);
-		Py_XDECREF(py_result_dict);
 	}
 
-	// struct avp* avp = getFirstAVP(*msg);
-	// debug_print(avp, 0);
+	Py_XDECREF(py_result_dict);
+	Py_XDECREF(py_msg_dict);
+	Py_XDECREF(py_peers_dict);
 
 	if (pthread_rwlock_unlock(&rt_pyform_lock) != 0)
 	{
@@ -823,8 +729,7 @@ static int rt_pyform(void * cbdata, struct msg ** msg, struct fd_list * candidat
 }
 
 /* Caller responsible for calling Py_XDECREF() on result if not NULL */
-static PyObject* msgToPyDict(struct msg *msg)
-{
+static PyObject* msgToPyDict(struct msg *msg) {
 	PyObject* py_msg_dict = msgHeaderToPyDict(msg);
 
 	if (py_msg_dict) {
@@ -833,7 +738,9 @@ static PyObject* msgToPyDict(struct msg *msg)
 
 		if (py_avp_list) {
 			PyDict_SetItemString(py_msg_dict, "avp_list", py_avp_list);
-			Py_XDECREF(py_avp_list);
+			Py_DECREF(py_avp_list);
+		} else {
+			fd_log_error("msgToPyDict: Failed to parse C avp chain to pyformer list");
 		}
 	}
 
@@ -846,29 +753,49 @@ static PyObject* avpChainToPyList(struct avp *first_avp) {
 	for (struct avp *avp = first_avp; NULL != avp; avp = getNextAVP(avp))
 	{
 		PyObject* py_avp_dict = avpToPyDict(avp);
-		PyList_Append(py_avp_list, py_avp_dict);
+
+		if (py_avp_dict) {
+			PyList_Append(py_avp_list, py_avp_dict);
+			Py_DECREF(py_avp_dict);
+		}
 	}
 
 	return py_avp_list;
 }
 
 static PyObject* avpToPyDict(struct avp *avp) {
-	fd_msg_parse_dict(avp, fd_g_config->cnf_dict, NULL);
-	PyObject* py_avp_dict = PyDict_New();
-	struct avp_hdr *AVP_Header = getAVP_Header(avp);
 	struct dict_avp_data AVP_DictData = {0};
-	struct dict_object *model = getAVP_Model(avp);
+	struct avp_hdr *avp_header = NULL;
+	struct dict_object *model = NULL;
+	PyObject* py_avp_dict = NULL; 
 	
-	PyDict_SetItemString(py_avp_dict, "code", PyLong_FromUnsignedLong(AVP_Header->avp_code));
-	PyDict_SetItemString(py_avp_dict, "vendor", PyLong_FromUnsignedLong(AVP_Header->avp_vendor));
+	if (NULL == avp) {
+		return NULL;
+	}
 
-	if ((NULL != model) &&
-	    (0 == fd_dict_getval(model, &AVP_DictData))) {
-		PyObject* py_avp_value = getPyAvpValue(avp, AVP_DictData.avp_basetype, AVP_Header->avp_value);
-		PyDict_SetItemString(py_avp_dict, "value", py_avp_value);
+	avp_header = getAvpHeader(avp);
+	model = getAVP_Model(avp);
+
+	if (NULL == avp_header) {
+		fd_log_notice("avpToPyDict: Failed to get avp_header");
+		return NULL;
+	}
+	
+	py_avp_dict = PyDict_New();
+	PyDict_SetItemString(py_avp_dict, "code", PyLong_FromUnsignedLong(avp_header->avp_code));
+	PyDict_SetItemString(py_avp_dict, "vendor", PyLong_FromUnsignedLong(avp_header->avp_vendor));
+
+	if (getAvpDictData(model, &AVP_DictData)) {
+		PyObject* py_avp_value = getPyAvpValue(avp, AVP_DictData.avp_basetype, avp_header->avp_value);
+
+		if (py_avp_value) {
+			PyDict_SetItemString(py_avp_dict, "value", py_avp_value);
+			Py_DECREF(py_avp_value);
+		} else {
+			fd_log_notice("avpToPyDict: failed to get py_avp_value for (%d, vendor %d)", avp_header->avp_code, avp_header->avp_vendor);
+		}
 	} else {
-		fd_log_notice("unknown AVP (%d, vendor %d) (not in dictionary)", AVP_Header->avp_code, AVP_Header->avp_vendor);
-		PyDict_SetItemString(py_avp_dict, "value", PyUnicode_FromString("unknown avp"));
+		fd_log_notice("avpToPyDict: unknown AVP (%d, vendor %d) (not in dictionary)", avp_header->avp_code, avp_header->avp_vendor);
 	}
 
 	return py_avp_dict;
@@ -921,8 +848,7 @@ static PyObject* getPyAvpValue(struct avp *avp, enum dict_avp_basetype avp_type,
 		}
 		default:
 		{
-			py_avp_value = PyUnicode_FromString("avp type error");
-			printf("We just got a type error of %i\n", avp_type);
+			fd_log_notice("getPyAvpValue: Unknown AVP value type of %i\n", avp_type);
 			break;
 		}
 	}
@@ -932,39 +858,49 @@ static PyObject* getPyAvpValue(struct avp *avp, enum dict_avp_basetype avp_type,
 
 /* Caller responsible for calling Py_XDECREF() on result if not NULL */
 static PyObject* msgHeaderToPyDict(struct msg *msg) {
-	struct msg_hdr *msgHeader = NULL;
     PyObject* py_msg_header_dict = NULL;
+	struct msg_hdr *msg_header = getMsgHeader(msg);
 
-	if (0 == fd_msg_hdr(msg, &msgHeader)) 
-	{
-		PyObject* py_msg_appl = PyLong_FromUnsignedLong(msgHeader->msg_appl);
-		PyObject* py_msg_flags = PyLong_FromUnsignedLong(msgHeader->msg_flags);
-		PyObject* py_msg_code = PyLong_FromUnsignedLong(msgHeader->msg_code);
-		PyObject* py_msg_hbhid = PyLong_FromUnsignedLong(msgHeader->msg_hbhid);
-		PyObject* py_msg_eteid = PyLong_FromUnsignedLong(msgHeader->msg_eteid);
+	if (msg_header) {
+		PyObject* py_msg_appl = PyLong_FromUnsignedLong(msg_header->msg_appl);
+		PyObject* py_msg_flags = PyLong_FromUnsignedLong(msg_header->msg_flags);
+		PyObject* py_msg_code = PyLong_FromUnsignedLong(msg_header->msg_code);
+		PyObject* py_msg_hbhid = PyLong_FromUnsignedLong(msg_header->msg_hbhid);
+		PyObject* py_msg_eteid = PyLong_FromUnsignedLong(msg_header->msg_eteid);
 
-		py_msg_header_dict = PyDict_New();
-		PyDict_SetItemString(py_msg_header_dict, "app_id", py_msg_appl);
-		PyDict_SetItemString(py_msg_header_dict, "flags", py_msg_flags);
-		PyDict_SetItemString(py_msg_header_dict, "cmd_code", py_msg_code);
-		PyDict_SetItemString(py_msg_header_dict, "hbh_id", py_msg_hbhid);
-		PyDict_SetItemString(py_msg_header_dict, "e2e_id", py_msg_eteid);
+		if ((NULL == py_msg_appl)  ||
+		    (NULL == py_msg_flags) ||
+		    (NULL == py_msg_code)  ||
+		    (NULL == py_msg_hbhid) ||
+		    (NULL == py_msg_eteid)) {
+			fd_log_notice("msgHeaderToPyDict: Failed to create msg header PyObject\n");
+		} else {
+			py_msg_header_dict = PyDict_New();
+			PyDict_SetItemString(py_msg_header_dict, "app_id", py_msg_appl);
+			PyDict_SetItemString(py_msg_header_dict, "flags", py_msg_flags);
+			PyDict_SetItemString(py_msg_header_dict, "cmd_code", py_msg_code);
+			PyDict_SetItemString(py_msg_header_dict, "hbh_id", py_msg_hbhid);
+			PyDict_SetItemString(py_msg_header_dict, "e2e_id", py_msg_eteid);
+		}
 
 		Py_XDECREF(py_msg_appl);
 		Py_XDECREF(py_msg_flags);
 		Py_XDECREF(py_msg_code);
 		Py_XDECREF(py_msg_hbhid);
 		Py_XDECREF(py_msg_eteid);
+	} else {
+		fd_log_notice("msgHeaderToPyDict: Failed to get msg header\n");
 	}
 
 	return py_msg_header_dict;
 }
 
 /* Caller responsible for calling Py_XDECREF() on result if not NULL */
-static PyObject * pyformerTransformValue(PyObject* py_msg_dict, PyObject* py_peers_dict)
-{
+static PyObject * pyformerTransformValue(PyObject* py_msg_dict, PyObject* py_peers_dict) {
 	PyObject *py_result_dict = NULL;
-	PyObject *py_function = pyformerGetFunction();
+	PyObject *py_function = NULL;
+	
+	py_function = pyformerGetFunction();
 	
 	if (py_function) {
 		py_result_dict = PyObject_CallFunctionObjArgs(py_function, py_msg_dict, py_peers_dict, NULL);
@@ -990,13 +926,11 @@ static PyObject * pyformerGetFunction(void) {
 
 /* Caller responsible for calling Py_XDECREF() on result if not NULL */
 /* Assumes global state has been set */
-static PyObject *pyformerGetModule(void)
-{
+static PyObject *pyformerGetModule(void) {
     PyObject *py_module = NULL;
     PyObject *py_module_name = PyUnicode_FromString(pyformerState.moduleName);
 
-    if (py_module_name)
-    {
+    if (py_module_name) {
         py_module = PyImport_Import(py_module_name);
         Py_XDECREF(py_module_name);
     }
@@ -1004,96 +938,81 @@ static PyObject *pyformerGetModule(void)
     return py_module;
 }
 
-
 /* FreeDiameter wrappers */
-static struct avp *getNextAVP(struct avp *avp)
-{
+static struct avp *getNextAVP(struct avp *avp) {
 	struct avp *nextAVP = NULL;
 
-	fd_msg_browse(avp, MSG_BRW_NEXT, &nextAVP, NULL);
+	if (NULL != avp) {
+		fd_msg_browse(avp, MSG_BRW_NEXT, &nextAVP, NULL);
+	}
 
 	return nextAVP;
 }
 
-static struct avp *getFirstAVP(msg_or_avp *msg)
-{
+static struct avp *getFirstAVP(msg_or_avp *msg) {
 	struct avp *avp = NULL;
 
-	if (0 != fd_msg_browse(msg, MSG_BRW_FIRST_CHILD, &avp, NULL))
-	{
-		fd_log_notice("internal error: message has no child");
-		pthread_rwlock_unlock(&rt_pyform_lock);
+	if (NULL != msg) {
+		fd_msg_browse(msg, MSG_BRW_FIRST_CHILD, &avp, NULL);
 	}
 
 	return avp;
 }
 
-static struct avp_hdr *getAVP_Header(struct avp *avp)
-{
+static struct avp_hdr *getAvpHeader(struct avp *avp) {
 	struct avp_hdr *header = NULL;
 
-	if (NULL == avp)
-	{
-		return NULL;
-	}
-
-	if (0 != fd_msg_avp_hdr(avp, &header))
-	{
-		fd_log_notice("internal error: unable to get header for AVP");
+	if (NULL != avp) {
+		fd_msg_avp_hdr(avp, &header);
 	}
 
 	return header;
 }
 
-static struct dict_object *getAVP_Model(struct avp *avp)
-{
+static struct dict_object *getAVP_Model(struct avp *avp) {
 	struct dict_object *model = NULL;
 
-	if (NULL == avp)
-	{
-		return NULL;
-	}
-
-	if (0 != fd_msg_model(avp, &model))
-	{
-		fd_log_notice("internal error: unable to get model for AVP");
+	if (NULL != avp) {
+		applyDictToMsgOrAvp(avp);
+		fd_msg_model(avp, &model);
 	}
 
 	return model;
 }
 
-static bool getAvpDictData(struct dict_object *model, struct dict_avp_data* avpDictData)
-{
-	if ((NULL == model) ||
-	    (NULL == avpDictData))
-	{
-		return false;
+static bool getAvpDictData(struct dict_object *model, struct dict_avp_data* avpDictData) {
+	if ((NULL != model) &&
+	    (NULL != avpDictData)) {
+		return (0 == fd_dict_getval(model, avpDictData));
 	}
 
-	if (0 != fd_dict_getval(model, avpDictData))
-	{
-		fd_log_notice("internal error: unable to get model for AVP");
-		return false;
-
-	}
-
-	return true;
+	return false;
 }
 
-static struct avp * findAvp(struct avp *first_avp, uint32_t avp_code, uint32_t avp_vendor) {
+static struct msg_hdr* getMsgHeader(struct msg *msg) {
+	struct msg_hdr *msg_header = NULL;
+	
+	if (NULL != msg) {
+		fd_msg_hdr(msg, &msg_header);
+	}
+
+	return msg_header;
+}
+
+static struct avp* findAvp(struct avp *first_avp, uint32_t avp_code, uint32_t avp_vendor) {
 	struct avp * found = NULL;
 
-	for (struct avp *avp = first_avp; NULL != avp; avp = getNextAVP(avp))
-	{
-		struct avp_hdr *AVP_Header = getAVP_Header(avp);
+	for (struct avp *avp = first_avp; NULL != avp; avp = getNextAVP(avp)) {
+		struct avp_hdr *avp_header = getAvpHeader(avp);
 
-		if (NULL == AVP_Header) {
-			printf("Error: AVP has no header\n");
+		if (NULL == avp_header) {
+			/* Error AVP has no header? */
+			fd_log_notice("findAvp: Could not get AVP header... Skipping AVP\n");
 			continue;
 		}
 
-		if ((avp_code == AVP_Header->avp_code) &&
-		    (avp_vendor == AVP_Header->avp_vendor)) {
+		if ((avp_code == avp_header->avp_code) &&
+		    (avp_vendor == avp_header->avp_vendor)) {
 			found = avp;
 			break;
 		}
@@ -1105,7 +1024,7 @@ static struct avp * findAvp(struct avp *first_avp, uint32_t avp_code, uint32_t a
 static struct avp* newAvpInstance(uint32_t avp_code, uint32_t avp_vendor) {
 	struct avp* avp = NULL;
 	struct dict_object * dict_obj = NULL;
-	struct dict_avp_request dar = {
+	struct dict_avp_request dict_avp_req = {
 		.avp_code = avp_code,
 		.avp_vendor = avp_vendor
 	};
@@ -1113,16 +1032,18 @@ static struct avp* newAvpInstance(uint32_t avp_code, uint32_t avp_vendor) {
 	int found = fd_dict_search(fd_g_config->cnf_dict,
 			    		       DICT_AVP,
 			    		       AVP_BY_CODE_AND_VENDOR,
-			    		       &dar,
+			    		       &dict_avp_req,
 			    		       &dict_obj,
 			    		       ENOENT);
-
     if ((ENOENT == found) || 
 	    (NULL == dict_obj)) {
-        printf("Error when trying to find AVP Dictionary object, unknown AVP [Code: %i, Vendor: %i]\n", avp_code, avp_vendor);
-    } else if (0 != fd_msg_avp_new(dict_obj, 0, &avp)) {
-        printf("Error when creating new AVP instance [Code: %i, Vendor: %i]\n", avp_code, avp_vendor);
-    }
+		/* Failed to get the dict object, cannot 
+		 * create new AVP without one */
+		return NULL;
+	}
+
+	/* AVP remains NULL if this fails */
+	fd_msg_avp_new(dict_obj, 0, &avp);
 
 	return avp;
 }
@@ -1133,18 +1054,16 @@ static bool setAvpValue(union avp_value* value, struct avp* avp) {
         return 0 == fd_msg_avp_setvalue(avp, value);
     }
 
-    printf("Failed to set AVP value\n");
     return false;
 }
 
 static bool removeAvp(struct avp* avp) {
-
-	if (NULL == avp) {
-		return false;
+	if (NULL != avp) {
+		fd_msg_unhook_avp(avp);
+		return 0 == fd_msg_free(avp);		
 	}
 
-	fd_msg_unhook_avp(avp);
-	return 0 == fd_msg_free(avp);
+	return false;
 }
 
 static bool addAvp(struct avp* avp, msg_or_avp* msg_or_avp) {
@@ -1153,6 +1072,14 @@ static bool addAvp(struct avp* avp, msg_or_avp* msg_or_avp) {
         return 0 == fd_msg_avp_add(msg_or_avp, MSG_BRW_LAST_CHILD, avp);
     }
 
-    printf("Failed to add AVP to message\n");
     return false;
+}
+
+/* Does some magic with the model so we can encode/deode the AVPs */
+static bool applyDictToMsgOrAvp(msg_or_avp* msg_or_avp) {
+	if (NULL != msg_or_avp) {
+		return (0 == fd_msg_parse_dict(msg_or_avp, fd_g_config->cnf_dict, NULL));
+	}
+
+	return false;
 }
