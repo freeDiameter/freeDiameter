@@ -54,8 +54,8 @@ static PyObject* avpChainToPyList(struct avp *first_avp);
 static PyObject* avpToPyDict(struct avp *avp);
 static PyObject* getPyAvpValue(struct avp *avp, enum dict_avp_basetype avp_type, union avp_value * avp_value);
 static PyObject* msgHeaderToPyDict(struct msg *msg);
-static PyObject * pyformerTransformValue(PyObject* py_msg_dict, PyObject* py_peers_dict);
-static PyObject * pyformerGetFunction(void);
+static PyObject* pyformerTransformValue(PyObject* py_msg_dict, PyObject* py_peers_dict);
+static PyObject* pyformerGetFunction(void);
 static PyObject *pyformerGetModule(void);
 static struct avp *getNextAVP(struct avp *avp);
 static struct avp *getFirstAVP(msg_or_avp *msg);
@@ -148,6 +148,7 @@ static PyObject* getPeerSupportedApplicationsPyList(const char *diamid) {
 	return py_supported_applications_list;
 }
 
+/* Caller responsible for calling Py_XDECREF() on result if not NULL */
 static PyObject* getPeersPyDict(struct fd_list * candidates) {
 	struct fd_list * li;
 
@@ -420,6 +421,8 @@ static int updateAvps(PyObject* py_update_avps_list, struct avp *first_avp) {
 
 	Py_ssize_t size = PyList_Size(py_update_avps_list);
 	for (Py_ssize_t i = 0; i < size; i++) {
+		/* PyDict_GetItemString and PyList_GetItem return borrowed
+		 * references so we don't need to call Py_DECREF */
 		PyObject* py_avp_dict = PyList_GetItem(py_update_avps_list, i);
     	PyObject* py_avp_code = PyDict_GetItemString(py_avp_dict, "code");
     	PyObject* py_avp_vendor = PyDict_GetItemString(py_avp_dict, "vendor");
@@ -473,6 +476,8 @@ static int addAvpsToMsgOrAvp(PyObject* py_add_avps_list, msg_or_avp *msg_or_avp)
 
 	/* Loop through the python dict */
 	for (Py_ssize_t i = 0; i < size; i++) {
+		/* PyDict_GetItemString and PyList_GetItem return borrowed
+		 * references so we don't need to call Py_DECREF */
 		PyObject* py_avp_dict = PyList_GetItem(py_add_avps_list, i);
     	PyObject* py_avp_code = PyDict_GetItemString(py_avp_dict, "code");
     	PyObject* py_avp_vendor = PyDict_GetItemString(py_avp_dict, "vendor");
@@ -529,7 +534,8 @@ static int removeAvpsFromMsg(PyObject* py_add_avps_list, struct avp *first_avp) 
 	Py_ssize_t size = PyList_Size(py_add_avps_list);
 
 	for (Py_ssize_t i = 0; i < size; i++) {
-		/* Assuming list has dicts */
+		/* PyDict_GetItemString and PyList_GetItem return borrowed
+		 * references so we don't need to call Py_DECREF */
 		PyObject* py_avp_dict = PyList_GetItem(py_add_avps_list, i);
     	PyObject* py_avp_code = PyDict_GetItemString(py_avp_dict, "code");
     	PyObject* py_avp_vendor = PyDict_GetItemString(py_avp_dict, "vendor");
@@ -598,6 +604,8 @@ static int updatePriority(PyObject* py_update_peer_priority_dict, struct fd_list
     PyObject* py_key = NULL;
 	PyObject* py_value = NULL;
 
+	/* PyDict_Next will set py_key and py_value with borrowed 
+	 * values so we don't need to call Py_DECREF for them. */
     while (PyDict_Next(py_update_peer_priority_dict, &pos, &py_key, &py_value)) {
         PyObject* py_key_str = PyObject_Str(py_key);
 		const char* cand_str = PyUnicode_AsUTF8(py_key_str);
@@ -630,6 +638,8 @@ static void pyformerUpdate(PyObject* py_result_dict, struct msg *msg, struct fd_
 		return;
 	}
 
+	/* PyDict_GetItemString returns a borrowed references
+	 * so we don't need to call Py_DECREF */
 	PyObject* py_add_avps_list = PyDict_GetItemString(py_result_dict, "add_avps");
 	PyObject* py_update_avps_list = PyDict_GetItemString(py_result_dict, "update_avps");
 	PyObject* py_remove_avps_list = PyDict_GetItemString(py_result_dict, "remove_avps");
@@ -747,6 +757,7 @@ static PyObject* msgToPyDict(struct msg *msg) {
 	return py_msg_dict;
 }
 
+/* Caller responsible for calling Py_XDECREF() on result if not NULL */
 static PyObject* avpChainToPyList(struct avp *first_avp) {
 	PyObject* py_avp_list = PyList_New(0);
 
@@ -763,6 +774,7 @@ static PyObject* avpChainToPyList(struct avp *first_avp) {
 	return py_avp_list;
 }
 
+/* Caller responsible for calling Py_XDECREF() on result if not NULL */
 static PyObject* avpToPyDict(struct avp *avp) {
 	struct dict_avp_data AVP_DictData = {0};
 	struct avp_hdr *avp_header = NULL;
@@ -801,6 +813,7 @@ static PyObject* avpToPyDict(struct avp *avp) {
 	return py_avp_dict;
 }
 
+/* Caller responsible for calling Py_XDECREF() on result if not NULL */
 static PyObject* getPyAvpValue(struct avp *avp, enum dict_avp_basetype avp_type, union avp_value * avp_value) {
 	PyObject* py_avp_value = NULL;
 
