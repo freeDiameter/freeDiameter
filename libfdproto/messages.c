@@ -1197,6 +1197,12 @@ int fd_msg_model ( msg_or_avp * reference, struct dict_object ** model )
 	return 0;
 }
 
+int fd_is_msg(msg_or_avp * reference)
+{
+	CHECK_PARAMS(VALIDATE_OBJ(reference));
+	return CHECK_MSG(reference);
+}
+
 /* Retrieve the address of the msg_public field of a message */
 int fd_msg_hdr ( struct msg *msg, struct msg_hdr **pdata )
 {
@@ -1207,46 +1213,22 @@ int fd_msg_hdr ( struct msg *msg, struct msg_hdr **pdata )
 	return 0;
 }
 
+int fd_is_avp(msg_or_avp * reference)
+{
+	CHECK_PARAMS(VALIDATE_OBJ(reference));
+	return CHECK_AVP(reference);
+}
+
 /* Retrieve the address of the avp_public field of an avp */
 int fd_msg_avp_hdr ( struct avp *avp, struct avp_hdr **pdata )
 {
 	TRACE_ENTRY("%p %p", avp, pdata);
 	CHECK_PARAMS(  CHECK_AVP(avp) && pdata  );
 	
-
-
-	
-	// printf("code: %li vendor: %li          :\n", (long)avp->avp_public.avp_code, (long)avp->avp_public.avp_vendor);
-	// printf("avp->avp_storage.os.len : %ld\n", avp->avp_storage.os.len);
-	// printf("avp->avp_storage.i32    : %i\n", avp->avp_storage.i32);
-	// printf("avp->avp_storage.i64    : %li\n", avp->avp_storage.i64);
-	// printf("avp->avp_storage.u32    : %u\n", avp->avp_storage.u32);
-	// printf("avp->avp_storage.u64    : %lu\n", avp->avp_storage.u64);
-	// printf("avp->avp_storage.f32    : %f\n", avp->avp_storage.f32);
-	// printf("avp->avp_storage.f64    : %f\n", avp->avp_storage.f64);
-
-
-
-
-	// printf("avp->avp_rawlen : %li\n", avp->avp_rawlen);
-	// printf("avp->avp_source : %p\n", avp->avp_source);
-	// 	printf("\n\n");
-	// for (int i = 0; i < avp->avp_rawlen; ++i) {
-	// 	printf("%02X ", avp->avp_rawdata[i]);
-	// }
-	// 	printf("\n\n");
-
-	// printf("\n\n");
-	// for (int i = 0; i < 10; ++i) {
-	// 	printf("%02X ", avp->avp_source[i]);
-	// }
-	// printf("\n\n");
-
-
-
 	*pdata = &avp->avp_public;
 	return 0;
 }
+
 
 /* Associate answers and queries */
 int fd_msg_answ_associate( struct msg * answer, struct msg * query )

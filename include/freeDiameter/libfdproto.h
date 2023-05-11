@@ -2460,6 +2460,22 @@ DECLARE_FD_DUMP_PROTOTYPE( fd_msg_dump_treeview, msg_or_avp *obj, struct diction
  */
 int fd_msg_model ( msg_or_avp * reference, struct dict_object ** model );
 
+/* 
+ * FUNCTION:	fd_is_msg
+ *
+ * PARAMETERS:
+ *  reference : Pointer that either points to a msg or an avp struct.
+ *
+ * DESCRIPTION:
+ *   Check if a msg_or_avp points to a msg struct.
+ *
+ * RETURN VALUE:
+ *  0      	: reference does not point to a msg struct.
+ *  1      	: reference does point to a msg struct
+ *  EINVAL 	: A parameter is invalid.
+ */
+int fd_is_msg(msg_or_avp * reference);
+
 /*
  * FUNCTION:	fd_msg_hdr
  *
@@ -2475,6 +2491,22 @@ int fd_msg_model ( msg_or_avp * reference, struct dict_object ** model );
  *  EINVAL 	: A parameter is invalid.
  */
 int fd_msg_hdr ( struct msg *msg, struct msg_hdr ** pdata );
+
+/* 
+ * FUNCTION:	fd_is_avp
+ *
+ * PARAMETERS:
+ *  reference : Pointer that either points to a msg or an avp struct.
+ *
+ * DESCRIPTION:
+ *   Check if a msg_or_avp points to a avp struct.
+ *
+ * RETURN VALUE:
+ *  0      	: reference does not point to a avp struct.
+ *  1      	: reference does point to a avp struct
+ *  EINVAL 	: A parameter is invalid.
+ */
+int fd_is_avp(msg_or_avp * reference);
 
 /*
  * FUNCTION:	fd_msg_avp_hdr

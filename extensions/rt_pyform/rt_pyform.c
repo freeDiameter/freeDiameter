@@ -9,7 +9,7 @@
 #define MODULE_NAME "rt_pyform"
 
 
-// /* Do not directly interact with the fields in this struct */
+/* Do not directly interact with the fields in this struct */
 typedef struct
 {
     bool initialised;
@@ -69,6 +69,8 @@ static bool setAvpValue(union avp_value* value, struct avp* avp);
 static bool removeAvp(struct avp* avp);
 static bool addAvp(struct avp* avp, msg_or_avp* msg_or_avp);
 static bool applyDictToMsgOrAvp(msg_or_avp* msg_or_avp);
+static enum dict_avp_basetype getAvpBasetype(struct avp* avp);
+static bool isAvp(msg_or_avp* msg_or_avp);
 
 
 /* Define the entry point function */
@@ -92,6 +94,7 @@ void fd_ext_fini(void)
 	return ;
 }
 
+/* Only used during development */
 void debug_print(struct avp *first_avp, int depth) {
 	if (NULL == first_avp) {
 		printf("first avp was null\n");
@@ -112,11 +115,10 @@ void debug_print(struct avp *first_avp, int depth) {
 		}
 
 		printf("[debug_print] Code:%d, Vendor:%d\n", AVP_Header->avp_code, AVP_Header->avp_vendor);
-		struct dict_avp_data AVP_DictData = {0};
-		applyDictToMsgOrAvp(avp);
+		struct dict_avp_data avp_dict_data = {0};
 		struct dict_object *model = getAVP_Model(avp);
-		if (getAvpDictData(model, &AVP_DictData)) {
-			if (AVP_TYPE_GROUPED == AVP_DictData.avp_basetype) {
+		if (getAvpDictData(model, &avp_dict_data)) {
+			if (AVP_TYPE_GROUPED == avp_dict_data.avp_basetype) {
 				debug_print(getFirstAVP(avp), depth + 1);
 			}
 		}
@@ -313,7 +315,7 @@ static int updateAvpValue(PyObject* py_avp_value, struct avp *avp) {
 		case AVP_TYPE_GROUPED: 
 		{
 			/* Caller should be handling grouped */
-			fd_log_error("updateAvpValue: Error: Trying to pyform grouped AVP '%s'", avp_dict_data.avp_name);
+			fd_log_error("updateAvpValue: Error: Grouped AVPs should not have non-AVP values '%s'", avp_dict_data.avp_name);
 			errors += 1;
 			break;
 		}
@@ -440,21 +442,15 @@ static int updateAvps(PyObject* py_update_avps_list, struct avp *first_avp) {
             continue;
 		}
 
-		/* If this is a dict then we are changing the child */
+		uint32_t avp_code = PyLong_AsUnsignedLong(py_avp_code);
+		uint32_t avp_vendor = PyLong_AsUnsignedLong(py_avp_vendor);
+		current_avp = findAvp(first_avp, avp_code, avp_vendor);
+
+		/* If this is a dict then we are changing a child */
 		if (PyList_Check(py_avp_value)) {
 			errors += updateAvps(py_avp_value, getFirstAVP(current_avp));
 		} else {
-			/* Search through AVP chain until we find AVP to change */
-			uint32_t avp_code = PyLong_AsUnsignedLong(py_avp_code);
-			uint32_t avp_vendor = PyLong_AsUnsignedLong(py_avp_vendor);
-			current_avp = findAvp(first_avp, avp_code, avp_vendor);
-			if (NULL == current_avp) {
-				fd_log_error("updateAvps: Could not find AVP for update [Code: %i, Vendor: %i]", avp_code, avp_vendor);
-				errors += 1;
-				continue;
-			} else {
-				errors += updateAvpValue(py_avp_value, current_avp);
-			}
+			errors += updateAvpValue(py_avp_value, current_avp);
 		}
 	}
 
@@ -501,7 +497,7 @@ static int addAvpsToMsgOrAvp(PyObject* py_add_avps_list, msg_or_avp *msg_or_avp)
         struct avp* current_avp = NULL;
 		
 		/* If AVP doesnt exist, make a new one */
-		if (NULL == existing_avp) { 
+		if (NULL == existing_avp) {
 			current_avp = newAvpInstance(avp_code, avp_vendor);
 		} else {
 			current_avp = existing_avp;
@@ -530,7 +526,6 @@ static int addAvpsToMsgOrAvp(PyObject* py_add_avps_list, msg_or_avp *msg_or_avp)
 
 static int removeAvpsFromMsg(PyObject* py_add_avps_list, struct avp *first_avp) {
     int errors = 0;
-
 	Py_ssize_t size = PyList_Size(py_add_avps_list);
 
 	for (Py_ssize_t i = 0; i < size; i++) {
@@ -619,8 +614,15 @@ static int updatePriority(PyObject* py_update_peer_priority_dict, struct fd_list
 			continue;
 		}
 
+		if (!PyLong_Check(py_value)) {
+			fd_log_error("updatePriority: Expected an integer '%s'", cand_str);
+			errors += 1;
+			continue;
+		}
+
         long val = PyLong_AsLong(py_value);
 		cand->score = (int)val;
+		fd_log_notice("updatePriority: Priority for '%s' is now %i", cand_str, cand->score);
     }
 
 	return errors;
@@ -634,16 +636,16 @@ static void pyformerUpdate(PyObject* py_result_dict, struct msg *msg, struct fd_
 	    (NULL == msg)            ||
 		(NULL == candidates))
 	{
-		fd_log_notice("pyformerUpdate: Invaid parameter");
+		fd_log_error("pyformerUpdate: Invaid parameter");
 		return;
 	}
 
 	/* PyDict_GetItemString returns a borrowed references
 	 * so we don't need to call Py_DECREF */
-	PyObject* py_add_avps_list = PyDict_GetItemString(py_result_dict, "add_avps");
-	PyObject* py_update_avps_list = PyDict_GetItemString(py_result_dict, "update_avps");
 	PyObject* py_remove_avps_list = PyDict_GetItemString(py_result_dict, "remove_avps");
-	PyObject* py_update_peer_priority_dict = PyDict_GetItemString(py_result_dict, "update_peer_priority");
+	PyObject* py_update_avps_list = PyDict_GetItemString(py_result_dict, "update_avps");
+	PyObject* py_add_avps_list = PyDict_GetItemString(py_result_dict, "add_avps");
+	PyObject* py_update_peer_priority_dict = PyDict_GetItemString(py_result_dict, "update_peer_priorities");
 
 	if (py_remove_avps_list) {
 		errors = 0;
@@ -651,12 +653,9 @@ static void pyformerUpdate(PyObject* py_result_dict, struct msg *msg, struct fd_
 		errors += removeAvpsFromMsg(py_remove_avps_list, first_avp);
 		Py_DECREF(py_remove_avps_list);
 		if (0 < errors) {
-			fd_log_notice("pyformerUpdate: Got %i errors when removing AVPs from msg", errors);
+			fd_log_error("pyformerUpdate: Got %i errors when removing AVPs from msg", errors);
 		}
 	}
-
-	struct avp* avp = getFirstAVP(msg);
-	debug_print(avp, 0);
 
 	if (py_update_avps_list) {
 		errors = 0;
@@ -668,10 +667,6 @@ static void pyformerUpdate(PyObject* py_result_dict, struct msg *msg, struct fd_
 		}
 	}
 
-	avp = getFirstAVP(msg);
-	debug_print(avp, 0);
-
-
 	if (py_add_avps_list) {
 		errors = 0;
 		errors += addAvpsToMsgOrAvp(py_add_avps_list, msg);
@@ -680,9 +675,6 @@ static void pyformerUpdate(PyObject* py_result_dict, struct msg *msg, struct fd_
 			fd_log_error("pyformerUpdate: Got %i errors when adding AVPs to msg", errors);
 		}
 	}
-
-	avp = getFirstAVP(msg);
-	debug_print(avp, 0);
 
 	if (py_update_peer_priority_dict) {
 		errors = 0;
@@ -712,15 +704,18 @@ static int rt_pyform(void * cbdata, struct msg ** msg, struct fd_list * candidat
 		return errno;
 	}
 
+	/* Convert from C to python */
 	if (*msg) {
 		py_msg_dict = msgToPyDict(*msg);
 		py_peers_dict = getPeersPyDict(candidates);
 	}
 
+	/* Call python function */
 	if (py_msg_dict && py_peers_dict) {
 		py_result_dict = pyformerTransformValue(py_msg_dict, py_peers_dict);
 	}
 
+	/* Convert from python to C and apply changes */
 	if (py_result_dict) {
 		pyformerUpdate(py_result_dict, *msg, candidates);
 	}
@@ -776,7 +771,7 @@ static PyObject* avpChainToPyList(struct avp *first_avp) {
 
 /* Caller responsible for calling Py_XDECREF() on result if not NULL */
 static PyObject* avpToPyDict(struct avp *avp) {
-	struct dict_avp_data AVP_DictData = {0};
+	struct dict_avp_data avp_dict_data = {0};
 	struct avp_hdr *avp_header = NULL;
 	struct dict_object *model = NULL;
 	PyObject* py_avp_dict = NULL; 
@@ -797,8 +792,8 @@ static PyObject* avpToPyDict(struct avp *avp) {
 	PyDict_SetItemString(py_avp_dict, "code", PyLong_FromUnsignedLong(avp_header->avp_code));
 	PyDict_SetItemString(py_avp_dict, "vendor", PyLong_FromUnsignedLong(avp_header->avp_vendor));
 
-	if (getAvpDictData(model, &AVP_DictData)) {
-		PyObject* py_avp_value = getPyAvpValue(avp, AVP_DictData.avp_basetype, avp_header->avp_value);
+	if (getAvpDictData(model, &avp_dict_data)) {
+		PyObject* py_avp_value = getPyAvpValue(avp, avp_dict_data.avp_basetype, avp_header->avp_value);
 
 		if (py_avp_value) {
 			PyDict_SetItemString(py_avp_dict, "value", py_avp_value);
@@ -1079,9 +1074,17 @@ static bool removeAvp(struct avp* avp) {
 	return false;
 }
 
+
+
 static bool addAvp(struct avp* avp, msg_or_avp* msg_or_avp) {
     if ((NULL != avp) &&
         (NULL != msg_or_avp)) {
+		if (isAvp(msg_or_avp) && 
+			(AVP_TYPE_GROUPED != getAvpBasetype(msg_or_avp))) {
+			/* We cannot add an AVP to a non-grouped AVP */
+    		return false;
+		}
+
         return 0 == fd_msg_avp_add(msg_or_avp, MSG_BRW_LAST_CHILD, avp);
     }
 
@@ -1092,6 +1095,26 @@ static bool addAvp(struct avp* avp, msg_or_avp* msg_or_avp) {
 static bool applyDictToMsgOrAvp(msg_or_avp* msg_or_avp) {
 	if (NULL != msg_or_avp) {
 		return (0 == fd_msg_parse_dict(msg_or_avp, fd_g_config->cnf_dict, NULL));
+	}
+
+	return false;
+}
+
+static enum dict_avp_basetype getAvpBasetype(struct avp* avp) {
+	enum dict_avp_basetype basetype = -1;
+	struct dict_avp_data avp_dict_data = {0};
+	struct dict_object *model = getAVP_Model(avp);
+
+	if (getAvpDictData(model, &avp_dict_data)) {
+		basetype = avp_dict_data.avp_basetype;
+	}
+
+	return basetype;
+}
+
+static bool isAvp(msg_or_avp* msg_or_avp) {
+	if (NULL != msg_or_avp) {
+		return (1 == fd_is_avp(msg_or_avp));
 	}
 
 	return false;
