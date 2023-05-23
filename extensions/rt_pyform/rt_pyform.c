@@ -97,7 +97,7 @@ void fd_ext_fini(void)
 /* Only used during development */
 void debug_print(struct avp *first_avp, int depth) {
 	if (NULL == first_avp) {
-		printf("first avp was null\n");
+		fd_log_notice("first avp was null\n");
 		return;
 	}
 
@@ -106,15 +106,15 @@ void debug_print(struct avp *first_avp, int depth) {
 		struct avp_hdr *AVP_Header = getAvpHeader(avp);
 
 		if (NULL == AVP_Header) {
-			printf("Error: AVP has no header\n");
+			fd_log_notice("Error: AVP has no header\n");
 			continue;
 		}
 
 		for (int i = 0; i < depth; i++) {
-			printf("\t");
+			fd_log_notice("\t");
 		}
 
-		printf("[debug_print] Code:%d, Vendor:%d\n", AVP_Header->avp_code, AVP_Header->avp_vendor);
+		fd_log_notice("[debug_print] Code:%d, Vendor:%d\n", AVP_Header->avp_code, AVP_Header->avp_vendor);
 		struct dict_avp_data avp_dict_data = {0};
 		struct dict_object *model = getAVP_Model(avp);
 		if (getAvpDictData(model, &avp_dict_data)) {
@@ -650,6 +650,8 @@ static void pyformerUpdate(PyObject* py_result_dict, struct msg *msg, struct fd_
 	if (py_remove_avps_list) {
 		errors = 0;
  		first_avp = getFirstAVP(msg);
+		fd_log_notice("Here is the message avps as fd sees them");
+		debug_print(first_avp, 0);
 		errors += removeAvpsFromMsg(py_remove_avps_list, first_avp);
 		Py_DECREF(py_remove_avps_list);
 		if (0 < errors) {
@@ -1068,7 +1070,11 @@ static bool setAvpValue(union avp_value* value, struct avp* avp) {
 static bool removeAvp(struct avp* avp) {
 	if (NULL != avp) {
 		fd_msg_unhook_avp(avp);
-		return 0 == fd_msg_free(avp);		
+		int val = fd_msg_free(avp);
+		fd_log_notice("fd_msg_free(avp) = %i (should == 0)", val);
+		return 0 == val;
+	} else {
+		fd_log_error("avp was null, find avp function failed...");
 	}
 
 	return false;
