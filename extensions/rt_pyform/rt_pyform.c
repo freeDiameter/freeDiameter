@@ -89,7 +89,9 @@ void fd_ext_fini(void)
 	fd_rt_fwd_unregister(rt_pyform_answers_handle, NULL);
 	
 	/* Destroy the data */
-	pyformerFinalise(&pyformerState);
+	/* Disabled due to issues with GIL,
+	 * lets rely on the OS can clean up */
+	// pyformerFinalise(&pyformerState);
 
 	pthread_rwlock_destroy(&rt_pyform_lock);
 
