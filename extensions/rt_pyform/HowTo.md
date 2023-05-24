@@ -28,10 +28,10 @@ Note the this config file should be no longer than 3 lines.
 ## Python function
 
 The python function much have the correct number of parameters and must use the name specified in the config.
-The following is an example of a function that prints out all the values it receives and returs a result dict (note this result dict is included as an exaple and is not expected to work without errors):
+The following is an example of a function that prints out all the values it receives and returs a result dict (note this result dict is included as an example and is not expected to work without errors):
 
 ```Python
-def transform(msg_dict, peer_dict):
+def transform(msg_dict, peer_dict=None):
     print('[PYTHON]')
     print(msg_dict)
     print(peer_dict)
@@ -78,6 +78,7 @@ def transform(msg_dict, peer_dict):
 ```
 
 Note: Not all the fields need to be included in the results dict. E.g. returning a dict with only the remove_avps field is valid.
+      A default value for the peer_dict is required as diameter answers will not have routing candidates
 
 To process the result C performs the transformations in the following order: `remove_avps`, `update_avps`, `add_avps`, then `update_peer_priorities`.
 
