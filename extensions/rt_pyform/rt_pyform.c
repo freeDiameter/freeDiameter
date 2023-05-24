@@ -135,6 +135,12 @@ static PyObject* getPeerSupportedApplicationsPyList(const char *diamid) {
 	struct fd_list * li_inner = NULL;
 	PyObject* py_supported_applications_list = PyList_New(0);
 
+	if (pthread_rwlock_rdlock(&fd_g_peers_rw) != 0)
+	{
+		fd_log_notice("%s: write-lock failed, aborting", MODULE_NAME);
+		return NULL;
+	}
+
 	/* For each peer */
 	for (li_outer = fd_g_peers.next; li_outer != &fd_g_peers; li_outer = li_outer->next) {
 		struct peer_hdr* p = (struct peer_hdr*)li_outer->o;
@@ -150,6 +156,12 @@ static PyObject* getPeerSupportedApplicationsPyList(const char *diamid) {
 			}
 			break;
 		}
+	}
+
+	if (pthread_rwlock_unlock(&fd_g_peers_rw) != 0)
+	{
+		fd_log_notice("%s: write-lock failed, aborting", MODULE_NAME);
+		return NULL;
 	}
 
 	return py_supported_applications_list;
