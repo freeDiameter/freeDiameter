@@ -21,7 +21,8 @@ typedef struct
 
 
 /* Static objects */
-static struct fd_rt_out_hdl *rt_pyform_handle = NULL;
+static struct fd_rt_out_hdl *rt_pyform_requests_handle = NULL;
+static struct fd_rt_fwd_hdl *rt_pyform_answers_handle = NULL;
 static pthread_rwlock_t rt_pyform_lock;
 static PyformerState pyformerState = {0};
 
@@ -49,6 +50,7 @@ static struct rtd_candidate * getCandidate(struct fd_list * candidates, const ch
 static int updatePriority(PyObject* py_update_peer_priority_dict, struct fd_list * candidates);
 static void pyformerUpdate(PyObject* py_result_dict, struct msg *msg, struct fd_list * candidates);
 static int rt_pyform(void * cbdata, struct msg ** msg, struct fd_list * candidates);
+static int rt_pyform_answers(void * cbdata, struct msg ** msg);
 static PyObject* msgToPyDict(struct msg *msg);
 static PyObject* avpChainToPyList(struct avp *first_avp);
 static PyObject* avpToPyDict(struct avp *avp);
@@ -83,7 +85,8 @@ void fd_ext_fini(void)
 	TRACE_ENTRY();
 	
 	/* Unregister the cb */
-	fd_rt_out_unregister(rt_pyform_handle, NULL);
+	fd_rt_out_unregister(rt_pyform_requests_handle, NULL);
+	fd_rt_fwd_unregister(rt_pyform_answers_handle, NULL);
 	
 	/* Destroy the data */
 	pyformerFinalise(&pyformerState);
@@ -153,7 +156,11 @@ static PyObject* getPeerSupportedApplicationsPyList(const char *diamid) {
 /* Caller responsible for calling Py_XDECREF() on result if not NULL */
 static PyObject* getPeersPyDict(struct fd_list * candidates) {
 	struct fd_list * li;
-
+	
+	if (NULL == candidates) {
+		return NULL;
+	}
+	
 	PyObject* py_peers_dict_parent = PyDict_New();
 	for (li = candidates->next; li != candidates; li = li->next) {
 		struct rtd_candidate * cand = (struct rtd_candidate *)li;
@@ -283,9 +290,15 @@ static int rt_pyform_entry(char *conffile) {
 		return EDEADLK;
 	}
 
-	if (0 != (ret = fd_rt_out_register( rt_pyform, NULL, 0, &rt_pyform_handle)))
+	if (0 != (ret = fd_rt_fwd_register(rt_pyform_answers, NULL, RT_FWD_ANS, &rt_pyform_answers_handle)))
 	{
-		fd_log_error("Cannot register callback handler");
+		fd_log_error("Cannot register rt_pyform_answers callback handler");
+		return ret;
+	}
+
+	if (0 != (ret = fd_rt_out_register(rt_pyform, NULL, 0, &rt_pyform_requests_handle)))
+	{
+		fd_log_error("Cannot register rt_pyform_requests callback handler");
 		return ret;
 	}
 
@@ -599,6 +612,11 @@ static int updatePriority(PyObject* py_update_peer_priority_dict, struct fd_list
     PyObject* py_key = NULL;
 	PyObject* py_value = NULL;
 
+	if (NULL == candidates) {
+		fd_log_error("updatePriority: Cannot update priority as no candidates exist");
+		return 1;
+	}
+
 	/* PyDict_Next will set py_key and py_value with borrowed 
 	 * values so we don't need to call Py_DECREF for them. */
     while (PyDict_Next(py_update_peer_priority_dict, &pos, &py_key, &py_value)) {
@@ -633,8 +651,7 @@ static void pyformerUpdate(PyObject* py_result_dict, struct msg *msg, struct fd_
 	struct avp *first_avp = NULL;
 
 	if ((NULL == py_result_dict) ||
-	    (NULL == msg)            ||
-		(NULL == candidates))
+	    (NULL == msg))
 	{
 		fd_log_error("pyformerUpdate: Invaid parameter");
 		return;
@@ -650,8 +667,6 @@ static void pyformerUpdate(PyObject* py_result_dict, struct msg *msg, struct fd_
 	if (py_remove_avps_list) {
 		errors = 0;
  		first_avp = getFirstAVP(msg);
-		fd_log_notice("Here is the message avps as fd sees them");
-		debug_print(first_avp, 0);
 		errors += removeAvpsFromMsg(py_remove_avps_list, first_avp);
 		Py_DECREF(py_remove_avps_list);
 		if (0 < errors) {
@@ -713,7 +728,7 @@ static int rt_pyform(void * cbdata, struct msg ** msg, struct fd_list * candidat
 	}
 
 	/* Call python function */
-	if (py_msg_dict && py_peers_dict) {
+	if (py_msg_dict) {
 		py_result_dict = pyformerTransformValue(py_msg_dict, py_peers_dict);
 	}
 
@@ -733,6 +748,10 @@ static int rt_pyform(void * cbdata, struct msg ** msg, struct fd_list * candidat
 	}
 
 	return 0;
+}
+
+static int rt_pyform_answers(void * cbdata, struct msg ** msg) {
+	return rt_pyform(cbdata, msg, NULL);
 }
 
 /* Caller responsible for calling Py_XDECREF() on result if not NULL */
