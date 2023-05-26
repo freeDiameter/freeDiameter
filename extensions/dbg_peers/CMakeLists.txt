@@ -1,6 +1,6 @@
 # Debug Peers Extension
 PROJECT("Debug Peers Extension" C)
-FD_ADD_EXTENSION(dbg_peers dbg_peers.c)
+FD_ADD_EXTENSION(dbg_peers dbg_peers.c dbg_peers_config.c)
 
 
 # Link against the shared libraries

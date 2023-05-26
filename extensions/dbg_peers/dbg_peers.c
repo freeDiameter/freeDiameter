@@ -10,15 +10,52 @@
 #include "prom/promhttp.h"
 #include <stdbool.h>
 #include <string.h>
+#include "dbg_peers_config.h"
+
+#define MODULE_NAME "dbg_peers"
 
 static int monitor_peers_main(char * statefile);
+static void * mn_thr(void* nothing);
+
+static struct MHD_Daemon *prom_daemon = NULL;
+static unsigned int update_period_sec = 1;
+static unsigned short metric_export_port = 8000;
+static pthread_t thr;
 
 EXTENSION_ENTRY("dbg_peers", monitor_peers_main);
 
-static struct MHD_Daemon *prom_daemon = NULL;
-static unsigned int poll_period_sec = 1;
-static unsigned short metric_export_port = 8000;
-static pthread_t thr;
+/* Cleanup */
+void fd_ext_fini(void)
+{
+	CHECK_FCT_DO( fd_thr_term(&thr), /* continue */ );
+	TRACE_DEBUG(INFO, "[dbg_peers] Cleaning up files");
+
+    prom_collector_registry_destroy(PROM_COLLECTOR_REGISTRY_DEFAULT);
+    MHD_stop_daemon(prom_daemon);
+
+	return;
+}
+
+/* Entry point */
+static int monitor_peers_main(char * conffile)
+{
+	TRACE_DEBUG(INFO, "[dbg_peers] Writing Diameter peers to %s", conffile);
+	
+	if (0 != parseConfig(conffile, &update_period_sec, &metric_export_port))
+	{
+		fd_log_notice("%s: Encountered errors when parsing config file", MODULE_NAME);
+		fd_log_error(
+			"Config file should be 2 lines long and look like the following:\n"
+			"UpdatePeriodSec = \"1\"\n"
+			"ExportMetricsPort = \"8000\"\n");
+
+		return EINVAL;
+	}
+
+	CHECK_POSIX(pthread_create(&thr, NULL, mn_thr, NULL));
+
+	return 0;
+}
 
 /* Thread to display periodical debug information */
 static void * mn_thr(void* nothing)
@@ -37,7 +74,7 @@ static void * mn_thr(void* nothing)
         return NULL;
     }
 
-	char *lable = "endpoint";
+	const char *lable = "endpoint";
 	prom_gauge_t *peer_gauge = prom_gauge_new("prom_diam_connected_peers", "Connected Diameter Peer Count", 1, &lable);
 	prom_metric_t *peer_gauge_metric = prom_collector_registry_must_register_metric(peer_gauge);
 
@@ -50,36 +87,11 @@ static void * mn_thr(void* nothing)
 				val = 1.0;
 			}
 
-			prom_gauge_set(peer_gauge_metric, val, &p->info.pi_diamid);
+			prom_gauge_set(peer_gauge_metric, val, (const char**)&p->info.pi_diamid);
 		}
 
-		sleep(poll_period_sec);
+		sleep(update_period_sec);
 	}
 	
 	return NULL;
 }
-
-/* Entry point */
-static int monitor_peers_main(char * statefile)
-{
-	TRACE_DEBUG(INFO, "[dbg_peers] Writing Diameter peers to %s", statefile);
-	
-	//todo load the config
-
-	CHECK_POSIX( pthread_create( &thr, NULL, mn_thr, statefile ) );
-
-	return 0;
-}
-
-/* Cleanup */
-void fd_ext_fini(void)
-{
-	CHECK_FCT_DO( fd_thr_term(&thr), /* continue */ );
-	TRACE_DEBUG(INFO, "[dbg_peers] Cleaning up files");
-
-    prom_collector_registry_destroy(PROM_COLLECTOR_REGISTRY_DEFAULT);
-    MHD_stop_daemon(prom_daemon);
-
-	return ;
-}
-
