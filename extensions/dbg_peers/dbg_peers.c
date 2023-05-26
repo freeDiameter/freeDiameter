@@ -4,56 +4,180 @@
 
 #include <freeDiameter/extension.h>
 #include <signal.h>
+#include "prom/prom.h"
+#include <stdio.h>
+#include "microhttpd.h"
+#include "prom/promhttp.h"
+#include <stdbool.h>
+#include <string.h>
 
-static int 	 monitor_peers_main(char * statefile);
+static int monitor_peers_main(char * statefile);
 
 EXTENSION_ENTRY("dbg_peers", monitor_peers_main);
 
-/* Thread to display periodical debug information */
-static pthread_t thr;
-static void * mn_thr(char * statefile)
-{
-	fd_log_threadname("Monitor Diameter Peer thread");
-	char * buf = NULL;
-	size_t len;
-	
-	/* Loop */
-	while (1) {
-		int current_count, limit_count, highest_count;
-		long long total_count;
-		struct timespec total, blocking, last;
-		struct fd_list * li;
-	
-		TRACE_DEBUG(INFO, "[dbg_peers] Dumping peer statistics to file %s", statefile);
-		
-		/* Log to file */
-		FILE * fptr;
-		fptr = fopen(statefile,"w");
-		if(fptr == NULL)
-		{
-			TRACE_DEBUG(INFO, "[dbg_peers] Error loading file to write to at %s", statefile);
-			exit(1);             
+enum { MAX_PEERS = 64,
+       MAX_NAME_STR = 128 };
+
+typedef struct {
+	char peer_name[MAX_NAME_STR];
+	char counter_name[MAX_NAME_STR];
+	prom_counter_t *counter;
+	bool connected;
+} peer_t;
+
+static struct MHD_Daemon *prom_daemon = NULL;
+
+/* The metric name specifies the general feature of a
+ * system that is measured (e.g. http_requests_total - 
+ * the total number of HTTP requests received). It may
+ * contain ASCII letters and digits, as well as underscores
+ * and colons. It must match the regex [a-zA-Z_:][a-zA-Z0-9_:]*
+ * https://prometheus.io/docs/concepts/data_model/#metric-names-and-labels 
+ * 
+ * Assuming name parameter begins with character that matches regex [a-zA-Z_:] */
+void sanitise_counter_name(char * name) {
+	int i = 0;
+
+	if (NULL == name) {
+		return;
+	}
+
+	while (('\0' != name[i]) &&
+	       (i < MAX_NAME_STR)) {
+		bool valid_char = false;
+		char c = name[i];
+
+		if ((('a' <= c) && (c <= 'z')) ||
+			(('A' <= c) && (c <= 'Z')) ||
+			(('0' <= c) && (c <= '9')) ||
+			('_' == c)                 ||
+			(':' == c)) {
+			valid_char = true;
 		}
-		fprintf(fptr, "%s", "Start of File\n");
 
-		CHECK_FCT_DO( pthread_rwlock_rdlock(&fd_g_peers_rw), /* continue */ );
+		if (!valid_char) {
+			name[i] = '_';
+		}
 
-		for (li = fd_g_peers.next; li != &fd_g_peers; li = li->next) {
-			struct peer_hdr * p = (struct peer_hdr *)li->o;
+		++i;
+	}
+}
+
+bool add_peer(peer_t* peers, char* peer_name) {
+	if ((NULL == peers) ||
+	    (NULL == peer_name)) {
+		return false;
+	}
+
+	for (int i = 0; i < MAX_PEERS; ++i) {
+		/* Find unused peer element */
+		if (NULL == peers[i].counter) {
+			fd_log_notice("Adding counter for '%s'", peer_name);
+
+			strncpy(peers[i].peer_name, peer_name, MAX_NAME_STR - 1);
+			strcpy(peers[i].counter_name, "fd_peer_");
+			strncat(peers[i].counter_name, peer_name, MAX_NAME_STR - strlen(peers[i].counter_name));
+			sanitise_counter_name(peers[i].counter_name);
+			fd_log_notice("Counter name is '%s'", peers[i].counter_name);
+
+			peers[i].counter = prom_counter_new(peers[i].counter_name, "A counter for a freeDiameter peer, a value of 1 signifies that this peer is connected", 0, NULL);
+			assert(peers[i].counter == prom_collector_registry_must_register_metric(peers[i].counter));
 			
-			TRACE_DEBUG(INFO, "[dbg_peers] %s", fd_peer_dump(&buf, &len, NULL, p, 1));
-			fprintf(fptr, "%s %s", fd_peer_dump(&buf, &len, NULL, p, 1), "\n");
+			prom_counter_inc(peers[i].counter, NULL);
+			peers[i].connected = true;
+
+			return true;
 		}
+	}
 
-		fprintf(fptr, "%s", "End of File\n");
-		fclose(fptr);
+	return false;
+}
 
-		CHECK_FCT_DO( pthread_rwlock_unlock(&fd_g_peers_rw), /* continue */ );
+bool clear_disconnected_peers(peer_t* peers) {
+	if (NULL == peers) {
+		return false;
+	}
 
-		sleep(10); /* Sleep 10 Seconds */
+	for (int i = 0; i < MAX_PEERS; ++i) {
+		if ((false == peers[i].connected) &&
+		    (NULL != peers[i].counter)) {
+			/* Clear the peer element */
+			fd_log_notice("Removing counter for '%s'", peers[i].peer_name);
+			
+			strcpy(peers[i].peer_name, "");
+			strcpy(peers[i].counter_name, "");
+
+			prom_collector_registry_unregister_metric(peers[i].counter);
+			peers[i].counter = NULL;
+		}
 	}
 	
-	free(buf);
+	return true;
+}
+
+bool step_start(peer_t* peers) {
+	if (NULL == peers) {
+		return false;
+	}
+
+	for (int i = 0; i < MAX_PEERS; ++i) {
+		peers[i].connected = false;
+	}
+
+	return true;
+}
+
+bool refresh_or_add_peer(peer_t* peers, char* peer_name) {
+	if ((NULL == peers) || 
+	    (NULL == peer_name)) {
+		return false;
+	}
+
+	for (int i = 0; i < MAX_PEERS; ++i) {
+		if (!strcmp(peer_name, peers[i].peer_name)) {
+			/* Refresh peer */
+			fd_log_notice("Peer with metric name '%s' is still active", peers[i].counter_name);
+			peers[i].connected = true;
+			return true;
+		}
+	}
+
+	return add_peer(peers, peer_name);
+}
+
+/* Thread to display periodical debug information */
+static pthread_t thr;
+static void * mn_thr(void* seconds)
+{
+	fd_log_threadname("Monitor Diameter Peer thread");
+	
+	/* Init all of prometheus */
+    assert(0 == prom_collector_registry_default_init());
+    
+    /* Set the active registry for the HTTP handler */
+    promhttp_set_active_collector_registry(NULL);
+
+	peer_t peers[MAX_PEERS] = {0};
+
+    prom_daemon = promhttp_start_daemon(MHD_USE_SELECT_INTERNALLY, 8000, NULL, NULL);
+    if (prom_daemon == NULL) {
+		fd_log_error("Failed to start prom_daemon");
+        return NULL;
+    }
+
+	while (true) {
+		step_start(peers);
+
+		for (struct fd_list *li = fd_g_peers.next; li != &fd_g_peers; li = li->next) {
+			struct peer_hdr * p = (struct peer_hdr *)li->o;
+			refresh_or_add_peer(peers, p->info.pi_diamid);
+		}
+
+		clear_disconnected_peers(peers);
+
+		sleep(1);
+	}
+	
 	return NULL;
 }
 
@@ -72,13 +196,10 @@ void fd_ext_fini(void)
 {
 	CHECK_FCT_DO( fd_thr_term(&thr), /* continue */ );
 	TRACE_DEBUG(INFO, "[dbg_peers] Cleaning up files");
-	int ret;
-	ret = remove("/tmp/DiamPeers.txt");
-	if(ret == 0) {
-		printf("Diameter Peer state file deleted successfully");
-	} else {
-		printf("Error: unable to delete the file");
-	}	
+
+    prom_collector_registry_destroy(PROM_COLLECTOR_REGISTRY_DEFAULT);
+    MHD_stop_daemon(prom_daemon);
+
 	return ;
 }
 
