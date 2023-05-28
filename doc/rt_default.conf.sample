@@ -90,6 +90,8 @@
 #
 #  3) Avoid sending messages with decorated NAI to the proxy A:
 #    un=[".+!.+@.+"] : "proxy.A" += NO_DELIVERY ;
-
-
+#
+#  4) Send all requests with usernames starting with 111 to proxy A, send all requests with usernames starting with 222 to proxy B:
+#    un=["^111.*"] : "proxy.A" += FINALDEST ;
+#    un=["^222.*"] : "proxy.B" += FINALDEST ;
 
