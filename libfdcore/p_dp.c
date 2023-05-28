@@ -120,6 +120,7 @@ int fd_p_dp_handle(struct msg ** msg, int req, struct fd_peer * peer)
 			CHECK_FCT( fd_out_send( msg, NULL, peer, 0) );
 			
 			/* and move to CLOSED */
+			fd_hook_call(HOOK_PEER_CONNECT_FAILED, NULL, peer, "Connection closed", NULL);
 			fd_psm_cleanup(peer, 0);
 
 			/* Reset the timer for next connection attempt -- we'll retry sooner or later depending on the disconnection cause */

@@ -641,7 +641,10 @@ psm_loop:
 			case CC_DISCONNECT_PEER:
 				CHECK_FCT_DO( fd_p_dp_handle(&msg, (hdr->msg_flags & CMD_FLAG_REQUEST), peer), goto psm_reset );
 				if (fd_peer_getstate(peer) == STATE_CLOSING)
+				{
+					fd_hook_call(HOOK_PEER_CONNECT_FAILED, NULL, peer, "Connection closed", NULL);
 					goto psm_end;
+				}
 
 				break;
 
@@ -719,9 +722,11 @@ psm_loop:
 
 			case STATE_CLOSING:
 				/* We sent a DPR so we are terminating, do not wait for DPA */
+				fd_hook_call(HOOK_PEER_CONNECT_FAILED, NULL, peer, "Connection closed", NULL);
 				goto psm_end;
 
 			case STATE_CLOSING_GRACE:
+				fd_hook_call(HOOK_PEER_CONNECT_FAILED, NULL, peer, "Connection closed", NULL);
 				if (peer->p_flags.pf_localterm) /* initiated here */
 					goto psm_end;
 
@@ -854,13 +859,19 @@ psm_loop:
 			case STATE_WAITCNXACK:
 			case STATE_WAITCEA:
 				fd_hook_call(HOOK_PEER_CONNECT_FAILED, NULL, peer, "Timeout while waiting for remote peer", NULL);
+				/* Destroy the connection, restart the timer to a new connection attempt */
+				fd_psm_next_timeout(peer, 1, peer->p_hdr.info.config.pic_tctimer ?: fd_g_config->cnf_timer_tc);
+				goto psm_reset;
+
 			case STATE_CLOSING:
+				fd_hook_call(HOOK_PEER_CONNECT_FAILED, NULL, peer, "Connection closed", NULL);
 				/* Destroy the connection, restart the timer to a new connection attempt */
 				fd_psm_next_timeout(peer, 1, peer->p_hdr.info.config.pic_tctimer ?: fd_g_config->cnf_timer_tc);
 				goto psm_reset;
 
 			case STATE_CLOSING_GRACE:
 				/* The grace period is completed, now close */
+				fd_hook_call(HOOK_PEER_CONNECT_FAILED, NULL, peer, "Connection closed", NULL);
 				if (peer->p_flags.pf_localterm)
 					goto psm_end;
 
