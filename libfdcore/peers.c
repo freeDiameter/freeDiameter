@@ -441,7 +441,6 @@ int fd_peer_fini()
 /* Terminate peer module (destroy all peers forcibly) */
 int fd_peer_fini_force()
 {
-	struct fd_list * li;
 	struct fd_list purge = FD_LIST_INITIALIZER(purge); /* Store zombie peers here */
 	int list_empty;
 
@@ -467,6 +466,8 @@ int fd_peer_fini_force()
 		fd_list_unlink(&peer->p_hdr.chain);
 		fd_peer_free(&peer);
 	}
+
+	return 0;
 }
 
 /* Dump info of one peer */

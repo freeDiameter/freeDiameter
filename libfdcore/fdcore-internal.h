@@ -277,6 +277,7 @@ struct cnx_incoming {
 
 /* Functions */
 int  fd_peer_fini();
+int  fd_peer_fini_force();
 int  fd_peer_alloc(struct fd_peer ** ptr);
 int  fd_peer_free(struct fd_peer ** ptr);
 int fd_peer_handle_newCER( struct msg ** cer, struct cnxctx ** cnx );

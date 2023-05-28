@@ -375,4 +375,5 @@ int fd_connections_shutdown(void)
 {
 	LOG_N( FD_PROJECT_BINARY " Closing Diameter connections");
 	CHECK_FCT_DO( fd_peer_fini_force(), /* Stop all connections */ );
+	return 0;
 }
