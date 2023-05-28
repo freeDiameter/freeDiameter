@@ -370,6 +370,9 @@ int fd_core_wait_shutdown_complete(void)
 	return 0;
 }
 
-
-
-
+/* Forcibly shut down any Diameter connections */
+int fd_connections_shutdown(void)
+{
+	LOG_N( FD_PROJECT_BINARY " Closing Diameter connections");
+	CHECK_FCT_DO( fd_peer_fini_force(), /* Stop all connections */ );
+}
