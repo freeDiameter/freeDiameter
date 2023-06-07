@@ -908,14 +908,6 @@ static DECLARE_FD_DUMP_PROTOTYPE( avp_format_treeview, struct avp * avp, int lev
 		if (avp->avp_public.avp_value) {
 			CHECK_MALLOC_DO( fd_dict_dump_avp_value(FD_DUMP_STD_PARAMS, avp->avp_public.avp_value, avp->avp_model, 0, 0), return NULL);
 		} else if (avp->avp_rawdata) {
-			
-			/* this has the raw data!! */
-			// printf("\n\n");
-			// for (int i = 0; i < avp->avp_rawlen; ++i) {
-			// 	printf("%02X ", avp->avp_rawdata[i]);
-			// }
-			// printf("\n\n");
-
 			CHECK_MALLOC_DO( fd_dump_extend_hexdump(FD_DUMP_STD_PARAMS, avp->avp_rawdata, avp->avp_rawlen, 0, 0), return NULL);
 		} else {
 			CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "(not set)"), return NULL);
@@ -1228,7 +1220,6 @@ int fd_msg_avp_hdr ( struct avp *avp, struct avp_hdr **pdata )
 	*pdata = &avp->avp_public;
 	return 0;
 }
-
 
 /* Associate answers and queries */
 int fd_msg_answ_associate( struct msg * answer, struct msg * query )

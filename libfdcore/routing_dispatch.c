@@ -153,8 +153,6 @@ int fd_rt_out_register ( int (*rt_out_cb)(void * cbdata, struct msg ** pmsg, str
 	memset(new, 0, sizeof(struct rt_hdl));
 	
 	/* Write the content */
-	// printf("fd_rt_out_register/priority : %i\n", priority);
-
 	fd_list_init(&new->chain, NULL);
 	new->cbdata 	= cbdata;
 	new->prio    	= priority;

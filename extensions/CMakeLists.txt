@@ -82,6 +82,7 @@ FD_EXTENSION_SUBDIR(rt_load_balance "Balance load over multiple equal hosts, bas
 FD_EXTENSION_SUBDIR(rt_randomize    "Randomly choose one of the highest scored hosts and increase its score by one"	ON)
 FD_EXTENSION_SUBDIR(rt_redirect     "Handling of Diameter Redirect messages" 			ON)
 FD_EXTENSION_SUBDIR(rt_rewrite      "Convert/remove AVP data in messages" 			ON)
+FD_EXTENSION_SUBDIR(rt_pyform       "Transform AVP data using external python script" 			ON)
 FD_EXTENSION_SUBDIR(python_dra       "Transform AVP data and peer score using external python script" 			ON)
 
 
