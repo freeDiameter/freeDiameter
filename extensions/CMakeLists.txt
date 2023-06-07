@@ -82,6 +82,8 @@ FD_EXTENSION_SUBDIR(rt_load_balance "Balance load over multiple equal hosts, bas
 FD_EXTENSION_SUBDIR(rt_randomize    "Randomly choose one of the highest scored hosts and increase its score by one"	ON)
 FD_EXTENSION_SUBDIR(rt_redirect     "Handling of Diameter Redirect messages" 			ON)
 FD_EXTENSION_SUBDIR(rt_rewrite      "Convert/remove AVP data in messages" 			ON)
+FD_EXTENSION_SUBDIR(rt_pyform       "Transform AVP data using external python script" 			ON)
+FD_EXTENSION_SUBDIR(python_dra       "Transform AVP data and peer score using external python script" 			ON)
 
 
 ####
@@ -97,6 +99,7 @@ FD_EXTENSION_SUBDIR(dbg_dict_dump   "Log dictionary dump"                       
 FD_EXTENSION_SUBDIR(dbg_dict_dump_json   "Dump dictionary as JSON"                            OFF)
 FD_EXTENSION_SUBDIR(dbg_loglevel "Read loglevel from file -- allows runtime change"  ON)
 FD_EXTENSION_SUBDIR(dbg_monitor     "Outputs periodical status information"              ON)
+FD_EXTENSION_SUBDIR(dbg_peers     "Outputs periodical info about peers into file"              ON)
 FD_EXTENSION_SUBDIR(dbg_msg_timings "Show some timing information for messages"      ON)
 FD_EXTENSION_SUBDIR(dbg_msg_dumps   "Show human-readable content of the received & sent messages"      ON)
 FD_EXTENSION_SUBDIR(dbg_rt          "Routing extension for debugging the routing module" ON)

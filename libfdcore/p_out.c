@@ -162,7 +162,7 @@ error:
 int fd_out_send(struct msg ** msg, struct cnxctx * cnx, struct fd_peer * peer, int update_reqin_cnt)
 {
 	struct msg_hdr * hdr;
-	
+	LOG_A("Called fd_out_send");
 	TRACE_ENTRY("%p %p %p", msg, cnx, peer);
 	CHECK_PARAMS( msg && *msg && (cnx || (peer && peer->p_cnxctx)));
 
@@ -179,19 +179,22 @@ int fd_out_send(struct msg ** msg, struct cnxctx * cnx, struct fd_peer * peer, i
 	}
 	
 	if (fd_peer_getstate(peer) == STATE_OPEN) {
+		LOG_A("Peer state we are sending to is Open");
 		/* Normal case: just queue for the out thread to pick it up */
 		CHECK_FCT( fd_fifo_post(peer->p_tosend, msg) );
 		
 	} else {
 		int ret;
 		uint32_t *hbh = NULL;
-		
+		LOG_A("Peer state we are sending to is not Open");
 		/* In other cases, the thread is not running, so we handle the sending directly */
 		if (peer)
 			hbh = &peer->p_hbh;
+			LOG_A("Sent directly to peer");
 
 		if (!cnx)
 			cnx = peer->p_cnxctx;
+			LOG_A("Sent directly to connection");
 
 		/* Do send the message */
 		CHECK_FCT_DO( ret = do_send(msg, cnx, hbh, peer),

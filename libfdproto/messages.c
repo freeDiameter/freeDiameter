@@ -1189,6 +1189,12 @@ int fd_msg_model ( msg_or_avp * reference, struct dict_object ** model )
 	return 0;
 }
 
+int fd_is_msg(msg_or_avp * reference)
+{
+	CHECK_PARAMS(VALIDATE_OBJ(reference));
+	return CHECK_MSG(reference);
+}
+
 /* Retrieve the address of the msg_public field of a message */
 int fd_msg_hdr ( struct msg *msg, struct msg_hdr **pdata )
 {
@@ -1197,6 +1203,12 @@ int fd_msg_hdr ( struct msg *msg, struct msg_hdr **pdata )
 	
 	*pdata = &msg->msg_public;
 	return 0;
+}
+
+int fd_is_avp(msg_or_avp * reference)
+{
+	CHECK_PARAMS(VALIDATE_OBJ(reference));
+	return CHECK_AVP(reference);
 }
 
 /* Retrieve the address of the avp_public field of an avp */
