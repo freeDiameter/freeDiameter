@@ -291,7 +291,7 @@ int  fd_rtd_candidate_reorder(struct fd_list * candidates)
 	TRACE_ENTRY("%p", candidates);
 	CHECK_PARAMS( candidates );
 	
-	/* First, move all items from candidates to the undordered list */
+	/* First, move all items from candidates to the unordered list */
 	fd_list_move_end(&unordered, candidates);
 	
 	/* Now extract each element from unordered and add it back to list ordered by score */

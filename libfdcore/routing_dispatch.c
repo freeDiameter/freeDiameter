@@ -287,7 +287,7 @@ static int score_destination_avp(void * cbdata, struct msg ** pmsg, struct fd_li
 			c->score += FD_SCORE_FINALDEST;
 		} else {
 			if (dr && !fd_os_almostcasesrch(dr->os.data, dr->os.len, c->realm, c->realmlen, NULL) ) {
-				/* The candidate's realm matchs the Destination-Realm */
+				/* The candidate's realm matches the Destination-Realm */
 				c->score += FD_SCORE_REALM;
 			}
 		}
@@ -779,7 +779,7 @@ static int msg_rt_in(struct msg * msg)
 			}
 
 			if (is_local_app == YES) {
-				/* Handle localy since we are able to */
+				/* Handle locally since we are able to */
 				fd_hook_call(HOOK_MESSAGE_ROUTING_LOCAL, msgptr, NULL, NULL, fd_msg_pmdl_get(msgptr));
 				CHECK_FCT(fd_fifo_post(fd_g_local, &msgptr) );
 				return 0;
@@ -804,7 +804,7 @@ static int msg_rt_in(struct msg * msg)
 		CHECK_FCT( fd_msg_source_get( qry, &qry_src, NULL ) );
 
 		if ((!qry_src) && (!is_err)) {
-			/* The message is a normal answer to a request issued localy, we do not call the callbacks chain on it. */
+			/* The message is a normal answer to a request issued locally, we do not call the callbacks chain on it. */
 			fd_hook_call(HOOK_MESSAGE_ROUTING_LOCAL, msgptr, NULL, NULL, fd_msg_pmdl_get(msgptr));
 			CHECK_FCT(fd_fifo_post(fd_g_local, &msgptr) );
 			return 0;
@@ -974,7 +974,7 @@ static int msg_rt_out(struct msg * msg)
 		CHECK_FCT( fd_msg_rt_associate ( msgptr, rtd ) );
 	}
 
-	/* Note: we reset the scores and pass the message to the callbacks, maybe we could re-use the saved scores when we have received an error ? -- TODO */
+	/* Note: we reset the scores and pass the message to the callbacks, maybe we could reuse the saved scores when we have received an error ? -- TODO */
 
 	/* Ok, we have our list in rtd now, let's (re)initialize the scores */
 	fd_rtd_candidate_extract(rtd, &candidates, FD_SCORE_INI);
@@ -1139,7 +1139,7 @@ fatal_error:
 	CHECK_FCT_DO(fd_core_shutdown(), );
 	
 end:	
-	; /* noop so that we get rid of "label at end of compund statement" warning */
+	; /* noop so that we get rid of "label at end of compound statement" warning */
 	/* Mark the thread as terminated */
 	pthread_cleanup_pop(1);
 	return NULL;

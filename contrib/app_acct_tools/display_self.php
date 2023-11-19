@@ -7,7 +7,7 @@
 # See your web server documentation for details.
 # Example for apache2:
 #  (+ detail in http://httpd.apache.org/docs/2.0/ssl/ssl_howto.html#allclients )
-# - in vhost definition file, refence the CA chain of your users certificates:
+# - in vhost definition file, reference the CA chain of your users certificates:
 #  SSLCACertificateFile /var/www/conf/ssl.crt/ca.crt
 # - in vhost file or .htaccess file (adjust Depth to your setup):
 #  <IfModule mod_ssl.c>

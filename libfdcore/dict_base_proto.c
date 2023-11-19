@@ -1560,7 +1560,7 @@ int fd_dict_base_protocol(struct dictionary * dict)
 				the Failed-AVP MAY contain the grouped AVP which in turn contains the
 				single offending AVP.  The same method MAY be employed if the grouped
 				AVP itself is embedded in yet another grouped AVP and so on.  In this
-				case, the Failed-AVP MAY contain the grouped AVP heirarchy up to the
+				case, the Failed-AVP MAY contain the grouped AVP hierarchy up to the
 				single offending AVP.  This enables the recipient to detect the
 				location of the offending AVP when embedded in a group.
 

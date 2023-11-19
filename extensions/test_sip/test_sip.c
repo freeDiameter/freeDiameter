@@ -54,7 +54,7 @@ struct disp_hdl * test_sip_RTR_hdl=NULL;
 
 struct disp_hdl * test_sip_default_hdl=NULL;
 
-//configuration stucture
+//configuration structure
 struct ts_conf * ts_conf=NULL;
 static struct ts_conf test_sip_conf;
 

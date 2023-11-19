@@ -34,8 +34,8 @@
 # Default: 5868. Use 0 to disable.
 #SecPort = 5868;
 
-# Use RFC3588 method for TLS protection, where TLS is negociated after CER/CEA exchange is completed
-# on the unsecure connection. The alternative is RFC6733 mechanism, where TLS protects also the
+# Use RFC3588 method for TLS protection, where TLS is negotiated after CER/CEA exchange is completed
+# on the insecure connection. The alternative is RFC6733 mechanism, where TLS protects also the
 # CER/CEA exchange on a dedicated secure port.
 # This parameter only affects outgoing connections.
 # The setting can be also defined per-peer (see Peers configuration section).
@@ -52,7 +52,7 @@
 # This option is ignored if freeDiameter is compiled with DISABLE_SCTP option.
 
 # Prefer TCP instead of SCTP for establishing new connections.
-# This setting may be overwritten per peer in peer configuration blocs.
+# This setting may be overwritten per peer in peer configuration blocks.
 # Default : SCTP is attempted first.
 #Prefer_TCP;
 
@@ -85,7 +85,7 @@
 # How many Diameter peers are allowed to be connecting at the same time ?
 # This parameter limits the number of incoming connections from the time
 # the connection is accepted until the first CER is received.
-# Default: 5 unidentified clients in paralel.
+# Default: 5 unidentified clients in parallel.
 #ThreadsPerServer = 5;
 
 # If this host is used as relay or proxy, it can be useful to limit

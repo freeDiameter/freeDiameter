@@ -79,7 +79,7 @@ extern struct rgw_api {
 	/* ret >0: critical error (errno), log and exit.
 	   ret 0: continue; 
 	   ret -1: stop processing this message
-	   ret -2: reply the content of rad_ans to the RADIUS client immediatly
+	   ret -2: reply the content of rad_ans to the RADIUS client immediately
 	 */
 	
 	/* handle the corresponding Diameter answer */

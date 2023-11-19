@@ -186,7 +186,7 @@ int rgw_plg_add( char * plgfile, char * conffile, int type, unsigned char ** cod
 	TRACE_DEBUG(FULL, "Loading plugin: %s", plgfile);
 	new->dlo = dlopen(plgfile, RTLD_NOW | RTLD_GLOBAL);
 	if (new->dlo == NULL) {
-		/* An error occured */
+		/* An error occurred */
 		fd_log_error("Loading of app_radgw plugin '%s' failed: %s", plgfile, dlerror());
 		goto error;
 	}
@@ -194,7 +194,7 @@ int rgw_plg_add( char * plgfile, char * conffile, int type, unsigned char ** cod
 	/* Resolve the descriptor */
 	new->descriptor = dlsym( new->dlo, "rgwp_descriptor" );
 	if (new->descriptor == NULL) {
-		/* An error occured */
+		/* An error occurred */
 		fd_log_error("Unable to resolve 'rgwp_descriptor' in app_radgw plugin '%s': %s", plgfile, dlerror());
 		goto error;
 	}
@@ -432,7 +432,7 @@ int rgw_plg_loop_ans(struct rgw_radius_msg_meta *req, struct msg **diam_ans, str
 	
 	/* We might define other return values with special meaning here (ret == -1, ...) for example create a new Diameter request */
 	
-	/* -1: just abord the translation with no more processing. */
+	/* -1: just abort the translation with no more processing. */
 	
 	return 0;
 }

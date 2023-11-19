@@ -98,7 +98,7 @@ static int app_gx_entry(char * conffile)
 #endif
 
 
-	// Do registeration and init stuff
+	// Do registration and init stuff
       {
 	struct disp_when data;
        
@@ -526,7 +526,7 @@ int snd_ccr_msg(struct gx_sm_t **sm , struct dict_object *cmd_r )
        
        /* Send the request */
     printf("CCA %p\n",req);
-// Everthing Done Store the state: reply should retreive it 
+// Everything Done Store the state: reply should retrieve it 
        CHECK_FCT_DO( fd_msg_send( &req, NULL, NULL ), goto out );
 
 out:

@@ -51,7 +51,7 @@ cvar.fd_debug_one_function = "gc_th_fct"
 
 
 # Print messages to freeDiameter's debug facility
-# Note: the python version does not support printf-like argument list. The formating should be done in python.
+# Note: the python version does not support printf-like argument list. The formatting should be done in python.
 #       See SWIG documentation about varargs functions for more information.
 fd_log(FD_LOG_NOTICE, "3 + 4 = %d" % (7))
 
@@ -70,7 +70,7 @@ fd_ext_dump(0)
 # Display the local Diameter Identity:
 print "Local Diameter Identity:", cvar.fd_g_config.cnf_diamid
 
-# Display realm, using the low-level functions (skip proxy classe definitions):
+# Display realm, using the low-level functions (skip proxy class definitions):
 print "Realm:", _fDpy.fd_config_cnf_diamrlm_get(_fDpy.cvar.fd_g_config)
 
 
@@ -514,9 +514,9 @@ mydwr.add_origin(1) # adds Origin-State-Id in addition.
 # As for sessions, only one dispatch handler can be registered in this extension at the moment.
 # The callback for the handler has the following syntax:
 def dispatch_cb_model(inmsg, inavp, insession):
-   print "Callback trigged on message: "
+   print "Callback triggered on message: "
    inmsg.dump()
-   # inavp is None or the AVP that trigged the callback, depending on how it was registered.
+   # inavp is None or the AVP that triggered the callback, depending on how it was registered.
    if inavp:
      print "From the following AVP:"
      inavp.dump()
@@ -647,7 +647,7 @@ myqueue.length()
 
 ## Variants:
 # All the previous calls are suitable to queue Python objects.
-# In order to interact with objects queued / poped by C counterpart,
+# In order to interact with objects queued / popped by C counterpart,
 # a second parameter must be passed to specify the object type,
 # as follow:
 ev = fd_event()
@@ -721,14 +721,14 @@ p = peer_search("nas.domain.aaa")
 
 # cb2 prototype:
 def my_validate_cb2(pinfo):
-    print "Cb2 callback trigged for peer %s" % (pinfo.pi_diamid)
+    print "Cb2 callback triggered for peer %s" % (pinfo.pi_diamid)
     # Usually, this would be used only to check some TLS properties, 
     # which is not really possible yet through the python interpreter...
     return 0   # return an error code if the peer is not validated
 
 # cb prototype:
 def my_validate_cb(pinfo):
-    print "Validate callback trigged for peer %s" % (pinfo.pi_diamid)
+    print "Validate callback triggered for peer %s" % (pinfo.pi_diamid)
     # If the peer is not allowed to connect:
     #return -1
     # If the peer is authorized:
@@ -737,7 +737,7 @@ def my_validate_cb(pinfo):
     #pinfo.config.pic_flags.sec = PI_SEC_NONE
     # If no decision has been made:
     #return 0
-    # If the peer is temporarily authorized but a second callback must be called after TLS negociation:
+    # If the peer is temporarily authorized but a second callback must be called after TLS negotiation:
     return my_validate_cb2
 
 # Register the callback, it will be called on new incoming connections.

@@ -34,7 +34,7 @@ Available commands:\n\
    make newcert name=foo ca=parentca\n\
        Create private key and csr, then issue the certificate (named foo.*)\n\
    make p12 name=foo ca=parentca\n\
-       Same as newcert, but additionnaly creates a pkcs12 file to ship client certificate to Windows or Mac\n\
+       Same as newcert, but additionally creates a pkcs12 file to ship client certificate to Windows or Mac\n\
    make ship name=foo ca=parentca\n\
        Create an archive with the data for the client (useful for freeDiameter peers)\n\
    make revoke name=foo ca=parentca\n\
@@ -132,7 +132,7 @@ newcert:
 		-batch
 	# Hash
 	@ln -sf `cat $(DATA_DIR)/$(ca)/serial.old`.pem $(DATA_DIR)/$(ca)/public/`openssl x509 -noout -hash < $(DATA_DIR)/$(ca)/clients/$(name)/cert.pem`.0
-	# Compiled informations for the client
+	# Compiled information for the client
 	@cat $(DATA_DIR)/$(ca)/clients/$(name)/cert.pem $(DATA_DIR)/$(ca)/public/cachain.pem > $(DATA_DIR)/$(ca)/clients/$(name)/certchain.pem
 	@ln -sf ../../public/crl $(DATA_DIR)/$(ca)/clients/$(name)/crl
 	@ln -sf ../../public/caroot.pem $(DATA_DIR)/$(ca)/clients/$(name)/ca.pem

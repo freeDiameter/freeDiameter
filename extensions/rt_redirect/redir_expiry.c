@@ -59,7 +59,7 @@ void * redir_exp_thr_fct(void * arg)
 again:
 		/* Check if there are expiring entries available */
 		if (FD_IS_LIST_EMPTY(&expire_list)) {
-			/* Just wait for a change or cancelation */
+			/* Just wait for a change or cancellation */
 			CHECK_POSIX_DO( pthread_cond_wait( &exp_cnd, &redir_exp_peer_lock ), break /* this might not pop the cleanup handler, but since we ASSERT(0), it is not the big issue... */ );
 			/* Restart the loop on wakeup */
 			goto again;

@@ -1306,7 +1306,7 @@ int dict_rfc5777_init(char * conffile)
 			struct dict_enumval_data 	t_11  = { "MTU Probe                 [RFC1191]*", 	{ .i32 = 11  }};
 			struct dict_enumval_data 	t_12  = { "MTU Reply                 [RFC1191]*", 	{ .i32 = 12  }};
 			struct dict_enumval_data 	t_13  = { "Experimental Flow Control    [Finn]", 	{ .i32 = 13  }};
-			struct dict_enumval_data 	t_14  = { "Expermental Access Control [Estrin]", 	{ .i32 = 14  }};
+			struct dict_enumval_data 	t_14  = { "Experimental Access Control [Estrin]", 	{ .i32 = 14  }};
 			struct dict_enumval_data 	t_15  = { "???                      [VerSteeg]", 	{ .i32 = 15  }};
 			struct dict_enumval_data 	t_16  = { "IMI Traffic Descriptor        [Lee]", 	{ .i32 = 16  }};
 			struct dict_enumval_data 	t_17  = { "Extended Internet Protocol[RFC1385]", 	{ .i32 = 17  }};

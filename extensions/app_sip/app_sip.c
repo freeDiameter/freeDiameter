@@ -43,7 +43,7 @@ struct disp_hdl * app_sip_SAR_hdl=NULL;
 struct disp_hdl * app_sip_PPA_hdl=NULL;
 struct disp_hdl * app_sip_RTA_hdl=NULL;
 
-//Suscriber Locator
+//Subscriber Locator
 struct disp_hdl * app_sip_SL_LIR_hdl=NULL;
 
 
@@ -51,7 +51,7 @@ struct disp_hdl * app_sip_SL_LIR_hdl=NULL;
 struct disp_hdl * app_sip_default_hdl=NULL;
 struct session_handler * ds_sess_hdl;
 
-//configuration stucture
+//configuration structure
 struct as_conf * as_conf=NULL;
 static struct as_conf app_sip_conf;
 

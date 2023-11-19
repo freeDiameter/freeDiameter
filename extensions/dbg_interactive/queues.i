@@ -68,7 +68,7 @@ struct fifo {
 		return fd_fifo_length ( $self ) ;
 	}
 
-	/* Is the threashold function useful here? TODO... */
+	/* Is the threshold function useful here? TODO... */
 	
 	/* Post an item */
 	void post(PyObject * item, char * type = NULL) {

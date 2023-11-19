@@ -105,7 +105,7 @@ static void * exp_th_fct(void * arg)
 		
 		/* Check if there are expiring peers available */
 		if (FD_IS_LIST_EMPTY(&exp_list)) {
-			/* Just wait for a change or cancelation */
+			/* Just wait for a change or cancellation */
 			CHECK_POSIX_DO( pthread_cond_wait( &exp_cnd, &exp_mtx ), { ASSERT(0); } );
 			/* Restart the loop on wakeup */
 			continue;

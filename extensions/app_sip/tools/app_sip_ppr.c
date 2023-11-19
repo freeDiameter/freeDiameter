@@ -211,7 +211,7 @@ int main (int argc, char **argv)
 	//TODO: check args
 	if(!connect(sock, (SOCKADDR*)&sin, sizeof(sin)))
     {
-       fprintf(stderr,"Connexion succeed!\n");
+       fprintf(stderr,"Connection succeed!\n");
         
  
         if(send(sock, &pprsip, sizeof(struct pprsipaor), 0))

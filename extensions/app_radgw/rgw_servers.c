@@ -230,7 +230,7 @@ int rgw_servers_start(void)
 	UDPSERV( acct, RGW_PLG_TYPE_ACCT,  );
 	UDPSERV( acct, RGW_PLG_TYPE_ACCT, 6 );
 	
-	TRACE_DEBUG(FULL, "%d UDP servers started succesfully.", idx);
+	TRACE_DEBUG(FULL, "%d UDP servers started successfully.", idx);
 	return 0;
 }
 

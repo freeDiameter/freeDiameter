@@ -1129,7 +1129,7 @@ int rgw_client_finish_send(struct radius_msg ** msg, struct rgw_radius_msg_meta 
 	return 0;
 }
 
-/* Call this function when a RADIUS request has explicitely no answer (mainly accounting) so 
+/* Call this function when a RADIUS request has explicitly no answer (mainly accounting) so 
 that we purge the duplicate cache and allow further message to be translated again.
 This is useful for example when a temporary error occurred in Diameter (like UNABLE_TO_DELIVER) */
 int rgw_client_finish_nosend(struct rgw_radius_msg_meta * req, struct rgw_client * cli)

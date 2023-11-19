@@ -303,7 +303,7 @@ struct cnxctx * fd_cnx_cli_connect_tcp(sSA * sa /* contains the port already */,
 		}
 	}
 
-	/* Once the socket is created successfuly, prepare the remaining of the cnx */
+	/* Once the socket is created successfully, prepare the remaining of the cnx */
 	CHECK_MALLOC_DO( cnx = fd_cnx_init(1), { shutdown(sock, SHUT_RDWR); close(sock); return NULL; } );
 
 	cnx->cc_socket = sock;
@@ -377,7 +377,7 @@ struct cnxctx * fd_cnx_cli_connect_sctp(int no_ip6, uint16_t port, struct fd_lis
 		}
 	}
 
-	/* Once the socket is created successfuly, prepare the remaining of the cnx */
+	/* Once the socket is created successfully, prepare the remaining of the cnx */
 	CHECK_MALLOC_DO( cnx = fd_cnx_init(1), { shutdown(sock, SHUT_RDWR); close(sock); return NULL; } );
 
 	cnx->cc_socket = sock;
@@ -830,7 +830,7 @@ static void * rcvthr_notls_tcp(void * arg)
 
 		rcv_data.length = ((size_t)header[1] << 16) + ((size_t)header[2] << 8) + (size_t)header[3];
 
-		/* Check the received word is a valid begining of a Diameter message */
+		/* Check the received word is a valid beginning of a Diameter message */
 		if ((header[0] != DIAMETER_VERSION)	/* defined in <libfdproto.h> */
 		   || (rcv_data.length > DIAMETER_MSG_SIZE_MAX)) { /* to avoid too big mallocs */
 			/* The message is suspect */
@@ -844,7 +844,7 @@ static void * rcvthr_notls_tcp(void * arg)
 		memcpy(rcv_data.buffer, header, sizeof(header));
 
 		while (received < rcv_data.length) {
-			pthread_cleanup_push(free_rcvdata, &rcv_data); /* In case we are canceled, clean the partialy built buffer */
+			pthread_cleanup_push(free_rcvdata, &rcv_data); /* In case we are canceled, clean the partially built buffer */
 			ret = fd_cnx_s_recv(conn, rcv_data.buffer + received, rcv_data.length - received);
 			pthread_cleanup_pop(0);
 
@@ -930,7 +930,7 @@ fatal:
 }
 #endif /* DISABLE_SCTP */
 
-/* Start receving messages in clear (no TLS) on the connection */
+/* Start receiving messages in clear (no TLS) on the connection */
 int fd_cnx_start_clear(struct cnxctx * conn, int loop)
 {
 	TRACE_ENTRY("%p %i", conn, loop);
@@ -989,7 +989,7 @@ again:
 				case GNUTLS_E_INTERRUPTED:
 					if (!fd_cnx_teststate(conn, CC_STATUS_CLOSING))
 						goto again;
-					TRACE_DEBUG(FULL, "Connection is closing, so abord gnutls_record_recv now.");
+					TRACE_DEBUG(FULL, "Connection is closing, so abort gnutls_record_recv now.");
 					break;
 
 				case GNUTLS_E_UNEXPECTED_PACKET_LENGTH:
@@ -1063,7 +1063,7 @@ end:
 }
 
 
-/* The function that receives TLS data and re-builds a Diameter message -- it exits only on error or cancelation */
+/* The function that receives TLS data and re-builds a Diameter message -- it exits only on error or cancellation */
 /* 	   For the case of DTLS, since we are not using SCTP_UNORDERED, the messages over a single stream are ordered.
 	   Furthermore, as long as messages are shorter than the MTU [2^14 = 16384 bytes], they are delivered in a single
 	   record, as far as I understand.
@@ -1106,7 +1106,7 @@ int fd_tls_rcvthr_core(struct cnxctx * conn, gnutls_session_t session)
 		memcpy(rcv_data.buffer, header, sizeof(header));
 
 		while (received < rcv_data.length) {
-			pthread_cleanup_push(free_rcvdata, &rcv_data); /* In case we are canceled, clean the partialy built buffer */
+			pthread_cleanup_push(free_rcvdata, &rcv_data); /* In case we are canceled, clean the partially built buffer */
 			ret = fd_tls_recv_handle_error(conn, session, rcv_data.buffer + received, rcv_data.length - received);
 			pthread_cleanup_pop(0);
 
@@ -1996,7 +1996,7 @@ void fd_cnx_destroy(struct cnxctx * conn)
 				/* Now wait for all decipher threads to terminate */
 				fd_sctp3436_waitthreadsterm(conn);
 			} else {
-				/* Abord the threads, the connection is dead already */
+				/* Abort the threads, the connection is dead already */
 				fd_sctp3436_stopthreads(conn);
 			}
 
