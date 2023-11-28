@@ -185,6 +185,9 @@ static void * exp_fct(void * arg)
 	do {
 		struct timespec	now;
 		struct session * first;
+		os0_t sid;
+		size_t sidlen;
+		uint32_t hash;
 
 		CHECK_POSIX_DO( pthread_mutex_lock(&exp_lock),  break );
 		pthread_cleanup_push( fd_cleanup_mutex, &exp_lock );
@@ -207,8 +210,10 @@ again:
 		/* If first session is not expired, we just wait until it happens */
 		if ( TS_IS_INFERIOR( &now, &first->timeout ) ) {
 			int ret;
-
-			ret = pthread_cond_timedwait(&exp_cond, &exp_lock, &first->timeout);
+			/* use a local timespec value: first->timeout pointer can be invalid when 
+			   pthread_cond_timedwait end in this context */
+			struct timespec	timeout = first->timeout;
+			ret = pthread_cond_timedwait(&exp_cond, &exp_lock, &timeout);
 			switch (ret) {
 			case 0:
 			case ETIMEDOUT:
@@ -230,10 +235,15 @@ again:
 		}
 
 		/* Now, the first session in the list is expired; destroy it */
+		CHECK_MALLOC_DO( sid = os0dup(first->sid, first->sidlen), break );
+		sidlen = first->sidlen;
+		hash = first->hash;
+
 		pthread_cleanup_pop( 0 );
 		CHECK_POSIX_DO( pthread_mutex_unlock(&exp_lock),  break );
 
-		CHECK_FCT_DO( fd_sess_destroy( &first ), break );
+		CHECK_FCT_DO( fd_sess_destroy_by_sid( sid, sidlen, hash ), break );
+		free(sid);
 
 	} while (1);
 
@@ -479,18 +489,17 @@ int fd_sess_new ( struct session ** session, DiamId_t diamid, size_t diamidlen, 
 		sess->msg_cnt++;
 	} else {
 		free(sid);
-
-		CHECK_POSIX( pthread_mutex_lock(&(*session)->stlock) );
-		(*session)->msg_cnt++;
-		CHECK_POSIX( pthread_mutex_unlock(&(*session)->stlock) );
+		sess = *session; /* do it here otherwise the path EALREADY (goto out) doesn't have the right pointer */
+		CHECK_POSIX( pthread_mutex_lock(&sess->stlock) );
+		sess->msg_cnt++;
+		CHECK_POSIX( pthread_mutex_unlock(&sess->stlock) );
 
 		/* it was found: was it previously destroyed? */
-		if ((*session)->is_destroyed == 0) {
+		if (sess->is_destroyed == 0) {
 			ret = EALREADY;
-			goto out;
+			goto out; /* <-- from here */
 		} else {
 			/* the session was marked destroyed, let's re-activate it. */
-			sess = *session;
 			sess->is_destroyed = 0;
 
 			/* update the expiry time */
@@ -521,7 +530,7 @@ int fd_sess_new ( struct session ** session, DiamId_t diamid, size_t diamidlen, 
 	pthread_cleanup_pop(0);
 	CHECK_POSIX_DO( pthread_mutex_unlock( &exp_lock ), { ASSERT(0); } ); /* if it fails, we might not pop the cleanup handler, but this should not happen -- and we'd have a serious problem otherwise */
 
-out:
+out: /* <--- to here */
 	;
 	pthread_cleanup_pop(0);
 	CHECK_POSIX( pthread_mutex_unlock( H_LOCK(hash) ) );
@@ -529,7 +538,7 @@ out:
 	if (ret) /* in case of error */
 		return ret;
 
-	*session = sess;
+	*session = sess; /* <-- overwrite *session by a wrong pointer */
 	return 0;
 }
 
@@ -615,26 +624,50 @@ int fd_sess_settimeout( struct session * session, const struct timespec * timeou
 	return 0;
 }
 
-/* Destroy the states associated to a session, and mark it destroyed. */
-int fd_sess_destroy ( struct session ** session )
+/* Destroy the states associated to a sid, and mark it destroyed. */
+int fd_sess_destroy_by_sid ( os0_t sid, size_t sidlen, uint32_t hash )
 {
-	struct session * sess;
+	struct session * sess = NULL;
 	int destroy_now;
-	os0_t sid;
 	int ret = 0;
-
+	struct fd_list * li;
 	/* place to save the list of states to be cleaned up. We do it after finding them to avoid deadlocks. the "o" field becomes a copy of the sid. */
 	struct fd_list deleted_states = FD_LIST_INITIALIZER( deleted_states );
 
-	TRACE_ENTRY("%p", session);
-	CHECK_PARAMS( session && VALIDATE_SI(*session) );
+	TRACE_ENTRY("%p %lu %u", sid, sidlen, hash);
+	CHECK_PARAMS( sid );
 
-	sess = *session;
-	*session = NULL;
 
 	/* Lock the hash line */
-	CHECK_POSIX( pthread_mutex_lock( H_LOCK(sess->hash) ) );
-	pthread_cleanup_push( fd_cleanup_mutex, H_LOCK(sess->hash) );
+	CHECK_POSIX( pthread_mutex_lock( H_LOCK(hash) ) );
+	pthread_cleanup_push( fd_cleanup_mutex, H_LOCK(hash) );
+
+	/* Find the session if it still exists */
+	for (li = H_LIST(hash)->next; li != H_LIST(hash); li = li->next) {
+		int cmp;
+		struct session * s = (struct session *)(li->o);
+
+		/* The list is ordered by hash and sid (in case of collisions) */
+		if (s->hash < hash)
+			continue;
+		if (s->hash > hash)
+			break;
+
+		cmp = fd_os_cmp(s->sid, s->sidlen, sid, sidlen);
+		if (cmp < 0)
+			continue;
+		if (cmp > 0)
+			break;
+
+		/* A session with the same sid was already in the hash table */
+		sess = s;
+		break;
+	}
+	if (!sess) {
+		/* Somebody already dropped the session, skip */
+		ret = EALREADY;
+		goto out;
+	}
 
 	/* Unlink from the expiry list */
 	CHECK_POSIX_DO( pthread_mutex_lock( &exp_lock ), { ASSERT(0); /* otherwise cleanup handler is not pop'd */ } );
@@ -659,13 +692,12 @@ int fd_sess_destroy ( struct session ** session )
 	destroy_now = (sess->msg_cnt == 0);
 	if (destroy_now) {
 		fd_list_unlink( &sess->chain_h );
-		sid = sess->sid;
 	} else {
 		sess->is_destroyed = 1;
-		CHECK_MALLOC_DO( sid = os0dup(sess->sid, sess->sidlen), ret = ENOMEM );
 	}
+out:
 	pthread_cleanup_pop(0);
-	CHECK_POSIX( pthread_mutex_unlock( H_LOCK(sess->hash) ) );
+	CHECK_POSIX( pthread_mutex_unlock( H_LOCK(hash) ) );
 
 	if (ret)
 		return ret;
@@ -682,9 +714,18 @@ int fd_sess_destroy ( struct session ** session )
 	/* Finally, destroy the session itself, if it is not referrenced by any message anymore */
 	if (destroy_now) {
 		del_session(sess);
-	} else {
-		free(sid);
 	}
+
+	return 0;
+}
+
+/* Destroy the states associated to a session, and mark it destroyed. */
+int fd_sess_destroy ( struct session ** session )
+{
+	TRACE_ENTRY("%p", session);
+	CHECK_PARAMS( session && VALIDATE_SI(*session) );
+
+	CHECK_FCT( fd_sess_destroy_by_sid( (*session)->sid, (*session)->sidlen, (*session)->hash ) );
 
 	return 0;
 }
