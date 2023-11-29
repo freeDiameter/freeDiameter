@@ -38,7 +38,7 @@ Diameter-SIP implementation is still under development.
 
 TODO List
 * add in malloc the size of char
-* when getting results from mysql, check lenght
+* when getting results from mysql, check length
 * sort capabilities in LIR/LIA
 * make functions for database access in MAR/MAA
 * order diamsip.h because it's becoming a mess ^^

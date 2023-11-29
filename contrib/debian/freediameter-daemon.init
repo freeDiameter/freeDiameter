@@ -125,7 +125,7 @@ case "$1" in
         # option to the "reload" entry above. If not, "force-reload" is
         # just the same as "restart" except that it does nothing if the
         # daemon isn't already running.
-        # check wether $DAEMON is running. If so, restart
+        # check whether $DAEMON is running. If so, restart
         start-stop-daemon --stop --test --quiet --pidfile \
             /var/run/$NAME.pid --exec $DAEMON \
             && $0 restart \

@@ -63,7 +63,7 @@ struct fifo {
 	int		thrs_push; /* number of threads waitnig to push an item */
 
 	uint16_t	high;	/* High level threshold (see libfreeDiameter.h for details) */
-	uint16_t	low;	/* Low level threshhold */
+	uint16_t	low;	/* Low level threshold */
 	void 		*data;	/* Opaque pointer for threshold callbacks */
 	void		(*h_cb)(struct fifo *, void **); /* The callbacks */
 	void		(*l_cb)(struct fifo *, void **);
@@ -73,7 +73,7 @@ struct fifo {
 	long long	total_items;   /* Cumulated number of items that went through this fifo (excluding current count), always increasing. */
 	struct timespec total_time;    /* Cumulated time all items spent in this queue, including blocking time (always growing, use deltas for monitoring) */
 	struct timespec blocking_time; /* Cumulated time threads trying to post new items were blocked (queue full). */
-	struct timespec last_time;     /* For the last element retrieved from the queue, how long it take between posting (including blocking) and poping */
+	struct timespec last_time;     /* For the last element retrieved from the queue, how long it take between posting (including blocking) and popping */
 
 };
 
@@ -556,7 +556,7 @@ static __inline__ int test_l_cb(struct fifo * queue)
 	return 0;
 }
 
-/* Try poping an item */
+/* Try popping an item */
 int fd_fifo_tryget_int ( struct fifo * queue, void ** item )
 {
 	int wouldblock = 0;

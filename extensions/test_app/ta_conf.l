@@ -35,7 +35,7 @@
 
 /* Lex extension's configuration parser.
  *
- * The configuration file contains a default priority, and a list of peers with optional overwite priority.
+ * The configuration file contains a default priority, and a list of peers with optional overwrite priority.
  * -- see the app_test.conf.sample file for more detail.
  */
 

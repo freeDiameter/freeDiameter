@@ -388,7 +388,7 @@ static int dnr_entry(char * conffile)
 				access, this is the phone number the call came from, using Automatic
 				Number Identification (ANI) or a similar technology.  For use with
 				IEEE 802 access, the Calling-Station-Id AVP MAY contain a MAC
-				address, formated as described in [RAD802.1X].  It SHOULD only be
+				address, formatted as described in [RAD802.1X].  It SHOULD only be
 				present in authentication and/or authorization requests.
 
 				If the Auth-Request-Type AVP is set to authorization-only and the

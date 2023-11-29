@@ -494,7 +494,7 @@ int fd_msg_parse_or_error( struct msg ** msg, struct msg **error)
 			if (rc) {
 				switch (rc->u32 / 1000) {
 					case 1:	/* 1xxx : Informational */
-					case 2:	/* 2xxx : Sucess */
+					case 2:	/* 2xxx : Success */
 						/* In these cases, we want the message to validate the ABNF, so we will discard the bad message */
 						break;
 

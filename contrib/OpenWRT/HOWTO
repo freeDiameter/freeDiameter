@@ -99,7 +99,7 @@ ssh root@192.168.1.1
 # echo "src/gz localrepo http://192.168.1.25/owrt/packages" >> /etc/opkg.conf 
 # opkg update
 
-9) Install freeDiameter, you're done. Optionnaly, install also certtool on the router before, to 
+9) Install freeDiameter, you're done. Optionally, install also certtool on the router before, to 
    generate the TLS certificate automatically.
 # opkg install freeDiameter
 

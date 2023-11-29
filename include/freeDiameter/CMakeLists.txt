@@ -38,7 +38,7 @@ OPTION(DISABLE_PEER_EXPIRY "Disable RFC3539 Peers Connections Expiration after i
 
 # The following workaround increases compatibility with some implementations without breaking anything in freeDiameter,
 # so it can be enabled without risk. We keep it disabled by default anyway for those people who use freeDiameter to check the
-# compliancy of their implementation with the Diameter RFC...
+# compliance of their implementation with the Diameter RFC...
 OPTION(WORKAROUND_ACCEPT_INVALID_VSAI "Do not reject a CER/CEA with a Vendor-Specific-Application-Id AVP containing both Auth- and Acct- application AVPs?" OFF)
 
 MARK_AS_ADVANCED(DISABLE_SCTP DEBUG_SCTP SCTP_USE_MAPPED_ADDRESSES ERRORS_ON_TODO DEBUG_WITH_META DIAMID_IDNA_IGNORE DIAMID_IDNA_REJECT DISABLE_PEER_EXPIRY WORKAROUND_ACCEPT_INVALID_VSAI)

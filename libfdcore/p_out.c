@@ -112,7 +112,7 @@ static void * out_thr(void * arg)
 		fd_log_threadname ( buf );
 	}
 	
-	/* Loop until cancelation */
+	/* Loop until cancellation */
 	while (!stop) {
 		int ret;
 		

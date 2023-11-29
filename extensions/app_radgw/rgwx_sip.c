@@ -616,7 +616,7 @@ static int sip_rad_req( struct rgwp_config * cs, struct radius_msg * rad_req, st
 				}
 				else
 				{
-					TRACE_DEBUG(INFO, "Can't extract domain from URI, droping request...");
+					TRACE_DEBUG(INFO, "Can't extract domain from URI, dropping request...");
 					return 1;
 				}	
 				got_Drealm=1;

@@ -65,7 +65,7 @@
 #
 # The TARGET is also of a similar form:
 #    "STR/REG"		-> Will apply the score to this peer if its Diameter-Id is matched by the string or regular expression.
-#    rlm="STR/REG"	-> Idem with the peer's advertized Diameter-Realm.
+#    rlm="STR/REG"	-> Idem with the peer's advertised Diameter-Realm.
 #
 # The SCORE is either numeric (positive or negative), or one of the following constants (see values in libfdcore.h):
 #    NO_DELIVERY

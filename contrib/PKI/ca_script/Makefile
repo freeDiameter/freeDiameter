@@ -1,8 +1,8 @@
 #!/usr/bin/make -s
 #
-# This file is designed to automatize the CA tasks such as:
+# This file is designed to automate the CA tasks such as:
 #  -> init  : create the initial CA tree and the CA root certificate.
-#  -> newcsr: create a new private key and csr. $name and $email must be set. C, ST, L, O, OU may be overwitten (example: make newcsr C=FR)
+#  -> newcsr: create a new private key and csr. $name and $email must be set. C, ST, L, O, OU may be overwritten (example: make newcsr C=FR)
 #  -> cert  : sign a pending CSR and generate the certificate. $name must be provided.
 #  -> revoke: revoke a certificate. $name must be provided.
 #  -> gencrl: update/create the CRL.

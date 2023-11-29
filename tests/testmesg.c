@@ -353,7 +353,7 @@ int main(int argc, char *argv[])
 		
 		CHECK( 0, fd_dict_search ( fd_g_config->cnf_dict, DICT_COMMAND, CMD_BY_NAME, "Test-Command-Request", &cmd_model, ENOENT ) );
 		
-		/* Check an error is trigged if the AVP has no value set */
+		/* Check an error is triggered if the AVP has no value set */
 		{
 			CHECK( 0, fd_dict_search ( fd_g_config->cnf_dict, DICT_AVP,     AVP_BY_NAME,     "AVP Test - no vendor - f32", &avp_model, ENOENT ) );
 			
@@ -1424,7 +1424,7 @@ int main(int argc, char *argv[])
 			
 			/* 120 ~ 127 : next header */
 			CHECK( 0x0c, buf[127] ); /* (the size) */
-			CHECK( 0x4a, buf[128]); /* http://en.wikipedia.org/wiki/IEEE_754-1985 to get descvription of the format */
+			CHECK( 0x4a, buf[128]); /* http://en.wikipedia.org/wiki/IEEE_754-1985 to get description of the format */
 			CHECK( 0x00, buf[129]); /* v = 2097153 = 2^21 + 2 ^ 0; sign : "+", 2^21 <= v < 2^22 => exponent = 21; biaised on 8 bits => 21 + 127 => 100 1010 0 */
 			CHECK( 0x00, buf[130]); /* v = (+1) * (1 ^ 21) * ( 1 + 2^-21 ) => significand 000 0000 0000 0000 0000 0100 */
 			CHECK( 0x04, buf[131]); /* result: 4a 00 00 04 */

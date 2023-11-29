@@ -112,7 +112,7 @@ int fd_queues_init(void);
 int fd_queues_init_after_conf(void);
 int fd_queues_fini(struct fifo ** queue);
 
-/* Trigged events */
+/* Triggered events */
 int fd_event_trig_call_cb(int trigger_val);
 int fd_event_trig_fini(void);
 

@@ -187,7 +187,7 @@ struct fd_config {
 	struct dictionary *cnf_dict;	/* pointer to the global dictionary */
 	struct fifo	  *cnf_main_ev;	/* events for the daemon's main (struct fd_event items) */
 };
-extern struct fd_config *fd_g_config; /* The pointer to access the global configuration, initalized in main */
+extern struct fd_config *fd_g_config; /* The pointer to access the global configuration, initialized in main */
 
 
 
@@ -199,7 +199,7 @@ extern struct fd_config *fd_g_config; /* The pointer to access the global config
 enum peer_state {
 	/* Stable states */
 	STATE_NEW = 0,		/* The peer has been just been created, PSM thread not started yet */
-	STATE_OPEN,		/* Connexion established */
+	STATE_OPEN,		/* Connection established */
 	
 	/* Peer state machine */
 	STATE_CLOSED,		/* No connection established, will re-attempt after TcTimer. */
@@ -270,7 +270,7 @@ extern const char *peer_state_str[];
 #define PI_EXP_INACTIVE	1	/* the peer entry expires (i.e. is deleted) after pi_lft seconds without activity */
 
 #define PI_PRST_NONE	0	/* the peer entry is deleted after disconnection / error */
-#define PI_PRST_ALWAYS	1	/* the peer entry is persistant (will be kept as ZOMBIE in case of error) */
+#define PI_PRST_ALWAYS	1	/* the peer entry is persistent (will be kept as ZOMBIE in case of error) */
 			
 /* Information about a remote peer */
 struct peer_info {
@@ -313,7 +313,7 @@ struct peer_info {
 		uint32_t	pir_orstate;	/* Origin-State-Id value */
 		os0_t		pir_prodname;	/* copy of Product-Name AVP (\0 terminated) */
 		uint32_t	pir_firmrev;	/* Content of the Firmware-Revision AVP */
-		int		pir_relay;	/* The remote peer advertized the relay application */
+		int		pir_relay;	/* The remote peer advertised the relay application */
 		struct fd_list	pir_apps;	/* applications advertised by the remote peer, except relay (pi_flags.relay) */
 		int		pir_isi;	/* Inband-Security-Id advertised (PI_SEC_* bits) */
 		
@@ -327,7 +327,7 @@ struct peer_info {
 		
 	} runtime;	/* Data populated after connection, may change between 2 connections -- not used by fd_peer_add */
 	
-	struct fd_list	pi_endpoints;	/* Endpoint(s) of the remote peer (configured, discovered, or advertized). list of struct fd_endpoint. DNS resolved if empty. */
+	struct fd_list	pi_endpoints;	/* Endpoint(s) of the remote peer (configured, discovered, or advertised). list of struct fd_endpoint. DNS resolved if empty. */
 };
 
 
@@ -354,7 +354,7 @@ extern pthread_rwlock_t fd_g_peers_rw; /* protect the list */
  *  cb_data	: opaque data to pass to the callback.
  *
  * DESCRIPTION: 
- *  Add a peer to the list of peers to which the daemon must maintain a connexion.
+ *  Add a peer to the list of peers to which the daemon must maintain a connection.
  *
  *  The content of info parameter is copied, except for the list of endpoints if 
  * not empty, which is simply moved into the created object. It means that the list
@@ -632,7 +632,7 @@ int fd_msg_parse_or_error( struct msg ** msg, struct msg **error );
  *  acct	: Support acct app part.
  *
  * DESCRIPTION: 
- *   Registers an application to be advertized in CER/CEA exchanges.
+ *   Registers an application to be advertised in CER/CEA exchanges.
  *  Messages with an application-id matching a registered value are passed to the dispatch module,
  * while other messages are simply relayed or an error is returned (if local node does not relay)
  *
@@ -898,7 +898,7 @@ struct fd_endpoint {
 	
 #define	EP_FL_CONF	(1 << 0)	/* This endpoint is statically configured in a configuration file */
 #define	EP_FL_DISC	(1 << 1)	/* This endpoint was resolved from the Diameter Identity or other DNS query */
-#define	EP_FL_ADV	(1 << 2)	/* This endpoint was advertized in Diameter CER/CEA exchange */
+#define	EP_FL_ADV	(1 << 2)	/* This endpoint was advertised in Diameter CER/CEA exchange */
 #define	EP_FL_LL	(1 << 3)	/* Lower layer mechanism provided this endpoint */
 #define	EP_FL_PRIMARY	(1 << 4)	/* This endpoint is primary in a multihomed SCTP association */
 #define	EP_ACCEPTALL	(1 << 15)	/* This flag allows bypassing the address filter in fd_ep_add_merge. */
@@ -1052,7 +1052,7 @@ enum fd_hook_type {
 	HOOK_MESSAGE_ROUTING_FORWARD,
 		/* Hook called when a received message is deemed to be not handled locally by the routing_dispatch process.
 		   The decision of knowing which peer it will be sent to is not made yet (or if an error will be returned).
-		   The hook is trigged before the callbacks registered with fd_rt_fwd_register are called.
+		   The hook is triggered before the callbacks registered with fd_rt_fwd_register are called.
 		 - {msg} points to the message. Again, the objects may not have been dictionary resolved. 
 		    If you try to call fd_msg_parse_dict, it will slow down the operation of a relay agent.
 		 - {peer} is NULL.
@@ -1062,7 +1062,7 @@ enum fd_hook_type {
 	
 	HOOK_MESSAGE_ROUTING_LOCAL,
 		/* Hook called when a received message is handled locally by the routing_dispatch process (i.e., not forwarded).
-		   The hook is trigged before the callbacks registered with fd_disp_register are called.
+		   The hook is triggered before the callbacks registered with fd_disp_register are called.
 		 - {msg} points to the message. Here, the message has been already parsed completely & successfully.
 		 - {peer} is NULL.
 		 - {other} is NULL.
@@ -1227,7 +1227,7 @@ enum fd_stat_type {
  *  total_count	  : (out) Total number of items that this queue has processed (always growing, use deltas for monitoring)
  *  total	  : (out) Cumulated time all items spent in this queue, including blocking time (always growing, use deltas for monitoring)
  *  blocking      : (out) Cumulated time threads trying to post new items were blocked (queue full).
- *  last          : (out) For the last element retrieved from the queue, how long it took between posting (including blocking) and poping
+ *  last          : (out) For the last element retrieved from the queue, how long it took between posting (including blocking) and popping
  *  
  * DESCRIPTION: 
  *   Get statistics information about a given queue. 
