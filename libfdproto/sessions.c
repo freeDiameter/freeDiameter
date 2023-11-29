@@ -42,7 +42,7 @@
 
 /*********************** Parameters **********************/
 
-/* Size of the hash table containing the session objects (pow of 2. ex: 6 => 2^6 = 4096). must be between 0 and 31. */
+/* Size of the hash table containing the session objects (pow of 2. ex: 12 => 2^12 = 4096). must be between 0 and 31. */
 #ifndef SESS_HASH_SIZE
 #define SESS_HASH_SIZE	12
 #endif /* SESS_HASH_SIZE */
