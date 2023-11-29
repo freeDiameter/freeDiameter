@@ -42,9 +42,9 @@
 
 /*********************** Parameters **********************/
 
-/* Size of the hash table containing the session objects (pow of 2. ex: 6 => 2^6 = 64). must be between 0 and 31. */
+/* Size of the hash table containing the session objects (pow of 2. ex: 6 => 2^6 = 4096). must be between 0 and 31. */
 #ifndef SESS_HASH_SIZE
-#define SESS_HASH_SIZE	6
+#define SESS_HASH_SIZE	12
 #endif /* SESS_HASH_SIZE */
 
 /* Default lifetime of a session, in seconds. (31 days = 2678400 seconds) */
@@ -175,6 +175,108 @@ static void del_session(struct session * s)
 	free(s);
 }
 
+/* Destroy the states associated to a session or a sid, and mark it destroyed. */
+static int del_session_states (struct session * sess, os0_t sid, size_t sidlen)
+{
+	int destroy_now;
+	int ret = 0;
+	struct fd_list * li;
+	uint32_t hash;
+	/* place to save the list of states to be cleaned up. We do it after finding them to avoid deadlocks. the "o" field becomes a copy of the sid. */
+	struct fd_list deleted_states = FD_LIST_INITIALIZER( deleted_states );
+
+	TRACE_ENTRY("%p %p %lu", sess, sid, sidlen);
+	CHECK_PARAMS( sess || sid );
+
+	if (sess) {
+		hash = sess->hash;
+	} else {
+		hash = fd_os_hash(sid, sidlen);
+	}
+
+	/* Lock the hash line */
+	CHECK_POSIX( pthread_mutex_lock( H_LOCK(hash) ) );
+	pthread_cleanup_push( fd_cleanup_mutex, H_LOCK(hash) );
+
+	if (!sess) {
+		/* lookup by sid; find the session if it still exists */
+		for (li = H_LIST(hash)->next; li != H_LIST(hash); li = li->next) {
+			int cmp;
+			struct session * s = (struct session *)(li->o);
+
+			/* The list is ordered by hash and sid (in case of collisions) */
+			if (s->hash < hash)
+				continue;
+			if (s->hash > hash)
+				break;
+
+			cmp = fd_os_cmp(s->sid, s->sidlen, sid, sidlen);
+			if (cmp < 0)
+				continue;
+			if (cmp > 0)
+				break;
+
+			/* A session with the same sid was already in the hash table */
+			sess = s;
+			break;
+		}
+		if (!sess) {
+			/* Somebody already dropped the session, skip */
+			ret = EALREADY;
+			goto out;
+		}
+	}
+
+	/* Unlink from the expiry list */
+	CHECK_POSIX_DO( pthread_mutex_lock( &exp_lock ), { ASSERT(0); /* otherwise cleanup handler is not pop'd */ } );
+	pthread_cleanup_push( fd_cleanup_mutex, &exp_lock );
+	if (!FD_IS_LIST_EMPTY(&sess->expire)) {
+		sess_cnt--;
+		fd_list_unlink( &sess->expire ); /* no need to signal the condition here */
+	}
+	pthread_cleanup_pop(0);
+	CHECK_POSIX_DO( pthread_mutex_unlock( &exp_lock ), { ASSERT(0); /* otherwise cleanup handler is not pop'd */ } );
+
+	/* Now move all states associated to this session into deleted_states */
+	CHECK_POSIX_DO( pthread_mutex_lock( &sess->stlock ), { ASSERT(0); /* otherwise cleanup handler is not pop'd */ } );
+	while (!FD_IS_LIST_EMPTY(&sess->states)) {
+		struct state * st = (struct state *)(sess->states.next->o);
+		fd_list_unlink(&st->chain);
+		fd_list_insert_before(&deleted_states, &st->chain);
+	}
+	CHECK_POSIX_DO( pthread_mutex_unlock( &sess->stlock ), { ASSERT(0); /* otherwise cleanup handler is not pop'd */ } );
+
+	/* Mark the session as destroyed */
+	destroy_now = (sess->msg_cnt == 0);
+	if (destroy_now) {
+		fd_list_unlink( &sess->chain_h );
+	} else {
+		sess->is_destroyed = 1;
+	}
+out:
+	pthread_cleanup_pop(0);
+	CHECK_POSIX( pthread_mutex_unlock( H_LOCK(hash) ) );
+
+	if (ret)
+		return ret;
+
+	/* Now, really delete the states */
+	while (!FD_IS_LIST_EMPTY(&deleted_states)) {
+		struct state * st = (struct state *)(deleted_states.next->o);
+		fd_list_unlink(&st->chain);
+		TRACE_DEBUG(FULL, "Calling handler %p cleanup for state %p registered with session '%s'", st->hdl, st, sid);
+		(*st->hdl->cleanup)(st->state, sid, st->hdl->opaque);
+		free(st);
+	}
+
+	/* Finally, destroy the session itself, if it is not referenced by any message anymore */
+	if (destroy_now) {
+		del_session(sess);
+	}
+
+	return 0;
+}
+
 /* The expiry thread */
 static void * exp_fct(void * arg)
 {
@@ -187,7 +289,6 @@ static void * exp_fct(void * arg)
 		struct session * first;
 		os0_t sid;
 		size_t sidlen;
-		uint32_t hash;
 
 		CHECK_POSIX_DO( pthread_mutex_lock(&exp_lock),  break );
 		pthread_cleanup_push( fd_cleanup_mutex, &exp_lock );
@@ -237,12 +338,11 @@ again:
 		/* Now, the first session in the list is expired; destroy it */
 		CHECK_MALLOC_DO( sid = os0dup(first->sid, first->sidlen), break );
 		sidlen = first->sidlen;
-		hash = first->hash;
 
 		pthread_cleanup_pop( 0 );
 		CHECK_POSIX_DO( pthread_mutex_unlock(&exp_lock),  break );
 
-		CHECK_FCT_DO( fd_sess_destroy_by_sid( sid, sidlen, hash ), break );
+		CHECK_FCT_DO( del_session_states(NULL, sid, sidlen), break );
 		free(sid);
 
 	} while (1);
@@ -624,109 +724,15 @@ int fd_sess_settimeout( struct session * session, const struct timespec * timeou
 	return 0;
 }
 
-/* Destroy the states associated to a sid, and mark it destroyed. */
-int fd_sess_destroy_by_sid ( os0_t sid, size_t sidlen, uint32_t hash )
-{
-	struct session * sess = NULL;
-	int destroy_now;
-	int ret = 0;
-	struct fd_list * li;
-	/* place to save the list of states to be cleaned up. We do it after finding them to avoid deadlocks. the "o" field becomes a copy of the sid. */
-	struct fd_list deleted_states = FD_LIST_INITIALIZER( deleted_states );
-
-	TRACE_ENTRY("%p %lu %u", sid, sidlen, hash);
-	CHECK_PARAMS( sid );
-
-
-	/* Lock the hash line */
-	CHECK_POSIX( pthread_mutex_lock( H_LOCK(hash) ) );
-	pthread_cleanup_push( fd_cleanup_mutex, H_LOCK(hash) );
-
-	/* Find the session if it still exists */
-	for (li = H_LIST(hash)->next; li != H_LIST(hash); li = li->next) {
-		int cmp;
-		struct session * s = (struct session *)(li->o);
-
-		/* The list is ordered by hash and sid (in case of collisions) */
-		if (s->hash < hash)
-			continue;
-		if (s->hash > hash)
-			break;
-
-		cmp = fd_os_cmp(s->sid, s->sidlen, sid, sidlen);
-		if (cmp < 0)
-			continue;
-		if (cmp > 0)
-			break;
-
-		/* A session with the same sid was already in the hash table */
-		sess = s;
-		break;
-	}
-	if (!sess) {
-		/* Somebody already dropped the session, skip */
-		ret = EALREADY;
-		goto out;
-	}
-
-	/* Unlink from the expiry list */
-	CHECK_POSIX_DO( pthread_mutex_lock( &exp_lock ), { ASSERT(0); /* otherwise cleanup handler is not pop'd */ } );
-	pthread_cleanup_push( fd_cleanup_mutex, &exp_lock );
-	if (!FD_IS_LIST_EMPTY(&sess->expire)) {
-		sess_cnt--;
-		fd_list_unlink( &sess->expire ); /* no need to signal the condition here */
-	}
-	pthread_cleanup_pop(0);
-	CHECK_POSIX_DO( pthread_mutex_unlock( &exp_lock ), { ASSERT(0); /* otherwise cleanup handler is not pop'd */ } );
-
-	/* Now move all states associated to this session into deleted_states */
-	CHECK_POSIX_DO( pthread_mutex_lock( &sess->stlock ), { ASSERT(0); /* otherwise cleanup handler is not pop'd */ } );
-	while (!FD_IS_LIST_EMPTY(&sess->states)) {
-		struct state * st = (struct state *)(sess->states.next->o);
-		fd_list_unlink(&st->chain);
-		fd_list_insert_before(&deleted_states, &st->chain);
-	}
-	CHECK_POSIX_DO( pthread_mutex_unlock( &sess->stlock ), { ASSERT(0); /* otherwise cleanup handler is not pop'd */ } );
-
-	/* Mark the session as destroyed */
-	destroy_now = (sess->msg_cnt == 0);
-	if (destroy_now) {
-		fd_list_unlink( &sess->chain_h );
-	} else {
-		sess->is_destroyed = 1;
-	}
-out:
-	pthread_cleanup_pop(0);
-	CHECK_POSIX( pthread_mutex_unlock( H_LOCK(hash) ) );
-
-	if (ret)
-		return ret;
-
-	/* Now, really delete the states */
-	while (!FD_IS_LIST_EMPTY(&deleted_states)) {
-		struct state * st = (struct state *)(deleted_states.next->o);
-		fd_list_unlink(&st->chain);
-		TRACE_DEBUG(FULL, "Calling handler %p cleanup for state %p registered with session '%s'", st->hdl, st, sid);
-		(*st->hdl->cleanup)(st->state, sid, st->hdl->opaque);
-		free(st);
-	}
-
-	/* Finally, destroy the session itself, if it is not referenced by any message anymore */
-	if (destroy_now) {
-		del_session(sess);
-	}
-
-	return 0;
-}
-
 /* Destroy the states associated to a session, and mark it destroyed. */
 int fd_sess_destroy ( struct session ** session )
 {
 	TRACE_ENTRY("%p", session);
 	CHECK_PARAMS( session && VALIDATE_SI(*session) );
 
-	CHECK_FCT( fd_sess_destroy_by_sid( (*session)->sid, (*session)->sidlen, (*session)->hash ) );
-
+	CHECK_FCT( del_session_states(*session, (*session)->sid, (*session)->sidlen) );
+	*session = NULL;
+	
 	return 0;
 }
 

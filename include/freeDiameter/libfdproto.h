@@ -2058,7 +2058,6 @@ int fd_sess_settimeout( struct session * session, const struct timespec * timeou
  *  EINVAL 	: A parameter is invalid.
  */
 int fd_sess_destroy ( struct session ** session );
-int fd_sess_destroy_by_sid ( os0_t sid, size_t sidlen, uint32_t hash );
 
 /*
  * FUNCTION:	fd_sess_reclaim
