@@ -379,7 +379,7 @@ static char * file_bname_init(char * full) { file_bname = basename(full); return
 #define TRACE_ENTRY(_format,_args... ) \
 		LOG_A("[enter] %s(" _format ") {" #_args "}", __PRETTY_FUNCTION__, ##_args );
 
-/* Helper for debugging by adding traces -- for debuging a specific location of the code */
+/* Helper for debugging by adding traces -- for debugging a specific location of the code */
 #define TRACE_HERE()	\
 		LOG_F(" -- debug checkpoint %d -- ", fd_breakhere());
 int fd_breakhere(void);
@@ -707,7 +707,7 @@ void fd_sa_sdump_numeric(char * buf /* must be at least sSA_DUMP_STRLEN */, sSA 
 #   define ntohll(x) (x)
 #   define htonll(x) (x)
 # else /* HOST_BIG_ENDIAN */
-    /* For these systems, we must reverse the bytes. Use ntohl and htonl on sub-32 blocs, and inverse these blocs. */
+    /* For these systems, we must reverse the bytes. Use ntohl and htonl on sub-32 blocks, and inverse these blocks. */
 #   define ntohll(x) (typeof (x))( (((uint64_t)ntohl( (uint32_t)(x))) << 32 ) | ((uint64_t) ntohl( ((uint64_t)(x)) >> 32 )))
 #   define htonll(x) (typeof (x))( (((uint64_t)htonl( (uint32_t)(x))) << 32 ) | ((uint64_t) htonl( ((uint64_t)(x)) >> 32 )))
 # endif /* HOST_BIG_ENDIAN */
@@ -790,7 +790,7 @@ typedef char * DiamId_t;
 #endif /* HOST_NAME_MAX */
 
 /* Check if a binary string contains a valid Diameter Identity value.
-  rfc3588 states explicitely that such a Diameter Identity consists only of ASCII characters. */
+  rfc3588 states explicitly that such a Diameter Identity consists only of ASCII characters. */
 int fd_os_is_valid_DiameterIdentity(uint8_t * os, size_t ossz);
 
 /* The following function validates a string as a Diameter Identity or applies the IDNA transformation on it
@@ -801,7 +801,7 @@ int fd_os_validate_DiameterIdentity(char ** id, size_t * inoutsz, int memory);
 
 /* Create an order relationship for binary strings (not needed to be \0 terminated).
    It does NOT mimic strings relationships so that it is more efficient. It is case sensitive.
-   (the strings are actually first ordered by their lengh, then by their bytes contents)
+   (the strings are actually first ordered by their length, then by their bytes contents)
    returns: -1 if os1 < os2;  +1 if os1 > os2;  0 if they are equal */
 int fd_os_cmp_int(os0_t os1, size_t os1sz, os0_t os2, size_t os2sz);
 #define fd_os_cmp(_o1, _l1, _o2, _l2)  fd_os_cmp_int((os0_t)(_o1), _l1, (os0_t)(_o2), _l2)
@@ -868,7 +868,7 @@ static __inline__ int fd_thr_term(pthread_t * th)
 
 
 /*************
- Cancelation cleanup handlers for common objects
+ Cancellation cleanup handlers for common objects
  *************/
 static __inline__ void fd_cleanup_mutex( void * mutex )
 {
@@ -1236,7 +1236,7 @@ enum dict_avp_basetype {
  *   interpreted : The result of interpretation is stored here. The format and meaning depends on each type.
  *
  * DESCRIPTION:
- *   This callback can be provided with a derived type in order to facilitate the interpretation of formated data.
+ *   This callback can be provided with a derived type in order to facilitate the interpretation of formatted data.
  *  For example, when an AVP of type "Address" is received, it can be used to convert the octetstring into a struct sockaddr.
  *  This callback is not called directly, but through the message's API msg_avp_value_interpret function.
  *
@@ -1249,11 +1249,11 @@ typedef int (*dict_avpdata_interpret) (union avp_value * value, void * interpret
  * CALLBACK:	dict_avpdata_encode
  *
  * PARAMETERS:
- *   data	: The formated data that must be stored in the AVP value.
+ *   data	: The formatted data that must be stored in the AVP value.
  *   val	: Pointer to the AVP value storage area where the data must be stored.
  *
  * DESCRIPTION:
- *   This callback can be provided with a derived type in order to facilitate the encoding of formated data.
+ *   This callback can be provided with a derived type in order to facilitate the encoding of formatted data.
  *  For example, it can be used to convert a struct sockaddr in an AVP value of type Address.
  *  This callback is not called directly, but through the message's API msg_avp_value_encode function.
  *  If the callback is defined for an OctetString based type, the created string must be malloc'd. free will be called
@@ -1278,7 +1278,7 @@ typedef int (*dict_avpdata_encode) (void * data, union avp_value * val);
  *  fd_msg_parse_dict function. When this callback is present, the value of the AVP that has
  * been parsed is passed to this function for finer granularity check. For example for some
  * speccific AVP, the format of an OCTETSTRING value can be further checked, or the
- * interger value can be verified.
+ * integer value can be verified.
  *
  * RETURN VALUE:
  *  0      	: The value is valid.
@@ -1664,7 +1664,7 @@ The application associated to a command is retrieved with APPLICATION_OF_COMMAND
 
 To create the rules for children of commands, see the DICT_RULE related part.
 
-Note that the "Request" and "Answer" commands are two independant objects. This allows to have different rules for each.
+Note that the "Request" and "Answer" commands are two independent objects. This allows to have different rules for each.
 
 - fd_dict_new:
  Sample code for command creation:
@@ -1727,7 +1727,7 @@ Note that the "Request" and "Answer" commands are two independant objects. This 
 enum rule_position {
 	RULE_FIXED_HEAD = 1,	/* The AVP must be at the head of the group. The rule_order field is used to specify the position. */
 	RULE_REQUIRED,		/* The AVP must be present in the parent, but its position is not defined. */
-	RULE_OPTIONAL,		/* The AVP may be present in the message. Used to specify a max number of occurences for example */
+	RULE_OPTIONAL,		/* The AVP may be present in the message. Used to specify a max number of occurrences for example */
 	RULE_FIXED_TAIL		/* The AVP must be at the end of the group. The rule_order field is used to specify the position. */
 };
 
@@ -1736,8 +1736,8 @@ struct dict_rule_data {
 	struct dict_object	*rule_avp;	/* Pointer to the AVP object that is concerned by this rule */
 	enum rule_position	 rule_position;	/* The position in which the rule_avp must appear in the parent */
 	unsigned		 rule_order;	/* for RULE_FIXED_* rules, the place. 1,2,3.. for HEAD rules; ...,3,2,1 for TAIL rules. */
-	int	 		 rule_min;	/* Minimum number of occurences. -1 means "default": 0 for optional rules, 1 for other rules */
-	int			 rule_max;	/* Maximum number of occurences. -1 means no maximum. 0 means the AVP is forbidden. */
+	int	 		 rule_min;	/* Minimum number of occurrences. -1 means "default": 0 for optional rules, 1 for other rules */
+	int			 rule_max;	/* Maximum number of occurrences. -1 means no maximum. 0 means the AVP is forbidden. */
 };
 
 /* The criteria for searching a rule in the dictionary */
@@ -2910,7 +2910,7 @@ struct disp_when {
  *  All fields have the same constraints and meaning as in DISP_REG_AVP. In addition, the "value" field must be set
  *  and points to a valid DICT_ENUMVAL object.
  *
- * Here is a sumary of the fields: ( M : must be set; m : may be set; 0 : ignored )
+ * Here is a summary of the fields: ( M : must be set; m : may be set; 0 : ignored )
  *  field:     app_id    command     avp    value
  * APPID :       M          0         0       0
  * CC    :       m          M         0       0
@@ -2936,7 +2936,7 @@ enum disp_action {
  *  action	: upon return, this tells the daemon what to do next.
  *
  * DESCRIPTION:
- *   Called when a received message matchs the condition for which the callback was registered.
+ *   Called when a received message matches the condition for which the callback was registered.
  * This callback may do any kind of processing on the message, including:
  *  - create an answer for a request.
  *  - proxy a request or message, add / remove the Proxy-Info AVP, then forward the message.
@@ -3104,13 +3104,13 @@ int fd_fifo_move ( struct fifo * oldq, struct fifo * newq, struct fifo ** loc_up
  *
  * PARAMETERS:
  *  queue	  : The queue from which to retrieve the information.
- *  current_count : How many items in the queue at the time of execution. This changes each time an item is pushed or poped.
+ *  current_count : How many items in the queue at the time of execution. This changes each time an item is pushed or popped.
  *  limit_count   : The maximum number of items allowed in this queue. This is specified during queue creation.
  *  highest_count : The maximum number of items this queue has contained. This enables to see if limit_count count was reached.
  *  total_count   : the total number of items that went through the queue (already pop'd). Always increasing.
  *  total	  : Cumulated time all items spent in this queue, including blocking time (always growing, use deltas for monitoring)
  *  blocking      : Cumulated time threads trying to post new items were blocked (queue full).
- *  last          : For the last element retrieved from the queue, how long it take between posting (including blocking) and poping
+ *  last          : For the last element retrieved from the queue, how long it take between posting (including blocking) and popping
  *
  * DESCRIPTION:
  *  Retrieve the timing information associated with a queue, for monitoring purpose.
@@ -3143,7 +3143,7 @@ int fd_fifo_length ( struct fifo * queue );
  *  queue	: The queue for which the thresholds are being set.
  *  data	: An opaque pointer that is passed to h_cb and l_cb callbacks.
  *  high        : The high-level threshold. If the number of elements in the queue increase to this value, h_cb is called.
- *  h_cb        : if not NULL, a callback to call when the queue lengh is bigger than "high".
+ *  h_cb        : if not NULL, a callback to call when the queue length is bigger than "high".
  *  low         : The low-level threshold. Must be < high.
  *  l_cb        : If the number of elements decrease to low, this callback is called.
  *
@@ -3261,7 +3261,7 @@ int fd_fifo_timedget_int ( struct fifo * queue, void ** item, const struct times
  *
  * PARAMETERS:
  *  queue	: The queue to test.
- *  abstime	: the absolute time until which we can block waiting for an item. If NULL, the function returns immediatly.
+ *  abstime	: the absolute time until which we can block waiting for an item. If NULL, the function returns immediately.
  *
  * DESCRIPTION:
  *  This function is similar to select(), it waits for data to be available in the queue

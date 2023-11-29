@@ -702,7 +702,7 @@ void fd_sctp3436_bye(struct cnxctx * conn)
 
 	CHECK_PARAMS_DO( conn && conn->cc_sctp3436_data.array, return );
 
-	/* End all TLS sessions, in series (not as efficient as paralel, but simpler) */
+	/* End all TLS sessions, in series (not as efficient as parallel, but simpler) */
 	for (i = 1; i < conn->cc_sctp_para.pairs; i++) {
 		if ( ! fd_cnx_teststate(conn, CC_STATUS_ERROR)) {
 			CHECK_GNUTLS_DO( gnutls_bye(conn->cc_sctp3436_data.array[i].session, GNUTLS_SHUT_WR), fd_cnx_markerror(conn) );

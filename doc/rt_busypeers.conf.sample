@@ -3,7 +3,7 @@
 #
 # The rt_busypeers extension has two purposes. 
 # - when the local peer receives an error DIAMETER_TOO_BUSY from a peer, 
-#   this extension catchs this error and attempts to retransmit the query to another peer if it makes sense, i.e.:
+#   this extension catches this error and attempts to retransmit the query to another peer if it makes sense, i.e.:
 #      * the peer issuing the error is not the peer referenced in the Destination-Host AVP of the message,
 #      * we have a direct link with the peer that issued the error (see parameter RetryDistantPeers below)
 #

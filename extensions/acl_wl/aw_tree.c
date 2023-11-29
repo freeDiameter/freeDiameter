@@ -230,7 +230,7 @@ int aw_tree_add(char * name, int flags)
 		/* Check if we have a '*' element already that overlapses */
 		ti = (struct tree_item *)(senti->next);
 		if (ti->str == NULL) {
-			fd_log_debug("[acl_wl] Warning: entry '%s' is superseeded by a generic entry at label %d, ignoring.", name, lbl + 1);
+			fd_log_debug("[acl_wl] Warning: entry '%s' is superseded by a generic entry at label %d, ignoring.", name, lbl + 1);
 			return 0;
 		}
 		
@@ -287,7 +287,7 @@ int aw_tree_add(char * name, int flags)
 			/* Check we don't have a '*' entry already */
 			ti = (struct tree_item *)(senti->next);
 			if (ti->str == NULL) {
-				fd_log_debug("[acl_wl] Warning: entry '%s' is superseeded by a generic entry at label 1, ignoring.", name);
+				fd_log_debug("[acl_wl] Warning: entry '%s' is superseded by a generic entry at label 1, ignoring.", name);
 				return 0;
 			}
 			

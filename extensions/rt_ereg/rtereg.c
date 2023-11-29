@@ -324,7 +324,7 @@ static int rtereg_init_config(void)
 {
 	/* Initialize the configuration */
 	if ((rtereg_conf=calloc(sizeof(*rtereg_conf), 1)) == NULL) {
-		LOG_E("[rt_ereg] malloc failured");
+		LOG_E("[rt_ereg] malloc failed");
 		return 1;
 	}
 	rtereg_conf_size = 1;

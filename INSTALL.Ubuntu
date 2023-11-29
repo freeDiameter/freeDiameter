@@ -21,7 +21,7 @@ The following packages are required to compile freeDiameter from source:
  
 (note that libidn2 and libsctp can be avoided by defining DISABLE_SCTP and DIAMID_IDNA_REJECT)
  
-Additionnaly, these ones may be useful:
+Additionally, these ones may be useful:
  mercurial gdb
  
 Extensions additional dependencies:

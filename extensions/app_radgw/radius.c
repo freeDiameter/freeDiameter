@@ -555,7 +555,7 @@ int rgw_msg_parse(unsigned char * buf, size_t len, struct rgw_radius_msg_meta **
 	
 	while (pos < end) {
 		if ((size_t) (end - pos) < sizeof(*attr)) {
-			TRACE_DEBUG(INFO, "Trucated attribute found in RADIUS buffer, EINVAL.");
+			TRACE_DEBUG(INFO, "Truncated attribute found in RADIUS buffer, EINVAL.");
 			ret = EINVAL;
 			break;
 		}
@@ -563,7 +563,7 @@ int rgw_msg_parse(unsigned char * buf, size_t len, struct rgw_radius_msg_meta **
 		attr = (struct radius_attr_hdr *) pos;
 	
 		if (pos + attr->length > end || attr->length < sizeof(*attr)) {
-			TRACE_DEBUG(INFO, "Trucated attribute found in RADIUS buffer, EINVAL.");
+			TRACE_DEBUG(INFO, "Truncated attribute found in RADIUS buffer, EINVAL.");
 			ret = EINVAL;
 			break;
 		}

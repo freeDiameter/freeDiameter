@@ -147,7 +147,7 @@ int app_sip_LIR_cb( struct msg ** msg, struct avp * avp, struct session * sess, 
 int app_sip_UAR_cb( struct msg ** msg, struct avp * avp, struct session * sess, void * opaque, enum disp_action * act);
 int app_sip_SAR_cb( struct msg ** msg, struct avp * avp, struct session * sess, void * opaque, enum disp_action * act);
 
-//Suscriber Locator
+//Subscriber Locator
 int app_sip_SL_LIR_cb( struct msg ** msg, struct avp * paramavp, struct session * sess, void * opaque, enum disp_action * act);
 //int app_sip_SL_SAR_cb( struct msg ** msg, struct avp * paramavp, struct session * sess, void * opaque, enum disp_action * act);
 

@@ -141,7 +141,7 @@ void yyerror (YYLTYPE *ploc, char * conffile, char const *s)
 /* An integer value */
 %token <integer> INTEGER
 
-/* The types for this gramar */
+/* The types for this grammar */
 %type <tstring>  TSTRING
 %type <criteria> CRITERIA
 %type <target> 	 TARGET

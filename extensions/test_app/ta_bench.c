@@ -262,7 +262,7 @@ static void ta_bench_start() {
 	
 	/* Now loop until timeout is reached */
 	do {
-		/* Do not create more that NB_CONCURRENT_MESSAGES in paralel */
+		/* Do not create more that NB_CONCURRENT_MESSAGES in parallel */
 		int ret = my_sem_timedwait(&ta_sem, &end_time);
 		if (ret == -1) {
 			ret = errno;

@@ -35,7 +35,7 @@
 *********************************************************************************************************/
 #include "app_sip.h"
 
-//This callback is specific to SUSCRIBER LOCATOR. We must look for the "serving" SIP server
+//This callback is specific to SUBSCRIBER LOCATOR. We must look for the "serving" SIP server
 int app_sip_SL_LIR_cb( struct msg ** msg, struct avp * paramavp, struct session * sess, void * opaque, enum disp_action * act)
 {
 	TRACE_ENTRY("%p %p %p %p", msg, paramavp, sess, act);

@@ -36,7 +36,7 @@
 /* Lex configuration parser.
  *
  * This file defines the token for parsing the daemon's configuration file
- * Note that each extension has a separate independant configuration file.
+ * Note that each extension has a separate independent configuration file.
  *
  * Note : This module is NOT thread-safe. All processing must be done from one thread only.
  */

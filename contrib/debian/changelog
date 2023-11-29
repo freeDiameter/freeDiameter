@@ -244,7 +244,7 @@ freediameter (1.1.6) RELEASED; urgency=low
 freediameter (1.1.5) RELEASED; urgency=low
 
   * Added compatibility with MAC OS X
-  * Fix behavior of timeout whe nsending messages to allow re-send.
+  * Fix behavior of timeout when sending messages to allow re-send.
   * Several cleanups and new contributions included.
   * Added dependency on C++ compiler for CMakeLists.txt
 

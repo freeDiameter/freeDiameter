@@ -194,7 +194,7 @@ static void * exp_fct(void * arg)
 again:
 		/* Check if there are expiring sessions available */
 		if (FD_IS_LIST_EMPTY(&exp_sentinel)) {
-			/* Just wait for a change or cancelation */
+			/* Just wait for a change or cancellation */
 			CHECK_POSIX_DO( pthread_cond_wait( &exp_cond, &exp_lock ), break /* this might not pop the cleanup handler, but since we ASSERT(0), it is not the big issue... */ );
 			/* Restart the loop on wakeup */
 			goto again;
@@ -711,7 +711,7 @@ out:
 		free(st);
 	}
 
-	/* Finally, destroy the session itself, if it is not referrenced by any message anymore */
+	/* Finally, destroy the session itself, if it is not referenced by any message anymore */
 	if (destroy_now) {
 		del_session(sess);
 	}
@@ -746,9 +746,9 @@ int fd_sess_reclaim ( struct session ** session )
 
 	CHECK_POSIX( pthread_mutex_lock( H_LOCK(hash) ) );
 	pthread_cleanup_push( fd_cleanup_mutex, H_LOCK(hash) );
-	CHECK_POSIX_DO( pthread_mutex_lock( &sess->stlock ), { ASSERT(0); /* otherwise, cleanup not poped on FreeBSD */ } );
+	CHECK_POSIX_DO( pthread_mutex_lock( &sess->stlock ), { ASSERT(0); /* otherwise, cleanup not popped on FreeBSD */ } );
 	pthread_cleanup_push( fd_cleanup_mutex, &sess->stlock );
-	CHECK_POSIX_DO( pthread_mutex_lock( &exp_lock ), { ASSERT(0); /* otherwise, cleanup not poped on FreeBSD */ } );
+	CHECK_POSIX_DO( pthread_mutex_lock( &exp_lock ), { ASSERT(0); /* otherwise, cleanup not popped on FreeBSD */ } );
 	pthread_cleanup_push( fd_cleanup_mutex, &exp_lock );
 
 	/* We only do something if the states list is empty */
@@ -765,9 +765,9 @@ int fd_sess_reclaim ( struct session ** session )
 	}
 
 	pthread_cleanup_pop(0);
-	CHECK_POSIX_DO( pthread_mutex_unlock( &exp_lock ), { ASSERT(0); /* otherwise, cleanup not poped on FreeBSD */ } );
+	CHECK_POSIX_DO( pthread_mutex_unlock( &exp_lock ), { ASSERT(0); /* otherwise, cleanup not popped on FreeBSD */ } );
 	pthread_cleanup_pop(0);
-	CHECK_POSIX_DO( pthread_mutex_unlock( &sess->stlock ), { ASSERT(0); /* otherwise, cleanup not poped on FreeBSD */ } );
+	CHECK_POSIX_DO( pthread_mutex_unlock( &sess->stlock ), { ASSERT(0); /* otherwise, cleanup not popped on FreeBSD */ } );
 	pthread_cleanup_pop(0);
 	CHECK_POSIX( pthread_mutex_unlock( H_LOCK(hash) ) );
 

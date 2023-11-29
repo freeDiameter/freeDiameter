@@ -39,7 +39,7 @@
 #include <netinet/sctp.h>
 #include <sys/uio.h>
 
-/* Size of buffer to receive ancilliary data. May need to be enlarged if more sockopt are set... */
+/* Size of buffer to receive ancillary data. May need to be enlarged if more sockopt are set... */
 #ifndef CMSG_BUF_LEN
 #define CMSG_BUF_LEN	1024
 #endif /* CMSG_BUF_LEN */
@@ -399,7 +399,7 @@ static int fd_setsockopt_prebind(int sk)
 		struct sctp_event_subscribe event;
 
 		memset(&event, 0, sizeof(event));
-		event.sctp_data_io_event	= 1;	/* to receive the stream ID in SCTP_SNDRCV ancilliary data on message reception */
+		event.sctp_data_io_event	= 1;	/* to receive the stream ID in SCTP_SNDRCV ancillary data on message reception */
 		event.sctp_association_event	= 0;	/* new or closed associations (mostly for one-to-many style sockets) */
 		event.sctp_address_event	= 1;	/* address changes */
 		event.sctp_send_failure_event	= 1;	/* delivery failures */
@@ -969,7 +969,7 @@ int fd_sctp_client( int *sock, int no_ip6, uint16_t port, struct fd_list * list,
 #else /* SCTP_CONNECTX_4_ARGS */
 	ret = sctp_connectx(*sock, sar.sa, count);
 #endif /* SCTP_CONNECTX_4_ARGS */
-	/* back to normal cancelation behabior */
+	/* back to normal cancellation behavior */
 	pthread_setcanceltype(PTHREAD_CANCEL_DEFERRED, NULL);
 	
 	if (ret < 0) {

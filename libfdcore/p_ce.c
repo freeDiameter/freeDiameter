@@ -265,7 +265,7 @@ static int save_remote_CE_info(struct msg * msg, struct fd_peer * peer, struct f
 	
 	CHECK_FCT( fd_msg_browse( msg, MSG_BRW_FIRST_CHILD, &avp, NULL) );
 	
-	/* Loop on all AVPs and save what we are interrested into */
+	/* Loop on all AVPs and save what we are interested into */
 	while (avp) {
 		struct avp_hdr * hdr;
 
@@ -369,7 +369,7 @@ static int save_remote_CE_info(struct msg * msg, struct fd_peer * peer, struct f
 							return EINVAL;
 						} );
 
-					/* Save this endpoint in the list as advertized */
+					/* Save this endpoint in the list as advertised */
 					CHECK_FCT( fd_ep_add_merge( &peer->p_hdr.info.pi_endpoints, (sSA *)&ss, sizeof(sSS), EP_FL_ADV ) );
 				}
 				break;

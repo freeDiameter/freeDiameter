@@ -47,7 +47,7 @@ COMPLETE INSTRUCTIONS
 7) Run cmake for freeDiameter (add other flags as you see fit, see INSTALL for more details)
    # /usr/local/bin/cmake -DFLEX_EXECUTABLE:FILEPATH=/usr/local/bin/flex -DSCTP_USE_MAPPED_ADDRESSES:BOOL=ON ../freeDiameter
 
-8) Compile, optionnaly test
+8) Compile, optionally test
    # make
    # make test
 

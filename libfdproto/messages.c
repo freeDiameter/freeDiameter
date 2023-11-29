@@ -349,7 +349,7 @@ int fd_msg_new_answer_from_req ( struct dictionary * dict, struct msg ** msg, in
 	/* Create the answer */
 	CHECK_FCT(  fd_msg_new( model, flags, &ans )  );
 	
-	/* Set informations in the answer as in the query */
+	/* Set information in the answer as in the query */
 	ans->msg_public.msg_code = qry->msg_public.msg_code; /* useful for MSGFL_ANSW_ERROR */
 	ans->msg_public.msg_appl = qry->msg_public.msg_appl;
 	ans->msg_public.msg_eteid = qry->msg_public.msg_eteid;
@@ -1092,7 +1092,7 @@ static DECLARE_FD_DUMP_PROTOTYPE( avp_format_summary, struct avp * avp, int leve
 	}
 	
 	if (!level) {
-		/* We have been called to explicitely dump this AVP, so we parse its name if available */
+		/* We have been called to explicitly dump this AVP, so we parse its name if available */
 		if (!avp->avp_model) {
 			name = "(no model)";
 		} else {
@@ -1392,7 +1392,7 @@ int fd_msg_source_set( struct msg * msg, DiamId_t diamid, size_t diamidlen )
 		return 0;
 	}
 	
-	/* Otherwise save the new informations */
+	/* Otherwise save the new information */
 	CHECK_MALLOC( msg->msg_src_id = os0dup(diamid, diamidlen) );
 	msg->msg_src_id_len = diamidlen;
 	/* done */
@@ -1455,7 +1455,7 @@ int fd_msg_source_get( struct msg * msg, DiamId_t* diamid, size_t * diamidlen )
 	CHECK_PARAMS( CHECK_MSG(msg) );
 	CHECK_PARAMS( diamid );
 	
-	/* Copy the informations */
+	/* Copy the information */
 	*diamid = msg->msg_src_id;
 	
 	if (diamidlen)
@@ -2417,7 +2417,7 @@ int fd_msg_parse_dict ( msg_or_avp * object, struct dictionary * dict, struct fd
 /***************************************************************************************************************/
 /* Parsing messages and AVP for rules (ABNF) compliance */
 
-/* This function is used to get stats (first occurence position, last occurence position, number of occurences) 
+/* This function is used to get stats (first occurrence position, last occurrence position, number of occurrences) 
    of AVP instances of a given model in a chain of AVP */
 static void parserules_stat_avps( struct dict_object * model_avp, struct fd_list *list, int * count, int * firstpos, int * lastpos) 
 {
@@ -2543,7 +2543,7 @@ static int parserules_check_one_rule(void * data, struct dict_rule_data *rule)
 			min = 1;
 	}
 	if (count < min) {
-		fd_log_error("Conflicting rule: the number of occurences (%d) is < the rule min (%d) for '%s'.", count, min, avp_name);
+		fd_log_error("Conflicting rule: the number of occurrences (%d) is < the rule min (%d) for '%s'.", count, min, avp_name);
 		if (pr_data->pei) {
 			pr_data->pei->pei_errcode = "DIAMETER_MISSING_AVP";
 			pr_data->pei->pei_avp = empty_avp(rule->rule_avp);
@@ -2554,7 +2554,7 @@ static int parserules_check_one_rule(void * data, struct dict_rule_data *rule)
 	
 	/* Check the "max" value */
 	if ((rule->rule_max != -1) && (count > rule->rule_max)) {
-		fd_log_error("Conflicting rule: the number of occurences (%d) is > the rule max (%d) for '%s'.", count, rule->rule_max, avp_name);
+		fd_log_error("Conflicting rule: the number of occurrences (%d) is > the rule max (%d) for '%s'.", count, rule->rule_max, avp_name);
 		if (pr_data->pei) {
 			if (rule->rule_max == 0)
 				pr_data->pei->pei_errcode = "DIAMETER_AVP_NOT_ALLOWED";
@@ -2707,7 +2707,7 @@ int fd_msg_parse_rules ( msg_or_avp * object, struct dictionary * dict, struct f
 
 /***************************************************************************************************************/
 
-/* Compute the lengh of an object and its subtree. */
+/* Compute the length of an object and its subtree. */
 int fd_msg_update_length ( msg_or_avp * object )
 {
 	size_t sz = 0;
@@ -2823,7 +2823,7 @@ int fd_msg_dispatch ( struct msg ** msg, struct session * session, enum disp_act
 
 	TEST_ACTION_STOP();
 	
-	/* If we don't know the model at this point, we stop cause we cannot get the dictionary. It's invalid: an error should already have been trigged by ANY callbacks */
+	/* If we don't know the model at this point, we stop cause we cannot get the dictionary. It's invalid: an error should already have been triggered by ANY callbacks */
 	CHECK_PARAMS_DO(cmd = (*msg)->msg_model, { ret = EINVAL; goto out; } );
 	
 	/* Now resolve message application */

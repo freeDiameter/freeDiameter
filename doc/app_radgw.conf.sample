@@ -5,7 +5,7 @@
 # RADIUS/Diameter gateway. Typically, a RADIUS client (e.g. a NAS) will connect to
 # this agent, and the message will be converted to Diameter and sent to a Diameter server.
 #
-# Note that this extension does not provide a fully functionnal RADIUS/Diameter gateway.
+# Note that this extension does not provide a fully functional RADIUS/Diameter gateway.
 # You need to load plugins to handle specific RADIUS messages and convert them to 
 # Diameter apps such as NASREQ, EAP, ... See the next section for information.
 
@@ -54,7 +54,7 @@ RGWX = "extensions/acct.rgwx" : acct;
 # Each RADIUS client must be declared in the form: 
 #   nas = IP / shared-secret ;
 # IP can be ipv4 or ipv6
-# port can be additionaly restricted with brackets: IP[port] (ex: 192.168.0.1[1812])
+# port can be additionally restricted with brackets: IP[port] (ex: 192.168.0.1[1812])
 # shared-secret can be a quoted string, or a list of hexadecimal values.
 # examples:
 # nas = 192.168.100.1 / "secret key" ; # the shared secret buffer is 0x736563726574206b6579 (length 10 bytes)
