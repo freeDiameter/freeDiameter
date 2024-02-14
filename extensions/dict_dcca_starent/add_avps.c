@@ -15,11 +15,11 @@ Do not modify; modify the source .csv files instead.
 
 int add_avps()
 {
-	struct dict_object * UTF8String_type = NULL;
-	CHECK_dict_search(DICT_TYPE, TYPE_BY_NAME, "UTF8String", &UTF8String_type);
-
 	struct dict_object * Time_type = NULL;
 	CHECK_dict_search(DICT_TYPE, TYPE_BY_NAME, "Time", &Time_type);
+
+	struct dict_object * UTF8String_type = NULL;
+	CHECK_dict_search(DICT_TYPE, TYPE_BY_NAME, "UTF8String", &UTF8String_type);
 
 	/*==================================================================*/
 	/* Cisco ASR 5000 Series AAA Interface                              */
