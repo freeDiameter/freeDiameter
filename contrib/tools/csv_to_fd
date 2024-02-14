@@ -309,8 +309,8 @@ class FdcProcessor(Processor):
 
         @property
         def derived(self):
-            """Return list of all derived values."""
-            return list(self.__derived)
+            """Return sorted list of all derived values."""
+            return sorted(self.__derived)
 
         @derived.setter
         def derived(self, value):
