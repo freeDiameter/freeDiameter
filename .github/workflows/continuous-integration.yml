@@ -9,8 +9,7 @@ jobs:
 #        os: [macos-latest, ubuntu-latest, windows-latest]
         os: [macos-latest, ubuntu-latest]
     steps:
-      - name: checkout
-        uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: install dependencies (Linux)
         if: ${{ runner.os == 'Linux' }}
         run: |
@@ -18,6 +17,12 @@ jobs:
       - name: install dependencies (macOS)
         if: ${{ runner.os == 'macOS' }}
         run: |
+          # Remove Python3 symlinks in /usr/local/bin as workaround to brew update issues
+          # https://github.com/actions/setup-python/issues/577
+          rm -f /usr/local/bin/2to3*
+          rm -f /usr/local/bin/idle3*
+          rm -f /usr/local/bin/pydoc*
+          rm -f /usr/local/bin/python3*
           brew update
           brew install gnutls libgcrypt libidn2
 #      - name: install dependencies (Windows)
