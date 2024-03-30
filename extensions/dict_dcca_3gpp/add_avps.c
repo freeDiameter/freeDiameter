@@ -15,23 +15,23 @@ Do not modify; modify the source .csv files instead.
 
 int add_avps()
 {
+	struct dict_object * Address_type = NULL;
+	CHECK_dict_search(DICT_TYPE, TYPE_BY_NAME, "Address", &Address_type);
+
 	struct dict_object * DiameterIdentity_type = NULL;
 	CHECK_dict_search(DICT_TYPE, TYPE_BY_NAME, "DiameterIdentity", &DiameterIdentity_type);
 
 	struct dict_object * DiameterURI_type = NULL;
 	CHECK_dict_search(DICT_TYPE, TYPE_BY_NAME, "DiameterURI", &DiameterURI_type);
 
+	struct dict_object * IPFilterRule_type = NULL;
+	CHECK_dict_search(DICT_TYPE, TYPE_BY_NAME, "IPFilterRule", &IPFilterRule_type);
+
 	struct dict_object * Time_type = NULL;
 	CHECK_dict_search(DICT_TYPE, TYPE_BY_NAME, "Time", &Time_type);
 
 	struct dict_object * UTF8String_type = NULL;
 	CHECK_dict_search(DICT_TYPE, TYPE_BY_NAME, "UTF8String", &UTF8String_type);
-
-	struct dict_object * IPFilterRule_type = NULL;
-	CHECK_dict_search(DICT_TYPE, TYPE_BY_NAME, "IPFilterRule", &IPFilterRule_type);
-
-	struct dict_object * Address_type = NULL;
-	CHECK_dict_search(DICT_TYPE, TYPE_BY_NAME, "Address", &Address_type);
 
 	/*==================================================================*/
 	/* 3GPP TS 29.061 V15.5.0 (2018-12)                                 */
