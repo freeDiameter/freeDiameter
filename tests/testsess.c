@@ -255,6 +255,15 @@ int main(int argc, char *argv[])
 		CHECK( 1, new ? 1 : 0 );
 		
 		CHECK( 0, clock_gettime(CLOCK_REALTIME, &timeout) );
+		CHECK( 0, fd_sess_settimeout( sess1, &timeout) ); /* expire now */
+		timeout.tv_sec = 0;
+		timeout.tv_nsec= 50000000; /* 50 ms */
+		CHECK( 0, nanosleep(&timeout, NULL) );
+
+		CHECK( 0, fd_sess_fromsid( TEST_SID, CONSTSTRLEN(TEST_SID_IN), &sess1, &new ) );
+		CHECK( 1, new ? 1 : 0 );
+
+		CHECK( 0, clock_gettime(CLOCK_REALTIME, &timeout) );
 		timeout.tv_sec += 2678500; /* longer that SESS_DEFAULT_LIFETIME */
 		CHECK( 0, fd_sess_settimeout( sess1, &timeout) );
 		
