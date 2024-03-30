@@ -9,7 +9,7 @@ Author: Souheil Ben Ayed <souheil@tera.ics.keio.ac.jp>
 ----- SUMMARY -----
 
 DiamEAP is an implementation of the Diameter Extensible Authentication Protocol (EAP) Application (RFC 4072).
-The Diameter protocol is a AAA protocol to securely carry Authentication, Authorization and Accounting informations between the AAA client and the AAA server.
+The Diameter protocol is a AAA protocol to securely carry Authentication, Authorization and Accounting information between the AAA client and the AAA server.
 Diameter EAP Application is a Diameter application that supports authentication using Extensible Authentication Protocol (RFC 3748).  
 
 DiamEAP is designed to be extensible so that any new EAP method can be implemented separately as a shared library called 'EAP method plug-in'.

@@ -127,7 +127,7 @@ loop:
 
 		/* Check if there are expiring requests available */
 		if (FD_IS_LIST_EMPTY(&srlist->exp)) {
-			/* Just wait for a change or cancelation */
+			/* Just wait for a change or cancellation */
 			CHECK_POSIX_DO( pthread_cond_wait( &srlist->cnd, &srlist->mtx ), goto unlock );
 			/* Restart the loop on wakeup */
 			goto loop;
@@ -357,7 +357,7 @@ void fd_p_sr_on_disconnect(struct sr_list * srlist)
 	while (l->next != &srlist->srs) {
 		struct sentreq * n = (struct sentreq *)(l->next);
 		if (fd_msg_is_routable(n->req)) {
-			// avance
+			// advance
 			l = (struct fd_list*)n;
 			continue;
 		}

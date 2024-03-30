@@ -30,7 +30,7 @@ Frames		| Comments
 40-45		| Failed attempt to connect to 192.168.103.30
 		|   where freeDiameter was not started.
 		|
-46-49		| (I think this is trigged by Debug output, 
+46-49		| (I think this is triggered by Debug output, 
 		|   I have to check)
 		|
 50-73		| TLS handshake on first stream pair (#0).

@@ -114,7 +114,7 @@ FD_EXTENSION_SUBDIR(test_netemul    "Simple Diameter network emulator proxy exte
 
 # The following extension have very little use except for specific tests, so we disable them except in Debug configurations.
 IF (CMAKE_BUILD_TYPE MATCHES "Debug")
-	FD_EXTENSION_SUBDIR(_sample     "Simple extension to demonstrate extension mechanism, for developpers" OFF)
+	FD_EXTENSION_SUBDIR(_sample     "Simple extension to demonstrate extension mechanism, for developers" OFF)
 	FD_EXTENSION_SUBDIR(test_acct   "Receive Accounting-Requests and display the data, but no storage" OFF)
 	FD_EXTENSION_SUBDIR(test_rt_any "Routing extension randomly sending message to any peer available, for testing purpose" OFF)
 ENDIF (CMAKE_BUILD_TYPE MATCHES "Debug")

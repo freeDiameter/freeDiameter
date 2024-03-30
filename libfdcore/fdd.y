@@ -36,7 +36,7 @@
 /* Yacc configuration parser.
  *
  * This file defines the grammar of the configuration file.
- * Note that each extension has a separate independant configuration file.
+ * Note that each extension has a separate independent configuration file.
  *
  * Note : This module is NOT thread-safe. All processing must be done from one thread only.
  */
@@ -53,7 +53,7 @@
 
 %{
 #include "fdcore-internal.h"
-#include "fdd.tab.h"	/* bug : bison does not define the YYLTYPE before including this bloc, so... */
+#include "fdd.tab.h"	/* bug : bison does not define the YYLTYPE before including this block, so... */
 
 /* The Lex parser prototype */
 int fddlex(YYSTYPE *lvalp, YYLTYPE *llocp);
@@ -136,7 +136,7 @@ struct peer_info fddpi;
 /* -------------------------------------- */
 %%
 
-	/* The grammar definition - Sections blocs. */
+	/* The grammar definition - Sections blocks. */
 conffile:		/* Empty is OK -- for simplicity here, we reject in daemon later */
 			| conffile identity
 			| conffile realm

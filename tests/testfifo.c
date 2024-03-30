@@ -101,7 +101,7 @@ static struct thrh_test {
 	int		l_calls; /* number of calls of l_cb */
 } thrh_td;
 
-/* Callbacks for threasholds test */
+/* Callbacks for thresholds test */
 void thrh_cb_h(struct fifo *queue, void **data)
 {
 	if (thrh_td.h_calls == thrh_td.l_calls) {
@@ -373,7 +373,7 @@ int main(int argc, char *argv[])
 		}
 	}
 	
-	/* Test thread cancelation */
+	/* Test thread cancellation */
 	{
 		struct fifo      	*queue = NULL;
 		pthread_barrier_t	 bar;
@@ -441,7 +441,7 @@ int main(int argc, char *argv[])
 		CHECK( 0, fd_fifo_del(&queue) );
 	}
 	
-	/* Test the threashold function */
+	/* Test the threshold function */
 	{
 		struct fifo * queue = NULL;
 		int i;
@@ -472,7 +472,7 @@ int main(int argc, char *argv[])
 		CHECK( 0, thrh_td.h_calls );
 		CHECK( 0, thrh_td.l_calls );
 		
-		/* Now, post 6 messages, the high threashold */
+		/* Now, post 6 messages, the high threshold */
 		for (i=0; i<6; i++) {
 			msg = msg1;
 			CHECK( 0, fd_fifo_post(queue, &msg) );

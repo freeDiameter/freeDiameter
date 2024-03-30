@@ -14,7 +14,7 @@ static int called = 0;
 
 static void cleanupmutex(void * arg)
 {
-	printf("cancelation cleanup handler called\n");
+	printf("cancellation cleanup handler called\n");
 	if (arg) {
 		ASSERT( pthread_mutex_unlock((pthread_mutex_t *)arg) == 0 );
 		called++;

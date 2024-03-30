@@ -123,7 +123,7 @@ static void * signal_catch(void * arg)
 	/* Unblock any other signal for this thread, so that default handler is enabled */
 	CHECK_SYS_DO( pthread_sigmask( SIG_SETMASK, &ss, NULL ), );
 	
-	/* Now wait for sigwait or cancelation */
+	/* Now wait for sigwait or cancellation */
 	CHECK_POSIX_DO( sigwait(&ss, &sig),  );
 	FAILTEST("The timeout (" _stringize(TEST_TIMEOUT) " sec) was reached. Use -n or change TEST_TIMEOUT if the test needs more time to execute.");
 	

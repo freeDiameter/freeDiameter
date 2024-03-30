@@ -66,7 +66,7 @@ static void mt_hook_cb(enum fd_hook_type type, struct msg * msg, struct peer_hdr
 	CHECK_FCT_DO( fd_msg_hdr(msg, &hdr), return);
 	
 	if (type == HOOK_MESSAGE_RECEIVED) {
-		ASSERT(pmd->received_on.tv_sec); /* otherwise it means the HOOK_DATA_RECEIVED hook was not trigged for this message */
+		ASSERT(pmd->received_on.tv_sec); /* otherwise it means the HOOK_DATA_RECEIVED hook was not triggered for this message */
 		if (hdr->msg_flags & CMD_FLAG_REQUEST) {
 			/* We have received a new request, nothing special to do */
 		} else {
@@ -74,7 +74,7 @@ static void mt_hook_cb(enum fd_hook_type type, struct msg * msg, struct peer_hdr
 			struct fd_hook_permsgdata *qpmd = fd_hook_get_request_pmd(mt_data_hdl, msg);
 			struct timespec delay;
 			ASSERT(qpmd); /* If we do not have it, we must find out why */
-			ASSERT(qpmd->sent_on.tv_sec); /* same, would mean the HOOK_MESSAGE_SENT hook was not trigged */
+			ASSERT(qpmd->sent_on.tv_sec); /* same, would mean the HOOK_MESSAGE_SENT hook was not triggered */
 			TS_DIFFERENCE( &delay, &qpmd->sent_on, &pmd->received_on );
 			CHECK_MALLOC_DO( fd_msg_dump_summary(&buf, &len, NULL, msg, NULL, 0, 1), return );
 			LOG_N("[TIMING] RCV ANS %ld.%06ld sec <-'%s': %s", (long)delay.tv_sec, delay.tv_nsec / 1000, peer ? peer->info.pi_diamid : "<unidentified>", buf);

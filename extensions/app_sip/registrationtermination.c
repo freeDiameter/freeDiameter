@@ -118,7 +118,7 @@ int app_sip_RTR_cb(struct rtrsipaor *structure)
 		got_streason=1;
 	
 	
-	TRACE_DEBUG(FULL,"Request for %d SIP_AOR to be deregistred.",num_aor);
+	TRACE_DEBUG(FULL,"Request for %d SIP_AOR to be deregistered.",num_aor);
 	
 	if((got_username + num_aor)==0)
 	{

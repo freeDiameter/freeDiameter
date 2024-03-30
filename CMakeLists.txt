@@ -3,7 +3,7 @@
 # Name of the project
 PROJECT("freeDiameter")
 
-# Informations to display in daemon's help
+# Information to display in daemon's help
 SET(FD_PROJECT_NAME freeDiameter CACHE STRING "Project name")
 SET(FD_PROJECT_BINARY freeDiameterd)
 SET(FD_PROJECT_COPYRIGHT "Copyright (c) 2008-2015, WIDE Project (www.wide.ad.jp) and NICT (www.nict.go.jp)")
@@ -30,7 +30,7 @@ SET(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/Modules/")
 SET(DEFAULT_CONF_PATH ${CMAKE_INSTALL_PREFIX}/etc/freeDiameter CACHE PATH "Default location of freeDiameter configuration files")
 
 IF (NOT DEFINED LIB_INSTALL_DIR)
-SET(LIB_INSTALL_DIR lib CACHE PATH "Default library path name on the system, to accomodate RPM-based systems that use lib64")
+SET(LIB_INSTALL_DIR lib CACHE PATH "Default library path name on the system, to accommodate RPM-based systems that use lib64")
 ENDIF (NOT DEFINED LIB_INSTALL_DIR)
 
 SET(INSTALL_HEADERS_SUFFIX 		include/freeDiameter 	CACHE PATH "Directory where the headers are installed (relative to CMAKE_INSTALL_PREFIX).")

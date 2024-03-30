@@ -319,7 +319,7 @@ static void destroy_object(struct dict_object * obj)
 			/* unlink the element from the list */
 			fd_list_unlink( &obj->list[i] );
 		else
-			/* This is either a sentinel or unused (=emtpy) list, let's destroy it */
+			/* This is either a sentinel or unused (=empty) list, let's destroy it */
 			destroy_list( &obj->list[i] );
 	}
 
@@ -484,7 +484,7 @@ static int order_rule_by_avpvc ( struct dict_object *o1, struct dict_object *o2 
 /* The following macros assume that "what", "ret", "result" (variables), and "end" (label) exist
 in the local context where they are called. They are meant to be called only from the functions that follow. */
 
-/* For searchs of type "xxx_OF_xxx": children's parent or default parent */
+/* For searches of type "xxx_OF_xxx": children's parent or default parent */
 #define SEARCH_childs_parent( type_of_child, default_parent ) {			\
 	struct dict_object *__child = (struct dict_object *) what;		\
 	CHECK_PARAMS_DO( verify_object(__child) && 				\
@@ -632,7 +632,7 @@ in the local context where they are called. They are meant to be called only fro
 		ret = ENOENT;							\
 }
 
-/* For searchs of type "xxx_OF_xxx": if the search object is sentinel list for the "what" object */
+/* For searches of type "xxx_OF_xxx": if the search object is sentinel list for the "what" object */
 #define SEARCH_sentinel( type_of_what, what_list_nr, sentinel_list_nr ) {			\
 	struct dict_object *__what = (struct dict_object *) what;				\
 	CHECK_PARAMS_DO( verify_object(__what) && 						\
@@ -1945,8 +1945,8 @@ The parent is either struct dictionary * or struct dict_object *
 
 VENDOR_BY_ID : (parent = dictionary) returns list of vendors ordered by ID
 APPLICATION_BY_ID : (parent = dictionary) returns list of applications ordered by ID
-  ** for these two lists, the Vendor with id 0 and applciation with id 0 are excluded.
-     You must resolve them separatly with dict_search.
+  ** for these two lists, the Vendor with id 0 and application with id 0 are excluded.
+     You must resolve them separately with dict_search.
 
 TYPE_BY_NAME : (parent = dictionary) returns list of types ordered by name (osstring order)
 ENUMVAL_BY_NAME : (parent = type object) return list of constants for this type ordered by name (osstring order)

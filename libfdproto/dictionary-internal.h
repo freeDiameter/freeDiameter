@@ -90,8 +90,8 @@ struct dict_object {
 	 list[2]: sentinel for the type_enum list of this type, ordered by their constant value.
 
 	 => TYPE_ENUMS:
-	 list[0]: list of the contants for a given type, ordered by the constant name (fd_os_cmp). Sentinel is a (list[1]) element of a TYPE object.
-	 list[1]: list of the contants for a given type, ordered by the constant value. Sentinel is a (list[2]) element of a TYPE object.
+	 list[0]: list of the constants for a given type, ordered by the constant name (fd_os_cmp). Sentinel is a (list[1]) element of a TYPE object.
+	 list[1]: list of the constants for a given type, ordered by the constant value. Sentinel is a (list[2]) element of a TYPE object.
 	 list[2]: not used
 
 	 => AVPS:

@@ -115,7 +115,7 @@ const char * fd_ev_str(int event)
 }
 
 /**********************************************************************/
-/* Trigged events */
+/* Triggered events */
 /* This allows extensions to register for / send triggers to other extensions */
 /* It is used for example for users interactions (through signals or ...) */
 

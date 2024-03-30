@@ -53,7 +53,7 @@ struct server {
 
 	struct cnxctx *	conn;		/* server connection context (listening socket) */
 	int 		proto;		/* IPPROTO_TCP or IPPROTO_SCTP */
-	int 		secur;		/* TLS is started immediatly after connection ? 0: no; 1: RFU; 2: yes (TLS/TCP or TLS/SCTP) */
+	int 		secur;		/* TLS is started immediately after connection ? 0: no; 1: RFU; 2: yes (TLS/TCP or TLS/SCTP) */
 	
 	pthread_t	thr;		/* The thread waiting for new connections (will store the data in the clients fifo) */
 	enum s_state	state;		/* state of the thread */
@@ -349,7 +349,7 @@ int fd_servers_start()
 		ASSERT(0);
 #else /* DISABLE_SCTP */
 		
-		/* Create the server on unsecure port */
+		/* Create the server on insecure port */
 		if (fd_g_config->cnf_port) {
 			CHECK_MALLOC( s = new_serv(IPPROTO_SCTP, 0) );
 			CHECK_MALLOC( s->conn = fd_cnx_serv_sctp(fd_g_config->cnf_port, empty_conf_ep ? NULL : &fd_g_config->cnf_endpoints) );
@@ -445,7 +445,7 @@ int fd_servers_start()
 		}
 	}
 	
-	/* Now, if we had an empty list of local adresses (no address configured), try to read the real addresses from the kernel */
+	/* Now, if we had an empty list of local addresses (no address configured), try to read the real addresses from the kernel */
 	if (empty_conf_ep) {
 		CHECK_FCT(fd_cnx_get_local_eps(&fd_g_config->cnf_endpoints));
 		if (FD_IS_LIST_EMPTY(&fd_g_config->cnf_endpoints)) {

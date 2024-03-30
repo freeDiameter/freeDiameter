@@ -198,7 +198,7 @@ static int apply_rule(struct redir_entry * e, struct msg * msg, struct fd_list *
 		/* the candidates list is not guaranteed to be ordered at this time, so we cannot avoid the two imbricated loops */
 		struct rtd_candidate * cand = (struct rtd_candidate *) lic;
 
-		/* Is this candidate in the "Redirect-Host" list ? We must search caseinsentive here. */
+		/* Is this candidate in the "Redirect-Host" list ? We must search case-insensitive here. */
 		for (lirh = e->target_peers_list.next; lirh != &e->target_peers_list; lirh = lirh->next) {
 			struct redir_host * host = lirh->o;
 			int cont;

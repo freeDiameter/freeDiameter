@@ -242,7 +242,7 @@ int main (int argc, char **argv)
 	//If no SIP-AOR provided, we remove all
 	if(numaor<1)
 	{
-		fprintf(stderr,"All SIP-AOR of %s will be deregistrated.\n",rtrsip.username);
+		fprintf(stderr,"All SIP-AOR of %s will be deregistered.\n",rtrsip.username);
 	}
 	
 	//We want a username
@@ -277,7 +277,7 @@ int main (int argc, char **argv)
 	//TODO: check args
 	if(!connect(sock, (SOCKADDR*)&sin, sizeof(sin)))
     {
-       fprintf(stderr,"Connexion succeed!\n");
+       fprintf(stderr,"Connection succeed!\n");
         
  
         if(send(sock, &rtrsip, sizeof(struct rtrsipaor), 0))

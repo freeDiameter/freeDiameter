@@ -33,7 +33,7 @@ $PROCESSED="processed";
 /**** 3 : Orphan records (optional) ****/
 /* The script can move records belonging to an unterminated session that has not received any new
   record for more than $ORPHAN_DELAY (based on recorded_on field) into an $ORPHANED_TABLE table, so that
-  these records are not re-processed everytime the script runs. 
+  these records are not re-processed every time the script runs. 
   If $ORPHANED_TABLE is empty, this feature is disabled.  */
 $ORPHANED_TABLE="orphans";
 $ORPHAN_DELAY = "2 days";
@@ -148,12 +148,12 @@ if (pg_num_rows($sids) > 0) {
 			$data[/* "sess_duration" */] = $record["Acct-Session-Time"]." seconds";
 		} else {
 			/* No the information is missing, let's compute the approx value with the START record timestamp */
-			$res = pg_query_params($dbconn, 'SELECT t_start."recorded_on" as begining, t_end."recorded_on" - t_start."recorded_on" as duration'.
+			$res = pg_query_params($dbconn, 'SELECT t_start."recorded_on" as beginning, t_end."recorded_on" - t_start."recorded_on" as duration'.
 							' FROM (SELECT "recorded_on" FROM "'.$INCOMING.'"  WHERE "Session-Id" = $1 AND "Acct-Session-Id" = $2 AND "Accounting-Record-Type" = 4 ORDER BY "recorded_on" LIMIT 1) as t_end, '.
 							'      (SELECT "recorded_on" FROM "'.$INCOMING.'"  WHERE "Session-Id" = $1 AND "Acct-Session-Id" = $2 AND "Accounting-Record-Type" = 2 ORDER BY "Accounting-Record-Number", "recorded_on" LIMIT 1) as t_start',
 							array($sid, $asid)) or die('Query failed: ' . pg_last_error() . "\n");
 			$vals = pg_fetch_array($result, null, PGSQL_ASSOC) or die('Internal error, unable to compute session time');
-			$data[/* "sess_start" */] = $vals["begining"];
+			$data[/* "sess_start" */] = $vals["beginning"];
 			$data[/* "sess_duration" */] = $vals["duration"];
 			pg_free_result($res);
 		}

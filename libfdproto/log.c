@@ -76,7 +76,7 @@ int fd_log_handler_register( void (*logger)(int loglevel, const char * format, v
 int fd_log_handler_unregister ( void )
 {
         fd_logger = fd_internal_logger;
-        return 0; /* Successfull in all cases. */
+        return 0; /* Successful in all cases. */
 }
 
 static void fd_cleanup_mutex_silent( void * mutex )
