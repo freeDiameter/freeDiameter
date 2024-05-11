@@ -20,6 +20,7 @@ jobs:
       COV_TOOLS: cov-tools
       COV_RESULTS: cov-int
 
+    if: ${{ secrets.COVERITY_TOKEN != "" }}
     steps:
     - name: Check Secret
       run: |
