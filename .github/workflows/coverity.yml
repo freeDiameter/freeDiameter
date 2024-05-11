@@ -7,10 +7,25 @@ on:
   workflow_dispatch:
 
 jobs:
+  checker:
+    name: SecretChecker
+    runs-on: ubuntu-latest
+    environment: coverity
+    outputs:
+      check: ${{ steps.check.outputs.should-run }}
+
+    steps:
+      - name: Check Secret
+        id: check
+        run: if [ -n "${{ secrets.COVERITY_TOKEN }}" ]; then echo "should-run=true"; else echo "should-run=false"; fi >> $GITHUB_OUTPUT
+  
+
   build:
     name: Coverity
     runs-on: ubuntu-latest
     environment: coverity
+    needs: checker
+    if: needs.checker.outputs.check == 'true'
 
     env:
       TOKEN: ${{ secrets.COVERITY_TOKEN }}
