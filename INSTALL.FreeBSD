@@ -24,13 +24,12 @@ COMPLETE INSTRUCTIONS
  a) from sources:
     # cd /usr/ports/devel/cmake
     # make install
-    
+
  b) or from package (don't forget to set your PACKAGEROOT appropriately. Ex: set PACKAGEROOT=ftp://ftp.jp.freebsd.org):
     # pkg_add -v -r cmake
-	
- 
-3) Install 'mercurial' (optional)
-  (replace 'cmake' by 'mercurial' in the previous command) 
+
+
+3) Install 'git' (optional)
 
 4) Install 'flex' and 'bison', same way.
 
@@ -38,12 +37,12 @@ COMPLETE INSTRUCTIONS
 
 6) Retrieve freeDiameter source code:
    # cd ~
-   # /usr/local/bin/hg clone http://www.freediameter.net/hg/freeDiameter/
-   
+   # /usr/local/bin/git clone https://github.com/freeDiameter/freeDiameter.git
+
 6b) Make a build directory
    # mkdir fD-build
    # cd fD-build
-   
+
 7) Run cmake for freeDiameter (add other flags as you see fit, see INSTALL for more details)
    # /usr/local/bin/cmake -DFLEX_EXECUTABLE:FILEPATH=/usr/local/bin/flex -DSCTP_USE_MAPPED_ADDRESSES:BOOL=ON ../freeDiameter
 
@@ -53,7 +52,7 @@ COMPLETE INSTRUCTIONS
 
 9) Install
    # make install
-   
+
 10) Run (the install path can be changed during cmake step):
    # /usr/local/bin/freeDiameterd --help
 
@@ -93,13 +92,13 @@ Here is additional steps in order to run the test for app_acct
    BUILD_APP_ACCT:BOOL=ON
    TEST_APP_ACCT:BOOL=ON
    TEST_APP_ACCT_CONNINFO:STRING="user=root dbname=root"
-   
+
 4) run the test
   # tests/testappacct -d
   or
   # make test
-  
-  
+
+
 ----------------------------------
 Segmentation fault on program exit
 ----------------------------------
@@ -113,7 +112,7 @@ with a backtrace like this:
   #0  0x0000000801a414a0 in ?? ()
   #1  0x0000000800f99274 in __cxa_finalize () from /lib/libc.so.7
   #2  0x0000000800f460b7 in exit () from /lib/libc.so.7
-  
+
 You may try to add the following compilation directive in cmake:
   -DSKIP_DLCLOSE:BOOL=ON
 
@@ -121,5 +120,3 @@ Note: this segmentation fault was experienced with:
  - FreeBSD 8.1
  - 64 bits architecture only.
  - Profiling mode only.
-
-

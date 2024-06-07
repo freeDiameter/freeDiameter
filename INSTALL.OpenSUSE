@@ -4,7 +4,6 @@
 
 Dependencies on OpenSUSE 11.3 (from minimal server system installation):
 # zypper install cmake make gcc gcc-c++ flex bison lksctp-tools-devel libgnutls-devel libgcrypt-devel libidn2-devel
-# zypper install mercurial
 
 Following dependencies are optional, depending on which extensions you plan to compile
  app_acct:
@@ -12,12 +11,12 @@ Following dependencies are optional, depending on which extensions you plan to c
 
  app_sip:
  app_diameap:
- 	# zypper install libmysqlclient-devel 
+ 	# zypper install libmysqlclient-devel
 	(would also need a server, not sure which package is appropriate)
-	
+
  dict_legacy_xml:
 	# zypper install libxml2 libxml2-devel
-	
+
  dbg_interactive:
 	# zypper install swig python-devel
 

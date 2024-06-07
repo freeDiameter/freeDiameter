@@ -36,9 +36,9 @@
 #include "fdproto-internal.h"
 #include <freeDiameter/version.h>
 
-#ifdef FD_PROJECT_VERSION_HG
+#ifdef FD_PROJECT_VERSION_GIT
 # define FD_LIBFDPROTO_VERSION \
-	_stringize(FD_PROJECT_VERSION_MAJOR) "." _stringize(FD_PROJECT_VERSION_MINOR) "." _stringize(FD_PROJECT_VERSION_REV) "-" FD_PROJECT_VERSION_HG_VAL
+	_stringize(FD_PROJECT_VERSION_MAJOR) "." _stringize(FD_PROJECT_VERSION_MINOR) "." _stringize(FD_PROJECT_VERSION_REV) "-" FD_PROJECT_VERSION_GIT_VAL
 #else
 # define FD_LIBFDPROTO_VERSION \
 	_stringize(FD_PROJECT_VERSION_MAJOR) "." _stringize(FD_PROJECT_VERSION_MINOR) "." _stringize(FD_PROJECT_VERSION_REV)

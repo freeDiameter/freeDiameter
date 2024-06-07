@@ -5,9 +5,6 @@
 Dependencies on Fedora 13 (from minimal system):
 # yum install cmake make gcc gcc-c++ flex bison lksctp-tools-devel gnutls-devel libgcrypt-devel libidn2-devel
 
-In addition, if you have not already retrieved the latest source:
-# yum install mercurial
-
 Following dependencies are optional, depending on which extensions you plan to compile
  app_acct:
 	# yum install postgresql-devel
@@ -18,11 +15,11 @@ Following dependencies are optional, depending on which extensions you plan to c
  app_diameap:
 	# yum install mysql-devel
 	optional:
-	# yum install mysql-server 
-	
+	# yum install mysql-server
+
  dict_legacy_xml:
 	# yum install libxml2 libxml2-devel
-	
+
  dbg_interactive:
 	# yum install swig python-devel
 
@@ -33,5 +30,5 @@ The following command is the very naive way to do it, you can probably do better
 
 
 There is currently no Fedora-specific package for freeDiameter.
-You are welcome to contribute packaging scripts. 
+You are welcome to contribute packaging scripts.
 Please contact dev@freediameter.net for more details.

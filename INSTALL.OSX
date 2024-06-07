@@ -39,7 +39,7 @@ FROM SOURCES
    See QUICK INSTRUCTIONS Step #1 above.
 
 2) Install dependencies:
-    $ brew install mercurial cmake gnutls libgcrypt postgres mysql libidn2
+    $ brew install git cmake gnutls libgcrypt postgres mysql libidn2
 
    Notes:
     * GNU IDN (libidn2) is optional, see below
@@ -48,7 +48,7 @@ FROM SOURCES
         compliant with the other SCTP stack.
 
 3) Retrieve source code:
-    $ hg clone http://www.freediameter.net/hg/freeDiameter
+    $ git clone https://github.com/freeDiameter/freeDiameter.git
 
 4) Enter source folder:
     $ cd freeDiameter

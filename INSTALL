@@ -1,15 +1,14 @@
-This package uses CMake (cmake.org) as building system. You'll need the cmake tool in order 
+This package uses CMake (cmake.org) as building system. You'll need the cmake tool in order
 to generate the Makefiles for your platform. You can also select which extensions must be built
-with cmake. After the initial cmake configuration, you will need several tools such as make, a 
+with cmake. After the initial cmake configuration, you will need several tools such as make, a
 C compiler (tested mostly with gcc), flex (> 2.5.4), bison, ...
 
 You may retrieve the source package in several ways:
- - as a pre-packaged version for your platform. Check the website for supported platforms.
  - as a tarball containing the source.
- - directly from the repository using Mercurial tool:
-      hg clone http://www.freediameter.net/hg/freeDiameter
+ - directly from the repository using git tool:
+      git clone https://github.com/freeDiameter/freeDiameter.git
    In order to update later:
-      hg pull -u
+      git pull
 
 Building in a separate directory is recommended:
 # mkdir build
@@ -18,7 +17,7 @@ Building in a separate directory is recommended:
 # make
 
 You can pass options to instruct cmake about which components to compile on the command-line.
-You can also use a CMake front-end (for example ccmake or cmake-gui). 
+You can also use a CMake front-end (for example ccmake or cmake-gui).
 If your cmake installation is recent, the edit_cache target is a good help as well:
 # mkdir build
 # cd build

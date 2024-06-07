@@ -8,10 +8,9 @@ If no binary package exists:
 
 If you want to build and install freeDiameter from the repository,
 you'll need to install:
-	pkg_add bison pkg-config libidn2 gnutls libgcrypt mercurial
+	pkg_add bison pkg-config libidn2 gnutls libgcrypt git
 and follow the usual installation note.
 
 For the optional extensions, you need mysql*-client, postgres*-client,
 libxml2, jsoncpp, and json-schema.  For the debugging extensions,
 you also need swig and a python -- install as usual.
-
