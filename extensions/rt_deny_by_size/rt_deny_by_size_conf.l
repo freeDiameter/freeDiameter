@@ -3,7 +3,7 @@
 * Authors: Thomas Klausner <tk@giga.or.at> based on code by Sebastien Decugis <sdecugis@freediameter.net>*
 *													 *
 * Copyright (c) 2018, Thomas Klausner									 *
-* Copyright (c) 2019, WIDE Project and NICT								 *
+* Copyright (c) 2020, WIDE Project and NICT								 *
 * All rights reserved.											 *
 * 													 *
 * Written under contract by Effortel Technologies SA, http://effortel.com/                               *

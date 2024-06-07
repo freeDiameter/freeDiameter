@@ -2,7 +2,7 @@
 * Software License Agreement (BSD License)                                                               *
 * Author: Alexandre Westfahl <awestfahl@freediameter.net>						 *
 *													 *												 *
-* Copyright (c) 2013, WIDE Project and NICT								 *
+* Copyright (c) 2023, WIDE Project and NICT								 *
 * Copyright (c) 2010, Alexandre Westfahl, Teraoka Laboratory (Keio University), and the WIDE Project. 	 *		
 *													 *
 * All rights reserved.											 *
