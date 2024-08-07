@@ -434,15 +434,26 @@ static int order_avp_by_name  ( struct dict_object *o1, struct dict_object *o2 )
 /* Compare two command objects by their names (checks already performed) */
 static int order_cmd_by_name  ( struct dict_object *o1, struct dict_object *o2 )
 {
+	int cmp;
+	application_id_t appid1, appid2;
+
 	TRACE_ENTRY("%p %p", o1, o2);
 
-	return fd_os_cmp( o1->data.cmd.cmd_name, o1->datastr_len, o2->data.cmd.cmd_name, o2->datastr_len );
+	cmp = fd_os_cmp( o1->data.cmd.cmd_name, o1->datastr_len, o2->data.cmd.cmd_name, o2->datastr_len );
+	if( cmp )
+		return cmp;
+
+	appid1 = ( o1->parent ) ? o1->parent->data.application.application_id : 0;
+	appid2 = ( o2->parent ) ? o2->parent->data.application.application_id : 0;
+
+	return ORDER_scalar( appid1, appid2 );
 }
 
 /* Compare two command objects by their codes and flags (request or answer) (checks already performed) */
 static int order_cmd_by_codefl( struct dict_object *o1, struct dict_object *o2 )
 {
 	uint8_t fl1, fl2;
+	application_id_t appid1, appid2;
 	int cmp = 0;
 
 	TRACE_ENTRY("%p %p", o1, o2);
@@ -455,9 +466,14 @@ static int order_cmd_by_codefl( struct dict_object *o1, struct dict_object *o2 )
 	fl1 = o1->data.cmd.cmd_flag_val & CMD_FLAG_REQUEST;
 	fl2 = o2->data.cmd.cmd_flag_val & CMD_FLAG_REQUEST;
 
-	/* We want requests first, so we reverse the operators here */
-	return ORDER_scalar(fl2, fl1);
+	cmp = ORDER_scalar(fl2, fl1);
+	if (cmp)
+		return cmp;
 
+	appid1 = ( o1->parent ) ? o1->parent->data.application.application_id : 0;
+	appid2 = ( o2->parent ) ? o2->parent->data.application.application_id : 0;
+
+	return ORDER_scalar( appid1, appid2 );
 }
 
 /* Compare two rule object by the AVP vendor & code that they refer (checks already performed) */
@@ -604,7 +620,7 @@ in the local context where they are called. They are meant to be called only fro
 }
 
 /* For search of commands in lists by code and flag. R_flag_val = 0 or CMD_FLAG_REQUEST */
-#define SEARCH_codefl( value, R_flag_val, sentinel) {					\
+#define SEARCH_codefl_appid( value, appid, R_flag_val, sentinel ) {					\
 	int __cmp;								\
 	struct fd_list * __li;							\
 	ret = 0;								\
@@ -619,6 +635,10 @@ in the local context where they are called. They are meant to be called only fro
 				continue;					\
 			if ( ( __val & CMD_FLAG_REQUEST ) != R_flag_val )	\
 				continue;					\
+			if( 0 != appid && _O(__li->o)->parent ) { \
+				if( appid != _O(__li->o)->parent->data.application.application_id ) \
+					continue; \
+			} 	\
 			if (result)						\
 				*result = _O(__li->o);				\
 			goto end;						\
@@ -631,6 +651,7 @@ in the local context where they are called. They are meant to be called only fro
 	else									\
 		ret = ENOENT;							\
 }
+#define SEARCH_codefl( value, R_flag_val, sentinel) SEARCH_codefl_appid( value, 0, R_flag_val, sentinel )
 
 /* For searches of type "xxx_OF_xxx": if the search object is sentinel list for the "what" object */
 #define SEARCH_sentinel( type_of_what, what_list_nr, sentinel_list_nr ) {			\
@@ -993,6 +1014,18 @@ static int search_cmd ( struct dictionary * dict, int criteria, const void * wha
 
 				/* perform the search */
 				SEARCH_codefl( code, searchfl, &dict->dict_cmd_code );
+			}
+			break;
+
+		case CMD_BY_CODE_R_APPL_ID:
+		case CMD_BY_CODE_A_APPL_ID:
+			{
+				struct dict_cmd_request * req = ( struct dict_cmd_request * ) what;
+				uint8_t searchfl = 0;
+				if( criteria == CMD_BY_CODE_R_APPL_ID ) {
+					searchfl = CMD_FLAG_REQUEST;
+				}
+				SEARCH_codefl_appid( req->cmd_code, req->app_id, searchfl, &dict->dict_cmd_code );
 			}
 			break;
 
