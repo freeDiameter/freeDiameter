@@ -41,6 +41,50 @@ typedef enum { REWRITE_DROP, REWRITE_MAP } avp_rewrite_type;
 
 extern struct avp_match *avp_match_start;
 extern struct avp_add *avp_add_start;
+extern struct avp_match *avp_variable_start;
+extern size_t avp_variable_count;
+
+enum comparators {
+	LESS,
+	LESS_EQUAL,
+	EQUAL,
+	MORE_EQUAL,
+	MORE
+};
+
+/*
+ * condition to be used in avp_match
+ *
+ * this compares 'variable[variable_index] comparator value'
+ *
+ * 'variable_index' is the corresponding variable
+ * 'comparator' is the comparison operator to use
+ * 'value' is the value to compare the variable against
+ */
+struct avp_condition {
+	int variable_index;
+	enum comparators comparator;
+	union avp_value value;
+	enum dict_avp_basetype basetype;
+};
+
+/*
+ * The avp_action structure describes changes to be done by the avp_match structure.
+ *
+ * 'next' points to the next in the list (or NULL if it's the last).
+ * 'condition' is a condition that's tested before deciding if they are added.
+ * 'match_type' determines which of the two types this is (Drop/MAP).
+ * for MAP:
+ * 'target' determines where to put the contents of this AVP
+ */
+struct avp_action {
+	struct avp_action *next;
+	avp_rewrite_type match_type;
+	/* for both */
+	struct avp_condition *condition;
+	/* for MAP */
+        struct avp_target *target;
+};
 
 /*
  * The avp_match structure is used to build up a tree.
@@ -48,10 +92,10 @@ extern struct avp_add *avp_add_start;
  * 'next' contains a link to the next node on the same level
  * 'children' contains a link to the next node on the lower level
  *
- * The other data is for keeping information for ADD/DROP/MAP.
- * 'match_type' determines which of the three types this is.
- * MAP:
- * 'target' determines where to put the value of this AVP
+ * The other data is for keeping information for DROP/MAP/VARIABLE.
+ * 'actions' contains the (conditional) actions to do with this AVP (for DROP/MAP).
+ * 'variable_index' is the offset into the variable array where the
+ * value of this variable is saved (for VARIABLE).
  */
 
 struct avp_match {
@@ -60,9 +104,10 @@ struct avp_match {
 	struct avp_match *next;
 	struct avp_match *children;
 
-	avp_rewrite_type match_type;
-	/* for MAP */
-        struct avp_target *target;
+	/* for DROP/MAP */
+	struct avp_action *actions;
+	/* for VARIABLE */
+	int variable_index;
 };
 
 /*
@@ -77,9 +122,10 @@ struct avp_target {
 };
 
 /*
- * 'avp_add_list' is a list of entries to be added to messages.
+ * 'avp_add' is a list of entries to be added to messages.
  *
- * 'request_type' is the type of messages to which the AVP should be added.
+ * 'request' is the type of messages to which the AVP should be added.
+ * 'condition' is a condition that's tested before deciding if they are added.
  * 'target' is the path to the AVP to be added.
  * 'value' is the value to be set for this AVP.
  *
@@ -87,10 +133,11 @@ struct avp_target {
  */
 struct avp_add {
 	struct dict_cmd_data request;
+	struct avp_condition *condition;
 
 	struct avp_target *target;
 	union avp_value value;
-	int free_os_data;
+	enum dict_avp_basetype basetype;
 
 	struct avp_add *next;
 };

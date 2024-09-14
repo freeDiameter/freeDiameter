@@ -36,14 +36,18 @@
 int add_finish(const char *value);
 void avp_add_free(struct avp_add *item);
 void avp_match_free(struct avp_match *match);
-struct avp_match *avp_match_new(char *name);
+struct avp_match *avp_match_new(const char *name);
 int add_request(const char *request_name);
 void compare_avp_types(struct avp_match *start);
-int dest_add(char *name);
-void drop_finish(void);
+int condition(const char *name, enum comparators comparator, const char *value);
+int dest_add(const char *name);
+int drop_finish(void);
 void dump_add_config(struct avp_add *start);
-void dump_config(struct avp_match *start, char *prefix);
-void map_finish(void);
+void dump_config(struct avp_match *start, const char *prefix);
+int map_finish(void);
 void rt_rewrite_confrestart(FILE *input_file);
-int source_add(char *name);
-
+int source_add(const char *name);
+int variable_add(const char *name);
+int variable_finish(void);
+void variable_names_cleanup(void);
+int variable_set_name(const char *name);

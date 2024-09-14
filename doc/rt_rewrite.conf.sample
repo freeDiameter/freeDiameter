@@ -1,7 +1,11 @@
 # This file contains information for configuring the rt_rewrite extension
 # To find how to have freeDiameter load this extension, please refer to the freeDiameter documentation.
 #
-# The rt_rewrite extension allows moving data from one AVP into another one, or dropping AVPs altogether.
+# The rt_rewrite extension allows moving data from one AVP into
+# another one, adding AVPs, or dropping AVPs altogether.
+#
+# All of the can be done condionally, depending on the value of an AVP
+# in the message.
 
 # This extension supports configuration reload at runtime. Send
 # signal SIGUSR1 to the process to cause the process to reload its
@@ -21,3 +25,30 @@
 #
 # For removing AVPs, use DROP:
 #  DROP = "Grouped-AVP1" : "Octetstring-AVP1";
+#
+# For adding AVPs, use ADD. The syntax is slightly different because
+# it is by default conditional on the message type, which is the first
+# string in the ADD configuration:
+#
+#  ADD = "Credit-Control-Request" / "Grouped-AVP" : "Destination-AVP" = "Value"
+#
+# ADD/DROP/MAP can also be done conditionally.
+#
+# First, you need to define AVPs you are interested in using for
+# conditions with the VARIABLE keyword:
+#
+# VARIABLE "key" = "Service-Information" : "IMS-Information" : "Role-Of-Node";
+#
+# Multiple variables can be defined this way.
+#
+# then you can prefix the ADD/DROP/MAP commands with IF clauses of the form
+# IF "key" < "10" ADD/MAP/DROP ..
+#
+# For example:
+# IF "key" > "1" MAP = "Source-AVP1" > "Destination-AVP1";
+# IF "key" = "0" DROP = "Grouped-AVP" : "OctetString-AVP";
+# IF "key" >= "1000" ADD = "Grouped-AVP2" : "Octetstring-AVP2";
+#
+# Supported comparison operators are "<", "<=", "=", ">=", ">".
+# OctetString AVPs (and those derived from OctetString) can only be
+# compared using "=".

@@ -87,13 +87,14 @@ qstring		\"[^\"\n]*\"
 	/* The key words */
 (?i:ADD)	 	{	return ADD;	}
 (?i:DROP)	 	{	return DROP;	}
+(?i:IF)		 	{	return IF;	}
 (?i:MAP)	 	{	return MAP;	}
-
+(?i:VARIABLE)	 	{	return VARIABLE;	}
 	/* Valid single characters for yyparse */
-[=/:;>]			{ return yytext[0]; }
+[=/:;<>]			{ return yytext[0]; }
 
 	/* Unrecognized sequence, if it did not match any previous pattern */
-[^[:space:]\":=>;\n]+	{
+[^[:space:]\"=/:;<>\n]+	{
 				fd_log_error("Unrecognized text on line %d col %d: '%s'.", yylloc->first_line, yylloc->first_column, yytext);
 			 	return LEX_ERROR;
 			}

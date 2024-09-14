@@ -34,14 +34,14 @@
 
 /* For development only : */
 %debug
-%error-verbose
+%define parse.error verbose
 
 /* The parser receives the configuration file filename as parameter */
 %parse-param {char * conffile}
 
 /* Keep track of location */
 %locations
-%pure-parser
+%define api.pure
 
 %{
 #include <freeDiameter/extension.h>
@@ -60,19 +60,20 @@ int rt_rewrite_conf_handle(char * conffile)
 {
 	extern FILE * rt_rewrite_confin;
 	int ret;
-	char *top;
 
 	TRACE_ENTRY("%p", conffile);
 
 	TRACE_DEBUG (FULL, "Parsing configuration file: '%s'", conffile);
 
-	if ((top=strdup("TOP")) == NULL) {
-		fd_log_error("strdup error: %s", strerror(errno));
+	avp_add_start = NULL;
+	if ((avp_match_start=avp_match_new("TOP")) == NULL) {
+		fd_log_error("malloc error: %s", strerror(errno));
 		return EINVAL;
 	}
-	if ((avp_match_start=avp_match_new(top)) == NULL) {
+	if ((avp_variable_start=avp_match_new("TOP")) == NULL) {
 		fd_log_error("malloc error: %s", strerror(errno));
-		free(top);
+		avp_match_free(avp_match_start);
+		avp_match_start = NULL;
 		return EINVAL;
 	}
 	rt_rewrite_confin = fopen(conffile, "r");
@@ -82,12 +83,14 @@ int rt_rewrite_conf_handle(char * conffile)
 		fd_log_error("rt_rewrite: error occurred, message logged -- configuration file");
 		avp_match_free(avp_match_start);
 		avp_match_start = NULL;
+		avp_match_free(avp_variable_start);
+		avp_variable_start = NULL;
+		avp_variable_count = 0;
 		return ret;
 	}
 
 	rt_rewrite_confrestart(rt_rewrite_confin);
 	ret = yyparse(conffile);
-
 	fclose(rt_rewrite_confin);
 
 	if (ret != 0) {
@@ -96,12 +99,19 @@ int rt_rewrite_conf_handle(char * conffile)
 		avp_match_start = NULL;
 		avp_add_free(avp_add_start);
 		avp_add_start = NULL;
+		avp_match_free(avp_variable_start);
+		avp_variable_start = NULL;
+		avp_variable_count = 0;
+		variable_names_cleanup();
 		return EINVAL;
 	}
 
 	compare_avp_types(avp_match_start);
+	dump_config(avp_variable_start, "");
 	dump_config(avp_match_start, "");
 	dump_add_config(avp_add_start);
+
+	variable_names_cleanup();
 
 	return 0;
 }
@@ -135,7 +145,9 @@ void yyerror (YYLTYPE *ploc, char * conffile, char const *s)
 /* Tokens */
 %token 		ADD
 %token 		DROP
+%token 		IF
 %token 		MAP
+%token 		VARIABLE
 
 
 /* -------------------------------------- */
@@ -143,31 +155,13 @@ void yyerror (YYLTYPE *ploc, char * conffile, char const *s)
 
  /* The grammar definition */
 rules:			/* empty ok */
-			| rules map
-			| rules drop
 			| rules add
-			;
-
-/* source -> destination mapping */
-map:			MAP '=' source_part '>' dest_part { map_finish(); }
-			';'
-			;
-
-source_part: 		source_part ':' QSTRING { if (source_add($3) < 0) { YYERROR; } }
-			| QSTRING { if (source_add($1) < 0) { YYERROR; } }
-			;
-
-dest_part: 		dest_part ':' QSTRING { if (dest_add($3) < 0) { YYERROR; } }
-			| QSTRING { if (dest_add($1) < 0) { YYERROR; } }
-			;
-
-/* for dropping an AVP */
-drop:			DROP '=' drop_part { drop_finish(); }
-			';'
-			;
-
-drop_part: 		drop_part ':' QSTRING { if (source_add($3) < 0) { YYERROR; } }
-			| QSTRING { if (source_add($1) < 0) { YYERROR; } }
+			| rules if_ add
+			| rules drop
+			| rules if_ drop
+			| rules map
+			| rules if_ map
+			| rules variable
 			;
 
 /* for adding an AVP */
@@ -175,12 +169,53 @@ add:   			ADD '=' command '/' add_avp_part '=' add_value { }
 			';'
 			;
 
-command:		QSTRING { if (add_request($1) < 0) { YYERROR; } }
+command:		QSTRING { if (add_request($1) < 0) { YYERROR; }; free($1); }
 			;
 
-add_avp_part:		add_avp_part ':' QSTRING { if (dest_add($3) < 0) { YYERROR; } }
-			| QSTRING { if (dest_add($1) < 0) { YYERROR; } }
+add_avp_part:		add_avp_part ':' QSTRING { if (dest_add($3) < 0) { YYERROR; }; free($3); }
+			| QSTRING { if (dest_add($1) < 0) { YYERROR; }; free($1); }
 			;
 
-add_value:		QSTRING { if (add_finish($1) < 0) { YYERROR; } }
+add_value:		QSTRING { if (add_finish($1) < 0) { YYERROR; }; free($1); }
 			;
+
+/* for dropping an AVP */
+drop:			DROP '=' drop_part { if (drop_finish() < 0) { YYERROR; } }
+			';'
+			;
+
+drop_part: 		drop_part ':' QSTRING { if (source_add($3) < 0) { YYERROR; }; free($3); }
+			| QSTRING { if (source_add($1) < 0) { YYERROR; }; free($1); }
+			;
+
+/* conditional */
+if_:			IF QSTRING '<' QSTRING { if (condition($2, LESS, $4) < 0) { YYERROR; }; free($2); free($4); }
+			| IF QSTRING '<' '=' QSTRING { if (condition($2, LESS_EQUAL, $5) < 0) { YYERROR; }; free($2); free($5); }
+			| IF QSTRING '=' QSTRING { if (condition($2, EQUAL, $4) < 0) { YYERROR; }; free($2); free($4); }
+			| IF QSTRING '>' '=' QSTRING { if (condition($2, MORE_EQUAL, $5) < 0) { YYERROR; }; free($2); free($5); }
+			| IF QSTRING '>'  QSTRING { if (condition($2, MORE, $4) < 0) { YYERROR; }; free($2); free($4); }
+			;
+
+/* source -> destination mapping */
+map:			MAP '=' source_part '>' dest_part { if (map_finish() < 0) { YYERROR; } }
+			';'
+			;
+
+source_part: 		source_part ':' QSTRING { if (source_add($3) < 0) { YYERROR; }; free($3); }
+			| QSTRING { if (source_add($1) < 0) { YYERROR; }; free($1); }
+			;
+
+
+dest_part: 		dest_part ':' QSTRING { if (dest_add($3) < 0) { YYERROR; }; free($3); }
+			| QSTRING { if (dest_add($1) < 0) { YYERROR; }; free($1); }
+			;
+
+/* variable (value of an AVP) to be used in a condition */
+variable:		VARIABLE QSTRING { if (variable_set_name($2) < 0) { YYERROR; }; free($2); }
+			'=' variable_part { if (variable_finish() < 0) { YYERROR; } }
+			';'
+			;
+
+variable_part:		variable_part ':' QSTRING { if (variable_add($3) < 0) { YYERROR; }; free($3); }
+                        | QSTRING { if (variable_add($1) < 0) { YYERROR; }; free($1); }
+                        ;

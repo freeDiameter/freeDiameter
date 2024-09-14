@@ -29,6 +29,7 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.                                                             *
  *********************************************************************************************************/
 
+#include <stdio.h>
 #include <stdlib.h>
 
 #include "rt_rewrite_conf_support.h"
@@ -36,23 +37,40 @@
 /* Forward declaration, comes from parser */
 int yyparse(char * conffile);
 
-/* copied from libfdproto/dictionary.c because the symbol is not public */
-static const char * type_base_name[] = { /* must keep in sync with dict_avp_basetype */
-	"Grouped", 	/* AVP_TYPE_GROUPED */
-	"Octetstring", 	/* AVP_TYPE_OCTETSTRING */
-	"Integer32", 	/* AVP_TYPE_INTEGER32 */
-	"Integer64", 	/* AVP_TYPE_INTEGER64 */
-	"Unsigned32", 	/* AVP_TYPE_UNSIGNED32 */
-	"Unsigned64", 	/* AVP_TYPE_UNSIGNED64 */
-	"Float32", 	/* AVP_TYPE_FLOAT32 */
-	"Float64"	/* AVP_TYPE_FLOAT64 */
-	};
+/* in libfdproto/dictionary.c and internal headers */
+extern const char * type_base_name[];
 
+/* work-in-progress source for MAP/DROP */
 static struct avp_match *source_target = NULL;
-static struct avp_target *dest_target_top = NULL, *dest_target = NULL;
+/* work-in-progress target for MAP */
+static struct avp_target *dest_target = NULL;
+/* work-in-progress target for ADD */
 static struct avp_add *add_target = NULL;
 
-static char * full_target_name(struct avp_target *target)
+/* name for work-in-progress variable */
+
+
+
+static char *variable_name = NULL;
+
+struct variable_data_type {
+	char *name;
+	enum dict_avp_basetype basetype;
+};
+
+/* list of variables found so far */
+static struct variable_data_type *variable_data = NULL;
+
+/* work-in-progress target for VARIABLE */
+static struct avp_match *variable_target = NULL;
+
+
+struct avp_condition *condition_target = NULL;
+
+static char *dump_avp_value(union avp_value *value, enum dict_avp_basetype basetype);
+static char *dump_condition(struct avp_condition *condition);
+
+static char *full_target_name(struct avp_target *target)
 {
 	char *output;
 	if (target == NULL) {
@@ -75,15 +93,15 @@ static char * full_target_name(struct avp_target *target)
 	return output;
 }
 
-/* add 'target' to the end of string 'prefix'. return new string. Take ownership of 'prefix' on success. */
-static char *add_target_to(struct avp_target *target, char *prefix)
+/* add 'target' to the end of string 'prefix'. return new string. Does NOT take ownership of 'prefix' on success. */
+static char *add_target_to(struct avp_target *target, const char *prefix)
 {
 	char *output = NULL;
 	char *target_string;
 	if ((target_string=full_target_name(target)) == NULL) {
 		return NULL;
 	}
-	if (asprintf(&output, "%s -> /%s", prefix, target_string) == -1) {
+	if (asprintf(&output, "%s%s/%s", prefix ? prefix : "", prefix ? " -> " : "", target_string) == -1) {
 		free(target_string);
 		fd_log_error("rt_rewrite: add_target_to: setup: asprintf failed: %s", strerror(errno));
 		return NULL;
@@ -126,14 +144,21 @@ void compare_avp_types(struct avp_match *start)
 {
 	struct avp_match *iter;
 	for (iter=start; iter != NULL; iter=iter->next) {
+		struct avp_action *action;
 		compare_avp_types(iter->children);
-		if (iter->target) {
-			struct avp_target *final;
-			final = iter->target;
-			while (final->child) {
-				final = final->child;
+
+		action = iter->actions;
+		while (action) {
+			/* only for MAP */
+			if (action->target) {
+				struct avp_target *final;
+				final = action->target;
+				while (final->child) {
+					final = final->child;
+				}
+				compare_avp_type(iter->name, final->name);
 			}
-			compare_avp_type(iter->name, final->name);
+			action = action->next;
 		}
 	}
 	return;
@@ -145,49 +170,105 @@ void dump_add_config(struct avp_add *start)
 {
 	struct avp_add *iter;
 	for (iter=start; iter; iter=iter->next) {
-		char *prefix = NULL;
-		char *result = NULL;;
-		if (asprintf(&prefix,"ADD (for %s): ", iter->request.cmd_name) == -1) {
-			fd_log_error("rt_rewrite: dump_add_config: asprintf failed: %s", strerror(errno));
+		char *result = NULL;
+		char *value = NULL;
+		char *condition_str = NULL;
+
+		if ((result=add_target_to(iter->target, NULL)) == NULL) {
 			return;
 		}
-		if ((result=add_target_to(iter->target, prefix)) == NULL) {
-			free(prefix);
+		if ((value=dump_avp_value(&iter->value, iter->basetype)) == NULL) {
+			free(result);
 			return;
 		}
-		fd_log_notice(result);
+		condition_str = dump_condition(iter->condition);
+		fd_log_notice("ADD (for %s): %s = %s%s", iter->request.cmd_name, result, value, condition_str ? condition_str : "");
+		free(condition_str);
+		free(value);
 		free(result);
 	}
 }
 
+/* return a static string for printing 'comparator' */
+static const char *dump_comparator(enum comparators comparator) {
+	switch (comparator) {
+	case LESS:
+		return "<";
+	case LESS_EQUAL:
+		return "<=";
+	case EQUAL:
+		return "=";
+	case MORE_EQUAL:
+		return ">=";
+	case MORE:
+		return ">";
+	}
+	/* can't happen, but some compilers don't recognize this */
+	return "";
+}
+
+/* return string describing 'condition'. must be free()d by caller */
+static char *dump_condition(struct avp_condition *condition) {
+	char *result = NULL;
+	char *value = NULL;
+
+	/* no use if no variable name or no condition */
+	if (variable_data == NULL || condition == NULL) {
+		return NULL;
+	}
+	if ((value=dump_avp_value(&condition->value, condition->basetype)) == NULL) {
+		return NULL;
+	}
+	if (asprintf(&result, " IF %s %s %s", variable_data[condition->variable_index].name,
+		     dump_comparator(condition->comparator), value) == -1) {
+		fd_log_error("asprintf failed");
+		free(value);
+		return NULL;
+	}
+	free(value);
+	return result;
+}
+
 /* Print out configuration, so users can verify the config from the logs. */
-void dump_config(struct avp_match *start, char *prefix)
+void dump_config(struct avp_match *start, const char *prefix)
 {
 	char *new_prefix = NULL;
 	struct avp_match *iter;
+
 	for (iter=start; iter != NULL; iter=iter->next) {
-		if (strcmp(iter->name, "TOP") == 0) {
-			if ((new_prefix=strdup(prefix)) == NULL) {
-				fd_log_error("rt_rewrite: dump_config: strdup failed: %s", strerror(errno));
-				return;
-			}
-		} else {
-			if (asprintf(&new_prefix,"%s/%s", prefix, iter->name) == -1) {
-				fd_log_error("rt_rewrite: dump_config: asprintf failed: %s", strerror(errno));
-				return;
-			}
+		struct avp_action *action;
+		int is_top = strcmp(iter->name, "TOP") == 0;
+		if (asprintf(&new_prefix,"%s%s%s", prefix, is_top ? "" : "/", is_top ? "" : iter->name) == -1) {
+			fd_log_error("rt_rewrite: dump_config: asprintf failed: %s", strerror(errno));
+			return;
 		}
 		dump_config(iter->children, new_prefix);
-		if (iter->target) {
-			char *result = add_target_to(iter->target, new_prefix);
-			if (result == NULL) {
-				free(new_prefix);
-				return;
+		action = iter->actions;
+		while (action) {
+			if (action->target) {
+				char *condition_str = NULL;
+				char *result = add_target_to(action->target, new_prefix);
+				if (result == NULL) {
+					return;
+				}
+				condition_str = dump_condition(action->condition);
+				fd_log_notice("MAP %s%s", result, condition_str ? condition_str : "");
+				free(condition_str);
+				free(result);
 			}
-			fd_log_notice("MAP %s", result);
+			if (action->match_type == REWRITE_DROP) {
+				char *condition_str = dump_condition(action->condition);
+				fd_log_notice("DROP %s%s", new_prefix, condition_str ? condition_str : "");
+				free(condition_str);
+			}
+			action = action->next;
 		}
-		if (iter->match_type == REWRITE_DROP) {
-			fd_log_notice("DROP %s", new_prefix);
+		if (iter->variable_index >= 0) {
+			if (variable_data) {
+				fd_log_notice("VARIABLE %s from %s", variable_data[iter->variable_index].name, new_prefix);
+			} else {
+				fd_log_notice("VARIABLE from %s", new_prefix);
+			}
 		}
 		free(new_prefix);
 		new_prefix = NULL;
@@ -213,14 +294,18 @@ static int verify_avp(const char *name)
 }
 
 /* Create new avp target structure with name 'name'. Taken ownership of 'name'. */
-static struct avp_target *target_new(char *name) {
+static struct avp_target *avp_target_new(const char *name) {
 	struct avp_target *ret;
 
 	if ((ret=malloc(sizeof(*ret))) == NULL) {
 		fd_log_error("malloc error");
 		return NULL;
 	}
-	ret->name = name;
+	if ((ret->name=strdup(name)) == NULL) {
+		fd_log_error("strdup error");
+		free(ret);
+		return NULL;
+	}
 	ret->child = NULL;
 	return ret;
 }
@@ -238,19 +323,80 @@ static void avp_target_free(struct avp_target *target) {
 	}
 }
 
-/* Create new avp_match structure with name 'name'. Taken ownership of 'name'. */
-struct avp_match *avp_match_new(char *name) {
+/* create new avp_condition (defaults are hard here) */
+static struct avp_condition *avp_condition_new(void) {
+	struct avp_condition *result;
+
+	if ((result=malloc(sizeof(*result))) == NULL) {
+		fd_log_error("malloc error");
+		return NULL;
+	}
+	result->basetype = AVP_TYPE_GROUPED; /* invalid default */
+	result->comparator = EQUAL;
+	memset(&result->value, 0, sizeof(result->value));
+	result->variable_index = -1;
+	return result;
+}
+
+/* free struct avp_condition */
+static void avp_condition_free(struct avp_condition *condition) {
+	if (condition == NULL) {
+		return;
+	}
+	if (condition->basetype == AVP_TYPE_OCTETSTRING) {
+		free(condition->value.os.data);
+	}
+	free(condition);
+}
+
+/* Recursively free avp_action */
+static void avp_action_free(struct avp_action *action) {
+	struct avp_action *iter;
+
+	iter = action;
+	while (iter) {
+		struct avp_action *next;
+		avp_condition_free(iter->condition);
+		avp_target_free(iter->target);
+		next = iter->next;
+		free(iter);
+		iter = next;
+	}
+}
+
+static struct avp_action *avp_action_new(void) {
+	struct avp_action *result;
+
+	if ((result=malloc(sizeof(*result))) == NULL) {
+		fd_log_error("malloc error");
+		return NULL;
+	}
+	result->condition = NULL;
+	result->match_type = REWRITE_MAP;
+	result->next = NULL;
+	result->target = NULL;
+	return result;
+}
+
+
+/* Create new avp_match structure with name 'name'. */
+struct avp_match *avp_match_new(const char *name) {
 	struct avp_match *ret;
 
 	if ((ret=malloc(sizeof(*ret))) == NULL) {
 		fd_log_error("malloc error");
 		return NULL;
 	}
-	ret->name = name;
+	if ((ret->name=strdup(name)) == NULL) {
+		fd_log_error("strdup error");
+		free(ret);
+		return NULL;
+	}
 	ret->next = NULL;
 	ret->children = NULL;
-	ret->target = NULL;
-	ret->match_type = REWRITE_MAP;
+
+	ret->actions = NULL;
+	ret->variable_index = -1;
 	return ret;
 }
 
@@ -263,13 +409,27 @@ void avp_match_free(struct avp_match *match) {
 		free(iter->name);
 		next = iter->next;
 		avp_match_free(iter->children);
-		avp_target_free(iter->target);
+		avp_action_free(iter->actions);
 		free(iter);
 		iter = next;
 	}
 }
 
-static struct avp_match *avp_add_next_to(char *name, struct avp_match *target)
+/* add new avp_action 'action' to avp_match 'match' */
+void avp_match_add_action(struct avp_match *match, struct avp_action *action) {
+	if (match->actions == NULL) {
+		match->actions = action;
+		return;
+	}
+	struct avp_action *dest = match->actions;
+	while (dest->next != NULL) {
+		dest = dest->next;
+	}
+	dest->next = action;
+}
+
+/* return existing avp_match node for 'name' at 'target' or at the same level as it, or create new one */
+static struct avp_match *avp_match_add_next_to(const char *name, struct avp_match *target)
 {
 	struct avp_match *iter, *prev;
 
@@ -287,13 +447,14 @@ static struct avp_match *avp_add_next_to(char *name, struct avp_match *target)
 	return prev->next;
 }
 
-static int add(struct avp_match **target, char *name)
+/* add avp_match for 'name' below 'target' */
+static int avp_match_add(struct avp_match **target, const char *name)
 {
 	struct avp_match *temp;
 	if (verify_avp(name) < 0) {
 		return -1;
 	}
-	temp = avp_add_next_to(name, (*target)->children);
+	temp = avp_match_add_next_to(name, (*target)->children);
 	if ((*target)->children == NULL) {
 		(*target)->children = temp;
 	}
@@ -305,48 +466,62 @@ static int add(struct avp_match **target, char *name)
  * Add next level AVP 'name' to 'source_target', by adding it to the
  * common match tree and updating the 'source_target' pointer.
  */
-int source_add(char *name)
+int source_add(const char *name)
 {
 	if (source_target == NULL) {
 		source_target = avp_match_start;
 	}
-	return add(&source_target, name);
+	return avp_match_add(&source_target, name);
 }
 
 /* build tree for destination */
-int dest_add(char *name)
+int dest_add(const char *name)
 {
 	struct avp_target *temp;
 
 	if (verify_avp(name) < 0) {
 		return -1;
 	}
-	if ((temp=target_new(name)) == NULL) {
-		dest_target_top = NULL;
+	if ((temp=avp_target_new(name)) == NULL) {
 		dest_target = NULL;
 		source_target = NULL;
 		return -1;
 	}
 	if (dest_target == NULL) {
-		dest_target_top = temp;
+		dest_target = temp;
 	} else {
-		dest_target->child = temp;
+		struct avp_target *dest;
+		dest = dest_target;
+		while (dest->child) {
+			dest = dest->child;
+		}
+		dest->child = temp;
 	}
-	dest_target = temp;
 	return 0;
 }
 
-void map_finish(void)
+int map_finish(void)
 {
+	struct avp_action *action;
 	if (source_target == NULL) {
-		return;
+		return 0;
 	}
-	source_target->target = dest_target_top;
+
+	if ((action=avp_action_new()) == NULL) {
+		return -1;
+	}
+	action->condition = condition_target;
+	action->match_type = REWRITE_MAP;
+	action->target = dest_target;
+	avp_match_add_action(source_target, action);
+
 	source_target = NULL;
-	dest_target_top = NULL;
 	dest_target = NULL;
+	condition_target = NULL;
+	return 0;
 }
 
+/* create new avp_add structure and initialize it */
 static struct avp_add *avp_add_new(const char *request_name)
 {
 	struct dict_object *request_do;
@@ -364,21 +539,24 @@ static struct avp_add *avp_add_new(const char *request_name)
 	}
 	ret->target = NULL;
 	memset(&ret->value, 0, sizeof(ret->value));
-	ret->free_os_data = 0;
+	ret->basetype = AVP_TYPE_GROUPED; /* invalid */
 	ret->next = NULL;
 	return ret;
 }
 
+/* free complete avp_add list */
 void avp_add_free(struct avp_add *item)
 {
-	if (item == NULL) {
-		return;
+	while (item) {
+		struct avp_add *next;
+		avp_target_free(item->target);
+		if (item->basetype == AVP_TYPE_OCTETSTRING) {
+			free(item->value.os.data);
+		}
+		next = item->next;
+		free(item);
+		item = next;
 	}
-	avp_target_free(item->target);
-	if (item->free_os_data) {
-		free(item->value.os.data);
-	}
-	free(item);
 }
 
 int add_request(const char *request_name)
@@ -412,79 +590,266 @@ static long long convert_string_to_integer(const char *input, long long min, lon
 	return lval;
 }
 
-/*
- * Convert string 'value' to appropriate avp_value for 'target'.
- * Return -1 on error, 0 on success.
- */
-static int convert_string_to_avp_value(const char *value, struct avp_target *target, union avp_value *val, int *free_val)
-{
+static int get_basetype_for_avp(const char *name, enum dict_avp_basetype *result) {
 	struct dict_object *avp_do;
 	struct dict_avp_data dictdata;
 	int ret;
-	struct avp_target *final = target;
 
-	while (final->child) {
-		final = final->child;
-	}
-	if ((ret=fd_dict_search(fd_g_config->cnf_dict, DICT_AVP, AVP_BY_NAME_ALL_VENDORS, final->name, &avp_do, ENOENT)) != 0) {
-		fd_log_error("internal error, target AVP '%s' not in dictionary: %s", final->name, strerror(ret));
+	if ((ret=fd_dict_search(fd_g_config->cnf_dict, DICT_AVP, AVP_BY_NAME_ALL_VENDORS, name, &avp_do, ENOENT)) != 0) {
+		fd_log_error("AVP '%s' not in dictionary: %s", name, strerror(ret));
 		return -1;
 	}
 	if (fd_dict_getval(avp_do, &dictdata) != 0) {
 		fd_log_error("internal error, target AVP '%s' has invalid dictionary entry");
 		return -1;
 	}
-	switch(dictdata.avp_basetype) {
+
+	*result = dictdata.avp_basetype;
+	return 0;
+}
+
+/* return a string printing an avp_value 'value' of type 'basetype'. String must be free()d by calleer */
+static char *dump_avp_value(union avp_value *value, enum dict_avp_basetype basetype) {
+	char *result = NULL;
+	switch (basetype) {
 	case AVP_TYPE_GROUPED:
-		fd_log_error("rt_rewrite: invalid type 'grouped' for target AVP '%s'", final->name);
+		fd_log_error("cannot dump avp value of type grouped AVP");
 		break;
 	case AVP_TYPE_FLOAT32:
 	case AVP_TYPE_FLOAT64:
-		fd_log_error("rt_rewrite: unsupported type 'float' for target AVP '%s'", final->name);
+		fd_log_error("unsupported AVP type 'float'");
 		break;
         case AVP_TYPE_OCTETSTRING:
-                (*val).os.data = (uint8_t *)strdup(value);
-                (*val).os.len  = strlen(value);
+		asprintf(&result, "%.*s", (int)value->os.len, value->os.data);
 		break;
 	case AVP_TYPE_INTEGER32:
-		(*val).i32 = convert_string_to_integer(value, (-0x7fffffff-1), 0x7fffffff);
+		asprintf(&result, "%d", value->i32);
 		break;
 	case AVP_TYPE_INTEGER64:
-		(*val).i64 = convert_string_to_integer(value, (-0x7fffffffffffffffLL-1), 0x7fffffffffffffffLL);
+		asprintf(&result, "%" PRIi64, value->i64);
 		break;
 	case AVP_TYPE_UNSIGNED32:
-		(*val).u32 = convert_string_to_integer(value, 0, 0xffffffff);
+		asprintf(&result, "%u", value->u32);
 		break;
 	case AVP_TYPE_UNSIGNED64:
-		(*val).u64 = convert_string_to_integer(value, 0, 0xffffffffffffffffLL);
+		asprintf(&result, "%" PRIu64, value->u64);
 		break;
+	}
+	return result;
+}
+
+/*
+ * convert 'value' to an avp_value of type 'basetype'.
+ * result is returned in 'result' parameter
+ * returns 0 on success or -1 on error
+ */
+static int convert_string_to_avp_value_basetype(const char *value, enum dict_avp_basetype basetype, union avp_value *result)
+{
+	if (result == NULL) {
+		return -1;
+	}
+	switch(basetype) {
+	case AVP_TYPE_GROUPED:
+		fd_log_error("cannot convert '%s' to a grouped AVP", value);
+		return -1;
+	case AVP_TYPE_FLOAT32:
+	case AVP_TYPE_FLOAT64:
+		fd_log_error("unsupported type 'float'");
+		return -1;
+        case AVP_TYPE_OCTETSTRING:
+                (*result).os.data = (uint8_t *)strdup(value);
+                (*result).os.len  = strlen(value);
+		break;
+	case AVP_TYPE_INTEGER32:
+		(*result).i32 = convert_string_to_integer(value, (-0x7fffffff-1), 0x7fffffff);
+		break;
+	case AVP_TYPE_INTEGER64:
+		(*result).i64 = convert_string_to_integer(value, (-0x7fffffffffffffffLL-1), 0x7fffffffffffffffLL);
+		break;
+	case AVP_TYPE_UNSIGNED32:
+		(*result).u32 = convert_string_to_integer(value, 0, 0xffffffff);
+		break;
+	case AVP_TYPE_UNSIGNED64:
+		(*result).u64 = convert_string_to_integer(value, 0, 0xffffffffffffffffLL);
+		break;
+	}
+	return 0;
+}
+
+/*
+ * Convert string 'value' to appropriate avp_value for 'target'.
+ * Return -1 on error, 0 on success.
+ */
+static int convert_string_to_avp_value(const char *value, struct avp_target *target, union avp_value *val, enum dict_avp_basetype *basetype)
+{
+	struct avp_target *final = target;
+
+	while (final->child) {
+		final = final->child;
+	}
+	if (get_basetype_for_avp(final->name, basetype) < 0) {
+		return -1;
+	}
+	if (convert_string_to_avp_value_basetype(value, *basetype, val) < 0) {
+		return -1;
 	}
 	return 0;
 }
 
 int add_finish(const char *value)
 {
-	if (convert_string_to_avp_value(value, dest_target, &add_target->value, &add_target->free_os_data) < 0) {
+	struct avp_add *position;
+
+	if (convert_string_to_avp_value(value, dest_target, &add_target->value, &add_target->basetype) < 0) {
 		return -1;
 	}
 	add_target->target = dest_target;
 	dest_target = NULL;
+	add_target->condition = condition_target;
+	condition_target = NULL;
 	if (avp_add_start) {
-		add_target->next = avp_add_start->next;
-		avp_add_start->next = add_target;
+		position = avp_add_start;
+		while (position->next != NULL) {
+			position = position->next;
+		}
+		position->next = add_target;
 	} else {
 		avp_add_start = add_target;
 	}
-
 	return 0;
 }
 
 /* mark as to-drop */
-void drop_finish(void)
+int drop_finish(void)
 {
+	struct avp_action *action;
+
 	if (source_target == NULL) {
+		return 0;
+	}
+
+	if ((action=avp_action_new()) == NULL) {
+		return -1;
+	}
+	action->condition = condition_target;
+	action->match_type = REWRITE_DROP;
+	action->target = NULL;;
+	avp_match_add_action(source_target, action);
+
+	source_target = NULL;
+	condition_target = NULL;
+
+	return 0;
+}
+
+/*
+ * Add next level AVP 'name' to 'variable_target', by adding it to the
+ * common match tree and updating the 'variable_target' pointer.
+ */
+int variable_add(const char *name)
+{
+	if (variable_target == NULL) {
+		variable_target = avp_variable_start;
+	}
+	return avp_match_add(&variable_target, name);
+}
+
+/* get index for variable with name 'variable_name' */
+int variable_get_index(const char *name) {
+	for (int i = 0; i < avp_variable_count; i++) {
+		if (strcmp(variable_data[i].name, name) == 0) {
+			return i;
+		}
+	}
+
+	return -1;
+}
+
+/* save the variable name for later use */
+int variable_set_name(const char *name)
+{
+	if (variable_name != NULL) {
+		fd_log_error("parse error: multiple variable names defined");
+		return -1;
+	}
+	if (variable_get_index(name) != -1) {
+		fd_log_error("duplicate VARIABLE name '%s'", name);
+		return -1;
+	}
+
+	if ((variable_name=strdup(name)) == NULL) {
+		fd_log_error("strdup error");
+		return -1;
+	}
+	return 0;
+}
+
+/* create a variable (re-uses dest_target code to avoid duplication) */
+int variable_finish(void)
+{
+	struct variable_data_type *new_variables;
+	enum dict_avp_basetype basetype;
+
+	if (get_basetype_for_avp(variable_target->name, &basetype) < 0) {
+		return -1;
+	}
+	if (variable_target == NULL || variable_name == NULL) {
+		fd_log_error("bug in variable_finish() - no variable or name");
+		return -1;
+	}
+	/* extend array */
+	if ((new_variables=realloc(variable_data, (avp_variable_count+1) * sizeof(*variable_data))) == NULL) {
+		fd_log_error("realloc error");
+		return -1;
+	}
+	variable_data = new_variables;
+	variable_data[avp_variable_count].name = variable_name;
+	variable_data[avp_variable_count].basetype = basetype;
+	variable_target->variable_index = avp_variable_count;
+	avp_variable_count++;
+	variable_name = NULL;
+	variable_target = NULL;
+
+	return 0;
+}
+
+/* delete variable names after parsing config file, not needed afterwards */
+void variable_names_cleanup(void) {
+	if (variable_data == NULL) {
 		return;
 	}
-	source_target->match_type = REWRITE_DROP;
-	source_target = NULL;
+	for (size_t i = 0; i < avp_variable_count; i++) {
+		free(variable_data[i].name);
+	}
+	free(variable_data);
+	variable_data = NULL;
+}
+
+/* add condition to be used by next ADD/DROP/MAP */
+int condition(const char *name, enum comparators comparator, const char *value) {
+	int variable_index;
+	struct avp_condition *cond;
+
+	if ((variable_index=variable_get_index(name)) == -1) {
+		fd_log_error("unknown variable '%s' in condition", name);
+		return -1;
+	}
+	if (variable_data[variable_index].basetype == AVP_TYPE_OCTETSTRING && comparator != EQUAL) {
+		fd_log_error("variable '%s' of type OctetString can only be compared with '='", name);
+		return -1;
+	}
+	if ((cond=avp_condition_new()) == NULL) {
+		return -1;
+	}
+	if (convert_string_to_avp_value_basetype(value, variable_data[variable_index].basetype, &cond->value) < 0) {
+		fd_log_error("failed to convert comparison value '%s' for variable '%s'", value, name);
+		free(cond);
+		return -1;
+	}
+	cond->basetype = variable_data[variable_index].basetype;
+	cond->comparator = comparator;
+	cond->variable_index = variable_index;
+
+	condition_target = cond;
+	return 0;
 }

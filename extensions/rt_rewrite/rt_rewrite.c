@@ -52,6 +52,12 @@ struct avp_match *avp_match_start = NULL;
 /* structure containing information about AVPs to be added */
 struct avp_add *avp_add_start = NULL;
 
+/* structure containing informationb about variables used in conditions in the config file */
+struct avp_match *avp_variable_start = NULL;
+
+/* how many variables there are */
+size_t avp_variable_count = 0;
+
 static pthread_rwlock_t rt_rewrite_lock;
 
 #define MODULE_NAME "rt_rewrite"
@@ -70,6 +76,15 @@ struct store {
 	/* pointer to next store item */
 	struct store *next;
 };
+
+/* for freeing an avp_value, we need to know its basetype, so we need a structure to keep it */
+struct variable_value {
+	union avp_value value;
+	enum dict_avp_basetype basetype;
+	int valid;
+};
+
+static int evaluate_condition(struct avp_condition *condition, struct variable_value *values);
 
 /* create new store item */
 static struct store *store_new(void) {
@@ -223,13 +238,18 @@ static int schedule_for_adding(struct avp *avp, struct avp_target *target, struc
 {
 	if (store->avp) {
 		struct store *new;
+		struct store *last;
 		if ((new=store_new()) == NULL) {
 			return -1;
 		}
 		new->avp = avp;
 		new->target = target;
-		new->next = store->next;
-		store->next = new;
+		new->next = NULL;
+		last = store;
+		while (last->next) {
+			last = last->next;
+		}
+		last->next = new;
 	} else {
 		store->avp = avp;
 		store->target = target;
@@ -272,7 +292,7 @@ static void set_target_to_avp_value(union avp_value *avp_value, struct avp_targe
 /*
  * Apply avp_add_list for 'msg', add changes to 'store'.
  */
-static void add_avps(msg_or_avp *msg, struct store *store) {
+static void add_avps(msg_or_avp *msg, struct store *store, struct variable_value *values) {
 	struct avp_add *next = avp_add_start;
 	struct msg_hdr *hdr;
 
@@ -289,10 +309,26 @@ static void add_avps(msg_or_avp *msg, struct store *store) {
 		*/
 		if ((hdr->msg_code == next->request.cmd_code)
 		    && ((hdr->msg_flags & next->request.cmd_flag_mask) == next->request.cmd_flag_val)) {
-			set_target_to_avp_value(&next->value, next->target, store);
+			if (evaluate_condition(next->condition, values)) {
+				set_target_to_avp_value(&next->value, next->target, store);
+			}
 		}
 		next = next->next;
 	}
+}
+
+#define COMPARE_VARIABLE_TO_CONDITION(a, cmp, b) { switch(cmp) { \
+	case LESS: \
+		return (a) < (b); \
+	case LESS_EQUAL: \
+		return (a) <= (b); \
+	case EQUAL: \
+		return (a) == (b); \
+	case MORE_EQUAL: \
+		return (a) >= (b); \
+	case MORE: \
+		return (a) > (b); \
+	} \
 }
 
 /*
@@ -310,6 +346,152 @@ static struct avp_match *avp_to_be_replaced(const char *avp_name, struct avp_mat
 	return NULL;
 }
 
+/* copy an avp_value into a variable_value */
+static int avp_value_copy(enum dict_avp_basetype basetype, union avp_value *source, struct variable_value *target) {
+	/* octetstrings need to be duplicated, rest can be copied as-is */
+	if (basetype == AVP_TYPE_OCTETSTRING) {
+		uint8_t *osstr;
+		if ((osstr=malloc(source->os.len)) == NULL) {
+			fd_log_error("%s: malloc error", MODULE_NAME);
+			return -1;
+		}
+		memcpy(osstr, source->os.data, source->os.len);
+		target->value.os.data = osstr;
+		target->value.os.len = source->os.len;
+	} else {
+		memcpy(&target->value, source, sizeof(*source));
+	}
+	target->basetype = basetype;
+	target->valid = 1;
+
+	return 0;
+}
+
+/*
+ * evaluate if a condition is true or not given the provided variables
+ *
+ * 'condition' is the condition, 'values' are the variables' values
+ *
+ * returns 1 if true, 0 if not, -1 on error
+ */
+static int evaluate_condition(struct avp_condition *condition, struct variable_value *values) {
+	union avp_value *variable_value;
+
+	/* if there is no condition, it is true */
+	if (condition == NULL) {
+		return 1;
+	}
+
+	/* if variable is not valid, comparison can't be true */
+	if (!values[condition->variable_index].valid) {
+		return 0;
+	}
+
+	variable_value = &values[condition->variable_index].value;
+	switch (condition->basetype) {
+	case AVP_TYPE_OCTETSTRING:
+		if (condition->comparator == EQUAL) {
+			if (variable_value->os.len == condition->value.os.len
+			    && memcmp(variable_value->os.data, condition->value.os.data, condition->value.os.len) == 0) {
+				return 1;
+			} else {
+				return 0;
+			}
+		}
+		return -1;
+	case AVP_TYPE_INTEGER32:
+		COMPARE_VARIABLE_TO_CONDITION(variable_value->i32, condition->comparator, condition->value.i32);
+		break;
+	case AVP_TYPE_INTEGER64:
+		COMPARE_VARIABLE_TO_CONDITION(variable_value->i64, condition->comparator, condition->value.i64);
+		break;
+	case AVP_TYPE_UNSIGNED32:
+		COMPARE_VARIABLE_TO_CONDITION(variable_value->u32, condition->comparator, condition->value.u32);
+		break;
+	case AVP_TYPE_UNSIGNED64:
+		COMPARE_VARIABLE_TO_CONDITION(variable_value->u64, condition->comparator, condition->value.u64);
+		break;
+	case AVP_TYPE_FLOAT32:
+	case AVP_TYPE_FLOAT64:
+	case AVP_TYPE_GROUPED:
+		/* unsupported */
+		return -1;
+	}
+	/* unreachable, but some compilers don't recognize this */
+	return -1;
+}
+
+/*
+ * recursively called function to evaluate the variables for the message
+ *
+ * 'avp' is the next avp to look at (usually the first one in the
+ * current grouped AVP or message)
+ *
+ * 'subtree' is the part of the avp_match structure for variables corresponding to
+ * the current subtree
+ *
+ * 'values' contains the array of values found so far
+ */
+static int evaluate_variables(struct avp *avp, struct avp_match *subtree, struct variable_value *values)
+{
+	/* for each AVP in message */
+	while (avp) {
+		struct avp_hdr *header = NULL;
+		struct dict_object *model = NULL;
+		const char *avp_name = NULL;
+		struct avp *next;
+
+		if (fd_msg_avp_hdr(avp, &header) != 0) {
+			fd_log_notice("internal error: unable to get header for AVP");
+			return -1;
+		}
+		if (fd_msg_model(avp, &model) != 0) {
+			fd_log_notice("internal error: unable to get model for AVP (%d, vendor %d)", header->avp_code, header->avp_vendor);
+			return -1;
+		}
+		if (model == NULL) {
+			fd_log_error("unknown AVP (%d, vendor %d) (not in dictionary), skipping", header->avp_code, header->avp_vendor);
+			return -1;
+		} else {
+			struct dict_avp_data dictdata;
+			struct avp_match *subtree_match;
+			enum dict_avp_basetype basetype = AVP_TYPE_OCTETSTRING;
+
+			fd_dict_getval(model, &dictdata);
+			avp_name = dictdata.avp_name;
+			basetype = dictdata.avp_basetype;
+
+			/* check if it exists in the subtree */
+			if ((subtree_match = avp_to_be_replaced(avp_name, subtree))) {
+				/* if grouped, dive down */
+				if (basetype == AVP_TYPE_GROUPED) {
+					msg_or_avp *child = NULL;
+
+					fd_log_debug("%s: grouped AVP '%s'", MODULE_NAME, avp_name);
+					if (fd_msg_browse(avp, MSG_BRW_FIRST_CHILD, &child, NULL) != 0) {
+						fd_log_notice("internal error: unable to browse message at AVP (%d, vendor %d)", header->avp_code, header->avp_vendor);
+						return -1;
+					}
+
+					if (evaluate_variables(child, subtree_match->children, values) < 0) {
+						return -1;
+					}
+				}
+				else {
+					/* keep value if it's a variable */
+					if (subtree_match->variable_index >= 0) {
+						avp_value_copy(basetype, header->avp_value, &values[subtree_match->variable_index]);
+					}
+				}
+			}
+		}
+		fd_msg_browse(avp, MSG_BRW_NEXT, &next, NULL);
+
+		avp = next;
+	}
+	return 0;
+}
+
 /*
  * recursively called function to apply the replacements to the whole message
  *
@@ -325,7 +507,7 @@ static struct avp_match *avp_to_be_replaced(const char *avp_name, struct avp_mat
  * returns 1 if AVP will be empty due to 'DROP's and 'MAP's, 0
  * otherwise.
  */
-static int replace_avps(struct avp *avp, struct avp_match *subtree, struct store *store)
+static int replace_avps(struct avp *avp, struct avp_match *subtree, struct store *store, struct variable_value *values)
 {
 	int nothing_left = 1;
 	/* for each AVP in message */
@@ -357,10 +539,13 @@ static int replace_avps(struct avp *avp, struct avp_match *subtree, struct store
 			basetype = dictdata.avp_basetype;
 			/* check if it exists in the subtree */
 			if ((subtree_match = avp_to_be_replaced(avp_name, subtree))) {
-				/* if this should be deleted, mark as such */
-				if (subtree_match->match_type == REWRITE_DROP) {
-					fd_log_debug("%s: dropping AVP '%s'", MODULE_NAME, avp_name);
-					delete = 1;
+				struct avp_action *action;
+				for (action = subtree_match->actions; action != NULL; action = action->next) {
+					/* if this should be deleted, mark as such */
+					if (action->match_type == REWRITE_DROP && evaluate_condition(action->condition, values)) {
+						fd_log_debug("%s: dropping AVP '%s'", MODULE_NAME, avp_name);
+						delete = 1;
+					}
 				}
 				/* if grouped, dive down */
 				if (basetype == AVP_TYPE_GROUPED) {
@@ -373,21 +558,23 @@ static int replace_avps(struct avp *avp, struct avp_match *subtree, struct store
 					}
 
 					/* replace_avps returns 1 if the AVP was emptied out */
-					if (replace_avps(child, subtree_match->children, store)) {
+					if (replace_avps(child, subtree_match->children, store, values)) {
 						fd_log_debug("%s: removing empty grouped AVP '%s'", MODULE_NAME, avp_name);
 						delete = 1;
 					}
 				}
 				else {
-					/* if single, remove it and add replacement AVP in target structure */
-					if (subtree_match->target) {
-						struct avp_target *final = subtree_match->target;
-						while (final->child) {
-							final = final->child;
+					for (action = subtree_match->actions; action != NULL; action = action->next) {
+						/* if single, remove it and add replacement AVP in target structure */
+						if (action->target && evaluate_condition(action->condition, values)) {
+							struct avp_target *final = action->target;
+							while (final->child) {
+								final = final->child;
+							}
+							fd_log_debug("%s: moving AVP '%s' to '%s'", MODULE_NAME, avp_name, final->name);
+							set_target_to_avp_value(header->avp_value, action->target, store);
+							delete = 1;
 						}
-						fd_log_debug("%s: moving AVP '%s' to '%s'", MODULE_NAME, avp_name, final->name);
-						set_target_to_avp_value(header->avp_value, subtree_match->target, store);
-						delete = 1;
 					}
 				}
 			}
@@ -413,6 +600,8 @@ static void sig_hdlr(void)
 {
 	struct avp_match *old_match;
 	struct avp_add *old_list;
+	struct avp_match *old_variables;
+	size_t old_variable_count;
 
 	if (in_signal_handler) {
 		fd_log_error("%s: already handling a signal, ignoring new one", MODULE_NAME);
@@ -430,6 +619,10 @@ static void sig_hdlr(void)
 	avp_match_start = NULL;
 	old_list = avp_add_start;
 	avp_add_start = NULL;
+	old_variables = avp_variable_start;
+	avp_variable_start = NULL;
+	old_variable_count = avp_variable_count;
+	avp_variable_count = 0;
 
 	if (rt_rewrite_conf_handle(config_file) != 0) {
 		fd_log_notice("%s: error reloading configuration, restoring previous configuration", MODULE_NAME);
@@ -437,9 +630,13 @@ static void sig_hdlr(void)
 		avp_match_start = old_match;
 		avp_add_free(avp_add_start);
 		avp_add_start = old_list;
+		avp_match_free(avp_variable_start);
+		avp_variable_start = old_variables;
+		avp_variable_count = old_variable_count;
 	} else {
 		avp_match_free(old_match);
 		avp_add_free(old_list);
+		avp_match_free(old_variables);
 	}
 
 	if (pthread_rwlock_unlock(&rt_rewrite_lock) != 0) {
@@ -452,11 +649,38 @@ static void sig_hdlr(void)
 	in_signal_handler = 0;
 }
 
+static struct variable_value *variable_store_new(void) {
+	struct variable_value *values;
+
+	if ((values=calloc(avp_variable_count, sizeof(*values))) == NULL) {
+		fd_log_error("%s: malloc error", MODULE_NAME);
+		return NULL;
+	}
+	for (size_t i = 0; i < avp_variable_count; i++) {
+		values[i].valid = 0;
+	}
+	return values;
+}
+
+static void variable_store_free(struct variable_value *values) {
+	for (size_t i = 0; i < avp_variable_count; i++) {
+		if (values[i].valid == 0) {
+			continue;
+		}
+		if (values[i].basetype == AVP_TYPE_OCTETSTRING) {
+			free(values[i].value.os.data);
+		}
+	}
+
+	free(values);
+}
+
 static int rt_rewrite(void * cbdata, struct msg **msg)
 {
 	int ret;
 	msg_or_avp *avp = NULL;
 	struct store *store = NULL;
+	struct variable_value *values = NULL;
 
 	/* nothing configured */
 	if (avp_match_start == NULL) {
@@ -468,29 +692,51 @@ static int rt_rewrite(void * cbdata, struct msg **msg)
 		return errno;
 	}
 
-	if ((ret = fd_msg_parse_dict(*msg, fd_g_config->cnf_dict, NULL)) != 0) {
+	if ((ret=fd_msg_parse_dict(*msg, fd_g_config->cnf_dict, NULL)) != 0) {
 		fd_log_notice("%s: error parsing message", MODULE_NAME);
 		pthread_rwlock_unlock(&rt_rewrite_lock);
 		return ret;
 	}
+
+	/* evaluate variables */
 	if ((ret=fd_msg_browse(*msg, MSG_BRW_FIRST_CHILD, &avp, NULL)) != 0) {
 		fd_log_notice("internal error: message has no child");
 		pthread_rwlock_unlock(&rt_rewrite_lock);
 		return ret;
 	}
-	if ((store=store_new()) == NULL) {
-		fd_log_error("%s: malloc failure");
-		pthread_rwlock_unlock(&rt_rewrite_lock);
-		return ENOMEM;
-	}
-	if (replace_avps(avp, avp_match_start->children, store) != 0) {
-		fd_log_error("%s: replace AVP function failed", MODULE_NAME);
-		store_free(store);
+	if ((values=variable_store_new()) == NULL) {
 		pthread_rwlock_unlock(&rt_rewrite_lock);
 		return -1;
 	}
-	add_avps(*msg, store);
+	if (evaluate_variables(avp, avp_variable_start->children, values) < 0) {
+		fd_log_error("%s: error evaluating variables in message", MODULE_NAME);
+		variable_store_free(values);
+		pthread_rwlock_unlock(&rt_rewrite_lock);
+	}
+	/* variable_store_dump(values); */
+	/* actual message modifications */
+	if ((ret=fd_msg_browse(*msg, MSG_BRW_FIRST_CHILD, &avp, NULL)) != 0) {
+		fd_log_notice("internal error: message has no child");
+		pthread_rwlock_unlock(&rt_rewrite_lock);
+		variable_store_free(values);
+		return ret;
+	}
+	if ((store=store_new()) == NULL) {
+		fd_log_error("%s: malloc failure");
+		variable_store_free(values);
+		pthread_rwlock_unlock(&rt_rewrite_lock);
+		return ENOMEM;
+	}
+	if (replace_avps(avp, avp_match_start->children, store, values) != 0) {
+		fd_log_error("%s: replace AVP function failed", MODULE_NAME);
+		store_free(store);
+		variable_store_free(values);
+		pthread_rwlock_unlock(&rt_rewrite_lock);
+		return -1;
+	}
+	add_avps(*msg, store, values);
 	ret = store_apply(*msg, &store);
+	variable_store_free(values);
 
 	if (pthread_rwlock_unlock(&rt_rewrite_lock) != 0) {
 		fd_log_error("%s: unlocking failed, returning error", MODULE_NAME);
