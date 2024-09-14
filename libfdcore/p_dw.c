@@ -81,11 +81,15 @@ static int send_DWR(struct fd_peer * peer)
 	/* Add the content of the message (only the origin) */
 	CHECK_FCT( fd_msg_add_origin ( msg, 1 ) );
 	
+        /* Mark the host as having a pending DW */
+        /* We need to set this before sending the message because the
+         * reply may come too fast in another thread, setting this to
+         * zero, and then we overwrite it and end up incorrectly in
+         * state SUSPECT. */
+	peer->p_flags.pf_dw_pending = 1;
+
 	/* Now send this message */
 	CHECK_FCT( fd_out_send(&msg, NULL, peer, 0) );
-	
-	/* And mark the pending DW */
-	peer->p_flags.pf_dw_pending = 1;
 	
 	return 0;
 }
