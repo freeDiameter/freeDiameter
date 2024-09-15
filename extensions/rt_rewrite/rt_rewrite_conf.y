@@ -34,14 +34,14 @@
 
 /* For development only : */
 %debug
-%define parse.error verbose
+%error-verbose
 
 /* The parser receives the configuration file filename as parameter */
 %parse-param {char * conffile}
 
 /* Keep track of location */
 %locations
-%define api.pure
+%pure-parser
 
 %{
 #include <freeDiameter/extension.h>
