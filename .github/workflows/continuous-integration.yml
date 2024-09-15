@@ -25,6 +25,7 @@ jobs:
           rm -f /usr/local/bin/pydoc*
           rm -f /usr/local/bin/python3*
           brew update
+          brew upgrade
           brew install gnutls libgcrypt libidn2
 #      - name: install dependencies (Windows)
 #        if: ${{ runner.os == 'Windows' }}
@@ -59,4 +60,4 @@ jobs:
       - name: test
         working-directory: ${{runner.workspace}}/build
         run: |
-          ctest -v -C Release
+          ctest -V -C Release
