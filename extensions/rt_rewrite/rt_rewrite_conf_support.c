@@ -29,6 +29,7 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.                                                             *
  *********************************************************************************************************/
 
+#include <inttypes.h>
 #include <stdio.h>
 #include <stdlib.h>
 
