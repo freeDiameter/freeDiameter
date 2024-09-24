@@ -914,6 +914,10 @@ psm_end:
 	pthread_cleanup_pop(1); /* set STATE_ZOMBIE */
 	peer->p_psm = (pthread_t)NULL;
 	pthread_detach(pthread_self());
+	/* any problems this connection had are gone with it now */
+	peer->p_flags.pf_cnx_pb = 0;
+	/* we will not get any replies to DWRs on this connection any longer */
+	peer->p_flags.pf_dw_pending = 0;
 	return NULL;
 }
 
