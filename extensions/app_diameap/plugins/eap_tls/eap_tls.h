@@ -40,7 +40,7 @@
 
 #include "../../plugins.h"
 
-struct tls_config	tls_global_conf;
+extern struct tls_config	tls_global_conf;
 
 int diameap_eap_tls_buildReq_ack(u8 id, struct eap_packet * eapPacket);
 int diameap_eap_tls_buildReq_start(u8 id, struct eap_packet * eapPacket);
