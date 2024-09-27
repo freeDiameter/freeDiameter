@@ -73,7 +73,7 @@ struct eap_user
 	boolean success; /* Set to TRUE if User is authenticated successfully */
 };
 
-boolean check_user_identity;
+extern boolean check_user_identity;
 
 int diameap_user_get_password(struct eap_user *user, u8 * password,u16 *length);
 

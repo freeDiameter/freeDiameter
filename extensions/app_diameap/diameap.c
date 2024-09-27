@@ -43,6 +43,9 @@
 static struct diameap_conf conf;
 struct diameap_conf * diameap_config = &conf;
 
+MYSQL *db_conn;
+boolean check_user_identity;
+
 /* The entry point */
 static int diameap_main(char * conffile)
 {
