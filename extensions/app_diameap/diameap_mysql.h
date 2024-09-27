@@ -43,7 +43,7 @@
 #include <mysql.h>
 
 /* MySQL Database connection */
-MYSQL *db_conn;
+extern MYSQL *db_conn;
 
 int diameap_get_eap_user(struct eap_user * user, char * username);
 
