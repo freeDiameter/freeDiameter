@@ -38,6 +38,8 @@
 
 #include "eap_tls.h"
 
+struct tls_config    tls_global_conf;
+
 __attribute__((visibility("default")))
 int eap_tls_configure(char * configfile);
 
