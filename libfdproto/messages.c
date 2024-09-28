@@ -2358,19 +2358,36 @@ static int parsedict_do_msg(struct dictionary * dict, struct msg * msg, int only
 	}
 	
 	/* Look for the model from the header */
-	CHECK_FCT_DO( ret = fd_dict_search ( dict, DICT_COMMAND, 
-			(msg->msg_public.msg_flags & CMD_FLAG_REQUEST) ? CMD_BY_CODE_R : CMD_BY_CODE_A,
-			&msg->msg_public.msg_code,
-			&msg->msg_model, ENOTSUP),
-		{
-			if (ret == ENOTSUP) {
-				/* update the model not found info */
-				msg->msg_model_not_found.mnf_code = msg->msg_public.msg_code;
-				msg->msg_model_not_found.mnf_flags = msg->msg_public.msg_flags;
-				goto no_model;
-			}
-			return ret;
-		} );
+	if( 0 == msg->msg_public.msg_appl ) {
+		CHECK_FCT_DO( ret = fd_dict_search ( dict, DICT_COMMAND, 
+				(msg->msg_public.msg_flags & CMD_FLAG_REQUEST) ? CMD_BY_CODE_R : CMD_BY_CODE_A,
+				&msg->msg_public.msg_code,
+				&msg->msg_model, ENOTSUP),
+			{
+				if (ret == ENOTSUP) {
+					/* update the model not found info */
+					msg->msg_model_not_found.mnf_code = msg->msg_public.msg_code;
+					msg->msg_model_not_found.mnf_flags = msg->msg_public.msg_flags;
+					goto no_model;
+				}
+				return ret;
+			} );
+	} else {
+		struct dict_cmd_request req = { .cmd_code = msg->msg_public.msg_code, .app_id = msg->msg_public.msg_appl };
+		CHECK_FCT_DO( ret = fd_dict_search ( dict, DICT_COMMAND, 
+				(msg->msg_public.msg_flags & CMD_FLAG_REQUEST) ? CMD_BY_CODE_R_APPL_ID : CMD_BY_CODE_A_APPL_ID,
+				& req,
+				&msg->msg_model, ENOTSUP),
+			{
+				if (ret == ENOTSUP) {
+					/* update the model not found info */
+					msg->msg_model_not_found.mnf_code = msg->msg_public.msg_code;
+					msg->msg_model_not_found.mnf_flags = msg->msg_public.msg_flags;
+					goto no_model;
+				}
+				return ret;
+			} );
+	}
 chain:	
 	if (!only_hdr) {
 		/* Then process the children */
