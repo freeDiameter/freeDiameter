@@ -45,6 +45,7 @@ jobs:
 
     - name: Install Dependencies
       run: |
+           sudo apt-get update
            sudo apt-get install libsctp-dev libgnutls28-dev libgcrypt-dev libidn2-dev
 
 
