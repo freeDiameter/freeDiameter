@@ -808,8 +808,8 @@ int rgw_clients_create_origin(struct rgw_radius_msg_meta *msg, struct rgw_client
 				/* It is a valid alias, save it */
 				CHECK_MALLOC( cli->aliases = realloc(cli->aliases, (cli->aliases_nb + 1) * sizeof(cli->aliases[0])) );
 				
-				CHECK_MALLOC( cli->aliases[cli->aliases_nb + 1].name = os0dup(nas_id + 1, nas_id_len ) );
-				cli->aliases[cli->aliases_nb + 1].len = nas_id_len;
+				CHECK_MALLOC( cli->aliases[cli->aliases_nb].name = os0dup(nas_id + 1, nas_id_len ) );
+				cli->aliases[cli->aliases_nb].len = nas_id_len;
 
 				cli->aliases_nb ++;
 				TRACE_DEBUG(FULL, "Saved valid alias for client: '%.*s' -> '%s'", (int)nas_id_len, (char *)(nas_id + 1), cli->fqdn);
