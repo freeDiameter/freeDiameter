@@ -2,7 +2,7 @@
 Project("freeDiameter core library" C)
 
 # Configuration for newer cmake
-cmake_policy(VERSION 2.8.12)
+cmake_policy(VERSION 3.10)
 
 # Configuration parser
 BISON_FILE(fdd.y)
