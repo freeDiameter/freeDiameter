@@ -44,9 +44,6 @@ static struct fd_config g_conf;
 struct fd_config * fd_g_config = NULL;
 
 /* gcrypt functions to support posix threads */
-#ifndef GNUTLS_VERSION_210
-GCRY_THREAD_OPTION_PTHREAD_IMPL;
-#endif /* GNUTLS_VERSION_210 */
 
 /* Thread that process incoming events on the main queue -- and terminates the framework when requested */
 static pthread_t core_runner = (pthread_t)NULL;
@@ -188,20 +185,12 @@ int fd_core_initialize(void)
 	LOG_N("libfdproto '%s' initialized.", fd_libproto_version);
 	
 	/* Initialize gcrypt and gnutls */
-	#ifndef GNUTLS_VERSION_210
-	GNUTLS_TRACE( (void) gcry_control (GCRYCTL_SET_THREAD_CBS, &gcry_threads_pthread) );
-	GNUTLS_TRACE( (void) gcry_control (GCRYCTL_ENABLE_QUICK_RANDOM, 0) );
-	#endif /* GNUTLS_VERSION_210 */
 	CHECK_GNUTLS_DO( gnutls_global_init(), return EINVAL );
 	if ( ! gnutls_check_version(GNUTLS_VERSION) ) {
 		TRACE_ERROR( "The GNUTLS library is too old; found '%s', need '" GNUTLS_VERSION "'", gnutls_check_version(NULL));
 		return EINVAL;
 	} else {
-	#ifdef GNUTLS_VERSION_210
 		TRACE_DEBUG(INFO, "libgnutls '%s' initialized.", gnutls_check_version(NULL) );
-	#else /* GNUTLS_VERSION_210 */
-		TRACE_DEBUG(INFO, "libgnutls '%s', libgcrypt '%s', initialized.", gnutls_check_version(NULL), gcry_check_version(NULL) );
-	#endif /* GNUTLS_VERSION_210 */
 	}
 	
 	/* Initialize the config with default values */
