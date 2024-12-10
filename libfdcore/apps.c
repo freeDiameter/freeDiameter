@@ -150,3 +150,17 @@ int fd_app_empty(struct fd_list * list)
 	
 	return 0;
 }
+int fd_app_count(struct fd_list * list)
+{
+	int count = 0;
+	struct fd_list *li;
+
+	TRACE_ENTRY("%p", list);
+	CHECK_PARAMS( list );
+
+	for (li = list->next; li != list; li = li->next) {
+		count++;
+	}
+
+	return count;
+}
