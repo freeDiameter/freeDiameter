@@ -36,12 +36,27 @@
 /* See doc/rt_busypeers.conf.sample for more details about the features of this extension */
 #include "rtbusy.h"
 
+struct dict_object * si_avp_do; /* cache the Session-Id dictionary object */
 /* The configuration structure */
 struct rtbusy_conf rtbusy_conf;
 
 static struct fd_rt_fwd_hdl * rt_busy_hdl = NULL;
 
 static void rtbusy_expirecb(void * data, DiamId_t sentto, size_t senttolen, struct msg ** req);
+static char *get_session_id(struct msg **pmsg)
+{
+	struct avp_hdr *hdr = NULL;
+	struct avp *si_avp;
+	if (fd_msg_search_avp(*pmsg, si_avp_do, &si_avp) != 0) {
+		fd_log_error("can't get AVP for 'Session-Id', skipping message");
+		return NULL;
+	}
+	if (fd_msg_avp_hdr(si_avp, &hdr) != 0) {
+		fd_log_error("can't get value for 'Session-Id', skipping message");
+		return NULL;
+	}
+	return (char *)hdr->avp_value->os.data;
+}
 
 /* The function that does the actual work */
 int rt_busy_process_busy(struct msg ** pmsg, int is_req, DiamId_t sentto, size_t senttolen, union avp_value *oh)
@@ -123,13 +138,10 @@ int rt_busy_process_busy(struct msg ** pmsg, int is_req, DiamId_t sentto, size_t
 	
 	} else {
 		if (is_req) {
-			char *buf = NULL;
-			size_t len;
+			char *session_id = get_session_id(pmsg);
 
-			CHECK_MALLOC_DO( fd_msg_dump_full(&buf, &len, NULL, *pmsg, fd_g_config->cnf_dict, 0, 1), /* nothing */);
-			TRACE_ERROR( "No answer received for message from peer '%.*s' before timeout (%dms), giving up and sending error reply: %s", (int)senttolen, sentto,
-				     rtbusy_conf.RelayTimeout, buf);
-			free(buf);
+			TRACE_ERROR( "No answer received for message from peer '%.*s' before timeout (%dms), giving up and sending error reply. Session-Id: %s", (int)senttolen, sentto,
+				     rtbusy_conf.RelayTimeout, session_id ? session_id : "<not found>");
 			/* We must create an answer */
 			CHECK_FCT( fd_msg_new_answer_from_req ( fd_g_config->cnf_dict, pmsg, MSGFL_ANSW_ERROR ) );
 			
@@ -257,6 +269,8 @@ static int rtbusy_entry(char * conffile)
 		dir = RT_FWD_REQ; /* in this case, RelayTimeout is not 0 */
 	else if (rtbusy_conf.RelayTimeout)
 		dir = RT_FWD_ALL;
+	CHECK_FCT_DO(fd_dict_search(fd_g_config->cnf_dict, DICT_AVP, AVP_BY_NAME, "Session-Id", &si_avp_do, ENOENT),
+		     { LOG_E("Unable to find 'Session-Id' AVP in the loaded dictionaries."); });
 	
 	/* Register the callback */
 	CHECK_FCT( fd_rt_fwd_register ( rtbusy_fwd_cb, NULL, dir, &rt_busy_hdl ) );
