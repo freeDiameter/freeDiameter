@@ -728,15 +728,6 @@ again:
 }
 
 /* Send, for older GNUTLS */
-#ifndef GNUTLS_VERSION_212
-static ssize_t fd_cnx_s_send(struct cnxctx * conn, const void *buffer, size_t length)
-{
-	struct iovec iov;
-	iov.iov_base = (void *)buffer;
-	iov.iov_len  = length;
-	return fd_cnx_s_sendv(conn, &iov, 1);
-}
-#endif /* GNUTLS_VERSION_212 */
 
 #define ALIGNOF(t) ((char *)(&((struct { char c; t _h; } *)0)->_h) - (char *)0)  /* Could use __alignof__(t) on some systems but this is more portable probably */
 #define PMDL_PADDED(len) ( ((len) + ALIGNOF(struct fd_msg_pmdl) - 1) & ~(ALIGNOF(struct fd_msg_pmdl) - 1) )
@@ -1469,11 +1460,7 @@ int fd_cnx_handshake(struct cnxctx * conn, int mode, int algo, char * priority, 
 		if (!dtls) {
 			GNUTLS_TRACE( gnutls_transport_set_pull_timeout_function( conn->cc_tls_para.session, (void *)fd_cnx_s_select ) );
 			GNUTLS_TRACE( gnutls_transport_set_pull_function(conn->cc_tls_para.session, (void *)fd_cnx_s_recv) );
-			#ifndef GNUTLS_VERSION_212
-			GNUTLS_TRACE( gnutls_transport_set_push_function(conn->cc_tls_para.session, (void *)fd_cnx_s_send) );
-			#else /* GNUTLS_VERSION_212 */
 			GNUTLS_TRACE( gnutls_transport_set_vec_push_function(conn->cc_tls_para.session, (void *)fd_cnx_s_sendv) );
-			#endif /* GNUTLS_VERSION_212 */
 		} else {
 			TODO("DTLS push/pull functions");
 			return ENOTSUP;

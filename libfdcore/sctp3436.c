@@ -193,21 +193,6 @@ static int sctp3436_pull_timeout(gnutls_transport_ptr_t tr, unsigned int ms)
 }
 
 /* Send data over the connection, called by gnutls */
-#ifndef GNUTLS_VERSION_212
-static ssize_t sctp3436_push(gnutls_transport_ptr_t tr, const void * data, size_t len)
-{
-	struct sctp3436_ctx * ctx = (struct sctp3436_ctx *) tr;
-	struct iovec iov;
-
-	TRACE_ENTRY("%p %p %zd", tr, data, len);
-	CHECK_PARAMS_DO( tr && data, { errno = EINVAL; return -1; } );
-
-	iov.iov_base = (void *)data;
-	iov.iov_len  = len;
-
-	return fd_sctp_sendstrv(ctx->parent, ctx->strid, &iov, 1);
-}
-#else /*  GNUTLS_VERSION_212 */
 static ssize_t sctp3436_pushv(gnutls_transport_ptr_t tr, const giovec_t * iov, int iovcnt)
 {
 	struct sctp3436_ctx * ctx = (struct sctp3436_ctx *) tr;
@@ -217,7 +202,6 @@ static ssize_t sctp3436_pushv(gnutls_transport_ptr_t tr, const giovec_t * iov, i
 
 	return fd_sctp_sendstrv(ctx->parent, ctx->strid, (const struct iovec *)iov, iovcnt);
 }
-#endif /*  GNUTLS_VERSION_212 */
 
 /* Retrieve data received on a stream and already demultiplexed */
 static ssize_t sctp3436_pull(gnutls_transport_ptr_t tr, void * buf, size_t len)
@@ -279,11 +263,7 @@ static void set_sess_transport(gnutls_session_t session, struct sctp3436_ctx *ct
 
 	/* Set the push and pull callbacks */
 	GNUTLS_TRACE( gnutls_transport_set_pull_function(session, sctp3436_pull) );
-#ifndef GNUTLS_VERSION_212
-	GNUTLS_TRACE( gnutls_transport_set_push_function(session, sctp3436_push) );
-#else /* GNUTLS_VERSION_212 */
 	GNUTLS_TRACE( gnutls_transport_set_vec_push_function(session, sctp3436_pushv) );
-#endif /* GNUTLS_VERSION_212 */
 
 	return;
 }
