@@ -681,6 +681,7 @@ static int rt_rewrite(void * cbdata, struct msg **msg)
 	msg_or_avp *avp = NULL;
 	struct store *store = NULL;
 	struct variable_value *values = NULL;
+	struct fd_pei error_info;
 
 	/* nothing configured */
 	if (avp_match_start == NULL) {
@@ -692,10 +693,23 @@ static int rt_rewrite(void * cbdata, struct msg **msg)
 		return errno;
 	}
 
-	if ((ret=fd_msg_parse_dict(*msg, fd_g_config->cnf_dict, NULL)) != 0) {
+	if ((ret=fd_msg_parse_dict(*msg, fd_g_config->cnf_dict, &error_info)) != 0) {
 		fd_log_notice("%s: error parsing message", MODULE_NAME);
 		pthread_rwlock_unlock(&rt_rewrite_lock);
-		return ret;
+                if (error_info.pei_errcode) {
+			if (fd_msg_new_answer_from_req(fd_g_config->cnf_dict, msg,
+                                                       MSGFL_ANSW_ERROR) != 0 ||
+			    fd_msg_rescode_set(*msg, error_info.pei_errcode,
+                                               error_info.pei_message,
+                                               error_info.pei_avp, 2) != 0
+			    || fd_msg_send(msg, NULL, NULL) != 0) {
+				fd_log_error("%s: error creating error reply message",
+					     MODULE_NAME);
+			}
+                }
+                /* message has been handled, error was generated, stop processing */
+                *msg = NULL;
+		return 0;
 	}
 
 	/* evaluate variables */
