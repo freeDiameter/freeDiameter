@@ -659,7 +659,6 @@ tls_ca:			TLS_CA '=' QSTRING ';'
 					yyerror (&yylloc, conf, "Error on file name"); 
 					YYERROR;
 				}
-				#ifdef GNUTLS_VERSION_300
 				{
 					/* We import these CA in the trust list */
 					gnutls_x509_crt_t * calist;
@@ -676,7 +675,6 @@ tls_ca:			TLS_CA '=' QSTRING ';'
 					CHECK_GNUTLS_DO( gnutls_x509_trust_list_add_cas (fd_g_config->cnf_sec_data.trustlist, calist, cacount, 0),
 							{ yyerror (&yylloc, conf, "Error saving CA in trust list."); YYERROR; } );
 				}
-				#endif /* GNUTLS_VERSION_300 */
 				fclose(fd);
 				conf->cnf_sec_data.ca_file = $3;
 				CHECK_GNUTLS_DO( conf->cnf_sec_data.ca_file_nr += gnutls_certificate_set_x509_trust_file( 
@@ -698,7 +696,6 @@ tls_crl:		TLS_CRL '=' QSTRING ';'
 					yyerror (&yylloc, conf, "Error on file name"); 
 					YYERROR;
 				}
-				#ifdef GNUTLS_VERSION_300
 				{
 					/* We import these CRL in the trust list */
 					gnutls_x509_crl_t * crllist;
@@ -717,7 +714,6 @@ tls_crl:		TLS_CRL '=' QSTRING ';'
 									0),
 							{ yyerror (&yylloc, conf, "Error importing CRL in trust list."); YYERROR; } );
 				}
-				#endif /* GNUTLS_VERSION_300 */
 				fclose(fd);
 				conf->cnf_sec_data.crl_file = $3;
 				CHECK_GNUTLS_DO( gnutls_certificate_set_x509_crl_file( 

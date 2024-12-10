@@ -102,9 +102,6 @@ void fd_cnx_s_setto(int sock);
 /* TLS */
 int fd_tls_rcvthr_core(struct cnxctx * conn, gnutls_session_t session);
 int fd_tls_prepare(gnutls_session_t * session, int mode, int dtls, char * priority, void * alt_creds);
-#ifndef GNUTLS_VERSION_300
-int fd_tls_verify_credentials(gnutls_session_t session, struct cnxctx * conn, int verbose);
-#endif /* GNUTLS_VERSION_300 */
 
 /* TCP */
 int fd_tcp_create_bind_server( int * sock, sSA * sa, socklen_t salen );
