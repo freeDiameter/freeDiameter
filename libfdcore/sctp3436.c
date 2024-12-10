@@ -633,9 +633,7 @@ int fd_sctp3436_handshake_others(struct cnxctx * conn, char * priority, void * a
 
 		#endif /* GNUTLS_VERSION_300 */
 
-		#ifdef GNUTLS_VERSION_310
 		GNUTLS_TRACE( gnutls_handshake_set_timeout( conn->cc_sctp3436_data.array[i].session, GNUTLS_DEFAULT_HANDSHAKE_TIMEOUT));
-		#endif /* GNUTLS_VERSION_310 */
 
 		/* For the client, copy data from master session; for the server, set session resuming pointers */
 		if (conn->cc_tls_para.mode == GNUTLS_CLIENT) {

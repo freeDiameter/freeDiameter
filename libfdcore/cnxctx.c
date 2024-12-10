@@ -1718,9 +1718,7 @@ int fd_cnx_handshake(struct cnxctx * conn, int mode, int algo, char * priority, 
 
 	#endif /* GNUTLS_VERSION_300 */
 
-	#ifdef GNUTLS_VERSION_310
 	GNUTLS_TRACE( gnutls_handshake_set_timeout( conn->cc_tls_para.session, GNUTLS_DEFAULT_HANDSHAKE_TIMEOUT));
-	#endif /* GNUTLS_VERSION_310 */
 
 	/* Mark the connection as protected from here, so that the gnutls credentials will be freed */
 	fd_cnx_addstate(conn, CC_STATUS_TLS);
