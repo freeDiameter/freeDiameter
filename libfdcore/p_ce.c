@@ -260,6 +260,7 @@ static void cleanup_remote_CE_info(struct fd_peer * peer)
 static int save_remote_CE_info(struct msg * msg, struct fd_peer * peer, struct fd_pei * error, uint32_t *rc)
 {
 	struct avp * avp = NULL;
+	int app_count = 0;
 	
 	cleanup_remote_CE_info(peer);
 	
@@ -590,6 +591,12 @@ next:
 		CHECK_FCT( fd_msg_browse(avp, MSG_BRW_NEXT, &avp, NULL) );
 	}
 	
+	app_count = fd_app_count(&peer->p_hdr.info.runtime.pir_apps);
+	if (app_count > 0 || peer->p_hdr.info.runtime.pir_relay) {
+		fd_log_notice("peer %s supports %d application%s%s", peer ? peer->p_hdr.info.pi_diamid : "<unknown>", app_count, app_count == 1 ? "" : "s", peer->p_hdr.info.runtime.pir_relay ? " but is a relay" : "");
+	} else {
+		fd_log_error("peer %s supports NO applications%s", peer ? peer->p_hdr.info.pi_diamid : "<unknown>", peer->p_hdr.info.runtime.pir_relay ? " but is a relay" : "");
+	}
 	return 0;
 }
 

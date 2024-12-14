@@ -1,5 +1,8 @@
 # This file is the source for generating the Makefile for the project, using cmake tool (cmake.org)
 
+# CMake version
+CMAKE_MINIMUM_REQUIRED(VERSION 3.10)
+
 # Name of the project
 PROJECT("freeDiameter")
 
@@ -19,9 +22,6 @@ SET(FD_PROJECT_VERSION_API 7)
 
 # The test framework, using CTest and CDash.
 INCLUDE(CTest)
-
-# CMake version
-CMAKE_MINIMUM_REQUIRED(VERSION 2.8.12)
 
 # Location of additional CMake modules
 SET(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/Modules/")

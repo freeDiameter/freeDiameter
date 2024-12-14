@@ -163,7 +163,6 @@ error:
 /*                     push / pull                           */
 /*************************************************************/
 
-#ifdef GNUTLS_VERSION_300
 /* Check if data is available for gnutls on a given context */
 static int sctp3436_pull_timeout(gnutls_transport_ptr_t tr, unsigned int ms)
 {
@@ -192,24 +191,8 @@ static int sctp3436_pull_timeout(gnutls_transport_ptr_t tr, unsigned int ms)
 
 	return ret;
 }
-#endif /* GNUTLS_VERSION_300 */
 
 /* Send data over the connection, called by gnutls */
-#ifndef GNUTLS_VERSION_212
-static ssize_t sctp3436_push(gnutls_transport_ptr_t tr, const void * data, size_t len)
-{
-	struct sctp3436_ctx * ctx = (struct sctp3436_ctx *) tr;
-	struct iovec iov;
-
-	TRACE_ENTRY("%p %p %zd", tr, data, len);
-	CHECK_PARAMS_DO( tr && data, { errno = EINVAL; return -1; } );
-
-	iov.iov_base = (void *)data;
-	iov.iov_len  = len;
-
-	return fd_sctp_sendstrv(ctx->parent, ctx->strid, &iov, 1);
-}
-#else /*  GNUTLS_VERSION_212 */
 static ssize_t sctp3436_pushv(gnutls_transport_ptr_t tr, const giovec_t * iov, int iovcnt)
 {
 	struct sctp3436_ctx * ctx = (struct sctp3436_ctx *) tr;
@@ -219,7 +202,6 @@ static ssize_t sctp3436_pushv(gnutls_transport_ptr_t tr, const giovec_t * iov, i
 
 	return fd_sctp_sendstrv(ctx->parent, ctx->strid, (const struct iovec *)iov, iovcnt);
 }
-#endif /*  GNUTLS_VERSION_212 */
 
 /* Retrieve data received on a stream and already demultiplexed */
 static ssize_t sctp3436_pull(gnutls_transport_ptr_t tr, void * buf, size_t len)
@@ -270,36 +252,21 @@ error:
 }
 
 /* Set the parameters of a session to use the appropriate fifo and stream information */
-#ifndef GNUTLS_VERSION_300
-GCC_DIAG_OFF("-Wdeprecated-declarations")
-#endif /* !GNUTLS_VERSION_300 */
 static void set_sess_transport(gnutls_session_t session, struct sctp3436_ctx *ctx)
 {
 	/* Set the transport pointer passed to push & pull callbacks */
 	GNUTLS_TRACE( gnutls_transport_set_ptr( session, (gnutls_transport_ptr_t) ctx ) );
 
 	/* Reset the low water value, since we don't use sockets */
-#ifndef GNUTLS_VERSION_300
-	/* starting version 2.12, this call is not needed */
-	GNUTLS_TRACE( gnutls_transport_set_lowat( session, 0 ) );
-#else  /* GNUTLS_VERSION_300 */
 	/* but in 3.0 we have to provide the pull_timeout callback */
 	GNUTLS_TRACE( gnutls_transport_set_pull_timeout_function( session, sctp3436_pull_timeout ) );
-#endif /* GNUTLS_VERSION_300 */
 
 	/* Set the push and pull callbacks */
 	GNUTLS_TRACE( gnutls_transport_set_pull_function(session, sctp3436_pull) );
-#ifndef GNUTLS_VERSION_212
-	GNUTLS_TRACE( gnutls_transport_set_push_function(session, sctp3436_push) );
-#else /* GNUTLS_VERSION_212 */
 	GNUTLS_TRACE( gnutls_transport_set_vec_push_function(session, sctp3436_pushv) );
-#endif /* GNUTLS_VERSION_212 */
 
 	return;
 }
-#ifndef GNUTLS_VERSION_300
-GCC_DIAG_ON("-Wdeprecated-declarations")
-#endif /* !GNUTLS_VERSION_300 */
 
 /*************************************************************/
 /*               Session resuming support                    */
@@ -531,12 +498,6 @@ static void * handshake_resume_th(void * arg)
 	CHECK_GNUTLS_DO( gnutls_handshake( ctx->session ), return NULL);
 
 	GNUTLS_TRACE( resumed = gnutls_session_is_resumed(ctx->session) );
-	#ifndef GNUTLS_VERSION_300
-	if (!resumed) {
-		/* Check the credentials here also */
-		CHECK_FCT_DO( fd_tls_verify_credentials(ctx->session, ctx->parent, 0), return NULL );
-	}
-	#endif /* GNUTLS_VERSION_300 */
 	if (TRACE_BOOL(FULL)) {
 		if (resumed) {
 			fd_log_debug("Session was resumed successfully on stream %hu (conn: '%s')", ctx->strid, fd_cnx_getid(ctx->parent));
@@ -620,7 +581,6 @@ int fd_sctp3436_handshake_others(struct cnxctx * conn, char * priority, void * a
 		CHECK_FCT( fd_tls_prepare(&conn->cc_sctp3436_data.array[i].session, conn->cc_tls_para.mode, 0, priority, alt_creds) );
 
 		/* additional initialization for gnutls 3.x */
-		#ifdef GNUTLS_VERSION_300
 			/* the verify function has already been set in the global initialization in config.c */
 
 		/* fd_tls_verify_credentials_2 uses the connection */
@@ -631,11 +591,8 @@ int fd_sctp3436_handshake_others(struct cnxctx * conn, char * priority, void * a
 			CHECK_GNUTLS_DO( gnutls_server_name_set (conn->cc_sctp3436_data.array[i].session, GNUTLS_NAME_DNS, conn->cc_tls_para.cn, strlen(conn->cc_tls_para.cn)), /* ignore failure */);
 		}
 
-		#endif /* GNUTLS_VERSION_300 */
 
-		#ifdef GNUTLS_VERSION_310
 		GNUTLS_TRACE( gnutls_handshake_set_timeout( conn->cc_sctp3436_data.array[i].session, GNUTLS_DEFAULT_HANDSHAKE_TIMEOUT));
-		#endif /* GNUTLS_VERSION_310 */
 
 		/* For the client, copy data from master session; for the server, set session resuming pointers */
 		if (conn->cc_tls_para.mode == GNUTLS_CLIENT) {

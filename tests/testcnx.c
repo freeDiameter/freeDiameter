@@ -757,7 +757,6 @@ int main(int argc, char *argv[])
 									 GNUTLS_X509_FMT_PEM), );
 	CHECK( 1, ret );
 	
-	#ifdef GNUTLS_VERSION_300
 	{
 		/* We import these CA in the trust list */
 		gnutls_x509_crt_t * calist;
@@ -774,7 +773,6 @@ int main(int argc, char *argv[])
 	/* Use certificate verification during the handshake */
 	gnutls_certificate_set_verify_function (fd_g_config->cnf_sec_data.credentials, fd_tls_verify_credentials_2);
 	
-	#endif /* GNUTLS_VERSION_300 */
 							
 	
 	/* Set the server credentials (in config) */

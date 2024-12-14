@@ -177,9 +177,7 @@ struct fd_config {
 		
 		/* GNUTLS server credential(s) */
 		gnutls_certificate_credentials_t credentials; /* contains local cert + trust anchors */
-		#ifdef GNUTLS_VERSION_300
 		gnutls_x509_trust_list_t         trustlist; /* the logic to check local certificate has changed */
-		#endif /* GNUTLS_VERSION_300 */
 		
 	} 		 cnf_sec_data;
 	
@@ -933,6 +931,7 @@ int fd_app_merge(struct fd_list * list, application_id_t aid, vendor_id_t vid, i
 int fd_app_check(struct fd_list * list, application_id_t aid, struct fd_app **detail);
 int fd_app_check_common(struct fd_list * list1, struct fd_list * list2, int * common_found);
 int fd_app_empty(struct fd_list * list);
+int fd_app_count(struct fd_list * list);
 
 
 

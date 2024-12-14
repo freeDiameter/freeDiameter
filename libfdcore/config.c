@@ -81,9 +81,7 @@ int fd_conf_init()
 	/* TLS parameters */
 	CHECK_GNUTLS_DO( gnutls_certificate_allocate_credentials (&fd_g_config->cnf_sec_data.credentials), return ENOMEM );
 	CHECK_GNUTLS_DO( gnutls_dh_params_init (&fd_g_config->cnf_sec_data.dh_cache), return ENOMEM );
-#ifdef GNUTLS_VERSION_300
 	CHECK_GNUTLS_DO( gnutls_x509_trust_list_init(&fd_g_config->cnf_sec_data.trustlist, 0), return ENOMEM );
-#endif /* GNUTLS_VERSION_300 */
 
 	return 0;
 }
@@ -201,7 +199,6 @@ int fd_conf_stream_to_gnutls_datum(FILE * pemfile, gnutls_datum_t *out)
 	return 0;
 }
 
-#ifdef GNUTLS_VERSION_300
 /* inspired from GnuTLS manual */
 static int fd_conf_print_details_func (gnutls_x509_crt_t cert,
                     gnutls_x509_crt_t issuer, gnutls_x509_crl_t crl,
@@ -244,11 +241,7 @@ static int fd_conf_print_details_func (gnutls_x509_crt_t cert,
 
   return 0;
 }
-#endif /* GNUTLS_VERSION_300 */
 
-#ifndef GNUTLS_VERSION_300
-GCC_DIAG_OFF("-Wdeprecated-declarations")
-#endif /* !GNUTLS_VERSION_300 */
 /* Parse the configuration file (using the yacc parser) */
 int fd_conf_parse()
 {
@@ -407,12 +400,7 @@ int fd_conf_parse()
 		
 		CHECK_MALLOC( certs = calloc(cert_max, sizeof(gnutls_x509_crt_t)) );
 		CHECK_GNUTLS_DO( gnutls_x509_crt_list_import(certs, &cert_max, &certfile, GNUTLS_X509_FMT_PEM, 
-				#ifdef GNUTLS_VERSION_300
-				GNUTLS_X509_CRT_LIST_FAIL_IF_UNSORTED
-				#else /* GNUTLS_VERSION_300 */
-				0
-				#endif /* GNUTLS_VERSION_300 */
-				),
+				GNUTLS_X509_CRT_LIST_FAIL_IF_UNSORTED),
 			{
 				TRACE_ERROR("Failed to import the data from file '%s'", fd_g_config->cnf_sec_data.cert_file);
 				free(certfile.data);
@@ -424,7 +412,6 @@ int fd_conf_parse()
 		
 		/* Now, verify the list against the local CA and CRL */
 		
-		#ifdef GNUTLS_VERSION_300
 		
 			/* We use the trust list for this purpose */
 		{
@@ -476,70 +463,6 @@ int fd_conf_parse()
 		}
 		
 
-		#else /* GNUTLS_VERSION_300 */ 
-		
-			/* GnuTLS 2.x way of checking certificates */
-		{
-			gnutls_x509_crt_t * CA_list;
-			int CA_list_length;
-
-			gnutls_x509_crl_t * CRL_list;
-			int CRL_list_length;
-			
-			unsigned int verify;
-			time_t now;
-			GNUTLS_TRACE( gnutls_certificate_get_x509_cas (fd_g_config->cnf_sec_data.credentials, &CA_list, (unsigned int *) &CA_list_length) );
-			GNUTLS_TRACE( gnutls_certificate_get_x509_crls (fd_g_config->cnf_sec_data.credentials, &CRL_list, (unsigned int *) &CRL_list_length) );
-			CHECK_GNUTLS_DO( gnutls_x509_crt_list_verify(certs, cert_max, CA_list, CA_list_length, CRL_list, CRL_list_length, 0, &verify),
-				{
-					TRACE_ERROR("Failed to verify the local certificate '%s' against local credentials. Please check your certificate is valid.", fd_g_config->cnf_sec_data.cert_file);
-					return EINVAL;
-				} );
-				
-			if (verify) {
-				fd_log_debug("TLS: Local certificate chain '%s' is invalid :", fd_g_config->cnf_sec_data.cert_file);
-				if (verify & GNUTLS_CERT_INVALID)
-					TRACE_ERROR(" - The certificate is not trusted (unknown CA? expired?)");
-				if (verify & GNUTLS_CERT_REVOKED)
-					TRACE_ERROR(" - The certificate has been revoked.");
-				if (verify & GNUTLS_CERT_SIGNER_NOT_FOUND)
-					TRACE_ERROR(" - The certificate hasn't got a known issuer.");
-				if (verify & GNUTLS_CERT_SIGNER_NOT_CA)
-					TRACE_ERROR(" - The certificate signer is not a CA, or uses version 1, or 3 without basic constraints.");
-				if (verify & GNUTLS_CERT_INSECURE_ALGORITHM)
-					TRACE_ERROR(" - The certificate signature uses a weak algorithm.");
-				return EINVAL;
-			}
-
-			/* Check the local Identity is valid with the certificate */
-			if (!gnutls_x509_crt_check_hostname (certs[0], fd_g_config->cnf_diamid)) {
-				TRACE_ERROR("TLS: Local certificate '%s' is invalid :", fd_g_config->cnf_sec_data.cert_file);
-				TRACE_ERROR(" - The certificate hostname does not match '%s'", fd_g_config->cnf_diamid);
-				return EINVAL;
-			}
-
-			/* Check validity of all the certificates in the chain */
-			now = time(NULL);
-			for (i = 0; i < cert_max; i++)
-			{
-				time_t deadline;
-
-				GNUTLS_TRACE( deadline = gnutls_x509_crt_get_expiration_time(certs[i]) );
-				if ((deadline != (time_t)-1) && (deadline < now)) {
-					TRACE_ERROR("TLS: Local certificate chain '%s' is invalid :", fd_g_config->cnf_sec_data.cert_file);
-					TRACE_ERROR(" - The certificate %d in the chain is expired", i);
-					return EINVAL;
-				}
-
-				GNUTLS_TRACE( deadline = gnutls_x509_crt_get_activation_time(certs[i]) );
-				if ((deadline != (time_t)-1) && (deadline > now)) {
-					TRACE_ERROR("TLS: Local certificate chain '%s' is invalid :", fd_g_config->cnf_sec_data.cert_file);
-					TRACE_ERROR(" - The certificate %d in the chain is not yet activated", i);
-					return EINVAL;
-				}
-			}
-		}
-		#endif /* GNUTLS_VERSION_300 */ 
 		
 		/* Everything checked OK, free the certificate list */
 		for (i = 0; i < cert_max; i++)
@@ -548,10 +471,8 @@ int fd_conf_parse()
 		}
 		free(certs);
 	
-		#ifdef GNUTLS_VERSION_300
 		/* Use certificate verification during the handshake */
 		gnutls_certificate_set_verify_function (fd_g_config->cnf_sec_data.credentials, fd_tls_verify_credentials_2);
-		#endif /* GNUTLS_VERSION_300 */
 
 	}
 	
@@ -612,9 +533,6 @@ int fd_conf_parse()
 	
 	return 0;
 }
-#ifndef GNUTLS_VERSION_300
-GCC_DIAG_ON("-Wdeprecated-declarations")
-#endif /* !GNUTLS_VERSION_300 */
 
 
 /* Destroy contents of fd_g_config structure */
@@ -626,9 +544,7 @@ int fd_conf_deinit()
 		return 0;
 	
 	/* Free the TLS parameters */
-#ifdef GNUTLS_VERSION_300
 	gnutls_x509_trust_list_deinit(fd_g_config->cnf_sec_data.trustlist, 1);
-#endif /* GNUTLS_VERSION_300 */
 	gnutls_priority_deinit(fd_g_config->cnf_sec_data.prio_cache);
 	gnutls_dh_params_deinit(fd_g_config->cnf_sec_data.dh_cache);
 	gnutls_certificate_free_credentials(fd_g_config->cnf_sec_data.credentials);

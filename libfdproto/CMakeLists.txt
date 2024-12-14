@@ -2,7 +2,7 @@
 Project("libfdproto" C)
 
 # Configuration for newer cmake
-cmake_policy(VERSION 2.8.12)
+cmake_policy(VERSION 3.10)
 
 # List of source files for the library
 SET(LFDPROTO_SRC
