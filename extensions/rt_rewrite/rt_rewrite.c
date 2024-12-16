@@ -726,6 +726,7 @@ static int rt_rewrite(void * cbdata, struct msg **msg)
 		fd_log_error("%s: error evaluating variables in message", MODULE_NAME);
 		variable_store_free(values);
 		pthread_rwlock_unlock(&rt_rewrite_lock);
+		return -1;
 	}
 	/* variable_store_dump(values); */
 	/* actual message modifications */
