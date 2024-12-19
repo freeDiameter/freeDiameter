@@ -609,7 +609,7 @@ static int get_basetype_for_avp(const char *name, enum dict_avp_basetype *result
 	return 0;
 }
 
-/* return a string printing an avp_value 'value' of type 'basetype'. String must be free()d by calleer */
+/* return a string printing an avp_value 'value' of type 'basetype'. String must be free()d by caller */
 static char *dump_avp_value(union avp_value *value, enum dict_avp_basetype basetype) {
 	char *result = NULL;
 	switch (basetype) {

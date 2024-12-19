@@ -52,7 +52,7 @@ struct avp_match *avp_match_start = NULL;
 /* structure containing information about AVPs to be added */
 struct avp_add *avp_add_start = NULL;
 
-/* structure containing informationb about variables used in conditions in the config file */
+/* structure containing information about variables used in conditions in the config file */
 struct avp_match *avp_variable_start = NULL;
 
 /* how many variables there are */
