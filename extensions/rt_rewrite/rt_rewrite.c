@@ -794,7 +794,7 @@ static int rt_rewrite_entry(char * conffile)
 		return ret;
 	}
 
-	fd_log_error("Extension 'Rewrite' initialized");
+	fd_log_notice("Extension 'Rewrite' initialized");
 	return 0;
 }
 
