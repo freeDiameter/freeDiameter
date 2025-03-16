@@ -19,10 +19,24 @@ FIND_PATH(MySQL_INCLUDE_DIR
   PATH_SUFFIXES mysql
 )
 
+IF (MySQL_INCLUDE_DIR)
+  MESSAGE(STATUS "Found MySQL include: ${MySQL_INCLUDE_DIR}")
+ELSE (MySQL_INCLUDE_DIR)
+  FIND_PATH(MySQL_INCLUDE_DIR
+    NAMES mysql.h
+    PATH_SUFFIXES mariadb
+  )
+  IF (MySQL_INCLUDE_DIR)
+    MESSAGE(STATUS "Found MySQL include: ${MySQL_INCLUDE_DIR}")
+  ELSE (MySQL_INCLUDE_DIR)
+    MESSAGE(STATUS "Not found MySQL include: ${MySQL_INCLUDE_DIR}")
+  ENDIF (MySQL_INCLUDE_DIR)
+ENDIF (MySQL_INCLUDE_DIR)
+
 # Library
 #SET(MySQL_NAMES mysqlclient mysqlclient_r)
 #SET(MySQL_NAMES mysqlclient_r)
-SET(MySQL_NAMES mysqlclient_r mysqlclient)
+SET(MySQL_NAMES mysqlclient_r mysqlclient mariadbclient)
 FIND_LIBRARY(MySQL_LIBRARY
   NAMES ${MySQL_NAMES}
   PATHS /usr/lib /usr/local/lib
