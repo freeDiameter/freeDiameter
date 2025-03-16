@@ -535,7 +535,7 @@ static int fd_setsockopt_prebind(int sk)
 		int _bool;
 		
 		if (TRACE_BOOL(ANNOYING)) {
-			sz = sizeof(bool);
+			sz = sizeof(_bool);
 			/* Read socket defaults */
 			CHECK_SYS(  getsockopt(sk, IPPROTO_SCTP, SCTP_EXPLICIT_EOR, &_bool, &sz)  );
 			if (sz != sizeof(_bool))
