@@ -48,6 +48,7 @@ sudo apt-get -y install git cmake make gcc g++ bison flex libsctp-dev libgnutls-
    libpq-dev libmysqlclient-dev libxml2-dev swig python-dev libjsoncpp-dev
 
 # On latest Ubuntu you will need libgnutls28-dev instead of libgnutls-dev and python2-dev instead of python-dev
+# Also maybe: pkg-config libgcrypt20-dev 
 
 # Retrieve the latest version of the source package
 cd
