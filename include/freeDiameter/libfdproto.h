@@ -1647,12 +1647,20 @@ struct dict_cmd_data {
 	uint8_t		 cmd_flag_val;	/* values of the fixed flags */
 };
 
+/* Structure for querying the dictionary about a command */
+struct dict_cmd_request {
+	command_code_t cmd_code;
+	application_id_t app_id;
+};
+
 /* The criteria for searching an avp object in the dictionary */
 enum {
 	CMD_BY_NAME = 60,	/* "what" points to a char * */
 	CMD_BY_CODE_R,		/* "what" points to a command_code_t. The "Request" command is returned. */
 	CMD_BY_CODE_A,		/* "what" points to a command_code_t. The "Answer" command is returned. */
-	CMD_ANSWER		/* "what" points to a struct dict_object of a request command. The corresponding "Answer" command is returned. */
+	CMD_ANSWER,		    /* "what" points to a struct dict_object of a request command. The corresponding "Answer" command is returned. */
+	CMD_BY_CODE_R_APPL_ID,	/* "what" points to a struct dict_cmd_request. The "Request" command is returned. */
+	CMD_BY_CODE_A_APPL_ID,	/* "what" points to a struct dict_cmd_request. The "Answer" command is returned. */
 };
 
 
