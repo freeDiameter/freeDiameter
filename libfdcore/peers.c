@@ -83,7 +83,15 @@ int fd_peer_alloc(struct fd_peer ** ptr)
 	fd_list_init(&p->p_sr.srs, p);
 	fd_list_init(&p->p_sr.exp, p);
 	CHECK_POSIX( pthread_mutex_init(&p->p_sr.mtx, NULL) );
+#ifndef HAVE_PTHREAD_CONDATTR_SETCLOCK
 	CHECK_POSIX( pthread_cond_init(&p->p_sr.cnd, NULL) );
+#else
+	pthread_condattr_t attr;
+	CHECK_POSIX( pthread_condattr_init(&attr) );
+	CHECK_POSIX( pthread_condattr_setclock(&attr, CLOCK_MONOTONIC) );
+	CHECK_POSIX( pthread_cond_init(&p->p_sr.cnd, &attr) );
+	CHECK_POSIX( pthread_condattr_destroy(&attr) );
+#endif
 	
 	fd_list_init(&p->p_connparams, p);
 	
@@ -390,7 +398,7 @@ int fd_peer_fini()
 	CHECK_FCT_DO( pthread_rwlock_unlock(&fd_g_peers_rw), /* continue */ );
 	
 	if (!list_empty) {
-		CHECK_SYS(  clock_gettime(CLOCK_REALTIME, &now)  );
+		CHECK_SYS( clock_gettime(CLOCK_MONOTONIC, &now) );
 		fd_psm_start(); /* just in case */
 		TRACE_DEBUG(INFO, "Waiting for connections shutdown... (%d sec max)", DPR_TIMEOUT + 1);
 		wait_until.tv_sec  = now.tv_sec + DPR_TIMEOUT + 1;
@@ -414,7 +422,7 @@ int fd_peer_fini()
 		}
 		list_empty = FD_IS_LIST_EMPTY(&fd_g_peers);
 		CHECK_FCT_DO( pthread_rwlock_unlock(&fd_g_peers_rw), /* continue */ );
-		CHECK_SYS(  clock_gettime(CLOCK_REALTIME, &now)  );
+		CHECK_SYS( clock_gettime(CLOCK_MONOTONIC, &now) );
 	}
 
 	fd_peer_fini_force();

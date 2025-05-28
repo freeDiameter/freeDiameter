@@ -252,20 +252,20 @@ void * gx_sm_th(void *sm)
     struct timespec tout;
     int evt_code;
 
-	    CHECK_SYS_DO( clock_gettime( CLOCK_REALTIME, &tout), goto out);
+	    CHECK_SYS_DO( clock_gettime( CLOCK_MONOTONIC, &tout), goto out);
 	    tout.tv_sec =+ 60 ;
    
     while(1) {
  
 	fd_event_timedget(gx_sm->events, &tout , ETIMEDOUT, &evt_code, NULL, NULL );
-	 CHECK_SYS_DO( clock_gettime( CLOCK_REALTIME, &tout), goto out);
+	 CHECK_SYS_DO( clock_gettime( CLOCK_MONOTONIC, &tout), goto out);
 	printf("in tout sec %d\n", tout.tv_sec); 
 	if(evt_code == ETIMEDOUT) {
 	    
 	    snd_ccr_msg(&gx_sm, ccr_cmd);
 	    gx_sm->req_num++ ;
 	    gx_sm->state = STATE_INTERMEDIATE;
-	    CHECK_SYS_DO( clock_gettime( CLOCK_REALTIME, &tout), goto out);
+	    CHECK_SYS_DO( clock_gettime( CLOCK_MONOTONIC, &tout), goto out);
 	    tout.tv_sec += 30 ;
 
 	}

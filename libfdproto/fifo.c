@@ -106,8 +106,17 @@ int fd_fifo_new ( struct fifo ** queue, int max )
 
 	new->eyec = FIFO_EYEC;
 	CHECK_POSIX( pthread_mutex_init(&new->mtx, NULL) );
+#ifndef HAVE_PTHREAD_CONDATTR_SETCLOCK
 	CHECK_POSIX( pthread_cond_init(&new->cond_pull, NULL) );
 	CHECK_POSIX( pthread_cond_init(&new->cond_push, NULL) );
+#else
+	pthread_condattr_t attr;
+	CHECK_POSIX( pthread_condattr_init(&attr) );
+	CHECK_POSIX( pthread_condattr_setclock(&attr, CLOCK_MONOTONIC) );
+	CHECK_POSIX( pthread_cond_init(&new->cond_pull, &attr) );
+	CHECK_POSIX( pthread_cond_init(&new->cond_push, &attr) );
+	CHECK_POSIX( pthread_condattr_destroy(&attr) );
+#endif
 	new->max = max;
 
 	fd_list_init(&new->list, NULL);
@@ -404,7 +413,7 @@ int fd_fifo_post_internal ( struct fifo * queue, void ** item, int skip_max )
 	struct timespec posted_on, queued_on;
 
 	/* Get the timing of this call */
-	CHECK_SYS(  clock_gettime(CLOCK_REALTIME, &posted_on)  );
+	CHECK_SYS( clock_gettime(CLOCK_MONOTONIC, &posted_on) );
 
 	/* lock the queue */
 	CHECK_POSIX(  pthread_mutex_lock( &queue->mtx )  );
@@ -452,7 +461,7 @@ int fd_fifo_post_internal ( struct fifo * queue, void ** item, int skip_max )
 	/* update queue timing info "blocking time" */
 	{
 		long long blocked_ns;
-		CHECK_SYS(  clock_gettime(CLOCK_REALTIME, &queued_on)  );
+		CHECK_SYS( clock_gettime(CLOCK_MONOTONIC, &queued_on) );
 		blocked_ns = (queued_on.tv_sec - posted_on.tv_sec) * 1000000000;
 		blocked_ns += (queued_on.tv_nsec - posted_on.tv_nsec);
 		blocked_ns += queue->blocking_time.tv_nsec;
@@ -520,7 +529,7 @@ static void * mq_pop(struct fifo * queue)
 	queue->total_items++;
 
 	/* Update the timings */
-	CHECK_SYS_DO(  clock_gettime(CLOCK_REALTIME, &now), goto skip_timing  );
+	CHECK_SYS_DO( clock_gettime(CLOCK_MONOTONIC, &now), goto skip_timing );
 	{
 		long long elapsed = (now.tv_sec - fi->posted_on.tv_sec) * 1000000000;
 		elapsed += now.tv_nsec - fi->posted_on.tv_nsec;

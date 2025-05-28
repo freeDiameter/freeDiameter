@@ -177,7 +177,7 @@ next_client:
 	}
 	
 	/* Set the timeout to receive the first message */
-	CHECK_SYS_DO( clock_gettime(CLOCK_REALTIME, &ts), { fatal = 1; goto cleanup; } );
+	CHECK_SYS_DO( clock_gettime(CLOCK_MONOTONIC, &ts), { fatal = 1; goto cleanup; } );
 	ts.tv_sec += INCNX_TIMEOUT;
 	
 	/* Receive the first Diameter message on the connection -- cleanup in case of timeout */

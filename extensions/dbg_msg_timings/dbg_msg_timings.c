@@ -56,7 +56,7 @@ static void mt_hook_cb(enum fd_hook_type type, struct msg * msg, struct peer_hdr
 	
 	if (type == HOOK_DATA_RECEIVED) {
 		/* We just store the timestamp it was received on */
-		(void)clock_gettime(CLOCK_REALTIME, &pmd->received_on);
+		(void)clock_gettime(CLOCK_MONOTONIC, &pmd->received_on);
 		return;
 	}
 	
@@ -82,7 +82,7 @@ static void mt_hook_cb(enum fd_hook_type type, struct msg * msg, struct peer_hdr
 	} else if (type == HOOK_MESSAGE_SENT) {
 		DiamId_t source = NULL;
 		
-		(void)clock_gettime(CLOCK_REALTIME, &pmd->sent_on);
+		(void)clock_gettime(CLOCK_MONOTONIC, &pmd->sent_on);
 		
 		/* Is this a forwarded message ? */
 		CHECK_FCT_DO( fd_msg_source_get(msg, &source, NULL), return );

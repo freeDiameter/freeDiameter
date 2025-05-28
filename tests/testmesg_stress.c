@@ -547,7 +547,7 @@ redo:
 		
 	/* fd_msg_parse_buffer */
 		
-		CHECK( 0, clock_gettime(CLOCK_REALTIME, &start) );
+		CHECK( 0, clock_gettime(CLOCK_MONOTONIC, &start) );
 		
 		/* Test the msg_parse_buffer function */
 		for (i=0; i < test_parameter; i++) {
@@ -556,12 +556,12 @@ redo:
 		}
 		CHECK( test_parameter, i ); /* if false, a call failed */
 		
-		CHECK( 0, clock_gettime(CLOCK_REALTIME, &end) );
+		CHECK( 0, clock_gettime(CLOCK_MONOTONIC, &end) );
 		display_result(test_parameter, &start, &end, "fd_msg_parse_buffer", "buffers", "parsed");
 		
 	/* fd_msg_parse_dict */
 		
-		CHECK( 0, clock_gettime(CLOCK_REALTIME, &start) );
+		CHECK( 0, clock_gettime(CLOCK_MONOTONIC, &start) );
 		
 		/* Test the fd_msg_parse_dict function */
 		for (i=0; i < test_parameter; i++) {
@@ -570,13 +570,13 @@ redo:
 		}
 		CHECK( test_parameter, i ); /* if false, a call failed */
 		
-		CHECK( 0, clock_gettime(CLOCK_REALTIME, &end) );
+		CHECK( 0, clock_gettime(CLOCK_MONOTONIC, &end) );
 		display_result(test_parameter, &start, &end, "fd_msg_parse_dict", "messages", "parsed");
 		
 		
 	/* fd_msg_parse_rules */
 		
-		CHECK( 0, clock_gettime(CLOCK_REALTIME, &start) );
+		CHECK( 0, clock_gettime(CLOCK_MONOTONIC, &start) );
 		
 		/* Test the fd_msg_parse_rules function */
 		for (i=0; i < test_parameter; i++) {
@@ -585,13 +585,13 @@ redo:
 		}
 		CHECK( test_parameter, i ); /* if false, a call failed */
 		
-		CHECK( 0, clock_gettime(CLOCK_REALTIME, &end) );
+		CHECK( 0, clock_gettime(CLOCK_MONOTONIC, &end) );
 		display_result(test_parameter, &start, &end, "fd_msg_parse_rules", "messages", "parsed");
 		
 		
 	/* fd_msg_new_answer_from_req (0) */
 		
-		CHECK( 0, clock_gettime(CLOCK_REALTIME, &start) );
+		CHECK( 0, clock_gettime(CLOCK_MONOTONIC, &start) );
 		
 		/* Test the fd_msg_new_answer_from_req function */
 		for (i=0; i < test_parameter; i++) {
@@ -600,7 +600,7 @@ redo:
 		}
 		CHECK( test_parameter, i ); /* if false, a call failed */
 		
-		CHECK( 0, clock_gettime(CLOCK_REALTIME, &end) );
+		CHECK( 0, clock_gettime(CLOCK_MONOTONIC, &end) );
 		display_result(test_parameter, &start, &end, "new_answer(normal)", "messages", "created");
 		
 		/* unlink answers and go back to request messages */
@@ -617,7 +617,7 @@ redo:
 		
 	/* fd_msg_new_answer_from_req (MSGFL_ANSW_ERROR) */
 		
-		CHECK( 0, clock_gettime(CLOCK_REALTIME, &start) );
+		CHECK( 0, clock_gettime(CLOCK_MONOTONIC, &start) );
 		
 		/* Test the fd_msg_new_answer_from_req function */
 		for (i=0; i < test_parameter; i++) {
@@ -626,7 +626,7 @@ redo:
 		}
 		CHECK( test_parameter, i ); /* if false, a call failed */
 		
-		CHECK( 0, clock_gettime(CLOCK_REALTIME, &end) );
+		CHECK( 0, clock_gettime(CLOCK_MONOTONIC, &end) );
 		display_result(test_parameter, &start, &end, "new_answer(error)", "messages", "created");
 		
 		/* unlink answers and go back to request messages */
@@ -643,7 +643,7 @@ redo:
 	/* fd_msg_bufferize */
 		
 
-		CHECK( 0, clock_gettime(CLOCK_REALTIME, &start) );
+		CHECK( 0, clock_gettime(CLOCK_MONOTONIC, &start) );
 		
 		/* Test the fd_msg_bufferize function */
 		for (i=0; i < test_parameter; i++) {
@@ -653,20 +653,20 @@ redo:
 		}
 		CHECK( test_parameter, i ); /* if false, a call failed */
 		
-		CHECK( 0, clock_gettime(CLOCK_REALTIME, &end) );
+		CHECK( 0, clock_gettime(CLOCK_MONOTONIC, &end) );
 		display_result(test_parameter, &start, &end, "fd_msg_bufferize", "buffers", "created");
 		
 		
 	/* fd_msg_free */
 		
-		CHECK( 0, clock_gettime(CLOCK_REALTIME, &start) );
+		CHECK( 0, clock_gettime(CLOCK_MONOTONIC, &start) );
 		
 		/* Free those messages */
 		for (i=0; i < test_parameter; i++) {
 			fd_msg_free( stress_array[i].m );
 		}
 		
-		CHECK( 0, clock_gettime(CLOCK_REALTIME, &end) );
+		CHECK( 0, clock_gettime(CLOCK_MONOTONIC, &end) );
 		display_result(test_parameter, &start, &end, "fd_msg_free", "messages", "freed");
 		
 		

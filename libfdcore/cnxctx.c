@@ -698,7 +698,7 @@ static ssize_t fd_cnx_s_sendv(struct cnxctx * conn, const struct iovec * iov, in
 {
 	ssize_t ret = 0;
 	struct timespec ts, now;
-	CHECK_SYS_DO(  clock_gettime(CLOCK_REALTIME, &ts), return -1 );
+	CHECK_SYS_DO( clock_gettime(CLOCK_MONOTONIC, &ts), return -1 );
 again:
 	ret = writev(conn->cc_socket, iov, iovcnt);
 	/* Handle special case of timeout */
@@ -707,7 +707,7 @@ again:
 		pthread_testcancel();
 
 		/* Check how much time we were blocked for this sending. */
-		CHECK_SYS_DO(  clock_gettime(CLOCK_REALTIME, &now), return -1 );
+		CHECK_SYS_DO( clock_gettime(CLOCK_MONOTONIC, &now), return -1 );
 		if ( ((now.tv_sec - ts.tv_sec) * 1000 + ((now.tv_nsec - ts.tv_nsec) / 1000000L)) > MAX_HOTL_BLOCKING_TIME) {
 			LOG_D("Unable to send any data for %dms, closing the connection", MAX_HOTL_BLOCKING_TIME);
 		} else if (! fd_cnx_teststate(conn, CC_STATUS_CLOSING )) {
@@ -1009,7 +1009,7 @@ static ssize_t fd_tls_send_handle_error(struct cnxctx * conn, gnutls_session_t s
 {
 	ssize_t ret;
 	struct timespec ts, now;
-	CHECK_SYS_DO(  clock_gettime(CLOCK_REALTIME, &ts), return -1 );
+	CHECK_SYS_DO( clock_gettime(CLOCK_MONOTONIC, &ts), return -1 );
 again:
 	CHECK_GNUTLS_DO( ret = gnutls_record_send(session, data, sz),
 		{
@@ -1028,7 +1028,7 @@ again:
 
 				case GNUTLS_E_AGAIN:
 				case GNUTLS_E_INTERRUPTED:
-					CHECK_SYS_DO(  clock_gettime(CLOCK_REALTIME, &now), return -1 );
+					CHECK_SYS_DO( clock_gettime(CLOCK_MONOTONIC, &now), return -1 );
 					if ( ((now.tv_sec - ts.tv_sec) * 1000 + ((now.tv_nsec - ts.tv_nsec) / 1000000L)) > MAX_HOTL_BLOCKING_TIME) {
 						LOG_D("Unable to send any data for %dms, closing the connection", MAX_HOTL_BLOCKING_TIME);
 					} else if (! fd_cnx_teststate(conn, CC_STATUS_CLOSING )) {

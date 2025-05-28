@@ -59,7 +59,7 @@ void print_statistics(void) {
 static int ccr_handler(struct msg ** msg, struct avp * avp, struct session * sess, void * data, enum disp_action * act)
 {
 	struct msg_hdr *hdr = NULL;
-	time_t now;
+	struct timespec now;
 
 	TRACE_ENTRY("%p %p %p %p", msg, avp, sess, act);
 
@@ -149,14 +149,14 @@ static int ccr_handler(struct msg ** msg, struct avp * avp, struct session * ses
 
 		/* Send the answer */
 		CHECK_FCT(fd_msg_send(msg, NULL, NULL));
-		now = time(NULL);
+		CHECK_SYS(clock_gettime(CLOCK_MONOTONIC, &now));
 		if (!statistics.first) {
-			statistics.first = now;
+			statistics.first = now.tv_sec;
 		}
-		if (statistics.last != now) {
+		if (statistics.last != now.tv_sec) {
 			print_statistics();
 		}
-		statistics.last = now;
+		statistics.last = now.tv_sec;
 		statistics.sent++;
 		fd_log_debug("reply sent");
 	} else {

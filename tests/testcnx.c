@@ -1897,7 +1897,7 @@ int main(int argc, char *argv[])
 		CHECK( 0, fd_cnx_send(client_side, cer_buf, cer_sz));
 		CHECK( 0, fd_fifo_new(&myfifo, 0) );
 		CHECK( 0, fd_cnx_recv_setaltfifo(server_side, myfifo) );
-		CHECK( 0, clock_gettime(CLOCK_REALTIME, &now) );
+		CHECK( 0, clock_gettime(CLOCK_MONOTONIC, &now) );
 		do {
 			CHECK( 0, fd_event_timedget(myfifo, &now, ETIMEDOUT, &ev_code, NULL, (void *)&rcv_buf) );
 			free(rcv_buf);
@@ -1992,7 +1992,7 @@ int main(int argc, char *argv[])
 		CHECK( 0, fd_cnx_send(client_side, cer_buf, cer_sz));
 		CHECK( 0, fd_fifo_new(&myfifo, 0) );
 		CHECK( 0, fd_cnx_recv_setaltfifo(server_side, myfifo) );
-		CHECK( 0, clock_gettime(CLOCK_REALTIME, &now) );
+		CHECK( 0, clock_gettime(CLOCK_MONOTONIC, &now) );
 		do {
 			CHECK( 0, fd_event_timedget(myfifo, &now, ETIMEDOUT, &ev_code, NULL, (void *)&rcv_buf) );
 			free(rcv_buf);
@@ -2085,7 +2085,7 @@ int main(int argc, char *argv[])
 		CHECK( 0, fd_cnx_send(client_side, cer_buf, cer_sz));
 		CHECK( 0, fd_fifo_new(&myfifo, 0) );
 		CHECK( 0, fd_cnx_recv_setaltfifo(server_side, myfifo) );
-		CHECK( 0, clock_gettime(CLOCK_REALTIME, &now) );
+		CHECK( 0, clock_gettime(CLOCK_MONOTONIC, &now) );
 		do {
 			CHECK( 0, fd_event_timedget(myfifo, &now, ETIMEDOUT, &ev_code, NULL, (void *)&rcv_buf) );
 			free(rcv_buf);

@@ -113,6 +113,8 @@ struct rgw_client {
 /* Create a new req_info structure and initialize its data from a RADIUS request message */
 static struct req_info * dupl_new_req_info(struct rgw_radius_msg_meta *msg) {
 	struct req_info * ret = NULL;
+	struct timespec ts;
+	CHECK_SYS_DO( clock_gettime(CLOCK_MONOTONIC, &ts), return NULL );
 	CHECK_MALLOC_DO( ret = malloc(sizeof(struct req_info)), return NULL );
 	memset(ret, 0, sizeof(struct req_info));
 	ret->port = msg->port;
@@ -120,7 +122,7 @@ static struct req_info * dupl_new_req_info(struct rgw_radius_msg_meta *msg) {
 	memcpy(&ret->auth[0], &msg->radius.hdr->authenticator[0], 16);
 	fd_list_init(&ret->by_id, ret);
 	fd_list_init(&ret->by_time, ret);
-	ret->received = time(NULL);
+	ret->received = ts.tv_sec;
 	return ret;
 }
 
@@ -142,6 +144,8 @@ static void dupl_free_req_info(struct req_info * r) {
 static int dupl_purge_list(struct fd_list * clients) {
 
 	struct fd_list *li = NULL;
+	struct timespec now;
+	CHECK_SYS( clock_gettime(CLOCK_MONOTONIC, &now) );
 	
 	for (li = clients->next; li != clients; li = li->next) {
 		struct rgw_client * client = (struct rgw_client *)li;
@@ -150,19 +154,16 @@ static int dupl_purge_list(struct fd_list * clients) {
 		for (p=0; p<=1; p++) {
 		
 			/* Lock this list */
-			time_t now;
 			CHECK_POSIX( pthread_mutex_lock(&client->dupl_info[p].dupl_lock) );
-			
-			now = time(NULL);
 			
 			while (!FD_IS_LIST_EMPTY(&client->dupl_info[p].dupl_by_time)) {
 			
 				/* Check the first item in the list */
 				struct req_info * r = (struct req_info *)(client->dupl_info[p].dupl_by_time.next->o);
 				
-				if (now - r->received > DUPLICATE_CHECK_LIFETIME) {
+				if (now.tv_sec - r->received > DUPLICATE_CHECK_LIFETIME) {
 				
-					TRACE_DEBUG(ANNOYING + 1, "Purging RADIUS request (id: %02hhx, port: %hu, dup #%d, age %ld secs)", r->id, ntohs(r->port), r->nbdup, (long)(now - r->received));
+					TRACE_DEBUG(ANNOYING + 1, "Purging RADIUS request (id: %02hhx, port: %hu, dup #%d, age %ld secs)", r->id, ntohs(r->port), r->nbdup, (long)(now.tv_sec - r->received));
 					
 					/* Remove this record */
 					fd_list_unlink(&r->by_time);
@@ -456,10 +457,11 @@ int rgw_clients_check_dup(struct rgw_radius_msg_meta **msg, struct rgw_client *c
 	}
 	
 	if (dup) {
-		time_t now = time(NULL);
+		struct timespec now;
+		CHECK_SYS_DO( clock_gettime(CLOCK_MONOTONIC, &now), { CHECK_POSIX_DO(pthread_mutex_unlock( &cli->dupl_info[p].dupl_lock ), ); return EINVAL; } );
 		r->nbdup += 1;
 		TRACE_DEBUG(INFO, "Received duplicated RADIUS message (id: %02hhx, port: %hu, dup #%d, previously seen %ld secs ago).", 
-				r->id, ntohs(r->port), r->nbdup, (long)(now - r->received));
+				r->id, ntohs(r->port), r->nbdup, (long)(now.tv_sec - r->received));
 		
 		if (r->ans) {
 			/* Resend the answer */
@@ -469,7 +471,7 @@ int rgw_clients_check_dup(struct rgw_radius_msg_meta **msg, struct rgw_client *c
 		}
 		
 		/* Update the timestamp */
-		r->received = now;
+		r->received = now.tv_sec;
 		fd_list_unlink(&r->by_time);
 		fd_list_insert_before(&cli->dupl_info[p].dupl_by_time, &r->by_time); /* Move as last entry, since it is the most recent */
 		
@@ -1106,8 +1108,9 @@ int rgw_client_finish_send(struct radius_msg ** msg, struct rgw_radius_msg_meta 
 		
 		/* Update the timestamp */
 		{
-			time_t now = time(NULL);
-			r->received = now;
+			struct timespec now;
+			CHECK_SYS_DO( clock_gettime(CLOCK_MONOTONIC, &now), { CHECK_POSIX_DO(pthread_mutex_unlock( &cli->dupl_info[p].dupl_lock ), ); return EINVAL; } );
+			r->received = now.tv_sec;
 			fd_list_unlink(&r->by_time); /* Move as last entry, since it is the most recent */
 			fd_list_insert_before(&cli->dupl_info[p].dupl_by_time, &r->by_time);
 		}

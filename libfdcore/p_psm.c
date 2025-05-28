@@ -325,7 +325,7 @@ void fd_psm_next_timeout(struct fd_peer * peer, int add_random, int delay)
 	TRACE_DEBUG(FULL, "Peer timeout reset to %d seconds%s", delay, add_random ? " (+/- 2)" : "" );
 
 	/* Initialize the timer */
-	CHECK_POSIX_DO(  clock_gettime( CLOCK_REALTIME,  &peer->p_psm_timer ), ASSERT(0) );
+	CHECK_POSIX_DO(  clock_gettime( CLOCK_MONOTONIC,  &peer->p_psm_timer ), ASSERT(0) );
 
 	if (add_random) {
 		if (delay > 2)

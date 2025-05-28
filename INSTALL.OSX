@@ -31,6 +31,13 @@ Starting from version 1.1.5, freeDiameter is available through Homebrew:
    For more information on available extension and how to configure them, read:
       http://www.freediameter.net/trac/wiki/Extensions
 
+
+NOTE: macOS users are advised to use the latest version of the operating system.
+      For optimal compatibility and performance, macOS 10.12 or later is preferred.
+      While freeDiameter should still function on older macOS systems, some features
+      may rely on compatibility workarounds.
+
+
 ------------
 FROM SOURCES
 ------------

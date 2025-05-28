@@ -54,7 +54,15 @@ int pthread_barrier_init(pthread_barrier_t * barrier, int * barrier_attr, int co
 	memset(barrier, 0, sizeof(pthread_barrier_t));
 	barrier->count = count;
 	pthread_mutex_init(&barrier->mutex, NULL);
-	pthread_cond_init(&barrier->cond, NULL);
+#ifndef HAVE_PTHREAD_CONDATTR_SETCLOCK
+	CHECK_POSIX( pthread_cond_init(&barrier->cond, NULL) );
+#else
+	pthread_condattr_t attr;
+	CHECK_POSIX( pthread_condattr_init(&attr) );
+	CHECK_POSIX( pthread_condattr_setclock(&attr, CLOCK_MONOTONIC) );
+	CHECK_POSIX( pthread_cond_init(&barrier->cond, &attr) );
+	CHECK_POSIX( pthread_condattr_destroy(&attr) );
+#endif
 	return 0;
 }
 
@@ -243,7 +251,7 @@ int main(int argc, char *argv[])
 		CHECK( 2, fd_fifo_length(queue) );
 		
 		/* Retrieve the second message using fd_fifo_timedget */
-		CHECK(0, clock_gettime(CLOCK_REALTIME, &ts));
+		CHECK(0, clock_gettime(CLOCK_MONOTONIC, &ts));
 		ts.tv_sec += 1; /* Set the timeout to 1 second */
 		CHECK( 0, fd_fifo_timedget(queue, &msg, &ts) );
 		CHECK( msg2, msg);
@@ -259,7 +267,7 @@ int main(int argc, char *argv[])
 		CHECK( 0, fd_fifo_length(queue) );
 		
 		/* Check the timedget actually timesout */
-		CHECK(0, clock_gettime(CLOCK_REALTIME, &ts));
+		CHECK(0, clock_gettime(CLOCK_MONOTONIC, &ts));
 		ts.tv_nsec += 1000000; /* 1 millisecond */
 		if (ts.tv_nsec >= 1000000000L) {
 			ts.tv_nsec -= 1000000000L;
@@ -318,7 +326,7 @@ int main(int argc, char *argv[])
 		CHECK( 0, pthread_barrier_init(&bar, NULL, nbr_threads * 2 + 1) );
 		
 		/* Initialize the ts */
-		CHECK(0, clock_gettime(CLOCK_REALTIME, &ts));
+		CHECK(0, clock_gettime(CLOCK_MONOTONIC, &ts));
 		ts.tv_sec += 20; /* Set the timeout to 20 second */
 		
 		/* Create the messages */
@@ -387,7 +395,7 @@ int main(int argc, char *argv[])
 		CHECK( 0, pthread_barrier_init(&bar, NULL, 2) );
 		
 		/* Initialize the ts */
-		CHECK(0, clock_gettime(CLOCK_REALTIME, &ts));
+		CHECK(0, clock_gettime(CLOCK_MONOTONIC, &ts));
 		ts.tv_sec += 10; /* Set the timeout to 10 second */
 		
 		/* Initialize the test data structures */

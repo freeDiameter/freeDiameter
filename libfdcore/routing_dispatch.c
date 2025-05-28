@@ -1098,7 +1098,7 @@ static void * process_thr(void * arg, int (*action_cb)(struct msg * msg), struct
 			int ret;
 			struct timespec ts;
 			
-			CHECK_SYS_DO( clock_gettime(CLOCK_REALTIME, &ts), goto fatal_error );
+			CHECK_SYS_DO( clock_gettime(CLOCK_MONOTONIC, &ts), goto fatal_error );
 			ts.tv_sec += 1;
 			
 			ret = fd_fifo_timedget ( queue, &msg, &ts );
@@ -1246,7 +1246,7 @@ static void stop_thread_delayed(enum thread_state *st, pthread_t * thr, char * t
 		do {
 			struct timespec	 ts, ts_final;
 
-			CHECK_SYS_DO( clock_gettime(CLOCK_REALTIME, &ts), break );
+			CHECK_SYS_DO( clock_gettime(CLOCK_MONOTONIC, &ts), break );
 			
 			ts_final.tv_sec = ts.tv_sec + 1;
 			ts_final.tv_nsec = ts.tv_nsec;
@@ -1260,7 +1260,7 @@ static void stop_thread_delayed(enum thread_state *st, pthread_t * thr, char * t
 					break;
 				
 				usleep(100000);
-				CHECK_SYS_DO( clock_gettime(CLOCK_REALTIME, &ts), break );
+				CHECK_SYS_DO( clock_gettime(CLOCK_MONOTONIC, &ts), break );
 			}
 		} while (0);
 	}

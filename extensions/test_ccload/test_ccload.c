@@ -96,6 +96,7 @@ static int handle_message(struct msg **msg) {
 	struct msg_hdr *hdr = NULL;
 	struct avp_hdr *ahdr = NULL;
 	struct avp *rc;
+	struct timespec now;
 
 	if (msg == NULL) {
 		fd_log_error("[%s] NULL CCA message", MODULE_NAME);
@@ -109,8 +110,10 @@ static int handle_message(struct msg **msg) {
 		return -1;
 	}
 
+	CHECK_SYS(clock_gettime(CLOCK_MONOTONIC, &now));
+
 	if (statistics.first_reply == 0) {
-		statistics.first_reply = time(NULL);
+		statistics.first_reply = now.tv_sec;
 	}
 	/* Answer received, check it */
 	if (fd_msg_search_avp(*msg, rc_avp_do, &rc) < 0 || rc == NULL) {
@@ -122,7 +125,7 @@ static int handle_message(struct msg **msg) {
 		fd_log_error("[%s] error parsing Result-Code in CCA", MODULE_NAME);
 		return -1;
 	}
-	statistics.last_reply = time(NULL);
+	statistics.last_reply = now.tv_sec;
 	fd_log_debug("Credit-Control-Answer with Result-Code %d received", ahdr->avp_value->i32);
 	switch (ahdr->avp_value->i32/1000) {
 	case 2:
@@ -324,22 +327,22 @@ struct msg *create_message(const char *destination)
 void * gen_thr_fct(void * arg)
 {
 	struct msg *msg;
+	struct timespec now;
 	fd_log_threadname ( "Loadtest/Generator" );
 
 	do {
 		if (do_generate) {
-			time_t now;
+			CHECK_SYS_DO( clock_gettime(CLOCK_MONOTONIC, &now), return NULL );
 			if (statistics.first == 0) {
-				statistics.first = time(NULL);
+				statistics.first = now.tv_sec;
 			}
 			msg = create_message(target);
 			fd_msg_send(&msg, NULL, NULL);
 			fd_log_debug("[%s] sent message", MODULE_NAME);
-			now = time(NULL);
-			if (statistics.last != now) {
+			if (statistics.last != now.tv_sec) {
 				print_statistics();
 			}
-			statistics.last = time(NULL);
+			statistics.last = now.tv_sec;
 			statistics.sent++;
 		} else {
 			sleep(1);

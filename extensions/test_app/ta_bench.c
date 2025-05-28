@@ -71,7 +71,7 @@ static int my_sem_timedwait(my_sem_t * s, struct timespec *ts) {
 	int64_t nsec;
 	dispatch_time_t when;
 	
-	CHECK_SYS( clock_gettime(CLOCK_REALTIME, &tsn) );
+	CHECK_SYS( clock_gettime(CLOCK_MONOTONIC, &tsn) );
 	
 	nsec = (ts->tv_sec * 1000000000) + ts->tv_nsec
 		- (tsn.tv_sec * 1000000000) - tsn.tv_nsec;
@@ -106,7 +106,7 @@ static void ta_cb_ans(void * data, struct msg ** msg)
 	struct avp_hdr * hdr;
 	unsigned long dur;
 	
-	CHECK_SYS_DO( clock_gettime(CLOCK_REALTIME, &ts), return );
+	CHECK_SYS_DO( clock_gettime(CLOCK_MONOTONIC, &ts), return );
 
 	/* Value of Result Code */
 	CHECK_FCT_DO( fd_msg_search_avp ( *msg, ta_res_code, &avp), return );
@@ -230,7 +230,7 @@ static void ta_bench_test_message()
 		CHECK_FCT_DO( fd_msg_avp_add( req, MSG_BRW_LAST_CHILD, avp ), goto out  );
 	}
 	
-	CHECK_SYS_DO( clock_gettime(CLOCK_REALTIME, &mi->ts), goto out );
+	CHECK_SYS_DO( clock_gettime(CLOCK_MONOTONIC, &mi->ts), goto out );
 	
 	/* Send the request */
 	CHECK_FCT_DO( fd_msg_send( &req, ta_cb_ans, mi ), goto out );
@@ -257,7 +257,7 @@ static void ta_bench_start() {
 	
 	/* We will run for ta_conf->bench_duration seconds */
 	LOG_N("Starting benchmark client, %ds", ta_conf->bench_duration);
-	CHECK_SYS_DO( clock_gettime(CLOCK_REALTIME, &end_time), );
+	CHECK_SYS_DO( clock_gettime(CLOCK_MONOTONIC, &end_time), );
 	end_time.tv_sec += ta_conf->bench_duration;
 	
 	/* Now loop until timeout is reached */
@@ -273,7 +273,7 @@ static void ta_bench_start() {
 		}
 		
 		/* Update the current time */
-		CHECK_SYS_DO( clock_gettime(CLOCK_REALTIME, &now), );
+		CHECK_SYS_DO( clock_gettime(CLOCK_MONOTONIC, &now), );
 		
 		if (!TS_IS_INFERIOR(&now, &end_time))
 			break;
@@ -284,7 +284,7 @@ static void ta_bench_start() {
 	
 	do {
 		CHECK_POSIX_DO( pthread_mutex_lock(&ta_conf->stats_lock), );
-		CHECK_SYS_DO( clock_gettime(CLOCK_REALTIME, &now), ); /* Re-read the time because we might have spent some time wiating for the mutex */
+		CHECK_SYS_DO( clock_gettime(CLOCK_MONOTONIC, &now), ); /* Re-read the time because we might have spent some time wiating for the mutex */
 		memcpy(&end, &ta_conf->stats, sizeof(struct ta_stats));
 		CHECK_POSIX_DO( pthread_mutex_unlock(&ta_conf->stats_lock), );
 		

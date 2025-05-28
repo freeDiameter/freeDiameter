@@ -61,7 +61,7 @@ static void ta_cb_ans(void * data, struct msg ** msg)
 	unsigned long dur;
 	int error = 0;
 	
-	CHECK_SYS_DO( clock_gettime(CLOCK_REALTIME, &ts), return );
+	CHECK_SYS_DO( clock_gettime(CLOCK_MONOTONIC, &ts), return );
 
 	/* Search the session, retrieve its data */
 	{
@@ -250,7 +250,7 @@ static void ta_cli_test_message()
 		CHECK_FCT_DO( fd_msg_avp_add( req, MSG_BRW_LAST_CHILD, avp ), goto out  );
 	}
 	
-	CHECK_SYS_DO( clock_gettime(CLOCK_REALTIME, &mi->ts), goto out );
+	CHECK_SYS_DO( clock_gettime(CLOCK_MONOTONIC, &mi->ts), goto out );
 	
 	/* Keep a pointer to the session data for debug purpose, in real life we would not need it */
 	svg = mi;
