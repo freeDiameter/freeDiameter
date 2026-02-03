@@ -1,0 +1,9 @@
+set(freeDiameter_VERSION @FD_PROJECT_VERSION_MAJOR@.@FD_PROJECT_VERSION_MINOR@.@FD_PROJECT_VERSION_REV@)
+
+@PACKAGE_INIT@
+
+set_and_check(freeDiameter_LIB_DIR "@PACKAGE_LIB_INSTALL_DIR@")
+
+include("${CMAKE_CURRENT_LIST_DIR}/freeDiameter-targets.cmake")
+
+check_required_components(freeDiameter)

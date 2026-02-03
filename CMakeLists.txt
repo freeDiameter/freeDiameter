@@ -116,3 +116,26 @@ SUBDIRS(extensions)
 IF ( BUILD_TESTING )
 	SUBDIRS(tests)
 ENDIF ( BUILD_TESTING )
+
+INCLUDE(CMakePackageConfigHelpers)
+
+configure_package_config_file(freeDiameterConfig.cmake.in
+  ${CMAKE_CURRENT_BINARY_DIR}/freeDiameterConfig.cmake
+  INSTALL_DESTINATION ${INSTALL_LIBRARY_SUFFIX}/cmake/freeDiameter
+  PATH_VARS LIB_INSTALL_DIR)
+write_basic_package_version_file(
+  ${CMAKE_CURRENT_BINARY_DIR}/freeDiameterConfigVersion.cmake
+  VERSION ${FD_PROJECT_VERSION_MAJOR}.${FD_PROJECT_VERSION_MINOR}.${FD_PROJECT_VERSION_REV}
+  COMPATIBILITY SameMajorVersion)
+
+####
+## INSTALL section ##
+
+INSTALL(FILES ${CMAKE_CURRENT_BINARY_DIR}/freeDiameterConfig.cmake
+              ${CMAKE_CURRENT_BINARY_DIR}/freeDiameterConfigVersion.cmake
+  DESTINATION ${INSTALL_LIBRARY_SUFFIX}/cmake/freeDiameter)
+
+INSTALL(EXPORT freeDiameter-targets
+  DESTINATION ${INSTALL_LIBRARY_SUFFIX}/cmake/freeDiameter
+  EXPORT_LINK_INTERFACE_LIBRARIES
+  COMPONENT freeDiameter-common)
