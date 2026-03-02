@@ -95,7 +95,9 @@ void print_statistics(void) {
 static int handle_message(struct msg **msg) {
 	struct msg_hdr *hdr = NULL;
 	struct avp_hdr *ahdr = NULL;
-	struct avp *rc;
+        struct avp *rc;
+        time_t now;
+        int do_print = 0;
 
 	if (msg == NULL) {
 		fd_log_error("[%s] NULL CCA message", MODULE_NAME);
@@ -109,8 +111,9 @@ static int handle_message(struct msg **msg) {
 		return -1;
 	}
 
+        now = time(NULL);
 	if (statistics.first_reply == 0) {
-		statistics.first_reply = time(NULL);
+		statistics.first_reply = now;
 	}
 	/* Answer received, check it */
 	if (fd_msg_search_avp(*msg, rc_avp_do, &rc) < 0 || rc == NULL) {
@@ -121,8 +124,11 @@ static int handle_message(struct msg **msg) {
 	if (fd_msg_avp_hdr(rc, &ahdr) < 0) {
 		fd_log_error("[%s] error parsing Result-Code in CCA", MODULE_NAME);
 		return -1;
+        }
+        if (statistics.last_reply != now) {
+		do_print = 1;
 	}
-	statistics.last_reply = time(NULL);
+	statistics.last_reply = now;
 	fd_log_debug("Credit-Control-Answer with Result-Code %d received", ahdr->avp_value->i32);
 	switch (ahdr->avp_value->i32/1000) {
 	case 2:
@@ -132,7 +138,7 @@ static int handle_message(struct msg **msg) {
 		statistics.error++;
 		break;
 	}
-	if (statistics.sent - statistics.error - statistics.success == 0) {
+	if (do_print || (statistics.sent - statistics.error - statistics.success == 0)) {
 		print_statistics();
 	}
 
@@ -339,7 +345,7 @@ void * gen_thr_fct(void * arg)
 			if (statistics.last != now) {
 				print_statistics();
 			}
-			statistics.last = time(NULL);
+			statistics.last = now;
 			statistics.sent++;
 		} else {
 			sleep(1);
