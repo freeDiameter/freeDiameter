@@ -41,6 +41,7 @@ struct dict_object * crt_avp_do; /* cache the CC-Request-Type dictionary object 
 
 #define MODULE_NAME "test_cc"
 
+int do_reply = 1;
 struct statistics {
         uint64_t sent;
         time_t first;
@@ -60,18 +61,21 @@ static int ccr_handler(struct msg ** msg, struct avp * avp, struct session * ses
 {
 	struct msg_hdr *hdr = NULL;
 	time_t now;
+	char *buf = NULL;
+	size_t len;
 
 	TRACE_ENTRY("%p %p %p %p", msg, avp, sess, act);
 
 	if(msg == NULL)
 		return EINVAL;
 
+	CHECK_MALLOC_DO(fd_msg_dump_full(&buf, &len, NULL, *msg, fd_g_config->cnf_dict, 0, 1), /* nothing */);
+	fd_log_notice("Received message: %s", buf);
+	free(buf);
 	CHECK_FCT(fd_msg_hdr(*msg, &hdr));
-	if(hdr->msg_flags & CMD_FLAG_REQUEST) {
+	if(do_reply && (hdr->msg_flags & CMD_FLAG_REQUEST)) {
 		/* Request received, answer it */
 		struct msg *answer;
-		os0_t s;
-		size_t sl;
 		struct avp *avp;
 		union avp_value val;
 		struct avp *avp_data;
@@ -140,12 +144,6 @@ static int ccr_handler(struct msg ** msg, struct avp * avp, struct session * ses
 		/* TODO make result configurable (depending on an AVP?) */
 		CHECK_FCT(fd_msg_rescode_set(answer, "DIAMETER_SUCCESS", NULL, NULL, 1));
 
-		fd_log_debug("--------------Received the following Credit Control Request:--------------");
-
-		CHECK_FCT(fd_sess_getsid(sess, &s, &sl));
-		fd_log_debug("Session: %.*s",(int)sl, s);
-
-		fd_log_debug("----------------------------------------------------------------------");
 
 		/* Send the answer */
 		CHECK_FCT(fd_msg_send(msg, NULL, NULL));
@@ -183,6 +181,9 @@ static int cc_entry(char * conffile)
 		     { LOG_E("Unable to find 'CC-Request-Type' AVP in the loaded dictionaries."); });
 
 	memset(&data, 0, sizeof(data));
+	if (conffile && strcmp(conffile, "DO_NOT_REPLY") == 0) {
+		do_reply = 0;
+	}
 
         /* Advertise the support for the Diameter Credit Control application in the peer */
         CHECK_FCT( fd_dict_search( fd_g_config->cnf_dict, DICT_APPLICATION, APPLICATION_BY_NAME, "Diameter Credit Control Application", &data.app, ENOENT) );
