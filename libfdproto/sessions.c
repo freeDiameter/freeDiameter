@@ -117,7 +117,7 @@ static struct {
 
 static uint32_t		sess_cnt = 0; /* counts all active session (that are in the expiry list) */
 
-/* The following are used to generate sid values that are eternaly unique */
+/* The following are used to generate sid values that are eternally unique */
 static uint32_t   	sid_h;	/* initialized to the current time in fd_sess_init */
 static uint32_t   	sid_l;	/* incremented each time a session id is created */
 static pthread_mutex_t 	sid_lock = PTHREAD_MUTEX_INITIALIZER;
@@ -732,7 +732,7 @@ int fd_sess_destroy ( struct session ** session )
 
 	CHECK_FCT( del_session_states(*session, (*session)->sid, (*session)->sidlen) );
 	*session = NULL;
-	
+
 	return 0;
 }
 
