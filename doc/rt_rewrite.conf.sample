@@ -47,7 +47,7 @@
 # For example:
 # IF "key" > "1" MAP = "Source-AVP1" > "Destination-AVP1";
 # IF "key" = "0" DROP = "Grouped-AVP" : "OctetString-AVP";
-# IF "key" >= "1000" ADD = "Grouped-AVP2" : "Octetstring-AVP2";
+# IF "key" >= "1000" ADD = "Grouped-AVP2" : "Octetstring-AVP2" = "some value";
 #
 # Supported comparison operators are "<", "<=", "=", ">=", ">".
 # OctetString AVPs (and those derived from OctetString) can only be
