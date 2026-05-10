@@ -124,7 +124,7 @@ int rt_busy_process_busy(struct msg ** pmsg, int is_req, DiamId_t sentto, size_t
 			char *buf = NULL;
 			size_t len;
 			struct timespec expire;
-			CHECK_SYS(  clock_gettime(CLOCK_REALTIME, &expire)  );
+			CHECK_SYS( clock_gettime(CLOCK_MONOTONIC, &expire) );
 			expire.tv_sec += rtbusy_conf.RelayTimeout/1000 + ((expire.tv_nsec + (1000000LL * (rtbusy_conf.RelayTimeout % 1000))) / 1000000000LL);
 			expire.tv_nsec = (expire.tv_nsec + (1000000LL * (rtbusy_conf.RelayTimeout % 1000))) % 1000000000LL;
 			CHECK_MALLOC_DO( fd_msg_dump_full(&buf, &len, NULL, *pmsg, fd_g_config->cnf_dict, 0, 1), /* nothing */);
@@ -177,7 +177,7 @@ static int rtbusy_fwd_cb(void * cbdata, struct msg ** pmsg)
 	/* If the message is a request, we only associate the timeout */
 	if (hdr->msg_flags & CMD_FLAG_REQUEST) {
 		struct timespec expire;
-		CHECK_SYS(  clock_gettime(CLOCK_REALTIME, &expire)  );
+		CHECK_SYS( clock_gettime(CLOCK_MONOTONIC, &expire) );
 		expire.tv_sec += rtbusy_conf.RelayTimeout/1000 + ((expire.tv_nsec + (1000000LL * (rtbusy_conf.RelayTimeout % 1000))) / 1000000000LL);
 		expire.tv_nsec = (expire.tv_nsec + (1000000LL * (rtbusy_conf.RelayTimeout % 1000))) % 1000000000LL;
 		CHECK_FCT( fd_msg_anscb_associate( *pmsg, NULL, NULL, rtbusy_expirecb, &expire ) );

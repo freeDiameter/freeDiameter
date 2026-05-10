@@ -245,7 +245,7 @@ int main(int argc, char *argv[])
 		CHECK( 0, fd_sess_fromsid( TEST_SID, CONSTSTRLEN(TEST_SID_IN), &sess1, &new ) );
 		CHECK( 1, new ? 1 : 0 );
 		
-		CHECK( 0, clock_gettime(CLOCK_REALTIME, &timeout) );
+		CHECK( 0, clock_gettime(CLOCK_MONOTONIC, &timeout) );
 		CHECK( 0, fd_sess_settimeout( sess1, &timeout) ); /* expire now */
 		timeout.tv_sec = 0;
 		timeout.tv_nsec= 50000000; /* 50 ms */
@@ -254,7 +254,7 @@ int main(int argc, char *argv[])
 		CHECK( 0, fd_sess_fromsid( TEST_SID, CONSTSTRLEN(TEST_SID_IN), &sess1, &new ) );
 		CHECK( 1, new ? 1 : 0 );
 		
-		CHECK( 0, clock_gettime(CLOCK_REALTIME, &timeout) );
+		CHECK( 0, clock_gettime(CLOCK_MONOTONIC, &timeout) );
 		CHECK( 0, fd_sess_settimeout( sess1, &timeout) ); /* expire now */
 		timeout.tv_sec = 0;
 		timeout.tv_nsec= 50000000; /* 50 ms */
@@ -263,7 +263,7 @@ int main(int argc, char *argv[])
 		CHECK( 0, fd_sess_fromsid( TEST_SID, CONSTSTRLEN(TEST_SID_IN), &sess1, &new ) );
 		CHECK( 1, new ? 1 : 0 );
 
-		CHECK( 0, clock_gettime(CLOCK_REALTIME, &timeout) );
+		CHECK( 0, clock_gettime(CLOCK_MONOTONIC, &timeout) );
 		timeout.tv_sec += 2678500; /* longer that SESS_DEFAULT_LIFETIME */
 		CHECK( 0, fd_sess_settimeout( sess1, &timeout) );
 		
@@ -378,7 +378,7 @@ int main(int argc, char *argv[])
 		free(str2);
 		
 		/* Timeout does call cleanups */
-		CHECK( 0, clock_gettime(CLOCK_REALTIME, &timeout) );
+		CHECK( 0, clock_gettime(CLOCK_MONOTONIC, &timeout) );
 		CHECK( 0, fd_sess_settimeout( sess2, &timeout) );
 		#if 1
 		fd_log_debug("%s", fd_sess_dump(FD_DUMP_TEST_PARAMS, sess1, 1));

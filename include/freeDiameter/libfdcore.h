@@ -506,8 +506,8 @@ int fd_peer_validate_register ( int (*peer_validate)(struct peer_info * /* info 
  *  anscb	: A callback to be called when corresponding answer is received, when sending a request (not used with answers)
  *  anscb_data	: opaque data to be passed back to the anscb (or expirecb) when it is called.
  *  expirecb    : (only for fd_msg_send_timeout) If the request did not get an answer before timeout, this callback is called.
- *  timeout     : (only for fd_msg_send_timeout) sets the absolute time until when to wait for an answer. Past this time,
- *                the expirecb is called with the request and the answer will be discarded if received later.
+ *  timeout     : (only for fd_msg_send_timeout) sets the absolute time (steady-time, aka monotonic) until when to wait for an answer. 
+ *                Past this time, the expirecb is called with the request and the answer will be discarded if received later.
  *
  * DESCRIPTION: 
  *   Sends a message on the network. (actually simply queues it in a global queue, to be picked by a daemon's thread)

@@ -93,7 +93,7 @@ static void * ta_stats(void * arg) {
 	struct ta_stats copy;
 	
 	/* Get the start time */
-	CHECK_SYS_DO( clock_gettime(CLOCK_REALTIME, &start), );
+	CHECK_SYS_DO( clock_gettime(CLOCK_MONOTONIC, &start), );
 	
 	/* Now, loop until canceled */
 	while (1) {
@@ -106,7 +106,7 @@ static void * ta_stats(void * arg) {
 		CHECK_POSIX_DO( pthread_mutex_unlock(&ta_conf->stats_lock), );
 		
 		/* Get the current execution time */
-		CHECK_SYS_DO( clock_gettime(CLOCK_REALTIME, &now), );
+		CHECK_SYS_DO( clock_gettime(CLOCK_MONOTONIC, &now), );
 		
 		/* Now, display everything */
 		fd_log_debug( "------- app_test statistics ---------");

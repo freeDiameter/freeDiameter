@@ -2846,7 +2846,7 @@ static int diameap_add_result_code(struct diameap_state_machine * diameap_sm,
 		{
 			avp_val.u32 = ans_attrib->value.u32;
 			/* Update the session timeout with multi-round-time-out value */
-			CHECK_SYS(clock_gettime(CLOCK_REALTIME,&sess_timeout));
+			CHECK_SYS(clock_gettime(CLOCK_MONOTONIC,&sess_timeout));
 			sess_timeout.tv_sec += diameap_config->multi_round_time_out;
 			CHECK_FCT(fd_sess_settimeout(sess, &sess_timeout));
 			free_ans_attrib(ans_attrib);
@@ -2855,7 +2855,7 @@ static int diameap_add_result_code(struct diameap_state_machine * diameap_sm,
 		{
 			avp_val.u32 = diameap_config->multi_round_time_out;
 			/* Update the session timeout with multi-round-time-out value */
-			CHECK_SYS(clock_gettime(CLOCK_REALTIME,&sess_timeout));
+			CHECK_SYS(clock_gettime(CLOCK_MONOTONIC,&sess_timeout));
 			sess_timeout.tv_sec += diameap_config->multi_round_time_out;
 			CHECK_FCT(fd_sess_settimeout(sess, &sess_timeout));
 		}

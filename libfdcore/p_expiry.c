@@ -116,7 +116,7 @@ static void * exp_th_fct(void * arg)
 		ASSERT( CHECK_PEER(first) );
 		
 		/* Get the current time */
-		CHECK_SYS_DO(  clock_gettime(CLOCK_REALTIME, &now),  { ASSERT(0); }  );
+		CHECK_SYS_DO( clock_gettime(CLOCK_MONOTONIC, &now),  { ASSERT(0); } );
 
 		/* If first peer is not expired, we just wait until it happens */
 		if ( TS_IS_INFERIOR( &now, &first->p_exp_timer ) ) {
@@ -181,7 +181,7 @@ int fd_p_expi_update(struct fd_peer * peer )
 		struct fd_list * li;
 		
 		/* update the p_exp_timer value */
-		CHECK_SYS_DO(  clock_gettime(CLOCK_REALTIME, &peer->p_exp_timer), { ASSERT(0); }  );
+		CHECK_SYS_DO( clock_gettime(CLOCK_MONOTONIC, &peer->p_exp_timer), { ASSERT(0); } );
 		peer->p_exp_timer.tv_sec += peer->p_hdr.info.config.pic_lft;
 		
 		/* add to the expiry list in appropriate position (probably around the end) */

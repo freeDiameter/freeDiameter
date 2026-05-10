@@ -40,7 +40,7 @@
 
 /* Entries by their ascending expiration date, to accelerate the work of the expire thread */
 static struct fd_list  expire_list = FD_LIST_INITIALIZER(expire_list);
-static pthread_cond_t  exp_cnd  = PTHREAD_COND_INITIALIZER;
+static pthread_cond_t  exp_cnd;
 
 pthread_mutex_t redir_exp_peer_lock = PTHREAD_MUTEX_INITIALIZER;
 
@@ -49,7 +49,17 @@ void * redir_exp_thr_fct(void * arg)
 {
 	fd_log_threadname ( "Redirects/expire" );
 	TRACE_ENTRY( "" );
-
+	
+#ifndef HAVE_PTHREAD_CONDATTR_SETCLOCK
+	CHECK_POSIX_DO( pthread_cond_init(&exp_cnd, NULL), return NULL );
+#else
+	pthread_condattr_t attr;
+	CHECK_POSIX_DO( pthread_condattr_init(&attr), return NULL );
+	CHECK_POSIX_DO( pthread_condattr_setclock(&attr, CLOCK_MONOTONIC), return NULL );
+	CHECK_POSIX_DO( pthread_cond_init(&exp_cnd, &attr), return NULL );
+	CHECK_POSIX_DO( pthread_condattr_destroy(&attr), return NULL );
+#endif
+	
 	CHECK_POSIX_DO( pthread_mutex_lock(&redir_exp_peer_lock),  goto fatal_error );
 	pthread_cleanup_push( fd_cleanup_mutex, &redir_exp_peer_lock );
 
@@ -69,7 +79,7 @@ again:
 		first = (struct redir_entry *)(expire_list.next->o);
 
 		/* Get the current time */
-		CHECK_SYS_DO(  clock_gettime(CLOCK_REALTIME, &now),  break  );
+		CHECK_SYS_DO( clock_gettime(CLOCK_MONOTONIC, &now), break );
 
 		/* If first session is not expired, we just wait until it happens */
 		if ( TS_IS_INFERIOR( &now, &first->timeout ) ) {
@@ -108,7 +118,7 @@ int redir_exp_set(struct redir_entry * e, uint32_t duration)
 	fd_list_unlink(&e->exp_list);
 
 	/* Get current time */
-	CHECK_SYS(  clock_gettime(CLOCK_REALTIME, &e->timeout)  );
+	CHECK_SYS( clock_gettime(CLOCK_MONOTONIC, &e->timeout) );
 
 	/* Add the duration */
 	e->timeout.tv_sec += duration;

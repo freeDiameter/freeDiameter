@@ -773,7 +773,7 @@ static int sip_diam_ans( struct rgwp_config * cs, struct msg ** diam_ans, struct
 		case ER_DIAMETER_SUCCESS_AUTH_SENT_SERVER_NOT_STORED:		
 			(*rad_fw)->hdr->code = RADIUS_CODE_ACCESS_CHALLENGE;
 			//struct timespec nowts;
-			//CHECK_SYS(clock_gettime(CLOCK_REALTIME, &nowts));
+			//CHECK_SYS(clock_gettime(CLOCK_MONOTONIC, &nowts));
 			//nowts.tv_sec+=600;
 			//CHECK_FCT(fd_sess_settimeout(session, &nowts ));
 			break;

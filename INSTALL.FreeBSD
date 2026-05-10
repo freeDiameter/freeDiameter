@@ -11,6 +11,11 @@ Then the cmake command had to look like:
  cmake -DFLEX_EXECUTABLE:FILEPATH=/usr/local/bin/flex -DSCTP_USE_MAPPED_ADDRESSES:BOOL=ON ...
 
 
+NOTE: FreeBSD users are advised to use the latest version of the operating system (https://www.freebsd.org/releases/).
+      For optimal compatibility and performance, FreeBSD 9.0 or later is preferred. While freeDiameter should still
+      function on older FreeBSD systems, some features may rely on compatibility workarounds.
+
+
 ---------------------
 COMPLETE INSTRUCTIONS
 ---------------------

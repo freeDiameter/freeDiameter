@@ -54,7 +54,7 @@
  */
 
 static pthread_mutex_t mtx = PTHREAD_MUTEX_INITIALIZER;
-static pthread_cond_t  cnd = PTHREAD_COND_INITIALIZER;
+static pthread_cond_t  cnd;
 static pthread_t       thr = (pthread_t)NULL;
 
 /* The lists below are all protected by the same mutex mtx */
@@ -214,7 +214,7 @@ static int send_all_ready()
 	
 	TRACE_ENTRY("");
 	
-	CHECK_SYS( clock_gettime(CLOCK_REALTIME, &now) );
+	CHECK_SYS( clock_gettime(CLOCK_MONOTONIC, &now) );
 	
 	while (!FD_IS_LIST_EMPTY(&waitlist)) {
 		struct msg * m;
@@ -288,6 +288,15 @@ error:
 /* functions visible from outside this file */
 int tne_process_init() 
 {
+#ifndef HAVE_PTHREAD_CONDATTR_SETCLOCK
+	CHECK_POSIX( pthread_cond_init(&cnd, NULL) );
+#else
+	pthread_condattr_t attr;
+	CHECK_POSIX( pthread_condattr_init(&attr) );
+	CHECK_POSIX( pthread_condattr_setclock(&attr, CLOCK_MONOTONIC) );
+	CHECK_POSIX( pthread_cond_init(&cnd, &attr) );
+	CHECK_POSIX( pthread_condattr_destroy(&attr) );
+#endif
 	CHECK_POSIX( pthread_create(&thr, NULL, tne_process_th, NULL) );
 	
 	#if 0 /* debug */
@@ -318,7 +327,7 @@ int tne_process_message(struct msg * msg)
 	CHECK_MALLOC( pi = malloc(sizeof(struct process_item)) );
 	memset(pi, 0, sizeof(struct process_item));
 	fd_list_init(&pi->chain, msg);
-	CHECK_SYS(clock_gettime(CLOCK_REALTIME, &pi->ts));
+	CHECK_SYS(clock_gettime(CLOCK_MONOTONIC, &pi->ts));
 	
 	/* Store it in the input list */
 	CHECK_POSIX( pthread_mutex_lock(&mtx) );

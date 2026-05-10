@@ -749,9 +749,19 @@ void fd_sa_sdump_numeric(char * buf /* must be at least sSA_DUMP_STRLEN */, sSA 
 /*============================================================*/
 #ifndef HAVE_CLOCK_GETTIME
   #define CLOCK_REALTIME  0
+  #define CLOCK_MONOTONIC  1
   #include <sys/time.h>
+  #ifdef __APPLE__
+    #include <mach/mach_time.h>
+  #endif
   int clock_gettime(int clk_id, struct timespec* ts);
 #endif /* HAVE_CLOCK_GETTIME */
+
+#ifndef HAVE_PTHREAD_CONDATTR_SETCLOCK
+  #define FB_TM_INTERVAL_MS  500
+  #define pthread_cond_timedwait  pthread_cond_timedwait_fb
+  int pthread_cond_timedwait_fb (pthread_cond_t *cond, pthread_mutex_t *mutex, const struct timespec *abstime);
+#endif /* HAVE_PTHREAD_CONDATTR_SETCLOCK */
 
 #ifndef HAVE_STRNDUP
 char * strndup (char *str, size_t len);
@@ -2022,14 +2032,14 @@ int fd_sess_getsid ( struct session * session, os0_t * sid, size_t * sidlen );
  *
  * PARAMETERS:
  *  session	: The session for which to set the timeout.
- *  timeout	: The date when the session times out.
+ *  timeout	: The time when the session times out.
  *
  * DESCRIPTION:
  *   Set the lifetime for a given session object. This function may be
  * called several times on the same object to update the timeout value.
- *   When the timeout date is reached, the cleanup handler of each
- * module that registered data with this session is called, then the
- * session is cleared.
+ *   When the timeout time is reached (based on monotonic clock), the 
+ * cleanup handler of each module that registered data with this session 
+ * is called, then the session is cleared.
  *
  *   There is a possible race condition between cleanup of the session
  * and use of its data; applications should ensure that they are not
@@ -2522,7 +2532,7 @@ int fd_msg_answ_detach   ( struct msg * answer );
  *  anscb	: the callback to associate with the message
  *  data	: the data to pass to the callback
  *  expirecb    : the expiration callback to associate with the message
- *  timeout     : (optional, use NULL if no timeout) a timeout associated with calling the cb.
+ *  timeout     : (optional, use NULL if no timeout) a timeout (steady-time, aka monotonic) associated with calling the cb.
  *
  * DESCRIPTION:
  *  Associate or retrieve callbacks with an message.
@@ -3260,7 +3270,7 @@ int fd_fifo_timedget_int ( struct fifo * queue, void ** item, const struct times
  *
  * PARAMETERS:
  *  queue	: The queue to test.
- *  abstime	: the absolute time until which we can block waiting for an item. If NULL, the function returns immediately.
+ *  abstime	: the absolute time (monotonic) until which we can block waiting for an item. If NULL, the function returns immediately.
  *
  * DESCRIPTION:
  *  This function is similar to select(), it waits for data to be available in the queue

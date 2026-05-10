@@ -176,7 +176,7 @@ static int sctp3436_pull_timeout(gnutls_transport_ptr_t tr, unsigned int ms)
 		return 1; /* data is already available for pull */
 
 	if (ms) {
-		CHECK_SYS_DO(  clock_gettime(CLOCK_REALTIME, &tsstore),  return -1  );
+		CHECK_SYS_DO( clock_gettime(CLOCK_MONOTONIC, &tsstore),  return -1 );
 		tsstore.tv_nsec += (long)ms * 1000000;
 		tsstore.tv_sec += tsstore.tv_nsec / 1000000000L;
 		tsstore.tv_nsec %= 1000000000L;

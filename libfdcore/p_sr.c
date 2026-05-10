@@ -84,7 +84,7 @@ static void srl_dump(const char * text, struct fd_list * srlist)
 	
 	LOG_D("%sSentReq list @%p:", text, srlist);
 	
-	CHECK_SYS_DO( clock_gettime(CLOCK_REALTIME, &now), );
+	CHECK_SYS_DO( clock_gettime(CLOCK_MONOTONIC, &now), );
 	
 	for (li = srlist->next; li != srlist; li = li->next) {
 		struct sentreq * sr = (struct sentreq *)li;
@@ -137,7 +137,7 @@ loop:
 		first = (struct sentreq *)(srlist->exp.next->o);
 		
 		/* Get the current time */
-		CHECK_SYS_DO(  clock_gettime(CLOCK_REALTIME, &now),  goto unlock  );
+		CHECK_SYS_DO( clock_gettime(CLOCK_MONOTONIC, &now), goto unlock );
 
 		/* If first request is not expired, we just wait until it happens */
 		if ( TS_IS_INFERIOR( &now, &first->timeout ) ) {
@@ -214,7 +214,7 @@ int fd_p_sr_store(struct sr_list * srlist, struct msg **req, uint32_t *hbhloc, u
 	sr->req = *req;
 	sr->prevhbh = hbh_restore;
 	fd_list_init(&sr->expire, sr);
-	CHECK_SYS( clock_gettime(CLOCK_REALTIME, &sr->added_on) );
+	CHECK_SYS( clock_gettime(CLOCK_MONOTONIC, &sr->added_on) );
 	
 	/* Search the place in the list */
 	CHECK_POSIX( pthread_mutex_lock(&srlist->mtx) );

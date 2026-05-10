@@ -125,7 +125,7 @@ static pthread_mutex_t 	sid_lock = PTHREAD_MUTEX_INITIALIZER;
 /* Expiring sessions management */
 static struct fd_list	exp_sentinel = FD_LIST_INITIALIZER(exp_sentinel);	/* list of sessions ordered by their timeout date */
 static pthread_mutex_t	exp_lock = PTHREAD_MUTEX_INITIALIZER;	/* lock protecting the list. */
-static pthread_cond_t	exp_cond = PTHREAD_COND_INITIALIZER;	/* condvar used by the expiry mechainsm. */
+static pthread_cond_t	exp_cond;	/* condvar used by the expiry mechainsm. */
 static pthread_t	exp_thr = (pthread_t)NULL; 	/* The expiry thread that handles cleanup of expired sessions */
 
 /* Hierarchy of the locks, to avoid deadlocks:
@@ -154,7 +154,7 @@ static struct session * new_session(os0_t sid, size_t sidlen, uint32_t hash)
 	sess->hash = hash;
 	fd_list_init(&sess->chain_h, sess);
 
-	CHECK_SYS_DO( clock_gettime(CLOCK_REALTIME, &sess->timeout), return NULL );
+	CHECK_SYS_DO( clock_gettime(CLOCK_MONOTONIC, &sess->timeout), return NULL );
 	sess->timeout.tv_sec += SESS_DEFAULT_LIFETIME;
 	fd_list_init(&sess->expire, sess);
 
@@ -306,7 +306,7 @@ again:
 		ASSERT( VALIDATE_SI(first) );
 
 		/* Get the current time */
-		CHECK_SYS_DO(  clock_gettime(CLOCK_REALTIME, &now),  break  );
+		CHECK_SYS_DO( clock_gettime(CLOCK_MONOTONIC, &now), break );
 
 		/* If first session is not expired, we just wait until it happens */
 		if ( TS_IS_INFERIOR( &now, &first->timeout ) ) {
@@ -321,9 +321,7 @@ again:
 				/* on wakeup or time-out, loop */
 				goto again;
 			case EINVAL:
-				if (clock_gettime(CLOCK_REALTIME, &now) < 0) {
-					break;
-				}
+				CHECK_SYS_DO( clock_gettime(CLOCK_MONOTONIC, &now), break );
 				if (TS_IS_INFERIOR(&now, &first->timeout)) {
 					TRACE_DEBUG(FULL, "'pthread_cond_timedwait(&exp_cond, &exp_lock, &first->timeout)' : timer expired before loop could start");
 					goto again;
@@ -366,6 +364,16 @@ int fd_sess_init(void)
 	/* Initialize the global counters */
 	sid_h = (uint32_t) time(NULL);
 	sid_l = 0;
+
+#ifndef HAVE_PTHREAD_CONDATTR_SETCLOCK
+	CHECK_POSIX( pthread_cond_init(&exp_cond, NULL) );
+#else
+	pthread_condattr_t attr;
+	CHECK_POSIX( pthread_condattr_init(&attr) );
+	CHECK_POSIX( pthread_condattr_setclock(&attr, CLOCK_MONOTONIC) );
+	CHECK_POSIX( pthread_cond_init(&exp_cond, &attr) );
+	CHECK_POSIX( pthread_condattr_destroy(&attr) );
+#endif
 
 	/* Initialize the hash table */
 	for (i = 0; i < sizeof(sess_hash) / sizeof(sess_hash[0]); i++) {
@@ -603,7 +611,7 @@ int fd_sess_new ( struct session ** session, DiamId_t diamid, size_t diamidlen, 
 			sess->is_destroyed = 0;
 
 			/* update the expiry time */
-			CHECK_SYS_DO( clock_gettime(CLOCK_REALTIME, &sess->timeout), { ASSERT(0); } );
+			CHECK_SYS_DO( clock_gettime(CLOCK_MONOTONIC, &sess->timeout), { ASSERT(0); } );
 			sess->timeout.tv_sec += SESS_DEFAULT_LIFETIME;
 		}
 	}
@@ -948,13 +956,19 @@ DECLARE_FD_DUMP_PROTOTYPE(fd_sess_dump, struct session * session, int with_state
 	if (!VALIDATE_SI(session)) {
 		CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "INVALID/NULL"), return NULL);
 	} else {
-		char timebuf[30];
-		struct tm tm;
+		struct timespec now;
+		clock_gettime(CLOCK_MONOTONIC, &now);
 
-		strftime(timebuf, sizeof(timebuf), "%D,%T", localtime_r( &session->timeout.tv_sec , &tm ));
-		CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "'%s'(%zd) h:%x m:%d d:%d to:%s.%06ld",
+		time_t sec_left = session->timeout.tv_sec - now.tv_sec;
+		long microsec_left = (session->timeout.tv_nsec - now.tv_nsec) / 1000;
+		if (microsec_left < 0) {
+			sec_left--;
+			microsec_left += 1000000;
+		}
+
+		CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "'%s'(%zd) h:%x m:%d d:%d to:%+ld.%06ld",
 							session->sid, session->sidlen, session->hash, session->msg_cnt, session->is_destroyed,
-							timebuf, session->timeout.tv_nsec/1000),
+							(long)sec_left, microsec_left),
 				 return NULL);
 
 		if (with_states) {
