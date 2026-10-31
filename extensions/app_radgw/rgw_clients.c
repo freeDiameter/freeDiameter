@@ -565,7 +565,7 @@ int rgw_clients_create_origin(struct rgw_radius_msg_meta *msg, struct rgw_client
 		struct radius_attr_hdr * attr = (struct radius_attr_hdr *)(msg->radius.buf + msg->radius.attr_pos[idx]);
 		size_t attr_len = attr->length - sizeof(struct radius_attr_hdr);
 		
-		if ((attr->type == RADIUS_ATTR_NAS_IP_ADDRESS) && (attr_len = 4)) {
+		if ((attr->type == RADIUS_ATTR_NAS_IP_ADDRESS) && (attr_len == 4)) {
 			nas_ip = attr;
 			continue;
 		}
@@ -576,7 +576,7 @@ int rgw_clients_create_origin(struct rgw_radius_msg_meta *msg, struct rgw_client
 			continue;
 		}
 			
-		if ((attr->type == RADIUS_ATTR_NAS_IPV6_ADDRESS) && (attr_len = 16)) {
+		if ((attr->type == RADIUS_ATTR_NAS_IPV6_ADDRESS) && (attr_len == 16)) {
 			nas_ip6 = attr;
 			continue;
 		}
