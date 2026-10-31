@@ -181,8 +181,10 @@ int get_password(const unsigned char *username, const size_t usernamelen, char *
 			{
 				if(strlen(row[0])>0)
 				{
-					if(password!=NULL)
-						strcpy(password,row[0]);
+					if(password!=NULL) {
+						strncpy(password,row[0],50);
+						password[50]='\0';
+					}
 					
 					not_found=0;
 					break;
