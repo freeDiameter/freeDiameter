@@ -72,7 +72,8 @@ static void diameap_ba_policyupdate(struct eap_state_machine * eap_sm,
 		{
 			vendor = VENDOR_IETF;
 			type = G8(data);
-			if (diameap_plugin_exist(vendor, type) == TRUE)
+			if (diameap_plugin_exist(vendor, type) == TRUE
+					&& (id - 5) < MAXPROPOSEDMETHODS)
 			{
 				eap_sm->user.proposedmethods[id - 5].method = type;
 				eap_sm->user.proposedmethods[id - 5].vendor = vendor;
