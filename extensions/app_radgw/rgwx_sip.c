@@ -393,7 +393,6 @@ static int sip_rad_req( struct rgwp_config * cs, struct radius_msg * rad_req, st
 					return EINVAL;
 				}
 				CHECK_FCT(fd_sess_fromsid_msg (sid, sidlen, &sess, NULL));
-				free(sid);
 							
 				
 			break;
@@ -432,17 +431,17 @@ static int sip_rad_req( struct rgwp_config * cs, struct radius_msg * rad_req, st
 		CHECK_MALLOC( sid = malloc(un_len + 1 /* ';' */ + fd_g_config->cnf_diamid_len + 1 /* '\0' */) );
 		sidlen = sprintf((char *)sid, "%.*s;%s", (int)un_len, un, fd_g_config->cnf_diamid);
 		CHECK_FCT( fd_sess_new(&sess, fqdn, fqdn_len, sid, sidlen) );
-		free(sid);
 	}
-	
+
 	/* Now, add the Session-Id AVP at beginning of Diameter message */
 	CHECK_FCT( fd_msg_avp_new ( cs->dict.Session_Id, 0, &avp ) );
 	value.os.data = sid;
 	value.os.len = sidlen;
 	CHECK_FCT( fd_msg_avp_setvalue ( avp, &value ) );
 	CHECK_FCT( fd_msg_avp_add ( *diam_fw, MSG_BRW_FIRST_CHILD, avp) );
-	
+
 	TRACE_DEBUG(FULL, "[sip.rgwx] Translating new message for session '%s'...", sid);
+	free(sid);
 	
 	/* Now add this session in the message */
 	CHECK_FCT( fd_msg_sess_set(*diam_fw, sess) );
