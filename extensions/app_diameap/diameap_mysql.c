@@ -55,12 +55,17 @@ int diameap_get_eap_user(struct eap_user * user, char * username)
 	MYSQL_RES *res;
 	MYSQL_ROW row;
 	char * query;
-	CHECK_MALLOC(query=(char *)malloc(sizeof(char)*255));
-
-	sprintf(
-			query,
+	size_t ulen = strlen(username);
+	char *escaped;
+	size_t qlen;
+	CHECK_MALLOC(escaped = (char *)malloc(ulen * 2 + 1));
+	mysql_real_escape_string(db_conn, escaped, username, ulen);
+	qlen = strlen("SELECT id,username,password,eapmethod, vendor FROM users WHERE  users.username='' and users.active='Y' ") + strlen(escaped) + 1;
+	CHECK_MALLOC(query=(char *)malloc(qlen));
+	snprintf(query, qlen,
 			"SELECT id,username,password,eapmethod, vendor FROM users WHERE  users.username='%s' and users.active='Y' ",
-			username);
+			escaped);
+	free(escaped);
 
 	CHECK_POSIX(pthread_mutex_lock( &db_cs_mutex ));
 
