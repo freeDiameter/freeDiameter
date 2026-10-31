@@ -303,6 +303,8 @@ int diameap_tls_parse(u8* data, int len, struct tls_msg * tlsmsg)
 	pos++;
 	if ((tlsmsg->flags & TLS_FLAG_LENGTH) == TLS_FLAG_LENGTH)
 	{
+		if (len < 5)
+			return EINVAL;
 		tlsmsg->length = G32BIGE(data+1);
 		pos = pos + 4;
 	}
