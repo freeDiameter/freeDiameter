@@ -394,8 +394,8 @@ static int sip_rad_req( struct rgwp_config * cs, struct radius_msg * rad_req, st
 				}
 				CHECK_FCT(fd_sess_fromsid_msg (sid, sidlen, &sess, NULL));
 				free(sid);
-							
-				
+				sid = NULL;
+
 			break;
 			// case RADIUS_ATTR_DIGEST_CNONCE:
 			// 	got_Dcnonce = 1;
@@ -433,8 +433,12 @@ static int sip_rad_req( struct rgwp_config * cs, struct radius_msg * rad_req, st
 		sidlen = sprintf((char *)sid, "%.*s;%s", (int)un_len, un, fd_g_config->cnf_diamid);
 		CHECK_FCT( fd_sess_new(&sess, fqdn, fqdn_len, sid, sidlen) );
 		free(sid);
+		sid = NULL;
 	}
-	
+
+	/* Retrieve session-owned SID to avoid use-after-free */
+	CHECK_FCT( fd_sess_getsid(sess, &sid, &sidlen) );
+
 	/* Now, add the Session-Id AVP at beginning of Diameter message */
 	CHECK_FCT( fd_msg_avp_new ( cs->dict.Session_Id, 0, &avp ) );
 	value.os.data = sid;
