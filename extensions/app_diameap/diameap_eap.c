@@ -420,7 +420,8 @@ int diameap_eap_statemachine(struct eap_state_machine * eap_sm,
 					eap_sm->user.methodId++;
 
 				}
-				else if (!((eap_sm->user.methods[eap_sm->user.methodId - 1].vendor
+				else if (eap_sm->user.methodId < MAXMETHODS
+						&& !((eap_sm->user.methods[eap_sm->user.methodId - 1].vendor
 						== eap_sm->respVendor)
 						&& (eap_sm->user.methods[eap_sm->user.methodId - 1].method
 								== eap_sm->respMethod)))
