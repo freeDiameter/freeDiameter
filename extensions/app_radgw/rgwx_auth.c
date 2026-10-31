@@ -634,6 +634,10 @@ static int auth_rad_req( struct rgwp_config * cs, struct radius_msg * rad_req, s
 					TRACE_DEBUG(INFO, "Invalid length of User-Password attribute: %hhd", attr->length);
 					return EINVAL;
 				}
+				if (attr->length - 2 > 128) {
+					TRACE_DEBUG(INFO, "User-Password attribute too long: %hhd", attr->length);
+					return EINVAL;
+				}
 				{
 					/* Decipher following this logic (refers to rfc2865#section-5.2 )
 					   b1 = MD5(S + RA)	p1 = c(1) xor b1
