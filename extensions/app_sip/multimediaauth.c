@@ -182,7 +182,9 @@ int app_sip_MAR_cb( struct msg ** msg, struct avp * paramavp, struct session * s
 				not_found=1;
 				while ((row = mysql_fetch_row(res)) != NULL)
 				{
-					if(strncmp((const char *)avphdr->avp_value->os.data,row[0],avphdr->avp_value->os.len)==0)
+					size_t rowlen = strlen(row[0]);
+					if(avphdr->avp_value->os.len == rowlen
+						&& memcmp(avphdr->avp_value->os.data,row[0],rowlen)==0)
 					{
 						not_found=0;
 						break;
@@ -190,12 +192,12 @@ int app_sip_MAR_cb( struct msg ** msg, struct avp * paramavp, struct session * s
 				}
 				mysql_free_result(res);
 				free(query);
-      				
+
 				if(not_found)
 				{
 					TRACE_DEBUG(FULL,"The user %s can't use this SIP-AOR!",username);
 					result="DIAMETER_ERROR_IDENTITIES_DONT_MATCH";
-					free(username);	
+					free(username);
 					goto out;
 				}
 				
@@ -232,7 +234,9 @@ int app_sip_MAR_cb( struct msg ** msg, struct avp * paramavp, struct session * s
 				not_found=1;
 				while ((row = mysql_fetch_row(res)) != NULL)
 				{
-					if(strncmp((const char *)avphdr->avp_value->os.data,row[0],avphdr->avp_value->os.len)==0)
+					size_t rowlen = strlen(row[0]);
+					if(avphdr->avp_value->os.len == rowlen
+						&& memcmp(avphdr->avp_value->os.data,row[0],rowlen)==0)
 					{
 						not_found=0;
 						break;
