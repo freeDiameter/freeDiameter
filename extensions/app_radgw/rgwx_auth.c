@@ -630,7 +630,7 @@ static int auth_rad_req( struct rgwp_config * cs, struct radius_msg * rad_req, s
         			 using Diameter security.
 			*/
 			case RADIUS_ATTR_USER_PASSWORD:
-				if ((attr->length - 2) % 16) {
+				if (attr->length < 18 || ((attr->length - 2) % 16)) {
 					TRACE_DEBUG(INFO, "Invalid length of User-Password attribute: %hhd", attr->length);
 					return EINVAL;
 				}
