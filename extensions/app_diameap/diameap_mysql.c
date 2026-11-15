@@ -61,7 +61,10 @@ int diameap_get_eap_user(struct eap_user * user, char * username)
 	CHECK_MALLOC(escaped = (char *)malloc(ulen * 2 + 1));
 	mysql_real_escape_string(db_conn, escaped, username, ulen);
 	qlen = strlen("SELECT id,username,password,eapmethod, vendor FROM users WHERE  users.username='' and users.active='Y' ") + strlen(escaped) + 1;
-	CHECK_MALLOC(query=(char *)malloc(qlen));
+	CHECK_MALLOC_DO(query=(char *)malloc(qlen), {
+		free(escaped);
+		return __ret__;
+	});
 	snprintf(query, qlen,
 			"SELECT id,username,password,eapmethod, vendor FROM users WHERE  users.username='%s' and users.active='Y' ",
 			escaped);
