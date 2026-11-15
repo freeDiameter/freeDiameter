@@ -291,18 +291,18 @@ int fd_msg_new ( struct dict_object * model, int flags, struct msg ** msg )
 		struct dict_cmd_data     dictdata;
 		struct dict_object     	*dictappl;
 		
-		CHECK_FCT_DO( fd_dict_getdict(model, &dict), { free(new); return __ret__; } );
-		CHECK_FCT_DO( fd_dict_getval(model, &dictdata), { free(new); return __ret__; }  );
+		CHECK_FCT_DO( fd_dict_getdict(model, &dict), { CHECK_FCT_DO( fd_msg_free(new), /* continue */ ); return __ret__; } );
+		CHECK_FCT_DO( fd_dict_getval(model, &dictdata), { CHECK_FCT_DO( fd_msg_free(new), /* continue */ ); return __ret__; }  );
 		
 		new->msg_model = model;
 		new->msg_public.msg_flags	= dictdata.cmd_flag_val;
 		new->msg_public.msg_code	= dictdata.cmd_code;
 
 		/* Initialize application from the parent, if any */
-		CHECK_FCT_DO(  fd_dict_search( dict, DICT_APPLICATION, APPLICATION_OF_COMMAND, model, &dictappl, 0), { free(new); return __ret__; }  );
+		CHECK_FCT_DO(  fd_dict_search( dict, DICT_APPLICATION, APPLICATION_OF_COMMAND, model, &dictappl, 0), { CHECK_FCT_DO( fd_msg_free(new), /* continue */ ); return __ret__; }  );
 		if (dictappl != NULL) {
 			struct dict_application_data appdata;
-			CHECK_FCT_DO(  fd_dict_getval(dictappl, &appdata), { free(new); return __ret__; }  );
+			CHECK_FCT_DO(  fd_dict_getval(dictappl, &appdata), { CHECK_FCT_DO( fd_msg_free(new), /* continue */ ); return __ret__; }  );
 			new->msg_public.msg_appl = appdata.application_id;
 		}
 	}
@@ -327,6 +327,10 @@ int fd_msg_new_answer_from_req ( struct dictionary * dict, struct msg ** msg, in
 	struct dict_object * model = NULL;
 	struct msg *qry, *ans;
 	struct session * sess = NULL;
+	struct avp *sid_avp = NULL;
+	struct fd_list avpcpylist = FD_LIST_INITIALIZER(avpcpylist);
+	unsigned char *buf = NULL;
+	int ret;
 	
 	TRACE_ENTRY("%p %x", msg, flags);
 	
@@ -366,57 +370,56 @@ int fd_msg_new_answer_from_req ( struct dictionary * dict, struct msg ** msg, in
 		static struct dict_object * sess_id_avp = NULL;
 		os0_t sid;
 		size_t sidlen;
-		struct avp * avp;
 		union avp_value val;
 		
 		if (!sess_id_avp) {
-			CHECK_FCT_DO( fd_dict_search( dict, DICT_AVP, AVP_BY_NAME, "Session-Id", &sess_id_avp, ENOENT), { free(ans); return __ret__; } );
+			CHECK_FCT_DO( ret = fd_dict_search( dict, DICT_AVP, AVP_BY_NAME, "Session-Id", &sess_id_avp, ENOENT), goto error );
 		}
-		CHECK_FCT_DO( fd_sess_getsid ( sess, &sid, &sidlen ), { free(ans); return __ret__; } );
-		CHECK_FCT_DO( fd_msg_avp_new ( sess_id_avp, 0, &avp ), { free(ans); return __ret__; } );
+		CHECK_FCT_DO( ret = fd_sess_getsid ( sess, &sid, &sidlen ), goto error );
+		CHECK_FCT_DO( ret = fd_msg_avp_new ( sess_id_avp, 0, &sid_avp ), goto error );
 		val.os.data = sid;
 		val.os.len  = sidlen;
-		CHECK_FCT_DO( fd_msg_avp_setvalue( avp, &val ), { free(avp); free(ans); return __ret__; } );
-		CHECK_FCT_DO( fd_msg_avp_add( ans, MSG_BRW_FIRST_CHILD, avp ), { free(avp); free(ans); return __ret__; } );
+		CHECK_FCT_DO( ret = fd_msg_avp_setvalue( sid_avp, &val ), goto error );
+		CHECK_FCT_DO( ret = fd_msg_avp_add( ans, MSG_BRW_FIRST_CHILD, sid_avp ), goto error );
+		sid_avp = NULL;
+		CHECK_FCT_DO( ret = fd_sess_ref_msg(sess), goto error );
 		ans->msg_sess = sess;
-		CHECK_FCT_DO( fd_sess_ref_msg(sess), { free(ans); return __ret__; }  );
 	}
 	
 	/* Add all Proxy-Info AVPs from the query if any */
 	if (! (flags & MSGFL_ANSW_NOPROXYINFO)) {
 		struct avp * avp;
 		struct fd_pei pei;
-		struct fd_list avpcpylist = FD_LIST_INITIALIZER(avpcpylist);
 		
-		CHECK_FCT_DO(  fd_msg_browse(qry, MSG_BRW_FIRST_CHILD, &avp, NULL) , { free(ans); return __ret__; } );
+		CHECK_FCT_DO( ret = fd_msg_browse(qry, MSG_BRW_FIRST_CHILD, &avp, NULL), goto error );
 		while (avp) {
 			if ( (avp->avp_public.avp_code   == AC_PROXY_INFO)
 			  && (avp->avp_public.avp_vendor == 0) ) {
 				/* We found a Proxy-Info, need to duplicate it in the answer */
 
 				/* In order to avoid dealing with all different possibilities of states, we just create a buffer then parse it */
-				unsigned char * buf = NULL;
 				size_t offset = 0;
 
 				/* Create a buffer with the content of the AVP. This is easier than going through the list */
-				CHECK_FCT_DO(  fd_msg_update_length(avp), { free(ans); return __ret__; }  );
-				CHECK_MALLOC_DO(  buf = malloc(avp->avp_public.avp_len), { free(ans); return __ret__; }  );
-				CHECK_FCT_DO( bufferize_avp(buf, avp->avp_public.avp_len, &offset, avp), { free(buf); free(ans); return __ret__; }  );
+				CHECK_FCT_DO( ret = fd_msg_update_length(avp), goto error );
+				CHECK_MALLOC_DO( buf = malloc(avp->avp_public.avp_len), { ret = ENOMEM; goto error; } );
+				CHECK_FCT_DO( ret = bufferize_avp(buf, avp->avp_public.avp_len, &offset, avp), goto error );
 
 				/* Now we parse this buffer to create a copy AVP */
-				CHECK_FCT_DO( parsebuf_list(buf, avp->avp_public.avp_len, &avpcpylist), { free(buf); free(ans); return __ret__; } );
+				CHECK_FCT_DO( ret = parsebuf_list(buf, avp->avp_public.avp_len, &avpcpylist), goto error );
 				
 				/* Parse dictionary objects now to remove the dependency on the buffer */
-				CHECK_FCT_DO( parsedict_do_chain(dict, &avpcpylist, 0, &pei, 0), { /* leaking the avpcpylist -- this should never happen anyway */ free(buf); free(ans); return __ret__; } );
+				CHECK_FCT_DO( ret = parsedict_do_chain(dict, &avpcpylist, 0, &pei, 0), goto error );
 
 				/* Done for this AVP */
 				free(buf);
+				buf = NULL;
 
 				/* We move this AVP now so that we do not parse again in next loop */
 				fd_list_move_end(&ans->msg_chain.children, &avpcpylist);
 			}
 			/* move to next AVP in the message, we can have several Proxy-Info instances */
-			CHECK_FCT_DO( fd_msg_browse(avp, MSG_BRW_NEXT, &avp, NULL), { free(ans); return __ret__; } );
+			CHECK_FCT_DO( ret = fd_msg_browse(avp, MSG_BRW_NEXT, &avp, NULL), goto error );
 		}
 	}
 
@@ -427,6 +430,16 @@ int fd_msg_new_answer_from_req ( struct dictionary * dict, struct msg ** msg, in
 	/* Done */
 	*msg = ans;
 	return 0;
+
+error:
+	if (sid_avp)
+		CHECK_FCT_DO( fd_msg_free(sid_avp), /* continue */ );
+	while (!FD_IS_LIST_EMPTY(&avpcpylist)) {
+		CHECK_FCT_DO( fd_msg_free(_A(avpcpylist.next->o)), break );
+	}
+	free(buf);
+	CHECK_FCT_DO( fd_msg_free(ans), /* continue */ );
+	return ret;
 }
 
 /***************************************************************************************************************/
@@ -688,8 +701,12 @@ static int destroy_obj (struct msg_avp_chain * obj )
 		CHECK_FCT_DO( fd_sess_reclaim_msg ( &_M(obj)->msg_sess ), /* continue */);
 	}
 	
-	if ((obj->type == MSG_MSG) && (_M(obj)->msg_pmdl.sentinel.o != NULL)) {
-		((void (*)(struct fd_msg_pmdl *))_M(obj)->msg_pmdl.sentinel.o)(&_M(obj)->msg_pmdl);
+	if (obj->type == MSG_MSG) {
+		if (_M(obj)->msg_pmdl.sentinel.o != NULL) {
+			((void (*)(struct fd_msg_pmdl *))_M(obj)->msg_pmdl.sentinel.o)(&_M(obj)->msg_pmdl);
+		} else {
+			CHECK_POSIX_DO( pthread_mutex_destroy(&_M(obj)->msg_pmdl.lock), /* continue */ );
+		}
 	}
 	
 	/* free the object */

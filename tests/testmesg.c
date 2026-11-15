@@ -35,6 +35,21 @@
 
 #include "tests.h"
 
+static int pmd_init_count;
+static int pmd_fini_count;
+
+static void test_pmd_init(struct fd_hook_permsgdata *pmd)
+{
+	(void)pmd;
+	pmd_init_count++;
+}
+
+static void test_pmd_fini(struct fd_hook_permsgdata *pmd)
+{
+	(void)pmd;
+	pmd_fini_count++;
+}
+
 /* Main test routine */
 int main(int argc, char *argv[])
 {
@@ -44,6 +59,43 @@ int main(int argc, char *argv[])
 	
 	/* First, initialize the daemon modules */
 	INIT_FD();
+
+	/* Exercise message cleanup with and without per-message hook data. */
+	{
+		struct msg *msg = NULL;
+		struct fd_hook_data_hdl *hdl = NULL;
+		struct fd_msg_pmdl received;
+		uint32_t malformed[6] = { 0 };
+		unsigned char *raw = (unsigned char *)malformed;
+
+		CHECK( 0, fd_msg_new(NULL, 0, &msg) );
+		CHECK( 1, fd_msg_pmdl_get(msg)->sentinel.o == NULL );
+		CHECK( 0, fd_msg_free(msg) );
+
+		CHECK( 0, fd_hook_data_register(1, test_pmd_init, test_pmd_fini, &hdl) );
+		CHECK( 0, fd_msg_new(NULL, 0, &msg) );
+		CHECK( 1, fd_hook_get_pmd(hdl, msg) != NULL );
+		CHECK( 1, pmd_init_count );
+		CHECK( 0, pmd_fini_count );
+		CHECK( 0, fd_msg_free(msg) );
+		CHECK( 1, pmd_fini_count );
+
+		CHECK( 0, fd_msg_new(NULL, 0, &msg) );
+		fd_list_init(&received.sentinel, NULL);
+		CHECK( 0, pthread_mutex_init(&received.lock, NULL) );
+		fd_hook_associate(msg, &received);
+		CHECK( 1, fd_msg_pmdl_get(msg)->sentinel.o != NULL );
+		CHECK( 0, fd_msg_free(msg) );
+		CHECK( 1, pmd_fini_count );
+
+		/* A truncated AVP fails after allocating and initializing a message. */
+		raw[0] = 1;
+		raw[3] = sizeof(malformed);
+		msg = NULL;
+		CHECK( EBADMSG, fd_msg_parse_buffer(&raw, sizeof(malformed), &msg) );
+		CHECK( 1, msg == NULL );
+		CHECK( 1, raw == (unsigned char *)malformed );
+	}
 	
 	/* Create the message object from model */
 	{
@@ -1070,6 +1122,49 @@ int main(int argc, char *argv[])
 			struct msg_hdr * msgdata = NULL;
 			
 			CHECK( 0, fd_dict_search ( fd_g_config->cnf_dict, DICT_COMMAND, CMD_BY_NAME, "Test-Command-Request", &cmd_model, ENOENT ) );
+
+			/* A failed Proxy-Info copy leaves the request and its session usable. */
+			{
+				struct msg *request;
+				struct session *session, *after;
+
+				CHECK( 0, fd_msg_new(cmd_model, 0, &msg) );
+				request = msg;
+				CHECK( 0, fd_msg_new_session(msg, (os0_t)"copy-error", strlen("copy-error")) );
+				CHECK( 0, fd_msg_sess_get(fd_g_config->cnf_dict, msg, &session, NULL) );
+				ADD_AVP(msg, MSG_BRW_LAST_CHILD, pi1, 0, "Proxy-Info");
+				ADD_AVP(msg, MSG_BRW_LAST_CHILD, pi2, 0, "Proxy-Info");
+				ADD_AVP(pi2, MSG_BRW_LAST_CHILD, avp, 0, "Proxy-Host");
+
+				CHECK( EINVAL, fd_msg_new_answer_from_req(fd_g_config->cnf_dict, &msg, 0) );
+				CHECK( request, msg );
+				CHECK( 0, fd_msg_sess_get(fd_g_config->cnf_dict, msg, &after, NULL) );
+				CHECK( session, after );
+
+				value.os.data = (os0_t)host1;
+				value.os.len = strlen(host1);
+				CHECK( 0, fd_msg_avp_setvalue(avp, &value) );
+				CHECK( 0, fd_msg_new_answer_from_req(fd_g_config->cnf_dict, &msg, 0) );
+				CHECK( 0, fd_msg_free(msg) );
+			}
+
+			/* Reject a nested copy after its temporary AVP tree has been allocated. */
+			{
+				struct msg *request;
+				struct avp *parent;
+				int i;
+
+				CHECK( 0, fd_msg_new(cmd_model, 0, &msg) );
+				request = msg;
+				ADD_AVP(msg, MSG_BRW_LAST_CHILD, parent, 0, "Proxy-Info");
+				for (i = 0; i < 11; i++) {
+					ADD_AVP(parent, MSG_BRW_LAST_CHILD, avp, 0, "Proxy-Info");
+					parent = avp;
+				}
+				CHECK( EBADMSG, fd_msg_new_answer_from_req(fd_g_config->cnf_dict, &msg, 0) );
+				CHECK( request, msg );
+				CHECK( 0, fd_msg_free(msg) );
+			}
 			
 			/* Test default behavior without flags */
 			{ 
