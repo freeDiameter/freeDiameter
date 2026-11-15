@@ -97,7 +97,8 @@ SET(CMAKE_SHARED_LIBRARY_LINK_C_FLAGS "-rdynamic")
 IF(APPLE)
    SET(CMAKE_SHARED_MODULE_CREATE_C_FLAGS "${CMAKE_SHARED_MODULE_CREATE_C_FLAGS} -flat_namespace -undefined dynamic_lookup")
    SET(CMAKE_SHARED_MODULE_CREATE_CXX_FLAGS "${CMAKE_SHARED_MODULE_CREATE_CXX_FLAGS} -flat_namespace -undefined dynamic_lookup")
-ENDIF(APPLE) 
+   SET(CMAKE_INSTALL_RPATH "@loader_path/../lib")
+ENDIF(APPLE)
 
 # Location for the include files
 INCLUDE_DIRECTORIES(include)
