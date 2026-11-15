@@ -142,6 +142,12 @@ struct msg {
 /* Macro to compute the message header size */
 #define GETMSGHDRSZ() 	20
 
+/* Maximum grouped-AVP nesting depth accepted by the dictionary parser.
+ * Bounds the parsedict_do_avp <-> parsedict_do_chain recursion so a crafted
+ * deeply-nested message (e.g. nested Failed-AVP) cannot exhaust the thread
+ * stack. Far above any legitimate Diameter grouping. */
+#define FD_MSG_PARSE_MAXDEPTH 10
+
 /* Macro to cast a msg_avp_t */
 #define _M(_x) ((struct msg *)(_x))
 /* Check the type and eyecatcher */
@@ -312,7 +318,7 @@ int fd_msg_new ( struct dict_object * model, int flags, struct msg ** msg )
 
 static int bufferize_avp(unsigned char * buffer, size_t buflen, size_t * offset,  struct avp * avp);
 static int parsebuf_list(unsigned char * buf, size_t buflen, struct fd_list * head);
-static int parsedict_do_chain(struct dictionary * dict, struct fd_list * head, int mandatory, struct fd_pei *error_info);
+static int parsedict_do_chain(struct dictionary * dict, struct fd_list * head, int mandatory, struct fd_pei *error_info, int depth);
 
 
 /* Create answer from a request */
@@ -401,7 +407,7 @@ int fd_msg_new_answer_from_req ( struct dictionary * dict, struct msg ** msg, in
 				CHECK_FCT_DO( parsebuf_list(buf, avp->avp_public.avp_len, &avpcpylist), { free(buf); free(ans); return __ret__; } );
 				
 				/* Parse dictionary objects now to remove the dependency on the buffer */
-				CHECK_FCT_DO( parsedict_do_chain(dict, &avpcpylist, 0, &pei), { /* leaking the avpcpylist -- this should never happen anyway */ free(buf); free(ans); return __ret__; } );
+				CHECK_FCT_DO( parsedict_do_chain(dict, &avpcpylist, 0, &pei, 0), { /* leaking the avpcpylist -- this should never happen anyway */ free(buf); free(ans); return __ret__; } );
 
 				/* Done for this AVP */
 				free(buf);
@@ -2085,7 +2091,7 @@ int fd_msg_parse_buffer ( unsigned char ** buffer, size_t buflen, struct msg ** 
 static char error_message[256];
 
 /* Process an AVP. If we are not in recheck, the avp_source must be set. */
-static int parsedict_do_avp(struct dictionary * dict, struct avp * avp, int mandatory, struct fd_pei *error_info)
+static int parsedict_do_avp(struct dictionary * dict, struct avp * avp, int mandatory, struct fd_pei *error_info, int depth)
 {
 	struct dict_avp_data dictdata;
 	struct dict_type_data derivedtypedata;
@@ -2096,21 +2102,37 @@ static int parsedict_do_avp(struct dictionary * dict, struct avp * avp, int mand
 	
 	/* First check we received an AVP as input */
 	CHECK_PARAMS(  CHECK_AVP(avp) );
-	
-	if (avp->avp_model != NULL) {
+
+	/* Bound the grouped-AVP recursion depth to prevent stack exhaustion from a
+	 * crafted deeply-nested message (CWE-674, uncontrolled recursion). */
+	if (depth > FD_MSG_PARSE_MAXDEPTH)
+	{
+		TRACE_DEBUG(INFO, "AVP nesting depth exceeds maximum (%d), rejecting message", FD_MSG_PARSE_MAXDEPTH);
+		if (error_info)
+		{
+			error_info->pei_errcode = "DIAMETER_INVALID_AVP_VALUE";
+			error_info->pei_avp = avp;
+			snprintf(error_message, sizeof(error_message), "AVP nesting depth exceeds the maximum of %d", FD_MSG_PARSE_MAXDEPTH);
+			error_info->pei_message = error_message;
+		}
+		return EBADMSG;
+	}
+
+	if (avp->avp_model != NULL)
+	{
 		/* the model has already been resolved. we do check it is still valid */
 
 		CHECK_FCT(  fd_dict_getval(avp->avp_model, &dictdata)  );
 
 		if ( avp->avp_public.avp_code == dictdata.avp_code  ) {
 			/* Ok then just process the children if any */
-			return parsedict_do_chain(dict, &avp->avp_chain.children, mandatory && (avp->avp_public.avp_flags & AVP_FLAG_MANDATORY), error_info);
+			return parsedict_do_chain(dict, &avp->avp_chain.children, mandatory && (avp->avp_public.avp_flags & AVP_FLAG_MANDATORY), error_info, depth + 1);
 		} else {
 			/* We just erase the old model */
 			avp->avp_model = NULL;
 		}
 	}
-	
+
 	/* Check if we already searched for this model without success */
 	if ((avp->avp_model_not_found.mnf_code != avp->avp_public.avp_code)
 	||  (avp->avp_model_not_found.mnf_vendor != avp->avp_public.avp_vendor)) {
@@ -2224,7 +2246,7 @@ static int parsedict_do_avp(struct dictionary * dict, struct avp * avp, int mand
 					return ret;
 				}  );
 			
-			return parsedict_do_chain(dict, &avp->avp_chain.children, mandatory && (avp->avp_public.avp_flags & AVP_FLAG_MANDATORY), error_info);
+			return parsedict_do_chain(dict, &avp->avp_chain.children, mandatory && (avp->avp_public.avp_flags & AVP_FLAG_MANDATORY), error_info, depth + 1);
 		}
 			
 		case AVP_TYPE_OCTETSTRING:
@@ -2305,7 +2327,7 @@ static int parsedict_do_avp(struct dictionary * dict, struct avp * avp, int mand
 }
 
 /* Process a list of AVPs */
-static int parsedict_do_chain(struct dictionary * dict, struct fd_list * head, int mandatory, struct fd_pei *error_info)
+static int parsedict_do_chain(struct dictionary * dict, struct fd_list * head, int mandatory, struct fd_pei *error_info, int depth)
 {
 	struct fd_list * avpch;
 	
@@ -2316,7 +2338,7 @@ static int parsedict_do_chain(struct dictionary * dict, struct fd_list * head, i
 	
 	/* Now process the list */
 	for (avpch=head->next; avpch != head; avpch = avpch->next) {
-		CHECK_FCT(  parsedict_do_avp(dict, _A(avpch->o), mandatory, error_info)  );
+		CHECK_FCT(  parsedict_do_avp(dict, _A(avpch->o), mandatory, error_info, depth)  );
 	}
 	
 	/* Done */
@@ -2374,7 +2396,7 @@ static int parsedict_do_msg(struct dictionary * dict, struct msg * msg, int only
 chain:	
 	if (!only_hdr) {
 		/* Then process the children */
-		ret = parsedict_do_chain(dict, &msg->msg_chain.children, 1, error_info);
+		ret = parsedict_do_chain(dict, &msg->msg_chain.children, 1, error_info, 0);
 
 		/* Free the raw buffer if any */
 		if ((ret == 0) && (msg->msg_rawbuffer != NULL)) {
@@ -2406,7 +2428,7 @@ int fd_msg_parse_dict ( msg_or_avp * object, struct dictionary * dict, struct fd
 			return parsedict_do_msg(dict, _M(object), 0, error_info);
 		
 		case MSG_AVP:
-			return parsedict_do_avp(dict, _A(object), 0, error_info);
+			return parsedict_do_avp(dict, _A(object), 0, error_info, 0);
 		
 		default:
 			ASSERT(0);

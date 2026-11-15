@@ -678,6 +678,46 @@ int main(int argc, char *argv[])
 			CHECK( buf_cpy ? 1 : 0, 1);	\
 			memcpy(buf_cpy, buf, 344);	\
 		}
+
+		/* A deeply nested grouped AVP must be rejected by dictionary parsing. */
+		{
+			struct dict_object *cmd_model = NULL;
+			struct dict_object *grouped_model = NULL;
+			struct dict_avp_request grouped_req = { 73565, 0, "AVP Test - grouped" };
+			int recursion_depth;
+
+			CHECK( 0, fd_dict_search( fd_g_config->cnf_dict, DICT_COMMAND, CMD_BY_NAME,
+				"Test-Command-Request", &cmd_model, ENOENT ) );
+			CHECK( 0, fd_dict_search( fd_g_config->cnf_dict, DICT_AVP,
+				AVP_BY_NAME_AND_VENDOR, &grouped_req, &grouped_model, ENOENT ) );
+
+			for (recursion_depth = 8; recursion_depth <= 12; recursion_depth += 4) {
+				struct msg *nested_msg = NULL;
+				struct msg *parsed_msg = NULL;
+				struct avp *parent = NULL;
+				struct avp *nested = NULL;
+				unsigned char *nested_buf = NULL;
+				size_t nested_len = 0;
+				int level;
+
+				CHECK( 0, fd_msg_new( cmd_model, 0, &nested_msg ) );
+
+				/* Add grouped AVPs, each containing the next one. */
+				for (level = 0; level < recursion_depth; level++) {
+					CHECK( 0, fd_msg_avp_new( grouped_model, 0, &nested ) );
+					CHECK( 0, fd_msg_avp_add( parent ? (msg_or_avp *)parent : (msg_or_avp *)nested_msg,
+						MSG_BRW_LAST_CHILD, nested ) );
+					parent = nested;
+				}
+
+				CHECK( 0, fd_msg_bufferize( nested_msg, &nested_buf, &nested_len ) );
+				CHECK( 0, fd_msg_free( nested_msg ) );
+				CHECK( 0, fd_msg_parse_buffer( &nested_buf, nested_len, &parsed_msg ) );
+				CHECK( recursion_depth == 8 ? 0 : EBADMSG,
+					fd_msg_parse_dict( parsed_msg, fd_g_config->cnf_dict, NULL ) );
+				CHECK( 0, fd_msg_free( parsed_msg ) );
+			}
+		}
 		
 		/* Test the msg_parse_buffer function */
 		{
