@@ -435,13 +435,16 @@ static int sip_rad_req( struct rgwp_config * cs, struct radius_msg * rad_req, st
 		free(sid);
 	}
 	
+	/* Retrieve the authoritative Session-Id from the session object */
+	CHECK_FCT( fd_sess_getsid(sess, &sid, &sidlen) );
+
 	/* Now, add the Session-Id AVP at beginning of Diameter message */
 	CHECK_FCT( fd_msg_avp_new ( cs->dict.Session_Id, 0, &avp ) );
 	value.os.data = sid;
 	value.os.len = sidlen;
 	CHECK_FCT( fd_msg_avp_setvalue ( avp, &value ) );
 	CHECK_FCT( fd_msg_avp_add ( *diam_fw, MSG_BRW_FIRST_CHILD, avp) );
-	
+
 	TRACE_DEBUG(FULL, "[sip.rgwx] Translating new message for session '%s'...", sid);
 	
 	/* Now add this session in the message */
