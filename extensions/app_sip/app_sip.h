@@ -92,7 +92,7 @@ void close_mysql_connection();
 int get_sipserver_uri(const unsigned char *sip_aor, const size_t sipaorlen, unsigned char ** sipserver_uri, size_t *sipserverurilen);
 int exist_username(const unsigned char *sip_aor, const size_t sipaorlen);
 int get_sipserver_cap(const unsigned char *sip_aor, const size_t sipaorlen, struct avp **capabilities);
-int get_password(const unsigned char *username, const size_t usernamelen, char *password);
+int get_password(const unsigned char *username, const size_t usernamelen, char *password, const size_t passwordsize);
 int check_sipaor(const unsigned char  *username, const size_t usernamelen, const char * sip_aor,const size_t sipaorlen);
 int add_user_datatype(const unsigned char  *sip_aor, const size_t sipaorlen,struct msg *message);
 int set_pending_flag(const unsigned char  *username, const size_t usernamelen);

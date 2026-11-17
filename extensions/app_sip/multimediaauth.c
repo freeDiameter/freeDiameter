@@ -136,7 +136,7 @@ int app_sip_MAR_cb( struct msg ** msg, struct avp * paramavp, struct session * s
 				not_found=1;
 				
 				//TODO TODO TODO TODO TODO TODO TODO: maybe doesn't work!!'
-				ret=get_password(avphdr->avp_value->os.data, avphdr->avp_value->os.len, (char *)&password);
+				ret=get_password(avphdr->avp_value->os.data, avphdr->avp_value->os.len, (char *)&password, sizeof(password));
 				
 				if(ret>1)
 				{

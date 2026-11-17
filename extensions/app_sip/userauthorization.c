@@ -89,7 +89,7 @@ int app_sip_UAR_cb( struct msg ** msg, struct avp * paramavp, struct session * s
 		{
 			CHECK_FCT( fd_msg_avp_hdr( avp, &usernamehdr )  );
 			
-			ret=get_password(usernamehdr->avp_value->os.data, usernamehdr->avp_value->os.len, NULL);
+			ret=get_password(usernamehdr->avp_value->os.data, usernamehdr->avp_value->os.len, NULL, 0);
 			
 			
 			if(ret==1)
