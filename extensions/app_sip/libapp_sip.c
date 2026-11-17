@@ -139,14 +139,14 @@ void close_mysql_connection()
 
 //If password is null, we just verify this user exist
 //We don't need the password length because it is a table'
-int get_password(const unsigned char *username, const size_t usernamelen, char *password)
+int get_password(const unsigned char *username, const size_t usernamelen, char *password, const size_t passwordsize)
 {
 	CHECK_PARAMS(username && usernamelen);
-	
+
 	int not_found=2;
 	size_t querylen, usernamepurelen;
 	char *query, *username_pure;
-	
+
 	switch(as_conf->datasource)
 	{
 		//MySQL
@@ -155,16 +155,16 @@ int get_password(const unsigned char *username, const size_t usernamelen, char *
 			username_pure=malloc(usernamelen*2+1);
 			//We purify username not to have forbidden characters
 			usernamepurelen=mysql_real_escape_string(conn, username_pure, (const char *)username, usernamelen);
-			
+
 			//We copy username in query
 			querylen=SQL_GETPASSWORD_LEN + usernamepurelen;
 			query = malloc(querylen+2);
 			snprintf(query, querylen+1, SQL_GETPASSWORD, username_pure);
-			
+
 			MYSQL_RES *res;
 			MYSQL_ROW row;
-			
-			//We make the query	
+
+			//We make the query
 			request_mysql(query);
 			res=mysql_use_result(conn);
 			if(res==NULL)
@@ -174,18 +174,23 @@ int get_password(const unsigned char *username, const size_t usernamelen, char *
 				free(query);
 				return 2;
 			}
-			
-			
-			
+
+
+
 			while ((row = mysql_fetch_row(res)) != NULL)
 			{
 				if(strlen(row[0])>0)
 				{
 					if(password!=NULL) {
-						strncpy(password,row[0],50);
-						password[50]='\0';
+						if(strlen(row[0]) >= passwordsize) {
+							TRACE_DEBUG(INFO, "Password too long for buffer (%zu >= %zu)", strlen(row[0]), passwordsize);
+							mysql_free_result(res);
+							free(query);
+							return 2;
+						}
+						strcpy(password,row[0]);
 					}
-					
+
 					not_found=0;
 					break;
 				}
