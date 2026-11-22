@@ -228,9 +228,16 @@ struct cnxctx * fd_cnx_serv_accept(struct cnxctx * serv)
 	CHECK_PARAMS_DO(serv, return NULL);
 
 	/* Accept the new connection -- this is blocking until new client enters or until cancellation */
-	CHECK_SYS_DO( cli_sock = accept(serv->cc_socket, (sSA *)&ss, &ss_len), return NULL );
+	cli_sock = accept(serv->cc_socket, (sSA *)&ss, &ss_len);
+	if (cli_sock < 0)
+		return NULL;
 
-	CHECK_MALLOC_DO( cli = fd_cnx_init(1), { shutdown(cli_sock, SHUT_RDWR); close(cli_sock); return NULL; } );
+	CHECK_MALLOC_DO( cli = fd_cnx_init(1), {
+		shutdown(cli_sock, SHUT_RDWR);
+		close(cli_sock);
+		errno = ENOMEM;
+		return NULL;
+	} );
 	cli->cc_socket = cli_sock;
 	cli->cc_family = serv->cc_family;
 	cli->cc_proto = serv->cc_proto;

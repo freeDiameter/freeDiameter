@@ -337,6 +337,13 @@ extern pthread_rwlock_t fd_g_activ_peers_rw; /* protect the list */
 /* Server sockets */
 int  fd_servers_start();
 int  fd_servers_stop();
+enum fd_server_accept_action {
+	FD_SERVER_ACCEPT_RETRY,
+	FD_SERVER_ACCEPT_RETRY_DELAYED,
+	FD_SERVER_ACCEPT_FATAL
+};
+enum fd_server_accept_action fd_server_accept_error_action(int error);
+struct cnxctx * fd_server_accept(struct cnxctx * serv);
 
 /* Connection contexts -- there are also definitions in cnxctx.h for the relevant files */
 struct cnxctx * fd_cnx_serv_tcp(uint16_t port, int family, struct fd_endpoint * ep);

@@ -30,6 +30,7 @@ SET(TEST_LIST
 	testdisp
 	testcnx
 	testloadext
+	testserver
 )
 
 #############################

@@ -85,6 +85,83 @@ static void set_status(struct server * s, enum s_state st)
 }
 	
 
+enum fd_server_accept_action fd_server_accept_error_action(int error)
+{
+	switch (error) {
+		case EINTR:
+		case ECONNABORTED:
+		case ECONNRESET:
+		case ENETRESET:
+#ifdef EPROTO
+		case EPROTO:
+#endif
+#ifdef ENETDOWN
+		case ENETDOWN:
+#endif
+#ifdef ENOPROTOOPT
+		case ENOPROTOOPT:
+#endif
+#ifdef EHOSTDOWN
+		case EHOSTDOWN:
+#endif
+#ifdef ENONET
+		case ENONET:
+#endif
+#ifdef EHOSTUNREACH
+		case EHOSTUNREACH:
+#endif
+#ifdef EOPNOTSUPP
+		case EOPNOTSUPP:
+#endif
+#ifdef ENETUNREACH
+		case ENETUNREACH:
+#endif
+			return FD_SERVER_ACCEPT_RETRY;
+		case EMFILE:
+		case ENFILE:
+		case ENOBUFS:
+		case ENOMEM:
+			return FD_SERVER_ACCEPT_RETRY_DELAYED;
+		default:
+			return FD_SERVER_ACCEPT_FATAL;
+	}
+}
+
+struct cnxctx * fd_server_accept(struct cnxctx * serv)
+{
+	int backoff_logged = 0;
+
+	for (;;) {
+		struct cnxctx * conn;
+		int accept_error;
+		enum fd_server_accept_action action;
+
+		errno = 0;
+		conn = fd_cnx_serv_accept(serv);
+		if (conn)
+			return conn;
+
+		accept_error = errno ? errno : EIO;
+		action = fd_server_accept_error_action(accept_error);
+		if (action == FD_SERVER_ACCEPT_RETRY)
+			continue;
+		if (action == FD_SERVER_ACCEPT_RETRY_DELAYED) {
+			if (!backoff_logged) {
+				LOG_N("Accept temporarily unavailable: %s; retrying",
+					strerror(accept_error));
+				backoff_logged = 1;
+			}
+			sleep(1);
+			continue;
+		}
+
+		LOG_F("Fatal accept error on server '%s' (errno %d: %s); "
+			"terminating server thread and shutting down freeDiameter.",
+			fd_cnx_getid(serv), accept_error, strerror(accept_error));
+		return NULL;
+	}
+}
+
 /* dump one item of the server->pending fifo */
 static DECLARE_FD_DUMP_PROTOTYPE(dump_cnx, void * item) {
 	struct cnxctx * c = item;
@@ -289,7 +366,9 @@ static void * serv_th(void * arg)
 		struct cnxctx * conn = NULL;
 		
 		/* Wait for a new client or cancel */
-		CHECK_MALLOC_DO( conn = fd_cnx_serv_accept(s->conn), break );
+		conn = fd_server_accept(s->conn);
+		if (!conn)
+			break;
 		
 		/* Store this connection in the fifo for processing by the worker pool. Will block when the fifo is full */
 		pthread_cleanup_push((void *)fd_cnx_destroy, conn);
