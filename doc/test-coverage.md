@@ -44,6 +44,8 @@ ctest -L multi-peer --output-on-failure
 The plan requires Python 3.6 or newer. The current application scenarios
 require `test_app`. The `dbg_interactive` test is registered only when that
 extension is built; it also requires Python development files and SWIG.
+GitHub Actions runs the multi-peer plan on Ubuntu for all four combinations of
+TCP/SCTP and TLS enabled/disabled.
 
 The harness starts separate daemons with distinct identities and dynamically
 selected ports bound to IPv4 loopback. It waits for connections and exchanges,

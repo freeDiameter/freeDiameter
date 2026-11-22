@@ -9,7 +9,7 @@ jobs:
 #        os: [macos-latest, ubuntu-latest, windows-latest]
         os: [macos-latest, ubuntu-latest]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: install dependencies (Linux)
         if: ${{ runner.os == 'Linux' }}
         run: |
@@ -25,7 +25,6 @@ jobs:
           rm -f /usr/local/bin/pydoc*
           rm -f /usr/local/bin/python3*
           brew update
-          brew upgrade
           brew install gnutls libgcrypt libidn2
 #      - name: install dependencies (Windows)
 #        if: ${{ runner.os == 'Windows' }}
@@ -61,3 +60,34 @@ jobs:
         working-directory: ${{runner.workspace}}/build
         run: |
           ctest -V -C Release
+
+  multi-peer:
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        tls: ["OFF", "ON"]
+        sctp: ["OFF", "ON"]
+    steps:
+      - uses: actions/checkout@v6
+      - name: install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y bison flex libsctp-dev libgnutls28-dev libgcrypt-dev libidn2-dev openssl python3-dev swig
+      - name: check SCTP support
+        if: ${{ matrix.sctp == 'ON' }}
+        run: |
+          python3 -c 'import socket; socket.socket(socket.AF_INET, socket.SOCK_STREAM, socket.getprotobyname("sctp")).close()'
+      - name: configure
+        run: |
+          cmake -S . -B test.build \
+            -DBUILD_MULTI_PEER_TESTS=ON \
+            -DBUILD_TEST_APP=ON \
+            -DBUILD_DBG_INTERACTIVE=ON \
+            -DPython3_EXECUTABLE=/usr/bin/python3 \
+            -DMULTI_PEER_USE_TLS=${{ matrix.tls }} \
+            -DMULTI_PEER_USE_SCTP=${{ matrix.sctp }}
+      - name: build
+        run: cmake --build test.build --target freeDiameterd test_app dbg_interactive --parallel 2
+      - name: test
+        run: ctest --test-dir test.build -L multi-peer --no-tests=error --output-on-failure
