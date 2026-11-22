@@ -211,8 +211,7 @@ struct dict_object {
 	*/
 	%pythoncode
 	{
-    __swig_setmethods__["os"] = _fDpy.avp_value_os_set
-    if _newclass:os = _swig_property(_fDpy.avp_value_os_get, _fDpy.avp_value_os_set)
+    os = property(_fDpy.avp_value_os_get, _fDpy.avp_value_os_set)
 	}
 	void os_set(char *STRING, size_t LENGTH) {
 		/* free($self->os.data);  -- do not free, in case the previous value was not an OS */
@@ -247,22 +246,8 @@ struct dict_object {
 			fd_log_debug("%02.2X", $self->data[i]);
 		fd_log_debug("] '%.*s%s'", n, $self->data, n == LEN_MAX ? "..." : "");
 	}
-	%cstring_output_allocate_size(char ** outbuffer, size_t * outlen, free(*$1));
-	void as_str ( char ** outbuffer, size_t * outlen ) {
-		char * b;
-		if (!$self->len) {
-			*outlen = 0;
-			*outbuffer = NULL;
-			return;
-		}
-		b = malloc($self->len);
-		if (!b) {
-			DI_ERROR_MALLOC;
-			return;
-		}
-		memcpy(b, $self->data, $self->len);
-		*outlen = $self->len;
-		*outbuffer = b;
+	PyObject *as_str() {
+		return PyBytes_FromStringAndSize((const char *)$self->data, $self->len);
 	}
 }
 

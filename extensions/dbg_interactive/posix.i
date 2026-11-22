@@ -68,7 +68,10 @@ typedef struct {
 		return;
 	}
 	void lock() {
-		int ret = pthread_mutex_lock($self);
+		int ret;
+		Py_BEGIN_ALLOW_THREADS
+		ret = pthread_mutex_lock($self);
+		Py_END_ALLOW_THREADS
 		if (ret) {
 			DI_ERROR(ret, NULL, NULL);
 		}
@@ -124,7 +127,10 @@ typedef struct {
 		}
 	}
 	void wait(pthread_mutex_t * mutex) {
-		int ret = pthread_cond_wait($self, mutex);
+		int ret;
+		Py_BEGIN_ALLOW_THREADS
+		ret = pthread_cond_wait($self, mutex);
+		Py_END_ALLOW_THREADS
 		if (ret) {
 			DI_ERROR(ret, NULL, NULL);
 		}
@@ -136,7 +142,9 @@ typedef struct {
 		clock_gettime(CLOCK_REALTIME, &ts);
 		ts.tv_sec += seconds;
 		
+		Py_BEGIN_ALLOW_THREADS
 		ret = pthread_cond_timedwait($self, mutex, &ts);
+		Py_END_ALLOW_THREADS
 		if (ret && (ret != ETIMEDOUT)) {
 			DI_ERROR(ret, NULL, NULL);
 		}
@@ -174,13 +182,19 @@ typedef struct {
 		return;
 	}
 	void rdlock() {
-		int ret = pthread_rwlock_rdlock($self);
+		int ret;
+		Py_BEGIN_ALLOW_THREADS
+		ret = pthread_rwlock_rdlock($self);
+		Py_END_ALLOW_THREADS
 		if (ret) {
 			DI_ERROR(ret, NULL, NULL);
 		}
 	}
 	void wrlock() {
-		int ret = pthread_rwlock_wrlock($self);
+		int ret;
+		Py_BEGIN_ALLOW_THREADS
+		ret = pthread_rwlock_wrlock($self);
+		Py_END_ALLOW_THREADS
 		if (ret) {
 			DI_ERROR(ret, NULL, NULL);
 		}

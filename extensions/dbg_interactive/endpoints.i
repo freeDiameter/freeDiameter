@@ -106,7 +106,6 @@
 	}
 	
 	/* Merge to a list */
-	%delobject add_merge;
 	void add_merge(struct fd_list * eplist) {
 		int ret;
 		

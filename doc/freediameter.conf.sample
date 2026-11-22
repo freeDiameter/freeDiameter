@@ -229,6 +229,12 @@ TLS_Cred = "/etc/ssl/certs/freeDiameter.pem", "/etc/ssl/private/freeDiameter.key
 # Examples:
 #LoadExtension = "extensions/sample.fdx";
 #LoadExtension = "extensions/sample.fdx":"conf/sample.conf";
+#
+# dbg_interactive embeds a Python 3 shell with the daemon's privileges.
+# Use only in a trusted debugging environment, with a terminal attached.
+# Alternatively, provide a Python script; an unresponsive script can block shutdown.
+#LoadExtension = "extensions/dbg_interactive.fdx";
+#LoadExtension = "extensions/dbg_interactive.fdx" : "/path/to/debug.py";
 
 # Extensions are named as follow:
 # dict_* for extensions that add content to the dictionary definitions.

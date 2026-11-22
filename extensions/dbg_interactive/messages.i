@@ -66,26 +66,31 @@ static void anscb_python(void *cbdata, struct msg ** msg) {
 		}
 
 		result = PyObject_CallFunction(l->cb, "(OO)", PyMsg, l->data);
+		if (!result) {
+			PyErr_WriteUnraisable(l->cb);
+			fd_log_debug("Error: Python answer callback failed.");
+		} else if (!SWIG_IsOK(SWIG_ConvertPtr(result, (void *)msg, SWIGTYPE_p_msg, SWIG_POINTER_DISOWN))) {
+			fd_log_debug("Error: Cannot convert the return value to message.");
+			*msg = NULL;
+		}
+		if (PyMsg != Py_None)
+			Py_XDECREF(PyMsg);
+		Py_XDECREF(result);
 		Py_XDECREF(l->cb);
 		Py_XDECREF(l->expcb);
 		Py_XDECREF(l->data);
 		free(l);
 
-		/* The callback is supposed to return a message or NULL */
-		if (!SWIG_IsOK(SWIG_ConvertPtr(result, (void *)msg, SWIGTYPE_p_msg, SWIG_POINTER_DISOWN))) {
-			fd_log_debug("Error: Cannot convert the return value to message.");
-			*msg = NULL;
-		}
-
-		Py_XDECREF(result);
-
 		SWIG_PYTHON_THREAD_END_BLOCK;
 		
 	}
-	/* else */
-		/* Only the timeout was specified, without a callback */
-		/* in this case, just delete the message */
-		/* it actually happens automatically when we do nothing. */
+	else {
+		SWIG_PYTHON_THREAD_BEGIN_BLOCK;
+		Py_XDECREF(l->expcb);
+		Py_XDECREF(l->data);
+		free(l);
+		SWIG_PYTHON_THREAD_END_BLOCK;
+	}
 }
 
 static void expcb_python(void *cbdata, DiamId_t sentto, size_t senttolen, struct msg ** msg) {
@@ -106,19 +111,21 @@ static void expcb_python(void *cbdata, DiamId_t sentto, size_t senttolen, struct
 		PyMsg = SWIG_NewPointerObj((void *)*msg,     SWIGTYPE_p_msg,     0 );
 	}
 
-	result = PyObject_CallFunction(l->expcb, "(Os#O)", PyMsg, sentto, senttolen, l->data);
+	result = l->expcb ? PyObject_CallFunction(l->expcb, "(Os#O)", PyMsg, sentto, (Py_ssize_t)senttolen, l->data) : NULL;
+	if (l->expcb && !result) {
+		PyErr_WriteUnraisable(l->expcb);
+		fd_log_debug("Error: Python expiry callback failed.");
+	} else if (result && !SWIG_IsOK(SWIG_ConvertPtr(result, (void *)msg, SWIGTYPE_p_msg, SWIG_POINTER_DISOWN))) {
+		fd_log_debug("Error: Cannot convert the return value to message.");
+		*msg = NULL;
+	}
+	if (PyMsg != Py_None)
+		Py_XDECREF(PyMsg);
+	Py_XDECREF(result);
 	Py_XDECREF(l->cb);
 	Py_XDECREF(l->expcb);
 	Py_XDECREF(l->data);
 	free(l);
-
-	/* The callback is supposed to return a message or NULL */
-	if (!SWIG_IsOK(SWIG_ConvertPtr(result, (void *)msg, SWIGTYPE_p_msg, SWIG_POINTER_DISOWN))) {
-		fd_log_debug("Error: Cannot convert the return value to message.");
-		*msg = NULL;
-	}
-
-	Py_XDECREF(result);
 
 	SWIG_PYTHON_THREAD_END_BLOCK;
 		
@@ -181,7 +188,9 @@ struct msg {
 			}
 
 			Py_XINCREF(PyCb);
-			Py_XINCREF(data);
+			if (!data)
+				data = Py_None;
+			Py_INCREF(data);
 			Py_XINCREF(PyExpCb);
 			l->expcb = PyExpCb;
 			l->cb = PyCb;
@@ -197,6 +206,12 @@ struct msg {
 			ret = fd_msg_send(&m, PyCb ? anscb_python : NULL, l);
 		}
 		if (ret != 0) {
+			if (l) {
+				Py_XDECREF(l->cb);
+				Py_XDECREF(l->expcb);
+				Py_XDECREF(l->data);
+				free(l);
+			}
 			DI_ERROR(ret, NULL, NULL);
 		}
 	}
@@ -405,12 +420,18 @@ struct msg {
 	}
 	
 	/* Bufferize */
-	%cstring_output_allocate_size(char ** outbuffer, size_t * outlen, free(*$1));
-	void bufferize ( char ** outbuffer, size_t * outlen ) {
-		int ret = fd_msg_bufferize ( $self, (void *)outbuffer, outlen );
+	PyObject *bufferize() {
+		unsigned char *buffer = NULL;
+		size_t length = 0;
+		PyObject *result;
+		int ret = fd_msg_bufferize($self, &buffer, &length);
 		if (ret != 0) {
 			DI_ERROR(ret, NULL, NULL);
+			return NULL;
 		}
+		result = PyBytes_FromStringAndSize((const char *)buffer, (Py_ssize_t)length);
+		free(buffer);
+		return result;
 	}
 	
 	/* Dictionary parsing */

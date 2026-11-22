@@ -114,6 +114,8 @@ static int call_the_python_rt_fwd_callback(void * pycb, struct msg **msg) {
 	
 	/* The result is supposedly composed of: [ ret, *msg ] */
 	if ((result == NULL) || (!PyList_Check(result)) || (PyList_Size(result) != 2)) {
+		if (PyErr_Occurred())
+			PyErr_WriteUnraisable(cb);
 		fd_log_debug("Error: The Python callback did not return [ ret, msg ].");
 		ret = EINVAL;
 		goto out;
@@ -137,6 +139,7 @@ static int call_the_python_rt_fwd_callback(void * pycb, struct msg **msg) {
 	}
 	
 out:	
+	Py_XDECREF(PyMsg);
 	Py_XDECREF(result);
 	
 	SWIG_PYTHON_THREAD_END_BLOCK;
@@ -157,6 +160,7 @@ struct fd_rt_fwd_hdl {
 
 		ret = fd_rt_fwd_register( call_the_python_rt_fwd_callback, PyCb, dir, &r );
 		if (ret != 0) {
+			Py_XDECREF(PyCb);
 			DI_ERROR(ret, NULL, NULL);
 			return NULL;
 		}
@@ -165,7 +169,10 @@ struct fd_rt_fwd_hdl {
 	
 	~fd_rt_fwd_hdl() {
 		PyObject * func;
-		int ret = fd_rt_fwd_unregister ( $self, (void *) &func );
+		int ret;
+		Py_BEGIN_ALLOW_THREADS
+		ret = fd_rt_fwd_unregister ( $self, (void *) &func );
+		Py_END_ALLOW_THREADS
 		if (ret != 0) {
 			DI_ERROR(ret, NULL, NULL);
 			return;
@@ -199,6 +206,7 @@ static int call_the_python_rt_out_callback(void * pycb, struct msg **msg, struct
 	
 	/* The result is supposedly composed of: [ ret, *msg ] */
 	if (result == NULL){
+		PyErr_WriteUnraisable(cb);
 		fd_log_debug("Error: The Python callback raised an exception.");
 		ret = EINVAL;
 		goto out;
@@ -211,6 +219,8 @@ static int call_the_python_rt_out_callback(void * pycb, struct msg **msg, struct
 		goto out;
 	}
 out:	
+	Py_XDECREF(PyMsg);
+	Py_XDECREF(PyCands);
 	Py_XDECREF(result);
 	
 	SWIG_PYTHON_THREAD_END_BLOCK;
@@ -231,6 +241,7 @@ struct fd_rt_out_hdl {
 
 		ret = fd_rt_out_register( call_the_python_rt_out_callback, PyCb, priority, &r );
 		if (ret != 0) {
+			Py_XDECREF(PyCb);
 			DI_ERROR(ret, NULL, NULL);
 			return NULL;
 		}
@@ -239,7 +250,10 @@ struct fd_rt_out_hdl {
 	
 	~fd_rt_out_hdl() {
 		PyObject * func;
-		int ret = fd_rt_out_unregister ( $self, (void *) &func );
+		int ret;
+		Py_BEGIN_ALLOW_THREADS
+		ret = fd_rt_out_unregister ( $self, (void *) &func );
+		Py_END_ALLOW_THREADS
 		if (ret != 0) {
 			DI_ERROR(ret, NULL, NULL);
 			return;

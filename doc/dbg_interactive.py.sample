@@ -3,9 +3,9 @@
 # This extension provides an interactive python interpreter console that allows
 # interacting with freeDiameter framework.
 #
-# The adaptation layer between Python and C is provided by SWIG (http://swig.org). 
+# The extension embeds Python 3.6 or newer and uses SWIG (http://swig.org).
 # You may refer to SWIG documentation for more information on how the wrapper is generated and used.
-# The name of the module wrapping freeDiameter framework is: _fDpy
+# The low-level module is _fDpy; its proxy classes are available directly.
 #
 # Similar to all freeDiameter extensions, an optional filename can be specified in the
 # main freeDiameter.conf configuration file for the dbg_interactive.fdx extension.
@@ -31,13 +31,19 @@
 # The remaining of this file gives some examples of how to use the python interpreter.
 # Note that at the moment not 100% of the framework is usable. 
 # You may have to extend some classes or write some typemaps in the source code 
-# of the extension to do what you want.
+# of the extension to do what you want. Network-dependent examples are defined
+# as functions; call them explicitly when a suitable peer is available.
+# Binary Diameter values use bytes;
+# avp_value_os.as_str() and msg.bufferize() return bytes.
+# This facility executes arbitrary Python code with the daemon's privileges;
+# enable it only in a trusted debugging environment. A script that never
+# returns can prevent a graceful shutdown.
 
 
 ############# Compilation-time constants (from freeDiameter-host.h) ############
 
 # Display current version
-print "%s %d.%d.%d" % (FD_PROJECT_NAME, FD_PROJECT_VERSION_MAJOR, FD_PROJECT_VERSION_MINOR, FD_PROJECT_VERSION_REV)
+print("%s %d.%d.%d" % (FD_PROJECT_NAME, FD_PROJECT_VERSION_MAJOR, FD_PROJECT_VERSION_MINOR, FD_PROJECT_VERSION_REV))
 
 
 ############# Debug ############
@@ -58,20 +64,20 @@ fd_log(FD_LOG_NOTICE, "3 + 4 = %d" % (7))
 
 # Display some framework state information
 conf = fd_conf_dump();
-print conf;
+print(conf)
 
 fd_peer_dump_list(0)
 fd_servers_dump(0)
-fd_ext_dump(0)
+fd_ext_dump()
 
 
 ############# Global variables ############
 
 # Display the local Diameter Identity:
-print "Local Diameter Identity:", cvar.fd_g_config.cnf_diamid
+print("Local Diameter Identity:", cvar.fd_g_config.cnf_diamid)
 
 # Display realm, using the low-level functions (skip proxy class definitions):
-print "Realm:", _fDpy.fd_config_cnf_diamrlm_get(_fDpy.cvar.fd_g_config)
+print("Realm:", _fDpy.fd_config_cnf_diamrlm_get(_fDpy.cvar.fd_g_config))
 
 
 
@@ -108,7 +114,7 @@ del l1
 
 ############# Hash ############
 
-hex(fd_os_hash("hello world"))	# It accepts binary data
+hex(fd_os_hash(b"hello world"))	# It accepts binary data
 
 
 ############# Dictionary ############
@@ -235,6 +241,7 @@ del r3
 del r4
 
 d.dump()
+my_appl.dump()
 del d
 
 ####### Now play with the "real" dictionary
@@ -242,20 +249,20 @@ del d
 gdict = cvar.fd_g_config.cnf_dict
 
 appl = gdict.search ( DICT_APPLICATION, APPLICATION_BY_ID, 3 )
-appl.dump()
-avp = gdict.search ( DICT_AVP, AVP_BY_NAME, "Origin-Host")
-avp.dump()
+appl.getval()
+avp_definition = gdict.search ( DICT_AVP, AVP_BY_NAME, "Origin-Host")
+avp_definition.dump()
 errcmd = gdict.error_cmd()
 
-v = avp.getval()
-print v.avp_code
+v = avp_definition.getval()
+print(v.avp_code)
 del v
 
-t = avp.gettype()
-print t
+t = avp_definition.gettype()
+print(t)
 del t
 
-dict = avp.getdict()
+dict = avp_definition.getdict()
 del dict
 
 
@@ -263,8 +270,8 @@ del dict
 
 # handler
 def my_cleanup(state,sid):
-    print "Cleaning up python state for session:", sid
-    print "Received state:", state
+    print("Cleaning up python state for session:", sid)
+    print("Received state:", state)
     del state
 
 hdl = session_handler(my_cleanup)
@@ -286,7 +293,7 @@ mystate = [ 34, "blah", [ 32, 12 ] ]
 s1.store(hdl, mystate)
 del mystate
 gotstate = s1.retrieve(hdl)
-print gotstate
+print(gotstate)
 del gotstate
 
 
@@ -305,14 +312,14 @@ rd.error("p3.testbed.aaa", "relay.testbed.aaa", 3002)
 
 list = rd.extract(-1)
 for c in list.enum_as("struct rtd_candidate *"):
-  print "%s (%s): %s" % (c.diamid, c.realm, c.score)
+  print("%s (%s): %s" % (c.diamid, c.realm, c.score))
 
 del rd
 
 
 # A rt_fwd callback has the following prototype:
 def my_rtfwd_cb(msg):
-    print "Forwarding the following message:"
+    print("Forwarding the following message:")
     msg.dump()
     return [ 0, msg ]  # return None instead of msg to stop forwarding.
 
@@ -321,11 +328,11 @@ fwdhdl = fd_rt_fwd_hdl( my_rtfwd_cb, RT_FWD_REQ )
 
 # A rt_out cb has the following prototype:
 def my_rtout_cb(msg, list):
-    print "Sending out the following message:"
+    print("Sending out the following message:")
     msg.dump()
-    print "The possible candidates are:"
+    print("The possible candidates are:")
     for c in list.enum_as("struct rtd_candidate *"):
-       print "%s (%s): %s" % (c.diamid, c.realm, c.score)
+       print("%s (%s): %s" % (c.diamid, c.realm, c.score))
     return 0   # returns an error code (standard errno values)
 
 outhdl = fd_rt_out_hdl( my_rtout_cb )  # a priority can be specified as 2nd parameter, default is 0.
@@ -380,7 +387,7 @@ dwr = msg(dwr_dict)
 dwr.dump()
 
 # Create msg from a binary buffer (then you should call parse_dict and parse_rules methods)
-dwr2 = msg("\x01\x00\x00\x14\x80\x00\x01\x18\x00\x00\x00\x00\x00\x00\x00\x00\x1b\xf0\x00\x01")
+dwr2 = msg(b"\x01\x00\x00\x14\x80\x00\x01\x18\x00\x00\x00\x00\x00\x00\x00\x00\x1b\xf0\x00\x01")
 
 # Create answer from request (optional parameters: dictionary to use, and flags):
 dwr3 = msg(cvar.fd_g_config.cnf_dict.search ( DICT_COMMAND, CMD_BY_NAME, "Device-Watchdog-Request" ))
@@ -393,15 +400,19 @@ dwr3cpy = dwa3.get_query()
 # Add the AVPs in the message
 dwr.add_child(oh)
 oh.add_next(vsai)   # equivalent to add_child on the parent
+origin_realm = avp(cvar.fd_g_config.cnf_dict.search(DICT_AVP, AVP_BY_NAME, "Origin-Realm"))
+val.os = "localdomain"
+origin_realm.setval(val)
+dwr.add_child(origin_realm)
 
 # Create a network byte buffer from the message
 dwr.bufferize()
 
 # Get first child AVP (fast)
-avp = dwr.first_child()
+child_avp = dwr.first_child()
 
 # then:
-avp = avp.get_next() # when last AVP, returns None
+child_avp = child_avp.get_next() # when last AVP, returns None
 
 
 # Get all 1st level children (slower) -- warning, changes to the python list will not be reflected on the underlying message. read-only use.
@@ -449,12 +460,13 @@ dwr.get_session()
 
 
 # Parse a buffer
-buf = "\x01\x00\x00@\x80\x00\x01\x18\x00\x00\x00\x00\x00\x00\x00\x00N\x10\x00\x00\x00\x00\x01\x08@\x00\x00\x16my.origin.host\x00\x00\x00\x00\x01\x04@\x00\x00\x14\x00\x00\x01\n@\x00\x00\x0c\x00\x00\x00{"
+buf = dwr.bufferize()
 mydwr = msg(buf)
 # Resolve objects in the dictionary. Return value is None or a struct pei_error in case of problem.
 mydwr.parse_dict()  # if not using the fD global dict, pass it as parameter
 err = mydwr.parse_rules()
-err.pei_errcode
+if err is not None:
+    err.pei_errcode
 
 
 # Grouped AVPs are browsed with same methods as messages:
@@ -463,36 +475,29 @@ gavp.first_child().dump()
 gavp.children()
 
 
-# Send a message:
-mydwr = msg(buf)
-mydwr.send()
-
 # Optionally, a callback can be registered when a request is sent, with an optional object.
 # This callback takes the answer message as parameter and should return None or a message. (cf. fd_msg_send)
 def send_callback(msg, obj):
-    print "Received answer:"
+    print("Received answer:")
     msg.dump()
-    print "Associated data:"
+    print("Associated data:")
     obj
     return None
-
-mydwr = msg(buf)
-mydwr.send(send_callback, some_object)
 
 # Again optionally, a time limit can be specified in this case as follow:
-mydwr.send(send_callback, some_object, 10)
-# In that case, if no answer / error is received after 10 seconds (the value specified), 
-# the callback is called with the request as parameter.
-# Testing for timeout case is done by using msg.is_request()
-def send_callback(msg, obj):
-    if (msg.is_request()):
-        print "Request timed out without answer:"
-    else:
-        print "Received answer:"
+def timeout_callback(msg, peer, obj):
+    print("Request timed out without answer:", peer)
     msg.dump()
-    print "Associated data:"
-    obj
+    print("Associated data:", obj)
     return None
+
+# A valid routable request and a suitable connected peer are required to send.
+# Each call transfers ownership, so the factory must return a fresh message.
+def send_examples(make_request):
+    make_request().send()
+    some_object = {"request": "example"}
+    make_request().send(send_callback, some_object)
+    make_request().send(send_callback, some_object, timeout_callback, 10)
 
 
 # Set a result code in an answer message.
@@ -501,12 +506,13 @@ dwa = mydwr.create_answer()
 dwa.rescode_set()   # This adds the DIAMETER_SUCCESS result code
 dwa.rescode_set("DIAMETER_LIMITED_SUCCESS" )   # This adds a different result code
 dwa.rescode_set("DIAMETER_LIMITED_SUCCESS", "Something went not so well" )   # This adds a different result code + specified Error-Message
-dwa.rescode_set("DIAMETER_INVALID_AVP", None, faulty_avp )   # This adds a Failed-AVP
+faulty_avp = avp(oh_dict)
+dwa.rescode_set("DIAMETER_INVALID_AVP_VALUE", None, faulty_avp )   # This adds a Failed-AVP
 dwa.rescode_set("DIAMETER_SUCCESS", None, None, 1 )   # This adds origin information (see fd_msg_rescode_set's type_id for more info)
 
 # Set the origin to local host
-mydwr.add_origin()  # adds Origin-Host & Origin-Realm
-mydwr.add_origin(1) # adds Origin-State-Id in addition.
+msg(dwr_dict).add_origin()  # adds Origin-Host & Origin-Realm
+msg(dwr_dict).add_origin(1) # adds Origin-State-Id in addition.
 
 
 ############# DISPATCH (aka. server application) ############
@@ -514,19 +520,19 @@ mydwr.add_origin(1) # adds Origin-State-Id in addition.
 # As for sessions, only one dispatch handler can be registered in this extension at the moment.
 # The callback for the handler has the following syntax:
 def dispatch_cb_model(inmsg, inavp, insession):
-   print "Callback triggered on message: "
+   print("Callback triggered on message: ")
    inmsg.dump()
    # inavp is None or the AVP that triggered the callback, depending on how it was registered.
    if inavp:
-     print "From the following AVP:"
+     print("From the following AVP:")
      inavp.dump()
    else:
-     print "No AVP"
+     print("No AVP")
    # Session is provided only if a Session-Id is in the message
    if insession:
-     print "The session is: ", insession.getsid()
+     print("The session is: ", insession.getsid())
    else:
-     print "No session"
+     print("No session")
    # Now, for the return value.
    # This callback must return 3 elements:
    # - an integer which is interpreted as an error code (errno.h)
@@ -566,7 +572,7 @@ gdict.new_obj(DICT_RULE, dict_rule_data(d_rc, RULE_REQUIRED, 1, 1), d_ans)
 # Now, create the Test_app server callback:
 def test_app_cb(inmsg, inavp, insession):
    tval = inmsg.search(d_avp).header().avp_value.u32
-   print "Py ECHO Test message from '%s' with test value %x, replying..." % (inmsg.search(d_oh).header().avp_value.os.as_str(), tval)
+   print("Py ECHO Test message from '%s' with test value %x, replying..." % (inmsg.search(d_oh).header().avp_value.os.as_str(), tval))
    answ = inmsg.create_answer()
    answ.rescode_set()
    answ.add_origin()
@@ -576,7 +582,7 @@ def test_app_cb(inmsg, inavp, insession):
    return [ 0, answ, DISP_ACT_SEND ]
 
 # Register the callback for dispatch thread:
-hdl = disp_hdl(test_app_cb, DISP_HOW_CC, disp_when(d_app, d_req))  # disp_when() takes 0 to 4 arguments as follow: (app=NULL, cmd=NULL, avp=NULL, val=NULL)
+dispatch_handle = disp_hdl(test_app_cb, DISP_HOW_CC, disp_when(d_app, d_req))  # disp_when() takes 0 to 4 arguments as follow: (app=NULL, cmd=NULL, avp=NULL, val=NULL)
 
 # Don't forget to register the application in the daemon for CER/CEA capabilities.
 fd_disp_app_support ( d_app, d_vnd, 1, 0 )
@@ -585,15 +591,8 @@ fd_disp_app_support ( d_app, d_vnd, 1, 0 )
 ###  For the fun, the client part of the test_app:
 
 def receive_answer(ans, testval):
-   try:
-     tval = ans.search(d_avp).header().avp_value.u32
-   except:
-     print "Error in receive_answer: no Test-AVP included"
-     tval = 0
-   try:
-     print "Py RECV %x (expected: %x) Status: %d From: '%s'" % (tval, testval, ans.search(d_rc).header().avp_value.u32, ans.search(d_oh).header().avp_value.os.as_str())
-   except:
-     print "Error in receive_answer: Result-Code or Origin-Host are missing"
+   tval = ans.search(d_avp).header().avp_value.u32
+   print("Py RECV %x (expected: %x) Status: %d From: '%s'" % (tval, testval, ans.search(d_rc).header().avp_value.u32, ans.search(d_oh).header().avp_value.os.as_str()))
    del ans
    return None
 
@@ -602,7 +601,7 @@ import random
 def send_query(destrealm="localdomain"):
    qry = msg(d_req)
    sess = session()
-   tv = random.randint(1, 1<<32)
+   tv = random.randint(1, (1 << 32) - 1)
    # Session-Id
    a = avp(d_si, AVPFL_SET_BLANK_VALUE)
    a.header().avp_value.os = sess.getsid()
@@ -617,10 +616,10 @@ def send_query(destrealm="localdomain"):
    a = avp(d_avp, AVPFL_SET_BLANK_VALUE)
    a.header().avp_value.u32 = tv
    qry.add_child(a)
-   print "Py SEND %x to '%s'" % (tv, destrealm)
+   print("Py SEND %x to '%s'" % (tv, destrealm))
    qry.send(receive_answer, tv)
 
-send_query()
+# Call send_query() when a peer serving this application is connected.
 
 
 ############# FIFO queues ############
@@ -650,14 +649,16 @@ myqueue.length()
 # In order to interact with objects queued / popped by C counterpart,
 # a second parameter must be passed to specify the object type,
 # as follow:
-ev = fd_event()
-ev.code = FDEV_DUMP_EXT
-cvar.fd_g_config.cnf_main_ev.post(ev, "struct fd_event *")
+ev = fd_event(FDEV_TRIGGER, 0)
+myqueue.post(ev, "struct fd_event *")
 
-# Similarly, for *get, we can specify the structure that was queued:
-myqueue.get("struct fd_event *")
-myqueue.tryget("struct fd_event *")
-myqueue.timedget(3, "struct fd_event *")
+# Similarly, for *get, we can specify the structure that was queued.
+ev = myqueue.get("struct fd_event *")
+myqueue.post(ev, "struct fd_event *")
+ev = myqueue.tryget("struct fd_event *")
+myqueue.post(ev, "struct fd_event *")
+ev = myqueue.timedget(3, "struct fd_event *")
+cvar.fd_g_config.cnf_main_ev.post(ev, "struct fd_event *")
 
 del myqueue
 
@@ -665,14 +666,14 @@ del myqueue
 ############# HOOKS ############
 
 def my_hook_cb(type, msg, peer, other, oldpmd):
-    print "callback type ", type, " called: ", msg, other, oldpmd
-    return "this is the new pmd"
+    print("callback type ", type, " called: ", msg, other, oldpmd)
 
-# Create a wrapped fd_hook_data_hdl:
-datahdl = fd_hook_data_hdl()
+# Python per-message hook data is unavailable: the core cannot unregister
+# its data callbacks when the extension unloads. oldpmd is always None.
+# Do not unregister a hook from inside its own callback.
 
 # Register the hook callback:
-hdl = fd_hook_hdl(1 << HOOK_MESSAGE_SENT, my_hook_cb, datahdl)
+hook_handle = fd_hook_hdl(1 << HOOK_MESSAGE_SENT, my_hook_cb)
 
 
 
@@ -685,32 +686,28 @@ cvar.fd_g_peers_rw.rdlock()
 peers = cvar.fd_g_peers.enum_as("struct peer_hdr *")
 cvar.fd_g_peers_rw.unlock()
 for p in peers:
-   print "Peer:", p.info.pi_diamid
+   print("Peer:", p.info.pi_diamid)
 
-
-# Create a new peer
-np = peer_info()
-np.pi_diamid = "nas.localdomain"
-np.config.pic_flags.pro4 = PI_P4_TCP
-
-
-# Add this peer into the framework.
-np.add()
 
 # It is possible to specify a callback for when the connection completes or fails with this peer.
 # The prototype is as follow:
 def add_cb(peer):
     if peer:
         if peer.runtime.pir_state == STATE_OPEN:
-	   print "Connection to peer '%s' completed" % (peer.pi_diamid)
-	   # can find more information in peer.runtime.*
-	else:
-	   print "Connection to peer '%s' failed (state:%d)" % (peer.pi_diamid, peer.runtime.pir_state)
+            print("Connection to peer '%s' completed" % (peer.pi_diamid))
+            # can find more information in peer.runtime.*
+        else:
+            print("Connection to peer '%s' failed (state:%d)" % (peer.pi_diamid, peer.runtime.pir_state))
     else:
-        print "The peer has been destroyed before it completed the connection."
+        print("The peer has been destroyed before it completed the connection.")
 
-# Then add the peer like this:
-np.add(add_cb)
+# Add a peer only when it is intended to initiate a connection.
+# add() transfers ownership, so a peer_info must not be added twice.
+def add_peer(identity, callback=None):
+    np = peer_info()
+    np.pi_diamid = identity
+    np.config.pic_flags.pro4 = PI_P4_TCP
+    np.add(callback)
 
 
 # Search a peer by its diameter id (returns a peer_hdr object if found) -- similar to fd_peer_getbyid
@@ -721,14 +718,14 @@ p = peer_search("nas.domain.aaa")
 
 # cb2 prototype:
 def my_validate_cb2(pinfo):
-    print "Cb2 callback triggered for peer %s" % (pinfo.pi_diamid)
+    print("Cb2 callback triggered for peer %s" % (pinfo.pi_diamid))
     # Usually, this would be used only to check some TLS properties, 
     # which is not really possible yet through the python interpreter...
     return 0   # return an error code if the peer is not validated
 
 # cb prototype:
 def my_validate_cb(pinfo):
-    print "Validate callback triggered for peer %s" % (pinfo.pi_diamid)
+    print("Validate callback triggered for peer %s" % (pinfo.pi_diamid))
     # If the peer is not allowed to connect:
     #return -1
     # If the peer is authorized:
@@ -758,7 +755,8 @@ ep = fd_endpoint("129.168.168.192", 3868, EP_FL_PRIMARY)
 # Add IP information for the peer
 np = peer_info()
 ep.add_merge(np.pi_endpoints)
-fd_ep_dump(0, np.pi_endpoints)
+fd_ep_dump(0, 0, np.pi_endpoints)
+fd_ep_filter(np.pi_endpoints, 0)  # release the copied endpoints
 
 
 
@@ -774,10 +772,23 @@ m.unlock()
 c = pthread_cond_t()
 c.signal()
 c.broadcast()
+import threading
+
+def signal_condition():
+    m.lock()
+    c.signal()
+    m.unlock()
+
+m.lock()
+signaler = threading.Thread(target=signal_condition)
+signaler.start()
 c.wait(m)
-c.timedwait(m, 5)  # it takes a relative time
+c.timedwait(m, 0)  # it takes a relative time
+m.unlock()
+signaler.join()
 
 r = pthread_rwlock_t()
 r.rdlock()
 r.unlock()
 r.wrlock()
+r.unlock()

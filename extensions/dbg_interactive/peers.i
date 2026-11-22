@@ -56,7 +56,9 @@ static void fd_add_cb(struct peer_info *peer, void *data) {
 	
 	/* Call the function */
 	result = PyObject_CallFunction(PyFunc, "(O)", PyPeer);
-	
+	if (!result)
+		PyErr_WriteUnraisable(PyFunc);
+	Py_XDECREF(PyPeer);
 	Py_XDECREF(result);
 	Py_XDECREF(PyFunc);
 	
@@ -90,6 +92,7 @@ static void fd_add_cb(struct peer_info *peer, void *data) {
 			ret = fd_peer_add ( $self, "dbg_interactive", NULL, NULL );
 		}
 		if (ret != 0) {
+			Py_XDECREF(PyCb);
 			DI_ERROR(ret, NULL, NULL);
 		}
 	}
@@ -131,12 +134,15 @@ int call_the_python_validate_callback2(struct peer_info * info) {
 	
 	/* The result is an integer */
 	if ((result == NULL) || !SWIG_IsOK(SWIG_AsVal_int(result, &ret))) {
+		if (PyErr_Occurred())
+			PyErr_WriteUnraisable(validate_cb2_py);
 		fd_log_debug("Error: The Python callback did not return an integer.");
 		ret = EINVAL;
 		goto out;
 	}
 	
 out:	
+	Py_XDECREF(PyInfo);
 	Py_XDECREF(result);
 	SWIG_PYTHON_THREAD_END_BLOCK;
 	return ret;
@@ -162,6 +168,7 @@ int call_the_python_validate_callback(struct peer_info * info, int * auth, int (
 	
 	/* The result is supposedly -1, 1, or a cb2 */
 	if (result == NULL) {
+		PyErr_WriteUnraisable(validate_cb_py);
 		fd_log_debug("Error: The Python callback did not return a value.");
 		ret = EINVAL;
 		goto out;
@@ -193,6 +200,7 @@ int call_the_python_validate_callback(struct peer_info * info, int * auth, int (
 out:	
 	Py_XDECREF(result);
 out_nodec:	
+	Py_XDECREF(PyInfo);
 	SWIG_PYTHON_THREAD_END_BLOCK;
 	TRACE_DEBUG(FULL, "ret=%d, *auth=%d, cb2=%p, *cb2=%p", ret, *auth, cb2, cb2 ? *cb2 : NULL);
 	return ret;

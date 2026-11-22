@@ -52,8 +52,12 @@ static void call_the_python_cleanup_callback(struct sess_state * state, os0_t si
 	
 	/* Call the function */
 	SWIG_PYTHON_THREAD_BEGIN_BLOCK;
-	result = PyObject_CallFunction((PyObject *)cb, "(Os)", state, sid);
+	result = PyObject_CallFunction((PyObject *)cb, "(Os)", state->pystate, sid);
+	if (!result)
+		PyErr_WriteUnraisable((PyObject *)cb);
 	Py_XDECREF(result);
+	Py_DECREF(state->pystate);
+	free(state);
 	SWIG_PYTHON_THREAD_END_BLOCK;
 	return;
 }
@@ -72,6 +76,7 @@ struct session_handler {
 		
 		ret = fd_sess_handler_create ( &hdl, call_the_python_cleanup_callback, NULL, PyCb );
 		if (ret != 0) {
+			Py_XDECREF(PyCb);
 			DI_ERROR(ret, NULL, NULL);
 			return NULL;
 		}
@@ -81,7 +86,10 @@ struct session_handler {
 		struct session_handler * hdl = self;
 		PyObject * cb = NULL;
 		
-		int ret = fd_sess_handler_destroy(&hdl, (void *)&cb);
+		int ret;
+		Py_BEGIN_ALLOW_THREADS
+		ret = fd_sess_handler_destroy(&hdl, (void *)&cb);
+		Py_END_ALLOW_THREADS
 		if (ret != 0) {
 			DI_ERROR(ret, NULL, NULL);
 		}
@@ -181,10 +189,16 @@ struct session {
 		int ret;
 		struct sess_state * st = NULL;
 		st = malloc(sizeof(struct sess_state));
+		if (!st) {
+			DI_ERROR_MALLOC;
+			return;
+		}
 		st->pystate = DISOWN;
 		Py_XINCREF(DISOWN);
 		ret = fd_sess_state_store(handler, $self, (void *) &st);
 		if (ret != 0) {
+			Py_DECREF(DISOWN);
+			free(st);
 			DI_ERROR(ret, NULL, NULL);
 		}
 	}

@@ -38,22 +38,11 @@
 /****** HOOKS *********/
 
 
-/* Functions to handle the PMD */
 %{
-
-struct fd_hook_permsgdata {
-	PyObject *PyPML;
+struct di_hook_hdl {
+	struct fd_hook_hdl *hdl;
+	PyObject *callback;
 };
-
-static void init_permsgdata (struct fd_hook_permsgdata * pmd) {
-	/* The PMD is None by default */
-	Py_INCREF(Py_None);
-	pmd->PyPML = Py_None;
-}
-
-static void fini_permsgdata (struct fd_hook_permsgdata * pmd) {
-	Py_DECREF(pmd->PyPML);
-}
 
 %}
 
@@ -63,15 +52,8 @@ struct fd_hook_data_hdl {
 %nodefaultctor fd_hook_data_hdl;
 %extend fd_hook_data_hdl {
 	fd_hook_data_hdl() {
-		struct fd_hook_data_hdl * hdl = NULL;
-		int ret;
-		
-		ret = fd_hook_data_register ( sizeof(struct fd_hook_permsgdata), init_permsgdata, fini_permsgdata, &hdl );
-		if (ret != 0) {
-			DI_ERROR(ret, NULL, NULL);
-			return NULL;
-		}
-		return hdl;
+		DI_ERROR(ENOTSUP, PyExc_NotImplementedError, "Python per-message hook data cannot be safely unregistered");
+		return NULL;
 	}
 }
 
@@ -80,21 +62,18 @@ struct fd_hook_data_hdl {
 %{
 static void call_the_python_hook_callback(enum fd_hook_type type, struct msg * msg, struct peer_hdr * peer, void * other, struct fd_hook_permsgdata *pmd, void * regdata) {
 	PyObject *cb, *result = NULL;
-	PyObject *PyType, *PyMsg, *PyPeer, *PyOther, *PyOldPmd;
+	PyObject *PyType, *PyMsg, *PyPeer, *PyOther;
 	
 	if (!regdata) {
 		LOG_E("Internal error: missing the callback!");
 		return;
 	}
-	cb = regdata;
+	cb = ((struct di_hook_hdl *)regdata)->callback;
 
 	SWIG_PYTHON_THREAD_BEGIN_BLOCK;
 	/* Convert the arguments */
 	PyType = PyLong_FromLong(type);
-	Py_INCREF(PyType);
-	
 	PyMsg  = SWIG_NewPointerObj((void *) msg,     SWIGTYPE_p_msg,     0 );
-	
 	PyPeer = SWIG_NewPointerObj((void *) peer,    SWIGTYPE_p_peer_hdr,     0 );
 	if (other == NULL) {
 		PyOther=Py_None;
@@ -120,71 +99,74 @@ static void call_the_python_hook_callback(enum fd_hook_type type, struct msg * m
 			}
 			break;
 		default:
-			/* In other cases, other should be NULL */
 			LOG_E("Internal error: got a value of *other");
+			PyOther = Py_None;
+			Py_INCREF(PyOther);
 		}
 		
 	}
 	
-	if (pmd == NULL) {
-		Py_INCREF(Py_None);
-		PyOldPmd=Py_None;
-	} else {
-		PyOldPmd=pmd->PyPML;
-	}
-	
 	/* Call the function */
-	result = PyObject_CallFunction(cb, "(OOOOO)", PyType, PyMsg, PyPeer, PyOther, PyOldPmd);
-	
+	if (PyType && PyMsg && PyPeer && PyOther)
+		result = PyObject_CallFunction(cb, "(OOOOO)", PyType, PyMsg, PyPeer, PyOther, Py_None);
+	if (!result) {
+		PyErr_WriteUnraisable(cb);
+		LOG_E("[dbg_interactive] Python hook callback failed");
+	}
+	Py_XDECREF(result);
+	Py_XDECREF(PyType);
+	Py_XDECREF(PyMsg);
+	Py_XDECREF(PyPeer);
+	Py_XDECREF(PyOther);
 	SWIG_PYTHON_THREAD_END_BLOCK;
-	if (pmd == NULL)
-		return;
-	
-	Py_DECREF(pmd->PyPML);
-	Py_INCREF(result);
-	pmd->PyPML = result;
 }
 %}
 
 
 
-struct fd_hook_hdl {
+%rename(fd_hook_hdl) di_hook_hdl;
+struct di_hook_hdl {
 };
 
-%nodefaultctor fd_hook_hdl;
-%extend fd_hook_hdl {
-	fd_hook_hdl(uint32_t type_mask, PyObject * PyCb) {
-		struct fd_hook_hdl *hdl;
+%nodefaultctor di_hook_hdl;
+%extend di_hook_hdl {
+	di_hook_hdl(uint32_t type_mask, PyObject * PyCb, struct fd_hook_data_hdl *datahdl = NULL) {
+		struct di_hook_hdl *hdl;
 		int ret;
-		
-		Py_XINCREF(PyCb);
-		
-		ret = fd_hook_register ( type_mask, call_the_python_hook_callback, PyCb, NULL, &hdl );
+		if (!PyCb) {
+			DI_ERROR(EINVAL, NULL, "The callback must be provided");
+			return NULL;
+		}
+		if (datahdl) {
+			DI_ERROR(ENOTSUP, PyExc_NotImplementedError, "Python per-message hook data cannot be safely unregistered");
+			return NULL;
+		}
+		hdl = calloc(1, sizeof(*hdl));
+		if (!hdl) {
+			DI_ERROR_MALLOC;
+			return NULL;
+		}
+		Py_INCREF(PyCb);
+		hdl->callback = PyCb;
+		ret = fd_hook_register(type_mask, call_the_python_hook_callback, hdl, NULL, &hdl->hdl);
 		if (ret != 0) {
+			Py_DECREF(PyCb);
+			free(hdl);
 			DI_ERROR(ret, NULL, NULL);
 			return NULL;
 		}
 		return hdl;
 	}
-	fd_hook_hdl(uint32_t type_mask, PyObject * PyCb, struct fd_hook_data_hdl *datahdl) {
-		struct fd_hook_hdl *hdl;
+	~di_hook_hdl() {
 		int ret;
-		
-		Py_XINCREF(PyCb);
-		
-		ret = fd_hook_register ( type_mask, call_the_python_hook_callback, PyCb, datahdl, &hdl );
+		Py_BEGIN_ALLOW_THREADS
+		ret = fd_hook_unregister(self->hdl);
+		Py_END_ALLOW_THREADS
 		if (ret != 0) {
 			DI_ERROR(ret, NULL, NULL);
-			return NULL;
+			return;
 		}
-		return hdl;
-	}
-	~fd_hook_hdl() {
-		struct fd_hook_hdl * hdl = self;
-		int ret = fd_hook_unregister(hdl);
-		if (ret != 0) {
-			DI_ERROR(ret, NULL, NULL);
-		}
-		return;
+		Py_DECREF(self->callback);
+		free(self);
 	}
 }

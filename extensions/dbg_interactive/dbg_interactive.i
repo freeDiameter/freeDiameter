@@ -1,6 +1,8 @@
 /* This interface file is processed by SWIG to create a python wrapper interface to freeDiameter framework. */
 %module fDpy
+%nothreadallow;
 %begin %{
+#define PY_SSIZE_T_CLEAN
 /*********************************************************************************************************
 * Software License Agreement (BSD License)                                                               *
 * Author: Sebastien Decugis <sdecugis@freediameter.net>							 *
@@ -40,6 +42,7 @@
 %{
 /* This text is included in the generated wrapper verbatim */
 #define SWIG
+#undef HAVE_CLOCK_GETTIME
 #include <freeDiameter/extension.h>
 %}
 
@@ -66,15 +69,23 @@
  *  Exceptions  *
 *****************/
 %{
-/* This is not thread-safe etc. but it should work /most of the time/. */
-static int wrapper_errno;
-static PyObject* wrapper_errno_py;
-static const char * wrapper_error_txt; /* if NULL, use strerror(errno) */
+struct wrapper_error {
+	int errnum;
+	PyObject *exception;
+	const char *text;
+};
+static pthread_key_t wrapper_error_key;
+static pthread_once_t wrapper_error_once = PTHREAD_ONCE_INIT;
+static int wrapper_key_error;
+static void wrapper_error_init(void) {
+	wrapper_key_error = pthread_key_create(&wrapper_error_key, NULL);
+}
 #define DI_ERROR(code, pycode, str) {	\
+	struct wrapper_error *error = pthread_getspecific(wrapper_error_key); \
 	fd_log_debug("[dbg_interactive] ERROR: %s: %s", __PRETTY_FUNCTION__, str ? str : strerror(code)); \
-	wrapper_errno = code;		\
-	wrapper_errno_py = pycode;	\
-	wrapper_error_txt = str;	\
+	error->errnum = code;		\
+	error->exception = pycode;	\
+	error->text = str;	\
 }
 
 #define DI_ERROR_MALLOC	\
@@ -83,25 +94,35 @@ static const char * wrapper_error_txt; /* if NULL, use strerror(errno) */
 %}
 
 %exception {
-	/* reset the errno */
-	wrapper_errno = 0;
-	/* Call the function  -- it will use DI_ERROR macro in case of error */
+	struct wrapper_error error = { 0, NULL, NULL };
+	struct wrapper_error *previous;
+	int key_error = pthread_once(&wrapper_error_once, wrapper_error_init);
+	if (key_error || wrapper_key_error) {
+		PyErr_SetString(PyExc_RuntimeError, "Cannot initialize wrapper error state");
+		SWIG_fail;
+	}
+	previous = pthread_getspecific(wrapper_error_key);
+	if (pthread_setspecific(wrapper_error_key, &error)) {
+		PyErr_SetString(PyExc_RuntimeError, "Cannot set wrapper error state");
+		SWIG_fail;
+	}
 	$action
-	/* Now, test for error */
-	if (wrapper_errno) {
-		const char * str = wrapper_error_txt ? wrapper_error_txt : strerror(wrapper_errno);
-		PyObject * exc = wrapper_errno_py;
+	if (pthread_setspecific(wrapper_error_key, previous)) {
+		PyErr_SetString(PyExc_RuntimeError, "Cannot restore wrapper error state");
+		SWIG_fail;
+	}
+	if (error.errnum) {
+		const char * str = error.text ? error.text : strerror(error.errnum);
+		PyObject * exc = error.exception;
 		if (!exc) {
-			switch (wrapper_errno) {
+			switch (error.errnum) {
 				case ENOMEM: exc = PyExc_MemoryError; break;
 				case EINVAL: exc = PyExc_ValueError; break;
 				default: exc = PyExc_RuntimeError;
 			}
 		}
-		SWIG_PYTHON_THREAD_BEGIN_BLOCK;
 		PyErr_SetString(exc, str);
 		SWIG_fail;
-		SWIG_PYTHON_THREAD_END_BLOCK;
 	}
 }
 
@@ -110,6 +131,27 @@ static const char * wrapper_error_txt; /* if NULL, use strerror(errno) */
  Some types & typemaps for usability 
  ***********************************/
 
+%typemap(in) (char *STRING, size_t LENGTH) (Py_ssize_t length, const char *buffer) {
+	if (PyBytes_Check($input)) {
+		char *bytes;
+		if (PyBytes_AsStringAndSize($input, &bytes, &length) < 0)
+			SWIG_fail;
+		buffer = bytes;
+	} else if (PyUnicode_Check($input)) {
+		buffer = PyUnicode_AsUTF8AndSize($input, &length);
+		if (!buffer)
+			SWIG_fail;
+	} else {
+		PyErr_SetString(PyExc_TypeError, "Expected bytes or str");
+		SWIG_fail;
+	}
+	$1 = ($1_ltype)buffer;
+	$2 = (size_t)length;
+}
+%typemap(typecheck, precedence=SWIG_TYPECHECK_STRING) (char *STRING, size_t LENGTH) {
+	$1 = PyBytes_Check($input) || PyUnicode_Check($input);
+}
+%typemap(freearg) (char *STRING, size_t LENGTH) "";
 %apply (char *STRING, size_t LENGTH) { ( char * string, size_t len ) };
 %apply (char *STRING, size_t LENGTH) { ( uint8_t * string, size_t len ) };
 

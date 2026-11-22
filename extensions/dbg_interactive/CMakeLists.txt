@@ -1,76 +1,71 @@
 # The dbg_interactive extension
 PROJECT("Interactive debug facility based on SWIG" C)
 
+IF(POLICY CMP0078)
+	CMAKE_POLICY(SET CMP0078 NEW)
+ENDIF()
+IF(POLICY CMP0086)
+	CMAKE_POLICY(SET CMP0086 NEW)
+ENDIF()
 
-# This module is using Python
-SET(Python_ADDITIONAL_VERSIONS 2.7 2.6 2.5 2.4 2.3 2.2 2.1 2.0)
-FIND_PACKAGE(PythonLibs)
-INCLUDE_DIRECTORIES(${PYTHON_INCLUDE_PATH})
+# FindPython3 was introduced in CMake 3.12.
+IF(CMAKE_VERSION VERSION_LESS 3.12)
+	FIND_PACKAGE(PythonInterp 3.6 REQUIRED)
+	FIND_PACKAGE(PythonLibs ${PYTHON_VERSION_STRING} EXACT REQUIRED)
+ELSE()
+	FIND_PACKAGE(Python3 3.6 REQUIRED COMPONENTS Interpreter Development)
+	SET(PYTHON_INCLUDE_DIRS ${Python3_INCLUDE_DIRS})
+	SET(PYTHON_LIBRARIES ${Python3_LIBRARIES})
+ENDIF()
 
-##### 
-# Wrapper to fD in python
 FIND_PACKAGE(SWIG REQUIRED)
 INCLUDE(${SWIG_USE_FILE})
 SET(CMAKE_SWIG_FLAGS -castmode -threads)
-
-# Add the dependencies for re-swig-ing the file
-SET(SWIG_MODULE_fDpy_EXTRA_DEPS 
-	${CMAKE_BINARY_DIR}/include/freeDiameter/freeDiameter-host.h 
-	${CMAKE_SOURCE_DIR}/include/freeDiameter/libfdcore.h 
-	${CMAKE_SOURCE_DIR}/include/freeDiameter/libfdproto.h 
-	lists.i
-	dictionary.i
-	sessions.i
-	routing.i
-	messages.i
-	dispatch.i
-	queues.i
-	peers.i
-	events.i
-	endpoints.i
-	posix.i
-	hooks.i
-	)
+SET(SWIG_MODULE_fDpy_EXTRA_DEPS
+	${CMAKE_BINARY_DIR}/include/freeDiameter/freeDiameter-host.h
+	${CMAKE_SOURCE_DIR}/include/freeDiameter/libfdcore.h
+	${CMAKE_SOURCE_DIR}/include/freeDiameter/libfdproto.h
+	${CMAKE_CURRENT_SOURCE_DIR}/lists.i
+	${CMAKE_CURRENT_SOURCE_DIR}/dictionary.i
+	${CMAKE_CURRENT_SOURCE_DIR}/sessions.i
+	${CMAKE_CURRENT_SOURCE_DIR}/routing.i
+	${CMAKE_CURRENT_SOURCE_DIR}/messages.i
+	${CMAKE_CURRENT_SOURCE_DIR}/dispatch.i
+	${CMAKE_CURRENT_SOURCE_DIR}/queues.i
+	${CMAKE_CURRENT_SOURCE_DIR}/peers.i
+	${CMAKE_CURRENT_SOURCE_DIR}/events.i
+	${CMAKE_CURRENT_SOURCE_DIR}/endpoints.i
+	${CMAKE_CURRENT_SOURCE_DIR}/posix.i
+	${CMAKE_CURRENT_SOURCE_DIR}/hooks.i
+)
 SET_SOURCE_FILES_PROPERTIES(dbg_interactive.i PROPERTIES SWIG_MODULE_NAME fDpy)
+SWIG_ADD_LIBRARY(fDpy TYPE STATIC LANGUAGE python SOURCES dbg_interactive.i)
+IF(POLICY CMP0078)
+	SET(FDPY_TARGET fDpy)
+ELSE()
+	SET(FDPY_TARGET ${SWIG_MODULE_fDpy_REAL_NAME})
+ENDIF()
+SET_TARGET_PROPERTIES(${FDPY_TARGET} PROPERTIES POSITION_INDEPENDENT_CODE ON)
+TARGET_INCLUDE_DIRECTORIES(${FDPY_TARGET} PRIVATE ${PYTHON_INCLUDE_DIRS})
 
-# The following code is inspired from SWIG_ADD_MODULE, but we do only what we need
-SWIG_MODULE_INITIALIZE(fDpy python)
-SWIG_ADD_SOURCE_TO_MODULE(fDpy swig_generated_sources "dbg_interactive.i")
-	
-# In order to avoid shipping the python file that contains the shadow class definitions, 
-# we transform this file in a C-style string and compile it within our software.
-# We use for this purpose xxd tool provided with vim package.
 FIND_PROGRAM(XXD_EXECUTABLE xxd)
-# To avoid the dependency, simply compile it if not provided
-if (NOT XXD_EXECUTABLE) 
-   SET_SOURCE_FILES_PROPERTIES(helper/xxd.c PROPERTIES COMPILE_DEFINITIONS UNIX)
-   ADD_EXECUTABLE(xxd helper/xxd.c)
-   SET(XXD_EXECUTABLE xxd)
-endif (NOT XXD_EXECUTABLE) 
-# And now the magic command
+IF(NOT XXD_EXECUTABLE)
+	SET_SOURCE_FILES_PROPERTIES(helper/xxd.c PROPERTIES COMPILE_DEFINITIONS UNIX)
+	ADD_EXECUTABLE(xxd helper/xxd.c)
+	SET(XXD_EXECUTABLE $<TARGET_FILE:xxd>)
+	SET(XXD_DEPENDENCY xxd)
+ENDIF()
 ADD_CUSTOM_COMMAND(
-    OUTPUT "fDpy-inc.c"
-    COMMAND "${XXD_EXECUTABLE}"
-    ARGS "-i"
-    "fDpy.py"
-    "fDpy-inc.c"
-    MAIN_DEPENDENCY "${swig_extra_generated_files}"
-    COMMENT "Shadow definitions") 
+	OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/fDpy-inc.c"
+	COMMAND "${XXD_EXECUTABLE}" -i fDpy.py fDpy-inc.c
+	DEPENDS ${FDPY_TARGET} ${XXD_DEPENDENCY}
+	WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
+	COMMENT "Embedding Python shadow definitions"
+)
 
-# Ensure that the generated source files are removed
-GET_DIRECTORY_PROPERTY(swig_extra_clean_files ADDITIONAL_MAKE_CLEAN_FILES)
-SET_DIRECTORY_PROPERTIES(PROPERTIES
-        ADDITIONAL_MAKE_CLEAN_FILES "${swig_extra_clean_files};${swig_generated_sources};fDpy-inc.c")
-
-
-#####
-# Extension that embeds the python interpreter
-FD_ADD_EXTENSION(dbg_interactive dbg_interactive.c ${swig_generated_sources} fDpy-inc.c)
-TARGET_LINK_LIBRARIES(dbg_interactive ${PYTHON_LIBRARIES})
-
-
-####
-## INSTALL section ##
+FD_ADD_EXTENSION(dbg_interactive dbg_interactive.c "${CMAKE_CURRENT_BINARY_DIR}/fDpy-inc.c")
+TARGET_INCLUDE_DIRECTORIES(dbg_interactive PRIVATE ${PYTHON_INCLUDE_DIRS})
+TARGET_LINK_LIBRARIES(dbg_interactive ${FDPY_TARGET} ${PYTHON_LIBRARIES})
 
 INSTALL(TARGETS dbg_interactive
 	LIBRARY DESTINATION ${INSTALL_EXTENSIONS_SUFFIX}

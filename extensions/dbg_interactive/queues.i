@@ -87,14 +87,21 @@ struct fifo {
 				DI_ERROR(EINVAL, SWIG_ErrorType(ret), "Unable to convert the item to given type");
 				return;
 			}
+			Py_BEGIN_ALLOW_THREADS
 			ret = fd_fifo_post($self, &real_obj);
+			Py_END_ALLOW_THREADS
 		} else {
 			PyObject * i = item;
 			Py_XINCREF(i);
+			Py_BEGIN_ALLOW_THREADS
 			ret = fd_fifo_post($self, &i);
+			Py_END_ALLOW_THREADS
+			if (ret != 0)
+				Py_XDECREF(item);
 		}
 		if (ret != 0) {
 			DI_ERROR(ret, NULL, NULL);
+			return;
 		}
 	}
 	
@@ -112,9 +119,12 @@ struct fifo {
 			}
 		}
 		
+		Py_BEGIN_ALLOW_THREADS
 		ret = fd_fifo_get($self, &obj);
+		Py_END_ALLOW_THREADS
 		if (ret != 0) {
 			DI_ERROR(ret, NULL, NULL);
+			return NULL;
 		}
 		
 		if (type) {
@@ -146,6 +156,7 @@ struct fifo {
 		}
 		if (ret != 0) {
 			DI_ERROR(ret, NULL, NULL);
+			return NULL;
 		}
 		
 		if (type) {
@@ -174,13 +185,16 @@ struct fifo {
 		clock_gettime(CLOCK_REALTIME, &ts);
 		ts.tv_sec += seconds;
 		
+		Py_BEGIN_ALLOW_THREADS
 		ret = fd_fifo_timedget($self, &obj, &ts);
+		Py_END_ALLOW_THREADS
 		if (ret == ETIMEDOUT) {
 			Py_INCREF(Py_None);
 			return Py_None;
 		}
 		if (ret != 0) {
 			DI_ERROR(ret, NULL, NULL);
+			return NULL;
 		}
 		
 		if (type) {

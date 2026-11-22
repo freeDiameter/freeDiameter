@@ -62,6 +62,8 @@ static int call_the_python_dispatch_callback(struct msg **msg, struct avp *avp, 
 	
 	/* The result is supposedly composed of: [ ret, *msg, *action ] */
 	if ((result == NULL) || (!PyList_Check(result)) || (PyList_Size(result) != 3)) {
+		if (PyErr_Occurred())
+			PyErr_WriteUnraisable(cb);
 		fd_log_debug("Error: The Python callback did not return [ ret, msg, action ].");
 		ret = EINVAL;
 		goto out;
@@ -92,6 +94,9 @@ static int call_the_python_dispatch_callback(struct msg **msg, struct avp *avp, 
 	
 	TRACE_DEBUG(FULL, "Python callback return: *action = %d", *action);
 out:	
+	Py_XDECREF(PyMsg);
+	Py_XDECREF(PyAvp);
+	Py_XDECREF(PySess);
 	Py_XDECREF(result);
 	
 	SWIG_PYTHON_THREAD_END_BLOCK;
@@ -112,6 +117,7 @@ struct disp_hdl {
 		
 		ret = fd_disp_register ( call_the_python_dispatch_callback, how, when, PyCb, &hdl );
 		if (ret != 0) {
+			Py_XDECREF(PyCb);
 			DI_ERROR(ret, NULL, NULL);
 			return NULL;
 		}
@@ -120,7 +126,10 @@ struct disp_hdl {
 	~disp_hdl() {
 		struct disp_hdl * hdl = self;
 		PyObject * cb = NULL;
-		int ret = fd_disp_unregister(&hdl, (void *)&cb);
+		int ret;
+		Py_BEGIN_ALLOW_THREADS
+		ret = fd_disp_unregister(&hdl, (void *)&cb);
+		Py_END_ALLOW_THREADS
 		if (ret != 0) {
 			DI_ERROR(ret, NULL, NULL);
 		}
