@@ -251,7 +251,7 @@ static void * connect_thr(void * arg)
 				/* We encountered an error or we have looped over all the addresses of the peer. */
 				fd_hook_call(HOOK_PEER_CONNECT_FAILED, NULL, peer, "All connection attempts failed, will retry later", NULL);
 				
-				CHECK_FCT_DO( fatal_error = fd_event_send(peer->p_events, FDEVP_CNX_FAILED, 0, NULL), goto out );
+				CHECK_FCT_DO( fatal_error = fd_peer_event_send(peer, FDEVP_CNX_FAILED, 0, NULL), goto out );
 				return NULL;
 			}
 		}
@@ -310,7 +310,7 @@ static void * connect_thr(void * arg)
 	}
 	
 	/* Upon success, generate FDEVP_CNX_ESTABLISHED */
-	CHECK_FCT_DO( fatal_error = fd_event_send(peer->p_events, FDEVP_CNX_ESTABLISHED, 0, cnx),  );
+	CHECK_FCT_DO( fatal_error = fd_peer_event_send(peer, FDEVP_CNX_ESTABLISHED, 0, cnx),  );
 out_pop:
 	;	
 	pthread_cleanup_pop(0);

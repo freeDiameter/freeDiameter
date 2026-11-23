@@ -131,7 +131,12 @@ static void * exp_th_fct(void * arg)
 		
 		/* Now, the first peer in the list is expired; signal it */
 		fd_list_unlink( &first->p_expiry );
-		CHECK_FCT_DO( fd_event_send(first->p_events, FDEVP_TERMINATE, 0, "DO_NOT_WANT_TO_TALK_TO_YOU"), break );
+		{
+			int ret = fd_peer_event_send(first, FDEVP_TERMINATE, 0, "DO_NOT_WANT_TO_TALK_TO_YOU");
+			if (ret == EPIPE)
+				continue;
+			CHECK_FCT_DO(ret, break);
+		}
 		
 	} while (1);
 	

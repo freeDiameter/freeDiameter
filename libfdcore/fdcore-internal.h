@@ -173,7 +173,7 @@ struct fd_peer { /* The "real" definition of the peer structure */
 	}		 p_flags;
 	
 	/* The events queue, peer state machine thread, timer for states timeouts */
-	struct fifo	*p_events;	/* The mutex of this FIFO list protects also the state and timer information */
+	struct fifo	*p_events;	/* Queue pointer is guarded by p_state_mtx during post and teardown */
 	pthread_t	 p_psm;
 	struct timespec	 p_psm_timer;
 	
@@ -296,6 +296,8 @@ int  fd_psm_begin(struct fd_peer * peer );
 int  fd_psm_terminate(struct fd_peer * peer, char * reason );
 void fd_psm_abord(struct fd_peer * peer );
 void fd_psm_next_timeout(struct fd_peer * peer, int add_random, int delay);
+int  fd_psm_events_destroy(struct fd_peer * peer);
+int  fd_peer_event_send(struct fd_peer * peer, int code, size_t datasz, void * data);
 int fd_psm_change_state(struct fd_peer * peer, int new_state);
 void fd_psm_cleanup(struct fd_peer * peer, int terminate);
 

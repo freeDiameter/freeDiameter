@@ -843,7 +843,7 @@ cleanup:
 	fd_p_ce_clear_cnx(peer, NULL);
 
 	/* Send the error to the peer */
-	CHECK_FCT( fd_event_send(peer->p_events, FDEVP_CNX_ERROR, 0, NULL) );
+	CHECK_FCT( fd_peer_event_send(peer, FDEVP_CNX_ERROR, 0, NULL) );
 
 	return 0;
 }
@@ -1084,7 +1084,7 @@ cleanup:
 	fd_p_ce_clear_cnx(peer, NULL);
 
 	/* Send the error to the peer */
-	CHECK_FCT( fd_event_send(peer->p_events, fatal ? FDEVP_TERMINATE : FDEVP_CNX_ERROR, 0, NULL) );
+	CHECK_FCT( fd_peer_event_send(peer, fatal ? FDEVP_TERMINATE : FDEVP_CNX_ERROR, 0, NULL) );
 
 	return 0;
 }

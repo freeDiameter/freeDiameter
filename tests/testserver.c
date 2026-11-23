@@ -99,6 +99,111 @@ static void *accept_until_marker(void *arg)
 	}
 }
 
+struct peer_event_sender {
+	struct fd_peer *peer;
+	pthread_mutex_t mutex;
+	pthread_cond_t cond;
+	unsigned int ready;
+	unsigned int sent;
+	unsigned int finished;
+	int error;
+};
+
+static void *send_peer_events(void *arg)
+{
+	struct peer_event_sender *sender = arg;
+
+	CHECK_POSIX_DO(pthread_mutex_lock(&sender->mutex), return NULL);
+	sender->ready++;
+	CHECK_POSIX_DO(pthread_cond_broadcast(&sender->cond), {
+		pthread_mutex_unlock(&sender->mutex);
+		return NULL;
+	});
+	CHECK_POSIX_DO(pthread_mutex_unlock(&sender->mutex), return NULL);
+
+	for (;;) {
+		int ret = fd_peer_event_send(sender->peer, FDEVP_CNX_ERROR, 0, NULL);
+
+		CHECK_POSIX_DO(pthread_mutex_lock(&sender->mutex), return NULL);
+		if (ret) {
+			if (ret != EPIPE)
+				sender->error = ret;
+			sender->finished++;
+			CHECK_POSIX_DO(pthread_cond_broadcast(&sender->cond), {
+				pthread_mutex_unlock(&sender->mutex);
+				return NULL;
+			});
+			CHECK_POSIX_DO(pthread_mutex_unlock(&sender->mutex), return NULL);
+			return NULL;
+		}
+		sender->sent++;
+		CHECK_POSIX_DO(pthread_cond_broadcast(&sender->cond), {
+			pthread_mutex_unlock(&sender->mutex);
+			return NULL;
+		});
+		CHECK_POSIX_DO(pthread_mutex_unlock(&sender->mutex), return NULL);
+	}
+}
+
+static void test_peer_event_queue_lifetime(void)
+{
+	struct fd_peer *peer = NULL;
+	struct peer_event_sender sender;
+	pthread_t threads[4];
+	struct timespec deadline;
+	int ret;
+	int i;
+
+	CHECK(0, fd_peer_alloc(&peer));
+	memset(&sender, 0, sizeof(sender));
+	sender.peer = peer;
+	CHECK(0, pthread_mutex_init(&sender.mutex, NULL));
+	CHECK(0, pthread_cond_init(&sender.cond, NULL));
+	CHECK(0, pthread_mutex_lock(&peer->p_state_mtx));
+	CHECK(0, fd_fifo_new(&peer->p_events, 0));
+
+	for (i = 0; i < 4; i++) {
+		CHECK(0, pthread_create(&threads[i], NULL, send_peer_events, &sender));
+	}
+
+	CHECK(0, pthread_mutex_lock(&sender.mutex));
+	while (sender.ready < 4)
+		CHECK(0, pthread_cond_wait(&sender.cond, &sender.mutex));
+	CHECK(0, clock_gettime(CLOCK_REALTIME, &deadline));
+	deadline.tv_nsec += 100000000;
+	if (deadline.tv_nsec >= 1000000000) {
+		deadline.tv_sec++;
+		deadline.tv_nsec -= 1000000000;
+	}
+	while (!sender.sent && !sender.finished) {
+		ret = pthread_cond_timedwait(&sender.cond, &sender.mutex, &deadline);
+		if (ret == ETIMEDOUT)
+			break;
+		CHECK(0, ret);
+	}
+	CHECK(0, sender.sent);
+	CHECK(0, sender.finished);
+	CHECK(0, pthread_mutex_unlock(&sender.mutex));
+	CHECK(0, pthread_mutex_unlock(&peer->p_state_mtx));
+
+	CHECK(0, pthread_mutex_lock(&sender.mutex));
+	while (!sender.sent)
+		CHECK(0, pthread_cond_wait(&sender.cond, &sender.mutex));
+	CHECK(0, pthread_mutex_unlock(&sender.mutex));
+	CHECK(0, fd_psm_events_destroy(peer));
+	for (i = 0; i < 4; i++) {
+		CHECK(0, pthread_join(threads[i], NULL));
+	}
+	CHECK(0, pthread_mutex_lock(&sender.mutex));
+	CHECK(4, sender.finished);
+	CHECK(0, sender.error);
+	CHECK(0, pthread_mutex_unlock(&sender.mutex));
+	CHECK(EPIPE, fd_peer_event_send(peer, FDEVP_CNX_ERROR, 0, NULL));
+	CHECK(0, pthread_cond_destroy(&sender.cond));
+	CHECK(0, pthread_mutex_destroy(&sender.mutex));
+	CHECK(0, fd_peer_free(&peer));
+}
+
 int main(int argc, char *argv[])
 {
 	struct sockaddr_in address;
@@ -116,6 +221,7 @@ int main(int argc, char *argv[])
 	CHECK(1, expect_action(ENOBUFS, FD_SERVER_ACCEPT_RETRY_DELAYED));
 	CHECK(1, expect_action(ENOMEM, FD_SERVER_ACCEPT_RETRY_DELAYED));
 	CHECK(1, expect_action(EBADF, FD_SERVER_ACCEPT_FATAL));
+	test_peer_event_queue_lifetime();
 
 	listener = fd_cnx_serv_tcp(get_free_port(), AF_INET, NULL);
 	CHECK(1, listener != NULL);

@@ -60,8 +60,16 @@ int fd_stat_getstats(enum fd_stat_type stat, struct peer_hdr * peer,
 		break;
 
 		case STAT_P_PSM: {
+			int ret;
 			CHECK_PARAMS( CHECK_PEER( peer ) );
-			CHECK_FCT( fd_fifo_getstats(p->p_events, current_count, limit_count, highest_count, total_count, total, blocking, last) );
+			CHECK_POSIX(pthread_mutex_lock(&p->p_state_mtx));
+			if (!p->p_events) {
+				CHECK_POSIX(pthread_mutex_unlock(&p->p_state_mtx));
+				return EPIPE;
+			}
+			ret = fd_fifo_getstats(p->p_events, current_count, limit_count, highest_count, total_count, total, blocking, last);
+			CHECK_POSIX(pthread_mutex_unlock(&p->p_state_mtx));
+			CHECK_FCT(ret);
 		}
 		break;
 

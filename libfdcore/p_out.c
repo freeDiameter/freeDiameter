@@ -134,7 +134,7 @@ static void * out_thr(void * arg)
 	}
 	
 	/* If we're here it means there was an error on the socket. We need to continue to purge the fifo & until we are canceled */
-	CHECK_FCT_DO( fd_event_send(peer->p_events, FDEVP_CNX_ERROR, 0, NULL), /* What do we do if it fails? */ );
+	CHECK_FCT_DO( fd_peer_event_send(peer, FDEVP_CNX_ERROR, 0, NULL), /* What do we do if it fails? */ );
 	
 	/* Requeue all routable messages in the global "out" queue, until we are canceled once the PSM deals with the CNX_ERROR sent above */
 	while ( fd_fifo_get(peer->p_tosend, &msg) == 0 ) {
@@ -154,7 +154,7 @@ static void * out_thr(void * arg)
 
 error:
 	/* It is not really a connection error, but the effect is the same, we are not able to send anymore message */
-	CHECK_FCT_DO( fd_event_send(peer->p_events, FDEVP_CNX_ERROR, 0, NULL), /* What do we do if it fails? */ );
+	CHECK_FCT_DO( fd_peer_event_send(peer, FDEVP_CNX_ERROR, 0, NULL), /* What do we do if it fails? */ );
 	return NULL;
 }
 

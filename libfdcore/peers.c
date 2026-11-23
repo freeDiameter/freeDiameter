@@ -647,7 +647,7 @@ int fd_peer_handle_newCER( struct msg ** cer, struct cnxctx ** cnx )
 	ev_data->cnx = *cnx;
 	ev_data->validate = !found;
 	
-	CHECK_FCT_DO( ret = fd_event_send(peer->p_events, FDEVP_CNX_INCOMING, sizeof(*ev_data), ev_data), 
+	CHECK_FCT_DO( ret = fd_peer_event_send(peer, FDEVP_CNX_INCOMING, sizeof(*ev_data), ev_data),
 		{ free(ev_data); goto out; } );
 	
 out:	

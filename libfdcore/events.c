@@ -49,6 +49,21 @@ int fd_event_send(struct fifo *queue, int code, size_t datasz, void * data)
 	return 0;
 }
 
+int fd_peer_event_send(struct fd_peer *peer, int code, size_t datasz, void *data)
+{
+	int ret;
+
+	CHECK_PARAMS(CHECK_PEER(peer));
+	CHECK_POSIX(pthread_mutex_lock(&peer->p_state_mtx));
+	if (!peer->p_events) {
+		CHECK_POSIX(pthread_mutex_unlock(&peer->p_state_mtx));
+		return EPIPE;
+	}
+	ret = fd_event_send(peer->p_events, code, datasz, data);
+	CHECK_POSIX(pthread_mutex_unlock(&peer->p_state_mtx));
+	return ret;
+}
+
 int fd_event_get(struct fifo *queue, int *code, size_t *datasz, void ** data)
 {
 	struct fd_event * ev;

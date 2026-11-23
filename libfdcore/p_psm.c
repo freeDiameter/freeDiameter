@@ -224,11 +224,11 @@ static int leave_open_state(struct fd_peer * peer, int skip_failover)
 /************************************************************************/
 
 /* Cleanup pending events in the peer */
-void fd_psm_events_free(struct fd_peer * peer)
+static void fd_psm_events_free(struct fifo *events)
 {
 	struct fd_event * ev;
 	/* Purge all events, and free the associated data if any */
-	while (fd_fifo_tryget( peer->p_events, &ev ) == 0) {
+	while (fd_fifo_tryget(events, &ev) == 0) {
 		switch (ev->code) {
 			case FDEVP_CNX_ESTABLISHED: {
 				fd_cnx_destroy(ev->data);
@@ -250,6 +250,22 @@ void fd_psm_events_free(struct fd_peer * peer)
 		}
 		free(ev);
 	}
+}
+
+int fd_psm_events_destroy(struct fd_peer *peer)
+{
+	struct fifo *events;
+
+	CHECK_PARAMS(CHECK_PEER(peer));
+	CHECK_POSIX(pthread_mutex_lock(&peer->p_state_mtx));
+	events = peer->p_events;
+	peer->p_events = NULL;
+	CHECK_POSIX(pthread_mutex_unlock(&peer->p_state_mtx));
+
+	if (!events)
+		return 0;
+	fd_psm_events_free(events);
+	return fd_fifo_del(&events);
 }
 
 /* Read state */
@@ -305,14 +321,14 @@ int fd_psm_change_state(struct fd_peer * peer, int new_state)
 
 	if (new_state == STATE_CLOSED) {
 		/* Purge event list */
-		fd_psm_events_free(peer);
+		fd_psm_events_free(peer->p_events);
 
 		/* Reset the counter of pending answers to send */
 		peer->p_reqin_count = 0;
 
 		/* If the peer is not persistent, we destroy it */
 		if (peer->p_hdr.info.config.pic_flags.persist == PI_PRST_NONE) {
-			CHECK_FCT( fd_event_send(peer->p_events, FDEVP_TERMINATE, 0, NULL) );
+			CHECK_FCT( fd_peer_event_send(peer, FDEVP_TERMINATE, 0, NULL) );
 		}
 	}
 
@@ -370,8 +386,7 @@ void fd_psm_cleanup(struct fd_peer * peer, int terminate)
 	}
 
 	if (terminate) {
-		fd_psm_events_free(peer);
-		CHECK_FCT_DO( fd_fifo_del(&peer->p_events), /* continue */ );
+		CHECK_FCT_DO( fd_psm_events_destroy(peer), /* continue */ );
 	}
 
 }
@@ -497,7 +512,7 @@ psm_loop:
 			{
 				fd_hook_call(HOOK_MESSAGE_PARSING_ERROR, NULL, peer, &rcv_data, pmdl );
 				free(ev_data);
-				CHECK_FCT_DO( fd_event_send(peer->p_events, FDEVP_CNX_ERROR, 0, NULL), goto psm_reset );
+				CHECK_FCT_DO( fd_peer_event_send(peer, FDEVP_CNX_ERROR, 0, NULL), goto psm_reset );
 				goto psm_loop;
 			} );
 
@@ -621,7 +636,7 @@ psm_loop:
 					snprintf(buf, sizeof(buf), "%s: Received invalid answer to Base protocol message, disconnecting...", peer->p_hdr.info.pi_diamid);
 					fd_hook_call(HOOK_MESSAGE_DROPPED, msg, peer, buf, fd_msg_pmdl_get(msg));
 					CHECK_FCT_DO( fd_msg_free(msg), goto psm_end);
-					CHECK_FCT_DO( fd_event_send(peer->p_events, FDEVP_CNX_ERROR, 0, NULL), goto psm_reset );
+					CHECK_FCT_DO( fd_peer_event_send(peer, FDEVP_CNX_ERROR, 0, NULL), goto psm_reset );
 				}
 				goto psm_loop;
 			}
@@ -908,16 +923,19 @@ psm_end:
 		LOG_E("%s: Going to ZOMBIE state (no more activity) after abnormal shutdown", peer->p_hdr.info.pi_diamid);
 	}
 	fd_psm_cleanup(peer, 1);
-	TRACE_DEBUG(INFO, "'%s'\t-> 'STATE_ZOMBIE' (terminated)\t'%s'",
-			STATE_STR(fd_peer_getstate(peer)),
-			peer->p_hdr.info.pi_diamid);
-	pthread_cleanup_pop(1); /* set STATE_ZOMBIE */
-	peer->p_psm = (pthread_t)NULL;
-	pthread_detach(pthread_self());
 	/* any problems this connection had are gone with it now */
 	peer->p_flags.pf_cnx_pb = 0;
 	/* we will not get any replies to DWRs on this connection any longer */
 	peer->p_flags.pf_dw_pending = 0;
+	TRACE_DEBUG(INFO, "'%s'\t-> 'STATE_ZOMBIE' (terminated)\t'%s'",
+			STATE_STR(fd_peer_getstate(peer)),
+			peer->p_hdr.info.pi_diamid);
+	pthread_cleanup_pop(1); /* set STATE_ZOMBIE */
+	CHECK_POSIX_DO(pthread_mutex_lock(&peer->p_state_mtx), return NULL);
+	if ((peer->p_psm != (pthread_t)NULL) && pthread_equal(peer->p_psm, pthread_self()))
+		peer->p_psm = (pthread_t)NULL;
+	CHECK_POSIX_DO(pthread_mutex_unlock(&peer->p_state_mtx), return NULL);
+	pthread_detach(pthread_self());
 	return NULL;
 }
 
@@ -928,16 +946,35 @@ psm_end:
 /* Create the PSM thread of one peer structure */
 int fd_psm_begin(struct fd_peer * peer )
 {
+	int ret;
+
 	TRACE_ENTRY("%p", peer);
 
 	/* Check the peer and state are OK */
 	CHECK_PARAMS( fd_peer_getstate(peer) == STATE_NEW );
 
 	/* Create the FIFO for events */
-	CHECK_FCT( fd_fifo_new(&peer->p_events, 0) );
+	CHECK_POSIX(pthread_mutex_lock(&peer->p_state_mtx));
+	if (peer->p_events) {
+		CHECK_POSIX(pthread_mutex_unlock(&peer->p_state_mtx));
+		return EALREADY;
+	}
+	ret = fd_fifo_new(&peer->p_events, 0);
+	if (ret) {
+		CHECK_POSIX(pthread_mutex_unlock(&peer->p_state_mtx));
+		return ret;
+	}
 
 	/* Create the PSM controller thread */
-	CHECK_POSIX( pthread_create( &peer->p_psm, NULL, p_psm_th, peer ) );
+	ret = pthread_create(&peer->p_psm, NULL, p_psm_th, peer);
+	if (ret) {
+		struct fifo *events = peer->p_events;
+		peer->p_events = NULL;
+		CHECK_POSIX(pthread_mutex_unlock(&peer->p_state_mtx));
+		CHECK_FCT_DO(fd_fifo_del(&events), /* continue */);
+		return ret;
+	}
+	CHECK_POSIX(pthread_mutex_unlock(&peer->p_state_mtx));
 
 	/* We're done */
 	return 0;
@@ -950,7 +987,10 @@ int fd_psm_terminate(struct fd_peer * peer, char * reason )
 	CHECK_PARAMS( CHECK_PEER(peer) );
 
 	if (fd_peer_getstate(peer) != STATE_ZOMBIE) {
-		CHECK_FCT( fd_event_send(peer->p_events, FDEVP_TERMINATE, 0, reason) );
+		int ret = fd_peer_event_send(peer, FDEVP_TERMINATE, 0, reason);
+		if (ret == EPIPE)
+			return 0;
+		CHECK_FCT(ret);
 	} else {
 		TRACE_DEBUG(FULL, "Peer '%s' was already terminated", peer->p_hdr.info.pi_diamid);
 	}
@@ -967,9 +1007,6 @@ void fd_psm_abord(struct fd_peer * peer )
 
 	/* Cleanup the data */
 	fd_psm_cleanup(peer, 1);
-
-	/* Destroy the event list */
-	CHECK_FCT_DO( fd_fifo_del(&peer->p_events), /* continue */ );
 
 	/* Remaining cleanups are performed in fd_peer_free */
 	return;
