@@ -162,11 +162,70 @@ IF(BUILD_MULTI_PEER_TESTS)
 		SET(MULTI_PEER_HAS_SCENARIOS TRUE PARENT_SCOPE)
 	ENDFUNCTION()
 
+	IF(TARGET test_netemul)
+		ADD_EXECUTABLE(test_netemul_process test_netemul_process.c)
+		TARGET_LINK_LIBRARIES(test_netemul_process
+			$<TARGET_PROPERTY:test_netemul,LINK_LIBRARIES> ${GNUTLS_LIBRARIES} ${GCRYPT_LIBRARY} ${CLOCK_GETTIME_LIBS})
+		ADD_TEST(NAME test_netemul_process COMMAND test_netemul_process)
+		SET_TESTS_PROPERTIES(test_netemul_process PROPERTIES LABELS "multi-peer")
+	ENDIF()
+
+	IF(TARGET dbg_dict_dump_json)
+		FUNCTION(ADD_DICTIONARY_EXTENSION_TEST EXT EXPECTED CODE VENDOR)
+			FOREACH(DEP ${ARGN} ${EXT})
+				IF(NOT TARGET ${DEP})
+					RETURN()
+				ENDIF()
+				LIST(APPEND DICTIONARIES $<TARGET_FILE:${DEP}>)
+			ENDFOREACH()
+			ADD_MULTI_PEER_TEST(test_dictionary_${EXT} test_dictionary_extension.py
+				$<TARGET_FILE:dbg_dict_dump_json> ${EXPECTED}:${CODE}:${VENDOR} ${DICTIONARIES})
+			SET(MULTI_PEER_HAS_SCENARIOS TRUE PARENT_SCOPE)
+		ENDFUNCTION()
+
+		ADD_DICTIONARY_EXTENSION_TEST(dict_nasreq NAS-Port 5 0)
+		ADD_DICTIONARY_EXTENSION_TEST(dict_eap EAP-Payload 462 0 dict_nasreq)
+		ADD_DICTIONARY_EXTENSION_TEST(dict_dcca CC-Input-Octets 412 0 dict_nasreq)
+		ADD_DICTIONARY_EXTENSION_TEST(dict_dcca_3gpp 3GPP-IMSI 1 10415 dict_nasreq dict_dcca)
+		ADD_DICTIONARY_EXTENSION_TEST(dict_dcca_starent SN-Volume-Quota-Threshold 501 8164 dict_nasreq dict_dcca dict_dcca_3gpp)
+		ADD_DICTIONARY_EXTENSION_TEST(dict_sip Digest-Response 103 0)
+		ADD_DICTIONARY_EXTENSION_TEST(dict_rfc5777 QoS-Profile-Id 573 0)
+		ADD_DICTIONARY_EXTENSION_TEST(dict_mip6a Service-Selection 493 0 dict_rfc5777)
+		ADD_DICTIONARY_EXTENSION_TEST(dict_mip6i MIP-Mobile-Node-Address 333 0 dict_rfc5777)
+		ADD_DICTIONARY_EXTENSION_TEST(dict_nas_mipv6 MIP6-Home-Link-Prefix 125 0)
+		ADD_DICTIONARY_EXTENSION_TEST(dict_rfc7944 DRMP 301 0)
+
+		SET(COMBINED_DICTIONARIES dict_nasreq dict_eap dict_dcca dict_dcca_3gpp
+			dict_dcca_starent dict_sip dict_rfc5777 dict_mip6a dict_mip6i
+			dict_nas_mipv6 dict_rfc7944)
+		SET(COMBINED_DICTIONARY_TARGETS "")
+		FOREACH(EXT ${COMBINED_DICTIONARIES})
+			IF(TARGET ${EXT})
+				LIST(APPEND COMBINED_DICTIONARY_TARGETS $<TARGET_FILE:${EXT}>)
+			ENDIF()
+		ENDFOREACH()
+		LIST(LENGTH COMBINED_DICTIONARIES COMBINED_DICTIONARY_COUNT)
+		LIST(LENGTH COMBINED_DICTIONARY_TARGETS COMBINED_TARGET_COUNT)
+		IF(COMBINED_DICTIONARY_COUNT EQUAL COMBINED_TARGET_COUNT)
+			SET(COMBINED_AVPS "NAS-Port:5:0,EAP-Payload:462:0,CC-Input-Octets:412:0,3GPP-IMSI:1:10415,SN-Volume-Quota-Threshold:501:8164,Digest-Response:103:0,QoS-Profile-Id:573:0,Service-Selection:493:0,MIP-Mobile-Node-Address:333:0,MIP6-Home-Link-Prefix:125:0,DRMP:301:0")
+			ADD_MULTI_PEER_TEST(test_dictionary_combined test_dictionary_extension.py
+				$<TARGET_FILE:dbg_dict_dump_json> ${COMBINED_AVPS} ${COMBINED_DICTIONARY_TARGETS})
+		ENDIF()
+	ENDIF()
+
 	IF(TARGET test_app)
 		ADD_MULTI_PEER_TEST(test_two_peer_test_app test_two_peer_test_app.py
 			$<TARGET_FILE:test_app>)
 		ADD_MULTI_PEER_TEST(test_multi_peer_relay test_multi_peer_relay.py
 			$<TARGET_FILE:test_app>)
+		IF(TARGET test_netemul)
+			ADD_MULTI_PEER_TEST(test_multi_peer_netemul test_multi_peer_netemul.py
+				$<TARGET_FILE:test_app> $<TARGET_FILE:test_netemul>)
+		ENDIF()
+		IF(TARGET acl_wl)
+			ADD_MULTI_PEER_TEST(test_multi_peer_acl_wl test_multi_peer_acl_wl.py
+				$<TARGET_FILE:test_app> $<TARGET_FILE:acl_wl>)
+		ENDIF()
 		FOREACH(EXT rt_default rt_deny_by_size rt_ereg)
 			IF(TARGET ${EXT})
 				ADD_MULTI_PEER_TEST(test_multi_peer_${EXT} test_multi_peer_routing_extensions.py
@@ -217,7 +276,7 @@ IF(BUILD_MULTI_PEER_TESTS)
 	ENDIF()
 
 	IF(NOT MULTI_PEER_HAS_SCENARIOS)
-		MESSAGE(FATAL_ERROR "No multi-peer scenarios available; enable BUILD_TEST_APP=ON")
+		MESSAGE(FATAL_ERROR "No multi-peer scenarios available; enable BUILD_TEST_APP or BUILD_DBG_DICT_DUMP_JSON and dictionary extensions")
 	ENDIF()
 
 	ADD_TEST(NAME test_multi_peer_harness

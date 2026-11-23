@@ -37,7 +37,7 @@ For example, from the repository root:
 mkdir test.multi-peer
 cd test.multi-peer
 cmake .. -DBUILD_MULTI_PEER_TESTS=ON -DBUILD_TEST_APP=ON \
-  -DBUILD_DBG_INTERACTIVE=ON -DBUILD_DBG_DICT_DUMP_JSON=ON \
+  -DBUILD_TEST_NETEMUL=ON -DBUILD_DBG_INTERACTIVE=ON -DBUILD_DBG_DICT_DUMP_JSON=ON \
   -DBUILD_RT_EREG=ON -DBUILD_APP_REDIRECT=ON
 cmake --build .
 ctest -L multi-peer --output-on-failure
@@ -108,6 +108,8 @@ To add an extension combination:
    `extensions` is a list of `(extension_path, config_path_or_None)` tuples,
    so each peer can load multiple extensions. Write per-scenario configuration
    and coordination files under `peers.directory`.
+   Set `connect_neighbors=False` for a passive peer that must accept incoming
+   connections without preconfigured `ConnectPeer` entries.
 3. Use `peers.wait()` for readiness and scenario-specific results. Use
    `peers.wait_open(index, remote)` and `peers.wait_all_open()` to check
    directed peer states, and `peers.wait_transport()` to check all links.
@@ -131,6 +133,27 @@ validation and configuration, link state checks, TLS/SCTP configuration and
 fallback detection, failure handling and cleanup, and protection against using
 previous `test_app` exchange output.
 
+### Compiled dictionary extension scenarios
+
+The `test_dictionary_dict_*` tests load each compiled dictionary extension,
+its required dictionary dependencies, and `dbg_dict_dump_json` into a daemon.
+Each checks one representative AVP's name, code and vendor in the resulting
+dictionary. They cover `dict_nasreq`, `dict_eap`, `dict_dcca`,
+`dict_dcca_3gpp`, `dict_dcca_starent`, `dict_sip`, `dict_rfc5777`,
+`dict_mip6a`, `dict_mip6i`, `dict_nas_mipv6` and `dict_rfc7944`. These
+checks do not validate every AVP, rule, or command.
+`test_dictionary_combined` loads all eleven extensions together in dependency
+order and checks the same representative AVPs in the combined dictionary.
+
+### `test_multi_peer_acl_wl`
+
+An unconfigured incoming peer is allowed by an exact or wildcard whitelist
+entry and can exchange a `test_app` message. An unlisted peer is rejected.
+The test also checks that a matching entry without `ALLOW_IPSEC` accepts TLS
+but rejects a clear connection, and that a reloaded whitelist accepts a
+subsequent connection. Cleartext `ALLOW_IPSEC` cases exercise the policy flag
+only; the fixture does not establish an IPsec tunnel.
+
 ### `test_multi_peer_relay`
 
 Three peers form a chain: a `test_app` client, a relay with no application
@@ -139,6 +162,20 @@ connect. The test checks both links and their transport, sends a request to
 the server through the relay, and verifies the server callback, echoed value,
 success result and answer origin. It also checks that the endpoints did not
 connect directly. It does not cover routing failures or alternate routes.
+
+### `test_multi_peer_netemul`
+
+A relay running `test_netemul` forwards a `test_app` request with 1000 ms
+latency, zero deviation and duplication disabled. The test verifies a
+successful echoed answer and a minimum 900 ms elapsed time. A second exchange
+sets duplication probability to one and verifies the server receives multiple
+requests. The elapsed-time check can also include unrelated scheduling delays.
+
+The accompanying `test_netemul_process` test controls the random inputs to
+check varying latency and deadline-based queue reordering, as well as duplicate
+counts, retransmission flags, source identities and copied AVP values. It does
+not check the statistical distribution or observe reordering over a live
+network connection.
 
 ### Routing extension scenarios
 

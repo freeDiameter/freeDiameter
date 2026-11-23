@@ -85,6 +85,7 @@ jobs:
           cmake -S . -B test.build \
             -DBUILD_MULTI_PEER_TESTS=ON \
             -DBUILD_TEST_APP=ON \
+            -DBUILD_TEST_NETEMUL=ON \
             -DBUILD_DBG_INTERACTIVE=ON \
             -DBUILD_DBG_DICT_DUMP_JSON=ON \
             -DBUILD_RT_EREG=ON \
@@ -126,6 +127,7 @@ jobs:
             -DDISABLE_SCTP=ON \
             -DBUILD_MULTI_PEER_TESTS=ON \
             -DBUILD_TEST_APP=ON \
+            -DBUILD_TEST_NETEMUL=ON \
             -DBUILD_DBG_DICT_DUMP_JSON=ON \
             -DBUILD_RT_EREG=ON \
             -DBUILD_APP_REDIRECT=ON

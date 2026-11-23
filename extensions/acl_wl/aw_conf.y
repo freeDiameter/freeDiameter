@@ -58,6 +58,7 @@
 /* Forward declaration */
 int yyparse(char * conffile);
 void aw_confrestart(FILE *input_file);
+int aw_conflex_destroy(void);
 
 static int fqdn_added = 0;
 
@@ -83,6 +84,7 @@ int aw_conf_handle(char * conffile)
 	ret = yyparse(conffile);
 
 	fclose(aw_confin);
+	CHECK_FCT(aw_conflex_destroy());
 
 	if (ret != 0) {
 		TRACE_DEBUG (INFO, "acl_wl: Unable to parse the configuration file.");

@@ -53,6 +53,7 @@
 
 /* Forward declaration */
 int yyparse(char * conffile);
+int test_netemullex_destroy(void);
 
 /* Parse the configuration file */
 int tne_conf_handle(char * conffile)
@@ -75,6 +76,7 @@ int tne_conf_handle(char * conffile)
 	ret = yyparse(conffile);
 
 	fclose(test_netemulin);
+	CHECK_FCT(test_netemullex_destroy());
 
 	if (ret != 0) {
 		TRACE_DEBUG (INFO, "Unable to parse the configuration file.");

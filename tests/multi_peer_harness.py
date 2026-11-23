@@ -124,7 +124,7 @@ class Peers:
                 log.close()
         return False
 
-    def start(self, index, extensions, extra_config="", env=None):
+    def start(self, index, extensions, extra_config="", env=None, connect_neighbors=True):
         if not 0 <= index < len(self.identities) or index in self.processes:
             raise ValueError("peer index must be valid and not already started")
         path = self.directory / ("peer%d.conf" % (index + 1))
@@ -145,7 +145,7 @@ class Peers:
         connections = "".join(
             "ConnectPeer = %s { ConnectTo = \"127.0.0.1\"; %sPort = %d; };\n" %
             (quote(self.identities[remote]), peer_security, self.ports[remote])
-            for remote in self.neighbors[index]
+            for remote in self.neighbors[index] if connect_neighbors
         )
         path.write_text(
             "Identity = %s;\nRealm = \"localdomain\";\n"

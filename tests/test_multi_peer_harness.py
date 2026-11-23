@@ -38,6 +38,19 @@ class HarnessTest(unittest.TestCase):
                     peers.watch_error_file(error)
                     peers.wait(lambda: False, "scenario completion")
 
+    def test_passive_peer_does_not_configure_neighbors(self):
+        with tempfile.TemporaryDirectory() as temporary, \
+                mock.patch("multi_peer_harness.subprocess.Popen") as popen:
+            popen.return_value.poll.return_value = None
+            popen.return_value.returncode = 0
+            directory = Path(temporary)
+            with Peers("/daemon", directory, 2, [(0, 1)]) as peers:
+                peers.start(0, [], connect_neighbors=False)
+                peers.start(1, [])
+                self.assertNotIn("ConnectPeer =", (directory / "peer1.conf").read_text())
+                self.assertIn('ConnectPeer = "peer1.localdomain"',
+                              (directory / "peer2.conf").read_text())
+
     def test_tls_sctp_configuration(self):
         with tempfile.TemporaryDirectory() as temporary, \
                 mock.patch("multi_peer_harness.free_ports", return_value=[30001, 30002, 30003]), \
