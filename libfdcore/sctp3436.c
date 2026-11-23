@@ -218,6 +218,9 @@ static ssize_t sctp3436_pull(gnutls_transport_ptr_t tr, void * buf, size_t len)
 		int ev;
 		CHECK_FCT_DO( errno = fd_event_get(ctx->raw_recv, &ev, &ctx->partial.bufsz, (void *)&ctx->partial.buf), goto error );
 		if (ev == FDEVP_CNX_ERROR) {
+			/* The master session can be read by two threads at once (the decipher thread, and the handshake of the other
+			   streams). Only one error event is posted, so keep it for the other reader, or it would wait forever. */
+			CHECK_FCT_DO( fd_event_send(ctx->raw_recv, FDEVP_CNX_ERROR, 0, NULL), /* continue */ );
 			/* Documentations says to return 0 on connection closed, but it does hang within gnutls_handshake */
 			return -1;
 		}
@@ -659,11 +662,12 @@ void fd_sctp3436_bye(struct cnxctx * conn)
 
 	CHECK_PARAMS_DO( conn && conn->cc_sctp3436_data.array, return );
 
-	/* End all TLS sessions, in series (not as efficient as parallel, but simpler) */
+	/* End all TLS sessions, in series (not as efficient as parallel, but simpler). Stop at the first failure. */
 	for (i = 1; i < conn->cc_sctp_para.pairs; i++) {
-		if ( ! fd_cnx_teststate(conn, CC_STATUS_ERROR)) {
-			CHECK_GNUTLS_DO( gnutls_bye(conn->cc_sctp3436_data.array[i].session, GNUTLS_SHUT_WR), fd_cnx_markerror(conn) );
-		}
+		int failed = 0;
+		CHECK_GNUTLS_DO( gnutls_bye(conn->cc_sctp3436_data.array[i].session, GNUTLS_SHUT_WR), { fd_cnx_markerror(conn); failed = 1; } );
+		if (failed)
+			break;
 	}
 }
 
@@ -700,6 +704,20 @@ void fd_sctp3436_gnutls_deinit_others(struct cnxctx * conn)
 	}
 }
 
+
+/* Wake up the decipher threads blocked in the pull function, so that they end by themselves */
+void fd_sctp3436_wakeup(struct cnxctx * conn)
+{
+	uint16_t i;
+
+	CHECK_PARAMS_DO( conn && conn->cc_sctp3436_data.array, return );
+
+	for (i = 0; i < conn->cc_sctp_para.pairs; i++) {
+		if (conn->cc_sctp3436_data.array[i].raw_recv) {
+			CHECK_FCT_DO( fd_event_send(conn->cc_sctp3436_data.array[i].raw_recv, FDEVP_CNX_ERROR, 0, NULL), /* continue */ );
+		}
+	}
+}
 
 /* Stop all receiver threads */
 void fd_sctp3436_stopthreads(struct cnxctx * conn)

@@ -34,6 +34,7 @@
 *********************************************************************************************************/
 
 #include "tests.h"
+#include "../libfdcore/cnxctx.h"
 
 #ifndef TEST_PORT
 #define TEST_PORT	3868
@@ -712,6 +713,130 @@ static void * destroy_thr(void * arg)
 	fd_cnx_destroy(cnx);
 	return NULL;
 }
+
+static void * tls_close_thr(void * arg)
+{
+	struct cnxctx * cnx = arg;
+	struct timespec timeout;
+	unsigned char * buf;
+	size_t len;
+	int ret;
+
+	CHECK_GNUTLS_DO( ret = gnutls_bye(cnx->cc_tls_para.session, GNUTLS_SHUT_WR), );
+	CHECK( GNUTLS_E_SUCCESS, ret );
+#ifndef DISABLE_SCTP
+	if (cnx->cc_sctp_para.pairs > 1)
+		fd_sctp3436_bye(cnx);
+#endif /* DISABLE_SCTP */
+	CHECK( 0, clock_gettime(CLOCK_REALTIME, &timeout) );
+	timeout.tv_sec += 5;
+	CHECK( ENOTCONN, fd_cnx_receive(cnx, &timeout, &buf, &len) );
+	/* Only gnutls_record_recv returning zero sets EOF; a transport error cannot satisfy this check. */
+	CHECK( CC_STATUS_EOF, fd_cnx_teststate(cnx, CC_STATUS_EOF) );
+	fd_cnx_destroy(cnx);
+	return NULL;
+}
+
+struct tls_send_flags {
+	struct cnxctx * cnx;
+	uint8_t * msg;
+	size_t msg_sz;
+};
+
+static void * tls_send_thr(void * arg)
+{
+	struct tls_send_flags * flags = arg;
+	struct timespec start, now;
+	struct timespec pause = { 0, 1000000 };
+
+	CHECK( 0, clock_gettime(CLOCK_MONOTONIC, &start) );
+	do {
+		if (fd_cnx_send(flags->cnx, flags->msg, flags->msg_sz) != 0)
+			break;
+		CHECK( 0, nanosleep(&pause, NULL) );
+		CHECK( 0, clock_gettime(CLOCK_MONOTONIC, &now) );
+	} while ((now.tv_sec - start.tv_sec) * 1000000000LL + now.tv_nsec - start.tv_nsec < 3000000000LL);
+	return NULL;
+}
+
+enum tls_shutdown_mode {
+	TLS_CLIENT_FIRST,
+	TLS_SERVER_FIRST,
+	TLS_FATAL_RECEIVE
+};
+
+static void test_tls_shutdown(struct cnxctx * lst, int proto, int algo, enum tls_shutdown_mode mode, gnutls_datum_t * ca,
+						gnutls_datum_t * cert, gnutls_datum_t * priv, uint8_t * msg, size_t msg_sz)
+{
+	struct connect_flags cf;
+	struct handshake_flags hf;
+	struct cnxctx * server_side;
+	struct cnxctx * client_side;
+	pthread_t thr;
+	uint8_t * rcv_buf;
+	size_t 	  rcv_sz;
+	int ret;
+
+	memset(&cf, 0, sizeof(cf));
+	cf.proto = proto;
+	memset(&hf, 0, sizeof(hf));
+	hf.algo = algo;
+
+	CHECK_GNUTLS_DO( ret = gnutls_certificate_allocate_credentials (&hf.creds), );
+	CHECK( GNUTLS_E_SUCCESS, ret );
+	CHECK_GNUTLS_DO( ret = gnutls_certificate_set_x509_trust_mem( hf.creds, ca, GNUTLS_X509_FMT_PEM), );
+	CHECK( 1, ret );
+	CHECK_GNUTLS_DO( ret = gnutls_certificate_set_x509_key_mem( hf.creds, cert, priv, GNUTLS_X509_FMT_PEM), );
+	CHECK( GNUTLS_E_SUCCESS, ret );
+
+	CHECK( 0, pthread_create(&thr, NULL, connect_thr, &cf) );
+	server_side = fd_cnx_serv_accept(lst);
+	CHECK( 1, server_side ? 1 : 0 );
+	CHECK( 0, pthread_join( thr, (void *)&client_side ) );
+	CHECK( 1, client_side ? 1 : 0 );
+	hf.cnx = client_side;
+
+	CHECK( 0, pthread_create(&thr, NULL, handshake_thr, &hf) );
+	CHECK( 0, fd_cnx_handshake(server_side, GNUTLS_SERVER, algo, NULL, NULL) );
+	CHECK( 0, pthread_join(thr, NULL) );
+	CHECK( 0, hf.ret );
+
+	CHECK( 0, fd_cnx_send(client_side, msg, msg_sz));
+	CHECK( 0, fd_cnx_receive(server_side, NULL, &rcv_buf, &rcv_sz));
+	CHECK( msg_sz, rcv_sz );
+	free(rcv_buf);
+
+	/* Fatal send-side failure must not wait for an idle receive timeout. */
+	if (mode == TLS_FATAL_RECEIVE) {
+		struct tls_send_flags flags = { client_side, msg, msg_sz };
+		struct timespec start, end;
+
+		CHECK( 0, pthread_create(&thr, NULL, tls_send_thr, &flags) );
+		CHECK( 0, fd_cnx_receive(server_side, NULL, &rcv_buf, &rcv_sz) );
+		free(rcv_buf);
+		fd_cnx_markerror(server_side);
+		CHECK( 0, clock_gettime(CLOCK_MONOTONIC, &start) );
+		fd_cnx_destroy(server_side);
+		CHECK( 0, clock_gettime(CLOCK_MONOTONIC, &end) );
+		CHECK( 1, (end.tv_sec - start.tv_sec) * 1000000000LL + end.tv_nsec - start.tv_nsec < 1000000000LL );
+		CHECK( 0, pthread_join(thr, NULL) );
+		fd_cnx_destroy(client_side);
+	} else if (mode == TLS_SERVER_FIRST) {
+		CHECK( 0, pthread_create(&thr, NULL, tls_close_thr, server_side) );
+		CHECK( ENOTCONN, fd_cnx_receive(client_side, NULL, &rcv_buf, &rcv_sz));
+		fd_cnx_destroy(client_side);
+	} else {
+		CHECK( 0, pthread_create(&thr, NULL, tls_close_thr, client_side) );
+		CHECK( ENOTCONN, fd_cnx_receive(server_side, NULL, &rcv_buf, &rcv_sz));
+		fd_cnx_destroy(server_side);
+	}
+	if (mode != TLS_FATAL_RECEIVE)
+		CHECK( 0, pthread_join(thr, NULL) );
+
+	gnutls_certificate_free_keys(hf.creds);
+	gnutls_certificate_free_cas(hf.creds);
+	gnutls_certificate_free_credentials(hf.creds);
+}
 	
 /* Main test routine */
 int main(int argc, char *argv[])
@@ -768,6 +893,7 @@ int main(int argc, char *argv[])
 
 		CHECK_GNUTLS_DO( ret = gnutls_x509_trust_list_add_cas (fd_g_config->cnf_sec_data.trustlist, calist, cacount, 0), );
 		CHECK( 1, ret );
+		gnutls_free(calist);
 	}
 		
 	/* Use certificate verification during the handshake */
@@ -1324,6 +1450,15 @@ int main(int argc, char *argv[])
 	}
 #endif /* DISABLE_SCTP */
 	
+	/* TLS closed by one side only (either of them), TCP and SCTP (old TLS mechanism) */
+	for (i = TLS_CLIENT_FIRST; i <= TLS_SERVER_FIRST; i++) {
+		test_tls_shutdown(listener, IPPROTO_TCP, ALGO_HANDSHAKE_DEFAULT, i, &ca, &client_cert, &client_priv, cer_buf, cer_sz);
+#ifndef DISABLE_SCTP
+		test_tls_shutdown(listener_sctp, IPPROTO_SCTP, ALGO_HANDSHAKE_3436, i, &ca, &client_cert, &client_priv, cer_buf, cer_sz);
+#endif /* DISABLE_SCTP */
+	}
+	test_tls_shutdown(listener, IPPROTO_TCP, ALGO_HANDSHAKE_DEFAULT, TLS_FATAL_RECEIVE, &ca, &client_cert, &client_priv, cer_buf, cer_sz);
+
 	/* Test with different number of streams between server and client */
 #ifndef DISABLE_SCTP
 	/* DTLS / SCTP style */

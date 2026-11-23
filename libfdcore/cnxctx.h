@@ -56,6 +56,7 @@ struct cnxctx {
 	#define 	CC_STATUS_ERROR		2
 	#define 	CC_STATUS_SIGNALED	4
 	#define 	CC_STATUS_TLS		8
+	#define 	CC_STATUS_EOF		16	/* The remote peer sent a TLS close_notify: we still owe it ours (sent by fd_cnx_destroy only) */
 
 	pthread_t	cc_rcvthr;	/* thread for receiving messages on the connection */
 	int		cc_loop;	/* tell the thread if it loops or stops after the first message is received */
@@ -139,6 +140,7 @@ int fd_sctp3436_init(struct cnxctx * conn);
 int fd_sctp3436_handshake_others(struct cnxctx * conn, char * priority, void * alt_creds);
 int fd_sctp3436_startthreads(struct cnxctx * conn, int others);
 void fd_sctp3436_bye(struct cnxctx * conn);
+void fd_sctp3436_wakeup(struct cnxctx * conn);
 void fd_sctp3436_waitthreadsterm(struct cnxctx * conn);
 void fd_sctp3436_gnutls_deinit_others(struct cnxctx * conn);
 void fd_sctp3436_stopthreads(struct cnxctx * conn);

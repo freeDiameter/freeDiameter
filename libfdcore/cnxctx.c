@@ -1002,8 +1002,10 @@ again:
 			}
 		} );
 
+	/* Orderly shutdown from the peer. Do not reply here: a receiver thread must not write on the session
+	   while fd_cnx_destroy may be sending its own close_notify. The reply is sent by fd_cnx_destroy. */
 	if (ret == 0)
-		CHECK_GNUTLS_DO( gnutls_bye(session, GNUTLS_SHUT_RDWR),  );
+		fd_cnx_addstate(conn, CC_STATUS_EOF);
 
 end:
 	if (ret <= 0)
@@ -1736,15 +1738,18 @@ void fd_cnx_destroy(struct cnxctx * conn)
 
 	/* Initiate shutdown of the TLS session(s): call gnutls_bye(WR), then read until error */
 	if (fd_cnx_teststate(conn, CC_STATUS_TLS)) {
+		/* This is the only place where close_notify is sent (receiver threads never write on the session).
+		   Nothing is sent after a fatal error, but after an orderly shutdown from the peer we still reply. */
+		int bye_ok = (! fd_cnx_teststate(conn, CC_STATUS_ERROR )) || fd_cnx_teststate(conn, CC_STATUS_EOF);
 #ifndef DISABLE_SCTP
 		int dtls = fd_cnx_uses_dtls(conn);
 		if ((!dtls) && (conn->cc_sctp_para.pairs > 1)) {
-			if (! fd_cnx_teststate(conn, CC_STATUS_ERROR )) {
+			if (bye_ok) {
 				/* Bye on master session */
-				CHECK_GNUTLS_DO( gnutls_bye(conn->cc_tls_para.session, GNUTLS_SHUT_WR), fd_cnx_markerror(conn) );
+				CHECK_GNUTLS_DO( gnutls_bye(conn->cc_tls_para.session, GNUTLS_SHUT_WR), { fd_cnx_markerror(conn); bye_ok = 0; } );
 			}
 
-			if (! fd_cnx_teststate(conn, CC_STATUS_ERROR ) ) {
+			if (bye_ok) {
 				/* and other stream pairs */
 				fd_sctp3436_bye(conn);
 			}
@@ -1753,8 +1758,10 @@ void fd_cnx_destroy(struct cnxctx * conn)
 				/* Now wait for all decipher threads to terminate */
 				fd_sctp3436_waitthreadsterm(conn);
 			} else {
-				/* Abort the threads, the connection is dead already */
-				fd_sctp3436_stopthreads(conn);
+				/* The connection is dead already. Do not cancel the threads: one canceled inside gnutls_record_recv
+				   leaks the buffer GnuTLS is filling. Wake them up and let them end by themselves. */
+				fd_sctp3436_wakeup(conn);
+				fd_sctp3436_waitthreadsterm(conn);
 			}
 
 			/* Deinit gnutls resources */
@@ -1770,20 +1777,20 @@ void fd_cnx_destroy(struct cnxctx * conn)
 		} else {
 #endif /* DISABLE_SCTP */
 		/* We are TLS, but not using the sctp3436 wrapper layer */
-			if (! fd_cnx_teststate(conn, CC_STATUS_ERROR ) ) {
+			if (bye_ok) {
 				/* Master session */
 				CHECK_GNUTLS_DO( gnutls_bye(conn->cc_tls_para.session, GNUTLS_SHUT_WR), fd_cnx_markerror(conn) );
 			}
 
-			if (! fd_cnx_teststate(conn, CC_STATUS_ERROR ) ) {
-				/* In this case, just wait for thread rcvthr_tls_single to terminate */
-				if (conn->cc_rcvthr != (pthread_t)NULL) {
-					CHECK_POSIX_DO(  pthread_join(conn->cc_rcvthr, NULL), /* continue */  );
-					conn->cc_rcvthr = (pthread_t)NULL;
-				}
-			} else {
-				/* Cancel the receiver thread in case it did not already terminate */
-				CHECK_FCT_DO( fd_thr_term(&conn->cc_rcvthr), /* continue */ );
+			if (fd_cnx_teststate(conn, CC_STATUS_ERROR) && !fd_cnx_teststate(conn, CC_STATUS_EOF)) {
+				CHECK_SYS_DO( shutdown(conn->cc_socket, SHUT_RD), /* continue */ );
+			}
+
+			/* Unblock fatal teardown even if incoming traffic prevents a receive timeout.
+			   Do not cancel inside GnuTLS: its partially filled receive buffer would leak. */
+			if (conn->cc_rcvthr != (pthread_t)NULL) {
+				CHECK_POSIX_DO(  pthread_join(conn->cc_rcvthr, NULL), /* continue */  );
+				conn->cc_rcvthr = (pthread_t)NULL;
 			}
 
 			/* Free the resources of the TLS session */
