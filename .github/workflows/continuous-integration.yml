@@ -25,7 +25,7 @@ jobs:
           rm -f /usr/local/bin/pydoc*
           rm -f /usr/local/bin/python3*
           brew update
-          brew install gnutls libgcrypt libidn2
+          brew install bison gnutls libgcrypt libidn2
 #      - name: install dependencies (Windows)
 #        if: ${{ runner.os == 'Windows' }}
 #        uses: lukka/run-vcpkg@v7
@@ -46,7 +46,7 @@ jobs:
         if: ${{ runner.os == 'macOS' }}
         working-directory: ${{runner.workspace}}/build
         run: |
-          cmake -DDISABLE_SCTP:BOOL=ON ${{github.workspace}}
+          cmake -DDISABLE_SCTP:BOOL=ON -DBISON_EXECUTABLE="$(brew --prefix bison)/bin/bison" ${{github.workspace}}
 #      - name: configure (Windows)
 #        if: ${{ runner.os == 'Windows' }}
 #        working-directory: ${{runner.workspace}}/build
