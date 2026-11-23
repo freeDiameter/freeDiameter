@@ -51,6 +51,7 @@
 
 /* Forward declaration */
 int yyparse(char * conffile);
+int rt_rewrite_conflex_destroy(void);
 
 /* The Lex parser prototype */
 int rt_rewrite_conflex(YYSTYPE *lvalp, YYLTYPE *llocp);
@@ -92,6 +93,7 @@ int rt_rewrite_conf_handle(char * conffile)
 	rt_rewrite_confrestart(rt_rewrite_confin);
 	ret = yyparse(conffile);
 	fclose(rt_rewrite_confin);
+	CHECK_FCT(rt_rewrite_conflex_destroy());
 
 	if (ret != 0) {
 		fd_log_error("rt_rewrite: unable to parse the configuration file (%d)", ret);

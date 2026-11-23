@@ -54,6 +54,7 @@
 
 /* Forward declaration */
 int yyparse(char * conffile);
+int ard_conflex_destroy(void);
 
 static int rules_added = 0;
 
@@ -103,6 +104,7 @@ int ard_conf_handle(char * conffile)
 	ret = yyparse(conffile);
 
 	fclose(ard_confin);
+	CHECK_FCT(ard_conflex_destroy());
 
 	if (ret != 0) {
 		TRACE_DEBUG (INFO, "Unable to parse the configuration file.");

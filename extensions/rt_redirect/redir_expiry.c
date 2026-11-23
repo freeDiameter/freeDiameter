@@ -44,6 +44,14 @@ static pthread_cond_t  exp_cnd  = PTHREAD_COND_INITIALIZER;
 
 pthread_mutex_t redir_exp_peer_lock = PTHREAD_MUTEX_INITIALIZER;
 
+void redir_exp_fini(void)
+{
+	while (!FD_IS_LIST_EMPTY(&expire_list)) {
+		struct redir_entry *e = expire_list.next->o;
+		CHECK_FCT_DO( redir_entry_destroy(e), break );
+	}
+}
+
 /* The thread that handles expired entries cleanup. */
 void * redir_exp_thr_fct(void * arg)
 {

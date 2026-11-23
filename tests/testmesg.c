@@ -775,6 +775,7 @@ int main(int argc, char *argv[])
 		{
 			CPYBUF();
 			CHECK( EBADMSG, fd_msg_parse_buffer( &buf_cpy, 340, &msg) );
+			free(buf_cpy);
 			
 			CPYBUF();
 			CHECK( 0, fd_msg_parse_buffer( &buf_cpy, 344, &msg) );
@@ -1029,6 +1030,8 @@ int main(int argc, char *argv[])
 						CHECK( 0, fd_dict_search( fd_g_config->cnf_dict, DICT_AVP, AVP_BY_NAME_AND_VENDOR, &_req, &_avp, ENOENT));	\
 						CHECK( _avp, _conflict );							\
 					}											\
+					if (_pei.pei_avp_free)									\
+						CHECK( 0, fd_msg_free( _pei.pei_avp ) );					\
 				}
 
 			/* ABNF : 
@@ -1111,6 +1114,7 @@ int main(int argc, char *argv[])
 				}
 			}
 		}
+		CHECK( 0, fd_msg_free( msg ) );
 		
 		/* Test the fd_msg_new_answer_from_req function */
 		{

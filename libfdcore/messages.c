@@ -462,6 +462,9 @@ int fd_msg_parse_or_error( struct msg ** msg, struct msg **error)
 		*error = m;
 
 	} else {
+		if (pei.pei_avp_free) {
+			CHECK_FCT( fd_msg_free(pei.pei_avp) );
+		}
 		do { /* Rescue error messages */
 			struct avp * avp;
 			union avp_value * rc = NULL;

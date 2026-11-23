@@ -56,6 +56,7 @@
 /* Forward declaration */
 int rt_deny_by_size_confparse(char *conffile);
 void rt_deny_by_size_confrestart(FILE *input_file);
+int rt_deny_by_size_conflex_destroy(void);
 
 /* Parse the configuration file */
 int rt_deny_by_size_conf_handle(char * conffile)
@@ -78,6 +79,7 @@ int rt_deny_by_size_conf_handle(char * conffile)
 	ret = rt_deny_by_size_confparse(conffile);
 
 	fclose(rt_deny_by_size_confin);
+	CHECK_FCT(rt_deny_by_size_conflex_destroy());
 
 	if (ret != 0) {
 		TRACE_ERROR( "Unable to parse the configuration file %s.", conffile);

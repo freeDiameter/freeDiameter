@@ -57,6 +57,7 @@
 
 /* Forward declaration */
 int yyparse(char * conffile);
+int ta_conflex_destroy(void);
 
 /* Parse the configuration file */
 int ta_conf_handle(char * conffile)
@@ -79,6 +80,7 @@ int ta_conf_handle(char * conffile)
 	ret = yyparse(conffile);
 
 	fclose(ta_confin);
+	CHECK_FCT(ta_conflex_destroy());
 
 	if (ret != 0) {
 		TRACE_DEBUG (INFO, "Unable to parse the configuration file.");

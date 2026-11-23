@@ -120,6 +120,7 @@ static void load_all_extensions(char * prefix)
 			
 		}
 	}
+	CHECK( 0, closedir(dir) );
 	
 	/* Now, reorder the list by dependencies */
 	{
@@ -184,7 +185,13 @@ static void load_all_extensions(char * prefix)
 		}
 	}
 	
-	/* We should probably clean the list here ? */
+	while (!FD_IS_LIST_EMPTY(&all_extensions)) {
+		struct ext_info *e = all_extensions.next->o;
+		fd_list_unlink(&e->chain);
+		if (e->free_ext_name)
+			free(e->ext_name);
+		free(e);
+	}
 }
 
 /* Main test routine */

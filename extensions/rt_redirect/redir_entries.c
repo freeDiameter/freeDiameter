@@ -83,6 +83,7 @@ int redir_entry_fini()
 
 	/* Empty all entries */
 	CHECK_POSIX_DO( pthread_mutex_lock(&redir_exp_peer_lock),   );
+	redir_exp_fini();
 	for (i = 0; i <= H_U_MAX; i++) {
 		CHECK_POSIX_DO( pthread_rwlock_wrlock( &redirects_usages[i].lock), );
 		switch(i) {

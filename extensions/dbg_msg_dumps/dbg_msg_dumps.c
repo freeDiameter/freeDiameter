@@ -408,7 +408,8 @@ void fd_ext_fini(void)
 	if (md_hdl[0]) { CHECK_FCT_DO( fd_hook_unregister( md_hdl[0] ), ); }
 	if (md_hdl[1]) { CHECK_FCT_DO( fd_hook_unregister( md_hdl[1] ), ); }
 	if (md_hdl[2]) { CHECK_FCT_DO( fd_hook_unregister( md_hdl[2] ), ); }
-	if (md_hdl[2]) { CHECK_FCT_DO( fd_hook_unregister( md_hdl[3] ), ); }
+	if (md_hdl[3]) { CHECK_FCT_DO( fd_hook_unregister( md_hdl[3] ), ); }
+	free(buf);
 	return ;
 }
 

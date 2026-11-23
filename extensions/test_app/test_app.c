@@ -218,6 +218,9 @@ void fd_ext_fini(void)
 		fd_hook_unregister( hookhdl[1] );
 	CHECK_FCT_DO( fd_thr_term(&ta_stats_th), );
 	CHECK_POSIX_DO( pthread_mutex_destroy(&ta_conf->stats_lock), );
+	free(ta_conf->dest_realm);
+	free(ta_conf->dest_host);
+	free(ta_conf->user_name);
 }
 
 EXTENSION_ENTRY("test_app", ta_entry);

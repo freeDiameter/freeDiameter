@@ -53,6 +53,7 @@
 
 /* Forward declaration */
 int yyparse(char * conffile);
+int rtbusy_conflex_destroy(void);
 
 /* Parse the configuration file */
 int rtbusy_conf_handle(char * conffile)
@@ -74,6 +75,7 @@ int rtbusy_conf_handle(char * conffile)
 	ret = yyparse(conffile);
 
 	fclose(rtbusy_confin);
+	CHECK_FCT(rtbusy_conflex_destroy());
 
 	if (ret != 0) {
 		TRACE_ERROR( "Unable to parse the configuration file.");

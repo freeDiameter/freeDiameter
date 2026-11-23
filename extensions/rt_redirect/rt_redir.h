@@ -172,6 +172,7 @@ int redir_entry_destroy(struct redir_entry * e);
 /* Functions for expiry */
 void * redir_exp_thr_fct(void * arg);
 int redir_exp_set(struct redir_entry * e, uint32_t duration);
+void redir_exp_fini(void);
 
 /* Forward cb */
 int redir_fwd_cb(void * cbdata, struct msg ** msg);

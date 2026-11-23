@@ -55,6 +55,7 @@
 /* Forward declaration */
 int yyparse(char * conffile);
 void rtd_confrestart(FILE *input_file);
+int rtd_conflex_destroy(void);
 
 static int rules_added = 0;
 
@@ -81,6 +82,7 @@ int rtd_conf_handle(char * conffile)
 	ret = yyparse(conffile);
 
 	fclose(rtd_confin);
+	CHECK_FCT(rtd_conflex_destroy());
 
 	if (ret != 0) {
 		TRACE_DEBUG (INFO, "rt_default: Unable to parse the configuration file.");

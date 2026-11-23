@@ -56,6 +56,7 @@
 /* Forward declaration */
 int dbg_loglevel_confparse(char *conffile);
 void dbg_loglevel_confrestart(FILE *input_file);
+int dbg_loglevel_conflex_destroy(void);
 
 /* Parse the configuration file */
 int dbg_loglevel_conf_handle(char * conffile)
@@ -78,6 +79,7 @@ int dbg_loglevel_conf_handle(char * conffile)
 	ret = dbg_loglevel_confparse(conffile);
 
 	fclose(dbg_loglevel_confin);
+	CHECK_FCT(dbg_loglevel_conflex_destroy());
 
 	if (ret != 0) {
 		TRACE_ERROR( "Unable to parse the configuration file %s.", conffile);

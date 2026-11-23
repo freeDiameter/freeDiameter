@@ -339,6 +339,7 @@ dump_object(dict_object *self, int depth, Json::Value &main)
                                 return false;                           \
                         }                                               \
                         DUMP_FUNCTION(self, data, self->parent, depth, main); \
+                        free(data);                                     \
                         if (depth > 0) {                                \
                                 for (i=0; i<NB_LISTS_PER_OBJ; i++) {    \
                                         if ((self->list[i].o == NULL) && (self->list[i].next != &self->list[i])) { \

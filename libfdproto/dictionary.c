@@ -265,6 +265,8 @@ static void destroy_object_data(struct dict_object * obj)
 
 		case DICT_ENUMVAL:
 			free( obj->data.enumval.enum_name );
+			if (obj->parent->data.type.type_base == AVP_TYPE_OCTETSTRING)
+				free( obj->data.enumval.enum_value.os.data );
 			break;
 
 		case DICT_AVP:

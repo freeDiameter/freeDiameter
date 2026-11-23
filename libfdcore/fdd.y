@@ -674,6 +674,7 @@ tls_ca:			TLS_CA '=' QSTRING ';'
 					
 					CHECK_GNUTLS_DO( gnutls_x509_trust_list_add_cas (fd_g_config->cnf_sec_data.trustlist, calist, cacount, 0),
 							{ yyerror (&yylloc, conf, "Error saving CA in trust list."); YYERROR; } );
+					gnutls_free(calist);
 				}
 				fclose(fd);
 				conf->cnf_sec_data.ca_file = $3;

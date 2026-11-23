@@ -803,6 +803,10 @@ void fd_ext_fini(void)
 {
 	/* Unregister the callbacks */
 	fd_rt_fwd_unregister(rt_rewrite_handle, NULL);
+	avp_match_free(avp_match_start);
+	avp_match_free(avp_variable_start);
+	avp_add_free(avp_add_start);
+	pthread_rwlock_destroy(&rt_rewrite_lock);
 	return ;
 }
 

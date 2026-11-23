@@ -60,6 +60,7 @@ static int rt_deny_by_size_fwd_cb(void * cbdata, struct msg ** pmsg)
 		if (hdr->msg_flags & CMD_FLAG_REQUEST) {
 			/* Create an answer */
 			CHECK_FCT(fd_msg_new_answer_from_req(fd_g_config->cnf_dict, pmsg, MSGFL_ANSW_ERROR));
+			CHECK_FCT(fd_msg_add_origin(*pmsg, 0));
 			CHECK_FCT(fd_msg_rescode_set(*pmsg, "DIAMETER_UNABLE_TO_COMPLY", "[rt_deny_by_size] Message is too big", NULL, 2));
 			CHECK_FCT( fd_msg_send(pmsg, NULL, NULL) );
 		}

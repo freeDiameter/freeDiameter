@@ -34,6 +34,7 @@
 *********************************************************************************************************/
 
 #include "tests.h"
+#include "dictionary-internal.h"
 
 /* Test for the dict_iterate_rules function */
 int iter_test(void * data, struct dict_rule_data * rule)
@@ -57,6 +58,7 @@ int main(int argc, char *argv[])
 		struct dict_object * obj1 = NULL;
 		struct dict_object * obj2 = NULL;
 		struct dict_object * obj3 = NULL;
+		struct dict_object invalid_obj = { .type = DICT_VENDOR };
 
 		vendor_id_t vendor_id = 735671;
 		struct dict_vendor_data vendor1_data = { 735671, "Vendor test 1" };
@@ -89,10 +91,10 @@ int main(int argc, char *argv[])
 		CHECK( 735671, vendor1_data.vendor_id );
 		CHECK( 0, strcmp(vendor1_data.vendor_name, "Vendor test 1") );
 		/* error conditions */
-		CHECK( EINVAL, fd_dict_getval ( (struct dict_object *)"not an object", &vendor1_data ) );
+		CHECK( EINVAL, fd_dict_getval ( &invalid_obj, &vendor1_data ) );
 		
 		/* Create the application with vendor1 as parent */
-		CHECK( EINVAL, fd_dict_new ( fd_g_config->cnf_dict, DICT_APPLICATION, &app1_data , (struct dict_object *)"bad object", &obj2 ) );
+		CHECK( EINVAL, fd_dict_new ( fd_g_config->cnf_dict, DICT_APPLICATION, &app1_data , &invalid_obj, &obj2 ) );
 		CHECK( 0, fd_dict_new ( fd_g_config->cnf_dict, DICT_APPLICATION, &app1_data , obj1, &obj2 ) );
 		
 		CHECK( 0, fd_dict_search ( fd_g_config->cnf_dict, DICT_VENDOR, VENDOR_OF_APPLICATION, obj2, &obj3, ENOENT ) );

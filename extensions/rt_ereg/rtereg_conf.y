@@ -54,6 +54,7 @@
 /* Forward declaration */
 int yyparse(char * conffile);
 void rtereg_confrestart(FILE *input_file);
+int rtereg_conflex_destroy(void);
 
 /* Parse the configuration file */
 int rtereg_conf_handle(char * conffile)
@@ -75,6 +76,7 @@ int rtereg_conf_handle(char * conffile)
 	ret = yyparse(conffile);
 
 	fclose(rtereg_confin);
+	CHECK_FCT(rtereg_conflex_destroy());
 
 	if (rtereg_conf[rtereg_conf_size-1].finished == 0) {
 		LOG_E("[rt_ereg] configuration invalid, AVP ended without OCTETSTRING AVP");
