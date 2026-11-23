@@ -55,6 +55,12 @@ which strip that output.
 GitHub Actions runs the multi-peer plan on Ubuntu for all four combinations of
 TCP/SCTP and TLS enabled/disabled.
 
+The separate AddressSanitizer job runs all the C tests, including `testcnx`, and
+the multi-peer scenarios with leak detection enabled, using TCP without TLS and
+with SCTP disabled. The sanitizer job disables only ODR
+violation detection because extensions intentionally export the same
+`fd_ext_depends` symbol; it does not disable leak detection.
+
 The harness starts separate daemons with distinct identities and dynamically
 selected ports bound to IPv4 loopback. It waits for connections and exchanges,
 applies timeouts, checks daemon shutdown, and prints peer logs on failure.

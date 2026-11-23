@@ -94,3 +94,31 @@ jobs:
         run: cmake --build test.build --parallel 2
       - name: test
         run: ctest --test-dir test.build -L multi-peer --no-tests=error --output-on-failure
+
+  address-sanitizer:
+    runs-on: ubuntu-24.04
+    env:
+      # Each extension intentionally exports the same fd_ext_depends symbol.
+      ASAN_OPTIONS: detect_leaks=1:detect_odr_violation=0
+    steps:
+      - uses: actions/checkout@v6
+      - name: install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y bison flex libgnutls28-dev libgcrypt-dev libidn2-dev libjsoncpp-dev
+      - name: configure
+        run: |
+          cmake -S . -B test.asan \
+            -DCMAKE_BUILD_TYPE=Debug \
+            -DCMAKE_C_FLAGS="-fsanitize=address -fno-omit-frame-pointer" \
+            -DCMAKE_CXX_FLAGS="-fsanitize=address -fno-omit-frame-pointer" \
+            -DDISABLE_SCTP=ON \
+            -DBUILD_MULTI_PEER_TESTS=ON \
+            -DBUILD_TEST_APP=ON \
+            -DBUILD_DBG_DICT_DUMP_JSON=ON \
+            -DBUILD_RT_EREG=ON \
+            -DBUILD_APP_REDIRECT=ON
+      - name: build
+        run: cmake --build test.asan --parallel 2
+      - name: test
+        run: ctest --test-dir test.asan --no-tests=error --output-on-failure
