@@ -39,7 +39,7 @@ FROM SOURCES
    See QUICK INSTRUCTIONS Step #1 above.
 
 2) Install dependencies:
-    $ brew install git cmake gnutls libgcrypt postgres mysql libidn2 pkg-config
+    $ brew install git cmake bison gnutls libgcrypt postgres mysql libidn2 pkg-config
 
    Notes:
     * if "postgres" does not work, try "postgresql" (for newer versions of OS X)
@@ -61,12 +61,15 @@ FROM SOURCES
     $ cd freeDiameter-build
 
 7) Configure:
-    $ cmake .. -DDISABLE_SCTP:BOOL=ON
+    $ cmake .. -DDISABLE_SCTP:BOOL=ON -DBISON_EXECUTABLE="$(brew --prefix bison)/bin/bison"
 
    or for ncurses-based configuration:
-    $ ccmake .. -DDISABLE_SCTP:BOOL=ON
+    $ ccmake .. -DDISABLE_SCTP:BOOL=ON -DBISON_EXECUTABLE="$(brew --prefix bison)/bin/bison"
 
    Notes:
+    * Bison 3.0 or newer is required. Homebrew's Bison is keg-only, so specify
+      its path to avoid selecting the older Bison supplied by macOS. Use the
+      same option when reconfiguring an existing build directory.
     * GNU IDN (Support for International Domain Names) can be disabled with:
        -DDIAMID_IDNA_IGNORE=ON or -DDIAMID_IDNA_REJECT=ON
     * For more information on available configuration options, read:

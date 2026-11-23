@@ -69,7 +69,7 @@ jobs:
         sed -E -i 's/TOKEN=([-_A-Za-z0-9]+)/TOKEN=XXX/g' cov-int/build-log.txt
 
     - name: Upload build log
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v6
       with:
         name: build-log
         path: cov-int/build-log.txt
