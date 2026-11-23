@@ -43,13 +43,13 @@
 
 /* For development only : */
 %debug 
-%error-verbose
+%define parse.error verbose
 
 %parse-param {struct fd_config * conf}
 
 /* Keep track of location */
 %locations 
-%pure-parser
+%define api.pure
 
 %{
 #include "fdcore-internal.h"

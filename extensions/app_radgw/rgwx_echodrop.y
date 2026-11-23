@@ -39,7 +39,7 @@ See doc/echodrop.rgwx.conf.sample for description of the parsed format. */
 
 /* For development only : */
 %debug 
-%error-verbose
+%define parse.error verbose
 
 /* The parser receives the configuration file filename and the conf structure as parameter */
 %parse-param {char * conffile}
@@ -47,7 +47,7 @@ See doc/echodrop.rgwx.conf.sample for description of the parsed format. */
 
 /* Keep track of location */
 %locations 
-%pure-parser
+%define api.pure
 
 %{
 #include "rgwx_echodrop.h"

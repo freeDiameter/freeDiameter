@@ -55,9 +55,9 @@ int diameaplex(YYSTYPE *lvalp, YYLTYPE *llocp);
 
 %locations
 %parse-param {struct diameap_conf * config} 
-%pure_parser
+%define api.pure
 /*%defines */
-%error-verbose
+%define parse.error verbose
 %debug 
 
 %union {

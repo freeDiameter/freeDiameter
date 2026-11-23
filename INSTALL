@@ -1,7 +1,7 @@
 This package uses CMake (cmake.org) as building system. You'll need the cmake tool in order
 to generate the Makefiles for your platform. You can also select which extensions must be built
 with cmake. After the initial cmake configuration, you will need several tools such as make, a
-C compiler (tested mostly with gcc), flex (> 2.5.4), bison, ...
+C compiler (tested mostly with gcc), flex (> 2.5.4), bison (>= 3.0), ...
 
 You may retrieve the source package in several ways:
  - as a tarball containing the source.
