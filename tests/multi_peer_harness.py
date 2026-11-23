@@ -1,5 +1,6 @@
 import os
 import re
+import shutil
 import signal
 import socket
 import subprocess
@@ -221,8 +222,20 @@ class Peers:
             "all peer links to report %s%s" % (protocol, security),
         )
 
+    def dump_state(self, index, directory):
+        process = self.processes[index]
+        with (directory / ("peer%d-backtrace.txt" % (index + 1))).open("w") as output:
+            subprocess.run(
+                ["gdb", "-nx", "-batch", "-ex", "set auto-load off",
+                 "-ex", "set pagination off", "-ex", "attach %d" % process.pid,
+                 "-ex", "thread apply all bt", "-ex", "detach"],
+                stdout=output, stderr=subprocess.STDOUT, timeout=15, check=True,
+            )
+
     def stop(self):
         failures = []
+        diagnostics_root = os.environ.get("FD_MULTI_PEER_DIAGNOSTICS")
+        diagnostics = None
         for callback in reversed(self.stop_callbacks):
             try:
                 callback()
@@ -236,9 +249,22 @@ class Peers:
                 except ProcessLookupError:
                     pass
                 try:
-                    process.wait(timeout=5)
+                    process.wait(timeout=25)
                 except subprocess.TimeoutExpired:
-                    process.kill()
+                    if diagnostics_root:
+                        try:
+                            if diagnostics is None:
+                                Path(diagnostics_root).mkdir(parents=True, exist_ok=True)
+                                diagnostics = Path(tempfile.mkdtemp(
+                                    prefix=Path(sys.argv[0]).stem + "-", dir=diagnostics_root))
+                            self.dump_state(index, diagnostics)
+                        except (OSError, subprocess.SubprocessError) as error:
+                            failures.append("peer %d diagnostic capture failed: %s" %
+                                            (index + 1, error))
+                    try:
+                        process.kill()
+                    except ProcessLookupError:
+                        pass
                     process.wait(timeout=5)
                     failures.append("peer %d did not stop gracefully" % (index + 1))
             if process.returncode:
@@ -249,6 +275,14 @@ class Peers:
                 callback()
             except Exception as error:
                 failures.append("post-stop check failed: %s" % error)
+        if diagnostics is not None:
+            for index, log in self.logs.items():
+                try:
+                    log.flush()
+                    shutil.copyfile(log.name, diagnostics / ("peer%d.log" % (index + 1)))
+                except OSError as error:
+                    failures.append("peer %d log capture failed: %s" % (index + 1, error))
+            print("Peer shutdown diagnostics saved to %s" % diagnostics, file=sys.stderr)
         return failures
 
 

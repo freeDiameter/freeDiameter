@@ -64,6 +64,13 @@ violation detection because extensions intentionally export the same
 The harness starts separate daemons with distinct identities and dynamically
 selected ports bound to IPv4 loopback. It waits for connections and exchanges,
 applies timeouts, checks daemon shutdown, and prints peer logs on failure.
+It allows each peer 25 seconds to stop. If `FD_MULTI_PEER_DIAGNOSTICS` is set
+and a peer exceeds that deadline, the harness runs GDB for an all-thread
+backtrace before killing it and saves the backtrace and peer logs in that
+directory. GDB must be installed and permitted to attach; capture failures
+are reported without preventing cleanup. The multi-peer CI job enables
+debugger attachment on its GitHub-hosted runner and uploads these diagnostics
+as a matrix-specific artifact. The logs and backtraces may contain test data.
 
 The default is TCP without TLS. Set either or both options when configuring the
 build to run the same scenarios with a different transport:

@@ -1,5 +1,6 @@
 import contextlib
 import io
+import subprocess
 import tempfile
 import unittest
 from pathlib import Path
@@ -199,6 +200,51 @@ class HarnessTest(unittest.TestCase):
                     peers.on_stop(fail)
             process.send_signal.assert_called_once()
             process.wait.assert_called_once()
+
+    def test_timed_out_peer_captures_diagnostics_before_kill(self):
+        for debugger_error in (None, OSError("gdb unavailable"),
+                               subprocess.TimeoutExpired("gdb", 15)):
+            with self.subTest(debugger_error=debugger_error), \
+                    tempfile.TemporaryDirectory() as temporary, \
+                    mock.patch.dict("os.environ", {"FD_MULTI_PEER_DIAGNOSTICS":
+                                                  str(Path(temporary) / "diagnostics")}), \
+                    mock.patch("multi_peer_harness.subprocess.Popen") as popen, \
+                    mock.patch("multi_peer_harness.subprocess.run") as run, \
+                    contextlib.redirect_stderr(io.StringIO()):
+                directory = Path(temporary)
+                process = popen.return_value
+                process.pid = 1234
+                process.poll.return_value = None
+                process.returncode = -9
+                process.wait.side_effect = [subprocess.TimeoutExpired("daemon", 25), 0]
+
+                def capture(*args, **kwargs):
+                    process.kill.assert_not_called()
+                    kwargs["stdout"].write("debugger output")
+                    if debugger_error:
+                        raise debugger_error
+
+                run.side_effect = capture
+                peers = Peers("/daemon", directory, 1, [])
+                peers.start(0, [])
+                peers.logs[0].write(b"peer output")
+                failures = peers.stop()
+                peers.logs[0].close()
+
+                self.assertIn("peer 1 did not stop gracefully", failures)
+                self.assertEqual(any("diagnostic capture failed" in item for item in failures),
+                                 debugger_error is not None)
+                process.kill.assert_called_once()
+                self.assertEqual(process.wait.call_args_list,
+                                 [mock.call(timeout=25), mock.call(timeout=5)])
+                run.assert_called_once()
+                self.assertIn("attach 1234", run.call_args[0][0])
+                diagnostic_dirs = list((directory / "diagnostics").iterdir())
+                self.assertEqual(len(diagnostic_dirs), 1)
+                self.assertEqual((diagnostic_dirs[0] / "peer1-backtrace.txt").read_text(),
+                                 "debugger output")
+                self.assertEqual((diagnostic_dirs[0] / "peer1.log").read_bytes(),
+                                 b"peer output")
 
     def test_exchange_cannot_reuse_previous_output(self):
         peers = mock.Mock()

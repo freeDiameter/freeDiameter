@@ -73,7 +73,9 @@ jobs:
       - name: install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y bison flex libsctp-dev libgnutls28-dev libgcrypt-dev libidn2-dev libjsoncpp-dev openssl python3-dev swig
+          sudo apt-get install -y bison flex gdb libsctp-dev libgnutls28-dev libgcrypt-dev libidn2-dev libjsoncpp-dev openssl python3-dev swig
+      - name: allow debugger to attach to test peers
+        run: sudo sysctl -w kernel.yama.ptrace_scope=0
       - name: check SCTP support
         if: ${{ matrix.sctp == 'ON' }}
         run: |
@@ -93,7 +95,16 @@ jobs:
       - name: build
         run: cmake --build test.build --parallel 2
       - name: test
+        env:
+          FD_MULTI_PEER_DIAGNOSTICS: ${{ github.workspace }}/test.build/peer-diagnostics
         run: ctest --test-dir test.build -L multi-peer --no-tests=error --output-on-failure
+      - name: upload peer shutdown diagnostics
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: peer-diagnostics-tls-${{ matrix.tls }}-sctp-${{ matrix.sctp }}
+          path: test.build/peer-diagnostics/
+          if-no-files-found: ignore
 
   address-sanitizer:
     runs-on: ubuntu-24.04
