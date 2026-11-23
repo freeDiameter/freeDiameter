@@ -152,3 +152,10 @@ establishes the connection and verifies:
 
 The sample's optional timeout, peer-addition, and other network-dependent
 examples are not exercised by this test.
+
+### `test_multi_peer_rt_ignore_dh`
+
+With `rt_ignore_dh` and `dbg_loglevel` built, a client sends to a virtual
+destination through a relay. The test checks the server's echoed answer, the
+restored Origin-Host, and the stowed and restored host names in the relay's
+debug logs.

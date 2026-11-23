@@ -114,9 +114,8 @@ static int restore_origin_host(struct msg **msg) {
 	} else {
 		CHECK_FCT(fd_msg_avp_setvalue(oh_avp, &val));
 	}
-	fd_msg_free((msg_or_avp*)pi_avp);
-
 	fd_log_debug("Restored Origin-Host '%.*s' from Proxy-Info", (int)new_oh_len, (char *)new_oh);
+	fd_msg_free((msg_or_avp*)pi_avp);
 	return 0;
 }
 
@@ -151,11 +150,11 @@ static int stow_destination_host(struct msg **msg) {
 			CHECK_FCT(fd_msg_avp_add(pi_avp, MSG_BRW_LAST_CHILD, ph_avp));
 			CHECK_FCT(fd_msg_avp_add(pi_avp, MSG_BRW_LAST_CHILD, ps_avp));
 
+			fd_log_debug("Stowed Destination-Host '%.*s' into Proxy-Info", (int)val.os.len, (const char *)val.os.data);
 			/* remove Destination-Host from message */
 			fd_msg_free((msg_or_avp*)avp);
 			/* add Proxy-Info */
 			CHECK_FCT(fd_msg_avp_add(*msg, MSG_BRW_LAST_CHILD, pi_avp));
-			fd_log_debug("Stowed Destination-Host '%.*s' into Proxy-Info", (int)val.os.len, (const char *)val.os.data);
 		}
 	}
 

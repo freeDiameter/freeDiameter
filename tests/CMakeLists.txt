@@ -167,6 +167,10 @@ IF(BUILD_MULTI_PEER_TESTS)
 			$<TARGET_FILE:test_app>)
 		ADD_MULTI_PEER_TEST(test_multi_peer_relay test_multi_peer_relay.py
 			$<TARGET_FILE:test_app>)
+		IF(TARGET rt_ignore_dh AND TARGET dbg_loglevel)
+			ADD_MULTI_PEER_TEST(test_multi_peer_rt_ignore_dh test_multi_peer_rt_ignore_dh.py
+				$<TARGET_FILE:test_app> $<TARGET_FILE:rt_ignore_dh> $<TARGET_FILE:dbg_loglevel>)
+		ENDIF()
 		IF(TARGET dbg_interactive)
 			ADD_MULTI_PEER_TEST(test_two_peer_dbg_interactive test_two_peer_dbg_interactive.py
 				$<TARGET_FILE:test_app> $<TARGET_FILE:dbg_interactive>)
