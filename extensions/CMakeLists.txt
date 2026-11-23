@@ -52,6 +52,7 @@ FD_EXTENSION_SUBDIR(dict_mip6a     "Diameter Mobile IPv6 Auth Dictionary definit
 FD_EXTENSION_SUBDIR(dict_mip6i     "Diameter Mobile IPv6 IKE Dictionary definitions"          ON)
 FD_EXTENSION_SUBDIR(dict_nas_mipv6 "Diameter NAS-to-HAAA Interaction Dictionary definitions"  ON)
 FD_EXTENSION_SUBDIR(dict_rfc5777   "Classification and QoS (RFC 5777) Dictionary definitions" ON)
+FD_EXTENSION_SUBDIR(dict_rfc7944   "Diameter Routing Message Priority (RFC 7944) Dictionary definitions" ON)
 
 IF (NOT CMAKE_BUILD_TYPE MATCHES "DebianPackage")
 FD_EXTENSION_SUBDIR(dict_json       "Load Diameter dictionary definitions from JSON files."   OFF)
