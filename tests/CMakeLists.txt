@@ -167,6 +167,45 @@ IF(BUILD_MULTI_PEER_TESTS)
 			$<TARGET_FILE:test_app>)
 		ADD_MULTI_PEER_TEST(test_multi_peer_relay test_multi_peer_relay.py
 			$<TARGET_FILE:test_app>)
+		FOREACH(EXT rt_default rt_deny_by_size rt_ereg)
+			IF(TARGET ${EXT})
+				ADD_MULTI_PEER_TEST(test_multi_peer_${EXT} test_multi_peer_routing_extensions.py
+					$<TARGET_FILE:test_app> $<TARGET_FILE:${EXT}> ${EXT})
+			ENDIF()
+		ENDFOREACH()
+		IF(TARGET rt_busypeers)
+			ADD_MULTI_PEER_TEST(test_multi_peer_rt_busypeers test_multi_peer_busy.py
+				$<TARGET_FILE:test_app> $<TARGET_FILE:rt_busypeers>)
+		ENDIF()
+		IF(TARGET rt_redirect AND TARGET rt_default AND TARGET app_redirect AND TARGET dbg_msg_dumps)
+			ADD_MULTI_PEER_TEST(test_multi_peer_rt_redirect test_multi_peer_redirect.py
+				$<TARGET_FILE:test_app> $<TARGET_FILE:rt_redirect> $<TARGET_FILE:rt_default>
+				$<TARGET_FILE:app_redirect> $<TARGET_FILE:dbg_msg_dumps>)
+		ENDIF()
+		IF(TARGET rt_rewrite AND TARGET dbg_msg_dumps)
+			ADD_MULTI_PEER_TEST(test_multi_peer_rt_rewrite test_multi_peer_message_extensions.py
+				$<TARGET_FILE:test_app> $<TARGET_FILE:rt_rewrite> $<TARGET_FILE:dbg_msg_dumps> rt_rewrite)
+		ENDIF()
+		IF(TARGET dbg_rt AND TARGET dbg_loglevel AND NOT CMAKE_BUILD_TYPE MATCHES "MaxPerformance")
+			FOREACH(EXT rt_randomize rt_load_balance)
+				IF(TARGET ${EXT})
+					ADD_MULTI_PEER_TEST(test_multi_peer_${EXT} test_multi_peer_balancing.py
+						$<TARGET_FILE:test_app> $<TARGET_FILE:${EXT}> $<TARGET_FILE:dbg_rt> $<TARGET_FILE:dbg_loglevel> ${EXT})
+				ENDIF()
+			ENDFOREACH()
+		ENDIF()
+		IF(TARGET dbg_loglevel)
+			FOREACH(EXT dbg_dict_dump dbg_dict_dump_json dbg_loglevel dbg_monitor dbg_msg_dumps dbg_msg_timings)
+				IF(TARGET ${EXT})
+					ADD_MULTI_PEER_TEST(test_multi_peer_${EXT} test_multi_peer_debug_extensions.py
+						$<TARGET_FILE:test_app> $<TARGET_FILE:${EXT}> $<TARGET_FILE:dbg_loglevel> ${EXT})
+				ENDIF()
+			ENDFOREACH()
+			IF(TARGET dbg_rt AND NOT CMAKE_BUILD_TYPE MATCHES "MaxPerformance")
+				ADD_MULTI_PEER_TEST(test_multi_peer_dbg_rt test_multi_peer_debug_extensions.py
+					$<TARGET_FILE:test_app> $<TARGET_FILE:dbg_rt> $<TARGET_FILE:dbg_loglevel> dbg_rt)
+			ENDIF()
+		ENDIF()
 		IF(TARGET rt_ignore_dh AND TARGET dbg_loglevel)
 			ADD_MULTI_PEER_TEST(test_multi_peer_rt_ignore_dh test_multi_peer_rt_ignore_dh.py
 				$<TARGET_FILE:test_app> $<TARGET_FILE:rt_ignore_dh> $<TARGET_FILE:dbg_loglevel>)

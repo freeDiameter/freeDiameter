@@ -212,7 +212,7 @@ class Peers:
         security = ",TLS" if self.tls else ""
         self.wait(
             lambda: all(
-                re.search(r"Connected to '%s' \(%s%s,soc#\d+\)" %
+                re.search(r"(?:Connected to|CONNECTED TO) '%s' \(%s%s,soc#\d+\)" %
                           (re.escape(self.identities[remote]), protocol, security),
                           self.text(index))
                 for first, second in self.links

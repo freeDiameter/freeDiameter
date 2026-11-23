@@ -73,7 +73,7 @@ jobs:
       - name: install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y bison flex libsctp-dev libgnutls28-dev libgcrypt-dev libidn2-dev openssl python3-dev swig
+          sudo apt-get install -y bison flex libsctp-dev libgnutls28-dev libgcrypt-dev libidn2-dev libjsoncpp-dev openssl python3-dev swig
       - name: check SCTP support
         if: ${{ matrix.sctp == 'ON' }}
         run: |
@@ -84,10 +84,13 @@ jobs:
             -DBUILD_MULTI_PEER_TESTS=ON \
             -DBUILD_TEST_APP=ON \
             -DBUILD_DBG_INTERACTIVE=ON \
+            -DBUILD_DBG_DICT_DUMP_JSON=ON \
+            -DBUILD_RT_EREG=ON \
+            -DBUILD_APP_REDIRECT=ON \
             -DPython3_EXECUTABLE=/usr/bin/python3 \
             -DMULTI_PEER_USE_TLS=${{ matrix.tls }} \
             -DMULTI_PEER_USE_SCTP=${{ matrix.sctp }}
       - name: build
-        run: cmake --build test.build --target freeDiameterd test_app dbg_interactive --parallel 2
+        run: cmake --build test.build --parallel 2
       - name: test
         run: ctest --test-dir test.build -L multi-peer --no-tests=error --output-on-failure

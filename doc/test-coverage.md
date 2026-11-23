@@ -36,14 +36,22 @@ For example, from the repository root:
 ```sh
 mkdir test.multi-peer
 cd test.multi-peer
-cmake .. -DBUILD_MULTI_PEER_TESTS=ON -DBUILD_TEST_APP=ON -DBUILD_DBG_INTERACTIVE=ON
+cmake .. -DBUILD_MULTI_PEER_TESTS=ON -DBUILD_TEST_APP=ON \
+  -DBUILD_DBG_INTERACTIVE=ON -DBUILD_DBG_DICT_DUMP_JSON=ON \
+  -DBUILD_RT_EREG=ON -DBUILD_APP_REDIRECT=ON
 cmake --build .
 ctest -L multi-peer --output-on-failure
 ```
 
 The plan requires Python 3.6 or newer. The current application scenarios
-require `test_app`. The `dbg_interactive` test is registered only when that
-extension is built; it also requires Python development files and SWIG.
+require `test_app`. Extension-specific scenarios are registered only when
+their required targets are built. `dbg_interactive` requires Python development
+files and SWIG; `dbg_dict_dump_json` requires jsoncpp. The redirect scenario
+also requires `app_redirect`, `rt_default`, and `dbg_msg_dumps`; the rewrite
+scenario requires `dbg_msg_dumps`. The balancing scenarios require `dbg_rt`
+and `dbg_loglevel`, and the debug scenarios require `dbg_loglevel`. Scenarios
+that inspect debug routing output are not registered in `MaxPerformance` builds,
+which strip that output.
 GitHub Actions runs the multi-peer plan on Ubuntu for all four combinations of
 TCP/SCTP and TLS enabled/disabled.
 
@@ -118,6 +126,36 @@ connect. The test checks both links and their transport, sends a request to
 the server through the relay, and verifies the server callback, echoed value,
 success result and answer origin. It also checks that the endpoints did not
 connect directly. It does not cover routing failures or alternate routes.
+
+### Routing extension scenarios
+
+These scenarios use a client, a relay, and one or two servers. They check
+connections and transport as well as the following extension behavior:
+
+| Test | Behavioral assertions |
+| --- | --- |
+| `test_multi_peer_rt_default`, `test_multi_peer_rt_ereg` | A User-Name rule selects one of two servers; after reloading the rule, the other server answers. Both answers echo the request value. |
+| `test_multi_peer_rt_deny_by_size` | A request above the configured limit receives `DIAMETER_UNABLE_TO_COMPLY` with the relay's origin identity and does not reach the server; after increasing the limit and reloading, an exchange succeeds. |
+| `test_multi_peer_rt_busypeers` | A suspended server triggers a relay timeout and `DIAMETER_TOO_BUSY`; after resuming the server, a subsequent exchange succeeds. |
+| `test_multi_peer_rt_redirect` | A redirecting peer returns a redirect indication, the relay retries to the indicated connected server, and the server returns the echoed value. |
+| `test_multi_peer_rt_rewrite` | A User-Name AVP is mapped to a Class AVP with the same bytes and removed from the forwarded request. |
+| `test_multi_peer_rt_ignore_dh` | A request addressed to a virtual host reaches a different server, and the answer returns with the virtual host restored as Origin-Host. |
+| `test_multi_peer_rt_randomize`, `test_multi_peer_rt_load_balance` | With two idle, equally scored servers, the observed routing scores show the expected boost and the higher-scored server answers. |
+
+These are focused examples, not exhaustive tests of routing rules, busy-peer
+retries, redirect caching, rewrite operations, or balancing under unequal
+load. The size test checks rejection and acceptance at two configured limits,
+not the precise boundary.
+
+### Debug extension scenarios
+
+The three-peer debug scenarios exchange an application request through the
+instrumented relay. The dictionary dump tests inspect base AVPs in the text
+or parsed JSON output; the loglevel test checks a runtime reload; and the
+monitor test checks its signal-triggered config, extension, and dictionary
+dumps. The message dump, timing, and routing tests check for corresponding
+records during a forwarded exchange. They do not exhaustively validate every
+dump format, hook, timing value, or monitoring interval.
 
 ### `test_two_peer_test_app`
 

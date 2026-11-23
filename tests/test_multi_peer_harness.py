@@ -117,6 +117,8 @@ class HarnessTest(unittest.TestCase):
 
             peers.wait = wait
             peers.wait_transport()
+            logs[1] = logs[1].replace("Connected to", "CONNECTED TO")
+            peers.wait_transport()
             logs[0] = logs[0].replace("SCTP", "TCP")
             with self.assertRaisesRegex(RuntimeError, "SCTP,TLS"):
                 peers.wait_transport()
