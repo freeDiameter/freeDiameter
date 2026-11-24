@@ -89,7 +89,7 @@ int pthread_barrier_wait(pthread_barrier_t * barrier)
 		/* this protects against spurious wakes */
 	}
 	pthread_mutex_unlock(&barrier->mutex);
-	return 0;
+	return ret;
 }
 
 #endif /* HAVE_PTHREAD_BAR */
