@@ -791,7 +791,7 @@ static int add_addresses_from_list_mask(uint8_t ** array, size_t * size, int * a
 }
 
 /* Create a socket server and bind it according to daemon s configuration */
-int fd_sctp_create_bind_server( int * sock, int family, struct fd_list * list, uint16_t port )
+int fd_sctp_create_bind_server( int * sock, int family, struct fd_list * list, uint16_t port, int dtls )
 {
 	int bind_default;
 	
@@ -803,6 +803,14 @@ int fd_sctp_create_bind_server( int * sock, int family, struct fd_list * list, u
 	
 	/* Set pre-binding socket options, including number of streams etc... */
 	CHECK_FCT( fd_setsockopt_prebind(*sock) );
+	if (dtls) {
+#ifdef ENABLE_DTLS_SCTP
+		CHECK_FCT(fd_sctp_dtls_init_socket(*sock));
+#else
+		LOG_E("DTLS/SCTP requires ENABLE_DTLS_SCTP.");
+		return ENOTSUP;
+#endif
+	}
 	
 	bind_default = (! list) || (FD_IS_LIST_EMPTY(list)) ;
 redo:
@@ -889,7 +897,7 @@ int fd_sctp_listen( int sock )
 }
 
 /* Create a client socket and connect to remote server */
-int fd_sctp_client( int *sock, int no_ip6, uint16_t port, struct fd_list * list, struct fd_list * src_list )
+int fd_sctp_client( int *sock, int no_ip6, uint16_t port, struct fd_list * list, struct fd_list * src_list, int dtls, int allow_tls_fallback )
 {
 	int family;
 	union {
@@ -921,6 +929,18 @@ int fd_sctp_client( int *sock, int no_ip6, uint16_t port, struct fd_list * list,
 	
 	/* Set the socket options */
 	CHECK_FCT_DO( ret = fd_setsockopt_prebind(*sock), goto out );
+	if (dtls) {
+#ifdef ENABLE_DTLS_SCTP
+		int supported;
+		CHECK_FCT_DO(ret = fd_sctp_auth_supported(*sock, &supported), goto out);
+		if (supported || !allow_tls_fallback)
+			CHECK_FCT_DO(ret = fd_sctp_dtls_init_socket(*sock), goto out);
+#else
+		LOG_E("DTLS/SCTP requires ENABLE_DTLS_SCTP.");
+		ret = ENOTSUP;
+		goto out;
+#endif
+	}
 
 	/* Bind to explicit source addresses if requested */
 	if (src_list && !FD_IS_LIST_EMPTY(src_list)) {
@@ -1169,6 +1189,7 @@ again:
 	ret = sendmsg(conn->cc_socket, &mhdr, 0);
 	/* Handle special case of timeout */
 	if ((ret < 0) && ((errno == EAGAIN) || (errno == EINTR))) {
+		ret = -errno;
 		pthread_testcancel();
 		/* Check how much time we were blocked for this sending. */
 		CHECK_SYS_DO(  clock_gettime(CLOCK_REALTIME, &now), return -1 );
@@ -1189,7 +1210,7 @@ again:
 }
 
 /* Receive the next data from the socket, or next notification */
-int fd_sctp_recvmeta(struct cnxctx * conn, uint16_t * strid, uint8_t ** buf, size_t * len, int *event)
+int fd_sctp_recvmeta_flags(struct cnxctx * conn, uint16_t * strid, uint8_t ** buf, size_t * len, int *event, int flags)
 {
 	ssize_t 		 ret = 0;
 	struct msghdr 		 mhdr;
@@ -1223,6 +1244,13 @@ incomplete:
 	while (datasize >= bufsz ) {
 		/* The buffer is full, enlarge it */
 		bufsz += mempagesz;
+		if (conn->cc_sctp_para.dtls && (bufsz > 18445))
+			bufsz = 18445;
+		if (datasize >= bufsz) {
+			LOG_E("Oversized DTLS/SCTP record from %s.", conn->cc_remid);
+			free(data);
+			return EMSGSIZE;
+		}
 		CHECK_MALLOC( data = realloc(data, bufsz ) );
 	}
 	/* the new data will be received following the preceding */
@@ -1232,11 +1260,20 @@ incomplete:
 
 	/* Receive data from the socket */
 again:
+	mhdr.msg_controllen = sizeof(ancidata);
 	pthread_cleanup_push(free, data);
-	ret = recvmsg(conn->cc_socket, &mhdr, 0);
+	ret = recvmsg(conn->cc_socket, &mhdr, flags);
 	pthread_testcancel();
 	pthread_cleanup_pop(0);
 	
+	if ((ret < 0) && (errno == EAGAIN) && (flags || conn->cc_sctp_para.dtls)) {
+		free(data);
+		if (datasize) {
+			LOG_E("Incomplete DTLS/SCTP record from %s.", conn->cc_remid);
+			return EPROTO;
+		}
+		return EAGAIN;
+	}
 	/* First, handle timeouts (same as fd_cnx_s_recv) */
 	if ((ret < 0) && ((errno == EAGAIN) || (errno == EINTR))) {
 		if (! fd_cnx_teststate(conn, CC_STATUS_CLOSING ))
@@ -1255,7 +1292,7 @@ again:
 		*event = FDEVP_CNX_ERROR;
 		return 0;
 	}
-	
+
 	/* Update the size of data we received */
 	datasize += ret;
 
@@ -1346,6 +1383,9 @@ again:
 	
 	if (strid) {
 		struct cmsghdr 		*hdr;
+		uint32_t ppid = 0;
+		uint16_t delivery_flags = 0;
+		int metadata_found = 0;
 #ifdef OLD_SCTP_SOCKET_API
 		struct sctp_sndrcvinfo	*sndrcv;
 #else /*  OLD_SCTP_SOCKET_API */
@@ -1383,6 +1423,9 @@ again:
 			}
 
 			*strid = sndrcv->sinfo_stream;
+			ppid = ntohl(sndrcv->sinfo_ppid);
+			delivery_flags = sndrcv->sinfo_flags;
+			metadata_found = 1;
 #else /*  OLD_SCTP_SOCKET_API */
 			/* Also only interested in SCTP_RCVINFO message for the moment */
 			if (hdr->cmsg_type != SCTP_RCVINFO) {
@@ -1393,9 +1436,23 @@ again:
 			rcvinf = (struct sctp_rcvinfo *) CMSG_DATA(hdr);
 
 			*strid = rcvinf->rcv_sid;
+			ppid = ntohl(rcvinf->rcv_ppid);
+			delivery_flags = rcvinf->rcv_flags;
+			metadata_found = 1;
 #endif /*  OLD_SCTP_SOCKET_API */
 			
 			
+		}
+		/* RFC 6733 recommends PPID 47 but also permits the unspecified PPID 0. */
+		if (conn->cc_sctp_para.dtls &&
+		    (!metadata_found || (mhdr.msg_flags & MSG_CTRUNC) ||
+		     (ppid != 0 && ppid != FD_SCTP_SECURED_DIAMETER_PPID) ||
+		     (data[0] != 23 && (*strid || (delivery_flags & SCTP_UNORDERED))))) {
+			LOG_E("Invalid SCTP metadata for DTLS record from %s.", conn->cc_remid);
+			free(data);
+			*buf = NULL;
+			*len = 0;
+			return EPROTO;
 		}
 		TRACE_DEBUG(FULL, "Received %zdb data on socket %d, stream %hu", datasize, conn->cc_socket, *strid);
 	} else {
@@ -1403,4 +1460,9 @@ again:
 	}
 	
 	return 0;
+}
+
+int fd_sctp_recvmeta(struct cnxctx *conn, uint16_t *strid, uint8_t **buf, size_t *len, int *event)
+{
+	return fd_sctp_recvmeta_flags(conn, strid, buf, len, event, 0);
 }

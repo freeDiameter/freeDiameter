@@ -66,20 +66,46 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        tls: ["OFF", "ON"]
-        sctp: ["OFF", "ON"]
+        include:
+          - { tls: "OFF", sctp: "OFF", dtls: "OFF", auth: "default" }
+          - { tls: "OFF", sctp: "ON", dtls: "OFF", auth: "default" }
+          - { tls: "ON", sctp: "OFF", dtls: "OFF", auth: "default" }
+          - { tls: "ON", sctp: "ON", dtls: "OFF", auth: "default" }
+          - { tls: "OFF", sctp: "OFF", dtls: "ON", auth: "default" }
+          - { tls: "OFF", sctp: "ON", dtls: "ON", auth: "0" }
+          - { tls: "OFF", sctp: "ON", dtls: "ON", auth: "1" }
+          - { tls: "ON", sctp: "OFF", dtls: "ON", auth: "default" }
+          - { tls: "ON", sctp: "ON", dtls: "ON", auth: "0" }
+          - { tls: "ON", sctp: "ON", dtls: "ON", auth: "1" }
     steps:
       - uses: actions/checkout@v6
       - name: install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y bison flex gdb libsctp-dev libgnutls28-dev libgcrypt-dev libidn2-dev libjsoncpp-dev openssl python3-dev swig
+          sudo apt-get install -y bison curl flex gdb iproute2 libsctp-dev libgnutls28-dev libgcrypt-dev libidn2-dev libjsoncpp-dev openssl python3-dev swig util-linux
       - name: allow debugger to attach to test peers
         run: sudo sysctl -w kernel.yama.ptrace_scope=0
       - name: check SCTP support
         if: ${{ matrix.sctp == 'ON' }}
         run: |
           python3 -c 'import socket; socket.socket(socket.AF_INET, socket.SOCK_STREAM, socket.getprotobyname("sctp")).close()'
+      - name: configure SCTP authentication
+        if: ${{ matrix.dtls == 'ON' && matrix.sctp == 'ON' }}
+        run: |
+          sudo sysctl -w net.sctp.auth_enable=${{ matrix.auth }}
+          python3 -c 'import socket, struct; s = socket.socket(socket.AF_INET, socket.SOCK_STREAM, socket.IPPROTO_SCTP); assert struct.unpack("=iI", s.getsockopt(socket.IPPROTO_SCTP, 129, 8))[1] == ${{ matrix.auth }}, "Unexpected SCTP-AUTH capability"; s.close()'
+      - name: build SCTP-enabled OpenSSL for interoperability tests
+        if: ${{ matrix.dtls == 'ON' && matrix.sctp == 'ON' && matrix.tls == 'ON' && matrix.auth == '1' }}
+        run: |
+          mkdir -p test.openssl
+          cd test.openssl
+          curl -fsSLo openssl.tar.gz https://github.com/openssl/openssl/releases/download/openssl-3.0.18/openssl-3.0.18.tar.gz
+          echo 'd80c34f5cf902dccf1f1b5df5ebb86d0392e37049e5d73df1b3abae72e4ffe8b  openssl.tar.gz' | sha256sum -c
+          tar xf openssl.tar.gz
+          cd openssl-3.0.18
+          ./Configure enable-sctp no-shared
+          make -j2 build_sw > ../build.log 2>&1 || { cat ../build.log; exit 1; }
+          echo "FD_DTLS_SCTP_OPENSSL=$PWD/apps/openssl" >> "$GITHUB_ENV"
       - name: configure
         run: |
           cmake -S . -B test.build \
@@ -92,18 +118,68 @@ jobs:
             -DBUILD_APP_REDIRECT=ON \
             -DPython3_EXECUTABLE=/usr/bin/python3 \
             -DMULTI_PEER_USE_TLS=${{ matrix.tls }} \
-            -DMULTI_PEER_USE_SCTP=${{ matrix.sctp }}
+            -DMULTI_PEER_USE_SCTP=${{ matrix.sctp }} \
+            -DENABLE_DTLS_SCTP=${{ matrix.dtls }}
       - name: build
         run: cmake --build test.build --parallel 2
       - name: test
         env:
           FD_MULTI_PEER_DIAGNOSTICS: ${{ github.workspace }}/test.build/peer-diagnostics
-        run: ctest --test-dir test.build -L multi-peer --no-tests=error --output-on-failure
+        run: ctest --test-dir test.build -L multi-peer --no-tests=error --output-on-failure --output-junit "${{ github.workspace }}/test.build/multi-peer-results.xml"
+      - name: test peer configuration
+        run: test.build/tests/testpeers
+      - name: test DTLS connections
+        if: ${{ matrix.dtls == 'ON' && matrix.sctp == 'ON' }}
+        run: ctest --test-dir test.build -R '^testcnx(_dtls)?$' --no-tests=error --output-on-failure --output-junit "${{ github.workspace }}/test.build/connection-results.xml"
+      - name: verify SCTP-AUTH test results
+        if: ${{ matrix.dtls == 'ON' && matrix.sctp == 'ON' }}
+        env:
+          SCTP_AUTH: ${{ matrix.auth }}
+          MULTI_PEER_TLS: ${{ matrix.tls }}
+        run: |
+          python3 - <<'PY'
+          import os
+          import xml.etree.ElementTree as ET
+
+          def check(path, expected):
+              cases = {case.get("name"): case for case in ET.parse(path).iter("testcase")}
+              for name, skipped in expected.items():
+                  case = cases.get(name)
+                  if case is None or (case.find("skipped") is not None) != skipped:
+                      raise SystemExit("Unexpected result for %s in %s" % (name, path))
+                  if case.find("failure") is not None or case.find("error") is not None:
+                      raise SystemExit("%s failed in %s" % (name, path))
+
+          no_auth = os.environ["SCTP_AUTH"] == "0"
+          check("test.build/connection-results.xml", {"testcnx": False, "testcnx_dtls": no_auth})
+          multi_peer = {"test_sctp_security_config": False, "test_multi_peer_harness": False}
+          if os.environ["MULTI_PEER_TLS"] == "ON":
+              multi_peer.update({"test_two_peer_no_tls_with_legacy_selection": False,
+                                 "test_sctp_auth_tls": no_auth, "test_multi_peer_mixed_sctp": no_auth,
+                                 "test_sctp_outgoing_fallback": False,
+                                 "test_sctp_outgoing_strict_dtls": no_auth,
+                                 "test_sctp_outgoing_strict_local_auth": not no_auth,
+                                 "test_sctp_outgoing_no_data_auth": no_auth,
+                                 "test_sctp_outgoing_handshake_failure": no_auth,
+                                 "test_sctp_dtls_wrong_ppid": no_auth,
+                                 "test_sctp_openssl_client": no_auth,
+                                 "test_sctp_openssl_server": no_auth})
+              if no_auth:
+                  multi_peer["test_sctp_netem"] = True
+                  multi_peer["test_sctp_shutdown_pending_client"] = True
+                  multi_peer["test_sctp_shutdown_pending_simultaneous"] = True
+                  for mode in ("handshake_client", "handshake_server", "handshake_timeout",
+                               "shutdown", "shutdown_timeout"):
+                      multi_peer["test_sctp_ack_" + mode] = True
+          else:
+              multi_peer["test_two_peer_test_app"] = False
+          check("test.build/multi-peer-results.xml", multi_peer)
+          PY
       - name: upload peer shutdown diagnostics
         if: ${{ always() }}
         uses: actions/upload-artifact@v6
         with:
-          name: peer-diagnostics-tls-${{ matrix.tls }}-sctp-${{ matrix.sctp }}
+          name: peer-diagnostics-tls-${{ matrix.tls }}-sctp-${{ matrix.sctp }}-dtls-${{ matrix.dtls }}-auth-${{ matrix.auth }}
           path: test.build/peer-diagnostics/
           if-no-files-found: ignore
 

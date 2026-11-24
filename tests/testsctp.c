@@ -92,13 +92,13 @@ int main(int argc, char *argv[])
 	fd_g_config->cnf_sctp_str = NB_STREAMS;
 	
 	/* Create the server socket */
-	CHECK( 0, fd_sctp_create_bind_server( &sock, AF_INET6, &eps, TEST_PORT ));
+	CHECK( 0, fd_sctp_create_bind_server( &sock, AF_INET6, &eps, TEST_PORT, 0 ));
 	
 	/* Accept incoming clients */
 	CHECK( 0, fd_sctp_listen( sock ));
 	
 	/* Now, create the client socket */
-	CHECK( 0, fd_sctp_client( &cli.cc_socket, 0, TEST_PORT, &eps, NULL ));
+	CHECK( 0, fd_sctp_client( &cli.cc_socket, 0, TEST_PORT, &eps, NULL, 0, 0 ));
 	
 	/* Accept this connection */
 	srv.cc_socket = accept(sock, NULL, NULL);

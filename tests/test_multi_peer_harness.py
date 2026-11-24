@@ -1,16 +1,49 @@
 import contextlib
+import errno
 import io
+import struct
 import subprocess
 import tempfile
 import unittest
 from pathlib import Path
 from unittest import mock
 
-from multi_peer_harness import Peers, create_tls_credentials
+from multi_peer_harness import Peers, create_tls_credentials, require_sctp_auth, run_scenario
 from multi_peer_test_app import exchange
 
 
 class HarnessTest(unittest.TestCase):
+    def test_sctp_auth_probe(self):
+        with mock.patch("multi_peer_harness.socket.socket") as socket_factory:
+            sock = socket_factory.return_value
+            sock.getsockopt.return_value = struct.pack("=iI", 0, 1)
+            require_sctp_auth()
+            sock.getsockopt.return_value = struct.pack("=iI", 0, 0)
+            with contextlib.redirect_stderr(io.StringIO()), self.assertRaises(SystemExit) as skipped:
+                require_sctp_auth()
+            self.assertEqual(skipped.exception.code, 77)
+            sock.getsockopt.side_effect = OSError(errno.ENOPROTOOPT, "not supported")
+            with contextlib.redirect_stderr(io.StringIO()), self.assertRaises(SystemExit) as skipped:
+                require_sctp_auth()
+            self.assertEqual(skipped.exception.code, 77)
+            sock.getsockopt.side_effect = OSError(errno.EBADF, "bad descriptor")
+            with self.assertRaises(OSError):
+                require_sctp_auth()
+            socket_factory.side_effect = OSError(errno.EPROTONOSUPPORT, "not supported")
+            with contextlib.redirect_stderr(io.StringIO()), self.assertRaises(SystemExit) as skipped:
+                require_sctp_auth()
+            self.assertEqual(skipped.exception.code, 77)
+
+    def test_auth_probe_only_when_required(self):
+        environment = {"FD_MULTI_PEER_TLS": "1", "FD_MULTI_PEER_SCTP": "1",
+                       "FD_MULTI_PEER_DTLS": "1"}
+        with mock.patch.dict("os.environ", environment), \
+                mock.patch("multi_peer_harness.require_sctp_auth",
+                           side_effect=SystemExit(77)) as probe:
+            with self.assertRaises(SystemExit):
+                run_scenario("/daemon", lambda peers: None, 1, [])
+            probe.assert_called_once()
+
     def test_multiple_extensions_and_peer_configuration(self):
         with tempfile.TemporaryDirectory() as temporary, \
                 mock.patch("multi_peer_harness.subprocess.Popen") as popen:
@@ -142,6 +175,26 @@ class HarnessTest(unittest.TestCase):
             logs[0] = logs[0].replace("SCTP", "SCTP,TLS")
             logs[2] = logs[2].replace("SCTP", "TCP")
             with self.assertRaisesRegex(RuntimeError, "SCTP,TLS"):
+                peers.wait_transport()
+
+    def test_dtls_transport_check_rejects_legacy_tls(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            peers = Peers("/daemon", Path(temporary), 2, [(0, 1)], dtls=True)
+            peers.tls, peers.sctp = True, True
+            logs = [
+                "Connected to 'peer2.localdomain' (SCTP,DTLS,soc#1)",
+                "CONNECTED TO 'peer1.localdomain' (SCTP,DTLS,soc#2)",
+            ]
+            peers.text = lambda index: logs[index]
+
+            def wait(condition, description):
+                if not condition():
+                    raise RuntimeError(description)
+
+            peers.wait = wait
+            peers.wait_transport()
+            logs[1] = logs[1].replace(",DTLS", ",TLS")
+            with self.assertRaisesRegex(RuntimeError, "SCTP,DTLS"):
                 peers.wait_transport()
 
     def test_all_open_checks_each_side_of_each_link(self):

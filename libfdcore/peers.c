@@ -499,7 +499,8 @@ DECLARE_FD_DUMP_PROTOTYPE(fd_peer_dump, struct peer_hdr * p, int details)
 				peer->p_hdr.info.config.pic_flags.alg ? "P" : "-",
 				peer->p_hdr.info.config.pic_flags.sec & PI_SEC_NONE ? "N" :"-",
 				peer->p_hdr.info.config.pic_flags.sec & PI_SEC_TLS_OLD ? "O" :"-",
-				peer->p_hdr.info.config.pic_flags.sctpsec & PI_SCTPSEC_3436 ? "3" :"-",
+				peer->p_hdr.info.config.pic_flags.sctpsec == PI_SCTPSEC_3436 ? "3" :
+					(peer->p_hdr.info.config.pic_flags.sctpsec == PI_SCTPSEC_DTLS ? "D" : "-"),
 				peer->p_hdr.info.config.pic_flags.exp ? "E" : "-",
 				peer->p_hdr.info.config.pic_flags.persist ? "P" : "-",
 				peer->p_hdr.info.config.pic_lft), return NULL);

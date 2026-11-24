@@ -50,6 +50,8 @@ struct next_conn {
 	};
 	uint16_t	port;	/* The port, for SCTP (included in ss for TCP) */
 	int		dotls;	/* Handshake TLS after connection ? */
+	int		dtls;	/* Request SCTP-AUTH before connecting */
+	int		allow_tls_fallback;
 };
 
 static __inline__ void failed_connection_attempt(struct fd_peer * peer)
@@ -204,6 +206,10 @@ static int prepare_connection_list(struct fd_peer * peer)
 		new->proto = IPPROTO_SCTP;
 		new->port  = ntohs(port_no); /* back to host byte order... */
 		new->dotls = dotls_immediate;
+#ifdef ENABLE_DTLS_SCTP
+		new->dtls = dotls_immediate && (peer->p_hdr.info.config.pic_flags.sctpsec != PI_SCTPSEC_3436);
+		new->allow_tls_fallback = peer->p_hdr.info.config.pic_flags.sctpsec == PI_SCTPSEC_DEF;
+#endif
 
 		/* Add the new entry to the appropriate position (depending on preferences) */
 		if ((fd_g_config->cnf_flags.pr_tcp) || (peer->p_hdr.info.config.pic_flags.alg == PI_ALGPREF_TCP)) {
@@ -268,7 +274,7 @@ static void * connect_thr(void * arg)
 			case IPPROTO_SCTP:
 				cnx = fd_cnx_cli_connect_sctp((peer->p_hdr.info.config.pic_flags.pro3 == PI_P3_IP) ? 1 : fd_g_config->cnf_flags.no_ip6, 
 							nc->port, &peer->p_hdr.info.pi_endpoints,
-							fd_g_config->cnf_flags.no_bind ? NULL : &fd_g_config->cnf_endpoints);
+							fd_g_config->cnf_flags.no_bind ? NULL : &fd_g_config->cnf_endpoints, nc->dtls, nc->allow_tls_fallback);
 				break;
 #endif /* DISABLE_SCTP */
 		}
@@ -292,9 +298,19 @@ static void * connect_thr(void * arg)
 	
 	/* Handshake if needed (secure port) */
 	if (nc->dotls) {
-		CHECK_FCT_DO( fd_cnx_handshake(cnx, GNUTLS_CLIENT, 
-						ALGO_HANDSHAKE_3436,
-						peer->p_hdr.info.config.pic_priority, NULL),
+		int algo = ALGO_HANDSHAKE_3436;
+		int ret;
+		if (nc->dtls)
+			algo = ALGO_HANDSHAKE_DEFAULT;
+#ifdef ENABLE_DTLS_SCTP
+		if (nc->dtls)
+			ret = fd_cnx_handshake_sctp_client(cnx, nc->allow_tls_fallback,
+							   peer->p_hdr.info.config.pic_priority);
+		else
+#endif
+			ret = fd_cnx_handshake(cnx, GNUTLS_CLIENT, algo,
+					       peer->p_hdr.info.config.pic_priority, NULL);
+		CHECK_FCT_DO( ret,
 			{
 				/* Handshake failed ...  */
 				fd_hook_call(HOOK_PEER_CONNECT_FAILED, NULL, peer, "TLS Handshake failed", NULL);

@@ -35,6 +35,13 @@
 
 #include "fdcore-internal.h"
 #include "cnxctx.h"
+#ifdef ENABLE_DTLS_SCTP
+#include <gnutls/dtls.h>
+#include <netinet/sctp.h>
+#ifndef GNUTLS_DEFAULT_PRIORITY
+#define GNUTLS_DEFAULT_PRIORITY "NORMAL"
+#endif
+#endif
 
 #include <net/if.h>
 #include <ifaddrs.h> /* for getifaddrs */
@@ -154,7 +161,7 @@ error:
 }
 
 /* Same function for SCTP, with a list of local endpoints to bind to */
-struct cnxctx * fd_cnx_serv_sctp(uint16_t port, struct fd_list * ep_list)
+struct cnxctx * fd_cnx_serv_sctp(uint16_t port, struct fd_list * ep_list, int dtls)
 {
 #ifdef DISABLE_SCTP
 	TRACE_DEBUG(INFO, "This function should never been called when SCTP is disabled...");
@@ -178,7 +185,8 @@ struct cnxctx * fd_cnx_serv_sctp(uint16_t port, struct fd_list * ep_list)
 	}
 
 	/* Create the socket */
-	CHECK_FCT_DO( fd_sctp_create_bind_server( &cnx->cc_socket, cnx->cc_family, ep_list, port ), goto error );
+	CHECK_FCT_DO( fd_sctp_create_bind_server( &cnx->cc_socket, cnx->cc_family, ep_list, port, dtls ), goto error );
+	cnx->cc_sctp_para.dtls = dtls;
 
 	/* Generate the name for the connection object */
 	snprintf(cnx->cc_id, sizeof(cnx->cc_id), CC_ID_HDR "SCTP srv :%hu (%d)", port, cnx->cc_socket);
@@ -241,6 +249,7 @@ struct cnxctx * fd_cnx_serv_accept(struct cnxctx * serv)
 	cli->cc_socket = cli_sock;
 	cli->cc_family = serv->cc_family;
 	cli->cc_proto = serv->cc_proto;
+	cli->cc_sctp_para.dtls = serv->cc_sctp_para.dtls;
 
 	/* Set the timeout */
 	fd_cnx_s_setto(cli->cc_socket);
@@ -339,7 +348,7 @@ struct cnxctx * fd_cnx_cli_connect_tcp(sSA * sa /* contains the port already */,
 
 /* Same for SCTP, accepts a list of remote addresses to connect to (see sctp_connectx for how they are used).
  * If src_list is not NULL and not empty, list of local addresses to connect from via sctp_bindx(). */
-struct cnxctx * fd_cnx_cli_connect_sctp(int no_ip6, uint16_t port, struct fd_list * list, struct fd_list * src_list)
+struct cnxctx * fd_cnx_cli_connect_sctp(int no_ip6, uint16_t port, struct fd_list * list, struct fd_list * src_list, int dtls, int allow_tls_fallback)
 {
 #ifdef DISABLE_SCTP
 	TRACE_DEBUG(INFO, "This function should never be called when SCTP is disabled...");
@@ -377,7 +386,7 @@ struct cnxctx * fd_cnx_cli_connect_sctp(int no_ip6, uint16_t port, struct fd_lis
 	LOG_D("Connecting to SCTP %s:%hu...", sa_buf, port);
 
 	{
-		int ret = fd_sctp_client( &sock, no_ip6, port, list, src_list );
+		int ret = fd_sctp_client( &sock, no_ip6, port, list, src_list, dtls, allow_tls_fallback );
 		if (ret != 0) {
 			LOG_D("SCTP connection to [%s,...] failed: %s", sa_buf, strerror(ret));
 			return NULL;
@@ -390,6 +399,7 @@ struct cnxctx * fd_cnx_cli_connect_sctp(int no_ip6, uint16_t port, struct fd_lis
 	cnx->cc_socket = sock;
 	cnx->cc_family = no_ip6 ? AF_INET : AF_INET6;
 	cnx->cc_proto  = IPPROTO_SCTP;
+	cnx->cc_sctp_para.dtls = dtls;
 
 	/* Set the timeout */
 	fd_cnx_s_setto(cnx->cc_socket);
@@ -1156,28 +1166,115 @@ static void * rcvthr_tls_single(void * arg)
 	return NULL;
 }
 
+#ifdef ENABLE_DTLS_SCTP
+static void *rcvthr_dtls(void *arg)
+{
+	struct cnxctx *conn = arg;
+	uint8_t data[16384];
+	ssize_t ret;
+
+	fd_log_threadname("Receiver DTLS/SCTP");
+	for (;;) {
+		struct fd_cnx_rcvdata received;
+		struct fd_msg_pmdl *pmdl;
+		size_t length;
+
+		ret = gnutls_record_recv(conn->cc_tls_para.session, data, sizeof(data));
+		if (ret == GNUTLS_E_AGAIN || ret == GNUTLS_E_INTERRUPTED) {
+			if (fd_cnx_teststate(conn, CC_STATUS_ERROR))
+				break;
+			continue;
+		}
+		if (ret == GNUTLS_E_REHANDSHAKE) {
+			LOG_E("DTLS/SCTP renegotiation is not supported on %s.", conn->cc_id);
+			break;
+		}
+		if (ret <= 0) {
+			if (!ret)
+				fd_cnx_addstate(conn, CC_STATUS_EOF);
+			else
+				LOG_E("DTLS/SCTP receive failed on %s: %s", conn->cc_id, gnutls_strerror(ret));
+			break;
+		}
+		length = ret >= 4 ? ((size_t)data[1] << 16) | ((size_t)data[2] << 8) | data[3] : 0;
+		if (ret < 20 || data[0] != DIAMETER_VERSION || length != (size_t)ret || length % 4) {
+			LOG_E("Invalid Diameter message in DTLS/SCTP record from %s.", conn->cc_remid);
+			break;
+		}
+		received.length = length;
+		received.buffer = fd_cnx_alloc_msg_buffer(length, &pmdl);
+		if (!received.buffer) {
+			LOG_E("Allocating DTLS/SCTP Diameter message failed.");
+			break;
+		}
+		memcpy(received.buffer, data, length);
+		fd_hook_call(HOOK_DATA_RECEIVED, NULL, NULL, &received, pmdl);
+		CHECK_FCT_DO(fd_event_send(fd_cnx_target_queue(conn), FDEVP_CNX_MSG_RECV,
+					  length, received.buffer), {
+			free_rcvdata(&received);
+			break;
+		});
+	}
+	fd_cnx_markerror(conn);
+	return NULL;
+}
+#endif
+
 /* Prepare a gnutls session object for handshake */
 int fd_tls_prepare(gnutls_session_t * session, int mode, int dtls, char * priority, void * alt_creds)
 {
+	int flags = mode;
 	if (dtls) {
+#ifdef ENABLE_DTLS_SCTP
+		flags |= GNUTLS_DATAGRAM | GNUTLS_NO_REPLAY_PROTECTION;
+#else
 		LOG_E("DTLS sessions not yet supported");
 		return ENOTSUP;
+#endif
 	}
 
 	/* Create the session context */
-	CHECK_GNUTLS_DO( gnutls_init (session, mode), return ENOMEM );
+	CHECK_GNUTLS_DO( gnutls_init (session, flags), return ENOMEM );
 
 	/* Set the algorithm suite */
+#ifdef ENABLE_DTLS_SCTP
+	if (dtls) {
+		const char *base = priority ?: fd_g_config->cnf_sec_data.prio_string ?: GNUTLS_DEFAULT_PRIORITY;
+		const char *suffix = ":-VERS-DTLS1.0:-VERS-DTLS0.9";
+		char *effective = malloc(strlen(base) + strlen(suffix) + 1);
+		int ret;
+		if (!effective) {
+			gnutls_deinit(*session);
+			*session = NULL;
+			LOG_E("Allocating DTLS/SCTP priority string failed.");
+			return ENOMEM;
+		}
+		sprintf(effective, "%s%s", base, suffix);
+		ret = gnutls_priority_set_direct(*session, effective, NULL);
+		free(effective);
+		if (ret < 0) {
+			LOG_E("Invalid DTLS/SCTP priorities: %s", gnutls_strerror(ret));
+			gnutls_deinit(*session);
+			*session = NULL;
+			return EINVAL;
+		}
+		gnutls_dtls_set_mtu(*session, 16384);
+		gnutls_dtls_set_timeouts(*session, 31000, 30000);
+	} else
+#endif
 	if (priority) {
 		const char * errorpos;
 		CHECK_GNUTLS_DO( gnutls_priority_set_direct( *session, priority, &errorpos ),
-			{ TRACE_DEBUG(INFO, "Error in priority string '%s' at position: '%s'", priority, errorpos); return EINVAL; } );
+			{ TRACE_DEBUG(INFO, "Error in priority string '%s' at position: '%s'", priority, errorpos);
+			  gnutls_deinit(*session); *session = NULL; return EINVAL; } );
 	} else {
-		CHECK_GNUTLS_DO( gnutls_priority_set( *session, fd_g_config->cnf_sec_data.prio_cache ), return EINVAL );
+		CHECK_GNUTLS_DO( gnutls_priority_set( *session, fd_g_config->cnf_sec_data.prio_cache ),
+			{ gnutls_deinit(*session); *session = NULL; return EINVAL; } );
 	}
 
 	/* Set the credentials of this side of the connection */
-	CHECK_GNUTLS_DO( gnutls_credentials_set (*session, GNUTLS_CRD_CERTIFICATE, alt_creds ?: fd_g_config->cnf_sec_data.credentials), return EINVAL );
+	CHECK_GNUTLS_DO( gnutls_credentials_set (*session, GNUTLS_CRD_CERTIFICATE, alt_creds ?: fd_g_config->cnf_sec_data.credentials),
+		{ gnutls_deinit(*session); *session = NULL; return EINVAL; } );
 
 	/* Request the remote credentials as well */
 	if (mode == GNUTLS_SERVER) {
@@ -1429,6 +1526,126 @@ static int fd_cnx_uses_dtls(struct cnxctx * conn) {
 }
 #endif /* DISABLE_SCTP */
 
+#ifdef ENABLE_DTLS_SCTP
+int fd_cnx_handshake_sctp_client(struct cnxctx *conn, int allow_tls_fallback, char *priority)
+{
+	int supported;
+	int algo = ALGO_HANDSHAKE_DEFAULT;
+
+	CHECK_PARAMS(conn && conn->cc_proto == IPPROTO_SCTP && conn->cc_sctp_para.dtls);
+	CHECK_FCT(fd_sctp_auth_supported(conn->cc_socket, &supported));
+	if (!supported) {
+		if (!allow_tls_fallback) {
+			LOG_E("DTLS/SCTP requires SCTP-AUTH on the association to %s.",
+			      conn->cc_tls_para.cn ?: conn->cc_remid);
+			return ENOTSUP;
+		}
+		LOG_N("WARNING: SCTP-AUTH unavailable for %s; falling back to TLS/SCTP.",
+		      conn->cc_tls_para.cn ?: conn->cc_remid);
+		conn->cc_sctp_para.dtls = 0;
+		algo = ALGO_HANDSHAKE_3436;
+	}
+	return fd_cnx_handshake(conn, GNUTLS_CLIENT, algo, priority, NULL);
+}
+
+int fd_cnx_handshake_sctp_auto(struct cnxctx *conn)
+{
+	struct timespec start, now, pause = { 0, 10000000 };
+	struct sctp_assoc_value auth;
+	socklen_t auth_len = sizeof(auth);
+	uint8_t header[3];
+	int algo = ALGO_HANDSHAKE_3436;
+	int endpoints_changed = 0;
+
+	CHECK_PARAMS(conn && conn->cc_proto == IPPROTO_SCTP && conn->cc_sctp_para.dtls);
+	memset(&auth, 0, sizeof(auth));
+	CHECK_SYS(getsockopt(conn->cc_socket, IPPROTO_SCTP, SCTP_AUTH_SUPPORTED, &auth, &auth_len));
+	if (auth_len != sizeof(auth)) {
+		LOG_E("Invalid SCTP-AUTH status from %s.", conn->cc_remid);
+		return EPROTO;
+	}
+	LOG_D("Incoming SCTP association from %s %s SCTP-AUTH.", conn->cc_remid,
+	      auth.assoc_value ? "supports" : "does not support");
+	if (!auth.assoc_value) {
+		conn->cc_sctp_para.dtls = 0;
+		return fd_cnx_handshake(conn, GNUTLS_SERVER, algo, NULL, NULL);
+	}
+	CHECK_SYS(clock_gettime(CLOCK_MONOTONIC, &start));
+	for (;;) {
+		struct msghdr msg;
+		struct iovec iov;
+		ssize_t ret;
+
+		memset(&msg, 0, sizeof(msg));
+		iov.iov_base = header;
+		iov.iov_len = sizeof(header);
+		msg.msg_iov = &iov;
+		msg.msg_iovlen = 1;
+		ret = recvmsg(conn->cc_socket, &msg, MSG_PEEK);
+		if (ret < 0 && (errno == EAGAIN || errno == EINTR)) {
+			pthread_testcancel();
+		} else if (ret <= 0) {
+			LOG_E("Cannot inspect SCTP handshake from %s: %s.",
+			      conn->cc_remid, ret ? strerror(errno) : "connection closed");
+			return ret ? errno : ECONNRESET;
+		} else if (msg.msg_flags & MSG_NOTIFICATION) {
+			union {
+				union sctp_notification notification;
+				uint8_t bytes[4096];
+			} buffer;
+			struct msghdr received;
+			struct iovec niov;
+			union sctp_notification *sn = &buffer.notification;
+
+			memset(&received, 0, sizeof(received));
+			niov.iov_base = buffer.bytes;
+			niov.iov_len = sizeof(buffer.bytes);
+			received.msg_iov = &niov;
+			received.msg_iovlen = 1;
+			ret = recvmsg(conn->cc_socket, &received, 0);
+			if (ret < (ssize_t)sizeof(sn->sn_header) || sn->sn_header.sn_length != ret ||
+			    !(received.msg_flags & MSG_EOR) || !(received.msg_flags & MSG_NOTIFICATION)) {
+				LOG_E("Invalid SCTP notification while inspecting handshake from %s.", conn->cc_remid);
+				return EPROTO;
+			}
+			if (sn->sn_header.sn_type == SCTP_PEER_ADDR_CHANGE ||
+			    sn->sn_header.sn_type == SCTP_ASSOC_CHANGE) {
+				endpoints_changed = 1;
+			} else if (sn->sn_header.sn_type == SCTP_SHUTDOWN_EVENT ||
+				   sn->sn_header.sn_type == SCTP_REMOTE_ERROR
+#ifdef SCTP_SEND_FAILED_EVENT
+				   || sn->sn_header.sn_type == SCTP_SEND_FAILED_EVENT
+#endif
+				   ) {
+				LOG_E("SCTP association failed while inspecting handshake from %s.", conn->cc_remid);
+				return ECONNRESET;
+			}
+		} else if (ret >= (ssize_t)sizeof(header)) {
+			if (header[0] == 22 && header[1] == 0xfe)
+				algo = ALGO_HANDSHAKE_DEFAULT;
+			break;
+		} else if (msg.msg_flags & MSG_EOR) {
+			/* A DTLS record cannot span SCTP user messages; TLS may. */
+			break;
+		} else {
+			CHECK_SYS(nanosleep(&pause, NULL));
+		}
+		CHECK_SYS(clock_gettime(CLOCK_MONOTONIC, &now));
+		if (now.tv_sec - start.tv_sec >= CNX_TIMEOUT) {
+			LOG_E("Timed out inspecting SCTP handshake from %s.", conn->cc_remid);
+			return ETIMEDOUT;
+		}
+	}
+
+	if (algo == ALGO_HANDSHAKE_3436)
+		conn->cc_sctp_para.dtls = 0;
+	CHECK_FCT(fd_cnx_handshake(conn, GNUTLS_SERVER, algo, NULL, NULL));
+	if (endpoints_changed)
+		CHECK_FCT(fd_event_send(fd_cnx_target_queue(conn), FDEVP_CNX_EP_CHANGE, 0, NULL));
+	return 0;
+}
+#endif
+
 /* TLS handshake a connection; no need to have called start_clear before. Reception is active if handshake is successful */
 int fd_cnx_handshake(struct cnxctx * conn, int mode, int algo, char * priority, void * alt_creds)
 {
@@ -1451,6 +1668,8 @@ int fd_cnx_handshake(struct cnxctx * conn, int mode, int algo, char * priority, 
 
 	/* Prepare the master session credentials and priority */
 	CHECK_FCT( fd_tls_prepare(&conn->cc_tls_para.session, mode, dtls, priority, alt_creds) );
+	if (dtls)
+		fd_cnx_addstate(conn, CC_STATUS_TLS);
 
 	/* Special case: multi-stream TLS is not natively managed in GNU TLS, we use a wrapper library */
 	if ((!dtls) && (conn->cc_sctp_para.pairs > 1)) {
@@ -1471,8 +1690,12 @@ int fd_cnx_handshake(struct cnxctx * conn, int mode, int algo, char * priority, 
 			GNUTLS_TRACE( gnutls_transport_set_pull_function(conn->cc_tls_para.session, (void *)fd_cnx_s_recv) );
 			GNUTLS_TRACE( gnutls_transport_set_vec_push_function(conn->cc_tls_para.session, (void *)fd_cnx_s_sendv) );
 		} else {
+#ifdef ENABLE_DTLS_SCTP
+			CHECK_FCT(fd_sctp_dtls_prepare(conn));
+#else
 			TODO("DTLS push/pull functions");
 			return ENOTSUP;
+#endif
 		}
 	}
 
@@ -1488,7 +1711,8 @@ int fd_cnx_handshake(struct cnxctx * conn, int mode, int algo, char * priority, 
 	}
 
 
-	GNUTLS_TRACE( gnutls_handshake_set_timeout( conn->cc_tls_para.session, GNUTLS_DEFAULT_HANDSHAKE_TIMEOUT));
+	GNUTLS_TRACE( gnutls_handshake_set_timeout( conn->cc_tls_para.session,
+						  dtls ? 30000 : GNUTLS_DEFAULT_HANDSHAKE_TIMEOUT));
 
 	/* Mark the connection as protected from here, so that the gnutls credentials will be freed */
 	fd_cnx_addstate(conn, CC_STATUS_TLS);
@@ -1497,7 +1721,14 @@ int fd_cnx_handshake(struct cnxctx * conn, int mode, int algo, char * priority, 
 	{
 		int ret;
 
-		CHECK_GNUTLS_DO( ret = gnutls_handshake(conn->cc_tls_para.session),
+		do {
+			ret = gnutls_handshake(conn->cc_tls_para.session);
+			if (dtls && fd_cnx_teststate(conn, CC_STATUS_ERROR)) {
+				ret = GNUTLS_E_PULL_ERROR;
+				break;
+			}
+		} while (dtls && (ret == GNUTLS_E_AGAIN || ret == GNUTLS_E_INTERRUPTED));
+		CHECK_GNUTLS_DO( ret,
 			{
 				if (TRACE_BOOL(INFO)) {
 					fd_log_debug("TLS Handshake failed on socket %d (%s) : %s", conn->cc_socket, conn->cc_id, gnutls_strerror(ret));
@@ -1525,9 +1756,20 @@ int fd_cnx_handshake(struct cnxctx * conn, int mode, int algo, char * priority, 
 		if (!dtls) {
 			CHECK_POSIX( pthread_create( &conn->cc_rcvthr, NULL, rcvthr_tls_single, conn ) );
 		} else {
+#ifdef ENABLE_DTLS_SCTP
+			if (gnutls_protocol_get_version(conn->cc_tls_para.session) != GNUTLS_DTLS1_2) {
+				LOG_E("DTLS/SCTP requires DTLS 1.2.");
+				fd_cnx_markerror(conn);
+				return EINVAL;
+			}
+			CHECK_FCT(fd_sctp_dtls_handshake_done(conn));
+			fd_cnx_addstate(conn, CC_STATUS_DTLS_ESTABLISHED);
+			CHECK_POSIX(pthread_create(&conn->cc_rcvthr, NULL, rcvthr_dtls, conn));
+#else
 			TODO("Signal the dtls_push function that multiple streams can be used from this point.");
 			TODO("Create DTLS rcvthr (must reassembly based on seq numbers & stream id ?)");
 			return ENOTSUP;
+#endif
 		}
 	}
 
@@ -1706,8 +1948,11 @@ int fd_cnx_send(struct cnxctx * conn, unsigned char * buf, size_t len)
 				}
 			} else {
 				/* DTLS */
-				/* Multistream is handled at lower layer in the push/pull function */
-				CHECK_FCT( send_simple(conn, buf, len) );
+#ifdef ENABLE_DTLS_SCTP
+				CHECK_FCT(fd_sctp_dtls_send(conn, buf, len));
+#else
+				CHECK_FCT(ENOTSUP);
+#endif
 			}
 		}
 		break;
@@ -1743,6 +1988,21 @@ void fd_cnx_destroy(struct cnxctx * conn)
 		int bye_ok = (! fd_cnx_teststate(conn, CC_STATUS_ERROR )) || fd_cnx_teststate(conn, CC_STATUS_EOF);
 #ifndef DISABLE_SCTP
 		int dtls = fd_cnx_uses_dtls(conn);
+#ifdef ENABLE_DTLS_SCTP
+		if (dtls) {
+			if (bye_ok && fd_cnx_teststate(conn, CC_STATUS_DTLS_ESTABLISHED))
+				CHECK_FCT_DO(fd_sctp_dtls_bye(conn), fd_cnx_markerror(conn));
+			if (fd_cnx_teststate(conn, CC_STATUS_ERROR) && !fd_cnx_teststate(conn, CC_STATUS_EOF))
+				CHECK_SYS_DO(shutdown(conn->cc_socket, SHUT_RD), );
+			if (conn->cc_rcvthr != (pthread_t)NULL) {
+				CHECK_POSIX_DO(pthread_join(conn->cc_rcvthr, NULL), );
+				conn->cc_rcvthr = (pthread_t)NULL;
+			}
+			gnutls_deinit(conn->cc_tls_para.session);
+			conn->cc_tls_para.session = NULL;
+			fd_sctp_dtls_destroy(conn);
+		} else
+#endif
 		if ((!dtls) && (conn->cc_sctp_para.pairs > 1)) {
 			if (bye_ok) {
 				/* Bye on master session */

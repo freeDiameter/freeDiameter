@@ -57,6 +57,8 @@ struct cnxctx {
 	#define 	CC_STATUS_SIGNALED	4
 	#define 	CC_STATUS_TLS		8
 	#define 	CC_STATUS_EOF		16	/* The remote peer sent a TLS close_notify: we still owe it ours (sent by fd_cnx_destroy only) */
+	#define 	CC_STATUS_DTLS_BYE	32
+	#define 	CC_STATUS_DTLS_ESTABLISHED 64
 
 	pthread_t	cc_rcvthr;	/* thread for receiving messages on the connection */
 	int		cc_loop;	/* tell the thread if it loops or stops after the first message is received */
@@ -79,6 +81,7 @@ struct cnxctx {
 		uint16_t pairs;		/* max number of pairs ( = min(in, out)) */
 		uint16_t next;		/* # of stream the next message will be sent to */
 		int	 unordered;	/* boolean telling if use of streams > 0 is permitted */
+		int	 dtls;		/* SCTP-AUTH was requested before association establishment */
 	} 		cc_sctp_para;
 
 	/* If both conditions */
@@ -86,6 +89,10 @@ struct cnxctx {
 		struct sctp3436_ctx *array; /* an array of cc_sctp_para.pairs elements -- the #0 is special (session is outside)*/
 		struct sr_store	 *sess_store; /* Session data of the master session, to resume the children sessions */
 	} 		cc_sctp3436_data;
+
+#ifdef ENABLE_DTLS_SCTP
+	struct sctp_dtls_ctx *cc_sctp_dtls;
+#endif
 };
 
 void fd_cnx_markerror(struct cnxctx * conn);
@@ -113,14 +120,26 @@ int fd_tcp_get_remote_ep(int sock, sSS * ss, socklen_t *sl);
 
 #ifndef DISABLE_SCTP
 /* SCTP */
-int fd_sctp_create_bind_server( int * sock, int family, struct fd_list * list, uint16_t port );
+int fd_sctp_create_bind_server( int * sock, int family, struct fd_list * list, uint16_t port, int dtls );
 int fd_sctp_listen( int sock );
-int fd_sctp_client( int *sock, int no_ip6, uint16_t port, struct fd_list * list, struct fd_list * src_list );
+int fd_sctp_client( int *sock, int no_ip6, uint16_t port, struct fd_list * list, struct fd_list * src_list, int dtls, int allow_tls_fallback );
 int fd_sctp_get_local_ep(int sock,  struct fd_list * list);
 int fd_sctp_get_remote_ep(int sock, struct fd_list * list);
 int fd_sctp_get_str_info( int sock, uint16_t *in, uint16_t *out, sSS *primary );
 ssize_t fd_sctp_sendstrv(struct cnxctx * conn, uint16_t strid, const struct iovec *iov, int iovcnt);
 int fd_sctp_recvmeta(struct cnxctx * conn, uint16_t * strid, uint8_t ** buf, size_t * len, int *event);
+int fd_sctp_recvmeta_flags(struct cnxctx *conn, uint16_t *strid, uint8_t **buf,
+			  size_t *len, int *event, int flags);
+
+#ifdef ENABLE_DTLS_SCTP
+int fd_sctp_auth_supported(int sock, int *supported);
+int fd_sctp_dtls_init_socket(int sock);
+int fd_sctp_dtls_prepare(struct cnxctx *conn);
+int fd_sctp_dtls_handshake_done(struct cnxctx *conn);
+int fd_sctp_dtls_send(struct cnxctx *conn, const void *data, size_t length);
+int fd_sctp_dtls_bye(struct cnxctx *conn);
+void fd_sctp_dtls_destroy(struct cnxctx *conn);
+#endif
 
 /* TLS over SCTP (multi-stream) */
 struct sctp3436_ctx {

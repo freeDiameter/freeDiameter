@@ -80,11 +80,48 @@ build to run the same scenarios with a different transport:
 | `-DMULTI_PEER_USE_TLS=ON` | Use TLS on a secure port. Requires `openssl`; each scenario generates a temporary CA and identity-specific peer certificates. |
 | `-DMULTI_PEER_USE_SCTP=ON` | Use SCTP instead of TCP. Requires SCTP support in the build and host. |
 
-With both options enabled, the daemon uses TLS over SCTP, not DTLS. The tests
+With both options enabled, the daemon uses TLS over SCTP unless
+`ENABLE_DTLS_SCTP=ON` enables DTLS over SCTP. The tests
 check each side of every link's reported connection protocol and security, as
 well as the message exchanges; a transport fallback is not accepted. TLS test
 credentials and keys are generated in the scenario's temporary directory and
 removed afterward. Tests do not contact external peers or exercise reconnection.
+
+With `ENABLE_DTLS_SCTP`, `MULTI_PEER_USE_TLS`, and `MULTI_PEER_USE_SCTP`
+enabled, additional tests exercise:
+
+- DTLS 1.2 handshakes with OpenSSL as client and server, followed by
+  application data. OpenSSL must be built with SCTP support. If the normal
+  `openssl` lacks it, set `FD_DTLS_SCTP_OPENSSL` to an SCTP-enabled executable
+  when running CTest. The OpenSSL command-line tools are not Diameter peers;
+  these tests do not establish a Diameter peer connection.
+- Packet loss followed by delay and reordering using `tc netem` in a private
+  user and network namespace. The test requires `unshare`, `ip`, `tc`,
+  permission to create those namespaces and raw sockets, and SCTP-AUTH. It
+  never changes the host's network configuration. It checks that Linux send-queue accounting
+  remains nonzero while an acknowledgment is delayed or a gap acknowledgment
+  arrives first, then drains, and checks Diameter recovery and exchanges. It
+  is complemented by ACK-barrier tests that hold acknowledgments during client
+  and server handshakes and shutdown, and check key activation, Finished,
+  old-key deletion and close-notify ordering after the queue drains. Separate
+  cases keep ACKs blocked to check handshake and shutdown timeouts.
+  The tests exercise one Linux kernel and local loopback paths, not vendor or
+  cross-kernel interoperability.
+- With `dbg_msg_dumps` built, pending-request shutdown tests briefly drop
+  traffic while a request is queued, then apply 100 ms delay as the requesting
+  daemon or both daemons shut down. They check bounded process termination and
+  report whether the request was answered, sent to failover, or its answer was
+  dropped during shutdown. These characterize the outcome; they do not
+  guarantee application-level delivery.
+
+These tests report as skipped when their prerequisites are unavailable. For
+example, the GitHub Actions AUTH-enabled TLS/SCTP job builds an SCTP-enabled
+OpenSSL to run the interoperability cases. To run them locally:
+
+```sh
+FD_DTLS_SCTP_OPENSSL=/path/to/openssl \
+  ctest -R '^test_sctp_(openssl_|netem|ack_|shutdown_pending_)' --output-on-failure
+```
 
 ### Adding a multi-peer scenario
 

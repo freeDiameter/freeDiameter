@@ -28,9 +28,18 @@
 # Default: 3868. Use 0 to disable.
 #Port = 3868;
 
-# The port this peer is listening on for incoming TLS-protected connections (TCP and SCTP).
-# See TLS_old_method for more information about TLS flavours.
-# Note: we use TLS/SCTP instead of DTLS/SCTP at the moment. This will change in future version of freeDiameter.
+# Incoming secure port for TCP and SCTP (see TLS_old_method).
+# If your freeDiameter was built with the ENABLE_DTLS_SCTP CMake option enabled,
+# this port accepts TLS or DTLS over SCTP. Outgoing secure SCTP uses DTLS by
+# default, or falls back to TLS if SCTP-AUTH is unavailable. Otherwise, SCTP
+# uses RFC3436 TLS. The build option is OFF by default and cannot be changed in
+# this file. A failed DTLS handshake is not retried as TLS. TCP is unaffected.
+# DTLS/SCTP is experimental: it requires Linux, GnuTLS >= 3.4.4, SCTP-AUTH
+# (net.sctp.auth_enable=1) and authenticated DATA on both peers. It uses DTLS 1.2
+# with mutual certificates and no renegotiation. Each Diameter message must fit
+# one DTLS record (about 16 KiB depending on the cipher); larger messages fail.
+# Use the per-peer SctpSec3436 option below to select outgoing TLS/SCTP.
+# RFC6733 assigns port 5658; the historical default is retained for compatibility.
 # Default: 5868. Use 0 to disable.
 #SecPort = 5868;
 
@@ -278,7 +287,10 @@ TLS_Cred = "/etc/ssl/certs/freeDiameter.pem", "/etc/ssl/private/freeDiameter.key
 #ConnectPeer = "diameterid" [ { parameter1; parameter2; ...} ] ;
 # Parameters that can be specified in the peer's parameter list:
 #  No_TCP; No_SCTP; No_IP; No_IPv6; Prefer_TCP; TLS_old_method;
-#  No_TLS;       # assume transparent security instead of TLS. DTLS is not supported yet (will change in future versions).
+#  SctpSec3436; # select RFC3436 TLS/SCTP; Port must match the remote secure SCTP listener.
+#  SctpSecDTLS; # require DTLS/SCTP for outgoing SCTP, without TLS fallback;
+#               # requires ENABLE_DTLS_SCTP, not No_TLS or TLS_old_method.
+#  No_TLS;       # assume transparent security (e.g. IPsec) instead of TLS/DTLS.
 #  Port = 5868;  # The port to connect to
 #  TcTimer = 30;
 #  TwTimer = 30;

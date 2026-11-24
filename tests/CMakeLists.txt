@@ -108,7 +108,14 @@ ENDIF(BUILD_APP_ACCT OR ALL_EXTENSIONS)
 FOREACH( TEST ${TEST_LIST} )
    ADD_EXECUTABLE(${TEST} ${TEST}.c tests.h ${${TEST}_ADDITIONAL})
    TARGET_LINK_LIBRARIES(${TEST} libfdproto libfdcore ${GNUTLS_LIBRARIES} ${GCRYPT_LIBRARY} ${${TEST}_ADDITIONAL_LIB})
-   ADD_TEST(${TEST} ${EXECUTABLE_OUTPUT_PATH}/${TEST} ${TEST_ARGUMENTS})
+   IF("${TEST}" STREQUAL "testcnx" AND ENABLE_DTLS_SCTP)
+      ADD_TEST(NAME testcnx COMMAND $<TARGET_FILE:testcnx> ${TEST_ARGUMENTS} -p 2)
+      ADD_TEST(NAME testcnx_dtls COMMAND $<TARGET_FILE:testcnx> ${TEST_ARGUMENTS} -p 1)
+      SET_TESTS_PROPERTIES(testcnx testcnx_dtls PROPERTIES RESOURCE_LOCK testcnx_ports)
+      SET_TESTS_PROPERTIES(testcnx_dtls PROPERTIES SKIP_RETURN_CODE 77)
+   ELSE()
+      ADD_TEST(${TEST} ${EXECUTABLE_OUTPUT_PATH}/${TEST} ${TEST_ARGUMENTS})
+   ENDIF()
 ENDFOREACH( TEST )
 
 OPTION(BUILD_MULTI_PEER_TESTS "Enable opt-in tests using local Diameter peers" OFF)
@@ -133,7 +140,7 @@ IF(TARGET dbg_interactive)
 ENDIF()
 
 IF(BUILD_MULTI_PEER_TESTS)
-	OPTION(MULTI_PEER_USE_TLS "Use TLS for the multi-peer scenarios" OFF)
+	OPTION(MULTI_PEER_USE_TLS "Use TLS/DTLS for the multi-peer scenarios" OFF)
 	OPTION(MULTI_PEER_USE_SCTP "Use SCTP instead of TCP for the multi-peer scenarios" OFF)
 	IF(MULTI_PEER_USE_SCTP AND DISABLE_SCTP)
 		MESSAGE(FATAL_ERROR "MULTI_PEER_USE_SCTP requires SCTP support; disable DISABLE_SCTP")
@@ -152,15 +159,26 @@ IF(BUILD_MULTI_PEER_TESTS)
 	ELSE()
 		SET(MULTI_PEER_SCTP_VALUE 0)
 	ENDIF()
+	IF(ENABLE_DTLS_SCTP)
+		SET(MULTI_PEER_DTLS_VALUE 1)
+	ELSE()
+		SET(MULTI_PEER_DTLS_VALUE 0)
+	ENDIF()
 
 	FUNCTION(ADD_MULTI_PEER_TEST TEST SCRIPT)
 		ADD_TEST(NAME ${TEST}
 			COMMAND ${DBG_INTERACTIVE_TEST_PYTHON} -B ${CMAKE_CURRENT_SOURCE_DIR}/${SCRIPT}
 				$<TARGET_FILE:freeDiameterd> ${ARGN})
-		SET_TESTS_PROPERTIES(${TEST} PROPERTIES LABELS "multi-peer" TIMEOUT 300
-			ENVIRONMENT "FD_MULTI_PEER_TLS=${MULTI_PEER_TLS_VALUE};FD_MULTI_PEER_SCTP=${MULTI_PEER_SCTP_VALUE};FD_MULTI_PEER_OPENSSL=${MULTI_PEER_OPENSSL_EXECUTABLE}")
+		SET_TESTS_PROPERTIES(${TEST} PROPERTIES LABELS "multi-peer" TIMEOUT 300 SKIP_RETURN_CODE 77
+			ENVIRONMENT "FD_MULTI_PEER_TLS=${MULTI_PEER_TLS_VALUE};FD_MULTI_PEER_SCTP=${MULTI_PEER_SCTP_VALUE};FD_MULTI_PEER_DTLS=${MULTI_PEER_DTLS_VALUE};FD_MULTI_PEER_OPENSSL=${MULTI_PEER_OPENSSL_EXECUTABLE}")
 		SET(MULTI_PEER_HAS_SCENARIOS TRUE PARENT_SCOPE)
 	ENDFUNCTION()
+
+	ADD_TEST(NAME test_sctp_security_config
+		COMMAND ${DBG_INTERACTIVE_TEST_PYTHON} -B ${CMAKE_CURRENT_SOURCE_DIR}/test_sctp_security_config.py
+			$<TARGET_FILE:freeDiameterd> ${CMAKE_COMMAND} ${CMAKE_SOURCE_DIR}
+			${CMAKE_BINARY_DIR} ${MULTI_PEER_DTLS_VALUE})
+	SET_TESTS_PROPERTIES(test_sctp_security_config PROPERTIES LABELS "multi-peer" TIMEOUT 90)
 
 	IF(TARGET test_netemul)
 		ADD_EXECUTABLE(test_netemul_process test_netemul_process.c)
@@ -216,6 +234,71 @@ IF(BUILD_MULTI_PEER_TESTS)
 	IF(TARGET test_app)
 		ADD_MULTI_PEER_TEST(test_two_peer_test_app test_two_peer_test_app.py
 			$<TARGET_FILE:test_app>)
+		IF(MULTI_PEER_USE_TLS AND MULTI_PEER_USE_SCTP)
+			ADD_MULTI_PEER_TEST(test_two_peer_legacy_sctp test_two_peer_test_app.py
+				$<TARGET_FILE:test_app> legacy)
+			ADD_MULTI_PEER_TEST(test_two_peer_no_tls_with_legacy_selection test_two_peer_test_app.py
+				$<TARGET_FILE:test_app> no-tls-legacy)
+			ADD_MULTI_PEER_TEST(test_two_peer_old_method_with_legacy_selection test_two_peer_test_app.py
+				$<TARGET_FILE:test_app> old-method-legacy)
+		ENDIF()
+		IF(MULTI_PEER_USE_TLS AND NOT MULTI_PEER_USE_SCTP)
+			ADD_MULTI_PEER_TEST(test_two_peer_tcp_with_legacy_selection test_two_peer_test_app.py
+				$<TARGET_FILE:test_app> tcp-legacy)
+			IF(ENABLE_DTLS_SCTP)
+				ADD_MULTI_PEER_TEST(test_two_peer_tcp_with_dtls_selection test_two_peer_test_app.py
+					$<TARGET_FILE:test_app> tcp-dtls)
+			ENDIF()
+		ENDIF()
+		IF(ENABLE_DTLS_SCTP AND MULTI_PEER_USE_TLS AND MULTI_PEER_USE_SCTP)
+			ADD_LIBRARY(test_sctp_ack_probe SHARED test_sctp_ack_probe.c)
+			TARGET_LINK_LIBRARIES(test_sctp_ack_probe ${CMAKE_DL_LIBS})
+			ADD_MULTI_PEER_TEST(test_two_peer_explicit_dtls test_two_peer_test_app.py
+				$<TARGET_FILE:test_app> explicit-dtls)
+			ADD_MULTI_PEER_TEST(test_multi_peer_mixed_sctp test_multi_peer_mixed_sctp.py
+				$<TARGET_FILE:test_app>)
+			ADD_MULTI_PEER_TEST(test_sctp_no_auth_tls test_sctp_shared_port.py
+				$<TARGET_FILE:test_app> no-auth)
+			ADD_MULTI_PEER_TEST(test_sctp_auth_tls test_sctp_shared_port.py
+				$<TARGET_FILE:test_app> auth)
+			ADD_MULTI_PEER_TEST(test_sctp_fragmented_tls test_sctp_shared_port.py
+				$<TARGET_FILE:test_app> fragmented)
+			ADD_MULTI_PEER_TEST(test_sctp_no_auth_dtls_rejected test_sctp_shared_port.py
+				$<TARGET_FILE:test_app> invalid-dtls)
+			ADD_MULTI_PEER_TEST(test_sctp_dtls_without_data_auth test_sctp_shared_port.py
+				$<TARGET_FILE:test_app> dtls-no-data-auth)
+			ADD_MULTI_PEER_TEST(test_sctp_dtls_wrong_ppid test_sctp_shared_port.py
+				$<TARGET_FILE:test_app> wrong-ppid)
+			ADD_MULTI_PEER_TEST(test_sctp_idle_handshake test_sctp_shared_port.py
+				$<TARGET_FILE:test_app> idle)
+			ADD_MULTI_PEER_TEST(test_sctp_outgoing_fallback test_sctp_outgoing_fallback.py
+				$<TARGET_FILE:test_app> fallback)
+			ADD_MULTI_PEER_TEST(test_sctp_outgoing_strict_dtls test_sctp_outgoing_fallback.py
+				$<TARGET_FILE:test_app> strict)
+			ADD_MULTI_PEER_TEST(test_sctp_outgoing_strict_local_auth test_sctp_outgoing_fallback.py
+				$<TARGET_FILE:test_app> strict-local)
+			ADD_MULTI_PEER_TEST(test_sctp_outgoing_no_data_auth test_sctp_outgoing_fallback.py
+				$<TARGET_FILE:test_app> no-data-auth)
+			ADD_MULTI_PEER_TEST(test_sctp_outgoing_handshake_failure test_sctp_outgoing_fallback.py
+				$<TARGET_FILE:test_app> handshake-failure)
+			ADD_MULTI_PEER_TEST(test_sctp_openssl_client test_sctp_openssl.py
+				$<TARGET_FILE:test_app> client)
+			ADD_MULTI_PEER_TEST(test_sctp_openssl_server test_sctp_openssl.py
+				$<TARGET_FILE:test_app> server)
+			ADD_MULTI_PEER_TEST(test_sctp_netem test_sctp_netem.py
+				$<TARGET_FILE:test_app>)
+			IF(TARGET dbg_msg_dumps)
+				FOREACH(MODE client simultaneous)
+					ADD_MULTI_PEER_TEST(test_sctp_shutdown_pending_${MODE} test_sctp_shutdown_pending.py
+						$<TARGET_FILE:test_app> $<TARGET_FILE:test_sctp_ack_probe> $<TARGET_FILE:dbg_msg_dumps> ${MODE})
+				ENDFOREACH()
+			ENDIF()
+			FOREACH(MODE handshake-client handshake-server handshake-timeout shutdown shutdown-timeout)
+				STRING(REPLACE "-" "_" TEST_MODE ${MODE})
+				ADD_MULTI_PEER_TEST(test_sctp_ack_${TEST_MODE} test_sctp_ack_barrier.py
+					$<TARGET_FILE:test_app> $<TARGET_FILE:test_sctp_ack_probe> $<TARGET_FILE:testcnx> ${MODE})
+			ENDFOREACH()
+		ENDIF()
 		ADD_MULTI_PEER_TEST(test_multi_peer_relay test_multi_peer_relay.py
 			$<TARGET_FILE:test_app>)
 		IF(TARGET test_netemul)

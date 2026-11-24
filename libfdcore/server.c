@@ -240,7 +240,13 @@ next_client:
 	if (s->secur) {
 		LOG_D("Starting handshake with %s", fd_cnx_getid(c));
 
-		int ret = fd_cnx_handshake(c, GNUTLS_SERVER, (s->secur == 1) ? ALGO_HANDSHAKE_DEFAULT : ALGO_HANDSHAKE_3436, NULL, NULL);
+		int ret;
+#ifdef ENABLE_DTLS_SCTP
+		if (s->proto == IPPROTO_SCTP && s->secur == 1)
+			ret = fd_cnx_handshake_sctp_auto(c);
+		else
+#endif
+			ret = fd_cnx_handshake(c, GNUTLS_SERVER, (s->secur == 1) ? ALGO_HANDSHAKE_DEFAULT : ALGO_HANDSHAKE_3436, NULL, NULL);
 		if (ret != 0) {
 			char buf[1024];
 			snprintf(buf, sizeof(buf), "TLS handshake failed for connection '%s', connection closed.", fd_cnx_getid(c));
@@ -431,26 +437,22 @@ int fd_servers_start()
 		/* Create the server on insecure port */
 		if (fd_g_config->cnf_port) {
 			CHECK_MALLOC( s = new_serv(IPPROTO_SCTP, 0) );
-			CHECK_MALLOC( s->conn = fd_cnx_serv_sctp(fd_g_config->cnf_port, empty_conf_ep ? NULL : &fd_g_config->cnf_endpoints) );
+			CHECK_MALLOC( s->conn = fd_cnx_serv_sctp(fd_g_config->cnf_port, empty_conf_ep ? NULL : &fd_g_config->cnf_endpoints, 0) );
 			fd_list_insert_before( &FD_SERVERS, &s->chain );
 			CHECK_POSIX( pthread_create( &s->thr, NULL, serv_th, s ) );
 		}
 		
 		/* Create the server on secure port */
 		if (fd_g_config->cnf_port_tls) {
-			CHECK_MALLOC( s = new_serv(IPPROTO_SCTP, 2 /* Change when DTLS is introduced */) );
-			CHECK_MALLOC( s->conn = fd_cnx_serv_sctp(fd_g_config->cnf_port_tls, empty_conf_ep ? NULL : &fd_g_config->cnf_endpoints) );
+#ifdef ENABLE_DTLS_SCTP
+			CHECK_MALLOC( s = new_serv(IPPROTO_SCTP, 1) );
+#else
+			CHECK_MALLOC( s = new_serv(IPPROTO_SCTP, 2) );
+#endif
+			CHECK_MALLOC( s->conn = fd_cnx_serv_sctp(fd_g_config->cnf_port_tls, empty_conf_ep ? NULL : &fd_g_config->cnf_endpoints, s->secur == 1) );
 			fd_list_insert_before( &FD_SERVERS, &s->chain );
 			CHECK_POSIX( pthread_create( &s->thr, NULL, serv_th, s ) );
 		}
-		
-		/* Create the other server on 3436 secure port */
-		/*if (fd_g_config->cnf_port_3436) {
-			CHECK_MALLOC( s = new_serv(IPPROTO_SCTP, 2) );
-			CHECK_MALLOC( s->conn = fd_cnx_serv_sctp(fd_g_config->cnf_port_3436, empty_conf_ep ? NULL : &fd_g_config->cnf_endpoints) );
-			fd_list_insert_before( &FD_SERVERS, &s->chain );
-			CHECK_POSIX( pthread_create( &s->thr, NULL, serv_th, s ) );
-		}*/
 		
 #endif /* DISABLE_SCTP */
 	}

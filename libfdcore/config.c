@@ -99,9 +99,6 @@ DECLARE_FD_DUMP_PROTOTYPE(fd_conf_dump)
 	CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "  Tw Timer ............... : %u\n", fd_g_config->cnf_timer_tw), return NULL);
 	CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "  Local port ............. : %hu\n", fd_g_config->cnf_port), return NULL);
 	CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "  Local secure port ...... : %hu\n", fd_g_config->cnf_port_tls), return NULL);
-	if (fd_g_config->cnf_port_3436) {
-		CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "  Local SCTP TLS port .... : %hu\n", fd_g_config->cnf_port_3436), return NULL);
-	}
 	CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "  Number of SCTP streams . : %hu\n", fd_g_config->cnf_sctp_str), return NULL);
 	CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "  Number of clients thr .. : %d\n", fd_g_config->cnf_thr_srv), return NULL);
 	CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "  Number of app threads .. : %hu\n", fd_g_config->cnf_dispthr), return NULL);

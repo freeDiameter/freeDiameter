@@ -1,13 +1,17 @@
+import errno
 import os
 import re
 import shutil
 import signal
 import socket
 import subprocess
+import struct
 import sys
 import tempfile
 import time
 from pathlib import Path
+
+SCTP_AUTH_SUPPORTED = 129
 
 
 def quote(value):
@@ -75,7 +79,8 @@ def create_tls_credentials(directory, openssl, identities):
 
 
 class Peers:
-    def __init__(self, daemon, directory, count, links, tls=False, sctp=False, openssl=None):
+    def __init__(self, daemon, directory, count, links, tls=False, sctp=False, openssl=None,
+                 dtls=False):
         if count < 1:
             raise ValueError("peer count must be positive")
         self.identities = tuple("peer%d.localdomain" % (index + 1) for index in range(count))
@@ -92,6 +97,7 @@ class Peers:
         self.directory = directory
         self.tls = tls
         self.sctp = sctp
+        self.dtls = dtls
         self.ports = free_ports(count, sctp)
         if tls:
             if not openssl:
@@ -210,7 +216,7 @@ class Peers:
 
     def wait_transport(self):
         protocol = "SCTP" if self.sctp else "TCP"
-        security = ",TLS" if self.tls else ""
+        security = (",DTLS" if self.dtls and self.sctp else ",TLS") if self.tls else ""
         self.wait(
             lambda: all(
                 re.search(r"(?:Connected to|CONNECTED TO) '%s' \(%s%s,soc#\d+\)" %
@@ -286,7 +292,29 @@ class Peers:
         return failures
 
 
-def run_scenario(daemon, scenario, count, links):
+def require_sctp_auth():
+    try:
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM, socket.IPPROTO_SCTP)
+    except OSError as error:
+        if error.errno not in (errno.EPROTONOSUPPORT, errno.EAFNOSUPPORT,
+                               errno.ESOCKTNOSUPPORT):
+            raise
+        print("SKIP: SCTP is unavailable.", file=sys.stderr)
+        raise SystemExit(77)
+    with sock:
+        try:
+            result = sock.getsockopt(socket.IPPROTO_SCTP, SCTP_AUTH_SUPPORTED, 8)
+        except OSError as error:
+            if error.errno not in (errno.ENOPROTOOPT, errno.EOPNOTSUPP):
+                raise
+            result = None
+        if result is None or struct.unpack("=iI", result)[1] == 0:
+            print("SKIP: SCTP-AUTH is unavailable (net.sctp.auth_enable=1 required).",
+                  file=sys.stderr)
+            raise SystemExit(77)
+
+
+def run_scenario(daemon, scenario, count, links, requires_sctp_auth=True):
     def terminate(signum, frame):
         raise SystemExit("test interrupted by signal %d" % signum)
 
@@ -300,8 +328,12 @@ def run_scenario(daemon, scenario, count, links):
 
     tls = enabled("FD_MULTI_PEER_TLS")
     sctp = enabled("FD_MULTI_PEER_SCTP")
+    dtls = enabled("FD_MULTI_PEER_DTLS")
+    if requires_sctp_auth and tls and sctp and dtls:
+        require_sctp_auth()
     build_dir = Path(daemon).resolve().parent.parent / "tests"
     with tempfile.TemporaryDirectory(dir=build_dir) as temporary:
         with Peers(daemon, Path(temporary), count, links, tls=tls, sctp=sctp,
-                   openssl=os.environ.get("FD_MULTI_PEER_OPENSSL")) as peers:
+                   openssl=os.environ.get("FD_MULTI_PEER_OPENSSL"),
+                   dtls=dtls) as peers:
             scenario(peers)

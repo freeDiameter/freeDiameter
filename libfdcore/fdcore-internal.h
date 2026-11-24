@@ -349,17 +349,21 @@ struct cnxctx * fd_server_accept(struct cnxctx * serv);
 
 /* Connection contexts -- there are also definitions in cnxctx.h for the relevant files */
 struct cnxctx * fd_cnx_serv_tcp(uint16_t port, int family, struct fd_endpoint * ep);
-struct cnxctx * fd_cnx_serv_sctp(uint16_t port, struct fd_list * ep_list);
+struct cnxctx * fd_cnx_serv_sctp(uint16_t port, struct fd_list * ep_list, int dtls);
 int             fd_cnx_serv_listen(struct cnxctx * conn);
 struct cnxctx * fd_cnx_serv_accept(struct cnxctx * serv);
 struct cnxctx * fd_cnx_cli_connect_tcp(sSA * sa, socklen_t addrlen);
-struct cnxctx * fd_cnx_cli_connect_sctp(int no_ip6, uint16_t port, struct fd_list * list, struct fd_list * src_list);
+struct cnxctx * fd_cnx_cli_connect_sctp(int no_ip6, uint16_t port, struct fd_list * list, struct fd_list * src_list, int dtls, int allow_tls_fallback);
 int             fd_cnx_start_clear(struct cnxctx * conn, int loop);
 void		fd_cnx_sethostname(struct cnxctx * conn, DiamId_t hn);
 int		fd_cnx_proto_info(struct cnxctx * conn, char * buf, size_t len);
 #define ALGO_HANDSHAKE_DEFAULT	0 /* TLS for TCP, DTLS for SCTP */
 #define ALGO_HANDSHAKE_3436	1 /* For TLS for SCTP also */
 int             fd_cnx_handshake(struct cnxctx * conn, int mode, int algo, char * priority, void * alt_creds);
+#ifdef ENABLE_DTLS_SCTP
+int             fd_cnx_handshake_sctp_auto(struct cnxctx *conn);
+int             fd_cnx_handshake_sctp_client(struct cnxctx *conn, int allow_tls_fallback, char *priority);
+#endif
 char *          fd_cnx_getid(struct cnxctx * conn);
 int		fd_cnx_getproto(struct cnxctx * conn);
 int		fd_cnx_getTLS(struct cnxctx * conn);

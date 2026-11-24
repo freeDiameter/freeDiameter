@@ -52,6 +52,7 @@ extern "C" {
 #cmakedefine HOST_BIG_ENDIAN @HOST_BIG_ENDIAN@
 
 #cmakedefine DISABLE_SCTP
+#cmakedefine ENABLE_DTLS_SCTP
 #cmakedefine DEBUG_SCTP
 #cmakedefine DEBUG_WITH_META
 #cmakedefine SCTP_USE_MAPPED_ADDRESSES

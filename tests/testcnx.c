@@ -35,6 +35,10 @@
 
 #include "tests.h"
 #include "../libfdcore/cnxctx.h"
+#ifdef ENABLE_DTLS_SCTP
+#include <gnutls/dtls.h>
+#include <netinet/sctp.h>
+#endif
 
 #ifndef TEST_PORT
 #define TEST_PORT	3868
@@ -653,6 +657,8 @@ static struct fd_list eps = FD_LIST_INITIALIZER(eps);
 struct connect_flags {
 	int	proto;
 	int	expect_failure; /* 0 or 1 */
+	int	dtls;
+	uint16_t port;
 };
 
 /* Client's side of the connection established from a separate thread */
@@ -675,7 +681,7 @@ static void * connect_thr(void * arg)
 #ifndef DISABLE_SCTP
 		case IPPROTO_SCTP:
 			{
-				cnx = fd_cnx_cli_connect_sctp(0, TEST_PORT, &eps, NULL);
+				cnx = fd_cnx_cli_connect_sctp(0, cf->port ?: TEST_PORT, &eps, NULL, cf->dtls, 0);
 				CHECK( 1, (cnx ? 1 : 0) ^ cf->expect_failure );
 			}
 			break;
@@ -764,6 +770,202 @@ enum tls_shutdown_mode {
 	TLS_SERVER_FIRST,
 	TLS_FATAL_RECEIVE
 };
+
+#ifdef ENABLE_DTLS_SCTP
+static int sctp_auth_available(void)
+{
+	struct sctp_assoc_value auth;
+	socklen_t length = sizeof(auth);
+	int sock, ret, error;
+
+	sock = socket(AF_INET, SOCK_STREAM, IPPROTO_SCTP);
+	if (sock < 0) {
+		if (errno == EPROTONOSUPPORT || errno == EAFNOSUPPORT || errno == ESOCKTNOSUPPORT)
+			return 0;
+		LOG_E("Cannot create SCTP socket to check SCTP-AUTH: %s", strerror(errno));
+		return -1;
+	}
+	memset(&auth, 0, sizeof(auth));
+	ret = getsockopt(sock, IPPROTO_SCTP, SCTP_AUTH_SUPPORTED, &auth, &length);
+	error = errno;
+	close(sock);
+	if (ret < 0) {
+		if (error == ENOPROTOOPT || error == EOPNOTSUPP)
+			return 0;
+		LOG_E("Cannot check SCTP-AUTH: %s", strerror(error));
+		return -1;
+	}
+	if (length != sizeof(auth)) {
+		LOG_E("Invalid SCTP-AUTH status length.");
+		return -1;
+	}
+	return auth.assoc_value != 0;
+}
+
+enum dtls_test_mode {
+	DTLS_SERVER_FIRST,
+	DTLS_CERTIFICATE_REJECTED,
+	DTLS_AUTH_UNSUPPORTED,
+	DTLS_CLIENT_FIRST,
+	DTLS_FATAL_RECEIVE,
+	DTLS_ACK_SHUTDOWN
+};
+
+static void *dtls_send_close_thr(void *arg)
+{
+	struct tls_send_flags *flags = arg;
+	int i;
+
+	for (i = 0; i < 512; i++)
+		CHECK(0, fd_cnx_send(flags->cnx, flags->msg, flags->msg_sz));
+	fd_cnx_destroy(flags->cnx);
+	return NULL;
+}
+
+static void test_dtls_backend(gnutls_datum_t *ca, gnutls_datum_t *cert, gnutls_datum_t *key,
+			      uint8_t *message, size_t message_length, enum dtls_test_mode mode)
+{
+	struct cnxctx *listener, *client, *server;
+	struct connect_flags cf;
+	struct handshake_flags hf;
+	struct tls_send_flags sf;
+	pthread_t thread;
+	struct timespec deadline;
+	struct timespec start, end;
+	uint8_t *received, *large;
+	size_t length, limit;
+	int i, ret;
+
+	listener = fd_cnx_serv_sctp(TEST_PORT + 1, &eps, mode != DTLS_AUTH_UNSUPPORTED);
+	CHECK(1, listener != NULL);
+	CHECK(0, fd_cnx_serv_listen(listener));
+	memset(&cf, 0, sizeof(cf));
+	cf.proto = IPPROTO_SCTP;
+	cf.dtls = 1;
+	cf.port = TEST_PORT + 1;
+	CHECK(0, pthread_create(&thread, NULL, connect_thr, &cf));
+	server = fd_cnx_serv_accept(listener);
+	CHECK(1, server != NULL);
+	CHECK(0, pthread_join(thread, (void *)&client));
+
+	memset(&hf, 0, sizeof(hf));
+	hf.cnx = client;
+	CHECK(GNUTLS_E_SUCCESS, gnutls_certificate_allocate_credentials(&hf.creds));
+	CHECK(1, gnutls_certificate_set_x509_trust_mem(hf.creds, ca, GNUTLS_X509_FMT_PEM));
+	CHECK(GNUTLS_E_SUCCESS, gnutls_certificate_set_x509_key_mem(hf.creds, cert, key, GNUTLS_X509_FMT_PEM));
+	gnutls_certificate_set_verify_function(hf.creds, fd_tls_verify_credentials_2);
+	fd_cnx_sethostname(client, mode == DTLS_CERTIFICATE_REJECTED ? "nomatch.test" : "server.test");
+	fd_cnx_sethostname(server, "client.test");
+	if (mode == DTLS_AUTH_UNSUPPORTED) {
+		CHECK(ENOTSUP, fd_cnx_handshake(client, GNUTLS_CLIENT, ALGO_HANDSHAKE_DEFAULT, NULL, hf.creds));
+		CHECK(0, fd_cnx_teststate(client, CC_STATUS_DTLS_ESTABLISHED));
+		fd_cnx_destroy(client);
+		fd_cnx_destroy(server);
+		fd_cnx_destroy(listener);
+		gnutls_certificate_free_credentials(hf.creds);
+		return;
+	}
+	CHECK(0, clock_gettime(CLOCK_MONOTONIC, &start));
+	CHECK(0, pthread_create(&thread, NULL, handshake_thr, &hf));
+	ret = fd_cnx_handshake(server, GNUTLS_SERVER, ALGO_HANDSHAKE_DEFAULT, NULL, NULL);
+	CHECK(0, pthread_join(thread, NULL));
+	if (mode == DTLS_CERTIFICATE_REJECTED) {
+		CHECK(0, clock_gettime(CLOCK_MONOTONIC, &end));
+		CHECK(1, (end.tv_sec - start.tv_sec) * 1000 +
+		      (end.tv_nsec - start.tv_nsec) / 1000000 < 33000);
+		CHECK(1, ret != 0);
+		CHECK(1, hf.ret != 0);
+		fd_cnx_destroy(client);
+		fd_cnx_destroy(server);
+		fd_cnx_destroy(listener);
+		gnutls_certificate_free_credentials(hf.creds);
+		return;
+	}
+	CHECK(0, ret);
+	CHECK(0, hf.ret);
+	CHECK(0, fd_cnx_unordered_delivery(client, 1));
+	CHECK(0, fd_cnx_unordered_delivery(server, 1));
+
+	if (mode == DTLS_ACK_SHUTDOWN) {
+		CHECK(0, fd_cnx_send(client, message, message_length));
+		CHECK(0, pthread_create(&thread, NULL, destroy_thr, client));
+		CHECK(0, clock_gettime(CLOCK_REALTIME, &deadline));
+		deadline.tv_sec += 10;
+		CHECK(0, fd_cnx_receive(server, &deadline, &received, &length));
+		CHECK(message_length, length);
+		CHECK(0, memcmp(message, received, length));
+		free(received);
+		CHECK(0, pthread_join(thread, NULL));
+		fd_cnx_destroy(server);
+		fd_cnx_destroy(listener);
+		gnutls_certificate_free_credentials(hf.creds);
+		return;
+	}
+
+	limit = gnutls_dtls_get_data_mtu(client->cc_tls_para.session);
+	length = limit & ~(size_t)3;
+	large = calloc(1, limit + 4);
+	CHECK(1, large != NULL);
+	memcpy(large, message, message_length);
+	large[1] = (length >> 16) & 0xff;
+	large[2] = (length >> 8) & 0xff;
+	large[3] = length & 0xff;
+	CHECK(0, fd_cnx_send(client, large, length));
+	CHECK(0, clock_gettime(CLOCK_REALTIME, &deadline));
+	deadline.tv_sec += 5;
+	CHECK(0, fd_cnx_receive(server, &deadline, &received, &length));
+	CHECK(limit & ~(size_t)3, length);
+	CHECK(0, memcmp(large, received, length));
+	free(received);
+	CHECK(EMSGSIZE, fd_cnx_send(client, large, limit + 1));
+	free(large);
+	CHECK(0, fd_cnx_send(client, message, message_length));
+	CHECK(0, fd_cnx_receive(server, &deadline, &received, &length));
+	CHECK(message_length, length);
+	free(received);
+
+	if (mode == DTLS_FATAL_RECEIVE) {
+		uint8_t *invalid = malloc(message_length);
+		CHECK(1, invalid != NULL);
+		memcpy(invalid, message, message_length);
+		invalid[0] = DIAMETER_VERSION + 1;
+		CHECK(0, fd_cnx_send(client, invalid, message_length));
+		free(invalid);
+		CHECK(ENOTCONN, fd_cnx_receive(server, &deadline, &received, &length));
+		CHECK(0, fd_cnx_teststate(server, CC_STATUS_EOF));
+		fd_cnx_destroy(server);
+		CHECK(ENOTCONN, fd_cnx_receive(client, &deadline, &received, &length));
+		CHECK(0, fd_cnx_teststate(client, CC_STATUS_EOF));
+		fd_cnx_destroy(client);
+		fd_cnx_destroy(listener);
+		gnutls_certificate_free_credentials(hf.creds);
+		return;
+	}
+	if (mode == DTLS_CLIENT_FIRST) {
+		struct cnxctx *swap = server;
+		server = client;
+		client = swap;
+	}
+	sf.cnx = server;
+	sf.msg = message;
+	sf.msg_sz = message_length;
+	CHECK(0, pthread_create(&thread, NULL, dtls_send_close_thr, &sf));
+	for (i = 0; i < 512; i++) {
+		CHECK(0, clock_gettime(CLOCK_REALTIME, &deadline));
+		deadline.tv_sec += 5;
+		CHECK(0, fd_cnx_receive(client, &deadline, &received, &length));
+		CHECK(message_length, length);
+		CHECK(0, memcmp(message, received, length));
+		free(received);
+	}
+	CHECK(ENOTCONN, fd_cnx_receive(client, &deadline, &received, &length));
+	CHECK(CC_STATUS_EOF, fd_cnx_teststate(client, CC_STATUS_EOF));
+	fd_cnx_destroy(client);
+	CHECK(0, pthread_join(thread, NULL));
+	fd_cnx_destroy(listener);
+	gnutls_certificate_free_credentials(hf.creds);
+}
+#endif
 
 static void test_tls_shutdown(struct cnxctx * lst, int proto, int algo, enum tls_shutdown_mode mode, gnutls_datum_t * ca,
 						gnutls_datum_t * cert, gnutls_datum_t * priv, uint8_t * msg, size_t msg_sz)
@@ -869,9 +1071,29 @@ int main(int argc, char *argv[])
 	size_t 	  cer_sz;
 	uint8_t * rcv_buf;
 	size_t 	  rcv_sz;
+#ifdef ENABLE_DTLS_SCTP
+	int sctp_auth = 0;
+#endif
 	
 	/* First, initialize the daemon modules */
 	INIT_FD();
+
+#ifdef ENABLE_DTLS_SCTP
+	if (test_parameter != 2) {
+		sctp_auth = sctp_auth_available();
+		CHECK(1, sctp_auth >= 0);
+		if (!sctp_auth) {
+			LOG_N("SKIP: SCTP-AUTH is unavailable (net.sctp.auth_enable=1 required).");
+			if (test_parameter == 1) {
+				(void)fd_core_shutdown();
+				(void)fd_core_wait_shutdown_complete();
+				(void)fd_thr_term(&signal_thr);
+				free(tbuf);
+				return 77;
+			}
+		}
+	}
+#endif
 	
 	/* Restrain the # of streams */
 	fd_g_config->cnf_sctp_str = NB_STREAMS;
@@ -945,7 +1167,7 @@ int main(int argc, char *argv[])
 
 #ifndef DISABLE_SCTP
 		/* SCTP server */
-		listener_sctp = fd_cnx_serv_sctp(TEST_PORT, &eps);
+		listener_sctp = fd_cnx_serv_sctp(TEST_PORT, &eps, 0);
 		CHECK( 1, listener_sctp ? 1 : 0 );
 		
 		/* Accept incoming clients */
@@ -988,6 +1210,18 @@ int main(int argc, char *argv[])
 		CHECK( 0, fd_msg_bufferize( cer, &cer_buf, &cer_sz ) );
 		CHECK( 0, fd_msg_free(cer) );
 	}
+
+#ifdef ENABLE_DTLS_SCTP
+	if (test_parameter == 1) {
+		for (i = DTLS_SERVER_FIRST; i <= DTLS_FATAL_RECEIVE; i++)
+			test_dtls_backend(&ca, &client_cert, &client_priv, cer_buf, cer_sz, i);
+		goto done_tests;
+	}
+	if (test_parameter == 3) {
+		test_dtls_backend(&ca, &client_cert, &client_priv, cer_buf, cer_sz, DTLS_ACK_SHUTDOWN);
+		goto done_tests;
+	}
+#endif
 	
 	/* Simple TCP client / server test (no TLS) */
 	{
@@ -1458,6 +1692,13 @@ int main(int argc, char *argv[])
 #endif /* DISABLE_SCTP */
 	}
 	test_tls_shutdown(listener, IPPROTO_TCP, ALGO_HANDSHAKE_DEFAULT, TLS_FATAL_RECEIVE, &ca, &client_cert, &client_priv, cer_buf, cer_sz);
+
+#ifdef ENABLE_DTLS_SCTP
+	if (test_parameter != 2 && sctp_auth) {
+		for (i = DTLS_SERVER_FIRST; i <= DTLS_FATAL_RECEIVE; i++)
+			test_dtls_backend(&ca, &client_cert, &client_priv, cer_buf, cer_sz, i);
+	}
+#endif
 
 	/* Test with different number of streams between server and client */
 #ifndef DISABLE_SCTP
@@ -2241,6 +2482,9 @@ int main(int argc, char *argv[])
 #endif /* DISABLE_SCTP */
 	
 
+#ifdef ENABLE_DTLS_SCTP
+done_tests:
+#endif
 	/* Destroy the servers */
 	{
 		fd_cnx_destroy(listener);

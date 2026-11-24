@@ -46,6 +46,7 @@
 %define parse.error verbose
 
 %parse-param {struct fd_config * conf}
+%initial-action { got_peer_dtls = 0; }
 
 /* Keep track of location */
 %locations 
@@ -74,8 +75,21 @@ int got_peer_noip = 0;
 int got_peer_noipv6 = 0;
 int got_peer_notcp = 0;
 int got_peer_nosctp = 0;
+static int peer_sctpsec;
+static int got_peer_dtls;
 
 struct peer_info fddpi;
+
+static void cleanup_peer_options(void)
+{
+	free(fddpi.config.pic_realm);
+	free(fddpi.config.pic_priority);
+	while (!FD_IS_LIST_EMPTY(&fddpi.pi_endpoints)) {
+		struct fd_list *li = fddpi.pi_endpoints.next;
+		fd_list_unlink(li);
+		free(li);
+	}
+}
 
 %}
 
@@ -92,12 +106,15 @@ struct peer_info fddpi;
 %token <integer> INTEGER
 
 %type <string> 	extconf
+%type <string> 	peerid
+%destructor { free($$); } peerid
 
 %token		IDENTITY
 %token		REALM
 %token		PORT
 %token		SECPORT
 %token		SEC3436
+%token		SECDTLS
 %token		NOIP
 %token		NOIP6
 %token		NOTCP
@@ -144,7 +161,6 @@ conffile:		/* Empty is OK -- for simplicity here, we reject in daemon later */
 			| conffile twtimer
 			| conffile port
 			| conffile secport
-			| conffile sec3436
 			| conffile sctpstreams
 			| conffile listenon
 			| conffile thrpersrv
@@ -224,14 +240,6 @@ secport:		SECPORT '=' INTEGER ';'
 				CHECK_PARAMS_DO( ($3 >= 0) && ($3 < 1<<16),
 					{ yyerror (&yylloc, conf, "Invalid value"); YYERROR; } );
 				conf->cnf_port_tls = (uint16_t)$3;
-			}
-			;
-
-sec3436:		SEC3436 '=' INTEGER ';'
-			{
-				CHECK_PARAMS_DO( ($3 >= 0) && ($3 < 1<<16),
-					{ yyerror (&yylloc, conf, "Invalid value"); YYERROR; } );
-				conf->cnf_port_3436 = (uint16_t)$3;
 			}
 			;
 
@@ -421,6 +429,10 @@ prefertcp:		PREFERTCP ';'
 
 oldtls:			OLDTLS ';'
 			{
+				if (got_peer_dtls) {
+					yyerror (&yylloc, conf, "TLS_old_method conflicts with a ConnectPeer directive SctpSecDTLS.");
+					YYERROR;
+				}
 				conf->cnf_flags.tls_alg = 1;
 			}
 			;
@@ -491,14 +503,24 @@ extconf:		/* empty */
 			
 connpeer:		{
 				memset(&fddpi, 0, sizeof(fddpi));
+				peer_sctpsec = -1;
 				fddpi.config.pic_flags.persist = PI_PRST_ALWAYS;
 				fd_list_init( &fddpi.pi_endpoints, NULL );
 			}
-			CONNPEER '=' QSTRING peerinfo ';'
+			CONNPEER '=' peerid peerinfo ';'
 			{
+				if ((peer_sctpsec == PI_SCTPSEC_DTLS) &&
+				    ((fddpi.config.pic_flags.sec != PI_SEC_DEFAULT) || conf->cnf_flags.tls_alg)) {
+					yyerror (&yylloc, conf, "SctpSecDTLS requires immediate security, not No_TLS or TLS_old_method.");
+					free($4);
+					cleanup_peer_options();
+					YYERROR;
+				}
 				fddpi.pi_diamid = $4;
 				CHECK_FCT_DO( fd_peer_add ( &fddpi, conf->cnf_file, NULL, NULL ),
 					{ yyerror (&yylloc, conf, "Error adding ConnectPeer information"); YYERROR; } );
+				if (peer_sctpsec == PI_SCTPSEC_DTLS)
+					got_peer_dtls++;
 					
 				/* Now destroy any content in the structure */
 				free(fddpi.pi_diamid);
@@ -511,7 +533,10 @@ connpeer:		{
 				}
 			}
 			;
-			
+
+peerid:			QSTRING { $$ = $1; }
+			;
+
 peerinfo:		/* empty */
 			| '{' peerparams '}'
 			;
@@ -571,7 +596,29 @@ peerparams:		/* empty */
 			}
 			| peerparams SEC3436 ';'
 			{
-				fddpi.config.pic_flags.sctpsec |= PI_SCTPSEC_3436;
+				if (peer_sctpsec == PI_SCTPSEC_DTLS) {
+					yyerror (&yylloc, conf, "SctpSec3436 conflicts with SctpSecDTLS.");
+					cleanup_peer_options();
+					YYERROR;
+				}
+				peer_sctpsec = PI_SCTPSEC_3436;
+				fddpi.config.pic_flags.sctpsec = PI_SCTPSEC_3436;
+			}
+			| peerparams SECDTLS ';'
+			{
+#ifdef ENABLE_DTLS_SCTP
+				if (peer_sctpsec == PI_SCTPSEC_3436) {
+					yyerror (&yylloc, conf, "SctpSecDTLS conflicts with SctpSec3436.");
+					cleanup_peer_options();
+					YYERROR;
+				}
+				peer_sctpsec = PI_SCTPSEC_DTLS;
+				fddpi.config.pic_flags.sctpsec = PI_SCTPSEC_DTLS;
+#else
+				yyerror (&yylloc, conf, "SctpSecDTLS requires a build with ENABLE_DTLS_SCTP.");
+				cleanup_peer_options();
+				YYERROR;
+#endif
 			}
 			| peerparams REALM '=' QSTRING ';'
 			{

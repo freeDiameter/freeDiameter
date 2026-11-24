@@ -9,6 +9,10 @@ INCLUDE(FindPkgConfig)
 
 # Disable SCTP support completely ?
 OPTION(DISABLE_SCTP "Disable SCTP support?" OFF)
+OPTION(ENABLE_DTLS_SCTP "Enable experimental DTLS/SCTP and prefer it for secure SCTP connections?" OFF)
+IF(ENABLE_DTLS_SCTP AND DISABLE_SCTP)
+	MESSAGE(FATAL_ERROR "ENABLE_DTLS_SCTP requires SCTP support; disable DISABLE_SCTP")
+ENDIF()
 IF (NOT DISABLE_SCTP)
 	OPTION(DEBUG_SCTP "Verbose SCTP (for debug)?" OFF)
 	OPTION(SCTP_USE_MAPPED_ADDRESSES "Use v6-mapped v4 addresses in SCTP (workaround some SCTP limitations)?" OFF)
@@ -152,6 +156,51 @@ ENDIF(NOT DIAMID_IDNA_IGNORE  AND NOT DIAMID_IDNA_REJECT)
 FIND_PACKAGE(GNUTLS REQUIRED)
 SET(GNUTLS_INCLUDE_DIR ${GNUTLS_INCLUDE_DIR} PARENT_SCOPE)
 SET(GNUTLS_LIBRARIES ${GNUTLS_LIBRARIES} PARENT_SCOPE)
+
+IF(ENABLE_DTLS_SCTP)
+	IF(NOT CMAKE_SYSTEM_NAME STREQUAL "Linux")
+		MESSAGE(FATAL_ERROR "ENABLE_DTLS_SCTP currently requires Linux send-buffer accounting for RFC6083 drain barriers")
+	ENDIF()
+	SET(CMAKE_REQUIRED_INCLUDES ${GNUTLS_INCLUDE_DIR} ${SCTP_INCLUDE_DIR})
+	SET(CMAKE_REQUIRED_LIBRARIES ${GNUTLS_LIBRARIES} ${SCTP_LIBRARIES})
+	CHECK_C_SOURCE_COMPILES("
+		#include <sys/socket.h>
+		#include <netinet/in.h>
+		#include <netinet/sctp.h>
+		#include <linux/sock_diag.h>
+		#include <gnutls/gnutls.h>
+		#include <gnutls/dtls.h>
+		#if GNUTLS_VERSION_NUMBER < 0x030404
+		#error DTLS/SCTP requires GnuTLS 3.4.4 or later
+		#endif
+		int main(void) {
+			gnutls_session_t session = NULL;
+			char key[64];
+			struct sctp_authchunk chunk;
+			struct sctp_authkeyid keyid;
+			struct sctp_assoc_value auth;
+			struct sctp_authchunks chunks;
+			chunk.sauth_chunk = 0;
+			keyid.scact_keynumber = 0;
+			auth.assoc_value = 0;
+			chunks.gauth_number_of_chunks = 0;
+			gnutls_dtls_set_timeouts(session, 31000, 30000);
+			return gnutls_prf_rfc5705(session, 23, \"EXPORTER_DTLS_OVER_SCTP\",
+				0, NULL, sizeof(key), key) + GNUTLS_DATAGRAM +
+				GNUTLS_NO_REPLAY_PROTECTION + SCTP_AUTH_CHUNK +
+				SCTP_AUTH_KEY + SCTP_AUTH_ACTIVE_KEY + SCTP_AUTH_DELETE_KEY +
+				SCTP_AUTH_SUPPORTED + SCTP_PEER_AUTH_CHUNKS + SCTP_PARTIAL_DELIVERY_POINT +
+				SO_MEMINFO + SK_MEMINFO_WMEM_QUEUED +
+				chunk.sauth_chunk + keyid.scact_keynumber + auth.assoc_value +
+				chunks.gauth_number_of_chunks;
+		}
+	" HAVE_DTLS_SCTP_APIS)
+	IF(NOT HAVE_DTLS_SCTP_APIS)
+		MESSAGE(FATAL_ERROR "ENABLE_DTLS_SCTP requires GnuTLS >= 3.4.4 and Linux SCTP-AUTH/send-buffer socket APIs")
+	ENDIF()
+	SET(CMAKE_REQUIRED_INCLUDES "")
+	SET(CMAKE_REQUIRED_LIBRARIES "")
+ENDIF()
 
 FIND_PATH(GCRYPT_INCLUDE_DIR NAMES gcrypt.h)
 IF(NOT GCRYPT_INCLUDE_DIR)
