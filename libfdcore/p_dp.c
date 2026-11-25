@@ -60,6 +60,15 @@ int fd_p_dp_newdelay(struct fd_peer * peer)
 }
 
 /* Handle a received message */
+static int start_grace_deadline(struct fd_peer *peer)
+{
+	if (!peer->p_grace_deadline.tv_sec) {
+		CHECK_SYS(clock_gettime(CLOCK_MONOTONIC, &peer->p_grace_deadline));
+		peer->p_grace_deadline.tv_sec += DPR_TIMEOUT;
+	}
+	return 0;
+}
+
 int fd_p_dp_handle(struct msg ** msg, int req, struct fd_peer * peer)
 {
 	long to_receive, to_send;
@@ -109,36 +118,19 @@ int fd_p_dp_handle(struct msg ** msg, int req, struct fd_peer * peer)
 		CHECK_FCT( fd_msg_new_answer_from_req ( fd_g_config->cnf_dict, msg, 0 ) );
 		CHECK_FCT( fd_msg_rescode_set( *msg, "DIAMETER_SUCCESS", NULL, NULL, 1 ) );
 		
-		/* Do we have pending exchanges with this peer? */
-		CHECK_FCT( fd_peer_get_load_pending(&peer->p_hdr, &to_receive, &to_send) );
-		
-		if ((to_receive == 0) && (to_send == 0)) {
-			/* No pending exchange, move to CLOSING directly */
-			CHECK_FCT( fd_psm_change_state(peer, STATE_CLOSING) );
-		
-			/* Now send the DPA */
-			CHECK_FCT( fd_out_send( msg, NULL, peer, 0) );
-			
-			/* and move to CLOSED */
-			fd_hook_call(HOOK_PEER_CONNECT_FAILED, NULL, peer, "Connection closed", NULL);
-			fd_psm_cleanup(peer, 0);
-
-			/* Reset the timer for next connection attempt -- we'll retry sooner or later depending on the disconnection cause */
-			fd_psm_next_timeout(peer, 1, fd_p_dp_newdelay(peer));
-		} else {
-			/* We have pending exchanges, we move to CLOSING_GRACE which allows exchanges of answers but
-			not new requests */
-			CHECK_FCT( fd_psm_change_state(peer, STATE_CLOSING_GRACE) );
-			fd_psm_next_timeout(peer, 0, GRACE_TIMEOUT);
-			
-			/* Now send the DPA */
-			CHECK_FCT( fd_out_send( msg, NULL, peer, 0) );
-		}
+		/* A request on another SCTP stream may still be in flight. */
+		CHECK_FCT(start_grace_deadline(peer));
+		CHECK_FCT( fd_psm_change_state(peer, STATE_CLOSING_GRACE) );
+		fd_psm_next_timeout(peer, 0, GRACE_TIMEOUT);
+		CHECK_FCT( fd_out_send( msg, NULL, peer, 0) );
 	} else {
 		/* We received a DPA */
 		int curstate = fd_peer_getstate(peer);
 		if (curstate != STATE_CLOSING_GRACE) {
 			TRACE_DEBUG(INFO, "Ignoring DPA received in state %s", STATE_STR(curstate));
+			CHECK_FCT(fd_msg_free(*msg));
+			*msg = NULL;
+			return 0;
 		}
 			
 		/* In theory, we should control the Result-Code AVP. But since we will not go back to OPEN state here anyway, let's skip it */
@@ -151,12 +143,9 @@ int fd_p_dp_handle(struct msg ** msg, int req, struct fd_peer * peer)
 		CHECK_FCT( fd_peer_get_load_pending(&peer->p_hdr, &to_receive, &to_send) );
 		if ((to_receive != 0) || (to_send != 0)) {
 			TRACE_DEBUG(INFO, "Received DPA but pending load: [%ld, %ld], giving grace delay before closing", to_receive, to_send);
-			fd_psm_next_timeout(peer, 0, GRACE_TIMEOUT);
-			peer->p_flags.pf_localterm = 1;
-		} else {
-			/* otherwise, go to CLOSING state, the psm will handle terminating the connection */
-			CHECK_FCT( fd_psm_change_state(peer, STATE_CLOSING) );
 		}
+		fd_psm_next_timeout(peer, 0, GRACE_TIMEOUT);
+		peer->p_flags.pf_localterm = 1;
 	}
 	
 	return 0;
@@ -198,6 +187,8 @@ int fd_p_dp_initiate(struct fd_peer * peer, char * reason)
 	peer->p_hdr.info.runtime.pir_lastDC = val.u32;
 	
 	/* Update the peer state and timer */
+	CHECK_FCT(start_grace_deadline(peer));
+	peer->p_flags.pf_localterm = 1;
 	CHECK_FCT( fd_psm_change_state(peer, STATE_CLOSING_GRACE) );
 	fd_psm_next_timeout(peer, 0, DPR_TIMEOUT);
 	

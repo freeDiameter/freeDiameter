@@ -46,6 +46,8 @@ pthread_rwlock_t fd_g_activ_peers_rw = PTHREAD_RWLOCK_INITIALIZER;
 /* List of validation callbacks (registered with fd_peer_validate_register) */
 static struct fd_list validators = FD_LIST_INITIALIZER(validators);	/* list items are simple fd_list with "o" pointing to the callback */
 static pthread_rwlock_t validators_rw = PTHREAD_RWLOCK_INITIALIZER;
+static pthread_mutex_t peer_force_mtx = PTHREAD_MUTEX_INITIALIZER;
+static struct fd_list retired_peers = FD_LIST_INITIALIZER(retired_peers);
 
 
 /* Alloc / reinit a peer structure. if *ptr is not NULL, it must already point to a valid struct fd_peer. */
@@ -73,10 +75,11 @@ int fd_peer_alloc(struct fd_peer ** ptr)
 	
 	p->p_eyec = EYEC_PEER;
 	CHECK_POSIX( pthread_mutex_init(&p->p_state_mtx, NULL) );
+	CHECK_POSIX( pthread_cond_init(&p->p_send_cnd, NULL) );
 	
 	fd_list_init(&p->p_actives, p);
 	fd_list_init(&p->p_expiry, p);
-	CHECK_FCT( fd_fifo_new(&p->p_tosend, 5) );
+	CHECK_FCT( fd_fifo_new(&p->p_tosend, FD_PEER_SEND_QUEUE_MAX) );
 	CHECK_FCT( fd_fifo_new(&p->p_tofailover, 0) );
 	p->p_hbh = lrand48();
 	
@@ -91,7 +94,7 @@ int fd_peer_alloc(struct fd_peer ** ptr)
 }
 
 /* Add a new peer entry */
-int fd_peer_add ( struct peer_info * info, const char * orig_dbg, void (*cb)(struct peer_info *, void *), void * cb_data )
+static int peer_add( struct peer_info * info, const char * orig_dbg, void (*cb)(struct peer_info *, void *), void * cb_data )
 {
 	struct fd_peer *p = NULL;
 	struct fd_list * li, *li_inf;
@@ -180,6 +183,17 @@ int fd_peer_add ( struct peer_info * info, const char * orig_dbg, void (*cb)(str
 	return ret;
 }
 
+int fd_peer_add(struct peer_info *info, const char *orig_dbg,
+		void (*cb)(struct peer_info *, void *), void *cb_data)
+{
+	int ret;
+	CHECK_FCT(fd_work_admit(1, 0));
+	pthread_cleanup_push(fd_work_done, NULL);
+	ret = peer_add(info, orig_dbg, cb, cb_data);
+	pthread_cleanup_pop(1);
+	return ret;
+}
+
 /* Search for a peer */
 int fd_peer_getbyid( DiamId_t diamid, size_t diamidlen, int igncase, struct peer_hdr ** peer )
 {
@@ -242,10 +256,11 @@ void fd_peer_failover_msg(struct fd_peer * peer)
 	
 	/* Requeue all messages in the "out" queue */
 	while ( fd_fifo_tryget(peer->p_tosend, &m) == 0 ) {
+		pthread_cleanup_push(fd_work_done, NULL);
 		/* but only if they are routable */
 		if (fd_msg_is_routable(m)) {
 			fd_hook_call(HOOK_MESSAGE_FAILOVER, m, peer, NULL, fd_msg_pmdl_get(m));
-			CHECK_FCT_DO(fd_fifo_post_noblock(fd_g_outgoing, (void *)&m), 
+			CHECK_FCT_DO(fd_work_post_noblock(fd_g_outgoing, (void *)&m),
 				{
 					/* fallback: destroy the message */
 					fd_hook_call(HOOK_MESSAGE_DROPPED, m, NULL, "Internal error: unable to requeue this message during failover process", fd_msg_pmdl_get(m));
@@ -256,17 +271,20 @@ void fd_peer_failover_msg(struct fd_peer * peer)
 			/* fd_hook_call(HOOK_MESSAGE_DROPPED, m, NULL, "Non-routable message freed during handover", fd_msg_pmdl_get(m)); */
 			CHECK_FCT_DO(fd_msg_free(m), /* What can we do more? */)
 		}
+		pthread_cleanup_pop(1);
 	}
 	
 	/* Requeue all messages in the "failover" queue */
 	while ( fd_fifo_tryget(peer->p_tofailover, &m) == 0 ) {
+		pthread_cleanup_push(fd_work_done, NULL);
 		fd_hook_call(HOOK_MESSAGE_FAILOVER, m, peer, NULL, fd_msg_pmdl_get(m));
-		CHECK_FCT_DO(fd_fifo_post_noblock(fd_g_outgoing, (void *)&m), 
+		CHECK_FCT_DO(fd_work_post_noblock(fd_g_outgoing, (void *)&m),
 			{
 				/* fallback: destroy the message */
 				fd_hook_call(HOOK_MESSAGE_DROPPED, m, NULL, "Internal error: unable to requeue this message during failover process", fd_msg_pmdl_get(m));
 				CHECK_FCT_DO(fd_msg_free(m), /* What can we do more? */)
 			} );
+		pthread_cleanup_pop(1);
 	}
 	
 	/* Requeue all routable sent requests */
@@ -347,6 +365,7 @@ int fd_peer_free(struct fd_peer ** ptr)
 	
 	CHECK_FCT_DO( fd_fifo_del(&p->p_tosend), /* continue */ );
 	CHECK_FCT_DO( fd_fifo_del(&p->p_tofailover), /* continue */ );
+	CHECK_POSIX_DO( pthread_cond_destroy(&p->p_send_cnd), /* continue */);
 	CHECK_POSIX_DO( pthread_mutex_destroy(&p->p_state_mtx), /* continue */);
 	CHECK_POSIX_DO( pthread_mutex_destroy(&p->p_sr.mtx), /* continue */);
 	CHECK_POSIX_DO( pthread_cond_destroy(&p->p_sr.cnd), /* continue */);
@@ -360,73 +379,130 @@ int fd_peer_free(struct fd_peer ** ptr)
 	return 0;
 }
 
-/* Terminate peer module (destroy all peers, first gently, then violently) */
-int fd_peer_fini()
+static int peer_pending(long *count)
 {
 	struct fd_list * li;
-	struct fd_list purge = FD_LIST_INITIALIZER(purge); /* Store zombie peers here */
-	int list_empty;
-	struct timespec	wait_until, now;
-	
-	TRACE_ENTRY();
-	
-	CHECK_FCT_DO(fd_p_expi_fini(), /* continue */);
-	
-	TRACE_DEBUG(INFO, "Sending terminate signal to all peer connections");
-	
-	CHECK_FCT_DO( pthread_rwlock_wrlock(&fd_g_peers_rw), /* continue */ );
-	for (li = fd_g_peers.next; li != &fd_g_peers; li = li->next) {
+	*count = 0;
+	CHECK_POSIX(pthread_rwlock_rdlock(&fd_g_peers_rw));
+	li = fd_g_peers.next;
+	while (li != &fd_g_peers) {
 		struct fd_peer * peer = (struct fd_peer *)li->o;
-		
-		if (fd_peer_getstate(peer) != STATE_ZOMBIE) {
-			CHECK_FCT_DO( fd_psm_terminate(peer, "REBOOTING"), /* continue */ );
-		} else {
-			li = li->prev; /* to avoid breaking the loop */
-			fd_list_unlink(&peer->p_hdr.chain);
-			fd_list_insert_before(&purge, &peer->p_hdr.chain);
-		}
+		long sent, received;
+		int ret;
+		CHECK_POSIX(pthread_rwlock_unlock(&fd_g_peers_rw));
+		ret = fd_p_sr_pending_app(&peer->p_sr, &sent);
+		if (!ret)
+			ret = fd_peer_get_load_pending(&peer->p_hdr, NULL, &received);
+		if (ret)
+			return ret;
+		*count += sent;
+		if (received > 0)
+			*count += received;
+		CHECK_POSIX(pthread_rwlock_rdlock(&fd_g_peers_rw));
+		li = peer->p_hdr.chain.next;
 	}
-	list_empty = FD_IS_LIST_EMPTY(&fd_g_peers);
-	CHECK_FCT_DO( pthread_rwlock_unlock(&fd_g_peers_rw), /* continue */ );
-	
-	if (!list_empty) {
-		CHECK_SYS(  clock_gettime(CLOCK_REALTIME, &now)  );
-		fd_psm_start(); /* just in case */
-		TRACE_DEBUG(INFO, "Waiting for connections shutdown... (%d sec max)", DPR_TIMEOUT + 1);
-		wait_until.tv_sec  = now.tv_sec + DPR_TIMEOUT + 1;
-		wait_until.tv_nsec = now.tv_nsec;
+	CHECK_POSIX(pthread_rwlock_unlock(&fd_g_peers_rw));
+	return 0;
+}
+
+int fd_peer_pending(long *count)
+{
+	int ret;
+	CHECK_POSIX(pthread_mutex_lock(&peer_force_mtx));
+	pthread_cleanup_push(fd_cleanup_mutex, &peer_force_mtx);
+	ret = peer_pending(count);
+	pthread_cleanup_pop(1);
+	return ret;
+}
+
+/* Stop peer threads without freeing objects still reachable by routing workers. */
+static int peer_stop(const struct timespec *deadline)
+{
+	struct fd_list *li;
+	struct timespec now;
+	int running;
+
+	CHECK_POSIX(pthread_rwlock_rdlock(&fd_g_peers_rw));
+	for (li = fd_g_peers.next; li != &fd_g_peers; li = li->next) {
+		struct fd_peer *peer = (struct fd_peer *)li->o;
+		CHECK_FCT_DO(fd_psm_terminate(peer, "REBOOTING"), );
 	}
-	
-	while ((!list_empty) && (TS_IS_INFERIOR(&now, &wait_until))) {
-		
-		/* Allow the PSM(s) to execute */
-		usleep(100000);
-		
-		/* Remove zombie peers */
-		CHECK_FCT_DO( pthread_rwlock_wrlock(&fd_g_peers_rw), /* continue */ );
+	CHECK_POSIX(pthread_rwlock_unlock(&fd_g_peers_rw));
+	CHECK_FCT(fd_psm_start());
+
+	do {
+		running = 0;
+		CHECK_POSIX(pthread_rwlock_rdlock(&fd_g_peers_rw));
 		for (li = fd_g_peers.next; li != &fd_g_peers; li = li->next) {
-			struct fd_peer * peer = (struct fd_peer *)li->o;
-			if (fd_peer_getstate(peer) == STATE_ZOMBIE) {
-				li = li->prev; /* to avoid breaking the loop */
-				fd_list_unlink(&peer->p_hdr.chain);
-				fd_list_insert_before(&purge, &peer->p_hdr.chain);
-			}
+			struct fd_peer *peer = (struct fd_peer *)li->o;
+			CHECK_POSIX_DO(pthread_mutex_lock(&peer->p_state_mtx), );
+			if (peer->p_state != STATE_ZOMBIE || peer->p_psm != (pthread_t)NULL)
+				running = 1;
+			CHECK_POSIX_DO(pthread_mutex_unlock(&peer->p_state_mtx), );
 		}
-		list_empty = FD_IS_LIST_EMPTY(&fd_g_peers);
-		CHECK_FCT_DO( pthread_rwlock_unlock(&fd_g_peers_rw), /* continue */ );
-		CHECK_SYS(  clock_gettime(CLOCK_REALTIME, &now)  );
+		CHECK_POSIX(pthread_rwlock_unlock(&fd_g_peers_rw));
+		if (!running)
+			return 0;
+		if (clock_gettime(CLOCK_MONOTONIC, &now) != 0) {
+			LOG_E("Cannot read peer shutdown clock: %s", strerror(errno));
+			break;
+		}
+		if (!TS_IS_INFERIOR(&now, deadline))
+			break;
+		usleep(100000);
+	} while (1);
+
+	LOG_N("Shutdown deadline reached; forcing remaining peer connections closed");
+	CHECK_POSIX(pthread_rwlock_rdlock(&fd_g_peers_rw));
+	li = fd_g_peers.next;
+	while (li != &fd_g_peers) {
+		struct fd_peer *peer = (struct fd_peer *)li->o;
+		int needs_abort;
+		CHECK_POSIX_DO(pthread_mutex_lock(&peer->p_state_mtx), );
+		needs_abort = peer->p_state != STATE_ZOMBIE || peer->p_psm != (pthread_t)NULL;
+		CHECK_POSIX_DO(pthread_mutex_unlock(&peer->p_state_mtx), );
+		if (needs_abort) {
+			CHECK_POSIX(pthread_rwlock_unlock(&fd_g_peers_rw));
+			fd_psm_abord(peer);
+			CHECK_POSIX(pthread_rwlock_rdlock(&fd_g_peers_rw));
+		}
+		li = peer->p_hdr.chain.next;
 	}
+	CHECK_POSIX(pthread_rwlock_unlock(&fd_g_peers_rw));
+	return 0;
+}
 
-	fd_peer_fini_force();
+int fd_peer_stop(const struct timespec *deadline)
+{
+	int ret;
+	CHECK_POSIX(pthread_mutex_lock(&peer_force_mtx));
+	pthread_cleanup_push(fd_cleanup_mutex, &peer_force_mtx);
+	ret = peer_stop(deadline);
+	pthread_cleanup_pop(1);
+	return ret;
+}
 
-	/* Free memory objects of all peers */
-	while (!FD_IS_LIST_EMPTY(&purge)) {
-		struct fd_peer * peer = (struct fd_peer *)(purge.next->o);
+/* Destroy peer objects only after routing and dispatch have stopped. */
+int fd_peer_fini()
+{
+	struct fd_list purge = FD_LIST_INITIALIZER(purge);
+	CHECK_POSIX(pthread_rwlock_wrlock(&fd_g_peers_rw));
+	while (!FD_IS_LIST_EMPTY(&fd_g_peers)) {
+		struct fd_peer *peer = (struct fd_peer *)fd_g_peers.next->o;
 		fd_list_unlink(&peer->p_hdr.chain);
-		fd_peer_free(&peer);
+		fd_list_insert_before(&purge, &peer->p_hdr.chain);
 	}
-
-	/* Now empty the validators list */
+	while (!FD_IS_LIST_EMPTY(&retired_peers)) {
+		struct fd_peer *peer = (struct fd_peer *)retired_peers.next->o;
+		fd_list_unlink(&peer->p_hdr.chain);
+		fd_list_insert_before(&purge, &peer->p_hdr.chain);
+	}
+	CHECK_POSIX(pthread_rwlock_unlock(&fd_g_peers_rw));
+	while (!FD_IS_LIST_EMPTY(&purge)) {
+		struct fd_peer *peer = (struct fd_peer *)purge.next->o;
+		fd_list_unlink(&peer->p_hdr.chain);
+		CHECK_FCT_DO(fd_peer_free(&peer), );
+	}
 	CHECK_FCT_DO( pthread_rwlock_wrlock(&validators_rw), /* continue */ );
 	while (!FD_IS_LIST_EMPTY( &validators )) {
 		struct fd_list * v = validators.next;
@@ -434,40 +510,40 @@ int fd_peer_fini()
 		free(v);
 	}
 	CHECK_FCT_DO( pthread_rwlock_unlock(&validators_rw), /* continue */ );
-	
 	return 0;
 }
 
 /* Terminate peer module (destroy all peers forcibly) */
+static int peer_fini_force()
+{
+	struct fd_list pending = FD_LIST_INITIALIZER(pending);
+	TRACE_DEBUG(INFO, "Forcing connections shutdown");
+	CHECK_POSIX(pthread_rwlock_wrlock(&fd_g_peers_rw));
+	while (!FD_IS_LIST_EMPTY(&fd_g_peers)) {
+		struct fd_peer *peer = (struct fd_peer *)fd_g_peers.next->o;
+		fd_list_unlink(&peer->p_hdr.chain);
+		fd_list_insert_before(&pending, &peer->p_hdr.chain);
+	}
+	CHECK_POSIX(pthread_rwlock_unlock(&fd_g_peers_rw));
+	while (!FD_IS_LIST_EMPTY(&pending)) {
+		struct fd_peer *peer = (struct fd_peer *)pending.next->o;
+		fd_list_unlink(&peer->p_hdr.chain);
+		fd_list_insert_before(&retired_peers, &peer->p_hdr.chain);
+		fd_psm_abord(peer);
+	}
+	return 0;
+}
+
 int fd_peer_fini_force()
 {
-	struct fd_list purge = FD_LIST_INITIALIZER(purge); /* Store zombie peers here */
-	int list_empty;
-
-	CHECK_FCT_DO( pthread_rwlock_wrlock(&fd_g_peers_rw), /* continue */ );
-	list_empty = FD_IS_LIST_EMPTY(&fd_g_peers);
-	CHECK_FCT_DO( pthread_rwlock_unlock(&fd_g_peers_rw), /* continue */ );
-
-	if (!list_empty) {
-		TRACE_DEBUG(INFO, "Forcing connections shutdown");
- 		CHECK_FCT_DO( pthread_rwlock_wrlock(&fd_g_peers_rw), /* continue */ );
-		while (!FD_IS_LIST_EMPTY(&fd_g_peers)) {
-			struct fd_peer * peer = (struct fd_peer *)(fd_g_peers.next->o);
-			fd_psm_abord(peer);
-			fd_list_unlink(&peer->p_hdr.chain);
-			fd_list_insert_before(&purge, &peer->p_hdr.chain);
-		}
-		CHECK_FCT_DO( pthread_rwlock_unlock(&fd_g_peers_rw), /* continue */ );
-	}
-
-	/* Free memory objects of all peers */
-	while (!FD_IS_LIST_EMPTY(&purge)) {
-		struct fd_peer * peer = (struct fd_peer *)(purge.next->o);
-		fd_list_unlink(&peer->p_hdr.chain);
-		fd_peer_free(&peer);
-	}
-
-	return 0;
+	int ret;
+	if (fd_work_is_quiescing())
+		return EBUSY;
+	CHECK_POSIX(pthread_mutex_lock(&peer_force_mtx));
+	pthread_cleanup_push(fd_cleanup_mutex, &peer_force_mtx);
+	ret = fd_work_is_quiescing() ? EBUSY : peer_fini_force();
+	pthread_cleanup_pop(1);
+	return ret;
 }
 
 /* Dump info of one peer */

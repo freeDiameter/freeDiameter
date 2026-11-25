@@ -82,7 +82,14 @@ jobs:
       - name: install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y bison curl flex gdb iproute2 libsctp-dev libgnutls28-dev libgcrypt-dev libidn2-dev libjsoncpp-dev openssl python3-dev swig util-linux
+          sudo apt-get install -y bison curl flex gdb iproute2 kmod libsctp-dev libgnutls28-dev libgcrypt-dev libidn2-dev libjsoncpp-dev openssl python3-dev swig util-linux
+      - name: prepare isolated network tests
+        run: |
+          if [ -e /proc/sys/kernel/apparmor_restrict_unprivileged_userns ]; then
+            sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
+          fi
+          test -d /sys/module/dummy || sudo modprobe dummy
+          test -d /sys/module/sch_netem || sudo modprobe sch_netem
       - name: allow debugger to attach to test peers
         run: sudo sysctl -w kernel.yama.ptrace_scope=0
       - name: check SCTP support
@@ -112,6 +119,7 @@ jobs:
             -DBUILD_MULTI_PEER_TESTS=ON \
             -DBUILD_TEST_APP=ON \
             -DBUILD_TEST_NETEMUL=ON \
+            -DBUILD_DBG_MSG_DUMPS=ON \
             -DBUILD_DBG_INTERACTIVE=ON \
             -DBUILD_DBG_DICT_DUMP_JSON=ON \
             -DBUILD_RT_EREG=ON \
@@ -131,11 +139,12 @@ jobs:
       - name: test DTLS connections
         if: ${{ matrix.dtls == 'ON' && matrix.sctp == 'ON' }}
         run: ctest --test-dir test.build -R '^testcnx(_dtls)?$' --no-tests=error --output-on-failure --output-junit "${{ github.workspace }}/test.build/connection-results.xml"
-      - name: verify SCTP-AUTH test results
-        if: ${{ matrix.dtls == 'ON' && matrix.sctp == 'ON' }}
+      - name: verify shutdown and SCTP-AUTH test results
         env:
           SCTP_AUTH: ${{ matrix.auth }}
           MULTI_PEER_TLS: ${{ matrix.tls }}
+          MULTI_PEER_SCTP: ${{ matrix.sctp }}
+          ENABLE_DTLS: ${{ matrix.dtls }}
         run: |
           python3 - <<'PY'
           import os
@@ -150,10 +159,18 @@ jobs:
                   if case.find("failure") is not None or case.find("error") is not None:
                       raise SystemExit("%s failed in %s" % (name, path))
 
+          tls = os.environ["MULTI_PEER_TLS"] == "ON"
+          sctp = os.environ["MULTI_PEER_SCTP"] == "ON"
+          dtls = os.environ["ENABLE_DTLS"] == "ON"
           no_auth = os.environ["SCTP_AUTH"] == "0"
-          check("test.build/connection-results.xml", {"testcnx": False, "testcnx_dtls": no_auth})
-          multi_peer = {"test_sctp_security_config": False, "test_multi_peer_harness": False}
-          if os.environ["MULTI_PEER_TLS"] == "ON":
+          multi_peer = {"test_sctp_security_config": False, "test_multi_peer_harness": False,
+                        "test_shutdown_async": tls and sctp and dtls and no_auth}
+          if not sctp:
+              for mode in ("client", "simultaneous", "deadline"):
+                  multi_peer["test_tcp_shutdown_pending_" + mode] = False
+          if dtls and sctp:
+              check("test.build/connection-results.xml", {"testcnx": False, "testcnx_dtls": no_auth})
+          if dtls and sctp and tls:
               multi_peer.update({"test_two_peer_no_tls_with_legacy_selection": False,
                                  "test_sctp_auth_tls": no_auth, "test_multi_peer_mixed_sctp": no_auth,
                                  "test_sctp_outgoing_fallback": False,
@@ -163,15 +180,14 @@ jobs:
                                  "test_sctp_outgoing_handshake_failure": no_auth,
                                  "test_sctp_dtls_wrong_ppid": no_auth,
                                  "test_sctp_openssl_client": no_auth,
-                                 "test_sctp_openssl_server": no_auth})
-              if no_auth:
-                  multi_peer["test_sctp_netem"] = True
-                  multi_peer["test_sctp_shutdown_pending_client"] = True
-                  multi_peer["test_sctp_shutdown_pending_simultaneous"] = True
-                  for mode in ("handshake_client", "handshake_server", "handshake_timeout",
-                               "shutdown", "shutdown_timeout"):
-                      multi_peer["test_sctp_ack_" + mode] = True
-          else:
+                                 "test_sctp_openssl_server": no_auth,
+                                 "test_sctp_netem": no_auth})
+              for mode in ("client", "simultaneous", "deadline"):
+                  multi_peer["test_sctp_shutdown_pending_" + mode] = no_auth
+              for mode in ("handshake_client", "handshake_server", "handshake_timeout",
+                           "shutdown", "shutdown_timeout"):
+                  multi_peer["test_sctp_ack_" + mode] = no_auth
+          if not tls:
               multi_peer["test_two_peer_test_app"] = False
           check("test.build/multi-peer-results.xml", multi_peer)
           PY
@@ -193,7 +209,14 @@ jobs:
       - name: install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y bison flex libgnutls28-dev libgcrypt-dev libidn2-dev libjsoncpp-dev
+          sudo apt-get install -y bison flex iproute2 kmod libgnutls28-dev libgcrypt-dev libidn2-dev libjsoncpp-dev util-linux
+      - name: prepare isolated network tests
+        run: |
+          if [ -e /proc/sys/kernel/apparmor_restrict_unprivileged_userns ]; then
+            sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
+          fi
+          test -d /sys/module/dummy || sudo modprobe dummy
+          test -d /sys/module/sch_netem || sudo modprobe sch_netem
       - name: configure
         run: |
           cmake -S . -B test.asan \
@@ -204,10 +227,24 @@ jobs:
             -DBUILD_MULTI_PEER_TESTS=ON \
             -DBUILD_TEST_APP=ON \
             -DBUILD_TEST_NETEMUL=ON \
+            -DBUILD_DBG_MSG_DUMPS=ON \
             -DBUILD_DBG_DICT_DUMP_JSON=ON \
             -DBUILD_RT_EREG=ON \
             -DBUILD_APP_REDIRECT=ON
       - name: build
         run: cmake --build test.asan --parallel 2
       - name: test
-        run: ctest --test-dir test.asan --no-tests=error --output-on-failure
+        run: ctest --test-dir test.asan --no-tests=error --output-on-failure --output-junit "${{ github.workspace }}/test.asan/results.xml"
+      - name: verify shutdown test results
+        run: |
+          python3 - <<'PY'
+          import xml.etree.ElementTree as ET
+
+          cases = {case.get("name"): case for case in ET.parse("test.asan/results.xml").iter("testcase")}
+          names = ["testfifo", "testcnx", "testshutdown", "test_shutdown_async"]
+          names += ["test_tcp_shutdown_pending_" + mode for mode in ("client", "simultaneous", "deadline")]
+          for name in names:
+              case = cases.get(name)
+              if case is None or any(case.find(tag) is not None for tag in ("skipped", "failure", "error")):
+                  raise SystemExit("Missing, skipped, or failed shutdown test: " + name)
+          PY

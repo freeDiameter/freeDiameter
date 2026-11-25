@@ -72,7 +72,7 @@
 
 /* Delay where the connection is maintained opened to allow exchanging remaining pending answers after DPR/DPA */
 #ifndef GRACE_TIMEOUT
-#define GRACE_TIMEOUT   1	/* in seconds */
+#define GRACE_TIMEOUT   3	/* in seconds */
 #endif /* GRACE_TIMEOUT */
 
 /* The Vendor-Id to advertise in CER/CEA */
@@ -111,6 +111,23 @@ extern struct fifo * fd_g_local; /* messages to be handled to local extensions *
 int fd_queues_init(void);
 int fd_queues_init_after_conf(void);
 int fd_queues_fini(struct fifo ** queue);
+int fd_work_post(struct fifo *queue, void **item, int nonblock);
+int fd_work_admit(int local_request, int worker);
+struct fd_work_message {
+	int admitted;
+};
+int fd_work_message_get(struct msg *msg, struct fd_work_message **work);
+void fd_work_message_start(struct fd_work_message *work);
+void fd_work_message_cancel(struct fd_work_message *work);
+void fd_work_start(void);
+void fd_work_done(void *unused);
+void fd_work_snapshot(unsigned long *generation, unsigned long *pending);
+void fd_work_quiesce(void);
+int fd_work_is_quiescing(void);
+void fd_work_stop(void);
+int fd_work_stop_if_idle(unsigned long generation);
+#define fd_work_post_msg(queue, item) fd_work_post((queue), (void **)(item), 0)
+#define fd_work_post_noblock(queue, item) fd_work_post((queue), (void **)(item), 1)
 
 /* Triggered events */
 int fd_event_trig_call_cb(int trigger_val);
@@ -124,6 +141,7 @@ int fd_rtdisp_init(void);
 int fd_rtdisp_cleanstop(void);
 int fd_rtdisp_fini(void);
 int fd_rtdisp_cleanup(void);
+int fd_rtdisp_is_worker(void);
 
 /* Sentinel for the sent requests list */
 struct sr_list {
@@ -176,10 +194,15 @@ struct fd_peer { /* The "real" definition of the peer structure */
 	struct fifo	*p_events;	/* Queue pointer is guarded by p_state_mtx during post and teardown */
 	pthread_t	 p_psm;
 	struct timespec	 p_psm_timer;
+	struct timespec	 p_grace_deadline;
 	
 	/* Outgoing message queue, and thread managing sending the messages */
+#define FD_PEER_SEND_QUEUE_MAX 5
 	struct fifo	*p_tosend;
 	pthread_t	 p_outthr;
+	long		 p_sending;	/* fd_out_send calls in progress, protected by p_state_mtx */
+	int		 p_send_busy;
+	pthread_cond_t	 p_send_cnd;
 	
 	/* The next hop-by-hop id value for the link, only read & modified by p_outthr */
 	uint32_t	 p_hbh;
@@ -278,6 +301,8 @@ struct cnx_incoming {
 /* Functions */
 int  fd_peer_fini();
 int  fd_peer_fini_force();
+int  fd_peer_stop(const struct timespec *deadline);
+int  fd_peer_pending(long *count);
 int  fd_peer_alloc(struct fd_peer ** ptr);
 int  fd_peer_free(struct fd_peer ** ptr);
 int fd_peer_handle_newCER( struct msg ** cer, struct cnxctx ** cnx );
@@ -303,6 +328,8 @@ void fd_psm_cleanup(struct fd_peer * peer, int terminate);
 
 /* Peer out */
 int fd_out_send(struct msg ** msg, struct cnxctx * cnx, struct fd_peer * peer, int update_reqin_cnt);
+int fd_out_drain(struct fd_peer *peer);
+int fd_out_wait(struct fd_peer *peer);
 int fd_out_start(struct fd_peer * peer);
 int fd_out_stop(struct fd_peer * peer);
 
@@ -313,6 +340,7 @@ void fd_p_cnx_abort(struct fd_peer * peer, int cleanup_all);
 /* Peer sent requests cache */
 int fd_p_sr_store(struct sr_list * srlist, struct msg **req, uint32_t *hbhloc, uint32_t hbh_restore);
 int fd_p_sr_fetch(struct sr_list * srlist, uint32_t hbh, struct msg **req);
+int fd_p_sr_pending_app(struct sr_list *srlist, long *count);
 int fd_p_sr_start(struct sr_list * srlist);
 int fd_p_sr_stop(struct sr_list * srlist);
 void fd_p_sr_failover(struct sr_list * srlist);
@@ -376,6 +404,7 @@ char *          fd_cnx_getremoteid(struct cnxctx * conn);
 int             fd_cnx_receive(struct cnxctx * conn, struct timespec * timeout, unsigned char **buf, size_t * len);
 int             fd_cnx_recv_setaltfifo(struct cnxctx * conn, struct fifo * alt_fifo); /* send FDEVP_CNX_MSG_RECV event to the fifo list */
 int             fd_cnx_send(struct cnxctx * conn, unsigned char * buf, size_t len);
+void            fd_cnx_abort_io(struct cnxctx *conn);
 void            fd_cnx_destroy(struct cnxctx * conn);
 int             fd_tls_verify_credentials_2(gnutls_session_t session);
 

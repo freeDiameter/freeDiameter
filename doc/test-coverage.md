@@ -14,14 +14,15 @@ unless explicitly enabled.
 | --- | --- |
 | `testsctp` | SCTP socket operations and message streams; it does no SCTP work when built with `DISABLE_SCTP`. |
 | `testostr` | Octet-string hashing and Diameter identity operations. |
-| `testfifo` | FIFO operations, timeouts, concurrent access, cancellation, thresholds, and queue limits. |
-| `testpeers` | Peer creation and identity lookup. |
+| `testfifo` | FIFO operations, timeouts, concurrent access, cancellation, thresholds, and queue limits, including waking blocked producers when limits change. |
+| `testpeers` | Peer creation, identity lookup, and forced-disconnect peer lifetime. |
 | `testdict` | Dictionary objects, searches, rules, and deletion. |
 | `testmesg` | Message and AVP construction, serialization, parsing, dictionary and rule validation, and answers. |
 | `testmesg_stress` | Repeated message construction, parsing, answer creation, and serialization. |
 | `testsess` | Session identifiers, state, handlers, and timeouts. |
 | `testdisp` | Dispatch handlers, matching, callback ordering, and application support. |
-| `testcnx` | Connection operations including TCP and TLS, plus SCTP where enabled. |
+| `testcnx` | Connection operations including TCP and TLS, plus SCTP where enabled; queued sends on entry to peer shutdown grace and blocked senders during grace, failover, and forced abort. |
+| `testshutdown` | Caller-selected shutdown deadlines, indefinite waits, invalid timeout rejection, first-request precedence, and watchdog cancellation after successful cleanup. |
 | `testloadext` | Loading built extension libraries and resolving their entry points; it does not execute the entry points. |
 | `test_dbg_interactive` | When `BUILD_DBG_INTERACTIVE` is enabled: script and console operation, callbacks, synchronization, failure handling, and execution of the Python sample. |
 
@@ -53,13 +54,18 @@ and `dbg_loglevel`, and the debug scenarios require `dbg_loglevel`. Scenarios
 that inspect debug routing output are not registered in `MaxPerformance` builds,
 which strip that output.
 GitHub Actions runs the multi-peer plan on Ubuntu for all four combinations of
-TCP/SCTP and TLS enabled/disabled.
+TCP/SCTP and TLS enabled/disabled. It prepares isolated network-test
+prerequisites and requires the applicable TCP and DTLS/SCTP shutdown tests to
+run, rather than silently pass as skipped. The AUTH-disabled DTLS/SCTP cases
+are expected to skip. The SCTP-enabled OpenSSL build is used for the DTLS
+interoperability tests.
 
 The separate AddressSanitizer job runs all the C tests, including `testcnx`, and
 the multi-peer scenarios with leak detection enabled, using TCP without TLS and
 with SCTP disabled. The sanitizer job disables only ODR
 violation detection because extensions intentionally export the same
-`fd_ext_depends` symbol; it does not disable leak detection.
+`fd_ext_depends` symbol; it does not disable leak detection. The job also
+requires the TCP shutdown and asynchronous-extension scenarios to run.
 
 The harness starts separate daemons with distinct identities and dynamically
 selected ports bound to IPv4 loopback. It waits for connections and exchanges,
@@ -110,9 +116,9 @@ enabled, additional tests exercise:
 - With `dbg_msg_dumps` built, pending-request shutdown tests briefly drop
   traffic while a request is queued, then apply 100 ms delay as the requesting
   daemon or both daemons shut down. They check bounded process termination and
-  report whether the request was answered, sent to failover, or its answer was
-  dropped during shutdown. These characterize the outcome; they do not
-  guarantee application-level delivery.
+  require the server to process the request and the client to receive its
+  answer callback. A separate case keeps traffic blocked and requires a
+  deadline report and an error callback.
 
 These tests report as skipped when their prerequisites are unavailable. For
 example, the GitHub Actions AUTH-enabled TLS/SCTP job builds an SCTP-enabled
@@ -122,6 +128,40 @@ OpenSSL to run the interoperability cases. To run them locally:
 FD_DTLS_SCTP_OPENSSL=/path/to/openssl \
   ctest -R '^test_sctp_(openssl_|netem|ack_|shutdown_pending_)' --output-on-failure
 ```
+
+With TCP selected, `test_tcp_shutdown_pending_*` exercises the same one-sided,
+simultaneous and deadline cases, with or without TLS. These tests use private
+Linux network namespaces and `tc netem`; they skip if those facilities are
+unavailable. When `test_netemul` and `dbg_msg_dumps` are built,
+`test_shutdown_async` also checks an extension retaining a request during
+shutdown.
+
+Shutdown stops accepting new connections and new independent local requests,
+but continues admitted work and answers. It waits for tracked messages and
+callbacks to drain, including a three-second quiet period, for up to ten
+seconds before starting peer disconnection. Peer disconnection shares a
+15-second deadline measured after listeners and peer expiry stop, followed by
+up to two seconds to process failover. The peer-side DPR/DPA grace period is at least
+three seconds and can extend for pending exchanges, up to 15 seconds. Deadline
+expiry is logged; it cannot guarantee delivery when a peer or network fails.
+Shutdown is initiated through `fd_core_shutdown()` or
+`fd_core_shutdown_timeout(timeout)`, followed by
+`fd_core_wait_shutdown_complete()`. The existing no-argument API disables the
+forced-exit watchdog, as does a timeout of `-1`. A nonnegative timeout is a
+total deadline in seconds from the request, including listener cleanup,
+draining, worker joins and extension cleanup; `0` requests immediate failure
+exit. The first shutdown request determines the timeout; later requests do not
+change it. Values below `-1` are rejected without initiating shutdown.
+
+The daemon's SIGINT/SIGTERM and startup-error paths explicitly request 60
+seconds. Internal library or extension shutdown requests using the no-argument
+API have no forced-exit watchdog. If a selected deadline expires, the watchdog
+attempts to write an error to standard error and terminates the entire process
+with failure, without further cleanup. This also applies when embedded as a
+library, so embedders should use `-1` when forced process termination is not
+appropriate. Normal shutdown disarms the watchdog. The shorter drain and
+peer deadlines are unchanged; `-1` disables forced process exit, not those
+best-effort protocol deadlines.
 
 ### Adding a multi-peer scenario
 

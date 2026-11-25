@@ -1751,6 +1751,55 @@ int main(int argc, char *argv[])
 		CHECK( 0, strcmp( buf4, TEST_IP4 ) );
 	}
 	
+	/* Quiescing rejects new local requests but still accepts answers. */
+	{
+		struct msg *msg = NULL, *queued = NULL;
+		struct msg_hdr *hdr;
+		unsigned long generation, pending;
+		CHECK(0, fd_queues_init());
+		CHECK(0, fd_msg_new(NULL, 0, &msg));
+		CHECK(0, fd_msg_hdr(msg, &hdr));
+		hdr->msg_flags |= CMD_FLAG_REQUEST;
+		CHECK(0, fd_msg_send(&msg, NULL, NULL));
+		CHECK(0, fd_fifo_tryget(fd_g_outgoing, &queued));
+		fd_work_done(NULL);
+		fd_work_snapshot(&generation, &pending);
+		CHECK(1UL, pending);
+		fd_work_quiesce();
+		CHECK(0, fd_msg_send(&queued, NULL, NULL));
+		CHECK(0, fd_fifo_tryget(fd_g_outgoing, &queued));
+		fd_work_done(NULL);
+		CHECK(0, fd_msg_free(queued));
+		fd_work_snapshot(&generation, &pending);
+		CHECK(0UL, pending);
+		{
+			struct peer_info info;
+			memset(&info, 0, sizeof(info));
+			info.pi_diamid = "shutdown.localdomain";
+			CHECK(EBUSY, fd_peer_add(&info, "shutdown test", NULL, NULL));
+			CHECK(EBUSY, fd_connections_shutdown());
+		}
+		CHECK(0, fd_msg_new(NULL, 0, &msg));
+		CHECK(0, fd_msg_hdr(msg, &hdr));
+		hdr->msg_flags |= CMD_FLAG_REQUEST;
+		CHECK(EBUSY, fd_msg_send(&msg, NULL, NULL));
+		CHECK(1, msg != NULL);
+		hdr->msg_flags &= ~CMD_FLAG_REQUEST;
+		CHECK(0, fd_msg_send(&msg, NULL, NULL));
+		CHECK(1, msg == NULL);
+		CHECK(0, fd_fifo_tryget(fd_g_outgoing, &queued));
+		fd_work_done(NULL);
+		CHECK(0, fd_msg_free(queued));
+		fd_work_stop();
+		CHECK(0, fd_msg_new(NULL, 0, &msg));
+		CHECK(EBUSY, fd_msg_send(&msg, NULL, NULL));
+		CHECK(1, msg != NULL);
+		CHECK(0, fd_msg_free(msg));
+		CHECK(0, fd_queues_fini(&fd_g_incoming));
+		CHECK(0, fd_queues_fini(&fd_g_outgoing));
+		CHECK(0, fd_queues_fini(&fd_g_local));
+	}
+
 	/* That's all for the tests yet */
 	PASSTEST();
 } 

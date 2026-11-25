@@ -222,7 +222,7 @@ int main(int argc, char * argv[])
 
 	return EXIT_SUCCESS;
 error:
-	CHECK_FCT_DO( fd_core_shutdown(),  );
+	CHECK_FCT_DO( fd_core_shutdown_timeout(60),  );
 	CHECK_FCT_DO( fd_core_wait_shutdown_complete(), return EXIT_FAILURE );
 	fd_thr_term(&signals_thr);
 	return EXIT_FAILURE;
@@ -436,7 +436,7 @@ static void * catch_signals(void * arg)
 
 			case SIGINT:
 			case SIGTERM:
-				CHECK_FCT_DO( fd_core_shutdown(), goto out );
+				CHECK_FCT_DO( fd_core_shutdown_timeout(60), goto out );
 
 		}
 	}

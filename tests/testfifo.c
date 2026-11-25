@@ -186,6 +186,29 @@ static void * test_fct2(void * data)
 	return NULL;
 }
 
+static void wait_for_blocked_producer(struct fifo *queue)
+{
+	struct timespec deadline, now, pause = { 0, 10000000 };
+	char *dump = NULL, *threads;
+	size_t dump_len = 0;
+	int pulling, pushing;
+
+	CHECK(0, clock_gettime(CLOCK_MONOTONIC, &deadline));
+	deadline.tv_sec += 5;
+	do {
+		CHECK(1, fd_fifo_dump(&dump, &dump_len, NULL, NULL, queue, NULL) != NULL);
+		threads = strstr(dump, "threads:");
+		CHECK(1, threads != NULL);
+		CHECK(2, sscanf(threads, "threads:%d,%d", &pulling, &pushing));
+		if (pushing)
+			break;
+		CHECK(0, clock_gettime(CLOCK_MONOTONIC, &now));
+		CHECK(1, TS_IS_INFERIOR(&now, &deadline));
+		nanosleep(&pause, NULL);
+	} while (1);
+	free(dump);
+}
+
 
 /* Main test routine */
 int main(int argc, char *argv[])
@@ -567,6 +590,39 @@ int main(int argc, char *argv[])
 		CHECK( 0, pthread_join( th, NULL ) );
 		CHECK( 15, iter );
 		
+	}
+
+	/* Raising or removing a limit releases producers already waiting on a full queue. */
+	{
+		struct fifo *queue = NULL;
+		struct test_data td;
+		pthread_t thread;
+		int *item, i;
+
+		CHECK(0, fd_fifo_new(&queue, 1));
+		item = malloc(sizeof(*item));
+		CHECK(1, item != NULL);
+		*item = -1;
+		CHECK(0, fd_fifo_post(queue, &item));
+		td.queue = queue;
+		td.nbr = 1;
+		CHECK(0, pthread_create(&thread, NULL, test_fct2, &td));
+		wait_for_blocked_producer(queue);
+		CHECK(0, fd_fifo_set_max(queue, 2));
+		CHECK(0, pthread_join(thread, NULL));
+		CHECK(2, fd_fifo_length(queue));
+
+		CHECK(0, fd_fifo_set_max(queue, 1));
+		CHECK(0, pthread_create(&thread, NULL, test_fct2, &td));
+		wait_for_blocked_producer(queue);
+		CHECK(0, fd_fifo_set_max(queue, 0));
+		CHECK(0, pthread_join(thread, NULL));
+		CHECK(3, fd_fifo_length(queue));
+		for (i = 0; i < 3; i++) {
+			CHECK(0, fd_fifo_tryget(queue, &item));
+			free(item);
+		}
+		CHECK(0, fd_fifo_del(&queue));
 	}
 	
 	/* Delete the messages */

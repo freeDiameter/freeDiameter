@@ -77,11 +77,13 @@ def statistics():
     return queues[0]
 
 
-def setup_namespace():
+def setup_namespace(enable_auth=True):
     command("ip", "link", "set", "lo", "up")
     command("ip", "link", "add", "dev", "fdtest0", "type", "dummy")
     command("ip", "addr", "add", "192.0.2.1/32", "dev", "fdtest0")
     command("ip", "link", "set", "fdtest0", "up")
+    if not enable_auth:
+        return
     try:
         Path("/proc/sys/net/sctp/auth_enable").write_text("1")
     except OSError as error:
@@ -92,8 +94,9 @@ def setup_namespace():
         raise SystemExit(77)
 
 
-def run_isolated(arguments):
-    require_sctp_auth()
+def run_isolated(arguments, require_auth=True):
+    if require_auth:
+        require_sctp_auth()
     for tool in ("unshare", "ip", "tc"):
         if not shutil.which(tool):
             print("SKIP: %s is required for isolated netem tests." % tool, file=sys.stderr)

@@ -207,11 +207,17 @@ static int leave_open_state(struct fd_peer * peer, int skip_failover)
 	fd_list_unlink( &peer->p_actives );
 	CHECK_POSIX( pthread_rwlock_unlock(&fd_g_activ_peers_rw) );
 
+	/* Release producers that selected OPEN before the state changed. */
+	CHECK_FCT(fd_fifo_set_max(peer->p_tosend, 0));
+
 	/* Stop the "out" thread */
 	CHECK_FCT( fd_out_stop(peer) );
 
 	/* Failover the messages */
-	if (!skip_failover) {
+	if (skip_failover) {
+		CHECK_FCT(fd_out_drain(peer));
+	} else {
+		CHECK_FCT(fd_out_wait(peer));
 		fd_peer_failover_msg(peer);
 	}
 
@@ -304,6 +310,8 @@ int fd_psm_change_state(struct fd_peer * peer, int new_state)
 			peer->p_hdr.info.pi_diamid);
 
 
+	if (new_state == STATE_OPEN)
+		CHECK_FCT(fd_fifo_set_max(peer->p_tosend, FD_PEER_SEND_QUEUE_MAX));
 	CHECK_POSIX( pthread_mutex_lock(&peer->p_state_mtx) );
 	peer->p_state = new_state;
 	CHECK_POSIX( pthread_mutex_unlock(&peer->p_state_mtx) );
@@ -312,6 +320,7 @@ int fd_psm_change_state(struct fd_peer * peer, int new_state)
 		CHECK_FCT( leave_open_state(peer, new_state == STATE_CLOSING_GRACE) );
 	}
 	if (old == STATE_CLOSING_GRACE) {
+		CHECK_FCT(fd_out_wait(peer));
 		fd_peer_failover_msg(peer);
 	}
 
@@ -324,7 +333,10 @@ int fd_psm_change_state(struct fd_peer * peer, int new_state)
 		fd_psm_events_free(peer->p_events);
 
 		/* Reset the counter of pending answers to send */
+		CHECK_POSIX(pthread_mutex_lock(&peer->p_state_mtx));
 		peer->p_reqin_count = 0;
+		CHECK_POSIX(pthread_mutex_unlock(&peer->p_state_mtx));
+		memset(&peer->p_grace_deadline, 0, sizeof(peer->p_grace_deadline));
 
 		/* If the peer is not persistent, we destroy it */
 		if (peer->p_hdr.info.config.pic_flags.persist == PI_PRST_NONE) {
@@ -406,19 +418,31 @@ void cleanup_setstate(void * arg)
 	return;
 }
 
+static void cleanup_message_work(void *arg)
+{
+	int *active = arg;
+	if (*active) {
+		*active = 0;
+		fd_work_done(NULL);
+	}
+}
+
 /* The state machine thread (controller) */
 static void * p_psm_th( void * arg )
 {
 	struct fd_peer * peer = (struct fd_peer *)arg;
 	int created_started = started ? 1 : 0;
+	int detach_self = 0;
 	int event;
 	size_t ev_sz;
 	void * ev_data;
 	int cur_state;
+	int message_active = 0;
 
 	CHECK_PARAMS_DO( CHECK_PEER(peer), ASSERT(0) );
 
 	pthread_cleanup_push( cleanup_setstate, arg );
+	pthread_cleanup_push( cleanup_message_work, &message_active );
 
 	/* Set the thread name */
 	{
@@ -443,10 +467,13 @@ static void * p_psm_th( void * arg )
 	}
 
 psm_loop:
+	cleanup_message_work(&message_active);
 	/* Get next event */
 	TRACE_DEBUG(FULL, "'%s' in state '%s' waiting for next event.",
 			peer->p_hdr.info.pi_diamid, STATE_STR(fd_peer_getstate(peer)));
 	CHECK_FCT_DO( fd_event_timedget(peer->p_events, &peer->p_psm_timer, FDEVP_PSM_TIMEOUT, &event, &ev_sz, &ev_data), goto psm_end );
+	fd_work_start();
+	message_active = 1;
 
 	cur_state = fd_peer_getstate(peer);
 	if (cur_state == -1)
@@ -556,6 +583,9 @@ psm_loop:
 
 		/* Now handle non-link-local messages */
 		if (fd_msg_is_routable(msg)) {
+			struct fd_work_message *work;
+			CHECK_FCT_DO(fd_work_message_get(msg, &work), goto psm_end);
+			fd_work_message_start(work);
 			switch (cur_state) {
 				/* To maximize compatibility -- should not be a security issue here */
 				case STATE_REOPEN:
@@ -582,7 +612,7 @@ psm_loop:
 					}
 
 					/* Requeue to the global incoming queue */
-					CHECK_FCT_DO(fd_fifo_post(fd_g_incoming, &msg), goto psm_end );
+					CHECK_FCT_DO(fd_work_post_msg(fd_g_incoming, &msg), goto psm_end );
 
 					/* Update the peer timer (only in OPEN state) */
 					if ((cur_state == STATE_OPEN) && (!peer->p_flags.pf_dw_pending)) {
@@ -862,6 +892,10 @@ psm_loop:
 				goto psm_loop;
 
 			case STATE_CLOSED:
+				if (fd_work_is_quiescing()) {
+					fd_psm_next_timeout(peer, 0, DPR_TIMEOUT);
+					goto psm_loop;
+				}
 				LOG_D("%s: Connecting...", peer->p_hdr.info.pi_diamid);
 				CHECK_FCT_DO( fd_psm_change_state(peer, STATE_WAITCNXACK), goto psm_end );
 				fd_psm_next_timeout(peer, 0, CNX_TIMEOUT);
@@ -885,6 +919,24 @@ psm_loop:
 				goto psm_reset;
 
 			case STATE_CLOSING_GRACE:
+				{
+					long sent, received, sending;
+					struct timespec now;
+					CHECK_FCT_DO(fd_out_drain(peer), goto psm_end);
+					CHECK_FCT_DO(fd_p_sr_pending_app(&peer->p_sr, &sent), goto psm_end);
+					CHECK_FCT_DO(fd_peer_get_load_pending(&peer->p_hdr, NULL, &received), goto psm_end);
+					CHECK_POSIX_DO(pthread_mutex_lock(&peer->p_state_mtx), goto psm_end);
+					sending = peer->p_sending;
+					CHECK_POSIX_DO(pthread_mutex_unlock(&peer->p_state_mtx), goto psm_end);
+					CHECK_SYS_DO(clock_gettime(CLOCK_MONOTONIC, &now), goto psm_end);
+					if ((sent || received || sending) && TS_IS_INFERIOR(&now, &peer->p_grace_deadline)) {
+						fd_psm_next_timeout(peer, 0, 1);
+						goto psm_loop;
+					}
+					if (sent || received || sending)
+						LOG_N("Peer %s: closing with pending exchanges [%ld, %ld, %ld]",
+						      peer->p_hdr.info.pi_diamid, sent, received, sending);
+				}
 				/* The grace period is completed, now close */
 				fd_hook_call(HOOK_PEER_CONNECT_FAILED, NULL, peer, "Connection closed", NULL);
 				if (peer->p_flags.pf_localterm)
@@ -930,12 +982,16 @@ psm_end:
 	TRACE_DEBUG(INFO, "'%s'\t-> 'STATE_ZOMBIE' (terminated)\t'%s'",
 			STATE_STR(fd_peer_getstate(peer)),
 			peer->p_hdr.info.pi_diamid);
+	pthread_cleanup_pop(1);
 	pthread_cleanup_pop(1); /* set STATE_ZOMBIE */
 	CHECK_POSIX_DO(pthread_mutex_lock(&peer->p_state_mtx), return NULL);
-	if ((peer->p_psm != (pthread_t)NULL) && pthread_equal(peer->p_psm, pthread_self()))
+	if ((peer->p_psm != (pthread_t)NULL) && pthread_equal(peer->p_psm, pthread_self())) {
 		peer->p_psm = (pthread_t)NULL;
+		detach_self = 1;
+	}
 	CHECK_POSIX_DO(pthread_mutex_unlock(&peer->p_state_mtx), return NULL);
-	pthread_detach(pthread_self());
+	if (detach_self)
+		pthread_detach(pthread_self());
 	return NULL;
 }
 
@@ -1000,10 +1056,27 @@ int fd_psm_terminate(struct fd_peer * peer, char * reason )
 /* End the PSM & cleanup the peer structure */
 void fd_psm_abord(struct fd_peer * peer )
 {
+	pthread_t psm;
 	TRACE_ENTRY("%p", peer);
 
-	/* Cancel PSM thread */
-	CHECK_FCT_DO( fd_thr_term(&peer->p_psm), /* continue */ );
+	/* Claim the thread before it can detach itself. */
+	CHECK_POSIX_DO(pthread_mutex_lock(&peer->p_state_mtx), return);
+	psm = peer->p_psm;
+	peer->p_psm = (pthread_t)NULL;
+	CHECK_POSIX_DO(pthread_mutex_unlock(&peer->p_state_mtx), return);
+	CHECK_FCT_DO( fd_thr_term(&psm), /* continue */ );
+
+	/* Cancellation can set ZOMBIE before the normal state transition performs failover. */
+	CHECK_FCT_DO(fd_fifo_set_max(peer->p_tosend, 0), );
+	CHECK_POSIX_DO(pthread_rwlock_wrlock(&fd_g_activ_peers_rw), );
+	fd_list_unlink(&peer->p_actives);
+	CHECK_POSIX_DO(pthread_rwlock_unlock(&fd_g_activ_peers_rw), );
+	if (peer->p_cnxctx)
+		fd_cnx_abort_io(peer->p_cnxctx);
+	if (peer->p_outthr != (pthread_t)NULL)
+		CHECK_FCT_DO(fd_out_stop(peer), );
+	CHECK_FCT_DO(fd_out_wait(peer), );
+	fd_peer_failover_msg(peer);
 
 	/* Cleanup the data */
 	fd_psm_cleanup(peer, 1);

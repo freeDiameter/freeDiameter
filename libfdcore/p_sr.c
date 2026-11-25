@@ -96,9 +96,17 @@ static void srl_dump(const char * text, struct fd_list * srlist)
 	}
 }
 
+static void expiry_work_cleanup(void *arg)
+{
+	int *active = arg;
+	if (*active)
+		fd_work_done(NULL);
+}
+
 /* thread that handles messages expiring. The thread is started only when needed */
 static void * sr_expiry_th(void * arg) {
 	struct sr_list * srlist = arg;
+	int active = 0;
 	
 	TRACE_ENTRY("%p", arg);
 	CHECK_PARAMS_DO( arg, return NULL );
@@ -110,6 +118,7 @@ static void * sr_expiry_th(void * arg) {
 		fd_log_threadname ( buf );
 	}
 	
+	pthread_cleanup_push(expiry_work_cleanup, &active);
 	do {
 		struct timespec	now;
 		struct sentreq * first;
@@ -151,6 +160,8 @@ loop:
 		}
 		
 		/* Now, the first request in the list is expired; remove it and call the expirecb for it */
+		fd_work_start();
+		active = 1;
 		request = first->req;
 		sentto = first->chain.head->o;
 		
@@ -189,9 +200,11 @@ unlock:
 			fd_hook_call(HOOK_MESSAGE_DROPPED, request, NULL, "Expiration period completed without an answer, and the expiry callback did not dispose of the message.", fd_msg_pmdl_get(request));
 			CHECK_FCT_DO( fd_msg_free(request), /* ignore */ );
 		}
+		fd_work_done(NULL);
+		active = 0;
 	
 	} while (1);
-	
+	pthread_cleanup_pop(1);
 	ASSERT(0); /* we have encountered a problem, maybe time to signal the framework to terminate? */
 	return NULL;
 }
@@ -264,6 +277,20 @@ int fd_p_sr_store(struct sr_list * srlist, struct msg **req, uint32_t *hbhloc, u
 }
 
 /* Fetch a request by hbh */
+int fd_p_sr_pending_app(struct sr_list *srlist, long *count)
+{
+	struct fd_list *li;
+	*count = 0;
+	CHECK_POSIX(pthread_mutex_lock(&srlist->mtx));
+	for (li = srlist->srs.next; li != &srlist->srs; li = li->next) {
+		struct sentreq *sr = (struct sentreq *)li;
+		if (fd_msg_is_routable(sr->req))
+			(*count)++;
+	}
+	CHECK_POSIX(pthread_mutex_unlock(&srlist->mtx));
+	return 0;
+}
+
 int fd_p_sr_fetch(struct sr_list * srlist, uint32_t hbh, struct msg **req)
 {
 	struct sentreq * sr;
@@ -324,7 +351,7 @@ void fd_p_sr_failover(struct sr_list * srlist)
 			fd_hook_call(HOOK_MESSAGE_FAILOVER, sr->req, (struct fd_peer *)srlist->srs.o, NULL, fd_msg_pmdl_get(sr->req));
 			
 			/* Requeue for sending to another peer */
-			CHECK_FCT_DO( ret = fd_fifo_post_noblock(fd_g_outgoing, (void *)&sr->req),
+			CHECK_FCT_DO( ret = fd_work_post_noblock(fd_g_outgoing, (void *)&sr->req),
 				{
 					char buf[256];
 					snprintf(buf, sizeof(buf), "Internal error: error while requeuing during failover: %s", strerror(ret));

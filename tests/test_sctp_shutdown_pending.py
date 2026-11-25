@@ -69,8 +69,9 @@ def scenario(peers):
     peers.wait(lambda: all("Initiating freeDiameter shutdown sequence" in
                            peers.text(index)[offsets[index]:] for index in stopping),
                "daemons to initiate shutdown")
-    command("tc", "qdisc", "change", "dev", "lo", "root", "netem", "delay", "100ms")
-    delayed_packets = statistics()["packets"]
+    if mode != "deadline":
+        command("tc", "qdisc", "change", "dev", "lo", "root", "netem", "delay", "100ms")
+        delayed_packets = statistics()["packets"]
 
     deadline = time.monotonic() + 30
     for index in stopping:
@@ -78,10 +79,16 @@ def scenario(peers):
         if peers.processes[index].returncode:
             raise AssertionError("peer %d exited with status %d" %
                                  (index + 1, peers.processes[index].returncode))
-    if statistics()["packets"] <= delayed_packets:
+    if mode != "deadline" and statistics()["packets"] <= delayed_packets:
         raise AssertionError("netem did not process traffic after delay was applied")
 
     server, client = (peers.text(index)[offsets[index]:] for index in (0, 1))
+    if mode == "deadline":
+        if "Shutdown drain did not complete: Connection timed out" not in client:
+            raise AssertionError("shutdown did not report the drain deadline")
+        if not re.search(r"RECV no_Test-AVP Status: 3002 ", client):
+            raise AssertionError("the unresolved request did not reach its error callback")
+        return
     if not re.search(r"SND to .*'Test-Request'16777215/16777214", client):
         raise AssertionError("the outstanding Test-Request was not recorded as sent")
     answered = "RECV %s (Ok) Status: 2001" % sent.group(1) in client
@@ -95,10 +102,13 @@ def scenario(peers):
                     r".*16777215/16777214 f:RP")
     sender_request_dropped = bool(re.search(request_drop, client))
     receiver_request_dropped = bool(re.search(request_drop, server))
-    if not answered and not failover and not answer_dropped:
-        raise AssertionError("pending request had no observed answer, failover, or dropped answer")
-    if (answered or answer_dropped) and not server_callback:
-        raise AssertionError("answered request was not observed by the server")
+    if not answered or not server_callback:
+        raise AssertionError("pending request did not complete during shutdown: "
+                             "answered=%s, server_callback=%s, failover=%s, "
+                             "answer_dropped=%s, sender_request_dropped=%s, "
+                             "receiver_request_dropped=%s" %
+                             (answered, server_callback, failover, answer_dropped,
+                              sender_request_dropped, receiver_request_dropped))
     if answer_dropped and not re.search(
             r"RCV from .*16777215/16777214 f:-P--", client):
         raise AssertionError("dropped answer was not observed at the connection")

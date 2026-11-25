@@ -91,16 +91,121 @@ static int core_state_wait(enum core_state waitstate)
 	return ret;
 }
 
+#define SHUTDOWN_TIMEOUT 15
+#define SHUTDOWN_DRAIN_TIMEOUT 10
+#define SHUTDOWN_QUIET_TIME 3
+#define SHUTDOWN_FINAL_DRAIN 2
+
+static pthread_t watchdog = (pthread_t)NULL;
+static struct timespec watchdog_deadline;
+static char watchdog_message[128];
+static int shutdown_requested;
+
+static void *shutdown_timeout_report(void *arg)
+{
+	const char *message = arg;
+	(void)write(STDERR_FILENO, message, strlen(message));
+	return NULL;
+}
+
+static void *shutdown_watchdog(void *arg)
+{
+	struct timespec deadline = *(struct timespec *)arg;
+	struct timespec now;
+	const char *message;
+	pthread_t reporter;
+	static const char clock_error[] =
+		"ERROR: Cannot read shutdown watchdog clock; forcing process exit\n";
+
+	for (;;) {
+		if (clock_gettime(CLOCK_MONOTONIC, &now) != 0) {
+			message = clock_error;
+			break;
+		}
+		if (!TS_IS_INFERIOR(&now, &deadline)) {
+			message = watchdog_message;
+			break;
+		}
+		usleep(100000);
+	}
+	/* Neither logging locks nor a blocked stderr may prevent forced termination. */
+	if (pthread_create(&reporter, NULL, shutdown_timeout_report, (void *)message) == 0)
+		usleep(100000);
+	_exit(EXIT_FAILURE);
+}
+
+static int shutdown_drain(const struct timespec *deadline, int peers, int quiet)
+{
+	struct timespec now, idle_since = { 0, 0 };
+	unsigned long generation, previous = 0, pending, after, after_pending;
+	long exchanges;
+
+	for (;;) {
+		CHECK_SYS(clock_gettime(CLOCK_MONOTONIC, &now));
+		if (!TS_IS_INFERIOR(&now, deadline))
+			return ETIMEDOUT;
+
+		fd_work_snapshot(&generation, &pending);
+		exchanges = 0;
+		if (peers)
+			CHECK_FCT(fd_peer_pending(&exchanges));
+		fd_work_snapshot(&after, &after_pending);
+
+		if (!pending && !after_pending && !exchanges && generation == after) {
+			if (!idle_since.tv_sec || previous != generation) {
+				idle_since = now;
+				previous = generation;
+			}
+			if (now.tv_sec - idle_since.tv_sec >= quiet &&
+			    (now.tv_sec - idle_since.tv_sec > quiet || now.tv_nsec >= idle_since.tv_nsec)) {
+				if (peers || fd_work_stop_if_idle(generation))
+					return 0;
+			}
+		} else {
+			idle_since.tv_sec = 0;
+		}
+		usleep(100000);
+	}
+}
+
 static void core_shutdown(void)
 {
+	struct timespec deadline, drain_deadline;
+	int running = core_state_get() == CORE_SHUTDOWN;
+	int ret;
+
 	LOG_N( FD_PROJECT_BINARY " framework is stopping...");
 	fd_log_threadname("fD Core Shutdown");
-	
-	/* cleanups */
+
+	fd_work_quiesce();
 	CHECK_FCT_DO( fd_servers_stop(), /* Stop accepting new connections */ );
-	CHECK_FCT_DO( fd_rtdisp_cleanstop(), /* Stop dispatch thread(s) after a clean loop if possible */ );
-	CHECK_FCT_DO( fd_peer_fini(), /* Stop all connections */ );
-	CHECK_FCT_DO( fd_rtdisp_fini(), /* Stop routing threads and destroy routing queues */ );
+	CHECK_FCT_DO(fd_p_expi_fini(), );
+	if (clock_gettime(CLOCK_MONOTONIC, &deadline) != 0) {
+		LOG_E("Cannot read shutdown clock: %s", strerror(errno));
+		memset(&deadline, 0, sizeof(deadline));
+	}
+	drain_deadline = deadline;
+	deadline.tv_sec += SHUTDOWN_TIMEOUT;
+	drain_deadline.tv_sec += SHUTDOWN_DRAIN_TIMEOUT;
+	if (running) {
+		ret = shutdown_drain(&drain_deadline, 1, SHUTDOWN_QUIET_TIME);
+		if (ret)
+			LOG_E("Shutdown drain did not complete: %s", strerror(ret));
+	}
+	CHECK_FCT_DO(fd_peer_stop(&deadline), );
+	if (clock_gettime(CLOCK_MONOTONIC, &drain_deadline) != 0) {
+		ret = errno;
+	} else {
+		drain_deadline.tv_sec += SHUTDOWN_FINAL_DRAIN;
+		ret = shutdown_drain(&drain_deadline, 0, 0);
+	}
+	if (ret) {
+		LOG_E("Final shutdown drain did not complete: %s", strerror(ret));
+		fd_work_stop();
+	}
+	CHECK_FCT_DO(fd_rtdisp_cleanstop(), );
+	CHECK_FCT_DO(fd_rtdisp_fini(), );
+	CHECK_FCT_DO(fd_peer_fini(), );
 	
 	CHECK_FCT_DO( fd_ext_term(), /* Cleanup all extensions */ );
 	CHECK_FCT_DO( fd_rtdisp_cleanup(), /* destroy remaining handlers */ );
@@ -114,6 +219,7 @@ static void core_shutdown(void)
 	fd_log_debug(FD_PROJECT_BINARY " framework is terminated.");
 	
 	fd_libproto_fini();
+	CHECK_FCT_DO(fd_thr_term(&watchdog), _exit(EXIT_FAILURE));
 	
 }	
 
@@ -313,9 +419,33 @@ int fd_core_start(void)
 }
 
 /* Initialize shutdown of the framework. This is not blocking. */
-int fd_core_shutdown(void)
+int fd_core_shutdown_timeout(int timeout)
 {
-	enum core_state cur_state = core_state_get();
+	enum core_state cur_state;
+	int ret = 0;
+
+	CHECK_PARAMS(timeout >= -1);
+	CHECK_POSIX(pthread_mutex_lock(&core_mtx));
+	cur_state = core_state;
+	if (shutdown_requested || cur_state >= CORE_SHUTDOWN) {
+		CHECK_POSIX(pthread_mutex_unlock(&core_mtx));
+		return 0;
+	}
+	if (timeout >= 0) {
+		if (clock_gettime(CLOCK_MONOTONIC, &watchdog_deadline) != 0) {
+			ret = errno;
+		} else {
+			watchdog_deadline.tv_sec += timeout;
+			snprintf(watchdog_message, sizeof(watchdog_message),
+				 "ERROR: freeDiameter shutdown exceeded %d seconds; forcing process exit\n",
+				 timeout);
+			ret = pthread_create(&watchdog, NULL, shutdown_watchdog, &watchdog_deadline);
+		}
+	}
+	if (!ret)
+		shutdown_requested = 1;
+	CHECK_POSIX(pthread_mutex_unlock(&core_mtx));
+	CHECK_FCT(ret);
 	
 	LOG_N("Initiating freeDiameter shutdown sequence (%d)", cur_state);
 		
@@ -330,6 +460,7 @@ int fd_core_shutdown(void)
 		core_state_set(CORE_TERM);
 		pthread_mutex_unlock(&core_lock);
 	} else if (cur_state == CORE_RUNNING) {
+		fd_work_quiesce();
 		core_state_set(CORE_SHUTDOWN);
 		CHECK_FCT( fd_event_send(fd_g_config->cnf_main_ev, FDEV_TERMINATE_INT, 0, NULL) );
 	}
@@ -337,6 +468,11 @@ int fd_core_shutdown(void)
 	/* Other case, the framework is already shutting down */
 	
 	return 0;
+}
+
+int fd_core_shutdown(void)
+{
+	return fd_core_shutdown_timeout(-1);
 }
 
 
@@ -363,6 +499,5 @@ int fd_core_wait_shutdown_complete(void)
 int fd_connections_shutdown(void)
 {
 	LOG_N( FD_PROJECT_BINARY " Closing Diameter connections");
-	CHECK_FCT_DO( fd_peer_fini_force(), /* Stop all connections */ );
-	return 0;
+	return fd_peer_fini_force();
 }

@@ -137,6 +137,18 @@ int main(int argc, char *argv[])
 			CHECK( 0, strcmp((char *)locid, p->info.pi_diamid));
 		}
 	}
+
+	/* Forced disconnection removes peers from lookup but keeps outstanding references valid. */
+	{
+		struct peer_hdr *old, *found;
+		const char *id = "b11." DomainName;
+		CHECK(0, fd_peer_getbyid((DiamId_t)id, strlen(id), 0, &old));
+		CHECK(1, old != NULL);
+		CHECK(0, fd_connections_shutdown());
+		CHECK(0, fd_peer_getbyid((DiamId_t)id, strlen(id), 0, &found));
+		CHECK(1, found == NULL);
+		CHECK(0, strcmp(id, old->info.pi_diamid));
+	}
 	
 	
 	/* That's all for the tests yet */

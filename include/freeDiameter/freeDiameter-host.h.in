@@ -100,7 +100,7 @@ extern "C" {
 #endif /* FD_DEFAULT_CONF_FILENAME */
 
 /* Maximum number of hooks handlers that can be registered. Make this compilation option if needed */
-#define FD_HOOK_HANDLE_LIMIT	5
+#define FD_HOOK_HANDLE_LIMIT	6
 
 #ifdef __cplusplus
 }

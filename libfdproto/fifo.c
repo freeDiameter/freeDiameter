@@ -119,8 +119,14 @@ int fd_fifo_new ( struct fifo ** queue, int max )
 
 int fd_fifo_set_max (struct fifo * queue, int max)
 {
-    queue->max = max;
-    return 0;
+	int ret;
+	CHECK_PARAMS(CHECK_FIFO(queue) && max >= 0);
+	CHECK_POSIX(pthread_mutex_lock(&queue->mtx));
+	queue->max = max;
+	ret = pthread_cond_broadcast(&queue->cond_push);
+	CHECK_POSIX(pthread_mutex_unlock(&queue->mtx));
+	CHECK_POSIX(ret);
+	return 0;
 }
 
 
@@ -409,8 +415,8 @@ int fd_fifo_post_internal ( struct fifo * queue, void ** item, int skip_max )
 	/* lock the queue */
 	CHECK_POSIX(  pthread_mutex_lock( &queue->mtx )  );
 
-	if ((!skip_max) && (queue->max)) {
-		while (queue->count >= queue->max) {
+	if (!skip_max) {
+		while (queue->max && queue->count >= queue->max) {
 			int ret = 0;
 
 			/* We have to wait for an item to be pulled */

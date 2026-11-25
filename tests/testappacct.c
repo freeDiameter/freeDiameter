@@ -243,7 +243,7 @@ int main(int argc, char *argv[])
 	}
 	
 	/* Now, have the daemon handle this */
-	CHECK( 0, fd_fifo_post(fd_g_incoming, &msg) );
+	CHECK( 0, fd_work_post_msg(fd_g_incoming, &msg) );
 	
 	/* It is picked by the dispatch module, the extension handles the query, inserts the records in the DB, send creates the answer.
 	   Once the answer is ready, it is sent to "peer3" which is not available of course; then the message is simply destroyed.

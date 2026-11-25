@@ -378,26 +378,47 @@ int fd_msg_rescode_set( struct msg * msg, char * rescode, char * errormsg, struc
 	return fd_msg_add_result(msg, 0, restype, rescode, errormsg, optavp, type_id);
 }
 
+struct send_work {
+	struct fd_work_message *message;
+	int newly_admitted;
+};
+
+static void send_work_cleanup(void *arg)
+{
+	struct send_work *work = arg;
+	if (work->newly_admitted)
+		fd_work_message_cancel(work->message);
+	fd_work_done(NULL);
+}
+
 static int fd_msg_send_int( struct msg ** pmsg, void (*anscb)(void *, struct msg **), void * data, void (*expirecb)(void *, DiamId_t, size_t, struct msg **), const struct timespec *timeout )
 {
 	struct msg_hdr *hdr;
-	DiamId_t diamid;
+	DiamId_t diamid = NULL;
+	struct send_work work = { NULL, 0 };
+	int ret;
 
-	/* Save the callback in the message, with the timeout */
-	CHECK_FCT(  fd_msg_anscb_associate( *pmsg, anscb, data, expirecb, timeout )  );
+	CHECK_FCT(fd_msg_hdr(*pmsg, &hdr));
+	if (hdr->msg_flags & CMD_FLAG_REQUEST)
+		CHECK_FCT(fd_msg_source_get(*pmsg, &diamid, NULL));
+	CHECK_FCT(fd_work_message_get(*pmsg, &work.message));
+	CHECK_FCT(fd_work_admit((hdr->msg_flags & CMD_FLAG_REQUEST) && !diamid &&
+				!work.message->admitted,
+				fd_rtdisp_is_worker()));
 
-	/* If this is a new request, call the HOOK_MESSAGE_LOCAL hook */
-	if ( (fd_msg_hdr(*pmsg, &hdr) == 0)
-	 &&  (hdr->msg_flags & CMD_FLAG_REQUEST)
-	 &&  (fd_msg_source_get(*pmsg, &diamid, NULL) == 0)
-	 &&  (diamid == NULL)) {
-		fd_hook_call(HOOK_MESSAGE_LOCAL, *pmsg, NULL, NULL, fd_msg_pmdl_get(*pmsg));
+	pthread_cleanup_push(send_work_cleanup, &work);
+	ret = fd_msg_anscb_associate(*pmsg, anscb, data, expirecb, timeout);
+	if (!ret) {
+		if (!work.message->admitted) {
+			fd_work_message_start(work.message);
+			work.newly_admitted = 1;
+		}
+		if ((hdr->msg_flags & CMD_FLAG_REQUEST) && !diamid)
+			fd_hook_call(HOOK_MESSAGE_LOCAL, *pmsg, NULL, NULL, fd_msg_pmdl_get(*pmsg));
+		ret = fd_fifo_post(fd_g_outgoing, pmsg);
 	}
-
-	/* Post the message in the outgoing queue */
-	CHECK_FCT( fd_fifo_post(fd_g_outgoing, pmsg) );
-
-	return 0;
+	pthread_cleanup_pop(ret != 0);
+	return ret;
 }
 
 /* Send a message and optionally register a callback for an answer */

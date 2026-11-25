@@ -101,13 +101,25 @@ int fd_core_start(void);
 /* Block until the framework has completed its initialization -- useful for extensions */
 int fd_core_waitstartcomplete(void);
 
-/* Initialize shutdown of the framework */
+/* Initialize shutdown without a forced-exit watchdog (equivalent to timeout -1).
+ * Nonblocking once the framework is running; otherwise teardown is synchronous. */
 int fd_core_shutdown(void);
 
-/* Wait for the shutdown to be complete -- this should always be called after fd_core_shutdown */
+/* Initialize shutdown with a total timeout in seconds.
+ * -1 disables the forced-exit watchdog; 0 requests immediate failure exit.
+ * A nonnegative timeout terminates the entire process with EXIT_FAILURE if
+ * teardown does not complete, including when this library is embedded.
+ * The first shutdown request wins; subsequent requests do not change its timeout.
+ * Returns EINVAL for values below -1, or a clock/thread error if the watchdog
+ * cannot be started (shutdown has not been initiated in that case).
+ * Shorter drain and peer-disconnection deadlines are unchanged by this timeout. */
+int fd_core_shutdown_timeout(int timeout);
+
+/* Wait for the shutdown to be complete -- this should always be called after fd_core_shutdown. */
 int fd_core_wait_shutdown_complete(void);
 
-/* Forcibly shutdown any Diameter connections */
+/* Forcibly shut down Diameter connections. Peer storage is released at framework shutdown.
+ * Returns EBUSY during framework shutdown. */
 int fd_connections_shutdown(void);
 
 /*============================================================*/
@@ -370,6 +382,7 @@ extern pthread_rwlock_t fd_g_peers_rw; /* protect the list */
  *  0      	: The peer is added.
  *  EINVAL 	: A parameter is invalid.
  *  EEXIST 	: A peer with the same Diameter-Id is already in the list.
+ *  EBUSY       : Framework shutdown has begun; no new peers can be added.
  *  (other standard errors may be returned, too, with their standard meaning. Example:
  *    ENOMEM 	: Memory allocation for the new object element failed.)
  */
@@ -547,6 +560,10 @@ int fd_peer_validate_register ( int (*peer_validate)(struct peer_info * /* info 
  * RETURN VALUE:
  *  0      	: The message has been queued for sending (sending may fail asynchronously).
  *  EINVAL 	: A parameter is invalid (ex: anscb provided but message is not a request).
+ *  EBUSY       : Shutdown has begun and the message cannot be admitted. The caller retains *pmsg.
+ *                New local requests are rejected during shutdown, except from routing or
+ *                dispatch callbacks processing admitted work. Previously admitted messages
+ *                and answers remain admissible until routing and dispatch are stopped.
  *  ...
  */
 int fd_msg_send ( struct msg ** pmsg, void (*anscb)(void *, struct msg **), void * data );
@@ -1136,7 +1153,8 @@ struct fd_cnx_rcvdata {
  *
  * DESCRIPTION: 
  *   Register a new fd_hook_data_hdl. This handle is used during hooks registration (see below) in order to associate data with the messages, to allow keeping tracking of the message easily.
- *  Note that these handlers are statically allocated and cannot be unregistered. FD_HOOK_HANDLE_LIMIT handlers can be registered at maximum (recompile libfdproto if you change this value)
+ *  Note that these handlers are statically allocated and cannot be unregistered.
+ *  One of the FD_HOOK_HANDLE_LIMIT slots is reserved for the core.
  *
  * RETURN VALUE:
  *  0      	: The callback is registered.

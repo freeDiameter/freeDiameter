@@ -3055,13 +3055,15 @@ int fd_fifo_new ( struct fifo ** queue, int max );
  *
  * PARAMETERS:
  *  queue       : The queue for which to set the maximum value
- *  max		: max number of items in the queue.
+ *  max		: max number of items in the queue, or 0 for no maximum.
  *
  * DESCRIPTION:
- *  Modify the maximum number of entries in a queue
+ *  Modify the maximum number of entries in a queue and wake blocked producers
+ *  so they can recheck the limit.
  *
  * RETURN VALUE :
  *   0         : Success
+ *   EINVAL    : The queue or maximum is invalid
  */
 int fd_fifo_set_max ( struct fifo * queue, int max );
 

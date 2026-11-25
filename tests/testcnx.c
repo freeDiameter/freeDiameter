@@ -694,6 +694,134 @@ static void * connect_thr(void * arg)
 	return cnx;
 }
 
+struct blocked_peer_send {
+	struct fd_peer *peer;
+	struct msg *msg;
+	int ret;
+};
+
+static void *blocked_peer_send_thr(void *arg)
+{
+	struct blocked_peer_send *send = arg;
+	send->ret = fd_out_send(&send->msg, NULL, send->peer, 0);
+	return NULL;
+}
+
+static struct msg *peer_test_answer(const uint8_t *buffer, size_t length)
+{
+	struct msg *msg = NULL;
+	struct msg_hdr *hdr;
+	uint8_t *copy = malloc(length);
+	CHECK(1, copy != NULL);
+	memcpy(copy, buffer, length);
+	CHECK(0, fd_msg_parse_buffer(&copy, length, &msg));
+	CHECK(0, fd_msg_hdr(msg, &hdr));
+	hdr->msg_flags &= ~CMD_FLAG_REQUEST;
+	hdr->msg_flags |= CMD_FLAG_PROXIABLE;
+	return msg;
+}
+
+static void test_blocked_peer_senders(struct cnxctx *client, struct cnxctx *server,
+				      const uint8_t *buffer, size_t length, int state)
+{
+	struct fd_peer *peer = NULL;
+	struct blocked_peer_send send[3];
+	pthread_t threads[3];
+	struct timespec deadline, now, pause = { 0, 10000000 };
+	char *dump = NULL, *thread_stats;
+	uint8_t *expected = NULL;
+	size_t dump_len = 0, expected_length = 0;
+	int i, pulling, blocked, limit;
+
+	CHECK(0, fd_peer_alloc(&peer));
+	peer->p_hdr.info.pi_diamid = strdup("blocked.example");
+	CHECK(1, peer->p_hdr.info.pi_diamid != NULL);
+	peer->p_cnxctx = client;
+	peer->p_state = STATE_OPEN;
+	if (state != STATE_CLOSING_GRACE) {
+		CHECK(1, fd_g_outgoing == NULL);
+		CHECK(0, fd_fifo_new(&fd_g_outgoing, 0));
+	} else {
+		struct msg *msg = peer_test_answer(buffer, length);
+		CHECK(0, fd_msg_bufferize(msg, &expected, &expected_length));
+		CHECK(0, fd_msg_free(msg));
+	}
+	for (i = 0; i < 5; i++) {
+		struct msg *msg = peer_test_answer(buffer, length);
+		CHECK(0, fd_work_post_msg(peer->p_tosend, &msg));
+	}
+	for (i = 0; i < 3; i++) {
+		send[i].peer = peer;
+		send[i].msg = peer_test_answer(buffer, length);
+		send[i].ret = -1;
+		CHECK(0, pthread_create(&threads[i], NULL, blocked_peer_send_thr, &send[i]));
+	}
+	CHECK(0, clock_gettime(CLOCK_MONOTONIC, &deadline));
+	deadline.tv_sec += 5;
+	do {
+		CHECK(1, fd_fifo_dump(&dump, &dump_len, NULL, NULL, peer->p_tosend, NULL) != NULL);
+		thread_stats = strstr(dump, "threads:");
+		CHECK(1, thread_stats != NULL);
+		CHECK(2, sscanf(thread_stats, "threads:%d,%d", &pulling, &blocked));
+		if (blocked == 3)
+			break;
+		CHECK(0, clock_gettime(CLOCK_MONOTONIC, &now));
+		CHECK(1, TS_IS_INFERIOR(&now, &deadline));
+		nanosleep(&pause, NULL);
+	} while (1);
+	free(dump);
+
+	if (state == STATE_ZOMBIE) {
+		/* Model the state after cancellation of the peer state machine. */
+		CHECK(0, pthread_mutex_lock(&peer->p_state_mtx));
+		peer->p_state = STATE_ZOMBIE;
+		peer->p_cnxctx = NULL;
+		CHECK(0, pthread_mutex_unlock(&peer->p_state_mtx));
+		fd_psm_abord(peer);
+	} else {
+		CHECK(0, fd_psm_change_state(peer, state));
+	}
+	for (i = 0; i < 3; i++) {
+		CHECK(0, pthread_join(threads[i], NULL));
+		CHECK(0, send[i].ret);
+		CHECK(1, send[i].msg == NULL);
+	}
+	if (state == STATE_CLOSING_GRACE) {
+		CHECK(0, fd_out_drain(peer));
+		for (i = 0; i < 8; i++) {
+			uint8_t *received;
+			size_t received_length;
+			CHECK(0, clock_gettime(CLOCK_REALTIME, &deadline));
+			deadline.tv_sec += 5;
+			CHECK(0, fd_cnx_receive(server, &deadline, &received, &received_length));
+			CHECK(expected_length, received_length);
+			CHECK(0, memcmp(expected, received, received_length));
+			free(received);
+		}
+		free(expected);
+	} else {
+		for (i = 0; i < 8; i++) {
+			struct msg *msg;
+			CHECK(0, fd_fifo_tryget(fd_g_outgoing, &msg));
+			fd_work_done(NULL);
+			CHECK(0, fd_msg_free(msg));
+		}
+		CHECK(0, fd_fifo_length(fd_g_outgoing));
+		CHECK(0, fd_fifo_del(&fd_g_outgoing));
+	}
+	CHECK(0, fd_fifo_length(peer->p_tosend));
+	CHECK(0, fd_fifo_getstats(peer->p_tosend, NULL, &limit, NULL, NULL, NULL, NULL, NULL));
+	CHECK(0, limit);
+	if (state == STATE_SUSPECT) {
+		CHECK(0, fd_psm_change_state(peer, STATE_OPEN));
+		CHECK(0, fd_fifo_getstats(peer->p_tosend, NULL, &limit, NULL, NULL, NULL, NULL, NULL));
+		CHECK(5, limit);
+		CHECK(0, fd_psm_change_state(peer, STATE_SUSPECT));
+	}
+	peer->p_cnxctx = NULL;
+	CHECK(0, fd_peer_free(&peer));
+}
+
 /* Parameters to the handshake thread */
 struct handshake_flags {
 	struct cnxctx * cnx;
@@ -1256,6 +1384,51 @@ int main(int argc, char *argv[])
 		CHECK( cer_sz, rcv_sz );
 		CHECK( 0, memcmp( rcv_buf, cer_buf, cer_sz ) );
 		free(rcv_buf);
+
+		CHECK(0, fd_cnx_start_clear(server_side, 1));
+		test_blocked_peer_senders(client_side, server_side, cer_buf, cer_sz, STATE_SUSPECT);
+		test_blocked_peer_senders(client_side, server_side, cer_buf, cer_sz, STATE_CLOSING_GRACE);
+		test_blocked_peer_senders(client_side, server_side, cer_buf, cer_sz, STATE_ZOMBIE);
+
+		/* A peer entering grace must send messages already in its output queue. */
+		{
+			struct fd_peer *peer = NULL;
+			struct msg *queued = NULL;
+			struct msg_hdr *hdr;
+			unsigned char *input, *expected;
+			size_t expected_sz;
+			struct timespec deadline;
+
+			CHECK(0, fd_peer_alloc(&peer));
+			peer->p_hdr.info.pi_diamid = strdup("grace.example");
+			CHECK(1, peer->p_hdr.info.pi_diamid != NULL);
+			peer->p_cnxctx = client_side;
+			peer->p_state = STATE_OPEN;
+			input = malloc(cer_sz);
+			CHECK(1, input != NULL);
+			memcpy(input, cer_buf, cer_sz);
+			CHECK(0, fd_msg_parse_buffer(&input, cer_sz, &queued));
+			CHECK(0, fd_msg_hdr(queued, &hdr));
+			hdr->msg_flags &= ~CMD_FLAG_REQUEST;
+			CHECK(0, fd_msg_bufferize(queued, &expected, &expected_sz));
+			CHECK(0, fd_work_post_msg(peer->p_tosend, &queued));
+			CHECK(0, fd_psm_change_state(peer, STATE_CLOSING_GRACE));
+			CHECK(0, clock_gettime(CLOCK_REALTIME, &deadline));
+			deadline.tv_sec += 5;
+			CHECK(0, fd_cnx_receive(server_side, &deadline, &rcv_buf, &rcv_sz));
+			CHECK(expected_sz, rcv_sz);
+			CHECK(0, memcmp(rcv_buf, expected, rcv_sz));
+			free(rcv_buf);
+			free(expected);
+
+			CHECK(0, fd_msg_new(NULL, 0, &queued));
+			peer->p_state = STATE_CLOSED;
+			CHECK(EPIPE, fd_out_send(&queued, NULL, peer, 1));
+			CHECK(1, queued != NULL);
+			CHECK(0, fd_msg_free(queued));
+			peer->p_cnxctx = NULL;
+			CHECK(0, fd_peer_free(&peer));
+		}
 		
 		/* Now close the connections */
 		fd_cnx_destroy(client_side);

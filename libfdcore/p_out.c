@@ -36,7 +36,7 @@
 #include "fdcore-internal.h"
 
 /* Alloc a new hbh for requests, bufferize the message and send on the connection, save in sentreq if provided */
-static int do_send(struct msg ** msg, struct cnxctx * cnx, uint32_t * hbh, struct fd_peer * peer)
+static int do_send_raw(struct msg ** msg, struct cnxctx * cnx, uint32_t * hbh, struct fd_peer * peer)
 {
 	struct msg_hdr * hdr;
 	int msg_is_a_req;
@@ -74,12 +74,8 @@ static int do_send(struct msg ** msg, struct cnxctx * cnx, uint32_t * hbh, struc
 	/* Log the message */
 	fd_hook_call(HOOK_MESSAGE_SENT, cpy_for_logs_only, peer, NULL, fd_msg_pmdl_get(cpy_for_logs_only));
 	
-	pthread_cleanup_push((void *)fd_msg_free, *msg /* might be NULL, no problem */);
-	
 	/* Send the message */
 	CHECK_FCT_DO( ret = fd_cnx_send(cnx, buf, sz), );
-	
-	pthread_cleanup_pop(0);
 	
 out:
 	;	
@@ -95,6 +91,48 @@ out:
 	}
 	
 	return 0;
+}
+
+static void release_send(void *arg)
+{
+	struct fd_peer *peer = arg;
+	CHECK_POSIX_DO(pthread_mutex_lock(&peer->p_state_mtx), ASSERT(0));
+	peer->p_send_busy = 0;
+	CHECK_POSIX_DO(pthread_cond_broadcast(&peer->p_send_cnd), ASSERT(0));
+	CHECK_POSIX_DO(pthread_mutex_unlock(&peer->p_state_mtx), ASSERT(0));
+}
+
+static void free_pending_send(void *arg)
+{
+	struct msg **msg = arg;
+	if (*msg)
+		CHECK_FCT_DO(fd_msg_free(*msg), );
+}
+
+static int do_send(struct msg **msg, struct cnxctx *cnx, uint32_t *hbh, struct fd_peer *peer)
+{
+	int ret = 0;
+	pthread_cleanup_push(free_pending_send, msg);
+	if (!peer) {
+		ret = do_send_raw(msg, cnx, hbh, peer);
+	} else {
+		ret = pthread_mutex_lock(&peer->p_state_mtx);
+		if (!ret) {
+			pthread_cleanup_push(fd_cleanup_mutex, &peer->p_state_mtx);
+			while (peer->p_send_busy && !ret)
+				ret = pthread_cond_wait(&peer->p_send_cnd, &peer->p_state_mtx);
+			if (!ret)
+				peer->p_send_busy = 1;
+			pthread_cleanup_pop(1);
+			if (!ret) {
+				pthread_cleanup_push(release_send, peer);
+				ret = do_send_raw(msg, cnx, hbh, peer);
+				pthread_cleanup_pop(1);
+			}
+		}
+	}
+	pthread_cleanup_pop(0);
+	return ret;
 }
 
 /* The code of the "out" thread */
@@ -120,6 +158,7 @@ static void * out_thr(void * arg)
 		CHECK_FCT_DO( fd_fifo_get(peer->p_tosend, &msg), goto error );
 		
 		/* Send the message, log any error */
+		pthread_cleanup_push(fd_work_done, NULL);
 		CHECK_FCT_DO( ret = do_send(&msg, peer->p_cnxctx, &peer->p_hbh, peer),
 			{
 				if (msg) {
@@ -130,6 +169,7 @@ static void * out_thr(void * arg)
 				}
 				stop = 1;
 			} );
+		pthread_cleanup_pop(1);
 			
 	}
 	
@@ -138,18 +178,24 @@ static void * out_thr(void * arg)
 	
 	/* Requeue all routable messages in the global "out" queue, until we are canceled once the PSM deals with the CNX_ERROR sent above */
 	while ( fd_fifo_get(peer->p_tosend, &msg) == 0 ) {
+		int retained = 0;
+		pthread_cleanup_push(fd_work_done, NULL);
 		if (fd_msg_is_routable(msg)) {
-			CHECK_FCT_DO(fd_fifo_post_noblock(peer->p_tofailover, (void *)&msg), 
+			int ret;
+			CHECK_FCT_DO(ret = fd_fifo_post_noblock(peer->p_tofailover, (void *)&msg),
 				{
 					/* fallback: destroy the message */
 					fd_hook_call(HOOK_MESSAGE_DROPPED, msg, NULL, "Internal error: unable to requeue this message during failover process", fd_msg_pmdl_get(msg));
 					CHECK_FCT_DO(fd_msg_free(msg), /* What can we do more? */)
 				} );
+			if (!ret)
+				retained = 1;
 		} else {
 			/* Just free it */
 			/* fd_hook_call(HOOK_MESSAGE_DROPPED, m, NULL, "Non-routable message freed during handover", fd_msg_pmdl_get(m)); */
 			CHECK_FCT_DO(fd_msg_free(msg), /* What can we do more? */)
 		}
+		pthread_cleanup_pop(!retained);
 	}
 
 error:
@@ -158,29 +204,54 @@ error:
 	return NULL;
 }
 
-/* Wrapper to sending a message either by out thread (peer in OPEN state) or directly; cnx or peer must be provided. Flags are valid only for direct sending, not through thread (unused) */
-int fd_out_send(struct msg ** msg, struct cnxctx * cnx, struct fd_peer * peer, int update_reqin_cnt)
+/* Send messages queued before a peer entered CLOSING_GRACE. */
+int fd_out_drain(struct fd_peer *peer)
 {
-	struct msg_hdr * hdr;
-	
-	TRACE_ENTRY("%p %p %p", msg, cnx, peer);
-	CHECK_PARAMS( msg && *msg && (cnx || (peer && peer->p_cnxctx)));
+	struct msg *msg;
+	int ret;
 
-	fd_hook_call(HOOK_MESSAGE_SENDING, *msg, peer, NULL, fd_msg_pmdl_get(*msg));
-	
-	if (update_reqin_cnt && peer) {
-		CHECK_FCT( fd_msg_hdr(*msg, &hdr) );
-		if (!(hdr->msg_flags & CMD_FLAG_REQUEST)) {
-			/* Update the count of pending answers to send */
-			CHECK_POSIX( pthread_mutex_lock(&peer->p_state_mtx) );
-			peer->p_reqin_count--;
-			CHECK_POSIX( pthread_mutex_unlock(&peer->p_state_mtx) );			
+	while (fd_fifo_tryget(peer->p_tosend, &msg) == 0) {
+		pthread_cleanup_push(fd_work_done, NULL);
+		ret = do_send(&msg, peer->p_cnxctx, &peer->p_hbh, peer);
+		if (ret && msg) {
+			fd_hook_call(HOOK_MESSAGE_DROPPED, msg, peer,
+				     "Error sending queued message during peer shutdown", fd_msg_pmdl_get(msg));
+			fd_msg_free(msg);
 		}
+		pthread_cleanup_pop(1);
+		if (ret)
+			return ret;
 	}
-	
+	return 0;
+}
+
+static void peer_send_done(void *arg)
+{
+	struct fd_peer *peer = arg;
+	if (!peer)
+		return;
+	CHECK_POSIX_DO(pthread_mutex_lock(&peer->p_state_mtx), ASSERT(0));
+	peer->p_sending--;
+	CHECK_POSIX_DO(pthread_cond_broadcast(&peer->p_send_cnd), ASSERT(0));
+	CHECK_POSIX_DO(pthread_mutex_unlock(&peer->p_state_mtx), ASSERT(0));
+}
+
+int fd_out_wait(struct fd_peer *peer)
+{
+	int ret = 0;
+	CHECK_POSIX(pthread_mutex_lock(&peer->p_state_mtx));
+	pthread_cleanup_push(fd_cleanup_mutex, &peer->p_state_mtx);
+	while ((peer->p_sending || peer->p_send_busy) && !ret)
+		ret = pthread_cond_wait(&peer->p_send_cnd, &peer->p_state_mtx);
+	pthread_cleanup_pop(1);
+	return ret;
+}
+
+static int out_send(struct msg ** msg, struct cnxctx * cnx, struct fd_peer * peer)
+{
 	if (fd_peer_getstate(peer) == STATE_OPEN) {
 		/* Normal case: just queue for the out thread to pick it up */
-		CHECK_FCT( fd_fifo_post(peer->p_tosend, msg) );
+		CHECK_FCT( fd_work_post_msg(peer->p_tosend, msg) );
 		
 	} else {
 		int ret;
@@ -196,7 +267,7 @@ int fd_out_send(struct msg ** msg, struct cnxctx * cnx, struct fd_peer * peer, i
 		/* Do send the message */
 		CHECK_FCT_DO( ret = do_send(msg, cnx, hbh, peer),
 			{
-				if (msg) {
+				if (*msg) {
 					char buf[256];
 					snprintf(buf, sizeof(buf), "Error while sending this message: %s", strerror(ret));
 					fd_hook_call(HOOK_MESSAGE_DROPPED, *msg, NULL, buf, fd_msg_pmdl_get(*msg));
@@ -207,6 +278,36 @@ int fd_out_send(struct msg ** msg, struct cnxctx * cnx, struct fd_peer * peer, i
 	}
 	
 	return 0;
+}
+
+/* Wrapper to sending a message either by out thread (peer in OPEN state) or directly. */
+int fd_out_send(struct msg ** msg, struct cnxctx * cnx, struct fd_peer * peer, int update_reqin_cnt)
+{
+	struct msg_hdr *hdr = NULL;
+	int ret;
+
+	TRACE_ENTRY("%p %p %p", msg, cnx, peer);
+	CHECK_PARAMS(msg && *msg && (cnx || peer));
+	if (update_reqin_cnt && peer)
+		CHECK_FCT(fd_msg_hdr(*msg, &hdr));
+	if (peer) {
+		CHECK_POSIX(pthread_mutex_lock(&peer->p_state_mtx));
+		if ((update_reqin_cnt && peer->p_state != STATE_OPEN &&
+		     peer->p_state != STATE_CLOSING_GRACE) ||
+		    (!cnx && !peer->p_cnxctx)) {
+			CHECK_POSIX(pthread_mutex_unlock(&peer->p_state_mtx));
+			return EPIPE;
+		}
+		peer->p_sending++;
+		if (hdr && !(hdr->msg_flags & CMD_FLAG_REQUEST))
+			peer->p_reqin_count--;
+		CHECK_POSIX(pthread_mutex_unlock(&peer->p_state_mtx));
+	}
+	pthread_cleanup_push(peer_send_done, peer);
+	fd_hook_call(HOOK_MESSAGE_SENDING, *msg, peer, NULL, fd_msg_pmdl_get(*msg));
+	ret = out_send(msg, cnx, peer);
+	pthread_cleanup_pop(1);
+	return ret;
 }
 
 /* Start the "out" thread that picks messages in p_tosend and send them on p_cnxctx */

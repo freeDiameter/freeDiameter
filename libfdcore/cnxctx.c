@@ -1889,7 +1889,15 @@ static int send_simple(struct cnxctx * conn, unsigned char * buf, size_t len)
 	return 0;
 }
 
-/* Send a message -- this is synchronous -- and we assume it's never called by several threads at the same time (on the same conn), so we don't protect. */
+void fd_cnx_abort_io(struct cnxctx *conn)
+{
+	CHECK_PARAMS_DO(conn, return);
+	fd_cnx_markerror(conn);
+	if (conn->cc_socket > 0 && shutdown(conn->cc_socket, SHUT_RDWR) != 0 && errno != ENOTCONN)
+		LOG_E("Cannot interrupt peer connection: %s", strerror(errno));
+}
+
+/* Send a message synchronously; callers serialize sends on a peer connection. */
 int fd_cnx_send(struct cnxctx * conn, unsigned char * buf, size_t len)
 {
 	TRACE_ENTRY("%p %p %zd", conn, buf, len);

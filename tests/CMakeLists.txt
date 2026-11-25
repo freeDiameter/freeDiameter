@@ -31,6 +31,7 @@ SET(TEST_LIST
 	testcnx
 	testloadext
 	testserver
+	testshutdown
 )
 
 #############################
@@ -45,6 +46,7 @@ INCLUDE_DIRECTORIES(${LFDCORE_INCLUDES})
 
 
 SET(testcnx_ADDITIONAL_LIB  ${CLOCK_GETTIME_LIBS})
+SET(testshutdown_ADDITIONAL_LIB ${CLOCK_GETTIME_LIBS})
 SET(testfifo_ADDITIONAL_LIB ${CLOCK_GETTIME_LIBS})
 SET(testsess_ADDITIONAL_LIB ${CLOCK_GETTIME_LIBS})
 SET(testloadext_ADDITIONAL_LIB ${CMAKE_DL_LIBS})
@@ -234,6 +236,12 @@ IF(BUILD_MULTI_PEER_TESTS)
 	IF(TARGET test_app)
 		ADD_MULTI_PEER_TEST(test_two_peer_test_app test_two_peer_test_app.py
 			$<TARGET_FILE:test_app>)
+		IF(NOT MULTI_PEER_USE_SCTP AND TARGET dbg_msg_dumps AND CMAKE_SYSTEM_NAME STREQUAL "Linux")
+			FOREACH(MODE client simultaneous deadline)
+				ADD_MULTI_PEER_TEST(test_tcp_shutdown_pending_${MODE} test_shutdown_pending.py
+					$<TARGET_FILE:test_app> $<TARGET_FILE:dbg_msg_dumps> ${MODE})
+			ENDFOREACH()
+		ENDIF()
 		IF(MULTI_PEER_USE_TLS AND MULTI_PEER_USE_SCTP)
 			ADD_MULTI_PEER_TEST(test_two_peer_legacy_sctp test_two_peer_test_app.py
 				$<TARGET_FILE:test_app> legacy)
@@ -288,7 +296,7 @@ IF(BUILD_MULTI_PEER_TESTS)
 			ADD_MULTI_PEER_TEST(test_sctp_netem test_sctp_netem.py
 				$<TARGET_FILE:test_app>)
 			IF(TARGET dbg_msg_dumps)
-				FOREACH(MODE client simultaneous)
+				FOREACH(MODE client simultaneous deadline)
 					ADD_MULTI_PEER_TEST(test_sctp_shutdown_pending_${MODE} test_sctp_shutdown_pending.py
 						$<TARGET_FILE:test_app> $<TARGET_FILE:test_sctp_ack_probe> $<TARGET_FILE:dbg_msg_dumps> ${MODE})
 				ENDFOREACH()
@@ -304,6 +312,10 @@ IF(BUILD_MULTI_PEER_TESTS)
 		IF(TARGET test_netemul)
 			ADD_MULTI_PEER_TEST(test_multi_peer_netemul test_multi_peer_netemul.py
 				$<TARGET_FILE:test_app> $<TARGET_FILE:test_netemul>)
+			IF(TARGET dbg_msg_dumps)
+				ADD_MULTI_PEER_TEST(test_shutdown_async test_shutdown_async.py
+					$<TARGET_FILE:test_app> $<TARGET_FILE:test_netemul> $<TARGET_FILE:dbg_msg_dumps>)
+			ENDIF()
 		ENDIF()
 		IF(TARGET acl_wl)
 			ADD_MULTI_PEER_TEST(test_multi_peer_acl_wl test_multi_peer_acl_wl.py

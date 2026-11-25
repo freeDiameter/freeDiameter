@@ -419,9 +419,17 @@ static int return_error(struct msg ** pmsg, char * error_code, char * error_mess
 
 	/* Send the answer */
 	if (is_loc) {
-		CHECK_FCT( fd_fifo_post(fd_g_incoming, pmsg) );
+		CHECK_FCT( fd_work_post_msg(fd_g_incoming, pmsg) );
 	} else {
-		CHECK_FCT( fd_out_send(pmsg, NULL, peer, 1) );
+		int ret = fd_out_send(pmsg, NULL, peer, 1);
+		if (ret == EPIPE) {
+			fd_hook_call(HOOK_MESSAGE_DROPPED, *pmsg, peer,
+				     "Cannot send error to a closed peer", fd_msg_pmdl_get(*pmsg));
+			CHECK_FCT(fd_msg_free(*pmsg));
+			*pmsg = NULL;
+		} else {
+			CHECK_FCT(ret);
+		}
 	}
 	
 	/* Done */
@@ -464,7 +472,7 @@ static int msg_dispatch(struct msg * msg)
 				if (!msgptr) {
 					fd_hook_call(HOOK_MESSAGE_PARSING_ERROR2, error, NULL, NULL, fd_msg_pmdl_get(error));
 					/* error now contains the answer message to send back */
-					CHECK_FCT( fd_fifo_post(fd_g_outgoing, &error) );
+					CHECK_FCT( fd_work_post_msg(fd_g_outgoing, &error) );
 				} else if (!error) {
 					/* We have received an invalid answer to our query */
 					fd_hook_call(HOOK_MESSAGE_DROPPED, msgptr, NULL, "Received answer failed the dictionary / rules parsing", fd_msg_pmdl_get(msgptr));
@@ -522,7 +530,7 @@ static int msg_dispatch(struct msg * msg)
 				if ((!fd_g_config->cnf_flags.no_fwd) && (is_req || qry_src)) {
 					/* requeue to fd_g_outgoing */
 					fd_hook_call(HOOK_MESSAGE_ROUTING_FORWARD, msgptr, NULL, NULL, fd_msg_pmdl_get(msgptr));
-					CHECK_FCT( fd_fifo_post(fd_g_outgoing, &msgptr) );
+					CHECK_FCT( fd_work_post_msg(fd_g_outgoing, &msgptr) );
 					break;
 				}
 				/* We don't relay => reply error */
@@ -547,7 +555,7 @@ static int msg_dispatch(struct msg * msg)
 				
 			case DISP_ACT_SEND:
 				/* Now, send the message */
-				CHECK_FCT( fd_fifo_post(fd_g_outgoing, &msgptr) );
+				CHECK_FCT( fd_work_post_msg(fd_g_outgoing, &msgptr) );
 		}
 	} else if (em) {
 		fd_hook_call(HOOK_MESSAGE_DROPPED, error, NULL, em, fd_msg_pmdl_get(error));
@@ -733,7 +741,7 @@ static int msg_rt_in(struct msg * msg)
 			if (is_local_app == YES) {
 				/* Ok, give the message to the dispatch thread */
 				fd_hook_call(HOOK_MESSAGE_ROUTING_LOCAL, msgptr, NULL, NULL, fd_msg_pmdl_get(msgptr));
-				CHECK_FCT( fd_fifo_post(fd_g_local, &msgptr) );
+				CHECK_FCT( fd_work_post_msg(fd_g_local, &msgptr) );
 			} else {
 				/* We don't support the application, reply an error */
 				fd_hook_call(HOOK_MESSAGE_PARSING_ERROR, msgptr, NULL, "Application unsupported", fd_msg_pmdl_get(msgptr));
@@ -774,14 +782,14 @@ static int msg_rt_in(struct msg * msg)
 				
 			if (is_nai) {
 				/* We have transformed the AVP, now submit it again in the queue */
-				CHECK_FCT(fd_fifo_post(fd_g_incoming, &msgptr) );
+				CHECK_FCT(fd_work_post_msg(fd_g_incoming, &msgptr) );
 				return 0;
 			}
 
 			if (is_local_app == YES) {
 				/* Handle locally since we are able to */
 				fd_hook_call(HOOK_MESSAGE_ROUTING_LOCAL, msgptr, NULL, NULL, fd_msg_pmdl_get(msgptr));
-				CHECK_FCT(fd_fifo_post(fd_g_local, &msgptr) );
+				CHECK_FCT(fd_work_post_msg(fd_g_local, &msgptr) );
 				return 0;
 			}
 
@@ -806,7 +814,7 @@ static int msg_rt_in(struct msg * msg)
 		if ((!qry_src) && (!is_err)) {
 			/* The message is a normal answer to a request issued locally, we do not call the callbacks chain on it. */
 			fd_hook_call(HOOK_MESSAGE_ROUTING_LOCAL, msgptr, NULL, NULL, fd_msg_pmdl_get(msgptr));
-			CHECK_FCT(fd_fifo_post(fd_g_local, &msgptr) );
+			CHECK_FCT(fd_work_post_msg(fd_g_local, &msgptr) );
 			return 0;
 		}
 		
@@ -855,10 +863,10 @@ static int msg_rt_in(struct msg * msg)
 	/* Now pass the message to the next step: either forward to another peer, or dispatch to local extensions */
 	if (is_req || qry_src) {
 		fd_hook_call(HOOK_MESSAGE_ROUTING_FORWARD, msgptr, NULL, NULL, fd_msg_pmdl_get(msgptr));
-		CHECK_FCT(fd_fifo_post(fd_g_outgoing, &msgptr) );
+		CHECK_FCT(fd_work_post_msg(fd_g_outgoing, &msgptr) );
 	} else {
 		fd_hook_call(HOOK_MESSAGE_ROUTING_LOCAL, msgptr, NULL, NULL, fd_msg_pmdl_get(msgptr));
-		CHECK_FCT(fd_fifo_post(fd_g_local, &msgptr) );
+		CHECK_FCT(fd_work_post_msg(fd_g_local, &msgptr) );
 	}
 
 	/* We're done with this message */
@@ -912,7 +920,14 @@ static int msg_rt_out(struct msg * msg)
 		hdr->msg_hbhid = qry_hdr->msg_hbhid;
 
 		/* Push the message into this peer */
-		CHECK_FCT( fd_out_send(&msgptr, NULL, peer, 1) );
+		ret = fd_out_send(&msgptr, NULL, peer, 1);
+		if (ret == EPIPE) {
+			fd_hook_call(HOOK_MESSAGE_DROPPED, msgptr, peer,
+				     "Cannot forward answer to a closed peer", fd_msg_pmdl_get(msgptr));
+			CHECK_FCT(fd_msg_free(msgptr));
+		} else {
+			CHECK_FCT(ret);
+		}
 
 		/* We're done with this answer */
 		return 0;
@@ -1059,6 +1074,13 @@ static int msg_rt_out(struct msg * msg)
 /* Control of the threads */
 static enum { RUN = 0, STOP = 1 } order_val = RUN;
 static pthread_mutex_t order_state_lock = PTHREAD_MUTEX_INITIALIZER;
+static pthread_key_t worker_key;
+static int worker_key_ready;
+
+int fd_rtdisp_is_worker(void)
+{
+	return worker_key_ready && pthread_getspecific(worker_key) != NULL;
+}
 
 /* Threads report their status */
 enum thread_state { NOTRUNNING = 0, RUNNING = 1 };
@@ -1084,6 +1106,7 @@ static void * process_thr(void * arg, int (*action_cb)(struct msg * msg), struct
 	/* The thread reports its status when canceled */
 	CHECK_PARAMS_DO(arg, return NULL);
 	pthread_cleanup_push( cleanup_state, arg );
+	CHECK_POSIX_DO(pthread_setspecific(worker_key, arg), goto fatal_error);
 	
 	/* Mark the thread running */
 	CHECK_POSIX_DO( pthread_mutex_lock(&order_state_lock), );
@@ -1092,6 +1115,7 @@ static void * process_thr(void * arg, int (*action_cb)(struct msg * msg), struct
 	
 	do {
 		struct msg * msg;
+		int action_ret;
 	
 		/* Get the next message from the queue */
 		{
@@ -1128,7 +1152,10 @@ static void * process_thr(void * arg, int (*action_cb)(struct msg * msg), struct
 		LOG_A("%s: Picked next message", action_name);
 
 		/* Now process the message */
-		CHECK_FCT_DO( (*action_cb)(msg), goto fatal_error);
+		pthread_cleanup_push(fd_work_done, NULL);
+		action_ret = (*action_cb)(msg);
+		pthread_cleanup_pop(1);
+		CHECK_FCT_DO(action_ret, goto fatal_error);
 
 		/* We're done with this message */
 	
@@ -1181,6 +1208,9 @@ static enum thread_state * in_state = NULL;
 int fd_rtdisp_init(void)
 {
 	int i;
+
+	CHECK_POSIX(pthread_key_create(&worker_key, NULL));
+	worker_key_ready = 1;
 	
 	/* Prepare the array for threads */
 	CHECK_MALLOC( disp_state = calloc(fd_g_config->cnf_dispthr, sizeof(enum thread_state)) );
@@ -1275,9 +1305,6 @@ int fd_rtdisp_fini(void)
 {
 	int i;
 	
-	/* Destroy the incoming queue */
-	CHECK_FCT_DO( fd_queues_fini(&fd_g_incoming), /* ignore */);
-	
 	/* Stop the routing IN thread */
 	if (rt_in != NULL) {
 		for (i=0; i < fd_g_config->cnf_rtinthr; i++) {
@@ -1291,12 +1318,9 @@ int fd_rtdisp_fini(void)
 		in_state = NULL;
 	}
 	
-	/* Destroy the outgoing queue */
-	CHECK_FCT_DO( fd_queues_fini(&fd_g_outgoing), /* ignore */);
-	
 	/* Stop the routing OUT thread */
 	if (rt_out != NULL) {
-		for (i=0; i < fd_g_config->cnf_rtinthr; i++) {
+		for (i=0; i < fd_g_config->cnf_rtoutthr; i++) {
 			stop_thread_delayed(&out_state[i], &rt_out[i], "OUT routing");
 		}
 		free(rt_out);
@@ -1306,9 +1330,6 @@ int fd_rtdisp_fini(void)
 		free(out_state);
 		out_state = NULL;
 	}
-	
-	/* Destroy the local queue */
-	CHECK_FCT_DO( fd_queues_fini(&fd_g_local), /* ignore */);
 	
 	/* Stop the Dispatch threads */
 	if (dispatch != NULL) {
@@ -1321,6 +1342,14 @@ int fd_rtdisp_fini(void)
 	if (disp_state != NULL) {
 		free(disp_state);
 		disp_state = NULL;
+	}
+
+	CHECK_FCT_DO(fd_queues_fini(&fd_g_incoming), );
+	CHECK_FCT_DO(fd_queues_fini(&fd_g_outgoing), );
+	CHECK_FCT_DO(fd_queues_fini(&fd_g_local), );
+	if (worker_key_ready) {
+		CHECK_POSIX_DO(pthread_key_delete(worker_key), );
+		worker_key_ready = 0;
 	}
 	
 	return 0;
