@@ -34,6 +34,8 @@
 *********************************************************************************************************/
 
 #include "fdcore-internal.h"
+#include "discovery_internal.h"
+#include "discovery_config.h"
 
 GCC_DIAG_OFF("-Wdeprecated-declarations")
 #include <gcrypt.h>
@@ -177,6 +179,8 @@ static void core_shutdown(void)
 	LOG_N( FD_PROJECT_BINARY " framework is stopping...");
 	fd_log_threadname("fD Core Shutdown");
 
+	fd_disc_conf_fini();
+	fd_discovery_shutdown();
 	fd_work_quiesce();
 	CHECK_FCT_DO( fd_servers_stop(), /* Stop accepting new connections */ );
 	CHECK_FCT_DO(fd_p_expi_fini(), );
@@ -341,6 +345,7 @@ static int fd_core_parseconf_int(const char * conffile)
 	
 	/* The following module use data from the configuration */
 	CHECK_FCT( fd_rtdisp_init() );
+	CHECK_FCT( fd_discovery_routing_init() );
 	
 	/* Now, load all dynamic extensions */
 	CHECK_FCT(  fd_ext_load()  );
@@ -402,6 +407,7 @@ static int fd_core_start_int(void)
 	
 	/* Unlock threads waiting into fd_core_waitstartcomplete */
 	core_state_set(CORE_RUNNING);
+	CHECK_FCT( fd_disc_conf_start() );
 	
 	/* Ok, everything is running now... */
 	return 0;

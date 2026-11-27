@@ -697,11 +697,11 @@ int fd_disp_app_support ( struct dict_object * app, struct dict_object * vendor,
  *      - create a list of all known peers in the "OPEN" state.
  *      - remove from that list all peers that are in a Route-Record AVP of the message, to avoid routing loops.
  *      - remove also all peers that have previously replied an error message for this message.
- *   - If the list is empty, create an error UNABLE_TO_DELIVER (note: should we trig dynamic discovery here???) and reply.
- *   - Otherwise, call all callbacks registered by function fd_rt_out_register, with the list of peers and the message.
+ *   - Call all callbacks registered by function fd_rt_out_register, even when the candidate list is empty.
  *   - Order the resulting list of peers by score (see below), and sent the message to the peer with highest (positive) score.
  *    - in case the peer is no longer in the "OPEN" state, send the message to the second peer in the list.
- *      - if no peer is in OPEN state anymore, restart the process of creating the list.
+ *   - If no candidate can be used, optionally call the registered OUT recovery callback.
+ *     Without recovery, reply with UNABLE_TO_DELIVER.
  *   - Once a peer has been selected, the message is queued into that peer's outgoing queue.
  *
  * The following functions allow an extension to register or remove a callback as described above.
@@ -850,6 +850,42 @@ int fd_rt_out_register ( int (*rt_out_cb)(void * cbdata, struct msg ** pmsg, str
  *  EINVAL 	: A parameter is invalid.
  */
 int fd_rt_out_unregister ( struct fd_rt_out_hdl * handler, void ** cbdata );
+
+/*
+ * Optional last-resort OUT recovery. Only one handler may be registered (EEXIST
+ * otherwise). Called for requests only, after normal scoring and all sends have
+ * failed, at most once per request, including subsequent failover/requeues.
+ *
+ * The callback must return promptly: enqueue asynchronous work, never perform
+ * discovery or wait for peers here. It may take ownership by storing *pmsg and
+ * setting *pmsg = NULL; otherwise the original UNABLE_TO_DELIVER is generated.
+ * The return value does not change this ownership rule. Do not replace *pmsg.
+ * Calls can be concurrent. Registration APIs and resume must not be called from
+ * recovery callbacks (including indirectly through other callbacks).
+ *
+ * unregister waits for callbacks to finish, but not asynchronous work. Before
+ * unloading, unregister, stop/join workers, and resume or free every held request.
+ * No callback or worker may reference extension code/data after unload.
+ *
+ * resume(pmsg, 1) refreshes OPEN candidates, retaining routing-error history and
+ * Route-Record exclusions, then requeues without another recovery invocation.
+ * resume(pmsg, 0) generates the original UNABLE_TO_DELIVER immediately. There is
+ * no automatic retry/deadline: the owner must bound held time and complete/free
+ * every request. A held request must have a single owner; do not resume/free it
+ * concurrently. Neither resume nor unregister should be called with a lock
+ * needed by the recovery callback held.
+ *
+ * A successful resume consumes *pmsg. On error the caller owns the non-NULL
+ * *pmsg (which may already have become an answer for retry=0) and must free it.
+ * Shutdown disables recovery and resume before routing queues are destroyed:
+ * resume returns ESHUTDOWN retaining ownership; the extension must free it.
+ * An already-entered callback may finish taking ownership during shutdown.
+ */
+struct fd_rt_out_recovery_hdl;
+int fd_rt_out_recovery_register(int (*cb)(void *cbdata, struct msg **pmsg),
+			       void *cbdata, struct fd_rt_out_recovery_hdl **handler);
+int fd_rt_out_recovery_unregister(struct fd_rt_out_recovery_hdl *handler, void **cbdata);
+int fd_rt_out_recovery_resume(struct msg **pmsg, int retry);
 
 
 /*============================================================*/

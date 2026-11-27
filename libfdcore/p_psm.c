@@ -156,6 +156,27 @@ int fd_psm_start()
 /************************************************************************/
 
 /* Enter/leave OPEN state */
+void fd_peer_discovery_notify(struct fd_peer *peer, int status)
+{
+	void (*cb)(int, void *);
+	void *data;
+	int old;
+	pthread_setcancelstate(PTHREAD_CANCEL_DISABLE, &old);
+	cb = peer->p_discovery_cb;
+	data = peer->p_discovery_cb_data;
+	if (!cb || (!status && peer->p_discovery_open_reported)) {
+		pthread_setcancelstate(old, NULL);
+		return;
+	}
+	if (status) {
+		peer->p_discovery_cb = NULL;
+		peer->p_discovery_cb_data = NULL;
+	} else {
+		peer->p_discovery_open_reported = 1;
+	}
+	cb(status, data);
+	pthread_setcancelstate(old, NULL);
+}
 static int enter_open_state(struct fd_peer * peer)
 {
 	struct fd_list * li;
@@ -185,11 +206,13 @@ static int enter_open_state(struct fd_peer * peer)
 	CHECK_POSIX( pthread_rwlock_unlock(&fd_g_activ_peers_rw) );
 
 	/* Callback registered when the peer was added, by fd_peer_add */
-	if (peer->p_cb) {
-		TRACE_DEBUG(FULL, "Calling add callback for peer %s", peer->p_hdr.info.pi_diamid);
-		(*peer->p_cb)(&peer->p_hdr.info, peer->p_cb_data); /* TODO: do this in a separate detached thread? */
-		peer->p_cb = NULL;
-		peer->p_cb_data = NULL;
+	if (peer->p_discovery) {
+		fd_peer_discovery_notify(peer, 0);
+	} else if (peer->p_cb) {
+			TRACE_DEBUG(FULL, "Calling add callback for peer %s", peer->p_hdr.info.pi_diamid);
+			(*peer->p_cb)(&peer->p_hdr.info, peer->p_cb_data); /* TODO: do this in a separate detached thread? */
+			peer->p_cb = NULL;
+			peer->p_cb_data = NULL;
 	}
 
 	/* Start the thread to handle outgoing messages */
@@ -299,6 +322,9 @@ int fd_psm_change_state(struct fd_peer * peer, int new_state)
 
 	TRACE_ENTRY("%p %d(%s)", peer, new_state, STATE_STR(new_state));
 	CHECK_PARAMS( CHECK_PEER(peer) );
+	if ((new_state == STATE_OPEN || new_state == STATE_OPEN_NEW || new_state == STATE_REOPEN) &&
+	    fd_peer_discovery_expired(peer))
+		return ETIMEDOUT;
 
 	old = fd_peer_getstate(peer);
 	if (old == new_state)
@@ -313,6 +339,11 @@ int fd_psm_change_state(struct fd_peer * peer, int new_state)
 	if (new_state == STATE_OPEN)
 		CHECK_FCT(fd_fifo_set_max(peer->p_tosend, FD_PEER_SEND_QUEUE_MAX));
 	CHECK_POSIX( pthread_mutex_lock(&peer->p_state_mtx) );
+	if (peer->p_discovery && peer->p_discovery_cancelled &&
+	    (new_state == STATE_OPEN || new_state == STATE_OPEN_NEW || new_state == STATE_REOPEN)) {
+		CHECK_POSIX(pthread_mutex_unlock(&peer->p_state_mtx));
+		return ETIMEDOUT;
+	}
 	peer->p_state = new_state;
 	CHECK_POSIX( pthread_mutex_unlock(&peer->p_state_mtx) );
 
@@ -468,6 +499,12 @@ static void * p_psm_th( void * arg )
 
 psm_loop:
 	cleanup_message_work(&message_active);
+	/* Discovery validity is an absolute deadline, independent of traffic. */
+	if (fd_peer_discovery_expired(peer))
+		goto psm_end;
+	if (peer->p_discovery &&
+	    TS_IS_INFERIOR(&peer->p_discovery_deadline, &peer->p_psm_timer))
+		peer->p_psm_timer = peer->p_discovery_deadline;
 	/* Get next event */
 	TRACE_DEBUG(FULL, "'%s' in state '%s' waiting for next event.",
 			peer->p_hdr.info.pi_diamid, STATE_STR(fd_peer_getstate(peer)));
@@ -477,6 +514,11 @@ psm_loop:
 
 	cur_state = fd_peer_getstate(peer);
 	if (cur_state == -1)
+		goto psm_end;
+	if (peer->p_discovery && (event == FDEVP_PSM_TIMEOUT) &&
+	    fd_peer_discovery_expired(peer))
+		goto psm_end;
+	if (peer->p_discovery && (event == FDEVP_CNX_FAILED || event == FDEVP_CNX_ERROR))
 		goto psm_end;
 
 	TRACE_DEBUG(FULL, "'%s'\t<-- '%s'\t(%p,%zd)\t'%s'",
@@ -975,6 +1017,10 @@ psm_end:
 		LOG_E("%s: Going to ZOMBIE state (no more activity) after abnormal shutdown", peer->p_hdr.info.pi_diamid);
 	}
 	fd_psm_cleanup(peer, 1);
+	if (peer->p_discovery)
+		fd_peer_discovery_retire(peer);
+	if (peer->p_discovery)
+		fd_peer_discovery_notify(peer, ECONNRESET);
 	/* any problems this connection had are gone with it now */
 	peer->p_flags.pf_cnx_pb = 0;
 	/* we will not get any replies to DWRs on this connection any longer */
@@ -987,6 +1033,7 @@ psm_end:
 	CHECK_POSIX_DO(pthread_mutex_lock(&peer->p_state_mtx), return NULL);
 	if ((peer->p_psm != (pthread_t)NULL) && pthread_equal(peer->p_psm, pthread_self())) {
 		peer->p_psm = (pthread_t)NULL;
+		peer->p_discovery_complete = 1;
 		detach_self = 1;
 	}
 	CHECK_POSIX_DO(pthread_mutex_unlock(&peer->p_state_mtx), return NULL);
@@ -1082,6 +1129,11 @@ void fd_psm_abord(struct fd_peer * peer )
 	fd_psm_cleanup(peer, 1);
 
 	/* Remaining cleanups are performed in fd_peer_free */
+	if (peer->p_discovery)
+		fd_peer_discovery_notify(peer, ECONNRESET);
+	CHECK_POSIX_DO(pthread_mutex_lock(&peer->p_state_mtx), return);
+	peer->p_discovery_complete = 1;
+	CHECK_POSIX_DO(pthread_mutex_unlock(&peer->p_state_mtx), );
 	return;
 }
 

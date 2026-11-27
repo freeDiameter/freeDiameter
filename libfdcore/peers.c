@@ -48,6 +48,7 @@ static struct fd_list validators = FD_LIST_INITIALIZER(validators);	/* list item
 static pthread_rwlock_t validators_rw = PTHREAD_RWLOCK_INITIALIZER;
 static pthread_mutex_t peer_force_mtx = PTHREAD_MUTEX_INITIALIZER;
 static struct fd_list retired_peers = FD_LIST_INITIALIZER(retired_peers);
+static struct fd_list retired_discovery = FD_LIST_INITIALIZER(retired_discovery);
 
 
 /* Alloc / reinit a peer structure. if *ptr is not NULL, it must already point to a valid struct fd_peer. */
@@ -94,7 +95,8 @@ int fd_peer_alloc(struct fd_peer ** ptr)
 }
 
 /* Add a new peer entry */
-static int peer_add( struct peer_info * info, const char * orig_dbg, void (*cb)(struct peer_info *, void *), void * cb_data )
+static int peer_add( struct peer_info * info, const char * orig_dbg, void (*cb)(struct peer_info *, void *), void * cb_data,
+	const struct fd_discovery_peer *discovery, void (*discovery_cb)(int, void *) )
 {
 	struct fd_peer *p = NULL;
 	struct fd_list * li, *li_inf;
@@ -114,17 +116,27 @@ static int peer_add( struct peer_info * info, const char * orig_dbg, void (*cb)(
 	CHECK_FCT( fd_peer_alloc(&p) );
 	
 	/* Copy the information from the parameters received */
-	p->p_hdr.info.pi_diamid = info->pi_diamid;
-	CHECK_FCT( fd_os_validate_DiameterIdentity(&p->p_hdr.info.pi_diamid, &p->p_hdr.info.pi_diamidlen, 1) );
+	if (discovery) {
+		CHECK_MALLOC_DO(p->p_hdr.info.pi_diamid = strdup(info->pi_diamid),
+			{ ret = ENOMEM; goto allocation_error; });
+		p->p_hdr.info.pi_diamidlen = strlen(info->pi_diamid);
+	} else {
+		p->p_hdr.info.pi_diamid = info->pi_diamid;
+		CHECK_FCT( fd_os_validate_DiameterIdentity(&p->p_hdr.info.pi_diamid, &p->p_hdr.info.pi_diamidlen, 1) );
+	}
 	
 	memcpy( &p->p_hdr.info.config, &info->config, sizeof(p->p_hdr.info.config) );
+	p->p_hdr.info.config.pic_realm = NULL;
+	p->p_hdr.info.config.pic_priority = NULL;
 	
 	/* Duplicate the strings if provided */
 	if (info->config.pic_realm) {
-		CHECK_MALLOC( p->p_hdr.info.config.pic_realm = strdup(info->config.pic_realm) );
+		CHECK_MALLOC_DO( p->p_hdr.info.config.pic_realm = strdup(info->config.pic_realm),
+			{ ret = ENOMEM; goto allocation_error; } );
 	}
 	if (info->config.pic_priority) {
-		CHECK_MALLOC( p->p_hdr.info.config.pic_priority = strdup(info->config.pic_priority) );
+		CHECK_MALLOC_DO( p->p_hdr.info.config.pic_priority = strdup(info->config.pic_priority),
+			{ ret = ENOMEM; goto allocation_error; } );
 	}
 	
 	/* Move the list of endpoints into the peer */
@@ -137,12 +149,24 @@ static int peer_add( struct peer_info * info, const char * orig_dbg, void (*cb)(
 	
 	/* The internal data */
 	if (orig_dbg) {
-		CHECK_MALLOC( p->p_dbgorig = strdup(orig_dbg) );
+		CHECK_MALLOC_DO( p->p_dbgorig = strdup(orig_dbg), { ret = ENOMEM; goto allocation_error; } );
 	} else {
-		CHECK_MALLOC( p->p_dbgorig = strdup("unspecified") );
+		CHECK_MALLOC_DO( p->p_dbgorig = strdup("unspecified"), { ret = ENOMEM; goto allocation_error; } );
 	}
 	p->p_cb = cb;
 	p->p_cb_data = cb_data;
+	if (discovery) {
+		CHECK_MALLOC_DO(p->p_discovery = malloc(sizeof(*p->p_discovery)),
+			{ ret = ENOMEM; goto allocation_error; });
+		CHECK_MALLOC_DO(p->p_discovery_realm = strdup(discovery->realm),
+			{ ret = ENOMEM; goto allocation_error; });
+		memcpy(p->p_discovery, discovery->candidate, sizeof(*p->p_discovery));
+		p->p_discovery_app = discovery->application_id;
+		p->p_discovery_token = discovery->token;
+		p->p_discovery_deadline = discovery->expires;
+		p->p_discovery_cb = discovery_cb;
+		p->p_discovery_cb_data = cb_data;
+	}
 	
 	/* Ok, now check if we don't already have an entry with the same Diameter Id, and insert this one */
 	CHECK_POSIX( pthread_rwlock_wrlock(&fd_g_peers_rw) );
@@ -172,14 +196,25 @@ static int peer_add( struct peer_info * info, const char * orig_dbg, void (*cb)(
 
 			/* Insert the new element in the list */
 			fd_list_insert_after( li_inf, &p->p_hdr.chain );
+			if (discovery) {
+				ret = fd_psm_begin(p);
+				if (ret)
+					fd_list_unlink(&p->p_hdr.chain);
+			}
 		} while (0);
 
 	CHECK_POSIX( pthread_rwlock_unlock(&fd_g_peers_rw) );
 	if (ret) {
+		if (discovery)
+			p->p_cb = NULL;
 		CHECK_FCT( fd_peer_free(&p) );
-	} else {
+	} else if (!discovery) {
 		CHECK_FCT( fd_psm_begin(p) );
 	}
+	return ret;
+allocation_error:
+	p->p_cb = NULL;
+	CHECK_FCT(fd_peer_free(&p));
 	return ret;
 }
 
@@ -189,9 +224,245 @@ int fd_peer_add(struct peer_info *info, const char *orig_dbg,
 	int ret;
 	CHECK_FCT(fd_work_admit(1, 0));
 	pthread_cleanup_push(fd_work_done, NULL);
-	ret = peer_add(info, orig_dbg, cb, cb_data);
+	ret = peer_add(info, orig_dbg, cb, cb_data, NULL, NULL);
 	pthread_cleanup_pop(1);
 	return ret;
+}
+
+int fd_peer_add_discovered(const struct fd_discovery_peer *d,
+	void (*cb)(int, void *), void *cb_data)
+{
+	struct peer_info info;
+	struct timespec now;
+	size_t i;
+	int ret;
+	CHECK_PARAMS(d && d->identity && d->realm && d->candidate);
+	CHECK_PARAMS(d->token);
+	CHECK_PARAMS(fd_os_is_valid_DiameterIdentity((os0_t)d->identity, strlen(d->identity)));
+	CHECK_PARAMS(fd_os_is_valid_DiameterIdentity((os0_t)d->realm, strlen(d->realm)));
+	CHECK_PARAMS(d->candidate->port && d->candidate->ttl && d->candidate->address_count &&
+		d->candidate->address_count <= FD_DISC_DNS_ADDRESS_MAX &&
+		d->candidate->chain_count <= FD_DISC_DNS_CHAIN_MAX);
+	CHECK_PARAMS(d->expires.tv_nsec >= 0 && d->expires.tv_nsec < 1000000000L);
+	CHECK_SYS(clock_gettime(CLOCK_REALTIME, &now));
+	if (!TS_IS_INFERIOR(&now, &d->expires))
+		return ETIMEDOUT;
+	if (fd_g_config->cnf_sec_data.tls_disabled)
+		return ENOTSUP;
+	if (d->candidate->protocol != FD_DISC_DNS_TLS_TCP &&
+	    d->candidate->protocol != FD_DISC_DNS_DTLS_SCTP)
+		return ENOTSUP;
+	if (d->candidate->protocol == FD_DISC_DNS_TLS_TCP && fd_g_config->cnf_flags.no_tcp)
+		return ENOTSUP;
+#ifndef ENABLE_DTLS_SCTP
+	if (d->candidate->protocol == FD_DISC_DNS_DTLS_SCTP)
+		return ENOTSUP;
+#else
+	if (d->candidate->protocol == FD_DISC_DNS_DTLS_SCTP && fd_g_config->cnf_flags.no_sctp)
+		return ENOTSUP;
+#endif
+	CHECK_PARAMS(memchr(d->candidate->target, 0, sizeof(d->candidate->target)));
+	CHECK_PARAMS(d->candidate->target[0]);
+	for (i = 0; i < d->candidate->chain_count; i++)
+		CHECK_PARAMS(memchr(d->candidate->chain[i], 0, sizeof(d->candidate->chain[i])) &&
+			d->candidate->chain[i][0]);
+	for (i = 0; i < d->candidate->address_count; i++)
+		CHECK_PARAMS(d->candidate->addresses[i].length == 4 ||
+			d->candidate->addresses[i].length == 16);
+	memset(&info, 0, sizeof(info));
+	info.pi_diamid = (DiamId_t)d->identity;
+	info.config.pic_realm = (char *)d->options.peer_realm;
+	info.config.pic_port = d->candidate->port;
+	info.config.pic_flags.pro3 = d->options.ip_family == FD_DISCOVERY_IPV4 ? PI_P3_IP :
+		(d->options.ip_family == FD_DISCOVERY_IPV6 ? PI_P3_IPv6 : PI_P3_DEFAULT);
+	info.config.pic_tctimer = d->options.tc_timer;
+	info.config.pic_twtimer = d->options.tw_timer;
+	info.config.pic_priority = (char *)d->options.tls_priority;
+	info.config.pic_flags.pro4 = d->candidate->protocol == FD_DISC_DNS_TLS_TCP ? PI_P4_TCP : PI_P4_SCTP;
+	info.config.pic_flags.sctpsec = PI_SCTPSEC_DTLS;
+	fd_list_init(&info.pi_endpoints, NULL);
+	for (i = 0; i < d->candidate->address_count; i++) {
+		sSS address;
+		const struct fd_disc_dns_address *a = &d->candidate->addresses[i];
+		memset(&address, 0, sizeof(address));
+		if (a->length == 4) {
+			((sSA4 *)&address)->sin_family = AF_INET;
+			memcpy(&((sSA4 *)&address)->sin_addr, a->bytes, 4);
+		} else {
+			((sSA6 *)&address)->sin6_family = AF_INET6;
+			memcpy(&((sSA6 *)&address)->sin6_addr, a->bytes, 16);
+		}
+		ret = fd_ep_add_merge(&info.pi_endpoints, (sSA *)&address, sSAlen(&address),
+			EP_FL_CONF | EP_ACCEPTALL);
+		if (ret)
+			goto out;
+	}
+	ret = fd_work_admit(1, 0);
+	if (ret)
+		goto out;
+	pthread_cleanup_push(fd_work_done, NULL);
+	ret = peer_add(&info, "DNS discovery", NULL, cb_data, d, cb);
+	pthread_cleanup_pop(1);
+out:
+	while (!FD_IS_LIST_EMPTY(&info.pi_endpoints)) {
+		struct fd_list *li = info.pi_endpoints.next;
+		fd_list_unlink(li);
+		free(li);
+	}
+	return ret;
+}
+
+int fd_peer_discovery_cancel(const char *identity, uint64_t token)
+{
+	struct fd_list *li;
+	int ret = ENOENT;
+	CHECK_PARAMS(identity && token);
+	CHECK_POSIX(pthread_rwlock_wrlock(&fd_g_peers_rw));
+	for (li = fd_g_peers.next; li != &fd_g_peers; li = li->next) {
+		struct fd_peer *p = li->o;
+		if (p->p_discovery && p->p_discovery_token == token &&
+		    !fd_os_almostcasesrch((os0_t)identity, strlen(identity),
+			p->p_hdr.info.pi_diamid, p->p_hdr.info.pi_diamidlen, NULL)) {
+			int retire;
+			CHECK_POSIX_DO(pthread_mutex_lock(&p->p_state_mtx),
+				{ pthread_rwlock_unlock(&fd_g_peers_rw); return __ret__; });
+			p->p_discovery_cancelled = 1;
+			retire = p->p_state != STATE_OPEN;
+			CHECK_POSIX_DO(pthread_mutex_unlock(&p->p_state_mtx), );
+			ret = fd_peer_event_send(p, FDEVP_TERMINATE, 0, "DO_NOT_WANT_TO_TALK_TO_YOU");
+			if (retire) {
+				fd_list_unlink(li);
+				fd_list_insert_before(&retired_discovery, li);
+			}
+			break;
+		}
+	}
+	CHECK_POSIX(pthread_rwlock_unlock(&fd_g_peers_rw));
+	return ret;
+}
+
+int fd_peer_discovery_expired(struct fd_peer *peer)
+{
+	struct timespec now;
+	int expired;
+	if (!peer->p_discovery)
+		return 0;
+	if (clock_gettime(CLOCK_REALTIME, &now))
+		return 1;
+	if (pthread_mutex_lock(&peer->p_state_mtx))
+		return 1;
+	expired = peer->p_discovery_cancelled ||
+		!TS_IS_INFERIOR(&now, &peer->p_discovery_deadline);
+	pthread_mutex_unlock(&peer->p_state_mtx);
+	return expired;
+}
+
+int fd_peer_discovery_is_open(const char *identity, uint64_t token)
+{
+	struct fd_list *li;
+	struct timespec now;
+	int result = 0;
+	if (!identity || !token || clock_gettime(CLOCK_REALTIME, &now) ||
+	    pthread_rwlock_rdlock(&fd_g_peers_rw))
+		return 0;
+	for (li = fd_g_peers.next; li != &fd_g_peers; li = li->next) {
+		struct fd_peer *peer = li->o;
+		if (!peer->p_discovery || peer->p_discovery_token != token ||
+		    fd_os_almostcasesrch((os0_t)identity, strlen(identity),
+			peer->p_hdr.info.pi_diamid, peer->p_hdr.info.pi_diamidlen, NULL))
+			continue;
+		if (!pthread_mutex_lock(&peer->p_state_mtx)) {
+			result = peer->p_state == STATE_OPEN &&
+				!peer->p_discovery_cancelled &&
+				TS_IS_INFERIOR(&now, &peer->p_discovery_deadline);
+			pthread_mutex_unlock(&peer->p_state_mtx);
+		}
+		break;
+	}
+	pthread_rwlock_unlock(&fd_g_peers_rw);
+	return result;
+}
+
+void fd_peer_discovery_retire(struct fd_peer *peer)
+{
+	struct fd_list *li;
+	CHECK_POSIX_DO(pthread_rwlock_wrlock(&fd_g_peers_rw), return);
+	for (li = fd_g_peers.next; li != &fd_g_peers; li = li->next) {
+		if (li->o == peer) {
+			fd_list_unlink(li);
+			fd_list_insert_before(&retired_discovery, li);
+			break;
+		}
+	}
+	CHECK_POSIX_DO(pthread_rwlock_unlock(&fd_g_peers_rw), );
+}
+
+size_t fd_peer_discovery_reap(void)
+{
+	struct fd_list purge = FD_LIST_INITIALIZER(purge), *li;
+	unsigned long generation, pending;
+	size_t count = 0;
+	CHECK_POSIX_DO(pthread_rwlock_wrlock(&fd_g_peers_rw), return 0);
+	/* Retired entries cannot be found by new lookups. A no-work snapshot
+	 * excludes old routing users, which otherwise hold uncounted pointers. */
+	fd_work_snapshot(&generation, &pending);
+	if (!pending) {
+		for (li = retired_discovery.next; li != &retired_discovery; li = li->next) {
+			struct fd_peer *peer = li->o;
+			int complete;
+			CHECK_POSIX_DO(pthread_mutex_lock(&peer->p_state_mtx), continue);
+			complete = peer->p_discovery_complete;
+			CHECK_POSIX_DO(pthread_mutex_unlock(&peer->p_state_mtx), );
+			if (!complete)
+				continue;
+			li = li->prev;
+			fd_list_unlink(&peer->p_hdr.chain);
+			fd_list_insert_before(&purge, &peer->p_hdr.chain);
+		}
+	}
+	CHECK_POSIX_DO(pthread_rwlock_unlock(&fd_g_peers_rw), return 0);
+	while (!FD_IS_LIST_EMPTY(&purge)) {
+		struct fd_peer *peer = purge.next->o;
+		fd_list_unlink(&peer->p_hdr.chain);
+		CHECK_FCT_DO(fd_peer_free(&peer), continue);
+		count++;
+	}
+	return count;
+}
+
+int fd_peer_discovery_check(struct fd_peer *peer, struct cnxctx *cnx)
+{
+	struct fd_app *app = NULL;
+	time_t expires;
+	CHECK_PARAMS(CHECK_PEER(peer));
+	if (!peer->p_discovery)
+		return 0;
+	if (fd_peer_discovery_expired(peer))
+		return ETIMEDOUT;
+	CHECK_FCT(fd_cnx_verify_discovery(cnx, peer->p_hdr.info.pi_diamid,
+		peer->p_discovery_realm, peer->p_discovery, &expires));
+	if (peer->p_hdr.info.config.pic_realm &&
+	    (!peer->p_hdr.info.runtime.pir_realm ||
+	     fd_os_almostcasesrch(peer->p_hdr.info.config.pic_realm,
+		strlen(peer->p_hdr.info.config.pic_realm),
+		peer->p_hdr.info.runtime.pir_realm,
+		peer->p_hdr.info.runtime.pir_realmlen, NULL))) {
+		LOG_N("Discovered peer '%s' has an unexpected Origin-Realm",
+		      peer->p_hdr.info.pi_diamid);
+		return EACCES;
+	}
+	CHECK_POSIX(pthread_mutex_lock(&peer->p_state_mtx));
+	if (expires <= peer->p_discovery_deadline.tv_sec) {
+		peer->p_discovery_deadline.tv_sec = expires;
+		peer->p_discovery_deadline.tv_nsec = 0;
+	}
+	CHECK_POSIX(pthread_mutex_unlock(&peer->p_state_mtx));
+	if (peer->p_discovery_app && !peer->p_hdr.info.runtime.pir_relay) {
+		CHECK_FCT(fd_app_check(&peer->p_hdr.info.runtime.pir_apps, peer->p_discovery_app, &app));
+		if (!app || (!app->flags.auth && !app->flags.acct))
+			return ENOTSUP;
+	}
+	return fd_peer_discovery_expired(peer) ? ETIMEDOUT : 0;
 }
 
 /* Search for a peer */
@@ -359,6 +630,8 @@ int fd_peer_free(struct fd_peer ** ptr)
 	free_list( &p->p_hdr.info.pi_endpoints );
 	
 	free_null(p->p_dbgorig);
+	free_null(p->p_discovery);
+	free_null(p->p_discovery_realm);
 	
 	fd_list_unlink(&p->p_expiry);
 	fd_list_unlink(&p->p_actives);
@@ -497,10 +770,17 @@ int fd_peer_fini()
 		fd_list_unlink(&peer->p_hdr.chain);
 		fd_list_insert_before(&purge, &peer->p_hdr.chain);
 	}
+	while (!FD_IS_LIST_EMPTY(&retired_discovery)) {
+		struct fd_peer *peer = retired_discovery.next->o;
+		fd_list_unlink(&peer->p_hdr.chain);
+		fd_list_insert_before(&purge, &peer->p_hdr.chain);
+	}
 	CHECK_POSIX(pthread_rwlock_unlock(&fd_g_peers_rw));
 	while (!FD_IS_LIST_EMPTY(&purge)) {
 		struct fd_peer *peer = (struct fd_peer *)purge.next->o;
 		fd_list_unlink(&peer->p_hdr.chain);
+		if (peer->p_discovery)
+			fd_psm_abord(peer);
 		CHECK_FCT_DO(fd_peer_free(&peer), );
 	}
 	CHECK_FCT_DO( pthread_rwlock_wrlock(&validators_rw), /* continue */ );
@@ -703,6 +983,11 @@ int fd_peer_handle_newCER( struct msg ** cer, struct cnxctx ** cnx )
 		/* Start the PSM, which will receive the event below */
 		CHECK_FCT_DO( ret = fd_psm_begin(peer), goto out );
 	} else {
+		/* Expired discovery authorization cannot be revived by an incoming CER. */
+		if (fd_peer_discovery_expired(peer)) {
+			ret = EACCES;
+			goto out;
+		}
 		/* Check if the peer is in zombie state */
 		if (fd_peer_getstate(peer) == STATE_ZOMBIE) {
 			/* Re-activate the peer */

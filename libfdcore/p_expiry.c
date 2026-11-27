@@ -81,6 +81,7 @@ static void * gc_th_fct(void * arg)
 			TRACE_DEBUG(INFO, "Garbage Collect: delete zombie peer '%s'", peer->p_hdr.info.pi_diamid);
 			CHECK_FCT_DO( fd_peer_free(&peer), /* Continue... what else to do ? */ );
 		}
+		fd_peer_discovery_reap();
 	} while (1);
 	
 error:

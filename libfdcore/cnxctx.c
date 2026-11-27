@@ -1512,6 +1512,98 @@ int fd_tls_verify_credentials_2(gnutls_session_t session)
 }
 
 
+static int discovery_cert_name(gnutls_x509_crt_t cert, const char *name, int service)
+{
+	char domain[FD_DISC_DNS_NAME_MAX + 1];
+	size_t len;
+	const char *p = name;
+	/* SRV owner/replacement names identify a service, not a DNS host. */
+	if (service && p[0] == '_') {
+		p = strchr(p, '.');
+		if (!p || p[1] != '_')
+			return EACCES;
+		p = strchr(p + 1, '.');
+		if (!p)
+			return EACCES;
+		p++;
+	}
+	len = strlen(p);
+	if (len && p[len - 1] == '.')
+		len--;
+	if (!len || len > FD_DISC_DNS_NAME_MAX)
+		return EACCES;
+	memcpy(domain, p, len);
+	domain[len] = 0;
+	if (!fd_os_is_valid_DiameterIdentity((os0_t)domain, len))
+		return EACCES;
+	return gnutls_x509_crt_check_hostname(cert, domain) ? 0 : EACCES;
+}
+
+int fd_cnx_verify_discovery(struct cnxctx *conn, const char *identity,
+	const char *realm, const struct fd_disc_dns_candidate *candidate,
+	time_t *certificate_expiry)
+{
+	const gnutls_datum_t *chain;
+	unsigned int count, status, i;
+	gnutls_x509_crt_t cert;
+	time_t now, expiry = 0;
+	int ret;
+	CHECK_PARAMS(conn && identity && realm && candidate && certificate_expiry);
+	if (!fd_cnx_getTLS(conn))
+		return EACCES;
+	if (candidate->protocol == FD_DISC_DNS_TLS_TCP) {
+		if (conn->cc_proto != IPPROTO_TCP)
+			return EACCES;
+	} else if (candidate->protocol == FD_DISC_DNS_DTLS_SCTP) {
+#if defined(ENABLE_DTLS_SCTP) && !defined(DISABLE_SCTP)
+		if (conn->cc_proto != IPPROTO_SCTP ||
+		    conn->cc_tls_para.algo != ALGO_HANDSHAKE_DEFAULT)
+			return EACCES;
+#else
+		return ENOTSUP;
+#endif
+	} else {
+		return ENOTSUP;
+	}
+	if (gnutls_certificate_verify_peers2(conn->cc_tls_para.session, &status) < 0 || status)
+		return EACCES;
+	CHECK_FCT(fd_cnx_getcred(conn, &chain, &count));
+	if (!count)
+		return EACCES;
+	now = time(NULL);
+	if (now == (time_t)-1)
+		return EACCES;
+	if (gnutls_x509_crt_init(&cert) < 0)
+		return EACCES;
+	ret = EACCES;
+	for (i = 0; i < count; i++) {
+		time_t end, start;
+		if (gnutls_x509_crt_import(cert, &chain[i], GNUTLS_X509_FMT_DER) < 0)
+			goto out;
+		end = gnutls_x509_crt_get_expiration_time(cert);
+		start = gnutls_x509_crt_get_activation_time(cert);
+		if (end == (time_t)-1 || start == (time_t)-1 || end <= now || start > now)
+			goto out;
+		if (!expiry || end < expiry)
+			expiry = end;
+		if (!i) {
+			size_t n;
+			if (discovery_cert_name(cert, identity, 0) ||
+			    discovery_cert_name(cert, realm, 0) ||
+			    discovery_cert_name(cert, candidate->target, 0))
+				goto out;
+			for (n = 0; n < candidate->chain_count; n++)
+				if (discovery_cert_name(cert, candidate->chain[n], 1))
+					goto out;
+		}
+	}
+	*certificate_expiry = expiry;
+	ret = 0;
+out:
+	gnutls_x509_crt_deinit(cert);
+	return ret;
+}
+
 static int fd_cnx_may_dtls(struct cnxctx * conn) {
 #ifndef DISABLE_SCTP
 	if ((conn->cc_proto == IPPROTO_SCTP) && (conn->cc_tls_para.algo == ALGO_HANDSHAKE_DEFAULT))

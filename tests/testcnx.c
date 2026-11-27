@@ -839,6 +839,67 @@ static void * handshake_thr(void * arg)
 	return NULL;
 }
 
+static struct fd_peer *test_discovery_incoming(struct cnxctx *client, struct cnxctx *server)
+{
+	struct fd_peer *peer = NULL;
+	struct cnxctx *incoming = client;
+	struct msg *cer, *cea;
+	struct dict_object *model;
+	struct avp *avp;
+	struct avp_hdr *hdr;
+	union avp_value value;
+	unsigned char *buffer;
+	size_t length;
+	const char *names[] = { "Origin-Host", "Origin-Realm", "Auth-Application-Id" };
+	const char *values[] = { "server.test", "other.test" };
+	size_t i;
+	CHECK(0, fd_msg_init());
+	CHECK(0, fd_peer_alloc(&peer));
+	CHECK(0, fd_fifo_new(&peer->p_events, 0));
+	peer->p_hdr.info.pi_diamid = strdup("server.test");
+	peer->p_hdr.info.pi_diamidlen = strlen("server.test");
+	peer->p_discovery_realm = strdup("server.test");
+	peer->p_discovery = calloc(1, sizeof(*peer->p_discovery));
+	CHECK(1, peer->p_discovery != NULL);
+	peer->p_discovery->protocol = FD_DISC_DNS_TLS_TCP;
+	strcpy(peer->p_discovery->target, "server.test");
+	peer->p_discovery_app = 777;
+	CHECK(0, clock_gettime(CLOCK_REALTIME, &peer->p_discovery_deadline));
+	peer->p_discovery_deadline.tv_sec += 60;
+	peer->p_state = STATE_WAITCNXACK;
+	CHECK(0, fd_msg_new(fd_dict_cmd_CER, 0, &cer));
+	for (i = 0; i < 3; i++) {
+		CHECK(0, fd_dict_search(fd_g_config->cnf_dict, DICT_AVP, AVP_BY_NAME, names[i], &model, ENOENT));
+		CHECK(0, fd_msg_avp_new(model, 0, &avp));
+		memset(&value, 0, sizeof(value));
+		if (i < 2) {
+			value.os.data = (os0_t)values[i];
+			value.os.len = strlen(values[i]);
+		} else {
+			value.u32 = 777;
+		}
+		CHECK(0, fd_msg_avp_setvalue(avp, &value));
+		CHECK(0, fd_msg_avp_add(cer, MSG_BRW_LAST_CHILD, avp));
+	}
+	CHECK(0, fd_p_ce_handle_newCER(&cer, peer, &incoming, 1));
+	CHECK(STATE_WAITCNXACK_ELEC, fd_peer_getstate(peer));
+	CHECK(0, fd_p_ce_process_receiver(peer));
+	CHECK(STATE_OPEN, fd_peer_getstate(peer));
+	CHECK(0, strcmp("other.test", peer->p_hdr.info.runtime.pir_realm));
+	CHECK(0, fd_cnx_receive(server, NULL, &buffer, &length));
+	CHECK(0, fd_msg_parse_buffer(&buffer, length, &cea));
+	CHECK(0, fd_msg_parse_dict(cea, fd_g_config->cnf_dict, NULL));
+	CHECK(0, fd_dict_search(fd_g_config->cnf_dict, DICT_AVP, AVP_BY_NAME, "Result-Code", &model, ENOENT));
+	CHECK(0, fd_msg_search_avp(cea, model, &avp));
+	CHECK(0, fd_msg_avp_hdr(avp, &hdr));
+	CHECK(ER_DIAMETER_SUCCESS, hdr->avp_value->u32);
+	CHECK(0, fd_msg_free(cea));
+	CHECK(0, fd_psm_change_state(peer, STATE_CLOSED));
+	fd_p_ce_clear_cnx(peer, &incoming);
+	CHECK(1, incoming == client);
+	return peer;
+}
+
 /* Terminate the client's connection side */
 static void * destroy_thr(void * arg)
 {
@@ -1489,6 +1550,7 @@ int main(int argc, char *argv[])
 	{
 		struct connect_flags cf;
 		struct handshake_flags hf;
+		struct fd_peer *receiver_peer;
 		
 		memset(&cf, 0, sizeof(cf));
 		cf.proto = IPPROTO_TCP;
@@ -1542,6 +1604,64 @@ int main(int argc, char *argv[])
 		CHECK( 0, pthread_join(thr, NULL) );
 		CHECK( 0, hf.ret );
 		
+		{
+			struct fd_disc_dns_candidate candidate;
+			time_t expiry;
+			memset(&candidate, 0, sizeof(candidate));
+			candidate.protocol = FD_DISC_DNS_TLS_TCP;
+			strcpy(candidate.target, "server.test.");
+			candidate.chain_count = 1;
+			strcpy(candidate.chain[0], "_diameters._tcp.server.test.");
+			CHECK(0, fd_cnx_verify_discovery(client_side, "server.test", "server.test", &candidate, &expiry));
+			CHECK(1, expiry > time(NULL));
+			{
+				struct fd_peer peer;
+				memset(&peer, 0, sizeof(peer));
+				peer.p_eyec = EYEC_PEER;
+				CHECK(0, pthread_mutex_init(&peer.p_state_mtx, NULL));
+				peer.p_discovery = &candidate;
+				peer.p_discovery_app = 777;
+				peer.p_hdr.info.pi_diamid = "server.test";
+				peer.p_discovery_realm = "server.test";
+				peer.p_hdr.info.runtime.pir_realm = "server.test";
+				peer.p_hdr.info.runtime.pir_realmlen = strlen("server.test");
+				fd_list_init(&peer.p_hdr.info.runtime.pir_apps, NULL);
+				CHECK(0, clock_gettime(CLOCK_REALTIME, &peer.p_discovery_deadline));
+				peer.p_discovery_deadline.tv_sec += 60;
+				CHECK(ENOTSUP, fd_peer_discovery_check(&peer, client_side));
+				CHECK(0, fd_app_merge(&peer.p_hdr.info.runtime.pir_apps, 777, 0, 1, 0));
+				CHECK(0, fd_peer_discovery_check(&peer, client_side));
+				peer.p_hdr.info.runtime.pir_realm = "other.test";
+				CHECK(0, fd_peer_discovery_check(&peer, client_side));
+				peer.p_hdr.info.config.pic_realm = "server.test";
+				CHECK(EACCES, fd_peer_discovery_check(&peer, client_side));
+				peer.p_hdr.info.runtime.pir_realm = NULL;
+				CHECK(EACCES, fd_peer_discovery_check(&peer, client_side));
+				peer.p_hdr.info.runtime.pir_realm = "server.test";
+				CHECK(0, fd_peer_discovery_check(&peer, client_side));
+				CHECK(0, fd_app_empty(&peer.p_hdr.info.runtime.pir_apps));
+				peer.p_hdr.info.runtime.pir_relay = 1;
+				CHECK(0, fd_peer_discovery_check(&peer, client_side));
+				peer.p_discovery_deadline.tv_sec = expiry + 100;
+				CHECK(0, fd_peer_discovery_check(&peer, client_side));
+				CHECK(expiry, peer.p_discovery_deadline.tv_sec);
+				peer.p_discovery_deadline.tv_sec = time(NULL) - 1;
+				CHECK(ETIMEDOUT, fd_peer_discovery_check(&peer, client_side));
+				CHECK(0, pthread_mutex_destroy(&peer.p_state_mtx));
+			}
+			CHECK(EACCES, fd_cnx_verify_discovery(client_side, "server.test", "other.test", &candidate, &expiry));
+			CHECK(EACCES, fd_cnx_verify_discovery(client_side, "other.test", "server.test", &candidate, &expiry));
+			strcpy(candidate.target, "other.test");
+			CHECK(EACCES, fd_cnx_verify_discovery(client_side, "server.test", "server.test", &candidate, &expiry));
+			strcpy(candidate.target, "server.test");
+			strcpy(candidate.chain[0], "_diameters._tcp.other.test");
+			CHECK(EACCES, fd_cnx_verify_discovery(client_side, "server.test", "server.test", &candidate, &expiry));
+			strcpy(candidate.chain[0], "_diameters.server.test");
+			CHECK(EACCES, fd_cnx_verify_discovery(client_side, "server.test", "server.test", &candidate, &expiry));
+			candidate.protocol = FD_DISC_DNS_DTLS_SCTP;
+			CHECK(1, fd_cnx_verify_discovery(client_side, "server.test", "server.test", &candidate, &expiry) != 0);
+		}
+
 		/* Send a few TLS protected message, and replies */
 		for (i = 0; i < 2 * NB_STREAMS; i++) {
 			CHECK( 0, fd_cnx_send(server_side, cer_buf, cer_sz));
@@ -1558,10 +1678,14 @@ int main(int argc, char *argv[])
 		}
 		
 		
+		receiver_peer = test_discovery_incoming(client_side, server_side);
+
 		/* Now close the connection */
 		CHECK( 0, pthread_create(&thr, NULL, destroy_thr, client_side) );
 		fd_cnx_destroy(server_side);
 		CHECK( 0, pthread_join(thr, NULL) );
+		CHECK(0, fd_psm_events_destroy(receiver_peer));
+		CHECK(0, fd_peer_free(&receiver_peer));
 		
 		/* Free the credentials */
 		gnutls_certificate_free_keys(hf.creds);

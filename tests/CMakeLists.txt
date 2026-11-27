@@ -32,6 +32,7 @@ SET(TEST_LIST
 	testloadext
 	testserver
 	testshutdown
+	testrouting_recovery
 )
 
 #############################
@@ -47,6 +48,7 @@ INCLUDE_DIRECTORIES(${LFDCORE_INCLUDES})
 
 SET(testcnx_ADDITIONAL_LIB  ${CLOCK_GETTIME_LIBS})
 SET(testshutdown_ADDITIONAL_LIB ${CLOCK_GETTIME_LIBS})
+SET(testrouting_recovery_ADDITIONAL_LIB ${CLOCK_GETTIME_LIBS})
 SET(testfifo_ADDITIONAL_LIB ${CLOCK_GETTIME_LIBS})
 SET(testsess_ADDITIONAL_LIB ${CLOCK_GETTIME_LIBS})
 SET(testloadext_ADDITIONAL_LIB ${CMAKE_DL_LIBS})
@@ -119,6 +121,47 @@ FOREACH( TEST ${TEST_LIST} )
       ADD_TEST(${TEST} ${EXECUTABLE_OUTPUT_PATH}/${TEST} ${TEST_ARGUMENTS})
    ENDIF()
 ENDFOREACH( TEST )
+
+# The discovery routing configuration is tested independently of the extension.
+SET(RD_CONFIG_TEST_DIR "${CMAKE_CURRENT_BINARY_DIR}/rt_discover_config")
+FILE(MAKE_DIRECTORY "${RD_CONFIG_TEST_DIR}")
+ADD_CUSTOM_COMMAND(
+	OUTPUT "${RD_CONFIG_TEST_DIR}/rd_conf.tab.c" "${RD_CONFIG_TEST_DIR}/rd_conf.tab.h"
+	COMMAND "${BISON_EXECUTABLE}" --name-prefix=rd_conf --defines
+		--output-file=${RD_CONFIG_TEST_DIR}/rd_conf.tab.c
+		${CMAKE_SOURCE_DIR}/extensions/rt_discover/rd_conf.y
+	DEPENDS ${CMAKE_SOURCE_DIR}/extensions/rt_discover/rd_conf.y)
+ADD_CUSTOM_COMMAND(
+	OUTPUT "${RD_CONFIG_TEST_DIR}/lex.rd_conf.c"
+	COMMAND "${FLEX_EXECUTABLE}" -Prd_conf -o${RD_CONFIG_TEST_DIR}/lex.rd_conf.c
+		${CMAKE_SOURCE_DIR}/extensions/rt_discover/rd_conf.l
+	DEPENDS ${CMAKE_SOURCE_DIR}/extensions/rt_discover/rd_conf.l
+		"${RD_CONFIG_TEST_DIR}/rd_conf.tab.h")
+ADD_EXECUTABLE(test_rt_discover_config test_rt_discover_config.c
+	"${RD_CONFIG_TEST_DIR}/rd_conf.tab.c" "${RD_CONFIG_TEST_DIR}/lex.rd_conf.c")
+TARGET_INCLUDE_DIRECTORIES(test_rt_discover_config PRIVATE
+	"${RD_CONFIG_TEST_DIR}" "${CMAKE_SOURCE_DIR}/extensions/rt_discover")
+TARGET_LINK_LIBRARIES(test_rt_discover_config libfdproto libfdcore ${GNUTLS_LIBRARIES} ${GCRYPT_LIBRARY})
+ADD_TEST(NAME test_rt_discover_config COMMAND test_rt_discover_config ${TEST_ARGUMENTS})
+
+FIND_LIBRARY(DISCOVERY_RESOLV_LIBRARY NAMES resolv)
+ADD_EXECUTABLE(test_discovery_dns test_discovery_dns.c ../libfdcore/discovery_dns.c)
+IF(DISCOVERY_RESOLV_LIBRARY)
+	TARGET_LINK_LIBRARIES(test_discovery_dns ${DISCOVERY_RESOLV_LIBRARY})
+ENDIF()
+ADD_TEST(NAME test_discovery_dns COMMAND test_discovery_dns)
+
+ADD_EXECUTABLE(test_discovery_manager test_discovery_manager.c ../libfdcore/discovery.c)
+TARGET_LINK_LIBRARIES(test_discovery_manager libfdproto libfdcore ${GNUTLS_LIBRARIES} ${GCRYPT_LIBRARY} ${CLOCK_GETTIME_LIBS})
+ADD_TEST(NAME test_discovery_manager COMMAND test_discovery_manager)
+
+ADD_EXECUTABLE(test_discovery_config_retry test_discovery_config_retry.c)
+TARGET_LINK_LIBRARIES(test_discovery_config_retry libfdproto libfdcore ${GNUTLS_LIBRARIES} ${GCRYPT_LIBRARY} ${CLOCK_GETTIME_LIBS})
+ADD_TEST(NAME test_discovery_config_retry COMMAND test_discovery_config_retry ${TEST_ARGUMENTS})
+
+ADD_EXECUTABLE(test_rt_discover_recovery test_rt_discover_recovery.c)
+TARGET_LINK_LIBRARIES(test_rt_discover_recovery libfdproto libfdcore ${GNUTLS_LIBRARIES} ${GCRYPT_LIBRARY} ${CLOCK_GETTIME_LIBS})
+ADD_TEST(NAME test_rt_discover_recovery COMMAND test_rt_discover_recovery ${TEST_ARGUMENTS})
 
 OPTION(BUILD_MULTI_PEER_TESTS "Enable opt-in tests using local Diameter peers" OFF)
 IF(BUILD_TWO_PEER_TESTS OR (BUILD_MULTI_PEER_TESTS AND (TWO_PEER_USE_TLS OR TWO_PEER_USE_SCTP)))
@@ -234,6 +277,10 @@ IF(BUILD_MULTI_PEER_TESTS)
 	ENDIF()
 
 	IF(TARGET test_app)
+		IF(CMAKE_SYSTEM_NAME STREQUAL "Linux" AND MULTI_PEER_USE_TLS AND TARGET acl_wl AND TARGET rt_discover)
+			ADD_MULTI_PEER_TEST(test_multi_peer_discovery test_multi_peer_discovery.py
+				$<TARGET_FILE:test_app> $<TARGET_FILE:acl_wl> $<TARGET_FILE:rt_discover>)
+		ENDIF()
 		ADD_MULTI_PEER_TEST(test_two_peer_test_app test_two_peer_test_app.py
 			$<TARGET_FILE:test_app>)
 		IF(NOT MULTI_PEER_USE_SCTP AND TARGET dbg_msg_dumps AND CMAKE_SYSTEM_NAME STREQUAL "Linux")

@@ -42,6 +42,7 @@
 
 /* Structure that contains the routing data for a message */
 struct rt_data {
+	int		recovery_attempted;
 	int		extracted;	/* if 0, candidates is ordered by diamid, otherwise the order is unspecified. This also counts the number of times the message was (re-)sent, as a side effect */
 	struct fd_list	candidates;	/* All the candidates. Items are struct rtd_candidate. */
 	struct fd_list	errors;		/* All errors received from other peers for this message */
@@ -85,14 +86,7 @@ void fd_rtd_free(struct rt_data ** rtd)
 	old = *rtd;
 	*rtd = NULL;
 	
-	while (!FD_IS_LIST_EMPTY(&old->candidates)) {
-		struct rtd_candidate * c = (struct rtd_candidate *) old->candidates.next;
-		
-		fd_list_unlink(&c->chain);
-		free(c->diamid);
-		free(c->realm);
-		free(c);
-	}
+	fd_rtd_candidate_reset(old);
 	
 	while (!FD_IS_LIST_EMPTY(&old->errors)) {
 		struct rtd_error * c = (struct rtd_error *) old->errors.next;
@@ -108,6 +102,25 @@ void fd_rtd_free(struct rt_data ** rtd)
 	return;
 }
 
+void fd_rtd_candidate_reset(struct rt_data *rtd)
+{
+	while (!FD_IS_LIST_EMPTY(&rtd->candidates)) {
+		struct rtd_candidate *c = (struct rtd_candidate *)rtd->candidates.next;
+		fd_list_unlink(&c->chain);
+		free(c->diamid);
+		free(c->realm);
+		free(c);
+	}
+}
+
+int fd_rtd_recovery_attempt(struct rt_data *rtd)
+{
+	if (rtd->recovery_attempted)
+		return 0;
+	rtd->recovery_attempted = 1;
+	return 1;
+}
+
 /* Add a peer to the candidates list. The source is our local peer list, so no need to care for the case here. */
 int  fd_rtd_candidate_add(struct rt_data * rtd, DiamId_t peerid, size_t peeridlen, DiamId_t realm, size_t realmlen)
 {
@@ -116,6 +129,15 @@ int  fd_rtd_candidate_add(struct rt_data * rtd, DiamId_t peerid, size_t peeridle
 	
 	TRACE_ENTRY("%p %p %zd %p %zd", rtd, peerid, peeridlen, realm, realmlen);
 	CHECK_PARAMS(rtd && peerid && peeridlen);
+
+	/* Refresh must not resurrect either the failed next hop or error origin. */
+	for (prev = rtd->errors.next; prev != &rtd->errors; prev = prev->next) {
+		struct rtd_error *e = (struct rtd_error *)prev;
+		int cont;
+		if (!fd_os_almostcasesrch(peerid, peeridlen, e->nexthop, e->nexthoplen, &cont)
+		    || (e->erh && !fd_os_almostcasesrch(peerid, peeridlen, e->erh, e->erhlen, &cont)))
+			return 0;
+	}
 	
 	/* Since the peers are ordered when they are added (fd_g_activ_peers) we search for the position from the end -- this should be efficient */
 	for (prev = rtd->candidates.prev; prev != &rtd->candidates; prev = prev->prev) {

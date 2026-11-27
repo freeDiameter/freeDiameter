@@ -1,0 +1,49 @@
+# Enable BUILD_RT_DISCOVER at build time, then load rt_discover.fdx with this
+# file as its configuration. Discovery is disabled unless explicitly loaded.
+#
+# Each Realm is an exact, case-insensitive Diameter realm, not a suffix or
+# wildcard. List every peer identity that is authorized for that realm.
+# DNS records alone do not authorize a peer: the peer must also authenticate
+# using the configured TLS credentials and trust anchors. Its certificate must
+# cover the authorized Origin-Host, queried realm, SRV target and
+# certificate-eligible names encountered during DNS resolution.
+# Optional peer settings apply to all discoveries for the realm:
+# No_IP, No_IPv6, No_TCP, No_SCTP, Prefer_TCP, TcTimer, TwTimer,
+# TLS_Prio and Realm (the expected Origin-Realm, independent of the query
+# realm). Prefer_TCP is already the discovery default. No_TCP requires
+# DTLS/SCTP. Port, ConnectTo and transport security mode are determined by
+# DNS; TLS_old_method, No_TLS and SctpSec3436 are not supported.
+#
+# Realm = "example.org" {
+#     Peer = "diameter1.example.org";
+#     Peer = "diameter2.example.org";
+#     TcTimer = 60;
+#     TwTimer = 30;
+#     No_SCTP;
+#     TLS_Prio = "NORMAL";
+#     Realm = "origin.example.org";
+# };
+#
+# Discovery is attempted only when normal routing has no usable candidate.
+# At most 256 requests may wait for discovery, and at most 64 distinct
+# realm/application operations are retained until extension unload. An
+# operation is created only after a routing request supplies its application.
+# Requests wait at most 10 seconds, including any time in retry backoff; an
+# expired request returns UNABLE_TO_DELIVER and is not retried.
+# Existing static peers or peers owned by another discovery are not reused.
+# After an initial failure, unexpected disconnect or failed TTL refresh, the
+# extension stops the failed operation and retries in the background, even
+# without waiting requests. Once stop completes, the delay starts at the
+# realm's TcTimer, or 30 seconds if unset. It doubles after consecutive
+# failures, adds 0 to floor(25%) seconds of random jitter, and is capped at
+# 300 seconds or TcTimer, whichever is greater. A successful connection
+# resets the delay. Incoming requests never accelerate a scheduled retry.
+# If a peer disconnects with BUSY or DO_NOT_WANT_TO_TALK_TO_YOU, the
+# realm/application operation is stopped and automatic discovery for that
+# pair is suppressed until the extension is unloaded and reloaded. Waiting
+# requests fail without a routing retry; later requests are not queued.
+# Failed stops and stop-thread creation or join failures are logged and
+# retried every second without restarting discovery; pending requests still
+# expire. Shutdown drains requests and waits for every stop and join to
+# succeed, so a persistent failure prevents unload. No new discovery attempts
+# start during shutdown.

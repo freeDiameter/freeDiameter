@@ -87,6 +87,10 @@ static int prepare_connection_list(struct fd_peer * peer)
 	if (FD_IS_LIST_EMPTY(&peer->p_hdr.info.pi_endpoints)) {
 		struct addrinfo hints, *ai, *aip;
 		int ret;
+		if (peer->p_discovery) {
+			fd_peer_event_send(peer, FDEVP_CNX_FAILED, 0, NULL);
+			return 0;
+		}
 
 		memset(&hints, 0, sizeof(hints));
 		hints.ai_flags = AI_ADDRCONFIG;
@@ -147,7 +151,7 @@ static int prepare_connection_list(struct fd_peer * peer)
 	empty_connection_list(peer);
 	
 	/* Prepare the parameters */
-	if ((peer->p_hdr.info.config.pic_flags.sec != PI_SEC_DEFAULT) || (fd_g_config->cnf_flags.tls_alg)) {
+	if (!peer->p_discovery && ((peer->p_hdr.info.config.pic_flags.sec != PI_SEC_DEFAULT) || (fd_g_config->cnf_flags.tls_alg))) {
 		dotls_immediate = 0;
 		port_no = htons(peer->p_hdr.info.config.pic_port ?: DIAMETER_PORT);
 	} else {
@@ -317,6 +321,8 @@ static void * connect_thr(void * arg)
 				fd_cnx_destroy(cnx);
 				empty_connection_list(peer);
 				fd_ep_filter(&peer->p_hdr.info.pi_endpoints, EP_FL_CONF);
+				if (peer->p_discovery)
+					fd_peer_event_send(peer, FDEVP_CNX_FAILED, 0, NULL);
 				goto out_pop;
 			} );
 		LOG_A("%s: TLS handshake successful.", peer->p_hdr.info.pi_diamid);

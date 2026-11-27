@@ -2139,6 +2139,10 @@ struct rt_data;
 
 /* Following functions are helpers to create the routing data of a message */
 int  fd_rtd_init(struct rt_data ** rtd);
+/* Routing-core recovery helpers: clear candidates without losing error/attempt
+ * history; claim the single recovery attempt (returns 1 once, then 0). */
+void fd_rtd_candidate_reset(struct rt_data *rtd);
+int fd_rtd_recovery_attempt(struct rt_data *rtd);
 void fd_rtd_free(struct rt_data ** rtd);
 
 /* Add a peer to the candidates list. */

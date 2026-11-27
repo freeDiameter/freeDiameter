@@ -16,6 +16,9 @@ SET(FDCORE_SRC
 	cnxctx.h
 	config.c
 	core.c
+	discovery.c
+	discovery_dns.c
+	discovery_config.c
 	cnxctx.c
 	endpoints.c
 	events.c
@@ -76,6 +79,10 @@ SET_TARGET_PROPERTIES(libfdcore PROPERTIES
 # The library itself needs other libraries 
 LINK_DIRECTORIES(${CURRENT_BINARY_DIR}/../libfdproto)
 TARGET_LINK_LIBRARIES(libfdcore libfdproto ${LFDCORE_LIBS})
+FIND_LIBRARY(DISCOVERY_RESOLV_LIBRARY NAMES resolv)
+IF(DISCOVERY_RESOLV_LIBRARY)
+	TARGET_LINK_LIBRARIES(libfdcore ${DISCOVERY_RESOLV_LIBRARY})
+ENDIF()
 
 
 ####

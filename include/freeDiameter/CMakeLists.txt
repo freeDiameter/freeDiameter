@@ -276,6 +276,6 @@ CONFIGURE_FILE(${CMAKE_CURRENT_SOURCE_DIR}/freeDiameter-host.h.in ${CMAKE_CURREN
 ## INSTALL section ##
 
 # The headers from this directory are required to develop new extensions for freeDiameter.
-INSTALL(FILES ${CMAKE_CURRENT_BINARY_DIR}/freeDiameter-host.h libfdproto.h libfdcore.h extension.h
+INSTALL(FILES ${CMAKE_CURRENT_BINARY_DIR}/freeDiameter-host.h libfdproto.h libfdcore.h extension.h discovery.h
 	DESTINATION ${INSTALL_HEADERS_SUFFIX}
 	COMPONENT freeDiameter-dev)

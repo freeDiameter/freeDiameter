@@ -768,6 +768,7 @@ int fd_p_ce_msgrcv(struct msg ** msg, int req, struct fd_peer * peer)
 	/* Check the Result-Code */
 	switch (rc) {
 		case ER_DIAMETER_SUCCESS:
+			CHECK_FCT_DO(fd_peer_discovery_check(peer, peer->p_cnxctx), goto cleanup);
 			/* Log success */
 			fd_hook_call(HOOK_PEER_CONNECT_SUCCESS, *msg, peer, NULL, NULL);
 			
@@ -891,9 +892,15 @@ int fd_p_ce_process_receiver(struct fd_peer * peer)
 	
 	/* Parse the content of the received CER */
 	CHECK_FCT_DO( save_remote_CE_info(msg, peer, &pei, NULL), goto error_abort );
+	if (fd_peer_discovery_check(peer, peer->p_cnxctx)) {
+		pei.pei_errcode = "DIAMETER_UNKNOWN_PEER";
+		fatal = 1;
+		goto error_abort;
+	}
 	
-	/* Validate the realm if needed */
-	if (peer->p_hdr.info.config.pic_realm) {
+	/* Discovery authenticates the query realm in the certificate; the peer's
+	 * Origin-Realm need not match it. Static peer constraints are unchanged. */
+	if (peer->p_hdr.info.config.pic_realm && !peer->p_discovery) {
 		size_t len = strlen(peer->p_hdr.info.config.pic_realm);
 		if (fd_os_almostcasesrch(peer->p_hdr.info.config.pic_realm, len, peer->p_hdr.info.runtime.pir_realm, peer->p_hdr.info.runtime.pir_realmlen, NULL)) {
 			TRACE_DEBUG(INFO, "Rejected CER from peer '%s', realm mismatch with configured value (returning DIAMETER_UNKNOWN_PEER).", peer->p_hdr.info.pi_diamid);

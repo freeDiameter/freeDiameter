@@ -54,6 +54,8 @@
 
 %{
 #include "fdcore-internal.h"
+#include "discovery_config.h"
+#include <freeDiameter/discovery.h>
 #include "fdd.tab.h"	/* bug : bison does not define the YYLTYPE before including this block, so... */
 
 /* The Lex parser prototype */
@@ -138,6 +140,9 @@ static void cleanup_peer_options(void)
 %token		NORELAY
 %token		LOADEXT
 %token		CONNPEER
+%token		DISCOVERPEER
+%token		DISC_APPLICATION
+%token		DISC_AUTHORIZED
 %token		CONNTO
 %token		TLS_CRED
 %token		TLS_CA
@@ -181,6 +186,7 @@ conffile:		/* Empty is OK -- for simplicity here, we reject in daemon later */
 			| conffile oldtls
 			| conffile loadext
 			| conffile connpeer
+			| conffile discoverpeer
 			| conffile tls_cred
 			| conffile tls_ca
 			| conffile tls_crl
@@ -498,6 +504,118 @@ extconf:		/* empty */
 			| ':' QSTRING
 			{
 				$$ = $2;
+			}
+			;
+
+discoverpeer:		DISCOVERPEER '=' QSTRING
+			{
+				int ret = fd_disc_conf_begin($3);
+				free($3);
+				if (ret) {
+					yyerror(&yylloc, conf, "Invalid discovery realm");
+					YYERROR;
+				}
+			}
+			'{' discoveryparams '}' ';'
+			{
+				int ret = fd_disc_conf_end();
+				if (ret) {
+					yyerror(&yylloc, conf, "Discovery requires an application and authorized peers, without duplicate realm/application entries");
+					YYERROR;
+				}
+			}
+			;
+
+discoveryparams:	/* empty */
+			| discoveryparams DISC_APPLICATION '=' QSTRING ';'
+			{
+				int ret = fd_disc_conf_application($4);
+				free($4);
+				if (ret) {
+					yyerror(&yylloc, conf, "Invalid or duplicate discovery application");
+					YYERROR;
+				}
+			}
+			| discoveryparams DISC_AUTHORIZED '=' QSTRING ';'
+			{
+				int ret = fd_disc_conf_peer($4);
+				free($4);
+				if (ret) {
+					yyerror(&yylloc, conf, "Invalid or duplicate authorized peer");
+					YYERROR;
+				}
+			}
+			| discoveryparams NOIP ';'
+			{
+				if (conf->cnf_flags.no_ip6 || fd_disc_conf_family(FD_DISCOVERY_IPV6)) {
+					yyerror(&yylloc, conf, "No_IP conflicts with No_IPv6");
+					YYERROR;
+				}
+				got_peer_noip++;
+			}
+			| discoveryparams NOIP6 ';'
+			{
+				if (conf->cnf_flags.no_ip4 || fd_disc_conf_family(FD_DISCOVERY_IPV4)) {
+					yyerror(&yylloc, conf, "No_IPv6 conflicts with No_IP");
+					YYERROR;
+				}
+				got_peer_noipv6++;
+			}
+			| discoveryparams NOSCTP ';'
+			{
+				if (conf->cnf_flags.no_tcp || fd_disc_conf_transport(FD_DISCOVERY_TLS_TCP)) {
+					yyerror(&yylloc, conf, "No_SCTP conflicts with No_TCP");
+					YYERROR;
+				}
+				got_peer_nosctp++;
+			}
+			| discoveryparams NOTCP ';'
+			{
+#if !defined(ENABLE_DTLS_SCTP) || defined(DISABLE_SCTP)
+				yyerror(&yylloc, conf, "Discovery No_TCP requires ENABLE_DTLS_SCTP");
+				YYERROR;
+#endif
+				if (conf->cnf_flags.no_sctp || fd_disc_conf_transport(FD_DISCOVERY_DTLS_SCTP)) {
+					yyerror(&yylloc, conf, "No_TCP conflicts with No_SCTP");
+					YYERROR;
+				}
+				got_peer_notcp++;
+			}
+			| discoveryparams PREFERTCP ';'
+			{
+				/* DNS discovery already prefers TLS/TCP. */
+			}
+			| discoveryparams TCTIMER '=' INTEGER ';'
+			{
+				if (fd_disc_conf_timer(1, $4)) {
+					yyerror(&yylloc, conf, "Invalid discovery TcTimer");
+					YYERROR;
+				}
+			}
+			| discoveryparams TWTIMER '=' INTEGER ';'
+			{
+				if (fd_disc_conf_timer(0, $4)) {
+					yyerror(&yylloc, conf, "Invalid discovery TwTimer");
+					YYERROR;
+				}
+			}
+			| discoveryparams TLS_PRIO '=' QSTRING ';'
+			{
+				int ret = fd_disc_conf_priority($4);
+				free($4);
+				if (ret) {
+					yyerror(&yylloc, conf, "Invalid or duplicate discovery TLS_Prio");
+					YYERROR;
+				}
+			}
+			| discoveryparams REALM '=' QSTRING ';'
+			{
+				int ret = fd_disc_conf_peer_realm($4);
+				free($4);
+				if (ret) {
+					yyerror(&yylloc, conf, "Invalid or duplicate discovery peer Realm");
+					YYERROR;
+				}
 			}
 			;
 			

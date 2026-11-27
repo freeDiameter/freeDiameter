@@ -302,6 +302,38 @@ TLS_Cred = "/etc/ssl/certs/freeDiameter.pem", "/etc/ssl/private/freeDiameter.key
 #ConnectPeer = "aaa.wide.ad.jp";
 #ConnectPeer = "old.diameter.serv" { TcTimer = 60; TLS_old_method; No_SCTP; Port=3868; } ;
 
+# Explicit DNS discovery at startup. No DNS peer discovery occurs unless this
+# directive or an extension/application invokes the discovery API.
+# Each entry specifies the destination realm, a decimal Diameter application
+# ID (quoted to support the full 32-bit range), and one or more authorized
+# Diameter Origin-Host identities. A DNS target is not automatically trusted.
+# TLS uses the global TLS_Cred, TLS_CA and TLS_CRL configuration. The peer
+# certificate must cover the authorized Origin-Host, queried realm, SRV target
+# and certificate-eligible names encountered during DNS resolution.
+# Failed discovery or lost peers are retried in the background. The retry
+# delay starts at the entry's TcTimer (or the global TcTimer, default 30
+# seconds), grows exponentially
+# with jitter, and is capped at 300 seconds or TcTimer, whichever is greater;
+# a successful connection resets the delay. DNS data is
+# refreshed when it expires.
+# A peer's BUSY or DO_NOT_WANT_TO_TALK_TO_YOU disconnect suppresses retries
+# for that entry until the daemon is restarted.
+# Existing static peers or peers owned by another discovery are not reused.
+# The following ConnectPeer options are also supported: TcTimer, TwTimer,
+# TLS_Prio, Realm (expected Origin-Realm), No_IP, No_IPv6, No_TCP, No_SCTP,
+# and Prefer_TCP (already the discovery default). No_TCP requires DTLS/SCTP.
+# Port, ConnectTo and the transport security mode are determined by DNS.
+# TLS_old_method, No_TLS and SctpSec3436 are not supported: discovery requires
+# immediate TLS/TCP or DTLS/SCTP.
+#DiscoverPeer = "example.net" {
+#    ApplicationId = "4";
+#    AuthorizedPeer = "diameter1.example.net";
+#    AuthorizedPeer = "diameter2.example.net";
+#    TcTimer = 60;
+#    TwTimer = 30;
+#    No_SCTP;
+#    TLS_Prio = "NORMAL";
+#};
 
 ##############################################################
 ## General settings

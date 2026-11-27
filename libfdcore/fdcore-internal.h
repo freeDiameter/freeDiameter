@@ -40,6 +40,7 @@
 
 #include <freeDiameter/freeDiameter-host.h>
 #include <freeDiameter/libfdcore.h>
+#include "discovery_peer.h"
 
 #ifdef DISABLE_SCTP
 #undef IPPROTO_SCTP
@@ -232,6 +233,18 @@ struct fd_peer { /* The "real" definition of the peer structure */
 	/* Callback on initial connection success / failure after the peer was added */
 	void 		(*p_cb)(struct peer_info *, void *);
 	void 		*p_cb_data;
+
+	/* Immutable discovery authorization and DNS path; deadline only shortened by PSM. */
+	struct fd_disc_dns_candidate *p_discovery;
+	char *p_discovery_realm;
+	uint32_t p_discovery_app;
+	uint64_t p_discovery_token;
+	int p_discovery_cancelled; /* protected by p_state_mtx */
+	int p_discovery_complete; /* PSM, teardown and callback finished; protected by p_state_mtx */
+	void (*p_discovery_cb)(int, void *); /* PSM-owned until terminal notification */
+	void *p_discovery_cb_data;
+	int p_discovery_open_reported;
+	struct timespec p_discovery_deadline;
 	
 };
 #define CHECK_PEER( _p ) \

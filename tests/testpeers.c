@@ -34,6 +34,8 @@
 *********************************************************************************************************/
 
 #include "tests.h"
+#include "../libfdcore/discovery_config.h"
+#include <freeDiameter/discovery.h>
 
 const char * ids[] = { "b11", "b14", "b1", "b4" };
 #define DomainName "localdomain"
@@ -73,6 +75,47 @@ static void test_sctp_security_configuration(void)
 #endif
 }
 
+static void test_discovery_configuration(void)
+{
+	static const char *invalid[] = {
+		"DiscoverPeer = \"example.org\" { ApplicationId = \"4\"; };",
+		"DiscoverPeer = \"example.org\" { AuthorizedPeer = \"peer.example.org\"; };",
+		"DiscoverPeer = \"example.org\" { ApplicationId = \"4294967296\"; AuthorizedPeer = \"peer.example.org\"; };",
+		"DiscoverPeer = \"example.org\" { ApplicationId = \"x\"; AuthorizedPeer = \"peer.example.org\"; };",
+		"DiscoverPeer = \"example.org\" { ApplicationId = \"4\"; ApplicationId = \"5\"; AuthorizedPeer = \"peer.example.org\"; };",
+		"DiscoverPeer = \"example.org\" { ApplicationId = \"4\"; AuthorizedPeer = \"peer.example.org\"; AuthorizedPeer = \"PEER.EXAMPLE.ORG\"; };",
+		"DiscoverPeer = \"example.org\" { ApplicationId = \"4\"; AuthorizedPeer = \"peer.example.org\"; };"
+		"DiscoverPeer = \"EXAMPLE.ORG\" { ApplicationId = \"4\"; AuthorizedPeer = \"other.example.org\"; };",
+		"DiscoverPeer = \"example.org\" { ApplicationId = \"4\"; AuthorizedPeer = \"peer.example.org\"; No_IP; No_IPv6; };",
+		"DiscoverPeer = \"example.org\" { ApplicationId = \"4\"; AuthorizedPeer = \"peer.example.org\"; No_TCP; No_SCTP; };",
+		"DiscoverPeer = \"example.org\" { ApplicationId = \"4\"; AuthorizedPeer = \"peer.example.org\"; TLS_old_method; };",
+		"DiscoverPeer = \"example.org\" { ApplicationId = \"4\"; AuthorizedPeer = \"peer.example.org\"; Port = 3868; };",
+		"DiscoverPeer = \"example.org\" { ApplicationId = \"4\"; AuthorizedPeer = \"peer.example.org\"; Realm = \"bad realm\"; };",
+		"DiscoverPeer = \"example.org\" { ApplicationId = \"4\"; AuthorizedPeer = \"peer.example.org\";"
+	};
+	size_t i;
+	CHECK(0, parse_peer_configuration(
+		"DiscoverPeer = \"example.org\" { ApplicationId = \"4294967295\"; "
+		"AuthorizedPeer = \"peer.example.org\"; AuthorizedPeer = \"other.example.org\"; "
+		"No_IPv6; No_SCTP; Prefer_TCP; TcTimer = 60; TwTimer = 45; "
+		"TLS_Prio = \"NORMAL\"; Realm = \"origin.example.org\"; };"));
+	CHECK(0, fd_disc_conf_fini());
+	CHECK(0, parse_peer_configuration(
+		"DiscoverPeer = \"example.org\" { ApplicationId = \"0\"; "
+		"AuthorizedPeer = \"peer.example.org\"; };"));
+	CHECK(0, fd_disc_conf_fini());
+#if defined(ENABLE_DTLS_SCTP) && !defined(DISABLE_SCTP)
+	CHECK(0, parse_peer_configuration(
+		"DiscoverPeer = \"example.org\" { ApplicationId = \"0\"; "
+		"AuthorizedPeer = \"peer.example.org\"; No_TCP; };"));
+	CHECK(0, fd_disc_conf_fini());
+#endif
+	for (i = 0; i < sizeof(invalid) / sizeof(invalid[0]); i++) {
+		CHECK(1, parse_peer_configuration(invalid[i]) != 0);
+		CHECK(0, fd_disc_conf_fini());
+	}
+}
+
 static void test_sctp_security_rejections(void)
 {
 	static const char *cases[] = {
@@ -103,13 +146,253 @@ static void test_sctp_security_rejections(void)
 	fd_g_config->cnf_flags.tls_alg = saved_tls_alg;
 }
 
+static void test_discovery_peer(void)
+{
+	struct fd_disc_dns_candidate candidate;
+	struct fd_discovery_peer discovery;
+	struct peer_hdr *peer, *duplicate;
+	int disabled = fd_g_config->cnf_sec_data.tls_disabled;
+	memset(&candidate, 0, sizeof(candidate));
+	memset(&discovery, 0, sizeof(discovery));
+	candidate.protocol = FD_DISC_DNS_TLS_TCP;
+	candidate.port = 15658;
+	candidate.ttl = 60;
+	candidate.address_count = 1;
+	candidate.addresses[0].length = 4;
+	candidate.addresses[0].bytes[0] = 127;
+	candidate.addresses[0].bytes[3] = 1;
+	strcpy(candidate.target, "dns-target.localdomain");
+	discovery.identity = "authorized.localdomain";
+	discovery.realm = "localdomain";
+	discovery.candidate = &candidate;
+	discovery.options.ip_family = FD_DISCOVERY_IPV4;
+	discovery.options.tc_timer = 60;
+	discovery.options.tw_timer = 45;
+	discovery.options.tls_priority = "NORMAL";
+	discovery.options.peer_realm = "origin.localdomain";
+	discovery.token = 1;
+	CHECK(0, clock_gettime(CLOCK_REALTIME, &discovery.expires));
+	CHECK(ETIMEDOUT, fd_peer_add_discovered(&discovery, NULL, NULL));
+	discovery.expires.tv_sec += 60;
+	candidate.protocol = FD_DISC_DNS_TCP;
+	CHECK(ENOTSUP, fd_peer_add_discovered(&discovery, NULL, NULL));
+	candidate.protocol = FD_DISC_DNS_TLS_TCP;
+	fd_g_config->cnf_sec_data.tls_disabled = 1;
+	CHECK(ENOTSUP, fd_peer_add_discovered(&discovery, NULL, NULL));
+	fd_g_config->cnf_sec_data.tls_disabled = 0;
+	CHECK(0, fd_peer_add_discovered(&discovery, NULL, NULL));
+	CHECK(0, fd_peer_getbyid((DiamId_t)discovery.identity, strlen(discovery.identity), 0, &peer));
+	CHECK(1, peer != NULL);
+	CHECK(0, strcmp(discovery.identity, peer->info.pi_diamid));
+	CHECK(15658, peer->info.config.pic_port);
+	CHECK(PI_P3_IP, peer->info.config.pic_flags.pro3);
+	CHECK(60, peer->info.config.pic_tctimer);
+	CHECK(45, peer->info.config.pic_twtimer);
+	CHECK(0, strcmp("NORMAL", peer->info.config.pic_priority));
+	CHECK(0, strcmp("origin.localdomain", peer->info.config.pic_realm));
+	CHECK(0, strcmp("localdomain", ((struct fd_peer *)peer)->p_discovery_realm));
+	CHECK(0, FD_IS_LIST_EMPTY(&peer->info.pi_endpoints));
+	CHECK(0, fd_peer_getbyid(candidate.target, strlen(candidate.target), 0, &duplicate));
+	CHECK(1, duplicate == NULL);
+	discovery.identity = "legacy.localdomain";
+	CHECK(EEXIST, fd_peer_add_discovered(&discovery, NULL, NULL));
+	CHECK(0, fd_peer_getbyid((DiamId_t)discovery.identity, strlen(discovery.identity), 0, &duplicate));
+	CHECK(1, ((struct fd_peer *)duplicate)->p_discovery == NULL);
+	CHECK(ENOENT, fd_peer_discovery_cancel(discovery.identity, discovery.token));
+	discovery.identity = "authorized.localdomain";
+	CHECK(ENOENT, fd_peer_discovery_cancel(discovery.identity, discovery.token + 1));
+	CHECK(0, fd_peer_discovery_cancel(discovery.identity, discovery.token));
+	CHECK(0, fd_peer_getbyid((DiamId_t)discovery.identity, strlen(discovery.identity), 0, &duplicate));
+	CHECK(1, duplicate == NULL);
+	CHECK(ETIMEDOUT, fd_psm_change_state((struct fd_peer *)peer, STATE_OPEN));
+	discovery.token = 3;
+	CHECK(0, fd_peer_add_discovered(&discovery, NULL, NULL));
+	CHECK(0, fd_peer_discovery_cancel(discovery.identity, discovery.token));
+	fd_g_config->cnf_sec_data.tls_disabled = disabled;
+}
+
+static pthread_mutex_t discovery_cb_lock = PTHREAD_MUTEX_INITIALIZER;
+static pthread_cond_t discovery_cb_cond = PTHREAD_COND_INITIALIZER;
+static int discovery_cb_count;
+static int discovery_cb_success;
+
+static void discovery_callback(int status, void *unused)
+{
+	pthread_mutex_lock(&discovery_cb_lock);
+	discovery_cb_count++;
+	discovery_cb_success = status == 0;
+	pthread_cond_signal(&discovery_cb_cond);
+	pthread_mutex_unlock(&discovery_cb_lock);
+}
+
+static void test_discovery_deadline(void)
+{
+	struct fd_disc_dns_candidate candidate;
+	struct fd_discovery_peer discovery;
+	struct peer_hdr *peer;
+	struct timespec wait;
+	int disabled = fd_g_config->cnf_sec_data.tls_disabled;
+	memset(&candidate, 0, sizeof(candidate));
+	memset(&discovery, 0, sizeof(discovery));
+	candidate.protocol = FD_DISC_DNS_TLS_TCP;
+	candidate.port = 15658;
+	candidate.ttl = 60;
+	candidate.address_count = 1;
+	candidate.addresses[0].length = 4;
+	candidate.addresses[0].bytes[0] = 127;
+	candidate.addresses[0].bytes[3] = 1;
+	strcpy(candidate.target, "dns-target.localdomain");
+	discovery.identity = "deadline.localdomain";
+	discovery.realm = "localdomain";
+	discovery.candidate = &candidate;
+	discovery.token = 2;
+	CHECK(0, clock_gettime(CLOCK_REALTIME, &discovery.expires));
+	discovery.expires.tv_sec++;
+	fd_g_config->cnf_sec_data.tls_disabled = 0;
+	CHECK(0, fd_peer_add_discovered(&discovery, discovery_callback, NULL));
+	CHECK(0, fd_peer_getbyid((DiamId_t)discovery.identity, strlen(discovery.identity), 0, &peer));
+	CHECK(0, fd_peer_discovery_is_open(discovery.identity, discovery.token));
+	/* DNS validity expires even while the PSM is waiting for core startup. */
+	usleep(1100000);
+	CHECK(0, fd_psm_start());
+	CHECK(0, clock_gettime(CLOCK_REALTIME, &wait));
+	wait.tv_sec += 5;
+	CHECK(0, pthread_mutex_lock(&discovery_cb_lock));
+	while (!discovery_cb_count)
+		CHECK(0, pthread_cond_timedwait(&discovery_cb_cond, &discovery_cb_lock, &wait));
+	CHECK(1, discovery_cb_count);
+	CHECK(0, discovery_cb_success);
+	CHECK(0, pthread_mutex_unlock(&discovery_cb_lock));
+	CHECK(0, fd_peer_getbyid((DiamId_t)discovery.identity, strlen(discovery.identity), 0, &peer));
+	CHECK(1, peer == NULL);
+	CHECK(0, fd_peer_discovery_is_open(discovery.identity, discovery.token));
+	fd_g_config->cnf_sec_data.tls_disabled = disabled;
+}
+
+static void test_discovery_reaping(void)
+{
+	struct fd_disc_dns_candidate candidate;
+	struct fd_discovery_peer discovery;
+	struct timespec wait;
+	size_t reaped = 0;
+	int i, disabled = fd_g_config->cnf_sec_data.tls_disabled;
+	memset(&candidate, 0, sizeof(candidate));
+	memset(&discovery, 0, sizeof(discovery));
+	candidate.protocol = FD_DISC_DNS_TLS_TCP;
+	candidate.port = 15658;
+	candidate.ttl = 60;
+	candidate.address_count = 1;
+	candidate.addresses[0].length = 4;
+	candidate.addresses[0].bytes[0] = 127;
+	candidate.addresses[0].bytes[3] = 1;
+	strcpy(candidate.target, "dns-target.localdomain");
+	discovery.identity = "reaped.localdomain";
+	discovery.realm = "localdomain";
+	discovery.candidate = &candidate;
+	CHECK(0, clock_gettime(CLOCK_REALTIME, &discovery.expires));
+	discovery.expires.tv_sec += 60;
+	CHECK(0, pthread_mutex_lock(&discovery_cb_lock));
+	discovery_cb_count = 0;
+	CHECK(0, pthread_mutex_unlock(&discovery_cb_lock));
+	fd_g_config->cnf_sec_data.tls_disabled = 0;
+	for (i = 0; i < 20; i++) {
+		int ret;
+		discovery.token = 100 + i;
+		CHECK(0, fd_peer_add_discovered(&discovery, discovery_callback, NULL));
+		ret = fd_peer_discovery_cancel(discovery.identity, discovery.token);
+		CHECK(1, ret == 0 || ret == ENOENT || ret == EPIPE);
+	}
+	CHECK(0, clock_gettime(CLOCK_REALTIME, &wait));
+	wait.tv_sec += 5;
+	CHECK(0, pthread_mutex_lock(&discovery_cb_lock));
+	while (discovery_cb_count < 20)
+		CHECK(0, pthread_cond_timedwait(&discovery_cb_cond, &discovery_cb_lock, &wait));
+	CHECK(20, discovery_cb_count);
+	CHECK(0, discovery_cb_success);
+	CHECK(0, pthread_mutex_unlock(&discovery_cb_lock));
+	/* Callbacks finish before the PSM completion flag; reap only afterward. */
+	for (i = 0; i < 100; i++) {
+		reaped += fd_peer_discovery_reap();
+		usleep(10000);
+	}
+	CHECK(1, reaped >= 20);
+	CHECK(0, fd_peer_discovery_reap());
+	fd_g_config->cnf_sec_data.tls_disabled = disabled;
+}
+
+struct dpr_observation {
+	struct fd_peer *peer;
+	int calls, status, state;
+};
+
+static void dpr_callback(int status, void *data)
+{
+	struct dpr_observation *observation = data;
+	observation->calls++;
+	observation->status = status;
+	observation->state = fd_peer_getstate(observation->peer);
+}
+
+static void test_discovery_dpr(void)
+{
+	static const struct { uint32_t cause; int status, authorized; } cases[] = {
+		{ ACV_DC_BUSY, FD_DISCOVERY_PEER_BUSY, 1 },
+		{ ACV_DC_NOT_FRIEND, FD_DISCOVERY_PEER_NOT_FRIEND, 1 },
+		{ ACV_DC_REBOOTING, ECONNRESET, 1 },
+		{ ACV_DC_BUSY, ECONNRESET, 0 }
+	};
+	size_t i;
+	CHECK(0, fd_msg_init());
+	for (i = 0; i < sizeof(cases) / sizeof(cases[0]); i++) {
+		struct fd_peer *peer = NULL;
+		struct msg *msg = NULL;
+		struct avp *avp;
+		union avp_value value;
+		struct dpr_observation observation;
+		CHECK(0, fd_peer_alloc(&peer));
+		peer->p_hdr.info.pi_diamid = strdup("dpr.localdomain");
+		CHECK(1, peer->p_hdr.info.pi_diamid != NULL);
+		peer->p_discovery = calloc(1, sizeof(*peer->p_discovery));
+		CHECK(1, peer->p_discovery != NULL);
+		peer->p_state = STATE_OPEN;
+		peer->p_discovery_open_reported = cases[i].authorized;
+		memset(&observation, 0, sizeof(observation));
+		observation.peer = peer;
+		peer->p_discovery_cb = dpr_callback;
+		peer->p_discovery_cb_data = &observation;
+		CHECK(0, fd_msg_new(fd_dict_cmd_DPR, 0, &msg));
+		CHECK(0, fd_msg_avp_new(fd_dict_avp_DC, 0, &avp));
+		value.u32 = cases[i].cause;
+		CHECK(0, fd_msg_avp_setvalue(avp, &value));
+		CHECK(0, fd_msg_avp_add(msg, MSG_BRW_LAST_CHILD, avp));
+		/* No transport is installed: the DPA cannot be sent. */
+		CHECK(1, fd_p_dp_handle(&msg, 1, peer) != 0);
+		if (!cases[i].authorized) {
+			CHECK(0, observation.calls);
+			fd_peer_discovery_notify(peer, ECONNRESET);
+		}
+		CHECK(1, observation.calls);
+		CHECK(cases[i].status, observation.status);
+		if (cases[i].authorized)
+			CHECK(STATE_OPEN, observation.state);
+		fd_peer_discovery_notify(peer, ECONNRESET);
+		CHECK(1, observation.calls);
+		if (msg)
+			CHECK(0, fd_msg_free(msg));
+		CHECK(0, fd_peer_free(&peer));
+	}
+}
+
 /* Main test routine */
 int main(int argc, char *argv[])
 {
 	/* First, initialize the daemon modules */
 	INIT_FD();
+	test_discovery_dpr();
+	test_discovery_configuration();
 	test_sctp_security_configuration();
 	test_sctp_security_rejections();
+	test_discovery_peer();
 	
 	/* Create 4 peers with these ids */
 	{
@@ -149,6 +432,8 @@ int main(int argc, char *argv[])
 		CHECK(1, found == NULL);
 		CHECK(0, strcmp(id, old->info.pi_diamid));
 	}
+	test_discovery_deadline();
+	test_discovery_reaping();
 	
 	
 	/* That's all for the tests yet */

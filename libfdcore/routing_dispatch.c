@@ -53,6 +53,79 @@ static struct fd_list 	rt_fwd_list = FD_LIST_INITIALIZER_O(rt_fwd_list, &rt_fwd_
 static pthread_rwlock_t rt_out_lock = PTHREAD_RWLOCK_INITIALIZER;
 static struct fd_list 	rt_out_list = FD_LIST_INITIALIZER_O(rt_out_list, &rt_out_lock);
 
+struct fd_rt_out_recovery_hdl {
+	int (*cb)(void *, struct msg **);
+	void *cbdata;
+};
+
+static pthread_rwlock_t recovery_lock = PTHREAD_RWLOCK_INITIALIZER;
+static struct fd_rt_out_recovery_hdl *recovery_handler;
+static int recovery_stopped;
+static pthread_mutex_t recovery_resume_lock = PTHREAD_MUTEX_INITIALIZER;
+static pthread_cond_t recovery_resume_cond = PTHREAD_COND_INITIALIZER;
+static unsigned int recovery_resuming;
+
+int fd_rt_out_recovery_register(int (*cb)(void *, struct msg **), void *cbdata,
+			       struct fd_rt_out_recovery_hdl **handler)
+{
+	struct fd_rt_out_recovery_hdl *h;
+	int ret = 0;
+	CHECK_PARAMS(cb && handler);
+	CHECK_MALLOC(h = malloc(sizeof(*h)));
+	h->cb = cb;
+	h->cbdata = cbdata;
+	CHECK_POSIX(pthread_rwlock_wrlock(&recovery_lock));
+	if (recovery_stopped || fd_work_is_quiescing())
+		ret = ESHUTDOWN;
+	else if (recovery_handler)
+		ret = EEXIST;
+	else
+		*handler = recovery_handler = h;
+	CHECK_POSIX(pthread_rwlock_unlock(&recovery_lock));
+	if (ret)
+		free(h);
+	return ret;
+}
+
+int fd_rt_out_recovery_unregister(struct fd_rt_out_recovery_hdl *handler, void **cbdata)
+{
+	int ret = 0;
+	CHECK_PARAMS(handler);
+	CHECK_POSIX(pthread_rwlock_wrlock(&recovery_lock));
+	if (handler != recovery_handler) {
+		ret = EINVAL;
+	} else {
+		recovery_handler = NULL;
+		if (cbdata)
+			*cbdata = handler->cbdata;
+		free(handler);
+	}
+	CHECK_POSIX(pthread_rwlock_unlock(&recovery_lock));
+	return ret;
+}
+
+static void recovery_stop(void)
+{
+	CHECK_POSIX_DO(pthread_rwlock_wrlock(&recovery_lock), return);
+	recovery_stopped = 1;
+	CHECK_POSIX_DO(pthread_rwlock_unlock(&recovery_lock), );
+	/* Resume may block on queue space. Do not hold the callback lock while
+	 * draining it: routing workers must remain able to empty those queues. */
+	CHECK_POSIX_DO(pthread_mutex_lock(&recovery_resume_lock), return);
+	while (recovery_resuming)
+		CHECK_POSIX_DO(pthread_cond_wait(&recovery_resume_cond, &recovery_resume_lock), );
+	CHECK_POSIX_DO(pthread_mutex_unlock(&recovery_resume_lock), );
+}
+
+static void recovery_resume_done(void *unused)
+{
+	(void)unused;
+	CHECK_POSIX_DO(pthread_mutex_lock(&recovery_resume_lock), return);
+	recovery_resuming--;
+	CHECK_POSIX_DO(pthread_cond_broadcast(&recovery_resume_cond), );
+	CHECK_POSIX_DO(pthread_mutex_unlock(&recovery_resume_lock), );
+}
+
 /* Items in the lists are the same */
 struct rt_hdl {
 	struct fd_list	chain;	/* link in the rt_fwd_list or rt_out_list */
@@ -874,6 +947,75 @@ static int msg_rt_in(struct msg * msg)
 }
 		
 
+/* Refresh is deliberately separate from a normal failover, which must keep its
+ * existing candidate set. The request remains exclusively owned by the caller. */
+static int recovery_refresh(struct msg *msg)
+{
+	struct rt_data *rtd;
+	struct fd_list *li;
+	struct avp *avp;
+	int ret = 0;
+
+	CHECK_FCT(fd_msg_rt_get(msg, &rtd));
+	CHECK_PARAMS(rtd);
+	fd_rtd_candidate_reset(rtd);
+	CHECK_POSIX(pthread_rwlock_rdlock(&fd_g_activ_peers_rw));
+	pthread_cleanup_push(fd_cleanup_rwlock, &fd_g_activ_peers_rw);
+	for (li = fd_g_activ_peers.next; li != &fd_g_activ_peers; li = li->next) {
+		struct fd_peer *p = li->o;
+		ret = fd_rtd_candidate_add(rtd, p->p_hdr.info.pi_diamid,
+					  p->p_hdr.info.pi_diamidlen,
+					  p->p_hdr.info.runtime.pir_realm,
+					  p->p_hdr.info.runtime.pir_realmlen);
+		if (ret)
+			break;
+	}
+	pthread_cleanup_pop(1);
+	CHECK_FCT(ret);
+	CHECK_FCT(fd_msg_browse(msg, MSG_BRW_FIRST_CHILD, &avp, NULL));
+	while (avp) {
+		struct avp_hdr *hdr;
+		CHECK_FCT(fd_msg_avp_hdr(avp, &hdr));
+		if (hdr->avp_code == AC_ROUTE_RECORD && !(hdr->avp_flags & AVP_FLAG_VENDOR)) {
+			CHECK_FCT(fd_msg_parse_dict(avp, fd_g_config->cnf_dict, NULL));
+			fd_rtd_candidate_del(rtd, hdr->avp_value->os.data, hdr->avp_value->os.len);
+		}
+		CHECK_FCT(fd_msg_browse(avp, MSG_BRW_NEXT, &avp, NULL));
+	}
+	return 0;
+}
+
+int fd_rt_out_recovery_resume(struct msg **pmsg, int retry)
+{
+	struct msg_hdr *hdr;
+	int ret;
+	CHECK_PARAMS(pmsg && *pmsg && (retry == 0 || retry == 1));
+	CHECK_FCT(fd_msg_hdr(*pmsg, &hdr));
+	CHECK_PARAMS(hdr->msg_flags & CMD_FLAG_REQUEST);
+	CHECK_POSIX(pthread_rwlock_rdlock(&recovery_lock));
+	if (recovery_stopped || fd_work_is_quiescing()) {
+		CHECK_POSIX(pthread_rwlock_unlock(&recovery_lock));
+		return ESHUTDOWN;
+	}
+	CHECK_POSIX(pthread_mutex_lock(&recovery_resume_lock));
+	recovery_resuming++;
+	CHECK_POSIX(pthread_mutex_unlock(&recovery_resume_lock));
+	CHECK_POSIX(pthread_rwlock_unlock(&recovery_lock));
+	pthread_cleanup_push(recovery_resume_done, NULL);
+	if (retry) {
+		ret = recovery_refresh(*pmsg);
+		if (!ret)
+			ret = fd_work_post_msg(fd_g_outgoing, pmsg);
+	} else {
+		fd_hook_call(HOOK_MESSAGE_ROUTING_ERROR, *pmsg, NULL,
+			     "No remaining suitable candidate to route the message to", fd_msg_pmdl_get(*pmsg));
+		ret = return_error(pmsg, "DIAMETER_UNABLE_TO_DELIVER",
+				   "No suitable candidate to route the message to", NULL);
+	}
+	pthread_cleanup_pop(1);
+	return ret;
+}
+
 /* The ROUTING-OUT message processing */
 static int msg_rt_out(struct msg * msg)
 {
@@ -1050,6 +1192,17 @@ static int msg_rt_out(struct msg * msg)
 	}
 
 	/* If the message has not been sent, return an error */
+	if (msgptr) {
+		CHECK_POSIX(pthread_rwlock_rdlock(&recovery_lock));
+		pthread_cleanup_push(fd_cleanup_rwlock, &recovery_lock);
+		if (!recovery_stopped && !fd_work_is_quiescing()
+		    && recovery_handler && fd_rtd_recovery_attempt(rtd)) {
+			ret = recovery_handler->cb(recovery_handler->cbdata, &msgptr);
+			if (ret)
+				LOG_E("OUT recovery callback failed: %s", strerror(ret));
+		}
+		pthread_cleanup_pop(1);
+	}
 	if (msgptr) {
 		fd_hook_call(HOOK_MESSAGE_ROUTING_ERROR, msgptr, NULL, "No remaining suitable candidate to route the message to", fd_msg_pmdl_get(msgptr));
 		return_error( &msgptr, "DIAMETER_UNABLE_TO_DELIVER", "No suitable candidate to route the message to", NULL);
@@ -1252,6 +1405,7 @@ int fd_rtdisp_init(void)
 /* Ask the thread to terminate after next iteration */
 int fd_rtdisp_cleanstop(void)
 {
+	recovery_stop();
 	CHECK_POSIX_DO( pthread_mutex_lock(&order_state_lock), );
 	order_val = STOP;
 	CHECK_POSIX_DO( pthread_mutex_unlock(&order_state_lock), );
@@ -1304,6 +1458,8 @@ static void stop_thread_delayed(enum thread_state *st, pthread_t * thr, char * t
 int fd_rtdisp_fini(void)
 {
 	int i;
+
+	recovery_stop();
 	
 	/* Stop the routing IN thread */
 	if (rt_in != NULL) {
@@ -1358,6 +1514,13 @@ int fd_rtdisp_fini(void)
 /* Cleanup handlers */
 int fd_rtdisp_cleanup(void)
 {
+	struct fd_rt_out_recovery_hdl *h;
+	/* Shutdown has already excluded callbacks and resume calls. */
+	CHECK_POSIX(pthread_rwlock_wrlock(&recovery_lock));
+	h = recovery_handler;
+	recovery_handler = NULL;
+	free(h);
+	CHECK_POSIX(pthread_rwlock_unlock(&recovery_lock));
 	/* Cleanup all remaining handlers */
 	while (!FD_IS_LIST_EMPTY(&rt_fwd_list)) {
 		CHECK_FCT_DO( fd_rt_fwd_unregister ( (void *)rt_fwd_list.next, NULL ), /* continue */ );

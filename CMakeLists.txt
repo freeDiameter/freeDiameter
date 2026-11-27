@@ -18,7 +18,7 @@ SET(FD_PROJECT_VERSION_MINOR 6)
 SET(FD_PROJECT_VERSION_REV 1)
 
 # Version of the API with the library
-SET(FD_PROJECT_VERSION_API 9)
+SET(FD_PROJECT_VERSION_API 11)
 
 # The test framework, using CTest and CDash.
 INCLUDE(CTest)
@@ -40,6 +40,56 @@ SET(INSTALL_EXTENSIONS_SUFFIX 	${LIB_INSTALL_DIR}/freeDiameter	CACHE PATH "Direc
 
 # All source code should be POSIX 200112L compatible, but some other extensions might be used, so:
 ADD_DEFINITIONS(-D_GNU_SOURCE)
+
+# Detect a reentrant DNS resolver API and the resolver library it needs.
+# Keep the compile definition global because test_discovery_dns compiles
+# discovery_dns.c directly instead of linking it from libfdcore.
+INCLUDE(CheckCSourceCompiles)
+SET(_FD_DISC_RESOLV_SOURCE "
+#include <sys/types.h>
+#include <netinet/in.h>
+#include <arpa/nameser.h>
+#include <netdb.h>
+#include <resolv.h>
+#include <stdlib.h>
+int main(void)
+{
+	res_state state = calloc(1, sizeof(*state));
+	unsigned char answer[512];
+	if (!state)
+		return 1;
+	if (res_ninit(state) == 0) {
+		state->retrans = 1;
+		state->retry = 1;
+		(void)state->res_h_errno;
+		(void)res_nquery(state, \"localhost\", 1, 1, answer, sizeof(answer));
+		res_nclose(state);
+	}
+	free(state);
+	return 0;
+}")
+SET(_FD_DISC_SAVED_REQUIRED_DEFINITIONS "${CMAKE_REQUIRED_DEFINITIONS}")
+SET(_FD_DISC_SAVED_REQUIRED_LIBRARIES "${CMAKE_REQUIRED_LIBRARIES}")
+SET(CMAKE_REQUIRED_DEFINITIONS ${CMAKE_REQUIRED_DEFINITIONS} -D_GNU_SOURCE)
+CHECK_C_SOURCE_COMPILES("${_FD_DISC_RESOLV_SOURCE}" FD_DISC_RES_NQUERY_IN_LIBC)
+IF(NOT FD_DISC_RES_NQUERY_IN_LIBC)
+	FIND_LIBRARY(DISCOVERY_RESOLV_LIBRARY NAMES resolv)
+	IF(DISCOVERY_RESOLV_LIBRARY)
+		SET(CMAKE_REQUIRED_LIBRARIES ${_FD_DISC_SAVED_REQUIRED_LIBRARIES}
+			${DISCOVERY_RESOLV_LIBRARY})
+		CHECK_C_SOURCE_COMPILES("${_FD_DISC_RESOLV_SOURCE}"
+			FD_DISC_RES_NQUERY_WITH_LIBRESOLV)
+	ENDIF()
+ENDIF()
+SET(CMAKE_REQUIRED_DEFINITIONS "${_FD_DISC_SAVED_REQUIRED_DEFINITIONS}")
+SET(CMAKE_REQUIRED_LIBRARIES "${_FD_DISC_SAVED_REQUIRED_LIBRARIES}")
+
+IF(FD_DISC_RES_NQUERY_IN_LIBC OR FD_DISC_RES_NQUERY_WITH_LIBRESOLV)
+	ADD_DEFINITIONS(-DFD_DISC_HAVE_RES_NQUERY=1)
+	MESSAGE(STATUS "Diameter DNS discovery: reentrant system resolver available")
+ELSE()
+	MESSAGE(WARNING "Diameter DNS discovery: no compatible res_ninit/res_nquery/res_nclose resolver; injected DNS queries remain available, system discovery returns ENOTSUP")
+ENDIF()
 
 # Set a default build type if none was specified
 if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)

@@ -34,6 +34,7 @@
 *********************************************************************************************************/
 
 #include "fdcore-internal.h"
+#include <freeDiameter/discovery.h>
 
 /* This file contains code to handle Disconnect Peer messages (DPR and DPA) */
 
@@ -90,6 +91,16 @@ int fd_p_dp_handle(struct msg ** msg, int req, struct fd_peer * peer)
 
 			/* save the cause */
 			peer->p_hdr.info.runtime.pir_lastDC = hdr->avp_value->u32;
+			/* Only an authenticated, authorized OPEN peer may suppress
+			 * future discovery attempts with a DPR cause. */
+			if (peer->p_discovery && peer->p_discovery_open_reported) {
+				if (hdr->avp_value->u32 == ACV_DC_BUSY)
+					fd_peer_discovery_notify(peer, FD_DISCOVERY_PEER_BUSY);
+				else if (hdr->avp_value->u32 == ACV_DC_NOT_FRIEND)
+					fd_peer_discovery_notify(peer, FD_DISCOVERY_PEER_NOT_FRIEND);
+				else
+					fd_peer_discovery_notify(peer, ECONNRESET);
+			}
 		}
 		if (TRACE_BOOL(INFO)) {
 			if (dc) {
