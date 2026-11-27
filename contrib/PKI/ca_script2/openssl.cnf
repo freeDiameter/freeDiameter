@@ -1,9 +1,6 @@
 # Note: for this file to be working, an environment var CA_ROOT_DIR = directory 
 # must be defined and pointing to the CA top-level directory.
 
-HOME			= .
-RANDFILE		= $ENV::HOME/.rnd
-
 oid_section		= new_oids
 
 [ new_oids ]
@@ -11,7 +8,7 @@ oid_section		= new_oids
 
 ####################################################################
 [ req ]
-default_bits		= 1024
+default_bits		= 2048
 # default_keyfile 	= privkey.pem
 string_mask 		= utf8only
 
@@ -45,7 +42,8 @@ unstructuredName		= An optional company name
 [ v3_req ]
 # Extensions to add to a certificate request
 basicConstraints = CA:FALSE
-keyUsage = nonRepudiation, digitalSignature, keyEncipherment
+keyUsage = digitalSignature, keyEncipherment
+extendedKeyUsage = clientAuth, serverAuth
 
 [ v3_req_ca ]
 # Extensions to add to a certificate request for CA
@@ -79,7 +77,7 @@ crl_extensions	= crl_ext
 
 default_days	= 3650			# how long to certify for
 default_crl_days= 365			# how long before next CRL
-default_md	= sha1			# which md to use.
+default_md		= sha256			# which md to use.
 preserve	= no			# keep passed DN ordering
 
 # We accept to sign anything, but a real deployment would limit to proper domain etc...
@@ -97,7 +95,8 @@ emailAddress		= optional
 [ usr_cert ]
 basicConstraints=CA:FALSE
 # This is typical in keyUsage for a client certificate.
-keyUsage = nonRepudiation, digitalSignature, keyEncipherment
+keyUsage = digitalSignature, keyEncipherment
+extendedKeyUsage = clientAuth, serverAuth
 subjectKeyIdentifier=hash
 authorityKeyIdentifier=keyid,issuer
 

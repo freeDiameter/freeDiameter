@@ -75,6 +75,14 @@ separate build directory:
 Use ctest -R '^test_multi_peer_discovery$' in that build to select just the
 discovery scenario. Use a fresh build directory when changing configurations.
 
+The multi-peer tests generate temporary daemon configurations and certificates;
+they do not rely on checked-in topology config files. Scenarios include direct
+two-peer exchanges, a three-peer relay chain, and four-peer topologies with a
+relay and two destination servers for routing, balancing, and redirect tests.
+Specialized scenarios also cover peer discovery, busy-peer routing, message
+extensions, and mixed transports. These are test fixtures, not reusable
+deployment examples.
+
 The container shares the host kernel. SCTP, network namespace, netem and
 debugger-dependent tests may be skipped or require host configuration and
 container permissions that are not enabled here. Do not use --privileged or

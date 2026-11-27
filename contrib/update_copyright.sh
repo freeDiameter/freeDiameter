@@ -17,7 +17,7 @@ pushd $TMPDIR/fD
 for SRC_FILE in `find . -name .git -prune -or -type f -exec grep -q 'Copyright (c) 20.., WIDE Project and NICT' {} \; -print`;
 do
 GIT_YEAR=`git log -1 --pretty=%cd --date=short $SRC_FILE | tr - ' ' | awk '{print \$1}'`
-CPY_YEAR=`grep 'Copyright (c) 20.., WIDE Project and NICT' $SRC_FILE | awk '{print substr(\$4, 1, 4) }'`
+CPY_YEAR=`grep 'Copyright (c) 20.., WIDE Project and NICT' $SRC_FILE | awk '{print substr(\$3, 1, 4) }'`
 if [ $GIT_YEAR -gt $CPY_YEAR ];
 then
 echo "Updating copyright $CPY_YEAR -> $GIT_YEAR in $SRC_FILE";

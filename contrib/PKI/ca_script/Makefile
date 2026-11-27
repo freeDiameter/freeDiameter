@@ -34,6 +34,7 @@ OU = "AAA WG"
 
 #Default lifetime
 DAYS = 365
+keysize = 2048
 
 #Values for the CA
 CA_CN = mgr.testbed.aaa
@@ -95,7 +96,7 @@ init:
 	@mkdir $(DIR)/clients/certs
 	@echo "01" > $(DIR)/serial
 	@touch $(DIR)/index.txt
-	@openssl req $(CONFIG) -new -batch -x509 -days 3650 -nodes -newkey rsa:2048 -out $(DIR)/public-www/cacert.pem \
+	@openssl req $(CONFIG) -new -batch -x509 -days 3650 -nodes -newkey rsa:3072 -out $(DIR)/public-www/cacert.pem \
 		-keyout $(DIR)/private/cakey.pem -subj /C=$(C)/ST=$(ST)/L=$(L)/O=$(O)/OU=$(OU)/CN=$(CA_CN)/emailAddress=$(CA_mail)
 	@ln -s $(DIR)/public-www/cacert.pem $(DIR)/certs/`openssl x509 -noout -hash < $(DIR)/public-www/cacert.pem`.0
 	@$(MAKE) -f $(DIR)/Makefile gencrl
@@ -113,7 +114,7 @@ newcsr:
 	@if [ -e $(DIR)/clients/csr/$(name).csr ]; then echo "There is already a pending csr for this name."; exit 1; fi
 	@if [ ! -e $(DIR)/clients/privkeys/$(name).key.pem ]; \
 		then echo "Generating a private key for $(name) ..."; \
-		openssl genrsa -out $(DIR)/clients/privkeys/$(name).key.pem 1024; \
+		openssl genrsa -out $(DIR)/clients/privkeys/$(name).key.pem $(keysize); \
 		fi;
 	@echo "Creating the CSR in $(DIR)/clients/csr/$(name).csr";
 	@openssl req $(CONFIG) -new -batch -out $(DIR)/clients/csr/$(name).csr \

@@ -14,8 +14,8 @@ REMAKE = $(MAKE) -f $(SCRIPT_DIR)/Makefile
 force = 
 
 #RSA key sizes, can be overwritten on command line
-cakeysize = 2048
-keysize = 1024
+cakeysize = 3072
+keysize = 2048
 
 # Save current date
 DATE=`date +%Y%m%d-%H%M%S`

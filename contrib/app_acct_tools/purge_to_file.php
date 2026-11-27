@@ -134,7 +134,7 @@ if (pg_num_rows($result) > 0) {
 		}
 		fwrite($file, ")");
 		if ($DISPLAY_HTML) echo "  </TR>\n";
-		$res = pg_query( "DELETE FROM \"".$TABLE."\" WHERE ".$sql) or die('DELETE query failed: ' . pg_last_error() . "\n");
+		$res = pg_query($dbconn, "DELETE FROM \"".$TABLE."\" WHERE ".$sql) or die('DELETE query failed: ' . pg_last_error() . "\n");
 		pg_free_result($res);
 	}
 	fwrite($file, "\n;\n");

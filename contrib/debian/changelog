@@ -1,6 +1,9 @@
-freediameter (1.6.0) UNRELEASED; urgency=low
+freediameter (2.0.0) UNRELEASED; urgency=low
 
-  * changelist to be added
+  * Refresh package metadata and build only the extensions shipped in binary
+    packages.
+
+ -- Copilot <223556219+Copilot@users.noreply.github.com>  Fri, 27 Nov 2026 05:20:00 +0100
 
 freediameter (1.5.0) RELEASED; urgency=low
 

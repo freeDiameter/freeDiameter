@@ -93,7 +93,7 @@ if ($ORPHANED_TABLE) {
 /* Delete duplicate records (which might have been received by different servers on different time, but are identical otherwise */
 $duplicate_sql  = ' SELECT * FROM (SELECT count(*) as cnt, min("recorded_on") as first, "Session-Id", "Acct-Session-Id", "Accounting-Record-Type", "Accounting-Record-Number"';
 $duplicate_sql .= ' FROM "'.$INCOMING.'" GROUP BY "Session-Id", "Acct-Session-Id", "Accounting-Record-Type", "Accounting-Record-Number") as qry WHERE qry.cnt > 1';
-$result = pg_query($dbconn, $orphans_sql) or die('Query failed: ' . pg_last_error() . "\n");
+$result = pg_query($dbconn, $duplicate_sql) or die('Query failed: ' . pg_last_error() . "\n");
 if (pg_num_rows($result) > 0) {
 	/* We have some duplicates to delete */
 	$i=0;
@@ -152,7 +152,7 @@ if (pg_num_rows($sids) > 0) {
 							' FROM (SELECT "recorded_on" FROM "'.$INCOMING.'"  WHERE "Session-Id" = $1 AND "Acct-Session-Id" = $2 AND "Accounting-Record-Type" = 4 ORDER BY "recorded_on" LIMIT 1) as t_end, '.
 							'      (SELECT "recorded_on" FROM "'.$INCOMING.'"  WHERE "Session-Id" = $1 AND "Acct-Session-Id" = $2 AND "Accounting-Record-Type" = 2 ORDER BY "Accounting-Record-Number", "recorded_on" LIMIT 1) as t_start',
 							array($sid, $asid)) or die('Query failed: ' . pg_last_error() . "\n");
-			$vals = pg_fetch_array($result, null, PGSQL_ASSOC) or die('Internal error, unable to compute session time');
+			$vals = pg_fetch_array($res, null, PGSQL_ASSOC) or die('Internal error, unable to compute session time');
 			$data[/* "sess_start" */] = $vals["beginning"];
 			$data[/* "sess_duration" */] = $vals["duration"];
 			pg_free_result($res);
