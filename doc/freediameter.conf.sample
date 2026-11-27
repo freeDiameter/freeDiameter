@@ -39,7 +39,8 @@
 # with mutual certificates and no renegotiation. Each Diameter message must fit
 # one DTLS record (about 16 KiB depending on the cipher); larger messages fail.
 # Use the per-peer SctpSec3436 option below to select outgoing TLS/SCTP.
-# RFC6733 assigns port 5658; the historical default is retained for compatibility.
+# IANA assigns secure Diameter port 5868; RFC 6733's verified erratum 3997
+# corrects the 5658 typo in its text.
 # Default: 5868. Use 0 to disable.
 #SecPort = 5868;
 

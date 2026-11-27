@@ -413,7 +413,7 @@ int main(void)
 	assert(run(&f, FD_DISC_DNS_TCP, &r) == FD_DISC_DNS_MALFORMED && !r);
 	f.scenario = 8;
 	assert(run(&f, FD_DISC_DNS_TLS_TCP, &r) == FD_DISC_DNS_OK);
-	assert(r->count == 1 && r->candidates[0].port == 5658 &&
+	assert(r->count == 1 && r->candidates[0].port == 5868 &&
 	       r->candidates[0].protocol == FD_DISC_DNS_TLS_TCP &&
 	       r->candidates[0].ttl == 20);
 	free(r);
@@ -488,7 +488,7 @@ int main(void)
 	f.scenario = 26;
 	assert(run_app(&f, FD_DISC_DNS_DTLS_SCTP, 4, &r) == FD_DISC_DNS_OK);
 	assert(r->count == 1 && r->candidates[0].protocol == FD_DISC_DNS_DTLS_SCTP &&
-	       r->candidates[0].port == 5658);
+	       r->candidates[0].port == 5868);
 	free(r);
 	f.scenario = 27;
 	assert(run(&f, FD_DISC_DNS_TCP, &r) == FD_DISC_DNS_OK);

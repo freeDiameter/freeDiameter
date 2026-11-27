@@ -733,7 +733,7 @@ static enum fd_disc_dns_status resolve_naptr(struct context *ctx, const char *na
 					st = add_candidate(ctx, n->target,
 						protocol == FD_DISC_DNS_TLS_TCP ||
 						protocol == FD_DISC_DNS_DTLS_SCTP
-						? 5658 : 3868, protocol, branch);
+						? 5868 : 3868, protocol, branch);
 				else
 					st = resolve_naptr(ctx, n->target, protocol,
 							   branch, depth + 1, ancestors);
