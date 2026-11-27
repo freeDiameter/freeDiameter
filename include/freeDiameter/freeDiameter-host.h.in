@@ -99,7 +99,7 @@ extern "C" {
 #define FD_DEFAULT_CONF_FILENAME "freeDiameter.conf"
 #endif /* FD_DEFAULT_CONF_FILENAME */
 
-/* Maximum number of hooks handlers that can be registered. Make this compilation option if needed */
+/* Maximum number of per-message data handles that can be registered. */
 #define FD_HOOK_HANDLE_LIMIT	6
 
 #ifdef __cplusplus

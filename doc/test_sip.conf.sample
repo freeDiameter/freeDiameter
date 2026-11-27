@@ -1,8 +1,9 @@
-#User configuration
-username = "awestfahl"
-password = "test"
-sip_aor = "sip:awestfahl@tera.ics.keio.ac.jp"
+# Historical syntax example: test_sip currently does not parse a config file.
+# User configuration
+username = "awestfahl";
+password = "test";
+sip_aor = "sip:awestfahl@tera.ics.keio.ac.jp";
 
 #Destination information
-destination_realm = "freediameter.net"
-destination_sip = "sip:awestfahl@freediameter.net"
+destination_realm = "freediameter.net";
+destination_sip = "sip:awestfahl@freediameter.net";

@@ -1,89 +1,25 @@
-See INSTALL file for general instructions on building freeDiameter.
+# macOS
 
-------------------
-QUICK INSTRUCTIONS
-------------------
+The current CI workflow builds and tests on `macos-latest` using Homebrew
+dependencies and disables SCTP. This does not verify the Homebrew
+`freediameter` formula or older macOS releases.
 
-Starting from version 1.1.5, freeDiameter is available through Homebrew:
+Install Xcode Command Line Tools and Homebrew using their current official
+instructions, then install CMake, Bison, GnuTLS, libgcrypt, and libidn2 with
+Homebrew. Homebrew's Bison may not be on the default PATH; use its explicit
+path when configuring:
 
-1) Install Homebrew
-   a) Install Command Line Tools for Xcode or Xcode:
-      - Command Line Tools (your OS X Version) for Xcode:
-         https://developer.apple.com/downloads (Free Apple Developer ID Registration Required)
-      - or Xcode:
-         https://itunes.apple.com/us/app/xcode/id497799835 (Free App Store Account Required)
+```sh
+git clone https://github.com/freeDiameter/freeDiameter.git
+cd freeDiameter
+mkdir test.build
+cd test.build
+cmake .. \
+  -DDISABLE_SCTP=ON \
+  -DBISON_EXECUTABLE="$(brew --prefix bison)/bin/bison"
+cmake --build .
+ctest --output-on-failure
+```
 
-   b) Install Homebrew
-     $ ruby -e "$(curl -fsSkL raw.github.com/mxcl/homebrew/go)"
-
-2) Install freeDiameter:
-     $ brew install freediameter
-
-   After installation is done "Caveats" section will provide information
-   how to start freeDiameterd through launchd at system startup.
-
-   To view this information again:
-     $ brew info freediameter
-
-   To learn more about freeDiameter configuration options, read:
-      http://www.freediameter.net/trac/wiki/Configuration
-
-   For more information on available extension and how to configure them, read:
-      http://www.freediameter.net/trac/wiki/Extensions
-
-------------
-FROM SOURCES
-------------
-
-1) Install Homebrew:
-   See QUICK INSTRUCTIONS Step #1 above.
-
-2) Install dependencies:
-    $ brew install git cmake bison gnutls libgcrypt postgres mysql libidn2 pkg-config
-
-   Notes:
-    * if "postgres" does not work, try "postgresql" (for newer versions of OS X)
-    * GNU IDN (libidn2) is optional, see below
-    * When libusrsctp package is available, you can use it as well.
-        However, it requires some rework on the source code as libusrsctp is not fully
-        compliant with the other SCTP stack.
-
-3) Retrieve source code:
-    $ git clone https://github.com/freeDiameter/freeDiameter.git
-
-4) Enter source folder:
-    $ cd freeDiameter
-
-5) Create build folder:
-    $ mkdir freeDiameter-build
-
-6) Enter build folder:
-    $ cd freeDiameter-build
-
-7) Configure:
-    $ cmake .. -DDISABLE_SCTP:BOOL=ON -DBISON_EXECUTABLE="$(brew --prefix bison)/bin/bison"
-
-   or for ncurses-based configuration:
-    $ ccmake .. -DDISABLE_SCTP:BOOL=ON -DBISON_EXECUTABLE="$(brew --prefix bison)/bin/bison"
-
-   Notes:
-    * Bison 3.0 or newer is required. Homebrew's Bison is keg-only, so specify
-      its path to avoid selecting the older Bison supplied by macOS. Use the
-      same option when reconfiguring an existing build directory.
-    * GNU IDN (Support for International Domain Names) can be disabled with:
-       -DDIAMID_IDNA_IGNORE=ON or -DDIAMID_IDNA_REJECT=ON
-    * For more information on available configuration options, read:
-       http://www.freediameter.net/trac/wiki/Installation
-
-8) Compile:
-    $ make
-
-9) Install (might require to be root):
-    $ make install
-
-------------------------------------------------
-
-These instructions have been tested on OS X:
-   - 10.6.8 (Snow Leopard)
-   - 10.7.5 (Lion)
-   - 10.8.2 (Mountain Lion)
+SCTP is disabled in this configuration because the current macOS CI job does
+not validate it. See `INSTALL` for general build requirements and test notes.

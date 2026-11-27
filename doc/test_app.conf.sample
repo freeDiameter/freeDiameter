@@ -7,7 +7,7 @@
 
 # In order to enable this extension, the main freeDiameter configuration file
 # must contain the following declaration:
-# LoadExtension = "extensions/app_test.fdx" : "/path/to/app_test.conf" ;
+# LoadExtension = "extensions/test_app.fdx" : "/path/to/test_app.conf" ;
 # Note that the conffile may be omitted, in which case default parameters will be assumed.
 #######################
 

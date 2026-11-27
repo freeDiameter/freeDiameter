@@ -120,7 +120,7 @@
 
 # Credentials of the local peer
 # The X509 certificate and private key file to use for the local peer.
-# The files must contain PKCS-1 encoded RSA key, in PEM format.
+# The certificate and private key files must be in PEM format.
 # (These parameters are passed to gnutls_certificate_set_x509_key_file function)
 # Default : NO DEFAULT
 #TLS_Cred = "<x509 certif file.PEM>" , "<x509 private key file.PEM>";
@@ -130,7 +130,8 @@ TLS_Cred = "/etc/ssl/certs/freeDiameter.pem", "/etc/ssl/private/freeDiameter.key
 # The file containing the list of trusted Certificate Authorities (PEM list)
 # (This parameter is passed to gnutls_certificate_set_x509_trust_file function)
 # The directive can appear several times to specify several files.
-# Default : GNUTLS default behavior
+# Default : no CA file configured. Configure trust anchors for certificate
+# verification; the daemon does not automatically load the system trust store.
 #TLS_CA = "<file.PEM>";
 
 # Certificate Revocation List file
@@ -138,7 +139,7 @@ TLS_Cred = "/etc/ssl/certs/freeDiameter.pem", "/etc/ssl/private/freeDiameter.key
 # The file contains a list of trusted CRLs in PEM format. They should have been verified before.
 # (This parameter is passed to gnutls_certificate_set_x509_crl_file function)
 # Note: openssl CRL format might have interoperability issue with GNUTLS format.
-# Default : GNUTLS default behavior
+# Default : no CRL file configured.
 #TLS_CRL = "<file.PEM>";
 
 # GNU TLS Priority string
@@ -147,7 +148,6 @@ TLS_Cred = "/etc/ssl/certs/freeDiameter.pem", "/etc/ssl/private/freeDiameter.key
 # You should also refer to the Diameter required TLS support here:
 #   http://tools.ietf.org/html/rfc6733#section-13.1
 # Default : "NORMAL"
-# Example: TLS_Prio = "NONE:+VERS-TLS1.1:+AES-128-CBC:+RSA:+SHA1:+COMP-NULL";
 #TLS_Prio = "NORMAL";
 
 # Diffie-Hellman parameters size
@@ -155,7 +155,8 @@ TLS_Cred = "/etc/ssl/certs/freeDiameter.pem", "/etc/ssl/private/freeDiameter.key
 # Valid value should be 768, 1024, 2048, 3072 or 4096.
 # (This parameter is passed to gnutls_dh_params_generate2 function,
 # it usually should match RSA key size)
-# Default : 1024
+# Default : 1024 unless overridden at build time. This historical default is
+# not a security recommendation; select parameters appropriate for your deployment.
 #TLS_DH_Bits = 1024;
 
 # Alternatively, you can specify a file to load the PKCS#3 encoded
@@ -236,8 +237,8 @@ TLS_Cred = "/etc/ssl/certs/freeDiameter.pem", "/etc/ssl/private/freeDiameter.key
 #LoadExtension = "/path/to/extension" [ : "/optional/configuration/file" ] ;
 #
 # Examples:
-#LoadExtension = "extensions/sample.fdx";
-#LoadExtension = "extensions/sample.fdx":"conf/sample.conf";
+#LoadExtension = "extensions/test_app.fdx";
+#LoadExtension = "extensions/test_app.fdx":"conf/test_app.conf";
 #
 # dbg_interactive embeds a Python 3 shell with the daemon's privileges.
 # Use only in a trusted debugging environment, with a terminal attached.

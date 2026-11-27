@@ -1,28 +1,13 @@
-### Very short install notes for OpenSUSE (tested on OpenSUSE 11.3)
-# Please refer to other INSTALL files for more detailed instructions (e.g. extension-specific notes).
+# openSUSE
 
+These are dependency pointers, not verified openSUSE installation steps. The
+current CI workflow does not build on openSUSE; see `INSTALL` for the tested CI
+configurations. Package names can vary by release. For a source build, install
+development packages for CMake 3.10+, C and C++ compilers, Bison 3.0+, Flex,
+GnuTLS, libgcrypt, libidn2, pkg-config, and SCTP (unless building with
+`-DDISABLE_SCTP=ON`).
 
-Dependencies on OpenSUSE 11.3 (from minimal server system installation):
-# zypper install cmake make gcc gcc-c++ flex bison lksctp-tools-devel libgnutls-devel libgcrypt-devel libidn2-devel
-
-Following dependencies are optional, depending on which extensions you plan to compile
- app_acct:
-	# zypper install postgresql-server postgresql-devel
-
- app_sip:
- app_diameap:
- 	# zypper install libmysqlclient-devel
-	(would also need a server, not sure which package is appropriate)
-
- dict_legacy_xml:
-	# zypper install libxml2 libxml2-devel
-
- dbg_interactive:
-	# zypper install swig python-devel
-
- sample:
-	# zypper install gcc-c++
-
-There is currently no OpenSUSE-specific package for freeDiameter.
-You are welcome to contribute packaging scripts! Please contact with
-dev@freediameter.net for more details.
+Optional extension dependencies include PostgreSQL development files for
+`app_acct`, MySQL development files for `app_sip` and `app_diameap`, libxml2
+development files for `dict_legacy_xml`, and Python 3 development files plus
+SWIG for `dbg_interactive`.

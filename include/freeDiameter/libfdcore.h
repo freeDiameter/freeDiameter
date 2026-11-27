@@ -41,6 +41,7 @@
 extern "C" {
 #endif
 
+/* Include <freeDiameter/freeDiameter-host.h> before this header. */
 #include <freeDiameter/libfdproto.h>
 #include <gnutls/gnutls.h>
 #include <gnutls/x509.h>
@@ -314,7 +315,7 @@ struct peer_info {
 	struct {
 		
 		/* enum peer_state	pir_state; */ 
-		/* Since 1.1.0, read the state with fd_peer_getstate(peer). */
+		/* Since 1.1.0, read the state with fd_peer_get_state(peer). */
 		
 		DiamId_t	pir_realm;	/* The received realm in CER/CEA. */
 		size_t		pir_realmlen;	/* length of the realm */
@@ -360,7 +361,7 @@ extern pthread_rwlock_t fd_g_peers_rw; /* protect the list */
  * PARAMETERS:
  *  info 	: Information to create the peer.
  *  orig_dbg	: A string indicating the origin of the peer information, for debug (ex: conf, redirect, ...)
- *  cb		: optional, a callback to call (once) when the peer connection is established or failed
+ *  cb		: optional callback called once on reaching OPEN or pre-OPEN destruction.
  *  cb_data	: opaque data to pass to the callback.
  *
  * DESCRIPTION: 
@@ -370,11 +371,11 @@ extern pthread_rwlock_t fd_g_peers_rw; /* protect the list */
  * not empty, which is simply moved into the created object. It means that the list
  * items must have been malloc'd, so that they can be freed.
  *
- *  If cb is not null, the callback is called when the connection is in OPEN state or
- * when an error has occurred. The callback should use the pi_state information to 
- * determine which one it is. If the first parameter of the called callback is NULL, it 
- * means that the peer is being destroyed before attempt success / failure. 
- * cb is called to allow freeing cb_data in  * this case.
+ *  If cb is not NULL, it is called once when the peer reaches OPEN, with its
+ * peer_info as the first argument. If the peer is destroyed before reaching
+ * OPEN, it is called with NULL so cb_data can be released. Failed connection
+ * attempts do not invoke cb while the peer remains registered. The daemon
+ * does not free cb_data.
  *
  *  The orig_dbg string is only useful for easing debug, and can be left to NULL.
  *
@@ -427,14 +428,14 @@ int fd_peer_get_state(struct peer_hdr *peer);
  * PARAMETERS:
  *  peer	: The peer which information to be read
  *  buf		: Where to store the protocol information
- *  len		: available space in bug
+ *  len		: available space in buf
  *
  * DESCRIPTION: 
  *   Creates a string describing the current connection to this peer, e.g.: "TCP,TLS,soc#3".
  *
  * RETURN VALUE:
  *  0   : buffer was written
- * >=0	: error code.
+ *  !0	: an error code.
  */
 int fd_peer_cnx_proto_info(struct peer_hdr *peer, char * buf, size_t len);
 
@@ -452,7 +453,7 @@ int fd_peer_cnx_proto_info(struct peer_hdr *peer, char * buf, size_t len);
  *  of the workload of this peer.
  *
  * RETURN VALUE:
- *  0  : The load parameter has been updated. (it should have a positive value always)
+ *  0  : The load parameters have been updated; either count may be zero when no requests are pending.
  * !0  : An error occurred
  */
 int fd_peer_get_load_pending(struct peer_hdr *peer, long * to_receive, long * to_send);
@@ -551,10 +552,11 @@ int fd_peer_validate_register ( int (*peer_validate)(struct peer_info * /* info 
  * expirecb is called in a dedicated thread.
  * 
  *    The prototype for the expirecb callback function is:
- *     void expirecb(void * data, struct peer_hdr * sentto, struct msg ** request)
+ *     void expirecb(void * data, DiamId_t sentto, size_t sentto_len, struct msg ** request)
  *	where:
  *		data   : opaque data that was registered along with the callback.
- *              sentto : pointer to the peer to which the message was sent and no answer received within timeout.
+ *              sentto : Diameter identity of the peer to which the message was sent.
+ *              sentto_len : length of the identity in bytes.
  *		request: location of the pointer to the request that was not answered.
  *
  * RETURN VALUE:
@@ -681,7 +683,7 @@ int fd_disp_app_support ( struct dict_object * app, struct dict_object * vendor,
  *   - a thread (routing-in) picks the message and takes the decision if it is handled locally or forwarded, 
  *       based on local capabilities (registered by extensions with fd_disp_app_support).
  *   - If the message is handled locally, it is queued in fd_g_local.
- *   - Another thread (dispatch.c) will handle this message and pass it to registered callbacks (see fd_disp_register in libfreeDiameter.h).
+ *   - Another thread (dispatch.c) will handle this message and pass it to registered callbacks (see fd_disp_register in libfdproto.h).
  *
  * (*) FWD messages details:
  *   - The process is the same as for IN messages, until the routing-in threads makes its decision that the message is not handled locally.
@@ -753,7 +755,8 @@ int fd_rt_fwd_register ( int (*rt_fwd_cb)(void * cbdata, struct msg ** msg), voi
  *
  * RETURN VALUE:
  *  0      	: Operation complete.
- *  !0 		: An error occurred -- will result in daemon's termination.
+ *  !0 		: An error occurred; any message still owned by the framework is
+ *            dropped, and a routing-error hook is raised.
  */
 
 /*
@@ -832,7 +835,8 @@ int fd_rt_out_register ( int (*rt_out_cb)(void * cbdata, struct msg ** pmsg, str
  *
  * RETURN VALUE:
  *  0      	: Operation complete.
- *  !0 		: An error occurred.
+ *  !0 		: An error occurred; any message still owned by the framework is
+ *            dropped, and a routing-error hook is raised.
  */
 
 /*
@@ -1018,7 +1022,9 @@ int fd_app_count(struct fd_list * list);
  *  - create statistics information on the throughput
  *  - ...
  *
- *  IMPORTANT: the callback MUST NOT change the memory pointed by the different parameters (peer, message, ...)
+ *  IMPORTANT: Do not modify the peer, message, or other objects passed to a
+ * hook, except where that hook's description explicitly permits it (for
+ * example, message contents may be changed during HOOK_MESSAGE_SENDING).
  *
  * RETURN VALUE:
  *  none.
@@ -1184,8 +1190,8 @@ struct fd_cnx_rcvdata {
  *                           The memory is already allocated and blanked, so you can pass NULL if no further handling is required.
  *  permsgdata_fini_cb  : function called when a message is being disposed. It should free the resources associated with the fd_hook_permsgdata. 
  *                           You can pass NULL if no special handling is required. The memory of the permsgdata structure itself will be freed by the framework.
- *  new_handle          : On success, a handler to the registered callback is stored here. 
- *		             This handler will be used to unregister the cb.
+ *  new_handle          : On success, a handle for associating per-message data
+ *                       with hook registrations is stored here.
  *
  * DESCRIPTION: 
  *   Register a new fd_hook_data_hdl. This handle is used during hooks registration (see below) in order to associate data with the messages, to allow keeping tracking of the message easily.
@@ -1226,7 +1232,6 @@ struct fd_hook_hdl;
  *
  * RETURN VALUE:
  *  0      	: The callback is registered.
- *  EEXIST      : Another callback is already registered for this type of hook (HOOK_DATA_RECEIVED).
  *  EINVAL 	: A parameter is invalid.
  *  ENOMEM	: Not enough memory to complete the operation
  */

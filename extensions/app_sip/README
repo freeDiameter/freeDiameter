@@ -35,5 +35,13 @@
 *********************************************************************************************************/
 
 
-Diameter-SIP Application will be fully compliant with RFC4740 (server part). However, there is still some work to do so it should be considered as experimental for now.
+Diameter-SIP Application implements the server-side Diameter SIP application
+(RFC 4740). It is experimental and should not be assumed to provide complete
+RFC compliance.
 
+The extension is disabled by default and requires the MySQL client development
+library to build. Enable it with `-DBUILD_APP_SIP=ON` when configuring
+freeDiameter. See [`doc/app_sip.conf.sample`](../../doc/app_sip.conf.sample)
+for the configuration format, including its MySQL connection settings. The
+configuration must use a database and schema compatible with the extension;
+the exact setup procedure is not documented here.

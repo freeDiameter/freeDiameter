@@ -1,16 +1,11 @@
-The simplest way to install on NetBSD, DragonFly, MirBSD or other
-pkgsrc platforms is:
-	pkg_add freeDiameter
+# pkgsrc
 
-If no binary package exists:
-	cd /usr/pkgsrc/net/freeDiameter
-	make install
+This is historical pkgsrc guidance and has not been verified against current
+pkgsrc package catalogs or supported platforms. Check your pkgsrc tree for a
+maintained freeDiameter package before relying on old package names or paths.
 
-If you want to build and install freeDiameter from the repository,
-you'll need to install:
-	pkg_add bison pkg-config libidn2 gnutls libgcrypt git
-and follow the usual installation note.
-
-For the optional extensions, you need mysql*-client, postgres*-client,
-libxml2, jsoncpp, and json-schema.  For the debugging extensions,
-you also need swig and a python -- install as usual.
+For a source build, install the dependencies listed in `INSTALL` using the
+packages available for your host, then use the portable CMake procedure there.
+Optional extensions may need MySQL or PostgreSQL client development files,
+libxml2, Python 3 development files, SWIG, jsoncpp, JSON Schema, or PCRE++,
+depending on which extensions you enable.

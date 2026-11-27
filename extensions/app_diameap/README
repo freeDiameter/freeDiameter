@@ -27,76 +27,52 @@ For more information on DiamEAP project, visit http://diameap.yagami.freediamete
 
 ----- REQUIREMENTS -----
 
-Some packages are required to compile DiamEAP from source.
-
-If you will install DiamEAP on Debian or Ubuntu system install the following packages: cmake flex bison libgnutls-dev libgcrypt-dev libmysqlclient-dev
-
-	$ sudo apt-get install cmake flex bison libgnutls-dev libgcrypt-dev libmysqlclient-dev
-
+The extension requires the MySQL client development library, Gcrypt, and
+GnuTLS. It is built as part of freeDiameter; the project build also requires
+its normal CMake, Flex, and Bison prerequisites. Consult the platform-specific
+freeDiameter installation notes for package names.
 
 
------ INSTALLATION -----
+----- BUILDING -----
 
-1- Add DiamEAP extension to freeDiameter. 
-	See freeDiameter documentation (http://www.freediameter.net/)
+From the freeDiameter source tree, configure an out-of-tree build with
+DiamEAP enabled:
 
-2-Create a new MySQL database and add tables using the sql script 'diameap.sql'.
+    mkdir test.diameap
+    cd test.diameap
+    cmake .. -DBUILD_APP_DIAMEAP=ON
+    cmake --build .
 
-3- Edit the extensions/CMakeList.txt file to add DiamEAP to freeDiameter.
+The extension is disabled by default. The EAP Identity method plug-in is
+enabled by default when DiamEAP is built; EAP-MD5 and EAP-TLS are optional
+(`BUILD_EAP_MD5` and `BUILD_EAP_TLS`). EAP-TLS also links against GnuTLS.
+Built extensions use the `.fdx` suffix and EAP method plug-ins use `.emp`.
 
-Add the following lines:
-   
-	  OPTION(BUILD_APP_DIAMEAP "Build DiamEAP? (Diameter EAP Application - RFC 4072)" OFF)
-	 	IF (BUILD_APP_DIAMEAP)
-	 	   ADD_SUBDIRECTORY(app_diameap)
-	 	ENDIF (BUILD_APP_DIAMEAP)
-
-Note: you can enable DiamEAP to be built with freeDiameter by setting the BUILD_APP_DIAMEAP to ON. If you enable it here you don't need to enable it when building freeDiameter.
-
-4- Enable DiamEAP by enabling BUILD_APP_DIAMEAP option with CMake:
-
-cmake -DBUILD_APP_DIAMEAP:BOOl=ON ../
-
+Create a MySQL database and initialize it using
+`extensions/app_diameap/diameap.sql` before starting the extension.
 
 
 ----- CONFIGURATION -----
 
-DiamEAP requires a configuration file to start the DiamEAP server. 
-It is advised to start by a copy of the sample file, and customize the configuration to fit your needs.
-A sample configuration file 'diameap.conf.sample' can be find in extensions/app_diameap/ or in doc/ folder of freeDiameter. 
-The file 'diameap.conf.sample' contains a description of all parameters that can be added to the DiamEAP configuration file.
+Start with [`doc/app_diameap.conf.sample`](../../doc/app_diameap.conf.sample).
+It includes the supported directives and a minimal EAP Identity plug-in
+example. Set the `DiamEAP_MySQL` directive to the credentials, server, and
+database created for this installation. The SQL schema is
+`extensions/app_diameap/diameap.sql`.
 
-*Specify connection parameters to DiamEAP MySQL database:
-- username and password to connect to the MySQL Server
-- database server : address to MySQL server.
-- database name :  database for DiamEAP.
+The EAP-TLS configuration example is
+[`doc/eap_tls_plugin.diameap.conf.sample`](../../doc/eap_tls_plugin.diameap.conf.sample).
+Copy it to a runtime configuration file and supply certificate, key, and CA
+paths as needed. In the DiamEAP configuration, use paths that resolve from the
+daemon's working directory or absolute paths; for example, the sample uses
+`extensions/eap_identity.emp` for the identity plug-in. Update these paths to
+match the actual build/install layout. Load the built `app_diameap.fdx` in the
+main freeDiameter configuration.
 
-Example:
-
-DiamEAP_MySQL = "UserName" , "MyPassword" , "localhost" , "drupal_ui";
-
-
-*Add EAP Method plug-ins to be loaded with DiamEAP server. Note that EAP Identity must be add.
-
-Example:
-
-Load_plugin = "EAP MD5":4:0:"extensions/eap_md5.emp":"";
-Load_plugin = "EAP TLS":13:0:"extensions/eap_tls.emp":"doc/eap_tls_plugin.app_diameap.conf";
-
-
-* Enable Authorization with DiamEAP.
-
-You can enable DiamEAP to check authorization of authenticated users. To enable authorization set authorization to 1. ( by default disabled).
-
-
-* Multiple round trips timeout
-
-This parameter indicates the maximum number of seconds provides the user to answer to a Diameter-EAP-Request. (by default set to 30 seconds)
-
-
-* Invalid EAP Packets
-
-This parameter defines the maximum number of invalid EAP packets that can be received before rejecting the connection. (by default set to 5 packets)
+Authorization is disabled by default and can be enabled with
+`Authorization = 1;`. The default multi-round timeout is 30 seconds and the
+default maximum number of invalid EAP packets is 5; the sample shows the
+directives for changing these values.
 
 
 For more documentation on configuring DiamEAP, visit the documentation page of the project : http://diameap.yagami.freediameter.net/documentation

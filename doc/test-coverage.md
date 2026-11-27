@@ -24,7 +24,14 @@ unless explicitly enabled.
 | `testcnx` | Connection operations including TCP and TLS, plus SCTP where enabled; queued sends on entry to peer shutdown grace and blocked senders during grace, failover, and forced abort. |
 | `testshutdown` | Caller-selected shutdown deadlines, indefinite waits, invalid timeout rejection, first-request precedence, and watchdog cancellation after successful cleanup. |
 | `testloadext` | Loading built extension libraries and resolving their entry points; it does not execute the entry points. |
+| `testserver` | TCP listener behavior after connection resets, accept-error classification, and peer event queue lifetime during concurrent sends and destruction. |
+| `testrouting_recovery` | Synchronous routing recovery callbacks, held-request resume, candidate retry, unregistration synchronization and shutdown; it does not use network peers. |
 | `test_dbg_interactive` | When `BUILD_DBG_INTERACTIVE` is enabled: script and console operation, callbacks, synchronization, failure handling, and execution of the Python sample. |
+| `test_discovery_dns` | Synthetic DNS wire responses exercise NAPTR chains and application/transport selection, SRV fallback and ordering, address and CNAME handling, TTLs, cancellation, and malformed, absent and temporary responses. It does not query live DNS or test resolver interoperability. |
+| `test_discovery_manager` | With fake DNS and peer backends, checks candidate fallback, copied options, timeouts, cancellation, refresh, disconnect notifications, peer lookup, and stop/shutdown callback synchronization. It does not establish real peer connections. |
+| `test_discovery_config_retry` | Mocked startup discovery checks option propagation, retry backoff and reset, and suppression after BUSY or DO_NOT_WANT_TO_TALK_TO_YOU. It does not exercise DNS or real peers. |
+| `test_rt_discover_config` | Parses discovery-routing realm, peer and option configurations, including invalid and duplicate entries and transport availability. It builds the parser independently of the extension. |
+| `test_rt_discover_recovery` | Mocked discovery and routing recovery checks queued requests, deadlines, retry/backoff, suppression, stop failures, saturation, and shutdown. It does not exercise a live routing exchange. |
 
 `testappacct` is separately opt-in and requires a configured PostgreSQL
 database; see [tests/CMakeLists.txt](../tests/CMakeLists.txt) and
@@ -91,7 +98,9 @@ With both options enabled, the daemon uses TLS over SCTP unless
 check each side of every link's reported connection protocol and security, as
 well as the message exchanges; a transport fallback is not accepted. TLS test
 credentials and keys are generated in the scenario's temporary directory and
-removed afterward. Tests do not contact external peers or exercise reconnection.
+removed afterward. Tests do not contact external peers. The discovery scenario
+below also tests an initial DNS failure followed by a successful retry; it does
+not test reconnecting an established peer.
 
 With `ENABLE_DTLS_SCTP`, `MULTI_PEER_USE_TLS`, and `MULTI_PEER_USE_SCTP`
 enabled, additional tests exercise:
@@ -230,6 +239,28 @@ The test also checks that a matching entry without `ALLOW_IPSEC` accepts TLS
 but rejects a clear connection, and that a reloaded whitelist accepts a
 subsequent connection. Cleartext `ALLOW_IPSEC` cases exercise the policy flag
 only; the fixture does not establish an IPsec tunnel.
+
+### `test_multi_peer_discovery`
+
+This test is registered only on Linux with `BUILD_MULTI_PEER_TESTS` and
+`MULTI_PEER_USE_TLS` enabled and the `test_app`, `acl_wl`, and `rt_discover`
+targets built. It requires OpenSSL and a C compiler at runtime. It uses two
+loopback daemons and forces TLS/TCP, even if the general fixture selects
+SCTP. A child-process resolver interposition library supplies synthetic DNS
+responses and blocks nonnumeric NSS lookups; it does not change system DNS.
+
+Startup `DiscoverPeer` and routing-triggered `rt_discover` scenarios check
+NAPTR-to-SRV and direct SRV fallback paths, TLS/TCP connections and echoed
+`test_app` answers, including a different destination realm. A startup case
+checks retry after an initial DNS failure. Rejection cases check unauthorized
+peer identity, certificate name or cross-realm certificate mismatch, restricted
+Origin-Realm, and an invalid TLS priority. A no-opt-in case checks that a
+failed routing request causes neither discovery queries nor an open peer.
+Query logs also verify the expected NAPTR, SRV and A lookups.
+
+These are controlled local fixtures, not live DNS, external-peer, DTLS/SCTP,
+or exhaustive certificate-validation tests. The retry case does not cover
+failure or reconnection after an established peer disconnects.
 
 ### `test_multi_peer_relay`
 

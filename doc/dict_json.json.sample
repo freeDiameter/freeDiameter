@@ -6,7 +6,7 @@
 # To load the JSON dictionaries, list their paths, separated with a semicolon (';')
 # as argument when loading the extension in the freeDiameter config file, i.e.:
 #
-# LoadExtension = "dict_json.so":"/path/to/dictionary.json;/path/to/another/dictionary_2.json";
+# LoadExtension = "dict_json.fdx":"/path/to/dictionary.json;/path/to/another/dictionary_2.json";
 #
 # Relative paths work but are hard to get right because they are
 # relative to where you started the freeDiameter daemon.

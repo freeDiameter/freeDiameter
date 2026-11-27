@@ -1,34 +1,17 @@
-### Very short install notes for Fedora (tested on Fedora 13 and 14)
-# Please refer to other INSTALL files for more detailed instructions (e.g. extension-specific notes).
+# Fedora
 
+These are dependency pointers, not verified Fedora installation steps. The
+current CI workflow does not build on Fedora; see `INSTALL` for the tested CI
+configurations. Package names can vary by Fedora release. For a source build,
+install development packages for CMake 3.10+, C and C++ compilers, Bison 3.0+, Flex,
+GnuTLS, libgcrypt, libidn2, pkg-config, and SCTP (unless building with
+`-DDISABLE_SCTP=ON`).
 
-Dependencies on Fedora 13 (from minimal system):
-# yum install cmake make gcc gcc-c++ flex bison lksctp-tools-devel gnutls-devel libgcrypt-devel libidn2-devel
+Optional extension dependencies include PostgreSQL development files for
+`app_acct`, MySQL development files for `app_sip` and `app_diameap`, libxml2
+development files for `dict_legacy_xml`, and Python 3 development files plus
+SWIG for `dbg_interactive`.
 
-Following dependencies are optional, depending on which extensions you plan to compile
- app_acct:
-	# yum install postgresql-devel
-	optional:
-	# yum install postgresql-server
-
- app_sip:
- app_diameap:
-	# yum install mysql-devel
-	optional:
-	# yum install mysql-server
-
- dict_legacy_xml:
-	# yum install libxml2 libxml2-devel
-
- dbg_interactive:
-	# yum install swig python-devel
-
-
-NOTE: You may need to change something in SELinux to allow binding the SCTP socket on Diameter port.
-The following command is the very naive way to do it, you can probably do better (feedback appreciated!)
-# setenforce Permissive
-
-
-There is currently no Fedora-specific package for freeDiameter.
-You are welcome to contribute packaging scripts.
-Please contact dev@freediameter.net for more details.
+Do not disable SELinux to work around a bind or policy denial. Diagnose the
+specific denial and configure an appropriately scoped policy for the service
+and ports in use.

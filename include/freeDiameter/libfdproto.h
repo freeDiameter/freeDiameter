@@ -33,11 +33,11 @@
 * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.								 *
 *********************************************************************************************************/
 
-/* This file contains the definitions of functions and types used by the libfreeDiameter library.
+/* This file contains the definitions of functions and types used by libfdproto.
  *
  * This library is meant to be used by both the freeDiameter daemon and its extensions.
  * It provides the tools to manipulate Diameter messages and related data.
- * This file should always be included as #include <freeDiameter/libfreeDiameter.h>
+ * Include <freeDiameter/freeDiameter-host.h> before <freeDiameter/libfdproto.h>.
  *
  * If any change is made to this file, you must increment the FD_PROJECT_VERSION_API version.
  *
@@ -1540,7 +1540,7 @@ struct dict_avp_request {
 If "parent" parameter is not NULL during AVP creation, it must point to a DICT_TYPE object.
 The extended type is then attached to the AVP. In case where it is an enumerated type, the value of
 AVP is automatically interpreted in debug messages, and in message checks.
-The derived type of an AVP can be retrieved with: dict_search ( DICT_TYPE, TYPE_OF_AVP, avp, ... )
+The derived type of an AVP can be retrieved with: fd_dict_search ( dict, DICT_TYPE, TYPE_OF_AVP, avp, ... )
 
 To create the rules (ABNF) for children of Grouped AVP, see the DICT_RULE related part.
 
@@ -1942,7 +1942,6 @@ int fd_sess_handler_create ( struct session_handler ** handler, void (*cleanup)(
  * RETURN VALUE:
  *  0      	: The handler was destroyed.
  *  EINVAL 	: A parameter is invalid.
- *  ENOMEM	: Not enough memory to complete the operation
  */
 int fd_sess_handler_destroy ( struct session_handler ** handler, void **opaque );
 
@@ -1985,7 +1984,7 @@ int fd_sess_new ( struct session ** session, DiamId_t diamid, size_t diamidlen, 
  *
  * DESCRIPTION:
  *   Retrieve a session object from a Session-Id string. In case no session object was previously existing with this
- *  id, a new object is silently created (equivalent to fd_sess_new with flag SESSION_NEW_FULL).
+ *  id, a new object is silently created for the supplied session identifier.
  *
  * RETURN VALUE:
  *  0      	: The session parameter has been updated.
@@ -2228,7 +2227,7 @@ struct avp_hdr {
 	uint32_t	 avp_len;		/* (READONLY)(Only 3 bytes are used) the length of the AVP as described in the RFC */
 	vendor_id_t	 avp_vendor;		/* Only used if AVP_FLAG_VENDOR is present */
 	union avp_value *avp_value;		/* pointer to the value of the AVP. NULL means that the value is not set / not understood.
-						   One should not directly change this value. Use the msg_avp_setvalue function instead.
+						   One should not directly change this value. Use the fd_msg_avp_setvalue function instead.
 						   The content of the pointed structure can be changed directly, with this restriction:
 						     if the AVP is an OctetString, and you change the value of the pointer avp_value->os.data, then
 						     you must call free() on the previous value, and the new one must be free()-able.
@@ -2896,25 +2895,25 @@ struct disp_when {
  *  In this case, "when" must be NULL.
  *
  * DISP_HOW_APPID.
- *  Only the "app_id" field must be set, other fields are ignored. It points to a dictionary object of type DICT_APPLICATION.
+ *  Only the "app" field must be set, other fields are ignored. It points to a dictionary object of type DICT_APPLICATION.
  *
  * DISP_HOW_CC.
  *  The "command" field must be defined and point to a dictionary object of type DICT_COMMAND.
- *  The "app_id" may be also set. In the case it is set, it restricts the callback to be called only with this command-code and app id.
+ *  The "app" field may also be set. In that case, it restricts the callback to be called only with this command-code and application.
  *  The other fields are ignored.
  *
  * DISP_HOW_AVP.
  *  The "avp" field of the structure must be set and point to a dictionary object of type DICT_AVP.
- *  The "app_id" field may be set to restrict the messages matching to a specific app id.
+ *  The "app" field may be set to restrict the messages matching to a specific application.
  *  The "command" field may also be set to a valid DICT_COMMAND object.
  *  The content of the "value" field is ignored.
  *
  * DISP_HOW_AVP_ENUMVAL.
- *  All fields have the same constraints and meaning as in DISP_REG_AVP. In addition, the "value" field must be set
+ *  All fields have the same constraints and meaning as in DISP_HOW_AVP. In addition, the "value" field must be set
  *  and points to a valid DICT_ENUMVAL object.
  *
  * Here is a summary of the fields: ( M : must be set; m : may be set; 0 : ignored )
- *  field:     app_id    command     avp    value
+ *  field:       app     command     avp    value
  * APPID :       M          0         0       0
  * CC    :       m          M         0       0
  * AVP   :       m          m         M       0
@@ -2927,7 +2926,7 @@ enum disp_action {
 	DISP_ACT_ERROR	/* An error must be created and sent as a reply -- not valid for callbacks, only for fd_msg_dispatch. */
 };
 /* The callbacks that are registered have the following prototype:
- *  	int dispatch_callback( struct msg ** msg, struct avp * avp, struct session * session, enum disp_action * action );
+ *  	int dispatch_callback( struct msg ** msg, struct avp * avp, struct session * session, void * opaque, enum disp_action * action );
  *
  * CALLBACK:	dispatch_callback
  *
@@ -3091,16 +3090,20 @@ int fd_fifo_del ( struct fifo  ** queue );
  * FUNCTION:	fd_fifo_move
  *
  * PARAMETERS:
- *  oldq	: Location of a FIFO that is to be emptied.
+ *  oldq	: FIFO to be emptied.
  *  newq	: A FIFO that will receive the old data.
- *  loc_update	: if non NULL, a place to store the pointer to new FIFO atomically with the move.
+ *  loc_update	: if non NULL, *loc_update is set to newq before the queue
+ *                contents are moved. The caller must synchronize other
+ *                accesses to this pointer.
  *
  * DESCRIPTION:
- *  Empties a queue and move its content to another one atomically.
+ *  Moves all queued items to newq atomically, leaving oldq empty and valid.
  *
  * RETURN VALUE:
- *  0		: The queue has been destroyed successfully.
- *  EINVAL 	: A parameter is invalid.
+ *  0		: The items have been moved successfully.
+ *  EINVAL 	: A queue is invalid, or oldq has non-NULL threshold data or blocked
+ *                producers. In the latter case, *loc_update may already
+ *                have been set to newq.
  */
 int fd_fifo_move ( struct fifo * oldq, struct fifo * newq, struct fifo ** loc_update );
 

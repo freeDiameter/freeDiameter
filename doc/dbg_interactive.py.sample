@@ -537,7 +537,7 @@ def dispatch_cb_model(inmsg, inavp, insession):
    # This callback must return 3 elements:
    # - an integer which is interpreted as an error code (errno.h)
    # - a message or None, depending on the next item
-   # - an enum disp_action value, with the same meaning as in C (see libfreeDiameter.h)
+   # - an enum disp_action value, with the same meaning as in C (see libfdproto.h)
    del inmsg
    return [ 0, None, DISP_ACT_CONT ]
 

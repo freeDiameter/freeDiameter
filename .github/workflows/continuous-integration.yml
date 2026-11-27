@@ -10,6 +10,12 @@ jobs:
         os: [macos-latest, ubuntu-latest]
     steps:
       - uses: actions/checkout@v6
+      - name: check documentation links
+        if: ${{ runner.os == 'Linux' }}
+        run: |
+          python3 tests/check_doc_links.py
+          python3 -B tests/test_doc_links.py
+          python3 -B tests/test_single_host_certs.py
       - name: install dependencies (Linux)
         if: ${{ runner.os == 'Linux' }}
         run: |

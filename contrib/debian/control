@@ -49,10 +49,9 @@ Architecture: any
 Section: contrib/debug
 Depends: ${misc:Depends}, freediameter-common (= ${binary:Version})
 Description: freeDiameter debug tools.
- This package provides useful tools to help tracking 
- problems in freeDiameter installation. For example,
- the dbg_interactive.fdx extension allows access to the 
- framework via a python interpreter console.  
+ This package contains selected diagnostic and test extensions for
+ freeDiameter, including dbg_rt, test_app, test_sip, and test_netemul.
+ The dbg_interactive extension is not included in this DebianPackage build.
 
 Package: freediameter-dictionary-rfc4005
 Architecture: any

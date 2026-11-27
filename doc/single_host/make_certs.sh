@@ -1,20 +1,40 @@
-rm -rf demoCA
-mkdir demoCA
-echo 01 > demoCA/serial
-touch demoCA/index.txt
+#!/bin/sh
+set -eu
+umask 077
 
+# Test credentials only. Never reuse this CA or its keys in production.
+# Refuse to overwrite an existing directory, including a partial earlier run.
+mkdir single-host-certs
+cd single-host-certs
 
+cat > ca.cnf <<'EOF'
+[req]
+distinguished_name = dn
+x509_extensions = ca
+[dn]
+[ca]
+basicConstraints = critical,CA:TRUE
+keyUsage = critical,keyCertSign,cRLSign
+EOF
 
-# CA self certificate
-openssl req  -new -batch -x509 -days 3650 -nodes -newkey rsa:1024 -out cacert.pem -keyout cakey.pem -subj /CN=ca.localdomain/C=FR/ST=BdR/L=Aix/O=fD/OU=Tests
+openssl req -new -x509 -nodes -newkey rsa:2048 -sha256 -days 2 \
+	-config ca.cnf -subj /CN=ca.localdomain \
+	-keyout cakey.pem -out cacert.pem
 
-#peer1
-openssl genrsa -out peer1.key.pem 1024
-openssl req -new -batch -out peer1.csr.pem -key peer1.key.pem -subj /CN=peer1.localdomain/C=FR/ST=BdR/L=Aix/O=fD/OU=Tests
-openssl ca -cert cacert.pem -keyfile cakey.pem -in peer1.csr.pem -out peer1.cert.pem -outdir . -batch
+for n in 1 2; do
+	cat > "peer$n.cnf" <<EOF
+[peer]
+basicConstraints = critical,CA:FALSE
+keyUsage = critical,digitalSignature,keyEncipherment
+extendedKeyUsage = serverAuth,clientAuth
+subjectAltName = DNS:peer$n.localdomain
+EOF
+	openssl req -new -nodes -newkey rsa:2048 -sha256 \
+		-subj "/CN=peer$n.localdomain" \
+		-keyout "peer$n.key.pem" -out "peer$n.csr.pem"
+	openssl x509 -req -sha256 -days 2 -in "peer$n.csr.pem" \
+		-CA cacert.pem -CAkey cakey.pem -set_serial "$n" \
+		-extfile "peer$n.cnf" -extensions peer -out "peer$n.cert.pem"
+done
 
-#peer2
-openssl genrsa -out peer2.key.pem 1024
-openssl req -new -batch -out peer2.csr.pem -key peer2.key.pem -subj /CN=peer2.localdomain/C=FR/ST=BdR/L=Aix/O=fD/OU=Tests
-openssl ca -cert cacert.pem -keyfile cakey.pem -in peer2.csr.pem -out peer2.cert.pem -outdir . -batch
-
+echo "Test-only credentials created in single-host-certs (valid for two days)."

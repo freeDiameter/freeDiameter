@@ -13,4 +13,5 @@ GPATH
 GRTAGS
 GTAGS
 .vscode
-.github/instructions/
+.github/instructions/*
+!.github/instructions/fd.instructions.md
