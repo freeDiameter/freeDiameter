@@ -132,6 +132,7 @@ static void cleanup_peer_options(void)
 %token		QOUTLIMIT
 %token		QLOCALLIMIT
 %token		LISTENON
+%token		PRIVATELISTENON
 %token		THRPERSRV
 %token		PROCESSINGPEERSPATTERN
 %token		PROCESSINGPEERSMINIMUM
@@ -144,6 +145,7 @@ static void cleanup_peer_options(void)
 %token		DISC_APPLICATION
 %token		DISC_AUTHORIZED
 %token		CONNTO
+%token		BINDADDRESS
 %token		TLS_CRED
 %token		TLS_CA
 %token		TLS_CRL
@@ -168,6 +170,7 @@ conffile:		/* Empty is OK -- for simplicity here, we reject in daemon later */
 			| conffile secport
 			| conffile sctpstreams
 			| conffile listenon
+			| conffile privatelistenon
 			| conffile thrpersrv
 			| conffile processingpeerspattern
 			| conffile processingpeersminimum
@@ -267,6 +270,37 @@ listenon:		LISTENON '=' QSTRING ';'
 				ret = getaddrinfo($3, NULL, &hints, &ai);
 				if (ret) { yyerror (&yylloc, conf, gai_strerror(ret)); YYERROR; }
 				CHECK_FCT_DO( fd_ep_add_merge( &conf->cnf_endpoints, ai->ai_addr, ai->ai_addrlen, EP_FL_CONF ), YYERROR );
+				freeaddrinfo(ai);
+				free($3);
+			}
+			;
+
+privatelistenon:	PRIVATELISTENON '=' QSTRING ';'
+			{
+				struct addrinfo hints, *ai;
+				int ret;
+
+				memset(&hints, 0, sizeof(hints));
+				hints.ai_flags = AI_PASSIVE | AI_NUMERICHOST;
+				ret = getaddrinfo($3, NULL, &hints, &ai);
+				if (ret) {
+					free($3);
+					yyerror (&yylloc, conf, gai_strerror(ret));
+					YYERROR;
+				}
+				if ((ai->ai_family == AF_INET &&
+				     (IN_IS_ADDR_UNSPECIFIED(&((sSA4 *)ai->ai_addr)->sin_addr) ||
+				      IN_MULTICAST(ntohl(((sSA4 *)ai->ai_addr)->sin_addr.s_addr)) ||
+				      ((sSA4 *)ai->ai_addr)->sin_addr.s_addr == htonl(INADDR_BROADCAST))) ||
+				    (ai->ai_family == AF_INET6 &&
+				     (IN6_IS_ADDR_UNSPECIFIED(&((sSA6 *)ai->ai_addr)->sin6_addr) ||
+				      IN6_IS_ADDR_MULTICAST(&((sSA6 *)ai->ai_addr)->sin6_addr)))) {
+					free($3);
+					freeaddrinfo(ai);
+					yyerror (&yylloc, conf, "PrivateListenOn requires a unicast address.");
+					YYERROR;
+				}
+				CHECK_FCT_DO( fd_ep_add_merge( &conf->cnf_private_endpoints, ai->ai_addr, ai->ai_addrlen, EP_FL_CONF | EP_ACCEPTALL ), YYERROR );
 				freeaddrinfo(ai);
 				free($3);
 			}
@@ -627,6 +661,15 @@ connpeer:		{
 			}
 			CONNPEER '=' peerid peerinfo ';'
 			{
+				int bind_family = fddpi.config.pic_bind_address.ss_family;
+				if (fddpi.config.pic_bind_addr_set &&
+				    ((fddpi.config.pic_flags.pro3 == PI_P3_IP && bind_family != AF_INET) ||
+				     (fddpi.config.pic_flags.pro3 == PI_P3_IPv6 && bind_family != AF_INET6))) {
+					yyerror (&yylloc, conf, "BindAddress conflicts with the ConnectPeer address family.");
+					free($4);
+					cleanup_peer_options();
+					YYERROR;
+				}
 				if ((peer_sctpsec == PI_SCTPSEC_DTLS) &&
 				    ((fddpi.config.pic_flags.sec != PI_SEC_DEFAULT) || conf->cnf_flags.tls_alg)) {
 					yyerror (&yylloc, conf, "SctpSecDTLS requires immediate security, not No_TLS or TLS_old_method.");
@@ -747,6 +790,48 @@ peerparams:		/* empty */
 				CHECK_PARAMS_DO( ($4 > 0) && ($4 < 1<<16),
 					{ yyerror (&yylloc, conf, "Invalid port value"); YYERROR; } );
 				fddpi.config.pic_port = (uint16_t)$4;
+			}
+			| peerparams BINDADDRESS '=' QSTRING ';'
+			{
+				struct addrinfo hints, *ai;
+				int ret;
+				if (fddpi.config.pic_bind_addr_set) {
+					free($4);
+					yyerror (&yylloc, conf, "BindAddress may only be specified once per ConnectPeer.");
+					YYERROR;
+				}
+				memset(&hints, 0, sizeof(hints));
+				hints.ai_flags = AI_NUMERICHOST;
+				ret = getaddrinfo($4, NULL, &hints, &ai);
+				if (ret) {
+					free($4);
+					yyerror (&yylloc, conf, gai_strerror(ret));
+					YYERROR;
+				}
+				if ((ai->ai_family != AF_INET && ai->ai_family != AF_INET6) ||
+				    ai->ai_addrlen > sizeof(fddpi.config.pic_bind_address)) {
+					free($4);
+					freeaddrinfo(ai);
+					yyerror (&yylloc, conf, "BindAddress must be an IPv4 or IPv6 address.");
+					YYERROR;
+				}
+				if ((ai->ai_family == AF_INET &&
+				     (IN_IS_ADDR_UNSPECIFIED(&((sSA4 *)ai->ai_addr)->sin_addr) ||
+				      IN_MULTICAST(ntohl(((sSA4 *)ai->ai_addr)->sin_addr.s_addr)) ||
+				      ((sSA4 *)ai->ai_addr)->sin_addr.s_addr == htonl(INADDR_BROADCAST))) ||
+				    (ai->ai_family == AF_INET6 &&
+				     (IN6_IS_ADDR_UNSPECIFIED(&((sSA6 *)ai->ai_addr)->sin6_addr) ||
+				      IN6_IS_ADDR_MULTICAST(&((sSA6 *)ai->ai_addr)->sin6_addr)))) {
+					free($4);
+					freeaddrinfo(ai);
+					yyerror (&yylloc, conf, "BindAddress requires a unicast address.");
+					YYERROR;
+				}
+				memset(&fddpi.config.pic_bind_address, 0, sizeof(fddpi.config.pic_bind_address));
+				memcpy(&fddpi.config.pic_bind_address, ai->ai_addr, ai->ai_addrlen);
+				fddpi.config.pic_bind_addr_set = 1;
+				free($4);
+				freeaddrinfo(ai);
 			}
 			| peerparams TCTIMER '=' INTEGER ';'
 			{

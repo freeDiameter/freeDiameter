@@ -146,6 +146,7 @@ struct fd_config {
 	uint16_t	 cnf_port_tls;	/* the local port for Diameter/TLS (default: 5868) in host byte order */
 	uint16_t	 cnf_sctp_str;	/* default max number of streams for SCTP associations (def: 30) */
 	struct fd_list	 cnf_endpoints;	/* the local endpoints to bind the server to. list of struct fd_endpoint. default is empty (bind all). After servers are started, this is the actual list of endpoints including port information. */
+	struct fd_list	 cnf_private_endpoints;	/* listener endpoints not advertised in CER/CEA or on other listener sockets */
 	int		 cnf_thr_srv;	/* Number of threads per servers handling the connection state machines */
 	int		 cnf_processing_peers_minimum;	/* Number of processing peers that must be connected before other peers may connect */
 	regex_t		 cnf_processing_peers_pattern_regex;	/* Regex pattern for identifying processing peers */
@@ -303,6 +304,8 @@ struct peer_info {
 		
 		DiamId_t	pic_realm;	/* If configured, the daemon will check the received realm in CER/CEA matches this. */
 		uint16_t	pic_port; 	/* port to connect to. 0: default. */
+		sSS		pic_bind_address;	/* Optional local source address for outgoing connections. */
+		unsigned	pic_bind_addr_set : 1;
 		
 		uint32_t 	pic_lft;	/* lifetime of this peer when inactive (see pic_flags.exp definition) */
 		int		pic_tctimer; 	/* use this value for TcTimer instead of global, if != 0 */

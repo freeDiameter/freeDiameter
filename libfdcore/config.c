@@ -45,6 +45,18 @@
 # define GNUTLS_DEFAULT_DHBITS 1024
 #endif /* GNUTLS_DEFAULT_DHBITS */
 
+static int endpoint_addresses_equal(const struct fd_endpoint *a, const struct fd_endpoint *b)
+{
+	if (a->sa.sa_family != b->sa.sa_family)
+		return 0;
+	if (a->sa.sa_family == AF_INET)
+		return a->sin.sin_addr.s_addr == b->sin.sin_addr.s_addr;
+	if (a->sa.sa_family == AF_INET6)
+		return memcmp(&a->sin6.sin6_addr, &b->sin6.sin6_addr,
+			      sizeof(a->sin6.sin6_addr)) == 0;
+	return 0;
+}
+
 /* Initialize the fd_g_config structure to default values -- it should already have been initialized to all-0 */
 int fd_conf_init()
 {
@@ -67,6 +79,7 @@ int fd_conf_init()
 	fd_g_config->cnf_qout_limit = 30;
 	fd_g_config->cnf_qlocal_limit = 25;
 	fd_list_init(&fd_g_config->cnf_endpoints, NULL);
+	fd_list_init(&fd_g_config->cnf_private_endpoints, NULL);
 	fd_list_init(&fd_g_config->cnf_apps, NULL);
 	#ifdef DISABLE_SCTP
 	fd_g_config->cnf_flags.no_sctp = 1;
@@ -113,6 +126,11 @@ DECLARE_FD_DUMP_PROTOTYPE(fd_conf_dump)
 	} else {
 		CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "  Local endpoints ........ : "), return NULL);
 		CHECK_MALLOC_DO( fd_ep_dump( FD_DUMP_STD_PARAMS, 0, 0, &fd_g_config->cnf_endpoints ), return NULL);
+		CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "\n"), return NULL);
+	}
+	if (!FD_IS_LIST_EMPTY(&fd_g_config->cnf_private_endpoints)) {
+		CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "  Private endpoints ...... : "), return NULL);
+		CHECK_MALLOC_DO( fd_ep_dump( FD_DUMP_STD_PARAMS, 0, 0, &fd_g_config->cnf_private_endpoints ), return NULL);
 		CHECK_MALLOC_DO( fd_dump_extend( FD_DUMP_STD_PARAMS, "\n"), return NULL);
 	}
 	if (FD_IS_LIST_EMPTY(&fd_g_config->cnf_apps)) {
@@ -272,6 +290,25 @@ int fd_conf_parse()
 	
 	/* close the file */
 	fclose(fddin);
+
+	if (!FD_IS_LIST_EMPTY(&fd_g_config->cnf_private_endpoints)) {
+		struct fd_list *pub, *priv;
+		if (FD_IS_LIST_EMPTY(&fd_g_config->cnf_endpoints)) {
+			TRACE_ERROR("PrivateListenOn requires at least one explicit ListenOn endpoint.");
+			return EINVAL;
+		}
+		for (priv = fd_g_config->cnf_private_endpoints.next;
+		     priv != &fd_g_config->cnf_private_endpoints; priv = priv->next) {
+			for (pub = fd_g_config->cnf_endpoints.next;
+			     pub != &fd_g_config->cnf_endpoints; pub = pub->next) {
+				if (endpoint_addresses_equal((struct fd_endpoint *)priv,
+							     (struct fd_endpoint *)pub)) {
+					TRACE_ERROR("An endpoint cannot be listed in both ListenOn and PrivateListenOn.");
+					return EINVAL;
+				}
+			}
+		}
+	}
 	
 	/* Check that TLS private key was given */
 	if (! fd_g_config->cnf_sec_data.key_file) {
@@ -340,6 +377,22 @@ int fd_conf_parse()
 		TRACE_ERROR( "TCP and SCTP cannot be disabled at the same time.");
 		return EINVAL;
 	}
+
+	{
+		struct fd_list *li;
+		for (li = fd_g_peers.next; li != &fd_g_peers; li = li->next) {
+			struct fd_peer *peer = (struct fd_peer *)li;
+			int family;
+			if (!peer->p_hdr.info.config.pic_bind_addr_set)
+				continue;
+			family = peer->p_hdr.info.config.pic_bind_address.ss_family;
+			if ((fd_g_config->cnf_flags.no_ip4 && family == AF_INET) ||
+			    (fd_g_config->cnf_flags.no_ip6 && family == AF_INET6)) {
+				TRACE_ERROR("ConnectPeer BindAddress conflicts with the daemon IP family settings.");
+				return EINVAL;
+			}
+		}
+	}
 	
 	/* Validate local endpoints */
 	fd_g_config->cnf_flags.no_bind = FD_IS_LIST_EMPTY(&fd_g_config->cnf_endpoints);
@@ -355,6 +408,31 @@ int fd_conf_parse()
 				fd_sa_sdump_numeric(sa_buf, &ep->sa);
 				LOG_N("Info: Removing local address conflicting with the flags no_IP / no_IP6 : %s", sa_buf);
 				free(ep);
+			}
+		}
+		if (!FD_IS_LIST_EMPTY(&fd_g_config->cnf_private_endpoints) &&
+		    (fd_g_config->cnf_flags.no_ip4 || fd_g_config->cnf_flags.no_ip6)) {
+			struct fd_list *li;
+			for (li = fd_g_config->cnf_private_endpoints.next;
+			     li != &fd_g_config->cnf_private_endpoints; li = li->next) {
+				struct fd_endpoint *ep = (struct fd_endpoint *)li;
+				if ((fd_g_config->cnf_flags.no_ip4 && ep->sa.sa_family == AF_INET) ||
+				    (fd_g_config->cnf_flags.no_ip6 && ep->sa.sa_family == AF_INET6)) {
+					char sa_buf[sSA_DUMP_STRLEN];
+					li = li->prev;
+					fd_list_unlink(&ep->chain);
+					fd_sa_sdump_numeric(sa_buf, &ep->sa);
+					LOG_N("Info: Removing private local address conflicting with the flags no_IP / no_IP6 : %s", sa_buf);
+					free(ep);
+				}
+			}
+			if (FD_IS_LIST_EMPTY(&fd_g_config->cnf_private_endpoints)) {
+				TRACE_ERROR("PrivateListenOn has no endpoints enabled by the daemon IP family settings.");
+				return EINVAL;
+			}
+			if (FD_IS_LIST_EMPTY(&fd_g_config->cnf_endpoints)) {
+				TRACE_ERROR("PrivateListenOn requires at least one public ListenOn endpoint after IP family filtering.");
+				return EINVAL;
 			}
 		}
 	}
@@ -561,6 +639,7 @@ int fd_conf_deinit()
 	
 	/* Destroy the local endpoints and applications */
 	CHECK_FCT_DO(fd_ep_filter(&fd_g_config->cnf_endpoints, 0 ), );
+	CHECK_FCT_DO(fd_ep_filter(&fd_g_config->cnf_private_endpoints, 0 ), );
 	CHECK_FCT_DO(fd_app_empty(&fd_g_config->cnf_apps ), );
 	
 	/* Destroy the local identity */	

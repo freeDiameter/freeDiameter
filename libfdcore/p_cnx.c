@@ -126,6 +126,11 @@ static int prepare_connection_list(struct fd_peer * peer)
 					&peer->p_hdr.info.pi_endpoints, 
 					AF_INET));
 	}
+	if (peer->p_hdr.info.config.pic_bind_addr_set) {
+		CHECK_FCT( fd_ep_filter_family(
+					&peer->p_hdr.info.pi_endpoints,
+					peer->p_hdr.info.config.pic_bind_address.ss_family));
+	}
 	
 	/* We don't use the alternate addresses that were sent by the remote peer */
 	CHECK_FCT( fd_ep_clearflags(&peer->p_hdr.info.pi_endpoints, EP_FL_ADV) );
@@ -271,15 +276,37 @@ static void * connect_thr(void * arg)
 		
 		switch (nc->proto) {
 			case IPPROTO_TCP:
-/* TODO: use no_bind and first of cnf_endpoints of nc->ss.sa_family ? */
-				cnx = fd_cnx_cli_connect_tcp((sSA *)&nc->ss, sSAlen(&nc->ss));
+				cnx = fd_cnx_cli_connect_tcp((sSA *)&nc->ss, sSAlen(&nc->ss),
+					peer->p_hdr.info.config.pic_bind_addr_set ?
+					(sSA *)&peer->p_hdr.info.config.pic_bind_address : NULL);
 				break;
 #ifndef DISABLE_SCTP			
-			case IPPROTO_SCTP:
-				cnx = fd_cnx_cli_connect_sctp((peer->p_hdr.info.config.pic_flags.pro3 == PI_P3_IP) ? 1 : fd_g_config->cnf_flags.no_ip6, 
-							nc->port, &peer->p_hdr.info.pi_endpoints,
-							fd_g_config->cnf_flags.no_bind ? NULL : &fd_g_config->cnf_endpoints, nc->dtls, nc->allow_tls_fallback);
+			case IPPROTO_SCTP: {
+				struct fd_list bind_list;
+				struct fd_endpoint bind_endpoint;
+				struct fd_list *src_list;
+				int no_ip6;
+				if (peer->p_hdr.info.config.pic_bind_addr_set) {
+					fd_list_init(&bind_list, NULL);
+					memset(&bind_endpoint, 0, sizeof(bind_endpoint));
+					memcpy(&bind_endpoint.ss, &peer->p_hdr.info.config.pic_bind_address,
+					       sizeof(bind_endpoint.ss));
+					bind_endpoint.flags = EP_FL_CONF;
+					fd_list_init(&bind_endpoint.chain, &bind_endpoint);
+					fd_list_insert_before(&bind_list, &bind_endpoint.chain);
+					src_list = &bind_list;
+					no_ip6 = bind_endpoint.ss.ss_family == AF_INET;
+				} else {
+					src_list = fd_g_config->cnf_flags.no_bind ?
+						NULL : &fd_g_config->cnf_endpoints;
+					no_ip6 = (peer->p_hdr.info.config.pic_flags.pro3 == PI_P3_IP) ?
+						1 : fd_g_config->cnf_flags.no_ip6;
+				}
+				cnx = fd_cnx_cli_connect_sctp(no_ip6, nc->port,
+					&peer->p_hdr.info.pi_endpoints, src_list,
+					nc->dtls, nc->allow_tls_fallback);
 				break;
+			}
 #endif /* DISABLE_SCTP */
 		}
 		

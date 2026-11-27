@@ -114,7 +114,7 @@ int fd_tls_prepare(gnutls_session_t * session, int mode, int dtls, char * priori
 /* TCP */
 int fd_tcp_create_bind_server( int * sock, sSA * sa, socklen_t salen );
 int fd_tcp_listen( int sock );
-int fd_tcp_client( int *sock, sSA * sa, socklen_t salen );
+int fd_tcp_client( int *sock, sSA * sa, socklen_t salen, sSA * local_sa, socklen_t local_salen );
 int fd_tcp_get_local_ep(int sock, sSS * ss, socklen_t *sl);
 int fd_tcp_get_remote_ep(int sock, sSS * ss, socklen_t *sl);
 

@@ -119,13 +119,15 @@ int fd_tcp_listen( int sock )
 }
 
 /* Create a client socket and connect to remote server */
-int fd_tcp_client( int *sock, sSA * sa, socklen_t salen )
+int fd_tcp_client( int *sock, sSA * sa, socklen_t salen, sSA * local_sa, socklen_t local_salen )
 {
 	int ret = 0;
 	int s;
 	
-	TRACE_ENTRY("%p %p %d", sock, sa, salen);
-	CHECK_PARAMS( sock && (*sock <= 0) && sa && salen );
+	TRACE_ENTRY("%p %p %d %p %d", sock, sa, salen, local_sa, local_salen);
+	CHECK_PARAMS( sock && (*sock <= 0) && sa && salen &&
+		      ((!local_sa && !local_salen) ||
+		       (local_sa && local_salen && local_sa->sa_family == sa->sa_family)) );
 	
 	/* Create the socket */
 	CHECK_SYS(  s = socket(sa->sa_family, SOCK_STREAM, IPPROTO_TCP)  );
@@ -136,14 +138,22 @@ int fd_tcp_client( int *sock, sSA * sa, socklen_t salen )
 	/* Cleanup if we are cancelled */
 	pthread_cleanup_push(fd_cleanup_socket, &s);
 	
-	/* Try connecting to the remote address */
-	ret = connect(s, sa, salen);
+	/* Bind to a selected local address, when requested. */
+	if (local_sa && bind(s, local_sa, local_salen) < 0) {
+		ret = errno;
+		LOG_A("bind returned an error: %s", strerror(ret));
+	} else {
+		/* Try connecting to the remote address */
+		ret = connect(s, sa, salen);
+		if (ret < 0) {
+			ret = errno;
+			LOG_A("connect returned an error: %s", strerror(ret));
+		}
+	}
 	
 	pthread_cleanup_pop(0);
 	
-	if (ret < 0) {
-		ret = errno;
-		LOG_A( "connect returned an error: %s", strerror(ret));
+	if (ret != 0) {
 		CHECK_SYS_DO( close(s), /* continue */ );
 		*sock = -1;
 		return ret;

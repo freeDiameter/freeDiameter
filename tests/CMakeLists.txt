@@ -292,6 +292,16 @@ IF(BUILD_MULTI_PEER_TESTS)
 			${CMAKE_BINARY_DIR} ${MULTI_PEER_DTLS_VALUE})
 	SET_TESTS_PROPERTIES(test_sctp_security_config PROPERTIES LABELS "multi-peer" TIMEOUT 90)
 
+	IF(DISABLE_SCTP)
+		SET(PEER_BIND_SCTP_DISABLED 1)
+	ELSE()
+		SET(PEER_BIND_SCTP_DISABLED 0)
+	ENDIF()
+	ADD_TEST(NAME test_peer_bind_addresses
+		COMMAND ${DBG_INTERACTIVE_TEST_PYTHON} -B ${CMAKE_CURRENT_SOURCE_DIR}/test_peer_bind_addresses.py
+			$<TARGET_FILE:freeDiameterd> ${CMAKE_BINARY_DIR} ${PEER_BIND_SCTP_DISABLED})
+	SET_TESTS_PROPERTIES(test_peer_bind_addresses PROPERTIES LABELS "multi-peer" TIMEOUT 120)
+
 	IF(TARGET test_netemul)
 		ADD_EXECUTABLE(test_netemul_process test_netemul_process.c)
 		TARGET_LINK_LIBRARIES(test_netemul_process

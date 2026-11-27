@@ -393,7 +393,7 @@ struct cnxctx * fd_cnx_serv_tcp(uint16_t port, int family, struct fd_endpoint * 
 struct cnxctx * fd_cnx_serv_sctp(uint16_t port, struct fd_list * ep_list, int dtls);
 int             fd_cnx_serv_listen(struct cnxctx * conn);
 struct cnxctx * fd_cnx_serv_accept(struct cnxctx * serv);
-struct cnxctx * fd_cnx_cli_connect_tcp(sSA * sa, socklen_t addrlen);
+struct cnxctx * fd_cnx_cli_connect_tcp(sSA * sa, socklen_t addrlen, sSA * local_sa);
 struct cnxctx * fd_cnx_cli_connect_sctp(int no_ip6, uint16_t port, struct fd_list * list, struct fd_list * src_list, int dtls, int allow_tls_fallback);
 int             fd_cnx_start_clear(struct cnxctx * conn, int loop);
 void		fd_cnx_sethostname(struct cnxctx * conn, DiamId_t hn);

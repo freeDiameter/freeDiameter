@@ -83,10 +83,18 @@
 #No_IPv6;
 
 # Specify local addresses the server must bind to
-# Default : listen on all addresses available.
+# ListenOn addresses are also advertised in CER/CEA and SCTP INIT.
+# Default : listen on all addresses available and advertise their addresses.
 #ListenOn = "202.249.37.5";
 #ListenOn = "2001:200:903:2::202:1";
 #ListenOn = "fe80::21c:5ff:fe98:7d62%eth0";
+
+# Bind additional listener addresses without advertising them to peers on the
+# public ListenOn sockets. This requires at least one explicit ListenOn entry;
+# private endpoints use separate SCTP listener sockets. A peer connecting to a
+# private endpoint can still observe that endpoint. This is not an access
+# control mechanism; restrict access with network policy or a firewall.
+#PrivateListenOn = "10.0.0.10";
 
 
 ##############################################################
@@ -294,6 +302,7 @@ TLS_Cred = "/etc/ssl/certs/freeDiameter.pem", "/etc/ssl/private/freeDiameter.key
 #               # requires ENABLE_DTLS_SCTP, not No_TLS or TLS_old_method.
 #  No_TLS;       # assume transparent security (e.g. IPsec) instead of TLS/DTLS.
 #  Port = 5868;  # The port to connect to
+#  BindAddress = "10.0.0.2"; # Numeric local source address; omit for default binding
 #  TcTimer = 30;
 #  TwTimer = 30;
 #  ConnectTo = "202.249.37.5";

@@ -297,7 +297,8 @@ struct cnxctx * fd_cnx_serv_accept(struct cnxctx * serv)
 }
 
 /* Client side: connect to a remote server -- cancelable */
-struct cnxctx * fd_cnx_cli_connect_tcp(sSA * sa /* contains the port already */, socklen_t addrlen)
+struct cnxctx * fd_cnx_cli_connect_tcp(sSA * sa /* contains the port already */, socklen_t addrlen,
+				       sSA * local_sa)
 {
 	int sock = 0;
 	struct cnxctx * cnx = NULL;
@@ -312,7 +313,8 @@ struct cnxctx * fd_cnx_cli_connect_tcp(sSA * sa /* contains the port already */,
 
 	/* Create the socket and connect, which can take some time and/or fail */
 	{
-		int ret = fd_tcp_client( &sock, sa, addrlen );
+		int ret = fd_tcp_client( &sock, sa, addrlen, local_sa,
+					 local_sa ? sSAlen((sSS *)local_sa) : 0 );
 		if (ret != 0) {
 			LOG_N("TCP connection to %s failed: %s", sa_buf, strerror(ret));
 			return NULL;

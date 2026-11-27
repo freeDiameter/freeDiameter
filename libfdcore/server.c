@@ -440,6 +440,12 @@ int fd_servers_start()
 			CHECK_MALLOC( s->conn = fd_cnx_serv_sctp(fd_g_config->cnf_port, empty_conf_ep ? NULL : &fd_g_config->cnf_endpoints, 0) );
 			fd_list_insert_before( &FD_SERVERS, &s->chain );
 			CHECK_POSIX( pthread_create( &s->thr, NULL, serv_th, s ) );
+			if (!FD_IS_LIST_EMPTY(&fd_g_config->cnf_private_endpoints)) {
+				CHECK_MALLOC( s = new_serv(IPPROTO_SCTP, 0) );
+				CHECK_MALLOC( s->conn = fd_cnx_serv_sctp(fd_g_config->cnf_port, &fd_g_config->cnf_private_endpoints, 0) );
+				fd_list_insert_before( &FD_SERVERS, &s->chain );
+				CHECK_POSIX( pthread_create( &s->thr, NULL, serv_th, s ) );
+			}
 		}
 		
 		/* Create the server on secure port */
@@ -452,6 +458,16 @@ int fd_servers_start()
 			CHECK_MALLOC( s->conn = fd_cnx_serv_sctp(fd_g_config->cnf_port_tls, empty_conf_ep ? NULL : &fd_g_config->cnf_endpoints, s->secur == 1) );
 			fd_list_insert_before( &FD_SERVERS, &s->chain );
 			CHECK_POSIX( pthread_create( &s->thr, NULL, serv_th, s ) );
+			if (!FD_IS_LIST_EMPTY(&fd_g_config->cnf_private_endpoints)) {
+#ifdef ENABLE_DTLS_SCTP
+				CHECK_MALLOC( s = new_serv(IPPROTO_SCTP, 1) );
+#else
+				CHECK_MALLOC( s = new_serv(IPPROTO_SCTP, 2) );
+#endif
+				CHECK_MALLOC( s->conn = fd_cnx_serv_sctp(fd_g_config->cnf_port_tls, &fd_g_config->cnf_private_endpoints, s->secur == 1) );
+				fd_list_insert_before( &FD_SERVERS, &s->chain );
+				CHECK_POSIX( pthread_create( &s->thr, NULL, serv_th, s ) );
+			}
 		}
 		
 #endif /* DISABLE_SCTP */
@@ -509,6 +525,30 @@ int fd_servers_start()
 				if (fd_g_config->cnf_flags.no_ip6 && (sa->sa_family == AF_INET6))
 					continue;
 				
+				if (fd_g_config->cnf_port) {
+					CHECK_MALLOC( s = new_serv(IPPROTO_TCP, 0) );
+					CHECK_MALLOC( s->conn = fd_cnx_serv_tcp(fd_g_config->cnf_port, sa->sa_family, ep) );
+					fd_list_insert_before( &FD_SERVERS, &s->chain );
+					CHECK_POSIX( pthread_create( &s->thr, NULL, serv_th, s ) );
+				}
+
+				if (fd_g_config->cnf_port_tls) {
+					CHECK_MALLOC( s = new_serv(IPPROTO_TCP, 1) );
+					CHECK_MALLOC( s->conn = fd_cnx_serv_tcp(fd_g_config->cnf_port_tls, sa->sa_family, ep) );
+					fd_list_insert_before( &FD_SERVERS, &s->chain );
+					CHECK_POSIX( pthread_create( &s->thr, NULL, serv_th, s ) );
+				}
+			}
+
+			for (li = fd_g_config->cnf_private_endpoints.next;
+			     li != &fd_g_config->cnf_private_endpoints; li = li->next) {
+				struct fd_endpoint * ep = (struct fd_endpoint *)li;
+				sSA * sa = (sSA *) &ep->ss;
+				if (fd_g_config->cnf_flags.no_ip4 && (sa->sa_family == AF_INET))
+					continue;
+				if (fd_g_config->cnf_flags.no_ip6 && (sa->sa_family == AF_INET6))
+					continue;
+
 				if (fd_g_config->cnf_port) {
 					CHECK_MALLOC( s = new_serv(IPPROTO_TCP, 0) );
 					CHECK_MALLOC( s->conn = fd_cnx_serv_tcp(fd_g_config->cnf_port, sa->sa_family, ep) );
