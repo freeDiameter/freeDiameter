@@ -9,6 +9,8 @@ Features and extensions depend on build options and platform prerequisites.
   two-peer test without changing system configuration.
 - [Operations](operations.md): daemon configuration, peers, security,
   discovery, signals and troubleshooting.
+- [RFC 6733 compatibility](rfc6733-compatibility.md): implementation status,
+  verified errata, transport qualifications and conformance limits.
 - [Extensions](extensions/README.md): select, load and configure extensions.
 - [Development](development.md): component boundaries, public APIs, extension
   lifecycle and tests.
