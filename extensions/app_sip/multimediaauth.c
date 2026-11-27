@@ -73,7 +73,10 @@ int app_sip_MAR_cb( struct msg ** msg, struct avp * paramavp, struct session * s
 	qry = *msg;
 	CHECK_FCT( fd_msg_new_answer_from_req ( fd_g_config->cnf_dict, msg, 0 ) );
 	ans = *msg;
-	
+	CHECK_FCT( fd_msg_avp_new ( sip_dict.Auth_Application_Id, 0, &avp ) );
+	val.u32 = 6;
+	CHECK_FCT( fd_msg_avp_setvalue ( avp, &val ) );
+	CHECK_FCT( fd_msg_avp_add ( ans, MSG_BRW_LAST_CHILD, avp ) );
 
 
 	/* Add the appropriate command code & Auth-Application-Id 

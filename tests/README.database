@@ -1,0 +1,38 @@
+Optional EAP and SIP database tests
+===================================
+
+These tests can run without containers. They require built app_diameap and
+app_sip extensions, their dictionaries, the EAP identity and MD5 plugins,
+MariaDB/MySQL development libraries and a disposable MariaDB instance.
+The exchange tests also require Python 3, OpenSSL and local TCP networking;
+the SIP dispatch test uses the mariadb command-line client.
+
+Use an isolated, temporary database instance, never an existing production
+database: the fixtures create tables and the SIP tests modify user records.
+The tests use a passwordless local-only account named fd_test and fixed test
+credentials. Do not expose that account or the test database socket.
+
+Create empty databases named fd_diameap and fd_sip in the disposable
+instance, and a local account 'fd_test'@'localhost' with SELECT on fd_diameap
+and SELECT, UPDATE on fd_sip. Import the following files, in order, as an
+administrator of that instance:
+
+  fd_diameap: extensions/app_diameap/diameap.sql, tests/test_diameap_db.sql
+  fd_sip:     doc/app_sip.sql, tests/test_sip_db.sql
+
+The accounting test is separately optional and needs its own PostgreSQL
+database; see testappacct.c for its table and connection requirements.
+
+From the repository root, configure and build with the optional tests enabled:
+
+  cmake -S . -B test.database -DBUILD_APP_DIAMEAP=ON -DBUILD_APP_SIP=ON \
+    -DBUILD_DICT_NASREQ=ON -DBUILD_DICT_EAP=ON -DBUILD_DICT_SIP=ON \
+    -DBUILD_EAP_IDENTITY=ON -DBUILD_EAP_MD5=ON \
+    -DTEST_DIAMEAP_MYSQL=ON -DTEST_DIAMEAP_EXCHANGE=ON \
+    -DTEST_APP_SIP_MYSQL=ON -DTEST_APP_SIP_DISPATCH=ON
+  cmake --build test.database --parallel 2
+  FD_TEST_MYSQL_SOCKET=/path/to/disposable/mysql.sock \
+    FD_TEST_MYSQL_DATABASE=fd_sip FD_TEST_MYSQL_USER=fd_test \
+    ctest --test-dir test.database -R '^(test_diameap_mysql|test_diameap_exchange|test_sip_db|test_sip_dispatch)$' --output-on-failure
+
+The test fixtures are not safe to reuse with application data.

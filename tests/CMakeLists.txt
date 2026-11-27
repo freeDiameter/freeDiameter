@@ -106,6 +106,30 @@ IF(BUILD_APP_ACCT OR ALL_EXTENSIONS)
 	ENDIF(TEST_APP_ACCT)
 ENDIF(BUILD_APP_ACCT OR ALL_EXTENSIONS)
 
+IF(BUILD_APP_DIAMEAP OR ALL_EXTENSIONS)
+	OPTION(TEST_DIAMEAP_MYSQL "Test DiamEAP MySQL user lookup against a configured database" OFF)
+	OPTION(TEST_DIAMEAP_EXCHANGE "Test a Diameter EAP exchange against a configured database" OFF)
+	IF(TEST_DIAMEAP_MYSQL)
+		FIND_PACKAGE(MySQL REQUIRED)
+		ADD_EXECUTABLE(test_diameap_mysql test_diameap_mysql.c ../extensions/app_diameap/diameap_mysql.c)
+		TARGET_INCLUDE_DIRECTORIES(test_diameap_mysql PRIVATE ${MySQL_INCLUDE_DIR} ../extensions/app_diameap)
+		TARGET_LINK_LIBRARIES(test_diameap_mysql libfdproto libfdcore ${MySQL_LIBRARY} ${GNUTLS_LIBRARIES} ${GCRYPT_LIBRARY})
+		ADD_TEST(NAME test_diameap_mysql COMMAND test_diameap_mysql ${TEST_ARGUMENTS})
+	ENDIF()
+ENDIF()
+
+IF(BUILD_APP_SIP OR ALL_EXTENSIONS)
+	OPTION(TEST_APP_SIP_MYSQL "Test SIP MySQL database operations against a configured database" OFF)
+	OPTION(TEST_APP_SIP_DISPATCH "Test Diameter SIP request dispatch against a configured database" OFF)
+	IF(TEST_APP_SIP_MYSQL)
+		FIND_PACKAGE(MySQL REQUIRED)
+		ADD_EXECUTABLE(test_sip_db test_sip_db.c ../extensions/app_sip/libapp_sip.c)
+		TARGET_INCLUDE_DIRECTORIES(test_sip_db PRIVATE ${MySQL_INCLUDE_DIR} ../extensions/app_sip)
+		TARGET_LINK_LIBRARIES(test_sip_db libfdproto libfdcore ${MySQL_LIBRARY} ${GNUTLS_LIBRARIES} ${GCRYPT_LIBRARY})
+		ADD_TEST(NAME test_sip_db COMMAND test_sip_db ${TEST_ARGUMENTS})
+	ENDIF()
+ENDIF()
+
 
 #############################
 # Compile each test
@@ -168,13 +192,56 @@ IF(BUILD_TWO_PEER_TESTS OR (BUILD_MULTI_PEER_TESTS AND (TWO_PEER_USE_TLS OR TWO_
 	MESSAGE(FATAL_ERROR "Two-peer test options were renamed: unset BUILD_TWO_PEER_TESTS, TWO_PEER_USE_TLS and TWO_PEER_USE_SCTP, and use BUILD_MULTI_PEER_TESTS, MULTI_PEER_USE_TLS and MULTI_PEER_USE_SCTP instead")
 ENDIF()
 
-IF(TARGET dbg_interactive OR BUILD_MULTI_PEER_TESTS)
+IF(TARGET dbg_interactive OR BUILD_MULTI_PEER_TESTS OR TEST_DIAMEAP_EXCHANGE OR TEST_APP_SIP_DISPATCH)
 	IF(CMAKE_VERSION VERSION_LESS 3.12)
 		FIND_PACKAGE(PythonInterp 3.6 REQUIRED)
 		SET(DBG_INTERACTIVE_TEST_PYTHON ${PYTHON_EXECUTABLE})
 	ELSE()
 		FIND_PACKAGE(Python3 3.6 REQUIRED COMPONENTS Interpreter)
 		SET(DBG_INTERACTIVE_TEST_PYTHON ${Python3_EXECUTABLE})
+	ENDIF()
+ENDIF()
+
+IF(TEST_DIAMEAP_EXCHANGE)
+	IF(NOT TARGET app_diameap OR NOT TARGET dict_nasreq OR NOT TARGET dict_eap
+			OR NOT TARGET eap_identity OR NOT TARGET eap_md5)
+		MESSAGE(FATAL_ERROR "TEST_DIAMEAP_EXCHANGE requires app_diameap, dict_nasreq, dict_eap, eap_identity and eap_md5")
+	ENDIF()
+	FIND_PROGRAM(DIAMEAP_TEST_OPENSSL NAMES openssl)
+	IF(NOT DIAMEAP_TEST_OPENSSL)
+		MESSAGE(FATAL_ERROR "TEST_DIAMEAP_EXCHANGE requires openssl")
+	ENDIF()
+	ADD_LIBRARY(test_diameap_exchange_client MODULE test_diameap_exchange_client.c)
+	SET_TARGET_PROPERTIES(test_diameap_exchange_client PROPERTIES PREFIX "" SUFFIX ".fdx")
+	TARGET_LINK_LIBRARIES(test_diameap_exchange_client libfdproto libfdcore ${GCRYPT_LIBRARY})
+	ADD_TEST(NAME test_diameap_exchange
+		COMMAND ${DBG_INTERACTIVE_TEST_PYTHON} -B ${CMAKE_CURRENT_SOURCE_DIR}/test_diameap_exchange.py
+			$<TARGET_FILE:freeDiameterd> $<TARGET_FILE:test_diameap_exchange_client>
+			$<TARGET_FILE:app_diameap> $<TARGET_FILE:eap_identity> $<TARGET_FILE:eap_md5>
+			$<TARGET_FILE:dict_nasreq> $<TARGET_FILE:dict_eap>)
+	SET_TESTS_PROPERTIES(test_diameap_exchange PROPERTIES TIMEOUT 120
+		ENVIRONMENT "FD_MULTI_PEER_TLS=1;FD_MULTI_PEER_SCTP=0;FD_MULTI_PEER_OPENSSL=${DIAMEAP_TEST_OPENSSL}")
+ENDIF()
+
+IF(TEST_APP_SIP_DISPATCH)
+	IF(NOT TARGET app_sip OR NOT TARGET dict_sip)
+		MESSAGE(FATAL_ERROR "TEST_APP_SIP_DISPATCH requires app_sip and dict_sip")
+	ENDIF()
+	FIND_PROGRAM(SIP_TEST_OPENSSL NAMES openssl)
+	IF(NOT SIP_TEST_OPENSSL)
+		MESSAGE(FATAL_ERROR "TEST_APP_SIP_DISPATCH requires openssl")
+	ENDIF()
+	ADD_LIBRARY(test_sip_dispatch_client MODULE test_sip_dispatch_client.c)
+	SET_TARGET_PROPERTIES(test_sip_dispatch_client PROPERTIES PREFIX "" SUFFIX ".fdx")
+	TARGET_LINK_LIBRARIES(test_sip_dispatch_client libfdproto libfdcore)
+	ADD_TEST(NAME test_sip_dispatch
+		COMMAND ${DBG_INTERACTIVE_TEST_PYTHON} -B ${CMAKE_CURRENT_SOURCE_DIR}/test_sip_dispatch.py
+			$<TARGET_FILE:freeDiameterd> $<TARGET_FILE:test_sip_dispatch_client>
+			$<TARGET_FILE:app_sip> $<TARGET_FILE:dict_sip>)
+	SET_TESTS_PROPERTIES(test_sip_dispatch PROPERTIES TIMEOUT 120 RESOURCE_LOCK sip_test_database
+		ENVIRONMENT "FD_MULTI_PEER_TLS=1;FD_MULTI_PEER_SCTP=0;FD_MULTI_PEER_OPENSSL=${SIP_TEST_OPENSSL}")
+	IF(TEST_APP_SIP_MYSQL)
+		SET_TESTS_PROPERTIES(test_sip_db PROPERTIES RESOURCE_LOCK sip_test_database)
 	ENDIF()
 ENDIF()
 
