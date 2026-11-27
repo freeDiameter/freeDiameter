@@ -1,0 +1,82 @@
+Local container build and test environment
+==========================================
+
+This image contains the Ubuntu 24.04 CI build dependencies and the additional
+libraries for optional extensions, including a pinned json-schema source
+revision, PostgreSQL and MariaDB. Image creation requires network access to
+Ubuntu and GitHub.
+
+From the repository root, build the image with rootful Podman:
+
+  sudo -A podman build -t freediameter-test -f contrib/containers/Containerfile contrib/containers
+
+Create a separate build directory owned by the current user, then mount the
+source read-only and the build directory read-write. Running the build as the
+current UID and GID avoids root-owned build outputs:
+
+  mkdir test.container
+  sudo -A podman run --rm --user "$(id -u):$(id -g)" -e HOME=/tmp \
+    -v "$PWD:/src:ro" -v "$PWD/test.container:/build:rw" \
+    freediameter-test sh -c 'cmake -S /src -B /build -DALL_EXTENSIONS=ON &&
+      cmake --build /build --parallel 2 &&
+      ctest --test-dir /build --output-on-failure'
+
+Database-backed tests
+---------------------
+
+Use a fresh build directory and run the database helper as container root:
+
+  mkdir test.container-databases
+  sudo -A podman run --rm \
+    -v "$PWD:/src:ro" -v "$PWD/test.container-databases:/build:rw" \
+    freediameter-test run-database-tests "$(id -u)" "$(id -g)"
+
+The helper starts disposable PostgreSQL and MariaDB instances in the
+container, creates the app_acct test table and imports the app_diameap and
+app_sip schemas, then builds all extensions and runs CTest as the specified
+non-root UID/GID. The SIP fixture supplies a mapping table used by app_sip
+but absent from the sample schema. PostgreSQL uses local trust authentication;
+MariaDB has a passwordless test-only account with read access to the EAP
+database and read/update access to the SIP database. Both listen only on Unix
+sockets in the container; do not use this setup for real data or expose its
+sockets. The databases disappear with the container.
+These tests can also run without a container using separately provisioned
+disposable databases; see tests/README.database.
+
+The database tests exercise app_acct storage, app_diameap user lookup and
+two Diameter EAP-MD5 exchanges over TLS (valid and incorrect passwords),
+and app_sip subscriber, address, roaming and registration database operations.
+The EAP-MD5 method and fixture credentials are for testing, not production
+authentication. The SIP test updates data and must only be run against its
+disposable fixture. A two-peer TLS test also exercises Diameter SIP
+user authorization, location and server assignment requests, plus the
+identity-mismatch rejection for multimedia authentication. It checks answer
+fields and the server-assignment database update; it does not cover every
+SIP command or authentication path.
+
+The full CTest and multi-peer runs need Podman's default bridge network:
+daemon scenarios need a non-loopback local address. No ports are published by
+these commands, but the bridge normally permits outbound network access.
+
+Multi-peer and extension tests
+------------------------------
+
+To enable the local peer scenarios and dictionary/extension tests, use a
+separate build directory:
+
+  mkdir test.container-peers
+  sudo -A podman run --rm --user "$(id -u):$(id -g)" -e HOME=/tmp \
+    -v "$PWD:/src:ro" -v "$PWD/test.container-peers:/build:rw" \
+    freediameter-test sh -c 'cmake -S /src -B /build -DALL_EXTENSIONS=ON \
+      -DBUILD_MULTI_PEER_TESTS=ON -DMULTI_PEER_USE_TLS=ON &&
+      cmake --build /build --parallel 2 &&
+      ctest --test-dir /build -L multi-peer --output-on-failure'
+
+Use ctest -R '^test_multi_peer_discovery$' in that build to select just the
+discovery scenario. Use a fresh build directory when changing configurations.
+
+The container shares the host kernel. SCTP, network namespace, netem and
+debugger-dependent tests may be skipped or require host configuration and
+container permissions that are not enabled here. Do not use --privileged or
+change host-wide sysctls without administrator approval. Check CTest output
+for skipped tests; a passing subset is not equivalent to the full CI matrix.

@@ -1,0 +1,20 @@
+FROM docker.io/library/ubuntu:24.04
+
+ENV DEBIAN_FRONTEND=noninteractive
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    bison build-essential ca-certificates cmake curl default-libmysqlclient-dev \
+    flex gdb git iproute2 kmod libgcrypt20-dev libgnutls28-dev libidn2-dev \
+    libjsoncpp-dev libpcre3-dev libpq-dev libsctp-dev libxml2-dev mariadb-server openssl \
+    postgresql \
+    pkg-config python3 python3-dev swig util-linux
+
+RUN git clone https://github.com/nfotex/json-schema.git /opt/json-schema && \
+    git -C /opt/json-schema checkout --detach 6a8bd1c8008f49a0bb2512210132466bf28dd986 && \
+    cmake -S /opt/json-schema -B /opt/json-schema-build \
+      -DCMAKE_INSTALL_PREFIX=/usr/local -DCMAKE_POSITION_INDEPENDENT_CODE=ON && \
+    cmake --build /opt/json-schema-build --parallel 2 && \
+    cmake --install /opt/json-schema-build && \
+    pkg-config --modversion json-schema
+
+COPY run-database-tests.sh /usr/local/bin/run-database-tests
+RUN chmod 755 /usr/local/bin/run-database-tests
